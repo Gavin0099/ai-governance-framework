@@ -3813,3 +3813,49 @@ Stop on any new blocking and do not start Gate 2.
   remain separate non-blocking follow-ups.
 - No owner signature, canonical promotion, resource admission, Gate 2 arm or
   push is claimed.
+
+## 2026-07-26 — Scorer-handoff v3 offline-semantics review fix (`9918d3a5`)
+
+### Review Input And Decision
+- Input re-review of `1f583b00` plus `0e9c229f`: `CHANGES_REQUESTED` before
+  owner signature.
+- Blocking N1 reproduced: a source packet with self-consistent artifact
+  digests but contradictory tracked-path artifact, workspace inventory and
+  scorer core passed the handoff's offline source reconstruction.
+- Blocking N2 reproduced: build hard-coded `blinding_compromised=null`, and
+  verify required null, so an experimenter could not preserve a real residual
+  leak flag in a deterministically reproducible handoff.
+- Status after correction: both blockers are resolved in implementation commit
+  `9918d3a5`; independent re-review and owner re-sign remain pending.
+
+### Resolution
+- Offline reconstruction now repeats the packet verifier's three semantic
+  checks before assembling any handoff.
+- Build and verify accept the same optional
+  `--blinding-compromised-reason`; absence deterministically produces
+  null/null, while a non-blank reason produces true plus the exact string.
+  Omission, substitution and blank input fail.
+- The contract, amendment v4, exact candidate manifest and receipt hashes were
+  regenerated. Amendment §F also states that an independent reviewer must
+  inspect the self-referential verifier source in addition to running
+  `verify-candidate`.
+
+### Evidence
+- Original N1/N2 regressions: FAIL before implementation as expected.
+- Scorer packet: PASS 14/14.
+- Scorer handoff: PASS 20/20, including both new regressions.
+- Frozen v2 redaction: PASS 23/23.
+- Candidate verifier: PASS 11/11; manifest SHA-256
+  `5bea553937a6ec6d2f0e4ef8b8b6719a40db28455199844bcbc22001caed52dc`.
+- Canonical focused precommit: PASS, runtime smoke plus 187/187 selected tests.
+  Two direct Git Bash attempts failed before gate start because `dirname` was
+  absent; the login-shell PATH rerun used the same canonical entrypoint and
+  exited zero.
+
+### Carried Forward
+- Fresh Docker integration was not rerun for `9918d3a5`; the prior
+  `1f583b00` smoke is historical evidence only.
+- `scorer_packet_v2.main()` use-before-validate and its no-JSON-on-exception
+  behavior remain a separate warning.
+- No owner signature, canonical promotion, resource admission, full repository
+  suite, push or Gate 2 arm is claimed.

@@ -4,22 +4,22 @@
   "mode": "VALIDATION",
   "status": "candidate_pass",
   "source_base_commit": "13b9abff",
-  "implementation_commit": "1f583b00911cae4c4f4dfdcd0f47a788dfc24dd6",
-  "done": "scorer-handoff v3 deterministically rebuilds and byte-compares the complete redacted packet, anonymized receipt and marker from the pinned scorer-packet v2, test log, validator output, candidate contract and redaction runner; candidate and canonical bytes are checkout-stable",
+  "implementation_commit": "9918d3a556d88ccd21efc1aff5a7e23f05ad4ba4",
+  "done": "scorer-handoff v3 offline verification rejects digest-consistent packet inventory and core-input contradictions, and deterministically rebuilds both unflagged and explicitly blinding-compromised handoffs from the exact supplied reason",
   "authority": {
     "task_authority": "user_request",
-    "approved_done": "scorer-handoff v3 verifier 能從 pinned scorer-packet v2、test log、validator output 與 candidate contract，確定性重建並逐 byte 比對完整四段 redacted output 與 anonymized receipt；candidate manifest pin 住 redaction_runner 並實際驗證三個 canonical hashes；core.autocrlf=true checkout 保持所有宣稱 bytes；amendment count、attrition policy 與 receipt 一致；來源或輸出被竄改皆 fail，fresh synthetic Docker smoke 與 focused precommit 通過。"
+    "approved_done": "scorer-handoff v3 offline verifier 會拒絕 packet inventory/core-input 語意矛盾，並能由顯式 blinding-compromised reason 確定性重建 flagged 與 unflagged handoff；更新 candidate contract／manifest／amendment／receipt hashes，兩項 regression PoC、focused tests 與 canonical precommit 全過。"
   },
   "candidate_files": {
     "amendment_v4": {
       "path": "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md",
-      "bytes": 9867,
-      "sha256": "323d30852a859e0ee91a0c6fe7714fc18680c9096ffd2572748a778658839d7c"
+      "bytes": 11622,
+      "sha256": "65e0f66dfe4230e987cfd36b15c4266887093c2fee87c14b153946062ecd4abf"
     },
     "candidate_manifest": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json",
-      "bytes": 3186,
-      "sha256": "561239e991845a4441146eafdb986eb91f18818c68f99ef478e2b986b87026ff"
+      "bytes": 3187,
+      "sha256": "5bea553937a6ec6d2f0e4ef8b8b6719a40db28455199844bcbc22001caed52dc"
     },
     "exact_byte_attributes": {
       "path": ".gitattributes",
@@ -28,8 +28,8 @@
     },
     "contract_v3": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json",
-      "bytes": 7839,
-      "sha256": "9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7"
+      "bytes": 8631,
+      "sha256": "ced0e02c815494b5f66d6ceffa8dd7e490ac8f880adf935686579b7b69426eda"
     },
     "redaction_runner": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
@@ -43,8 +43,18 @@
     },
     "scorer_handoff_v3": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py",
-      "bytes": 38776,
-      "sha256": "fc822f691adf4ed18a5eb3bd01a4ade9838728c5efc561ef22a7a49830d34ddc"
+      "bytes": 41857,
+      "sha256": "8de66027f66552ff4ca750e88ac6ec77c471cd3b3c27394d6c28e830c7f5c417"
+    },
+    "scorer_packet_v2_test": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_packet_v2.py",
+      "bytes": 12558,
+      "sha256": "724250f537201e3ac4aa173b41ba6a786c7846807e1f7577bbd9c10e561e5055"
+    },
+    "scorer_handoff_v3_test": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_handoff_v3.py",
+      "bytes": 32588,
+      "sha256": "2d2497cd94628c71cd612ae2d88069f5b2192e9bb44d9f0401f75ea0a07b9a5a"
     }
   },
   "canonical_bytes_preserved": {
@@ -66,6 +76,8 @@
       "COMPLETION_CLAIM": "scorer_packet.artifacts.result"
     },
     "handoff_transaction_marker": "scorer-handoff-v3.json written last and reproduced byte-for-byte from explicit pinned source paths",
+    "offline_packet_semantics": "tracked inventory must match the diff, workspace inventory must match captured paths, and scorer_input_core plus required attachments must equal the fixed contract",
+    "blinding_compromised_input": "absent reason produces null/null; an explicit non-blank reason produces true plus the exact reason string; verifier omission or substitution fails deterministic reproduction",
     "redaction_dependency": "redaction_runner.py is hash-pinned in the contract and eight-file candidate manifest",
     "attrition_policy": "CR or reserved standalone marker in any arm makes the complete four-arm run NO-GO before scoring; no selective repair, exclusion or rerun",
     "base64_effect": "common-mode but not evidence-neutral; scorers see complete diff and may score quality loss normally; no score adjustment"
@@ -73,7 +85,7 @@
   "docker_integration": {
     "evidence_dir": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-rebuild-smoke-20260726",
     "scope": "synthetic Docker integration only; no model session and not a Gate 2 arm",
-    "status": "PASS",
+    "status": "NOT RUN against implementation commit 9918d3a5; the listed 1f583b00 smoke remains historical evidence only",
     "container_id": "b7000f1739eddabecdc0a0521b53adae825b9cb30da156430f5af19482a65e7b",
     "baseline_commit": "92e524eaa44b38d73d89742998cbf01d262c63d7",
     "output_commit": "1dc08928b83951599fe1a8f26b01240769706dd1",
@@ -85,18 +97,19 @@
   },
   "validation": {
     "scorer_packet_v2": "PASS: 14/14 counter-example and command-boundary tests",
-    "scorer_handoff_v3": "PASS: 18/18 including coherent FIX_DIFF/claim rewrites, source attachment tamper, CLI source reproduction, canonical hash and candidate-set tests",
+    "scorer_handoff_v3": "PASS: 20/20 including offline semantic-contradiction rejection and flagged/unflagged explicit-reason reproduction",
     "frozen_v2_redaction_regression": "PASS: 23/23 checks",
     "python_compile": "PASS: scorer_packet_v2.py and scorer_handoff_v3.py",
     "candidate_contract_json": "PASS: parsed by python -m json.tool",
-    "candidate_manifest": "PASS: exact eight-file set plus three canonical files, bytes, SHA-256 and -text coverage verified",
-    "core_autocrlf_checkout": "PASS: git cat-file --filters with core.autocrlf=true preserves every candidate and canonical digest",
-    "canonical_focused_precommit": "PASS: scripts/run-runtime-governance.sh --mode enforce completed with runtime smoke and 187/187 selected tests in 75.48s; the first sandbox attempt failed before gate start because Git Bash dirname was unavailable, then the controlled normal-PATH rerun exited 0",
-    "memory_workflow": "PASS: completion_claim_allowed=true, active_non_canonical_writer=0 and current_diff_b0_blocker_count=0 after explicit commit-bound records for 1f583b00"
+    "candidate_manifest": "PASS: verify-candidate 11/11; exact eight-file set plus three canonical files, bytes, SHA-256 and -text coverage verified; manifest sha256 5bea553937a6ec6d2f0e4ef8b8b6719a40db28455199844bcbc22001caed52dc",
+    "core_autocrlf_checkout": "PASS: core.autocrlf=true checkout-index preserved all 13 candidate, canonical, manifest and receipt paths byte-for-byte",
+    "canonical_focused_precommit": "PASS: scripts/run-runtime-governance.sh --mode enforce completed with runtime smoke and 187/187 selected tests in 80.44s; two direct non-login Git Bash attempts failed before gate start because dirname was unavailable, then the login-shell PATH rerun exited 0",
+    "memory_workflow": "PASS: completion_claim_allowed=true (this memory completion may be claimed), active_non_canonical_writer=0 (no current memory entry bypassed the canonical writer), current_diff_b0_blocker_count=0 (the current memory diff has no blocking authority violation)"
   },
   "claim_boundary": {
     "candidate": "exact candidate bytes are reviewable and hash-pinned but not owner-signed or canonical",
-    "integrity": "missing, dirty, tampered, wrong-identity, source-rewritten and digest-mismatched inputs fail; a self-consistent published rewrite does not pass source reproduction",
+    "integrity": "missing, dirty, tampered, wrong-identity, source-rewritten, digest-mismatched and semantically contradictory packet inputs fail; a self-consistent published rewrite does not pass source reproduction",
+    "blinding_flag": "flagged and unflagged outputs are deterministic only when verifier input exactly matches the builder's explicit reason",
     "authentication": "coordinated direct writers remain able to fabricate a coherent set because no cryptographic trust root is claimed"
   },
   "not_claimed": [
@@ -106,6 +119,7 @@
     "that packet or handoff writers are authenticated",
     "that the base64 burden affects every arm equally",
     "that the scorer interprets the diff correctly",
+    "that fresh Docker integration was rerun against implementation commit 9918d3a5",
     "that the full repository suite passed",
     "that 4+2 independent producer/scorer resources exist",
     "that Gate 2 may start or that any arm ran"
