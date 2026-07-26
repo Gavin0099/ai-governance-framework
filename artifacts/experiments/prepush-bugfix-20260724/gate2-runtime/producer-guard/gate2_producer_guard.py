@@ -106,15 +106,42 @@ def _decide(allow: bool, reason: str) -> dict:
     }
 
 
+def offending_metachars(command: str) -> list[str]:
+    """Which banned characters appear, in the order they appear."""
+    seen, out = set(), []
+    for ch in command:
+        if ch in _METACHARS and ch not in seen:
+            seen.add(ch)
+            out.append(ch)
+    return out
+
+
 def _tokenize(command: str) -> list[str] | None:
     """Split a Bash command the adapter way: no shell metacharacters allowed.
 
     Rejected outright rather than parsed -- the guard must not try to out-clever
     a shell.
     """
-    if any(ch in command for ch in _METACHARS):
+    if offending_metachars(command):
         return None
     return command.split()
+
+
+def guidance(policy: Policy, adapter: str) -> str:
+    """What the producer is allowed to do, in the refusal itself.
+
+    A refusal that names no permitted route is not merely unhelpful: two live
+    sessions read a series of bare denials as a hostile or broken environment
+    and declined to proceed at all -- correct behaviour on their part, and a
+    deadlock on ours. Saying what IS permitted costs nothing, reveals nothing
+    about the transcript, and is what an operator would tell a human.
+    """
+    verbs = ", ".join(sorted(policy.verbs))
+    return (f"This session can invoke exactly one program: {adapter} . "
+            f"Write it as a bare command -- the path unquoted, followed by a verb and its "
+            f"arguments, with no quotes, redirection, pipes, substitution or chaining. "
+            f"Verbs: {verbs}. Nothing else is reachable from here, and that is by design "
+            f"rather than a fault.")
 
 
 def evaluate(policy: Policy, adapter: str, tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
@@ -136,7 +163,11 @@ def evaluate(policy: Policy, adapter: str, tool_name: str, tool_input: dict) -> 
 
     tokens = _tokenize(command.strip())
     if tokens is None:
-        return False, "shell metacharacters are not permitted in the adapter channel", detail
+        bad = " ".join(repr(c) for c in offending_metachars(command.strip()))
+        # Naming the characters matters: a quoted Windows path is the commonest
+        # way to trip this, and "shell metacharacters are not permitted" gives a
+        # producer no way to see that the quotes were the problem.
+        return False, f"shell metacharacters are not permitted in the adapter channel: {bad}", detail
     if not tokens:
         return False, "empty command", detail
 
@@ -165,13 +196,37 @@ def evaluate(policy: Policy, adapter: str, tool_name: str, tool_input: dict) -> 
     return ok, reason, detail
 
 
-def _block(reason: str) -> int:
+def _block(reason: str, payload: dict | None = None) -> int:
     """Undecidable or unauditable: block via exit 2 with the reason on stderr.
 
     No JSON is printed here on purpose -- JSON output is only processed at exit
     0, so emitting both would be a contradiction rather than belt-and-braces.
+
+    A block is also RECORDED where that is possible at all. A live session was
+    lost to exactly this hole: every call was refused and no artifact existed
+    afterwards, which is byte-for-byte indistinguishable from a session where
+    the hooks never loaded. "The guard blocked everything" and "there was no
+    guard" must not look the same to a reviewer.
+
+    Best-effort by construction: if the transcript cannot be written -- which is
+    itself one of the reasons for blocking -- the call is still blocked, and the
+    stderr line remains the record of last resort.
     """
     print(f"gate2 producer guard BLOCKED the call: {reason}", file=sys.stderr)
+    try:
+        emit({
+            "ts": _now(),
+            "run_id": os.environ.get("GATE2_RUN_ID", "unset"),
+            "tool_use_id": (payload or {}).get("tool_use_id"),
+            "event": "guard_blocked",
+            "tool": (payload or {}).get("tool_name", "<unknown>"),
+            "decision": "block",
+            "reason": reason,
+            "reason_shown": reason,
+            "session_id": (payload or {}).get("session_id"),
+        })
+    except OSError:
+        pass
     return 2
 
 
@@ -193,15 +248,15 @@ def main() -> int:
     # Correlation is not optional. Without the harness id, request and result
     # cannot be joined, and an uncorrelatable call is not auditable evidence.
     if not isinstance(tool_use_id, str) or not tool_use_id:
-        return _block("hook payload carries no tool_use_id; the call cannot be correlated")
+        return _block("hook payload carries no tool_use_id; the call cannot be correlated", payload)
 
     policy_path = os.environ.get("GATE2_POLICY", "")
     if not policy_path:
-        return _block("GATE2_POLICY is not configured")
+        return _block("GATE2_POLICY is not configured", payload)
     try:
         policy = load_policy(policy_path)
     except PolicyError as exc:
-        return _block(str(exc))
+        return _block(str(exc), payload)
 
     try:
         _preflight_transcript()
@@ -211,7 +266,12 @@ def main() -> int:
     try:
         allow, reason, detail = evaluate(policy, os.environ.get("GATE2_ADAPTER", ""), tool_name, tool_input)
     except Exception as exc:  # a guard defect must never open the channel
-        return _block(f"guard error: {exc}")
+        return _block(f"guard error: {exc}", payload)
+
+    # What the producer is actually told. A denial carries the route it may
+    # legitimately take; an allow does not need one. Recorded verbatim, because
+    # the producer's next move is only interpretable against what it was shown.
+    shown = reason if allow else f"{reason}. {guidance(policy, os.environ.get('GATE2_ADAPTER', ''))}"
 
     cmd = detail.get("command", "")
     args = detail.get("args") or []
@@ -238,6 +298,7 @@ def main() -> int:
         "arg_count": len(args),
         "decision": "allow" if allow else "deny",
         "reason": reason,
+        "reason_shown": shown,
         "policy_id": policy.policy_id,
         "policy_sha256": policy.sha256,
         "session_id": payload.get("session_id"),
@@ -246,9 +307,9 @@ def main() -> int:
     try:
         emit(record)
     except OSError as exc:
-        return _block(f"could not append to the transcript ({exc})")
+        return _block(f"could not append to the transcript ({exc})", payload)
 
-    print(json.dumps(_decide(allow, reason)))
+    print(json.dumps(_decide(allow, shown)))
     return 0
 
 

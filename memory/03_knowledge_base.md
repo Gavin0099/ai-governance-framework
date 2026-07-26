@@ -180,11 +180,31 @@
 - Audit hashes must identify the same observable bytes. Hashing a structured
   tool-response object cannot be compared directly with an adapter hash of
   stdout unless the extraction and normalization rule is explicit and tested.
+- A measurement digest must be computed from the bytes actually emitted across
+  the boundary, not from a pre-emission text value. Platform text-mode
+  translation can change LF to CRLF after hashing; regression evidence must
+  cross a real subprocess pipe and compare captured raw bytes with the logged
+  digest. Do not hide this class of failure by folding CRLF in the verifier,
+  because that would erase real CR bytes produced upstream.
 - Do not assume hook delivery is serial merely because a canary driver is.
   If the real harness can issue parallel tool calls, either carry
   `tool_use_id` into the adapter log and use concurrency-safe append/sequence
   storage, or technically enforce one in-flight call. Ordered-position joins
   and read-increment-write sequence files are not concurrency boundaries.
+- Do not describe `.claude/settings.json` as task-local. It is project-scoped
+  and can affect every Claude Code session opened in that project. A disposable
+  enforcement rehearsal needs its own project root and local project settings,
+  plus an admission check showing which settings source is active.
+- Audit runs need fresh namespaces on both sides of the join. A new transcript
+  path is insufficient if the adapter log, derived sequence/lock files, or
+  container name can fall back to a prior run's stable defaults.
+- Zero observations cannot satisfy an observational claim. A run with no denied
+  calls must report deny enforcement as unanswered, not infer success from the
+  absence of leaked terminal events.
+- Do not recursively clean an untracked directory after a truncated or
+  path-collapsed inventory. Enumerate exact relative filenames, separate known
+  generated outputs from unknown/user files, and delete only the explicit
+  generated allowlist.
 
 ## Current Highest-Value Gaps
 

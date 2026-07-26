@@ -1,0 +1,88 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "changes_requested",
+  "command": "independent artifact review of live-canary-20260726-152447; count transcript and adapter records; verify denied-call non-execution; compare policy and stdout digests; inspect before/after container snapshots and producer-cwd session log; rerun targeted suites",
+  "exit_code": 1,
+  "started_at": "2026-07-26T15:38:18+08:00",
+  "finished_at": "2026-07-26T16:00:29+08:00",
+  "runner": "codex-review-gate2-live-canary-run-20260726",
+  "linked_commit": "540b773ad22d5eabd6668644139afbeb29263b78",
+  "run_id": "live-canary-20260726-152447",
+  "producer_session_id": "60995b07-2c91-4040-bb92-1e08e85be23d",
+  "verdict": "CHANGES_REQUESTED",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/RUN-CONFIG.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/FINDINGS.md",
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "independently_confirmed": {
+    "transcript": "22 events: 12 pre, 10 allow, 2 deny, 10 post_tool_use, 0 post_tool_use_failure",
+    "adapter": "10 executed lines, seq 1-10, all exit 0, one matching policy digest, 0 rejects, 0 lock waits",
+    "denials": "2 denied calls, neither produced a terminal event or adapter line",
+    "workspace": "src/calc.py changed consistently with before/after snapshots; test exit 0; /work/out/result.json exists",
+    "session_identity": "producer-cwd session log exists for 60995b07-2c91-4040-bb92-1e08e85be23d",
+    "contemporaneous_suites": "producer guard 101 passed; verifier mutations 14 passed; analyzer 24 passed"
+  },
+  "blocking_findings": [
+    {
+      "id": "B1",
+      "summary": "The single aggregate verifier failure covers all 8 of 8 multi-line joinable calls; only the two single-line write/report outputs joined. Calling this merely one failed item materially understates the evidence-chain break."
+    },
+    {
+      "id": "B2",
+      "summary": "canary_adapter.py hashed LF text and then emitted it through Windows text-mode stdout, which translated internal LF bytes to CRLF. The adapter therefore logged digests for bytes it did not send."
+    },
+    {
+      "id": "B3",
+      "summary": "Existing in-process normalizer comparisons could not observe the emission-layer translation. A subprocess raw-pipe regression must compare the captured bytes with the digest written to the adapter log."
+    },
+    {
+      "id": "B4",
+      "summary": "answer_questions.py merged the zero-candidate and multiple-candidate cases, reporting a broken shared observable as several ambiguous adapter lines with exits []."
+    },
+    {
+      "id": "B5",
+      "summary": "The 13-check preflight returned GO without comparing the shared observable, although the join was already broken on the first allowed call."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "W1",
+      "summary": "Q1, Q3 and Q5 remain UNANSWERED. No non-zero exit or PostToolUseFailure occurred, and 0/10 lock waits cannot distinguish serialized delivery from no overlap."
+    },
+    {
+      "id": "W2",
+      "summary": "RUN-CONFIG.md and FINDINGS.md were inconsistent with the completed run's id, paths, baseline commit, launch procedure and test counts."
+    },
+    {
+      "id": "W3",
+      "summary": "The producer's recovery from two enforced base64-related denials is direct counter-evidence to treating F9 as a general denial-deadlock claim and must be preserved."
+    },
+    {
+      "id": "W4",
+      "summary": "A user-level Hearth Stop hook exists. This run used --setting-sources project and /status reported only Shared project settings; no Hearth commit occurred. The evidence supports no observed confound, not a universal claim that the hook cannot load."
+    },
+    {
+      "id": "W5",
+      "summary": "Ignored evidence-live runtime artifacts and truncated verifier display lists are presentation/hygiene risks but did not alter this verdict."
+    }
+  ],
+  "remediation_validation": {
+    "adapter_conformance_and_raw_pipe_regression": "PASS: 23/23 checks",
+    "answer_analyzer_and_preflight_regressions": "PASS: 29/29 tests",
+    "corrected_preflight_on_original_run": "EXPECTED NO-GO: 1 of 14 checks failed and all 8 multi-line observable mismatches were listed",
+    "fresh_live_rerun": "NOT RUN",
+    "gate2_arm": "NOT STARTED"
+  },
+  "cannot_claim": [
+    "that the original run has a valid cross-side artifact chain",
+    "that any of the 8 multi-line adapter outputs joined to the producer transcript",
+    "that PostToolUseFailure or non-zero-exit routing was observed",
+    "that lock safety was exercised by overlapping live calls",
+    "that the remediation is live-verified before a fresh isolated rerun",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

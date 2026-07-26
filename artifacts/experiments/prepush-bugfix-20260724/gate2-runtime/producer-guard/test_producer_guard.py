@@ -223,7 +223,16 @@ def main() -> int:
         cp = hook(GUARD, pre_payload(f"{ADAPTER} ls", None), env)
         check("no tool_use_id: blocks with exit 2", cp.returncode == 2, str(cp.returncode))
         check("no tool_use_id: prints no JSON decision", "permissionDecision" not in cp.stdout, cp.stdout[:80])
-        check("no tool_use_id: writes no transcript event", len(read_jsonl(tpath)) == 2, "")
+        # It must not become a pre_tool_use event -- an uncorrelatable decision
+        # would poison every join. It IS recorded as a block, because a session
+        # where the guard refused everything must not be indistinguishable from
+        # one where no guard was ever loaded; that ambiguity cost a live run.
+        rows_now = read_jsonl(tpath)
+        check("no tool_use_id: writes no pre_tool_use event",
+              len([r for r in rows_now if r.get("event") == "pre_tool_use"]) == 2, "")
+        check("no tool_use_id: the block itself is recorded, uncorrelated",
+              any(r.get("event") == "guard_blocked" and r.get("tool_use_id") is None
+                  for r in rows_now), "")
 
         # Unwritable transcript: the earlier version allowed the call and wrote
         # nothing at all. It must now block before anything runs.
@@ -288,6 +297,60 @@ def main() -> int:
           all(A.normalise(s) == P.normalise(s) for s in samples), "")
     check("adapter and post hook digest stdout identically",
           all(A.sha(A.normalise(s)) == P.sha(P.normalise(s)) for s in samples), "")
+
+    # --- a refusal must name the route the producer MAY take ------------------
+    # Two live sessions read a run of bare denials as a hostile or broken
+    # environment and stopped working. Refusing without saying what is permitted
+    # is a deadlock, not a safeguard.
+    canary_policy = load_policy(CANARY_POLICY_FILE)
+    g = G.guidance(canary_policy, "/x/canary_adapter.sh")
+    check("the guidance names the sanctioned adapter", "/x/canary_adapter.sh" in g, g)
+    check("the guidance lists every admitted verb",
+          all(v in g for v in canary_policy.verbs), g)
+    check("the guidance states the required bare-command form",
+          "unquoted" in g and "chaining" in g, g)
+    check("the guidance says the restriction is deliberate",
+          "by design" in g, g)
+
+    check("the metacharacter refusal names the offending character",
+          G.offending_metachars('ls "D:/x/"') == ['"'],
+          str(G.offending_metachars('ls "D:/x/"')))
+    check("a legitimate unquoted adapter call trips no metacharacter",
+          G.offending_metachars("/x/canary_adapter.sh read TASK.md") == [], "")
+
+    with tempfile.TemporaryDirectory() as td:
+        transcript = os.path.join(td, "t.jsonl")
+        env = base_env(transcript)
+        read_payload = {**pre_payload("unused", "toolu_g1"),
+                        "tool_name": "Read", "tool_input": {"file_path": "x"}}
+        denied = hook(GUARD, read_payload, env)
+        shown = json.loads(denied.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+        check("a denial shown to the producer carries the guidance",
+              "can invoke exactly one program" in shown, shown)
+        allowed = hook(GUARD, pre_payload(f"{ADAPTER} ls", "toolu_g2"), env)
+        ok_shown = json.loads(allowed.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+        check("an allow is not padded with guidance",
+              "can invoke exactly one program" not in ok_shown, ok_shown)
+        rows = read_jsonl(transcript)
+        blocked_env = base_env(transcript, policy=None)
+        cp = hook(GUARD, pre_payload("anything", "toolu_g3"), blocked_env)
+        check("a block is recorded, not only printed to stderr", cp.returncode == 2
+              and any(r.get("event") == "guard_blocked" and r.get("tool_use_id") == "toolu_g3"
+                      for r in read_jsonl(transcript)), cp.stderr[:120])
+        check("a recorded block says why", any(
+            r.get("event") == "guard_blocked" and "GATE2_POLICY" in str(r.get("reason"))
+            for r in read_jsonl(transcript)), "")
+    with tempfile.TemporaryDirectory() as td2:
+        # The one case that cannot be recorded is an unwritable transcript --
+        # it must still block, and must not crash trying to write the block.
+        bad = os.path.join(td2, "no-such-dir", "t.jsonl")
+        cp = hook(GUARD, pre_payload("anything", "toolu_g4"), base_env(bad))
+        check("an unwritable transcript still blocks and does not crash",
+              cp.returncode == 2 and "BLOCKED" in cp.stderr, cp.stderr[:120])
+    check("the transcript records what the producer was actually shown",
+          all("reason_shown" in r for r in rows)
+          and any(r["decision"] == "deny" and "can invoke exactly one program" in r["reason_shown"]
+                  for r in rows), str(rows[:1]))
 
     for name, res in results:
         print(f"[{name}] {res}")

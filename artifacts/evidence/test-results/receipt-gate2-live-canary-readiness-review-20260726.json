@@ -1,0 +1,52 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "changes_requested",
+  "command": "review staged live-canary run config and answer script; inspect disposable producer settings; validate settings JSON; run answer script on emulator evidence; inject reordered-identical-call and zero-denial counterexamples",
+  "exit_code": 1,
+  "started_at": "2026-07-26T10:54:32+08:00",
+  "finished_at": "2026-07-26T10:54:32+08:00",
+  "runner": "codex-review-gate2-live-canary-readiness-20260726",
+  "linked_commit": "540b773ad22d5eabd6668644139afbeb29263b78",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "verdict": "CHANGES_REQUESTED",
+  "blocking_findings": [
+    {
+      "id": "B1",
+      "summary": "RUN-CONFIG records the evidence-live disappearance as unexplained, but this reviewer session deleted that directory during an over-broad cleanup after misclassifying it as generated test output."
+    },
+    {
+      "id": "B2",
+      "summary": "answer_questions.py reports that deny was honoured when the run contains zero denied calls, turning absence of the required observation into a false positive."
+    },
+    {
+      "id": "B3",
+      "summary": "answer_questions.py positionally pairs repeated identical transcript calls with adapter exits; a reordered concurrent example reverses which terminal event receives exit 1 and produces the wrong Q3 answer."
+    },
+    {
+      "id": "B4",
+      "summary": "The proposed task chip does not provide inspectable proof that the session will run as Claude Code with cwd D:/gate2-live-producer-task; a fresh worktree or other cwd would not load the disposable project's hooks."
+    }
+  ],
+  "validation": {
+    "external_settings_json": "VALID",
+    "producer_directory": "contains only .claude/settings.json",
+    "external_live_evidence_directory": "exists and is empty",
+    "answer_script_on_emulator_evidence": "runs to completion",
+    "zero_denial_counterexample": "FAIL: prints deny was honoured with denied calls: 0",
+    "reordered_identical_call_counterexample": "FAIL: actual exit-1 call has post_tool_use_failure, script reports exit 1 -> post_tool_use",
+    "container_recheck": "NOT RUN: docker is unavailable in this Codex shell; author-reported state not independently reverified here"
+  },
+  "cannot_claim": [
+    "that the live canary is safe to launch",
+    "that the task chip will use Claude Code or the intended cwd",
+    "that Q2 or Q3 can be answered correctly by the staged analyzer",
+    "that the unexplained-disappearance statement is accurate",
+    "that authentic Claude hook payloads have been captured",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

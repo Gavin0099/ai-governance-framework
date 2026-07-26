@@ -385,3 +385,6 @@
   `ab_cost_backfill_apply.py`) has been retired, downgraded, or proven
   useless.
 - Cannot claim context savings were measured.
+2026-07-26: Parallel-safety code at `540b773a` independently passes 8/88/14/18 plus artifact 17/17, but review is `CHANGES_REQUESTED` until the real-Claude smoke uses a separate disposable project and fresh transcript/adapter-log/container identities.
+2026-07-26: Live-canary launch remains `CHANGES_REQUESTED`: correct the known reviewer-caused `evidence-live/` deletion provenance, fix Q2 zero-denial false success and Q3 positional misattribution, and use an explicitly rooted Claude Code session instead of an unverified worktree chip.
+2026-07-26: Run `live-canary-20260726-152447` completed the task but is `CHANGES_REQUESTED`: Windows text-mode stdout broke 8/8 multi-line observable joins; byte-exact emission, raw-pipe regression, analyzer/preflight fail-fast and run records are being corrected before one fresh forced-failure rerun. No Gate 2 arm may start.

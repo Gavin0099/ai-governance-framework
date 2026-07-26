@@ -64,6 +64,10 @@ def sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def sha_bytes(blob: bytes) -> str:
+    return hashlib.sha256(blob).hexdigest()
+
+
 @contextlib.contextmanager
 def serialised():
     """Hold an exclusive lock across sequence allocation, execution and logging.
@@ -238,10 +242,15 @@ def main(argv: list[str]) -> int:
             return 2
 
         rc, raw = execute(verb, args)
-        out = normalise(raw)
+        out = normalise(raw).encode("utf-8")
         log({**base, "decision": "executed", "reason": None, "exit": rc,
-             "stdout_bytes": len(out), "stdout_sha256": sha(out)})
-    sys.stdout.write(out + "\n")
+             "stdout_bytes": len(out), "stdout_sha256": sha_bytes(out)})
+    # Write the same bytes we just measured. Text-mode stdout translates LF to
+    # CRLF when Python writes to a pipe on Windows; hashing before that
+    # translation made every multi-line live result impossible to join with the
+    # post-hook observation.
+    sys.stdout.buffer.write(out + b"\n")
+    sys.stdout.buffer.flush()
     return rc
 
 

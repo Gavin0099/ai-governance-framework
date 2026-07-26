@@ -1,0 +1,54 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "changes_requested",
+  "command": "independent review of 540b773a; bundled-python targeted suites; artifact-only verify_transcript; governance drift; receipt validation; remote-head check",
+  "exit_code": 1,
+  "started_at": "2026-07-26T01:17:40+08:00",
+  "finished_at": "2026-07-26T01:17:40+08:00",
+  "runner": "codex-review-gate2-parallel-safety-20260726",
+  "linked_commit": "540b773ad22d5eabd6668644139afbeb29263b78",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "verdict": "CHANGES_REQUESTED",
+  "scope_verdicts": {
+    "parallel_safety_implementation": "APPROVED",
+    "proposed_real_claude_canary_runbook": "CHANGES_REQUESTED"
+  },
+  "blocking_findings": [
+    {
+      "id": "B1",
+      "summary": "The wiring instructions use project-scoped .claude/settings.json without requiring a separate disposable project root, so the guard can affect other Claude sessions in this repository."
+    },
+    {
+      "id": "B2",
+      "summary": "The real-session environment list omits fresh GATE2_ADAPTER_LOG and GATE2_CANARY_CONTAINER values; the adapter otherwise falls back to stable names and can mix a new run with prior evidence or an existing container."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "W1",
+      "summary": "The adapter log intentionally has no tool_use_id; byte-identical concurrent calls are count-accounted but cannot be individually attributed to adapter sequence numbers."
+    }
+  ],
+  "test_results": {
+    "test_adapter_concurrency.py": "8 checks ALL PASSED",
+    "test_producer_guard.py": "88 checks ALL PASSED",
+    "test_verify_transcript.py": "14 mutations ALL CAUGHT",
+    "test_canary_conformance.py": "18 checks ALL PASSED",
+    "verify_transcript.py_on_committed_evidence": "17 checks ALL PASSED",
+    "parallel_safety_source_receipt": "VALID",
+    "governance_drift_checker": "severity=ok",
+    "remote_head": "HEAD == origin/main == 540b773ad22d5eabd6668644139afbeb29263b78 after git fetch origin"
+  },
+  "cannot_claim": [
+    "that the proposed real Claude canary instructions are safe to execute unchanged",
+    "that a real Claude Code session has exercised the hooks",
+    "that tool_use_id is present on authentic PreToolUse, PostToolUse and PostToolUseFailure payloads",
+    "that any Gate 2 producer or scorer context exists",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
