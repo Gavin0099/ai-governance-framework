@@ -411,7 +411,8 @@ def test_run_guard_downgrades_historical_test_evidence_provenance_noise(
     assert result.blockers == []
     assert result.completion_claim_allowed is True
     human = format_human(result)
-    assert "missing_canonical_memory" in result.warnings
+    assert "missing_canonical_memory" not in result.warnings
+    assert "missing_canonical_memory" not in result.background_warnings
     assert "[background_warnings]" in human
     assert "test_evidence_provenance_not_found" in human
 

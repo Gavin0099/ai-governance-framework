@@ -240,9 +240,8 @@ def run_step(args: argparse.Namespace) -> int:
     start_dt = datetime.now(timezone.utc)
     try:
         proc = subprocess.run(
-            cmd_text,
+            args.command,
             cwd=repo,
-            shell=True,
             capture_output=True,
             text=False,
         )

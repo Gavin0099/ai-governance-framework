@@ -1,0 +1,9 @@
+[governance] version bump recommendation (advisory)
+[version_bump_guard]
+recommended_bump=none
+changed_files=0
+manual_review_required=False
+changed_files=1
+gate2-pushed-ref-marker.txt
+[gate2_reproduction]
+{"changed_files_one": true, "head_unchanged": true, "marker_reported": true, "pushed_commit": "01cc24d4dee092566c83d6dfa5be39d92b9028f2", "remote_base": "a621ee94af7b7d0f5edef777828bb7954daaa21b", "verdict": "PASS"}

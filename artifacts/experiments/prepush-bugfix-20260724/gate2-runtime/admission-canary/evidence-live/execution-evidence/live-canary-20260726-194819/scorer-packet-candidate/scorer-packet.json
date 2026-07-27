@@ -1,0 +1,74 @@
+{
+  "artifacts": {
+    "diff": {
+      "bytes": 465,
+      "path": "final-diff.patch",
+      "role": "operator_captured_ground_truth",
+      "sha256": "afef5ad420f889ffea8bfa2a3e860b1f75c32c41178903751656c389f7a40648"
+    },
+    "result": {
+      "bytes": 80,
+      "path": "result.json",
+      "role": "producer_self_report",
+      "sha256": "6bd904908db23dc7fb7850cbe297a13ed5290d5658b3e65bcad25cb817c0e823"
+    },
+    "status": {
+      "bytes": 192,
+      "path": "final-status.txt",
+      "role": "workspace_inventory_source",
+      "sha256": "3e72fd4c428d73aae68acf6abcae61170916c59ee0c2860bcc00a715928402b6"
+    },
+    "tracked_paths": {
+      "bytes": 12,
+      "path": "final-tracked-paths.txt",
+      "role": "tracked_change_inventory",
+      "sha256": "544738fd9352fa6ebc9945bb307a1db3b767534ebe25c6e04bce43fde603cbb5"
+    }
+  },
+  "baseline_head": "2cc7a72228e5e24a4794b5b960eae0b196ecc71f",
+  "captured_at": "2026-07-26T13:17:21Z",
+  "claim_boundary": "The packet proves byte equality and makes the producer report plus the operator-captured final diff available to the scorer. It does not prove the report is truthful, the change is good, or the manifest was written by an independent trusted party.",
+  "container": {
+    "id": "948d5c9f4a20c37f41e9ef3d94569a13f49c5e5974f2d6693b03781dedc25e9a",
+    "name": "live-canary-20260726-194819"
+  },
+  "run_id": "live-canary-20260726-194819",
+  "schema_version": "1.0",
+  "scorer_inputs": [
+    "result",
+    "diff"
+  ],
+  "workspace": {
+    "status_entries": [
+      {
+        "code": " M",
+        "path": "src/calc.py"
+      },
+      {
+        "code": "??",
+        "path": "src/__pycache__/__init__.cpython-312.pyc"
+      },
+      {
+        "code": "??",
+        "path": "src/__pycache__/calc.cpython-312.pyc"
+      },
+      {
+        "code": "??",
+        "path": "tests/__pycache__/__init__.cpython-312.pyc"
+      },
+      {
+        "code": "??",
+        "path": "tests/__pycache__/test_calc.cpython-312.pyc"
+      }
+    ],
+    "tracked_changed_files": [
+      "src/calc.py"
+    ],
+    "untracked_files": [
+      "src/__pycache__/__init__.cpython-312.pyc",
+      "src/__pycache__/calc.cpython-312.pyc",
+      "tests/__pycache__/__init__.cpython-312.pyc",
+      "tests/__pycache__/test_calc.cpython-312.pyc"
+    ]
+  }
+}

@@ -4,6 +4,10 @@
 
 **Version 1.2.0** · Python 3.9+（核心 stdlib-only）· 3,200+ tests · Windows / Git Bash 驗證 · [English summary below](#english-summary)
 
+目前版本的 release-facing 說明見
+[`docs/releases/v1.2.0.md`](docs/releases/v1.2.0.md)。文件與 CI reader
+就緒不等於 GitHub Release 或 tag 已發布；遠端發布狀態必須另外查證。
+
 ---
 
 ## 這個 repo 是做什麼的？
@@ -16,7 +20,7 @@ AI agent 會改你的程式、寫摘要、然後宣稱「任務完成」。這�
 
 它不是讓 AI 更聰明，而是讓 AI 的行為**可見、可審、可歸因**。
 
-> **信任模型（必讀）**：這是 audit framework，不是 security boundary。它在明確定義的 gate 上 fail-closed 並揭露 provenance，但不阻止蓄意繞過工具鏈的 agent。手工繞過會被標記為 `manual_update`（不完整更新），而不是被攔截。
+> **信任模型（必讀）**：這是 bounded prototype 與 audit framework，不是 security boundary。它在明確定義的 gate 上 fail-closed 並揭露 provenance，但不阻止蓄意繞過工具鏈的 agent。手工繞過會被標記為 `manual_update`（不完整更新），而不是被攔截。
 
 ## 為什麼需要它？
 
@@ -72,6 +76,13 @@ python governance_tools/governance_drift_checker.py --repo . --framework-root .
 ```
 
 看到 `[quickstart_smoke]` 輸出 `ok=True`、且漂移檢查輸出 `severity = ok`，就代表環境正常（兩個工具的成功欄位不同：smoke 看 `ok`，漂移檢查看 `severity`）。
+
+框架共用的 runtime enforcement 入口是
+[`scripts/run-runtime-governance.sh`](scripts/run-runtime-governance.sh)；CI 與本機應呼叫同一條路徑，避免各自維護不同的 runtime 檢查：
+
+```bash
+bash scripts/run-runtime-governance.sh --mode enforce
+```
 
 ### 路徑 B｜導入到你的 repo
 

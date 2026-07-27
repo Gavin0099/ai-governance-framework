@@ -16,6 +16,7 @@
     "harness": "codex",
     "session_id": "codex-run-01",
     "native_event_type": "post_task",
-    "task_source_key": "task"
+    "task_source_key": "task",
+    "unmapped_gate_relevant_keys": []
   }
 }

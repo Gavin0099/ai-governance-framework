@@ -1,0 +1,17 @@
+[PASS] manifest_is_valid_json_object
+[PASS] manifest_schema_matches
+[PASS] authorization_is_pending_owner_resign
+[PASS] candidate_file_set_is_exact
+[PASS] candidate_paths_are_confined_regular_files
+[PASS] candidate_byte_counts_match
+[PASS] candidate_digests_match
+[PASS] canonical_file_set_is_exact
+[PASS] canonical_paths_are_confined_regular_files
+[PASS] canonical_digests_match
+[PASS] byte_preservation_attributes_are_complete
+[PASS] shipped_smoke_paths_are_confined_regular_files
+[PASS] shipped_smoke_file_digests_match
+[PASS] shipped_smoke_contract_digest_matches_candidate
+[PASS] shipped_smoke_verification_passes
+---
+PASS

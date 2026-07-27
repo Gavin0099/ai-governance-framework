@@ -1,0 +1,53 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "read-only inspection of artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/ (evidence/run-report.json, evidence/verification.json, evidence-live/); no canary was executed",
+  "exit_code": 0,
+  "started_at": "2026-07-27T09:20:00Z",
+  "finished_at": "2026-07-27T09:27:00Z",
+  "runner": "claude-gate2-admission-state-record",
+  "linked_commit": "5f0e3570658f200b0de4ee7e3d4ed9ba94e152cc",
+  "purpose": "Record the actual Gate 2 resource-admission state at owner-accepted scope. This receipt does NOT report a new canary run; it records what pre-existing evidence does and does not cover.",
+  "producer_channel": {
+    "status": "historical_pass_report",
+    "run_id": "canary-20260725T164626Z",
+    "verdict": "PASS",
+    "isolation_checks_passed": 9,
+    "isolation_checks_total": 9,
+    "transcript_events": 48,
+    "adapter_allowed": 13,
+    "adapter_denied": 22,
+    "adapter_rejected": 0,
+    "recorded_paths_root": "D:/ai-governance-framework/...",
+    "reproduced_in_this_checkout": false,
+    "reproduction_blocker": "docker daemon not running at record time (Docker Desktop installed, backend process absent)"
+  },
+  "scorer_context": {
+    "status": "NOT_RUN",
+    "tooling_present": [
+      "admission-canary/evidence-live/capture_scorer_packet.py",
+      "admission-canary/evidence-live/verify_scorer_packet.py"
+    ],
+    "execution_artifacts_found": 0,
+    "note": "tool presence is not execution evidence"
+  },
+  "resource_admission": {
+    "status": "NOT_COMPLETE",
+    "reason": "the approved DONE criterion requires one producer context AND one scorer context; only the producer channel has a report, and it is not locally reproduced"
+  },
+  "gate2": {
+    "started": false,
+    "arms_executed": 0
+  },
+  "output_artifacts": [],
+  "can_claim": [
+    "a historical producer-channel admission report exists and passed"
+  ],
+  "cannot_claim": [
+    "local reproduction of producer admission in this checkout",
+    "that a scorer context exists or has passed admission",
+    "that resource admission is complete",
+    "that Gate 2 is ready, started, or that any arm has run",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

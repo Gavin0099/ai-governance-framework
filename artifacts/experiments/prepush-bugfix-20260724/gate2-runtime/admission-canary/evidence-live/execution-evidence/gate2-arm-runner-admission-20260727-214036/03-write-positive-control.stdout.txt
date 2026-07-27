@@ -1,0 +1,1 @@
+{"bytes": 3725, "content_matches_request": true, "sha256": "9370968dd8198e506a07bc80acf56275a9f1c2732b244363b99a7bf16a53c261", "target": "repo:scripts/hooks/pre-push", "written": true}

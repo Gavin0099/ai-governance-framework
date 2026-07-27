@@ -1,0 +1,42 @@
+[shellcheck exit=1]
+
+In scripts/hooks/pre-push line 24:
+. "$PYTHON_LIB"
+  ^-----------^ SC1090 (warning): ShellCheck can't follow non-constant source. Use a directive to specify location.
+
+For more information:
+  https://www.shellcheck.net/wiki/SC1090 -- ShellCheck can't follow non-const...
+[ruff exit=1]
+governance_tools/version_bump_guard.py:6:1: I001 [*] Import block is un-sorted or un-formatted
+   |
+ 4 |   """
+ 5 |   
+ 6 | / from __future__ import annotations
+ 7 | | 
+ 8 | | import argparse
+ 9 | | import json
+10 | | import subprocess
+11 | | from dataclasses import dataclass
+12 | | from pathlib import Path
+13 | | 
+14 | | 
+15 | | LEVEL_ORDER = {"none": 0, "patch": 1, "minor": 2, "major": 3}
+   | |_^ I001
+16 |   
+17 |   MAJOR_PATHS = {
+   |
+   = help: Organize imports
+
+governance_tools/version_bump_guard.py:125:101: E501 Line too long (104 > 100)
+    |
+124 | def build_parser() -> argparse.ArgumentParser:
+125 |     parser = argparse.ArgumentParser(description="Recommend semantic version bump level from git diff.")
+    |                                                                                                     ^^^^ E501
+126 |     parser.add_argument("--base-ref", default="HEAD~1", help="Git base ref (default: HEAD~1).")
+127 |     parser.add_argument("--head-ref", default="HEAD", help="Git head ref (default: HEAD).")
+    |
+
+Found 2 errors.
+[*] 1 fixable with the `--fix` option.
+[mypy exit=0]
+Success: no issues found in 1 source file

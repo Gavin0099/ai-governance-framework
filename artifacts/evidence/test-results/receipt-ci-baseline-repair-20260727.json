@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "bash -lc \"set -euo pipefail; export PATH=/tmp/aigov-ci-venv/bin:$PATH; python -m pytest tests/test_codeburn_phase1_run.py tests/test_codeburn_phase1_session_end_token_summary.py tests/test_governance_auditor.py tests/test_memory_binding_generation_constraint.py tests/test_memory_workflow.py tests/test_runtime_dispatcher.py tests/test_release_readiness.py tests/test_release_package_summary.py tests/test_release_package_snapshot.py tests/test_release_package_reader.py tests/test_release_package_publication_reader.py tests/test_release_surface_overview.py tests/test_reviewer_handoff_summary.py tests/test_reviewer_handoff_snapshot.py tests/test_reviewer_handoff_reader.py tests/test_reviewer_handoff_publication_reader.py tests/test_trust_signal_overview.py tests/test_trust_signal_snapshot.py tests/test_trust_signal_publication_reader.py --basetemp /tmp/aigov-ci-receipt-pytest-882 -p no:cacheprovider -q; bash scripts/run-runtime-governance.sh --mode enforce; python governance_tools/structural_promotion_gate.py --memory-root memory --project-root .; AUDITOR_OUTPUT=$(python governance_tools/governance_auditor.py --project-root . --format json || true); printf \\\"%s\\n\\\" \\\"$AUDITOR_OUTPUT\\\" > /tmp/aigov-ci-auditor-882.json; if [ -f triage/governance_auditor.triage.json ]; then python governance_tools/violation_triage.py --mode generate --input /tmp/aigov-ci-auditor-882.json --input-format governance_auditor --triage-file triage/governance_auditor.triage.json --output /tmp/aigov-ci-triage-882.json; else python governance_tools/violation_triage.py --mode generate --input /tmp/aigov-ci-auditor-882.json --input-format governance_auditor --output /tmp/aigov-ci-triage-882.json; fi; python governance_tools/violation_triage.py --mode evaluate --triage-file /tmp/aigov-ci-triage-882.json --format json\"",
+  "exit_code": 0,
+  "started_at": "2026-07-27T14:37:22Z",
+  "finished_at": "2026-07-27T14:42:50Z",
+  "runner": "codex-ci-repair-closeout",
+  "linked_commit": "882018ecd7da375bca93ec5febf360fe4ce941ce",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-ci-baseline-repair-20260727.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

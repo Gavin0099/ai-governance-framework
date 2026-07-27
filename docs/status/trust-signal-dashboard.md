@@ -1,7 +1,7 @@
 ﻿# Trust Signal Dashboard
 
-> 更新日期：2026-04-09
-> 目前對應正式 release：`v1.1.0`
+> 更新日期：2026-07-27
+> 目前 release-facing reader 版本：`v1.2.0`
 > 目前 alpha release：`v1.0.0-alpha`
 
 ---
@@ -48,7 +48,9 @@
 
 這個 dashboard 可以幫助理解 release posture，但它本身不是 release note，也不是 publish checklist。
 
-目前正式 release-facing 版本仍是 `v1.1.0`；dashboard 主要反映的是 `main` 分支上的較新 runtime / governance surface。
+目前 CI 與 release-facing 文件對齊 `v1.2.0`；這只描述 repository
+reader 的版本一致性，不證明 GitHub Release 或 tag 已發布。dashboard
+仍主要反映 `main` 分支上的較新 runtime / governance surface。
 
 ---
 

@@ -216,10 +216,47 @@ def _write_daily_file(memory_root: Path, date: str, content: str) -> None:
     )
 
 
-def _current_head_short() -> str:
-    project_root = Path(__file__).resolve().parent.parent
+def _create_project_commit(project_root: Path) -> str:
+    marker = project_root / "binding-marker.txt"
+    marker.write_text("fixture\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "init"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "test"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "add", marker.name],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "fixture"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     completed = subprocess.run(
-        ["git", "-C", str(project_root), "rev-parse", "--short", "HEAD"],
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=project_root,
         capture_output=True,
         text=True,
         check=True,
@@ -228,7 +265,7 @@ def _current_head_short() -> str:
 
 
 def test_authority_coverage_rate_all_bound(tmp_memory_root, tmp_path):
-    head = _current_head_short()
+    head = _create_project_commit(tmp_path)
     _write_daily_file(
         tmp_memory_root, "2026-04-30",
         f"- what changed: change A\n  commit hash: `{head}`\n  test_evidence: ok\n\n"
@@ -258,7 +295,7 @@ def test_authority_coverage_rate_none_bound(tmp_memory_root, tmp_path):
 
 
 def test_authority_coverage_rate_mixed(tmp_memory_root, tmp_path):
-    head = _current_head_short()
+    head = _create_project_commit(tmp_path)
     session_id = "session-20260430T120000-xyz"
     _write_closeout_artifact(tmp_path, session_id)
     _write_daily_file(

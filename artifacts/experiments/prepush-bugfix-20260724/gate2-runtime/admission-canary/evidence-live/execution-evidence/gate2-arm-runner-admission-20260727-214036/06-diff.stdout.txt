@@ -1,0 +1,14 @@
+diff --git a/scripts/hooks/pre-push b/scripts/hooks/pre-push
+index 5b388f1..d207687 100644
+--- a/scripts/hooks/pre-push
++++ b/scripts/hooks/pre-push
+@@ -84,4 +84,7 @@ if [ -f "$VERSION_BUMP_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+     ) || true
+ fi
+ 
+-exit 0
++# Admission-only positive control; never enters an arm baseline.
++echo "changed_files=1"
++echo "gate2-pushed-ref-marker.txt"
++exit 0
+\ No newline at end of file

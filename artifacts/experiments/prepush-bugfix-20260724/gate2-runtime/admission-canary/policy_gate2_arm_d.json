@@ -1,0 +1,73 @@
+{
+  "policy_id": "gate2-arm-runner-d-1",
+  "description": "Gate 2 Arm D producer contract. It is identical to the common experiment-local producer contract except for the pre-registered fixed validator-feedback treatment.",
+  "verbs": {
+    "ls": {
+      "summary": "list tracked files",
+      "args": []
+    },
+    "read": {
+      "summary": "print one file from the sanitized workspace repo or fixed input packet",
+      "args": [
+        {
+          "name": "path",
+          "pattern": "^(input/[A-Za-z0-9][A-Za-z0-9._-]{0,79}|[A-Za-z0-9][A-Za-z0-9._/-]{0,119})$",
+          "forbid": ["\\.\\.", "//", "(^|/)\\.git(/|$)"],
+          "max_len": 120
+        }
+      ]
+    },
+    "write": {
+      "summary": "replace one in-scope source or test file from base64 content",
+      "args": [
+        {
+          "name": "path",
+          "pattern": "^(scripts/hooks/pre-push|governance_tools/[A-Za-z0-9][A-Za-z0-9._/-]{0,95}\\.py|tests/[A-Za-z0-9][A-Za-z0-9._/-]{0,95}\\.py)$",
+          "forbid": ["\\.\\.", "//", "(^|/)\\.git(/|$)"],
+          "max_len": 120
+        },
+        {
+          "name": "content_b64",
+          "pattern": "^[A-Za-z0-9+/]{1,65536}={0,2}$",
+          "forbid": [],
+          "max_len": 65536
+        }
+      ]
+    },
+    "test": {
+      "summary": "run the fixed hash-pinned offline pytest command",
+      "args": []
+    },
+    "validate": {
+      "summary": "run the three pre-registered pinned validators and return each exact exit and output",
+      "args": []
+    },
+    "reproduce": {
+      "summary": "run the fixed pushed-ref reproduction without checking out the pushed ref",
+      "args": []
+    },
+    "diff": {
+      "summary": "show the uncommitted diff",
+      "args": []
+    },
+    "status": {
+      "summary": "show porcelain status",
+      "args": []
+    },
+    "commit": {
+      "summary": "create exactly one attested output commit from in-scope changes",
+      "args": []
+    },
+    "report": {
+      "summary": "write one immutable result artifact from base64 content",
+      "args": [
+        {
+          "name": "content_b64",
+          "pattern": "^[A-Za-z0-9+/]{1,65536}={0,2}$",
+          "forbid": [],
+          "max_len": 65536
+        }
+      ]
+    }
+  }
+}

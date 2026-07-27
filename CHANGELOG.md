@@ -414,6 +414,11 @@
 
 ## v1.2.0 - 2026-04-28
 
+Release-facing 文件見 [docs/releases/v1.2.0.md](docs/releases/v1.2.0.md)、
+[GitHub Release 草稿](docs/releases/v1.2.0-github-release.md)與
+[發布檢查清單](docs/releases/v1.2.0-publish-checklist.md)。這些文件就緒
+不代表 GitHub Release 或 `v1.2.0` tag 已實際發布。
+
 ### Phase D Governance Baseline Freeze
 
 **Constitutional authority contract** — `governance/PHASE_D_CLOSE_AUTHORITY.md`:

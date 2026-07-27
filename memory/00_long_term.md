@@ -5,6 +5,8 @@
 <!-- promotion_status: authoritative -->
 <!-- proposed_by: ai / 2026-04-30 -->
 <!-- promoted_by: Gavin / 2026-07-08 (owner-authorized; verified this session against git config user.name=GavinWu, user.email=Gavin.Wu@genesyslogic.com.tw, origin=github/Gavin0099, gitlab=GavinWu) -->
+<!-- promoted_at: 2026-07-08 -->
+<!-- source_anchor: memory/2026-07-08.md:115 -->
 - GitHub upload account: `Gavin0099`
 - GitLab upload account: `GavinWu`
 - git config user.email for GitLab pushes: `Gavin.Wu@genesyslogic.com.tw`
@@ -91,6 +93,7 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 <!-- promotion_status: authoritative -->
 <!-- proposed_by: ai / 2026-04-30 -->
 <!-- promoted_by: Gavin / 2026-07-08 (owner-authorized; corroborated by Phase 1 CLOSED forensic record + cross-agent memory) -->
+<!-- promoted_at: 2026-07-08 -->
 <!-- source_anchor: codeburn/README.md:3,99; memory/2026-04-30.md:81-83; commit:1398417 -->
 
 > Cross-agent readable. See `codeburn/README.md` for full navigation.

@@ -1418,7 +1418,7 @@ P2 - historical debt / evidence disposition:
 - [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
   scope.
 
-P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 execution = 0):
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 local runner admission complete, resource admission incomplete, arm execution = 0):
 
 - [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
@@ -1438,15 +1438,63 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   `7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`
   (commit `b596153b`). The signature is append-only; canonical promotion remains
   a separate slice and Gate 2 execution remains 0.
-- [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),
-  **BLOCKED-ON-RESOURCE not blocked-on-company**: an environment that technically
-  cannot read the answer (container/VM/sandbox/separate account/remote runner) for
-  four isolated producer contexts plus a primary and second blind scorer that are
-  neither this session nor the author; the pinned validators installed there; the
-  actual model/permissions stamped. Gate 2 (single four-arm process-only pilot) is
-  DEFERRED and additionally needs a separate explicit owner "start Gate 2" command.
+- [x] **Canonical promotion slice — DONE 2026-07-27.** The Gate 2 preflight
+  manifest's scorer-handoff pointers and authority line were updated to the
+  re-signed v3 packets (`scorer-handoff-contract-v3.json` `16bf661b…`,
+  `scorer_handoff_v3.py` `77360e8f…`, `scorer_packet_v2.py` `a9671133…`).
+  Nothing was recomputed. Departing from the amendment v3 precedent, the
+  amendment v4 status line was **not** edited: amendment v4's own sha256 is
+  recorded as `files[1]` in the owner-signed candidate manifest, so editing it
+  would invalidate the signature it carries (amendment v4 Section E). Owner
+  chose the append-only method. Signed bytes verified UNCHANGED and
+  `verify-candidate` re-run post-promotion at 15/15 PASS
+  (`artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-promotion-20260727.json`).
+  Promotion supersedes scorer-handoff v2 only; producer treatments, arm order,
+  budgets, validators and scoring release gates are unchanged. Gate 2 execution
+  remains 0 and resource admission is NOT performed.
+- [x] Gate 2 experiment-local runner admission completed 2026-07-27 on the exact pinned image.
+  Commit `3acd2659` adds only the experiment-local bounded runner, hash-pinned
+  offline pytest payload, producer adapter/policies and admission evidence.
+  Fresh live admission `gate2-arm-runner-admission-20260727-214036` passed fixed
+  input read, 4/4 frozen tests, signed Arm D validator exits
+  (shellcheck=1/ruff=1/mypy=0), negative and positive pushed-ref reproduction,
+  one commit receipt and clean final status. Canonical focused precommit passed
+  runtime smoke plus 187/187 tests.
+- [x] Four answer-blind producer containers and two mapping-blind scorer slots
+  were provisioned under `gate2-formal-20260727-213336`; the fail-closed
+  resource audit passed exact image, network-none/read-only/cap-drop/no-new-
+  privileges, tree/head/clean status, packet/payload digests, fresh contexts and
+  scorer-slot mapping absence. This proves local resource provisioning, not the
+  still-required live admission of two scorer model contexts. The first admitted set
+  (`gate2-formal-20260727-212713`) was superseded before any adapter/model call
+  because its run/container identifiers encoded arm letters that canonical v3
+  source attestation would have exposed to scorers. The replacement uses opaque
+  `OUTRUN-*` identifiers.
+- [ ] Resource admission completion and formal model execution remain pending
+  destination-specific authorization
+  to send the sanitized producer packets and later anonymous scorer packets to
+  the external Anthropic Claude service. The security reviewer rejected that
+  transfer without explicit user authorization. No arm was started, no formal
+  scorer submission exists, and mapping has not been released.
+  - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
+    2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
+    report for **producer-channel** admission, including nine isolation checks
+    (network none, read-only rootfs, all capabilities dropped, no-new-privileges,
+    non-root uid, no host bind mount, tmpfs workspace, no docker socket, pinned
+    image). Its recorded execution paths are under a `D:` root; this checkout does not
+    contain that live JSON evidence and the run was **not reproduced locally**
+    (Docker daemon not running at record time). **Scorer-side is NOT RUN**:
+    `admission-canary/evidence-live/` contains `capture_scorer_packet.py`,
+    `verify_scorer_packet.py` and tests, but zero execution artifacts — tool
+    presence is not execution evidence. Therefore **resource admission is NOT
+    complete**, Gate 2 has not started, and arm execution remains 0.
+    Receipt: `artifacts/evidence/test-results/receipt-gate2-admission-state-20260727.json`.
+    Claimable: a historical producer-channel admission report exists.
+    This historical note is superseded for current admission status by the two
+    completed items above. It remains valid historical evidence about what had
+    not yet run at that earlier checkpoint.
 
-Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
+Claim ceiling: formal arm execution progress = 0 (local runner/producers provisioned; two live scorer contexts not admitted; no result); no arm
 has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
 engineering method is claimed effective; Skill effectiveness cannot be judged
 before Gate 3. This is not independent consumer evidence and does not establish
