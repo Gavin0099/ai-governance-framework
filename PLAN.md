@@ -1418,7 +1418,7 @@ P2 - historical debt / evidence disposition:
 - [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
   scope.
 
-P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 execution = 0):
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 local runner admission complete, resource admission incomplete, arm execution = 0):
 
 - [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
@@ -1452,13 +1452,30 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   Promotion supersedes scorer-handoff v2 only; producer treatments, arm order,
   budgets, validators and scoring release gates are unchanged. Gate 2 execution
   remains 0 and resource admission is NOT performed.
-- [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),
-  **BLOCKED-ON-RESOURCE not blocked-on-company**: an environment that technically
-  cannot read the answer (container/VM/sandbox/separate account/remote runner) for
-  four isolated producer contexts plus a primary and second blind scorer that are
-  neither this session nor the author; the pinned validators installed there; the
-  actual model/permissions stamped. Gate 2 (single four-arm process-only pilot) is
-  DEFERRED and additionally needs a separate explicit owner "start Gate 2" command.
+- [x] Gate 2 experiment-local runner admission completed 2026-07-27 on the exact pinned image.
+  Commit `3acd2659` adds only the experiment-local bounded runner, hash-pinned
+  offline pytest payload, producer adapter/policies and admission evidence.
+  Fresh live admission `gate2-arm-runner-admission-20260727-214036` passed fixed
+  input read, 4/4 frozen tests, signed Arm D validator exits
+  (shellcheck=1/ruff=1/mypy=0), negative and positive pushed-ref reproduction,
+  one commit receipt and clean final status. Canonical focused precommit passed
+  runtime smoke plus 187/187 tests.
+- [x] Four answer-blind producer containers and two mapping-blind scorer slots
+  were provisioned under `gate2-formal-20260727-213336`; the fail-closed
+  resource audit passed exact image, network-none/read-only/cap-drop/no-new-
+  privileges, tree/head/clean status, packet/payload digests, fresh contexts and
+  scorer-slot mapping absence. This proves local resource provisioning, not the
+  still-required live admission of two scorer model contexts. The first admitted set
+  (`gate2-formal-20260727-212713`) was superseded before any adapter/model call
+  because its run/container identifiers encoded arm letters that canonical v3
+  source attestation would have exposed to scorers. The replacement uses opaque
+  `OUTRUN-*` identifiers.
+- [ ] Resource admission completion and formal model execution remain pending
+  destination-specific authorization
+  to send the sanitized producer packets and later anonymous scorer packets to
+  the external Anthropic Claude service. The security reviewer rejected that
+  transfer without explicit user authorization. No arm was started, no formal
+  scorer submission exists, and mapping has not been released.
   - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
     2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
     report for **producer-channel** admission, including nine isolation checks
@@ -1473,11 +1490,11 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
     complete**, Gate 2 has not started, and arm execution remains 0.
     Receipt: `artifacts/evidence/test-results/receipt-gate2-admission-state-20260727.json`.
     Claimable: a historical producer-channel admission report exists.
-    NOT claimable: local reproduction of producer admission; that a scorer
-    context exists or passed admission; that resource admission is complete;
-    that Gate 2 is ready, started, or that any arm has run.
+    This historical note is superseded for current admission status by the two
+    completed items above. It remains valid historical evidence about what had
+    not yet run at that earlier checkpoint.
 
-Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
+Claim ceiling: formal arm execution progress = 0 (local runner/producers provisioned; two live scorer contexts not admitted; no result); no arm
 has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
 engineering method is claimed effective; Skill effectiveness cannot be judged
 before Gate 3. This is not independent consumer evidence and does not establish
