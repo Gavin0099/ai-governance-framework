@@ -1,0 +1,73 @@
+name: Build and deploy AI Governance Wiki
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - ".github/workflows/docs-pages.yml"
+      - "docs/wiki/**"
+      - "scripts/generate_wiki_status.py"
+      - "README.md"
+      - "PLAN.md"
+      - "CHANGELOG.md"
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/wiki/package-lock.json
+
+      - name: Generate public repository summary
+        run: python3 scripts/generate_wiki_status.py
+
+      - name: Install Wiki dependencies
+        run: npm ci --prefix docs/wiki
+
+      - name: Build Wiki
+        run: npm run docs:build --prefix docs/wiki
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/wiki/.vitepress/dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
