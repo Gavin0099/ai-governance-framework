@@ -5,6 +5,7 @@ Fixed HEAD: `5a2c5a80b87eed21cf4edd85485e13a87a4cef21`
 Scope: the 15 non-`immediate_match` entries from the Tranche 1 baseline
 Upstream: `artifacts/memory-quality/recent20-baseline-20260727.md`
 Dataset: `artifacts/memory-quality/recent20-causal-audit-20260727.json`
+Amendment receipt: `artifacts/memory-quality/recent20-record-commit-blind-review-20260727.json`
 
 ## Result
 
@@ -33,8 +34,8 @@ a confirmed avoidable memory defect.
 Tranche 1 reported that two `never_observed` entries "were stale on arrival:
 their requested implementation was already contained in the commit that
 introduced the memory record." Three entries fit that description (sequences 7,
-16, 18). All three were checked against the actual commits, and the reading is
-wrong in the same way each time.
+16, 18). All three were checked against the actual commits. The stale-at-write
+reading fails in each case, with clause-level distinctions recorded below.
 
 Sequence 16 is the clearest case. Its `record_commit` is `b596153b`, and its
 `next_step` asks to implement BLOCKER-1, BLOCKER-2 and WARN-3 — which is exactly
@@ -50,10 +51,13 @@ git show b596153b -- memory/2026-07-27.md
 
 The record describes the *earlier* GitLab push, sat uncommitted in the working
 tree, and was then committed alongside the work its `next_step` named. It was
-accurate when written and it was fulfilled. Sequence 7 (`ac9dab87` carries both
-the scorer-packet slice and `memory/2026-07-26.md +12`) and sequence 18
-(`3bea5287` carries exactly the receipt, `PLAN.md +5` and
-`memory/2026-07-27.md +24` its `next_step` listed) are the same pattern.
+accurate when written and its remediation clause was fulfilled. Sequence 7 is
+the same timing pattern, but the clauses must be kept separate: `ac9dab87`
+carries the focused-precommit receipt, the scorer-packet slice and
+`memory/2026-07-26.md +12`; the later owner-signed amendment and Gate 2 authority
+clause remained forward-looking. For sequence 18, `3bea5287` carries the
+receipt, `PLAN.md +5` and `memory/2026-07-27.md +24` named by the commit clause;
+the subsequent push clause is not observable from that commit.
 
 The confound is the measurement anchor. `git blame` on the entry's start line
 returns the commit that *committed* the record, not the commit after which the
@@ -77,6 +81,30 @@ time, or an explicit written-at field) that separates authorship from commit.
 `stale_at_write` is retained in the vocabulary but has no members. A new cause
 `record_commit_artifact` was added to name what was actually observed.
 
+### Targeted independent fact-check amendment
+
+A fresh reviewer was asked only two Git questions for `ac9dab87`, `b596153b`
+and `3bea5287`: whether each commit performed work named by the corresponding
+`next_step`, and whether it also added that memory record. The reported results
+were:
+
+| Sequence | Commit | Reported result | Disposition |
+|---:|---|---|---|
+| 7 | `ac9dab87` | `PARTIAL` | Precommit and bounded-commit clauses are present; the later owner-authority clause remained forward-looking. |
+| 16 | `b596153b` | `YES` | The named BLOCKER-1/2 and WARN-3 remediation and the memory record are in the same commit. |
+| 18 | `3bea5287` | `PARTIAL` | The commit clause and memory record are present; the push clause is not commit-observable. |
+
+The reviewer reportedly used the fixed-head Git object view and did not read
+this audit, current memory, or `PLAN.md`. The original command transcript was
+not persisted. The durable receipt therefore records
+`independent_review_reported`, not `confirmed_independent`; the main session's
+Git re-check confirms the facts but is not a substitute for reviewer
+independence or proof of blinding.
+
+The downstream decision is unchanged: the timing confound is independently
+supported at the reported-result level, candidate signal 1 remains invalid as
+specified, and no quality mechanism is admitted.
+
 ## Unit of analysis: 20 records are 4 work items
 
 Grouping all 20 baseline entries under their real work item, per
@@ -93,6 +121,11 @@ Three of the 15 annotated entries are corrective duplicates (10 of 9, 13 of 12,
 19 of 18), leaving 12 unique. Sequences 12 and 13 carry byte-identical
 `next_step` text from the same session and the same record commit — a single
 event counted twice.
+
+The later `what_changed` text strengthens the dedup evidence in all three
+pairs: sequence 10 says "Correction to the immediately preceding", sequence 13
+calls itself a corrective provenance record, and sequence 19 says "Corrected
+the immediately preceding".
 
 A percentage over 20 records is therefore close to a percentage over one work
 item. It cannot support a claim about memory quality in general.
@@ -150,17 +183,37 @@ not acted on.
    record.
 4. Assigned work items by deliverable, folding sessions, sub-agent reviews,
    evidence corrections and push checks into the parent item.
-5. Marked corrective duplicates by shared record commit plus session lineage.
-6. Left `reviewer_agreement` as `pending` on every entry.
+5. Marked corrective duplicates using the later record's explicit correction
+   language, with shared record commit and session lineage as corroboration.
+6. Recorded the targeted fresh-reviewer result for sequences 7, 16 and 18 as
+   `independent_review_reported`.
+7. Closed the remaining 12 entries as `not_reviewed_by_decision`; they are not
+   pending review debt.
+
+## Closeout evidence correction
+
+The canonical closeout memory entry says the Git Bash enforcement run passed
+runtime smoke and 187/187 focused tests. The execution was observed in the
+session, but no durable receipt for this Memory-quality closeout was retained.
+It must therefore be described as:
+
+> UNRECEIPTED LOCAL EXECUTION: Git Bash enforcement reported runtime smoke PASS
+> and 187/187 focused tests during the session. No durable receipt was retained;
+> this is not artifact-backed test proof.
+
+No receipt is reconstructed after the fact, and this docs-only amendment does
+not rerun the runtime suite.
 
 ## Claim ceiling
 
-- Single-annotator. `reviewer_agreement` is `pending` on all 15 entries; the
-  causal labels were assigned by the same session that verified the commits, so
-  they are not independently confirmed.
-- The `record_commit_artifact` finding is the exception: it rests on commit
-  contents that can be re-checked with the commands quoted above, independent of
-  any judgement made here.
+- Three `record_commit_artifact` entries have a reported independent fact-check.
+  Because the reviewer command transcript was not persisted, this is not a
+  `confirmed_independent` claim.
+- The remaining 12 entries are `not_reviewed_by_decision`, not pending review
+  debt. Their single-annotator causal labels are not independently confirmed.
+- The `record_commit_artifact` finding also rests on commit contents that can be
+  re-checked with the commands quoted above; a main-session re-check confirms
+  the facts but not reviewer independence or blinding.
 - Counts reconcile to the original 20 (5 `immediate_match` + 15 annotated).
 - This measures retrospective commit alignment and its causes only. It does not
   measure fresh-session handoff success, does not prove Memory quality

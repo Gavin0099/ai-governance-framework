@@ -62,6 +62,10 @@
       "no",
       "unknown"
     ],
+    "reviewer_agreement": [
+      "independent_review_reported",
+      "not_reviewed_by_decision"
+    ],
     "vocabulary_amendment": {
       "added": "record_commit_artifact",
       "reason": "The planned stale_at_write category proved non-applicable. Every candidate was a record written before its own commit and then committed alongside the work its next_step named. That is the normal write-then-commit workflow, not staleness."
@@ -91,6 +95,10 @@
       "no": 11,
       "unknown": 4
     },
+    "by_reviewer_agreement": {
+      "independent_review_reported": 3,
+      "not_reviewed_by_decision": 12
+    },
     "work_items_with_avoidable_defect": [],
     "work_items_with_unknown_defect": [
       "WI-B"
@@ -101,6 +109,31 @@
     "avoidable_defects_confirmed": 0,
     "result": "NOT MET",
     "consequence": "Do not design an advisory prompt, replay harness, or any Memory quality mechanism from this sample."
+  },
+  "review_disposition": {
+    "decision": "targeted-fact-check-only",
+    "reviewed_sequences": [
+      7,
+      16,
+      18
+    ],
+    "not_reviewed_sequences": [
+      1,
+      6,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      19,
+      20
+    ],
+    "reason": "The record_commit_artifact finding was the only result with an active downstream consequence because it rejects candidate signal 1. The other causal labels are explicitly closed as not reviewed by decision rather than left as implied review debt.",
+    "receipt": "artifacts/memory-quality/recent20-record-commit-blind-review-20260727.json",
+    "receipt_claim_ceiling": "The independent result is preserved from a user-provided fresh-subagent report. Its command transcript was not persisted, so the status is independent_review_reported rather than confirmed_independent."
   },
   "entries": [
     {
@@ -126,7 +159,7 @@
         "matched eab44eeb (live-canary evidence)"
       ],
       "note": "A concurrency defect was reproduced after the record was written. The detour was caused by newly observed failure, not by the record.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 6,
@@ -150,7 +183,7 @@
         "next commits ac9dab87.. move to scorer packet construction"
       ],
       "note": "next_step explicitly gated on separate owner authorization for a revision-7 canary. The authorization gate was never released and work was redirected. The record stated its own precondition, so non-occurrence is not a writing defect.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 7,
@@ -172,8 +205,10 @@
       "evidence_refs": [
         "record_commit ac9dab87 contains BOTH evidence-live/capture_scorer_packet.py (+288), test_scorer_packet.py (+229), verify_scorer_packet.py (+191) AND memory/2026-07-26.md (+12)"
       ],
-      "note": "Baseline labelled this stale_at_write. Verified otherwise: the next_step named 'commit the bounded scorer-packet slice', and ac9dab87 IS that commit, carrying the record itself. The record was written before the commit and fulfilled by it. Blame-derived record_commit cannot separate write time from commit time.",
-      "reviewer_agreement": "pending"
+      "note": "Baseline labelled this stale_at_write. Verified otherwise: ac9dab87 carried the record, the focused-precommit receipt and the bounded scorer-packet commit named by the next_step. The later owner-signed amendment and Gate 2 authority clause remained forward-looking. Blame-derived record_commit cannot separate write time from commit time.",
+      "reviewer_agreement": "independent_review_reported",
+      "reviewer_result": "PARTIAL",
+      "review_receipt": "artifacts/memory-quality/recent20-record-commit-blind-review-20260727.json"
     },
     {
       "sequence": 8,
@@ -199,7 +234,7 @@
         "matched 3bea5287 (owner re-sign)"
       ],
       "note": "Independent review found further defects before approval was possible. Deferral is the review loop working as intended.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 9,
@@ -224,7 +259,7 @@
         "matched 3bea5287 (owner re-sign)"
       ],
       "note": "Same review loop, one cycle later.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 10,
@@ -245,10 +280,11 @@
       "avoidable_memory_defect": "no",
       "evidence_refs": [
         "shares record_commit 0e9c229f with sequence 9",
-        "session codex-...-review-fix-evidence-correction-20260726"
+        "session codex-...-review-fix-evidence-correction-20260726",
+        "what_changed begins 'Correction to the immediately preceding scorer-handoff v3 review-fix memory entry'"
       ],
       "note": "Corrective evidence record for the same event as sequence 9. Counts as one observation, not two.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 11,
@@ -272,7 +308,7 @@
         "matched 3bea5287 (owner re-sign)"
       ],
       "note": "Re-review at a pinned manifest produced another fix before approval.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 12,
@@ -296,7 +332,7 @@
         "matched b596153b fix: close scorer handoff blinding leaks"
       ],
       "note": "Two-clause next_step: independent review (commit-observable) and a user-directed push (remote-only). The review clause was met at b596153b after intervening delivery bookkeeping.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 13,
@@ -317,10 +353,11 @@
       "avoidable_memory_defect": "no",
       "evidence_refs": [
         "identical next_step text to sequence 12",
-        "same session codex-019f9d32-b72a-7032-a775-efbda922f48c, same record_commit a5a15c46"
+        "same session codex-019f9d32-b72a-7032-a775-efbda922f48c, same record_commit a5a15c46",
+        "what_changed identifies itself as a corrective provenance record for the prior entry"
       ],
       "note": "Corrective provenance duplicate. Its identical next_step is the single clearest source of double counting in the baseline.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 14,
@@ -344,7 +381,7 @@
         "matched b596153b fix: close scorer handoff blinding leaks"
       ],
       "note": "Deferred because an unrelated memory-pressure cleanup (WI-D) took priority. Cross-work-item interleaving, not a bad record.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 15,
@@ -368,7 +405,7 @@
         "record already noted the conditional GitLab clause as complete"
       ],
       "note": "Primary action is a CI result. No later Git commit can confirm or refute it. Belongs in an observability class, not pass/fail.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 16,
@@ -392,7 +429,9 @@
         "file order: this entry (line 52) precedes the local-uncommitted remediation entry (line 64) written by the same session family"
       ],
       "note": "Baseline labelled this stale_at_write. Verified otherwise: the record describes the GitLab push ad96830a, sat uncommitted, and was committed inside the very commit that executed its next_step. Same measurement artifact as sequence 7.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "independent_review_reported",
+      "reviewer_result": "YES",
+      "review_receipt": "artifacts/memory-quality/recent20-record-commit-blind-review-20260727.json"
     },
     {
       "sequence": 18,
@@ -415,7 +454,9 @@
         "record_commit 3bea5287 contains exactly the named artifacts: owner-resign receipt json, PLAN.md (+5), memory/2026-07-27.md (+24)"
       ],
       "note": "next_step named 'commit the receipt, PLAN sync and memory record, then push'. The commit clause was fulfilled by the record commit itself; only the push clause is remote-only.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "independent_review_reported",
+      "reviewer_result": "PARTIAL",
+      "review_receipt": "artifacts/memory-quality/recent20-record-commit-blind-review-20260727.json"
     },
     {
       "sequence": 19,
@@ -436,10 +477,11 @@
       "avoidable_memory_defect": "unknown",
       "evidence_refs": [
         "shares record_commit 3bea5287 with sequence 18",
-        "session codex-...-owner-resign-evidence-correction"
+        "session codex-...-owner-resign-evidence-correction",
+        "what_changed begins 'Corrected the immediately preceding owner-resign memory entry'"
       ],
       "note": "Corrective duplicate of sequence 18 with the same two-clause next_step.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     },
     {
       "sequence": 20,
@@ -463,12 +505,13 @@
         "the named work was in fact performed: artifacts/memory-quality/recent20-baseline-20260727.md exists untracked in the working tree at audit time"
       ],
       "note": "Right-censored by the fixed HEAD, yet human-verifiable as done. Direct evidence that the commit-only proxy undercounts completion.",
-      "reviewer_agreement": "pending"
+      "reviewer_agreement": "not_reviewed_by_decision"
     }
   ],
   "claim_ceiling": [
     "Causal labels are human semantic judgements over commit evidence.",
-    "reviewer_agreement is pending on every entry; this tranche is single-annotator and was produced by the same session that verified the underlying commits.",
+    "Three record_commit_artifact entries have a reported independent fact-check; the original reviewer command transcript was not persisted, so this is not a confirmed-independent claim.",
+    "The remaining 12 entries are not_reviewed_by_decision, not pending review debt.",
     "This does not measure fresh-session handoff success.",
     "This does not prove Memory quality improvement or G4 outcome value.",
     "No repository behaviour, validator, hook, CI or schema was changed."

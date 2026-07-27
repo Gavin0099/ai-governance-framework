@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "review_type": "targeted-blind-git-fact-check",
+  "status": "independent-review-reported",
+  "source": {
+    "kind": "user-provided-fresh-subagent-report",
+    "reviewer_label": "Sonnet 5",
+    "report_received_date": "2026-07-27",
+    "command_transcript_persisted": false
+  },
+  "blinding": {
+    "fixed_head_view": "5a2c5a80b87eed21cf4edd85485e13a87a4cef21",
+    "reported_constraints": [
+      "Do not read artifacts/memory-quality/.",
+      "Read memory files only from the fixed-head Git object view.",
+      "Do not read PLAN.md."
+    ],
+    "durable_proof": "not-available",
+    "claim_ceiling": "The main session can preserve the reported independent result and re-check the Git facts, but cannot prove the reviewer's command history or blinding from a durable transcript."
+  },
+  "questions": [
+    "Did the record commit perform work named by the memory entry's next_step?",
+    "Did the same commit add that memory entry?"
+  ],
+  "targets": [
+    {
+      "sequence": 7,
+      "commit": "ac9dab8786ac926466a6180fcd5974c3941662ae",
+      "reported_result": "PARTIAL",
+      "facts": {
+        "named_precommit_and_commit_clauses_observed": true,
+        "memory_entry_added_by_same_commit": true,
+        "forward_owner_authority_clause_observed_in_same_commit": false
+      },
+      "disposition": "Confirms the record-commit timing artifact. Correct the causal-audit wording: the precommit and bounded-commit clauses were fulfilled, while the later owner-signed amendment and Gate 2 authority clause remained forward-looking."
+    },
+    {
+      "sequence": 16,
+      "commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "reported_result": "YES",
+      "facts": {
+        "named_remediation_observed": true,
+        "memory_entry_added_by_same_commit": true,
+        "additional_review_log_correspondence_observed": true
+      },
+      "disposition": "Confirms the record-commit timing artifact without qualification."
+    },
+    {
+      "sequence": 18,
+      "commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "reported_result": "PARTIAL",
+      "facts": {
+        "named_commit_clause_observed": true,
+        "memory_entry_added_by_same_commit": true,
+        "remote_push_clause_observable_from_commit": false
+      },
+      "disposition": "Confirms the record-commit timing artifact for the commit clause; the push clause remains outside commit-only observability."
+    }
+  ],
+  "dedup_checks": [
+    {
+      "pair": [
+        10,
+        9
+      ],
+      "reported_result": "YES",
+      "evidence": "The later what_changed begins 'Correction to the immediately preceding'."
+    },
+    {
+      "pair": [
+        13,
+        12
+      ],
+      "reported_result": "YES",
+      "evidence": "The later what_changed identifies itself as a corrective provenance record for the prior entry."
+    },
+    {
+      "pair": [
+        19,
+        18
+      ],
+      "reported_result": "YES",
+      "evidence": "The later what_changed begins 'Corrected the immediately preceding'."
+    }
+  ],
+  "main_session_recheck": {
+    "scope": "Git facts only; not an independent review and not proof of blinding.",
+    "commands": [
+      "git show --stat --oneline ac9dab8786ac926466a6180fcd5974c3941662ae",
+      "git show --stat --oneline b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "git show --stat --oneline 3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "git show <commit>:<memory-path>"
+    ],
+    "result": "consistent-with-reported-review"
+  },
+  "decision_effect": {
+    "record_commit_artifact_finding": "retained",
+    "candidate_signal_1": "rejected-as-currently-specified",
+    "gate": "NOT MET",
+    "quality_mechanism": "not-admitted"
+  },
+  "not_claimed": [
+    "A durable reviewer command transcript.",
+    "Cryptographic reviewer identity or authentication.",
+    "Independent review of all 15 causal labels.",
+    "A Memory quality improvement result.",
+    "G4 outcome evidence."
+  ]
+}
