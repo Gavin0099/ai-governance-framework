@@ -52,6 +52,17 @@ The correction is failure-driven:
     the current candidate bytes. A reviewer following its instructions
     received three deterministic failures rather than current end-to-end
     evidence.
+11. Review of the literal-map fix showed that unregistered identity-bearing
+    prose such as `treatment arm`, `control condition` and `designer-only`
+    passed unchanged into the scorer-visible reason. A blacklist designed for
+    fixed packet filenames cannot safely sanitize operator-authored prose.
+12. Independent reproduction required the reviewer to receive the same raw
+    reason on the command line. That both defeated the role boundary and
+    exposed identity-bearing text through argv, shell history, process
+    inspection and CI logs.
+13. `test_redaction_runner.py` reported 23 internal checks only when executed
+    as a script. Normal pytest collection ran zero of them, and the file itself
+    was absent from the exact candidate manifest.
 
 These are experiment-validity failures. They do not relax any gate or claim
 that the experiment may start.
@@ -129,15 +140,23 @@ path artifact, and `scorer_input_core` plus required attachments must equal the
 fixed contract values. Digest-consistent contradictions fail before handoff
 reconstruction.
 
-The experimenter may supply
-`--blinding-compromised-reason <non-blank reason>` to both build and verify.
-When absent, the packet deterministically contains null flag and reason. When
-present, the flag is true and the raw reason is passed through the contract's
-pinned literal-map before it enters the scorer-visible packet. Per-rule match
-counts and the total number of reason redactions are recorded. The raw reason
-remains an experimenter-side rebuild input and is not published. Omission,
-substitution or any raw-input byte change at verification fails source
-reproduction; substantive evidence is never removed.
+The experimenter may supply one closed
+`--blinding-compromised-reason-code` value. The allowed values are
+`RESIDUAL_IDENTITY_IN_CLAIM`, `RESIDUAL_IDENTITY_IN_RECEIPT` and
+`REDACTION_POLICY_MISMATCH`. Free text is rejected rather than sanitized.
+When absent, the packet deterministically contains a null flag and null code.
+When present, the flag is true and the exact registered code enters the
+scorer-visible packet.
+
+Build additionally requires the raw identity-bearing explanation through
+`--blinding-compromised-detail-file`. The file must be regular, non-empty,
+non-blank UTF-8. Its bytes are checked only by the builder and are never placed
+in argv, hashed, copied into the candidate, published to scorers or required by
+verification. The experimenter is the sole holder of that file. An owner or
+independent reviewer receives only the registered code and can deterministically
+rebuild the identity-free candidate without receiving the raw explanation.
+Omission or substitution of the code fails source reproduction; substantive
+evidence is never removed.
 
 If any arm source contains CR or a reserved standalone marker, the complete
 four-arm run is **NO-GO before scoring**. The experimenter must not selectively
@@ -179,13 +198,14 @@ Candidate bytes offered for review and later owner re-sign:
 
 | Candidate file | Bytes | SHA-256 |
 |---|---:|---|
-| `.gitattributes` (exact candidate/evidence paths only) | 3,112 | `9552e5f82804188a436772526dd84c70499bb3fdd42a4adc89d08a0705b56d43` |
-| `candidate/scorer-handoff-contract-v3.json` | 8,798 | `513c42f769d7c5c959415757682bc9a668a341cc824857ca33b22cec66e7e425` |
+| `.gitattributes` (exact candidate/evidence paths only) | 5,039 | `e7c9c51b48aa4532365626bde90ab907cab7110cc1f02c9086fa1cc6e32cdd06` |
+| `candidate/scorer-handoff-contract-v3.json` | 9,810 | `16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733` |
 | `redaction_runner.py` (pinned semantic dependency; unchanged) | 16,152 | `d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5` |
 | `gate2-runtime/scorer_packet_v2.py` | 23,520 | `a96711338ed5b873660fde892cc32b0b28cd25deaa440c4f67b1571371bbb40e` |
-| `gate2-runtime/scorer_handoff_v3.py` | 47,064 | `5c874cdb1c4a9b3026335d29ab743cfab3ee067f3c015ec72dc22b5080e5c105` |
+| `gate2-runtime/scorer_handoff_v3.py` | 48,610 | `77360e8fa20a30e3c39e1efde0dfbde94a9952d391358e39b2e68c1b28cba06e` |
 | `gate2-runtime/test_scorer_packet_v2.py` | 12,558 | `724250f537201e3ac4aa173b41ba6a786c7846807e1f7577bbd9c10e561e5055` |
-| `gate2-runtime/test_scorer_handoff_v3.py` | 35,305 | `7e0aa713e0d86e4f888dd2a93ab60f761643821bbb582d2274ab27784826cb27` |
+| `gate2-runtime/test_scorer_handoff_v3.py` | 36,483 | `62354907241a1e8c9009f15de261a3260a06f49a91c09a59ad28107b20703fce` |
+| `test_redaction_runner.py` (pytest-collected wrapper plus 23 internal checks) | 16,667 | `ffe3ef3b674c7189d6b0f4414e0a91325d12c814fc3cd26bcb56c636a86398ec` |
 
 Any edit changes the hash and requires a new review/signature target. Do not
 rewrite amendment v2/v3 or the frozen v2 contract in place.
@@ -196,18 +216,24 @@ Targeted evidence already required by this candidate:
 
 - scorer-packet schema v2 counter-examples: 14/14;
 - scorer-handoff v3 counter-examples: 21/21;
-- frozen v2 redaction runner regression: 23/23;
-- fresh synthetic Docker packet verification: 22/22;
-- fresh synthetic Docker handoff reconstruction: 24/24;
+- frozen v2 redaction runner regression: 23/23 as a script and one collected
+  pytest test executing the same 23 checks;
+- pinned synthetic Docker packet verification: 22/22 from the previously
+  live-read source packet; not rerun in this reason-code slice;
+- current-contract offline handoff reconstruction: 24/24 from those exact
+  packet and attachment bytes;
 - candidate verifier checks: 15/15, including the shipped smoke's exact file
   digests, PASS result and contract digest equality with the candidate;
 - candidate scripts compile;
 - candidate contract parses as JSON.
 
-The fresh synthetic smoke is pinned under
-`artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/`.
-It is not a Gate 2 arm. The prior rebuild smoke remains historical evidence and
-is not used to support the current pinned bytes.
+Current handoff reconstruction evidence is pinned under
+`artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/`.
+It rebuilds the new identity-free handoff from the exact previously
+live-verified synthetic Docker packet and attachments. It does not claim a new
+Docker run, model session or Gate 2 arm. The prior redacted-reason and rebuild
+smokes remain historical evidence and are not used to support the new contract
+bytes.
 
 The canonical focused precommit and the final candidate receipt must also pass
 before the owner is asked to sign. These are evidence for review, not owner

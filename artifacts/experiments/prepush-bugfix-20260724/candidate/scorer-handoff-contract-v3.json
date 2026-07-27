@@ -74,7 +74,7 @@
   },
   "acceptable_handoff": {
     "schema": "gate2-scorer-handoff-set.v2",
-    "rule": "Before scorer delivery, the experimenter or owner verifier must recheck the pinned packet's semantic inventory and scorer-input invariants, then deterministically rebuild the exact packet and receipt bytes from the pinned scorer packet, test log, validator output, candidate contract, pinned redaction runner and explicit blinding-compromised reason when present. The arm-identity-blind scorer receives only the verified redacted set and the identity-free verifier result, never the identity-bearing source packet.",
+    "rule": "Before scorer delivery, the experimenter or owner verifier must recheck the pinned packet's semantic inventory and scorer-input invariants, then deterministically rebuild the exact packet and receipt bytes from the pinned scorer packet, test log, validator output, candidate contract, pinned redaction runner and closed blinding-compromised reason code when present. The arm-identity-blind scorer receives only the verified redacted set and the identity-free verifier result, never the identity-bearing source packet or experimenter detail.",
     "candidate_limit": "Mechanical acceptance does not authorize Gate 2 while candidate_authorization is pending_owner_resign."
   },
   "validator_output_split": {
@@ -83,17 +83,24 @@
     "residual_leak_rule": "Flag blinding_compromised; never delete substantive evidence."
   },
   "blinding_compromised_input": {
-    "cli_argument": "--blinding-compromised-reason",
+    "cli_reason_code_argument": "--blinding-compromised-reason-code",
+    "cli_detail_file_argument": "--blinding-compromised-detail-file",
+    "allowed_reason_codes": [
+      "RESIDUAL_IDENTITY_IN_CLAIM",
+      "RESIDUAL_IDENTITY_IN_RECEIPT",
+      "REDACTION_POLICY_MISMATCH"
+    ],
     "absent": {
       "blinding_compromised": null,
-      "blinding_compromised_reason": null
+      "blinding_compromised_reason_code": null
     },
     "present": {
       "blinding_compromised": true,
-      "blinding_compromised_reason": "exact non-blank argument string after the pinned literal-map redaction",
-      "redaction_metadata": "per-rule match counts and total reason redactions"
+      "blinding_compromised_reason_code": "one exact value from allowed_reason_codes",
+      "experimenter_detail": "required non-blank UTF-8 file for build; never published, hashed, copied into the scorer packet or required by an independent verifier"
     },
-    "verification": "The verifier must receive the same explicit reason used by the builder; absence, omission or any byte change fails deterministic reproduction."
+    "verification": "The verifier receives only the same reason code used by the builder. Omission or substitution fails deterministic reproduction; raw detail remains experimenter-side and is not a verifier input.",
+    "role_boundary": "The experimenter may hold the identity-bearing detail file. The owner or independent reviewer verifies the identity-free candidate with the closed reason code only. Arm-identity-blind scorers receive neither the detail file nor identity-bearing source material."
   },
   "common_mode_channel_effect": {
     "mechanism": "All four producers use the same argv-only adapter and provide write/report bodies as base64.",
@@ -105,8 +112,7 @@
   "redaction": {
     "applies_to": [
       "COMPLETION_CLAIM free text",
-      "producer receipt metadata",
-      "blinding_compromised_reason free text"
+      "producer receipt metadata"
     ],
     "never_applies_to": [
       "FIX_DIFF",
@@ -172,7 +178,9 @@
   "roles": {
     "producers": "four answer-blind contexts; each knows its own treatment",
     "scorers": "two arm-identity-blind contexts; neither knows the A/B/C/D mapping before scoring",
-    "experimenter": "may know the answer; captures and verifies packets, runs uniform post-hoc validators, performs redaction, and holds the mapping"
+    "experimenter": "may know the answer; captures and verifies packets, runs uniform post-hoc validators, performs redaction, holds the mapping, and is the only role allowed to retain the raw blinding-compromised detail file",
+    "owner_or_independent_reviewer": "verifies the identity-free candidate using the closed reason code and does not require or receive the raw blinding-compromised detail",
+    "detail_retention": "the raw detail remains outside the published candidate and scorer handoff; retention and access stay experimenter-side"
   },
   "release_gate": "Release anon-id to arm mapping only after both scorers submit scores and blinding-check guesses.",
   "not_authorized": [

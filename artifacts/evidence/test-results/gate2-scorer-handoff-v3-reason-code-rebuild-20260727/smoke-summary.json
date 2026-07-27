@@ -1,0 +1,22 @@
+{
+  "claim_boundary": "This proves current candidate handoff reconstruction from pinned source bytes. It does not prove a new live container read, owner signature, canonical promotion, resource admission or Gate 2 authorization.",
+  "contract_sha256": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733",
+  "handoff_verifier": {
+    "passed": 24,
+    "status": "PASS",
+    "total": 24
+  },
+  "identity": {
+    "baseline_commit": "2eaeb4de59ee771b3f12f5677b96abe46441bfdd",
+    "container_id": "e72c7b770a17f882cc42dda17eaa93fc7f914ade82c826c18f2f3a4b392284d6",
+    "output_commit": "75da885325cb81861f6991377c9ff3ec30b619e2",
+    "run_id": "scorer-v3-redacted-reason-smoke-20260726"
+  },
+  "raw_detail_published": false,
+  "reason_code": "RESIDUAL_IDENTITY_IN_CLAIM",
+  "scope": "current-contract offline handoff reconstruction from an exact previously live-verified synthetic Docker packet; not a new Docker run and not a Gate 2 arm",
+  "source_live_evidence": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726",
+  "source_packet_live_verification_status": "PASS",
+  "source_packet_sha256": "6a192abc75f7f17998cacd4a210ddce4771eb924f47b0994e2a17fb53b3ee475",
+  "status": "PASS"
+}

@@ -3859,3 +3859,49 @@ Stop on any new blocking and do not start Gate 2.
   behavior remain a separate warning.
 - No owner signature, canonical promotion, resource admission, full repository
   suite, push or Gate 2 arm is claimed.
+
+## 2026-07-27 - Scorer-handoff v3 reason-code remediation review
+
+### Review Input And Decision
+- Independent read-only review verdict: `APPROVED`.
+- Risk level: medium.
+- Approval target: exact candidate manifest SHA-256
+  `7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`.
+- Scope was limited to the scorer-handoff remediation candidate, its contract,
+  amendment, tests, manifest, reconstruction evidence, and scoped memory diff.
+  Unrelated dirty and untracked paths were not inspected.
+
+### Findings And Resolution
+- Prior BLOCKER-1 resolved: arbitrary free-text blinding reasons were replaced
+  by three closed reason codes; unknown or substituted values fail closed.
+- Prior BLOCKER-2 resolved: raw detail remains in an experimenter-side regular
+  UTF-8 file and is discarded before scorer-packet assembly. The independent
+  reviewer and scorer artifacts receive the code only.
+- Prior WARN-3 resolved: normal pytest collection now executes a wrapper that
+  runs all 23 frozen redaction checks, and the test file is pinned in the exact
+  candidate manifest.
+- Manifest, reconstruction, evidence claims, and byte-preservation controls
+  were independently checked and found internally consistent.
+
+### Evidence
+- Scorer packet: PASS 14/14.
+- Scorer handoff: PASS 21/21.
+- Frozen redaction script: PASS 23/23; pytest collection PASS 1/1.
+- Candidate verifier: PASS 15/15.
+- Offline handoff reconstruction: PASS 24/24.
+- Exact manifest digest independently matched the approval target.
+- Candidate files and reconstruction evidence reported `text: unset`; scoped
+  `git diff --check` passed.
+
+### Not Claimed
+- No new Docker or live-container run.
+- No owner signature, canonical promotion, resource admission, or Gate 2
+  start/arm execution.
+- No cryptographic writer authentication or full repository suite.
+- No commit, push, clean workspace, or overall task completion for this
+  remediation.
+- WARN-4, NIT-5, NIT-6, and unrelated dirty paths were outside review scope.
+
+### Next Recommendation
+Ask the owner to re-sign the exact approved manifest hash. Any candidate-byte
+change requires another independent review.

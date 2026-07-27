@@ -1,0 +1,53 @@
+{
+  "anon_id": "OUT-c56ecef458ed",
+  "candidate_authorization": "pending_owner_resign",
+  "claim_boundary": "This candidate proves byte and identity linkage from a live-verified container packet into the four-section blind input. It is not Gate-2-authorized until separately owner-signed and promoted.",
+  "contract_sha256": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733",
+  "handoff": "gate2-scorer-handoff-set.v2",
+  "packet_path": "redacted-packet.json",
+  "packet_sha256": "6d494e26960a24e878252b473aae9076a290f5a9f93b97e3af6cd460f3e4e787",
+  "receipt_path": "redacted-receipt.json",
+  "receipt_sha256": "8bf1c6d094038b6ca93392a55befcfd1e123034c557e893d56d21726f5fd0cd2",
+  "section_mapping": {
+    "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+    "FIX_DIFF": "scorer_packet.artifacts.diff",
+    "TEST_LOG": "attachment.test_log",
+    "VALIDATOR_OUTPUT": "attachment.validator_output"
+  },
+  "source_artifacts": {
+    "diff": {
+      "bytes": 173,
+      "sha256": "1ef27e047be91a5300b5933429d42843e5c012fd3da017f54bb0bde576fed28c"
+    },
+    "receipt": {
+      "bytes": 126,
+      "sha256": "fbcde2943a4acbd5d3a88a5e1af80231441eecec67f6b8fdf9c70c4035424059"
+    },
+    "redaction_runner": {
+      "bytes": 16152,
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+    },
+    "result": {
+      "bytes": 63,
+      "sha256": "2454f40a318bce0db82f074a5bfe9d8d1a7b681ede684689629eead9d808a863"
+    },
+    "scorer_packet": {
+      "bytes": 2041,
+      "sha256": "6a192abc75f7f17998cacd4a210ddce4771eb924f47b0994e2a17fb53b3ee475"
+    },
+    "test_log": {
+      "bytes": 98,
+      "sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
+    },
+    "validator_output": {
+      "bytes": 51,
+      "sha256": "cd5eccb84211f691864f88d108a3aa2df9bfb3b5dcb62b9bd11b22d5820a9565"
+    }
+  },
+  "source_identity": {
+    "baseline_commit": "2eaeb4de59ee771b3f12f5677b96abe46441bfdd",
+    "container_id": "e72c7b770a17f882cc42dda17eaa93fc7f914ade82c826c18f2f3a4b392284d6",
+    "output_commit": "75da885325cb81861f6991377c9ff3ec30b619e2",
+    "run_id": "scorer-v3-redacted-reason-smoke-20260726"
+  }
+}

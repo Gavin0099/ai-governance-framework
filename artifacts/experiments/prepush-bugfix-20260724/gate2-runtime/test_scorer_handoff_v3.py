@@ -56,14 +56,20 @@ class ScorerHandoffV3Tests(unittest.TestCase):
         self,
         directory: str,
         *,
-        blinding_compromised_reason: str | None = None,
+        blinding_compromised_reason_code: str | None = None,
+        blinding_compromised_detail: str | None = None,
     ):
         packet_path, test_log, validator = self.prepare_sources(directory)
         blinding_args = {}
-        if blinding_compromised_reason is not None:
-            blinding_args["blinding_compromised_reason"] = (
-                blinding_compromised_reason
+        if blinding_compromised_reason_code is not None:
+            blinding_args["blinding_compromised_reason_code"] = (
+                blinding_compromised_reason_code
             )
+        if blinding_compromised_detail is not None:
+            detail_path = os.path.join(directory, "blinding-detail.txt")
+            with open(detail_path, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(blinding_compromised_detail)
+            blinding_args["blinding_compromised_detail_file"] = detail_path
         outputs, manifest = H.build_handoff(
             contract_path=CONTRACT,
             scorer_packet_path=packet_path,
@@ -410,40 +416,36 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             ):
                 self.assertIn(name, errors)
 
-    def test_flagged_blinding_reason_rebuilds_and_mismatch_fails(self):
-        reason = (
-            "arm C treatment assignment leaked via "
-            "governance-packet.md path in claim"
-        )
-        redacted_reason = (
-            "[ARM] [ASSIGNMENT] leaked via [PACKET] path in claim"
+    def test_flagged_blinding_reason_code_rebuilds_without_raw_detail(self):
+        reason_code = "RESIDUAL_IDENTITY_IN_CLAIM"
+        detail = (
+            "Producer was in the treatment arm and saw the designer-only "
+            "expectation list."
         )
         with tempfile.TemporaryDirectory() as directory:
             packet_path, manifest_path, outputs, _ = self.build(
-                directory, blinding_compromised_reason=reason
+                directory,
+                blinding_compromised_reason_code=reason_code,
+                blinding_compromised_detail=detail,
             )
             packet = json.loads(outputs["redacted-packet.json"])
             self.assertIs(packet["blinding_compromised"], True)
             self.assertEqual(
-                redacted_reason, packet["blinding_compromised_reason"]
+                reason_code, packet["blinding_compromised_reason_code"]
             )
-            self.assertNotIn(reason, outputs["redacted-packet.json"].decode("utf-8"))
-            self.assertEqual(
-                3, packet["total_blinding_reason_redactions"]
+            packet_text = outputs["redacted-packet.json"].decode("utf-8")
+            self.assertNotIn(detail, packet_text)
+            self.assertNotIn("treatment arm", packet_text)
+            self.assertNotIn("blinding_compromised_reason", packet)
+            self.assertNotIn(
+                "blinding_compromised_reason_per_rule_match_count", packet
             )
-            self.assertEqual(
-                3,
-                sum(
-                    packet[
-                        "blinding_compromised_reason_per_rule_match_count"
-                    ].values()
-                ),
-            )
+            self.assertNotIn("total_blinding_reason_redactions", packet)
 
             matching = self.verify(
                 packet_path,
                 manifest_path,
-                blinding_compromised_reason=reason,
+                blinding_compromised_reason_code=reason_code,
             )
             self.assertEqual("PASS", matching["status"])
             self.assertTrue(all(matching["checks"].values()))
@@ -457,7 +459,9 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             mismatched = self.verify(
                 packet_path,
                 manifest_path,
-                blinding_compromised_reason="different reason",
+                blinding_compromised_reason_code=(
+                    "RESIDUAL_IDENTITY_IN_RECEIPT"
+                ),
             )
             self.assertEqual("FAIL", mismatched["status"])
             self.assertFalse(
@@ -492,8 +496,8 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                     CONTAINER_ID,
                     "--expected-scorer-packet-sha256",
                     packet_sha,
-                    "--blinding-compromised-reason",
-                    reason,
+                    "--blinding-compromised-reason-code",
+                    reason_code,
                     "--json-out",
                     json_out,
                 ],
@@ -506,10 +510,24 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                 cli_result = json.load(handle)
             self.assertEqual("PASS", cli_result["status"])
 
+            with self.assertRaisesRegex(H.HandoffError, "requires.*detail file"):
+                self.build(
+                    os.path.join(directory, "missing-detail"),
+                    blinding_compromised_reason_code=reason_code,
+                )
+
+            with self.assertRaisesRegex(H.HandoffError, "must be one of"):
+                self.build(
+                    os.path.join(directory, "free-text-code"),
+                    blinding_compromised_reason_code=detail,
+                    blinding_compromised_detail=detail,
+                )
+
             with self.assertRaisesRegex(H.HandoffError, "non-blank"):
                 self.build(
-                    os.path.join(directory, "blank"),
-                    blinding_compromised_reason="  ",
+                    os.path.join(directory, "blank-detail"),
+                    blinding_compromised_reason_code=reason_code,
+                    blinding_compromised_detail="  ",
                 )
 
     def test_candidate_rejects_shipped_smoke_contract_digest_mismatch(self):

@@ -1,0 +1,37 @@
+{
+  "baseline_commit": "2eaeb4de59ee771b3f12f5677b96abe46441bfdd",
+  "checks": {
+    "all_artifacts_exist": true,
+    "artifact_byte_counts_match": true,
+    "artifact_digests_match": true,
+    "artifact_paths_are_fixed_and_confined": true,
+    "baseline_commit_matches": true,
+    "container_id_matches": true,
+    "core_scorer_inputs_are_exact": true,
+    "live_artifact_bytes_match": true,
+    "live_commit_identity_matches": true,
+    "live_container_binding_present": true,
+    "live_container_identity_matches": true,
+    "manifest_inventory_matches_captured_files": true,
+    "output_commit_matches": true,
+    "packet_is_valid_json_object": true,
+    "receipt_container_path_is_fixed": true,
+    "receipt_links_output_commit": true,
+    "required_artifact_set_is_exact": true,
+    "result_json_is_parseable_object": true,
+    "run_id_matches": true,
+    "schema_version_matches": true,
+    "tracked_inventory_matches_diff": true,
+    "worktree_status_is_clean": true
+  },
+  "claim_boundary": "PASS proves internal packet integrity plus equality with bytes re-read from the named running container. It does not authenticate the operator or establish semantic correctness.",
+  "container_id": "e72c7b770a17f882cc42dda17eaa93fc7f914ade82c826c18f2f3a4b392284d6",
+  "errors": [],
+  "output_commit": "75da885325cb81861f6991377c9ff3ec30b619e2",
+  "packet_sha256": "6a192abc75f7f17998cacd4a210ddce4771eb924f47b0994e2a17fb53b3ee475",
+  "run_id": "scorer-v3-redacted-reason-smoke-20260726",
+  "status": "PASS",
+  "tracked_changed_files": [
+    "src/calc.py"
+  ]
+}

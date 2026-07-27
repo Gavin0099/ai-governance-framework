@@ -17,9 +17,25 @@
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/smoke-summary.json -text
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/test-log.txt -text
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/validator-output.txt -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/** -text -whitespace
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-handoff-v3/redacted-packet.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-handoff-v3/redacted-receipt.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-handoff-v3/scorer-handoff-v3.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-handoff-verification.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/final-diff.patch -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/final-status.txt -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/final-tracked-paths.txt -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/producer-receipt.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/result.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-v2/scorer-packet-v2.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/scorer-packet-verification.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/smoke-summary.json -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/test-log.txt -text
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/validator-output.txt -text
 /artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-candidate-20260726.json -text
 /artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json -text
 /artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py -text
+/artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_packet_v2.py -text

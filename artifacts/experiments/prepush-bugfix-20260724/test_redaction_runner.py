@@ -245,7 +245,9 @@ def main() -> int:
         good = cli("--verify-handoff", mk, "--contract", CONTRACT).returncode == 0
         # a different (decoy) contract file must be rejected
         decoy = os.path.join(d, "decoy-contract.json")
-        c = json.load(open(CONTRACT)); c["_decoy"] = True
+        with open(CONTRACT, encoding="utf-8") as contract_handle:
+            c = json.load(contract_handle)
+        c["_decoy"] = True
         open(decoy, "w", newline="\n").write(json.dumps(c, indent=2))
         bad = cli("--verify-handoff", mk, "--contract", decoy).returncode == 2
         results.append(("verify_contract_digest_binding",
@@ -294,6 +296,11 @@ def main() -> int:
     for name, r in results:
         print(f"[{name}] {r}")
     return 0 if all(r.startswith("PASS") for _, r in results) else 1
+
+
+def test_redaction_runner_regression_suite():
+    """Make the 23-check script visible to normal pytest collection."""
+    assert main() == 0
 
 
 def _write_tmp(text: str) -> str:

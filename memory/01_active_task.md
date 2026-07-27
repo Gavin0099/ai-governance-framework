@@ -27,6 +27,10 @@
   v0.5 work. The bounded v0.6 response-contract refinement makes the result,
   reason, and next step the literal first three non-empty lines and moves the
 
+- 2026-07-27 independent review `APPROVED` the scorer-handoff v3 reason-code
+  remediation at exact manifest SHA-256 `7104b2e0...2147c`; owner re-sign,
+  scoped commit, and push remain pending.
+
 ---
 
 ## Next Steps
