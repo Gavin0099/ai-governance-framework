@@ -1454,6 +1454,30 @@ framework-level G4. Correct ordering (owner-stated): finish the experiment
 isolation first and judge engineering-method / external-tool value from real
 results; do NOT begin bulk tool replacement now.
 
+## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
+
+- [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
+  and checkpoint baseline reader share one local Git commit-object provenance
+  decision.
+- [x] Hash-shaped text alone no longer creates `memory_binding: bound`;
+  explicit invalid Git-worktree commits fail before memory mutation, while
+  auto-detect failure and non-Git paths remain writable as unbound.
+- [x] `mixed_scope_memory_binding` reports staged or commit-range closeout
+  scopes that combine bound canonical memory with non-closeout paths. The
+  signal remains report-only and is absent from hook, CI blocker, pre-push, and
+  memory blocking policy.
+- [x] Focused replay covers the CFU release-artifact mixed-scope must-fail case
+  and the product-commit then memory-closeout-commit must-pass case.
+- [x] Read-only scoped review findings were resolved before commit.
+- [ ] Next separate slice: measure Memory quality retrospectively over the most
+  recent 20 canonical entries. Keep outputs under `artifacts/`, add no
+  `governance_tools` validator, hook, CI, or blocker, and do not treat the
+  baseline as G4 outcome evidence.
+
+Claim ceiling: Tranche 1 establishes local commit provenance consistency and a
+report-only mixed-scope observation. It does not prove remote delivery, memory
+prose truth, Memory quality improvement, consumer replay outcomes, or G4 value.
+
 ## Dirty Workspace Policy
 
 Known unrelated dirty runtime ledgers at the time of this PLAN repair:

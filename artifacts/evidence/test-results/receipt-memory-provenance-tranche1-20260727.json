@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest -q -p no:cacheprovider --basetemp .pytest_tmp_tranche1_receipt tests/test_memory_record.py tests/test_memory_record_session_id_handoff.py tests/test_memory_binding_generation_constraint.py tests/test_self_governance_memory_truth_provenance_mutation_contract.py tests/test_memory_authority_guard.py tests/test_runtime_session_end.py tests/test_checkpoint_memory_baseline_compare.py tests/test_memory_workflow.py tests/test_ci_memory_workflow_check.py tests/test_hook_memory_policy.py",
+  "exit_code": 0,
+  "started_at": "2026-07-27T05:42:07Z",
+  "finished_at": "2026-07-27T05:42:37Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "75cb2cddbcb39fc0954e13190727079d3ebe83e8",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-memory-provenance-tranche1-20260727.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
