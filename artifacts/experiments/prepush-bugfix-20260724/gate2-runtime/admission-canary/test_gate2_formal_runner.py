@@ -2,6 +2,7 @@
 """Focused tests for frozen Gate 2 operator-runner invariants."""
 from __future__ import annotations
 
+import copy
 import os
 import sys
 import unittest
@@ -36,6 +37,43 @@ class IdentityTests(unittest.TestCase):
 
 
 class FrozenSchemaTests(unittest.TestCase):
+    def test_recoverable_instrument_failure_is_narrow(self) -> None:
+        failed_name = (
+            "shared observable (normalised stdout digest) agrees on both sides "
+            "(order-independent)"
+        )
+        admitted = {
+            "verdict": "FAIL",
+            "adapter_rejected": 0,
+            "checks": [
+                {"name": "other", "pass": True},
+                {"name": failed_name, "pass": False},
+            ],
+        }
+        self.assertTrue(runner._recoverable_instrument_failure(admitted))
+        rejected = copy.deepcopy(admitted)
+        rejected["adapter_rejected"] = 1
+        self.assertFalse(runner._recoverable_instrument_failure(rejected))
+        rejected = copy.deepcopy(admitted)
+        rejected["checks"].append({"name": "another", "pass": False})
+        self.assertFalse(runner._recoverable_instrument_failure(rejected))
+
+    def test_external_rate_limit_requires_all_terminal_markers(self) -> None:
+        stream = "".join(
+            (
+                '"status":"rejected"',
+                '"rateLimitType":"five_hour"',
+                '"error":"rate_limit"',
+                '"api_error_status":429',
+            )
+        )
+        self.assertTrue(runner._verified_external_rate_limit(stream))
+        self.assertFalse(
+            runner._verified_external_rate_limit(
+                stream.replace('"api_error_status":429', "")
+            )
+        )
+
     def test_scorer_schema_requires_all_pre_mapping_fields(self) -> None:
         schema = runner.formal_scorer_schema("primary")
         item = schema["properties"]["outputs"]["items"]

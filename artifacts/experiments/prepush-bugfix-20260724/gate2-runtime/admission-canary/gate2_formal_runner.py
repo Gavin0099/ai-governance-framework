@@ -9,6 +9,7 @@ operation is mediated into an offline, read-only-rootfs container.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -374,6 +375,265 @@ def setup(master: str) -> None:
             )
         raise
     print(master)
+
+
+def _recoverable_instrument_failure(verification: dict[str, Any]) -> bool:
+    failed = [
+        check.get("name")
+        for check in verification.get("checks", [])
+        if isinstance(check, dict) and check.get("pass") is not True
+    ]
+    return (
+        verification.get("verdict") == "FAIL"
+        and verification.get("adapter_rejected") == 0
+        and failed == [
+            "shared observable (normalised stdout digest) agrees on both sides "
+            "(order-independent)"
+        ]
+    )
+
+
+def _verified_external_rate_limit(stream_text: str) -> bool:
+    required_markers = (
+        '"status":"rejected"',
+        '"rateLimitType":"five_hour"',
+        '"error":"rate_limit"',
+        '"api_error_status":429',
+    )
+    return all(marker in stream_text for marker in required_markers)
+
+
+def recover_failed_attempt(master: str, arm: str, failure_kind: str) -> None:
+    """Preserve one non-counted attempt and provision a fresh same-arm retry."""
+    if arm not in ORDER:
+        raise SystemExit(f"unknown arm: {arm}")
+    master_dir, state_path, state = load_state(master)
+    expected = next(
+        (
+            candidate for candidate in ORDER
+            if state["arms"][candidate]["status"] != "complete"
+        ),
+        None,
+    )
+    if expected != arm:
+        raise SystemExit(f"frozen order requires recovery of {expected}, not {arm}")
+    old = copy.deepcopy(state["arms"][arm])
+    old_run_dir = Path(old["evidence_dir"])
+    verification_path = old_run_dir / "transcript-verification.json"
+    exit_path = old_run_dir / "claude-exit-code.txt"
+    verification: dict[str, Any] | None = None
+    if failure_kind == "shared_observable_digest_mismatch":
+        archive_label = "instrument-failure"
+        if old.get("status") != "running":
+            raise SystemExit(f"arm {arm} is not a stopped verifier failure")
+        if not verification_path.exists() or not exit_path.exists():
+            raise SystemExit("completed producer/verifier evidence is absent")
+        verification = json.loads(
+            verification_path.read_text(encoding="utf-8")
+        )
+        if not _recoverable_instrument_failure(verification):
+            raise SystemExit("failure is not the admitted shared-observable NO-GO")
+        if exit_path.read_text(encoding="ascii").strip() != "0":
+            raise SystemExit("producer did not exit successfully")
+    elif failure_kind == "external_rate_limit":
+        archive_label = "external-rate-limit"
+        stream_path = old_run_dir / "claude-stream.jsonl"
+        if old.get("status") != "failed_exit_1":
+            raise SystemExit(f"arm {arm} is not a failed external call")
+        if (
+            not stream_path.exists()
+            or not exit_path.exists()
+            or exit_path.read_text(encoding="ascii").strip() != "1"
+        ):
+            raise SystemExit("rate-limit terminal evidence is absent")
+        stream_text = stream_path.read_text(encoding="utf-8")
+        if not _verified_external_rate_limit(stream_text):
+            raise SystemExit("attempt is not a verified external rate limit")
+    else:
+        raise SystemExit(f"unsupported recovery kind: {failure_kind}")
+    old_process_exit = exit_path.read_text(encoding="ascii").strip()
+
+    failures = state.setdefault("noncounted_attempts", [])
+    attempt = 1 + sum(
+        1
+        for item in failures
+        if (
+            isinstance(item, dict)
+            and item.get("arm") == arm
+            and item.get("reason") == failure_kind
+        )
+    )
+    archived_run_dir = (
+        master_dir / "operator-private"
+        / f"arm-{arm}.{archive_label}-{attempt}"
+    )
+    old_project = Path(old["project"])
+    archived_project = Path(
+        str(old_project) + f".{archive_label}-{attempt}"
+    )
+    if archived_run_dir.exists() or archived_project.exists():
+        raise SystemExit("instrument-failure archive target already exists")
+
+    old_run_dir.rename(archived_run_dir)
+    if old_project.exists():
+        old_project.rename(archived_project)
+    for suffix in ("stdout.txt", "stderr.txt"):
+        capture = master_dir / f"run-arm-{arm}.runner.{suffix}"
+        if capture.exists():
+            capture.rename(
+                master_dir
+                / f"run-arm-{arm}.{archive_label}-{attempt}.runner.{suffix}"
+            )
+    docker_result("stop", old["container"])
+    failure_record = {
+        **old,
+        "arm": arm,
+        "status": "noncounted_attempt_preserved",
+        "evidence_dir": str(archived_run_dir),
+        "project": str(archived_project),
+        "transcript_verification": str(
+            archived_run_dir / "transcript-verification.json"
+        ) if verification is not None else None,
+        "formal_arm_counted": False,
+        "reason": failure_kind,
+    }
+    failures.append(failure_record)
+    state["arms"][arm] = failure_record
+    write_json(state_path, state)
+
+    opaque_id = "OUTRUN-" + uuid.uuid4().hex[:16]
+    run_id = f"{master}-{opaque_id}"
+    container = run_id
+    run_dir = master_dir / "operator-private" / f"arm-{arm}"
+    project = Path(fr"D:\gate2-live-producer-{master}-{opaque_id}")
+    for label, value in (
+        ("run_id", run_id),
+        ("container", container),
+        ("project", str(project)),
+    ):
+        assert_opaque_identity(label, value)
+    archive = master_dir / "operator-private/sanitized-baseline.tar"
+    payload = HERE / "offline-pytest.zip"
+    payload_manifest = json.loads(
+        (HERE / "offline-pytest-manifest.json").read_text(encoding="utf-8")
+    )
+    if (
+        not archive.exists()
+        or sha256(payload) != payload_manifest["payload_sha256"]
+    ):
+        raise RuntimeError("replacement inputs are unavailable or changed")
+    image_id = docker(
+        "image", "inspect", "--format", "{{.Id}}", IMAGE
+    ).decode().strip()
+    if image_id != IMAGE:
+        raise RuntimeError(f"pinned image mismatch: {image_id}")
+
+    try:
+        run_dir.mkdir()
+        (project / ".claude").mkdir(parents=True)
+        write_json(
+            project / ".claude/settings.json",
+            settings(run_id, container, run_dir, arm),
+        )
+        (run_dir / "producer-prompt.txt").write_text(
+            producer_prompt(arm), encoding="utf-8", newline="\n"
+        )
+        docker(
+            "run", "-d", "--name", container, "--network", "none",
+            "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+            "--tmpfs", "/work:rw,nosuid,uid=65532,gid=65532,size=512m",
+            "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+            IMAGE, "python", "-c", "import time; time.sleep(86400)",
+        )
+        docker(
+            "exec", "-u", "65532:65532", container, "mkdir", "-p",
+            "/work/repo", "/work/out", "/work/vendor", "/work/input",
+        )
+        stream(container, archive, "/work/sanitized-baseline.tar")
+        stream(container, payload, "/work/vendor/offline-pytest.zip")
+        docker(
+            "exec", "-u", "65532:65532", container, "tar", "-xf",
+            "/work/sanitized-baseline.tar", "-C", "/work/repo",
+        )
+        for kind in ARM_INPUTS[arm]:
+            stream(container, PACKET_SOURCES[kind], TARGETS[kind])
+        for command in (
+            ("git", "init", "-b", "main"),
+            ("git", "config", "core.autocrlf", "false"),
+            ("git", "config", "user.name", "gate2-producer"),
+            ("git", "config", "user.email", "gate2-producer@invalid"),
+            ("git", "add", "-A"),
+        ):
+            docker(
+                "exec", "-u", "65532:65532", "-w", "/work/repo",
+                container, *command,
+            )
+        docker(
+            "exec", "-u", "65532:65532", "-w", "/work/repo",
+            "-e", "GIT_AUTHOR_DATE=2026-07-27T00:00:00Z",
+            "-e", "GIT_COMMITTER_DATE=2026-07-27T00:00:00Z",
+            container, "git", "commit", "-m", "Gate 2 sanitized baseline",
+        )
+        baseline = docker(
+            "exec", "-u", "65532:65532", "-w", "/work/repo",
+            container, "git", "rev-parse", "HEAD",
+        ).decode().strip()
+        tree = docker(
+            "exec", "-u", "65532:65532", "-w", "/work/repo",
+            container, "git", "rev-parse", "HEAD^{tree}",
+        ).decode().strip()
+        if tree != EXPECTED_TREE:
+            raise RuntimeError(f"replacement arm {arm} tree mismatch: {tree}")
+        container_id = docker(
+            "inspect", "-f", "{{.Id}}", container
+        ).decode().strip()
+    except Exception:
+        docker_result("stop", container)
+        raise
+
+    state["arms"][arm] = {
+        "run_id": run_id,
+        "opaque_id": opaque_id,
+        "container": container,
+        "container_id": container_id,
+        "project": str(project),
+        "evidence_dir": str(run_dir),
+        "baseline_commit": baseline,
+        "packet_hashes": {
+            kind: PACKET_HASHES[kind] for kind in ARM_INPUTS[arm]
+        },
+        "status": "admitted_not_run",
+        "retry_of_noncounted_attempt": {
+            "attempt": attempt,
+            "reason": failure_kind,
+        },
+    }
+    write_json(state_path, state)
+    recovery_path = master_dir / (
+        f"arm-{arm}-{archive_label}-recovery-{attempt}.json"
+    )
+    write_json(
+        recovery_path,
+        {
+            "result": "PASS",
+            "arm": arm,
+            "attempt": attempt,
+            "old_container": old["container"],
+            "old_evidence_dir": str(archived_run_dir),
+            "old_transcript_verdict": (
+                verification.get("verdict")
+                if verification is not None else None
+            ),
+            "old_process_exit": old_process_exit,
+            "old_formal_arm_counted": False,
+            "reason": failure_kind,
+            "replacement_container": container,
+            "replacement_run_id": run_id,
+            "replacement_status": "admitted_not_run",
+            "mapping_released": False,
+        },
+    )
+    print(recovery_path)
 
 
 SCORER_SCHEMA = {
@@ -1257,6 +1517,12 @@ def main() -> int:
     arm_parser = sub.add_parser("run-arm")
     arm_parser.add_argument("--master-run-id", required=True)
     arm_parser.add_argument("--arm", required=True, choices=ORDER)
+    recover_parser = sub.add_parser("recover-instrument-failure")
+    recover_parser.add_argument("--master-run-id", required=True)
+    recover_parser.add_argument("--arm", required=True, choices=ORDER)
+    rate_parser = sub.add_parser("recover-rate-limit")
+    rate_parser.add_argument("--master-run-id", required=True)
+    rate_parser.add_argument("--arm", required=True, choices=ORDER)
     supersede_parser = sub.add_parser("supersede-resources")
     supersede_parser.add_argument("--master-run-id", required=True)
     score_parser = sub.add_parser("score")
@@ -1273,6 +1539,15 @@ def main() -> int:
         scorer_admission(args.master_run_id)
     elif args.command == "run-arm":
         run_arm(args.master_run_id, args.arm)
+    elif args.command == "recover-instrument-failure":
+        recover_failed_attempt(
+            args.master_run_id, args.arm,
+            "shared_observable_digest_mismatch",
+        )
+    elif args.command == "recover-rate-limit":
+        recover_failed_attempt(
+            args.master_run_id, args.arm, "external_rate_limit"
+        )
     elif args.command == "supersede-resources":
         supersede_resources(args.master_run_id)
     elif args.command == "score":
