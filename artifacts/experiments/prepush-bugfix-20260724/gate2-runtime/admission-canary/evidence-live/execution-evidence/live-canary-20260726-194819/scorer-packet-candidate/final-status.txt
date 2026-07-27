@@ -1,0 +1,5 @@
+ M src/calc.py
+?? src/__pycache__/__init__.cpython-312.pyc
+?? src/__pycache__/calc.cpython-312.pyc
+?? tests/__pycache__/__init__.cpython-312.pyc
+?? tests/__pycache__/test_calc.cpython-312.pyc

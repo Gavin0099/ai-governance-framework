@@ -1,0 +1,26 @@
+{
+  "baseline_head": "2cc7a72228e5e24a4794b5b960eae0b196ecc71f",
+  "checks": {
+    "all_artifacts_exist": true,
+    "artifact_byte_counts_match": true,
+    "artifact_digests_match": true,
+    "artifact_paths_are_fixed_and_confined": true,
+    "baseline_head_matches": true,
+    "diff_covers_every_tracked_changed_file": true,
+    "manifest_inventory_matches_captured_files": true,
+    "packet_is_valid_json_object": true,
+    "required_artifact_set_is_exact": true,
+    "result_json_is_parseable_object": true,
+    "run_id_matches": true,
+    "schema_version_matches": true,
+    "scorer_inputs_include_result_and_diff": true,
+    "tracked_inventory_matches_status": true
+  },
+  "claim_boundary": "PASS proves that the fixed packet artifacts are present, byte-attested, and inventory-consistent. It does not authenticate the manifest writer or prove the change or producer report is correct.",
+  "errors": [],
+  "run_id": "live-canary-20260726-194819",
+  "status": "PASS",
+  "tracked_changed_files": [
+    "src/calc.py"
+  ]
+}
