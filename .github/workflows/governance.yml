@@ -95,6 +95,108 @@ jobs:
               print(f'::warning file=PLAN.md::PLAN.md is STALE ({days}d). Consider updating soon.')
           "
 
+  # Push-path consolidation of the four heavy gates, for main only.
+  #
+  # Why: phase-gates / reviewer-policy-gate / runtime-enforcement /
+  # violation-triage-gate each provision their own runner, checkout, and pip
+  # install, and each publishes reviewer-facing bundles that nobody reads on a
+  # direct push. This job runs the same gate decisions on one runner.
+  #
+  # What is actually saved (structural, NOT yet measured on a real run):
+  #   - 4 runners / checkouts / pip installs -> 1 (pip cached)
+  #   - the phase-gates publication bundles (trust-signal, release-package
+  #     v1.0.0-alpha, release-surface x3, reviewer-handoff x3) -> omitted
+  #   - the two "advisory only" reviewer/enumd summary builders -> omitted
+  #   - 8 upload-artifact steps -> 0
+  # What is NOT saved: verify_phase_gates.sh still runs the full `pytest tests/`
+  # suite, a runtime-governance smoke, and its own phase-gate-smoke release
+  # bundle. This job is cheaper than four jobs; it is not a lightweight job.
+  #
+  # Step selection: verify_phase_gates.sh already subsumes the full test suite
+  # (so the reviewer-policy pytest targets are redundant), a runtime-governance
+  # smoke (so `--mode ci` would re-run it), example_readiness without
+  # --strict-runtime, and governance_auditor. Only the genuinely additional
+  # checks are listed below.
+  #
+  # Claim boundary: post-facto only. It reports on a commit already on main.
+  # The framework repo has NO preventive local gate that inspects the outgoing
+  # change: .githooks/pre-push checks remote URL and git identity only, and the
+  # installed scripts/hooks/pre-push smoke runs against canned framework
+  # payloads (known Gate 0 defect, deliberately preserved unfixed).
+  #
+  # Parity risk: the steps below are copied from the four PR jobs. If those
+  # change, update both. Rollback: delete this job; the PR-path jobs are
+  # untouched, so reverting restores the previous behaviour exactly.
+  #
+  # Scope: main only. feature/** pushes are excluded on purpose — the owner
+  # asked for coverage on the main publication path, not a fleet-wide cost
+  # increase. workflow_dispatch is included so this job can be exercised on a
+  # branch for evidence without first landing it on main.
+  governance-gates-push:
+    name: Governance Gates (main push)
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install documented dependencies
+        run: pip install -r requirements.txt
+
+      # from phase-gates. Also covers, via verify_phase_gates.sh: the full
+      # `pytest tests/` suite (which contains the reviewer-policy gate's eight
+      # pytest targets) and a runtime-governance smoke.
+      - name: Verify phase gates
+        run: bash scripts/verify_phase_gates.sh
+
+      # additional: verify_phase_gates.sh runs example_readiness without
+      # --strict-runtime, so the strict variant is a distinct check.
+      - name: Verify strict example runtime readiness
+        run: python governance_tools/example_readiness.py --strict-runtime --format human
+
+      # from violation-triage-gate. verify_phase_gates.sh runs
+      # governance_auditor, but not the triage evaluate gate that carries the
+      # exit code, so both steps below are additional. Upload omitted.
+      - name: Run governance auditor and triage report
+        run: |
+          mkdir -p artifacts/triage
+          OUTPUT=$(python governance_tools/governance_auditor.py --project-root . --format json) || true
+          echo "$OUTPUT" > /tmp/ga_output.json
+
+          if [ -f "triage/governance_auditor.triage.json" ]; then
+            python governance_tools/violation_triage.py --mode generate --input /tmp/ga_output.json --input-format governance_auditor --triage-file triage/governance_auditor.triage.json --output artifacts/triage/governance_auditor.triage.json
+          else
+            python governance_tools/violation_triage.py --mode generate --input /tmp/ga_output.json --input-format governance_auditor --output artifacts/triage/governance_auditor.triage.json
+          fi
+
+      - name: Evaluate violation triage gate
+        run: |
+          RESULT=$(python governance_tools/violation_triage.py --mode evaluate --triage-file artifacts/triage/governance_auditor.triage.json --format json)
+          echo "$RESULT" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          for ann in r.get('annotations', []):
+              level = ann['level']
+              msg = ann['message'].replace('%', '%25').replace('\n', '%0A')
+              loc = ann.get('file', '')
+              if level == 'error':
+                  print(f'::error file={loc}::{msg}')
+              elif level == 'warning':
+                  print(f'::warning file={loc}::{msg}')
+              else:
+                  print(f'::notice file={loc}::{msg}')
+          print(f'Triage gate: {r[\"summary\"]}')
+          sys.exit(r['exit_code'])
+          "
+
   phase-gates:
     name: Phase Gate Verification
     runs-on: ubuntu-latest
