@@ -16,6 +16,7 @@
     "harness": "claude_code",
     "session_id": "2026-03-12-01",
     "native_event_type": "PreToolUse",
-    "task_source_key": "prompt"
+    "task_source_key": "prompt",
+    "unmapped_gate_relevant_keys": []
   }
 }
