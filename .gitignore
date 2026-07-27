@@ -146,6 +146,9 @@ docs/payload-audit/*.jsonl
 
 # Documentation build
 docs/_build/
+docs/wiki/node_modules/
+docs/wiki/.vitepress/cache/
+docs/wiki/.vitepress/dist/
 
 # Local presentation deliverables (kept out of source/evidence commits)
 docs/*.pptx
