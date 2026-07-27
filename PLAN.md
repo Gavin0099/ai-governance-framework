@@ -1459,6 +1459,23 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   neither this session nor the author; the pinned validators installed there; the
   actual model/permissions stamped. Gate 2 (single four-arm process-only pilot) is
   DEFERRED and additionally needs a separate explicit owner "start Gate 2" command.
+  - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
+    2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
+    report for **producer-channel** admission, including nine isolation checks
+    (network none, read-only rootfs, all capabilities dropped, no-new-privileges,
+    non-root uid, no host bind mount, tmpfs workspace, no docker socket, pinned
+    image). Its recorded execution paths are under a `D:` root; this checkout does not
+    contain that live JSON evidence and the run was **not reproduced locally**
+    (Docker daemon not running at record time). **Scorer-side is NOT RUN**:
+    `admission-canary/evidence-live/` contains `capture_scorer_packet.py`,
+    `verify_scorer_packet.py` and tests, but zero execution artifacts — tool
+    presence is not execution evidence. Therefore **resource admission is NOT
+    complete**, Gate 2 has not started, and arm execution remains 0.
+    Receipt: `artifacts/evidence/test-results/receipt-gate2-admission-state-20260727.json`.
+    Claimable: a historical producer-channel admission report exists.
+    NOT claimable: local reproduction of producer admission; that a scorer
+    context exists or passed admission; that resource admission is complete;
+    that Gate 2 is ready, started, or that any arm has run.
 
 Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
 has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
