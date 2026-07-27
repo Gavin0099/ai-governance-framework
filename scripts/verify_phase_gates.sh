@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PASS=0
 FAIL=0
-RELEASE_VERSION="v1.0.0-alpha"
+RELEASE_VERSION="v1.2.0"
 
 ok()   { echo "  ✅ $1"; }
 fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
@@ -39,6 +39,11 @@ if ! set_python_cmd; then
     echo "  🚨 $FAIL 項未通過 — 請先安裝或指定 Python"
     exit 1
 fi
+
+PHASE_GATE_ARTIFACT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/ai-governance-phase-gates.XXXXXX")"
+RELEASE_BUNDLE_ROOT="$PHASE_GATE_ARTIFACT_ROOT/release-package"
+REVIEWER_HANDOFF_ROOT="$PHASE_GATE_ARTIFACT_ROOT/reviewer-handoff"
+TRUST_SIGNAL_ROOT="$PHASE_GATE_ARTIFACT_ROOT/trust-signals"
 
 # ── Gate 1: 單元測試 ─────────────────────────────────────────
 info "Gate 1 / 單元測試"
@@ -149,49 +154,49 @@ else
     fail "release_package_summary.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/release_package_snapshot.py --version "$RELEASE_VERSION" --write-bundle artifacts/release-package/phase-gate-smoke --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/release_package_snapshot.py --version "$RELEASE_VERSION" --write-bundle "$RELEASE_BUNDLE_ROOT" --format human > /dev/null 2>&1; then
     ok "release_package_snapshot.py $RELEASE_VERSION"
 else
     fail "release_package_snapshot.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/release_package_reader.py --version "$RELEASE_VERSION" --file artifacts/release-package/phase-gate-smoke/MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/release_package_reader.py --version "$RELEASE_VERSION" --file "$RELEASE_BUNDLE_ROOT/MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "release_package_reader.py $RELEASE_VERSION"
 else
     fail "release_package_reader.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/release_package_publication_reader.py --file artifacts/release-package/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/release_package_publication_reader.py --file "$RELEASE_BUNDLE_ROOT/PUBLICATION_MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "release_package_publication_reader.py $RELEASE_VERSION"
 else
     fail "release_package_publication_reader.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/release_surface_overview.py --version "$RELEASE_VERSION" --bundle-manifest artifacts/release-package/phase-gate-smoke/MANIFEST.json --publication-manifest artifacts/release-package/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/release_surface_overview.py --version "$RELEASE_VERSION" --bundle-manifest "$RELEASE_BUNDLE_ROOT/MANIFEST.json" --publication-manifest "$RELEASE_BUNDLE_ROOT/PUBLICATION_MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "release_surface_overview.py $RELEASE_VERSION"
 else
     fail "release_surface_overview.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_summary.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest artifacts/release-package/phase-gate-smoke/MANIFEST.json --release-publication-manifest artifacts/release-package/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_summary.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest "$RELEASE_BUNDLE_ROOT/MANIFEST.json" --release-publication-manifest "$RELEASE_BUNDLE_ROOT/PUBLICATION_MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "reviewer_handoff_summary.py $RELEASE_VERSION"
 else
     fail "reviewer_handoff_summary.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest artifacts/release-package/phase-gate-smoke/MANIFEST.json --release-publication-manifest artifacts/release-package/phase-gate-smoke/PUBLICATION_MANIFEST.json --write-bundle artifacts/reviewer-handoff/phase-gate-smoke/"$RELEASE_VERSION" --publish-status-dir artifacts/reviewer-handoff/phase-gate-smoke/published --publication-root artifacts/reviewer-handoff/phase-gate-smoke --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest "$RELEASE_BUNDLE_ROOT/MANIFEST.json" --release-publication-manifest "$RELEASE_BUNDLE_ROOT/PUBLICATION_MANIFEST.json" --write-bundle "$REVIEWER_HANDOFF_ROOT/$RELEASE_VERSION" --publish-status-dir "$REVIEWER_HANDOFF_ROOT/published" --publication-root "$REVIEWER_HANDOFF_ROOT" --format human > /dev/null 2>&1; then
     ok "reviewer_handoff_snapshot.py $RELEASE_VERSION"
 else
     fail "reviewer_handoff_snapshot.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_reader.py --release-version "$RELEASE_VERSION" --file artifacts/reviewer-handoff/phase-gate-smoke/"$RELEASE_VERSION"/MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_reader.py --release-version "$RELEASE_VERSION" --file "$REVIEWER_HANDOFF_ROOT/$RELEASE_VERSION/MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "reviewer_handoff_reader.py $RELEASE_VERSION"
 else
     fail "reviewer_handoff_reader.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_publication_reader.py --release-version "$RELEASE_VERSION" --file artifacts/reviewer-handoff/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_publication_reader.py --release-version "$RELEASE_VERSION" --file "$REVIEWER_HANDOFF_ROOT/PUBLICATION_MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "reviewer_handoff_publication_reader.py $RELEASE_VERSION"
 else
     fail "reviewer_handoff_publication_reader.py $RELEASE_VERSION 失敗"
@@ -209,13 +214,13 @@ else
     fail "trust_signal_overview.py release-facing overview 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --write-bundle artifacts/trust-signals/phase-gate-smoke --publish-status-dir artifacts/trust-signals/phase-gate-smoke/published --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --write-bundle "$TRUST_SIGNAL_ROOT" --publish-status-dir "$TRUST_SIGNAL_ROOT/published" --format human > /dev/null 2>&1; then
     ok "trust_signal_snapshot.py bundle publishing"
 else
     fail "trust_signal_snapshot.py bundle publishing 失敗"
     ALL_OK=0
 fi
-if "${PYTHON_CMD[@]}" governance_tools/trust_signal_publication_reader.py --file artifacts/trust-signals/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+if "${PYTHON_CMD[@]}" governance_tools/trust_signal_publication_reader.py --file "$TRUST_SIGNAL_ROOT/PUBLICATION_MANIFEST.json" --format human > /dev/null 2>&1; then
     ok "trust_signal_publication_reader.py publication manifest"
 else
     fail "trust_signal_publication_reader.py publication manifest 失敗"
