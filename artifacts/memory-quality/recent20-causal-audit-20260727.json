@@ -1,0 +1,476 @@
+{
+  "schema_version": "1.0",
+  "measurement_type": "causal-reclassification-observation-only",
+  "tranche": 2,
+  "fixed_head": "5a2c5a80b87eed21cf4edd85485e13a87a4cef21",
+  "upstream_dataset": "artifacts/memory-quality/recent20-context-20260727.json",
+  "upstream_baseline": "artifacts/memory-quality/recent20-baseline-20260727.md",
+  "scope": {
+    "total_baseline_sample": 20,
+    "immediate_match_excluded": [
+      2,
+      3,
+      4,
+      5,
+      17
+    ],
+    "annotated": 15,
+    "reconciles_to": 20
+  },
+  "work_items": [
+    {
+      "id": "WI-A",
+      "name": "gate2-admission-canary",
+      "description": "Gate 2 admission canary mechanism: adapter, transcript verifier, live producer run and evidence integrity."
+    },
+    {
+      "id": "WI-B",
+      "name": "gate2-scorer-handoff-v3",
+      "description": "Gate 2 scorer packet/handoff v3 through review cycles, blinding remediation, owner re-sign and remote delivery."
+    },
+    {
+      "id": "WI-C",
+      "name": "memory-provenance-and-quality-measurement",
+      "description": "Canonical memory provenance Tranche 1 and the report-only Memory quality retrospective."
+    },
+    {
+      "id": "WI-D",
+      "name": "memory-pressure-janitor-cleanup",
+      "description": "Owner-authorized memory janitor archive of 01_active_task.md and its CI pressure check."
+    }
+  ],
+  "vocabulary": {
+    "observability": [
+      "commit",
+      "remote",
+      "ci",
+      "human",
+      "right_censored"
+    ],
+    "cause": [
+      "review_finding",
+      "observed_failure",
+      "owner_reprioritization",
+      "stale_at_write",
+      "superseded",
+      "external_only",
+      "censored",
+      "record_commit_artifact"
+    ],
+    "avoidable_memory_defect": [
+      "yes",
+      "no",
+      "unknown"
+    ],
+    "vocabulary_amendment": {
+      "added": "record_commit_artifact",
+      "reason": "The planned stale_at_write category proved non-applicable. Every candidate was a record written before its own commit and then committed alongside the work its next_step named. That is the normal write-then-commit workflow, not staleness."
+    }
+  },
+  "aggregates": {
+    "annotated_entries": 15,
+    "unique_after_dedup": 12,
+    "corrective_duplicates": 3,
+    "distinct_work_items_in_scope": 4,
+    "by_cause": {
+      "censored": 1,
+      "external_only": 1,
+      "observed_failure": 1,
+      "owner_reprioritization": 1,
+      "record_commit_artifact": 3,
+      "review_finding": 5,
+      "superseded": 3
+    },
+    "by_observability": {
+      "ci": 1,
+      "commit": 12,
+      "human": 1,
+      "right_censored": 1
+    },
+    "by_avoidable_memory_defect": {
+      "no": 11,
+      "unknown": 4
+    },
+    "work_items_with_avoidable_defect": [],
+    "work_items_with_unknown_defect": [
+      "WI-B"
+    ]
+  },
+  "gate_evaluation": {
+    "gate": "At least two independent work items showing the same avoidable memory defect.",
+    "avoidable_defects_confirmed": 0,
+    "result": "NOT MET",
+    "consequence": "Do not design an advisory prompt, replay harness, or any Memory quality mechanism from this sample."
+  },
+  "entries": [
+    {
+      "sequence": 1,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 3,
+        "start_line": 28
+      },
+      "session_id": "cli-20260726-005911",
+      "baseline_classification": "deferred_match",
+      "next_step": "Run exactly one new disposable real Claude Code producer session on a fresh canary target to capture authentic PreToolUse, PostToolUse, and PostToolUseFailure payloads and verify exit-0 deny behavior, tool_response shape, and serial or parallel delivery. Do not use this answer-aware session, the frozen baseline, or any Gate 2 packet. Only after approval proceed to 4+2 resource admission without running an arm.",
+      "record_commit": "fa193662900488cb9a7e5347c6ab421a88d59109",
+      "matched_commit": "eab44eeb20a8f0e264852ec73e7930dc225e0d0d",
+      "work_item_id": "WI-A",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "observed_failure",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "98fb46a0 fix(gate2): make the adapter log parallel-safe; joins no longer assume ordering",
+        "540b773a chore(memory): record parallel-safety fix with reproduced race",
+        "matched eab44eeb (live-canary evidence)"
+      ],
+      "note": "A concurrency defect was reproduced after the record was written. The detour was caused by newly observed failure, not by the record.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 6,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 8,
+        "start_line": 88
+      },
+      "session_id": "cli-20260726-194030",
+      "baseline_classification": "never_observed",
+      "next_step": "After commit, await separate authorization for a fresh revision-7 canary; do not start Gate 2.",
+      "record_commit": "9a96c2e744ebc9b54410b707f5e3a1d911632935",
+      "matched_commit": null,
+      "work_item_id": "WI-A",
+      "duplicate_of": null,
+      "observability": "human",
+      "cause": "owner_reprioritization",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "record_commit 9a96c2e7",
+        "next commits ac9dab87.. move to scorer packet construction"
+      ],
+      "note": "next_step explicitly gated on separate owner authorization for a revision-7 canary. The authorization gate was never released and work was redirected. The record stated its own precondition, so non-occurrence is not a writing defect.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 7,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 9,
+        "start_line": 100
+      },
+      "session_id": "cli-20260726-212326",
+      "baseline_classification": "never_observed",
+      "next_step": "Run canonical focused precommit, commit the bounded scorer-packet slice, then await owner-signed scorer-input/base64 amendments and Gate 2 resource/start authority.",
+      "record_commit": "ac9dab8786ac926466a6180fcd5974c3941662ae",
+      "matched_commit": null,
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "record_commit_artifact",
+      "avoidable_memory_defect": "unknown",
+      "evidence_refs": [
+        "record_commit ac9dab87 contains BOTH evidence-live/capture_scorer_packet.py (+288), test_scorer_packet.py (+229), verify_scorer_packet.py (+191) AND memory/2026-07-26.md (+12)"
+      ],
+      "note": "Baseline labelled this stale_at_write. Verified otherwise: the next_step named 'commit the bounded scorer-packet slice', and ac9dab87 IS that commit, carrying the record itself. The record was written before the commit and fulfilled by it. Blame-derived record_commit cannot separate write time from commit time.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 8,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 10,
+        "start_line": 112
+      },
+      "session_id": "codex-gate2-scorer-handoff-v3-20260726",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent review of the exact candidate manifest and amendment v4, then ask the owner to explicitly re-sign the exact hashes and base64 common-mode interpretation. Do not promote, provision resources, or start Gate 2 before that separate authorization.",
+      "record_commit": "13b9abfffa49f54e2199a62d0e66ad2f52aa6e45",
+      "matched_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "review_finding",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "1f583b00 reproduce scorer handoff from pinned sources",
+        "9918d3a5 validate offline scorer handoff semantics",
+        "e73c1678 redact blinding reason and pin fresh smoke",
+        "matched 3bea5287 (owner re-sign)"
+      ],
+      "note": "Independent review found further defects before approval was possible. Deferral is the review loop working as intended.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 9,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 11,
+        "start_line": 124
+      },
+      "session_id": "codex-gate2-scorer-handoff-v3-review-fix-20260726",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent review of the new exact candidate manifest and source-reproduction evidence, then request a separate owner re-sign only if approved. Do not promote, push, provision resources or start Gate 2 from this record.",
+      "record_commit": "0e9c229f9c2e704be029d50f8ae059d8f359b3e2",
+      "matched_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "review_finding",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "9918d3a5 validate offline scorer handoff semantics",
+        "e73c1678 redact blinding reason and pin fresh smoke",
+        "matched 3bea5287 (owner re-sign)"
+      ],
+      "note": "Same review loop, one cycle later.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 10,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 12,
+        "start_line": 136
+      },
+      "session_id": "codex-gate2-scorer-handoff-v3-review-fix-evidence-correction-20260726",
+      "baseline_classification": "deferred_match",
+      "next_step": "Use this entry as the evidence citation for commit 1f583b00; obtain independent review before any owner re-sign, and do not promote or start Gate 2.",
+      "record_commit": "0e9c229f9c2e704be029d50f8ae059d8f359b3e2",
+      "matched_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "work_item_id": "WI-B",
+      "duplicate_of": 9,
+      "observability": "commit",
+      "cause": "superseded",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "shares record_commit 0e9c229f with sequence 9",
+        "session codex-...-review-fix-evidence-correction-20260726"
+      ],
+      "note": "Corrective evidence record for the same event as sequence 9. Counts as one observation, not two.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 11,
+      "source": {
+        "path": "memory/2026-07-26.md",
+        "entry_ordinal_in_file": 13,
+        "start_line": 148
+      },
+      "session_id": "codex-gate2-scorer-handoff-v3-offline-semantics-20260726",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent re-review of exact candidate bytes at manifest 5bea553937a6ec6d2f0e4ef8b8b6719a40db28455199844bcbc22001caed52dc; only after approval request explicit owner re-sign. Do not promote, provision, push or start Gate 2 from this record.",
+      "record_commit": "10ce37cc6053e25f519c3bacf953450d2576d24e",
+      "matched_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "review_finding",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "e73c1678 redact blinding reason and pin fresh smoke",
+        "matched 3bea5287 (owner re-sign)"
+      ],
+      "note": "Re-review at a pinned manifest produced another fix before approval.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 12,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 1,
+        "start_line": 4
+      },
+      "session_id": "codex-019f9d32-b72a-7032-a775-efbda922f48c",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent review of e73c1678 plus the final receipt/memory commit; push only after remote freshness is verified and the user explicitly directs the push.",
+      "record_commit": "a5a15c46379f6481b340246c2500fc65f4ea9f8a",
+      "matched_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "review_finding",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "3cbd5280 docs(memory): record scorer handoff push",
+        "matched b596153b fix: close scorer handoff blinding leaks"
+      ],
+      "note": "Two-clause next_step: independent review (commit-observable) and a user-directed push (remote-only). The review clause was met at b596153b after intervening delivery bookkeeping.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 13,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 2,
+        "start_line": 16
+      },
+      "session_id": "codex-019f9d32-b72a-7032-a775-efbda922f48c",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent review of e73c1678 plus the final receipt/memory commit; push only after remote freshness is verified and the user explicitly directs the push.",
+      "record_commit": "a5a15c46379f6481b340246c2500fc65f4ea9f8a",
+      "matched_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "work_item_id": "WI-B",
+      "duplicate_of": 12,
+      "observability": "commit",
+      "cause": "superseded",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "identical next_step text to sequence 12",
+        "same session codex-019f9d32-b72a-7032-a775-efbda922f48c, same record_commit a5a15c46"
+      ],
+      "note": "Corrective provenance duplicate. Its identical next_step is the single clearest source of double counting in the baseline.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 14,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 3,
+        "start_line": 28
+      },
+      "session_id": "codex-019f9d32-b72a-7032-a775-efbda922f48c",
+      "baseline_classification": "deferred_match",
+      "next_step": "Obtain independent review of e73c1678/a5a15c46; if dual-remote delivery is still required, restore or provide the intended gitlab remote URL before pushing there.",
+      "record_commit": "3cbd52809c2f863b90cc3ff86cf230b14811a827",
+      "matched_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "review_finding",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "f048afcf archive emergency active task (WI-D intervened)",
+        "matched b596153b fix: close scorer handoff blinding leaks"
+      ],
+      "note": "Deferred because an unrelated memory-pressure cleanup (WI-D) took priority. Cross-work-item interleaving, not a bad record.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 15,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 4,
+        "start_line": 40
+      },
+      "session_id": "codex-019f9d32-b72a-7032-a775-efbda922f48c",
+      "baseline_classification": "unassessable",
+      "next_step": "Confirm the GitHub Memory Pressure job passes at f048afcf; if dual-remote delivery remains required, restore the missing gitlab remote before pushing there.",
+      "record_commit": "ad96830a14014fc4851b6b773f4a54bf87146320",
+      "matched_commit": null,
+      "work_item_id": "WI-D",
+      "duplicate_of": null,
+      "observability": "ci",
+      "cause": "external_only",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "next_step names the GitHub Memory Pressure job at f048afcf",
+        "record already noted the conditional GitLab clause as complete"
+      ],
+      "note": "Primary action is a CI result. No later Git commit can confirm or refute it. Belongs in an observability class, not pass/fail.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 16,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 5,
+        "start_line": 52
+      },
+      "session_id": "codex-019fa154-8751-77e3-b4d2-ebc8b703abec",
+      "baseline_classification": "never_observed",
+      "next_step": "Implement the owner-requested bounded scorer-handoff review fixes for BLOCKER-1, BLOCKER-2 and WARN-3; keep WARN-4, NIT-5, NIT-6, owner signing and Gate 2 execution out of scope.",
+      "record_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+      "matched_commit": null,
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "record_commit_artifact",
+      "avoidable_memory_defect": "unknown",
+      "evidence_refs": [
+        "record_commit b596153b adds memory/2026-07-27.md (+24) containing this entry AND performs the BLOCKER-1/2 + WARN-3 remediation",
+        "file order: this entry (line 52) precedes the local-uncommitted remediation entry (line 64) written by the same session family"
+      ],
+      "note": "Baseline labelled this stale_at_write. Verified otherwise: the record describes the GitLab push ad96830a, sat uncommitted, and was committed inside the very commit that executed its next_step. Same measurement artifact as sequence 7.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 18,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 7,
+        "start_line": 76
+      },
+      "session_id": "codex-019fa154-8751-77e3-b4d2-ebc8b703abec-owner-resign",
+      "baseline_classification": "unassessable",
+      "next_step": "Commit the append-only owner-sign receipt, PLAN sync and canonical memory record, then push the two scoped commits to origin/main and gitlab/main. Do not promote the candidate or start Gate 2 without a separate explicit owner command.",
+      "record_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "matched_commit": null,
+      "work_item_id": "WI-B",
+      "duplicate_of": null,
+      "observability": "commit",
+      "cause": "record_commit_artifact",
+      "avoidable_memory_defect": "unknown",
+      "evidence_refs": [
+        "record_commit 3bea5287 contains exactly the named artifacts: owner-resign receipt json, PLAN.md (+5), memory/2026-07-27.md (+24)"
+      ],
+      "note": "next_step named 'commit the receipt, PLAN sync and memory record, then push'. The commit clause was fulfilled by the record commit itself; only the push clause is remote-only.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 19,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 8,
+        "start_line": 88
+      },
+      "session_id": "codex-019fa154-8751-77e3-b4d2-ebc8b703abec-owner-resign-evidence-correction",
+      "baseline_classification": "unassessable",
+      "next_step": "Commit the append-only owner-sign receipt, both post-sign verification receipts, corrected verification output, PLAN sync and canonical memory records, then push to origin/main and gitlab/main. Do not promote or start Gate 2.",
+      "record_commit": "3bea5287526b19d060bb01a1dfad1aa9d11130b5",
+      "matched_commit": null,
+      "work_item_id": "WI-B",
+      "duplicate_of": 18,
+      "observability": "commit",
+      "cause": "superseded",
+      "avoidable_memory_defect": "unknown",
+      "evidence_refs": [
+        "shares record_commit 3bea5287 with sequence 18",
+        "session codex-...-owner-resign-evidence-correction"
+      ],
+      "note": "Corrective duplicate of sequence 18 with the same two-clause next_step.",
+      "reviewer_agreement": "pending"
+    },
+    {
+      "sequence": 20,
+      "source": {
+        "path": "memory/2026-07-27.md",
+        "entry_ordinal_in_file": 9,
+        "start_line": 100
+      },
+      "session_id": "codex-memory-provenance-tranche1-20260727",
+      "baseline_classification": "unassessable",
+      "next_step": "Run the separate report-only Memory quality retrospective baseline over the most recent 20 canonical entries; keep outputs under artifacts/ and add no validator, hook, CI, or blocker.",
+      "record_commit": "5a2c5a80b87eed21cf4edd85485e13a87a4cef21",
+      "matched_commit": null,
+      "work_item_id": "WI-C",
+      "duplicate_of": null,
+      "observability": "right_censored",
+      "cause": "censored",
+      "avoidable_memory_defect": "no",
+      "evidence_refs": [
+        "fixed HEAD 5a2c5a80 has no later commit",
+        "the named work was in fact performed: artifacts/memory-quality/recent20-baseline-20260727.md exists untracked in the working tree at audit time"
+      ],
+      "note": "Right-censored by the fixed HEAD, yet human-verifiable as done. Direct evidence that the commit-only proxy undercounts completion.",
+      "reviewer_agreement": "pending"
+    }
+  ],
+  "claim_ceiling": [
+    "Causal labels are human semantic judgements over commit evidence.",
+    "reviewer_agreement is pending on every entry; this tranche is single-annotator and was produced by the same session that verified the underlying commits.",
+    "This does not measure fresh-session handoff success.",
+    "This does not prove Memory quality improvement or G4 outcome value.",
+    "No repository behaviour, validator, hook, CI or schema was changed."
+  ]
+}

@@ -1469,14 +1469,25 @@ results; do NOT begin bulk tool replacement now.
 - [x] Focused replay covers the CFU release-artifact mixed-scope must-fail case
   and the product-commit then memory-closeout-commit must-pass case.
 - [x] Read-only scoped review findings were resolved before commit.
-- [ ] Next separate slice: measure Memory quality retrospectively over the most
-  recent 20 canonical entries. Keep outputs under `artifacts/`, add no
-  `governance_tools` validator, hook, CI, or blocker, and do not treat the
-  baseline as G4 outcome evidence.
+- [x] Separate Memory quality measurement slice: retrospectively classified the
+  most recent 20 canonical entries, then causally reclassified the 15
+  non-immediate cases under four real work items.
+- [x] The causal audit found zero confirmed avoidable memory defects. Three
+  apparent stale-at-write cases were `record_commit_artifact` false positives:
+  `git blame` identifies when a prewritten record was committed, not when it was
+  authored.
+- [x] The admission gate was not met. Stop without adding an advisory prompt,
+  fresh-session replay harness, `governance_tools` validator, hook, CI, schema,
+  or blocker.
 
 Claim ceiling: Tranche 1 establishes local commit provenance consistency and a
 report-only mixed-scope observation. It does not prove remote delivery, memory
 prose truth, Memory quality improvement, consumer replay outcomes, or G4 value.
+
+Memory quality measurement claim ceiling: the recent-20 baseline and causal
+audit are single-annotator, retrospective observations. Reviewer agreement
+remains pending; the sample is concentrated in four work items and is not G4
+outcome evidence.
 
 ## Dirty Workspace Policy
 
