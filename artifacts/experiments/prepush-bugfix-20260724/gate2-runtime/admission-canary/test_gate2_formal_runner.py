@@ -6,6 +6,7 @@ import copy
 import os
 import sys
 import unittest
+from unittest import mock
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -73,6 +74,35 @@ class FrozenSchemaTests(unittest.TestCase):
                 stream.replace('"api_error_status":429', "")
             )
         )
+
+    def test_prestart_audit_refuses_after_arm_start_before_write(self) -> None:
+        state = {
+            "arms": {
+                arm: {
+                    "status": (
+                        "complete" if arm == "D" else "admitted_not_run"
+                    )
+                }
+                for arm in runner.ORDER
+            }
+        }
+        with (
+            mock.patch.object(
+                runner,
+                "load_state",
+                return_value=(
+                    runner.Path("master"),
+                    runner.Path("state.json"),
+                    state,
+                ),
+            ),
+            mock.patch.object(runner, "write_json") as write_json,
+            mock.patch.object(runner, "docker") as docker,
+        ):
+            with self.assertRaises(SystemExit):
+                runner.audit_resources("master")
+        write_json.assert_not_called()
+        docker.assert_not_called()
 
     def test_scorer_schema_requires_all_pre_mapping_fields(self) -> None:
         schema = runner.formal_scorer_schema("primary")

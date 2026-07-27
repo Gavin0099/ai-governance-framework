@@ -1399,6 +1399,16 @@ def release(master: str) -> None:
 
 def audit_resources(master: str) -> None:
     master_dir, _, state = load_state(master)
+    if any(
+        state["arms"][arm].get("status") != "admitted_not_run"
+        for arm in ORDER
+    ):
+        raise SystemExit(
+            "pre-start resource audit is unavailable after any arm starts"
+        )
+    audit_path = master_dir / "resource-audit.json"
+    if audit_path.exists():
+        raise SystemExit(f"resource audit is create-once: {audit_path}")
     checks: dict[str, bool] = {
         "master_status_is_resources_admitted": (
             state.get("status") == "resources_admitted"
@@ -1494,7 +1504,7 @@ def audit_resources(master: str) -> None:
             and context.get("formal_scoring_started") is False
         )
     result = "PASS" if all(checks.values()) else "FAIL"
-    write_json(master_dir / "resource-audit.json", {
+    write_json(audit_path, {
         "result": result,
         "checks": checks,
         "opaque_ids": sorted(opaque_ids),
@@ -1504,7 +1514,7 @@ def audit_resources(master: str) -> None:
     })
     if result != "PASS":
         raise RuntimeError(f"resource audit failed: {checks}")
-    print(master_dir / "resource-audit.json")
+    print(audit_path)
 
 
 def main() -> int:
