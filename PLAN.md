@@ -1433,6 +1433,11 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   36c346fa, 0 meta objects — NOT the raw bundle), execution order frozen [D,C,A,B]
   from seed 20260724, packet hashes re-verified, validator pins confirmed real,
   producer receipt template prepared.
+- [x] Scorer-handoff v3 reason-code remediation independently approved and owner
+  re-signed 2026-07-27 at exact manifest SHA-256
+  `7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`
+  (commit `b596153b`). The signature is append-only; canonical promotion remains
+  a separate slice and Gate 2 execution remains 0.
 - [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),
   **BLOCKED-ON-RESOURCE not blocked-on-company**: an environment that technically
   cannot read the answer (container/VM/sandbox/separate account/remote runner) for

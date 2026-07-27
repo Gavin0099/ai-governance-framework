@@ -1,0 +1,35 @@
+{
+  "receipt_schema": "owner_authority_receipt.v0.1",
+  "status": "report_only",
+  "authority_event": {
+    "channel": "current Codex owner conversation",
+    "message": "簽署並提交推送",
+    "recorded_at": "2026-07-27T03:31:42Z"
+  },
+  "signed_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+  "signed_manifest": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json",
+    "sha256": "7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c",
+    "independent_review": {
+      "verdict": "APPROVED",
+      "risk": "medium",
+      "blocking_findings": 0
+    }
+  },
+  "owner_confirmation": {
+    "exact_candidate_hashes": "confirmed through the exact signed manifest",
+    "base64_common_mode_interpretation": "confirmed: common-mode exposure is not evidence of equal behavioral impact across arms; no score normalization or post-hoc adjustment is authorized",
+    "later_promotion_boundary": "confirmed: a later promotion may supersede scorer-handoff v2 only and may not change producer treatments, arm order, budgets, validators, or scoring release gates"
+  },
+  "byte_stability": {
+    "candidate_changed_by_signature_record": false,
+    "signature_record_is_append_only": true
+  },
+  "cannot_claim": [
+    "canonical promotion",
+    "resource admission",
+    "Gate 2 start or any arm execution",
+    "cryptographic owner authentication",
+    "clean workspace"
+  ]
+}

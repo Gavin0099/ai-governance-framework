@@ -1,0 +1,4 @@
+usage: scorer_handoff_v3.py verify-candidate [-h] --manifest MANIFEST
+                                             --repo-root REPO_ROOT
+                                             --json-out JSON_OUT
+scorer_handoff_v3.py verify-candidate: error: the following arguments are required: --json-out

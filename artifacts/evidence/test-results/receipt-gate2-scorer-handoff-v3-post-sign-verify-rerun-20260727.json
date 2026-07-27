@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py verify-candidate --manifest artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json --repo-root . --json-out artifacts/evidence/test-results/gate2-scorer-handoff-v3-reason-code-rebuild-20260727/candidate-verification-post-sign.json",
+  "exit_code": 0,
+  "started_at": "2026-07-27T03:33:25Z",
+  "finished_at": "2026-07-27T03:33:25Z",
+  "runner": "codex-owner-resign-post-sign-verifier-rerun",
+  "linked_commit": "b596153b193e754a1a0e8c99ecb24c58413f451d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-post-sign-verify-rerun-20260727.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
