@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from argparse import Namespace
 from pathlib import Path
 
@@ -76,7 +77,7 @@ def test_session_end_token_summary_reflects_estimated_step_tokens(tmp_path: Path
         completion_tokens=45,
         total_tokens=165,
         retry_of=None,
-        command=["cmd", "/c", "exit", "0"],
+        command=[sys.executable, "-c", "raise SystemExit(0)"],
     )
     assert codeburn_run.run_step(run_args) == 0
     _ = capsys.readouterr()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import subprocess
+import sys
 from argparse import Namespace
 from pathlib import Path
 
@@ -54,7 +55,7 @@ def test_codeburn_run_success_and_changed_files(tmp_path: Path) -> None:
         provider="local",
         token_source="unknown",
         retry_of=None,
-        command=["python", "-c", "print('ok')"],
+        command=[sys.executable, "-c", "print('ok')"],
     )
 
     rc = codeburn_run.run_step(args)
@@ -90,7 +91,7 @@ def test_codeburn_run_start_failure_contract_marks_partial(tmp_path: Path, monke
 
     def _mock_run(*args, **kwargs):
         cmd = args[0]
-        if isinstance(cmd, str):
+        if isinstance(cmd, list) and cmd[:1] == [sys.executable]:
             raise OSError("failed to start command")
         return real_run(*args, **kwargs)
 
@@ -104,7 +105,7 @@ def test_codeburn_run_start_failure_contract_marks_partial(tmp_path: Path, monke
         provider="local",
         token_source="unknown",
         retry_of=None,
-        command=["python", "-c", "print('ok')"],
+        command=[sys.executable, "-c", "print('ok')"],
     )
 
     rc = codeburn_run.run_step(args)
@@ -146,7 +147,7 @@ def test_codeburn_run_token_fields_stored(tmp_path: Path) -> None:
         completion_tokens=128,
         total_tokens=640,
         retry_of=None,
-        command=["python", "-c", "print('ok')"],
+        command=[sys.executable, "-c", "print('ok')"],
     )
 
     rc = codeburn_run.run_step(args)
@@ -184,7 +185,7 @@ def test_codeburn_run_token_fields_default_null(tmp_path: Path) -> None:
         completion_tokens=None,
         total_tokens=None,
         retry_of=None,
-        command=["python", "-c", "print('ok')"],
+        command=[sys.executable, "-c", "print('ok')"],
     )
 
     rc = codeburn_run.run_step(args)
@@ -221,7 +222,7 @@ def test_codeburn_run_estimated_tokens_flow_to_analysis_and_report(tmp_path: Pat
         completion_tokens=128,
         total_tokens=640,
         retry_of=None,
-        command=["python", "-c", "print('ok')"],
+        command=[sys.executable, "-c", "print('ok')"],
     )
 
     rc = codeburn_run.run_step(args)
