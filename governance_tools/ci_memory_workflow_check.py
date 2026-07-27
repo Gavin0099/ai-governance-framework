@@ -24,6 +24,11 @@ from governance_tools.memory_authority_guard import (
 from governance_tools.memory_policy_attestation import (
     policy_disable_attestation_warnings,
 )
+from governance_tools.memory_provenance import (
+    MIXED_SCOPE_CODE,
+    detect_commit_range_mixed_scope_memory_bindings,
+    detect_staged_mixed_scope_memory_bindings,
+)
 
 
 _B0_CODE = "session_like_non_session_memory_type"
@@ -42,6 +47,8 @@ class CiMemoryWorkflowCheckResult:
     current_diff_b0_blocker_count: int = 0
     blockers: list[dict] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    mixed_scope_memory_binding_count: int = 0
+    mixed_scope_findings: list[dict] = field(default_factory=list)
     clean: bool = True
 
 
@@ -88,6 +95,8 @@ def check(
     *,
     changed_files: Sequence[str],
     active_from: str = "2026-06-02",
+    base_ref: str | None = None,
+    head_ref: str = "HEAD",
 ) -> CiMemoryWorkflowCheckResult:
     repo_root = project_root.resolve()
     normalized_changed = sorted({_normalize(item) for item in changed_files if _normalize(item)})
@@ -130,6 +139,15 @@ def check(
         if _violation_memory_path(violation) in changed_memory_set
     ]
 
+    if base_ref:
+        mixed_scope_findings = detect_commit_range_mixed_scope_memory_bindings(
+            repo_root,
+            base_ref=base_ref,
+            head_ref=head_ref,
+        )
+    else:
+        mixed_scope_findings = detect_staged_mixed_scope_memory_bindings(repo_root)
+
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
     for code in (
@@ -153,6 +171,8 @@ def check(
         warnings.append(
             f"authority_override_used={len(current_diff_authority_overrides)}"
         )
+    if mixed_scope_findings:
+        warnings.append(f"{MIXED_SCOPE_CODE}={len(mixed_scope_findings)}")
 
     if policy["error"]:
         warnings.append(policy["error"])
@@ -195,6 +215,8 @@ def check(
         current_diff_b0_blocker_count=len(current_diff_b0_blockers),
         blockers=blockers,
         warnings=warnings,
+        mixed_scope_memory_binding_count=len(mixed_scope_findings),
+        mixed_scope_findings=mixed_scope_findings,
         clean=not blockers,
     )
 
@@ -211,6 +233,7 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         f"{result.current_diff_active_non_canonical_writer_count}",
         f"repo_state_b0_blocker_count={result.repo_state_b0_blocker_count}",
         f"current_diff_b0_blocker_count={result.current_diff_b0_blocker_count}",
+        f"mixed_scope_memory_binding_count={result.mixed_scope_memory_binding_count}",
         f"clean={result.clean}",
     ]
     if result.changed_memory_files:
@@ -219,6 +242,10 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
     if result.warnings:
         lines.append("[warnings]")
         lines.extend(result.warnings)
+    if result.mixed_scope_findings:
+        lines.append("[mixed_scope_findings]")
+        for finding in result.mixed_scope_findings:
+            lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
     if result.blockers:
         lines.append("[blockers]")
         for blocker in result.blockers:
@@ -246,7 +273,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         raise SystemExit("error: provide --base-ref/--head-ref or at least one --changed-file")
 
-    result = check(project_root, changed_files=changed_files, active_from=args.active_from)
+    result = check(
+        project_root,
+        changed_files=changed_files,
+        active_from=args.active_from,
+        base_ref=args.base_ref if args.changed_file is None else None,
+        head_ref=args.head_ref,
+    )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
     else:

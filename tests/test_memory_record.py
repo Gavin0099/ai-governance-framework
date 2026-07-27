@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -92,13 +93,14 @@ def test_append_session_derived_entry_rejects_handcrafted_blank_evidence(tmp_pat
 
 
 def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
     result = subprocess.run(
         [
             sys.executable,
             "governance_tools/memory_record.py",
             "--what-changed", "cli test change",
             "--next-step", "verify cli output",
-            "--commit", "abc1234",
+            "--commit", head,
             "--session-id", "test-session-cli",
             "--test-evidence", "subprocess invocation ok",
             "--plan-reconciliation", "not_applicable",
@@ -117,6 +119,103 @@ def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
     assert "cli test change" in text
     assert "test-session-cli" in text
     assert "memory_binding: bound" in text
+
+
+def _init_git_repo(repo: Path) -> str:
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test User"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "--allow-empty", "-m", "seed"],
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _run_binding_cli(
+    repo: Path,
+    *,
+    commit: str | None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
+    command = [
+        sys.executable,
+        "governance_tools/memory_record.py",
+        "--what-changed", "binding decision test",
+        "--next-step", "review the result",
+        "--session-id", "test-binding-session",
+        "--test-evidence", "NOT RUN: binding-only test",
+        "--plan-reconciliation", "not_applicable",
+        "--project-root", str(repo),
+    ]
+    if commit is not None:
+        command.extend(["--commit", commit])
+    return subprocess.run(command, capture_output=True, text=True, env=env)
+
+
+def test_cli_binds_only_existing_local_commit_object(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    result = _run_binding_cli(tmp_path, commit=head)
+
+    assert result.returncode == 0, result.stderr
+    daily = next((tmp_path / "memory").glob("*.md"))
+    assert f"commit_hash: {head}" in daily.read_text(encoding="utf-8")
+    assert "memory_binding: bound" in daily.read_text(encoding="utf-8")
+
+
+def test_cli_rejects_explicit_hash_shaped_text_in_git_repo(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    result = _run_binding_cli(tmp_path, commit="deadbeef")
+
+    assert result.returncode == 2
+    assert "does not resolve to a local Git commit object" in result.stdout
+    assert not (tmp_path / "memory").exists()
+
+
+def test_cli_auto_detects_existing_head_commit(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    result = _run_binding_cli(tmp_path, commit=None)
+
+    assert result.returncode == 0, result.stderr
+    daily = next((tmp_path / "memory").glob("*.md"))
+    text = daily.read_text(encoding="utf-8")
+    assert f"commit_hash: {head}" in text
+    assert "memory_binding: bound" in text
+
+
+def test_cli_auto_detect_failure_outside_git_writes_unbound(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    env["GIT_CEILING_DIRECTORIES"] = (
+        str(tmp_path.parent.resolve()).replace("\\", "/")
+    )
+
+    probe = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "--is-inside-work-tree"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert probe.returncode != 0
+
+    result = _run_binding_cli(tmp_path, commit=None, env=env)
+
+    assert result.returncode == 0, result.stderr
+    daily = next((tmp_path / "memory").glob("*.md"))
+    text = daily.read_text(encoding="utf-8")
+    assert "commit_hash: UNCOMMITTED" in text
+    assert "memory_binding: unbound" in text
 
 
 def test_build_memory_record_suggestion_returns_cli_command() -> None:
@@ -280,7 +379,7 @@ def test_cli_writes_each_explicit_plan_reconciliation_value(
             "governance_tools/memory_record.py",
             "--what-changed", "explicit declaration test",
             "--next-step", "verify explicit write",
-            "--commit", "abc1234",
+            "--commit", "UNCOMMITTED",
             "--session-id", f"test-session-{plan_reconciliation}",
             "--test-evidence", "NOT RUN: declaration-only test",
             "--plan-reconciliation", plan_reconciliation,
@@ -302,7 +401,7 @@ def test_cli_missing_test_evidence_rejects_before_memory_write(tmp_path: Path) -
             "governance_tools/memory_record.py",
             "--what-changed", "missing evidence test",
             "--next-step", "verify rejection",
-            "--commit", "abc1234",
+            "--commit", "UNCOMMITTED",
             "--session-id", "test-session-missing-evidence",
             "--plan-reconciliation", "not_applicable",
             "--project-root", str(tmp_path),
@@ -349,7 +448,7 @@ def _run_record_cli(tmp_path: Path, test_evidence: str) -> subprocess.CompletedP
             "governance_tools/memory_record.py",
             "--what-changed", "provenance advisory test",
             "--next-step", "verify advisory",
-            "--commit", "abc1234",
+            "--commit", "UNCOMMITTED",
             "--session-id", "test-session-provenance",
             "--test-evidence", test_evidence,
             "--plan-reconciliation", "not_applicable",

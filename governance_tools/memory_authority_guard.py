@@ -47,6 +47,12 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from governance_tools.memory_provenance import (
+    git_commit_exists as _git_commit_exists,
+    git_commits_exist as _git_commits_exist,
+    is_git_worktree as _project_has_git_worktree,
+)
+
 # ── regex patterns ────────────────────────────────────────────────────────────
 
 # Match both human-written ("commit hash:") and auto-generated ("commit:") entry formats.
@@ -121,68 +127,6 @@ def _is_daily_file(path: Path) -> bool:
     return _DATE_FILENAME.match(path.name) is not None
 
 
-def _project_has_git_worktree(project_root: Path) -> bool:
-    completed = subprocess.run(
-        ["git", "-C", str(project_root), "rev-parse", "--is-inside-work-tree"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return completed.returncode == 0
-
-
-def _git_commit_exists(project_root: Path, commit_hash: str) -> bool:
-    completed = subprocess.run(
-        ["git", "-C", str(project_root), "cat-file", "-e", f"{commit_hash}^{{commit}}"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return completed.returncode == 0
-
-
-def _git_commits_exist(
-    project_root: Path, commit_hashes: Sequence[str]
-) -> dict[str, bool]:
-    unique_hashes = sorted({
-        commit_hash.strip().lower()
-        for commit_hash in commit_hashes
-        if commit_hash.strip()
-    })
-    if not unique_hashes:
-        return {}
-
-    query = "".join(f"{commit_hash}^{{commit}}\n" for commit_hash in unique_hashes)
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(project_root), "cat-file", "--batch-check"],
-            input=query,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=10,
-        )
-    except Exception:
-        return {
-            commit_hash: _git_commit_exists(project_root, commit_hash)
-            for commit_hash in unique_hashes
-        }
-
-    if completed.returncode != 0:
-        return {
-            commit_hash: _git_commit_exists(project_root, commit_hash)
-            for commit_hash in unique_hashes
-        }
-
-    results: dict[str, bool] = {}
-    for commit_hash, line in zip(unique_hashes, completed.stdout.splitlines()):
-        parts = line.split()
-        results[commit_hash] = len(parts) >= 2 and parts[1] == "commit"
-    for commit_hash in unique_hashes:
-        results.setdefault(commit_hash, False)
-    return results
-
-
 def _json_session_id_matches(path: Path, session_id: str) -> bool:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -242,9 +186,7 @@ def _entry_is_bound(
             if has_git_worktree is not None
             else _project_has_git_worktree(project_root)
         )
-        if not git_worktree:
-            return True, "ok"
-        if any(
+        if git_worktree and any(
             (
                 commit_exists_cache.get(commit_hash.lower())
                 if commit_exists_cache is not None

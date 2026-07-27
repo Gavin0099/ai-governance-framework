@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from governance_tools.checkpoint_memory_baseline_compare import compare_payloads, format_human
@@ -79,6 +80,29 @@ def _write_memory_entry(
     )
 
 
+def _init_git_repo(repo: Path) -> str:
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test User"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "--allow-empty", "-m", "seed"],
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
 def test_no_new_drift_preserves_baseline_disposition(tmp_path: Path) -> None:
     findings = [
         {
@@ -129,6 +153,7 @@ def test_new_claim_bearing_drift_is_reported_without_blocking(tmp_path: Path) ->
 
 
 def test_worktree_record_with_later_bound_commit_is_workflow_residue(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
     _write_memory_entry(
         tmp_path,
         commit_hash="WORKTREE",
@@ -137,7 +162,7 @@ def test_worktree_record_with_later_bound_commit_is_workflow_residue(tmp_path: P
     )
     _write_memory_entry(
         tmp_path,
-        commit_hash="abc1234",
+        commit_hash=head,
         memory_binding="bound",
         what_changed="Post-push record: pushed advisory observation packet.",
     )
@@ -154,9 +179,10 @@ def test_worktree_record_with_later_bound_commit_is_workflow_residue(tmp_path: P
 
 
 def test_post_push_command_only_pass_is_receipt_shape_residue(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
     _write_memory_entry(
         tmp_path,
-        commit_hash="abc1234",
+        commit_hash=head,
         memory_binding="bound",
         what_changed="Post-push record: pushed advisory observation packet.",
     )
@@ -170,3 +196,22 @@ def test_post_push_command_only_pass_is_receipt_shape_residue(tmp_path: Path) ->
 
     assert payload["new_findings"][0]["disposition"] == "receipt_shape_residue"
     assert payload["delta"]["by_disposition"]["receipt_shape_residue"] == 1
+
+
+def test_hash_shaped_text_does_not_create_receipt_shape_residue(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    _write_memory_entry(
+        tmp_path,
+        commit_hash="deadbeef",
+        memory_binding="bound",
+        what_changed="Post-push record: claimed without a local commit object.",
+    )
+
+    payload = compare_payloads(
+        baseline=_baseline([]),
+        current=_current([{"code": "unreceipted_validation", "subject": "2026-06-19.md:3"}]),
+        repo=tmp_path,
+        commit_subject_lookup=_lookup,
+    )
+
+    assert payload["new_findings"][0]["disposition"] == "new_drift"

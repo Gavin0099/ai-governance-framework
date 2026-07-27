@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Callable, Sequence
 
 from governance_tools.checkpoint_memory_audit import FINDING_CODES, PLACEHOLDER_COMMITS, audit
+from governance_tools.memory_provenance import git_commit_exists
 
 SCHEMA_VERSION = "0.1"
 CLAIM_CLASS = "advisory"
@@ -152,25 +153,30 @@ def _commit_subject(repo: Path, commit: str) -> str:
     return stdout
 
 
-def _is_bound_entry(entry: MemoryEntry) -> bool:
+def _is_bound_entry(repo: Path, entry: MemoryEntry) -> bool:
     return (
         entry.memory_binding == "bound"
         and entry.commit_hash.strip()
         and entry.commit_hash.strip().upper() not in PLACEHOLDER_COMMITS
+        and git_commit_exists(repo, entry.commit_hash)
     )
 
 
-def _has_later_bound_entry(entries: Sequence[MemoryEntry], entry: MemoryEntry) -> bool:
+def _has_later_bound_entry(
+    repo: Path,
+    entries: Sequence[MemoryEntry],
+    entry: MemoryEntry,
+) -> bool:
     return any(
         candidate.file == entry.file
         and candidate.line > entry.line
-        and _is_bound_entry(candidate)
+        and _is_bound_entry(repo, candidate)
         for candidate in entries
     )
 
 
-def _is_post_push_bound_entry(entry: MemoryEntry) -> bool:
-    return _is_bound_entry(entry) and entry.what_changed.lower().startswith("post-push record:")
+def _is_post_push_bound_entry(repo: Path, entry: MemoryEntry) -> bool:
+    return _is_bound_entry(repo, entry) and entry.what_changed.lower().startswith("post-push record:")
 
 
 def _default_disposition(
@@ -187,11 +193,11 @@ def _default_disposition(
             return "expected_noise"
     if finding.get("code") == "stale_no_commit_memory":
         entry = _memory_entry_by_subject(memory_entries, str(finding.get("subject", "")))
-        if entry and _has_later_bound_entry(memory_entries, entry):
+        if entry and _has_later_bound_entry(repo, memory_entries, entry):
             return "workflow_residue"
     if finding.get("code") == "unreceipted_validation":
         entry = _memory_entry_by_subject(memory_entries, str(finding.get("subject", "")))
-        if entry and _is_post_push_bound_entry(entry):
+        if entry and _is_post_push_bound_entry(repo, entry):
             return "receipt_shape_residue"
     return "new_drift"
 

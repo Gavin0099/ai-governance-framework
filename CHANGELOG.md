@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Canonical memory commit provenance - 2026-07-27
+
+- Centralized canonical memory binding on one local Git commit-object decision
+  shared by the CLI writer, runtime session-end writer, authority guard, and
+  checkpoint baseline comparison. Hash-shaped text alone no longer establishes
+  `memory_binding: bound`; explicit invalid commit arguments fail before a Git
+  worktree write, while uncommitted and non-Git fallback paths remain writable
+  as unbound or session-bound records.
+- Added `mixed_scope_memory_binding` to memory workflow and CI reports. It
+  observes a canonical closeout entry bound to an earlier local commit while
+  the same staged scope or commit contains non-closeout paths. The signal is
+  report-only and a product commit followed by a separate memory closeout
+  commit remains clean.
+- Reframed closeout documentation around implementation commit, canonical
+  memory write, separate closeout companion commit, push, and remote
+  verification. A local commit object is not push proof, and remote
+  verification does not require an infinite post-push memory commit loop.
+- Release-note boundary: this entry does not bump the framework version,
+  publish a release, prove remote delivery, change memory blocking policy, or
+  add hook/CI/pre-push enforcement.
+
 ### Opt-in plain-summary validation - 2026-07-18
 
 - Added an opt-in `--check-plain-summary` mode to

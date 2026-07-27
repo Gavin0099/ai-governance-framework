@@ -28,6 +28,10 @@ from governance_tools.memory_authority_guard import (
 from governance_tools.memory_policy_attestation import (
     policy_disable_attestation_warnings,
 )
+from governance_tools.memory_provenance import (
+    MIXED_SCOPE_CODE,
+    detect_staged_mixed_scope_memory_bindings,
+)
 
 
 MEMORY_REQUIRED = "memory_workflow_required"
@@ -75,6 +79,7 @@ class MemoryWorkflowDispatchResult:
     warnings: list[str] = field(default_factory=list)
     background_warnings: list[str] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
+    mixed_scope_findings: list[dict] = field(default_factory=list)
 
 
 def _run_git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
@@ -414,6 +419,9 @@ def assess_memory_workflow(
     warnings: list[str] = []
     background_warnings: list[str] = []
     blockers: list[str] = []
+    mixed_scope_findings = detect_staged_mixed_scope_memory_bindings(repo_root)
+    if mixed_scope_findings:
+        warnings.append(MIXED_SCOPE_CODE)
     guard_ran = False
     guard_summary: dict[str, int] = {}
     if memory_files and writer_path is None:
@@ -462,6 +470,7 @@ def assess_memory_workflow(
             warnings=warnings,
             background_warnings=background_warnings,
             blockers=blockers,
+            mixed_scope_findings=mixed_scope_findings,
         )
 
     if _has_memory_keyword(task_text):
@@ -485,6 +494,7 @@ def assess_memory_workflow(
             warnings=warnings,
             background_warnings=background_warnings,
             blockers=blockers,
+            mixed_scope_findings=mixed_scope_findings,
         )
 
     return MemoryWorkflowDispatchResult(
@@ -505,6 +515,7 @@ def assess_memory_workflow(
         warnings=warnings,
         background_warnings=background_warnings,
         blockers=blockers,
+        mixed_scope_findings=mixed_scope_findings,
     )
 
 
@@ -538,6 +549,10 @@ def format_human(result: MemoryWorkflowDispatchResult) -> str:
     if result.background_warnings:
         lines.append("[background_warnings]")
         lines.extend(result.background_warnings)
+    if result.mixed_scope_findings:
+        lines.append("[mixed_scope_findings]")
+        for finding in result.mixed_scope_findings:
+            lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
     if result.blockers:
         lines.append("[blockers]")
         lines.extend(result.blockers)

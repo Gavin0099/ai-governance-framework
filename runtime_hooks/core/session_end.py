@@ -28,6 +28,7 @@ from governance_tools.execution_surface_coverage import build_execution_surface_
 from governance_tools.claim_enforcement_checker import evaluate as evaluate_claim_enforcement
 from governance_tools.claim_enforcement_receipt_writer import write_receipt_for_session as _write_compact_receipt
 from governance_tools.memory_record import append_session_derived_entry, build_session_derived_record
+from governance_tools.memory_provenance import resolve_memory_binding
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
 from governance_tools.runtime_reliability_observation import (
@@ -242,19 +243,20 @@ def _default_next_step(
     )
 
 
-def _resolve_memory_binding(commit: str, session_id: str) -> str:
+def _resolve_memory_binding(project_root: Path, commit: str, session_id: str) -> str:
     """
     Determine memory binding state per Memory Authority Contract v1.0.0.
 
-    bound            — real commit hash available
+    bound            — commit resolves to a local Git commit object
     bound_session_id — no commit hash, but session_id provides fallback anchor
     unbound          — neither commit hash nor session_id (violation: must not be promoted)
     """
-    if commit and commit != "UNCOMMITTED":
-        return "bound"
-    if session_id and session_id.strip():
-        return "bound_session_id"
-    return "unbound"
+    return resolve_memory_binding(
+        project_root,
+        commit,
+        session_id,
+        allow_session_fallback=True,
+    )
 
 
 def _build_daily_memory_record(
@@ -271,7 +273,7 @@ def _build_daily_memory_record(
     open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
-    memory_binding = _resolve_memory_binding(commit, session_id)
+    memory_binding = _resolve_memory_binding(project_root, commit, session_id)
     closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
     closeout_fail_closed = closeout_status in {
         "missing",

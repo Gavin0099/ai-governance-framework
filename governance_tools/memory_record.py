@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
-_REAL_HASH = re.compile(r'^[a-f0-9]{5,40}$', re.IGNORECASE)
+try:
+    from governance_tools.memory_provenance import (
+        is_git_worktree,
+        is_unbound_commit_token,
+        resolve_memory_binding,
+    )
+except ImportError:
+    from memory_provenance import (  # type: ignore[no-redef]
+        is_git_worktree,
+        is_unbound_commit_token,
+        resolve_memory_binding,
+    )
 
 WRITER_ID = "governance_tools.memory_record"
 RECORD_FORMAT_VERSION = "1.0"
@@ -261,9 +271,26 @@ def main() -> int:
         print(f"[memory_record] error: {evidence_error}")
         return 2
     project_root = Path(args.project_root).resolve()
+    explicit_commit = args.commit is not None
     commit = args.commit or _auto_detect_commit(project_root)
     session_id = args.session_id or f"cli-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-    memory_binding = "bound" if _REAL_HASH.match(commit) else "unbound"
+    memory_binding = resolve_memory_binding(
+        project_root,
+        commit,
+        session_id,
+        allow_session_fallback=False,
+    )
+    if (
+        explicit_commit
+        and is_git_worktree(project_root)
+        and not is_unbound_commit_token(commit)
+        and memory_binding != "bound"
+    ):
+        print(
+            "[memory_record] error: explicit --commit does not resolve to a "
+            f"local Git commit object: {commit}"
+        )
+        return 2
 
     # Write-time provenance advisory (report-only, never blocks): a success
     # claim without an existing artifacts/ path becomes a new above-baseline

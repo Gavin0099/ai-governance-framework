@@ -60,6 +60,45 @@ def _write_policy(repo: Path, enabled: bool = True) -> None:
     )
 
 
+def _init_git_repo(repo: Path) -> str:
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test User"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "--allow-empty", "-m", "seed"],
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _canonical_bound_entry(commit: str, *, plan_reconciliation: str = "not_applicable") -> str:
+    return (
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: closeout companion\n"
+        f"  commit: {commit}\n"
+        f"  commit_hash: {commit}\n"
+        "  session_id: test-session\n"
+        "  memory_binding: bound\n"
+        "  test_evidence: NOT RUN: scope classification fixture\n"
+        "  next_step: review\n"
+        f"  plan_reconciliation: {plan_reconciliation}\n"
+    )
+
+
 def test_memory_diff_requires_workflow(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
 
@@ -539,3 +578,38 @@ def test_cli_fail_on_blocker_allows_clean_canonical_memory(tmp_path: Path) -> No
     payload = json.loads(completed.stdout)
     assert payload["blockers"] == []
     assert payload["completion_claim_allowed"] is True
+
+
+def test_staged_mixed_scope_binding_is_report_only(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    _make_framework_surface(tmp_path)
+    _write(tmp_path / "memory" / "2026-07-27.md", _canonical_bound_entry(head))
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(tmp_path),
+            "add",
+            "memory/2026-07-27.md",
+            "governance_tools/product_change.py",
+        ],
+        check=True,
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=[
+            "memory/2026-07-27.md",
+            "governance_tools/product_change.py",
+        ],
+        run_guard_check=True,
+    )
+
+    assert result.completion_claim_allowed is True
+    assert "mixed_scope_memory_binding" in result.warnings
+    assert result.mixed_scope_findings[0]["enforcement"] == "report_only"
+    assert result.mixed_scope_findings[0]["disallowed_paths"] == [
+        "governance_tools/product_change.py"
+    ]
+    assert "mixed_scope_memory_binding" not in result.blockers

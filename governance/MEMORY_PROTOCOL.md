@@ -16,7 +16,7 @@ Enforcement change: no
 ## Purpose
 
 This protocol defines repo-local memory authority, canonical memory writing,
-post-push memory, PLAN sync, and memory interpretation rules.
+delivery and closeout memory, PLAN sync, and memory interpretation rules.
 
 ## Memory Surfaces
 
@@ -164,14 +164,44 @@ blocker codes, guard summary, and memory completion claim allowance. Receipt
 presence is evidence that the workflow status was observed; it is not, by
 itself, proof that memory completion was allowed.
 
-## Post-Push Memory Protocol
+## Delivery And Closeout Memory Protocol
 
-- After every push in a main session, append one short entry to
-  `memory/YYYY-MM-DD.md`.
-- Use the canonical writer CLI for all new entries.
-- If the push introduced a durable workflow preference, also update
-  `memory/00_long_term.md`.
-- This protocol is portable to other repos with a local `memory/` directory.
+Use a two-commit delivery sequence when a completed implementation needs
+canonical session memory:
+
+1. complete and validate the bounded implementation scope;
+2. commit that implementation scope;
+3. use the canonical writer to bind the memory entry to that local
+   implementation commit;
+4. commit `memory/**` and any closeout companions separately;
+5. push both commits and verify the remote ref resolves to the intended head.
+
+`memory_binding: bound` proves only that the named commit resolves to a commit
+object in the local repository. It does not prove that the commit was pushed,
+that a remote contains it, or that the memory prose is true.
+
+The closeout companion commit may contain:
+
+- `memory/**`;
+- `PLAN.md` only when the added canonical entry declares
+  `plan_reconciliation: updated`;
+- a receipt or runtime closeout/verdict artifact produced for that closeout;
+- an artifact path directly cited by the added canonical entry.
+
+Implementation, release, package, and general documentation paths are not
+closeout companions. In particular, `CHANGELOG.md` and
+`artifacts/release/**` belong to their implementation or release scope.
+
+`mixed_scope_memory_binding` is a report-only observation when a single staged
+scope or commit adds canonical memory bound to an earlier local commit while
+also changing non-closeout paths. It does not block hooks or CI. A product
+commit followed by a separate memory closeout commit is the expected path and
+must not produce that finding.
+
+Remote verification belongs in the final delivery evidence. Do not append a
+new memory entry solely to say that the closeout commit was pushed; that would
+create an unbounded memory-commit loop. If push state is unknown, report it as
+unknown and use `verify remote push state` as the unfinished next action.
 
 ## Memory State Trace Consistency
 
@@ -180,9 +210,14 @@ Memory entries must not mix completed and pending state.
 `next_step` must describe the next unfinished action, not repeat an action
 already recorded as completed in the same memory entry.
 
-If a `commit` or `commit_hash` is recorded, commit state for that scope must be
-treated as completed unless the entry explicitly marks the commit as failed,
-local-only, or not pushed.
+If `memory_binding: bound` is recorded, the named commit must resolve to a
+local Git commit object. Hash-shaped text alone is not a binding. Local commit
+existence must not be interpreted as remote or push evidence.
+
+`bound_session_id` is a fallback only when an eligible runtime artifact anchors
+that session ID. Auto-detection failure, explicit uncommitted tokens, and
+non-Git paths remain writable as `unbound`; they must not be upgraded to
+`bound` from their text shape.
 
 If push status is unknown, write `verify remote push state` instead of
 `commit and push`.
@@ -213,18 +248,28 @@ boundary.
 - After each phase completion or milestone transition:
   1. update `PLAN.md` phase status or next milestone;
   2. update memory files;
-  3. commit and push.
+  3. declare `plan_reconciliation: updated` in the canonical memory entry;
+  4. include both in the closeout companion commit, then push and verify the
+     remote ref.
+- When `plan_reconciliation` is not `updated`, `PLAN.md` must stay outside the
+  closeout companion commit.
 - `PLAN.md` drift is treated as governance drift.
 
 ## Definition Of Done
 
 A change is done when:
 1. session done-condition is met;
-2. changes are committed and pushed;
-3. one canonical memory entry is appended to `memory/YYYY-MM-DD.md`.
+2. the bounded implementation is validated and committed;
+3. one canonical memory entry bound to that local implementation commit is
+   written before the separate closeout companion commit;
+4. the implementation and closeout commits are pushed;
+5. the intended remote ref is verified.
 
 `PLAN.md` sync and structured memory refresh are required when a phase or
 milestone transition happened.
+
+The canonical memory entry is not post-push proof. Remote verification is a
+separate delivery fact and does not require another memory commit.
 
 ## Cross-Agent Closeout Rule
 
@@ -232,8 +277,9 @@ milestone transition happened.
   constraints live in root `AGENTS.md`; final report envelope details live in
   `governance/RESPONSE_ENVELOPE_CONTRACT.md`; executable closeout entrypoints
   are listed below.
-- Consuming repos: minimal mode by default (`done-condition met -> commit/push
-  -> one memory entry`).
+- Consuming repos: minimal mode by default (`done-condition met ->
+  implementation commit -> canonical memory write -> closeout commit ->
+  push both commits -> verify remote ref`).
 - Strict closeout is opt-in for consuming repos.
 
 Canonical tools:

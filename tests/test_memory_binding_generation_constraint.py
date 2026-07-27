@@ -149,24 +149,56 @@ def test_entry_is_bound_auto_generated_format():
 
 # ── _resolve_memory_binding ───────────────────────────────────────────────────
 
-def test_resolve_memory_binding_real_hash():
-    assert _resolve_memory_binding("dc69408", "session-abc") == "bound"
+def _init_git_repo(repo: Path) -> str:
+    subprocess.run(["git", "-C", str(repo), "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test User"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "--allow-empty", "-m", "seed"],
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
-def test_resolve_memory_binding_uncommitted_with_session():
-    assert _resolve_memory_binding("UNCOMMITTED", "session-abc") == "bound_session_id"
+def test_resolve_memory_binding_real_hash(tmp_path: Path):
+    head = _init_git_repo(tmp_path)
+    assert _resolve_memory_binding(tmp_path, head, "session-abc") == "bound"
 
 
-def test_resolve_memory_binding_uncommitted_no_session():
-    assert _resolve_memory_binding("UNCOMMITTED", "") == "unbound"
+def test_resolve_memory_binding_hash_shaped_text_is_not_bound(tmp_path: Path):
+    _init_git_repo(tmp_path)
+    assert (
+        _resolve_memory_binding(tmp_path, "deadbeef", "session-abc")
+        == "bound_session_id"
+    )
 
 
-def test_resolve_memory_binding_empty_commit_with_session():
-    assert _resolve_memory_binding("", "session-abc") == "bound_session_id"
+def test_resolve_memory_binding_uncommitted_with_session(tmp_path: Path):
+    assert _resolve_memory_binding(tmp_path, "UNCOMMITTED", "session-abc") == "bound_session_id"
 
 
-def test_resolve_memory_binding_neither():
-    assert _resolve_memory_binding("", "") == "unbound"
+def test_resolve_memory_binding_uncommitted_no_session(tmp_path: Path):
+    assert _resolve_memory_binding(tmp_path, "UNCOMMITTED", "") == "unbound"
+
+
+def test_resolve_memory_binding_empty_commit_with_session(tmp_path: Path):
+    assert _resolve_memory_binding(tmp_path, "", "session-abc") == "bound_session_id"
+
+
+def test_resolve_memory_binding_neither(tmp_path: Path):
+    assert _resolve_memory_binding(tmp_path, "", "") == "unbound"
 
 
 # ── authority_coverage_rate in run_guard ─────────────────────────────────────
