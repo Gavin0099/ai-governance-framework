@@ -1,0 +1,7 @@
+[governance] version bump recommendation (advisory)
+[version_bump_guard]
+recommended_bump=none
+changed_files=0
+manual_review_required=False
+[gate2_reproduction]
+{"changed_files_one": false, "head_unchanged": true, "marker_reported": false, "pushed_commit": "41a7e3097e04b058cf0aeb10bc497e883e6c8d9a", "remote_base": "a621ee94af7b7d0f5edef777828bb7954daaa21b", "verdict": "FAIL"}

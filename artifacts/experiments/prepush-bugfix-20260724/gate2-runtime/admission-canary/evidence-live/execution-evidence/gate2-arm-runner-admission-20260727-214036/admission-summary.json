@@ -1,0 +1,24 @@
+﻿{
+    "admission":  "PASS",
+    "run_id":  "gate2-arm-runner-admission-20260727-214036",
+    "image_id":  "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+    "platform":  "linux/amd64",
+    "source_commit":  "33006f097597f5720a2d01661281d564fb2693ec",
+    "sanitized_tree":  "36c346fa951a24cbf914ef04469aac5cb5fd8b86",
+    "offline_pytest_sha256":  "6bd87aa31202c0bb4024f9a931805f4c8cefda33c1a5b6b0e26d144b3f59b8f4",
+    "offline_pytest_packages":  {
+                                    "iniconfig":  "2.3.0",
+                                    "packaging":  "26.2",
+                                    "pluggy":  "1.6.0",
+                                    "pygments":  "2.20.0",
+                                    "pytest":  "9.0.3"
+                                },
+    "baseline_tests":  "4 passed",
+    "fixed_input_read":  "PASS",
+    "arm_d_validator_feedback":  "shellcheck=1, ruff=1, mypy=0",
+    "baseline_reproduction":  "FAIL as expected (pushed marker not reported)",
+    "positive_control_reproduction":  "PASS",
+    "output_commit_created":  true,
+    "final_status_clean":  true,
+    "formal_arm_started":  false
+}
