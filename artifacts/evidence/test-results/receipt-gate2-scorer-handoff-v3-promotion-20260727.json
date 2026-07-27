@@ -1,0 +1,35 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py verify-candidate --manifest artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json --repo-root . --json-out artifacts/evidence/test-results/gate2-scorer-handoff-v3-promotion-20260727/candidate-verification-post-promotion.json",
+  "exit_code": 0,
+  "started_at": "2026-07-27T09:21:05Z",
+  "finished_at": "2026-07-27T09:21:05Z",
+  "runner": "claude-scorer-handoff-v3-canonical-promotion",
+  "linked_commit": "84077eedc9f4b3732daba0c9ac979f6fb73a7594",
+  "purpose": "Canonical promotion of scorer-handoff v3 (owner re-signed 2026-07-27 at manifest SHA-256 7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c, implementation commit b596153b). Promotion updated the Gate 2 preflight manifest only. Signed candidate bytes were deliberately NOT edited, so the owner signature continues to describe actual repo state.",
+  "promotion_method": "append-only: preflight manifest pointers + PLAN.md + this receipt. The amendment v4 status line was NOT edited, departing from the amendment v3 precedent, because amendment v4's own sha256 is recorded as files[1] in the owner-signed candidate manifest and any edit would invalidate it (amendment v4 Section E). Owner selected this method explicitly.",
+  "signed_bytes_unchanged": {
+    "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md": "28d074cdc1bca4eb5bf60b4d72dd983a7c836fb8297a8346479b352978f976ba",
+    "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json": "7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c",
+    "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733"
+  },
+  "verification": {
+    "candidate_checks_passed": 15,
+    "candidate_checks_total": 15,
+    "result": "PASS",
+    "note": "verify-candidate re-run AFTER the preflight manifest edit; the edited file is not a member of BYTE_PRESERVATION_PATHS, verified programmatically."
+  },
+  "output_artifacts": [
+    "artifacts/evidence/test-results/gate2-scorer-handoff-v3-promotion-20260727/candidate-verification-post-promotion.json",
+    "artifacts/evidence/test-results/gate2-scorer-handoff-v3-promotion-20260727/verify-candidate.txt"
+  ],
+  "cannot_claim": [
+    "that resource admission has been performed or passed",
+    "that Gate 2 may start, or that any arm has run",
+    "that producer or scorer isolation resources exist",
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer",
+    "linked_commit is the pre-promotion base; the promotion commit itself is not yet created at receipt-write time"
+  ]
+}

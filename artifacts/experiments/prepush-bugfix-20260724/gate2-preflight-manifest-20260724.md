@@ -5,10 +5,11 @@ steps that the design session may perform without touching answer production. It
 does **not** start Gate 2, run any arm, or participate in scoring. Authority for
 the protocol is amendment v2, **as corrected and superseded for the validator
 packets (Arm D expected signal, config binding) by re-signed and promoted
-amendment v3** — v2 remains authoritative for everything else (isolation,
-dispatch/Skill/Governance packets, scorer handoff, execution constants). Gate 2
-still requires the remaining resource-gated items below AND a separate explicit
-owner "start Gate 2" command.
+amendment v3**, and **as superseded for the scorer handoff by re-signed and
+promoted scorer-handoff v3 under amendment v4** — v2 remains authoritative for
+everything else (isolation, dispatch/Skill/Governance packets, execution
+constants). Gate 2 still requires the remaining resource-gated items below AND a
+separate explicit owner "start Gate 2" command.
 
 ## Done this session (answer-safe)
 
@@ -71,6 +72,28 @@ dispatch target): `validator-pins.md` (`6ea4b3226a3f54dce265ad27a67209b9d803b27d
   results, and an experimenter-only `arm` field.
 
 ### Scorer anonymization handoff — executable contract
+
+**CANONICAL per scorer-handoff v3 (promoted 2026-07-27).** The scorer handoff is
+governed by the candidate bytes owner-re-signed 2026-07-27 at manifest SHA-256
+`7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`
+(implementation commit `b596153b`; amendment v4 Section E/G):
+
+| Promoted packet | sha256 |
+|---|---|
+| `candidate/scorer-handoff-contract-v3.json` | `16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733` |
+| `gate2-runtime/scorer_handoff_v3.py` | `77360e8fa20a30e3c39e1efde0dfbde94a9952d391358e39b2e68c1b28cba06e` |
+| `gate2-runtime/scorer_packet_v2.py` | `a96711338ed5b873660fde892cc32b0b28cd25deaa440c4f67b1571371bbb40e` |
+
+Promotion supersedes scorer-handoff v2 only. Producer treatments, arm order,
+budgets, validators and scoring release gates are unchanged (amendment v4
+Section G item 3). Per this repo's append-only signature convention the signed
+candidate bytes were NOT edited by this promotion: amendment v4 and the
+candidate manifest retain their signed hashes, and `verify-candidate` still
+passes 15/15. Promotion is recorded here, in PLAN.md, and in an append-only
+receipt.
+
+Superseded (v2, retained below for provenance — no longer the scorer authority):
+
 - `scorer-handoff-contract.json` (`gate2-scorer-handoff.v2`, frozen — owner
   re-signed 2026-07-25; v1 was re-signed then substantively changed, so re-frozen
   as v2): the fixed

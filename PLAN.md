@@ -1438,6 +1438,20 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   `7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`
   (commit `b596153b`). The signature is append-only; canonical promotion remains
   a separate slice and Gate 2 execution remains 0.
+- [x] **Canonical promotion slice — DONE 2026-07-27.** The Gate 2 preflight
+  manifest's scorer-handoff pointers and authority line were updated to the
+  re-signed v3 packets (`scorer-handoff-contract-v3.json` `16bf661b…`,
+  `scorer_handoff_v3.py` `77360e8f…`, `scorer_packet_v2.py` `a9671133…`).
+  Nothing was recomputed. Departing from the amendment v3 precedent, the
+  amendment v4 status line was **not** edited: amendment v4's own sha256 is
+  recorded as `files[1]` in the owner-signed candidate manifest, so editing it
+  would invalidate the signature it carries (amendment v4 Section E). Owner
+  chose the append-only method. Signed bytes verified UNCHANGED and
+  `verify-candidate` re-run post-promotion at 15/15 PASS
+  (`artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-promotion-20260727.json`).
+  Promotion supersedes scorer-handoff v2 only; producer treatments, arm order,
+  budgets, validators and scoring release gates are unchanged. Gate 2 execution
+  remains 0 and resource admission is NOT performed.
 - [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),
   **BLOCKED-ON-RESOURCE not blocked-on-company**: an environment that technically
   cannot read the answer (container/VM/sandbox/separate account/remote runner) for
