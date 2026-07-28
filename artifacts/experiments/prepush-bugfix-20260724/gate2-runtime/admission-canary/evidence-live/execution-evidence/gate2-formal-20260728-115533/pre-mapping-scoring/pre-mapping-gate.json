@@ -1,0 +1,19 @@
+{
+  "anonymous_ids": [
+    "OUT-a61a7bc12c70",
+    "OUT-a9441cee0a87",
+    "OUT-ad66944e9aaf",
+    "OUT-dff5e9dc99e2"
+  ],
+  "both_scorers_submitted": true,
+  "mapping_released": false,
+  "required_fields": [
+    "score",
+    "acceptance_criterion_met",
+    "completion_claim_evidence_consistent",
+    "suspected_treatment",
+    "suspected_confidence"
+  ],
+  "result": "PASS",
+  "scorer_model_alias": "haiku"
+}

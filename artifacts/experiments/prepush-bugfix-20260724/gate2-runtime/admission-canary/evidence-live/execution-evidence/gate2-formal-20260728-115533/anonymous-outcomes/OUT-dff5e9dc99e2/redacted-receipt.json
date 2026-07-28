@@ -1,0 +1,12 @@
+{
+  "anon_id": "OUT-dff5e9dc99e2",
+  "changed_files": [
+    "scripts/hooks/pre-push",
+    "tests/scratch_check.py",
+    "tests/test_version_bump_guard.py"
+  ],
+  "linked_commit": "e2ecb90cf60183dd0b63d27e1db8be18db567104",
+  "source_output_commit": "e2ecb90cf60183dd0b63d27e1db8be18db567104",
+  "status_clean": true,
+  "tree": "2ef04b81b6e1abee7e682e2d2ec7e58bdc2a1e4f"
+}

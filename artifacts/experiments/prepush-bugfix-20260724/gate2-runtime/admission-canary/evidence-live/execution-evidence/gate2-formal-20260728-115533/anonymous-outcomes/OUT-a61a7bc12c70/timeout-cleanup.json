@@ -1,0 +1,9 @@
+{
+  "completed_at_epoch": 1785218703.12574,
+  "process_pid": 3380,
+  "process_tree_terminated": true,
+  "stdout_pipe_closed": true,
+  "termination_method": "windows_taskkill_tree",
+  "termination_returncode": 0,
+  "timeout_seconds": 1800
+}

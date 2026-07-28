@@ -1,0 +1,33 @@
+{
+  "arms": {
+    "A": {
+      "anon_id": "OUT-a9441cee0a87",
+      "handoff": "PASS",
+      "output_commit": "079b3ef2502a1a6efadd8c672d65fdf7b0ddfd1a",
+      "packet": "PASS",
+      "packet_kind": "scorer_handoff_v3"
+    },
+    "B": {
+      "anon_id": "OUT-ad66944e9aaf",
+      "handoff": "PASS",
+      "output_commit": "6d8592ea286cd713e25d15a3e4f2b22e2fb63ccb",
+      "packet": "PASS",
+      "packet_kind": "scorer_handoff_v3"
+    },
+    "C": {
+      "anon_id": "OUT-a61a7bc12c70",
+      "handoff": "PASS",
+      "output_commit": null,
+      "packet": "PASS",
+      "packet_kind": "terminal_timeout_v1"
+    },
+    "D": {
+      "anon_id": "OUT-dff5e9dc99e2",
+      "handoff": "PASS",
+      "output_commit": "e2ecb90cf60183dd0b63d27e1db8be18db567104",
+      "packet": "PASS",
+      "packet_kind": "scorer_handoff_v3"
+    }
+  },
+  "result": "PASS"
+}

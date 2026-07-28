@@ -1,0 +1,53 @@
+{
+  "anon_id": "OUT-ad66944e9aaf",
+  "candidate_authorization": "pending_owner_resign",
+  "claim_boundary": "This candidate proves byte and identity linkage from a live-verified container packet into the four-section blind input. It is not Gate-2-authorized until separately owner-signed and promoted.",
+  "contract_sha256": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733",
+  "handoff": "gate2-scorer-handoff-set.v2",
+  "packet_path": "redacted-packet.json",
+  "packet_sha256": "f93f285d0cf34a15e43ebc5a136d7ffd7b6ed0c143cddff560a124c71aec796a",
+  "receipt_path": "redacted-receipt.json",
+  "receipt_sha256": "9d254c23d66527bcf4a621ca4c84421f81c9945499f4e0bff8e8bfb30bc0cc39",
+  "section_mapping": {
+    "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+    "FIX_DIFF": "scorer_packet.artifacts.diff",
+    "TEST_LOG": "attachment.test_log",
+    "VALIDATOR_OUTPUT": "attachment.validator_output"
+  },
+  "source_artifacts": {
+    "diff": {
+      "bytes": 6832,
+      "sha256": "1da1958256d98729b30838bf1fe2260be705e65a55d180d884078cb3bf400bd6"
+    },
+    "receipt": {
+      "bytes": 242,
+      "sha256": "2b53f1dfa3e8c41c06f0d949e967843ab0b16cc6cbaee204b44570577916bf33"
+    },
+    "redaction_runner": {
+      "bytes": 16152,
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+    },
+    "result": {
+      "bytes": 2858,
+      "sha256": "aa2df6adc1794ff77b6cba2ca9a23727352ec1586df64f4848fb9644f7be60cf"
+    },
+    "scorer_packet": {
+      "bytes": 2118,
+      "sha256": "ee132ccc6a245f681571e139f9e2d046e4b3a5be7713818678ac811bec1cc9b1"
+    },
+    "test_log": {
+      "bytes": 98,
+      "sha256": "91e7809b3e27d7be1de9408076076bc6e6dd5b4dae4cd48d190cef0d8ffa906b"
+    },
+    "validator_output": {
+      "bytes": 1462,
+      "sha256": "9f3519d63673f58aad85d08659f2fe4058e157bd6800150c3e79146d8ab29d48"
+    }
+  },
+  "source_identity": {
+    "baseline_commit": "e8889f08a065fae7a2d73bdc37cef0422289cf38",
+    "container_id": "9f18aa34fb7799400e049fdb9fd60c2eb43f4aec124ee9a2daaafeffba85f912",
+    "output_commit": "6d8592ea286cd713e25d15a3e4f2b22e2fb63ccb",
+    "run_id": "gate2-formal-20260728-115533-OUTRUN-fc7e0451db6b496d"
+  }
+}

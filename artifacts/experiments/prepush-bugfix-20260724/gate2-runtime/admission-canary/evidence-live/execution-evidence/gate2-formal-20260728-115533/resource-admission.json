@@ -1,0 +1,25 @@
+{
+  "arm_d_exception": "fixed validate verb only",
+  "formal_arm_started": false,
+  "four_answer_blind_producer_contexts": true,
+  "image_id": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+  "master_run_id": "gate2-formal-20260728-115533",
+  "non_treatment_permissions": "Bash routed exclusively through the shared adapter",
+  "opaque_identity_check": "PASS",
+  "order": [
+    "D",
+    "C",
+    "A",
+    "B"
+  ],
+  "out_of_band_model_control_plane": "Claude Code 2.1.220 host process",
+  "producer_model_alias": "sonnet",
+  "result": "PASS",
+  "scorer_model_alias": "haiku",
+  "terminal_outcome_runtime_sha256": "a4349ea1c408e2a1879b14ad8ffcf18d0d91c78dad284bc34698f138d3241e11",
+  "timeout_outcome_amendment_sha256": "b4a20122ebb8ee8d3489246d75da9386df9d2f805ff8cff26bf0bb23c6f629db",
+  "timeout_outcome_manifest_sha256": "404c40d81d2cde0ee044270c9811e063cb20c80cb8567b99f2f11858f8b5241c",
+  "tool_call_cap": 60,
+  "two_arm_identity_blind_scorer_slots": true,
+  "wall_clock_cap_seconds": 1800
+}

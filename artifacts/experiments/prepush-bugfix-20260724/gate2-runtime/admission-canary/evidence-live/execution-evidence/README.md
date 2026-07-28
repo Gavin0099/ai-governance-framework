@@ -32,6 +32,18 @@ On 2026-07-27:
   `verification-v2.json`, SHA-256
   `02ca3e1638a5d861875721e68d9a60bd128207bbd32c8ab5d5006743f427113a`.
 
+## Completed Gate 2 formal run
+
+`gate2-formal-20260728-115533/` preserves the sanitized evidence for the
+completed four-arm formal run. The frozen `D -> C -> A -> B` order produced
+three normal outcomes and one verified terminal-timeout outcome. Both
+arm-identity-blind scorers submitted before mapping release, all released
+artifacts reverified, and the preregistered process-integrity decision is
+`PASS`.
+
+The decision deliberately records Skill effectiveness as `NOT_CLAIMED`; this
+single pilot establishes process completion, not general treatment efficacy.
+
 ## Claim boundary
 
 This evidence preserves and re-verifies a historical canary scorer packet. It
@@ -39,3 +51,7 @@ does not prove the operator identity, report truth, change quality, current
 availability of the pinned Docker image, creation of two independent scorer
 contexts, completion of resource admission, Gate 2 readiness, or execution of
 any arm.
+
+The completed formal-run subdirectory has its own narrower claim boundary and
+supersedes those readiness non-claims only for the named
+`gate2-formal-20260728-115533` execution.
