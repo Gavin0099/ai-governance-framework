@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -45,6 +48,25 @@ DEFERRED_REASON_TAXONOMY = frozenset({
 VACUOUS_DEFERRED_REASONS = frozenset({"later", "todo", "pending", "soon", "tbd"})
 
 _NO_VALIDATION_EVIDENCE_PREFIXES = ("NOT RUN:", "NOT CLAIMED:")
+MEMORY_WRITE_STATUS_WRITTEN = "written"
+MEMORY_WRITE_STATUS_ALREADY_PRESENT = "already_present"
+
+_RECORD_IDENTITY_FIELDS = (
+    "record_format_version",
+    "memory_type",
+    "writer",
+    "commit_hash",
+    "test_evidence",
+    "next_step",
+)
+
+
+@dataclass(frozen=True)
+class MemoryWriteOutcome:
+    path: Path
+    status: str
+    record_identity: str
+    writer: str
 
 
 def validate_test_evidence(value: str | None) -> tuple[str, str | None]:
@@ -118,7 +140,7 @@ def build_session_derived_record(
     normalized_test_evidence, evidence_error = validate_test_evidence(test_evidence)
     if evidence_error is not None:
         raise ValueError(evidence_error)
-    return {
+    record = {
         "memory_type": MEMORY_TYPE_SESSION_DERIVED,
         "record_format_version": RECORD_FORMAT_VERSION,
         "writer": WRITER_ID,
@@ -131,6 +153,23 @@ def build_session_derived_record(
         "next_step": next_step,
         "plan_reconciliation": plan_reconciliation,
     }
+    record["record_identity"] = build_record_identity(record)
+    return record
+
+
+def build_record_identity(record: dict[str, str]) -> str:
+    """Return the stable identity used by canonical same-day deduplication."""
+    identity_payload = {
+        field: str(record.get(field, ""))
+        for field in _RECORD_IDENTITY_FIELDS
+    }
+    encoded = json.dumps(
+        identity_payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def render_session_derived_entry(record: dict[str, str]) -> str:
@@ -146,15 +185,30 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
         f"  test_evidence: {record['test_evidence']}\n"
         f"  next_step: {record['next_step']}\n"
         f"  plan_reconciliation: {record.get('plan_reconciliation', PLAN_RECONCILIATION_NOT_DECLARED)}\n"
+        f"  record_identity: {record.get('record_identity') or build_record_identity(record)}\n"
     )
 
 
 def append_session_derived_entry(*, project_root: Path, record: dict[str, str]) -> Path:
+    """Backward-compatible Path-returning wrapper around the outcome API."""
+    return append_session_derived_entry_with_outcome(
+        project_root=project_root,
+        record=record,
+    ).path
+
+
+def append_session_derived_entry_with_outcome(
+    *,
+    project_root: Path,
+    record: dict[str, str],
+) -> MemoryWriteOutcome:
     normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
     if evidence_error is not None:
         raise ValueError(evidence_error)
     record = dict(record)
     record["test_evidence"] = normalized_test_evidence
+    record_identity = build_record_identity(record)
+    record["record_identity"] = record_identity
 
     memory_root = project_root / "memory"
     memory_root.mkdir(parents=True, exist_ok=True)
@@ -163,35 +217,77 @@ def append_session_derived_entry(*, project_root: Path, record: dict[str, str]) 
         daily_path.write_text(f"# {_current_local_date()}\n\n", encoding="utf-8")
 
     entry = render_session_derived_entry(record)
-    if _has_equivalent_session_derived_entry(daily_path=daily_path, record=record):
-        return daily_path
+    if _has_equivalent_session_derived_entry(
+        daily_path=daily_path,
+        record_identity=record_identity,
+    ):
+        return MemoryWriteOutcome(
+            path=daily_path,
+            status=MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+            record_identity=record_identity,
+            writer=WRITER_ID,
+        )
     with daily_path.open("a", encoding="utf-8") as fh:
         if daily_path.stat().st_size > 0:
             fh.write("\n")
         fh.write(entry)
-    return daily_path
+    return MemoryWriteOutcome(
+        path=daily_path,
+        status=MEMORY_WRITE_STATUS_WRITTEN,
+        record_identity=record_identity,
+        writer=WRITER_ID,
+    )
 
 
-def _has_equivalent_session_derived_entry(*, daily_path: Path, record: dict[str, str]) -> bool:
+def _iter_session_derived_records(text: str) -> list[dict[str, str]]:
+    records: list[dict[str, str]] = []
+    current: dict[str, str] | None = None
+    for line in text.splitlines():
+        if line.startswith("- memory_type:"):
+            if current is not None:
+                records.append(current)
+            current = {"memory_type": line.split(":", 1)[1].strip()}
+            continue
+        if current is None or not line.startswith("  ") or ":" not in line:
+            continue
+        key, value = line.strip().split(":", 1)
+        current[key.strip()] = value.strip()
+    if current is not None:
+        records.append(current)
+    return records
+
+
+def daily_memory_contains_record_identity(
+    *,
+    daily_path: Path,
+    record_identity: str,
+) -> bool:
+    try:
+        text = daily_path.read_text(encoding="utf-8")
+    except Exception:
+        return False
+    return any(
+        build_record_identity(record) == record_identity
+        for record in _iter_session_derived_records(text)
+        if record.get("memory_type") == MEMORY_TYPE_SESSION_DERIVED
+    )
+
+
+def _has_equivalent_session_derived_entry(
+    *,
+    daily_path: Path,
+    record_identity: str,
+) -> bool:
     """
     Deduplicate same-day session-derived noise.
 
     Equivalence is intentionally strict on commit/test/next_step identity, while
     allowing session_id differences for repeated auto-closeout retries.
     """
-    try:
-        text = daily_path.read_text(encoding="utf-8")
-    except Exception:
-        return False
-
-    required_lines = (
-        f"- memory_type: {record.get('memory_type', '')}",
-        f"  writer: {record.get('writer', '')}",
-        f"  commit_hash: {record.get('commit_hash', '')}",
-        f"  test_evidence: {record.get('test_evidence', '')}",
-        f"  next_step: {record.get('next_step', '')}",
+    return daily_memory_contains_record_identity(
+        daily_path=daily_path,
+        record_identity=record_identity,
     )
-    return all(line in text for line in required_lines)
 
 
 def _auto_detect_commit(project_root: Path) -> str:

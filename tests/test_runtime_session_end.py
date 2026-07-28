@@ -56,11 +56,18 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     assert result["curated"] is not None
     assert result["promotion"] is not None
     assert result["daily_memory_path"] is not None
+    assert result["daily_memory_write_attempted"] is True
+    assert result["daily_memory_write_status"] == "written"
+    assert result["daily_memory_record_identity"]
+    assert result["daily_memory_writer"] == "governance_tools.memory_record"
+    assert result["daily_memory_write_error"] is None
     assert Path(result["daily_memory_path"]).exists()
 
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["promoted"] is True
     assert summary_payload["daily_memory_path"] == result["daily_memory_path"]
+    assert summary_payload["daily_memory_write_status"] == "written"
+    assert summary_payload["daily_memory_record_identity"] == result["daily_memory_record_identity"]
     assert summary_payload["daily_memory_record"]["commit"]
     assert summary_payload["daily_memory_record"]["session_id"] == "2026-03-12-01"
     assert summary_payload["daily_memory_record"]["memory_binding"] in {
@@ -223,8 +230,14 @@ def test_session_end_stateless_session_does_not_write_daily_memory(local_project
     )
 
     assert result["daily_memory_path"] is None
+    assert result["daily_memory_write_expected"] is False
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_record_identity"] is None
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["daily_memory_path"] is None
+    assert summary_payload["daily_memory_write_expected"] is False
+    assert summary_payload["daily_memory_write_status"] == "skipped"
 
 
 def test_session_end_requires_review_for_high_risk(local_project_root):
@@ -242,9 +255,42 @@ def test_session_end_requires_review_for_high_risk(local_project_root):
     assert result["snapshot"] is not None
     assert result["curated"] is not None
     assert result["promotion"] is None
+    assert result["daily_memory_write_expected"] is True
+    assert result["daily_memory_write_attempted"] is True
+    assert result["daily_memory_write_status"] == "written"
+    assert result["daily_memory_path"] is not None
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["memory_closeout"]["promotion_considered"] is True
     assert summary_payload["memory_closeout"]["decision"] == "REVIEW_REQUIRED"
+
+
+def test_session_end_reports_canonical_writer_failure(local_project_root, monkeypatch):
+    def _raise_writer_failure(**_kwargs):
+        raise RuntimeError("secret writer detail")
+
+    monkeypatch.setattr(
+        "runtime_hooks.core.session_end._append_daily_memory_entry",
+        _raise_writer_failure,
+    )
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-writer-failure",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="Writer failure",
+    )
+
+    assert result["ok"] is False
+    assert result["daily_memory_write_attempted"] is True
+    assert result["daily_memory_write_status"] == "failed"
+    assert result["daily_memory_path"] is None
+    assert result["daily_memory_record_identity"] is None
+    assert result["daily_memory_writer"] == "governance_tools.memory_record"
+    assert result["daily_memory_write_error"] == (
+        "RuntimeError: canonical memory writer failed"
+    )
 
 
 def test_session_end_does_not_promote_stateless_session(local_project_root):
@@ -529,6 +575,11 @@ def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
     assert result["ok"] is False
     assert result["decision"] == "RUNTIME_FAILURE"
     assert result["policy"]["decision"] == "STOP"
+    assert result["daily_memory_write_expected"] is True
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_path"] is None
+    assert result["daily_memory_record_identity"] is None
     assert any("runtime_failure: forced runtime failure at stage: artifact_emission" in error for error in result["errors"])
     assert Path(result["trace_artifact"]).exists()
     trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))

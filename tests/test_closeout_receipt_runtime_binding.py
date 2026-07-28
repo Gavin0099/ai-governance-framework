@@ -1,4 +1,4 @@
-"""Receipt runtime binding (schema 1.4) and validator signal registry tests.
+"""Receipt runtime binding (schema 1.4+) and validator signal registry tests.
 
 Agent Runtime Evaluation tranche 1, Phase 2. Binding rules under test:
 missing/unreadable profile degrades to unknown; a profile written by another
@@ -121,8 +121,8 @@ class TestSampleOrigin:
         assert payload["sample_origin"] == expected
 
 
-class TestSchema14Conformance:
-    def test_emitted_receipt_satisfies_1_4_conditional_requirements(self, tmp_path: Path) -> None:
+class TestRuntimeBindingSchemaConformance:
+    def test_emitted_receipt_satisfies_runtime_binding_requirements(self, tmp_path: Path) -> None:
         schema = json.loads(
             (_REPO_ROOT / "schemas" / "closeout_receipt.schema.json")
             .read_text(encoding="utf-8"))
@@ -131,14 +131,15 @@ class TestSchema14Conformance:
         assert set(payload) <= set(properties)
         for key in schema["required"]:
             assert key in payload
-        # schema 1.4 conditional: runtime_detection_status and sample_origin required
+        # Schema 1.4+ conditional: runtime_detection_status and sample_origin required.
         for clause in schema["allOf"]:
-            if clause["if"]["properties"].get("schema_version", {}).get("const") == "1.4":
+            versions = clause["if"]["properties"].get("schema_version", {}).get("enum", [])
+            if "1.4" in versions:
                 for key in clause["then"]["required"]:
-                    assert key in payload, f"1.4 receipt missing {key}"
+                    assert key in payload, f"runtime-bound receipt missing {key}"
                 break
         else:
-            pytest.fail("schema has no 1.4 conditional clause")
+            pytest.fail("schema has no 1.4+ runtime-binding conditional clause")
         assert (payload["runtime_detection_status"]
                 in properties["runtime_detection_status"]["enum"])
         assert payload["sample_origin"] in properties["sample_origin"]["enum"]

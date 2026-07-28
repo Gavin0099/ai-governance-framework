@@ -48,7 +48,14 @@ The following events require updating PLAN.md and/or the relevant memory/ file:
 | Architecture decision made | PLAN.md decision log + memory/knowledge_base |
 | Bug fixed with root cause identified | memory/knowledge_base |
 | Risk or incident encountered | PLAN.md risk section + memory/active_task |
-| Session end | memory/active_task (current status) + session_end hook |
+| Session end | canonical `memory/YYYY-MM-DD.md` record when closeout is non-stateless |
+
+Automatic closeout has one write boundary: `session_end` may append the daily
+canonical record through `governance_tools.memory_record`. Pre-commit and
+`memory_workflow` only inspect or validate memory state; they do not write it.
+`memory/01_active_task.md`, `memory/03_knowledge_base.md`, and `PLAN.md` remain
+milestone, decision, or human-curation surfaces and are not rewritten after
+every session.
 
 ## Session Closeout Obligation
 

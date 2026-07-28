@@ -46,7 +46,7 @@ def resolve_validator_signal(validator_id: str, repo_root: Path,
     """Return a receipt-ready validator_signal object for validator_id.
 
     Output conforms to the validator_signal property of
-    schemas/closeout_receipt.schema.json (schema 1.4). Unregistered ids and
+    schemas/closeout_receipt.schema.json (schema 1.4+). Unregistered ids and
     invalid registry tiers resolve to "unknown".
     """
     registry = registry if registry is not None else load_registry(repo_root)
