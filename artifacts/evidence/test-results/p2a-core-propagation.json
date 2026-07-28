@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_session_end_hook_memory_truth.py tests/test_runtime_session_end.py tests/test_closeout_receipt_memory_surface.py tests/test_agent_closeout_receipt.py -q --tb=short --basetemp C:\\tmp\\pytest-agf-p2a-evidence",
+  "exit_code": 0,
+  "started_at": "2026-07-28T11:05:09Z",
+  "finished_at": "2026-07-28T11:05:24Z",
+  "runner": "codex",
+  "linked_commit": "bd678809f351fd4c94ced1b8ded8bdad51e2f256",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/p2a-core-propagation.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
