@@ -1,0 +1,38 @@
+{
+  "authority": "owner_authorized_new_run_only",
+  "files": [
+    {
+      "bytes": 5787,
+      "path": ".gitattributes",
+      "sha256": "39d90d82b706dc3a545ae505ff4e9a67ba32e576e7d9935b72a4954c9568a0a2"
+    },
+    {
+      "bytes": 6300,
+      "path": "docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md",
+      "sha256": "d974240b13d43f60dc3cc8f4ed1b28feda0f199721dcd0acd44b06a677c20fbe"
+    },
+    {
+      "bytes": 76414,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_formal_runner.py",
+      "sha256": "537c23ff38c1d33494aa08da1622351636c07e8dd37f5ee1de449879d659f328"
+    },
+    {
+      "bytes": 12451,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_terminal_outcome.py",
+      "sha256": "a4349ea1c408e2a1879b14ad8ffcf18d0d91c78dad284bc34698f138d3241e11"
+    },
+    {
+      "bytes": 7060,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_formal_runner.py",
+      "sha256": "3d4bee7be7698a6138452098698303d1d5432ed2c63a8709c0d8ec245c1a8059"
+    },
+    {
+      "bytes": 4647,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_terminal_outcome.py",
+      "sha256": "85b366e38a76767389d522fe725441b5785637fb6a75c4431a1bfa6c105abf97"
+    }
+  ],
+  "new_run_required": true,
+  "old_run_mutation_allowed": false,
+  "schema": "gate2-timeout-amendment-set.v1"
+}

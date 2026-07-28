@@ -45,3 +45,9 @@
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/** -text -whitespace
 /docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md -text
 /docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md -text
+/docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md -text
+/artifacts/experiments/prepush-bugfix-20260724/gate2-timeout-outcome-amendment-v1-manifest.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_formal_runner.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_terminal_outcome.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_formal_runner.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_terminal_outcome.py -text

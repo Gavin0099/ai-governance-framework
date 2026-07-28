@@ -6,10 +6,15 @@ does **not** start Gate 2, run any arm, or participate in scoring. Authority for
 the protocol is amendment v2, **as corrected and superseded for the validator
 packets (Arm D expected signal, config binding) by re-signed and promoted
 amendment v3**, and **as superseded for the scorer handoff by re-signed and
-promoted scorer-handoff v3 under amendment v4** — v2 remains authoritative for
-everything else (isolation, dispatch/Skill/Governance packets, execution
-constants). Gate 2 still requires the remaining resource-gated items below AND a
-separate explicit owner "start Gate 2" command.
+promoted scorer-handoff v3 under amendment v4**, and **as amended for new formal
+runs only by the 2026-07-28 timeout-outcome amendment v1** — v2 remains
+authoritative for everything else (isolation, dispatch/Skill/Governance packets,
+execution constants). The blocked `gate2-formal-20260727-213336` run remains
+immutable and is not retroactively admitted by the timeout amendment.
+
+The owner authorized the timeout-amendment slice and a new run with “先commit再往下做”.
+The new run may start only after that exact amendment set is validated,
+committed and pushed, followed by fresh resource and scorer admission.
 
 ## Done this session (answer-safe)
 
@@ -105,6 +110,21 @@ Superseded (v2, retained below for provenance — no longer the scorer authority
   (`suspected_treatment` / `confidence` / `reason` recorded before mapping release).
 - Preserved intact (never redacted): FIX_DIFF, TEST_LOG, VALIDATOR_OUTPUT. Only
   COMPLETION_CLAIM free text and receipt metadata are redacted.
+
+### Terminal timeout outcome — new runs only
+
+The experiment-local timeout amendment is:
+
+- `docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md`;
+- exact set manifest
+  `artifacts/experiments/prepush-bugfix-20260724/gate2-timeout-outcome-amendment-v1-manifest.json`;
+- manifest SHA-256
+  `dd2b97eb1a47796b5320d0581b299b5f123ab5b8416736690a6cf93d93bf09df`.
+
+It does not loosen scorer-handoff v3. A new run may additionally use the
+separate `terminal_timeout_v1` packet after the frozen 1800-second cap, with
+exact process-tree cleanup and packet verification. Both normal and timeout
+packets receive the same five-point scoring without normalization.
 
 ## Remaining — resource-gated (NOT a place; see amendment v2 Section G table)
 

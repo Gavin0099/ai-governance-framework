@@ -15,11 +15,14 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import time
 import uuid
 from typing import Any
+
+import gate2_terminal_outcome as terminal_outcome
 
 
 HERE = Path(__file__).resolve().parent
@@ -32,6 +35,12 @@ SOURCE_COMMIT = "33006f097597f5720a2d01661281d564fb2693ec"
 EXPECTED_TREE = "36c346fa951a24cbf914ef04469aac5cb5fd8b86"
 ORDER = ("D", "C", "A", "B")
 MODEL = "sonnet"
+TIMEOUT_AMENDMENT = (
+    ROOT / "docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md"
+)
+TIMEOUT_MANIFEST = (
+    EXPERIMENT / "gate2-timeout-outcome-amendment-v1-manifest.json"
+)
 CLAUDE = Path(r"C:\Users\daish\AppData\Roaming\npm\claude.cmd")
 PYTHON = ROOT / ".venv/Scripts/python.exe"
 DOCKER_DIR = Path(
@@ -103,6 +112,39 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
+def verify_timeout_amendment() -> str:
+    manifest = json.loads(TIMEOUT_MANIFEST.read_text(encoding="utf-8"))
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("schema") != "gate2-timeout-amendment-set.v1"
+        or manifest.get("authority") != "owner_authorized_new_run_only"
+    ):
+        raise RuntimeError("timeout amendment manifest header is invalid")
+    files = manifest.get("files")
+    if not isinstance(files, list) or not files:
+        raise RuntimeError("timeout amendment manifest file set is absent")
+    seen: set[str] = set()
+    for item in files:
+        if not isinstance(item, dict) or set(item) != {
+            "path", "bytes", "sha256"
+        }:
+            raise RuntimeError("timeout amendment manifest entry is malformed")
+        relative = item["path"]
+        if not isinstance(relative, str) or relative in seen:
+            raise RuntimeError("timeout amendment manifest path is invalid")
+        seen.add(relative)
+        path = ROOT.joinpath(*relative.split("/"))
+        if not path.is_file():
+            raise RuntimeError(f"timeout amendment file is absent: {relative}")
+        raw = path.read_bytes()
+        if (
+            item["bytes"] != len(raw)
+            or item["sha256"] != hashlib.sha256(raw).hexdigest()
+        ):
+            raise RuntimeError(f"timeout amendment digest mismatch: {relative}")
+    return sha256(TIMEOUT_MANIFEST)
+
+
 def load_state(master: str) -> tuple[Path, Path, dict[str, Any]]:
     master_dir = EVIDENCE_ROOT / master
     state_path = master_dir / "operator-private/run-state.json"
@@ -119,6 +161,82 @@ def docker_result(*args: str, input_bytes: bytes | None = None) -> subprocess.Co
         ["docker", *args], input=input_bytes, env=host_env(),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
     )
+
+
+def _run_formal_model(
+    argv: list[str],
+    *,
+    prompt: bytes,
+    project: Path,
+    timeout_seconds: float = terminal_outcome.TIMEOUT_SECONDS,
+) -> tuple[subprocess.CompletedProcess[bytes] | None, bytes, bytes, dict[str, Any] | None]:
+    """Run one formal model call and terminate its exact process tree on timeout."""
+    popen_kwargs: dict[str, object] = {}
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = getattr(
+            subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+        )
+    else:
+        popen_kwargs["start_new_session"] = True
+    process = subprocess.Popen(
+        argv,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=project,
+        env=host_env(),
+        **popen_kwargs,
+    )
+    try:
+        stdout, stderr = process.communicate(
+            input=prompt, timeout=timeout_seconds
+        )
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            terminated = subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            method = "windows_taskkill_tree"
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+                terminated = subprocess.CompletedProcess(
+                    ["killpg", str(process.pid)], 0, b"", b""
+                )
+            except ProcessLookupError:
+                terminated = subprocess.CompletedProcess(
+                    ["killpg", str(process.pid)], 1, b"", b"process absent"
+                )
+            method = "posix_process_group"
+        pipe_closed = True
+        try:
+            stdout, stderr = process.communicate(timeout=30)
+        except subprocess.TimeoutExpired:
+            pipe_closed = False
+            process.kill()
+            stdout, stderr = process.communicate()
+        tree_terminated = (
+            terminated.returncode == 0
+            and process.poll() is not None
+            and pipe_closed
+        )
+        receipt = {
+            "timeout_seconds": timeout_seconds,
+            "process_pid": process.pid,
+            "termination_method": method,
+            "termination_returncode": terminated.returncode,
+            "process_tree_terminated": tree_terminated,
+            "stdout_pipe_closed": pipe_closed,
+            "completed_at_epoch": time.time(),
+        }
+        return None, stdout or b"", stderr or b"", receipt
+    completed = subprocess.CompletedProcess(
+        argv, process.returncode, stdout, stderr
+    )
+    return completed, stdout, stderr, None
 
 
 def stream(container: str, source: Path, target: str) -> None:
@@ -214,6 +332,7 @@ def setup(master: str) -> None:
     master_dir = EVIDENCE_ROOT / master
     if master_dir.exists():
         raise SystemExit(f"master run already exists: {master_dir}")
+    timeout_manifest_sha256 = verify_timeout_amendment()
     private = master_dir / "operator-private"
     private.mkdir(parents=True)
     for kind, source in PACKET_SOURCES.items():
@@ -253,6 +372,12 @@ def setup(master: str) -> None:
         "harness": "Claude Code 2.1.220",
         "tool_call_cap": 60,
         "wall_clock_cap_seconds": 1800,
+        "timeout_outcome_amendment": str(TIMEOUT_AMENDMENT),
+        "timeout_outcome_amendment_sha256": sha256(TIMEOUT_AMENDMENT),
+        "timeout_outcome_manifest_sha256": timeout_manifest_sha256,
+        "terminal_outcome_runtime_sha256": sha256(
+            HERE / "gate2_terminal_outcome.py"
+        ),
         "offline_pytest_sha256": payload_manifest["payload_sha256"],
         "arms": {},
         "scorers": {},
@@ -364,6 +489,11 @@ def setup(master: str) -> None:
             "arm_d_exception": "fixed validate verb only",
             "tool_call_cap": 60,
             "wall_clock_cap_seconds": 1800,
+            "timeout_outcome_amendment_sha256": sha256(TIMEOUT_AMENDMENT),
+            "timeout_outcome_manifest_sha256": timeout_manifest_sha256,
+            "terminal_outcome_runtime_sha256": sha256(
+                HERE / "gate2_terminal_outcome.py"
+            ),
             "formal_arm_started": False,
             "opaque_identity_check": "PASS",
         })
@@ -800,6 +930,17 @@ def _collect_models(value: object, found: set[str]) -> None:
             _collect_models(item, found)
 
 
+def _models_from_stream(stream_bytes: bytes) -> set[str]:
+    models: set[str] = set()
+    for line in stream_bytes.decode("utf-8", "replace").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        _collect_models(event, models)
+    return models
+
+
 def _session_log(project: Path, session_id: str) -> Path:
     encoded = str(project).replace(":", "-").replace("\\", "-").replace("/", "-")
     expected = Path.home() / ".claude/projects" / encoded / f"{session_id}.jsonl"
@@ -958,6 +1099,82 @@ def _capture_handoff(
     }
 
 
+def _capture_terminal_timeout(
+    *,
+    arm_state: dict[str, Any],
+    run_dir: Path,
+    cleanup_receipt: dict[str, Any],
+) -> dict[str, Any]:
+    container = arm_state["container"]
+    baseline = arm_state["baseline_commit"]
+    final_diff = docker(
+        "exec", "-u", "65532:65532", "-w", "/work/repo",
+        container, "git", "diff", "--binary", "--no-ext-diff", baseline,
+    )
+    final_status = docker(
+        "exec", "-u", "65532:65532", "-w", "/work/repo",
+        container, "git", "status", "--porcelain=v1", "--untracked-files=all",
+    )
+    current_head = docker(
+        "exec", "-u", "65532:65532", "-w", "/work/repo",
+        container, "git", "rev-parse", "HEAD",
+    ).decode("ascii", "strict").strip()
+    current_tree = docker(
+        "exec", "-u", "65532:65532", "-w", "/work/repo",
+        container, "git", "rev-parse", "HEAD^{tree}",
+    ).decode("ascii", "strict").strip()
+    result_probe = docker_result(
+        "exec", "-u", "65532:65532", container,
+        "cat", "/work/out/result.json",
+    )
+    producer_result = (
+        result_probe.stdout if result_probe.returncode == 0 else None
+    )
+    packet_path = terminal_outcome.build_packet(
+        out_dir=run_dir / "terminal-outcome-v1",
+        run_id=arm_state["run_id"],
+        container_id=arm_state["container_id"],
+        baseline_commit=baseline,
+        current_head=current_head,
+        current_tree=current_tree,
+        final_diff=final_diff,
+        final_status=final_status,
+        producer_result=producer_result,
+        cleanup_receipt=cleanup_receipt,
+        transcript_path=run_dir / "transcript.jsonl",
+        adapter_log_path=run_dir / "adapter-log.jsonl",
+        stream_path=run_dir / "claude-stream.jsonl",
+    )
+    verification = terminal_outcome.verify_packet(
+        packet_path=packet_path,
+        expected_run_id=arm_state["run_id"],
+        expected_container_id=arm_state["container_id"],
+        expected_baseline_commit=baseline,
+        transcript_path=run_dir / "transcript.jsonl",
+        adapter_log_path=run_dir / "adapter-log.jsonl",
+        stream_path=run_dir / "claude-stream.jsonl",
+    )
+    verification_path = run_dir / "terminal-outcome-verification.json"
+    write_json(verification_path, verification)
+    if verification.get("status") != "PASS":
+        raise RuntimeError("terminal timeout packet verification did not PASS")
+    anon_id = verification.get("anon_id")
+    if not isinstance(anon_id, str) or not anon_id.startswith("OUT-"):
+        raise RuntimeError("terminal timeout packet has no valid anonymous id")
+    return {
+        "packet_kind": terminal_outcome.PACKET_KIND,
+        "terminal_packet": str(packet_path),
+        "terminal_verification": str(verification_path),
+        "anon_id": anon_id,
+        "current_head": current_head,
+        "current_tree": current_tree,
+    }
+
+
+def _arm_has_scorable_outcome(arm_state: dict[str, Any]) -> bool:
+    return arm_state.get("status") in {"complete", "terminal_timeout_complete"}
+
+
 def run_arm(master: str, arm: str) -> None:
     if arm not in ORDER:
         raise SystemExit(f"unknown arm: {arm}")
@@ -965,7 +1182,7 @@ def run_arm(master: str, arm: str) -> None:
     expected = next(
         (
             candidate for candidate in ORDER
-            if state["arms"][candidate]["status"] != "complete"
+            if not _arm_has_scorable_outcome(state["arms"][candidate])
         ),
         None,
     )
@@ -1004,20 +1221,46 @@ def run_arm(master: str, arm: str) -> None:
         "--setting-sources", "project", "--tools", "Bash",
         "--output-format", "stream-json", "--verbose",
     ]
-    try:
-        completed = subprocess.run(
-            argv, input=prompt, cwd=project, env=host_env(),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            timeout=1800, check=False,
-        )
-    except subprocess.TimeoutExpired as exc:
-        (run_dir / "claude-stream.jsonl").write_bytes(exc.stdout or b"")
-        (run_dir / "claude-stderr.txt").write_bytes(exc.stderr or b"")
-        arm_state["status"] = "failed_timeout"
+    completed, stdout, stderr, cleanup_receipt = _run_formal_model(
+        argv, prompt=prompt, project=project
+    )
+    (run_dir / "claude-stream.jsonl").write_bytes(stdout)
+    (run_dir / "claude-stderr.txt").write_bytes(stderr)
+    if cleanup_receipt is not None:
+        write_json(run_dir / "timeout-cleanup.json", cleanup_receipt)
+        if not cleanup_receipt["process_tree_terminated"]:
+            arm_state["status"] = "failed_timeout_cleanup"
+            write_json(state_path, state)
+            raise RuntimeError(
+                f"arm {arm} timeout process-tree cleanup did not verify"
+            )
+        models = _models_from_stream(stdout)
+        if len(models) != 1:
+            arm_state["status"] = "failed_timeout_model_identity"
+            write_json(state_path, state)
+            raise RuntimeError(
+                f"arm {arm} timeout did not stamp one model build: {models}"
+            )
+        try:
+            arm_state.update(
+                _capture_terminal_timeout(
+                    arm_state=arm_state,
+                    run_dir=run_dir,
+                    cleanup_receipt=cleanup_receipt,
+                )
+            )
+        except Exception:
+            arm_state["status"] = "failed_timeout_packet"
+            write_json(state_path, state)
+            raise
+        arm_state["status"] = "terminal_timeout_complete"
+        arm_state["actual_model"] = next(iter(models))
+        arm_state["completed_at_epoch"] = time.time()
         write_json(state_path, state)
-        raise RuntimeError(f"arm {arm} exceeded the frozen 30 minute limit")
-    (run_dir / "claude-stream.jsonl").write_bytes(completed.stdout)
-    (run_dir / "claude-stderr.txt").write_bytes(completed.stderr)
+        print(arm_state["terminal_packet"])
+        return
+    if completed is None:
+        raise RuntimeError("formal model runner returned no process result")
     (run_dir / "claude-exit-code.txt").write_text(
         f"{completed.returncode}\n", encoding="ascii"
     )
@@ -1033,13 +1276,7 @@ def run_arm(master: str, arm: str) -> None:
         "--prompt", str(prompt_path), "--session-log", str(session_log),
         "--out", str(identity_out),
     ])
-    models: set[str] = set()
-    for line in completed.stdout.decode("utf-8", "replace").splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        _collect_models(event, models)
+    models = _models_from_stream(completed.stdout)
     if len(models) != 1:
         raise RuntimeError(f"arm {arm} did not stamp one model build: {models}")
     actual_model = next(iter(models))
@@ -1147,28 +1384,52 @@ def supersede_resources(master: str) -> None:
 def score(master: str) -> None:
     master_dir, state_path, state = load_state(master)
     incomplete = [
-        arm for arm in ORDER if state["arms"][arm].get("status") != "complete"
+        arm for arm in ORDER
+        if not _arm_has_scorable_outcome(state["arms"][arm])
     ]
     if incomplete:
-        raise SystemExit(f"formal scoring requires four complete arms: {incomplete}")
+        raise SystemExit(
+            f"formal scoring requires four scorable arm outcomes: {incomplete}"
+        )
+    actual_models = {
+        state["arms"][arm].get("actual_model") for arm in ORDER
+    }
+    if len(actual_models) != 1 or None in actual_models:
+        raise SystemExit(
+            f"formal scoring requires one identical model build: {actual_models}"
+        )
     if (master_dir / "mapping-release.json").exists():
         raise SystemExit("mapping has already been released")
     packets: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
     for arm in ORDER:
         arm_state = state["arms"][arm]
-        handoff_dir = Path(arm_state["handoff_manifest"]).parent
-        packet = json.loads(
-            (handoff_dir / "redacted-packet.json").read_text(encoding="utf-8")
-        )
+        if arm_state["status"] == "complete":
+            handoff_dir = Path(arm_state["handoff_manifest"]).parent
+            packet = json.loads(
+                (handoff_dir / "redacted-packet.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            verification = json.loads(
+                Path(arm_state["handoff_verification"]).read_text(
+                    encoding="utf-8"
+                )
+            )
+        else:
+            packet = json.loads(
+                Path(arm_state["terminal_packet"]).read_text(encoding="utf-8")
+            )
+            verification = json.loads(
+                Path(arm_state["terminal_verification"]).read_text(
+                    encoding="utf-8"
+                )
+            )
         identity = packet.get("source_attestation", {}).get("identity", {})
         if not isinstance(identity, dict):
             raise RuntimeError(f"arm {arm} redacted packet identity is malformed")
         for label, value in identity.items():
             if isinstance(value, str):
                 assert_opaque_identity(f"scorer packet {label}", value)
-        verification = json.loads(
-            Path(arm_state["handoff_verification"]).read_text(encoding="utf-8")
-        )
         if verification.get("status") != "PASS":
             raise RuntimeError(f"arm {arm} identity-free verification is not PASS")
         packets.append((arm_state["anon_id"], packet, verification))
@@ -1196,6 +1457,10 @@ For each output award one point for each item supported by its evidence:
 The score must equal the count of true criteria. Separately judge the overall
 acceptance criterion and whether every substantive completion claim agrees with
 the diff/test/validator evidence. Evaluate all semantic claims independently.
+For a terminal-timeout packet, judge the same five criteria without a bonus or
+normalization. Its operator terminal statement records whether a byte-exact
+producer completion claim is present; an absent producer claim is not a
+completion claim. Judge consistency against the supplied terminal evidence.
 Before any mapping release, guess A/B/C/D or unsure and record confidence 0..1
 plus a reason. The base64 channel burden is common-mode and receives no score
 normalization. Legacy `pending_owner_resign` wording in the byte-stable signed
@@ -1324,54 +1589,82 @@ def release(master: str) -> None:
     for arm in ORDER:
         arm_state = state["arms"][arm]
         run_dir = Path(arm_state["evidence_dir"])
-        packet_path = run_dir / "scorer-packet-v2/scorer-packet-v2.json"
-        packet_reverify = run_dir / "scorer-packet-v2/release-reverification.json"
-        run([
-            str(PYTHON), str(packet_cli), "verify",
-            "--packet", str(packet_path),
-            "--container", arm_state["container"],
-            "--expected-run-id", arm_state["run_id"],
-            "--expected-baseline-commit", arm_state["baseline_commit"],
-            "--expected-output-commit", arm_state["output_commit"],
-            "--expected-container-id", arm_state["container_id"],
-            "--json-out", str(packet_reverify),
-        ])
-        handoff_manifest = Path(arm_state["handoff_manifest"])
-        handoff_reverify = (
-            handoff_manifest.parent / "release-reverification.json"
-        )
-        run([
-            str(PYTHON), str(handoff_cli), "verify",
-            "--manifest", str(handoff_manifest),
-            "--contract", str(contract),
-            "--scorer-packet", str(packet_path),
-            "--test-log", str(run_dir / "posthoc-test-log.txt"),
-            "--validator-output", str(run_dir / "posthoc-validator-output.txt"),
-            "--expected-run-id", arm_state["run_id"],
-            "--expected-baseline-commit", arm_state["baseline_commit"],
-            "--expected-output-commit", arm_state["output_commit"],
-            "--expected-container-id", arm_state["container_id"],
-            "--expected-scorer-packet-sha256",
-            arm_state["scorer_packet_sha256"],
-            "--json-out", str(handoff_reverify),
-        ])
-        packet_status = json.loads(
-            packet_reverify.read_text(encoding="utf-8")
-        ).get("status")
-        handoff_status = json.loads(
-            handoff_reverify.read_text(encoding="utf-8")
-        ).get("status")
-        if packet_status != "PASS" or handoff_status != "PASS":
-            raise RuntimeError(f"arm {arm} release reverification failed")
-        artifact_summary["arms"][arm] = {
-            "anon_id": arm_state["anon_id"],
-            "packet": packet_status,
-            "handoff": handoff_status,
-            "output_commit": arm_state["output_commit"],
-        }
+        if arm_state["status"] == "complete":
+            packet_path = run_dir / "scorer-packet-v2/scorer-packet-v2.json"
+            packet_reverify = (
+                run_dir / "scorer-packet-v2/release-reverification.json"
+            )
+            run([
+                str(PYTHON), str(packet_cli), "verify",
+                "--packet", str(packet_path),
+                "--container", arm_state["container"],
+                "--expected-run-id", arm_state["run_id"],
+                "--expected-baseline-commit", arm_state["baseline_commit"],
+                "--expected-output-commit", arm_state["output_commit"],
+                "--expected-container-id", arm_state["container_id"],
+                "--json-out", str(packet_reverify),
+            ])
+            handoff_manifest = Path(arm_state["handoff_manifest"])
+            handoff_reverify = (
+                handoff_manifest.parent / "release-reverification.json"
+            )
+            run([
+                str(PYTHON), str(handoff_cli), "verify",
+                "--manifest", str(handoff_manifest),
+                "--contract", str(contract),
+                "--scorer-packet", str(packet_path),
+                "--test-log", str(run_dir / "posthoc-test-log.txt"),
+                "--validator-output",
+                str(run_dir / "posthoc-validator-output.txt"),
+                "--expected-run-id", arm_state["run_id"],
+                "--expected-baseline-commit", arm_state["baseline_commit"],
+                "--expected-output-commit", arm_state["output_commit"],
+                "--expected-container-id", arm_state["container_id"],
+                "--expected-scorer-packet-sha256",
+                arm_state["scorer_packet_sha256"],
+                "--json-out", str(handoff_reverify),
+            ])
+            packet_status = json.loads(
+                packet_reverify.read_text(encoding="utf-8")
+            ).get("status")
+            handoff_status = json.loads(
+                handoff_reverify.read_text(encoding="utf-8")
+            ).get("status")
+            if packet_status != "PASS" or handoff_status != "PASS":
+                raise RuntimeError(f"arm {arm} release reverification failed")
+            artifact_summary["arms"][arm] = {
+                "anon_id": arm_state["anon_id"],
+                "packet_kind": "scorer_handoff_v3",
+                "packet": packet_status,
+                "handoff": handoff_status,
+                "output_commit": arm_state["output_commit"],
+            }
+        else:
+            terminal_verify = terminal_outcome.verify_packet(
+                packet_path=Path(arm_state["terminal_packet"]),
+                expected_run_id=arm_state["run_id"],
+                expected_container_id=arm_state["container_id"],
+                expected_baseline_commit=arm_state["baseline_commit"],
+                transcript_path=run_dir / "transcript.jsonl",
+                adapter_log_path=run_dir / "adapter-log.jsonl",
+                stream_path=run_dir / "claude-stream.jsonl",
+            )
+            terminal_reverify = run_dir / "terminal-release-reverification.json"
+            write_json(terminal_reverify, terminal_verify)
+            if terminal_verify.get("status") != "PASS":
+                raise RuntimeError(
+                    f"arm {arm} terminal release reverification failed"
+                )
+            artifact_summary["arms"][arm] = {
+                "anon_id": arm_state["anon_id"],
+                "packet_kind": terminal_outcome.PACKET_KIND,
+                "packet": "PASS",
+                "handoff": "PASS",
+                "output_commit": None,
+            }
     write_json(master_dir / "artifact-verification-summary.json", artifact_summary)
     process_integrity = (
-        all(state["arms"][arm].get("status") == "complete" for arm in ORDER)
+        all(_arm_has_scorable_outcome(state["arms"][arm]) for arm in ORDER)
         and artifact_summary["result"] == "PASS"
         and all(
             state["scorers"][role].get("status") == "submitted_pre_mapping"

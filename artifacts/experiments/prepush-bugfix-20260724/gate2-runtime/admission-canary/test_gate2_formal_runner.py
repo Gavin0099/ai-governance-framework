@@ -130,6 +130,67 @@ class FrozenSchemaTests(unittest.TestCase):
             "36c346fa951a24cbf914ef04469aac5cb5fd8b86",
         )
 
+    def test_normal_and_terminal_timeout_are_scorable_outcomes(self) -> None:
+        self.assertTrue(runner._arm_has_scorable_outcome({"status": "complete"}))
+        self.assertTrue(
+            runner._arm_has_scorable_outcome(
+                {"status": "terminal_timeout_complete"}
+            )
+        )
+        self.assertFalse(
+            runner._arm_has_scorable_outcome({"status": "failed_timeout"})
+        )
+
+    def test_timeout_amendment_manifest_verifies_exact_files(self) -> None:
+        digest = runner.verify_timeout_amendment()
+        self.assertRegex(digest, r"^[0-9a-f]{64}$")
+
+    def test_windows_timeout_kills_tree_before_pipe_collection(self) -> None:
+        events: list[str] = []
+
+        class FakeProcess:
+            pid = 4242
+            returncode = None
+            calls = 0
+
+            def communicate(self, **kwargs: object) -> tuple[bytes, bytes]:
+                self.calls += 1
+                if self.calls == 1:
+                    events.append("timeout")
+                    raise runner.subprocess.TimeoutExpired("claude", 1800)
+                events.append("collect")
+                self.returncode = 1
+                return b"stdout", b"stderr"
+
+            def poll(self) -> int | None:
+                return self.returncode
+
+            def kill(self) -> None:
+                events.append("fallback-kill")
+                self.returncode = 1
+
+        def taskkill(*args: object, **kwargs: object) -> object:
+            events.append("taskkill-tree")
+            return runner.subprocess.CompletedProcess(
+                ["taskkill"], 0, b"", b""
+            )
+
+        with (
+            mock.patch.object(runner.os, "name", "nt"),
+            mock.patch.object(runner.subprocess, "Popen", return_value=FakeProcess()),
+            mock.patch.object(runner.subprocess, "run", side_effect=taskkill),
+        ):
+            completed, stdout, stderr, receipt = runner._run_formal_model(
+                ["claude.cmd"], prompt=b"prompt", project=runner.Path(".")
+            )
+        self.assertIsNone(completed)
+        self.assertEqual(stdout, b"stdout")
+        self.assertEqual(stderr, b"stderr")
+        self.assertEqual(events, ["timeout", "taskkill-tree", "collect"])
+        self.assertEqual(receipt["termination_method"], "windows_taskkill_tree")
+        self.assertTrue(receipt["process_tree_terminated"])
+        self.assertTrue(receipt["stdout_pipe_closed"])
+
 
 if __name__ == "__main__":
     unittest.main()
