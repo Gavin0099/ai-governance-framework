@@ -27,7 +27,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,12 +36,16 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
+from governance_tools.memory_record import (
+    WRITER_ID as MEMORY_WRITER_ID,
+    daily_memory_contains_record_identity,
+)
 from runtime_hooks.core.session_end import resolve_ledger_write_allowed_from_no_write_flag
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
-CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.4"
+CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.5"
 
-# Runtime binding (schema 1.4): receipts carry the detected runtime profile
+# Runtime binding (schema 1.4+): receipts carry the detected runtime profile
 # ids so evaluation can group evidence per runtime. Report-only; binding
 # failure degrades to "unknown" and never blocks closeout.
 RUNTIME_PROFILE_RELPATH = Path(".governance") / "runtime-profile.json"
@@ -165,36 +168,50 @@ def _resolve_head_commit(project_root: Path) -> str:
 
 def _verify_memory_write_claim(
     project_root: Path,
-    memory_write_performed: bool,
-    session_id: str,
+    *,
+    write_status: str,
+    daily_memory_path: str | None,
+    record_identity: str | None,
+    writer: str,
+    write_error: str | None,
 ) -> tuple[bool, str]:
-    """Verify whether the memory_write_performed self-report is backed by evidence.
+    """Verify the runtime writer outcome against its exact canonical record."""
+    if writer != MEMORY_WRITER_ID:
+        return False, "canonical_memory_writer_mismatch"
+    if write_status == "skipped":
+        if daily_memory_path or record_identity or write_error:
+            return False, "skipped_outcome_must_not_claim_record"
+        return True, "write_skipped_no_record_claim"
+    if write_status == "failed":
+        if daily_memory_path or record_identity:
+            return False, "failed_outcome_must_not_claim_record"
+        if not write_error:
+            return False, "failed_outcome_missing_sanitized_error"
+        return True, "writer_failure_reported"
+    if write_status not in {"written", "already_present"}:
+        return False, "unknown_memory_write_status"
+    if write_error:
+        return False, "successful_outcome_must_not_claim_error"
+    if not daily_memory_path:
+        return False, "daily_memory_path_missing"
+    if not record_identity:
+        return False, "daily_memory_record_identity_missing"
 
-    Returns (verified: bool, reason: str).
-
-    Phase 1 — observation only.  Does NOT block closeout regardless of result.
-    """
-    if not memory_write_performed:
-        return True, "no_memory_write_claim"
-
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    daily_path = project_root / "memory" / f"{today}.md"
-
-    if not daily_path.exists():
-        return False, "daily_memory_missing"
-
-    content = daily_path.read_text(encoding="utf-8", errors="replace")
-
-    # Anchor 1: session_id present in the daily memory file.
-    if session_id and session_id in content:
-        return True, "session_id_found_in_daily_memory"
-
-    # Anchor 2: a concrete commit hash (7+ hex chars, not the placeholder "pending").
-    commit_matches = re.findall(r"commit hash:\s*([0-9a-f]{7,})", content, re.IGNORECASE)
-    if commit_matches:
-        return True, "commit_hash_found_in_daily_memory"
-
-    return False, "daily_memory_exists_but_no_session_or_commit_anchor"
+    repo_root = project_root.resolve()
+    memory_root = (repo_root / "memory").resolve()
+    daily_path = Path(daily_memory_path).resolve()
+    try:
+        daily_path.relative_to(memory_root)
+    except ValueError:
+        return False, "daily_memory_path_outside_repo_memory"
+    if not daily_path.is_file():
+        return False, "daily_memory_path_not_found"
+    if not daily_memory_contains_record_identity(
+        daily_path=daily_path,
+        record_identity=record_identity,
+    ):
+        return False, "daily_memory_record_identity_not_found"
+    return True, "daily_memory_record_identity_verified"
 
 
 def _write_closeout_receipt(
@@ -209,6 +226,13 @@ def _write_closeout_receipt(
     memory_write_required: bool,
     memory_write_performed: bool,
     memory_eligibility_reason: str,
+    daily_memory_write_attempted: bool = False,
+    daily_memory_write_status: str = "skipped",
+    daily_memory_state_status: str = "not_required",
+    daily_memory_path: str = "",
+    daily_memory_record_identity: str = "",
+    daily_memory_writer: str = MEMORY_WRITER_ID,
+    daily_memory_write_error: str = "",
     session_id: str = "",
     # E1: memory write claim verification
     memory_write_claim_verified: bool = False,
@@ -254,6 +278,13 @@ def _write_closeout_receipt(
         "memory_write_required": memory_write_required,
         "memory_write_performed": memory_write_performed,
         "memory_eligibility_reason": memory_eligibility_reason,
+        "daily_memory_write_attempted": daily_memory_write_attempted,
+        "daily_memory_write_status": daily_memory_write_status,
+        "daily_memory_state_status": daily_memory_state_status,
+        "daily_memory_path": daily_memory_path,
+        "daily_memory_record_identity": daily_memory_record_identity,
+        "daily_memory_writer": daily_memory_writer,
+        "daily_memory_write_error": daily_memory_write_error,
         "memory_write_claim_verified": memory_write_claim_verified,
         "memory_write_claim_verification_reason": memory_write_claim_verification_reason,
         "memory_authority_guard_ran": memory_authority_guard_ran,
@@ -338,7 +369,9 @@ def run(
 
 def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, str]:
     memory_closeout = result.get("memory_closeout") or {}
-    memory_update_skipped_reason = str(result.get("memory_update_skipped_reason", "")).strip().lower()
+    memory_closeout_decision = str(
+        memory_closeout.get("decision", "")
+    ).strip().lower()
     gate_verdict = str(result.get("gate_verdict", "")).strip().upper()
     candidate_signals = memory_closeout.get("candidate_signals") or []
     required_reasons: list[str] = []
@@ -351,7 +384,9 @@ def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, st
         required_reasons.append("governance_or_enforcement_behavior_changed")
 
     # unresolved next-step state.
-    if memory_update_skipped_reason in {"memory_closeout_blocked", "promotion_not_performed"}:
+    if memory_closeout_decision == "blocked" or (
+        not memory_closeout_decision and not bool(result.get("promoted", False))
+    ):
         required_reasons.append("unresolved_next_step_state")
 
     required = bool(required_reasons)
@@ -447,10 +482,30 @@ def main() -> int:
         )
         closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
         eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
-        memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"
+        daily_memory_write_attempted = bool(
+            result.get("daily_memory_write_attempted", False)
+        )
+        daily_memory_write_status = str(
+            result.get("daily_memory_write_status") or "skipped"
+        )
+        daily_memory_state_status = str(
+            result.get("daily_memory_state_status") or "not_required"
+        )
+        daily_memory_path = str(result.get("daily_memory_path") or "")
+        daily_memory_record_identity = str(
+            result.get("daily_memory_record_identity") or ""
+        )
+        daily_memory_writer = str(
+            result.get("daily_memory_writer") or MEMORY_WRITER_ID
+        )
+        daily_memory_write_error = str(
+            result.get("daily_memory_write_error") or ""
+        )
+        memory_write_performed = daily_memory_write_status == "written"
 
         # ── Stale-duplicate guard ─────────────────────────────────────────────
-        # Stale-duplicate guard: suppress memory promotion when closeout content is unchanged.
+        # This post-pipeline guard only adjusts receipt eligibility when the
+        # closeout content is unchanged; it cannot suppress earlier side effects.
         (
             memory_write_required,
             memory_eligibility_reason,
@@ -465,7 +520,9 @@ def main() -> int:
             print(
                 "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
                 "is unchanged from the previous session (SHA256 match). "
-                "Memory promotion suppressed. "
+                "Stale duplicate was detected after pipeline execution; this guard "
+                "adjusts receipt eligibility only and does not prove that promotion "
+                "or another earlier side effect was suppressed. "
                 "Update artifacts/session-closeout.txt before ending the session "
                 "(see AGENTS.md: MANDATORY CLOSEOUT OBLIGATION).",
                 file=sys.stderr,
@@ -473,7 +530,12 @@ def main() -> int:
         # E1: verify memory write claim against daily memory file.
         _sid = str(result.get("session_id", ""))
         _claim_verified, _claim_reason = _verify_memory_write_claim(
-            project_root, memory_write_performed, _sid
+            project_root,
+            write_status=daily_memory_write_status,
+            daily_memory_path=daily_memory_path,
+            record_identity=daily_memory_record_identity,
+            writer=daily_memory_writer,
+            write_error=daily_memory_write_error,
         )
 
         # E2: extract memory authority guard surface from hook result.
@@ -500,6 +562,13 @@ def main() -> int:
             memory_write_required=memory_write_required,
             memory_write_performed=memory_write_performed,
             memory_eligibility_reason=memory_eligibility_reason,
+            daily_memory_write_attempted=daily_memory_write_attempted,
+            daily_memory_write_status=daily_memory_write_status,
+            daily_memory_state_status=daily_memory_state_status,
+            daily_memory_path=daily_memory_path,
+            daily_memory_record_identity=daily_memory_record_identity,
+            daily_memory_writer=daily_memory_writer,
+            daily_memory_write_error=daily_memory_write_error,
             session_id=_sid,
             memory_write_claim_verified=_claim_verified,
             memory_write_claim_verification_reason=_claim_reason,

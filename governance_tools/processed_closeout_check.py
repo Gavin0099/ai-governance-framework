@@ -17,7 +17,7 @@ from typing import Any, Sequence
 
 
 CANONICAL_ENTRYPOINT = "governance_tools.session_closeout_entry"
-SUPPORTED_RECEIPT_SCHEMAS = frozenset({"1.1", "1.2", "1.3", "1.4"})
+SUPPORTED_RECEIPT_SCHEMAS = frozenset({"1.1", "1.2", "1.3", "1.4", "1.5"})
 DEFAULT_CLOSEOUT_PATH = Path("artifacts/session-closeout.txt")
 DEFAULT_RECEIPT_DIR = Path("artifacts/runtime/closeout-receipts")
 
@@ -30,6 +30,7 @@ _PLAIN_REASONS = {
     "closeout_checksum_mismatch": "the current closeout checksum does not match the receipt.",
     "memory_eligibility_not_evaluated": "memory eligibility was not evaluated.",
     "required_memory_write_not_performed": "the required memory write was not performed.",
+    "required_memory_state_unsatisfied": "the required canonical memory state is not satisfied.",
     "memory_write_claim_not_verified": "the reported memory write was not independently verified.",
     "closeout_handoff_complete": "the current closeout file has complete handoff evidence.",
 }
@@ -75,12 +76,74 @@ def _is_bool(payload: dict[str, Any], field: str) -> bool:
 
 
 def _has_valid_outcome_shape(payload: dict[str, Any]) -> bool:
-    return (
+    base_shape_valid = (
         type(payload.get("exit_code")) is int
         and _is_bool(payload, "memory_eligibility_evaluated")
         and _is_bool(payload, "memory_write_required")
         and _is_bool(payload, "memory_write_performed")
         and _is_bool(payload, "memory_write_claim_verified")
+    )
+    if not base_shape_valid or payload.get("schema_version") != "1.5":
+        return base_shape_valid
+    shape_valid = (
+        _is_bool(payload, "daily_memory_write_attempted")
+        and payload.get("daily_memory_write_status")
+        in {"written", "already_present", "skipped", "failed"}
+        and payload.get("daily_memory_state_status")
+        in {"satisfied", "unsatisfied", "not_required"}
+        and isinstance(payload.get("daily_memory_path"), str)
+        and isinstance(payload.get("daily_memory_record_identity"), str)
+        and payload.get("daily_memory_writer")
+        == "governance_tools.memory_record"
+        and isinstance(payload.get("daily_memory_write_error"), str)
+    )
+    if not shape_valid:
+        return False
+
+    attempted = payload["daily_memory_write_attempted"] is True
+    performed = payload["memory_write_performed"] is True
+    status = payload["daily_memory_write_status"]
+    state_status = payload["daily_memory_state_status"]
+    path = payload["daily_memory_path"]
+    record_identity = payload["daily_memory_record_identity"]
+    write_error = payload["daily_memory_write_error"]
+    has_record_claim = bool(path) and (
+        len(record_identity) == 64
+        and all(character in "0123456789abcdef" for character in record_identity)
+    )
+
+    if status == "written":
+        return (
+            attempted
+            and performed
+            and state_status == "satisfied"
+            and has_record_claim
+            and not write_error
+        )
+    if status == "already_present":
+        return (
+            attempted
+            and not performed
+            and state_status == "satisfied"
+            and has_record_claim
+            and not write_error
+        )
+    if status == "skipped":
+        return (
+            not attempted
+            and not performed
+            and state_status in {"unsatisfied", "not_required"}
+            and not path
+            and not record_identity
+            and not write_error
+        )
+    return (
+        attempted
+        and not performed
+        and state_status == "unsatisfied"
+        and not path
+        and not record_identity
+        and bool(write_error)
     )
 
 
@@ -102,6 +165,7 @@ def _empty_report(project_root: Path, closeout_path: Path) -> dict[str, Any]:
         "memory_eligibility_evaluated": False,
         "memory_write_required": False,
         "memory_write_performed": False,
+        "daily_memory_state_status": "",
         "memory_write_claim_verified": False,
         "ignored_malformed_receipt_count": 0,
         "ignored_unsupported_receipt_count": 0,
@@ -198,6 +262,12 @@ def build_processed_closeout_report(
     eligibility_evaluated = receipt["memory_eligibility_evaluated"] is True
     write_required = receipt["memory_write_required"] is True
     write_performed = receipt["memory_write_performed"] is True
+    daily_memory_state_status = str(receipt.get("daily_memory_state_status") or "")
+    memory_state_satisfied = (
+        daily_memory_state_status == "satisfied"
+        if schema_version == "1.5"
+        else write_performed
+    )
     write_verified = receipt.get("memory_write_claim_verified") is True
     receipt_checksum = receipt.get("checksum_of_cleaned_path")
     checksum_matches = isinstance(receipt_checksum, str) and receipt_checksum == closeout_checksum
@@ -212,6 +282,7 @@ def build_processed_closeout_report(
             "memory_eligibility_evaluated": eligibility_evaluated,
             "memory_write_required": write_required,
             "memory_write_performed": write_performed,
+            "daily_memory_state_status": daily_memory_state_status,
             "memory_write_claim_verified": write_verified,
         }
     )
@@ -224,8 +295,12 @@ def build_processed_closeout_report(
         reason_code = "closeout_checksum_mismatch"
     elif not eligibility_evaluated:
         reason_code = "memory_eligibility_not_evaluated"
-    elif write_required and not write_performed:
-        reason_code = "required_memory_write_not_performed"
+    elif write_required and not memory_state_satisfied:
+        reason_code = (
+            "required_memory_state_unsatisfied"
+            if schema_version == "1.5"
+            else "required_memory_write_not_performed"
+        )
     elif write_required and not write_verified:
         reason_code = "memory_write_claim_not_verified"
     else:

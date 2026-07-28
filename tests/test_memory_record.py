@@ -8,10 +8,15 @@ from pathlib import Path
 import pytest
 
 from governance_tools.memory_record import (
+    MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+    MEMORY_WRITE_STATUS_WRITTEN,
     WRITER_ID,
     append_session_derived_entry,
+    append_session_derived_entry_with_outcome,
+    build_record_identity,
     build_memory_record_suggestion,
     build_session_derived_record,
+    daily_memory_contains_record_identity,
     validate_test_evidence,
 )
 
@@ -29,6 +34,7 @@ def test_build_session_derived_record_includes_canonical_fields() -> None:
     assert record["record_format_version"] == "1.0"
     assert record["writer"] == WRITER_ID
     assert record["commit_hash"] == "abc1234"
+    assert record["record_identity"] == build_record_identity(record)
 
 
 @pytest.mark.parametrize("test_evidence", (None, "", "   ", "\t\n"))
@@ -71,6 +77,45 @@ def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> N
     assert "record_format_version: 1.0" in text
     assert f"writer: {WRITER_ID}" in text
     assert "commit_hash: abc1234" in text
+    assert f"record_identity: {record['record_identity']}" in text
+
+
+def test_outcome_distinguishes_written_from_already_present(tmp_path: Path) -> None:
+    record_a = build_session_derived_record(
+        what_changed="changed (session=session-a)",
+        commit="abc1234",
+        session_id="session-a",
+        memory_binding="bound",
+        test_evidence="same evidence",
+        next_step="same next step",
+    )
+    record_b = build_session_derived_record(
+        what_changed="changed (session=session-b)",
+        commit="abc1234",
+        session_id="session-b",
+        memory_binding="bound",
+        test_evidence="same evidence",
+        next_step="same next step",
+    )
+
+    written = append_session_derived_entry_with_outcome(
+        project_root=tmp_path,
+        record=record_a,
+    )
+    already_present = append_session_derived_entry_with_outcome(
+        project_root=tmp_path,
+        record=record_b,
+    )
+
+    assert written.status == MEMORY_WRITE_STATUS_WRITTEN
+    assert already_present.status == MEMORY_WRITE_STATUS_ALREADY_PRESENT
+    assert written.path == already_present.path
+    assert written.record_identity == already_present.record_identity
+    assert written.writer == already_present.writer == WRITER_ID
+    assert daily_memory_contains_record_identity(
+        daily_path=written.path,
+        record_identity=written.record_identity,
+    )
 
 
 def test_append_session_derived_entry_rejects_handcrafted_blank_evidence(tmp_path: Path) -> None:
