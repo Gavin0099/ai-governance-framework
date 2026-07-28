@@ -1418,7 +1418,7 @@ P2 - historical debt / evidence disposition:
 - [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
   scope.
 
-P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 local runner admission complete, resource admission incomplete, arm execution = 0):
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 resource admission passed; formal run blocked at Arm B timeout):
 
 - [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
@@ -1470,12 +1470,17 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 loca
   because its run/container identifiers encoded arm letters that canonical v3
   source attestation would have exposed to scorers. The replacement uses opaque
   `OUTRUN-*` identifiers.
-- [ ] Resource admission completion and formal model execution remain pending
-  destination-specific authorization
-  to send the sanitized producer packets and later anonymous scorer packets to
-  the external Anthropic Claude service. The security reviewer rejected that
-  transfer without explicit user authorization. No arm was started, no formal
-  scorer submission exists, and mapping has not been released.
+- [x] Owner granted destination-specific authorization and two independent live
+  scorer contexts passed admission before formal execution. Formal arms then ran
+  in the frozen `D -> C -> A -> B` order on the exact pinned image. D, C and A
+  completed with verified producer packets; B reached the frozen 1800-second
+  wall-clock cap without a clean output commit or producer `result.json` and is
+  recorded as `failed_timeout`. The runbook treats inability to complete as a
+  legitimate result, so B was not retried and no synthetic scorer packet was
+  created. With only three scorable arms, both pre-mapping scorer submissions,
+  mapping release and the preregistered process-integrity decision remain not
+  run. The claim-limited terminal record is
+  `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260727-213336/blocked-summary.json`.
   - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
     2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
     report for **producer-channel** admission, including nine isolation checks
@@ -1494,8 +1499,10 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 loca
     completed items above. It remains valid historical evidence about what had
     not yet run at that earlier checkpoint.
 
-Claim ceiling: formal arm execution progress = 0 (local runner/producers provisioned; two live scorer contexts not admitted; no result); no arm
-has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
+Claim ceiling: Gate 2 resource admission passed and three formal arms completed;
+Arm B ended `failed_timeout`, leaving no fourth scorable packet. Gate 2 is
+**BLOCKED / NOT COMPLETED**; no pre-mapping scorer submission or mapping release
+occurred. The pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
 engineering method is claimed effective; Skill effectiveness cannot be judged
 before Gate 3. This is not independent consumer evidence and does not establish
 framework-level G4. Correct ordering (owner-stated): finish the experiment
