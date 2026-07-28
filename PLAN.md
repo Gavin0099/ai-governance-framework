@@ -1481,6 +1481,15 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 reso
   mapping release and the preregistered process-integrity decision remain not
   run. The claim-limited terminal record is
   `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260727-213336/blocked-summary.json`.
+- [x] **Terminal-timeout amendment admitted for a new run — 2026-07-28.**
+  Commit `1c8dcc79` preserves the blocked run, adds a separate strict
+  `terminal_timeout_v1` packet, and fixes only the experiment-local Windows
+  process-tree timeout cleanup. The exact amendment-set manifest is
+  `dd2b97eb1a47796b5320d0581b299b5f123ab5b8416736690a6cf93d93bf09df`.
+  Focused runner/packet tests passed, the real Windows tree-kill smoke passed,
+  and canonical focused precommit passed 187/187. A new formal run has not
+  started at this checkpoint; it still requires fresh resource/scorer
+  admission. The old run is not salvageable or reinterpreted by this amendment.
   - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
     2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
     report for **producer-channel** admission, including nine isolation checks
@@ -1502,7 +1511,9 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 reso
 Claim ceiling: Gate 2 resource admission passed and three formal arms completed;
 Arm B ended `failed_timeout`, leaving no fourth scorable packet. Gate 2 is
 **BLOCKED / NOT COMPLETED**; no pre-mapping scorer submission or mapping release
-occurred. The pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
+occurred. A new-run-only timeout amendment is implemented and validated, but no
+new formal arm is yet claimed. The product pre-push hook, shared runtime, CI,
+gates, and enforcement are unchanged; no
 engineering method is claimed effective; Skill effectiveness cannot be judged
 before Gate 3. This is not independent consumer evidence and does not establish
 framework-level G4. Correct ordering (owner-stated): finish the experiment
