@@ -168,6 +168,7 @@
     "OUT-dff5e9dc99e2": "D"
   },
   "master_run_id": "gate2-formal-20260728-115533",
-  "release_gate": "both scorers submitted before this file existed",
+  "ordering_evidence_status": "NOT_ESTABLISHED",
+  "release_gate": "operator-recorded as satisfied; the preserved packet does not contain an independent create-once receipt chain proving submission-before-release order",
   "released": true
 }

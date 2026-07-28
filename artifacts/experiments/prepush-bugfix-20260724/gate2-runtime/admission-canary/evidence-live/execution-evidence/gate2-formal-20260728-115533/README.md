@@ -8,11 +8,12 @@ master run `gate2-formal-20260728-115533`, executed on 2026-07-28.
 - frozen producer order: `D -> C -> A -> B`
 - counted outcomes: `D=complete`, `C=terminal_timeout_complete`,
   `A=complete`, `B=complete`
-- both arm-identity-blind scorers submitted before mapping release
+- two arm-identity-blind scorer submissions are preserved; their ordering
+  relative to mapping release is not independently established
 - scorer model alias: `haiku`
 - mapping release: complete
 - artifact verification: `PASS`
-- preregistered Gate 2 process-integrity decision: `PASS`
+- Gate 2 process integrity: `NOT_ESTABLISHED`
 - Skill effectiveness: `NOT_CLAIMED`
 
 The pinned image remained:
@@ -24,7 +25,9 @@ The pinned image remained:
 - `resource-admission.json` and `resource-audit.json` preserve the pre-run
   admission gates.
 - `pre-mapping-scoring/` preserves both independent scorer submissions and
-  the gate proving both existed before mapping release.
+  the operator-recorded gate state. It does not contain a create-once
+  timestamp, digest, or receipt chain proving both submissions existed before
+  mapping release.
 - `anonymous-outcomes/` preserves the three redacted scorer-handoff v3
   packets and the arm-blind terminal-timeout v1 packet, together with their
   release reverifications.
@@ -35,22 +38,26 @@ The pinned image remained:
   omitted raw scorer envelopes and binds that observation to their SHA-256
   digests.
 
-All copied packet and verification files were compared byte-for-byte with the
-preserved source under
-`D:\gate2-live-run-evidence\gate2-formal-20260728-115533`.
+At preservation time, copied packet and verification files were reported as
+compared byte-for-byte with the machine-local operator evidence directory. That
+external directory is not available in this checkout, so this correction does
+not independently replay that comparison.
 
 ## Deliberately omitted
 
 The repository copy excludes raw Claude streams, transcripts, prompts, scorer
-session identifiers, container archives and IDs, process IDs, absolute
-operator-private paths, and the non-redacted operator packets. The verified
-external-rate-limit attempt remains preserved in the operator evidence
-directory but is not reproduced here because it contains operator-private
-paths and resource identities.
+session identifiers, container archives, absolute operator-private paths, and
+the non-redacted operator packets. Sanitized packet metadata retains container
+resource correlation identifiers, and the timeout-cleanup evidence retains its
+process ID. The verified external-rate-limit attempt remains in the unavailable
+operator evidence directory and is not reproduced here.
 
 ## Claim boundary
 
-`PASS` establishes that the frozen Gate 2 process completed with four scorable
-outcomes, two pre-mapping scorer submissions, mapping release, and verified
-artifacts. It does not establish that any treatment is generally effective,
-that one pilot predicts future results, or that the framework is correct.
+The preserved artifacts establish four scorable outcomes, two scorer
+submissions, a mapping release, and successful packet/handoff verification.
+They do not contain an independently verifiable receipt chain establishing that
+both submissions preceded mapping release, so Gate 2 process integrity is
+`NOT_ESTABLISHED`. They also do not establish that any treatment is generally
+effective, that one pilot predicts future results, or that the framework is
+correct.

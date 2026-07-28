@@ -29,5 +29,7 @@
       "packet_kind": "scorer_handoff_v3"
     }
   },
+  "claim_boundary": "PASS covers packet and handoff verification only. It does not establish that scorer submissions preceded mapping release.",
+  "ordering_evidence_status": "NOT_ESTABLISHED",
   "result": "PASS"
 }

@@ -6,7 +6,9 @@
     "OUT-dff5e9dc99e2"
   ],
   "both_scorers_submitted": true,
+  "claim_boundary": "The preserved booleans are operator-recorded state. This packet has no create-once timestamps, digests, or receipts that independently prove both submissions preceded mapping release.",
   "mapping_released": false,
+  "ordering_evidence_status": "NOT_ESTABLISHED",
   "required_fields": [
     "score",
     "acceptance_criterion_met",
@@ -14,6 +16,6 @@
     "suspected_treatment",
     "suspected_confidence"
   ],
-  "result": "PASS",
+  "result": "INSUFFICIENT_EVIDENCE",
   "scorer_model_alias": "haiku"
 }

@@ -35,11 +35,12 @@ On 2026-07-27:
 ## Completed Gate 2 formal run
 
 `gate2-formal-20260728-115533/` preserves the sanitized evidence for the
-completed four-arm formal run. The frozen `D -> C -> A -> B` order produced
-three normal outcomes and one verified terminal-timeout outcome. Both
-arm-identity-blind scorers submitted before mapping release, all released
-artifacts reverified, and the preregistered process-integrity decision is
-`PASS`.
+four-arm formal run. The frozen `D -> C -> A -> B` order produced three normal
+outcomes and one verified terminal-timeout outcome. Two arm-identity-blind
+scorer submissions and a mapping release are preserved, and all released
+packets reverified. The preserved evidence does not include an independent
+create-once receipt chain proving submission-before-release order, so the
+process-integrity decision is corrected to `NOT_ESTABLISHED`.
 
 The decision deliberately records Skill effectiveness as `NOT_CLAIMED`; this
 single pilot establishes process completion, not general treatment efficacy.
@@ -52,6 +53,7 @@ availability of the pinned Docker image, creation of two independent scorer
 contexts, completion of resource admission, Gate 2 readiness, or execution of
 any arm.
 
-The completed formal-run subdirectory has its own narrower claim boundary and
-supersedes those readiness non-claims only for the named
-`gate2-formal-20260728-115533` execution.
+The formal-run subdirectory has its own narrower claim boundary and supersedes
+those readiness non-claims only for the named
+`gate2-formal-20260728-115533` execution. It does not establish the required
+pre-mapping ordering.

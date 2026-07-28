@@ -168,8 +168,9 @@
     "A",
     "B"
   ],
-  "gate2_process_integrity": "PASS",
-  "mapping_released_after_submissions": true,
+  "gate2_process_integrity": "NOT_ESTABLISHED",
+  "mapping_released_after_submissions": null,
+  "ordering_evidence_status": "NOT_ESTABLISHED",
   "skill_effectiveness_claim": "NOT_CLAIMED",
-  "two_scorers_pre_mapping": true
+  "two_scorers_pre_mapping": null
 }
