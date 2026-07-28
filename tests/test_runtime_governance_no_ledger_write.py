@@ -60,6 +60,7 @@ def test_runtime_governance_smoke_explicitly_propagates_injected_failure(
     fixture_library = tmp_path / "scripts" / "lib" / "python.sh"
     fixture_library.parent.mkdir(parents=True)
     fixture_script.write_text(text, encoding="utf-8", newline="\n")
+    fixture_script.chmod(0o755)
     fixture_library.write_text(
         (Path("scripts") / "lib" / "python.sh").read_text(encoding="utf-8"),
         encoding="utf-8",
