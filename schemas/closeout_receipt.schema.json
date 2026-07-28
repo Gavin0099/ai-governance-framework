@@ -363,6 +363,7 @@
       },
       "then": {
         "properties": {
+          "daily_memory_write_attempted": { "const": false },
           "daily_memory_state_status": {
             "enum": ["unsatisfied", "not_required"]
           },

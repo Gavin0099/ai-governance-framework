@@ -1714,10 +1714,9 @@ def _derive_daily_memory_write_surface(
     """Map authoritative runtime writer outcome to hook and legacy fields."""
     attempted = bool(result.get("daily_memory_write_attempted", False))
     status = str(result.get("daily_memory_write_status") or "skipped")
-    memory_closeout = result.get("memory_closeout") or {}
     write_expected = bool(
-        memory_closeout.get(
-            "promotion_considered",
+        result.get(
+            "daily_memory_write_expected",
             closeout_status != STATUS_MISSING,
         )
     )
@@ -1745,6 +1744,7 @@ def _derive_daily_memory_write_surface(
         "memory_update_attempted": attempted,
         "memory_update_result": "updated" if status == "written" else "skipped",
         "memory_update_skipped_reason": skipped_reason,
+        "daily_memory_write_expected": write_expected,
         "daily_memory_write_attempted": attempted,
         "daily_memory_write_status": status,
         "daily_memory_state_status": state_status,

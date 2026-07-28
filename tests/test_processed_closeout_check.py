@@ -313,6 +313,24 @@ def test_1_5_required_unsatisfied_state_is_incomplete(tmp_path: Path) -> None:
     assert report["reason_code"] == "required_memory_state_unsatisfied"
 
 
+def test_1_5_skipped_state_rejects_writer_attempt_claim(tmp_path: Path) -> None:
+    closeout = _create_closeout(tmp_path)
+    receipt = _write_receipt(
+        tmp_path,
+        closeout=closeout,
+        schema_version="1.5",
+        write_required=False,
+        write_performed=False,
+        write_verified=False,
+        daily_memory_state_status="not_required",
+        daily_memory_write_status="skipped",
+    )
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    payload["daily_memory_write_attempted"] = True
+
+    assert checker._has_valid_outcome_shape(payload) is False
+
+
 def test_malformed_and_unsupported_receipts_are_visible_without_hiding_valid_receipt(
     tmp_path: Path,
 ) -> None:

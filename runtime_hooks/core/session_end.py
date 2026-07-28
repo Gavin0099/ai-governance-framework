@@ -885,6 +885,7 @@ def run_session_end(
     promotion_result = None
     daily_memory_path: Path | None = None
     daily_memory_record: dict[str, str] | None = None
+    daily_memory_write_expected = contract["memory_mode"] != "stateless"
     daily_memory_write_attempted = False
     daily_memory_write_status = "skipped"
     daily_memory_record_identity: str | None = None
@@ -1101,6 +1102,7 @@ def run_session_end(
             "promoted": promotion_result is not None,
             "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
             "daily_memory_record": daily_memory_record,
+            "daily_memory_write_expected": daily_memory_write_expected,
             "daily_memory_write_attempted": daily_memory_write_attempted,
             "daily_memory_write_status": daily_memory_write_status,
             "daily_memory_record_identity": daily_memory_record_identity,
@@ -1211,6 +1213,7 @@ def run_session_end(
         "runtime_phase_summary_artifact": str(runtime_phase_summary_path),
         "phase_classification": session_end_phase_classification,
         "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
+        "daily_memory_write_expected": daily_memory_write_expected,
         "daily_memory_write_attempted": daily_memory_write_attempted,
         "daily_memory_write_status": daily_memory_write_status,
         "daily_memory_record_identity": daily_memory_record_identity,

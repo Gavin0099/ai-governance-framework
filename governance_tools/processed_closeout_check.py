@@ -130,7 +130,8 @@ def _has_valid_outcome_shape(payload: dict[str, Any]) -> bool:
         )
     if status == "skipped":
         return (
-            not performed
+            not attempted
+            and not performed
             and state_status in {"unsatisfied", "not_required"}
             and not path
             and not record_identity

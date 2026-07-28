@@ -230,11 +230,13 @@ def test_session_end_stateless_session_does_not_write_daily_memory(local_project
     )
 
     assert result["daily_memory_path"] is None
+    assert result["daily_memory_write_expected"] is False
     assert result["daily_memory_write_attempted"] is False
     assert result["daily_memory_write_status"] == "skipped"
     assert result["daily_memory_record_identity"] is None
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["daily_memory_path"] is None
+    assert summary_payload["daily_memory_write_expected"] is False
     assert summary_payload["daily_memory_write_status"] == "skipped"
 
 
@@ -253,6 +255,7 @@ def test_session_end_requires_review_for_high_risk(local_project_root):
     assert result["snapshot"] is not None
     assert result["curated"] is not None
     assert result["promotion"] is None
+    assert result["daily_memory_write_expected"] is True
     assert result["daily_memory_write_attempted"] is True
     assert result["daily_memory_write_status"] == "written"
     assert result["daily_memory_path"] is not None
@@ -572,6 +575,7 @@ def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
     assert result["ok"] is False
     assert result["decision"] == "RUNTIME_FAILURE"
     assert result["policy"]["decision"] == "STOP"
+    assert result["daily_memory_write_expected"] is True
     assert result["daily_memory_write_attempted"] is False
     assert result["daily_memory_write_status"] == "skipped"
     assert result["daily_memory_path"] is None

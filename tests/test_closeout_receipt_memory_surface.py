@@ -314,6 +314,12 @@ class TestSchemaVersion:
             },
             {
                 "daily_memory_write_attempted": True,
+                "daily_memory_write_status": "skipped",
+                "daily_memory_state_status": "not_required",
+                "memory_write_performed": False,
+            },
+            {
+                "daily_memory_write_attempted": True,
                 "daily_memory_write_status": "failed",
                 "daily_memory_state_status": "satisfied",
                 "memory_write_performed": False,

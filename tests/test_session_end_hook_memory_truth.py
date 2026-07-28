@@ -48,6 +48,7 @@ def test_already_present_is_satisfied_but_not_updated() -> None:
 def test_missing_closeout_keeps_current_stateless_skip_policy() -> None:
     surface = _derive_daily_memory_write_surface(
         {
+            "daily_memory_write_expected": False,
             "daily_memory_write_attempted": False,
             "daily_memory_write_status": "skipped",
             "daily_memory_writer": "governance_tools.memory_record",
@@ -84,15 +85,17 @@ def test_writer_failure_is_unsatisfied() -> None:
 def test_pre_writer_runtime_failure_is_unsatisfied_without_false_attempt() -> None:
     surface = _derive_daily_memory_write_surface(
         {
+            "daily_memory_write_expected": True,
             "daily_memory_write_attempted": False,
             "daily_memory_write_status": "skipped",
             "daily_memory_writer": "governance_tools.memory_record",
-            "memory_closeout": {"promotion_considered": True},
+            "memory_closeout": {"promotion_considered": False},
         },
         closeout_status=STATUS_VALID,
     )
 
     assert surface["daily_memory_write_attempted"] is False
+    assert surface["daily_memory_write_expected"] is True
     assert surface["daily_memory_state_status"] == "unsatisfied"
     assert surface["memory_update_result"] == "skipped"
     assert surface["memory_update_skipped_reason"] == "memory_writer_not_reached"
