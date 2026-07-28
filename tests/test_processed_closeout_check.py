@@ -47,6 +47,8 @@ def _write_receipt(
     write_required: bool = False,
     write_performed: bool = False,
     write_verified: bool = False,
+    daily_memory_state_status: str = "",
+    daily_memory_write_status: str = "skipped",
     receipt_mtime: datetime | None = None,
 ) -> Path:
     receipt_dir = project_root / checker.DEFAULT_RECEIPT_DIR
@@ -66,6 +68,29 @@ def _write_receipt(
         "memory_eligibility_reason": "test",
         "memory_write_claim_verified": write_verified,
     }
+    if schema_version == "1.5":
+        has_record = daily_memory_write_status in {"written", "already_present"}
+        payload.update(
+            {
+                "daily_memory_write_attempted": (
+                    daily_memory_write_status != "skipped"
+                ),
+                "daily_memory_write_status": daily_memory_write_status,
+                "daily_memory_state_status": (
+                    daily_memory_state_status or "not_required"
+                ),
+                "daily_memory_path": (
+                    "memory/2026-07-28.md" if has_record else ""
+                ),
+                "daily_memory_record_identity": "a" * 64 if has_record else "",
+                "daily_memory_writer": "governance_tools.memory_record",
+                "daily_memory_write_error": (
+                    "RuntimeError: canonical memory writer failed"
+                    if daily_memory_write_status == "failed"
+                    else ""
+                ),
+            }
+        )
     receipt = receipt_dir / filename
     receipt.write_text(json.dumps(payload), encoding="utf-8")
     if receipt_mtime is not None:
@@ -245,6 +270,47 @@ def test_required_performed_and_verified_memory_write_is_complete(tmp_path: Path
     assert report["memory_write_required"] is True
     assert report["memory_write_performed"] is True
     assert report["memory_write_claim_verified"] is True
+
+
+def test_1_5_already_present_state_is_complete_without_performed_write(
+    tmp_path: Path,
+) -> None:
+    closeout = _create_closeout(tmp_path)
+    _write_receipt(
+        tmp_path,
+        closeout=closeout,
+        schema_version="1.5",
+        write_required=True,
+        write_performed=False,
+        write_verified=True,
+        daily_memory_state_status="satisfied",
+        daily_memory_write_status="already_present",
+    )
+
+    report = checker.build_processed_closeout_report(tmp_path)
+
+    assert report["closeout_handoff_complete"] is True
+    assert report["memory_write_performed"] is False
+    assert report["daily_memory_state_status"] == "satisfied"
+
+
+def test_1_5_required_unsatisfied_state_is_incomplete(tmp_path: Path) -> None:
+    closeout = _create_closeout(tmp_path)
+    _write_receipt(
+        tmp_path,
+        closeout=closeout,
+        schema_version="1.5",
+        write_required=True,
+        write_performed=False,
+        write_verified=True,
+        daily_memory_state_status="unsatisfied",
+        daily_memory_write_status="failed",
+    )
+
+    report = checker.build_processed_closeout_report(tmp_path)
+
+    assert report["closeout_handoff_complete"] is False
+    assert report["reason_code"] == "required_memory_state_unsatisfied"
 
 
 def test_malformed_and_unsupported_receipts_are_visible_without_hiding_valid_receipt(

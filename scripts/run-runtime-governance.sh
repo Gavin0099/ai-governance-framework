@@ -70,6 +70,14 @@ run_smoke() (
     fi
 
     export AI_GOVERNANCE_NO_LEDGER_WRITE=1
+    # WSL does not forward shell-only environment variables to a Windows
+    # interpreter unless WSLENV explicitly allows the WSL -> Win32 direction.
+    # Declaring the forwarding token is inert outside WSL and also covers
+    # Windows launchers resolved through names such as `py`.
+    case ":${WSLENV:-}:" in
+        *:AI_GOVERNANCE_NO_LEDGER_WRITE/w:*) ;;
+        *) export WSLENV="${WSLENV:+${WSLENV}:}AI_GOVERNANCE_NO_LEDGER_WRITE/w" ;;
+    esac
 
     run_smoke_step "claude-session-start" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/claude_session_start.txt --json-output artifacts/runtime/smoke/claude_session_start.json || return $?
     run_smoke_step "claude-change-control-summary" "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/claude_session_start.json --output artifacts/runtime/smoke/claude_change_control_summary.txt || return $?

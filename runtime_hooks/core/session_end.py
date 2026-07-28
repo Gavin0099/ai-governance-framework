@@ -27,7 +27,12 @@ from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
 from governance_tools.claim_enforcement_checker import evaluate as evaluate_claim_enforcement
 from governance_tools.claim_enforcement_receipt_writer import write_receipt_for_session as _write_compact_receipt
-from governance_tools.memory_record import append_session_derived_entry, build_session_derived_record
+from governance_tools.memory_record import (
+    WRITER_ID as MEMORY_WRITER_ID,
+    MemoryWriteOutcome,
+    append_session_derived_entry_with_outcome,
+    build_session_derived_record,
+)
 from governance_tools.memory_provenance import resolve_memory_binding
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
@@ -319,7 +324,7 @@ def _append_daily_memory_entry(
     promoted: bool,
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
-) -> Path:
+) -> MemoryWriteOutcome:
     record = _build_daily_memory_record(
         project_root=project_root,
         session_id=session_id,
@@ -330,7 +335,10 @@ def _append_daily_memory_entry(
         snapshot_created=snapshot_created,
         canonical_closeout=canonical_closeout,
     )
-    return append_session_derived_entry(project_root=project_root, record=record)
+    return append_session_derived_entry_with_outcome(
+        project_root=project_root,
+        record=record,
+    )
 
 
 def _force_runtime_failure_if_requested(checks: dict[str, Any], stage: str) -> None:
@@ -877,6 +885,11 @@ def run_session_end(
     promotion_result = None
     daily_memory_path: Path | None = None
     daily_memory_record: dict[str, str] | None = None
+    daily_memory_write_attempted = False
+    daily_memory_write_status = "skipped"
+    daily_memory_record_identity: str | None = None
+    daily_memory_writer = MEMORY_WRITER_ID
+    daily_memory_write_error: str | None = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
     decision_context = _build_decision_context(project_root, contract["memory_mode"], checks, initial_agent_class)
@@ -1038,7 +1051,9 @@ def run_session_end(
             "phase_classification": session_end_phase_classification,
         }
         if contract["memory_mode"] != "stateless":
-            daily_memory_path = _append_daily_memory_entry(
+            daily_memory_write_attempted = True
+            daily_memory_write_status = "attempting"
+            daily_memory_outcome = _append_daily_memory_entry(
                 project_root=project_root,
                 session_id=session_id,
                 task=contract["task"],
@@ -1048,6 +1063,10 @@ def run_session_end(
                 snapshot_created=snapshot_result is not None,
                 canonical_closeout=canonical_closeout,
             )
+            daily_memory_path = daily_memory_outcome.path
+            daily_memory_write_status = daily_memory_outcome.status
+            daily_memory_record_identity = daily_memory_outcome.record_identity
+            daily_memory_writer = daily_memory_outcome.writer
 
         summary_payload = {
             "session_id": session_id,
@@ -1082,6 +1101,11 @@ def run_session_end(
             "promoted": promotion_result is not None,
             "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
             "daily_memory_record": daily_memory_record,
+            "daily_memory_write_attempted": daily_memory_write_attempted,
+            "daily_memory_write_status": daily_memory_write_status,
+            "daily_memory_record_identity": daily_memory_record_identity,
+            "daily_memory_writer": daily_memory_writer,
+            "daily_memory_write_error": daily_memory_write_error,
             "memory_closeout": memory_closeout,
             "phase_classification": session_end_phase_classification,
             "runtime_phase_summary_path": str(runtime_phase_summary_path),
@@ -1149,6 +1173,11 @@ def run_session_end(
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)
+        if daily_memory_write_status == "attempting":
+            daily_memory_write_status = "failed"
+            daily_memory_write_error = (
+                f"{type(exc).__name__}: canonical memory writer failed"
+            )
         errors.append(f"runtime_failure: {failure_message}")
         decision = "RUNTIME_FAILURE"
         policy = {"decision": "STOP", "reason": "runtime_failure"}
@@ -1182,6 +1211,11 @@ def run_session_end(
         "runtime_phase_summary_artifact": str(runtime_phase_summary_path),
         "phase_classification": session_end_phase_classification,
         "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
+        "daily_memory_write_attempted": daily_memory_write_attempted,
+        "daily_memory_write_status": daily_memory_write_status,
+        "daily_memory_record_identity": daily_memory_record_identity,
+        "daily_memory_writer": daily_memory_writer,
+        "daily_memory_write_error": daily_memory_write_error,
         "canonical_closeout_artifact": str(closeout_path) if closeout_path else None,
         "claim_enforcement_check_artifact": str(claim_enforcement_check_path) if claim_enforcement_check_path else None,
         "ledger_write_status": {

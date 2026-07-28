@@ -21,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1", "1.2", "1.3", "1.4"]
+      "enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5"]
     },
     "timestamp": {
       "type": "string",
@@ -73,6 +73,37 @@
     "memory_eligibility_reason": {
       "type": "string"
     },
+    "daily_memory_write_attempted": {
+      "type": "boolean",
+      "description": "Whether session_end entered the canonical daily-memory writer path."
+    },
+    "daily_memory_write_status": {
+      "type": "string",
+      "enum": ["written", "already_present", "skipped", "failed"],
+      "description": "Authoritative outcome of the canonical daily-memory writer."
+    },
+    "daily_memory_state_status": {
+      "type": "string",
+      "enum": ["satisfied", "unsatisfied", "not_required"],
+      "description": "Whether the required daily-memory state exists, is missing, or was not required."
+    },
+    "daily_memory_path": {
+      "type": "string",
+      "description": "Exact writer-returned path; empty when no canonical record was produced or reused."
+    },
+    "daily_memory_record_identity": {
+      "type": "string",
+      "description": "SHA-256 identity aligned with the canonical writer deduplication key; empty when no record is claimed."
+    },
+    "daily_memory_writer": {
+      "type": "string",
+      "const": "governance_tools.memory_record",
+      "description": "Canonical writer identifier selected by session_end."
+    },
+    "daily_memory_write_error": {
+      "type": "string",
+      "description": "Sanitized writer failure category; empty for non-failed outcomes."
+    },
 
     "output_mode_requested": {
       "type": "string",
@@ -117,7 +148,7 @@
 
     "memory_write_claim_verified": {
       "type": "boolean",
-      "description": "Whether a memory_write_performed self-report was backed by daily memory evidence."
+      "description": "Whether the authoritative daily-memory outcome was verified against its exact path, identity, writer, or failure shape."
     },
     "memory_write_claim_verification_reason": {
       "type": "string",
@@ -250,10 +281,115 @@
     },
     {
       "if": {
-        "properties": { "schema_version": { "const": "1.4" } }
+        "properties": {
+          "schema_version": {
+            "enum": ["1.4", "1.5"]
+          }
+        }
       },
       "then": {
         "required": ["runtime_detection_status", "sample_origin"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "1.5"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "daily_memory_write_attempted",
+          "daily_memory_write_status",
+          "daily_memory_state_status",
+          "daily_memory_path",
+          "daily_memory_record_identity",
+          "daily_memory_writer",
+          "daily_memory_write_error"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": ["daily_memory_write_status"],
+        "properties": {
+          "schema_version": { "const": "1.5" },
+          "daily_memory_write_status": { "const": "written" }
+        }
+      },
+      "then": {
+        "properties": {
+          "daily_memory_write_attempted": { "const": true },
+          "daily_memory_state_status": { "const": "satisfied" },
+          "memory_write_performed": { "const": true },
+          "daily_memory_path": { "minLength": 1 },
+          "daily_memory_record_identity": {
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "daily_memory_write_error": { "const": "" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["daily_memory_write_status"],
+        "properties": {
+          "schema_version": { "const": "1.5" },
+          "daily_memory_write_status": { "const": "already_present" }
+        }
+      },
+      "then": {
+        "properties": {
+          "daily_memory_write_attempted": { "const": true },
+          "daily_memory_state_status": { "const": "satisfied" },
+          "memory_write_performed": { "const": false },
+          "daily_memory_path": { "minLength": 1 },
+          "daily_memory_record_identity": {
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "daily_memory_write_error": { "const": "" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["daily_memory_write_status"],
+        "properties": {
+          "schema_version": { "const": "1.5" },
+          "daily_memory_write_status": { "const": "skipped" }
+        }
+      },
+      "then": {
+        "properties": {
+          "daily_memory_state_status": {
+            "enum": ["unsatisfied", "not_required"]
+          },
+          "memory_write_performed": { "const": false },
+          "daily_memory_path": { "const": "" },
+          "daily_memory_record_identity": { "const": "" },
+          "daily_memory_write_error": { "const": "" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["daily_memory_write_status"],
+        "properties": {
+          "schema_version": { "const": "1.5" },
+          "daily_memory_write_status": { "const": "failed" }
+        }
+      },
+      "then": {
+        "properties": {
+          "daily_memory_write_attempted": { "const": true },
+          "daily_memory_state_status": { "const": "unsatisfied" },
+          "memory_write_performed": { "const": false },
+          "daily_memory_path": { "const": "" },
+          "daily_memory_record_identity": { "const": "" },
+          "daily_memory_write_error": { "minLength": 1 }
+        }
       }
     }
   ]

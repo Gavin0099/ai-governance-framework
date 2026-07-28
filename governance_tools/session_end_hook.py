@@ -1706,6 +1706,57 @@ def _collect_memory_workflow_surface(project_root: Path) -> dict[str, Any]:
         }
 
 
+def _derive_daily_memory_write_surface(
+    result: dict[str, Any],
+    *,
+    closeout_status: str,
+) -> dict[str, Any]:
+    """Map authoritative runtime writer outcome to hook and legacy fields."""
+    attempted = bool(result.get("daily_memory_write_attempted", False))
+    status = str(result.get("daily_memory_write_status") or "skipped")
+    memory_closeout = result.get("memory_closeout") or {}
+    write_expected = bool(
+        memory_closeout.get(
+            "promotion_considered",
+            closeout_status != STATUS_MISSING,
+        )
+    )
+    if status in {"written", "already_present"}:
+        state_status = "satisfied"
+    elif status == "skipped" and not write_expected:
+        state_status = "not_required"
+    else:
+        state_status = "unsatisfied"
+
+    if status == "written":
+        skipped_reason = None
+    elif status == "already_present":
+        skipped_reason = "equivalent_record_already_present"
+    elif status == "failed":
+        skipped_reason = "memory_writer_failed"
+    elif closeout_status == STATUS_MISSING:
+        skipped_reason = "missing_session_closeout_artifact"
+    elif write_expected:
+        skipped_reason = "memory_writer_not_reached"
+    else:
+        skipped_reason = "memory_mode_stateless"
+
+    return {
+        "memory_update_attempted": attempted,
+        "memory_update_result": "updated" if status == "written" else "skipped",
+        "memory_update_skipped_reason": skipped_reason,
+        "daily_memory_write_attempted": attempted,
+        "daily_memory_write_status": status,
+        "daily_memory_state_status": state_status,
+        "daily_memory_path": result.get("daily_memory_path"),
+        "daily_memory_record_identity": result.get(
+            "daily_memory_record_identity"
+        ),
+        "daily_memory_writer": str(result.get("daily_memory_writer") or ""),
+        "daily_memory_write_error": result.get("daily_memory_write_error"),
+    }
+
+
 def run_session_end_hook(
     project_root: Path,
     *,
@@ -1906,23 +1957,13 @@ def run_session_end_hook(
     gate_verdict = _compute_gate_verdict(base_ok, gate.blocked, gate_warnings, gate_errors)
 
     memory_closeout = result.get("memory_closeout") or {}
-    memory_closeout_decision = str(memory_closeout.get("decision", "")).strip().lower()
-    memory_update_attempted = closeout_status != STATUS_MISSING
-    memory_update_result = "updated" if result["promotion"] is not None else "skipped"
-    if memory_update_result == "updated":
-        memory_update_skipped_reason = None
-    elif not memory_update_attempted:
-        memory_update_skipped_reason = "missing_session_closeout_artifact"
-    elif memory_closeout_decision in {"no_candidate", "skipped"}:
-        memory_update_skipped_reason = "memory_closeout_no_candidate"
-    elif memory_closeout_decision in {"blocked"}:
-        memory_update_skipped_reason = "memory_closeout_blocked"
-    elif memory_closeout_decision:
-        memory_update_skipped_reason = f"memory_closeout_{memory_closeout_decision}"
-    elif result["promotion"] is None:
-        memory_update_skipped_reason = "promotion_not_performed"
-    else:
-        memory_update_skipped_reason = None
+    # Deprecated compatibility surface. New consumers must use the
+    # daily_memory_write_* fields. "updated" means this invocation
+    # appended bytes; deduplicated existing state is not a performed write.
+    daily_memory_surface = _derive_daily_memory_write_surface(
+        result,
+        closeout_status=closeout_status,
+    )
 
     memory_significance_artifacts: dict[str, str] | None = None
     try:
@@ -1960,9 +2001,7 @@ def run_session_end_hook(
         "closeout_trigger_mode": closeout_trigger_mode,
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
-        "memory_update_attempted": memory_update_attempted,
-        "memory_update_result": memory_update_result,
-        "memory_update_skipped_reason": memory_update_skipped_reason,
+        **daily_memory_surface,
         "memory_significance": memory_significance_artifacts,
         "memory_authority": memory_authority,
         "memory_workflow": memory_workflow,
