@@ -130,6 +130,11 @@ class FrozenSchemaTests(unittest.TestCase):
             "36c346fa951a24cbf914ef04469aac5cb5fd8b86",
         )
 
+    def test_producer_and_scorer_models_are_separated(self) -> None:
+        self.assertEqual(runner.PRODUCER_MODEL, "sonnet")
+        self.assertEqual(runner.SCORER_MODEL, "haiku")
+        self.assertNotEqual(runner.PRODUCER_MODEL, runner.SCORER_MODEL)
+
     def test_normal_and_terminal_timeout_are_scorable_outcomes(self) -> None:
         self.assertTrue(runner._arm_has_scorable_outcome({"status": "complete"}))
         self.assertTrue(

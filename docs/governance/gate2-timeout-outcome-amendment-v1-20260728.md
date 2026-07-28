@@ -6,6 +6,10 @@ Authority: the owner directed “先commit再往下做” after the operator pro
 this exact bounded slice: do not salvage the blocked run, pre-register a
 blind-scorable terminal timeout outcome, fix only the experiment-local Windows
 timeout cleanup, validate and commit, then start a new `D -> C -> A -> B` run.
+After observing that the global Sonnet alias also charged all four scorer
+sessions against the same constrained quota, the owner additionally approved
+keeping producers on Sonnet while moving admission and formal scorers to
+Haiku: “好 這樣做 才不會做不完”.
 
 ## Problem
 
@@ -28,6 +32,9 @@ not finish until the operator terminated that exact child after the cap.
   `36c346fa951a24cbf914ef04469aac5cb5fd8b86`.
 - The order remains `D -> C -> A -> B`.
 - The per-arm limits remain 60 tool calls and 1800 seconds.
+- Producer calls remain on the frozen `sonnet` alias.
+- Scorer admission and formal scoring use the fixed `haiku` alias; scorer model
+  choice is common to both roles and is not a treatment signal.
 - Normal completed outputs remain governed by scorer-handoff v3.
 - The blocked run and its non-counted attempts are append-only evidence and
   are not inputs to the new formal run.
@@ -57,6 +64,8 @@ consistency judgment, treatment guess and confidence fields remain required.
 - Permit formal scoring and release when all four arms are either `complete` or
   `terminal_timeout_complete`.
 - Reverify each packet according to its packet kind at mapping release.
+- Record separate producer and scorer model aliases in new-run resource
+  admission, dispatch, scorer-admission and pre-mapping evidence.
 
 ## Non-goals
 
@@ -65,7 +74,8 @@ consistency judgment, treatment guess and confidence fields remain required.
 - Do not change the successful scorer-handoff v3 contract or loosen its
   verifiers.
 - Do not change the task, Skill, Governance, validator packets, scoring
-  criteria, treatment mapping, model alias, budgets, image or baseline.
+  criteria, treatment mapping, producer model alias, budgets, image or
+  baseline.
 - Do not add a generic process runner, governance schema, hook, CI gate or
   framework-level timeout policy.
 - Do not claim Skill effectiveness from one pilot.
@@ -133,6 +143,25 @@ therefore incorrectly selected D instead of C. The corrected cursor uses the
 same `_arm_has_scorable_outcome` predicate already used by dispatch and scoring.
 This correction is new-run-only; the exposing run remains preserved and is not
 resumed under the changed manifest.
+
+## Scorer quota-cost correction
+
+The runner originally used one global `sonnet` alias for producers, admission
+scorers and formal scorers. Scoring is an independent measurement channel, not
+one of the four producer treatments, so charging its four structured-output
+sessions to the producer model is unnecessary for treatment comparability and
+made completion vulnerable to the observed five-hour quota limit.
+
+For new masters only, the runner now fixes the aliases separately:
+
+- producer arms D, C, A and B: `sonnet`;
+- primary and second scorer admission: `haiku`;
+- primary and second formal pre-mapping scoring: `haiku`.
+
+The two scorer roles, required fields, anonymous packets, mapping-blind release
+gate and scoring criteria are unchanged. Resource-only master
+`gate2-formal-20260728-104542` remains preserved and is not executed under this
+changed manifest.
 
 ## Evidence plan
 

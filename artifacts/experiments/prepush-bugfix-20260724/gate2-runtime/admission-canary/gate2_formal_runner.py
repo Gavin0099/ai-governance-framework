@@ -2,9 +2,10 @@
 """Experiment-local operator runner for the frozen Gate 2 four-arm pilot.
 
 This is intentionally not a general governance runner.  It knows one image,
-one baseline, four fixed packet combinations, one order, one model alias and
-one evidence root.  Producer model calls stay on the host while every tool
-operation is mediated into an offline, read-only-rootfs container.
+one baseline, four fixed packet combinations, one order, fixed producer and
+scorer model aliases, and one evidence root. Producer model calls stay on the
+host while every tool operation is mediated into an offline, read-only-rootfs
+container.
 """
 from __future__ import annotations
 
@@ -34,7 +35,8 @@ IMAGE = "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168
 SOURCE_COMMIT = "33006f097597f5720a2d01661281d564fb2693ec"
 EXPECTED_TREE = "36c346fa951a24cbf914ef04469aac5cb5fd8b86"
 ORDER = ("D", "C", "A", "B")
-MODEL = "sonnet"
+PRODUCER_MODEL = "sonnet"
+SCORER_MODEL = "haiku"
 TIMEOUT_AMENDMENT = (
     ROOT / "docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md"
 )
@@ -368,7 +370,8 @@ def setup(master: str) -> None:
         "source_commit": SOURCE_COMMIT,
         "sanitized_tree": EXPECTED_TREE,
         "order": list(ORDER),
-        "model_alias": MODEL,
+        "producer_model_alias": PRODUCER_MODEL,
+        "scorer_model_alias": SCORER_MODEL,
         "harness": "Claude Code 2.1.220",
         "tool_call_cap": 60,
         "wall_clock_cap_seconds": 1800,
@@ -484,7 +487,8 @@ def setup(master: str) -> None:
             "out_of_band_model_control_plane": "Claude Code 2.1.220 host process",
             "image_id": IMAGE,
             "order": list(ORDER),
-            "model_alias": MODEL,
+            "producer_model_alias": PRODUCER_MODEL,
+            "scorer_model_alias": SCORER_MODEL,
             "non_treatment_permissions": "Bash routed exclusively through the shared adapter",
             "arm_d_exception": "fixed validate verb only",
             "tool_call_cap": 60,
@@ -879,7 +883,8 @@ Redacted scorer packet:
         session_id = str(uuid.uuid4())
         argv = [
             str(CLAUDE), "-p", "--session-id", session_id,
-            "--model", MODEL, "--effort", "high", "--permission-mode", "dontAsk",
+            "--model", SCORER_MODEL, "--effort", "high",
+            "--permission-mode", "dontAsk",
             "--safe-mode", "--strict-mcp-config", "--tools", "",
             "--output-format", "json", "--json-schema",
             json.dumps(SCORER_SCHEMA, separators=(",", ":")),
@@ -908,6 +913,7 @@ Redacted scorer packet:
         "formal_scoring_started": False,
         "mapping_released": False,
         "required_fields_received_from_both": True,
+        "scorer_model_alias": SCORER_MODEL,
         "scorers": results,
     })
     print(evidence_dir)
@@ -1203,7 +1209,7 @@ def run_arm(master: str, arm: str) -> None:
         "session_id": session_id,
         "prompt_sha256": hashlib.sha256(prompt).hexdigest(),
         "prompt_bytes": len(prompt),
-        "model_alias": MODEL,
+        "model_alias": PRODUCER_MODEL,
         "harness": "Claude Code 2.1.220",
         "tool_call_cap": 60,
         "timeout_seconds": 1800,
@@ -1214,7 +1220,7 @@ def run_arm(master: str, arm: str) -> None:
     write_json(state_path, state)
     argv = [
         str(CLAUDE), "-p", "--session-id", session_id,
-        "--model", MODEL, "--effort", "high",
+        "--model", PRODUCER_MODEL, "--effort", "high",
         "--permission-mode", "dontAsk", "--strict-mcp-config",
         "--setting-sources", "project", "--tools", "Bash",
         "--output-format", "stream-json", "--verbose",
@@ -1479,7 +1485,7 @@ Return only the schema-conforming JSON.
         schema = formal_scorer_schema(role)
         argv = [
             str(CLAUDE), "-p", "--session-id", session_id,
-            "--model", MODEL, "--effort", "high",
+            "--model", SCORER_MODEL, "--effort", "high",
             "--permission-mode", "dontAsk", "--safe-mode",
             "--strict-mcp-config", "--tools", "",
             "--output-format", "json", "--json-schema",
@@ -1515,6 +1521,7 @@ Return only the schema-conforming JSON.
             "status": "submitted_pre_mapping",
             "session_id": session_id,
             "submission": str(scoring_dir / f"{role}-submission.json"),
+            "model_alias": SCORER_MODEL,
             "model": envelope.get("model"),
         })
         write_json(state_path, state)
@@ -1522,6 +1529,7 @@ Return only the schema-conforming JSON.
         "result": "PASS",
         "mapping_released": False,
         "both_scorers_submitted": True,
+        "scorer_model_alias": SCORER_MODEL,
         "anonymous_ids": anon_ids,
         "required_fields": [
             "score", "acceptance_criterion_met",
@@ -1706,6 +1714,12 @@ def audit_resources(master: str) -> None:
         ),
         "frozen_order_matches": tuple(state.get("order", ())) == ORDER,
         "exact_image_matches": state.get("image_id") == IMAGE,
+        "producer_model_alias_matches": (
+            state.get("producer_model_alias") == PRODUCER_MODEL
+        ),
+        "scorer_model_alias_matches": (
+            state.get("scorer_model_alias") == SCORER_MODEL
+        ),
         "all_contexts_fresh": True,
         "all_run_identities_are_opaque": True,
         "all_containers_are_running": True,
