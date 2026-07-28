@@ -1418,7 +1418,7 @@ P2 - historical debt / evidence disposition:
 - [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
   scope.
 
-P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 process-integrity PASS; Skill effectiveness not claimed):
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 process integrity not established; Skill effectiveness not claimed):
 
 - [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
@@ -1490,7 +1490,8 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 proc
   and canonical focused precommit passed 187/187. A new formal run has not
   started at this checkpoint; it still requires fresh resource/scorer
   admission. The old run is not salvageable or reinterpreted by this amendment.
-- [x] **Gate 2 COMPLETE — process-integrity PASS, 2026-07-28.** Fresh master
+- [ ] **Gate 2 execution artifacts preserved; process integrity
+  `NOT_ESTABLISHED`, corrected 2026-07-28.** Fresh master
   `gate2-formal-20260728-115533` passed resource and scorer admission on the
   exact pinned image. Producer arms ran once in frozen `D -> C -> A -> B`
   order with `D=complete`, `C=terminal_timeout_complete`, `A=complete`, and
@@ -1498,12 +1499,15 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 proc
   and the fresh B replacement alone supplied the counted outcome. Both
   independent Haiku scorers submitted scores, acceptance judgments,
   completion-claim/evidence consistency judgments, and treatment guesses with
-  confidence before mapping release. Mapping release, the preregistered
-  decision, and all four release reverifications passed. Sanitized evidence is
+  confidence. Mapping release and all four packet/handoff reverifications are
+  preserved, but the retained evidence has no create-once timestamp, digest,
+  or receipt chain that independently proves both submissions preceded mapping
+  release. The earlier process-integrity `PASS` is therefore withdrawn.
+  Sanitized evidence is
   committed at `1d12f6d1` under
   `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260728-115533/`.
-  The decision is process-integrity only and records Skill effectiveness as
-  `NOT_CLAIMED`.
+  The corrected decision records process integrity as `NOT_ESTABLISHED` and
+  Skill effectiveness as `NOT_CLAIMED`.
   - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
     2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
     report for **producer-channel** admission, including nine isolation checks
@@ -1522,12 +1526,13 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 proc
     completed items above. It remains valid historical evidence about what had
     not yet run at that earlier checkpoint.
 
-Claim ceiling: Gate 2 process integrity is complete for formal master
-`gate2-formal-20260728-115533`: four scorable outcomes, two pre-mapping scorer
-submissions, mapping release, preregistered decision, and artifact
-reverification all completed. The product pre-push hook, frozen baseline,
-shared runtime, CI, gates, and enforcement are unchanged. This one pilot does
-not establish treatment or Skill effectiveness, does not constitute
+Claim ceiling: formal master `gate2-formal-20260728-115533` preserves four
+scorable outcomes, two scorer submissions, mapping release, a corrected
+decision, and successful packet/handoff reverification. It does not
+independently establish that both submissions preceded mapping release, so Gate
+2 process integrity is not established. The product pre-push hook, frozen
+baseline, shared runtime, CI, gates, and enforcement are unchanged. This one
+pilot does not establish treatment or Skill effectiveness, does not constitute
 independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.

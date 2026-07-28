@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"='artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260728-115533'; =Get-Content -LiteralPath \\\" /pre-mapping-scoring/pre-mapping-gate.json\\\\\" -Raw | ConvertFrom-Json; =Get-Content -LiteralPath \\/mapping-release.json\\ -Raw | ConvertFrom-Json; =Get-Content -LiteralPath \\/preregistered-decision.json\\ -Raw | ConvertFrom-Json; =Get-Content -LiteralPath \\/artifact-verification-summary.json\\ -Raw | ConvertFrom-Json; =@((.result -eq 'INSUFFICIENT_EVIDENCE'),(.ordering_evidence_status -eq 'NOT_ESTABLISHED'),(.ordering_evidence_status -eq 'NOT_ESTABLISHED'),(.gate2_process_integrity -eq 'NOT_ESTABLISHED'),( -eq .mapping_released_after_submissions),( -eq .two_scorers_pre_mapping),(.result -eq 'PASS'),(.ordering_evidence_status -eq 'NOT_ESTABLISHED')); if( -contains False){exit 1}; git diff --check; if( -ne 0){exit }; Write-Output 'PASS: 8 claim-boundary assertions and diff check'",
+  "exit_code": 1,
+  "started_at": "2026-07-28T11:42:18Z",
+  "finished_at": "2026-07-28T11:42:18Z",
+  "runner": "codex",
+  "linked_commit": "2290cbee832cf99b7af40eef0d2da14df2a6590b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate2-pr5-claim-truth-20260728.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
