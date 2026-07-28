@@ -538,13 +538,7 @@ def recover_failed_attempt(master: str, arm: str, failure_kind: str) -> None:
     if arm not in ORDER:
         raise SystemExit(f"unknown arm: {arm}")
     master_dir, state_path, state = load_state(master)
-    expected = next(
-        (
-            candidate for candidate in ORDER
-            if state["arms"][candidate]["status"] != "complete"
-        ),
-        None,
-    )
+    expected = _next_arm_requiring_outcome(state)
     if expected != arm:
         raise SystemExit(f"frozen order requires recovery of {expected}, not {arm}")
     old = copy.deepcopy(state["arms"][arm])
@@ -1175,17 +1169,21 @@ def _arm_has_scorable_outcome(arm_state: dict[str, Any]) -> bool:
     return arm_state.get("status") in {"complete", "terminal_timeout_complete"}
 
 
-def run_arm(master: str, arm: str) -> None:
-    if arm not in ORDER:
-        raise SystemExit(f"unknown arm: {arm}")
-    master_dir, state_path, state = load_state(master)
-    expected = next(
+def _next_arm_requiring_outcome(state: dict[str, Any]) -> str | None:
+    return next(
         (
             candidate for candidate in ORDER
             if not _arm_has_scorable_outcome(state["arms"][candidate])
         ),
         None,
     )
+
+
+def run_arm(master: str, arm: str) -> None:
+    if arm not in ORDER:
+        raise SystemExit(f"unknown arm: {arm}")
+    master_dir, state_path, state = load_state(master)
+    expected = _next_arm_requiring_outcome(state)
     if expected != arm:
         raise SystemExit(f"frozen order requires {expected}, not {arm}")
     arm_state = state["arms"][arm]

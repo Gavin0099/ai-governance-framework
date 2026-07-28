@@ -141,6 +141,17 @@ class FrozenSchemaTests(unittest.TestCase):
             runner._arm_has_scorable_outcome({"status": "failed_timeout"})
         )
 
+    def test_recovery_order_skips_terminal_timeout_outcome(self) -> None:
+        state = {
+            "arms": {
+                "D": {"status": "terminal_timeout_complete"},
+                "C": {"status": "failed_exit_1"},
+                "A": {"status": "admitted_not_run"},
+                "B": {"status": "admitted_not_run"},
+            }
+        }
+        self.assertEqual(runner._next_arm_requiring_outcome(state), "C")
+
     def test_timeout_amendment_manifest_verifies_exact_files(self) -> None:
         digest = runner.verify_timeout_amendment()
         self.assertRegex(digest, r"^[0-9a-f]{64}$")

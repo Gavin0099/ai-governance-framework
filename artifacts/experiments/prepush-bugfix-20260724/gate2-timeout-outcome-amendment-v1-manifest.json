@@ -7,14 +7,14 @@
       "sha256": "39d90d82b706dc3a545ae505ff4e9a67ba32e576e7d9935b72a4954c9568a0a2"
     },
     {
-      "bytes": 6300,
+      "bytes": 6859,
       "path": "docs/governance/gate2-timeout-outcome-amendment-v1-20260728.md",
-      "sha256": "d974240b13d43f60dc3cc8f4ed1b28feda0f199721dcd0acd44b06a677c20fbe"
+      "sha256": "5f69f3ec086f6a727f12955fc68856837fb6486bca0023b8edcaf4721d8f0ffc"
     },
     {
-      "bytes": 76414,
+      "bytes": 76411,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_formal_runner.py",
-      "sha256": "537c23ff38c1d33494aa08da1622351636c07e8dd37f5ee1de449879d659f328"
+      "sha256": "3c7d7b7105ec2dc0e3db566285ef9a87004188d4faebb06e2a77ea1f825fba06"
     },
     {
       "bytes": 12451,
@@ -22,9 +22,9 @@
       "sha256": "a4349ea1c408e2a1879b14ad8ffcf18d0d91c78dad284bc34698f138d3241e11"
     },
     {
-      "bytes": 7060,
+      "bytes": 7490,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_formal_runner.py",
-      "sha256": "3d4bee7be7698a6138452098698303d1d5432ed2c63a8709c0d8ec245c1a8059"
+      "sha256": "1bc83ea4b6fe7567d900031d36223e129fe220f50381f7cace232fbb7e4c0b55"
     },
     {
       "bytes": 4647,

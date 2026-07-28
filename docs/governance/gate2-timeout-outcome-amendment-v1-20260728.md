@@ -124,6 +124,16 @@ accepted bug fix.
 - Any old-run mutation or mapping disclosure before both submissions: stop and
   invalidate the new run.
 
+## Observed recovery-order defect correction
+
+The first new-run attempt exposed one amendment-local defect after Arm D reached
+`terminal_timeout_complete` and Arm C ended in a verified external rate limit:
+the frozen recovery cursor still skipped only the legacy `complete` status and
+therefore incorrectly selected D instead of C. The corrected cursor uses the
+same `_arm_has_scorable_outcome` predicate already used by dispatch and scoring.
+This correction is new-run-only; the exposing run remains preserved and is not
+resumed under the changed manifest.
+
 ## Evidence plan
 
 - Focused unit tests for exact Windows tree cleanup ordering, timeout receipt,

@@ -119,7 +119,7 @@ The experiment-local timeout amendment is:
 - exact set manifest
   `artifacts/experiments/prepush-bugfix-20260724/gate2-timeout-outcome-amendment-v1-manifest.json`;
 - manifest SHA-256
-  `dd2b97eb1a47796b5320d0581b299b5f123ab5b8416736690a6cf93d93bf09df`.
+  `ac932d4e9dfbaec85c64491f485dc362515630a8516689675b1cbd7dcdada0ca`.
 
 It does not loosen scorer-handoff v3. A new run may additionally use the
 separate `terminal_timeout_v1` packet after the frozen 1800-second cap, with
