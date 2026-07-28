@@ -1,0 +1,32 @@
+{
+  "captured_at": "2026-07-26T10:09:40Z",
+  "container": {
+    "id": "d08d56fefca03344a49049ca25bfd5e7118847cf6e2800050281c8ab0e5d42fa",
+    "image": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+    "name": "live-canary-20260726-180935",
+    "reachable": true,
+    "state": "running"
+  },
+  "label": "baseline-before",
+  "repo": {
+    "clean": true,
+    "file_sha256": {
+      "TASK.md": "a8c6fb5f07bdf41b8bb6d64edd1841f942bc0cc3f0cd3bfb4165ee1793d72703",
+      "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "src/calc.py": "c299416ea7e621079c499c89bf7c3e417ea74965c8ccce0aadff315c98a05155",
+      "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/test_calc.py": "9c6f0d955be6950f63ff74c9cc22320ad742c2b79acd7d1ea3fb2a4697f9b323"
+    },
+    "head": "2cdfeb2 canary baseline (planted defect in src/calc.py)",
+    "status_porcelain": "",
+    "tracked_files": [
+      "TASK.md",
+      "src/__init__.py",
+      "src/calc.py",
+      "tests/__init__.py",
+      "tests/test_calc.py"
+    ]
+  },
+  "work_out": [],
+  "work_out_artifacts": {}
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "recorded_at": "2026-07-28T08:48:47.391+08:00",
+  "master_run_id": "gate2-formal-20260727-213336",
+  "result": "BLOCKED",
+  "process_integrity": "NOT_COMPLETED",
+  "resource_admission": "PASS",
+  "pinned_image_id": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+  "frozen_source_tree": "36c346fa951a24cbf914ef04469aac5cb5fd8b86",
+  "frozen_order": [
+    "D",
+    "C",
+    "A",
+    "B"
+  ],
+  "formal_arm_status_summary": {
+    "complete": 3,
+    "failed_timeout": 1
+  },
+  "terminal_outcome": {
+    "status": "failed_timeout",
+    "wall_clock_cap_seconds": 1800,
+    "elapsed_seconds_before_operator_child_cleanup": 1903.1,
+    "output_commit_created": false,
+    "container_head_remained_baseline": true,
+    "worktree_clean": false,
+    "producer_result_json_present": false,
+    "scorable_packet_created": false
+  },
+  "timeout_handler_observation": {
+    "windows_child_pipe_remained_open_after_subprocess_timeout": true,
+    "operator_action": "After the frozen cap had elapsed, terminate only the exact preassigned Claude child process so the existing runner timeout handler could record failed_timeout.",
+    "treatment_or_baseline_changed": false
+  },
+  "pre_mapping_state": {
+    "scorer_submissions": 0,
+    "mapping_released": false
+  },
+  "continuation_boundary": {
+    "retry_allowed": false,
+    "synthetic_result_json_allowed": false,
+    "reason": "The runbook treats inability to complete as a legitimate result. The signed scorer handoff requires a clean output commit and producer-owned result.json, neither of which exists for this timeout."
+  },
+  "external_evidence_digests": {
+    "dispatch_record_sha256": "d112ba54a6453ab95e2b68c8a44a7f1b3a4e57b0b49e6bb98e7299857aadc78d",
+    "transcript_sha256": "b1f2ec47f002c157f86186b11eb8a4ff30f14f5e1e9fd1ba59befa41c420f39e",
+    "adapter_log_sha256": "0206cd462a0f2e3276ddaffb4c68f53524a372a19e9d54ca009deb7a52a54c3f",
+    "claude_stream_sha256": "d5d40d289cca40e9db9b56e4e2b79afdf05b3ae383cdbe8c82f5b927f3520886",
+    "operator_private_run_state_sha256": "1ce2d74ba717ef97ec1dc0ebbe88912b491f8237559100699deab8895fb5b2d5"
+  },
+  "not_claimed": [
+    "four complete scorable arms",
+    "pre-mapping scorer submissions",
+    "mapping release",
+    "preregistered Gate 2 process-integrity decision",
+    "Gate 2 completion",
+    "Skill effectiveness"
+  ]
+}

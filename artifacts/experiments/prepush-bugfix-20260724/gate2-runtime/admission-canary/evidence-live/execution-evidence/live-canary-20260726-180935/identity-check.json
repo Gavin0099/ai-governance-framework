@@ -1,0 +1,15 @@
+{
+  "errors": [],
+  "exact_prompt_match": true,
+  "first_difference": null,
+  "prompt_path": "D:\\gate2-live-run-evidence\\live-canary-20260726-180935\\producer-prompt.txt",
+  "session_codepoints": 2512,
+  "session_log": "C:\\Users\\daish\\.claude\\projects\\D--gate2-live-producer-task\\83404ab2-d7b7-4b2e-b999-5ea7724564fb.jsonl",
+  "session_user_line": 3,
+  "session_utf8_bytes": 2518,
+  "session_utf8_sha256": "80de91fbc4a30d06d96de3182c6fd854e8bda3df79263498f3b72b578d3138eb",
+  "source_bytes": 2518,
+  "source_codepoints": 2512,
+  "source_sha256": "80de91fbc4a30d06d96de3182c6fd854e8bda3df79263498f3b72b578d3138eb",
+  "status": "GO"
+}

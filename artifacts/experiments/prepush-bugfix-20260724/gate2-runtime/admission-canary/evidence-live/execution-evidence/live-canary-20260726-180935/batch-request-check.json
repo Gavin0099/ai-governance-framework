@@ -1,0 +1,8 @@
+{
+  "assistant_messages": 0,
+  "batches": [],
+  "claim_boundary": "A multi-tool assistant message proves a batch request. Only adapter lock_wait_ms can prove overlapping execution.",
+  "max_tool_calls_in_one_message": 0,
+  "multi_tool_message_observed": false,
+  "status": "NO-GO"
+}
