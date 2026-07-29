@@ -1,0 +1,15 @@
+{
+  "anon_id": "OUT-111111111111",
+  "baseline_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+  "final_diff_sha256": "5b866a798161e0e41223ff27213b59acc3c500a38a534990126aa1508b1f1f24",
+  "harness_contract_sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7",
+  "output_commit": "5c4ba43730de3aff85db8fbf17058f13e290d16c",
+  "receipt_set_sha256": "ea07673682ac8be67e0e7bf661485432151802b37b32baa02732ec6851ef5f90",
+  "schema": "gate3-outcome-packet.v1",
+  "scorer_payload": {
+    "baseline_test_receipt_sha256": "9ae987192c486c33a17a993fe01a00a1393608270ccfefc07808b6281a073154",
+    "final_diff_utf8": "diff --git a/calc.py b/calc.py\nindex 12ee7431b8e0e3e366c904c33ef3dee767b1bc20..4693ad3cf8b0903b98497fb89b8b524fbf1b93f4 100644\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def add(a, b):\n-    return a - b\n+    return a + b\n",
+    "rehearsal_only": true,
+    "test_exit_code": 0
+  }
+}

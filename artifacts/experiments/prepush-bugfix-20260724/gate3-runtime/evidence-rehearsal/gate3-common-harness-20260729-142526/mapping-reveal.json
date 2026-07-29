@@ -1,0 +1,10 @@
+{
+  "mapping": {
+    "OUT-111111111111": "A",
+    "OUT-222222222222": "B"
+  },
+  "nonce_hex": "31ed695db010756c50a631d31b749364999658516de30d65541cb52c39ec403a",
+  "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+  "schema": "gate3-mapping-release.v1",
+  "study_kind": "skill_primary"
+}

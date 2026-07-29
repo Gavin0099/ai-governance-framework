@@ -1,0 +1,10 @@
+{
+  "authorization": "non_counted_synthetic_rehearsal_only",
+  "command": "python.exe -B -c \"from calc import add; raise SystemExit(0 if add(2, 3) == 5 else 1)\"",
+  "exit_code": 1,
+  "expected_failure": true,
+  "linked_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+  "output_path": "baseline-test-output.txt",
+  "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "schema": "gate3-synthetic-baseline-test-receipt.v1"
+}

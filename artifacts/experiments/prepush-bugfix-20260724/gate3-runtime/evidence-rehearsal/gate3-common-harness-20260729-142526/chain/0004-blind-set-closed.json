@@ -1,0 +1,38 @@
+{
+  "anonymous_ids": [
+    "OUT-111111111111",
+    "OUT-222222222222"
+  ],
+  "blind_input_set_sha256": "32d21c52e4c2a647a7e3068f844bde2852e30f21b0be8df33971e3f0cace9df6",
+  "contract_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "event": "blind_set_closed",
+  "pair_controls": {
+    "baseline_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+    "budget_sha256": "8c974e8ed8be1207d09fc89e43f7fbc1bc5c66c449a6154f1395dcaf9d7d4c28",
+    "harness_contract_sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7",
+    "model_build": "synthetic-model-build-v1",
+    "pair_id": "synthetic-pair-1",
+    "permissions_sha256": "a5b0d53898203160ebf8b992edf044750cc1fe859a6ca02c679e5a4eac540e9c",
+    "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+    "repeat_index": 1,
+    "scorer_rubric_sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33",
+    "task_id": "synthetic-task-1",
+    "task_packet_sha256": "e80fa30467bd9d3fd665a4a7ba77a8786c56254c603cd6008607ed7d05f161c3"
+  },
+  "previous_event_sha256": "70089245d8aff7e7462593e6e08b1b6dacac03059e841336a4f6e862ded0ebd9",
+  "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+  "recorded_at": "2026-07-29T14:32:09.351216+08:00",
+  "schema": "gate3-ordering-event.v1",
+  "sealed_sources": {
+    "OUT-111111111111": {
+      "metrics_sha256": "a860313fbe838d5e057f3e0a7e11309e4598d4d676d25c3c79a0be58f4ead84b",
+      "packet_sha256": "3eabdc954e9f49ad9ee5b3391677fcd38c115a4b3a3004b3fdb704bdba8f3164"
+    },
+    "OUT-222222222222": {
+      "metrics_sha256": "64e291a7a51584ddcf45ba9b38e507176a7950604d53fd7f7e60339d9e961067",
+      "packet_sha256": "8bd895b196058bb718518d9263826f6e26bfff83796f6ce7dafef051906be1fb"
+    }
+  },
+  "sequence": 4,
+  "study_kind": "skill_primary"
+}

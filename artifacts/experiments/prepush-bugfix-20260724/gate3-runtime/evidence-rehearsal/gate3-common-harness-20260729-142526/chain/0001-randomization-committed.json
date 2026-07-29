@@ -1,0 +1,11 @@
+{
+  "contract_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "event": "randomization_committed",
+  "mapping_commitment_sha256": "b67001f6c4b4035370fec4a426c7e5df7b7df1fe10a64300897102acfae2832d",
+  "previous_event_sha256": null,
+  "randomization_record_path": "randomization-record.json",
+  "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+  "recorded_at": "2026-07-29T14:32:05.812561+08:00",
+  "schema": "gate3-ordering-event.v1",
+  "sequence": 1
+}

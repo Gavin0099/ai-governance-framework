@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest -q artifacts\\experiments\\prepush-bugfix-20260724\\gate3-runtime\\test_gate3_evidence_chain.py artifacts\\experiments\\prepush-bugfix-20260724\\gate3-runtime\\test_gate3_common_harness.py",
+  "exit_code": 0,
+  "started_at": "2026-07-29T06:42:17Z",
+  "finished_at": "2026-07-29T06:44:03Z",
+  "runner": "codex",
+  "linked_commit": "d9f48148309e0ad78d1ec5b4f5c354b66350c4a7",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-common-harness-focused-20260729.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

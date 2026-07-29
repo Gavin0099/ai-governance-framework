@@ -1,0 +1,4 @@
+/.gitattributes -text
+/gate3_common_harness.py -text
+/test_gate3_common_harness.py -text
+/evidence-rehearsal/** -text
