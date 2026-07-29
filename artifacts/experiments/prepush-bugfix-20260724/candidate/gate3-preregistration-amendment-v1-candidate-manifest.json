@@ -1,0 +1,43 @@
+{
+  "authorization": "pending_independent_review_and_owner_signature",
+  "files": [
+    {
+      "bytes": 6353,
+      "path": ".gitattributes",
+      "sha256": "f215f1cb0880a9fab000a22ec80645ea8decaf8ba2843b7358906811b4723155"
+    },
+    {
+      "bytes": 11390,
+      "path": "docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md",
+      "sha256": "2df64343282d493d40a4e88755a372954c08c806384e821f35dd2350b2f26a3f"
+    },
+    {
+      "bytes": 4312,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json",
+      "sha256": "e9081417f26657f031ba6f351545a9f303b9825845e186db29b0b91a35567cc1"
+    },
+    {
+      "bytes": 40459,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
+      "sha256": "b7d3db15d60f7cdf1051d44b7f82bc53726ca6a9153cbd3c328b85384b529ae0"
+    },
+    {
+      "bytes": 21831,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py",
+      "sha256": "e5086dd0b0a017215b348498d67b7ba72b82f91866a18f12ff157241cd1f9cc8"
+    }
+  ],
+  "not_claimed": [
+    "independent approval",
+    "owner signature",
+    "canonical promotion",
+    "safe structured write harness",
+    "natural bug admission",
+    "Gate 3 start",
+    "cryptographic writer authentication",
+    "Skill effectiveness"
+  ],
+  "purpose": "Exact candidate bytes for independent review and later owner signature; PASS does not authorize Gate 3.",
+  "schema": "gate3-preregistration-amendment-candidate-set.v1",
+  "source_base_commit": "e4d28d8be4d27bad90e1dbaec6edb4c4f6779824"
+}

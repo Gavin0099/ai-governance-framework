@@ -53,3 +53,8 @@
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/gate2_terminal_outcome.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_formal_runner.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_terminal_outcome.py -text
+/docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md -text
+/artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json -text
+/artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py -text
