@@ -9,6 +9,7 @@ from governance_tools.session_end_hook import (
     _derive_daily_memory_write_surface,
     run_session_end_hook,
 )
+from runtime_hooks.core._canonical_closeout import write_session_envelope
 
 
 def _init_git_repo(repo: Path) -> None:
@@ -139,6 +140,11 @@ def test_no_update_promotion_tier_keeps_non_promoting_runtime_contract() -> None
 
 def test_missing_closeout_writes_fail_closed_daily_record(tmp_path: Path) -> None:
     _init_git_repo(tmp_path)
+    write_session_envelope(
+        "missing-closeout-memory-truth",
+        tmp_path,
+        provider="test",
+    )
 
     result = run_session_end_hook(
         tmp_path,
@@ -165,6 +171,11 @@ def test_schema_invalid_closeout_writes_fail_closed_daily_record(
     tmp_path: Path,
 ) -> None:
     _init_git_repo(tmp_path)
+    write_session_envelope(
+        "invalid-closeout-memory-truth",
+        tmp_path,
+        provider="test",
+    )
 
     closeout_path = tmp_path / "artifacts" / "session-closeout.txt"
     closeout_path.parent.mkdir(parents=True, exist_ok=True)

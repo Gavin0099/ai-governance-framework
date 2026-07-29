@@ -1,6 +1,7 @@
 import json
 import shutil
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from runtime_hooks.core.session_end import (
     resolve_ledger_write_allowed_from_no_write_flag,
     run_session_end,
 )
-from runtime_hooks.core._canonical_closeout import write_candidate
+from runtime_hooks.core._canonical_closeout import write_candidate, write_session_envelope
 
 
 @pytest.fixture
@@ -37,6 +38,122 @@ def _contract(**overrides):
     }
     contract.update(overrides)
     return contract
+
+
+def _closeout_candidate(**overrides):
+    candidate = {
+        "task_intent": "Bound runtime closeout",
+        "work_summary": "Validated one session-bound closeout.",
+        "tools_used": ["inspect"],
+        "artifacts_referenced": [],
+        "open_risks": [],
+    }
+    candidate.update(overrides)
+    return candidate
+
+
+def test_session_end_enforces_valid_session_bound_candidate(local_project_root):
+    session_id = "2026-07-29-bound-valid"
+    started_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    write_session_envelope(
+        session_id,
+        local_project_root,
+        provider="codex",
+        started_at=started_at.isoformat(),
+    )
+    write_candidate(session_id, local_project_root, _closeout_candidate())
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="Bound session",
+        enforce_session_binding=True,
+    )
+
+    assert result["session_binding"]["status"] == "valid"
+    assert result["decision"] == "AUTO_PROMOTE"
+    assert result["snapshot"] is not None
+    assert result["promotion"] is not None
+    assert result["canonical_closeout"]["closeout_status"] == "valid"
+
+
+def test_session_end_rejects_candidate_created_before_session_start(local_project_root):
+    session_id = "2026-07-29-bound-stale"
+    started_at = datetime.now(timezone.utc)
+    write_session_envelope(
+        session_id,
+        local_project_root,
+        provider="copilot",
+        started_at=started_at.isoformat(),
+    )
+    write_candidate(
+        session_id,
+        local_project_root,
+        _closeout_candidate(
+            generated_at=(started_at - timedelta(minutes=1)).isoformat(),
+        ),
+    )
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="stale source text must not be promoted",
+        summary="Rejected stale candidate",
+        daily_memory_write_required=True,
+        enforce_session_binding=True,
+    )
+
+    assert result["session_binding"]["status"] == "candidate_before_session_start"
+    assert result["decision"] == "DO_NOT_PROMOTE"
+    assert result["snapshot"] is None
+    assert result["promotion"] is None
+    assert result["canonical_closeout"]["closeout_status"] == "missing"
+    assert result["daily_memory_write_status"] == "written"
+    daily_memory = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
+    assert "FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED" in daily_memory
+
+
+def test_session_end_consumes_each_bound_session_once(local_project_root):
+    session_id = "2026-07-29-bound-consume-once"
+    write_session_envelope(
+        session_id,
+        local_project_root,
+        provider="codex",
+        started_at=(datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
+    )
+    write_candidate(session_id, local_project_root, _closeout_candidate())
+    first = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="first closeout",
+        summary="First closeout",
+        enforce_session_binding=True,
+    )
+
+    second = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="second closeout",
+        summary="Second closeout",
+        enforce_session_binding=True,
+    )
+
+    assert first["session_binding"]["status"] == "valid"
+    assert second["session_binding"]["status"] == "already_consumed"
+    assert second["decision"] == "ALREADY_CONSUMED"
+    assert second["snapshot"] is None
+    assert second["promotion"] is None
+    assert second["daily_memory_write_attempted"] is False
+    assert second["ledger_write_status"]["session_index"] == "not_attempted"
 
 
 def test_session_end_auto_promotes_low_risk_candidate(local_project_root):

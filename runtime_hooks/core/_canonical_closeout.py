@@ -20,6 +20,7 @@ Same inputs → same canonical output. Enables replay, audit re-run, dry-run tes
 from __future__ import annotations
 
 import json
+import subprocess
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,7 +54,167 @@ _CANDIDATE_REQUIRED_FIELDS: dict[str, type] = {
 
 # Session ID lifecycle — written by /wrap-up, consumed by session_end
 _CURRENT_SESSION_ID_FILE = ".current-session-id"
+_RUNTIME_CURRENT_SESSION_ID_FILE = Path("artifacts/runtime/.current-session-id")
 _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
+_SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
+
+
+def _parse_aware_utc(value: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _resolve_head_commit(project_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return ""
+
+
+def _session_envelope_path(session_id: str, project_root: Path) -> Path:
+    return (
+        project_root
+        / "artifacts"
+        / "runtime"
+        / "sessions"
+        / session_id
+        / "session-envelope.json"
+    )
+
+
+def write_session_envelope(
+    session_id: str,
+    project_root: Path,
+    *,
+    provider: str = "unknown",
+    started_at: str | None = None,
+    repo_head_before: str | None = None,
+) -> dict[str, Any]:
+    """Create the session-start identity envelope used by closeout binding."""
+    normalized_session_id = session_id.strip()
+    if not normalized_session_id:
+        raise ValueError("session_id is required")
+    normalized_started_at = started_at or datetime.now(timezone.utc).isoformat()
+    if _parse_aware_utc(normalized_started_at) is None:
+        raise ValueError("started_at must be a timezone-aware ISO-8601 timestamp")
+
+    path = _session_envelope_path(normalized_session_id, project_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": _SESSION_ENVELOPE_SCHEMA_VERSION,
+        "session_id": normalized_session_id,
+        "started_at": normalized_started_at,
+        "provider": provider.strip() or "unknown",
+        "repo_head_before": (
+            repo_head_before
+            if repo_head_before is not None
+            else _resolve_head_commit(project_root)
+        ),
+        "closeout_path": "artifacts/session-closeout.txt",
+    }
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _write_current_session_id_payload(
+        normalized_session_id,
+        project_root / _RUNTIME_CURRENT_SESSION_ID_FILE,
+    )
+    return {**payload, "artifact_path": str(path)}
+
+
+def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any] | None:
+    """Read and minimally validate the envelope for exactly one session."""
+    path = _session_envelope_path(session_id, project_root)
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("schema_version") != _SESSION_ENVELOPE_SCHEMA_VERSION:
+        return None
+    if str(payload.get("session_id") or "") != session_id:
+        return None
+    if _parse_aware_utc(str(payload.get("started_at") or "")) is None:
+        return None
+    return {**payload, "artifact_path": str(path)}
+
+
+def assess_session_closeout_binding(
+    session_id: str,
+    project_root: Path,
+    candidate_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Assess session ownership and consume-once state before side effects."""
+    canonical_path = (
+        project_root / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
+    )
+    if canonical_path.is_file():
+        return {
+            "status": "already_consumed",
+            "session_id": session_id,
+            "canonical_closeout_path": str(canonical_path),
+        }
+
+    envelope = read_session_envelope(session_id, project_root)
+    if envelope is None:
+        return {"status": "session_envelope_missing", "session_id": session_id}
+    if candidate_payload is None:
+        return {
+            "status": "session_candidate_missing",
+            "session_id": session_id,
+            "session_envelope_path": envelope["artifact_path"],
+        }
+
+    candidate_session_id = str(candidate_payload.get("session_id") or "")
+    if candidate_session_id != session_id:
+        return {
+            "status": "session_candidate_mismatch",
+            "session_id": session_id,
+            "candidate_session_id": candidate_session_id,
+            "session_envelope_path": envelope["artifact_path"],
+        }
+
+    started_at = _parse_aware_utc(str(envelope.get("started_at") or ""))
+    generated_at = _parse_aware_utc(str(candidate_payload.get("generated_at") or ""))
+    if generated_at is None:
+        return {
+            "status": "candidate_generated_at_missing",
+            "session_id": session_id,
+            "session_envelope_path": envelope["artifact_path"],
+        }
+    if started_at is None or generated_at < started_at:
+        return {
+            "status": "candidate_before_session_start",
+            "session_id": session_id,
+            "session_envelope_path": envelope["artifact_path"],
+            "candidate_generated_at": generated_at.isoformat(),
+            "session_started_at": started_at.isoformat() if started_at else "",
+        }
+    return {
+        "status": "valid",
+        "session_id": session_id,
+        "session_envelope_path": envelope["artifact_path"],
+        "candidate_generated_at": generated_at.isoformat(),
+        "session_started_at": started_at.isoformat(),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +315,12 @@ def write_current_session_id(session_id: str, project_root: Path) -> Path:
     Returns the path written.
     """
     path = project_root / _CURRENT_SESSION_ID_FILE
+    return _write_current_session_id_payload(session_id, path)
+
+
+def _write_current_session_id_payload(session_id: str, path: Path) -> Path:
+    """Write one current-session marker to an explicit lifecycle path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "session_id": session_id,
         "written_at": datetime.now(timezone.utc).isoformat(),
@@ -178,24 +345,29 @@ def read_current_session_id(
 
     Callers must call _generate_session_id() when this returns None.
     """
-    path = project_root / _CURRENT_SESSION_ID_FILE
-    if not path.is_file():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        session_id = str(data.get("session_id") or "").strip()
-        if not session_id:
-            return None
-        written_at_str = str(data.get("written_at") or "").strip()
-        if not written_at_str:
-            return None
-        written_at = datetime.fromisoformat(written_at_str)
-        age_seconds = (datetime.now(timezone.utc) - written_at).total_seconds()
-        if age_seconds > max_age_seconds:
-            return None
-        return session_id
-    except Exception:
-        return None
+    paths = (
+        project_root / _RUNTIME_CURRENT_SESSION_ID_FILE,
+        project_root / _CURRENT_SESSION_ID_FILE,
+    )
+    for path in paths:
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            session_id = str(data.get("session_id") or "").strip()
+            if not session_id:
+                continue
+            written_at_str = str(data.get("written_at") or "").strip()
+            if not written_at_str:
+                continue
+            written_at = datetime.fromisoformat(written_at_str)
+            age_seconds = (datetime.now(timezone.utc) - written_at).total_seconds()
+            if age_seconds > max_age_seconds:
+                continue
+            return session_id
+        except Exception:
+            continue
+    return None
 
 
 def candidate_timestamp() -> str:
@@ -224,7 +396,10 @@ def write_candidate(
     )
     candidate_dir.mkdir(parents=True, exist_ok=True)
     path = candidate_dir / f"{ts}.json"
-    path.write_text(json.dumps(candidate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    payload = dict(candidate)
+    payload.setdefault("session_id", session_id)
+    payload.setdefault("generated_at", datetime.now(timezone.utc).isoformat())
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 
 

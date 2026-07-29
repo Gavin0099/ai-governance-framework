@@ -42,6 +42,7 @@ from governance_tools.runtime_reliability_observation import (
     safe_append_observation_event,
 )
 from runtime_hooks.core._canonical_closeout import (
+    assess_session_closeout_binding,
     build_canonical_closeout,
     pick_latest_candidate,
     write_canonical_closeout,
@@ -285,7 +286,14 @@ def _build_daily_memory_record(
     closeout_status = (
         normalized_observed_status
         if normalized_observed_status
-        in {"valid", "missing", "schema_invalid", "content_insufficient", "inconsistent"}
+        in {
+            "valid",
+            "missing",
+            "schema_invalid",
+            "content_insufficient",
+            "inconsistent",
+            "stale_or_mismatched",
+        }
         else canonical_closeout_status
     )
     closeout_fail_closed = closeout_status in {
@@ -293,6 +301,7 @@ def _build_daily_memory_record(
         "schema_invalid",
         "content_insufficient",
         "inconsistent",
+        "stale_or_mismatched",
     }
     displayed_decision = (
         f"FAIL_CLOSED_CLOSEOUT_{closeout_status.upper()}"
@@ -865,6 +874,7 @@ def run_session_end(
     ledger_write_allowed: bool | None = None,
     observed_closeout_status: str | None = None,
     daily_memory_write_required: bool | None = None,
+    enforce_session_binding: bool = False,
 ) -> dict[str, Any]:
     if ledger_write_allowed is None:
         ledger_write_allowed = not _ledger_write_disabled_from_env()
@@ -892,6 +902,89 @@ def run_session_end(
         warnings.append("Session ended with failing runtime checks.")
 
     public_api_diff = (checks or {}).get("public_api_diff") if checks else None
+    _closeout_candidate = pick_latest_candidate(session_id, project_root)
+    session_binding = (
+        assess_session_closeout_binding(
+            session_id,
+            project_root,
+            _closeout_candidate,
+        )
+        if enforce_session_binding
+        else {"status": "not_enforced", "session_id": session_id}
+    )
+    binding_status = str(session_binding.get("status") or "")
+    binding_valid = not enforce_session_binding or binding_status == "valid"
+
+    if enforce_session_binding and binding_status == "already_consumed":
+        runtime_root = project_root / "artifacts" / "runtime"
+        canonical_path = runtime_root / "closeouts" / f"{session_id}.json"
+        try:
+            canonical_closeout = json.loads(canonical_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            canonical_closeout = build_canonical_closeout(
+                session_id=session_id,
+                closed_at=datetime.now(timezone.utc).isoformat(),
+                candidate_payload=None,
+                existing_artifacts=frozenset(),
+                runtime_signals={},
+            )
+        return {
+            "ok": True,
+            "session_id": session_id,
+            "decision": "ALREADY_CONSUMED",
+            "policy": {"decision": "STOP", "reason": "session_closeout_already_consumed"},
+            "curated": None,
+            "snapshot": None,
+            "promotion": None,
+            "memory_closeout": {
+                "candidate_detected": False,
+                "candidate_signals": [],
+                "promotion_considered": False,
+                "decision": "skipped",
+                "reason": "session_closeout_already_consumed",
+            },
+            "candidate_artifact": str(runtime_root / "candidates" / f"{session_id}.json"),
+            "curated_artifact": str(runtime_root / "curated" / f"{session_id}.json"),
+            "summary_artifact": str(runtime_root / "summaries" / f"{session_id}.json"),
+            "verdict_artifact": str(runtime_root / "verdicts" / f"{session_id}.json"),
+            "trace_artifact": str(runtime_root / "traces" / f"{session_id}.json"),
+            "runtime_phase_summary_artifact": str(
+                project_root / "artifacts" / "governance" / "runtime_phase_summary.json"
+            ),
+            "phase_classification": {},
+            "daily_memory_path": None,
+            "daily_memory_write_expected": False,
+            "daily_memory_write_attempted": False,
+            "daily_memory_write_status": "skipped",
+            "daily_memory_record_identity": None,
+            "daily_memory_writer": MEMORY_WRITER_ID,
+            "daily_memory_write_error": None,
+            "canonical_closeout_artifact": str(canonical_path),
+            "claim_enforcement_check_artifact": None,
+            "ledger_write_status": {
+                "ledger_write_allowed": ledger_write_allowed,
+                "session_index": "not_attempted",
+                "claim_enforcement_receipt": "not_attempted",
+            },
+            "canonical_closeout": canonical_closeout,
+            "decision_context": {},
+            "runtime_completeness": {
+                "session_end_invoked": True,
+                "canonical_closeout_written": False,
+                "claim_binding_written": False,
+                "already_consumed": True,
+            },
+            "session_binding": session_binding,
+            "warnings": ["Session closeout was already consumed; side effects were skipped."],
+            "errors": [],
+        }
+    if enforce_session_binding and not binding_valid:
+        warnings.append(
+            f"Session closeout binding failed closed: status={binding_status}."
+        )
+        observed_closeout_status = (
+            observed_closeout_status or "stale_or_mismatched"
+        )
 
     snapshot_result = None
     curated_result = None
@@ -910,6 +1003,13 @@ def run_session_end(
     daily_memory_write_error: str | None = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
+    if enforce_session_binding and not binding_valid:
+        policy = {
+            **policy,
+            "decision": "DO_NOT_PROMOTE",
+            "reason": f"session_binding_{binding_status}",
+        }
+        decision = "DO_NOT_PROMOTE"
     decision_context = _build_decision_context(project_root, contract["memory_mode"], checks, initial_agent_class)
 
     # ── Governance classification change warnings ─────────────────────────
@@ -933,7 +1033,7 @@ def run_session_end(
             )
 
     memory_root = project_root / "memory"
-    if contract["memory_mode"] != "stateless" and response_text:
+    if binding_valid and contract["memory_mode"] != "stateless" and response_text:
         snapshot_result = create_session_snapshot(
             memory_root=memory_root,
             task=contract["task"],
@@ -953,7 +1053,7 @@ def run_session_end(
         proposal_summary=proposal_summary,
     )
 
-    if decision == "AUTO_PROMOTE" and snapshot_result is not None:
+    if binding_valid and decision == "AUTO_PROMOTE" and snapshot_result is not None:
         promotion_result = promote_candidate(
             memory_root=memory_root,
             candidate_file=Path(snapshot_result["snapshot_path"]),
@@ -978,7 +1078,8 @@ def run_session_end(
     # ── Canonical closeout — orchestration layer input collection ─────────────
     # build_canonical_closeout() is a pure function; all IO is collected here
     # by the caller so the function itself remains deterministic and replayable.
-    _closeout_candidate = pick_latest_candidate(session_id, project_root)
+    if enforce_session_binding and not binding_valid:
+        _closeout_candidate = None
     _artifacts_referenced = (_closeout_candidate or {}).get("artifacts_referenced") or []
     # WEAK SIGNAL: existence check only. Proves the path exists on disk; does
     # NOT prove the file was created by this session, that the AI summary is
@@ -1246,6 +1347,7 @@ def run_session_end(
             "claim_enforcement_receipt": claim_receipt_write_status,
         },
         "canonical_closeout": canonical_closeout,
+        "session_binding": session_binding,
         "decision_context": decision_context,
         "runtime_completeness": runtime_completeness if 'runtime_completeness' in locals() else {
             "session_end_invoked": True,

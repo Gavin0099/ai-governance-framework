@@ -66,8 +66,18 @@ obligation**, not a suggestion.
 
 The stop hook always calls `session_end` at session end. If the closeout artifact
 is missing or insufficient, the runtime records `closeout_missing` or
-`closeout_insufficient` in the verdict. Memory will not update. The gap is
-auditable and visible to reviewers.
+`closeout_insufficient` in the verdict and may write a fail-closed canonical
+daily record without promoting invalid content. The gap is auditable and
+visible to reviewers.
+
+Automatic closeout is session-bound. `session_start` creates a session envelope,
+stores its active marker under `artifacts/runtime/.current-session-id`,
+and `session_end` accepts only a candidate stored under the same `session_id`
+and generated no earlier than that envelope. A missing, mismatched, stale, or
+already-consumed candidate is not promoted. The fixed
+`artifacts/session-closeout.txt` path is a legacy/manual input surface and does
+not by itself prove current-session ownership. The runtime does not convert that
+legacy text into a newly session-bound candidate at session end.
 
 ### Required fields
 
