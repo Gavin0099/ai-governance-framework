@@ -1,0 +1,2333 @@
+from __future__ import annotations
+
+import argparse
+import copy
+import hashlib
+import json
+import os
+import re
+import secrets
+import shutil
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import gate3_evidence_chain as chain
+
+
+HERE = Path(__file__).resolve().parent
+EXPERIMENT_ROOT = HERE.parent
+DEFAULT_CONTRACT = EXPERIMENT_ROOT / "candidate/gate3-protocol-contract-v1.json"
+DEFAULT_HARNESS_CONTRACT = (
+    EXPERIMENT_ROOT / "candidate/gate3-harness-contract-v1.json"
+)
+DEFAULT_CANDIDATE_MANIFEST = (
+    EXPERIMENT_ROOT
+    / "candidate/gate3-preregistration-amendment-v1-candidate-manifest.json"
+)
+DEFAULT_SKILL_PACKET = EXPERIMENT_ROOT / "skill-packet-bugfix.md"
+DEFAULT_SESSION_LAUNCHER = HERE / "gate3_codex_session_launcher.ps1"
+DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
+
+SUMMARY_SCHEMA = "gate3-codex-live-canary.v3"
+ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v3"
+ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
+CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v1"
+BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
+AUTHORIZATION = "non_counted_codex_live_canary_only"
+REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
+EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
+    "51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801"
+)
+DEFAULT_MODEL = "gpt-5.6-luna"
+DEFAULT_COMP_HASH = "3000"
+DEFAULT_CLI_VERSION = "0.146.0"
+DEFAULT_REASONING = "low"
+DEFAULT_PROVIDER = "openai"
+DEFAULT_TIMEZONE = "Asia/Taipei"
+PUBLIC_CONTEXT_TOKENS = {"A": "WORKSPACE_A", "B": "WORKSPACE_B"}
+GENERIC_CONTEXT_TOKEN = "WORKSPACE"
+SANITIZER_SCHEMA = "gate3-codex-public-evidence-sanitizer.v3"
+SANITIZER_RULES = {
+    "canonical_jsonl": True,
+    "mapping_keys": "redacted_fail_closed_on_collision",
+    "replacements": [
+        "exact_workspace_to_arm_token",
+        "windows_user_path_to_LOCAL_USER_PATH",
+        "windows_sid_to_WINDOWS_SID",
+        "desktop_hostname_to_LOCAL_HOST",
+        "all_windows_absolute_path_forms_to_LOCAL_ABSOLUTE_PATH",
+    ],
+    "schema": SANITIZER_SCHEMA,
+}
+SHELL_WRAPPER_RE = re.compile(
+    r'^const r = await tools\.shell_command\(\{command:'
+    r'(?P<command>"(?:\\.|[^"\\])*"),workdir:'
+    r'(?P<workdir>"(?:\\.|[^"\\])*")\}\); text\(r\)\r?\n?$'
+)
+PATCH_WRAPPER_RE = re.compile(
+    r'^const patch = (?P<patch>"(?:\\.|[^"\\])*");\r?\n'
+    r'text\(await tools\.apply_patch\(patch\)\);\r?\n?$'
+)
+WINDOWS_USER_PATH_RE = re.compile(
+    r"(?i)[A-Z]:[\\/]+Users[\\/]+[^\\/\s\"'()<>{}\[\]]+"
+    r"(?:[\\/]+[^\\/\s\"'()<>{}\[\]]+)*"
+)
+WINDOWS_SID_RE = re.compile(r"S-\d(?:-\d+){2,}")
+DESKTOP_HOST_RE = re.compile(r"(?i)\bDESKTOP-[A-Z0-9]+\b")
+WINDOWS_PATH_COMPONENT = r"[^\\/\s\"'()<>{}\[\],]+"
+WINDOWS_ABSOLUTE_PATH_RE = re.compile(
+    rf"""
+    (?:
+        # Extended UNC: \\?\UNC\server\share or its JSON-escaped form.
+        (?<![:A-Z0-9_])
+        [\\/]{{2,}}\?[\\/]+UNC[\\/]+
+        {WINDOWS_PATH_COMPONENT}[\\/]+{WINDOWS_PATH_COMPONENT}
+        (?:[\\/]+{WINDOWS_PATH_COMPONENT})*
+      |
+        # Extended drive path: \\?\C:\path, including the drive root.
+        (?<![:A-Z0-9_])
+        [\\/]{{2,}}\?[\\/]+[A-Z]:[\\/]+
+        (?:{WINDOWS_PATH_COMPONENT}
+        (?:[\\/]+{WINDOWS_PATH_COMPONENT})*)?
+      |
+        # Conventional UNC: \\server\share, excluding URL-style // after ':'.
+        (?<![:A-Z0-9_])
+        [\\/]{{2,}}(?![?.][\\/])
+        {WINDOWS_PATH_COMPONENT}[\\/]+{WINDOWS_PATH_COMPONENT}
+        (?:[\\/]+{WINDOWS_PATH_COMPONENT})*
+      |
+        # Drive-qualified path, including a bare drive root such as C:\.
+        (?<![A-Z0-9_])
+        [A-Z]:[\\/]+
+        (?:{WINDOWS_PATH_COMPONENT}
+        (?:[\\/]+{WINDOWS_PATH_COMPONENT})*)?
+    )
+    """,
+    flags=re.IGNORECASE | re.VERBOSE,
+)
+SHELL_META_RE = re.compile(
+    r"(?:;|&&|\|\||[|<>]|\r|\n|`|\$|%[A-Z_][A-Z0-9_]*%)",
+    flags=re.IGNORECASE,
+)
+COMMAND_RULES = (
+    (
+        "git_rev_parse",
+        re.compile(r"git rev-parse HEAD(?:\^)?", flags=re.IGNORECASE),
+    ),
+    (
+        "git_rev_list_parents",
+        re.compile(
+            r"git rev-list --parents -n 1 HEAD",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "git_status",
+        re.compile(
+            r"git status --porcelain=v1 --untracked-files=all",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "git_diff_check",
+        re.compile(r"git diff --check", flags=re.IGNORECASE),
+    ),
+    (
+        "git_diff_scoped",
+        re.compile(
+            r"git diff -- (?:calc\.py|test_calc\.py)"
+            r"(?: (?:calc\.py|test_calc\.py))?",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "git_add_scoped",
+        re.compile(r"git add calc\.py", flags=re.IGNORECASE),
+    ),
+    (
+        "git_commit",
+        re.compile(
+            r'git commit -m "[A-Z0-9][A-Z0-9 _.,:()+/\-]{0,119}"',
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "baseline_test",
+        re.compile(r"python -B test_calc\.py", flags=re.IGNORECASE),
+    ),
+    (
+        "directory_read",
+        re.compile(r"Get-ChildItem -Force", flags=re.IGNORECASE),
+    ),
+    (
+        "file_read",
+        re.compile(
+            r"Get-Content (?:calc\.py|test_calc\.py)",
+            flags=re.IGNORECASE,
+        ),
+    ),
+    (
+        "file_inventory",
+        re.compile(r"rg --files", flags=re.IGNORECASE),
+    ),
+)
+CONTEXT_META_EXPECTED = {
+    "history_mode": "legacy",
+    "model_provider": DEFAULT_PROVIDER,
+    "originator": "Codex Desktop",
+    "source": "exec",
+    "thread_source": "user",
+}
+CONTEXT_TURN_EXPECTED = {
+    "approval_policy": "never",
+    "approvals_reviewer": "user",
+    "multi_agent_version": "v1",
+    "permission_profile": {"type": "disabled"},
+    "personality": "pragmatic",
+    "realtime_active": False,
+    "sandbox_policy": {"type": "danger-full-access"},
+    "summary": "auto",
+    "timezone": DEFAULT_TIMEZONE,
+}
+ANON_MAPPING = {
+    "OUT-111111111111": "A",
+    "OUT-222222222222": "B",
+}
+COMMIT_ENV = {
+    "GIT_AUTHOR_DATE": "2000-01-01T00:00:00+00:00",
+    "GIT_COMMITTER_DATE": "2000-01-01T00:00:00+00:00",
+}
+REGRESSION_SNIPPET = (
+    "from calc import add; "
+    "raise SystemExit(0 if add(2, 3) == 5 else 1)"
+)
+TASK_PACKET = b"Repair add() and preserve the regression test.\n"
+BASELINE_INSTRUCTION = b"Start from the planted subtraction defect.\n"
+NO_SKILL_PACKET = (
+    b"No Bug Fix Skill treatment packet is supplied for treatment A.\n"
+)
+NO_GOVERNANCE_PACKET = (
+    b"No additional governance treatment packet is supplied.\n"
+)
+VALIDATOR_BUNDLE = b"def validate():\n    return True\n"
+VALIDATOR_CONFIG = b'{"feedback_available":false,"mode":"live_canary"}\n'
+PERMISSIONS = (
+    b'{"approval":"explicit_operator_authorization_for_two_non_counted_sessions",'
+    b'"network_confinement":"not_technically_enforced; forbidden_by_prompt",'
+    b'"sandbox":"operator_authorized_danger_full_access",'
+    b'"scope_confinement":"intended_by_frozen_prompt; verified_from_retained_tool_inputs"}\n'
+)
+BUDGET = b'{"tool_calls":40,"wall_clock_seconds":900}\n'
+SCORER_RUBRIC = (
+    b"Mechanical canary scorer: verify completion fields only; do not rank arms.\n"
+)
+
+
+class CanaryError(ValueError):
+    pass
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def _json_bytes(value: object) -> bytes:
+    return chain._json_bytes(value)
+
+
+def _jsonl_bytes(values: list[dict[str, Any]]) -> bytes:
+    return b"".join(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        + b"\n"
+        for value in values
+    )
+
+
+def _sanitizer_rules_sha256() -> str:
+    return _sha256_bytes(_json_bytes(SANITIZER_RULES))
+
+
+def _path_text(value: object) -> str:
+    if isinstance(value, os.PathLike):
+        value = os.fspath(value)
+    if not isinstance(value, str) or not value:
+        raise CanaryError("context path is absent")
+    return value.replace("/", "\\").rstrip("\\").casefold()
+
+
+def _same_path(left: object, right: object) -> bool:
+    return _path_text(left) == _path_text(right)
+
+
+def _replace_workspace_text(
+    text: str,
+    workspace: str | os.PathLike[str],
+    replacement: str,
+) -> str:
+    workspace = os.fspath(workspace)
+    variants = {
+        workspace,
+        workspace.replace("\\", "\\\\"),
+        workspace.replace("\\", "/"),
+        workspace.replace("/", "\\"),
+        workspace.replace("/", "\\\\"),
+    }
+    result = text
+    for candidate in sorted(variants, key=len, reverse=True):
+        result = re.sub(
+            re.escape(candidate),
+            lambda _: replacement,
+            result,
+            flags=re.IGNORECASE,
+        )
+    return result
+
+
+def _sanitize_text(text: str, workspace: str, context_token: str) -> str:
+    result = _replace_workspace_text(text, workspace, context_token)
+    result = WINDOWS_USER_PATH_RE.sub("<LOCAL_USER_PATH>", result)
+    result = WINDOWS_SID_RE.sub("<WINDOWS_SID>", result)
+    result = DESKTOP_HOST_RE.sub("<LOCAL_HOST>", result)
+    result = WINDOWS_ABSOLUTE_PATH_RE.sub("<LOCAL_ABSOLUTE_PATH>", result)
+    return result
+
+
+def _map_strings(value: Any, transform) -> Any:
+    if isinstance(value, str):
+        return transform(value)
+    if isinstance(value, list):
+        return [_map_strings(item, transform) for item in value]
+    if isinstance(value, dict):
+        mapped: dict[Any, Any] = {}
+        for key, item in value.items():
+            mapped_key = transform(key) if isinstance(key, str) else key
+            if mapped_key in mapped:
+                raise CanaryError("sanitizer redaction created a mapping-key collision")
+            mapped[mapped_key] = _map_strings(item, transform)
+        return mapped
+    return value
+
+
+def sanitize_jsonl(
+    path: Path,
+    *,
+    workspace: str,
+    context_token: str,
+) -> bytes:
+    records = _load_jsonl(path, label="source evidence")
+    sanitized = [
+        _map_strings(
+            record,
+            lambda text: _sanitize_text(text, workspace, context_token),
+        )
+        for record in records
+    ]
+    return _jsonl_bytes(sanitized)
+
+
+def _string_surfaces(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [
+            surface
+            for item in value
+            for surface in _string_surfaces(item)
+        ]
+    if isinstance(value, dict):
+        surfaces: list[str] = []
+        for key, item in value.items():
+            if isinstance(key, str):
+                surfaces.append(key)
+            surfaces.extend(_string_surfaces(item))
+        return surfaces
+    return []
+
+
+def _privacy_surfaces(payload: bytes) -> list[str]:
+    text = payload.decode("utf-8", errors="ignore")
+    try:
+        return _string_surfaces(json.loads(text))
+    except json.JSONDecodeError:
+        pass
+    lines = [line for line in text.splitlines() if line.strip()]
+    if lines:
+        try:
+            records = [json.loads(line) for line in lines]
+        except json.JSONDecodeError:
+            pass
+        else:
+            return [
+                surface
+                for record in records
+                for surface in _string_surfaces(record)
+            ]
+    return [text]
+
+
+def _privacy_violations(payload: bytes) -> list[str]:
+    surfaces = _privacy_surfaces(payload)
+    checks = {
+        "desktop_hostname": DESKTOP_HOST_RE,
+        "windows_absolute_path": WINDOWS_ABSOLUTE_PATH_RE,
+        "windows_sid": WINDOWS_SID_RE,
+        "windows_user_path": WINDOWS_USER_PATH_RE,
+    }
+    return sorted(
+        name
+        for name, pattern in checks.items()
+        if any(pattern.search(surface) for surface in surfaces)
+    )
+
+
+def verify_public_privacy(root: Path) -> int:
+    violations: list[str] = []
+    files = [path for path in root.rglob("*") if path.is_file()]
+    for path in files:
+        found = _privacy_violations(path.read_bytes())
+        if found:
+            violations.append(
+                f"{_relative(path, root)}:{','.join(found)}"
+            )
+    if violations:
+        raise CanaryError(
+            "public evidence contains private host identifiers: "
+            + "; ".join(violations)
+        )
+    return len(files)
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    return chain._load_json(path)
+
+
+def _load_jsonl(path: Path, *, label: str) -> list[dict[str, Any]]:
+    raw = path.read_bytes()
+    if not raw or not raw.endswith(b"\n"):
+        raise CanaryError(f"{label} must be non-empty newline-terminated JSONL")
+    records: list[dict[str, Any]] = []
+    for index, line in enumerate(raw.splitlines(), 1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise CanaryError(f"{label} line {index} is invalid JSON") from exc
+        if not isinstance(value, dict):
+            raise CanaryError(f"{label} line {index} is not an object")
+        records.append(value)
+    return records
+
+
+def _write_json(path: Path, value: object) -> None:
+    chain._atomic_write(path, _json_bytes(value))
+
+
+def _run(
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[bytes]:
+    process_env = os.environ.copy()
+    if env:
+        process_env.update(env)
+    completed = subprocess.run(
+        command,
+        cwd=cwd,
+        env=process_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if check and completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise CanaryError(
+            f"command failed ({completed.returncode}): "
+            f"{' '.join(command)}: {detail}"
+        )
+    return completed
+
+
+def _git(
+    repo: Path,
+    *args: str,
+    env: dict[str, str] | None = None,
+) -> bytes:
+    return _run(
+        ["git", "-c", f"safe.directory={repo.resolve().as_posix()}", *args],
+        cwd=repo,
+        env=env,
+    ).stdout
+
+
+def _implementation_identity(
+    repo_root: Path,
+    *,
+    commit: str | None = None,
+    require_clean: bool = False,
+) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    if require_clean and _git(
+        repo_root,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+    ):
+        raise CanaryError("implementation repository is not clean")
+    resolved_commit = (
+        commit
+        or _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip()
+    )
+    if not isinstance(resolved_commit, str) or not re.fullmatch(
+        r"[0-9a-f]{40}", resolved_commit
+    ):
+        raise CanaryError("implementation commit identity is invalid")
+    paths = (Path(__file__).resolve(), DEFAULT_SESSION_LAUNCHER, DEFAULT_TESTS)
+    files: dict[str, str] = {}
+    for path in paths:
+        relative = path.resolve().relative_to(repo_root).as_posix()
+        committed = _git(repo_root, "show", f"{resolved_commit}:{relative}")
+        current = path.read_bytes()
+        if committed != current:
+            raise CanaryError(
+                f"implementation path differs from commit {resolved_commit}: "
+                f"{relative}"
+            )
+        files[relative] = _sha256_bytes(committed)
+    return {
+        "commit": resolved_commit,
+        "files": files,
+    }
+
+
+@contextmanager
+def _git_safe_directories(repos: list[Path]):
+    keys = ["GIT_CONFIG_COUNT"]
+    prior_count = os.environ.get("GIT_CONFIG_COUNT")
+    try:
+        base = int(prior_count or "0")
+    except ValueError as exc:
+        raise CanaryError("GIT_CONFIG_COUNT is not an integer") from exc
+    for offset, repo in enumerate(repos):
+        index = base + offset
+        keys.extend(
+            [f"GIT_CONFIG_KEY_{index}", f"GIT_CONFIG_VALUE_{index}"]
+        )
+    prior = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ["GIT_CONFIG_COUNT"] = str(base + len(repos))
+        for offset, repo in enumerate(repos):
+            index = base + offset
+            os.environ[f"GIT_CONFIG_KEY_{index}"] = "safe.directory"
+            os.environ[f"GIT_CONFIG_VALUE_{index}"] = (
+                repo.resolve().as_posix()
+            )
+        yield
+    finally:
+        for key, value in prior.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+def _relative(path: Path, root: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as exc:
+        raise CanaryError(f"artifact escapes evidence root: {path}") from exc
+
+
+def _source(relative: object, root: Path) -> Path:
+    if not isinstance(relative, str) or not relative:
+        raise CanaryError("artifact path is absent")
+    path = root.joinpath(*Path(relative).parts)
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError as exc:
+        raise CanaryError("artifact path escapes evidence root") from exc
+    if not path.is_file():
+        raise CanaryError(f"artifact is missing: {relative}")
+    return path
+
+
+def _retain(root: Path, relative: str, payload: bytes) -> dict[str, str]:
+    path = root.joinpath(*relative.split("/"))
+    chain._atomic_write(path, payload)
+    return {"path": _relative(path, root), "sha256": _sha256_bytes(payload)}
+
+
+def _artifact_entry(path: Path, root: Path) -> dict[str, Any]:
+    raw = path.read_bytes()
+    return {
+        "bytes": len(raw),
+        "path": _relative(path, root),
+        "sha256": _sha256_bytes(raw),
+    }
+
+
+def _inventory(root: Path) -> list[dict[str, Any]]:
+    summary = root / "canary-summary.json"
+    paths = [
+        path
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and path != summary
+    ]
+    if any(path.is_symlink() for path in paths):
+        raise CanaryError("evidence inventory may not contain symlinks")
+    return [_artifact_entry(path, root) for path in paths]
+
+
+def _create_baseline_repo(work_root: Path) -> tuple[Path, str]:
+    repo = work_root / "base"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "core.autocrlf", "false")
+    _git(repo, "config", "user.email", "gate3-canary@example.invalid")
+    _git(repo, "config", "user.name", "Gate3 Canary")
+    (repo / "calc.py").write_bytes(b"def add(a, b):\n    return a - b\n")
+    (repo / "test_calc.py").write_bytes(
+        b"import unittest\n"
+        b"from calc import add\n\n"
+        b"class CalcTests(unittest.TestCase):\n"
+        b"    def test_add(self):\n"
+        b"        self.assertEqual(add(2, 3), 5)\n\n"
+        b"if __name__ == '__main__':\n"
+        b"    unittest.main()\n"
+    )
+    _git(repo, "add", "calc.py", "test_calc.py")
+    _git(repo, "commit", "-q", "-m", "live canary baseline", env=COMMIT_ENV)
+    return repo, _git(repo, "rev-parse", "HEAD").decode("ascii").strip()
+
+
+def _prompt(
+    *,
+    treatment: str,
+    baseline_commit: str,
+    skill_packet: bytes,
+) -> bytes:
+    treatment_text = (
+        NO_SKILL_PACKET.decode("utf-8")
+        if treatment == "A"
+        else skill_packet.decode("utf-8")
+    )
+    text = f"""This is a non-counted Gate 3 producer-route canary. It is not a formal Gate 3 run and must not be represented as one.
+
+Work only in this fresh context. Do not delegate or create sub-agents. Do not use web search, network access, MCP tools, or read any path outside this workspace.
+
+Tool-shape constraints:
+- The current workspace is already a fresh isolated repository at the supplied baseline commit. Do not create a nested work directory or reinitialize git.
+- Use `apply_patch` for every file creation or edit.
+- Run every git or test command as its own simple tool call.
+- Do not use inline PowerShell scripts, `New-Item`, `WriteAllText`, `Set-Content`, command chaining, or shell redirection.
+- A semicolon, `&&`, `||`, pipe, or redirection in any shell command makes this canary invalid. In particular, run `git add calc.py` and `git commit -m "..."` as two separate tool calls.
+- Shell commands are limited to these exact forms: `git rev-parse HEAD`, `git rev-parse HEAD^`, `git rev-list --parents -n 1 HEAD`, `git status --porcelain=v1 --untracked-files=all`, `git diff --check`, `git diff -- calc.py`, `git diff -- calc.py test_calc.py`, `git add calc.py`, `git commit -m "MESSAGE"`, `python -B test_calc.py`, `Get-ChildItem -Force`, `Get-Content calc.py`, `Get-Content test_calc.py`, and `rg --files`.
+- Do not use `..`, environment-variable paths, `git -C`, network Git commands, global Git configuration, destructive Git commands, or any other Python command.
+
+Before editing:
+1. Confirm `git rev-parse HEAD` is exactly `{baseline_commit}`.
+2. Confirm `git status --porcelain=v1 --untracked-files=all` is empty.
+If either check differs, stop without editing.
+
+Task:
+Repair add() and preserve the regression test. The baseline test is `python -B test_calc.py` and must fail before the fix and pass after the fix.
+
+Treatment packet:
+{treatment_text.rstrip()}
+
+Completion requirements:
+- Make the minimal task change.
+- Run the baseline test before editing and again after the fix.
+- Commit the completed change as exactly one child commit of the supplied baseline.
+- Leave the work repository clean with no untracked files.
+- In the final response, report the baseline commit, output commit, exact test command, exit code, and whether the worktree is clean.
+"""
+    return text.encode("utf-8")
+
+
+def _validate_candidate(repo_root: Path) -> int:
+    manifest = repo_root / DEFAULT_CANDIDATE_MANIFEST.relative_to(
+        EXPERIMENT_ROOT.parents[2]
+    )
+    if _sha256_file(manifest) != EXPECTED_CANDIDATE_MANIFEST_SHA256:
+        raise CanaryError("candidate manifest is not the merged reviewed identity")
+    result = chain.verify_candidate(repo_root, manifest)
+    if result["status"] != "PASS":
+        raise CanaryError("candidate verification did not pass")
+    return len(result["checks"])
+
+
+def prepare(
+    repo_root: Path,
+    staging_root: Path,
+    *,
+    run_id: str,
+    model: str,
+    comp_hash: str,
+    cli_version: str,
+    reasoning: str,
+) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    staging_root = staging_root.resolve()
+    if (
+        model,
+        comp_hash,
+        cli_version,
+        reasoning,
+    ) != (
+        DEFAULT_MODEL,
+        DEFAULT_COMP_HASH,
+        DEFAULT_CLI_VERSION,
+        DEFAULT_REASONING,
+    ):
+        raise CanaryError("prepare arguments differ from the frozen Codex route")
+    if staging_root.exists():
+        raise CanaryError(f"staging root already exists: {staging_root}")
+    candidate_checks = _validate_candidate(repo_root)
+    implementation = _implementation_identity(repo_root, require_clean=True)
+    staging_root.mkdir(parents=True)
+    try:
+        with tempfile.TemporaryDirectory(prefix="gate3-live-baseline-") as temp:
+            base_repo, baseline_commit = _create_baseline_repo(Path(temp))
+            bundle = staging_root / "inputs" / "baseline.bundle"
+            bundle.parent.mkdir(parents=True)
+            _git(base_repo, "bundle", "create", str(bundle), "--all")
+        skill_packet = (
+            repo_root
+            / DEFAULT_SKILL_PACKET.relative_to(EXPERIMENT_ROOT.parents[2])
+        ).read_bytes()
+        common = {
+            "baseline_instruction_sha256": _retain(
+                staging_root,
+                "inputs/baseline-instruction.txt",
+                BASELINE_INSTRUCTION,
+            ),
+            "task_packet_sha256": _retain(
+                staging_root, "inputs/task-packet.txt", TASK_PACKET
+            ),
+            "permissions_sha256": _retain(
+                staging_root, "inputs/permissions.json", PERMISSIONS
+            ),
+            "budget_sha256": _retain(
+                staging_root, "inputs/budget.json", BUDGET
+            ),
+            "harness_contract_sha256": _retain(
+                staging_root,
+                "inputs/gate3-harness-contract-v1.json",
+                (
+                    repo_root
+                    / DEFAULT_HARNESS_CONTRACT.relative_to(
+                        EXPERIMENT_ROOT.parents[2]
+                    )
+                ).read_bytes(),
+            ),
+            "scorer_rubric_sha256": _retain(
+                staging_root, "inputs/scorer-rubric.txt", SCORER_RUBRIC
+            ),
+        }
+        treatment_inputs: dict[str, dict[str, dict[str, str]]] = {}
+        for treatment in ("A", "B"):
+            lower = treatment.lower()
+            treatment_inputs[treatment] = {
+                "treatment_packet_sha256": _retain(
+                    staging_root,
+                    f"inputs/treatment-{lower}.txt",
+                    NO_SKILL_PACKET if treatment == "A" else skill_packet,
+                ),
+                "governance_instruction_sha256": _retain(
+                    staging_root,
+                    f"inputs/governance-{lower}.txt",
+                    NO_GOVERNANCE_PACKET,
+                ),
+                "validator_bundle_sha256": _retain(
+                    staging_root,
+                    f"inputs/validator-{lower}.py",
+                    VALIDATOR_BUNDLE,
+                ),
+                "validator_config_sha256": _retain(
+                    staging_root,
+                    f"inputs/validator-{lower}.json",
+                    VALIDATOR_CONFIG,
+                ),
+            }
+            prompt = _prompt(
+                treatment=treatment,
+                baseline_commit=baseline_commit,
+                skill_packet=skill_packet,
+            )
+            _retain(
+                staging_root,
+                f"inputs/producer-prompt-{lower}.txt",
+                prompt,
+            )
+        plan = {
+            "authorization": AUTHORIZATION,
+            "baseline_bundle_sha256": _sha256_file(bundle),
+            "baseline_commit": baseline_commit,
+            "candidate_manifest_sha256": EXPECTED_CANDIDATE_MANIFEST_SHA256,
+            "candidate_verification_checks": candidate_checks,
+            "common_inputs": common,
+            "context_contract": {
+                "current_date": datetime.now().date().isoformat(),
+                "meta": CONTEXT_META_EXPECTED,
+                "provider": DEFAULT_PROVIDER,
+                "public_context_tokens": PUBLIC_CONTEXT_TOKENS,
+                "turn": CONTEXT_TURN_EXPECTED,
+            },
+            "frozen_route": {
+                "cli_version": cli_version,
+                "comp_hash": comp_hash,
+                "launcher_implementation_sha256": _sha256_file(
+                    DEFAULT_SESSION_LAUNCHER
+                ),
+                "model": model,
+                "model_build": (
+                    f"codex:{model}:comp_hash={comp_hash}:cli={cli_version}"
+                ),
+                "reasoning": reasoning,
+            },
+            "implementation": implementation,
+            "privacy": {
+                "public_evidence_only": True,
+                "raw_evidence_retained_in_git": False,
+                "sanitizer_rules_sha256": _sanitizer_rules_sha256(),
+                "sanitizer_schema": SANITIZER_SCHEMA,
+            },
+            "prompts": {
+                treatment: {
+                    "path": f"inputs/producer-prompt-{treatment.lower()}.txt",
+                    "sha256": _sha256_file(
+                        staging_root
+                        / "inputs"
+                        / f"producer-prompt-{treatment.lower()}.txt"
+                    ),
+                }
+                for treatment in ("A", "B")
+            },
+            "rehearsal_kind": REHEARSAL_KIND,
+            "run_id": run_id,
+            "schema": ROUTE_PLAN_SCHEMA,
+            "treatment_inputs": treatment_inputs,
+        }
+        _write_json(staging_root / "route-plan.json", plan)
+        return plan
+    except BaseException:
+        shutil.rmtree(staging_root, ignore_errors=True)
+        raise
+
+
+def _message_text(payload: dict[str, Any]) -> str | None:
+    if payload.get("type") != "message" or payload.get("role") != "user":
+        return None
+    content = payload.get("content")
+    if not isinstance(content, list):
+        return None
+    parts: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") in {"input_text", "text"}:
+            value = item.get("text")
+            if isinstance(value, str):
+                parts.append(value)
+    return "".join(parts) if parts else None
+
+
+def _extract_machine_context(text: str) -> dict[str, Any] | None:
+    matches = re.findall(
+        r"<environment_context>.*?</environment_context>",
+        text,
+        flags=re.DOTALL,
+    )
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise CanaryError("machine context envelope count is invalid")
+    try:
+        root = ET.fromstring(matches[0])
+    except ET.ParseError as exc:
+        raise CanaryError("machine context envelope is invalid XML") from exc
+    workspace_roots = [
+        item.text or ""
+        for item in root.findall("./filesystem/workspace_roots/root")
+    ]
+    permission = root.find("./filesystem/permission_profile")
+    file_system = (
+        permission.find("./file_system") if permission is not None else None
+    )
+    return {
+        "current_date": root.findtext("current_date"),
+        "cwd": root.findtext("cwd"),
+        "file_system_type": (
+            file_system.attrib.get("type") if file_system is not None else None
+        ),
+        "permission_profile_type": (
+            permission.attrib.get("type") if permission is not None else None
+        ),
+        "shell": root.findtext("shell"),
+        "timezone": root.findtext("timezone"),
+        "workspace_roots": workspace_roots,
+    }
+
+
+def _normalised_context_view(
+    value: Any,
+    *,
+    expected_workspace: str,
+) -> Any:
+    return _map_strings(
+        value,
+        lambda text: _replace_workspace_text(
+            text, expected_workspace, GENERIC_CONTEXT_TOKEN
+        ),
+    )
+
+
+def _instruction_text(payload: dict[str, Any]) -> str:
+    content = payload.get("content")
+    if not isinstance(content, list):
+        raise CanaryError("instruction message content is invalid")
+    parts = [
+        str(item.get("text"))
+        for item in content
+        if isinstance(item, dict)
+        and item.get("type") in {"input_text", "text"}
+        and isinstance(item.get("text"), str)
+    ]
+    if not parts:
+        raise CanaryError("instruction message has no text")
+    return "".join(parts)
+
+
+def _decode_js_string(value: str, *, label: str) -> str:
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise CanaryError(f"{label} is not a JSON string") from exc
+    if not isinstance(decoded, str):
+        raise CanaryError(f"{label} is not text")
+    return decoded
+
+
+def _validate_shell_command(
+    command: str,
+    *,
+    workdir: str,
+    expected_workspace: str,
+) -> dict[str, Any]:
+    if not _same_path(workdir, expected_workspace):
+        raise CanaryError("tool workdir differs from frozen workspace")
+    if command != command.strip():
+        raise CanaryError("shell command is not in canonical form")
+    if SHELL_META_RE.search(command):
+        raise CanaryError("shell command violates the simple-command contract")
+    matched_rule = next(
+        (
+            rule_name
+            for rule_name, pattern in COMMAND_RULES
+            if pattern.fullmatch(command)
+        ),
+        None,
+    )
+    if matched_rule is None:
+        raise CanaryError(
+            "shell command differs from every frozen per-command grammar"
+        )
+    return {
+        "command": command,
+        "kind": "shell_command",
+        "rule": matched_rule,
+        "workdir": workdir,
+    }
+
+
+def _patch_target_is_allowed(target: str, expected_workspace: str) -> bool:
+    collapsed = re.sub(r"\\+", r"\\", target.strip())
+    candidate_text = _path_text(collapsed)
+    workspace_text = _path_text(expected_workspace)
+    workspace_prefix = workspace_text + "\\"
+    if candidate_text.startswith(workspace_prefix):
+        candidate_text = candidate_text[len(workspace_prefix) :]
+    elif Path(collapsed).is_absolute():
+        return False
+    return candidate_text in {"calc.py", "test_calc.py"}
+
+
+def _validate_patch(patch: str, *, expected_workspace: str) -> dict[str, Any]:
+    targets = [
+        match.group(1)
+        for match in re.finditer(
+            r"^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+)$",
+            patch,
+            flags=re.MULTILINE,
+        )
+    ]
+    if not targets or not all(
+        _patch_target_is_allowed(target, expected_workspace)
+        for target in targets
+    ):
+        raise CanaryError("apply_patch target escapes the frozen task scope")
+    return {
+        "kind": "apply_patch",
+        "patch_sha256": _sha256_bytes(patch.encode("utf-8")),
+        "targets": targets,
+    }
+
+
+def _parse_tool_call(
+    payload: dict[str, Any],
+    *,
+    expected_workspace: str,
+) -> dict[str, Any]:
+    if payload.get("type") != "custom_tool_call" or payload.get("name") != "exec":
+        raise CanaryError("rollout used a tool outside the frozen route")
+    source = payload.get("input")
+    if not isinstance(source, str):
+        raise CanaryError("tool input is absent")
+    shell_match = SHELL_WRAPPER_RE.fullmatch(source)
+    patch_match = PATCH_WRAPPER_RE.fullmatch(source)
+    if shell_match:
+        detail = _validate_shell_command(
+            _decode_js_string(shell_match.group("command"), label="command"),
+            workdir=_decode_js_string(
+                shell_match.group("workdir"), label="workdir"
+            ),
+            expected_workspace=expected_workspace,
+        )
+    elif patch_match:
+        detail = _validate_patch(
+            _decode_js_string(patch_match.group("patch"), label="patch"),
+            expected_workspace=expected_workspace,
+        )
+    else:
+        raise CanaryError("tool input wrapper differs from the frozen route")
+    return {
+        "call_id": payload.get("call_id"),
+        "input_sha256": _sha256_bytes(source.encode("utf-8")),
+        "name": payload.get("name"),
+        "type": payload.get("type"),
+        **detail,
+    }
+
+
+def parse_rollout(
+    path: Path,
+    *,
+    expected_prompt: bytes,
+    expected_model: str,
+    expected_comp_hash: str,
+    expected_cli_version: str,
+    expected_reasoning: str,
+    expected_workspace: str,
+    expected_context_contract: dict[str, Any],
+) -> dict[str, Any]:
+    raw = path.read_bytes()
+    records = _load_jsonl(path, label="rollout")
+    metas = [item["payload"] for item in records if item.get("type") == "session_meta"]
+    if not metas:
+        raise CanaryError("rollout has no session_meta")
+    session_ids = {
+        str(meta.get("id") or meta.get("session_id") or "") for meta in metas
+    }
+    if len(session_ids) != 1 or "" in session_ids:
+        raise CanaryError("rollout session identity is absent or inconsistent")
+    cli_versions = {str(meta.get("cli_version", "")) for meta in metas}
+    if cli_versions != {expected_cli_version}:
+        raise CanaryError(
+            f"rollout CLI build mismatch: {sorted(cli_versions)}"
+        )
+    providers = {str(meta.get("model_provider", "")) for meta in metas}
+    if providers != {expected_context_contract["provider"]}:
+        raise CanaryError("rollout model provider differs from frozen context")
+    for meta in metas:
+        for field, expected in expected_context_contract["meta"].items():
+            if meta.get(field) != expected:
+                raise CanaryError(
+                    f"session context field {field} differs from frozen context"
+                )
+        if not _same_path(meta.get("cwd"), expected_workspace):
+            raise CanaryError("session_meta cwd differs from frozen workspace")
+    contexts = [
+        item["payload"] for item in records if item.get("type") == "turn_context"
+    ]
+    if not contexts:
+        raise CanaryError("rollout has no turn_context")
+    for context in contexts:
+        if context.get("model") != expected_model:
+            raise CanaryError(
+                f"rollout model mismatch: {context.get('model')!r}"
+            )
+        if str(context.get("comp_hash")) != expected_comp_hash:
+            raise CanaryError(
+                f"rollout component hash mismatch: {context.get('comp_hash')!r}"
+            )
+        if context.get("effort") != expected_reasoning:
+            raise CanaryError(
+                f"rollout reasoning mismatch: {context.get('effort')!r}"
+            )
+        if not _same_path(context.get("cwd"), expected_workspace):
+            raise CanaryError("turn_context cwd differs from frozen workspace")
+        roots = context.get("workspace_roots")
+        if (
+            not isinstance(roots, list)
+            or len(roots) != 1
+            or not _same_path(roots[0], expected_workspace)
+        ):
+            raise CanaryError(
+                "turn_context workspace roots differ from frozen workspace"
+            )
+        for field, expected in expected_context_contract["turn"].items():
+            if context.get(field) != expected:
+                raise CanaryError(
+                    f"turn context field {field} differs from frozen context"
+                )
+        if context.get("current_date") != expected_context_contract["current_date"]:
+            raise CanaryError("turn context date differs from frozen context")
+        collaboration = context.get("collaboration_mode")
+        expected_collaboration = {
+            "mode": "default",
+            "settings": {
+                "developer_instructions": None,
+                "model": expected_model,
+                "reasoning_effort": expected_reasoning,
+            },
+        }
+        if collaboration != expected_collaboration:
+            raise CanaryError("collaboration context differs from frozen context")
+    user_messages = [
+        text
+        for item in records
+        if item.get("type") == "response_item"
+        and isinstance(item.get("payload"), dict)
+        for text in [_message_text(item["payload"])]
+        if text is not None
+    ]
+    prompt_matches = [
+        text for text in user_messages if text.encode("utf-8") == expected_prompt
+    ]
+    machine_contexts = [
+        (text, _extract_machine_context(text))
+        for text in user_messages
+        if _extract_machine_context(text) is not None
+    ]
+    unmatched = [
+        text
+        for text in user_messages
+        if text.encode("utf-8") != expected_prompt
+        and _extract_machine_context(text) is None
+    ]
+    if (
+        len(prompt_matches) != 1
+        or len(machine_contexts) != 1
+        or unmatched
+        or len(user_messages) != len(prompt_matches) + len(machine_contexts)
+    ):
+        raise CanaryError(
+            "fresh context requires one exact task prompt and exactly one "
+            "machine context envelope"
+        )
+    machine = machine_contexts[0][1]
+    if not isinstance(machine, dict):
+        raise CanaryError("machine context is absent")
+    if (
+        not _same_path(machine.get("cwd"), expected_workspace)
+        or machine.get("workspace_roots") is None
+        or len(machine["workspace_roots"]) != 1
+        or not _same_path(machine["workspace_roots"][0], expected_workspace)
+        or machine.get("current_date") != expected_context_contract["current_date"]
+        or machine.get("timezone") != DEFAULT_TIMEZONE
+        or machine.get("shell") != "powershell"
+        or machine.get("permission_profile_type") != "disabled"
+        or machine.get("file_system_type") != "unrestricted"
+    ):
+        raise CanaryError("machine context differs from frozen context")
+    expected_prompt_text = expected_prompt.decode("utf-8")
+    event_user_messages = [
+        item.get("payload", {}).get("message")
+        for item in records
+        if item.get("type") == "event_msg"
+        and isinstance(item.get("payload"), dict)
+        and item["payload"].get("type") == "user_message"
+    ]
+    if event_user_messages != [expected_prompt_text]:
+        raise CanaryError("event user message differs from exact task prompt")
+    received_prompt = prompt_matches[0].encode("utf-8")
+    developer_texts = [
+        _instruction_text(item["payload"])
+        for item in records
+        if item.get("type") == "response_item"
+        and isinstance(item.get("payload"), dict)
+        and item["payload"].get("type") == "message"
+        and item["payload"].get("role") == "developer"
+    ]
+    if not developer_texts:
+        raise CanaryError("rollout has no developer instructions")
+    base_instructions = [meta.get("base_instructions") for meta in metas]
+    if any(value is None for value in base_instructions):
+        raise CanaryError("rollout has no base instructions")
+    world_states = [
+        item["payload"]
+        for item in records
+        if item.get("type") == "world_state"
+        and isinstance(item.get("payload"), dict)
+    ]
+    if len(world_states) != 1:
+        raise CanaryError("rollout must contain one world_state")
+    calls: list[dict[str, Any]] = []
+    for item in records:
+        if item.get("type") != "response_item":
+            continue
+        payload = item.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("type") == "tool_search_call":
+            raise CanaryError("rollout used tool search despite the frozen route")
+        if payload.get("type") in {"custom_tool_call", "function_call"}:
+            calls.append(
+                _parse_tool_call(
+                    payload,
+                    expected_workspace=expected_workspace,
+                )
+            )
+    timestamps = [
+        item.get("timestamp")
+        for item in records
+        if isinstance(item.get("timestamp"), str)
+    ]
+    if not timestamps:
+        raise CanaryError("rollout has no timestamps")
+    context_identity = {
+        "base_instructions": _normalised_context_view(
+            base_instructions, expected_workspace=expected_workspace
+        ),
+        "developer_instructions": _normalised_context_view(
+            developer_texts, expected_workspace=expected_workspace
+        ),
+        "machine_context": _normalised_context_view(
+            machine, expected_workspace=expected_workspace
+        ),
+        "session_meta": [
+            _normalised_context_view(
+                {
+                    "cli_version": meta.get("cli_version"),
+                    "cwd": meta.get("cwd"),
+                    **{
+                        field: meta.get(field)
+                        for field in expected_context_contract["meta"]
+                    },
+                },
+                expected_workspace=expected_workspace,
+            )
+            for meta in metas
+        ],
+        "turn_context": [
+            _normalised_context_view(
+                {
+                    field: context.get(field)
+                    for field in (
+                        "approval_policy",
+                        "approvals_reviewer",
+                        "collaboration_mode",
+                        "comp_hash",
+                        "current_date",
+                        "cwd",
+                        "effort",
+                        "model",
+                        "multi_agent_version",
+                        "permission_profile",
+                        "personality",
+                        "realtime_active",
+                        "sandbox_policy",
+                        "summary",
+                        "timezone",
+                        "workspace_roots",
+                    )
+                },
+                expected_workspace=expected_workspace,
+            )
+            for context in contexts
+        ],
+        "world_state": _normalised_context_view(
+            world_states, expected_workspace=expected_workspace
+        ),
+    }
+    return {
+        "base_instructions_sha256": _sha256_bytes(
+            _json_bytes(context_identity["base_instructions"])
+        ),
+        "cli_version": expected_cli_version,
+        "comp_hash": expected_comp_hash,
+        "context_identity_sha256": _sha256_bytes(_json_bytes(context_identity)),
+        "developer_instructions_sha256": _sha256_bytes(
+            _json_bytes(context_identity["developer_instructions"])
+        ),
+        "finished_at": timestamps[-1],
+        "history_modes": sorted(
+            {json.dumps(meta.get("history_mode"), sort_keys=True) for meta in metas}
+        ),
+        "model": expected_model,
+        "machine_context_count": len(machine_contexts),
+        "model_provider": next(iter(providers)),
+        "permission_fingerprint": {
+            field: contexts[0].get(field)
+            for field in (
+                "approval_policy",
+                "approvals_reviewer",
+                "permission_profile",
+                "sandbox_policy",
+            )
+        },
+        "prompt_bytes": len(received_prompt),
+        "prompt_sha256": _sha256_bytes(received_prompt),
+        "reasoning": expected_reasoning,
+        "rollout_bytes": len(raw),
+        "rollout_sha256": _sha256_bytes(raw),
+        "session_id": next(iter(session_ids)),
+        "started_at": timestamps[0],
+        "tool_calls": len(calls),
+        "tool_inventory": calls,
+        "turn_count": len(contexts),
+        "user_message_count": len(user_messages),
+    }
+
+
+def parse_exec_events(path: Path, *, expected_session_id: str) -> dict[str, Any]:
+    raw = path.read_bytes()
+    if not raw or not raw.endswith(b"\n"):
+        raise CanaryError(
+            "exec event stream must be non-empty newline-terminated JSONL"
+        )
+    records: list[dict[str, Any]] = []
+    for index, line in enumerate(raw.splitlines(), 1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise CanaryError(f"exec event line {index} is invalid JSON") from exc
+        if not isinstance(value, dict):
+            raise CanaryError(f"exec event line {index} is not an object")
+        records.append(value)
+    started = [
+        record
+        for record in records
+        if record.get("type") == "thread.started"
+    ]
+    if len(started) != 1:
+        raise CanaryError("exec event stream must contain one thread.started")
+    thread_id = str(started[0].get("thread_id", ""))
+    if not thread_id or thread_id != expected_session_id:
+        raise CanaryError("exec thread id differs from saved rollout session id")
+    if any(
+        record.get("type") in {"error", "turn.failed"} for record in records
+    ):
+        raise CanaryError("exec event stream reports an error or failed turn")
+    completed = [
+        record
+        for record in records
+        if record.get("type") == "turn.completed"
+    ]
+    if len(completed) != 1:
+        raise CanaryError("exec event stream must contain one turn.completed")
+    return {
+        "bytes": len(raw),
+        "event_count": len(records),
+        "sha256": _sha256_bytes(raw),
+        "thread_id": thread_id,
+        "turn_completed": True,
+    }
+
+
+def _run_tests(repo: Path) -> tuple[int, bytes]:
+    completed = _run(
+        [sys.executable, "-B", "-c", REGRESSION_SNIPPET],
+        cwd=repo,
+        env={"PYTHONDONTWRITEBYTECODE": "1"},
+        check=False,
+    )
+    return completed.returncode, completed.stdout + completed.stderr
+
+
+def _command_label() -> str:
+    return f'{Path(sys.executable).name} -B -c "{REGRESSION_SNIPPET}"'
+
+
+def _record_baseline_failure(
+    staging: Path,
+    baseline_bundle: Path,
+    baseline_commit: str,
+) -> dict[str, str]:
+    with tempfile.TemporaryDirectory(prefix="gate3-live-baseline-check-") as temp:
+        repo = Path(temp) / "repo"
+        _run(
+            ["git", "clone", "--quiet", str(baseline_bundle), str(repo)],
+            cwd=Path(temp),
+        )
+        head = _git(repo, "rev-parse", "HEAD").decode("ascii").strip()
+        if head != baseline_commit:
+            raise CanaryError("baseline bundle does not resolve to pinned commit")
+        exit_code, output = _run_tests(repo)
+    if exit_code == 0:
+        raise CanaryError("baseline regression unexpectedly passed")
+    output_path = staging / "baseline-test-output.txt"
+    receipt_path = staging / "baseline-test-receipt.json"
+    chain._atomic_write(output_path, output)
+    _write_json(
+        receipt_path,
+        {
+            "authorization": AUTHORIZATION,
+            "command": _command_label(),
+            "exit_code": exit_code,
+            "expected_failure": True,
+            "linked_commit": baseline_commit,
+            "output_path": _relative(output_path, staging),
+            "output_sha256": _sha256_file(output_path),
+            "schema": BASELINE_RECEIPT_SCHEMA,
+        },
+    )
+    return {
+        "path": _relative(receipt_path, staging),
+        "sha256": _sha256_file(receipt_path),
+    }
+
+
+def _duration_ms(start: str, finish: str) -> int:
+    try:
+        first = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        last = datetime.fromisoformat(finish.replace("Z", "+00:00"))
+        return max(1, int((last - first).total_seconds() * 1000))
+    except ValueError as exc:
+        raise CanaryError("rollout timestamps are not ISO-8601") from exc
+
+
+def _method_observations() -> dict[str, dict[str, Any]]:
+    return {
+        name: {"evidence_sha256": [], "observed": False}
+        for name in (
+            "reproduction_before_first_edit",
+            "root_cause_recorded_before_first_edit",
+            "failing_regression_before_fix",
+            "defect_reintroduction_performed",
+            "post_restore_retest_performed",
+            "claim_bounded_to_evidence",
+        )
+    }
+
+
+def _capture_outcome(
+    *,
+    repo: Path,
+    rollout_source: Path,
+    exec_events_source: Path,
+    prompt_path: Path,
+    anon_id: str,
+    treatment: str,
+    suffix: str,
+    staging: Path,
+    chain_dir: Path,
+    contract_path: Path,
+    plan: dict[str, Any],
+    randomization_sha: str,
+    baseline_receipt_sha: str,
+) -> dict[str, Any]:
+    repo = repo.resolve()
+    if _git(repo, "status", "--porcelain=v1", "--untracked-files=all") != b"":
+        raise CanaryError(f"producer {treatment} repository is not clean")
+    output_commit = _git(repo, "rev-parse", "HEAD").decode("ascii").strip()
+    parents = (
+        _git(repo, "rev-list", "--parents", "-n", "1", output_commit)
+        .decode("ascii")
+        .strip()
+        .split()
+    )
+    if len(parents) != 2 or parents[1] != plan["baseline_commit"]:
+        raise CanaryError(
+            f"producer {treatment} output is not exactly one child of baseline"
+        )
+    source_route = parse_rollout(
+        rollout_source,
+        expected_prompt=prompt_path.read_bytes(),
+        expected_model=plan["frozen_route"]["model"],
+        expected_comp_hash=plan["frozen_route"]["comp_hash"],
+        expected_cli_version=plan["frozen_route"]["cli_version"],
+        expected_reasoning=plan["frozen_route"]["reasoning"],
+        expected_workspace=str(repo),
+        expected_context_contract=plan["context_contract"],
+    )
+    source_exec_events = parse_exec_events(
+        exec_events_source, expected_session_id=source_route["session_id"]
+    )
+    outcome = staging / "outcomes" / suffix
+    outcome.mkdir(parents=True)
+    rollout_path = outcome / "rollout.jsonl"
+    context_token = PUBLIC_CONTEXT_TOKENS[treatment]
+    public_rollout = sanitize_jsonl(
+        rollout_source,
+        workspace=str(repo),
+        context_token=context_token,
+    )
+    chain._atomic_write(rollout_path, public_rollout)
+    exec_events_path = outcome / "exec-events.jsonl"
+    public_exec_events = sanitize_jsonl(
+        exec_events_source,
+        workspace=str(repo),
+        context_token=context_token,
+    )
+    chain._atomic_write(exec_events_path, public_exec_events)
+    route = parse_rollout(
+        rollout_path,
+        expected_prompt=prompt_path.read_bytes(),
+        expected_model=plan["frozen_route"]["model"],
+        expected_comp_hash=plan["frozen_route"]["comp_hash"],
+        expected_cli_version=plan["frozen_route"]["cli_version"],
+        expected_reasoning=plan["frozen_route"]["reasoning"],
+        expected_workspace=context_token,
+        expected_context_contract=plan["context_contract"],
+    )
+    exec_events = parse_exec_events(
+        exec_events_path, expected_session_id=route["session_id"]
+    )
+    final_diff = outcome / "final-diff.patch"
+    chain._atomic_write(
+        final_diff,
+        _git(
+            repo,
+            "diff",
+            "--binary",
+            "--full-index",
+            plan["baseline_commit"],
+            output_commit,
+            "--",
+        ),
+    )
+    if not final_diff.read_bytes():
+        raise CanaryError(f"producer {treatment} produced no diff")
+    tracked = [
+        item.decode("utf-8")
+        for item in _git(
+            repo,
+            "diff",
+            "--name-only",
+            "-z",
+            plan["baseline_commit"],
+            output_commit,
+            "--",
+        ).split(b"\0")
+        if item
+    ]
+    bundle = outcome / "repo.bundle"
+    _git(repo, "bundle", "create", str(bundle), "--all")
+    test_exit, test_output = _run_tests(repo)
+    if test_exit != 0:
+        raise CanaryError(f"producer {treatment} regression test failed")
+    test_output_path = outcome / "test-output.txt"
+    chain._atomic_write(test_output_path, test_output)
+    test_receipt = outcome / "test-receipt.json"
+    _write_json(
+        test_receipt,
+        {
+            "command": _command_label(),
+            "exit_code": test_exit,
+            "linked_commit": output_commit,
+            "output_path": _relative(test_output_path, staging),
+            "output_sha256": _sha256_file(test_output_path),
+            "schema": chain.RECEIPT_SCHEMA,
+        },
+    )
+    receipt_index = [
+        {
+            "path": _relative(test_receipt, staging),
+            "sha256": _sha256_file(test_receipt),
+        }
+    ]
+    receipt_set_sha = _sha256_bytes(_json_bytes(receipt_index))
+    head_path = outcome / "live-head.txt"
+    status_path = outcome / "live-status.txt"
+    chain._atomic_write(head_path, (output_commit + "\n").encode("ascii"))
+    chain._atomic_write(status_path, b"")
+    capture_receipt = outcome / "live-capture-receipt.json"
+    _write_json(
+        capture_receipt,
+        {
+            "authorization": AUTHORIZATION,
+            "baseline_commit": plan["baseline_commit"],
+            "clean": True,
+            "head_path": _relative(head_path, staging),
+            "head_sha256": _sha256_file(head_path),
+            "output_commit": output_commit,
+            "schema": CAPTURE_RECEIPT_SCHEMA,
+            "status_path": _relative(status_path, staging),
+            "status_sha256": _sha256_file(status_path),
+        },
+    )
+    route_receipt = outcome / "route-receipt.json"
+    _write_json(
+        route_receipt,
+        {
+            "authorization": AUTHORIZATION,
+            "expected_model_build": plan["frozen_route"]["model_build"],
+            "exec_events": exec_events,
+            "exec_events_path": _relative(exec_events_path, staging),
+            "exec_events_sha256": _sha256_file(exec_events_path),
+            "prompt_path": _relative(prompt_path, staging),
+            "prompt_sha256": _sha256_file(prompt_path),
+            "public_context_token": context_token,
+            "rollout_path": _relative(rollout_path, staging),
+            "rollout_sha256": _sha256_file(rollout_path),
+            "route": route,
+            "schema": ROUTE_RECEIPT_SCHEMA,
+            "source_attestation": {
+                "context_identity_sha256": source_route[
+                    "context_identity_sha256"
+                ],
+                "exec_events_bytes": len(exec_events_source.read_bytes()),
+                "exec_events_sha256": _sha256_file(exec_events_source),
+                "exec_thread_id": source_exec_events["thread_id"],
+                "rollout_bytes": len(rollout_source.read_bytes()),
+                "rollout_sha256": _sha256_file(rollout_source),
+                "sanitizer_rules_sha256": _sanitizer_rules_sha256(),
+                "source_context_verified": True,
+                "source_tool_contract_verified": True,
+            },
+            "treatment": treatment,
+        },
+    )
+    event_log = outcome / "event-log.jsonl"
+    event_lines = [
+        {
+            "event": "fresh_context_verified",
+            "receipt_sha256": _sha256_file(route_receipt),
+        },
+        {
+            "event": "tests_passed",
+            "receipt_sha256": _sha256_file(test_receipt),
+        },
+        {
+            "event": "clean_capture",
+            "receipt_sha256": _sha256_file(capture_receipt),
+        },
+    ]
+    chain._atomic_write(
+        event_log,
+        b"".join(
+            json.dumps(item, sort_keys=True).encode("utf-8") + b"\n"
+            for item in event_lines
+        ),
+    )
+    harness_sha = plan["common_inputs"]["harness_contract_sha256"]["sha256"]
+    packet = outcome / "scorer-packet.json"
+    _write_json(
+        packet,
+        {
+            "anon_id": anon_id,
+            "baseline_commit": plan["baseline_commit"],
+            "final_diff_sha256": _sha256_file(final_diff),
+            "harness_contract_sha256": harness_sha,
+            "output_commit": output_commit,
+            "receipt_set_sha256": receipt_set_sha,
+            "schema": chain.OUTCOME_PACKET_SCHEMA,
+            "scorer_payload": {
+                "baseline_test_receipt_sha256": baseline_receipt_sha,
+                "final_diff_utf8": final_diff.read_text(encoding="utf-8"),
+                "non_counted_live_canary": True,
+                "test_exit_code": test_exit,
+            },
+        },
+    )
+    input_artifacts = {
+        **copy.deepcopy(plan["common_inputs"]),
+        **copy.deepcopy(plan["treatment_inputs"][treatment]),
+        "randomization_record_sha256": {
+            "path": "randomization-record.json",
+            "sha256": randomization_sha,
+        },
+    }
+    admission = outcome / "admission.json"
+    _write_json(
+        admission,
+        {
+            "anon_id": anon_id,
+            "baseline_commit": plan["baseline_commit"],
+            "event_log": {
+                "path": _relative(event_log, staging),
+                "sha256": _sha256_file(event_log),
+            },
+            "final_diff": {
+                "path": _relative(final_diff, staging),
+                "sha256": _sha256_file(final_diff),
+                "tracked_changed_files": tracked,
+            },
+            "git_bundle": {
+                "path": _relative(bundle, staging),
+                "sha256": _sha256_file(bundle),
+            },
+            "input_artifacts": input_artifacts,
+            "input_digests": {
+                field: entry["sha256"]
+                for field, entry in input_artifacts.items()
+            },
+            "model_build": plan["frozen_route"]["model_build"],
+            "output_commit": output_commit,
+            "output_packet_sha256": _sha256_file(packet),
+            "receipt_set_sha256": receipt_set_sha,
+            "receipts": receipt_index,
+            "schema": chain.ADMISSION_SCHEMA,
+            "treatment": treatment,
+            "worktree_clean_at_capture": True,
+        },
+    )
+    metrics = outcome / "metrics.json"
+    _write_json(
+        metrics,
+        {
+            "anon_id": anon_id,
+            "artifacts": {
+                "event_log_sha256": _sha256_file(event_log),
+                "output_packet_sha256": _sha256_file(packet),
+            },
+            "baseline_commit": plan["baseline_commit"],
+            "budget_sha256": plan["common_inputs"]["budget_sha256"]["sha256"],
+            "completed_under_cap": (
+                route["tool_calls"] <= 40
+                and _duration_ms(route["started_at"], route["finished_at"])
+                <= 900_000
+            ),
+            "conditional_quality_eligible": True,
+            "costs": {
+                "changed_files": len(tracked),
+                "core_available": True,
+                "diff_bytes": len(final_diff.read_bytes()),
+                "owner_interventions": 0,
+                "retries": 0,
+                "rework_count": 0,
+                "tokens": {
+                    "available": False,
+                    "reason": (
+                        "raw Codex rollout does not expose a stable aggregate "
+                        "token field in this route verifier"
+                    ),
+                },
+                "tool_calls": route["tool_calls"],
+                "wall_clock_ms": _duration_ms(
+                    route["started_at"], route["finished_at"]
+                ),
+            },
+            "harness_contract_sha256": harness_sha,
+            "method_observations": _method_observations(),
+            "model_build": plan["frozen_route"]["model_build"],
+            "pair_id": plan["run_id"],
+            "permissions_sha256": plan["common_inputs"][
+                "permissions_sha256"
+            ]["sha256"],
+            "randomization_record_sha256": randomization_sha,
+            "repeat_index": 1,
+            "run_id": f"{plan['run_id']}-{treatment.lower()}",
+            "schema": chain.METRICS_SCHEMA,
+            "scorer_rubric_sha256": plan["common_inputs"][
+                "scorer_rubric_sha256"
+            ]["sha256"],
+            "status": "completed",
+            "task_id": "synthetic-calc-live-route-canary",
+            "task_packet_sha256": plan["common_inputs"][
+                "task_packet_sha256"
+            ]["sha256"],
+            "timestamps": {
+                "finished_at": route["finished_at"],
+                "first_edit_at": route["started_at"],
+                "started_at": route["started_at"],
+            },
+        },
+    )
+    chain.seal_outcome(
+        chain_dir, contract_path, packet, metrics, admission, repo
+    )
+    return {
+        "admission_path": _relative(admission, staging),
+        "anon_id": anon_id,
+        "capture_receipt_path": _relative(capture_receipt, staging),
+        "metrics_path": _relative(metrics, staging),
+        "output_commit": output_commit,
+        "packet_path": _relative(packet, staging),
+        "route_receipt_path": _relative(route_receipt, staging),
+        "session_id": route["session_id"],
+        "treatment": treatment,
+    }
+
+
+def _mechanical_score(
+    role: str,
+    outcomes: list[dict[str, Any]],
+    scorer_rubric_sha: str,
+    blind_set_sha: str,
+) -> dict[str, Any]:
+    return {
+        "blind_input_set_sha256": blind_set_sha,
+        "independence_declaration": True,
+        "model_build": "mechanical-live-canary-verifier-v1",
+        "outputs": [
+            {
+                "anon_id": outcome["anon_id"],
+                "claim_mismatch_count": 0,
+                "completed_under_cap": True,
+                "critical_residuals": 0,
+                "major_residuals": 0,
+                "no_new_scoped_regression": True,
+                "oracle_acceptance": True,
+                "original_defect_caught": True,
+                "regression_baseline_fail": True,
+                "regression_passes_after_fix": True,
+                "scope_hygiene": "clean",
+                "sensitivity_score": {"caught": 1, "total": 1},
+            }
+            for outcome in sorted(outcomes, key=lambda value: value["anon_id"])
+        ],
+        "schema": chain.SCORE_SCHEMA,
+        "scorer_context_id": f"mechanical-live-canary-{role}-context",
+        "scorer_identity": f"mechanical-live-canary-{role}",
+        "scorer_role": role,
+        "scorer_rubric_sha256": scorer_rubric_sha,
+    }
+
+
+def build(
+    repo_root: Path,
+    staging: Path,
+    output_root: Path,
+    *,
+    arm_a_repo: Path,
+    arm_b_repo: Path,
+    arm_a_rollout: Path,
+    arm_b_rollout: Path,
+    arm_a_exec_events: Path,
+    arm_b_exec_events: Path,
+    nonce_hex: str | None = None,
+) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    staging = staging.resolve()
+    output_root = output_root.resolve()
+    if output_root.exists():
+        raise CanaryError(f"output already exists: {output_root}")
+    if not staging.is_dir():
+        raise CanaryError("prepared staging root is missing")
+    plan = _load_json(staging / "route-plan.json")
+    if (
+        plan.get("schema") != ROUTE_PLAN_SCHEMA
+        or plan.get("authorization") != AUTHORIZATION
+        or plan.get("rehearsal_kind") != REHEARSAL_KIND
+    ):
+        raise CanaryError("route plan identity is invalid")
+    _validate_candidate(repo_root)
+    contract_path = repo_root / DEFAULT_CONTRACT.relative_to(
+        EXPERIMENT_ROOT.parents[2]
+    )
+    nonce = nonce_hex or secrets.token_hex(32)
+    if len(nonce) != 64 or any(char not in "0123456789abcdef" for char in nonce):
+        raise CanaryError("nonce must be 64 lowercase hex characters")
+    randomization = staging / "randomization-record.json"
+    treatment_digests = {
+        treatment: {
+            field: entry["sha256"]
+            for field, entry in plan["treatment_inputs"][treatment].items()
+        }
+        for treatment in ("A", "B")
+    }
+    _write_json(
+        randomization,
+        {
+            "anonymous_ids": sorted(ANON_MAPPING),
+            "mapping_commitment_sha256": chain._mapping_commitment(
+                ANON_MAPPING, "skill_primary", nonce
+            ),
+            "pair_id": plan["run_id"],
+            "repeat_index": 1,
+            "schema": chain.RANDOMIZATION_SCHEMA,
+            "study_kind": "skill_primary",
+            "task_id": "synthetic-calc-live-route-canary",
+            "treatment_inputs": treatment_digests,
+        },
+    )
+    randomization_sha = _sha256_file(randomization)
+    chain_dir = staging / "chain"
+    chain.commit_randomization(chain_dir, contract_path, randomization)
+    baseline_receipt = _record_baseline_failure(
+        staging,
+        staging / "inputs" / "baseline.bundle",
+        plan["baseline_commit"],
+    )
+    sources = {
+        "A": (arm_a_repo, arm_a_rollout, arm_a_exec_events),
+        "B": (arm_b_repo, arm_b_rollout, arm_b_exec_events),
+    }
+    outcomes = []
+    with _git_safe_directories([arm_a_repo, arm_b_repo]):
+        for anon_id, treatment in sorted(ANON_MAPPING.items()):
+            source_repo, source_rollout, source_exec_events = sources[treatment]
+            outcomes.append(
+                _capture_outcome(
+                    repo=source_repo,
+                    rollout_source=source_rollout,
+                    exec_events_source=source_exec_events,
+                    prompt_path=staging
+                    / "inputs"
+                    / f"producer-prompt-{treatment.lower()}.txt",
+                    anon_id=anon_id,
+                    treatment=treatment,
+                    suffix=treatment.lower(),
+                    staging=staging,
+                    chain_dir=chain_dir,
+                    contract_path=contract_path,
+                    plan=plan,
+                    randomization_sha=randomization_sha,
+                    baseline_receipt_sha=baseline_receipt["sha256"],
+                )
+            )
+    sessions = {outcome["session_id"] for outcome in outcomes}
+    if len(sessions) != 2:
+        raise CanaryError("A/B must come from two distinct fresh contexts")
+    route_receipts = [
+        _load_json(staging / outcome["route_receipt_path"]) for outcome in outcomes
+    ]
+    if (
+        route_receipts[0]["route"]["permission_fingerprint"]
+        != route_receipts[1]["route"]["permission_fingerprint"]
+    ):
+        raise CanaryError("A/B permission fingerprints differ")
+    if (
+        route_receipts[0]["route"]["context_identity_sha256"]
+        != route_receipts[1]["route"]["context_identity_sha256"]
+        or route_receipts[0]["source_attestation"]["context_identity_sha256"]
+        != route_receipts[1]["source_attestation"]["context_identity_sha256"]
+    ):
+        raise CanaryError("A/B frozen context identities differ")
+    chain.close_blind_set(chain_dir, contract_path, "skill_primary")
+    close_event = _load_json(chain._event_files(chain_dir)[3])
+    for role in ("primary", "second"):
+        score = staging / f"mechanical-{role}-score.json"
+        _write_json(
+            score,
+            _mechanical_score(
+                role,
+                outcomes,
+                plan["common_inputs"]["scorer_rubric_sha256"]["sha256"],
+                close_event["blind_input_set_sha256"],
+            ),
+        )
+        chain.submit_scorer(chain_dir, contract_path, role, score)
+    mapping = staging / "mapping-reveal.json"
+    _write_json(
+        mapping,
+        {
+            "mapping": ANON_MAPPING,
+            "nonce_hex": nonce,
+            "randomization_record_sha256": randomization_sha,
+            "schema": chain.MAPPING_SCHEMA,
+            "study_kind": "skill_primary",
+        },
+    )
+    chain.release_mapping(chain_dir, contract_path, mapping)
+    chain_result = chain.verify_chain(
+        chain_dir, contract_path, require_state="mapping_released"
+    )
+    summary = {
+        "artifact_inventory": _inventory(staging),
+        "authorization": AUTHORIZATION,
+        "baseline_test_receipt": baseline_receipt,
+        "candidate_manifest_sha256": EXPECTED_CANDIDATE_MANIFEST_SHA256,
+        "candidate_verification_checks": plan[
+            "candidate_verification_checks"
+        ],
+        "chain": {
+            "event_count": chain_result["event_count"],
+            "head_sha256": chain_result["head_sha256"],
+            "state": chain_result["state"],
+        },
+        "frozen_route": plan["frozen_route"],
+        "harness_implementation_sha256": _sha256_file(Path(__file__)),
+        "implementation": plan["implementation"],
+        "launcher_implementation_sha256": _sha256_file(
+            DEFAULT_SESSION_LAUNCHER
+        ),
+        "tests_implementation_sha256": _sha256_file(DEFAULT_TESTS),
+        "not_claimed": [
+            "independent approval",
+            "owner signature",
+            "canonical promotion",
+            "natural bug admission",
+            "counted Gate 3 run",
+            "Gate 3 start",
+            "Skill effectiveness",
+            "human or model blind scoring",
+            "cryptographic writer authentication",
+            "public revalidation of raw-to-sanitized transformation without "
+            "private source evidence",
+        ],
+        "outcomes": sorted(outcomes, key=lambda value: value["anon_id"]),
+        "rehearsal_kind": REHEARSAL_KIND,
+        "privacy": {
+            "public_evidence_only": True,
+            "raw_evidence_retained_in_git": False,
+            "sanitizer_rules_sha256": _sanitizer_rules_sha256(),
+            "sanitizer_schema": SANITIZER_SCHEMA,
+        },
+        "route_plan_sha256": _sha256_file(staging / "route-plan.json"),
+        "run_id": plan["run_id"],
+        "schema": SUMMARY_SCHEMA,
+    }
+    _write_json(staging / "canary-summary.json", summary)
+    result = verify(repo_root, staging)
+    output_root.parent.mkdir(parents=True, exist_ok=True)
+    os.rename(staging, output_root)
+    return verify(repo_root, output_root)
+
+
+def _verify_baseline(root: Path, entry: object) -> str:
+    if not isinstance(entry, dict):
+        raise CanaryError("baseline receipt entry is absent")
+    receipt_path = _source(entry.get("path"), root)
+    if entry.get("sha256") != _sha256_file(receipt_path):
+        raise CanaryError("baseline receipt digest mismatch")
+    receipt = _load_json(receipt_path)
+    output = _source(receipt.get("output_path"), root)
+    if (
+        receipt.get("schema") != BASELINE_RECEIPT_SCHEMA
+        or receipt.get("authorization") != AUTHORIZATION
+        or receipt.get("expected_failure") is not True
+        or not isinstance(receipt.get("exit_code"), int)
+        or isinstance(receipt.get("exit_code"), bool)
+        or receipt["exit_code"] == 0
+        or receipt.get("output_sha256") != _sha256_file(output)
+    ):
+        raise CanaryError("baseline receipt is invalid")
+    return str(receipt.get("linked_commit"))
+
+
+def _verify_route_receipt(
+    root: Path,
+    outcome: dict[str, Any],
+    plan: dict[str, Any],
+) -> dict[str, Any]:
+    receipt = _load_json(_source(outcome.get("route_receipt_path"), root))
+    if (
+        receipt.get("schema") != ROUTE_RECEIPT_SCHEMA
+        or receipt.get("authorization") != AUTHORIZATION
+        or receipt.get("treatment") != outcome.get("treatment")
+        or receipt.get("expected_model_build")
+        != plan["frozen_route"]["model_build"]
+    ):
+        raise CanaryError("route receipt identity is invalid")
+    context_token = plan["context_contract"]["public_context_tokens"][
+        outcome["treatment"]
+    ]
+    source_attestation = receipt.get("source_attestation")
+    if (
+        receipt.get("public_context_token") != context_token
+        or not isinstance(source_attestation, dict)
+        or source_attestation.get("sanitizer_rules_sha256")
+        != _sanitizer_rules_sha256()
+        or source_attestation.get("source_context_verified") is not True
+        or source_attestation.get("source_tool_contract_verified") is not True
+        or not isinstance(source_attestation.get("rollout_bytes"), int)
+        or source_attestation["rollout_bytes"] <= 0
+        or not isinstance(source_attestation.get("exec_events_bytes"), int)
+        or source_attestation["exec_events_bytes"] <= 0
+        or any(
+            not isinstance(source_attestation.get(field), str)
+            or len(source_attestation[field]) != 64
+            for field in (
+                "context_identity_sha256",
+                "exec_events_sha256",
+                "rollout_sha256",
+            )
+        )
+    ):
+        raise CanaryError("route source attestation is invalid")
+    prompt = _source(receipt.get("prompt_path"), root)
+    rollout = _source(receipt.get("rollout_path"), root)
+    exec_events = _source(receipt.get("exec_events_path"), root)
+    if (
+        receipt.get("prompt_sha256") != _sha256_file(prompt)
+        or receipt.get("rollout_sha256") != _sha256_file(rollout)
+        or receipt.get("exec_events_sha256") != _sha256_file(exec_events)
+    ):
+        raise CanaryError("route receipt artifact digest mismatch")
+    rebuilt = parse_rollout(
+        rollout,
+        expected_prompt=prompt.read_bytes(),
+        expected_model=plan["frozen_route"]["model"],
+        expected_comp_hash=plan["frozen_route"]["comp_hash"],
+        expected_cli_version=plan["frozen_route"]["cli_version"],
+        expected_reasoning=plan["frozen_route"]["reasoning"],
+        expected_workspace=context_token,
+        expected_context_contract=plan["context_contract"],
+    )
+    if receipt.get("route") != rebuilt:
+        raise CanaryError("route receipt differs from raw rollout rebuild")
+    rebuilt_exec_events = parse_exec_events(
+        exec_events, expected_session_id=rebuilt["session_id"]
+    )
+    if receipt.get("exec_events") != rebuilt_exec_events:
+        raise CanaryError("route receipt differs from raw exec event rebuild")
+    if rebuilt["session_id"] != outcome.get("session_id"):
+        raise CanaryError("outcome session id differs from raw rollout")
+    if source_attestation.get("exec_thread_id") != rebuilt["session_id"]:
+        raise CanaryError("source exec thread differs from public rollout")
+    rebuilt["_source_context_identity_sha256"] = source_attestation[
+        "context_identity_sha256"
+    ]
+    return rebuilt
+
+
+def _verify_capture(
+    root: Path,
+    outcome: dict[str, Any],
+    admission: dict[str, Any],
+) -> None:
+    receipt = _load_json(_source(outcome.get("capture_receipt_path"), root))
+    head = _source(receipt.get("head_path"), root)
+    status = _source(receipt.get("status_path"), root)
+    if (
+        receipt.get("schema") != CAPTURE_RECEIPT_SCHEMA
+        or receipt.get("authorization") != AUTHORIZATION
+        or receipt.get("clean") is not True
+        or receipt.get("baseline_commit") != admission["baseline_commit"]
+        or receipt.get("output_commit") != admission["output_commit"]
+        or receipt.get("output_commit") != outcome.get("output_commit")
+        or receipt.get("head_sha256") != _sha256_file(head)
+        or receipt.get("status_sha256") != _sha256_file(status)
+        or status.read_bytes() != b""
+        or head.read_bytes()
+        != (str(outcome["output_commit"]) + "\n").encode("ascii")
+    ):
+        raise CanaryError("live capture receipt is invalid")
+
+
+def _verify_inventory(root: Path, expected: object) -> None:
+    if not isinstance(expected, list) or expected != _inventory(root):
+        raise CanaryError("artifact inventory mismatch")
+
+
+def verify(repo_root: Path, root: Path) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    root = root.resolve()
+    summary_path = root / "canary-summary.json"
+    summary = _load_json(summary_path)
+    if summary_path.read_bytes() != _json_bytes(summary):
+        raise CanaryError("canary summary is not canonical JSON")
+    plan_path = root / "route-plan.json"
+    plan = _load_json(plan_path)
+    implementation = plan.get("implementation")
+    if (
+        not isinstance(implementation, dict)
+        or summary.get("implementation") != implementation
+        or _implementation_identity(
+            repo_root,
+            commit=implementation.get("commit"),
+        )
+        != implementation
+    ):
+        raise CanaryError("implementation commit identity is invalid")
+    expected_frozen_route = {
+        "cli_version": DEFAULT_CLI_VERSION,
+        "comp_hash": DEFAULT_COMP_HASH,
+        "launcher_implementation_sha256": _sha256_file(
+            DEFAULT_SESSION_LAUNCHER
+        ),
+        "model": DEFAULT_MODEL,
+        "model_build": (
+            f"codex:{DEFAULT_MODEL}:comp_hash={DEFAULT_COMP_HASH}:"
+            f"cli={DEFAULT_CLI_VERSION}"
+        ),
+        "reasoning": DEFAULT_REASONING,
+    }
+    if (
+        summary.get("schema") != SUMMARY_SCHEMA
+        or summary.get("authorization") != AUTHORIZATION
+        or summary.get("rehearsal_kind") != REHEARSAL_KIND
+        or summary.get("candidate_manifest_sha256")
+        != EXPECTED_CANDIDATE_MANIFEST_SHA256
+        or summary.get("harness_implementation_sha256")
+        != _sha256_file(Path(__file__))
+        or summary.get("launcher_implementation_sha256")
+        != _sha256_file(DEFAULT_SESSION_LAUNCHER)
+        or summary.get("tests_implementation_sha256")
+        != _sha256_file(DEFAULT_TESTS)
+        or summary.get("route_plan_sha256") != _sha256_file(plan_path)
+        or plan.get("schema") != ROUTE_PLAN_SCHEMA
+        or plan.get("frozen_route") != summary.get("frozen_route")
+        or plan.get("frozen_route") != expected_frozen_route
+        or plan.get("privacy") != summary.get("privacy")
+        or plan.get("privacy", {}).get("sanitizer_rules_sha256")
+        != _sanitizer_rules_sha256()
+        or plan.get("context_contract", {}).get("provider") != DEFAULT_PROVIDER
+        or plan.get("context_contract", {}).get("public_context_tokens")
+        != PUBLIC_CONTEXT_TOKENS
+    ):
+        raise CanaryError("canary summary identity is invalid")
+    candidate_checks = _validate_candidate(repo_root)
+    if summary.get("candidate_verification_checks") != candidate_checks:
+        raise CanaryError("candidate verification count mismatch")
+    _verify_inventory(root, summary.get("artifact_inventory"))
+    public_file_count = verify_public_privacy(root)
+    baseline_commit = _verify_baseline(
+        root, summary.get("baseline_test_receipt")
+    )
+    if baseline_commit != plan.get("baseline_commit"):
+        raise CanaryError("baseline receipt is not bound to route plan")
+    contract_path = repo_root / DEFAULT_CONTRACT.relative_to(
+        EXPERIMENT_ROOT.parents[2]
+    )
+    contract, _ = chain.load_contract(contract_path)
+    chain_result = chain.verify_chain(
+        root / "chain", contract_path, require_state="mapping_released"
+    )
+    if summary.get("chain") != {
+        "event_count": chain_result["event_count"],
+        "head_sha256": chain_result["head_sha256"],
+        "state": chain_result["state"],
+    }:
+        raise CanaryError("chain summary mismatch")
+    outcomes = summary.get("outcomes")
+    if (
+        not isinstance(outcomes, list)
+        or len(outcomes) != 2
+        or {item.get("anon_id") for item in outcomes} != set(ANON_MAPPING)
+    ):
+        raise CanaryError("outcome population is invalid")
+    routes = []
+    for outcome in outcomes:
+        packet_path = _source(outcome.get("packet_path"), root)
+        metrics_path = _source(outcome.get("metrics_path"), root)
+        admission_path = _source(outcome.get("admission_path"), root)
+        metrics = chain.validate_metrics(
+            _load_json(metrics_path),
+            contract,
+            packet_sha256=_sha256_file(packet_path),
+        )
+        admission = chain.validate_admission(
+            admission_path,
+            packet_path,
+            metrics,
+            contract,
+            root / "chain",
+        )
+        if (
+            admission["anon_id"] != outcome["anon_id"]
+            or admission["treatment"] != outcome["treatment"]
+            or admission["output_commit"] != outcome["output_commit"]
+            or admission["baseline_commit"] != baseline_commit
+            or admission["model_build"] != plan["frozen_route"]["model_build"]
+        ):
+            raise CanaryError("outcome summary mismatch")
+        routes.append(_verify_route_receipt(root, outcome, plan))
+        _verify_capture(root, outcome, admission)
+    if len({route["session_id"] for route in routes}) != 2:
+        raise CanaryError("A/B context identities are not distinct")
+    if (
+        routes[0]["permission_fingerprint"]
+        != routes[1]["permission_fingerprint"]
+    ):
+        raise CanaryError("A/B permission fingerprints differ")
+    if (
+        routes[0]["context_identity_sha256"]
+        != routes[1]["context_identity_sha256"]
+        or routes[0]["_source_context_identity_sha256"]
+        != routes[1]["_source_context_identity_sha256"]
+    ):
+        raise CanaryError("A/B public or source context identities differ")
+    return {
+        "candidate_manifest_sha256": EXPECTED_CANDIDATE_MANIFEST_SHA256,
+        "checks": {
+            "artifact_inventory": "PASS",
+            "baseline_failure_receipt": "PASS",
+            "candidate_exact_bytes": "PASS",
+            "chain": "PASS",
+            "commit_diff_receipt_binding": "PASS",
+            "fresh_context_identity": "PASS",
+            "model_build_identity": "PASS",
+            "privacy_safe_public_evidence": "PASS",
+            "prompt_identity": "PASS",
+            "tool_input_contract": "PASS",
+        },
+        "event_count": chain_result["event_count"],
+        "model_build": plan["frozen_route"]["model_build"],
+        "outcome_count": len(outcomes),
+        "public_file_count": public_file_count,
+        "status": "PASS",
+    }
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    sub = parser.add_subparsers(dest="command", required=True)
+    prep = sub.add_parser("prepare")
+    prep.add_argument("--repo-root", required=True)
+    prep.add_argument("--staging-root", required=True)
+    prep.add_argument("--run-id", required=True)
+    prep.add_argument("--model", default=DEFAULT_MODEL)
+    prep.add_argument("--comp-hash", default=DEFAULT_COMP_HASH)
+    prep.add_argument("--cli-version", default=DEFAULT_CLI_VERSION)
+    prep.add_argument("--reasoning", default=DEFAULT_REASONING)
+    build_parser = sub.add_parser("build")
+    build_parser.add_argument("--repo-root", required=True)
+    build_parser.add_argument("--staging-root", required=True)
+    build_parser.add_argument("--out", required=True)
+    build_parser.add_argument("--arm-a-repo", required=True)
+    build_parser.add_argument("--arm-b-repo", required=True)
+    build_parser.add_argument("--arm-a-rollout", required=True)
+    build_parser.add_argument("--arm-b-rollout", required=True)
+    build_parser.add_argument("--arm-a-exec-events", required=True)
+    build_parser.add_argument("--arm-b-exec-events", required=True)
+    build_parser.add_argument("--nonce-hex")
+    verify_parser = sub.add_parser("verify")
+    verify_parser.add_argument("--repo-root", required=True)
+    verify_parser.add_argument("--canary-root", required=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    try:
+        if args.command == "prepare":
+            result = prepare(
+                Path(args.repo_root),
+                Path(args.staging_root),
+                run_id=args.run_id,
+                model=args.model,
+                comp_hash=args.comp_hash,
+                cli_version=args.cli_version,
+                reasoning=args.reasoning,
+            )
+        elif args.command == "build":
+            result = build(
+                Path(args.repo_root),
+                Path(args.staging_root),
+                Path(args.out),
+                arm_a_repo=Path(args.arm_a_repo),
+                arm_b_repo=Path(args.arm_b_repo),
+                arm_a_rollout=Path(args.arm_a_rollout),
+                arm_b_rollout=Path(args.arm_b_rollout),
+                arm_a_exec_events=Path(args.arm_a_exec_events),
+                arm_b_exec_events=Path(args.arm_b_exec_events),
+                nonce_hex=args.nonce_hex,
+            )
+        else:
+            result = verify(
+                Path(args.repo_root), Path(args.canary_root)
+            )
+        print(json.dumps(result, sort_keys=True))
+        return 0
+    except (CanaryError, chain.EvidenceError, OSError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

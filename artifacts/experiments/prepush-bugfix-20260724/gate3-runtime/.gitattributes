@@ -1,4 +1,9 @@
 /.gitattributes -text
+/.gitignore -text
 /gate3_common_harness.py -text
 /test_gate3_common_harness.py -text
+/gate3_codex_live_canary.py -text
+/gate3_codex_session_launcher.ps1 -text
+/test_gate3_codex_live_canary.py -text
 /evidence-rehearsal/** -text
+/evidence-live-canary/** -text
