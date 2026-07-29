@@ -7,6 +7,8 @@ import hashlib
 import json
 import os
 import re
+import statistics
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -18,12 +20,19 @@ CONTRACT_SCHEMA = "gate3-protocol-contract.v1"
 METRICS_SCHEMA = "gate3-run-metrics.v1"
 SCORE_SCHEMA = "gate3-blind-score.v1"
 MAPPING_SCHEMA = "gate3-mapping-release.v1"
+RANDOMIZATION_SCHEMA = "gate3-randomization-record.v1"
+MAPPING_COMMITMENT_SCHEMA = "gate3-mapping-reveal-commitment.v1"
+ADMISSION_SCHEMA = "gate3-outcome-admission.v1"
+OUTCOME_PACKET_SCHEMA = "gate3-outcome-packet.v1"
+RECEIPT_SCHEMA = "gate3-test-evidence-receipt.v1"
+HARNESS_CONTRACT_SCHEMA = "gate3-common-harness-contract.v1"
 EVENT_SCHEMA = "gate3-ordering-event.v1"
 MANIFEST_SCHEMA = "gate3-preregistration-amendment-candidate-set.v1"
 ANON_ID = re.compile(r"^OUT-[0-9a-f]{12}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 EVENT_SEQUENCE = (
+    "randomization_committed",
     "outcome_sealed",
     "outcome_sealed",
     "blind_set_closed",
@@ -34,6 +43,10 @@ EVENT_SEQUENCE = (
 CANDIDATE_FILES = (
     ".gitattributes",
     "docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md",
+    (
+        "artifacts/experiments/prepush-bugfix-20260724/candidate/"
+        "gate3-harness-contract-v1.json"
+    ),
     (
         "artifacts/experiments/prepush-bugfix-20260724/candidate/"
         "gate3-protocol-contract-v1.json"
@@ -65,6 +78,27 @@ COMMON_PAIR_FIELDS = (
     "scorer_rubric_sha256",
 )
 CONTRACT_PAIR_CONTROLS = COMMON_PAIR_FIELDS[3:]
+HARNESS_CONTRACT_NAME = "gate3-harness-contract-v1.json"
+ADMISSION_INPUT_DIGEST_FIELDS = (
+    "baseline_instruction_sha256",
+    "task_packet_sha256",
+    "treatment_packet_sha256",
+    "governance_instruction_sha256",
+    "validator_bundle_sha256",
+    "validator_config_sha256",
+    "permissions_sha256",
+    "budget_sha256",
+    "harness_contract_sha256",
+    "scorer_rubric_sha256",
+    "randomization_record_sha256",
+)
+TREATMENT_INPUT_DIGEST_FIELDS = (
+    "treatment_packet_sha256",
+    "governance_instruction_sha256",
+    "validator_bundle_sha256",
+    "validator_config_sha256",
+)
+_GIT_PROOF_CACHE: set[tuple[str, str, str, str, tuple[str, ...]]] = set()
 
 
 class EvidenceError(ValueError):
@@ -184,6 +218,37 @@ def _non_negative_int(value: object, field: str) -> int:
     return value
 
 
+def _positive_int(value: object, field: str) -> int:
+    parsed = _non_negative_int(value, field)
+    if parsed == 0:
+        raise EvidenceError(f"{field} must be greater than zero")
+    return parsed
+
+
+def _git(repo_root: Path, *args: str) -> bytes:
+    completed = subprocess.run(
+        ["git", *args],
+        cwd=repo_root,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise EvidenceError(f"git {' '.join(args)} failed: {detail}")
+    return completed.stdout
+
+
+def _validate_source_base_commit(repo_root: Path, source_base_commit: str) -> None:
+    if not HEX40.fullmatch(source_base_commit):
+        raise EvidenceError("source_base_commit must be a full 40-hex commit")
+    _git(repo_root, "cat-file", "-e", f"{source_base_commit}^{{commit}}")
+    head = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip()
+    if not HEX40.fullmatch(head):
+        raise EvidenceError("repository HEAD is not a full commit")
+    _git(repo_root, "merge-base", "--is-ancestor", source_base_commit, head)
+
+
 def load_contract(path: Path) -> tuple[dict[str, Any], str]:
     raw = path.read_bytes()
     value = _load_json(path)
@@ -204,7 +269,447 @@ def load_contract(path: Path) -> tuple[dict[str, Any], str]:
         primary.get("pair_controls", [])
     ) != CONTRACT_PAIR_CONTROLS:
         raise EvidenceError("contract pair controls differ from runtime")
+    harness = value.get("harness_prerequisite")
+    if not isinstance(harness, dict) or (
+        harness.get("candidate_contract_path") != HARNESS_CONTRACT_NAME
+        or harness.get("owner_signature_requires_candidate_contract") is not True
+    ):
+        raise EvidenceError("candidate harness contract is not signature-bound")
+    harness_path = path.parent / HARNESS_CONTRACT_NAME
+    harness_raw = harness_path.read_bytes()
+    harness_value = _load_json(harness_path)
+    if (
+        harness_value.get("schema") != HARNESS_CONTRACT_SCHEMA
+        or harness_value.get("authorization")
+        != "candidate_only_not_gate3_start_authority"
+    ):
+        raise EvidenceError("candidate harness contract is invalid")
+    admission = harness_value.get("admission")
+    if (
+        not isinstance(admission, dict)
+        or admission.get("schema") != ADMISSION_SCHEMA
+        or tuple(admission.get("input_digest_fields", []))
+        != ADMISSION_INPUT_DIGEST_FIELDS
+        or tuple(admission.get("retained_input_artifact_fields", []))
+        != ADMISSION_INPUT_DIGEST_FIELDS
+        or tuple(admission.get("retained_input_artifact_entry_fields", []))
+        != ("path", "sha256")
+    ):
+        raise EvidenceError("candidate harness admission contract differs from runtime")
+    receipt = harness_value.get("test_receipt")
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("schema") != RECEIPT_SCHEMA
+        or receipt.get("index_policy") != "sorted_unique_paths"
+    ):
+        raise EvidenceError("candidate harness receipt contract differs from runtime")
+    value["_harness_contract_sha256"] = _sha256_bytes(harness_raw)
     return value, _sha256_bytes(raw)
+
+
+def _mapping_commitment(
+    mapping: dict[str, str], study_kind: str, nonce_hex: str
+) -> str:
+    payload = {
+        "mapping": mapping,
+        "nonce_hex": nonce_hex,
+        "schema": MAPPING_COMMITMENT_SCHEMA,
+        "study_kind": study_kind,
+    }
+    return _sha256_bytes(_json_bytes(payload))
+
+
+def validate_randomization_record(
+    value: dict[str, Any], contract: dict[str, Any]
+) -> dict[str, Any]:
+    if value.get("schema") != RANDOMIZATION_SCHEMA:
+        raise EvidenceError("randomization record schema is invalid")
+    study_kind = value.get("study_kind")
+    treatment_sets = contract["evidence_chain"]["mapping_treatments"]
+    if study_kind not in treatment_sets:
+        raise EvidenceError("randomization study_kind is invalid")
+    for field in ("task_id", "pair_id"):
+        if not isinstance(value.get(field), str) or not value[field].strip():
+            raise EvidenceError(f"randomization {field} must be non-empty")
+    repeat_index = _non_negative_int(
+        value.get("repeat_index"), "randomization repeat_index"
+    )
+    if repeat_index not in (1, 2, 3):
+        raise EvidenceError("randomization repeat_index must be 1, 2 or 3")
+    anon_ids = value.get("anonymous_ids")
+    expected_count = contract["evidence_chain"]["anonymous_outcomes_per_comparison"]
+    if (
+        not isinstance(anon_ids, list)
+        or len(anon_ids) != expected_count
+        or anon_ids != sorted(anon_ids)
+        or len(set(anon_ids)) != expected_count
+        or any(not isinstance(item, str) or not ANON_ID.fullmatch(item) for item in anon_ids)
+    ):
+        raise EvidenceError("randomization anonymous_ids are invalid")
+    if not HEX64.fullmatch(str(value.get("mapping_commitment_sha256", ""))):
+        raise EvidenceError("randomization mapping commitment is invalid")
+    treatment_inputs = value.get("treatment_inputs")
+    expected_treatments = set(treatment_sets[study_kind])
+    if not isinstance(treatment_inputs, dict) or set(treatment_inputs) != expected_treatments:
+        raise EvidenceError("randomization treatment input population is invalid")
+    for treatment, inputs in treatment_inputs.items():
+        if not isinstance(inputs, dict) or set(inputs) != set(
+            TREATMENT_INPUT_DIGEST_FIELDS
+        ):
+            raise EvidenceError(
+                f"randomization treatment inputs are invalid for {treatment}"
+            )
+        for field in TREATMENT_INPUT_DIGEST_FIELDS:
+            if not HEX64.fullmatch(str(inputs.get(field, ""))):
+                raise EvidenceError(
+                    f"randomization {treatment}.{field} digest is invalid"
+                )
+    return value
+
+
+def validate_mapping_reveal(
+    mapping_doc: dict[str, Any],
+    contract: dict[str, Any],
+    randomization_record: dict[str, Any],
+    randomization_record_sha256: str,
+) -> dict[str, str]:
+    if mapping_doc.get("schema") != MAPPING_SCHEMA:
+        raise EvidenceError("mapping schema is invalid")
+    study_kind = randomization_record["study_kind"]
+    if mapping_doc.get("study_kind") != study_kind:
+        raise EvidenceError("mapping study_kind mismatch")
+    mapping = mapping_doc.get("mapping")
+    nonce_hex = mapping_doc.get("nonce_hex")
+    expected_ids = set(randomization_record["anonymous_ids"])
+    expected_treatments = set(
+        contract["evidence_chain"]["mapping_treatments"][study_kind]
+    )
+    if (
+        not isinstance(mapping, dict)
+        or set(mapping) != expected_ids
+        or set(mapping.values()) != expected_treatments
+        or not isinstance(nonce_hex, str)
+        or len(nonce_hex)
+        != contract["evidence_chain"]["mapping_commitment"][
+            "nonce_hex_characters"
+        ]
+        or not HEX64.fullmatch(nonce_hex)
+    ):
+        raise EvidenceError("mapping population, treatment set or nonce is invalid")
+    if (
+        mapping_doc.get("randomization_record_sha256")
+        != randomization_record_sha256
+        or _mapping_commitment(mapping, study_kind, nonce_hex)
+        != randomization_record["mapping_commitment_sha256"]
+    ):
+        raise EvidenceError("mapping does not match preregistered commitment")
+    return mapping
+
+
+def _blind_input_set_sha256(outcomes: dict[str, dict[str, Any]]) -> str:
+    inputs = [
+        {
+            "anon_id": anon_id,
+            "packet_sha256": outcomes[anon_id]["packet_sha256"],
+        }
+        for anon_id in sorted(outcomes)
+    ]
+    return _sha256_bytes(_json_bytes(inputs))
+
+
+def _verify_git_proof(
+    bundle_path: Path,
+    baseline_commit: str,
+    output_commit: str,
+    final_diff_path: Path,
+    tracked_changed_files: list[str],
+) -> None:
+    cache_key = (
+        _sha256_file(bundle_path),
+        baseline_commit,
+        output_commit,
+        _sha256_file(final_diff_path),
+        tuple(tracked_changed_files),
+    )
+    if cache_key in _GIT_PROOF_CACHE:
+        return
+    with tempfile.TemporaryDirectory() as temporary:
+        clone = Path(temporary) / "repo"
+        completed = subprocess.run(
+            [
+                "git",
+                "clone",
+                "--quiet",
+                "--no-checkout",
+                str(bundle_path),
+                str(clone),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if completed.returncode != 0:
+            detail = completed.stderr.decode("utf-8", errors="replace").strip()
+            raise EvidenceError(f"git bundle clone failed: {detail}")
+        _git(clone, "cat-file", "-e", f"{baseline_commit}^{{commit}}")
+        _git(clone, "cat-file", "-e", f"{output_commit}^{{commit}}")
+        _git(clone, "merge-base", "--is-ancestor", baseline_commit, output_commit)
+        expected_diff = _git(
+            clone,
+            "diff",
+            "--binary",
+            "--full-index",
+            baseline_commit,
+            output_commit,
+            "--",
+        )
+        if final_diff_path.read_bytes() != expected_diff:
+            raise EvidenceError("retained final diff does not match bundled commits")
+        expected_paths = [
+            item.decode("utf-8")
+            for item in _git(
+                clone,
+                "diff",
+                "--name-only",
+                "-z",
+                baseline_commit,
+                output_commit,
+                "--",
+            ).split(b"\0")
+            if item
+        ]
+        if tracked_changed_files != expected_paths:
+            raise EvidenceError("tracked changed files do not match bundled commits")
+    _GIT_PROOF_CACHE.add(cache_key)
+
+
+def _verify_live_capture(
+    repo_root: Path,
+    baseline_commit: str,
+    output_commit: str,
+    final_diff_path: Path,
+) -> None:
+    _git(repo_root, "cat-file", "-e", f"{baseline_commit}^{{commit}}")
+    _git(repo_root, "cat-file", "-e", f"{output_commit}^{{commit}}")
+    _git(repo_root, "merge-base", "--is-ancestor", baseline_commit, output_commit)
+    head = _git(repo_root, "rev-parse", "HEAD").decode("ascii").strip()
+    if head != output_commit:
+        raise EvidenceError("live capture HEAD does not match output_commit")
+    if _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise EvidenceError("live capture worktree is not clean")
+    live_diff = _git(
+        repo_root,
+        "diff",
+        "--binary",
+        "--full-index",
+        baseline_commit,
+        output_commit,
+        "--",
+    )
+    if live_diff != final_diff_path.read_bytes():
+        raise EvidenceError("live capture diff does not match retained final diff")
+
+
+def validate_admission(
+    admission_path: Path,
+    packet_path: Path,
+    metrics: dict[str, Any],
+    contract: dict[str, Any],
+    chain_dir: Path,
+    *,
+    live_repo_root: Path | None = None,
+) -> dict[str, Any]:
+    admission_raw = admission_path.read_bytes()
+    admission = _load_json(admission_path)
+    if admission_raw != _json_bytes(admission):
+        raise EvidenceError("outcome admission is not canonical JSON")
+    if admission.get("schema") != ADMISSION_SCHEMA:
+        raise EvidenceError("outcome admission schema is invalid")
+    if admission.get("anon_id") != metrics["anon_id"]:
+        raise EvidenceError("admission anon_id does not match metrics")
+    baseline_commit = str(admission.get("baseline_commit", ""))
+    output_commit = str(admission.get("output_commit", ""))
+    if (
+        baseline_commit != metrics["baseline_commit"]
+        or not HEX40.fullmatch(baseline_commit)
+        or not HEX40.fullmatch(output_commit)
+        or baseline_commit == output_commit
+    ):
+        raise EvidenceError("admission commit identity is invalid")
+    if admission.get("worktree_clean_at_capture") is not True:
+        raise EvidenceError("admission does not attest a clean capture")
+    if admission.get("model_build") != metrics["model_build"]:
+        raise EvidenceError("admission model_build does not match metrics")
+    treatment = admission.get("treatment")
+    all_treatments = {
+        item
+        for values in contract["evidence_chain"]["mapping_treatments"].values()
+        for item in values
+    }
+    if treatment not in all_treatments:
+        raise EvidenceError("admission treatment is invalid")
+
+    input_digests = admission.get("input_digests")
+    if not isinstance(input_digests, dict) or set(input_digests) != set(
+        ADMISSION_INPUT_DIGEST_FIELDS
+    ):
+        raise EvidenceError("admission input digest field set is invalid")
+    for field in ADMISSION_INPUT_DIGEST_FIELDS:
+        if not HEX64.fullmatch(str(input_digests.get(field, ""))):
+            raise EvidenceError(f"admission {field} digest is invalid")
+    metric_bindings = {
+        "task_packet_sha256": metrics["task_packet_sha256"],
+        "permissions_sha256": metrics["permissions_sha256"],
+        "budget_sha256": metrics["budget_sha256"],
+        "harness_contract_sha256": metrics["harness_contract_sha256"],
+        "scorer_rubric_sha256": metrics["scorer_rubric_sha256"],
+        "randomization_record_sha256": metrics["randomization_record_sha256"],
+    }
+    if any(input_digests[field] != expected for field, expected in metric_bindings.items()):
+        raise EvidenceError("admission input digest does not match metrics")
+    if (
+        input_digests["harness_contract_sha256"]
+        != contract["_harness_contract_sha256"]
+    ):
+        raise EvidenceError("admission does not bind the candidate harness contract")
+    input_artifacts = admission.get("input_artifacts")
+    if not isinstance(input_artifacts, dict) or set(input_artifacts) != set(
+        ADMISSION_INPUT_DIGEST_FIELDS
+    ):
+        raise EvidenceError("admission retained input artifact field set is invalid")
+    retained_paths: list[str] = []
+    for field in ADMISSION_INPUT_DIGEST_FIELDS:
+        entry = input_artifacts[field]
+        if not isinstance(entry, dict) or set(entry) != {"path", "sha256"}:
+            raise EvidenceError(f"admission retained input artifact is invalid: {field}")
+        source_path = _source_from_event(entry.get("path"), chain_dir)
+        if (
+            not source_path.is_file()
+            or entry.get("sha256") != input_digests[field]
+            or entry["sha256"] != _sha256_file(source_path)
+        ):
+            raise EvidenceError(
+                f"admission retained input artifact does not match digest: {field}"
+            )
+        retained_paths.append(entry["path"])
+    if len(set(retained_paths)) != len(retained_paths):
+        raise EvidenceError("admission retained input artifact paths must be unique")
+
+    packet_raw = packet_path.read_bytes()
+    packet = _load_json(packet_path)
+    if packet_raw != _json_bytes(packet):
+        raise EvidenceError("outcome packet is not canonical JSON")
+    if (
+        packet.get("schema") != OUTCOME_PACKET_SCHEMA
+        or packet.get("anon_id") != admission["anon_id"]
+        or packet.get("baseline_commit") != baseline_commit
+        or packet.get("output_commit") != output_commit
+        or packet.get("harness_contract_sha256")
+        != input_digests["harness_contract_sha256"]
+        or not isinstance(packet.get("scorer_payload"), dict)
+    ):
+        raise EvidenceError("outcome packet identity or schema is invalid")
+    packet_sha = _sha256_bytes(packet_raw)
+    if (
+        admission.get("output_packet_sha256") != packet_sha
+        or metrics["artifacts"]["output_packet_sha256"] != packet_sha
+    ):
+        raise EvidenceError("admission output packet digest is invalid")
+
+    event_log = admission.get("event_log")
+    if not isinstance(event_log, dict):
+        raise EvidenceError("admission event_log is absent")
+    event_log_path = _source_from_event(event_log.get("path"), chain_dir)
+    if (
+        not event_log_path.is_file()
+        or event_log.get("sha256") != _sha256_file(event_log_path)
+        or event_log["sha256"] != metrics["artifacts"]["event_log_sha256"]
+    ):
+        raise EvidenceError("retained event log identity is invalid")
+
+    final_diff = admission.get("final_diff")
+    if not isinstance(final_diff, dict):
+        raise EvidenceError("admission final_diff is absent")
+    final_diff_path = _source_from_event(final_diff.get("path"), chain_dir)
+    if not final_diff_path.is_file():
+        raise EvidenceError("retained final diff is absent")
+    final_diff_sha = _sha256_file(final_diff_path)
+    tracked_changed_files = final_diff.get("tracked_changed_files")
+    if (
+        final_diff.get("sha256") != final_diff_sha
+        or packet.get("final_diff_sha256") != final_diff_sha
+        or not isinstance(tracked_changed_files, list)
+        or not tracked_changed_files
+        or tracked_changed_files != sorted(set(tracked_changed_files))
+        or any(not isinstance(item, str) or not item for item in tracked_changed_files)
+    ):
+        raise EvidenceError("admission final diff identity is invalid")
+
+    receipts = admission.get("receipts")
+    if not isinstance(receipts, list) or not receipts:
+        raise EvidenceError("admission requires test receipts")
+    receipt_paths = [
+        entry.get("path") if isinstance(entry, dict) else None
+        for entry in receipts
+    ]
+    if (
+        any(not isinstance(path, str) or not path for path in receipt_paths)
+        or receipt_paths != sorted(set(receipt_paths))
+    ):
+        raise EvidenceError("admission receipt paths must be sorted and unique")
+    receipt_index: list[dict[str, str]] = []
+    for entry in receipts:
+        if not isinstance(entry, dict):
+            raise EvidenceError("admission receipt entry is invalid")
+        receipt_path = _source_from_event(entry.get("path"), chain_dir)
+        if not receipt_path.is_file():
+            raise EvidenceError("retained test receipt is absent")
+        receipt_raw = receipt_path.read_bytes()
+        receipt = _load_json(receipt_path)
+        if receipt_raw != _json_bytes(receipt):
+            raise EvidenceError("test receipt is not canonical JSON")
+        receipt_sha = _sha256_bytes(receipt_raw)
+        output_path = _source_from_event(receipt.get("output_path"), chain_dir)
+        if (
+            entry.get("sha256") != receipt_sha
+            or receipt.get("schema") != RECEIPT_SCHEMA
+            or receipt.get("linked_commit") != output_commit
+            or receipt.get("exit_code") != 0
+            or not isinstance(receipt.get("command"), str)
+            or not receipt["command"].strip()
+            or not output_path.is_file()
+            or receipt.get("output_sha256") != _sha256_file(output_path)
+        ):
+            raise EvidenceError("test receipt does not bind the output commit")
+        receipt_index.append({"path": entry["path"], "sha256": receipt_sha})
+    receipt_set_sha = _sha256_bytes(_json_bytes(receipt_index))
+    if (
+        admission.get("receipt_set_sha256") != receipt_set_sha
+        or packet.get("receipt_set_sha256") != receipt_set_sha
+    ):
+        raise EvidenceError("receipt set digest is invalid")
+
+    bundle = admission.get("git_bundle")
+    if not isinstance(bundle, dict):
+        raise EvidenceError("admission git_bundle is absent")
+    bundle_path = _source_from_event(bundle.get("path"), chain_dir)
+    if (
+        not bundle_path.is_file()
+        or bundle.get("sha256") != _sha256_file(bundle_path)
+    ):
+        raise EvidenceError("retained git bundle identity is invalid")
+    _verify_git_proof(
+        bundle_path,
+        baseline_commit,
+        output_commit,
+        final_diff_path,
+        tracked_changed_files,
+    )
+    if live_repo_root is not None:
+        _verify_live_capture(
+            live_repo_root, baseline_commit, output_commit, final_diff_path
+        )
+    return admission
 
 
 def validate_metrics(
@@ -234,6 +739,8 @@ def validate_metrics(
             value[field]
         ):
             raise EvidenceError(f"metrics {field} is invalid")
+    if value["harness_contract_sha256"] != contract["_harness_contract_sha256"]:
+        raise EvidenceError("metrics do not bind the candidate harness contract")
     repeat_index = _non_negative_int(value.get("repeat_index"), "repeat_index")
     if repeat_index not in (1, 2, 3):
         raise EvidenceError("repeat_index must be 1, 2 or 3")
@@ -270,6 +777,23 @@ def validate_metrics(
         raise EvidenceError("costs must be an object")
     for field in contract["run_metrics"]["cost_fields"]:
         _non_negative_int(costs.get(field), f"costs.{field}")
+    core_available = costs.get("core_available")
+    if not isinstance(core_available, bool):
+        raise EvidenceError("costs.core_available must be boolean")
+    core_fields = tuple(contract["run_metrics"]["core_cost_fields"])
+    if core_available:
+        for field in core_fields:
+            _positive_int(costs.get(field), f"costs.{field}")
+        if "core_unavailable_reason" in costs:
+            raise EvidenceError("available core costs may not carry a reason")
+    else:
+        if any(costs.get(field) is not None for field in core_fields):
+            raise EvidenceError("unavailable core costs must be null")
+        if (
+            not isinstance(costs.get("core_unavailable_reason"), str)
+            or not costs["core_unavailable_reason"].strip()
+        ):
+            raise EvidenceError("unavailable core costs require a reason")
     tokens = costs.get("tokens")
     if not isinstance(tokens, dict) or not isinstance(
         tokens.get("available"), bool
@@ -322,6 +846,48 @@ def validate_metrics(
     return value
 
 
+def evaluate_cost_gate(
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    gate = contract["decision_rule"]["cost_gate"]
+    wall_ratios: list[float] = []
+    tool_ratios: list[float] = []
+    for arm_a, arm_b in pairs:
+        costs_a = arm_a.get("costs")
+        costs_b = arm_b.get("costs")
+        if not isinstance(costs_a, dict) or not isinstance(costs_b, dict):
+            raise EvidenceError("cost gate pair lacks cost objects")
+        if costs_a.get("core_available") is not True or costs_b.get(
+            "core_available"
+        ) is not True:
+            continue
+        wall_a = _positive_int(costs_a.get("wall_clock_ms"), "A wall_clock_ms")
+        wall_b = _positive_int(costs_b.get("wall_clock_ms"), "B wall_clock_ms")
+        tools_a = _positive_int(costs_a.get("tool_calls"), "A tool_calls")
+        tools_b = _positive_int(costs_b.get("tool_calls"), "B tool_calls")
+        wall_ratios.append(wall_b / wall_a)
+        tool_ratios.append(tools_b / tools_a)
+    minimum = _positive_int(gate.get("minimum_valid_pairs"), "minimum_valid_pairs")
+    if len(wall_ratios) < minimum:
+        return {
+            "status": gate["telemetry_unavailable_disposition"],
+            "valid_pairs": len(wall_ratios),
+        }
+    wall_median = statistics.median(wall_ratios)
+    tool_median = statistics.median(tool_ratios)
+    passed = (
+        wall_median <= gate["median_paired_wall_clock_ratio_max"]
+        and tool_median <= gate["median_paired_tool_call_ratio_max"]
+    )
+    return {
+        "median_paired_tool_call_ratio": tool_median,
+        "median_paired_wall_clock_ratio": wall_median,
+        "status": "PASS" if passed else "NEGATIVE",
+        "valid_pairs": len(wall_ratios),
+    }
+
+
 def _conditional_score_fields(contract: dict[str, Any]) -> tuple[str, ...]:
     return tuple(contract["scorer_submission"]["conditional_quality_fields"])
 
@@ -331,11 +897,23 @@ def validate_submission(
     contract: dict[str, Any],
     role: str,
     outcomes: dict[str, dict[str, Any]],
+    *,
+    blind_input_set_sha256: str,
+    scorer_rubric_sha256: str,
 ) -> dict[str, Any]:
     if value.get("schema") != SCORE_SCHEMA:
         raise EvidenceError("scorer submission schema is invalid")
     if value.get("scorer_role") != role:
         raise EvidenceError("scorer role does not match command role")
+    for field in ("scorer_identity", "scorer_context_id", "model_build"):
+        if not isinstance(value.get(field), str) or not value[field].strip():
+            raise EvidenceError(f"scorer {field} must be non-empty")
+    if (
+        value.get("scorer_rubric_sha256") != scorer_rubric_sha256
+        or value.get("blind_input_set_sha256") != blind_input_set_sha256
+        or value.get("independence_declaration") is not True
+    ):
+        raise EvidenceError("scorer identity, rubric or blind-input binding is invalid")
     outputs = value.get("outputs")
     if not isinstance(outputs, list):
         raise EvidenceError("scorer outputs must be a list")
@@ -432,9 +1010,12 @@ def verify_chain(
     previous_raw: bytes | None = None
     outcomes: dict[str, dict[str, Any]] = {}
     scorer_event_digests: dict[str, str] = {}
+    scorer_metadata: dict[str, dict[str, str]] = {}
     closed_ids: list[str] | None = None
     study_kind: str | None = None
     pair_controls: dict[str, Any] | None = None
+    randomization_record: dict[str, Any] | None = None
+    randomization_record_sha256: str | None = None
     for index, path in enumerate(files, start=1):
         raw = path.read_bytes()
         event = _load_json(path)
@@ -459,7 +1040,29 @@ def verify_chain(
             raise EvidenceError(f"previous event digest mismatch: {path.name}")
         _parse_timestamp(event.get("recorded_at"), f"{path.name}.recorded_at")
 
-        if expected_event == "outcome_sealed":
+        if expected_event == "randomization_committed":
+            randomization_path = _source_from_event(
+                event.get("randomization_record_path"), chain_dir
+            )
+            if not randomization_path.is_file():
+                raise EvidenceError("randomization record source is absent")
+            randomization_raw = randomization_path.read_bytes()
+            randomization_record = validate_randomization_record(
+                _load_json(randomization_path), contract
+            )
+            if randomization_raw != _json_bytes(randomization_record):
+                raise EvidenceError("randomization record is not canonical JSON")
+            randomization_record_sha256 = _sha256_bytes(randomization_raw)
+            if (
+                event.get("randomization_record_sha256")
+                != randomization_record_sha256
+                or event.get("mapping_commitment_sha256")
+                != randomization_record["mapping_commitment_sha256"]
+            ):
+                raise EvidenceError("randomization commitment event is invalid")
+        elif expected_event == "outcome_sealed":
+            if randomization_record is None or randomization_record_sha256 is None:
+                raise EvidenceError("outcome precedes randomization commitment")
             anon_id = event.get("anon_id")
             if not isinstance(anon_id, str) or not ANON_ID.fullmatch(anon_id):
                 raise EvidenceError(f"invalid sealed anon_id: {path.name}")
@@ -477,14 +1080,42 @@ def verify_chain(
                 raise EvidenceError("sealed packet digest mismatch")
             if _sha256_file(metrics_path) != event.get("metrics_sha256"):
                 raise EvidenceError("sealed metrics digest mismatch")
+            metrics_raw = metrics_path.read_bytes()
             metrics = validate_metrics(
                 _load_json(metrics_path),
                 contract,
                 packet_sha256=str(event["packet_sha256"]),
             )
+            if metrics_raw != _json_bytes(metrics):
+                raise EvidenceError("sealed metrics are not canonical JSON")
             if metrics["anon_id"] != anon_id:
                 raise EvidenceError("sealed metrics anon_id mismatch")
+            if (
+                anon_id not in randomization_record["anonymous_ids"]
+                or metrics["randomization_record_sha256"]
+                != randomization_record_sha256
+                or metrics["task_id"] != randomization_record["task_id"]
+                or metrics["pair_id"] != randomization_record["pair_id"]
+                or metrics["repeat_index"] != randomization_record["repeat_index"]
+            ):
+                raise EvidenceError("sealed metrics do not match randomization record")
+            admission_path = _source_from_event(
+                event.get("admission_path"), chain_dir
+            )
+            if (
+                not admission_path.is_file()
+                or _sha256_file(admission_path) != event.get("admission_sha256")
+            ):
+                raise EvidenceError("sealed admission source identity is invalid")
+            admission = validate_admission(
+                admission_path,
+                packet_path,
+                metrics,
+                contract,
+                chain_dir,
+            )
             outcomes[anon_id] = {
+                "admission": admission,
                 "completed_under_cap": metrics["completed_under_cap"],
                 "controls": {
                     field: metrics[field] for field in COMMON_PAIR_FIELDS
@@ -494,6 +1125,8 @@ def verify_chain(
                 "run_id": metrics["run_id"],
             }
         elif expected_event == "blind_set_closed":
+            if randomization_record is None or randomization_record_sha256 is None:
+                raise EvidenceError("blind-set closure lacks randomization commitment")
             closed_ids = event.get("anonymous_ids")
             study_kind = event.get("study_kind")
             mappings = contract["evidence_chain"]["mapping_treatments"]
@@ -504,6 +1137,8 @@ def verify_chain(
                 or closed_ids != sorted(outcomes)
                 or len(closed_ids)
                 != contract["evidence_chain"]["anonymous_outcomes_per_comparison"]
+                or closed_ids != randomization_record["anonymous_ids"]
+                or study_kind != randomization_record["study_kind"]
             ):
                 raise EvidenceError("closed anonymous set is invalid")
             expected_sources = {
@@ -532,6 +1167,13 @@ def verify_chain(
             pair_controls = next(iter(outcomes.values()))["controls"]
             if event.get("pair_controls") != pair_controls:
                 raise EvidenceError("blind-set pair controls are invalid")
+            if (
+                event.get("randomization_record_sha256")
+                != randomization_record_sha256
+                or event.get("blind_input_set_sha256")
+                != _blind_input_set_sha256(outcomes)
+            ):
+                raise EvidenceError("blind-set commitment binding is invalid")
         elif expected_event in (
             "primary_scorer_submitted",
             "second_scorer_submitted",
@@ -546,12 +1188,40 @@ def verify_chain(
                 raise EvidenceError("scorer submission source is absent")
             if _sha256_file(submission_path) != event.get("submission_sha256"):
                 raise EvidenceError("scorer submission digest mismatch")
-            validate_submission(
-                _load_json(submission_path), contract, role, outcomes
+            submission = validate_submission(
+                _load_json(submission_path),
+                contract,
+                role,
+                outcomes,
+                blind_input_set_sha256=_blind_input_set_sha256(outcomes),
+                scorer_rubric_sha256=str(pair_controls["scorer_rubric_sha256"]),
             )
+            metadata = {
+                field: submission[field]
+                for field in (
+                    "scorer_identity",
+                    "scorer_context_id",
+                    "model_build",
+                    "scorer_rubric_sha256",
+                    "blind_input_set_sha256",
+                )
+            }
+            if event.get("scorer_metadata") != metadata:
+                raise EvidenceError("scorer event metadata does not match submission")
+            if role == "second" and (
+                metadata["scorer_context_id"]
+                == scorer_metadata["primary"]["scorer_context_id"]
+            ):
+                raise EvidenceError("primary and second scorer contexts are not independent")
+            scorer_metadata[role] = metadata
             scorer_event_digests[role] = _sha256_bytes(raw)
         elif expected_event == "mapping_released":
-            if closed_ids is None or study_kind is None:
+            if (
+                closed_ids is None
+                or study_kind is None
+                or randomization_record is None
+                or randomization_record_sha256 is None
+            ):
                 raise EvidenceError("mapping release precedes blind-set closure")
             mapping_path = _source_from_event(
                 event.get("mapping_path"), chain_dir
@@ -561,24 +1231,33 @@ def verify_chain(
             if _sha256_file(mapping_path) != event.get("mapping_sha256"):
                 raise EvidenceError("mapping digest mismatch")
             mapping_doc = _load_json(mapping_path)
-            if mapping_doc.get("schema") != MAPPING_SCHEMA:
-                raise EvidenceError("mapping schema is invalid")
-            if mapping_doc.get("study_kind") != study_kind:
-                raise EvidenceError("mapping study_kind mismatch")
             if event.get("study_kind") != study_kind:
                 raise EvidenceError("mapping event study_kind mismatch")
-            mapping = mapping_doc.get("mapping")
-            expected_treatments = set(
-                contract["evidence_chain"]["mapping_treatments"][study_kind]
+            mapping = validate_mapping_reveal(
+                mapping_doc,
+                contract,
+                randomization_record,
+                randomization_record_sha256,
             )
-            if (
-                not isinstance(mapping, dict)
-                or set(mapping) != set(closed_ids)
-                or set(mapping.values()) != expected_treatments
-            ):
-                raise EvidenceError("mapping population or treatment set is invalid")
+            for anon_id, treatment in mapping.items():
+                admission = outcomes[anon_id]["admission"]
+                if admission["treatment"] != treatment:
+                    raise EvidenceError("released mapping does not match admitted treatment")
+                expected_inputs = randomization_record["treatment_inputs"][treatment]
+                if any(
+                    admission["input_digests"][field] != expected_inputs[field]
+                    for field in TREATMENT_INPUT_DIGEST_FIELDS
+                ):
+                    raise EvidenceError(
+                        "admitted treatment inputs do not match randomization record"
+                    )
             if event.get("scorer_event_sha256") != scorer_event_digests:
                 raise EvidenceError("mapping release scorer-event digests mismatch")
+            if (
+                event.get("randomization_record_sha256")
+                != randomization_record_sha256
+            ):
+                raise EvidenceError("mapping event randomization digest mismatch")
         events.append(event)
         previous_raw = raw
 
@@ -628,24 +1307,70 @@ def _append_event(
     return path
 
 
+def commit_randomization(
+    chain_dir: Path,
+    contract_path: Path,
+    randomization_record_path: Path,
+) -> Path:
+    contract, _ = load_contract(contract_path)
+    if not randomization_record_path.is_file():
+        raise EvidenceError("randomization record file is absent")
+    raw = randomization_record_path.read_bytes()
+    record = validate_randomization_record(
+        _load_json(randomization_record_path), contract
+    )
+    if raw != _json_bytes(record):
+        raise EvidenceError("randomization record is not canonical JSON")
+    return _append_event(
+        chain_dir,
+        contract_path,
+        "randomization_committed",
+        {
+            "mapping_commitment_sha256": record["mapping_commitment_sha256"],
+            "randomization_record_path": _source_relative_to_evidence_root(
+                randomization_record_path, chain_dir
+            ),
+            "randomization_record_sha256": _sha256_bytes(raw),
+        },
+    )
+
+
 def seal_outcome(
     chain_dir: Path,
     contract_path: Path,
     packet_path: Path,
     metrics_path: Path,
+    admission_path: Path,
+    repo_root: Path,
 ) -> Path:
     contract, _ = load_contract(contract_path)
-    if not packet_path.is_file() or not metrics_path.is_file():
-        raise EvidenceError("packet and metrics files must exist")
+    if (
+        not packet_path.is_file()
+        or not metrics_path.is_file()
+        or not admission_path.is_file()
+    ):
+        raise EvidenceError("packet, metrics and admission files must exist")
     packet_sha = _sha256_file(packet_path)
     metrics = validate_metrics(
         _load_json(metrics_path), contract, packet_sha256=packet_sha
+    )
+    validate_admission(
+        admission_path,
+        packet_path,
+        metrics,
+        contract,
+        chain_dir,
+        live_repo_root=repo_root,
     )
     return _append_event(
         chain_dir,
         contract_path,
         "outcome_sealed",
         {
+            "admission_path": _source_relative_to_evidence_root(
+                admission_path, chain_dir
+            ),
+            "admission_sha256": _sha256_file(admission_path),
             "anon_id": metrics["anon_id"],
             "metrics_path": _source_relative_to_evidence_root(
                 metrics_path, chain_dir
@@ -666,10 +1391,20 @@ def close_blind_set(
 ) -> Path:
     contract, _ = load_contract(contract_path)
     report = verify_chain(chain_dir, contract_path)
-    if report["event_count"] != 2:
+    if report["event_count"] != 3:
         raise EvidenceError("blind set requires exactly two sealed outcomes")
     files = _event_files(chain_dir)
-    events = [_load_json(path) for path in files]
+    events = [
+        _load_json(path)
+        for path in files
+        if _load_json(path)["event"] == "outcome_sealed"
+    ]
+    randomization_event = _load_json(files[0])
+    randomization_record = _load_json(
+        _source_from_event(
+            randomization_event["randomization_record_path"], chain_dir
+        )
+    )
     anon_ids = sorted(event["anon_id"] for event in events)
     sources = {
         event["anon_id"]: {
@@ -692,13 +1427,26 @@ def close_blind_set(
         raise EvidenceError("sealed outcomes reuse one run_id")
     if study_kind not in contract["evidence_chain"]["mapping_treatments"]:
         raise EvidenceError("study_kind is not registered")
+    if (
+        study_kind != randomization_record["study_kind"]
+        or anon_ids != randomization_record["anonymous_ids"]
+    ):
+        raise EvidenceError("blind set differs from randomization record")
+    outcome_summary = {
+        event["anon_id"]: {"packet_sha256": event["packet_sha256"]}
+        for event in events
+    }
     return _append_event(
         chain_dir,
         contract_path,
         "blind_set_closed",
         {
             "anonymous_ids": anon_ids,
+            "blind_input_set_sha256": _blind_input_set_sha256(outcome_summary),
             "pair_controls": controls[0],
+            "randomization_record_sha256": randomization_event[
+                "randomization_record_sha256"
+            ],
             "sealed_sources": sources,
             "study_kind": study_kind,
         },
@@ -717,25 +1465,64 @@ def submit_scorer(
     expected_event = f"{role}_scorer_submitted"
     if not submission_path.is_file():
         raise EvidenceError("scorer submission file is absent")
-    verify_chain(chain_dir, contract_path)
+    report = verify_chain(chain_dir, contract_path)
+    next_sequence = report["event_count"] + 1
+    if (
+        next_sequence > len(EVENT_SEQUENCE)
+        or EVENT_SEQUENCE[next_sequence - 1] != expected_event
+    ):
+        raise EvidenceError(
+            f"event {expected_event} is not allowed after state {report['state']}"
+        )
     events = [_load_json(path) for path in _event_files(chain_dir)]
     outcomes = {
         event["anon_id"]: {
             "completed_under_cap": _load_json(
                 _source_from_event(event["metrics_path"], chain_dir)
-            )["completed_under_cap"]
+            )["completed_under_cap"],
+            "packet_sha256": event["packet_sha256"],
         }
         for event in events
         if event["event"] == "outcome_sealed"
     }
-    validate_submission(
-        _load_json(submission_path), contract, role, outcomes
+    close_event = next(
+        event for event in events if event["event"] == "blind_set_closed"
     )
+    submission = validate_submission(
+        _load_json(submission_path),
+        contract,
+        role,
+        outcomes,
+        blind_input_set_sha256=close_event["blind_input_set_sha256"],
+        scorer_rubric_sha256=close_event["pair_controls"][
+            "scorer_rubric_sha256"
+        ],
+    )
+    if role == "second":
+        primary_event = next(
+            event for event in events if event["event"] == "primary_scorer_submitted"
+        )
+        if (
+            submission["scorer_context_id"]
+            == primary_event["scorer_metadata"]["scorer_context_id"]
+        ):
+            raise EvidenceError("primary and second scorer contexts are not independent")
+    metadata = {
+        field: submission[field]
+        for field in (
+            "scorer_identity",
+            "scorer_context_id",
+            "model_build",
+            "scorer_rubric_sha256",
+            "blind_input_set_sha256",
+        )
+    }
     return _append_event(
         chain_dir,
         contract_path,
         expected_event,
         {
+            "scorer_metadata": metadata,
             "scorer_role": role,
             "submission_path": _source_relative_to_evidence_root(
                 submission_path, chain_dir
@@ -758,25 +1545,42 @@ def release_mapping(
         raise EvidenceError("mapping file is absent")
     mapping_doc = _load_json(mapping_path)
     events = [_load_json(path) for path in _event_files(chain_dir)]
+    randomization_event = events[0]
+    randomization_record_path = _source_from_event(
+        randomization_event["randomization_record_path"], chain_dir
+    )
+    randomization_record = validate_randomization_record(
+        _load_json(randomization_record_path), contract
+    )
+    randomization_sha = randomization_event["randomization_record_sha256"]
     close_event = next(
         event for event in events if event["event"] == "blind_set_closed"
     )
-    if mapping_doc.get("schema") != MAPPING_SCHEMA:
-        raise EvidenceError("mapping schema is invalid")
     if mapping_doc.get("study_kind") != close_event["study_kind"]:
         raise EvidenceError("mapping study_kind differs from blind set")
-    mapping = mapping_doc.get("mapping")
-    treatments = set(
-        contract["evidence_chain"]["mapping_treatments"][
-            close_event["study_kind"]
-        ]
+    mapping = validate_mapping_reveal(
+        mapping_doc,
+        contract,
+        randomization_record,
+        randomization_sha,
     )
-    if (
-        not isinstance(mapping, dict)
-        or set(mapping) != set(close_event["anonymous_ids"])
-        or set(mapping.values()) != treatments
-    ):
-        raise EvidenceError("mapping population or treatment set is invalid")
+    for event in events:
+        if event["event"] != "outcome_sealed":
+            continue
+        admission = _load_json(
+            _source_from_event(event["admission_path"], chain_dir)
+        )
+        treatment = mapping[event["anon_id"]]
+        if admission["treatment"] != treatment:
+            raise EvidenceError("released mapping does not match admitted treatment")
+        if any(
+            admission["input_digests"][field]
+            != randomization_record["treatment_inputs"][treatment][field]
+            for field in TREATMENT_INPUT_DIGEST_FIELDS
+        ):
+            raise EvidenceError(
+                "admitted treatment inputs do not match randomization record"
+            )
     scorer_event_digests = {
         event["scorer_role"]: _sha256_file(path)
         for path, event in zip(_event_files(chain_dir), events)
@@ -791,6 +1595,7 @@ def release_mapping(
                 mapping_path, chain_dir
             ),
             "mapping_sha256": _sha256_file(mapping_path),
+            "randomization_record_sha256": randomization_sha,
             "scorer_event_sha256": scorer_event_digests,
             "study_kind": close_event["study_kind"],
         },
@@ -802,8 +1607,7 @@ def build_candidate_manifest(
     output_path: Path,
     source_base_commit: str,
 ) -> dict[str, Any]:
-    if not HEX40.fullmatch(source_base_commit):
-        raise EvidenceError("source_base_commit must be a full 40-hex commit")
+    _validate_source_base_commit(repo_root, source_base_commit)
     files = []
     for relative in CANDIDATE_FILES:
         path = repo_root.joinpath(*relative.split("/"))
@@ -850,8 +1654,9 @@ def verify_candidate(repo_root: Path, manifest_path: Path) -> dict[str, Any]:
         != "pending_independent_review_and_owner_signature"
     ):
         raise EvidenceError("candidate manifest authorization is invalid")
-    if not HEX40.fullmatch(str(manifest.get("source_base_commit", ""))):
-        raise EvidenceError("candidate source_base_commit is invalid")
+    _validate_source_base_commit(
+        repo_root, str(manifest.get("source_base_commit", ""))
+    )
     entries = manifest.get("files")
     if not isinstance(entries, list):
         raise EvidenceError("candidate manifest files are absent")
@@ -870,7 +1675,7 @@ def verify_candidate(repo_root: Path, manifest_path: Path) -> dict[str, Any]:
         checks.append({"check": entry["path"], "passed": passed})
         if not passed:
             raise EvidenceError(f"candidate file mismatch: {entry['path']}")
-    contract_path = repo_root / CANDIDATE_FILES[2]
+    contract_path = repo_root / CANDIDATE_FILES[3]
     load_contract(contract_path)
     attribute_lines = set(
         (repo_root / ".gitattributes").read_text(encoding="utf-8").splitlines()
@@ -913,11 +1718,18 @@ def _parser() -> argparse.ArgumentParser:
     metrics.add_argument("--packet")
     metrics.add_argument("--json-out")
 
+    randomization = sub.add_parser("commit-randomization")
+    randomization.add_argument("--chain-dir", required=True)
+    randomization.add_argument("--contract", required=True)
+    randomization.add_argument("--record", required=True)
+
     seal = sub.add_parser("seal-outcome")
     seal.add_argument("--chain-dir", required=True)
     seal.add_argument("--contract", required=True)
     seal.add_argument("--packet", required=True)
     seal.add_argument("--metrics", required=True)
+    seal.add_argument("--admission", required=True)
+    seal.add_argument("--repo-root", required=True)
 
     close = sub.add_parser("close-blind-set")
     close.add_argument("--chain-dir", required=True)
@@ -950,6 +1762,7 @@ def _parser() -> argparse.ArgumentParser:
         "--require-state",
         choices=(
             "empty",
+            "randomization_committed",
             "outcome_sealed",
             "blind_set_closed",
             "primary_scorer_submitted",
@@ -988,6 +1801,14 @@ def main(argv: list[str] | None = None) -> int:
             result = {"contract_sha256": contract_sha, "status": "PASS"}
             _write_report(args.json_out, result)
             print(json.dumps(result, sort_keys=True))
+        elif args.command == "commit-randomization":
+            print(
+                commit_randomization(
+                    Path(args.chain_dir),
+                    Path(args.contract),
+                    Path(args.record),
+                )
+            )
         elif args.command == "seal-outcome":
             print(
                 seal_outcome(
@@ -995,6 +1816,8 @@ def main(argv: list[str] | None = None) -> int:
                     Path(args.contract),
                     Path(args.packet),
                     Path(args.metrics),
+                    Path(args.admission),
+                    Path(args.repo_root),
                 )
             )
         elif args.command == "close-blind-set":

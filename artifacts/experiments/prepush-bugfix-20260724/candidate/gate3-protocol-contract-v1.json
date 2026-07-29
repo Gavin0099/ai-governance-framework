@@ -8,9 +8,12 @@
   },
   "decision_rule": {
     "cost_gate": {
+      "even_sample_median": "arithmetic_mean_of_two_middle_values",
       "median_paired_tool_call_ratio_max": 1.2,
       "median_paired_wall_clock_ratio_max": 1.2,
-      "positive_denominator_pairs_only": true
+      "minimum_valid_pairs": 2,
+      "telemetry_unavailable_disposition": "INSUFFICIENT",
+      "zero_denominator_disposition": "INVALID"
     },
     "invalid_conditions": [
       "isolation_failure",
@@ -51,6 +54,7 @@
   "evidence_chain": {
     "anonymous_outcomes_per_comparison": 2,
     "event_order": [
+      "randomization_committed",
       "outcome_sealed",
       "outcome_sealed",
       "blind_set_closed",
@@ -72,12 +76,19 @@
         "D"
       ]
     },
+    "mapping_commitment": {
+      "commitment_payload_schema": "gate3-mapping-reveal-commitment.v1",
+      "nonce_hex_characters": 64,
+      "randomization_record_schema": "gate3-randomization-record.v1"
+    },
     "previous_event_digest": "sha256_of_exact_previous_event_file_bytes",
     "publication": "canonical_utf8_json_create_once"
   },
   "harness_prerequisite": {
+    "candidate_contract_path": "gate3-harness-contract-v1.json",
     "common_contract_sha256_required": true,
     "non_counted_rehearsal_required": true,
+    "owner_signature_requires_candidate_contract": true,
     "preferred_write_route": "structured_patch_or_write_with_stored_bytes_and_sha256",
     "retaining_base64_requires_owner_scope_acceptance": true
   },
@@ -104,9 +115,12 @@
     "third_pair_trigger": "any_non_completed_initial_run_or_tied_qualifying_success_count"
   },
   "run_metrics": {
-    "cost_fields": [
+    "core_cost_fields": [
       "wall_clock_ms",
-      "tool_calls",
+      "tool_calls"
+    ],
+    "core_cost_unavailable_policy": "null_fields_plus_nonempty_reason_then_pair_is_insufficient",
+    "cost_fields": [
       "owner_interventions",
       "rework_count",
       "retries",
@@ -130,6 +144,7 @@
   },
   "schema": "gate3-protocol-contract.v1",
   "scorer_submission": {
+    "blind_input_set_digest_required": true,
     "conditional_quality_fields": [
       "oracle_acceptance",
       "regression_baseline_fail",
@@ -147,6 +162,24 @@
       "second"
     ],
     "schema": "gate3-blind-score.v1",
+    "scorer_context_must_differ": true,
+    "scorer_identity_fields": [
+      "scorer_identity",
+      "scorer_context_id",
+      "model_build",
+      "scorer_rubric_sha256",
+      "blind_input_set_sha256",
+      "independence_declaration"
+    ],
     "timeout_quality_policy": "all_conditional_quality_fields_null"
+  },
+  "treatment_binding": {
+    "admission_treatment_must_match_released_mapping": true,
+    "input_digest_fields": [
+      "treatment_packet_sha256",
+      "governance_instruction_sha256",
+      "validator_bundle_sha256",
+      "validator_config_sha256"
+    ]
   }
 }
