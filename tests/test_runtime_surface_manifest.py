@@ -17,6 +17,7 @@ def test_runtime_surface_manifest_has_expected_first_slice_entries():
     assert {entry["adapter_family"] for entry in manifest["adapters"]} == {
         "claude_code",
         "codex",
+        "copilot",
         "gemini",
         "hermes",
     }
@@ -31,6 +32,11 @@ def test_runtime_surface_manifest_has_expected_first_slice_entries():
         "governance_drift_checker",
         "quickstart_smoke",
     }
+    copilot = next(
+        entry for entry in manifest["adapters"] if entry["adapter_family"] == "copilot"
+    )
+    assert copilot["supported_events"] == ["session_start", "session_end"]
+    assert copilot["normalizer_path"] == "runtime_hooks/adapters/copilot/lifecycle.py"
 
 
 def test_runtime_surface_manifest_consistency_is_clean_for_current_repo():

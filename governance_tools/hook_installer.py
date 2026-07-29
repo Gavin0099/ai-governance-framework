@@ -21,7 +21,26 @@ from typing import Sequence
 
 FRAMEWORK_MARKER = "AI Governance Framework"
 COPILOT_MARKER = "AI Governance Framework: copilot-instructions"
+COPILOT_LIFECYCLE_MARKER = "Thin lifecycle bridge for VS Code and GitHub Copilot hooks."
+COPILOT_HOOK_COMMAND_MARKER = "ai-governance-lifecycle.py"
 HOOK_NAMES = ("pre-commit", "pre-push")
+COPILOT_LIFECYCLE_FILES = (
+    (
+        Path("runtime_hooks/adapters/copilot/lifecycle.py"),
+        Path(".github/hooks/ai-governance-lifecycle.py"),
+        COPILOT_LIFECYCLE_MARKER,
+    ),
+    (
+        Path("governance/copilot-hooks-vscode-template.json"),
+        Path(".github/hooks/ai-governance-vscode.json"),
+        COPILOT_HOOK_COMMAND_MARKER,
+    ),
+    (
+        Path("governance/copilot-hooks-session-end-template.json"),
+        Path(".github/hooks/ai-governance-copilot.json"),
+        COPILOT_HOOK_COMMAND_MARKER,
+    ),
+)
 
 
 @dataclass
@@ -161,6 +180,19 @@ def install_governance_hooks(
             installed.append(str(copilot_target))
         else:
             errors.append(f"missing copilot instructions template: {copilot_source}")
+
+        # Lifecycle files are additive for framework versions that provide
+        # them. Older framework fixtures remain installable, while the
+        # validator reports the absent lifecycle surface as advisory.
+        for source_rel, target_rel, marker in COPILOT_LIFECYCLE_FILES:
+            source = framework_root / source_rel
+            if not source.is_file():
+                continue
+            target = repo_root / target_rel
+            _backup_unmanaged(target, marker, backups)
+            if _write_bytes_if_changed(target, source.read_bytes()):
+                changed.append(str(target))
+            installed.append(str(target))
 
     return HookInstallApplyResult(
         ok=not errors,

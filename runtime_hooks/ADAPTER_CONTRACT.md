@@ -26,6 +26,7 @@ They must not:
 ## Current adapter families
 
 - `claude_code/`
+- `copilot/`
 - `codex/`
 - `gemini/`
 - `hermes/`
@@ -41,7 +42,11 @@ Each harness should expose wrappers for:
 Future optional wrappers:
 
 - `pre_compact`
-- `session_end`
+
+The `copilot/lifecycle.py` wrapper is the bounded exception that currently
+handles `session_start` and `session_end` lifecycle payloads. It normalizes
+VS Code and GitHub Copilot field names, then delegates to the canonical session
+envelope and session-end implementations without embedding governance policy.
 
 ## Shared payload contract
 

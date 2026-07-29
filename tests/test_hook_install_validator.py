@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 from governance_tools.hook_install_validator import format_human, validate_hook_install
 
@@ -236,6 +239,118 @@ def test_copilot_instructions_non_governed_version_warns() -> None:
     assert result.checks["copilot_instructions_present"] is True
     assert result.checks["copilot_instructions_governed"] is False
     assert any("not deployed by AI Governance Framework" in w for w in result.warnings)
+
+
+def test_managed_copilot_lifecycle_surface_is_observable_and_advisory() -> None:
+    root = _reset_fixture("copilot_lifecycle_managed")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-lifecycle.py",
+        '"""Thin lifecycle bridge for VS Code and GitHub Copilot hooks."""\n',
+    )
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-vscode.json",
+        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-copilot.json",
+        '{"version":1,"hooks":{"sessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],"sessionEnd":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True
+    assert result.checks["copilot_lifecycle_installed"] is True
+    assert not any("lifecycle hooks are not fully installed" in warning for warning in result.warnings)
+
+
+def test_missing_copilot_lifecycle_surface_warns_without_blocking() -> None:
+    root = _reset_fixture("copilot_lifecycle_missing")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True
+    assert result.checks["copilot_lifecycle_installed"] is False
+    assert any("lifecycle hooks are not fully installed" in warning for warning in result.warnings)
+
+
+@pytest.mark.parametrize(
+    "invalid_entry",
+    [
+        {
+            "type": "command",
+            "command": "python .github/hooks/ai-governance-lifecycle.py "
+            "--event-type session_start --surface auto",
+        },
+        {
+            "type": "command",
+            "command": "python .github/hooks/ai-governance-lifecycle.py "
+            "--event-type session_end --surface vscode",
+        },
+        {
+            "type": "http",
+            "command": "python .github/hooks/ai-governance-lifecycle.py "
+            "--event-type session_end --surface auto",
+        },
+        {
+            "type": "command",
+            "command": "python .github/hooks/ai-governance-lifecycle.py",
+        },
+    ],
+)
+def test_invalid_lifecycle_routing_never_reports_installed(
+    invalid_entry: dict[str, str],
+) -> None:
+    root = _reset_fixture("copilot_lifecycle_invalid_routing")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-lifecycle.py",
+        '"""Thin lifecycle bridge for VS Code and GitHub Copilot hooks."""\n',
+    )
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-vscode.json",
+        json.dumps({"version": 1, "hooks": {"Stop": [invalid_entry]}}),
+    )
+    _write(
+        repo_root / ".github" / "hooks" / "ai-governance-copilot.json",
+        '{"version":1,"hooks":{"sessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],"sessionEnd":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True
+    assert result.checks["copilot_lifecycle_installed"] is False
 
 
 def test_validate_hook_install_resolves_common_hooks_for_linked_worktree(tmp_path: Path) -> None:

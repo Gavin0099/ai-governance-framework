@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,6 +16,8 @@ from pathlib import Path
 
 FRAMEWORK_MARKER = "AI Governance Framework"
 COPILOT_INSTRUCTIONS_MARKER = "AI Governance Framework: copilot-instructions"
+COPILOT_LIFECYCLE_MARKER = "Thin lifecycle bridge for VS Code and GitHub Copilot hooks."
+COPILOT_HOOK_COMMAND_MARKER = "ai-governance-lifecycle.py"
 REQUIRED_FRAMEWORK_FILES = [
     "scripts/lib/python.sh",
     "scripts/run-runtime-governance.sh",
@@ -34,13 +37,63 @@ class HookInstallResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def _contains_framework_marker(path: Path) -> bool:
+def _contains_marker(path: Path, marker: str) -> bool:
     if not path.is_file():
         return False
     try:
-        return FRAMEWORK_MARKER in path.read_text(encoding="utf-8")
+        return marker in path.read_text(encoding="utf-8")
     except OSError:
         return False
+
+
+def _contains_framework_marker(path: Path) -> bool:
+    return _contains_marker(path, FRAMEWORK_MARKER)
+
+
+def _command_option(tokens: list[str], option: str) -> str | None:
+    try:
+        index = tokens.index(option)
+    except ValueError:
+        return None
+    if index + 1 >= len(tokens):
+        return None
+    return tokens[index + 1]
+
+
+def _managed_copilot_hook_config(
+    path: Path,
+    expected_events: dict[str, tuple[str, str]],
+) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    hooks = payload.get("hooks")
+    if payload.get("version") != 1 or not isinstance(hooks, dict):
+        return False
+    if set(hooks) != set(expected_events):
+        return False
+    for event_name, (expected_event_type, expected_surface) in expected_events.items():
+        entries = hooks.get(event_name)
+        if not isinstance(entries, list) or len(entries) != 1:
+            return False
+        entry = entries[0]
+        if not isinstance(entry, dict) or entry.get("type") != "command":
+            return False
+        command = str(entry.get("command", ""))
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return False
+        if (
+            COPILOT_HOOK_COMMAND_MARKER not in command
+            or _command_option(tokens, "--event-type") != expected_event_type
+            or _command_option(tokens, "--surface") != expected_surface
+        ):
+            return False
+    return True
 
 
 def _normalize_framework_root(raw_value: str) -> Path:
@@ -135,6 +188,46 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     elif not copilot_governed:
         warnings.append(
             f"copilot-instructions.md exists but was not deployed by AI Governance Framework: {copilot_instructions}"
+        )
+
+    lifecycle_bridge = repo_root / ".github" / "hooks" / "ai-governance-lifecycle.py"
+    vscode_hooks = repo_root / ".github" / "hooks" / "ai-governance-vscode.json"
+    copilot_hooks = repo_root / ".github" / "hooks" / "ai-governance-copilot.json"
+    lifecycle_bridge_present = lifecycle_bridge.is_file()
+    lifecycle_bridge_governed = lifecycle_bridge_present and _contains_marker(
+        lifecycle_bridge,
+        COPILOT_LIFECYCLE_MARKER,
+    )
+    vscode_hooks_present = vscode_hooks.is_file()
+    vscode_hooks_governed = _managed_copilot_hook_config(
+        vscode_hooks,
+        {"Stop": ("session_end", "auto")},
+    )
+    copilot_hooks_present = copilot_hooks.is_file()
+    copilot_hooks_governed = _managed_copilot_hook_config(
+        copilot_hooks,
+        {
+            "sessionStart": ("session_start", "auto"),
+            "sessionEnd": ("session_end", "auto"),
+        },
+    )
+    checks["copilot_lifecycle_bridge_present"] = lifecycle_bridge_present
+    checks["copilot_lifecycle_bridge_governed"] = lifecycle_bridge_governed
+    checks["copilot_vscode_hooks_present"] = vscode_hooks_present
+    checks["copilot_vscode_hooks_governed"] = vscode_hooks_governed
+    checks["copilot_session_end_hooks_present"] = copilot_hooks_present
+    checks["copilot_session_end_hooks_governed"] = copilot_hooks_governed
+    checks["copilot_lifecycle_installed"] = all(
+        (
+            lifecycle_bridge_governed,
+            vscode_hooks_governed,
+            copilot_hooks_governed,
+        )
+    )
+    if not checks["copilot_lifecycle_installed"]:
+        warnings.append(
+            "Copilot lifecycle hooks are not fully installed; expected managed "
+            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs"
         )
 
     resolved_framework_root = framework_root.resolve() if framework_root is not None else None
