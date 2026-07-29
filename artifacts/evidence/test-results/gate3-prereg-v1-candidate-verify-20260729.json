@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py verify-candidate --repo-root . --manifest artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json",
+  "exit_code": 0,
+  "started_at": "2026-07-29T03:09:34Z",
+  "finished_at": "2026-07-29T03:09:34Z",
+  "runner": "codex-gate3-prereg-v1",
+  "linked_commit": "08ed915d6ddd49e39cd57ae82f7718cd1b24c1e0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/gate3-prereg-v1-candidate-verify-20260729.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

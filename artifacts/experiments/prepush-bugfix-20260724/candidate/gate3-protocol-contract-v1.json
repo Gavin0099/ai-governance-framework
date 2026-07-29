@@ -1,0 +1,185 @@
+{
+  "authorization": "pending_independent_review_and_owner_signature",
+  "claim_boundary": {
+    "gate2_use": "calibration_only_not_a_gate3_sample",
+    "inference": "screening_decision_not_statistically_powered",
+    "ordering_chain": "local_create_once_digest_chain_not_writer_authentication",
+    "skill_effectiveness": "not_claimed"
+  },
+  "decision_rule": {
+    "cost_gate": {
+      "even_sample_median": "arithmetic_mean_of_two_middle_values",
+      "median_paired_tool_call_ratio_max": 1.2,
+      "median_paired_wall_clock_ratio_max": 1.2,
+      "minimum_valid_pairs": 2,
+      "telemetry_unavailable_disposition": "INSUFFICIENT",
+      "zero_denominator_disposition": "INVALID"
+    },
+    "invalid_conditions": [
+      "isolation_failure",
+      "identity_or_blinding_failure",
+      "receipt_or_output_binding_failure",
+      "ordering_chain_failure",
+      "harness_changed_after_first_counted_run"
+    ],
+    "promotion_requires": {
+      "b_completion_rate_not_lower_than_a": true,
+      "b_task_wins_min": 2,
+      "critical_failure_unique_to_b_max": 0,
+      "product_success_difference_win_min": 1,
+      "wins_span_consumer_repos_min": 2
+    },
+    "qualifying_success_requires": [
+      "completed_under_cap",
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "no_new_scoped_regression",
+      "critical_residuals_zero"
+    ],
+    "task_winner": "higher_qualifying_success_count_after_frozen_pairs_else_tie"
+  },
+  "diagnostic_studies": {
+    "governance_diagnostic": {
+      "comparison": "B_vs_C",
+      "promotion_evidence": false
+    },
+    "validator_diagnostic": {
+      "comparison": "C_vs_D",
+      "eligibility_frozen_before_producer_output": true,
+      "promotion_evidence": false
+    }
+  },
+  "evidence_chain": {
+    "anonymous_outcomes_per_comparison": 2,
+    "event_order": [
+      "randomization_committed",
+      "outcome_sealed",
+      "outcome_sealed",
+      "blind_set_closed",
+      "primary_scorer_submitted",
+      "second_scorer_submitted",
+      "mapping_released"
+    ],
+    "mapping_treatments": {
+      "governance_diagnostic": [
+        "B",
+        "C"
+      ],
+      "skill_primary": [
+        "A",
+        "B"
+      ],
+      "validator_diagnostic": [
+        "C",
+        "D"
+      ]
+    },
+    "mapping_commitment": {
+      "commitment_payload_schema": "gate3-mapping-reveal-commitment.v1",
+      "nonce_hex_characters": 64,
+      "randomization_record_schema": "gate3-randomization-record.v1"
+    },
+    "previous_event_digest": "sha256_of_exact_previous_event_file_bytes",
+    "publication": "canonical_utf8_json_create_once"
+  },
+  "harness_prerequisite": {
+    "candidate_contract_path": "gate3-harness-contract-v1.json",
+    "common_contract_sha256_required": true,
+    "non_counted_rehearsal_required": true,
+    "owner_signature_requires_candidate_contract": true,
+    "preferred_write_route": "structured_patch_or_write_with_stored_bytes_and_sha256",
+    "retaining_base64_requires_owner_scope_acceptance": true
+  },
+  "primary_study": {
+    "arms": [
+      "A",
+      "B"
+    ],
+    "initial_pairs_per_task": 2,
+    "maximum_pairs_per_task": 3,
+    "minimum_consumer_repos": 2,
+    "minimum_natural_bug_tasks": 3,
+    "pair_controls": [
+      "baseline_commit",
+      "randomization_record_sha256",
+      "task_packet_sha256",
+      "model_build",
+      "permissions_sha256",
+      "budget_sha256",
+      "harness_contract_sha256",
+      "scorer_rubric_sha256"
+    ],
+    "root_cause_family_must_be_distinct": true,
+    "third_pair_trigger": "any_non_completed_initial_run_or_tied_qualifying_success_count"
+  },
+  "run_metrics": {
+    "core_cost_fields": [
+      "wall_clock_ms",
+      "tool_calls"
+    ],
+    "core_cost_unavailable_policy": "null_fields_plus_nonempty_reason_then_pair_is_insufficient",
+    "cost_fields": [
+      "owner_interventions",
+      "rework_count",
+      "retries",
+      "changed_files",
+      "diff_bytes"
+    ],
+    "method_observation_fields": [
+      "reproduction_before_first_edit",
+      "root_cause_recorded_before_first_edit",
+      "failing_regression_before_fix",
+      "defect_reintroduction_performed",
+      "post_restore_retest_performed",
+      "claim_bounded_to_evidence"
+    ],
+    "schema": "gate3-run-metrics.v1",
+    "terminal_statuses": [
+      "completed",
+      "timed_out",
+      "failed"
+    ]
+  },
+  "schema": "gate3-protocol-contract.v1",
+  "scorer_submission": {
+    "blind_input_set_digest_required": true,
+    "conditional_quality_fields": [
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "sensitivity_score",
+      "no_new_scoped_regression",
+      "critical_residuals",
+      "major_residuals",
+      "scope_hygiene",
+      "claim_mismatch_count"
+    ],
+    "roles": [
+      "primary",
+      "second"
+    ],
+    "schema": "gate3-blind-score.v1",
+    "scorer_context_must_differ": true,
+    "scorer_identity_fields": [
+      "scorer_identity",
+      "scorer_context_id",
+      "model_build",
+      "scorer_rubric_sha256",
+      "blind_input_set_sha256",
+      "independence_declaration"
+    ],
+    "timeout_quality_policy": "all_conditional_quality_fields_null"
+  },
+  "treatment_binding": {
+    "admission_treatment_must_match_released_mapping": true,
+    "input_digest_fields": [
+      "treatment_packet_sha256",
+      "governance_instruction_sha256",
+      "validator_bundle_sha256",
+      "validator_config_sha256"
+    ]
+  }
+}
