@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "\"C:\\Program Files\\Git\\bin\\bash.exe\" -l -c \"cd /d/ai-governance-framework && AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe bash scripts/run-runtime-governance.sh --mode enforce\"",
+  "exit_code": 0,
+  "started_at": "2026-07-29T03:07:35Z",
+  "finished_at": "2026-07-29T03:09:25Z",
+  "runner": "codex-gate3-prereg-v1",
+  "linked_commit": "08ed915d6ddd49e39cd57ae82f7718cd1b24c1e0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/gate3-prereg-v1-precommit-20260729.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

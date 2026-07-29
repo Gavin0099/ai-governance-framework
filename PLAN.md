@@ -1537,6 +1537,21 @@ independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.
 
+- [ ] **Gate 3 paired-screening preregistration candidate prepared
+  2026-07-29; review/signature pending.** Commit `08ed915d` adds an
+  experiment-local candidate only: Gate 2 is calibration data, repeated paired
+  A/B runs are the Skill-promotion comparison, B/C and C/D are non-promotional
+  diagnostic studies, timeout quality remains `NA`, and a create-once
+  previous-digest chain gates mapping release on two retained scorer
+  submissions. Focused tests passed 23/23; canonical precommit passed runtime
+  smoke plus 190/190; `core.autocrlf=true` index checkout preserved all six
+  candidate paths byte-for-byte. Exact candidate-manifest SHA-256:
+  `d9629ee7a4d129f69d5ce82e397e052c592b715e97f95fcdb6ca053adf8be4f7`.
+  This is not independently approved, owner-signed or canonical. Gate 3 remains
+  blocked on independent source review, explicit owner signature, later
+  promotion, one frozen common harness contract plus non-counted rehearsal,
+  natural-bug admission and separate start authority.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
