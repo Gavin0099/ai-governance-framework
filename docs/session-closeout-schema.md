@@ -27,9 +27,18 @@
 
 對自動 session-end 而言，共用的 `artifacts/session-closeout.txt` 不是
 session identity。Runtime 只允許相同 `session_id`、且
-`candidate.generated_at >= envelope.started_at` 的 session-bound candidate
-進入 promotion 與 daily-memory side effects。已產生 canonical closeout 的
-session 視為 consumed；再次呼叫不得重用 candidate 或重做 promotion。
+`candidate.generated_at >= envelope.started_at`，且共同欄位內容與共享
+closeout 一致的 session-bound candidate 進入 promotion 與 daily-memory
+side effects。Promotion 的內容由已綁定 candidate 產生，不直接信任共享
+文字檔。
+
+Canonical closeout 檔案本身不代表 session 已 consumed。只有 runtime 在
+所有必要 artifact 寫入完成後，原子寫入
+`artifacts/runtime/closeout-completions/<session_id>.json`，且該 marker
+所列 artifact 仍可驗證存在時，session 才視為 consumed。中途失敗但只留下
+部分 canonical artifact 的 session 必須允許重試；已完成 session 的重複
+stop hook 不得再寫 audit、candidate、transcript 或 promotion side effects。
+
 只有舊版共用文字檔、沒有 session-bound candidate 時必須 fail closed；
 runtime 不得在 session end 才替該文字補上新的 identity 或 timestamp。
 

@@ -1787,6 +1787,78 @@ def _derive_daily_memory_write_surface(
     }
 
 
+def _normalize_binding_text(value: object) -> str:
+    return " ".join(str(value or "").split()).casefold()
+
+
+def _normalize_binding_items(value: object) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw = str(value or "").strip()
+        if not raw or raw.upper() == "NONE":
+            raw_items = []
+        else:
+            raw_items = raw.split(",")
+    return sorted(
+        normalized
+        for item in raw_items
+        if (normalized := _normalize_binding_text(item))
+    )
+
+
+def _assess_candidate_content_binding(
+    fields: dict[str, str],
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind promotable shared closeout text to the session-owned candidate."""
+    comparisons = {
+        "task_intent": (
+            _normalize_binding_text(fields.get("TASK_INTENT")),
+            _normalize_binding_text(candidate.get("task_intent")),
+        ),
+        "work_summary": (
+            _normalize_binding_text(fields.get("WORK_COMPLETED")),
+            _normalize_binding_text(candidate.get("work_summary")),
+        ),
+        "artifacts_referenced": (
+            _normalize_binding_items(fields.get("FILES_TOUCHED")),
+            _normalize_binding_items(candidate.get("artifacts_referenced")),
+        ),
+        "open_risks": (
+            _normalize_binding_items(fields.get("OPEN_RISKS")),
+            _normalize_binding_items(candidate.get("open_risks")),
+        ),
+    }
+    mismatched_fields = [
+        name
+        for name, (closeout_value, candidate_value) in comparisons.items()
+        if closeout_value != candidate_value
+    ]
+    return {
+        "status": (
+            "session_candidate_content_mismatch"
+            if mismatched_fields
+            else "valid"
+        ),
+        "mismatched_fields": mismatched_fields,
+    }
+
+
+def _render_bound_candidate_for_memory(candidate: dict[str, Any]) -> str:
+    """Render only session-bound candidate content for snapshot or promotion."""
+    artifacts = candidate.get("artifacts_referenced") or []
+    risks = candidate.get("open_risks") or []
+    return "\n".join(
+        [
+            f"TASK_INTENT: {candidate.get('task_intent', '')}",
+            f"WORK_COMPLETED: {candidate.get('work_summary', '')}",
+            f"FILES_TOUCHED: {', '.join(str(item) for item in artifacts) or 'NONE'}",
+            f"OPEN_RISKS: {', '.join(str(item) for item in risks) or 'NONE'}",
+        ]
+    )
+
+
 def run_session_end_hook(
     project_root: Path,
     *,
@@ -1842,15 +1914,16 @@ def run_session_end_hook(
                     }
             except (OSError, TypeError, ValueError):
                 pre_binding_status = "session_envelope_invalid"
+    session_candidate: dict[str, Any] | None = None
     if (
         pre_binding_status == "eligible"
         and clf["closeout_status"] == STATUS_VALID
-        and not canonical_closeout_path.is_file()
     ):
+        session_candidate = pick_latest_candidate(session_id, project_root)
         candidate_binding = assess_session_closeout_binding(
             session_id,
             project_root,
-            pick_latest_candidate(session_id, project_root),
+            session_candidate,
         )
         if candidate_binding["status"] != "valid":
             pre_binding_status = str(candidate_binding["status"])
@@ -1859,6 +1932,16 @@ def run_session_end_hook(
                 for key, value in candidate_binding.items()
                 if key not in {"status", "session_id"}
             }
+        elif session_candidate is not None:
+            content_binding = _assess_candidate_content_binding(
+                clf["fields"],
+                session_candidate,
+            )
+            if content_binding["status"] != "valid":
+                pre_binding_status = str(content_binding["status"])
+                pre_binding_detail = {
+                    "mismatched_fields": content_binding["mismatched_fields"],
+                }
     if pre_binding_status != "eligible":
         clf = _fail_closed_session_binding_classification(
             status=pre_binding_status,
@@ -1901,8 +1984,11 @@ def run_session_end_hook(
     # MEMORY_TIER_NONE still records a fail-closed daily outcome without making
     # the missing or invalid closeout content eligible for promotion.
     effective_response = (
-        clf["response_text"]
-        if memory_tier in {MEMORY_TIER_VERIFIED, MEMORY_TIER_WORKING}
+        _render_bound_candidate_for_memory(session_candidate)
+        if (
+            memory_tier in {MEMORY_TIER_VERIFIED, MEMORY_TIER_WORKING}
+            and session_candidate is not None
+        )
         else ""
     )
 
@@ -1929,7 +2015,10 @@ def run_session_end_hook(
     # Gate evaluation — policy-driven, not hardcoded.
     # load_policy discovers: project_root/governance/gate_policy.yaml first,
     # then framework default, then builtin.  Provenance is always recorded.
-    if (result.get("session_binding") or {}).get("status") == "already_consumed":
+    already_consumed = (
+        (result.get("session_binding") or {}).get("status") == "already_consumed"
+    )
+    if already_consumed:
         closeout_status = STATUS_STALE_OR_MISMATCHED
         memory_tier = MEMORY_TIER_NONE
         fields = {}
@@ -1992,20 +2081,21 @@ def run_session_end_hook(
 
     # Persist canonical audit entry — non-blocking, repo-local, observability only.
     # See _append_canonical_audit_log() for authority boundary documentation.
-    _append_canonical_audit_log(
-        project_root=project_root,
-        session_id=session_id,
-        artifact_state=artifact_result.state,
-        canonical_path_audit=canonical_path_audit,
-        gate_blocked=gate.blocked,
-        policy_source=policy.policy_source,
-        policy_path=policy.policy_path,
-        fallback_used=policy.fallback_used,
-        repo_policy_present=policy.repo_policy_present,
-        skip_type=policy.skip_type,
-        plan_context_provenance=_read_plan_context_provenance(project_root),
-        policy_load_error=policy.policy_load_error,
-    )
+    if not already_consumed:
+        _append_canonical_audit_log(
+            project_root=project_root,
+            session_id=session_id,
+            artifact_state=artifact_result.state,
+            canonical_path_audit=canonical_path_audit,
+            gate_blocked=gate.blocked,
+            policy_source=policy.policy_source,
+            policy_path=policy.policy_path,
+            fallback_used=policy.fallback_used,
+            repo_policy_present=policy.repo_policy_present,
+            skip_type=policy.skip_type,
+            plan_context_provenance=_read_plan_context_provenance(project_root),
+            policy_load_error=policy.policy_load_error,
+        )
 
     # Compute multi-session trend — reads the log just written to, advisory only.
     # This MUST NOT contribute to gate.blocked.  Config comes from policy so
@@ -2039,7 +2129,11 @@ def run_session_end_hook(
     # operator action (or inaction) becomes traceable across sessions.
     # Advisory-only — log write failures must not interrupt the session result.
     taxonomy_expansion_log_entry: dict | None = None
-    if failure_disposition_data and failure_disposition_data.get("taxonomy_expansion_signal"):
+    if (
+        not already_consumed
+        and failure_disposition_data
+        and failure_disposition_data.get("taxonomy_expansion_signal")
+    ):
         try:
             taxonomy_expansion_log_entry = append_pending_entry(
                 project_root=project_root,
@@ -2070,14 +2164,15 @@ def run_session_end_hook(
     try:
         # v0.2 rollout: candidate + significance classifier + advisory report.
         # Advisory only; never changes gate outcome.
-        commit_hash = _resolve_head_commit(project_root)
-        memory_significance_artifacts = write_candidate_and_advisory(
-            repo_root=project_root,
-            session_id=session_id,
-            commit_hash=commit_hash,
-            task_intent=fields.get("TASK_INTENT", ""),
-            checks=checks,
-        )
+        if not already_consumed:
+            commit_hash = _resolve_head_commit(project_root)
+            memory_significance_artifacts = write_candidate_and_advisory(
+                repo_root=project_root,
+                session_id=session_id,
+                commit_hash=commit_hash,
+                task_intent=fields.get("TASK_INTENT", ""),
+                checks=checks,
+            )
     except Exception as exc:  # noqa: BLE001
         gate_warnings.append(
             f"[memory_significance] advisory generation failed: {exc}"
@@ -2088,7 +2183,8 @@ def run_session_end_hook(
     # preferred_session_id → scope=current_session.
     # Bridge is now always called; it handles None/missing transcript_path by
     # attempting auto-detection from ~/.claude/projects/.
-    _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
+    if not already_consumed:
+        _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     # Memory authority observation surface — Phase 1 (non-blocking, repo-scoped).
     # Converts console-only warning output into a persistent artifact field so

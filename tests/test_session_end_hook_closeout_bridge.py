@@ -11,7 +11,7 @@ from governance_tools.session_end_hook import run_session_end_hook
 from runtime_hooks.core._canonical_closeout import write_candidate, write_session_envelope
 
 
-_FIXTURE_ROOT = Path(__file__).parent / "_tmp_session_end_hook_closeout_bridge"
+_FIXTURE_ROOT = Path(__file__).parent / "_tmp_p1b_session_end_hook_closeout_bridge"
 
 
 def _reset_fixture(name: str) -> Path:
@@ -77,7 +77,7 @@ def test_session_end_hook_writes_non_missing_canonical_closeout_when_closeout_pr
         repo,
         session_id,
         task_intent="canonical closeout bridge validation",
-        work_summary="updated src/main.cpp and validated session-bound closeout",
+        work_summary="updated src/main.cpp and validated closeout bridge",
         artifacts_referenced=["src/main.cpp"],
     )
     result = run_session_end_hook(repo)
@@ -239,7 +239,51 @@ def test_stale_closeout_is_not_promoted_for_new_session() -> None:
     )
 
 
-def test_consumed_closeout_cannot_be_reused() -> None:
+def test_fresh_but_different_closeout_is_not_bound_to_session_candidate() -> None:
+    repo = _reset_fixture("bridge_content_mismatch")
+    session_id = "bridge-content-mismatch"
+    write_session_envelope(session_id, repo, provider="test")
+    touched = repo / "fresh.txt"
+    touched.write_text("fresh candidate\n", encoding="utf-8")
+    (repo / "stale.txt").write_text("stale copied closeout\n", encoding="utf-8")
+    closeout = repo / "artifacts" / "session-closeout.txt"
+    closeout.parent.mkdir(parents=True, exist_ok=True)
+    closeout.write_text(
+        "\n".join(
+            [
+                "TASK_INTENT: stale copied task",
+                "WORK_COMPLETED: updated stale.txt",
+                "FILES_TOUCHED: stale.txt",
+                "CHECKS_RUN: NONE",
+                "OPEN_RISKS: NONE",
+                "NOT_DONE: NONE",
+                "RECOMMENDED_MEMORY_UPDATE: stale prior memory",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_bound_candidate(
+        repo,
+        session_id,
+        task_intent="fresh candidate task",
+        work_summary="updated fresh.txt",
+        artifacts_referenced=["fresh.txt"],
+    )
+
+    result = run_session_end_hook(
+        repo,
+        hook_session_id=session_id,
+        ledger_write_allowed=False,
+    )
+
+    assert result["closeout_status"] == "stale_or_mismatched"
+    assert result["closeout_pre_binding_status"] == "session_candidate_content_mismatch"
+    assert result["decision"] == "DO_NOT_PROMOTE"
+    assert result["promoted"] is False
+
+
+def test_consumed_closeout_cannot_be_reused(monkeypatch) -> None:
     repo = _reset_fixture("bridge_consumed_once")
     session_id = "bridge-consumed-once"
     write_session_envelope(session_id, repo, provider="test")
@@ -267,10 +311,19 @@ def test_consumed_closeout_cannot_be_reused() -> None:
         repo,
         session_id,
         task_intent="consume once validation",
-        work_summary="updated consumed.txt and validated consume-once behavior",
+        work_summary="updated consumed.txt",
         artifacts_referenced=["consumed.txt"],
     )
     first = run_session_end_hook(repo, hook_session_id=session_id)
+
+    import governance_tools.session_end_hook as hook_module
+
+    def _unexpected_side_effect(*args, **kwargs):
+        raise AssertionError("already-consumed hook must return before side effects")
+
+    monkeypatch.setattr(hook_module, "_append_canonical_audit_log", _unexpected_side_effect)
+    monkeypatch.setattr(hook_module, "write_candidate_and_advisory", _unexpected_side_effect)
+    monkeypatch.setattr(hook_module, "_ingest_transcript_for_closeout", _unexpected_side_effect)
     second = run_session_end_hook(repo, hook_session_id=session_id)
 
     assert first["session_binding"]["status"] == "valid"

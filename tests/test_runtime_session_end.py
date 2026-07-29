@@ -80,6 +80,71 @@ def test_session_end_enforces_valid_session_bound_candidate(local_project_root):
     assert result["canonical_closeout"]["closeout_status"] == "valid"
 
 
+def test_failed_artifact_emission_does_not_mark_session_consumed(
+    local_project_root,
+    monkeypatch,
+):
+    import runtime_hooks.core.session_end as session_end_module
+
+    session_id = "2026-07-29-retry-after-partial-emission"
+    write_session_envelope(session_id, local_project_root, provider="codex")
+    write_candidate(session_id, local_project_root, _closeout_candidate())
+
+    original_write_json = session_end_module._write_json
+
+    def _fail_verdict_write(path, payload):
+        if path.parent.name == "verdicts":
+            raise OSError("simulated verdict write failure")
+        return original_write_json(path, payload)
+
+    monkeypatch.setattr(session_end_module, "_write_json", _fail_verdict_write)
+    first = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(memory_mode="stateless"),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="Retryable session",
+        enforce_session_binding=True,
+    )
+
+    canonical_path = (
+        local_project_root
+        / "artifacts"
+        / "runtime"
+        / "closeouts"
+        / f"{session_id}.json"
+    )
+    completion_path = (
+        local_project_root
+        / "artifacts"
+        / "runtime"
+        / "closeout-completions"
+        / f"{session_id}.json"
+    )
+    assert first["ok"] is False
+    assert canonical_path.exists()
+    assert not completion_path.exists()
+
+    monkeypatch.setattr(session_end_module, "_write_json", original_write_json)
+    second = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(memory_mode="stateless"),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="Retryable session",
+        enforce_session_binding=True,
+    )
+
+    assert second["ok"] is True
+    assert second["session_binding"]["status"] == "valid"
+    assert canonical_path.exists()
+    assert completion_path.exists()
+    assert Path(second["verdict_artifact"]).exists()
+    assert Path(second["trace_artifact"]).exists()
+
+
 def test_session_end_rejects_candidate_created_before_session_start(local_project_root):
     session_id = "2026-07-29-bound-stale"
     started_at = datetime.now(timezone.utc)

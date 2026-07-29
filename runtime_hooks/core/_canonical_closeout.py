@@ -163,14 +163,25 @@ def assess_session_closeout_binding(
     candidate_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Assess session ownership and consume-once state before side effects."""
-    canonical_path = (
-        project_root / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
+    canonical_path = project_root / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
+    completion_path = (
+        project_root
+        / "artifacts"
+        / "runtime"
+        / "closeout-completions"
+        / f"{session_id}.json"
     )
-    if canonical_path.is_file():
+    completion = _read_valid_closeout_completion(
+        session_id,
+        project_root,
+        completion_path,
+    )
+    if completion is not None:
         return {
             "status": "already_consumed",
             "session_id": session_id,
             "canonical_closeout_path": str(canonical_path),
+            "completion_marker_path": str(completion_path),
         }
 
     envelope = read_session_envelope(session_id, project_root)
@@ -401,6 +412,67 @@ def write_candidate(
     payload.setdefault("generated_at", datetime.now(timezone.utc).isoformat())
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def write_closeout_completion_marker(
+    session_id: str,
+    project_root: Path,
+    required_artifacts: list[Path],
+) -> Path:
+    """Atomically mark a session consumed after all required artifacts exist."""
+    missing = [str(path) for path in required_artifacts if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            "closeout completion marker requires emitted artifacts: "
+            + ", ".join(missing)
+        )
+
+    completion_dir = project_root / "artifacts" / "runtime" / "closeout-completions"
+    completion_dir.mkdir(parents=True, exist_ok=True)
+    path = completion_dir / f"{session_id}.json"
+    payload = {
+        "session_id": session_id,
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "required_artifacts": [
+            str(artifact.relative_to(project_root))
+            for artifact in required_artifacts
+        ],
+    }
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+    return path
+
+
+def _read_valid_closeout_completion(
+    session_id: str,
+    project_root: Path,
+    path: Path,
+) -> dict[str, Any] | None:
+    """Return a completion marker only when its identity and artifacts validate."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if str(payload.get("session_id") or "") != session_id:
+        return None
+    required_artifacts = payload.get("required_artifacts")
+    if not isinstance(required_artifacts, list) or not required_artifacts:
+        return None
+    for raw_path in required_artifacts:
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            return None
+        artifact = (project_root / raw_path).resolve()
+        try:
+            artifact.relative_to(project_root.resolve())
+        except ValueError:
+            return None
+        if not artifact.is_file():
+            return None
+    return payload
 
 
 # ---------------------------------------------------------------------------

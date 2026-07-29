@@ -46,6 +46,7 @@ from runtime_hooks.core._canonical_closeout import (
     build_canonical_closeout,
     pick_latest_candidate,
     write_canonical_closeout,
+    write_closeout_completion_marker,
 )
 
 
@@ -1292,6 +1293,22 @@ def run_session_end(
         )
         _write_json(verdict_path, verdict_payload)
         _write_json(trace_path, trace_payload)
+        required_completion_artifacts = [
+            candidate_path,
+            curated_path,
+            summary_path,
+            runtime_phase_summary_path,
+            closeout_path,
+            verdict_path,
+            trace_path,
+        ]
+        if claim_enforcement_check_path is not None:
+            required_completion_artifacts.append(claim_enforcement_check_path)
+        write_closeout_completion_marker(
+            session_id,
+            project_root,
+            required_completion_artifacts,
+        )
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)

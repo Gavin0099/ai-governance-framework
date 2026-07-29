@@ -30,6 +30,7 @@ from runtime_hooks.core._canonical_closeout import (
     read_session_envelope,
     write_candidate,
     write_canonical_closeout,
+    write_closeout_completion_marker,
     write_current_session_id,
     write_session_envelope,
 )
@@ -114,7 +115,7 @@ class TestSessionEnvelope:
 
         assert result["status"] == "candidate_before_session_start"
 
-    def test_existing_canonical_closeout_is_already_consumed(self):
+    def test_valid_completion_marker_is_already_consumed(self):
         repo = _reset("session_already_consumed")
         sid = "session-CONSUMED-aabbcc"
         write_session_envelope(sid, repo)
@@ -125,7 +126,8 @@ class TestSessionEnvelope:
             existing_artifacts=frozenset(),
             runtime_signals={},
         )
-        write_canonical_closeout(canonical, repo)
+        canonical_path = write_canonical_closeout(canonical, repo)
+        write_closeout_completion_marker(sid, repo, [canonical_path])
 
         result = assess_session_closeout_binding(sid, repo, None)
 
