@@ -78,6 +78,16 @@ is missing or insufficient, the runtime records `closeout_missing` or
 record when the session is non-stateless. The invalid closeout content is not
 promoted. The gap remains auditable and visible to reviewers.
 
+Automatic closeout is session-bound. `session_start` creates a session envelope,
+stores its current-session marker under ignored runtime artifacts,
+and `session_end` accepts only a candidate stored under the same `session_id`
+and generated no earlier than that envelope. A previously consumed session or a
+candidate that is missing, mismatched, or older than session start fails closed:
+it is not promoted and its stale content is not reused. The fixed
+`artifacts/session-closeout.txt` path remains a legacy/manual input surface; its
+presence alone is not proof that the content belongs to the current session and
+it is not automatically converted into a session-bound candidate.
+
 ### Required fields
 
 All fields must be present. Vague values are flagged as insufficient.

@@ -11,6 +11,10 @@ from governance_tools.memory_significance import (  # noqa: E402
     classify_significance,
 )
 from governance_tools.session_end_hook import run_session_end_hook  # noqa: E402
+from runtime_hooks.core._canonical_closeout import (  # noqa: E402
+    write_candidate,
+    write_session_envelope,
+)
 
 
 _FIXTURE_ROOT = Path(__file__).parent / "_tmp_memory_significance_v02"
@@ -24,7 +28,13 @@ def _reset_fixture(name: str) -> Path:
     return path
 
 
-def _write_valid_closeout(repo: Path, task_intent: str = "contract enforcement update") -> None:
+def _write_valid_closeout(
+    repo: Path,
+    *,
+    session_id: str,
+    task_intent: str = "contract enforcement update",
+) -> None:
+    write_session_envelope(session_id, repo, provider="test")
     closeout = repo / "artifacts" / "session-closeout.txt"
     closeout.parent.mkdir(parents=True, exist_ok=True)
     touched = repo / "src" / "main.cpp"
@@ -44,6 +54,17 @@ def _write_valid_closeout(repo: Path, task_intent: str = "contract enforcement u
         )
         + "\n",
         encoding="utf-8",
+    )
+    write_candidate(
+        session_id,
+        repo,
+        {
+            "task_intent": task_intent,
+            "work_summary": "updated src/main.cpp and validated closeout bridge",
+            "tools_used": ["inspect"],
+            "artifacts_referenced": ["src/main.cpp"],
+            "open_risks": [],
+        },
     )
 
 
@@ -108,20 +129,27 @@ def test_candidate_contains_v02_required_fields() -> None:
 
 def test_session_end_hook_memory_significance_failure_does_not_change_gate_outcome(monkeypatch) -> None:
     repo_baseline = _reset_fixture("baseline")
-    _write_valid_closeout(repo_baseline)
-    baseline = run_session_end_hook(repo_baseline)
+    baseline_session_id = "memory-significance-baseline"
+    _write_valid_closeout(repo_baseline, session_id=baseline_session_id)
+    baseline = run_session_end_hook(
+        repo_baseline,
+        hook_session_id=baseline_session_id,
+    )
 
     repo_fail = _reset_fixture("forced_failure")
-    _write_valid_closeout(repo_fail)
+    failed_session_id = "memory-significance-forced-failure"
+    _write_valid_closeout(repo_fail, session_id=failed_session_id)
 
     def _raise(*args, **kwargs):  # noqa: ANN002, ANN003
         raise RuntimeError("forced memory significance failure")
 
     monkeypatch.setattr("governance_tools.session_end_hook.write_candidate_and_advisory", _raise)
-    failed = run_session_end_hook(repo_fail)
+    failed = run_session_end_hook(
+        repo_fail,
+        hook_session_id=failed_session_id,
+    )
 
     assert failed["closeout_status"] == baseline["closeout_status"] == "valid"
     assert failed["gate_policy"]["blocked"] == baseline["gate_policy"]["blocked"]
     assert failed["ok"] == baseline["ok"]
     assert any("[memory_significance] advisory generation failed:" in w for w in failed["warnings"])
-

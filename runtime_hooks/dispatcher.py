@@ -37,6 +37,7 @@ def dispatch_event(event: dict) -> dict:
     elif event_type == "session_start":
         result = build_session_start_context(
             project_root=Path(event["project_root"]),
+            session_id=str(event["session_id"]) if event.get("session_id") else None,
             plan_path=Path(event.get("plan_path") or (Path(event["project_root"]) / "PLAN.md")),
             rules=",".join(event.get("rules", [])),
             risk=event["risk"],
