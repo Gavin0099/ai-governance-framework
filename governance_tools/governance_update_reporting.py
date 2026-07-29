@@ -14,6 +14,42 @@ def print_console_safe(text: str) -> None:
     sys.stdout.write("\n")
 
 
+def _markdown_table_cells(row: str) -> list[str]:
+    stripped = row.strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        return []
+    return [cell.strip() for cell in stripped[1:-1].split("|")]
+
+
+def _is_markdown_separator_row(row: str) -> bool:
+    cells = _markdown_table_cells(row)
+    return bool(cells) and all(
+        cell
+        and "-" in cell
+        and not (set(cell) - {"-", ":", " "})
+        for cell in cells
+    )
+
+
+def _has_complete_adoption_table(rows: list[str]) -> bool:
+    if "[human_readable_adoption_summary]" not in rows:
+        return False
+    marker_index = rows.index("[human_readable_adoption_summary]")
+    for index in range(marker_index + 1, len(rows) - 2):
+        header = _markdown_table_cells(rows[index])
+        data = _markdown_table_cells(rows[index + 2])
+        if (
+            len(header) >= 2
+            and len(data) == len(header)
+            and all(header)
+            and _is_markdown_separator_row(rows[index + 1])
+            and all(data)
+            and not _is_markdown_separator_row(rows[index + 2])
+        ):
+            return True
+    return False
+
+
 def format_governance_maturity_stage(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return [f"governance_maturity_summary={payload}"]
@@ -83,7 +119,7 @@ def build_final_report_requirement(payload: object) -> dict[str, Any]:
         requirement["reason"] = "governance_maturity_summary is not a structured object"
         return requirement
     human_summary = [str(item) for item in payload.get("human_readable_adoption_summary") or []]
-    if human_summary:
+    if _has_complete_adoption_table(human_summary):
         requirement["status"] = "required"
         requirement["human_readable_adoption_summary"] = human_summary
         requirement["required_header"] = (
@@ -104,6 +140,8 @@ def build_final_report_table_required(requirement: object) -> dict[str, Any]:
     )
     table: dict[str, Any] = {
         "status": "not_available",
+        "update_report_complete": False,
+        "completion_claim_allowed": False,
         "required_marker": "[human_readable_adoption_summary]",
         "instruction": instruction,
         "table_rows": [],
@@ -118,8 +156,10 @@ def build_final_report_table_required(requirement: object) -> dict[str, Any]:
         table["reason"] = "final_report_requirement is not a structured object"
         return table
     rows = [str(item) for item in requirement.get("human_readable_adoption_summary") or []]
-    if rows:
+    if _has_complete_adoption_table(rows):
         table["status"] = "required"
+        table["update_report_complete"] = True
+        table["completion_claim_allowed"] = True
         table["table_rows"] = rows
         table["row_count"] = len(rows)
         return table
@@ -150,17 +190,31 @@ def _human_summary_presence(payload: object) -> tuple[str, str | None]:
     if not isinstance(payload, dict):
         return "not_reported", "governance_maturity_summary is not a structured object"
     rows = payload.get("human_readable_adoption_summary") or []
-    if rows:
+    rows = [str(item) for item in rows]
+    if _has_complete_adoption_table(rows):
         return "reported", None
-    return "not_reported", str(
-        payload.get("reason") or "human_readable_adoption_summary unavailable"
-    )
+    return "not_reported", str(payload.get("reason") or (
+        "human_readable_adoption_summary is missing a marker, table header, "
+        "separator, or data row"
+    ))
 
 
 def _final_report_requirement_presence(requirement: object) -> tuple[str, str | None]:
     if not isinstance(requirement, dict):
         return "not_available", "final_report_requirement is not a structured object"
-    return "present", None
+    rows = [
+        str(item)
+        for item in requirement.get("human_readable_adoption_summary") or []
+    ]
+    if (
+        requirement.get("status") == "required"
+        and _has_complete_adoption_table(rows)
+    ):
+        return "present", None
+    return "not_available", str(
+        requirement.get("reason")
+        or "human_readable_adoption_summary table rows are unavailable"
+    )
 
 
 def _unique_items(items: list[str]) -> list[str]:
@@ -412,6 +466,13 @@ def build_ai_governance_update_result(
     merged_cannot = sorted(
         {*(cannot_claim or []), *inherited_cannot, *base_cannot}
     )
+    update_report_complete = (
+        human_value == "reported" and final_report_value == "present"
+    )
+    if not update_report_complete:
+        merged_cannot = sorted(
+            {*merged_cannot, "complete AI Governance update report"}
+        )
     operator_report = build_operator_facing_report(
         framework_update_status=framework_update_status,
         governance_maturity_summary=governance_maturity_summary,
@@ -444,6 +505,8 @@ def build_ai_governance_update_result(
             "value": final_report_value,
             "source": framework_update_source,
         },
+        "update_report_complete": update_report_complete,
+        "completion_claim_allowed": update_report_complete,
         "cannot_claim": merged_cannot,
         "evidence_refs": evidence_refs or [],
         "operator_facing_report": operator_report,
@@ -481,6 +544,10 @@ def format_ai_governance_update_result(payload: object) -> list[str]:
         f"human_readable_adoption_summary={human.get('value')}",
         f"final_report_requirement={final_report.get('value')}",
         f"final_report_requirement_source={final_report.get('source')}",
+        "update_report_complete="
+        f"{str(payload.get('update_report_complete')).lower()}",
+        "completion_claim_allowed="
+        f"{str(payload.get('completion_claim_allowed')).lower()}",
     ]
     if operation:
         lines[2:2] = [

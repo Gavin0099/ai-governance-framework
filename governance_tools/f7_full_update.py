@@ -676,6 +676,11 @@ def run_f7_full_update(
             repo_root=str(repo_root),
             repo_role=role,
             f7_final_status=BLOCKED,
+            stages={
+                "governance_maturity_summary": _governance_maturity_stage(
+                    repo_root, framework_root
+                )
+            },
             errors=[f"not a usable git repo: {repo_root}"],
         )
     # Submodule consumers have their own pre-mutation staged-scope guard. Let
@@ -689,6 +694,11 @@ def run_f7_full_update(
             repo_root=str(repo_root),
             repo_role=role,
             f7_final_status=BLOCKED,
+            stages={
+                "governance_maturity_summary": _governance_maturity_stage(
+                    repo_root, framework_root
+                )
+            },
             errors=["repo has pre-existing staged changes; refusing to mix F-7 scope"],
         )
     if role == "submodule_consumer":

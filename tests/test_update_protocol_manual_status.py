@@ -7,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "governance" / "AI_GOVERNANCE_UPDATE_PROTOCOL.md"
 F7_PROTOCOL = ROOT / "governance" / "F7_FULL_UPDATE.md"
 BASELINE_AGENTS = ROOT / "baselines" / "repo-min" / "AGENTS.md"
+BASELINE_AGENTS_BASE = ROOT / "baselines" / "repo-min" / "AGENTS.base.md"
 ROOT_AGENTS = ROOT / "AGENTS.md"
+ROOT_AGENTS_BASE = ROOT / "AGENTS.base.md"
 
 
 UPDATE_STATUS_LINE = (
@@ -83,3 +85,40 @@ def test_framework_agents_routes_consumer_manual_updates_to_incomplete_status() 
     assert "`manual_update` path" in text
     assert "`destructive_manual_update`" in text
     assert "discarded-path inventory" in text
+
+
+def test_all_agent_baselines_route_latest_update_intent_to_f7_and_guard_table_relay() -> None:
+    for path in (
+        ROOT_AGENTS,
+        ROOT_AGENTS_BASE,
+        BASELINE_AGENTS,
+        BASELINE_AGENTS_BASE,
+    ):
+        text = _read(path)
+        assert "幫我更新最新版 AI Governance" in text, path
+        assert "governance_tools.f7_full_update" in text, path
+        assert "human_readable_adoption_summary: NOT REPORTED" in text, path
+        assert "update_report_complete=false" in text, path
+        assert "completion_claim_allowed=false" in text, path
+
+
+def test_protected_baselines_keep_routing_and_memory_sections_as_siblings() -> None:
+    for path in (ROOT_AGENTS_BASE, BASELINE_AGENTS_BASE):
+        text = _read(path)
+        routing = text.index("## AI Governance Update Routing")
+        memory = text.index("## Memory Update Triggers")
+        memory_table = text.index("| Event | Required update |")
+
+        assert routing < memory < memory_table, path
+
+
+def test_update_protocol_requires_table_truth_for_every_terminal_result() -> None:
+    protocol = _read(PROTOCOL)
+    f7 = _read(F7_PROTOCOL)
+
+    assert "route the request to `governance_tools.f7_full_update`" in protocol
+    assert "every terminal update result" in protocol
+    assert "agent must not claim a complete AI Governance update report" in protocol
+    assert "request routes to F-7 even when the user does not name F-7" in f7
+    assert "every terminal F-7 result" in f7
+    assert "`completion_claim_allowed=false`" in f7

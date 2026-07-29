@@ -247,6 +247,8 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     payload = asdict(result)
     assert "final_report_requirement" in payload
     assert payload["final_report_table_required"]["status"] == "required"
+    assert payload["final_report_table_required"]["update_report_complete"] is True
+    assert payload["final_report_table_required"]["completion_claim_allowed"] is True
     assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
     assert "[human_readable_adoption_summary]" in (
         payload["final_report_table_required"]["table_rows"]
@@ -260,6 +262,8 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert envelope["governance_maturity_summary"]["value"] == "present"
     assert envelope["human_readable_adoption_summary"]["value"] == "reported"
     assert envelope["final_report_requirement"]["value"] == "present"
+    assert envelope["update_report_complete"] is True
+    assert envelope["completion_claim_allowed"] is True
     rendered = format_human(result)
     assert "[governance_maturity_summary]" in rendered
     assert "[ai_governance_update_result]" in rendered
@@ -329,11 +333,37 @@ def test_f7_submodule_staged_blocker_still_relays_adoption_table(
     assert result.final_report_requirement["status"] == "required"
     assert result.final_report_table_required["status"] == "required"
     assert result.final_report_table_required["table_rows"]
+    assert result.final_report_table_required["update_report_complete"] is True
+    assert result.final_report_table_required["completion_claim_allowed"] is True
     assert result.ai_governance_update_result["human_readable_adoption_summary"][
         "value"
     ] == "reported"
+    assert result.ai_governance_update_result["update_report_complete"] is True
+    assert result.ai_governance_update_result["completion_claim_allowed"] is True
     rendered = format_human(result)
     assert "[human_readable_adoption_summary]" in rendered
+
+
+def test_f7_orchestrator_staged_blocker_still_relays_adoption_table(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _git(repo, "add", "contract.yaml")
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert result.repo_role == "external_contract_repo"
+    assert result.f7_final_status == "blocked"
+    assert result.final_report_table_required["status"] == "required"
+    assert result.final_report_table_required["table_rows"]
+    assert result.ai_governance_update_result["update_report_complete"] is True
+    assert result.ai_governance_update_result["completion_claim_allowed"] is True
+    rendered = format_human(result)
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "framework_update_status=blocked" in rendered
 
 
 def test_f7_submodule_backend_surfaces_target_freshness_downgrade(
@@ -492,10 +522,15 @@ def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path)
     assert envelope["governance_maturity_summary"]["value"] == "not_available"
     assert "RuntimeError: boom" in envelope["governance_maturity_summary"]["reason"]
     assert envelope["human_readable_adoption_summary"]["value"] == "not_reported"
+    assert envelope["update_report_complete"] is False
+    assert envelope["completion_claim_allowed"] is False
+    assert "complete AI Governance update report" in envelope["cannot_claim"]
     assert "status=not_available" in rendered
     assert "[ai_governance_update_result]" in rendered
     assert "governance_maturity_summary=not_available" in rendered
     assert "RuntimeError: boom" in rendered
+    assert "update_report_complete=false" in rendered
+    assert "completion_claim_allowed=false" in rendered
 
 
 def test_external_contract_remediation_plan_excludes_product_and_generated_dirty(tmp_path: Path) -> None:
@@ -553,6 +588,10 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "governance:key=memory_workflow" in agents_text
     assert "memory/**" in agents_text
     assert result.final_report_requirement["status"] == "required"
+    assert result.final_report_table_required["update_report_complete"] is True
+    assert result.final_report_table_required["completion_claim_allowed"] is True
+    assert result.ai_governance_update_result["update_report_complete"] is True
+    assert result.ai_governance_update_result["completion_claim_allowed"] is True
     assert "table rows as a table" in result.final_report_requirement["instruction"]
     assert "[human_readable_adoption_summary]" in (
         result.final_report_requirement["human_readable_adoption_summary"]

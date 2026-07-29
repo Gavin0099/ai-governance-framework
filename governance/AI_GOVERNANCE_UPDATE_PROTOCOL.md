@@ -126,9 +126,11 @@ Update intent examples:
 - "更新 AI Governance 到最新版"
 - "Update AI Governance to latest"
 
-Action: perform the governed update flow for a submodule consumer: detect the
-governance submodule path, run dry-run, then apply the scoped submodule pointer
-update if dry-run is safe and no blocker exists.
+Action: route the request to `governance_tools.f7_full_update` as the primary
+orchestrator. This applies to "幫我更新最新版 AI Governance" and equivalent
+natural-language update requests even when the user does not name F-7. The
+governed submodule updater is an F-7 backend/stage, not a substitute for the
+complete F-7 report.
 
 For update intent, do not stop after direct HEAD comparison when nested
 governance HEAD differs from target framework HEAD. A direct HEAD comparison
@@ -287,6 +289,23 @@ human_readable_adoption_summary: NOT REPORTED
 reason: <why the Chinese table was not relayed>
 claim boundary: machine-readable adoption fields only; operator-facing feature table was not reported
 ```
+
+This relay requirement applies to every terminal update result, including
+`updated`, `already_current`, `blocked`, `manual_update`,
+`destructive_manual_update`, `not_submodule_consumer`, and `not_verified`.
+Fallback paths must run and relay `governance_maturity_summary` when it is
+safely available. If a fallback or blocker prevents the table from being
+produced, do not fabricate rows; report:
+
+```text
+human_readable_adoption_summary: NOT REPORTED
+update_report_complete=false
+completion_claim_allowed=false
+reason: <why the table was unavailable or omitted>
+```
+
+When the table is omitted, the operation status may still be reported, but the
+agent must not claim a complete AI Governance update report.
 
 ## Consumer Test-Quality Expectations
 
