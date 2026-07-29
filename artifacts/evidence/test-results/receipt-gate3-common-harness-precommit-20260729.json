@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "\"C:\\Program Files\\Git\\bin\\bash.exe\" -lc \"cd /d/ai-governance-framework && AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe bash scripts/run-runtime-governance.sh --mode enforce\"",
+  "exit_code": 0,
+  "started_at": "2026-07-29T06:42:17Z",
+  "finished_at": "2026-07-29T06:44:15Z",
+  "runner": "codex",
+  "linked_commit": "d9f48148309e0ad78d1ec5b4f5c354b66350c4a7",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-common-harness-precommit-20260729.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

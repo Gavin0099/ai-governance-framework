@@ -1550,8 +1550,22 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`.
   This is not independently approved, owner-signed or canonical. Gate 3 remains
   blocked on independent review of these revised bytes, explicit owner
-  signature, later promotion, non-counted common-harness rehearsal,
-  natural-bug admission and separate start authority.
+  signature, later promotion, natural-bug/resource admission and separate start
+  authority.
+
+- [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
+  2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
+  A/B output commits and a complete seven-event chain through
+  `mapping_released`. The durable summary SHA-256 is
+  `30cb88b9475d075bcf25e704f965ae8a5957c764b4f7e4eba9cf4e88f4434405`;
+  chain head SHA-256 is
+  `47272ba7d3518cd375eb1896466bad6c1602270be5189da5021e403adc483a27`.
+  Retained bytes, baseline/output commits, exact diffs, receipts, mappings and
+  structured writes replayed successfully; named mutations failed. Focused
+  tests passed 45/45, canonical precommit passed 190/190 and a
+  `core.autocrlf=true` checkout preserved all 55 claimed exact-byte paths.
+  This rehearsal is synthetic and non-counted; its scorer fixtures are not
+  independent judgments and it does not approve, sign, promote or start Gate 3.
 
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
