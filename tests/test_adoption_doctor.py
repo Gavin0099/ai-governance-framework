@@ -208,6 +208,47 @@ def test_repo_owned_git_framework_root_reports_stale_local_tracking(tmp_path: Pa
     assert any(f.code == "pin_behind_local_tracking" for f in report.findings)
 
 
+def test_repo_owned_git_framework_root_survives_dubious_ownership(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo = _make_repo(tmp_path / "repo_owned_dubious")
+    framework = _make_git_framework_with_remote(
+        repo / "additional" / "ai-governance-framework",
+        tmp_path / "repo-owned-dubious-framework.git",
+        behind=False,
+    )[0]
+    real_run = adoption_doctor.subprocess.run
+    observed_commands: list[list[str]] = []
+
+    def ownership_guard(command, *args, **kwargs):
+        command_list = [str(part) for part in command]
+        cwd = Path(kwargs["cwd"]).resolve()
+        if command_list[0] == "git" and cwd == framework.resolve():
+            observed_commands.append(command_list)
+            expected = f"safe.directory={framework.resolve().as_posix()}"
+            if command_list[1:3] != ["-c", expected]:
+                return subprocess.CompletedProcess(
+                    command,
+                    128,
+                    "",
+                    "fatal: detected dubious ownership in repository",
+                )
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(adoption_doctor.subprocess, "run", ownership_guard)
+
+    report = inspect_adoption(repo, framework_root=framework)
+
+    assert report.adoption_class.value == "repo_owned_framework_path"
+    assert report.submodule_pin.value == "current_vs_local_tracking"
+    assert observed_commands
+    assert all(
+        command[1:3] == ["-c", f"safe.directory={framework.resolve().as_posix()}"]
+        for command in observed_commands
+    )
+
+
 def test_external_hook_git_framework_root_reports_stale_local_tracking(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "external_hook_stale")
     external_framework = _make_git_framework_with_remote(

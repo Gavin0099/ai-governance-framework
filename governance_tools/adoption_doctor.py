@@ -321,9 +321,10 @@ def _classify_hook_config_framework_root(repo_root: Path) -> ClassifiedValue:
 
 
 def _run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    resolved_cwd = cwd.resolve()
     return subprocess.run(
-        ["git", *args],
-        cwd=cwd,
+        ["git", "-c", f"safe.directory={resolved_cwd.as_posix()}", *args],
+        cwd=resolved_cwd,
         text=True,
         encoding="utf-8",
         errors="replace",

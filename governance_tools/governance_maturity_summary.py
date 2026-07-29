@@ -164,9 +164,17 @@ def _load_contract_surface(repo_root: Path) -> tuple[SummaryValue, SummaryValue]
     )
 
 
-def _git_stdout(repo_root: Path, args: list[str]) -> str | None:
-    completed = subprocess.run(
-        ["git", "-C", str(repo_root), *args],
+def _run_git(repo_root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
+    resolved_root = repo_root.resolve()
+    return subprocess.run(
+        [
+            "git",
+            "-c",
+            f"safe.directory={resolved_root.as_posix()}",
+            "-C",
+            str(resolved_root),
+            *args,
+        ],
         text=True,
         encoding="utf-8",
         errors="replace",
@@ -174,21 +182,17 @@ def _git_stdout(repo_root: Path, args: list[str]) -> str | None:
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+def _git_stdout(repo_root: Path, args: list[str]) -> str | None:
+    completed = _run_git(repo_root, args)
     if completed.returncode != 0:
         return None
     return completed.stdout.strip()
 
 
 def _git_success(repo_root: Path, args: list[str]) -> bool:
-    completed = subprocess.run(
-        ["git", "-C", str(repo_root), *args],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
+    completed = _run_git(repo_root, args)
     return completed.returncode == 0
 
 
