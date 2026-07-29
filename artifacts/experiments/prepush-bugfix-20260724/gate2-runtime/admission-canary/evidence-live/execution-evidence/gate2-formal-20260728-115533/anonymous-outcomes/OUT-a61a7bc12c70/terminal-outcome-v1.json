@@ -1,0 +1,63 @@
+{
+  "anon_id": "OUT-a61a7bc12c70",
+  "artifacts": [
+    {
+      "bytes": 5682,
+      "name": "final-diff.patch",
+      "sha256": "26403144ea524166431dbc57f24fb7893445a60c4ba4a12a48c1abd0e5c9ddf0"
+    },
+    {
+      "bytes": 0,
+      "name": "final-status.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 249,
+      "name": "timeout-cleanup.json",
+      "sha256": "9ff6da5f1c6991a91ad3eb5d828a06d57291d2500a0c96facd814b23e7c3f11d"
+    },
+    {
+      "bytes": 3095,
+      "name": "result.json",
+      "sha256": "a1d31ea2334ff6466c7b94d2b30d491421de39a1fae57ed0ab3b091a28fac1cb"
+    }
+  ],
+  "core_sha256": "a61a7bc12c70e3ec391bae8f5a807ffdc3878e32442cbd96b8dd51c14a2434ea",
+  "external_evidence": [
+    {
+      "bytes": 78043,
+      "name": "transcript.jsonl",
+      "present": true,
+      "sha256": "f9b2c3030a041280423671bb6effdb0420080ace6119ee6817265eb4a661dafa"
+    },
+    {
+      "bytes": 26139,
+      "name": "adapter-log.jsonl",
+      "present": true,
+      "sha256": "88800da7b7bd09375a659fc5c3e56b32449c0e5b79e8647c3627b0cb3e01fafe"
+    },
+    {
+      "bytes": 594436,
+      "name": "claude-stream.jsonl",
+      "present": true,
+      "sha256": "d17353828cf8a79fd4f7b83254d6c623a2fec77ff71ae533291fa5ec1342df72"
+    }
+  ],
+  "packet_kind": "terminal_timeout_v1",
+  "schema": "gate2-terminal-timeout-packet.v1",
+  "source_attestation": {
+    "identity": {
+      "baseline_commit": "e8889f08a065fae7a2d73bdc37cef0422289cf38",
+      "container_id": "12011f54f346e43797d633866be14368f05e89a518af1a2a4805b2fb5e905410",
+      "run_id": "gate2-formal-20260728-115533-OUTRUN-b0c78ee11c884c34"
+    }
+  },
+  "terminal_outcome": {
+    "current_head": "9fbe2bdf416395d238734bfda18833b15ed673b8",
+    "current_tree": "37bbe951b14cd078e1ae19e7b5a425be43e1989e",
+    "operator_terminal_claim": "The producer submitted the attached completion claim before the frozen wall-clock cap, but the model process did not terminate before the cap.",
+    "outcome": "timeout",
+    "producer_completion_claim": "present",
+    "timeout_seconds": 1800
+  }
+}

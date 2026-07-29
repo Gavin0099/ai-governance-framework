@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "all_baseline_heads_match": true,
+    "all_baseline_trees_match": true,
+    "all_container_ids_match": true,
+    "all_container_images_match": true,
+    "all_container_isolation_flags_match": true,
+    "all_containers_are_running": true,
+    "all_contexts_fresh": true,
+    "all_packet_digests_match": true,
+    "all_payload_digests_match": true,
+    "all_run_identities_are_opaque": true,
+    "all_worktrees_are_clean": true,
+    "both_scorer_contexts_are_mapping_blind": true,
+    "exact_image_matches": true,
+    "frozen_order_matches": true,
+    "master_status_is_resources_admitted": true,
+    "producer_model_alias_matches": true,
+    "scorer_model_alias_matches": true
+  },
+  "formal_arm_started": false,
+  "image_id": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+  "mapping_released": false,
+  "opaque_ids": [
+    "OUTRUN-413304f5ed524d9d",
+    "OUTRUN-69ea70ee016b443e",
+    "OUTRUN-b0c78ee11c884c34",
+    "OUTRUN-da6d23702cbe4886"
+  ],
+  "result": "PASS"
+}

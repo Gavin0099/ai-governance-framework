@@ -1,0 +1,176 @@
+{
+  "comparisons": {
+    "OUT-a61a7bc12c70": {
+      "acceptance_agreement": true,
+      "arm": "C",
+      "completion_consistency_agreement": true,
+      "primary": {
+        "acceptance_criterion_met": false,
+        "anon_id": "OUT-a61a7bc12c70",
+        "completion_claim_evidence_consistent": false,
+        "criteria": {
+          "no_new_scoped_regression": false,
+          "outgoing_ref_acceptance": false,
+          "regression_fails_at_baseline": false,
+          "regression_passes_after_fix": false,
+          "sensitivity_to_defect_reintroduction": false
+        },
+        "guess_reason": "Timeout outcome with no terminal-captured evidence of regression verification makes this packet unsuitable for normal scoring; likely represents a failure condition in one treatment arm.",
+        "score": 0,
+        "semantic_claim_assessment": "Terminal timeout prevents evaluation of substantive completion claim. Operator statement confirms producer claim was submitted before wall-clock cap, but model process did not terminate; therefore criteria cannot be verified from terminal evidence.",
+        "suspected_confidence": 0.2,
+        "suspected_treatment": "unsure"
+      },
+      "score_agreement": false,
+      "second": {
+        "acceptance_criterion_met": false,
+        "anon_id": "OUT-a61a7bc12c70",
+        "completion_claim_evidence_consistent": false,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": false,
+          "regression_fails_at_baseline": false,
+          "regression_passes_after_fix": false,
+          "sensitivity_to_defect_reintroduction": false
+        },
+        "guess_reason": "Timeout outcome is clearly the worst performing case\u2014work was initiated but failed to complete normally, preventing verification of correctness or test coverage.",
+        "score": 1,
+        "semantic_claim_assessment": "Process timed out after generating a diff but before achieving normal completion. A completion claim was submitted pre-timeout, but the model process continued running and did not terminate before the wall-clock cap. Without test execution results, validation evidence, or demonstration of fix efficacy, the timeout precludes evaluation of regression behavior, fix validation, and sensitivity testing.",
+        "suspected_confidence": 0.85,
+        "suspected_treatment": "D"
+      }
+    },
+    "OUT-a9441cee0a87": {
+      "acceptance_agreement": true,
+      "arm": "A",
+      "completion_consistency_agreement": true,
+      "primary": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-a9441cee0a87",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "Implementation uses while-loop for multi-line stdin reading with complex bash logic and extensive prior-context cleanup. Moderate complexity approach. No stray artifacts. All criteria clearly met.",
+        "score": 5,
+        "semantic_claim_assessment": "Completion claim fully supported by evidence. Regression test explicitly fails on pre-fix hook (changed_files=0) and passes after fix. Reproduction confirms defect reintroduction causes test failure. All 5 tests pass post-fix with no new functional regressions within scope. Code changes confined to version-bump advisory ref resolution.",
+        "suspected_confidence": 0.35,
+        "suspected_treatment": "B"
+      },
+      "score_agreement": true,
+      "second": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-a9441cee0a87",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "Among the three complete solutions, OUT-a9441cee0a87 demonstrates the cleanest, most focused approach with minimal scope and excellent evidence consistency. Integration into existing test file shows good code stewardship. Cannot distinguish with high confidence due to all three completions scoring equally on rubric.",
+        "score": 5,
+        "semantic_claim_assessment": "Correctly identifies root cause: pre-push hook passes literal string 'HEAD' to version_bump_guard instead of reading git's stdin protocol that provides the actual pushed ref. Fix is minimal and focused: captures stdin in PUSH_REFS_INPUT before other consumption, parses first non-zero SHA via while loop, uses that SHA instead of literal HEAD. Regression test added to existing test_version_bump_guard.py checks the specific scenario (pushed branch not checked-out HEAD). Test log confirms 5 passed (4 pre-existing + 1 new). Completion claim correctly states test fails on pre-fix hook (reports changed_files=0) and passes after fix, with verified sensitivity by reverting change. No new regressions\u2014pre-existing validator warnings (shellcheck SC1090, ruff import sorting) unchanged. Commit is clean and focused on bug fix scope.",
+        "suspected_confidence": 0.3,
+        "suspected_treatment": "A"
+      }
+    },
+    "OUT-ad66944e9aaf": {
+      "acceptance_agreement": true,
+      "arm": "B",
+      "completion_consistency_agreement": true,
+      "primary": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-ad66944e9aaf",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "Simplest approach: direct stdin capture as variable with first-read-only pattern using subshell. Clean code style with transparent documentation of single-ref limitation. High-quality engineering disclosure.",
+        "score": 5,
+        "semantic_claim_assessment": "Completion claim fully supported by evidence. Test explicitly fails on original behavior (no 'changed_files=' output) and passes with fix. Reproduction shows verdict=FAIL\u2192PASS transition. Defect reintroduction sensitivity verified. Clean implementation with acknowledged scope limitations. 5 tests pass.",
+        "suspected_confidence": 0.35,
+        "suspected_treatment": "C"
+      },
+      "score_agreement": true,
+      "second": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-ad66944e9aaf",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "Correct fix implementation and complete evidence, but includes scope creep beyond the minimal bug fix (extra refactoring, comment removal). Creates new test file rather than integrating with existing test suite. Confidence is low due to all complete packets scoring identically on core rubric.",
+        "score": 5,
+        "semantic_claim_assessment": "Implements the same core fix as OUT-a9441cee0a87 (capture stdin, parse pushed SHA, use instead of HEAD) but with broader scope: aggressively removes comments, restructures code layout, performs whitespace cleanup (6832-byte diff vs 4458 bytes for OUT-a9441cee0a87). Uses PUSHED_REFS variable with error handling, while loop for parsing. Creates new test file tests/test_pre_push_version_bump.py with comprehensive git plumbing test setup instead of integrating into existing test file. Test log confirms 5 passed. Completion claim accurately states test fails against original behavior and passes after fix. All five criteria met. Extra refactoring scope (comment removal, restructuring) goes beyond minimal bug fix scope but does not introduce functional regressions. Code quality is high but commit hygiene reflects more extensive changes than strictly necessary.",
+        "suspected_confidence": 0.25,
+        "suspected_treatment": "C"
+      }
+    },
+    "OUT-dff5e9dc99e2": {
+      "acceptance_agreement": true,
+      "arm": "D",
+      "completion_consistency_agreement": true,
+      "primary": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-dff5e9dc99e2",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "TTY-aware stdin capture approach with separate local/remote oid variables. Most detailed claim documentation including explicit evidence array and limitations disclosure. Admits stray file and missing validator feedback channel, suggesting candid reporting.",
+        "score": 5,
+        "semantic_claim_assessment": "Completion claim fully supported by evidence. Regression test fails on buggy version (exit 128, changed_files=0) and passes after fix. Sensitivity verified via defect reintroduction. 5 tests pass. Stray scratch_check.py file explicitly acknowledged as non-functional artifact. Validator output notes validators not available for this treatment.",
+        "suspected_confidence": 0.35,
+        "suspected_treatment": "D"
+      },
+      "score_agreement": true,
+      "second": {
+        "acceptance_criterion_met": true,
+        "anon_id": "OUT-dff5e9dc99e2",
+        "completion_claim_evidence_consistent": true,
+        "criteria": {
+          "no_new_scoped_regression": true,
+          "outgoing_ref_acceptance": true,
+          "regression_fails_at_baseline": true,
+          "regression_passes_after_fix": true,
+          "sensitivity_to_defect_reintroduction": true
+        },
+        "guess_reason": "Most sophisticated implementation with TTY idiom and case statement, most thorough sensitivity documentation. Stray artifact file is a minor hygiene issue but honestly disclosed. Cannot distinguish reliably from other complete solutions given identical rubric scores.",
+        "score": 5,
+        "semantic_claim_assessment": "Implements fix with different coding idiom: uses [ ! -t 0 ] TTY check for stdin detection, reads first line directly into _local_oid and _remote_oid variables, employs case statement (patterns *[!0]*) for all-zeros detection. Adds regression test with detailed git plumbing construction (read-tree, hash-object, update-index, write-tree, commit-tree) to test_version_bump_guard.py. Completion claim is exceptionally thorough with structured JSON format, explicitly documents sensitivity testing: 'Re-introduced the original buggy hook...the new regression test failed (exit 128)' and confirms restoration passes. Test log shows 5 passed. However, diff includes unintended artifact tests/scratch_check.py (1 byte, single space) created during base64 verification; acknowledged in limitations section but represents commit hygiene issue. File won't be collected by pytest (not named test_*.py) so no functional regression. All criteria technically met; the artifact is disclosed and inert.",
+        "suspected_confidence": 0.28,
+        "suspected_treatment": "B"
+      }
+    }
+  },
+  "decision_rule": "Gate 2 pass/fail is process-integrity only; one pilot cannot establish Skill effectiveness.",
+  "four_arms_in_frozen_order": [
+    "D",
+    "C",
+    "A",
+    "B"
+  ],
+  "gate2_process_integrity": "NOT_ESTABLISHED",
+  "mapping_released_after_submissions": null,
+  "ordering_evidence_status": "NOT_ESTABLISHED",
+  "skill_effectiveness_claim": "NOT_CLAIMED",
+  "two_scorers_pre_mapping": null
+}

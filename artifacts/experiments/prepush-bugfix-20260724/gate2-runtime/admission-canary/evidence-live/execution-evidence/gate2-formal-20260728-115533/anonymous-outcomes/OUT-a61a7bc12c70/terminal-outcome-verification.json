@@ -1,0 +1,20 @@
+{
+  "anon_id": "OUT-a61a7bc12c70",
+  "checks": {
+    "anonymous_id": true,
+    "artifact_hashes": true,
+    "artifact_record_set": true,
+    "cleanup_receipt": true,
+    "exact_file_set": true,
+    "external_evidence_hashes": true,
+    "identity_free": true,
+    "identity_matches": true,
+    "identity_object": true,
+    "packet_kind": true,
+    "producer_claim_artifact": true,
+    "schema": true,
+    "timeout_outcome": true
+  },
+  "packet_kind": "terminal_timeout_v1",
+  "status": "PASS"
+}

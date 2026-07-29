@@ -1,0 +1,76 @@
+{
+  "anon_id": "OUT-ad66944e9aaf",
+  "blinding_compromised": null,
+  "blinding_compromised_reason_code": null,
+  "channel_effect": {
+    "claim_boundary": "Common-mode exposure does not prove equal behavioral impact across arms.",
+    "mechanism": "All four producers use the same argv-only adapter and provide write/report bodies as base64.",
+    "observed_effect": "In live canary 172217 and 194819 the producer reduced solution content, including deleting a module docstring, to lower manual base64 transcription risk.",
+    "preregistered_interpretation": "This burden is common-mode but not evidence-neutral. Scorers see the complete operator-captured diff and may score any resulting quality loss normally. No score normalization or post-hoc adjustment is permitted.",
+    "safety_decision": "Do not add a plaintext shell write verb; preserving the argv-only boundary takes precedence over treatment neutrality."
+  },
+  "contract_sha256": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733",
+  "per_rule_match_count": {
+    "\\barm[ _-]?[abcd]\\b": 0,
+    "arm-dispatch-packet(\\.md)?": 0,
+    "governance-packet(\\.md)?": 0,
+    "governance\\s+packet": 0,
+    "skill-packet-bugfix(\\.md)?": 0,
+    "skill\\s+packet": 0,
+    "treatment\\s+assignment": 0,
+    "treatment\\s+packet": 0,
+    "validator-expectation-designer-only(\\.md)?": 0,
+    "validator-pins(\\.md)?": 0,
+    "validator\\s+packet": 0
+  },
+  "raw_output_sha256": "ad66944e9aafc58b714dee252afd915ace5ea69c222d96d3b2d4ffead315f5d7",
+  "redacted_output": "=== FIX_DIFF ===\ndiff --git a/scripts/hooks/pre-push b/scripts/hooks/pre-push\nindex 5b388f1..bd9fb0c 100644\n--- a/scripts/hooks/pre-push\n+++ b/scripts/hooks/pre-push\n@@ -1,10 +1,6 @@\n #!/usr/bin/env bash\n # pre-push hook - AI Governance Framework\n-# Enforces runtime governance checks. Memory policy is owned by the canonical\n-# CI gate and its advisory pre-commit mirror, not by pre-push.\n-\n set -euo pipefail\n-\n HOOK_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n TARGET_REPO_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || git -C \"$HOOK_DIR\" rev-parse --show-toplevel 2>/dev/null || pwd)\"\n FRAMEWORK_ROOT=\"${AI_GOVERNANCE_FRAMEWORK_ROOT:-}\"\n@@ -12,27 +8,19 @@ HOOK_CONFIG=\"$HOOK_DIR/ai-governance-framework-root\"\n if [ -z \"$FRAMEWORK_ROOT\" ] && [ -f \"$HOOK_CONFIG\" ]; then\n     FRAMEWORK_ROOT=\"$(cat \"$HOOK_CONFIG\")\"\n fi\n-if [ -z \"$FRAMEWORK_ROOT\" ]; then\n-    FRAMEWORK_ROOT=\"$TARGET_REPO_ROOT\"\n-fi\n-\n+[ -z \"$FRAMEWORK_ROOT\" ] && FRAMEWORK_ROOT=\"$TARGET_REPO_ROOT\"\n PYTHON_LIB=\"$FRAMEWORK_ROOT/scripts/lib/python.sh\"\n if [ ! -f \"$PYTHON_LIB\" ]; then\n     echo \"[governance] warning: missing framework Python helper: $PYTHON_LIB\"\n     exit 0\n fi\n . \"$PYTHON_LIB\"\n-\n TOOL=\"$FRAMEWORK_ROOT/governance_tools/contract_validator.py\"\n VERSION_BUMP_GUARD=\"$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py\"\n SNAPSHOT_DIR=\"$TARGET_REPO_ROOT/memory/governance_snapshots\"\n RUNTIME_SCRIPT=\"$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh\"\n-\n-if ! set_python_cmd; then\n-    echo \"[governance] warning: Python not available; some advisory checks are skipped\"\n-fi\n-\n-# Snapshot validation remains advisory-only.\n+PUSHED_REFS=\"$(cat 2>/dev/null || true)\"\n+set_python_cmd || echo \"[governance] warning: Python not available; some advisory checks are skipped\"\n FAIL_COUNT=0\n if [ -f \"$TOOL\" ] && [ -d \"$SNAPSHOT_DIR\" ] && [ \"${#PYTHON_CMD[@]}\" -gt 0 ]; then\n     for snapshot in \"$SNAPSHOT_DIR\"/*.txt; do\n@@ -45,14 +33,10 @@ if [ -f \"$TOOL\" ] && [ -d \"$SNAPSHOT_DIR\" ] && [ \"${#PYTHON_CMD[@]}\" -gt 0 ]; th\n         fi\n     done\n fi\n-\n if [ \"$FAIL_COUNT\" -gt 0 ]; then\n-    echo \"\"\n     echo \"[governance] warning: ${FAIL_COUNT} invalid AI contract snapshot(s) found\"\n     echo \"  bypass once: git push --no-verify\"\n-    echo \"\"\n fi\n-\n if [ -f \"$RUNTIME_SCRIPT\" ]; then\n     echo \"[governance] running runtime-governance enforcement before push\"\n     echo \"[governance] runtime-governance smoke context: framework_self_smoke_advisory\"\n@@ -61,27 +45,26 @@ if [ -f \"$RUNTIME_SCRIPT\" ]; then\n     echo \"[governance]   smoke_project_root=$FRAMEWORK_ROOT\"\n     echo \"[governance]   checked_plan_path=$FRAMEWORK_ROOT/PLAN.md\"\n     if ! (cd \"$FRAMEWORK_ROOT\" && bash \"$RUNTIME_SCRIPT\" --mode smoke); then\n-        echo \"\"\n         echo \"[governance] runtime-governance enforcement failed\"\n         echo \"  fix the runtime governance failures before push\"\n         echo \"  bypass once: git push --no-verify\"\n-        echo \"\"\n         exit 1\n     fi\n fi\n-\n if [ -f \"$VERSION_BUMP_GUARD\" ] && [ \"${#PYTHON_CMD[@]}\" -gt 0 ]; then\n     echo \"[governance] version bump recommendation (advisory)\"\n-    # Detect remote default branch via symbolic ref; fall back to origin/main.\n-    _VBG_BASE=\"$(git -C \"$TARGET_REPO_ROOT\" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')\"\n+    _VBG_REF=\"$(git -C \"$TARGET_REPO_ROOT\" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)\"\n+    _VBG_BASE=\"${_VBG_REF#refs/remotes/}\"\n     [ -z \"$_VBG_BASE\" ] && _VBG_BASE=\"origin/main\"\n-    (\n-        cd \"$TARGET_REPO_ROOT\"\n-        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref \"$_VBG_BASE\" --head-ref HEAD --format human\n-    ) || (\n-        cd \"$TARGET_REPO_ROOT\"\n-        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref HEAD~1 --head-ref HEAD --format human\n-    ) || true\n+    _VBG_HEAD=\"HEAD\"\n+    _VBG_ZERO=\"$(printf '0%.0s' {1..40})\"\n+    if [ -n \"$PUSHED_REFS\" ]; then\n+        read -r _VBG_LREF _VBG_LSHA _VBG_RREF _VBG_RSHA <<< \"$PUSHED_REFS\"\n+        if [ -n \"${_VBG_LSHA:-}\" ] && [ \"$_VBG_LSHA\" != \"$_VBG_ZERO\" ]; then\n+            _VBG_HEAD=\"$_VBG_LSHA\"\n+            [ -n \"${_VBG_RSHA:-}\" ] && [ \"$_VBG_RSHA\" != \"$_VBG_ZERO\" ] && _VBG_BASE=\"$_VBG_RSHA\"\n+        fi\n+    fi\n+    (cd \"$TARGET_REPO_ROOT\" && \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref \"$_VBG_BASE\" --head-ref \"$_VBG_HEAD\" --format human) || (cd \"$TARGET_REPO_ROOT\" && \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref HEAD~1 --head-ref HEAD --format human) || true\n fi\n-\n exit 0\ndiff --git a/tests/test_pre_push_version_bump.py b/tests/test_pre_push_version_bump.py\nnew file mode 100644\nindex 0000000..988f724\n--- /dev/null\n+++ b/tests/test_pre_push_version_bump.py\n@@ -0,0 +1,57 @@\n+import os\n+import subprocess\n+from pathlib import Path\n+\n+REPO_ROOT = Path(__file__).resolve().parents[1]\n+PRE_PUSH_HOOK = REPO_ROOT / \"scripts\" / \"hooks\" / \"pre-push\"\n+\n+\n+def _git(cwd, *args, input=None):\n+    return subprocess.run(\n+        [\"git\", *args], cwd=cwd, input=input, check=True, capture_output=True, text=True\n+    ).stdout.strip()\n+\n+\n+def _init_repo(tmp_path):\n+    repo = tmp_path / \"target\"\n+    repo.mkdir()\n+    _git(repo, \"init\", \"-q\")\n+    _git(repo, \"config\", \"user.email\", \"test@example.com\")\n+    _git(repo, \"config\", \"user.name\", \"Test\")\n+    (repo / \"README.md\").write_text(\"init\\n\")\n+    _git(repo, \"add\", \"README.md\")\n+    _git(repo, \"commit\", \"-q\", \"-m\", \"init\")\n+    return repo\n+\n+\n+def _commit_adding_file(repo, parent_sha, filename, content):\n+    blob_sha = _git(repo, \"hash-object\", \"-w\", \"--stdin\", input=content)\n+    ls_tree = _git(repo, \"ls-tree\", parent_sha)\n+    entry = f\"100644 blob {blob_sha}\\t{filename}\\n\"\n+    mktree_input = (ls_tree + \"\\n\" if ls_tree else \"\") + entry\n+    tree_sha = _git(repo, \"mktree\", input=mktree_input)\n+    return _git(repo, \"commit-tree\", tree_sha, \"-p\", parent_sha, \"-m\", \"add file\")\n+\n+\n+def _run_pre_push(repo, stdin_text):\n+    env = dict(os.environ)\n+    env[\"AI_GOVERNANCE_FRAMEWORK_ROOT\"] = str(REPO_ROOT)\n+    return subprocess.run(\n+        [\"bash\", str(PRE_PUSH_HOOK)],\n+        cwd=repo, input=stdin_text, capture_output=True, text=True, env=env,\n+    )\n+\n+\n+def test_version_bump_advisory_counts_pushed_branch_not_head(tmp_path):\n+    repo = _init_repo(tmp_path)\n+    head_sha = _git(repo, \"rev-parse\", \"HEAD\")\n+    pushed_sha = _commit_adding_file(repo, head_sha, \"added_file.txt\", \"hello\\n\")\n+    assert _git(repo, \"rev-parse\", \"HEAD\") == head_sha\n+\n+    stdin_text = f\"refs/heads/feature {pushed_sha} refs/heads/feature {head_sha}\\n\"\n+    result = _run_pre_push(repo, stdin_text)\n+\n+    assert \"changed_files=\" in result.stdout, f\"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}\"\n+    line = next(l for l in result.stdout.splitlines() if l.startswith(\"changed_files=\"))\n+    changed_files = int(line.split(\"=\", 1)[1])\n+    assert changed_files >= 1\n=== TEST_LOG ===\n.....                                                                    [100%]\n5 passed in 0.10s\n=== VALIDATOR_OUTPUT ===\n[shellcheck exit=1]\n\nIn scripts/hooks/pre-push line 17:\n. \"$PYTHON_LIB\"\n  ^-----------^ SC1090 (warning): ShellCheck can't follow non-constant source. Use a directive to specify location.\n\nFor more information:\n  https://www.shellcheck.net/wiki/SC1090 -- ShellCheck can't follow non-const...\n[ruff exit=1]\ngovernance_tools/version_bump_guard.py:6:1: I001 [*] Import block is un-sorted or un-formatted\n   |\n 4 |   \"\"\"\n 5 |   \n 6 | / from __future__ import annotations\n 7 | | \n 8 | | import argparse\n 9 | | import json\n10 | | import subprocess\n11 | | from dataclasses import dataclass\n12 | | from pathlib import Path\n13 | | \n14 | | \n15 | | LEVEL_ORDER = {\"none\": 0, \"patch\": 1, \"minor\": 2, \"major\": 3}\n   | |_^ I001\n16 |   \n17 |   MAJOR_PATHS = {\n   |\n   = help: Organize imports\n\ngovernance_tools/version_bump_guard.py:125:101: E501 Line too long (104 > 100)\n    |\n124 | def build_parser() -> argparse.ArgumentParser:\n125 |     parser = argparse.ArgumentParser(description=\"Recommend semantic version bump level from git diff.\")\n    |                                                                                                     ^^^^ E501\n126 |     parser.add_argument(\"--base-ref\", default=\"HEAD~1\", help=\"Git base ref (default: HEAD~1).\")\n127 |     parser.add_argument(\"--head-ref\", default=\"HEAD\", help=\"Git head ref (default: HEAD).\")\n    |\n\nFound 2 errors.\n[*] 1 fixable with the `--fix` option.\n[mypy exit=0]\nSuccess: no issues found in 1 source file\n=== COMPLETION_CLAIM ===\n{\"summary\": \"Fixed the version-bump advisory so it reports the files actually being pushed for a ref, instead of always diffing the locally checked-out HEAD against itself.\", \"root_cause\": \"The pre-push hook never read the `<local ref> <local sha1> <remote ref> <remote sha1>` tuples git supplies on stdin for each pushed ref; it always invoked the version-bump tool with `--head-ref HEAD`. When the pushed branch's tip differs from the checked-out HEAD (e.g. pushing a branch that isn't currently checked out), the diff collapsed to HEAD...HEAD and reported changed_files=0.\", \"fix\": \"Scripts/hooks/pre-push now captures its stdin up front, parses the first pushed-ref tuple, and (when the local sha isn't the all-zero deletion sentinel) uses that local sha as --head-ref and the remote sha (when present and non-zero) as --base-ref, falling back to the previous default-branch/HEAD behavior only when no ref tuple is supplied (e.g. manual invocation). Also fixed a latent, pre-existing bug in the same section where `git symbolic-ref ... | sed ...` combined with `set -o pipefail` would abort the whole hook whenever no `origin` remote symbolic-ref exists (replaced with a non-failing capture plus parameter-expansion prefix strip). Scope was kept to the version-bump advisory's file-counting behavior; snapshot validation and runtime-governance smoke logic were preserved unchanged.\", \"regression_test\": \"Added tests/test_pre_push_version_bump.py::creates a temp git repo, builds a commit via git plumbing (hash-object/mktree/commit-tree) that adds a file on top of HEAD without moving HEAD, invokes scripts/hooks/pre-push with a simulated git push stdin line for that branch, and asserts the advisory's changed_files count is >= 1 (not 0). Verified sensitivity: the test fails against the original hardcoded `--head-ref HEAD` behavior (no 'changed_files=' line is even printed in that case) and passes with the fix restored.\", \"test_results\": \"test verb: 5 passed, 0 failed (four pre-existing unit tests plus the new regression test).\", \"reproduction_outcome\": \"reproduce verb: verdict=PASS, changed_files_one=true, head_unchanged=true, marker_reported=true (before the fix it reported verdict=FAIL with changed_files=0).\", \"limitations\": [\"Only the first pushed-ref tuple on stdin is honored; a single `push` invocation that updates multiple refs at once will only get an advisory for the first ref line - this matches the documented single-branch reproduction scenario but is narrower than full multi-ref support.\", \"The fix and test were verified in this sandboxed checkout only; no broader CI or consumer-repo integration was exercised.\"], \"worktree\": \"clean after commit (status_clean=true per commit receipt)\", \"commit\": \"6d8592ea286cd713e25d15a3e4f2b22e2fb63ccb\", \"changed_files\": [\"scripts/hooks/pre-push\", \"tests/test_pre_push_version_bump.py\"]}\n",
+  "redacted_output_sha256": "ad66944e9aafc58b714dee252afd915ace5ea69c222d96d3b2d4ffead315f5d7",
+  "schema": "gate2-redacted-packet.v2",
+  "source_attestation": {
+    "artifacts": {
+      "diff": {
+        "bytes": 6832,
+        "sha256": "1da1958256d98729b30838bf1fe2260be705e65a55d180d884078cb3bf400bd6"
+      },
+      "receipt": {
+        "bytes": 242,
+        "sha256": "2b53f1dfa3e8c41c06f0d949e967843ab0b16cc6cbaee204b44570577916bf33"
+      },
+      "redaction_runner": {
+        "bytes": 16152,
+        "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+      },
+      "result": {
+        "bytes": 2858,
+        "sha256": "aa2df6adc1794ff77b6cba2ca9a23727352ec1586df64f4848fb9644f7be60cf"
+      },
+      "scorer_packet": {
+        "bytes": 2118,
+        "sha256": "ee132ccc6a245f681571e139f9e2d046e4b3a5be7713818678ac811bec1cc9b1"
+      },
+      "test_log": {
+        "bytes": 98,
+        "sha256": "91e7809b3e27d7be1de9408076076bc6e6dd5b4dae4cd48d190cef0d8ffa906b"
+      },
+      "validator_output": {
+        "bytes": 1462,
+        "sha256": "9f3519d63673f58aad85d08659f2fe4058e157bd6800150c3e79146d8ab29d48"
+      }
+    },
+    "identity": {
+      "baseline_commit": "e8889f08a065fae7a2d73bdc37cef0422289cf38",
+      "container_id": "9f18aa34fb7799400e049fdb9fd60c2eb43f4aec124ee9a2daaafeffba85f912",
+      "output_commit": "6d8592ea286cd713e25d15a3e4f2b22e2fb63ccb",
+      "run_id": "gate2-formal-20260728-115533-OUTRUN-fc7e0451db6b496d"
+    },
+    "section_mapping": {
+      "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+      "FIX_DIFF": "scorer_packet.artifacts.diff",
+      "TEST_LOG": "attachment.test_log",
+      "VALIDATOR_OUTPUT": "attachment.validator_output"
+    },
+    "source_packet_verification": "PASS: builder live-verified packet; published bytes reproduce from pinned sources"
+  },
+  "total_redactions": 0
+}

@@ -1,0 +1,34 @@
+{
+  "master_run_id": "gate2-formal-20260728-115533",
+  "result": "PASS",
+  "scorer_alias": "haiku",
+  "scorer_admission": {
+    "primary": {
+      "model_usage": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "omitted_source_sha256": "19a50d65f8b0d99e23ed48a3ea00af5251fc660d874f47fdd85ea17099b171cc"
+    },
+    "second": {
+      "model_usage": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "omitted_source_sha256": "89b8c5b5b9c323832cb78320ee77be3f8394e4d20d1830c1d1e8af9470cfd38f"
+    }
+  },
+  "formal_pre_mapping_scorers": {
+    "primary": {
+      "model_usage": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "omitted_source_sha256": "fa6329b1283ff264e7e829827c0b54d9aefa78487e08d44a2b8fef353fdd8319"
+    },
+    "second": {
+      "model_usage": [
+        "claude-haiku-4-5-20251001"
+      ],
+      "omitted_source_sha256": "458fb54a73352993ba5210e31a54e43a571106e7a6c1ba728b54f73348ba1df0"
+    }
+  },
+  "claim_boundary": "PASS records the modelUsage keys observed in the omitted raw scorer outputs and binds them to SHA-256 digests. It does not expose or authenticate the omitted scorer session identifiers."
+}

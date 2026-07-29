@@ -1,0 +1,158 @@
+diff --git a/scripts/hooks/pre-push b/scripts/hooks/pre-push
+index 5b388f1..219cefe 100644
+--- a/scripts/hooks/pre-push
++++ b/scripts/hooks/pre-push
+@@ -28,11 +28,18 @@ VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
+ SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
+ RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
+ 
++_VBG_PUSHED_SHA=""
++while read -r _local_ref _local_sha _remote_ref _remote_sha; do
++    [ -z "${_local_sha:-}" ] && continue
++    [ -z "${_local_sha//0/}" ] && continue
++    _VBG_PUSHED_SHA="$_local_sha"
++    break
++done
++
+ if ! set_python_cmd; then
+     echo "[governance] warning: Python not available; some advisory checks are skipped"
+ fi
+ 
+-# Snapshot validation remains advisory-only.
+ FAIL_COUNT=0
+ if [ -f "$TOOL" ] && [ -d "$SNAPSHOT_DIR" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+     for snapshot in "$SNAPSHOT_DIR"/*.txt; do
+@@ -72,15 +79,15 @@ fi
+ 
+ if [ -f "$VERSION_BUMP_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+     echo "[governance] version bump recommendation (advisory)"
+-    # Detect remote default branch via symbolic ref; fall back to origin/main.
+     _VBG_BASE="$(git -C "$TARGET_REPO_ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')"
+     [ -z "$_VBG_BASE" ] && _VBG_BASE="origin/main"
++    _VBG_HEAD="${_VBG_PUSHED_SHA:-HEAD}"
+     (
+         cd "$TARGET_REPO_ROOT"
+-        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref "$_VBG_BASE" --head-ref HEAD --format human
++        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref "$_VBG_BASE" --head-ref "$_VBG_HEAD" --format human
+     ) || (
+         cd "$TARGET_REPO_ROOT"
+-        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref HEAD~1 --head-ref HEAD --format human
++        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref HEAD~1 --head-ref "$_VBG_HEAD" --format human
+     ) || true
+ fi
+ 
+diff --git a/tests/test_pre_push_pushed_ref.py b/tests/test_pre_push_pushed_ref.py
+new file mode 100644
+index 0000000..602a9a8
+--- /dev/null
++++ b/tests/test_pre_push_pushed_ref.py
+@@ -0,0 +1,109 @@
++import os
++import shutil
++import subprocess
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++HOOK = REPO_ROOT / "scripts" / "hooks" / "pre-push"
++
++
++def _run(cmd, cwd, env, input_text=None):
++    return subprocess.run(
++        cmd,
++        cwd=str(cwd),
++        env=env,
++        input=input_text,
++        capture_output=True,
++        text=True,
++        check=True,
++    )
++
++
++def _git_env():
++    env = dict(os.environ)
++    env.update(
++        {
++            "GIT_AUTHOR_NAME": "Test",
++            "GIT_AUTHOR_EMAIL": "test@example.com",
++            "GIT_COMMITTER_NAME": "Test",
++            "GIT_COMMITTER_EMAIL": "test@example.com",
++        }
++    )
++    return env
++
++
++def _init_target_repo(tmp_path):
++    repo = tmp_path / "target"
++    repo.mkdir()
++    env = _git_env()
++    _run(["git", "init", "-q", "-b", "main"], repo, env)
++    (repo / "base.txt").write_text("base\n")
++    _run(["git", "add", "base.txt"], repo, env)
++    _run(["git", "commit", "-q", "-m", "base"], repo, env)
++    base_sha = _run(["git", "rev-parse", "HEAD"], repo, env).stdout.strip()
++    _run(["git", "update-ref", "refs/remotes/origin/main", base_sha], repo, env)
++    _run(
++        ["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
++        repo,
++        env,
++    )
++    return repo, env, base_sha
++
++
++def _make_framework_root(tmp_path):
++    fw = tmp_path / "framework"
++    (fw / "scripts" / "lib").mkdir(parents=True)
++    (fw / "governance_tools").mkdir(parents=True)
++    shutil.copy(REPO_ROOT / "scripts" / "lib" / "python.sh", fw / "scripts" / "lib" / "python.sh")
++    shutil.copy(
++        REPO_ROOT / "governance_tools" / "version_bump_guard.py",
++        fw / "governance_tools" / "version_bump_guard.py",
++    )
++    return fw
++
++
++def _build_pushed_commit(repo, env, base_sha):
++    blob_sha = _run(
++        ["git", "hash-object", "-w", "--stdin"], repo, env, input_text="new\n"
++    ).stdout.strip()
++    base_tree = _run(
++        ["git", "rev-parse", base_sha + "^{tree}"], repo, env
++    ).stdout.strip()
++    listing = _run(["git", "ls-tree", base_tree], repo, env).stdout
++    mktree_input = listing + f"100644 blob {blob_sha}\tadded.txt\n"
++    new_tree = _run(["git", "mktree"], repo, env, input_text=mktree_input).stdout.strip()
++    commit = _run(
++        ["git", "commit-tree", new_tree, "-p", base_sha, "-m", "feature"], repo, env
++    ).stdout.strip()
++    _run(["git", "update-ref", "refs/heads/feature", commit], repo, env)
++    return commit
++
++
++def test_version_bump_advisory_uses_pushed_commit_not_local_head(tmp_path):
++    repo, env, base_sha = _init_target_repo(tmp_path)
++    framework_root = _make_framework_root(tmp_path)
++
++    # Commit is built via plumbing; HEAD stays on main at base_sha.
++    pushed_commit = _build_pushed_commit(repo, env, base_sha)
++    assert _run(["git", "rev-parse", "HEAD"], repo, env).stdout.strip() == base_sha
++
++    hook_env = dict(env)
++    hook_env["AI_GOVERNANCE_FRAMEWORK_ROOT"] = str(framework_root)
++    stdin = (
++        f"refs/heads/feature {pushed_commit} refs/heads/feature "
++        "0000000000000000000000000000000000000000\n"
++    )
++
++    result = subprocess.run(
++        ["bash", str(HOOK)],
++        cwd=str(repo),
++        env=hook_env,
++        input=stdin,
++        capture_output=True,
++        text=True,
++    )
++
++    assert result.returncode == 0, result.stderr
++    assert "changed_files=1" in result.stdout, result.stdout
++    assert "added.txt" in result.stdout
++    assert "changed_files=0" not in result.stdout

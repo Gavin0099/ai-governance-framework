@@ -1,0 +1,76 @@
+{
+  "anon_id": "OUT-dff5e9dc99e2",
+  "blinding_compromised": null,
+  "blinding_compromised_reason_code": null,
+  "channel_effect": {
+    "claim_boundary": "Common-mode exposure does not prove equal behavioral impact across arms.",
+    "mechanism": "All four producers use the same argv-only adapter and provide write/report bodies as base64.",
+    "observed_effect": "In live canary 172217 and 194819 the producer reduced solution content, including deleting a module docstring, to lower manual base64 transcription risk.",
+    "preregistered_interpretation": "This burden is common-mode but not evidence-neutral. Scorers see the complete operator-captured diff and may score any resulting quality loss normally. No score normalization or post-hoc adjustment is permitted.",
+    "safety_decision": "Do not add a plaintext shell write verb; preserving the argv-only boundary takes precedence over treatment neutrality."
+  },
+  "contract_sha256": "16bf661b5238c906e6e0b4d977bc7f6c9e279a8f20286b8a8b1362de7346e733",
+  "per_rule_match_count": {
+    "\\barm[ _-]?[abcd]\\b": 0,
+    "arm-dispatch-packet(\\.md)?": 0,
+    "governance-packet(\\.md)?": 0,
+    "governance\\s+packet": 0,
+    "skill-packet-bugfix(\\.md)?": 0,
+    "skill\\s+packet": 0,
+    "treatment\\s+assignment": 0,
+    "treatment\\s+packet": 0,
+    "validator-expectation-designer-only(\\.md)?": 0,
+    "validator-pins(\\.md)?": 0,
+    "validator\\s+packet": 0
+  },
+  "raw_output_sha256": "dff5e9dc99e2cd60eece7c906b4f9a3aef348aabe71ccd4dd3063cd911a04aec",
+  "redacted_output": "=== FIX_DIFF ===\ndiff --git a/scripts/hooks/pre-push b/scripts/hooks/pre-push\nindex 5b388f1..24ecdde 100644\n--- a/scripts/hooks/pre-push\n+++ b/scripts/hooks/pre-push\n@@ -28,6 +28,16 @@ VERSION_BUMP_GUARD=\"$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py\"\n SNAPSHOT_DIR=\"$TARGET_REPO_ROOT/memory/governance_snapshots\"\n RUNTIME_SCRIPT=\"$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh\"\n \n+# git sends \"<local ref> <local oid> <remote ref> <remote oid>\" per pushed ref\n+# on stdin; use it so advisories reflect the pushed ref, not the checked-out HEAD.\n+PUSHED_LOCAL_OID=\"\"\n+PUSHED_REMOTE_OID=\"\"\n+if [ ! -t 0 ]; then\n+    read -r _local_ref _local_oid _remote_ref _remote_oid || true\n+    PUSHED_LOCAL_OID=\"$_local_oid\"\n+    PUSHED_REMOTE_OID=\"$_remote_oid\"\n+fi\n+\n if ! set_python_cmd; then\n     echo \"[governance] warning: Python not available; some advisory checks are skipped\"\n fi\n@@ -72,15 +82,21 @@ fi\n \n if [ -f \"$VERSION_BUMP_GUARD\" ] && [ \"${#PYTHON_CMD[@]}\" -gt 0 ]; then\n     echo \"[governance] version bump recommendation (advisory)\"\n-    # Detect remote default branch via symbolic ref; fall back to origin/main.\n-    _VBG_BASE=\"$(git -C \"$TARGET_REPO_ROOT\" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')\"\n-    [ -z \"$_VBG_BASE\" ] && _VBG_BASE=\"origin/main\"\n+    _VBG_HEAD=\"${PUSHED_LOCAL_OID:-HEAD}\"\n+    _VBG_BASE=\"\"\n+    case \"$PUSHED_REMOTE_OID\" in\n+        *[!0]*) _VBG_BASE=\"$PUSHED_REMOTE_OID\" ;;\n+    esac\n+    if [ -z \"$_VBG_BASE\" ]; then\n+        _VBG_BASE=\"$(git -C \"$TARGET_REPO_ROOT\" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')\"\n+        [ -z \"$_VBG_BASE\" ] && _VBG_BASE=\"origin/main\"\n+    fi\n     (\n         cd \"$TARGET_REPO_ROOT\"\n-        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref \"$_VBG_BASE\" --head-ref HEAD --format human\n+        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref \"$_VBG_BASE\" --head-ref \"$_VBG_HEAD\" --format human\n     ) || (\n         cd \"$TARGET_REPO_ROOT\"\n-        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref HEAD~1 --head-ref HEAD --format human\n+        \"${PYTHON_CMD[@]}\" \"$VERSION_BUMP_GUARD\" --base-ref HEAD~1 --head-ref \"$_VBG_HEAD\" --format human\n     ) || true\n fi\n \ndiff --git a/tests/scratch_check.py b/tests/scratch_check.py\nnew file mode 100644\nindex 0000000..0519ecb\n--- /dev/null\n+++ b/tests/scratch_check.py\n@@ -0,0 +1 @@\n+ \n\\ No newline at end of file\ndiff --git a/tests/test_version_bump_guard.py b/tests/test_version_bump_guard.py\nindex 32a5731..a22e700 100644\n--- a/tests/test_version_bump_guard.py\n+++ b/tests/test_version_bump_guard.py\n@@ -1,5 +1,10 @@\n from governance_tools.version_bump_guard import evaluate_paths\n \n+import os\n+import re\n+import subprocess\n+from pathlib import Path\n+\n \n def test_recommend_none_for_docs_only() -> None:\n     result = evaluate_paths(\n@@ -27,3 +32,68 @@ def test_recommend_major_for_required_versions_change() -> None:\n     assert result.recommended_bump == \"major\"\n     assert result.manual_review_required is True\n \n+\n+REPO_ROOT = Path(__file__).resolve().parent.parent\n+PRE_PUSH_HOOK = REPO_ROOT / \"scripts\" / \"hooks\" / \"pre-push\"\n+\n+\n+def _run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess:\n+    return subprocess.run(\n+        [\"git\", *args], cwd=cwd, check=True, capture_output=True, text=True\n+    )\n+\n+\n+def test_version_bump_advisory_counts_pushed_ref_not_checked_out_head(tmp_path: Path) -> None:\n+    # The pushed branch tip is built via plumbing and never checked out; HEAD\n+    # stays on the base commit throughout, mirroring a push of a ref that isn't\n+    # the currently checked-out HEAD.\n+    target = tmp_path / \"target-repo\"\n+    target.mkdir()\n+    _run_git(target, \"init\", \"-q\")\n+    _run_git(target, \"config\", \"user.email\", \"test@example.com\")\n+    _run_git(target, \"config\", \"user.name\", \"Test\")\n+\n+    (target / \"base.txt\").write_text(\"base\\n\")\n+    _run_git(target, \"add\", \"base.txt\")\n+    _run_git(target, \"commit\", \"-q\", \"-m\", \"base\")\n+    base_sha = _run_git(target, \"rev-parse\", \"HEAD\").stdout.strip()\n+    base_tree = _run_git(target, \"rev-parse\", \"HEAD^{tree}\").stdout.strip()\n+\n+    temp_index = tmp_path / \"temp-index\"\n+    index_env = {**os.environ, \"GIT_INDEX_FILE\": str(temp_index)}\n+    subprocess.run(\n+        [\"git\", \"read-tree\", base_tree], cwd=target, env=index_env, check=True, capture_output=True, text=True\n+    )\n+    blob_sha = subprocess.run(\n+        [\"git\", \"hash-object\", \"-w\", \"--stdin\"], cwd=target, input=\"added\\n\",\n+        capture_output=True, text=True, check=True,\n+    ).stdout.strip()\n+    subprocess.run(\n+        [\"git\", \"update-index\", \"--add\", \"--cacheinfo\", \"100644\", blob_sha, \"added.txt\"],\n+        cwd=target, env=index_env, check=True, capture_output=True, text=True,\n+    )\n+    new_tree = subprocess.run(\n+        [\"git\", \"write-tree\"], cwd=target, env=index_env, capture_output=True, text=True, check=True,\n+    ).stdout.strip()\n+    new_commit = subprocess.run(\n+        [\"git\", \"commit-tree\", new_tree, \"-p\", base_sha, \"-m\", \"feature: add file\"],\n+        cwd=target, capture_output=True, text=True, check=True,\n+    ).stdout.strip()\n+\n+    head_after = _run_git(target, \"rev-parse\", \"HEAD\").stdout.strip()\n+    assert head_after == base_sha\n+\n+    stdin_payload = f\"refs/heads/feature {new_commit} refs/heads/feature {base_sha}\\n\"\n+    proc = subprocess.run(\n+        [\"bash\", str(PRE_PUSH_HOOK)],\n+        cwd=target,\n+        input=stdin_payload,\n+        capture_output=True,\n+        text=True,\n+        env={**os.environ, \"AI_GOVERNANCE_FRAMEWORK_ROOT\": str(REPO_ROOT)},\n+    )\n+\n+    assert proc.returncode == 0, proc.stderr\n+    match = re.search(r\"changed_files=(\\d+)\", proc.stdout)\n+    assert match, proc.stdout\n+    assert int(match.group(1)) == 1, proc.stdout\n=== TEST_LOG ===\n.....                                                                    [100%]\n5 passed in 0.10s\n=== VALIDATOR_OUTPUT ===\n[shellcheck exit=1]\n\nIn scripts/hooks/pre-push line 24:\n. \"$PYTHON_LIB\"\n  ^-----------^ SC1090 (warning): ShellCheck can't follow non-constant source. Use a directive to specify location.\n\nFor more information:\n  https://www.shellcheck.net/wiki/SC1090 -- ShellCheck can't follow non-const...\n[ruff exit=1]\ngovernance_tools/version_bump_guard.py:6:1: I001 [*] Import block is un-sorted or un-formatted\n   |\n 4 |   \"\"\"\n 5 |   \n 6 | / from __future__ import annotations\n 7 | | \n 8 | | import argparse\n 9 | | import json\n10 | | import subprocess\n11 | | from dataclasses import dataclass\n12 | | from pathlib import Path\n13 | | \n14 | | \n15 | | LEVEL_ORDER = {\"none\": 0, \"patch\": 1, \"minor\": 2, \"major\": 3}\n   | |_^ I001\n16 |   \n17 |   MAJOR_PATHS = {\n   |\n   = help: Organize imports\n\ngovernance_tools/version_bump_guard.py:125:101: E501 Line too long (104 > 100)\n    |\n124 | def build_parser() -> argparse.ArgumentParser:\n125 |     parser = argparse.ArgumentParser(description=\"Recommend semantic version bump level from git diff.\")\n    |                                                                                                     ^^^^ E501\n126 |     parser.add_argument(\"--base-ref\", default=\"HEAD~1\", help=\"Git base ref (default: HEAD~1).\")\n127 |     parser.add_argument(\"--head-ref\", default=\"HEAD\", help=\"Git head ref (default: HEAD).\")\n    |\n\nFound 2 errors.\n[*] 1 fixable with the `--fix` option.\n[mypy exit=0]\nSuccess: no issues found in 1 source file\n=== COMPLETION_CLAIM ===\n{\"summary\":\"Fixed the version-bump advisory in the pre-push hook so it reports the files actually changed by the pushed ref, instead of always diffing against the currently checked-out HEAD.\",\"root_cause\":\"git invokes pre-push with one line per updated ref on stdin ('<local ref> <local oid> <remote ref> <remote oid>'), but the hook ignored stdin entirely and always called the version-bump guard with '--head-ref HEAD'. When the pushed branch tip is not the checked-out HEAD (e.g. a commit built via git plumbing on another ref, or a branch behind the default branch), the guard diffed the wrong commit and reported changed_files=0 even though the push added/changed files.\",\"fix\":\"{\\\"file\\\":\\\"scripts/hooks/pre-push\\\",\\\"change\\\":\\\"Read the first ref-update line git sends on stdin (skipped only when stdin is a tty, i.e. a manual invocation) and capture its local/remote oids. Use the captured local oid as --head-ref (falling back to HEAD if none was captured). Use the captured remote oid as --base-ref when it is present and not all-zeros (a real prior tip); otherwise fall back to the previous default-branch detection (symbolic-ref origin/HEAD, then origin/main) for new-branch pushes. No other behavior (snapshot validation, runtime-governance smoke step, exit codes) was changed.\\\"}\",\"tests\":{\"added\":\"tests/test_version_bump_guard.py::test_version_bump_advisory_counts_pushed_ref_not_checked_out_head\",\"description\":\"Builds a real temp git repo, constructs a second commit that adds a file via git plumbing (separate GIT_INDEX_FILE, never checked out) so HEAD provably never moves, then invokes scripts/hooks/pre-push directly with git's real pre-push stdin protocol ('<local ref> <local oid> <remote ref> <remote oid>') and asserts the printed changed_files count is 1 (the actual added file), not 0.\",\"oracle\":\"independent of production code: asserts against git's own documented pre-push hook stdin contract and a known fixture diff (one added file), not from reading the hook's implementation.\",\"sensitivity_check\":\"Re-introduced the original buggy hook (--head-ref HEAD unconditionally, no stdin reading); the new regression test failed (exit 128 from git diff against unrelated HEAD) and reproduce reported verdict=FAIL/changed_files=0. Restored the fix afterward and reconfirmed all pass.\"},\"evidence\":[{\"command\":\"gate2_arm_adapter.sh test\",\"exit_code\":0,\"result\":\"5 passed\",\"linked_commit\":\"e2ecb90cf60183dd0b63d27e1db8be18db567104\",\"worktree_clean\":true},{\"command\":\"gate2_arm_adapter.sh reproduce\",\"exit_code\":0,\"result\":\"verdict=PASS, changed_files_one=true, head_unchanged=true, marker_reported=true\",\"linked_commit\":\"e2ecb90cf60183dd0b63d27e1db8be18db567104\",\"worktree_clean\":true}],\"commit\":\"{\\\"linked_commit\\\":\\\"e2ecb90cf60183dd0b63d27e1db8be18db567104\\\",\\\"tree\\\":\\\"2ef04b81b6e1abee7e682e2d2ec7e58bdc2a1e4f\\\",\\\"status_clean\\\":true}\",\"limitations\":[\"A stray untracked file tests/scratch_check.py (1 byte: a single space) was created while verifying the write verb's base64 round-trip before attempting the real fix; no delete verb was available to remove it, so it was left inert (not named test_*.py, so pytest does not collect it) and is included in the commit.\",\"Only the first stdin ref-update line is consumed; a single push updating multiple refs at once will only get an advisory for the first updated ref, matching the single-ref scope in the reproduction.\",\"Validators (shellcheck/ruff/mypy) were not run by this producer; that feedback channel was not granted for this treatment\"]}\n",
+  "redacted_output_sha256": "dff5e9dc99e2cd60eece7c906b4f9a3aef348aabe71ccd4dd3063cd911a04aec",
+  "schema": "gate2-redacted-packet.v2",
+  "source_attestation": {
+    "artifacts": {
+      "diff": {
+        "bytes": 5739,
+        "sha256": "658cbc70342188c67276a980bf5fd1c67e0f6ef289d70cefa3f6b192979f9634"
+      },
+      "receipt": {
+        "bytes": 269,
+        "sha256": "ec9daf10a350517282803476ba4aa39afd67384318fa88951ac60d6391eee5b4"
+      },
+      "redaction_runner": {
+        "bytes": 16152,
+        "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+      },
+      "result": {
+        "bytes": 3517,
+        "sha256": "e32dc12754feec12a15a34c34acf5ac9ace8130d8fb1562fd350fd71aba81f50"
+      },
+      "scorer_packet": {
+        "bytes": 2147,
+        "sha256": "e05bd9c54a7223cd8a69649ee0649f97457d542d7f2db555ea8a6dcd76638fbe"
+      },
+      "test_log": {
+        "bytes": 98,
+        "sha256": "91e7809b3e27d7be1de9408076076bc6e6dd5b4dae4cd48d190cef0d8ffa906b"
+      },
+      "validator_output": {
+        "bytes": 1462,
+        "sha256": "02b4c218b2079a3cd5c4a1f7be65b2b6c0a588c8a8f3cf4c19ca505e2958cd7a"
+      }
+    },
+    "identity": {
+      "baseline_commit": "e8889f08a065fae7a2d73bdc37cef0422289cf38",
+      "container_id": "62dd782f95f6ab53ea56889462db1356a53ffa59b14afceabe78dcd4637612d0",
+      "output_commit": "e2ecb90cf60183dd0b63d27e1db8be18db567104",
+      "run_id": "gate2-formal-20260728-115533-OUTRUN-da6d23702cbe4886"
+    },
+    "section_mapping": {
+      "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+      "FIX_DIFF": "scorer_packet.artifacts.diff",
+      "TEST_LOG": "attachment.test_log",
+      "VALIDATOR_OUTPUT": "attachment.validator_output"
+    },
+    "source_packet_verification": "PASS: builder live-verified packet; published bytes reproduce from pinned sources"
+  },
+  "total_redactions": 0
+}
