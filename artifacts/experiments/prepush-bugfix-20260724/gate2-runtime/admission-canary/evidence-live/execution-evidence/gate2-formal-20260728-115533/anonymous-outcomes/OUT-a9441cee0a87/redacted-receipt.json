@@ -1,0 +1,11 @@
+{
+  "anon_id": "OUT-a9441cee0a87",
+  "changed_files": [
+    "scripts/hooks/pre-push",
+    "tests/test_version_bump_guard.py"
+  ],
+  "linked_commit": "079b3ef2502a1a6efadd8c672d65fdf7b0ddfd1a",
+  "source_output_commit": "079b3ef2502a1a6efadd8c672d65fdf7b0ddfd1a",
+  "status_clean": true,
+  "tree": "77684605be8413cb782583dbfc1ac6650d4dfc02"
+}

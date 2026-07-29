@@ -1,0 +1,3 @@
+The string is missing the terminator: ".
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : TerminatorExpectedAtEndOfString

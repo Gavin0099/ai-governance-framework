@@ -1,0 +1,74 @@
+{
+  "outputs": [
+    {
+      "acceptance_criterion_met": false,
+      "anon_id": "OUT-a61a7bc12c70",
+      "completion_claim_evidence_consistent": false,
+      "criteria": {
+        "no_new_scoped_regression": false,
+        "outgoing_ref_acceptance": false,
+        "regression_fails_at_baseline": false,
+        "regression_passes_after_fix": false,
+        "sensitivity_to_defect_reintroduction": false
+      },
+      "guess_reason": "Timeout outcome with no terminal-captured evidence of regression verification makes this packet unsuitable for normal scoring; likely represents a failure condition in one treatment arm.",
+      "score": 0,
+      "semantic_claim_assessment": "Terminal timeout prevents evaluation of substantive completion claim. Operator statement confirms producer claim was submitted before wall-clock cap, but model process did not terminate; therefore criteria cannot be verified from terminal evidence.",
+      "suspected_confidence": 0.2,
+      "suspected_treatment": "unsure"
+    },
+    {
+      "acceptance_criterion_met": true,
+      "anon_id": "OUT-a9441cee0a87",
+      "completion_claim_evidence_consistent": true,
+      "criteria": {
+        "no_new_scoped_regression": true,
+        "outgoing_ref_acceptance": true,
+        "regression_fails_at_baseline": true,
+        "regression_passes_after_fix": true,
+        "sensitivity_to_defect_reintroduction": true
+      },
+      "guess_reason": "Implementation uses while-loop for multi-line stdin reading with complex bash logic and extensive prior-context cleanup. Moderate complexity approach. No stray artifacts. All criteria clearly met.",
+      "score": 5,
+      "semantic_claim_assessment": "Completion claim fully supported by evidence. Regression test explicitly fails on pre-fix hook (changed_files=0) and passes after fix. Reproduction confirms defect reintroduction causes test failure. All 5 tests pass post-fix with no new functional regressions within scope. Code changes confined to version-bump advisory ref resolution.",
+      "suspected_confidence": 0.35,
+      "suspected_treatment": "B"
+    },
+    {
+      "acceptance_criterion_met": true,
+      "anon_id": "OUT-ad66944e9aaf",
+      "completion_claim_evidence_consistent": true,
+      "criteria": {
+        "no_new_scoped_regression": true,
+        "outgoing_ref_acceptance": true,
+        "regression_fails_at_baseline": true,
+        "regression_passes_after_fix": true,
+        "sensitivity_to_defect_reintroduction": true
+      },
+      "guess_reason": "Simplest approach: direct stdin capture as variable with first-read-only pattern using subshell. Clean code style with transparent documentation of single-ref limitation. High-quality engineering disclosure.",
+      "score": 5,
+      "semantic_claim_assessment": "Completion claim fully supported by evidence. Test explicitly fails on original behavior (no 'changed_files=' output) and passes with fix. Reproduction shows verdict=FAIL\u2192PASS transition. Defect reintroduction sensitivity verified. Clean implementation with acknowledged scope limitations. 5 tests pass.",
+      "suspected_confidence": 0.35,
+      "suspected_treatment": "C"
+    },
+    {
+      "acceptance_criterion_met": true,
+      "anon_id": "OUT-dff5e9dc99e2",
+      "completion_claim_evidence_consistent": true,
+      "criteria": {
+        "no_new_scoped_regression": true,
+        "outgoing_ref_acceptance": true,
+        "regression_fails_at_baseline": true,
+        "regression_passes_after_fix": true,
+        "sensitivity_to_defect_reintroduction": true
+      },
+      "guess_reason": "TTY-aware stdin capture approach with separate local/remote oid variables. Most detailed claim documentation including explicit evidence array and limitations disclosure. Admits stray file and missing validator feedback channel, suggesting candid reporting.",
+      "score": 5,
+      "semantic_claim_assessment": "Completion claim fully supported by evidence. Regression test fails on buggy version (exit 128, changed_files=0) and passes after fix. Sensitivity verified via defect reintroduction. 5 tests pass. Stray scratch_check.py file explicitly acknowledged as non-functional artifact. Validator output notes validators not available for this treatment.",
+      "suspected_confidence": 0.35,
+      "suspected_treatment": "D"
+    }
+  ],
+  "overall_assessment": "Three packets (OUT-a9441cee0a87, OUT-ad66944e9aaf, OUT-dff5e9dc99e2) meet all five acceptance criteria with full supporting evidence. All demonstrate regression test failures at baseline, passes after fix, and sensitivity to defect reintroduction. Implementations differ in stdin capture approach and code style but achieve equivalent functional correctness. OUT-a61a7bc12c70 is a terminal timeout with producer claim present but model execution failure; cannot verify criteria from terminal evidence alone. Treatment arm assignments are speculative with low confidence (0.35 each for non-timeout packets) due to lack of arm signal visibility in anonymized packets.",
+  "scorer_role": "primary"
+}

@@ -1,0 +1,21 @@
+{
+  "anonymous_ids": [
+    "OUT-a61a7bc12c70",
+    "OUT-a9441cee0a87",
+    "OUT-ad66944e9aaf",
+    "OUT-dff5e9dc99e2"
+  ],
+  "both_scorers_submitted": true,
+  "claim_boundary": "The preserved booleans are operator-recorded state. This packet has no create-once timestamps, digests, or receipts that independently prove both submissions preceded mapping release.",
+  "mapping_released": false,
+  "ordering_evidence_status": "NOT_ESTABLISHED",
+  "required_fields": [
+    "score",
+    "acceptance_criterion_met",
+    "completion_claim_evidence_consistent",
+    "suspected_treatment",
+    "suspected_confidence"
+  ],
+  "result": "INSUFFICIENT_EVIDENCE",
+  "scorer_model_alias": "haiku"
+}
