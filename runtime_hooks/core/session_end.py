@@ -274,12 +274,20 @@ def _build_daily_memory_record(
     promoted: bool,
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
+    observed_closeout_status: str | None = None,
 ) -> dict[str, str]:
     open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(project_root, commit, session_id)
-    closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
+    canonical_closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
+    normalized_observed_status = str(observed_closeout_status or "").strip().lower()
+    closeout_status = (
+        normalized_observed_status
+        if normalized_observed_status
+        in {"valid", "missing", "schema_invalid", "content_insufficient", "inconsistent"}
+        else canonical_closeout_status
+    )
     closeout_fail_closed = closeout_status in {
         "missing",
         "schema_invalid",
@@ -302,7 +310,8 @@ def _build_daily_memory_record(
         session_id=session_id,
         memory_binding=memory_binding,
         test_evidence=(
-            f"`session_end` => canonical_closeout_status={canonical_closeout.get('closeout_status', 'unknown')}, "
+            f"`session_end` => closeout_status={closeout_status or 'unknown'}, "
+            f"canonical_closeout_status={canonical_closeout_status or 'unknown'}, "
             f"snapshot_created={snapshot_created}, promoted={displayed_promoted}, open_risk_count={len(open_risks)}"
         ),
         next_step=_default_next_step(
@@ -324,6 +333,7 @@ def _append_daily_memory_entry(
     promoted: bool,
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
+    observed_closeout_status: str | None = None,
 ) -> MemoryWriteOutcome:
     record = _build_daily_memory_record(
         project_root=project_root,
@@ -334,6 +344,7 @@ def _append_daily_memory_entry(
         promoted=promoted,
         snapshot_created=snapshot_created,
         canonical_closeout=canonical_closeout,
+        observed_closeout_status=observed_closeout_status,
     )
     return append_session_derived_entry_with_outcome(
         project_root=project_root,
@@ -634,7 +645,7 @@ def _build_memory_closeout(
         primary_reason = "no explicit closeout reason"
 
     if contract.get("memory_mode") == "stateless":
-        primary_reason = "memory_mode=stateless disables durable memory closeout"
+        primary_reason = "memory_mode=stateless disables candidate snapshot and promotion"
     elif snapshot_result is None and "Session-end completed without response_text; candidate snapshot was skipped." in warnings:
         primary_reason = "response_text missing; candidate snapshot skipped"
 
@@ -852,6 +863,8 @@ def run_session_end(
     initial_agent_class: str | None = None,
     session_start_phase_classification: dict[str, Any] | None = None,
     ledger_write_allowed: bool | None = None,
+    observed_closeout_status: str | None = None,
+    daily_memory_write_required: bool | None = None,
 ) -> dict[str, Any]:
     if ledger_write_allowed is None:
         ledger_write_allowed = not _ledger_write_disabled_from_env()
@@ -885,7 +898,11 @@ def run_session_end(
     promotion_result = None
     daily_memory_path: Path | None = None
     daily_memory_record: dict[str, str] | None = None
-    daily_memory_write_expected = contract["memory_mode"] != "stateless"
+    daily_memory_write_expected = (
+        contract["memory_mode"] != "stateless"
+        if daily_memory_write_required is None
+        else daily_memory_write_required
+    )
     daily_memory_write_attempted = False
     daily_memory_write_status = "skipped"
     daily_memory_record_identity: str | None = None
@@ -988,7 +1005,7 @@ def run_session_end(
         existing_artifacts=_existing_artifacts,
         runtime_signals=_runtime_signals,
     )
-    if contract["memory_mode"] != "stateless":
+    if daily_memory_write_expected:
         daily_memory_record = _build_daily_memory_record(
             project_root=project_root,
             session_id=session_id,
@@ -998,6 +1015,7 @@ def run_session_end(
             promoted=promotion_result is not None,
             snapshot_created=snapshot_result is not None,
             canonical_closeout=canonical_closeout,
+            observed_closeout_status=observed_closeout_status,
         )
 
     candidate_artifact, curated_artifact, summary_artifact, verdict_artifact_dir, trace_artifact_dir = _ensure_runtime_artifact_dirs(project_root)
@@ -1051,7 +1069,7 @@ def run_session_end(
             "errors": errors,
             "phase_classification": session_end_phase_classification,
         }
-        if contract["memory_mode"] != "stateless":
+        if daily_memory_write_expected:
             daily_memory_write_attempted = True
             daily_memory_write_status = "attempting"
             daily_memory_outcome = _append_daily_memory_entry(
@@ -1063,6 +1081,7 @@ def run_session_end(
                 promoted=promotion_result is not None,
                 snapshot_created=snapshot_result is not None,
                 canonical_closeout=canonical_closeout,
+                observed_closeout_status=observed_closeout_status,
             )
             daily_memory_path = daily_memory_outcome.path
             daily_memory_write_status = daily_memory_outcome.status

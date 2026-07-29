@@ -240,6 +240,51 @@ def test_session_end_stateless_session_does_not_write_daily_memory(local_project
     assert summary_payload["daily_memory_write_status"] == "skipped"
 
 
+def test_session_end_uses_observed_invalid_status_for_fail_closed_daily_record(
+    local_project_root,
+):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-observed-schema-invalid",
+        runtime_contract=_contract(),
+        checks={"ok": False, "errors": ["closeout schema invalid"]},
+        summary="Schema-invalid closeout",
+        observed_closeout_status="schema_invalid",
+    )
+
+    assert result["promotion"] is None
+    assert result["daily_memory_write_status"] == "written"
+    daily_text = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
+    assert "FAIL_CLOSED_CLOSEOUT_SCHEMA_INVALID" in daily_text
+    assert "closeout_status=schema_invalid" in daily_text
+    assert "canonical_closeout_status=missing" in daily_text
+
+
+def test_session_end_can_write_fail_closed_record_without_enabling_promotion(
+    local_project_root,
+):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-stateless-fail-closed-record",
+        runtime_contract=_contract(memory_mode="stateless"),
+        checks={"ok": False, "errors": ["closeout missing"]},
+        summary="Missing closeout",
+        observed_closeout_status="missing",
+        daily_memory_write_required=True,
+    )
+
+    assert result["decision"] == "DO_NOT_PROMOTE"
+    assert result["promotion"] is None
+    assert result["daily_memory_write_expected"] is True
+    assert result["daily_memory_write_status"] == "written"
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["memory_closeout"]["reason"] == (
+        "memory_mode=stateless disables candidate snapshot and promotion"
+    )
+    daily_text = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
+    assert "FAIL_CLOSED_CLOSEOUT_MISSING" in daily_text
+
+
 def test_session_end_requires_review_for_high_risk(local_project_root):
     result = run_session_end(
         project_root=local_project_root,
@@ -307,7 +352,9 @@ def test_session_end_does_not_promote_stateless_session(local_project_root):
     assert result["snapshot"] is None
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["memory_closeout"]["promotion_considered"] is False
-    assert summary_payload["memory_closeout"]["reason"] == "memory_mode=stateless disables durable memory closeout"
+    assert summary_payload["memory_closeout"]["reason"] == (
+        "memory_mode=stateless disables candidate snapshot and promotion"
+    )
 
 
 def test_session_end_blocks_missing_contract_fields(local_project_root):

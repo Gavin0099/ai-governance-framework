@@ -1315,8 +1315,8 @@ def _build_runtime_contract(fields: dict[str, str], memory_tier: str) -> dict[st
     task_intent = fields.get("TASK_INTENT", "").strip()
     if task_intent:
         contract["task"] = task_intent
-    # working_state updates use candidate mode — they go through normal promotion policy
-    # but are tagged so reviewers know the confidence level
+    # Preserve stateless promotion policy for no-update closeouts. The caller
+    # separately requests the fail-closed daily operational record.
     if memory_tier == MEMORY_TIER_NONE:
         contract["memory_mode"] = "stateless"
     return contract
@@ -1733,10 +1733,10 @@ def _derive_daily_memory_write_surface(
         skipped_reason = "equivalent_record_already_present"
     elif status == "failed":
         skipped_reason = "memory_writer_failed"
-    elif closeout_status == STATUS_MISSING:
-        skipped_reason = "missing_session_closeout_artifact"
     elif write_expected:
         skipped_reason = "memory_writer_not_reached"
+    elif closeout_status == STATUS_MISSING:
+        skipped_reason = "missing_session_closeout_artifact"
     else:
         skipped_reason = "memory_mode_stateless"
 
@@ -1803,8 +1803,9 @@ def run_session_end_hook(
         "repo_activation_gap": readiness.get("activation_gap"),
     }
 
-    # Pass response_text for working_state and verified tiers.
-    # memory_mode=stateless blocks memory for MEMORY_TIER_NONE at the contract level.
+    # Pass response_text only for working_state and verified promotion tiers.
+    # MEMORY_TIER_NONE still records a fail-closed daily outcome without making
+    # the missing or invalid closeout content eligible for promotion.
     effective_response = (
         clf["response_text"]
         if memory_tier in {MEMORY_TIER_VERIFIED, MEMORY_TIER_WORKING}
@@ -1828,6 +1829,14 @@ def run_session_end_hook(
         response_text=effective_response,
         summary=fields.get("TASK_INTENT", ""),
         ledger_write_allowed=ledger_write_allowed,
+        observed_closeout_status={
+            STATUS_MISSING: "missing",
+            STATUS_SCHEMA_INVALID: "schema_invalid",
+            STATUS_CONTENT_INSUFFICIENT: "content_insufficient",
+            STATUS_EVIDENCE_INCONSISTENT: "inconsistent",
+            STATUS_VALID: "valid",
+        }.get(closeout_status),
+        daily_memory_write_required=True if memory_tier == MEMORY_TIER_NONE else None,
     )
 
     # Gate evaluation — policy-driven, not hardcoded.

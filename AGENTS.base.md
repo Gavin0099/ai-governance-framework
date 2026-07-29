@@ -74,8 +74,9 @@ obligation**, not a suggestion.
 
 The stop hook always calls `session_end` at session end. If the closeout artifact
 is missing or insufficient, the runtime records `closeout_missing` or
-`closeout_insufficient` in the verdict. Memory will not update. The gap is
-auditable and visible to reviewers.
+`closeout_insufficient` in the verdict and writes a fail-closed canonical daily
+record when the session is non-stateless. The invalid closeout content is not
+promoted. The gap remains auditable and visible to reviewers.
 
 ### Required fields
 
