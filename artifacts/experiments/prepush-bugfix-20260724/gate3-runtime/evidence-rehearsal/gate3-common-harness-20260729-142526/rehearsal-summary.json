@@ -1,0 +1,314 @@
+{
+  "artifact_inventory": [
+    {
+      "bytes": 0,
+      "path": "baseline-test-output.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 463,
+      "path": "baseline-test-receipt.json",
+      "sha256": "9ae987192c486c33a17a993fe01a00a1393608270ccfefc07808b6281a073154"
+    },
+    {
+      "bytes": 532,
+      "path": "chain/0001-randomization-committed.json",
+      "sha256": "802012dfe4a7c8532c2063f9897b5109db3ba1afb2a60fb5839e31ecf226574a"
+    },
+    {
+      "bytes": 767,
+      "path": "chain/0002-outcome-sealed.json",
+      "sha256": "5cc6078fc0a3425ae376b09d6e0b0931f05941aea8a0b6b1caf0fa1025a535fa"
+    },
+    {
+      "bytes": 767,
+      "path": "chain/0003-outcome-sealed.json",
+      "sha256": "70089245d8aff7e7462593e6e08b1b6dacac03059e841336a4f6e862ded0ebd9"
+    },
+    {
+      "bytes": 1893,
+      "path": "chain/0004-blind-set-closed.json",
+      "sha256": "9d742fc43a6576edcf03e2face8882b9bf9ce5849ba98c0a54019490acddb370"
+    },
+    {
+      "bytes": 881,
+      "path": "chain/0005-primary-scorer-submitted.json",
+      "sha256": "d53e6dcc4f634d7ba8b3b77bea96aa0ce2ce916c87db999b6886d64f1c90a129"
+    },
+    {
+      "bytes": 876,
+      "path": "chain/0006-second-scorer-submitted.json",
+      "sha256": "9a2e713e83b2b59a35df6b87ff2382dcf358c5fcf61479354a11ac0c2a98c292"
+    },
+    {
+      "bytes": 786,
+      "path": "chain/0007-mapping-released.json",
+      "sha256": "47272ba7d3518cd375eb1896466bad6c1602270be5189da5021e403adc483a27"
+    },
+    {
+      "bytes": 43,
+      "path": "inputs/baseline-instruction.txt",
+      "sha256": "b6d4087a13a9d353f2afb6cd2843cca70ee116ac855fe532f7a29773f80616e4"
+    },
+    {
+      "bytes": 42,
+      "path": "inputs/budget.json",
+      "sha256": "8c974e8ed8be1207d09fc89e43f7fbc1bc5c66c449a6154f1395dcaf9d7d4c28"
+    },
+    {
+      "bytes": 3321,
+      "path": "inputs/gate3-harness-contract-v1.json",
+      "sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7"
+    },
+    {
+      "bytes": 30,
+      "path": "inputs/governance-a.txt",
+      "sha256": "65561e8fc716257395864b26a7a5f526200d42a71b7d15f5556db9efba6419a3"
+    },
+    {
+      "bytes": 30,
+      "path": "inputs/governance-b.txt",
+      "sha256": "1449a6d78a58b74cbd573cbdd71a6a2d28b1458b60a1f958be65e6b06b195043"
+    },
+    {
+      "bytes": 47,
+      "path": "inputs/permissions.json",
+      "sha256": "a5b0d53898203160ebf8b992edf044750cc1fe859a6ca02c679e5a4eac540e9c"
+    },
+    {
+      "bytes": 67,
+      "path": "inputs/scorer-rubric.txt",
+      "sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33"
+    },
+    {
+      "bytes": 47,
+      "path": "inputs/task-packet.txt",
+      "sha256": "e80fa30467bd9d3fd665a4a7ba77a8786c56254c603cd6008607ed7d05f161c3"
+    },
+    {
+      "bytes": 22,
+      "path": "inputs/treatment-a.txt",
+      "sha256": "9d657f61bf58a570b1347e5a331fedd5bd0fe3c5ddf8a9e073701eb6c651fd8b"
+    },
+    {
+      "bytes": 22,
+      "path": "inputs/treatment-b.txt",
+      "sha256": "91fa3be53470968ab6c7a39e6cee97eef6846a79c6d5ff33e45d3ee8ccb4eed4"
+    },
+    {
+      "bytes": 19,
+      "path": "inputs/validator-a.json",
+      "sha256": "2b8ad2f98a40b15ee7eac808a00c1f35f56da59eee5e1eeaefc8090ec919e2f9"
+    },
+    {
+      "bytes": 32,
+      "path": "inputs/validator-a.py",
+      "sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838"
+    },
+    {
+      "bytes": 19,
+      "path": "inputs/validator-b.json",
+      "sha256": "397d49d5cc42399be416978ff529182698c91a0a5f288b4ae5a71037f0604b9d"
+    },
+    {
+      "bytes": 32,
+      "path": "inputs/validator-b.py",
+      "sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838"
+    },
+    {
+      "bytes": 337,
+      "path": "mapping-reveal.json",
+      "sha256": "55142e569045eee3c539f15d180a8e09dbaec13ec787c158cca92a9124599208"
+    },
+    {
+      "bytes": 4087,
+      "path": "outcomes/a/admission.json",
+      "sha256": "ab8916450eb6bf499e1f831d20bcc9ca319a9b21e8b110b10dd1bd87a9234143"
+    },
+    {
+      "bytes": 341,
+      "path": "outcomes/a/event-log.jsonl",
+      "sha256": "0760d5a91060e4341dfe5da444840f293224f38e16f42e39ece9a1ff05f03a3c"
+    },
+    {
+      "bytes": 223,
+      "path": "outcomes/a/final-diff.patch",
+      "sha256": "5b866a798161e0e41223ff27213b59acc3c500a38a534990126aa1508b1f1f24"
+    },
+    {
+      "bytes": 514,
+      "path": "outcomes/a/live-capture-receipt.json",
+      "sha256": "f8af6a9723aaace9f988be122ca8bff61ee9fa6bd4e541f82f5b53d6e0f2f5eb"
+    },
+    {
+      "bytes": 41,
+      "path": "outcomes/a/live-head.txt",
+      "sha256": "162168bcdb3fae114a214ce01df94c1a8c42bd3f0ee12b697d3b9b7a99ee1465"
+    },
+    {
+      "bytes": 0,
+      "path": "outcomes/a/live-status.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 2290,
+      "path": "outcomes/a/metrics.json",
+      "sha256": "a860313fbe838d5e057f3e0a7e11309e4598d4d676d25c3c79a0be58f4ead84b"
+    },
+    {
+      "bytes": 908,
+      "path": "outcomes/a/repo.bundle",
+      "sha256": "c4e7ee9a5d739414bb790da8200ad2cc6dbba09a8ad9ad285294b01168602801"
+    },
+    {
+      "bytes": 924,
+      "path": "outcomes/a/scorer-packet.json",
+      "sha256": "3eabdc954e9f49ad9ee5b3391677fcd38c115a4b3a3004b3fdb704bdba8f3164"
+    },
+    {
+      "bytes": 380,
+      "path": "outcomes/a/structured-write-receipt.json",
+      "sha256": "7b991a08eed2af4be9e66081bc46ff8aa037d21b7824acd78aebf9ed34ffef79"
+    },
+    {
+      "bytes": 0,
+      "path": "outcomes/a/test-output.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 368,
+      "path": "outcomes/a/test-receipt.json",
+      "sha256": "c359ef8032cab49fc09b141faaa61da7ac463c06cef8e9a88c153b3de7420bd7"
+    },
+    {
+      "bytes": 4087,
+      "path": "outcomes/b/admission.json",
+      "sha256": "faee5c3af39c1df92f4a1192f815ac4df4f2e400ed086ec6d403e5238c5b8473"
+    },
+    {
+      "bytes": 341,
+      "path": "outcomes/b/event-log.jsonl",
+      "sha256": "797cc9f513ce2f0f61675075e249e4eec6717113537ccc9541926967f60f9c37"
+    },
+    {
+      "bytes": 223,
+      "path": "outcomes/b/final-diff.patch",
+      "sha256": "5b866a798161e0e41223ff27213b59acc3c500a38a534990126aa1508b1f1f24"
+    },
+    {
+      "bytes": 514,
+      "path": "outcomes/b/live-capture-receipt.json",
+      "sha256": "789a947e8a15486c5bc2c00778d6b8cb5e48e667d0197399d3e980f9ca114f8b"
+    },
+    {
+      "bytes": 41,
+      "path": "outcomes/b/live-head.txt",
+      "sha256": "5adebe77b4a0747257145053fe6698429ff77ad9a64910c76baafb8b6d7ad78a"
+    },
+    {
+      "bytes": 0,
+      "path": "outcomes/b/live-status.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 2290,
+      "path": "outcomes/b/metrics.json",
+      "sha256": "64e291a7a51584ddcf45ba9b38e507176a7950604d53fd7f7e60339d9e961067"
+    },
+    {
+      "bytes": 908,
+      "path": "outcomes/b/repo.bundle",
+      "sha256": "bdc43d81b12de8860e11fd8938184f893d24dfaa1339640254572051b176df1b"
+    },
+    {
+      "bytes": 924,
+      "path": "outcomes/b/scorer-packet.json",
+      "sha256": "8bd895b196058bb718518d9263826f6e26bfff83796f6ce7dafef051906be1fb"
+    },
+    {
+      "bytes": 380,
+      "path": "outcomes/b/structured-write-receipt.json",
+      "sha256": "7b991a08eed2af4be9e66081bc46ff8aa037d21b7824acd78aebf9ed34ffef79"
+    },
+    {
+      "bytes": 0,
+      "path": "outcomes/b/test-output.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 368,
+      "path": "outcomes/b/test-receipt.json",
+      "sha256": "2cd5616dd0206ace448b49b69c17db0968f3b564a967f7c0173433edd2d97b50"
+    },
+    {
+      "bytes": 1222,
+      "path": "randomization-record.json",
+      "sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78"
+    },
+    {
+      "bytes": 1419,
+      "path": "synthetic-primary-score.json",
+      "sha256": "019a1d564047710508960273c5fa48b4fe6e1f261c639b3817b0c8e8ebebdd76"
+    },
+    {
+      "bytes": 1416,
+      "path": "synthetic-second-score.json",
+      "sha256": "e2d23e1c882b4dc224467ee5d5cb776adc1a8e8c4d1d6e4d51e05a3178d6ea3b"
+    }
+  ],
+  "authorization": "non_counted_synthetic_rehearsal_only",
+  "baseline_test_receipt": {
+    "path": "baseline-test-receipt.json",
+    "sha256": "9ae987192c486c33a17a993fe01a00a1393608270ccfefc07808b6281a073154"
+  },
+  "candidate_manifest_sha256": "51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801",
+  "candidate_verification_checks": 7,
+  "chain": {
+    "event_count": 7,
+    "head_sha256": "47272ba7d3518cd375eb1896466bad6c1602270be5189da5021e403adc483a27",
+    "state": "mapping_released"
+  },
+  "harness_implementation_sha256": "ee8d53dce010d8709ef23d5f5c1e005d9cf43722f22e11eff5e1994bb5fc2dc5",
+  "not_claimed": [
+    "independent approval",
+    "owner signature",
+    "canonical promotion",
+    "natural bug admission",
+    "counted Gate 3 run",
+    "Gate 3 start",
+    "Skill effectiveness",
+    "cryptographic writer authentication"
+  ],
+  "outcomes": [
+    {
+      "admission_path": "outcomes/a/admission.json",
+      "anon_id": "OUT-111111111111",
+      "capture_receipt": {
+        "path": "outcomes/a/live-capture-receipt.json",
+        "sha256": "f8af6a9723aaace9f988be122ca8bff61ee9fa6bd4e541f82f5b53d6e0f2f5eb"
+      },
+      "metrics_path": "outcomes/a/metrics.json",
+      "output_commit": "5c4ba43730de3aff85db8fbf17058f13e290d16c",
+      "packet_path": "outcomes/a/scorer-packet.json",
+      "treatment": "A",
+      "write_receipt_path": "outcomes/a/structured-write-receipt.json",
+      "write_receipt_sha256": "7b991a08eed2af4be9e66081bc46ff8aa037d21b7824acd78aebf9ed34ffef79"
+    },
+    {
+      "admission_path": "outcomes/b/admission.json",
+      "anon_id": "OUT-222222222222",
+      "capture_receipt": {
+        "path": "outcomes/b/live-capture-receipt.json",
+        "sha256": "789a947e8a15486c5bc2c00778d6b8cb5e48e667d0197399d3e980f9ca114f8b"
+      },
+      "metrics_path": "outcomes/b/metrics.json",
+      "output_commit": "00fc5bd3236705804dd5c4266a35b9a149513a13",
+      "packet_path": "outcomes/b/scorer-packet.json",
+      "treatment": "B",
+      "write_receipt_path": "outcomes/b/structured-write-receipt.json",
+      "write_receipt_sha256": "7b991a08eed2af4be9e66081bc46ff8aa037d21b7824acd78aebf9ed34ffef79"
+    }
+  ],
+  "rehearsal_kind": "fresh_synthetic_non_counted",
+  "schema": "gate3-common-harness-rehearsal.v1"
+}

@@ -1,0 +1,46 @@
+{
+  "blind_input_set_sha256": "32d21c52e4c2a647a7e3068f844bde2852e30f21b0be8df33971e3f0cace9df6",
+  "independence_declaration": true,
+  "model_build": "synthetic-scorer-build-v1",
+  "outputs": [
+    {
+      "anon_id": "OUT-111111111111",
+      "claim_mismatch_count": 0,
+      "completed_under_cap": true,
+      "critical_residuals": 0,
+      "major_residuals": 0,
+      "no_new_scoped_regression": true,
+      "oracle_acceptance": true,
+      "original_defect_caught": true,
+      "regression_baseline_fail": true,
+      "regression_passes_after_fix": true,
+      "scope_hygiene": "clean",
+      "sensitivity_score": {
+        "caught": 1,
+        "total": 1
+      }
+    },
+    {
+      "anon_id": "OUT-222222222222",
+      "claim_mismatch_count": 0,
+      "completed_under_cap": true,
+      "critical_residuals": 0,
+      "major_residuals": 0,
+      "no_new_scoped_regression": true,
+      "oracle_acceptance": true,
+      "original_defect_caught": true,
+      "regression_baseline_fail": true,
+      "regression_passes_after_fix": true,
+      "scope_hygiene": "clean",
+      "sensitivity_score": {
+        "caught": 1,
+        "total": 1
+      }
+    }
+  ],
+  "schema": "gate3-blind-score.v1",
+  "scorer_context_id": "synthetic-second-context",
+  "scorer_identity": "synthetic-second-scorer",
+  "scorer_role": "second",
+  "scorer_rubric_sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33"
+}

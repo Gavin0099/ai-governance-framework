@@ -1,0 +1,26 @@
+{
+  "anonymous_ids": [
+    "OUT-111111111111",
+    "OUT-222222222222"
+  ],
+  "mapping_commitment_sha256": "b67001f6c4b4035370fec4a426c7e5df7b7df1fe10a64300897102acfae2832d",
+  "pair_id": "synthetic-pair-1",
+  "repeat_index": 1,
+  "schema": "gate3-randomization-record.v1",
+  "study_kind": "skill_primary",
+  "task_id": "synthetic-task-1",
+  "treatment_inputs": {
+    "A": {
+      "governance_instruction_sha256": "65561e8fc716257395864b26a7a5f526200d42a71b7d15f5556db9efba6419a3",
+      "treatment_packet_sha256": "9d657f61bf58a570b1347e5a331fedd5bd0fe3c5ddf8a9e073701eb6c651fd8b",
+      "validator_bundle_sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838",
+      "validator_config_sha256": "2b8ad2f98a40b15ee7eac808a00c1f35f56da59eee5e1eeaefc8090ec919e2f9"
+    },
+    "B": {
+      "governance_instruction_sha256": "1449a6d78a58b74cbd573cbdd71a6a2d28b1458b60a1f958be65e6b06b195043",
+      "treatment_packet_sha256": "91fa3be53470968ab6c7a39e6cee97eef6846a79c6d5ff33e45d3ee8ccb4eed4",
+      "validator_bundle_sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838",
+      "validator_config_sha256": "397d49d5cc42399be416978ff529182698c91a0a5f288b4ae5a71037f0604b9d"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Repair add() and preserve the regression test.

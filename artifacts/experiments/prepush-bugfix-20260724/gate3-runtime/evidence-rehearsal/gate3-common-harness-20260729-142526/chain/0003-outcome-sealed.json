@@ -1,0 +1,15 @@
+{
+  "admission_path": "outcomes/b/admission.json",
+  "admission_sha256": "faee5c3af39c1df92f4a1192f815ac4df4f2e400ed086ec6d403e5238c5b8473",
+  "anon_id": "OUT-222222222222",
+  "contract_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "event": "outcome_sealed",
+  "metrics_path": "outcomes/b/metrics.json",
+  "metrics_sha256": "64e291a7a51584ddcf45ba9b38e507176a7950604d53fd7f7e60339d9e961067",
+  "packet_path": "outcomes/b/scorer-packet.json",
+  "packet_sha256": "8bd895b196058bb718518d9263826f6e26bfff83796f6ce7dafef051906be1fb",
+  "previous_event_sha256": "5cc6078fc0a3425ae376b09d6e0b0931f05941aea8a0b6b1caf0fa1025a535fa",
+  "recorded_at": "2026-07-29T14:32:09.171224+08:00",
+  "schema": "gate3-ordering-event.v1",
+  "sequence": 3
+}

@@ -1,0 +1,8 @@
+{
+  "command": "python.exe -B -c \"from calc import add; raise SystemExit(0 if add(2, 3) == 5 else 1)\"",
+  "exit_code": 0,
+  "linked_commit": "5c4ba43730de3aff85db8fbf17058f13e290d16c",
+  "output_path": "outcomes/a/test-output.txt",
+  "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "schema": "gate3-test-evidence-receipt.v1"
+}

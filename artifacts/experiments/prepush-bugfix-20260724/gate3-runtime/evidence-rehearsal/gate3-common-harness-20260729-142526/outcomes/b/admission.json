@@ -1,0 +1,91 @@
+{
+  "anon_id": "OUT-222222222222",
+  "baseline_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+  "event_log": {
+    "path": "outcomes/b/event-log.jsonl",
+    "sha256": "797cc9f513ce2f0f61675075e249e4eec6717113537ccc9541926967f60f9c37"
+  },
+  "final_diff": {
+    "path": "outcomes/b/final-diff.patch",
+    "sha256": "5b866a798161e0e41223ff27213b59acc3c500a38a534990126aa1508b1f1f24",
+    "tracked_changed_files": [
+      "calc.py"
+    ]
+  },
+  "git_bundle": {
+    "path": "outcomes/b/repo.bundle",
+    "sha256": "bdc43d81b12de8860e11fd8938184f893d24dfaa1339640254572051b176df1b"
+  },
+  "input_artifacts": {
+    "baseline_instruction_sha256": {
+      "path": "inputs/baseline-instruction.txt",
+      "sha256": "b6d4087a13a9d353f2afb6cd2843cca70ee116ac855fe532f7a29773f80616e4"
+    },
+    "budget_sha256": {
+      "path": "inputs/budget.json",
+      "sha256": "8c974e8ed8be1207d09fc89e43f7fbc1bc5c66c449a6154f1395dcaf9d7d4c28"
+    },
+    "governance_instruction_sha256": {
+      "path": "inputs/governance-b.txt",
+      "sha256": "1449a6d78a58b74cbd573cbdd71a6a2d28b1458b60a1f958be65e6b06b195043"
+    },
+    "harness_contract_sha256": {
+      "path": "inputs/gate3-harness-contract-v1.json",
+      "sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7"
+    },
+    "permissions_sha256": {
+      "path": "inputs/permissions.json",
+      "sha256": "a5b0d53898203160ebf8b992edf044750cc1fe859a6ca02c679e5a4eac540e9c"
+    },
+    "randomization_record_sha256": {
+      "path": "randomization-record.json",
+      "sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78"
+    },
+    "scorer_rubric_sha256": {
+      "path": "inputs/scorer-rubric.txt",
+      "sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33"
+    },
+    "task_packet_sha256": {
+      "path": "inputs/task-packet.txt",
+      "sha256": "e80fa30467bd9d3fd665a4a7ba77a8786c56254c603cd6008607ed7d05f161c3"
+    },
+    "treatment_packet_sha256": {
+      "path": "inputs/treatment-b.txt",
+      "sha256": "91fa3be53470968ab6c7a39e6cee97eef6846a79c6d5ff33e45d3ee8ccb4eed4"
+    },
+    "validator_bundle_sha256": {
+      "path": "inputs/validator-b.py",
+      "sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838"
+    },
+    "validator_config_sha256": {
+      "path": "inputs/validator-b.json",
+      "sha256": "397d49d5cc42399be416978ff529182698c91a0a5f288b4ae5a71037f0604b9d"
+    }
+  },
+  "input_digests": {
+    "baseline_instruction_sha256": "b6d4087a13a9d353f2afb6cd2843cca70ee116ac855fe532f7a29773f80616e4",
+    "budget_sha256": "8c974e8ed8be1207d09fc89e43f7fbc1bc5c66c449a6154f1395dcaf9d7d4c28",
+    "governance_instruction_sha256": "1449a6d78a58b74cbd573cbdd71a6a2d28b1458b60a1f958be65e6b06b195043",
+    "harness_contract_sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7",
+    "permissions_sha256": "a5b0d53898203160ebf8b992edf044750cc1fe859a6ca02c679e5a4eac540e9c",
+    "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+    "scorer_rubric_sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33",
+    "task_packet_sha256": "e80fa30467bd9d3fd665a4a7ba77a8786c56254c603cd6008607ed7d05f161c3",
+    "treatment_packet_sha256": "91fa3be53470968ab6c7a39e6cee97eef6846a79c6d5ff33e45d3ee8ccb4eed4",
+    "validator_bundle_sha256": "2d1e330bcc1cad4f1820d93c18d56536714e54e6d5354d32695e412dd5c41838",
+    "validator_config_sha256": "397d49d5cc42399be416978ff529182698c91a0a5f288b4ae5a71037f0604b9d"
+  },
+  "model_build": "synthetic-model-build-v1",
+  "output_commit": "00fc5bd3236705804dd5c4266a35b9a149513a13",
+  "output_packet_sha256": "8bd895b196058bb718518d9263826f6e26bfff83796f6ce7dafef051906be1fb",
+  "receipt_set_sha256": "fbe51b6dd643a06f671d6449634777231825cb20eb24c1eaa38db5e685a12175",
+  "receipts": [
+    {
+      "path": "outcomes/b/test-receipt.json",
+      "sha256": "2cd5616dd0206ace448b49b69c17db0968f3b564a967f7c0173433edd2d97b50"
+    }
+  ],
+  "schema": "gate3-outcome-admission.v1",
+  "treatment": "B",
+  "worktree_clean_at_capture": true
+}

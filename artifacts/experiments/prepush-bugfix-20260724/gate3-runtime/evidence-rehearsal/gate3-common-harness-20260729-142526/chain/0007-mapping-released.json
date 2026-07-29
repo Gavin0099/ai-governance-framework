@@ -1,0 +1,16 @@
+{
+  "contract_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "event": "mapping_released",
+  "mapping_path": "mapping-reveal.json",
+  "mapping_sha256": "55142e569045eee3c539f15d180a8e09dbaec13ec787c158cca92a9124599208",
+  "previous_event_sha256": "9a2e713e83b2b59a35df6b87ff2382dcf358c5fcf61479354a11ac0c2a98c292",
+  "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+  "recorded_at": "2026-07-29T14:32:09.813690+08:00",
+  "schema": "gate3-ordering-event.v1",
+  "scorer_event_sha256": {
+    "primary": "d53e6dcc4f634d7ba8b3b77bea96aa0ce2ce916c87db999b6886d64f1c90a129",
+    "second": "9a2e713e83b2b59a35df6b87ff2382dcf358c5fcf61479354a11ac0c2a98c292"
+  },
+  "sequence": 7,
+  "study_kind": "skill_primary"
+}

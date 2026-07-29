@@ -1,0 +1,18 @@
+{
+  "contract_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "event": "second_scorer_submitted",
+  "previous_event_sha256": "d53e6dcc4f634d7ba8b3b77bea96aa0ce2ce916c87db999b6886d64f1c90a129",
+  "recorded_at": "2026-07-29T14:32:09.656106+08:00",
+  "schema": "gate3-ordering-event.v1",
+  "scorer_metadata": {
+    "blind_input_set_sha256": "32d21c52e4c2a647a7e3068f844bde2852e30f21b0be8df33971e3f0cace9df6",
+    "model_build": "synthetic-scorer-build-v1",
+    "scorer_context_id": "synthetic-second-context",
+    "scorer_identity": "synthetic-second-scorer",
+    "scorer_rubric_sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33"
+  },
+  "scorer_role": "second",
+  "sequence": 6,
+  "submission_path": "synthetic-second-score.json",
+  "submission_sha256": "e2d23e1c882b4dc224467ee5d5cb776adc1a8e8c4d1d6e4d51e05a3178d6ea3b"
+}

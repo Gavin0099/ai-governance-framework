@@ -1,0 +1,11 @@
+{
+  "authorization": "non_counted_synthetic_rehearsal_only",
+  "baseline_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+  "clean": true,
+  "head_path": "outcomes/a/live-head.txt",
+  "head_sha256": "162168bcdb3fae114a214ce01df94c1a8c42bd3f0ee12b697d3b9b7a99ee1465",
+  "output_commit": "5c4ba43730de3aff85db8fbf17058f13e290d16c",
+  "schema": "gate3-live-capture-receipt.v1",
+  "status_path": "outcomes/a/live-status.txt",
+  "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -1,0 +1,68 @@
+{
+  "anon_id": "OUT-111111111111",
+  "artifacts": {
+    "event_log_sha256": "0760d5a91060e4341dfe5da444840f293224f38e16f42e39ece9a1ff05f03a3c",
+    "output_packet_sha256": "3eabdc954e9f49ad9ee5b3391677fcd38c115a4b3a3004b3fdb704bdba8f3164"
+  },
+  "baseline_commit": "6cccafa54c2a0b73bc728eab92881a56fc5b1775",
+  "budget_sha256": "8c974e8ed8be1207d09fc89e43f7fbc1bc5c66c449a6154f1395dcaf9d7d4c28",
+  "completed_under_cap": true,
+  "conditional_quality_eligible": true,
+  "costs": {
+    "changed_files": 1,
+    "core_available": true,
+    "diff_bytes": 223,
+    "owner_interventions": 0,
+    "retries": 0,
+    "rework_count": 0,
+    "tokens": {
+      "available": false,
+      "reason": "synthetic harness exposes no token telemetry"
+    },
+    "tool_calls": 4,
+    "wall_clock_ms": 1000
+  },
+  "harness_contract_sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7",
+  "method_observations": {
+    "claim_bounded_to_evidence": {
+      "evidence_sha256": [],
+      "observed": false
+    },
+    "defect_reintroduction_performed": {
+      "evidence_sha256": [],
+      "observed": false
+    },
+    "failing_regression_before_fix": {
+      "evidence_sha256": [],
+      "observed": false
+    },
+    "post_restore_retest_performed": {
+      "evidence_sha256": [],
+      "observed": false
+    },
+    "reproduction_before_first_edit": {
+      "evidence_sha256": [],
+      "observed": false
+    },
+    "root_cause_recorded_before_first_edit": {
+      "evidence_sha256": [],
+      "observed": false
+    }
+  },
+  "model_build": "synthetic-model-build-v1",
+  "pair_id": "synthetic-pair-1",
+  "permissions_sha256": "a5b0d53898203160ebf8b992edf044750cc1fe859a6ca02c679e5a4eac540e9c",
+  "randomization_record_sha256": "6c676f8249f485ccaa209d9cf25900ee1c1aa3d97d0b7148b489cbc35aa53d78",
+  "repeat_index": 1,
+  "run_id": "synthetic-run-a",
+  "schema": "gate3-run-metrics.v1",
+  "scorer_rubric_sha256": "b6ccae927cc6a6043c58e71c030ba418a86bf711ec2076e49667300d91395f33",
+  "status": "completed",
+  "task_id": "synthetic-task-1",
+  "task_packet_sha256": "e80fa30467bd9d3fd665a4a7ba77a8786c56254c603cd6008607ed7d05f161c3",
+  "timestamps": {
+    "finished_at": "2026-07-29T06:01:00+00:00",
+    "first_edit_at": "2026-07-29T06:00:30+00:00",
+    "started_at": "2026-07-29T06:00:00+00:00"
+  }
+}
