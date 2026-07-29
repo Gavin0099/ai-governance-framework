@@ -25,6 +25,18 @@ def _make_framework(root: Path) -> None:
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
     )
+    _write(
+        root / "runtime_hooks/adapters/copilot/lifecycle.py",
+        '"""Thin lifecycle bridge for VS Code and GitHub Copilot hooks."""\n',
+    )
+    _write(
+        root / "governance/copilot-hooks-vscode-template.json",
+        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
+    _write(
+        root / "governance/copilot-hooks-session-end-template.json",
+        '{"version":1,"hooks":{"sessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],"sessionEnd":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
 
 
 def _run(args: list[str], cwd: Path) -> str:
@@ -53,7 +65,12 @@ def test_install_governance_hooks_writes_windows_safe_config_without_bom(tmp_pat
     config = repo / ".git" / "hooks" / "ai-governance-framework-root"
     assert config.read_bytes().startswith(str(framework.resolve()).encode("utf-8"))
     assert not config.read_bytes().startswith(b"\xef\xbb\xbf")
-    assert validate_hook_install(repo).valid is True
+    validation = validate_hook_install(repo)
+    assert validation.valid is True
+    assert validation.checks["copilot_lifecycle_installed"] is True
+    assert (repo / ".github" / "hooks" / "ai-governance-lifecycle.py").is_file()
+    assert (repo / ".github" / "hooks" / "ai-governance-vscode.json").is_file()
+    assert (repo / ".github" / "hooks" / "ai-governance-copilot.json").is_file()
 
 
 def test_install_governance_hooks_is_idempotent(tmp_path: Path) -> None:
@@ -95,6 +112,7 @@ def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Pa
     assert (repo / ".git" / "hooks" / "pre-push").exists()
     assert (repo / ".git" / "hooks" / "ai-governance-framework-root").exists()
     assert not (repo / ".github" / "copilot-instructions.md").exists()
+    assert not (repo / ".github" / "hooks").exists()
     assert all(".github" not in changed for changed in result.changed_files)
     assert all(".github" not in installed for installed in result.installed_files)
 
@@ -126,3 +144,10 @@ def test_managed_hooks_resolve_target_root_from_invocation_worktree_first() -> N
     for hook_name in ("pre-commit", "pre-push"):
         text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
         assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"' in text
+
+
+def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:
+    text = (REPO_ROOT / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
+    assert "runtime_hooks/adapters/copilot/lifecycle.py" in text
+    assert "ai-governance-vscode.json" in text
+    assert "ai-governance-copilot.json" in text

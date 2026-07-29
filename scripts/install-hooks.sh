@@ -146,6 +146,44 @@ deploy_copilot_instructions() {
 
 deploy_copilot_instructions
 
+# ── 部署 Copilot / VS Code lifecycle hooks ───────────────────────────────
+COPILOT_LIFECYCLE_SOURCES=(
+    "$FRAMEWORK_ROOT/runtime_hooks/adapters/copilot/lifecycle.py"
+    "$FRAMEWORK_ROOT/governance/copilot-hooks-vscode-template.json"
+    "$FRAMEWORK_ROOT/governance/copilot-hooks-session-end-template.json"
+)
+COPILOT_LIFECYCLE_TARGETS=(
+    "$TARGET_REPO/.github/hooks/ai-governance-lifecycle.py"
+    "$TARGET_REPO/.github/hooks/ai-governance-vscode.json"
+    "$TARGET_REPO/.github/hooks/ai-governance-copilot.json"
+)
+
+deploy_copilot_lifecycle_hooks() {
+    local hook_dir="$TARGET_REPO/.github/hooks"
+    local index source target backup
+    for index in "${!COPILOT_LIFECYCLE_SOURCES[@]}"; do
+        source="${COPILOT_LIFECYCLE_SOURCES[$index]}"
+        target="${COPILOT_LIFECYCLE_TARGETS[$index]}"
+        if [ ! -f "$source" ]; then
+            continue
+        fi
+        if [ "$DRY_RUN" = true ]; then
+            echo "  [dry-run] 部署 Copilot lifecycle hook → $target"
+            continue
+        fi
+        mkdir -p "$hook_dir"
+        if [ -f "$target" ] && ! grep -q "ai-governance-lifecycle.py\\|Thin lifecycle bridge for VS Code and GitHub Copilot hooks" "$target" 2>/dev/null; then
+            backup="${target}.bak.$(date +%Y%m%d_%H%M%S)"
+            cp "$target" "$backup"
+            echo "  💾 備份現有 Copilot lifecycle hook → $(basename "$backup")"
+        fi
+        cp "$source" "$target"
+        echo "  ✅ 部署 Copilot lifecycle hook → $target"
+    done
+}
+
+deploy_copilot_lifecycle_hooks
+
 echo ""
 if [ "$DRY_RUN" = true ]; then
     echo "[dry-run] 完成（未實際修改）"

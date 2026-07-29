@@ -70,6 +70,19 @@ KNOWN_ADAPTERS: dict[str, dict[str, Any]] = {
             "does not claim verified external Hermes runtime integration."
         ),
     },
+    "copilot": {
+        "supported_events": ["session_start", "session_end"],
+        "normalizer_path": "runtime_hooks/adapters/copilot/lifecycle.py",
+        "runner_path": "runtime_hooks/adapters/copilot/lifecycle.py",
+        "contract_dependency": [
+            "runtime_hooks/ADAPTER_CONTRACT.md",
+            "docs/stop-hook-setup.md",
+        ],
+        "notes": (
+            "Thin VS Code and GitHub Copilot lifecycle bridge; normalizes cwd and "
+            "session identity before delegating to canonical session boundaries."
+        ),
+    },
 }
 
 KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {

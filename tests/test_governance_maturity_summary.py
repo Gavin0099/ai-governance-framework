@@ -6,6 +6,9 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
+import pytest
+
+from governance_tools import governance_maturity_summary
 from governance_tools.external_repo_readiness import ExternalRepoReadiness
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -412,6 +415,51 @@ def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_pa
     assert "framework_pin_freshness" in summary.missing_surfaces
     assert "framework pin freshness" in summary.cannot_claim
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
+
+
+def test_repo_owned_framework_head_and_lock_survive_dubious_ownership(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo = _make_repo(tmp_path / "repo_owned_dubious")
+    framework = _make_git_framework_with_remote(
+        repo / "additional" / "ai-governance-framework",
+        tmp_path / "repo-owned-dubious-framework.git",
+        behind=False,
+    )
+    framework_head = _run_git(["rev-parse", "HEAD"], framework)
+    _write_framework_lock(repo, framework_head)
+    _commit_path(repo, "governance/framework.lock.json", "record framework lock")
+    real_run = governance_maturity_summary.subprocess.run
+    observed_commands: list[list[str]] = []
+
+    def ownership_guard(command, *args, **kwargs):
+        command_list = [str(part) for part in command]
+        if command_list[0] == "git" and str(framework.resolve()) in command_list:
+            observed_commands.append(command_list)
+            expected = f"safe.directory={framework.resolve().as_posix()}"
+            if command_list[1:3] != ["-c", expected]:
+                return subprocess.CompletedProcess(
+                    command,
+                    128,
+                    "",
+                    "fatal: detected dubious ownership in repository",
+                )
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(governance_maturity_summary.subprocess, "run", ownership_guard)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.framework_topology.value == "repo_owned_framework_path"
+    assert summary.framework_pin_freshness.value == "current_vs_local_tracking"
+    assert summary.lock_consistency.value == "consistent"
+    assert f"framework_head={framework_head}" in summary.lock_consistency.reasons
+    assert observed_commands
+    assert all(
+        command[1:3] == ["-c", f"safe.directory={framework.resolve().as_posix()}"]
+        for command in observed_commands
+    )
 
 
 def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(tmp_path: Path) -> None:
