@@ -50,17 +50,23 @@ def test_dispatch_pre_task_event(local_dispatch_root, monkeypatch):
 def test_dispatch_session_start_event(local_dispatch_root, monkeypatch):
     import runtime_hooks.dispatcher as dispatcher
 
-    monkeypatch.setattr(
-        dispatcher,
-        "build_session_start_context",
-        lambda **kwargs: {
+    captured: dict = {}
+
+    def _fake_session_start(**kwargs):
+        captured.update(kwargs)
+        return {
             "ok": True,
             "runtime_contract": {"rules": ["common"], "risk": "medium", "oversight": "review-required", "memory_mode": "candidate"},
             "suggested_rules_preview": ["common", "refactor"],
             "suggested_skills": ["code-style", "governance-runtime"],
             "suggested_agent": "advanced-agent",
             "pre_task_check": {"warnings": [], "errors": []},
-        },
+        }
+
+    monkeypatch.setattr(
+        dispatcher,
+        "build_session_start_context",
+        _fake_session_start,
     )
     plan = local_dispatch_root / "PLAN.md"
     plan.write_text(
@@ -80,6 +86,7 @@ def test_dispatch_session_start_event(local_dispatch_root, monkeypatch):
     )
     event = {
         "event_type": "session_start",
+        "session_id": "dispatcher-native-session-456",
         "project_root": str(local_dispatch_root),
         "plan_path": str(plan),
         "task": "Refactor service boundary",
@@ -94,6 +101,7 @@ def test_dispatch_session_start_event(local_dispatch_root, monkeypatch):
     assert envelope["event_type"] == "session_start"
     assert envelope["result"]["ok"] is True
     assert envelope["result"]["suggested_rules_preview"] == ["common", "refactor"]
+    assert captured["session_id"] == "dispatcher-native-session-456"
 
 
 def test_dispatch_session_start_event_can_use_explicit_contract():

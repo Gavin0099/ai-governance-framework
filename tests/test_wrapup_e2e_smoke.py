@@ -36,6 +36,7 @@ from runtime_hooks.core._canonical_closeout import (
     read_current_session_id,
     write_candidate,
     write_current_session_id,
+    write_session_envelope,
 )
 from governance_tools.session_end_hook import run_session_end_hook
 
@@ -83,7 +84,11 @@ class TestWrapUpE2ESmoke:
         repo = _reset("e2e_session_id_binding")
         _write_minimal_closeout(repo)
         sid = "session-SMOKE-aabbcc"
-        write_current_session_id(sid, repo)
+        write_session_envelope(
+            sid,
+            repo,
+            started_at="2000-01-01T00:00:00+00:00",
+        )
 
         result = run_session_end_hook(project_root=repo)
 
@@ -100,7 +105,11 @@ class TestWrapUpE2ESmoke:
         repo = _reset("e2e_artifact_name")
         _write_minimal_closeout(repo)
         sid = "session-SMOKE-ccddee"
-        write_current_session_id(sid, repo)
+        write_session_envelope(
+            sid,
+            repo,
+            started_at="2000-01-01T00:00:00+00:00",
+        )
 
         result = run_session_end_hook(project_root=repo)
 
@@ -116,15 +125,19 @@ class TestWrapUpE2ESmoke:
         by pick_latest_candidate using the resolved session_id.
 
         This verifies candidate written at /wrap-up time is NOT lost by session_end.
-        The session_end hook writes its OWN candidate (from session-closeout.txt),
-        so both exist — but both are under the same session_id directory.
+        The session_end hook must consume that bound candidate and must not replace
+        legacy session-closeout text with a newly timestamped candidate.
         """
         from runtime_hooks.core._canonical_closeout import pick_latest_candidate
 
         repo = _reset("e2e_candidate_survives")
         _write_minimal_closeout(repo)
         sid = "session-SMOKE-ffeedd"
-        write_current_session_id(sid, repo)
+        write_session_envelope(
+            sid,
+            repo,
+            started_at="2000-01-01T00:00:00+00:00",
+        )
         # Simulate /wrap-up writing a candidate
         write_candidate(sid, repo, _VALID_CANDIDATE, timestamp="20260529T000000000000Z")
 
@@ -132,11 +145,10 @@ class TestWrapUpE2ESmoke:
 
         resolved_id = result["session_id"]
         assert resolved_id == sid
-        # Both /wrap-up candidate and session_end candidate should exist
         candidates_dir = repo / "artifacts" / "runtime" / "closeout_candidates" / sid
         assert candidates_dir.is_dir()
         candidates = list(candidates_dir.glob("*.json"))
-        assert len(candidates) >= 1, "No candidates found under the resolved session_id directory"
+        assert len(candidates) == 1, "session_end must not synthesize another candidate"
 
     def test_stale_current_session_id_triggers_fresh_fallback(self):
         """
@@ -171,6 +183,12 @@ class TestWrapUpE2ESmoke:
         repo = _reset("e2e_hook_session_id_fallback")
         _write_minimal_closeout(repo)
         hook_sid = "session-HOOK-112233"
+        write_session_envelope(
+            hook_sid,
+            repo,
+            started_at="2000-01-01T00:00:00+00:00",
+        )
+        (repo / "artifacts" / "runtime" / ".current-session-id").unlink()
 
         result = run_session_end_hook(project_root=repo, hook_session_id=hook_sid)
 

@@ -101,6 +101,8 @@ _TRANSITIONAL_SESSION_START_KEYS: dict[str, dict] = {
     "status":                    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
     "verdict":                   {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
     "version_compatibility":     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
+    # P1a session lifecycle identity; metadata only, not a decision input.
+    "session_envelope":          {"status": "transitional", "expected": "core", "admitted_date": "2026-07-29", "source_commit": "a0683a5c"},
 }
 
 KNOWN_SESSION_START_KEYS = _CORE_SESSION_START_KEYS | frozenset(_TRANSITIONAL_SESSION_START_KEYS)

@@ -5,6 +5,14 @@
 > Written by：AI agent at end of session  
 > Consumed by：`governance_tools/session_end_hook.py` via stop hook
 
+> Session binding：automatic closeout additionally requires the
+> `artifacts/runtime/sessions/<session_id>/session-envelope.json` created by
+> `session_start` and a candidate under
+> `artifacts/runtime/closeout_candidates/<session_id>/`.
+> The active marker is stored at
+> `artifacts/runtime/.current-session-id`; the repo-root marker remains a
+> legacy read-compatible input only.
+
 ---
 
 ## 目的
@@ -16,6 +24,23 @@
 - AI 可以寫 closeout candidate
 - runtime 只把它當候選輸入
 - canonical closeout 與 downstream artifact 由 system 產生
+
+對自動 session-end 而言，共用的 `artifacts/session-closeout.txt` 不是
+session identity。Runtime 只允許相同 `session_id`、且
+`candidate.generated_at >= envelope.started_at`，且共同欄位內容與共享
+closeout 一致的 session-bound candidate 進入 promotion 與 daily-memory
+side effects。Promotion 的內容由已綁定 candidate 產生，不直接信任共享
+文字檔。
+
+Canonical closeout 檔案本身不代表 session 已 consumed。只有 runtime 在
+所有必要 artifact 寫入完成後，原子寫入
+`artifacts/runtime/closeout-completions/<session_id>.json`，且該 marker
+所列 artifact 仍可驗證存在時，session 才視為 consumed。中途失敗但只留下
+部分 canonical artifact 的 session 必須允許重試；已完成 session 的重複
+stop hook 不得再寫 audit、candidate、transcript 或 promotion side effects。
+
+只有舊版共用文字檔、沒有 session-bound candidate 時必須 fail closed；
+runtime 不得在 session end 才替該文字補上新的 identity 或 timestamp。
 
 ---
 
@@ -95,6 +120,8 @@ closeout 目標語句（必須保留）：
 - 讓 AI candidate 直接變成 canonical verdict
 - 取代 runtime 的 closeout validation
 - 讓 missing field 自動推論為成功完成
+- 讓固定 closeout 路徑本身證明 current-session ownership
+- 讓已 consumed 的 closeout 再次 promotion
 
 ## 一句總結
 

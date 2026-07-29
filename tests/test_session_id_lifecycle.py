@@ -23,12 +23,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from runtime_hooks.core._canonical_closeout import (
     _CURRENT_SESSION_ID_STALENESS_SECONDS,
     _generate_session_id,
+    assess_session_closeout_binding,
     build_canonical_closeout,
     pick_latest_candidate,
     read_current_session_id,
+    read_session_envelope,
     write_candidate,
     write_canonical_closeout,
+    write_closeout_completion_marker,
     write_current_session_id,
+    write_session_envelope,
 )
 
 _FIXTURE_ROOT = Path(__file__).parent / "_tmp_session_id_lifecycle"
@@ -74,6 +78,60 @@ class TestWriteCurrentSessionId:
         write_current_session_id("session-SECOND-bbbbbb", repo)
         result = read_current_session_id(repo)
         assert result == "session-SECOND-bbbbbb"
+
+
+class TestSessionEnvelope:
+    def test_envelope_binds_session_start_identity(self):
+        repo = _reset("session_envelope_identity")
+        sid = "session-ENVELOPE-aabbcc"
+        result = write_session_envelope(
+            sid,
+            repo,
+            provider="copilot",
+            started_at="2026-07-29T00:00:00+00:00",
+            repo_head_before="a" * 40,
+        )
+
+        assert result["session_id"] == sid
+        assert result["provider"] == "copilot"
+        assert read_current_session_id(repo) == sid
+        assert read_session_envelope(sid, repo)["repo_head_before"] == "a" * 40
+
+    def test_candidate_before_session_start_is_rejected(self):
+        repo = _reset("candidate_before_start")
+        sid = "session-BEFORE-aabbcc"
+        write_session_envelope(
+            sid,
+            repo,
+            started_at="2026-07-29T01:00:00+00:00",
+        )
+        candidate = {
+            **_VALID_CANDIDATE,
+            "session_id": sid,
+            "generated_at": "2026-07-29T00:59:59+00:00",
+        }
+
+        result = assess_session_closeout_binding(sid, repo, candidate)
+
+        assert result["status"] == "candidate_before_session_start"
+
+    def test_valid_completion_marker_is_already_consumed(self):
+        repo = _reset("session_already_consumed")
+        sid = "session-CONSUMED-aabbcc"
+        write_session_envelope(sid, repo)
+        canonical = build_canonical_closeout(
+            session_id=sid,
+            closed_at="2026-07-29T01:00:00+00:00",
+            candidate_payload=None,
+            existing_artifacts=frozenset(),
+            runtime_signals={},
+        )
+        canonical_path = write_canonical_closeout(canonical, repo)
+        write_closeout_completion_marker(sid, repo, [canonical_path])
+
+        result = assess_session_closeout_binding(sid, repo, None)
+
+        assert result["status"] == "already_consumed"
 
 
 # ── Criterion 2: /wrap-up candidate path uses the written ID ─────────────────

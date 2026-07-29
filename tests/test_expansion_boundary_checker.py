@@ -3,7 +3,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from governance_tools.expansion_boundary_checker import ExpansionBoundaryResult, Violation, run_checks
+from governance_tools.expansion_boundary_checker import (
+    ExpansionBoundaryResult,
+    Violation,
+    _TRANSITIONAL_SESSION_START_KEYS,
+    run_checks,
+)
 
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent
@@ -20,6 +25,26 @@ def test_expansion_boundary_checker_accepts_current_pre_task_decision_boundary_s
         and Path(violation.file).name == "pre_task_check.py"
     ]
 
+    assert unexpected == []
+
+
+def test_session_envelope_is_admitted_as_transitional_lifecycle_metadata():
+    admission = _TRANSITIONAL_SESSION_START_KEYS["session_envelope"]
+
+    assert admission == {
+        "status": "transitional",
+        "expected": "core",
+        "admitted_date": "2026-07-29",
+        "source_commit": "a0683a5c",
+    }
+
+    result = run_checks(FRAMEWORK_ROOT)
+    unexpected = [
+        violation
+        for violation in result.violations
+        if violation.kind == "new_return_key"
+        and Path(violation.file).name == "session_start.py"
+    ]
     assert unexpected == []
 
 

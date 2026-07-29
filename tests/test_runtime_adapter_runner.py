@@ -69,7 +69,7 @@ def test_run_adapter_event_pre_task_strips_placeholder_task(local_runtime_root, 
     assert envelope["normalized_event"]["task_provenance"]["source_key"] == "prompt"
 
 
-def test_run_adapter_event_session_start(local_runtime_root):
+def test_run_adapter_event_session_start(local_runtime_root, monkeypatch):
     governance_dir = local_runtime_root / ".governance"
     governance_dir.mkdir(parents=True, exist_ok=True)
     (governance_dir / "version_manifest.yaml").write_text(
@@ -97,6 +97,7 @@ def test_run_adapter_event_session_start(local_runtime_root):
 
     payload = {
         "cwd": str(local_runtime_root),
+        "session_id": "claude-native-session-123",
         "plan": str(plan),
         "prompt": "Refactor service boundary",
         "active_rules": "common",
@@ -106,9 +107,21 @@ def test_run_adapter_event_session_start(local_runtime_root):
         "impact_before": [str(before_file)],
         "impact_after": [str(after_file)],
     }
+    captured: dict = {}
+
+    import runtime_hooks.adapters.shared_adapter_runner as runner
+
+    original = runner.build_session_start_context
+
+    def _capturing_session_start(**kwargs):
+        captured.update(kwargs)
+        return original(**kwargs)
+
+    monkeypatch.setattr(runner, "build_session_start_context", _capturing_session_start)
     envelope = run_adapter_event(normalize_claude, "session_start", payload)
     assert envelope["normalized_event"]["event_type"] == "session_start"
     assert envelope["result"]["suggested_agent"] == "advanced-agent"
+    assert captured["session_id"] == "claude-native-session-123"
 
 
 def test_run_adapter_event_post_task_creates_snapshot(local_runtime_root):

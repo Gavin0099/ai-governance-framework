@@ -1,3 +1,4 @@
+import json
 import shutil
 import sys
 from datetime import date
@@ -64,6 +65,8 @@ def test_session_start_context_merges_state_and_pre_task(local_session_start_roo
     result = build_session_start_context(
         project_root=local_session_start_root,
         plan_path=plan,
+        session_id="2026-07-29-session-start-envelope",
+        provider="codex",
         rules="common",
         risk="medium",
         oversight="review-required",
@@ -82,6 +85,19 @@ def test_session_start_context_merges_state_and_pre_task(local_session_start_roo
     assert result["change_proposal"]["requested_rules"] == ["common"]
     assert result["change_proposal"]["suggested_rules_preview"] == ["common", "csharp", "avalonia", "refactor"]
     assert result["proposal_summary"]["recommended_risk"] == "medium"
+    assert result["session_envelope"]["session_id"] == "2026-07-29-session-start-envelope"
+    assert result["session_envelope"]["provider"] == "codex"
+    assert Path(result["session_envelope"]["artifact_path"]).is_file()
+    current_session = json.loads(
+        (
+            local_session_start_root
+            / "artifacts"
+            / "runtime"
+            / ".current-session-id"
+        ).read_text(encoding="utf-8")
+    )
+    assert current_session["session_id"] == "2026-07-29-session-start-envelope"
+    assert not (local_session_start_root / ".current-session-id").exists()
 
 
 def test_session_start_human_output_is_actionable(local_session_start_root):

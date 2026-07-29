@@ -49,6 +49,10 @@ from runtime_hooks.core.human_summary import build_summary_line, format_contract
 from runtime_hooks.core.payload_audit_logger import log_session_payload
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core._canonical_closeout_context import load_closeout_context
+from runtime_hooks.core._canonical_closeout import (
+    _generate_session_id,
+    write_session_envelope,
+)
 
 
 def _emit_rendered_output(rendered: str) -> None:
@@ -250,9 +254,17 @@ def build_session_start_context(
     task_level: str | None = None,
     force_domain: bool = False,
     task_type: str = "general",
+    session_id: str | None = None,
+    provider: str = "unknown",
 ) -> dict:
     impact_before_files = impact_before_files or []
     impact_after_files = impact_after_files or []
+    effective_session_id = session_id.strip() if session_id and session_id.strip() else _generate_session_id()
+    session_envelope = write_session_envelope(
+        effective_session_id,
+        project_root,
+        provider=provider,
+    )
 
     # ── Governance version compatibility (P5a — advisory-only dry-run) ───────
     # Must run before any other logic.  Never blocks.  Feature matrix output is
@@ -280,12 +292,14 @@ def build_session_start_context(
     }
 
     if _version_compat.get("verdict") == "unsupported":
-        return _build_controlled_refusal_result(
+        result = _build_controlled_refusal_result(
             project_root=project_root,
             task_level=final_level,
             task_text=task_text,
             version_compatibility=_version_compat,
         )
+        result["session_envelope"] = session_envelope
+        return result
 
     # ── Framework risk signal ─────────────────────────────────────────────
     # A prior drift check may have written a signal recording a critical failure.
@@ -349,7 +363,7 @@ def build_session_start_context(
     )
 
     if _version_compat.get("verdict") == "migration_required":
-        return _build_legacy_only_result(
+        result = _build_legacy_only_result(
             project_root=project_root,
             task_level=final_level,
             task_text=task_text,
@@ -361,6 +375,8 @@ def build_session_start_context(
             risk_signal_overrides=_sig_overrides,
             plan_path=plan_path,
         )
+        result["session_envelope"] = session_envelope
+        return result
 
     state = generate_state(
         plan_path=plan_path,
@@ -469,6 +485,7 @@ def build_session_start_context(
     return {
         "ok": state.get("error") is None and pre_task["ok"] and authority_validation["ok"],
         "project_root": str(project_root),
+        "session_envelope": session_envelope,
         "task_level": final_level,
         "level_decision": level_decision,
         "repo_type": context_rule_info["repo_type"],
@@ -526,6 +543,10 @@ def format_human_result(result: dict) -> str:
         f"ok={result['ok']}",
         f"rules={','.join(result['runtime_contract'].get('rules', []))}",
     ]
+    session_envelope = result.get("session_envelope") or {}
+    if session_envelope.get("session_id"):
+        lines.append(f"session_id={session_envelope['session_id']}")
+        lines.append(f"session_provider={session_envelope.get('provider', 'unknown')}")
     if result.get("mode") == "controlled_refusal":
         lines.append("status=blocked")
         lines.append("mode=controlled_refusal")
@@ -697,6 +718,8 @@ def main() -> None:
                         help="Task level for authority filter and audit (auto-detected from task text if omitted)")
     parser.add_argument("--task-type", default="general",
                         help="Task type for audit log (ui/schema/api/domain/test/general)")
+    parser.add_argument("--session-id", default=None)
+    parser.add_argument("--provider", default="unknown")
     parser.add_argument("--force-domain", action="store_true", default=False,
                         help="Force domain contract loading for L0 (summary only)")
     parser.add_argument("--format", choices=["human", "json"], default="human")
@@ -717,6 +740,8 @@ def main() -> None:
         task_level=args.task_level,
         force_domain=args.force_domain,
         task_type=args.task_type,
+        session_id=args.session_id,
+        provider=args.provider,
     )
 
     rendered = json.dumps(result, ensure_ascii=False, indent=2) if args.format == "json" else format_human_result(result)

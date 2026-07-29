@@ -67,8 +67,10 @@ def run_adapter_event(
     }
 
     if event_type == "session_start":
+        native_session_id = normalized.get("metadata", {}).get("session_id")
         result = build_session_start_context(
             project_root=Path(normalized["project_root"]),
+            session_id=str(native_session_id) if native_session_id else None,
             plan_path=Path(normalized.get("plan_path") or "PLAN.md"),
             rules=",".join(normalized.get("rules", [])),
             risk=normalized["risk"],
