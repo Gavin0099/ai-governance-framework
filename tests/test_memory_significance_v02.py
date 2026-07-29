@@ -60,7 +60,7 @@ def _write_valid_closeout(
         repo,
         {
             "task_intent": task_intent,
-            "work_summary": "updated src/main.cpp and validated closeout binding",
+            "work_summary": "updated src/main.cpp and validated closeout bridge",
             "tools_used": ["inspect"],
             "artifacts_referenced": ["src/main.cpp"],
             "open_risks": [],

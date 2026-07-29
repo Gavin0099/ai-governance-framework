@@ -1537,6 +1537,22 @@ independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.
 
+- [ ] **Gate 3 paired-screening preregistration candidate revised
+  2026-07-29; re-review/signature pending.** Commit `c5be84db` binds the
+  preregistered mapping before producer execution, requires two distinct scorer
+  contexts, rejects zero or unavailable core-cost data as promotion evidence,
+  and verifies each admitted outcome against retained input bytes, a clean
+  output commit, portable Git bundle, exact diff, event log and test receipts.
+  The experiment-local common-harness contract is now part of the exact
+  candidate set. Focused tests passed 33/33; canonical precommit passed runtime
+  smoke plus 190/190; `core.autocrlf=true` index checkout preserved all seven
+  candidate paths byte-for-byte. Exact candidate-manifest SHA-256:
+  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`.
+  This is not independently approved, owner-signed or canonical. Gate 3 remains
+  blocked on independent review of these revised bytes, explicit owner
+  signature, later promotion, non-counted common-harness rehearsal,
+  natural-bug admission and separate start authority.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,

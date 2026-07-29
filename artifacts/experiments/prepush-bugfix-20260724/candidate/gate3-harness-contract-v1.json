@@ -1,0 +1,91 @@
+{
+  "admission": {
+    "input_digest_fields": [
+      "baseline_instruction_sha256",
+      "task_packet_sha256",
+      "treatment_packet_sha256",
+      "governance_instruction_sha256",
+      "validator_bundle_sha256",
+      "validator_config_sha256",
+      "permissions_sha256",
+      "budget_sha256",
+      "harness_contract_sha256",
+      "scorer_rubric_sha256",
+      "randomization_record_sha256"
+    ],
+    "retained_input_artifact_entry_fields": [
+      "path",
+      "sha256"
+    ],
+    "retained_input_artifact_fields": [
+      "baseline_instruction_sha256",
+      "task_packet_sha256",
+      "treatment_packet_sha256",
+      "governance_instruction_sha256",
+      "validator_bundle_sha256",
+      "validator_config_sha256",
+      "permissions_sha256",
+      "budget_sha256",
+      "harness_contract_sha256",
+      "scorer_rubric_sha256",
+      "randomization_record_sha256"
+    ],
+    "required_equalities": [
+      "admission.anon_id == metrics.anon_id == packet.anon_id",
+      "admission.baseline_commit == metrics.baseline_commit == packet.baseline_commit",
+      "admission.output_commit == packet.output_commit",
+      "admission.output_packet_sha256 == sha256(packet_bytes)",
+      "every_admission_input_digest == sha256(retained_input_artifact_bytes)",
+      "admission.final_diff.sha256 == packet.final_diff_sha256 == sha256(git_diff_bytes)",
+      "admission.receipt_set_sha256 == packet.receipt_set_sha256 == sha256(canonical_receipt_index)",
+      "admission.event_log.sha256 == metrics.artifacts.event_log_sha256 == sha256(event_log_bytes)",
+      "every_receipt.linked_commit == admission.output_commit",
+      "every_receipt.output_sha256 == sha256(receipt_output_bytes)",
+      "bundle_contains(admission.baseline_commit, admission.output_commit)",
+      "git_merge_base_is_ancestor(admission.baseline_commit, admission.output_commit)",
+      "live_capture_head == admission.output_commit",
+      "live_capture_worktree_clean == true",
+      "admission.treatment == released_mapping[admission.anon_id]",
+      "admission.treatment_input_digests == preregistered_treatment_input_digests"
+    ],
+    "schema": "gate3-outcome-admission.v1"
+  },
+  "authorization": "candidate_only_not_gate3_start_authority",
+  "git_proof": {
+    "bundle_required": true,
+    "final_diff_command": "git diff --binary --full-index baseline_commit output_commit --",
+    "offline_commit_and_ancestor_verification_required": true,
+    "tracked_path_command": "git diff --name-only -z baseline_commit output_commit --"
+  },
+  "owner_signature_gate": {
+    "candidate_manifest_must_pin_this_contract": true,
+    "non_counted_rehearsal_required": true,
+    "owner_signature_forbidden_without_this_contract": true
+  },
+  "scorer_packet": {
+    "required_fields": [
+      "schema",
+      "anon_id",
+      "baseline_commit",
+      "output_commit",
+      "final_diff_sha256",
+      "receipt_set_sha256",
+      "harness_contract_sha256",
+      "scorer_payload"
+    ],
+    "schema": "gate3-outcome-packet.v1"
+  },
+  "schema": "gate3-common-harness-contract.v1",
+  "test_receipt": {
+    "index_policy": "sorted_unique_paths",
+    "required_fields": [
+      "schema",
+      "command",
+      "exit_code",
+      "linked_commit",
+      "output_path",
+      "output_sha256"
+    ],
+    "schema": "gate3-test-evidence-receipt.v1"
+  }
+}
