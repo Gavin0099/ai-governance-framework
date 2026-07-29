@@ -176,14 +176,20 @@ class TestUnboundMemoryDetection:
 # ── Criterion 8: missing memory dir handled gracefully ────────────────────────
 
 class TestMissingMemoryDir:
-    def test_missing_memory_dir_guard_ran_false(self):
+    def test_missing_memory_dir_is_created_before_guard_runs(self):
         repo = _reset("missing_dir")
         (repo / "memory").rmdir()  # remove the dir
         result = _run(repo)
         ma = result["memory_authority"]
-        assert ma["memory_authority_guard_ran"] is False
-        assert ma.get("memory_authority_error") == "memory_root_missing"
+        assert ma["memory_authority_guard_ran"] is True
+        assert "memory_authority_error" not in ma
         assert ma["memory_unbound_count"] == 0
+        assert result["daily_memory_write_status"] == "written"
+        daily_memory_path = Path(result["daily_memory_path"])
+        assert daily_memory_path.is_file()
+        assert daily_memory_path.parent == repo / "memory"
+        assert ma["memory_authority_coverage"]["session_entries_total"] == 1
+        assert ma["memory_authority_coverage"]["session_entries_bound"] == 1
 
 
 # ── Snapshot stability: field names locked ────────────────────────────────────
