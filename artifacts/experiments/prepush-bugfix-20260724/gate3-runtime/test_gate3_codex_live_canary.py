@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -1388,6 +1389,16 @@ def _set_orchestrator_builder(
         )
     )
     monkeypatch.setattr(closure["builder"], "cell_contents", builder)
+
+
+def test_private_cleanup_removes_readonly_git_objects(tmp_path: Path) -> None:
+    private_root = tmp_path / "private"
+    git_object = private_root / "repo-a" / ".git" / "objects" / "object"
+    git_object.parent.mkdir(parents=True)
+    git_object.write_bytes(b"synthetic git object")
+    git_object.chmod(stat.S_IREAD)
+    live._remove_private_tree(private_root)
+    assert not private_root.exists()
 
 
 @pytest.mark.parametrize(

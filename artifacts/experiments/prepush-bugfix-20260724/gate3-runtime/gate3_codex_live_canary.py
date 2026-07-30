@@ -8,6 +8,7 @@ import os
 import re
 import secrets
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -2240,6 +2241,21 @@ def _run_private_process(command: list[str], *, label: str) -> None:
         raise CanaryError(f"{label} failed")
 
 
+def _remove_private_tree(path: Path) -> None:
+    if not path.exists():
+        return
+
+    def clear_readonly_and_retry(
+        function: Any,
+        target: str,
+        _error: object,
+    ) -> None:
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+
+    shutil.rmtree(path, onerror=clear_readonly_and_retry)
+
+
 def _orchestrate_impl(
     repo_root: Path,
     output_root: Path,
@@ -2406,7 +2422,7 @@ def _orchestrate_impl(
             dirs_exist_ok=True,
         )
         verify(repo_root, public_candidate)
-        shutil.rmtree(private_root)
+        _remove_private_tree(private_root)
         if private_root.exists():
             raise CanaryError("private runtime cleanup verification failed")
         os.replace(public_candidate, output_root)
@@ -2417,12 +2433,21 @@ def _orchestrate_impl(
         return result
     finally:
         if private_root.exists():
-            shutil.rmtree(private_root, ignore_errors=True)
+            try:
+                _remove_private_tree(private_root)
+            except OSError:
+                pass
         if not succeeded:
             if candidate_owned:
-                shutil.rmtree(public_candidate, ignore_errors=True)
+                try:
+                    _remove_private_tree(public_candidate)
+                except OSError:
+                    pass
             if published_by_us:
-                shutil.rmtree(output_root, ignore_errors=True)
+                try:
+                    _remove_private_tree(output_root)
+                except OSError:
+                    pass
         if (
             private_root.exists()
             or (not succeeded and candidate_owned and public_candidate.exists())
