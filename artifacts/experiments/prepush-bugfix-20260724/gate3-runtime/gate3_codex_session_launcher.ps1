@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$CodexCommand,
     [Parameter(Mandatory = $true)]
+    [string]$CodexHome,
+    [Parameter(Mandatory = $true)]
     [string]$Workspace,
     [Parameter(Mandatory = $true)]
     [string]$PromptPath,
@@ -22,6 +24,12 @@ foreach ($path in @($PromptPath, $CodexCommand)) {
 }
 if (-not (Test-Path -LiteralPath $Workspace -PathType Container)) {
     throw "Workspace is missing: $Workspace"
+}
+if (
+    -not (Test-Path -LiteralPath $CodexHome -PathType Container) -or
+    -not (Test-Path -LiteralPath (Join-Path $CodexHome 'auth.json') -PathType Leaf)
+) {
+    throw 'Preflighted Codex home is missing.'
 }
 foreach ($path in @($StdoutPath, $StderrPath, $ExitCodePath)) {
     if (Test-Path -LiteralPath $path) {
@@ -75,15 +83,27 @@ $arguments = @(
     '-'
 )
 
-$process = Start-Process `
-    -FilePath $CodexCommand `
-    -ArgumentList $arguments `
-    -RedirectStandardInput $PromptPath `
-    -RedirectStandardOutput $StdoutPath `
-    -RedirectStandardError $StderrPath `
-    -WindowStyle Hidden `
-    -Wait `
-    -PassThru
+$priorCodexHome = $env:CODEX_HOME
+try {
+    $env:CODEX_HOME = $CodexHome
+    $process = Start-Process `
+        -FilePath $CodexCommand `
+        -ArgumentList $arguments `
+        -RedirectStandardInput $PromptPath `
+        -RedirectStandardOutput $StdoutPath `
+        -RedirectStandardError $StderrPath `
+        -WindowStyle Hidden `
+        -Wait `
+        -PassThru
+}
+finally {
+    if ($null -eq $priorCodexHome) {
+        Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:CODEX_HOME = $priorCodexHome
+    }
+}
 
 $temporaryExitPath = "$ExitCodePath.tmp-$PID"
 $utf8 = New-Object System.Text.UTF8Encoding($false)

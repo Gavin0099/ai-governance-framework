@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -911,3 +912,204 @@ def test_launcher_sets_and_verifies_repo_local_synthetic_identity() -> None:
     assert "config --global" not in source
     assert live.PRODUCER_GIT_IDENTITY["name"] in source
     assert live.PRODUCER_GIT_IDENTITY["email"] in source
+    assert "[string]$CodexHome" in source
+    assert "$env:CODEX_HOME = $CodexHome" in source
+
+
+@pytest.mark.parametrize(
+    ("payload", "violation"),
+    [
+        (b"Authorization: Bearer abcdefghijklmnop", "credential_bearer"),
+        (b"sk-examplecredentialvalue", "credential_openai_secret"),
+        (b'{"access_token":"example"}', "credential_token_field"),
+        (b'{"refresh_token":"example"}', "credential_token_field"),
+        (b'{"id_token":"example"}', "credential_token_field"),
+    ],
+)
+def test_public_privacy_scan_rejects_credential_markers(
+    payload: bytes,
+    violation: str,
+) -> None:
+    assert violation in live._privacy_violations(payload)
+
+
+def _valid_credential_receipt() -> dict[str, object]:
+    return {
+        "auth_files_removed": True,
+        "auth_route": "chatgpt",
+        "credential_seed_compare": "PASS",
+        "login_status": {"A": "PASS", "B": "PASS"},
+        "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+        "secret_material_retained": False,
+        "session_exit_codes": {"A": 0, "B": 0},
+        "session_invocations": 2,
+    }
+
+
+def test_credential_receipt_accepts_only_exact_safe_success(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "receipt.json"
+    receipt = _valid_credential_receipt()
+    path.write_bytes(live._json_bytes(receipt))
+    assert live._validate_credential_runner_receipt(path) == receipt
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("auth_files_removed", False),
+        ("auth_route", "api_key"),
+        ("credential_seed_compare", "FAIL"),
+        ("secret_material_retained", True),
+        ("session_invocations", 1),
+        ("session_invocations", 3),
+        ("credential_digest", "not-allowed"),
+        ("credential_source_path", "not-allowed"),
+    ],
+)
+def test_credential_receipt_rejects_failure_or_extra_fields(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    path = tmp_path / "receipt.json"
+    receipt = _valid_credential_receipt()
+    receipt[field] = value
+    path.write_bytes(live._json_bytes(receipt))
+    with pytest.raises(live.CanaryError, match="receipt is invalid"):
+        live._validate_credential_runner_receipt(path)
+
+
+def _write_fake_codex(path: Path) -> None:
+    path.write_text(
+        "\r\n".join(
+            [
+                "@echo off",
+                'if not exist "%CODEX_HOME%\\auth.json" exit /b 11',
+                'if "%1"=="login" (',
+                '  echo login>>"%FAKE_CODEX_LOG%"',
+                '  if /i "%CODEX_HOME%"=="%FAIL_CODEX_HOME%" exit /b 12',
+                "  echo Logged in using ChatGPT",
+                "  exit /b 0",
+                ")",
+                'if "%1"=="exec" (',
+                '  echo exec>>"%FAKE_CODEX_LOG%"',
+                "  echo fake session output",
+                "  exit /b 0",
+                ")",
+                "exit /b 13",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+        newline="",
+    )
+
+
+def _run_fake_pair(tmp_path: Path, *, fail_b_login: bool):
+    fake = tmp_path / "fake-codex.cmd"
+    _write_fake_codex(fake)
+    credential = tmp_path / "private-auth.json"
+    credential.write_text('{"fake":"credential"}\n', encoding="utf-8")
+    log = tmp_path / "calls.txt"
+    private = tmp_path / "private"
+    private.mkdir()
+    receipt = private / "credential-runner-receipt.json"
+    homes = {"A": tmp_path / "home-a", "B": tmp_path / "home-b"}
+    repos = {"A": tmp_path / "repo-a", "B": tmp_path / "repo-b"}
+    prompts = {"A": tmp_path / "prompt-a.txt", "B": tmp_path / "prompt-b.txt"}
+    for treatment in ("A", "B"):
+        homes[treatment].mkdir()
+        repos[treatment].mkdir()
+        live._git(repos[treatment], "init", "-q")
+        prompts[treatment].write_text(
+            f"fake prompt {treatment}\n", encoding="utf-8"
+        )
+    env = os.environ.copy()
+    env["FAKE_CODEX_LOG"] = str(log)
+    env["FAIL_CODEX_HOME"] = str(homes["B"]) if fail_b_login else ""
+    command = [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(live.DEFAULT_PAIR_RUNNER),
+        "-CodexCommand",
+        str(fake),
+        "-CredentialSource",
+        str(credential),
+        "-ArmAWorkspace",
+        str(repos["A"]),
+        "-ArmBWorkspace",
+        str(repos["B"]),
+        "-ArmAPromptPath",
+        str(prompts["A"]),
+        "-ArmBPromptPath",
+        str(prompts["B"]),
+        "-ArmACodexHome",
+        str(homes["A"]),
+        "-ArmBCodexHome",
+        str(homes["B"]),
+        "-ArmAStdoutPath",
+        str(private / "a.stdout"),
+        "-ArmBStdoutPath",
+        str(private / "b.stdout"),
+        "-ArmAStderrPath",
+        str(private / "a.stderr"),
+        "-ArmBStderrPath",
+        str(private / "b.stderr"),
+        "-ArmAExitCodePath",
+        str(private / "a.exit"),
+        "-ArmBExitCodePath",
+        str(private / "b.exit"),
+        "-PrivateReceiptPath",
+        str(receipt),
+    ]
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+        timeout=60,
+    )
+    return result, credential, log, receipt, homes
+
+
+def test_pair_runner_preflights_then_invokes_exactly_two_fake_sessions(
+    tmp_path: Path,
+) -> None:
+    result, credential, log, receipt_path, homes = _run_fake_pair(
+        tmp_path, fail_b_login=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == [
+        "login",
+        "login",
+        "exec",
+        "exec",
+    ]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt == _valid_credential_receipt()
+    assert credential.read_text(encoding="utf-8") == '{"fake":"credential"}\n'
+    assert not (homes["A"] / "auth.json").exists()
+    assert not (homes["B"] / "auth.json").exists()
+    assert not (receipt_path.parent / ".credential-private").exists()
+
+
+def test_pair_runner_failed_preflight_starts_zero_fake_sessions_and_cleans(
+    tmp_path: Path,
+) -> None:
+    result, _, log, receipt_path, homes = _run_fake_pair(
+        tmp_path, fail_b_login=True
+    )
+    assert result.returncode == 2
+    assert log.read_text(encoding="utf-8").splitlines() == ["login", "login"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["session_invocations"] == 0
+    assert receipt["login_status"] == {"A": "PASS", "B": "FAIL"}
+    assert not (homes["A"] / "auth.json").exists()
+    assert not (homes["B"] / "auth.json").exists()
+    assert not (receipt_path.parent / ".credential-private").exists()

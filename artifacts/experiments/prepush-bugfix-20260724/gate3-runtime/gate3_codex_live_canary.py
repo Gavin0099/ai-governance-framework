@@ -32,13 +32,15 @@ DEFAULT_CANDIDATE_MANIFEST = (
 )
 DEFAULT_SKILL_PACKET = EXPERIMENT_ROOT / "skill-packet-bugfix.md"
 DEFAULT_SESSION_LAUNCHER = HERE / "gate3_codex_session_launcher.ps1"
+DEFAULT_PAIR_RUNNER = HERE / "gate3_codex_pair_runner.ps1"
 DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
 
-SUMMARY_SCHEMA = "gate3-codex-live-canary.v3"
-ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v3"
+SUMMARY_SCHEMA = "gate3-codex-live-canary.v4"
+ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v4"
 ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
+CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -73,6 +75,16 @@ SANITIZER_RULES = {
     ],
     "schema": SANITIZER_SCHEMA,
 }
+CREDENTIAL_CONTRACT = {
+    "auth_route": "chatgpt",
+    "credential_bytes_public": False,
+    "credential_digest_public": False,
+    "credential_source_path_public": False,
+    "preflight_required": True,
+    "schema": "gate3-codex-credential-contract.v1",
+    "secret_storage": "ephemeral_file_cache",
+    "session_invocations": 2,
+}
 SHELL_WRAPPER_RE = re.compile(
     r'^const r = await tools\.shell_command\(\{command:'
     r'(?P<command>"(?:\\.|[^"\\])*"),workdir:'
@@ -88,6 +100,11 @@ WINDOWS_USER_PATH_RE = re.compile(
 )
 WINDOWS_SID_RE = re.compile(r"S-\d(?:-\d+){2,}")
 DESKTOP_HOST_RE = re.compile(r"(?i)\bDESKTOP-[A-Z0-9]+\b")
+BEARER_CREDENTIAL_RE = re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/\-=]{12,}")
+OPENAI_SECRET_RE = re.compile(r"\bsk-[A-Za-z0-9_-]{12,}")
+TOKEN_FIELD_RE = re.compile(
+    r"(?i)^(?:access_token|refresh_token|id_token)$"
+)
 WINDOWS_PATH_COMPONENT = r"[^\\/\s\"'()<>{}\[\],]+"
 WINDOWS_NAMESPACE_COMPONENT = r"[^\\/\s\"'()<>\[\],]+"
 WINDOWS_ABSOLUTE_PATH_RE = re.compile(
@@ -405,6 +422,9 @@ def _privacy_violations(payload: bytes) -> list[str]:
     surfaces = _privacy_surfaces(payload)
     checks = {
         "desktop_hostname": DESKTOP_HOST_RE,
+        "credential_bearer": BEARER_CREDENTIAL_RE,
+        "credential_openai_secret": OPENAI_SECRET_RE,
+        "credential_token_field": TOKEN_FIELD_RE,
         "windows_absolute_path": WINDOWS_ABSOLUTE_PATH_RE,
         "windows_sid": WINDOWS_SID_RE,
         "windows_user_path": WINDOWS_USER_PATH_RE,
@@ -627,7 +647,12 @@ def _implementation_identity(
         r"[0-9a-f]{40}", resolved_commit
     ):
         raise CanaryError("implementation commit identity is invalid")
-    paths = (Path(__file__).resolve(), DEFAULT_SESSION_LAUNCHER, DEFAULT_TESTS)
+    paths = (
+        Path(__file__).resolve(),
+        DEFAULT_PAIR_RUNNER,
+        DEFAULT_SESSION_LAUNCHER,
+        DEFAULT_TESTS,
+    )
     files: dict[str, str] = {}
     for path in paths:
         relative = path.resolve().relative_to(repo_root).as_posix()
@@ -912,6 +937,7 @@ def prepare(
             "candidate_manifest_sha256": EXPECTED_CANDIDATE_MANIFEST_SHA256,
             "candidate_verification_checks": candidate_checks,
             "common_inputs": common,
+            "credential_contract": CREDENTIAL_CONTRACT,
             "context_contract": {
                 "current_date": datetime.now().date().isoformat(),
                 "meta": CONTEXT_META_EXPECTED,
@@ -924,6 +950,9 @@ def prepare(
                 "comp_hash": comp_hash,
                 "launcher_implementation_sha256": _sha256_file(
                     DEFAULT_SESSION_LAUNCHER
+                ),
+                "pair_runner_implementation_sha256": _sha256_file(
+                    DEFAULT_PAIR_RUNNER
                 ),
                 "model": model,
                 "model_build": (
@@ -1946,6 +1975,26 @@ def _mechanical_score(
     }
 
 
+def _validate_credential_runner_receipt(path: Path) -> dict[str, Any]:
+    receipt = _load_json(path)
+    expected = {
+        "auth_files_removed": True,
+        "auth_route": "chatgpt",
+        "credential_seed_compare": "PASS",
+        "login_status": {"A": "PASS", "B": "PASS"},
+        "schema": CREDENTIAL_RECEIPT_SCHEMA,
+        "secret_material_retained": False,
+        "session_exit_codes": {"A": 0, "B": 0},
+        "session_invocations": 2,
+    }
+    if receipt != expected:
+        raise CanaryError("credential runner receipt is invalid")
+    encoded = _json_bytes(receipt)
+    if _privacy_violations(encoded):
+        raise CanaryError("credential runner receipt contains private material")
+    return receipt
+
+
 def build(
     repo_root: Path,
     staging: Path,
@@ -1957,6 +2006,7 @@ def build(
     arm_b_rollout: Path,
     arm_a_exec_events: Path,
     arm_b_exec_events: Path,
+    credential_runner_receipt: Path,
     nonce_hex: str | None = None,
 ) -> dict[str, Any]:
     repo_root = repo_root.resolve()
@@ -1971,8 +2021,14 @@ def build(
         plan.get("schema") != ROUTE_PLAN_SCHEMA
         or plan.get("authorization") != AUTHORIZATION
         or plan.get("rehearsal_kind") != REHEARSAL_KIND
+        or plan.get("credential_contract") != CREDENTIAL_CONTRACT
     ):
         raise CanaryError("route plan identity is invalid")
+    credential_receipt = _validate_credential_runner_receipt(
+        credential_runner_receipt.resolve()
+    )
+    public_credential_receipt = staging / "credential-runner-receipt.json"
+    _write_json(public_credential_receipt, credential_receipt)
     _validate_candidate(repo_root)
     contract_path = repo_root / DEFAULT_CONTRACT.relative_to(
         EXPERIMENT_ROOT.parents[2]
@@ -2093,6 +2149,10 @@ def build(
         "candidate_verification_checks": plan[
             "candidate_verification_checks"
         ],
+        "credential_contract": CREDENTIAL_CONTRACT,
+        "credential_runner_receipt": _artifact_entry(
+            public_credential_receipt, staging
+        ),
         "chain": {
             "event_count": chain_result["event_count"],
             "head_sha256": chain_result["head_sha256"],
@@ -2103,6 +2163,9 @@ def build(
         "implementation": plan["implementation"],
         "launcher_implementation_sha256": _sha256_file(
             DEFAULT_SESSION_LAUNCHER
+        ),
+        "pair_runner_implementation_sha256": _sha256_file(
+            DEFAULT_PAIR_RUNNER
         ),
         "tests_implementation_sha256": _sha256_file(DEFAULT_TESTS),
         "not_claimed": [
@@ -2156,6 +2219,18 @@ def _verify_baseline(root: Path, entry: object) -> str:
     ):
         raise CanaryError("baseline receipt is invalid")
     return str(receipt.get("linked_commit"))
+
+
+def _verify_credential_receipt(root: Path, entry: object) -> None:
+    if not isinstance(entry, dict):
+        raise CanaryError("credential receipt entry is absent")
+    receipt_path = _source(entry.get("path"), root)
+    if (
+        entry.get("bytes") != receipt_path.stat().st_size
+        or entry.get("sha256") != _sha256_file(receipt_path)
+    ):
+        raise CanaryError("credential receipt artifact identity mismatch")
+    _validate_credential_runner_receipt(receipt_path)
 
 
 def _verify_route_receipt(
@@ -2297,6 +2372,9 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         "launcher_implementation_sha256": _sha256_file(
             DEFAULT_SESSION_LAUNCHER
         ),
+        "pair_runner_implementation_sha256": _sha256_file(
+            DEFAULT_PAIR_RUNNER
+        ),
         "model": DEFAULT_MODEL,
         "model_build": (
             f"codex:{DEFAULT_MODEL}:comp_hash={DEFAULT_COMP_HASH}:"
@@ -2315,12 +2393,16 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         != _sha256_file(Path(__file__))
         or summary.get("launcher_implementation_sha256")
         != _sha256_file(DEFAULT_SESSION_LAUNCHER)
+        or summary.get("pair_runner_implementation_sha256")
+        != _sha256_file(DEFAULT_PAIR_RUNNER)
         or summary.get("tests_implementation_sha256")
         != _sha256_file(DEFAULT_TESTS)
         or summary.get("route_plan_sha256") != _sha256_file(plan_path)
         or plan.get("schema") != ROUTE_PLAN_SCHEMA
         or plan.get("frozen_route") != summary.get("frozen_route")
         or plan.get("frozen_route") != expected_frozen_route
+        or plan.get("credential_contract") != CREDENTIAL_CONTRACT
+        or summary.get("credential_contract") != CREDENTIAL_CONTRACT
         or plan.get("privacy") != summary.get("privacy")
         or plan.get("privacy", {}).get("sanitizer_rules_sha256")
         != _sanitizer_rules_sha256()
@@ -2334,6 +2416,9 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         raise CanaryError("candidate verification count mismatch")
     _verify_inventory(root, summary.get("artifact_inventory"))
     public_file_count = verify_public_privacy(root)
+    _verify_credential_receipt(
+        root, summary.get("credential_runner_receipt")
+    )
     baseline_commit = _verify_baseline(
         root, summary.get("baseline_test_receipt")
     )
@@ -2421,6 +2506,7 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
             "candidate_exact_bytes": "PASS",
             "chain": "PASS",
             "commit_diff_receipt_binding": "PASS",
+            "credential_preflight": "PASS",
             "fresh_context_identity": "PASS",
             "model_build_identity": "PASS",
             "privacy_safe_public_evidence": "PASS",
@@ -2456,6 +2542,7 @@ def _parser() -> argparse.ArgumentParser:
     build_parser.add_argument("--arm-b-rollout", required=True)
     build_parser.add_argument("--arm-a-exec-events", required=True)
     build_parser.add_argument("--arm-b-exec-events", required=True)
+    build_parser.add_argument("--credential-runner-receipt", required=True)
     build_parser.add_argument("--nonce-hex")
     verify_parser = sub.add_parser("verify")
     verify_parser.add_argument("--repo-root", required=True)
@@ -2487,6 +2574,9 @@ def main(argv: list[str] | None = None) -> int:
                 arm_b_rollout=Path(args.arm_b_rollout),
                 arm_a_exec_events=Path(args.arm_a_exec_events),
                 arm_b_exec_events=Path(args.arm_b_exec_events),
+                credential_runner_receipt=Path(
+                    args.credential_runner_receipt
+                ),
                 nonce_hex=args.nonce_hex,
             )
         else:
