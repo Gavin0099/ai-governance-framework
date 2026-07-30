@@ -1711,18 +1711,21 @@ history.
 
 ## Definition Of Done For Current Planning Slice
 
-This planning / structured-memory bookkeeping refresh is done when:
+The P0a canonical-drift repair is done when:
 
-- `PLAN.md`, `memory/01_active_task.md`, and `.governance/baseline.yaml`
-  are point-in-time aligned to pre-refresh HEAD `8a98df2e`.
-- `PLAN.md` and `memory/01_active_task.md` record the completed opt-in
-  plain-summary v0.5 slice and the owner-decided P1-F advisory disposition.
-- `governance_drift_checker` returns `severity=ok` after the governed
-  baseline refresh.
-- Runtime, hook, CI, gate, and enforcement behavior remain unchanged.
-- Scoped diff and memory-workflow checks pass for the changed surfaces.
-- The refresh is committed separately from unrelated runtime ledgers.
-- A canonical memory record is written after the commit.
+- the exact PR #14 protected `AGENTS.base.md` delta is reviewed and retained as
+  a durable authorization artifact;
+- `PLAN.md` no longer describes the completed `8a98df2e` bookkeeping slice as
+  current work;
+- the canonical refresh path updates `.governance/baseline.yaml` only after
+  the protected-file review and final PLAN wording are present;
+- the refresh-generated `.gitignore` hygiene side effect is explicitly
+  excluded from this tranche unless separately reviewed and accepted;
+- `governance_drift_checker` returns `severity=ok`;
+- runtime, hook, CI, gate, schema, writer, and enforcement behavior remain
+  unchanged;
+- the scoped implementation is committed separately from its canonical memory
+  closeout companion.
 
 ## Cannot Claim From This PLAN Alone
 
@@ -1733,3 +1736,5 @@ This planning / structured-memory bookkeeping refresh is done when:
 - Cannot claim semantic verification of every historical milestone.
 - Cannot claim GitHub release / README / topics are current.
 - Cannot claim workspace clean while runtime ledgers remain dirty.
+- Cannot claim that a refreshed baseline hash proves owner authorization for
+  future protected-file changes.
