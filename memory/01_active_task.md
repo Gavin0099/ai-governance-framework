@@ -38,10 +38,13 @@
   memory commits are no longer in branch ancestry. Win32/NT namespace privacy
   coverage was reapplied as `3aac6a27`; the first replacement pair's
   tool-wrapper failure remains preserved by negative receipt `58c458fb`.
-  The identity remediation is now committed as `c93347ac`: the launcher sets
-  and verifies a fixed repo-local synthetic identity, the route pins it, and
-  the offline verifier reconstructs bundle commit metadata against the frozen
-  allowlist. The exact-two replacement sessions were consumed, but both
+  The identity remediation was committed as `c93347ac`: the launcher sets and
+  verifies a fixed repo-local synthetic identity and the route pins it.
+  Independent review then found that an extra merge parent/ref could evade the
+  first bundle check. Commit `9be0fc95` now requires exactly the baseline root
+  and its single-parent output as the bundle's complete reachable commit set;
+  independent re-review is `APPROVED`. The exact-two replacement sessions were
+  consumed, but both
   failed closed before producer work because their isolated `CODEX_HOME`
   directories lacked login credentials. Negative receipt `ba847e70` preserves
   digests and cleanup evidence. No successful public pair exists. Do not push.

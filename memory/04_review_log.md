@@ -3983,3 +3983,33 @@ change requires another independent review.
 - No successful paired evidence, offline verifier PASS, independent approval,
   push, counted Gate 3 run, Gate 3 start, blind scoring, Skill effectiveness,
   owner signature, or public replay of deleted raw evidence.
+
+## 2026-07-30 - Gate 3 Codex bundle graph follow-up review
+
+### Review Input And Decision
+- Independent re-review target: `9be0fc95`.
+- Verdict: `APPROVED`; the prior bundle-graph blocking finding is closed.
+
+### Independent PoC Results
+- A normal baseline-root plus single-parent-output bundle passed.
+- A merge output whose first parent was the baseline but whose second parent
+  carried a private identity was rejected.
+- A legal output plus an extra ref to a private commit was rejected.
+- Both rejection paths returned only the generic bundle-graph error and did
+  not expose identity content.
+- Focused tests passed 88/88 and the worktree was clean at review.
+
+### Verified Boundary
+- The verifier requires `HEAD == output`, output parents exactly
+  `[output, baseline]`, baseline parents exactly `[baseline]`, and the complete
+  `rev-list --all` set exactly `{baseline, output}`.
+- The v5 negative receipt correctly remains bound to `c93347ac`, the
+  implementation actually used by its two failed live sessions. It does not
+  rewrite `9be0fc95` as live evidence.
+
+### Remaining Non-Claims
+- No successful live public bundle exists for end-to-end verification by the
+  hardened verifier.
+- No successful canary, Gate 3 start, push, owner signature, blind scoring, or
+  Skill effectiveness is claimed.
+- Push disposition remains `NO PUSH` under the owner's explicit instruction.
