@@ -1,52 +1,39 @@
 <!-- ARCHIVED: active_task_20260727_003214.md (2026-07-27 00:32:14) -->
-<!-- 完整歷史請查閱: archive/active_task_20260727_003214.md -->
-
-> **[歸檔紀錄]** 2026-07-27 00:32:14 — 本檔案已歸檔至 `archive/active_task_20260727_003214.md`
-> 歸檔原因: 記憶壓力 EMERGENCY（原始 394 行, 28623 字元）
+<!-- Prior point-in-time snapshot: archive/active_task_20260727_003214.md -->
 
 ---
 
 # Active Task
 
-> Refreshed 2026-07-22 from pre-refresh HEAD `8a98df2e` after the opt-in
-> plain-summary v0.5 slice (`c8c06f3e`) and the owner-decided P1-F advisory
-> disposition (`ba50b0f4`, publication record through `8a98df2e`).
-> Source surfaces: `PLAN.md` as present at `8a98df2e` plus the 2026-07-22
-> read-only P1-C natural-receipt adjudication,
-> `memory/2026-07-18.md`, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
-> published validator-census artifact / closeout chain, the frozen v3 closure
-> record, and the 2026-07-13 review records retained in
-> `memory/04_review_log.md`.
-> Claim: this file is point-in-time aligned to those authority surfaces, no
-> more.
+> Refreshed 2026-07-30 against `main@85f45018` after PR #12 merged and the
+> bounded disposable F-7 post-merge replay completed. Source of truth:
+> `PLAN.md` at the same HEAD plus the post-merge replay observed in this
+> session. This is a point-in-time task summary, not proof of real-consumer
+> adoption.
 
 ## Current Focus
 
-- **The owner-facing completion summary has been narrowed from real use.** A
-  2026-07-22 report was still too technical even after the opt-in plain-summary
-  v0.5 work. The bounded v0.6 response-contract refinement makes the result,
-  reason, and next step the literal first three non-empty lines and moves the
-
-- 2026-07-27 scorer-handoff v3 reason-code remediation was independently
-  `APPROVED`, committed as `b596153b`, and owner re-signed at exact manifest
-  SHA-256 `7104b2e0...2147c`; canonical promotion and Gate 2 start remain
-  separate and pending.
+- The F-7 update-available truth correction is complete. A fresh verified
+  target ahead of the consumer pin remains visible as
+  `framework_update_status=update_available`, while the full-adoption verdict
+  remains conservatively `f7_final_status=not_verified`.
+- The merged-main replay preserved the complete three-column adoption table
+  and made no consumer changes in report-only mode.
+- No further F-7 framework expansion is active without a new observed consumer
+  failure.
 
 ---
 
 ## Next Steps
 
-1. Use the v0.6 first-three-line preface on real completion responses and record
-   another G4 case only for a distinct natural work item with an observed
-   outcome or failure.
-2. Wait for meiandraybook to produce a committed deployment/product replay and
-   identify the governance signal that changed an agent action before upgrading
-   either existing candidate. PR #9 check or commit volume alone is not a new
-   work item and does not prove a deployed outcome. Note (owner decision): a
-   non-author independent review of meiandraybook is NOT pursued — it is the
-   owner's own project, so its independent-review evidence is NOT PRESENT and
-   cannot raise G4 strength; this does not block its merge/deploy/replay.
-3. Keep both response checks opt-in and unchanged. Enabling either in a hook,
-   CI, gate, or default invocation is a separate owner decision.
-4. Seek independent consumer and non-author evidence over time; do not
-   manufacture replay, transfer, recurrence, or benefit-over-cost evidence.
+1. Select a named real consumer only through explicit owner authorization.
+2. Run the appropriate F-7 report-only or governed update boundary for that
+   consumer and retain consumer-scoped evidence.
+3. Reopen framework implementation only if that replay exposes a distinct,
+   reproducible failure.
+
+## Claim Ceiling
+
+- Cannot claim that a real consumer was updated or fully adopted.
+- Cannot claim that report-only behavior is enforcement.
+- Cannot claim G4 maturity from the merged fix or disposable replay.
