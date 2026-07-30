@@ -111,6 +111,17 @@ def _f7_framework_update_status_for_envelope(result: F7Result) -> str:
         return "blocked"
     if result.repo_role == "not_governed":
         return "not_submodule_consumer"
+    if result.repo_role == "submodule_consumer":
+        backend = result.details.get("submodule_backend")
+        if isinstance(backend, dict):
+            backend_envelope = backend.get("ai_governance_update_result")
+            if isinstance(backend_envelope, dict):
+                backend_status = backend_envelope.get("framework_update_status")
+                if (
+                    isinstance(backend_status, dict)
+                    and backend_status.get("value") == "update_available"
+                ):
+                    return "update_available"
     framework_pointer = result.stages.get("framework_pointer")
     if framework_pointer in {"already_current", "updated", "not_verified"}:
         return str(framework_pointer)

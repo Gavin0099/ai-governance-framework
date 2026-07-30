@@ -427,6 +427,69 @@ def test_f7_submodule_backend_surfaces_target_freshness_downgrade(
     assert "already_current/updated must not be claimed" in rendered
 
 
+def test_f7_submodule_backend_preserves_fresh_update_available_status(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+    _git(repo, "add", ".gitmodules")
+
+    import governance_tools.f7_full_update as f7
+
+    def fake_update(**_kwargs):
+        return UpdateResult(
+            ok=True,
+            mode="dry_run",
+            update_mode="dry_run",
+            fast_forward=True,
+            repo=str(repo),
+            submodule_path="ai-governance-framework",
+            before_head="a" * 40,
+            target_head="b" * 40,
+            after_head="a" * 40,
+            staged_files=[],
+            committed=False,
+            commit_hash=None,
+            message="dry run complete",
+            errors=[],
+            full_update_stage_report={
+                "framework_pointer": "not_verified",
+                "target_source": "fresh_remote_ls_remote",
+                "target_fresh_upstream_verified": True,
+                "target_claim_boundary": (
+                    "fresh upstream target verified; already_current/updated claims "
+                    "are allowed"
+                ),
+                "final_status": "not_verified",
+            },
+            target_source="fresh_remote_ls_remote",
+        )
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    rendered = format_human(result)
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.f7_final_status == "not_verified"
+    assert result.stages["framework_pointer"] == "not_verified"
+    assert result.ai_governance_update_result["framework_update_status"] == {
+        "value": "update_available",
+        "source": "f7_full_update",
+    }
+    assert "framework_update_status=update_available" in rendered
+
+
 def test_f7_submodule_backend_downgrades_completed_when_lock_consistency_is_inconsistent(
     monkeypatch,
     tmp_path: Path,
