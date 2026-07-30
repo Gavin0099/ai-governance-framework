@@ -3948,3 +3948,38 @@ change requires another independent review.
 - Public bundle privacy, a successful replacement canary, push, counted Gate
   3, Gate 3 start, blind scoring, Skill effectiveness, and owner signature are
   not claimed.
+
+## 2026-07-30 - Gate 3 Codex synthetic identity remediation and auth failure
+
+### Remediation Result
+- Commit `c93347ac` sets and verifies a fixed repo-local synthetic producer
+  identity before launch, pins the identity in the frozen route, records it in
+  capture receipts, and reconstructs each bundle during offline verification.
+- The bundle verifier rejects author or committer metadata outside the frozen
+  baseline/output allowlist without echoing the unexpected identity.
+- Focused tests passed 86/86, including an inherited-operator-identity
+  rejection; canonical runtime governance passed 194/194.
+
+### Live Replacement Result
+- Exactly two authorized non-counted sessions were launched, one for each
+  fresh synthetic repo. No replacement session was launched.
+- Both isolated `CODEX_HOME` directories lacked authentication credentials,
+  so both sessions failed with exit code 1 before producer work.
+- Both repos remained clean at the baseline commit and both repo-local
+  identities matched the frozen synthetic identity.
+- CLI, private stdout/stderr, rollouts, staging, and both synthetic repos were
+  removed after privacy-safe digests were recorded.
+- Negative receipt commit: `ba847e70`.
+
+### Decision And Next Recommendation
+- Verdict: `CHANGES_REQUESTED`; there is no successful public A/B packet to
+  review and the live bundle-metadata verifier was not exercised.
+- Define a private credential-seeding contract for isolated `CODEX_HOME`
+  directories, validate that it gives A/B identical authentication context
+  without publishing credential bytes, then request a new explicit
+  exact-two-session authorization.
+
+### Not Claimed
+- No successful paired evidence, offline verifier PASS, independent approval,
+  push, counted Gate 3 run, Gate 3 start, blind scoring, Skill effectiveness,
+  owner signature, or public replay of deleted raw evidence.

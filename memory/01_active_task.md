@@ -38,9 +38,13 @@
   memory commits are no longer in branch ancestry. Win32/NT namespace privacy
   coverage was reapplied as `3aac6a27`; the first replacement pair's
   tool-wrapper failure remains preserved by negative receipt `58c458fb`.
-  Before another authorized two-session run, fresh repos must use a fixed
-  repo-local synthetic Git identity and the verifier must reconstruct bundle
-  commit metadata against a frozen allowlist. Do not push.
+  The identity remediation is now committed as `c93347ac`: the launcher sets
+  and verifies a fixed repo-local synthetic identity, the route pins it, and
+  the offline verifier reconstructs bundle commit metadata against the frozen
+  allowlist. The exact-two replacement sessions were consumed, but both
+  failed closed before producer work because their isolated `CODEX_HOME`
+  directories lacked login credentials. Negative receipt `ba847e70` preserves
+  digests and cleanup evidence. No successful public pair exists. Do not push.
 
 ---
 
@@ -60,3 +64,7 @@
    CI, gate, or default invocation is a separate owner decision.
 4. Seek independent consumer and non-author evidence over time; do not
    manufacture replay, transfer, recurrence, or benefit-over-cost evidence.
+5. Before requesting another exact-two Gate 3 Codex canary authorization,
+   define and test a private credential-seeding step for isolated
+   `CODEX_HOME` directories that preserves identical A/B context and never
+   publishes the credential. The consumed pair must not be retried.
