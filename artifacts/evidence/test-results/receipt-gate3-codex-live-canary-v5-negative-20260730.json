@@ -1,0 +1,101 @@
+{
+  "authorization": "exactly_two_non_counted_codex_live_canary_sessions_only",
+  "canary": {
+    "baseline_commit": "f9bb04baa88bfbc4ca69c76217a57f0c463f5dbc",
+    "build_attempted": false,
+    "failure": "Both isolated Codex homes lacked an authentication credential, so each session failed closed with HTTP 401 before producer work began.",
+    "model_build": "codex:gpt-5.6-luna:comp_hash=3000:cli=0.146.0",
+    "public_packet_created": false,
+    "run_id": "gate3-codex-live-v5-20260730-114837",
+    "session_count": 2,
+    "status": "CHANGES_REQUESTED"
+  },
+  "checks": {
+    "bundle_identity_regressions": {
+      "command": ".venv/Scripts/python.exe -m pytest -q artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_live_canary.py --basetemp <TEMP>",
+      "passed": 86,
+      "status": "PASS"
+    },
+    "canonical_precommit": {
+      "command": "scripts/run-runtime-governance.sh --mode enforce",
+      "passed": 194,
+      "status": "PASS"
+    },
+    "live_repo_local_identity": {
+      "arm_a": "PASS",
+      "arm_b": "PASS",
+      "expected": {
+        "email": "gate3-producer@example.invalid",
+        "name": "Gate3 Synthetic Producer"
+      }
+    },
+    "live_session_route": {
+      "arm_a": {
+        "exit_code": 1,
+        "repository_clean": true,
+        "turn_failed_events": 1
+      },
+      "arm_b": {
+        "exit_code": 1,
+        "repository_clean": true,
+        "turn_failed_events": 1
+      },
+      "decision": "FAIL_CLOSED_BEFORE_PRODUCER_EXECUTION",
+      "reason": "The temporary isolated CODEX_HOME directories did not contain a login credential."
+    }
+  },
+  "cleanup": {
+    "private_rollouts_removed": 2,
+    "private_staging_removed": true,
+    "synthetic_repositories_removed": 2,
+    "temporary_cli_removed": true,
+    "temporary_raw_evidence_removed": true,
+    "verified_absent_after_cleanup": true
+  },
+  "driver_note": {
+    "arm_a": "The outer command timed out after Arm A had completed and before Arm B was launched.",
+    "arm_b": "Arm B was then launched exactly once as the second and final authorized session.",
+    "replacement_sessions": 0
+  },
+  "implementation": {
+    "commit": "c93347ac9ec2460b6082ea26517c5b0f414b2d57",
+    "harness_sha256": "7a2341c595e4b920bd6a10f225dbfc6bcbe12dac6437d98b607f98597cc9d6ea",
+    "launcher_sha256": "a27ea0db61930362abd18cd44ccf3f7b650288346216634f5b705f8f8e8d3314",
+    "tests_sha256": "cc3abe9f6e96ffa0af84b68da92eb07a77d01aac05405eb676abbc2e6d03e7e9"
+  },
+  "not_claimed": [
+    "successful paired A/B public evidence packet",
+    "live bundle commit identity verification",
+    "offline verifier PASS for this run",
+    "independent approval",
+    "counted Gate 3 run",
+    "Gate 3 start",
+    "Skill effectiveness",
+    "human or model blind scoring",
+    "owner signature",
+    "public replay of deleted private raw evidence"
+  ],
+  "private_source_digests_before_deletion": {
+    "arm_a": {
+      "exec_events_sha256": "085b665fc49b2c5bb382e748f78976f766524e713fc13b63a2146afa699d2a56",
+      "head_commit": "f9bb04baa88bfbc4ca69c76217a57f0c463f5dbc",
+      "rollout_sha256": "9d8718a02b6af85c459f0b31872dcff52537b0b102c51f3f59ad11f8e550b08f",
+      "session_exit_code": 1,
+      "stderr_sha256": "7e796ef04ad624b2f1cfe19ea47585c9bc5feef8630f3d34082b2c8d69837aa4"
+    },
+    "arm_b": {
+      "exec_events_sha256": "6f7f1d3d11add31c6929b79bc2233ca9fd21f08c73e45a1a2d1cb8389c3d7046",
+      "head_commit": "f9bb04baa88bfbc4ca69c76217a57f0c463f5dbc",
+      "rollout_sha256": "fad5e565b09e5d446f015099d4af4a5db748d2e7320b60977f67066d1fe1103d",
+      "session_exit_code": 1,
+      "stderr_sha256": "a0372f4d9baab0af8193004bc5645e673bf0634f2bd941da4d2a94432b77f132"
+    },
+    "retention": "digests_only; source files deleted after cleanup verification"
+  },
+  "publication": {
+    "atomic_rename_attempted": false,
+    "public_output_exists": false,
+    "status": "NOT_PUBLISHED_BECAUSE_SESSIONS_FAILED_AUTHENTICATION"
+  },
+  "schema": "gate3-codex-live-canary-negative-receipt.v1"
+}
