@@ -11,18 +11,18 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 8a98df2e358831733af374c297122ecb74d0d8fe
-framework_root: D:\ai-governance-framework
-initialized_at: 2026-07-22T06:12:51Z
+source_commit: 9a78e76a5b4d379610f9248e312a0d4b67eb8008
+framework_root: E:\BackUp\Git_EE\ai-governance-framework
+initialized_at: 2026-07-30T08:02:39Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: canonical-LF hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
-sha256.AGENTS.base.md: 48790c1480b3bce4abde6c06561a8cbb39ab781740968e1f227ddfc29da542b5
-sha256.PLAN.md: 0d6f4e02d245fab71b6458aef9842067b298e0a92a75e3f7a6626a1d66545f5e
+sha256.AGENTS.base.md: 042d70027f50ceeadce24fe36d65e63af19a04076b1b0b96dd0d98670161294e
+sha256.PLAN.md: 265230b098033aa37394ed797495fec8ac68cbb86e7c4379d54f5c7246ef91ea
 sha256.contract.yaml: dd91f44db6d02de69b15f6e5fb43ea46b33ff5d6b00cc485c8aed6bb11cb52e9
-sha256.AGENTS.md: 8e15e1cdeec7bc4926688f14e7007723338a26af648022b8c1933d483fc0d102
+sha256.AGENTS.md: 0b9b814993884f4c8d60130c17b8aa1d1ebfbce40500fc843cf62e45e6807f6f
 overridable.AGENTS.base.md: protected
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
@@ -53,6 +53,7 @@ plan_section_inventory:
   - "## Current Sprint - 2026-06-10"
   - "## Active Claim Boundaries"
   - "## Pending Work - Ordered"
+  - "## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)"
   - "## Dirty Workspace Policy"
   - "## Historical Milestone Index"
   - "## Definition Of Done For Current Planning Slice"

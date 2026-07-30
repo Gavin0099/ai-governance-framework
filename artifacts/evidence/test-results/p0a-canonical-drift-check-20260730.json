@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 governance_tools/governance_drift_checker.py --repo . --framework-root . --format json",
+  "exit_code": 0,
+  "started_at": "2026-07-30T08:08:05Z",
+  "finished_at": "2026-07-30T08:08:06Z",
+  "runner": "codex",
+  "linked_commit": "71db53c9e73b1dac10385ae6aea3b8ad0afb9623",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/p0a-canonical-drift-check-20260730.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
