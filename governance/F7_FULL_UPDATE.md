@@ -18,8 +18,10 @@ Enforcement change: no
 F-7 is the AI Governance Full Update workflow. A governed submodule pointer
 update is Stage 1 of F-7, not the whole workflow.
 
-When the user asks to update or adopt the latest AI Governance through F-7, F-7
-must execute the full adoption/update workflow or explicitly report a blocker.
+When the user asks to update or adopt the latest AI Governance, including
+"幫我更新最新版 AI Governance" and equivalent natural-language wording, the
+request routes to F-7 even when the user does not name F-7. F-7 must execute the
+full adoption/update workflow or explicitly report a blocker.
 
 A submodule pointer update alone is insufficient and must be reported as
 `partially_updated`, not completed.
@@ -84,6 +86,15 @@ If the machine-readable summary is available but the table cannot be relayed,
 F-7 must report `human_readable_adoption_summary: not_reported` with the reason
 and must not claim that the operator was shown the complete human-readable
 feature adoption table.
+
+The table relay is required for every terminal F-7 result: updated,
+already-current, blocked, and fallback/manual outcomes. Fallback paths should
+still run the report-only maturity summary when safe. If table rows are
+unavailable, F-7 must report `update_report_complete=false` and
+`completion_claim_allowed=false`; it must not fabricate a table or claim a
+complete update report. A blocked update may still have a complete update
+report when its real adoption table is relayed; report completeness and update
+success are separate truths.
 
 ## Consumer Test-Quality Expectations
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from governance_tools.governance_update_reporting import (
     build_ai_governance_update_result,
     build_final_report_requirement,
+    build_final_report_table_required,
     format_ai_governance_update_result,
 )
 
@@ -55,6 +56,8 @@ def test_operator_report_for_updated_payload_has_repo_owner_decision_fields() ->
     assert report["next_action"] == "Proceed with normal governed work within the listed non-claims."
     assert "domain correctness" in report["cannot_claim"]
     assert "full governance adoption" in report["cannot_claim"]
+    assert payload["update_report_complete"] is True
+    assert payload["completion_claim_allowed"] is True
 
     rendered = "\n".join(format_ai_governance_update_result(payload))
     assert "[operator_facing_report]" in rendered
@@ -88,6 +91,8 @@ def test_operator_report_for_partial_payload_surfaces_missing_items() -> None:
     assert report["next_action"] == (
         "Fix the highest-impact missing surface, or record why it is intentionally out of scope."
     )
+    assert payload["update_report_complete"] is True
+    assert payload["completion_claim_allowed"] is True
 
     rendered = "\n".join(format_ai_governance_update_result(payload))
     assert "blocking_or_attention_items:" in rendered
@@ -120,6 +125,7 @@ def test_operator_report_for_manual_update_inconsistent_payload_downgrades_claim
         "manual update path observed; governed updater/F-7 evidence is missing",
         "lock-vs-checkout consistency is inconsistent",
         "operator-facing adoption table was not reported",
+        "final report requirement surface is not present",
         "framework_lock_consistency",
         "adoption status is unknown",
     ]
@@ -127,7 +133,69 @@ def test_operator_report_for_manual_update_inconsistent_payload_downgrades_claim
         "Run the governed updater/F-7 path, or report manual_update with the missing evidence explicitly."
     )
     assert "completed AI Governance update" in report["cannot_claim"]
+    assert payload["update_report_complete"] is False
+    assert payload["completion_claim_allowed"] is False
+    assert "complete AI Governance update report" in payload["cannot_claim"]
 
     rendered = "\n".join(format_ai_governance_update_result(payload))
     assert "repo_update_state=manual_update" in rendered
     assert "lock-vs-checkout consistency is inconsistent" in rendered
+    assert "update_report_complete=false" in rendered
+    assert "completion_claim_allowed=false" in rendered
+
+
+def test_blocked_update_can_have_complete_report_when_table_is_relayable() -> None:
+    maturity = _maturity_summary(status="partial")
+    requirement = build_final_report_requirement(maturity)
+
+    payload = build_ai_governance_update_result(
+        framework_update_status="blocked",
+        framework_update_source="f7_full_update",
+        governance_maturity_summary=maturity,
+        final_report_requirement=requirement,
+    )
+
+    assert payload["framework_update_status"]["value"] == "blocked"
+    assert payload["update_report_complete"] is True
+    assert payload["completion_claim_allowed"] is True
+    assert "complete AI Governance update report" not in payload["cannot_claim"]
+
+
+def test_marker_only_summary_cannot_satisfy_complete_table_contract() -> None:
+    maturity = _maturity_summary(
+        status="partial",
+        rows=["[human_readable_adoption_summary]"],
+    )
+    requirement = build_final_report_requirement(maturity)
+    table = build_final_report_table_required(requirement)
+
+    payload = build_ai_governance_update_result(
+        framework_update_status="already_current",
+        framework_update_source="f7_full_update",
+        governance_maturity_summary=maturity,
+        final_report_requirement=requirement,
+    )
+
+    assert requirement["status"] == "not_available"
+    assert table["update_report_complete"] is False
+    assert table["completion_claim_allowed"] is False
+    assert payload["update_report_complete"] is False
+    assert payload["completion_claim_allowed"] is False
+    assert "complete AI Governance update report" in payload["cannot_claim"]
+
+
+def test_table_without_data_row_cannot_satisfy_complete_table_contract() -> None:
+    maturity = _maturity_summary(
+        status="partial",
+        rows=[
+            "[human_readable_adoption_summary]",
+            "| Feature | Status | Meaning |",
+            "| --- | --- | --- |",
+        ],
+    )
+    requirement = build_final_report_requirement(maturity)
+    table = build_final_report_table_required(requirement)
+
+    assert requirement["status"] == "not_available"
+    assert table["update_report_complete"] is False
+    assert table["completion_claim_allowed"] is False

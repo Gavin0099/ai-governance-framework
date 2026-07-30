@@ -323,6 +323,11 @@ version.
 When the user asks to check or update AI Governance, read
 `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` before acting.
 
+An update request such as "幫我更新最新版 AI Governance" or equivalent wording
+must route to `governance_tools.f7_full_update`; the user does not need to name
+F-7 explicitly. The governed updater is an F-7 backend, not the final reporting
+surface.
+
 Do not treat `AGENTS.md`, `AGENTS.base.md`, local instruction-file sync, parent
 repo `git pull`, or a clean parent working tree as proof that the AI Governance
 Framework is current.
@@ -346,11 +351,18 @@ submodule".
 
 ### F-7 Full Update Trigger
 
-When the user asks for F-7 or full AI Governance update, read
+When the user asks for F-7, a full AI Governance update, or the latest AI
+Governance update in natural language, read
 `governance/F7_FULL_UPDATE.md`.
 
 A submodule pointer update alone is not a full F-7 update and must not be
 reported as `full_update_completed`.
+
+Every F-7 terminal result must relay the complete
+`[human_readable_adoption_summary]` table when available. If the table is
+unavailable or omitted, report `human_readable_adoption_summary: NOT REPORTED`,
+`update_report_complete=false`, and `completion_claim_allowed=false`; do not
+claim a complete AI Governance update report.
 
 ## Memory
 

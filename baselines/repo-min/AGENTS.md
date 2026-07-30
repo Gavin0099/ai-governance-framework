@@ -117,9 +117,11 @@ Action: verify-only. Do not update the submodule pointer.
 - "更新 AI Governance 到最新版"
 - "Update AI Governance to latest"
 
-Action: perform the governed update flow for a submodule consumer: detect the
-governance submodule path, run dry-run, then apply the scoped submodule pointer
-update if dry-run is safe and no blocker exists.
+Action: route the request to `governance_tools.f7_full_update` as the primary
+orchestrator. This applies to "幫我更新最新版 AI Governance" and equivalent
+natural-language update requests even when the user does not name F-7. The
+governed submodule updater is an F-7 backend/stage, not a substitute for the
+complete F-7 report.
 
 For `update` intent, do not stop after direct HEAD comparison when nested
 governance HEAD differs from target framework HEAD. A direct HEAD comparison may
@@ -215,6 +217,12 @@ not report only machine-readable fields such as `user_facing_status`,
 `framework_topology`, or `runtime_capable` while omitting the table. If the
 table cannot be produced or relayed, report
 `human_readable_adoption_summary: NOT REPORTED` with the reason.
+Also report `update_report_complete=false` and
+`completion_claim_allowed=false`, and do not claim a complete AI Governance
+update report. This applies to updated, already-current, blocked, and
+fallback/manual terminal outcomes. A blocked update may still have a complete
+report when the real table is relayed; report completeness does not mean the
+update succeeded.
 
 ### Test Quality Expectations
 
@@ -250,8 +258,10 @@ claim boundary: update commit/build evidence only; adoption completeness was not
 F-7 is the AI Governance Full Update workflow. The governed submodule update is
 Stage 1 of F-7, not the whole workflow.
 
-When the user asks to update or adopt the latest AI Governance through F-7, F-7
-must execute the full adoption/update workflow or explicitly report a blocker.
+When the user asks to update or adopt the latest AI Governance, including
+"幫我更新最新版 AI Governance" and equivalent natural-language wording, the
+request routes to F-7 even when the user does not name F-7. F-7 must execute the
+full adoption/update workflow or explicitly report a blocker.
 A submodule pointer update alone is insufficient and must be reported as
 `partially_updated`, not completed.
 

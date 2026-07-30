@@ -38,6 +38,20 @@ Do not skip a step when the omission would hide risk.
 - If a secret appears in conversation context, do not persist it anywhere
 - `.env` files and credentials must be in `.gitignore` and never staged
 
+## AI Governance Update Routing
+
+When the user says "幫我更新最新版 AI Governance" or uses equivalent update
+wording, route the request to `governance_tools.f7_full_update` even if F-7 was
+not named explicitly. The governed updater is an F-7 backend, not the complete
+update-report surface.
+
+For updated, already-current, blocked, and fallback/manual terminal results,
+relay the complete `[human_readable_adoption_summary]` table when available.
+If it is unavailable or omitted, report
+`human_readable_adoption_summary: NOT REPORTED`,
+`update_report_complete=false`, and `completion_claim_allowed=false`; do not
+claim a complete AI Governance update report.
+
 ## Memory Update Triggers
 
 The following events require updating PLAN.md and/or the relevant memory/ file:

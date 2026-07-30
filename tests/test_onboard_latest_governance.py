@@ -18,6 +18,7 @@ def _sample_maturity_summary() -> dict[str, object]:
         "human_readable_adoption_summary": [
             "[human_readable_adoption_summary]",
             "| 功能 | 狀態 | 這個功能是做什麼 |",
+            "| --- | --- | --- |",
             "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 | 比對 lock 與 checkout。 |",
         ],
     }

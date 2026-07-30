@@ -19,7 +19,7 @@ initialized_by: governance_tools/adopt_governance.py
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: canonical-LF hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
-sha256.AGENTS.base.md: d3c025e3cffa9c00e3f38d0a104b4767a5ca15eb343dc7d03d8654c37cef8509
+sha256.AGENTS.base.md: 48790c1480b3bce4abde6c06561a8cbb39ab781740968e1f227ddfc29da542b5
 sha256.PLAN.md: 0d6f4e02d245fab71b6458aef9842067b298e0a92a75e3f7a6626a1d66545f5e
 sha256.contract.yaml: dd91f44db6d02de69b15f6e5fb43ea46b33ff5d6b00cc485c8aed6bb11cb52e9
 sha256.AGENTS.md: 8e15e1cdeec7bc4926688f14e7007723338a26af648022b8c1933d483fc0d102
