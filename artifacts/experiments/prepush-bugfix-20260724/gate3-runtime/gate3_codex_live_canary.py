@@ -89,6 +89,7 @@ CREDENTIAL_CONTRACT = {
     "session_invocations": 2,
     "temporary_cli_installations": 1,
 }
+_ORCHESTRATION_CAPABILITY = object()
 SHELL_WRAPPER_RE = re.compile(
     r'^const r = await tools\.shell_command\(\{command:'
     r'(?P<command>"(?:\\.|[^"\\])*"),workdir:'
@@ -2012,7 +2013,7 @@ def _validate_credential_runner_receipt(
     return receipt
 
 
-def build(
+def _build_orchestrated(
     repo_root: Path,
     staging: Path,
     output_root: Path,
@@ -2025,7 +2026,10 @@ def build(
     arm_b_exec_events: Path,
     credential_runner_receipt: Path,
     nonce_hex: str | None = None,
+    _capability: object | None = None,
 ) -> dict[str, Any]:
+    if _capability is not _ORCHESTRATION_CAPABILITY:
+        raise CanaryError("credential v4 build is orchestration-only")
     repo_root = repo_root.resolve()
     staging = staging.resolve()
     output_root = output_root.resolve()
@@ -2256,13 +2260,13 @@ def orchestrate(
         output_root.parent
         / f".{output_root.name}.candidate-{secrets.token_hex(8)}"
     )
-    if public_candidate.exists():
-        raise CanaryError("public candidate path already exists")
     private_built = private_root / "public-packet"
-    completed = False
-    cleanup_verified = False
-    failure: BaseException | None = None
+    candidate_owned = False
+    published_by_us = False
+    succeeded = False
     try:
+        if public_candidate.exists():
+            raise CanaryError("public candidate path already exists")
         cli_root = private_root / "cli"
         staging = private_root / "staging"
         raw = private_root / "raw"
@@ -2385,7 +2389,7 @@ def orchestrate(
         )
         if pair_result.returncode != 0:
             raise CanaryError("authorized A/B pair failed")
-        build(
+        _build_orchestrated(
             repo_root,
             staging,
             private_built,
@@ -2396,27 +2400,34 @@ def orchestrate(
             arm_a_exec_events=paths["A"]["stdout"],
             arm_b_exec_events=paths["B"]["stdout"],
             credential_runner_receipt=credential_receipt,
+            _capability=_ORCHESTRATION_CAPABILITY,
         )
+        candidate_owned = True
         shutil.copytree(private_built, public_candidate)
         verify(repo_root, public_candidate)
-        completed = True
-    except BaseException as exc:
-        failure = exc
+        shutil.rmtree(private_root)
+        if private_root.exists():
+            raise CanaryError("private runtime cleanup verification failed")
+        os.replace(public_candidate, output_root)
+        candidate_owned = False
+        published_by_us = True
+        result = verify(repo_root, output_root)
+        succeeded = True
+        return result
     finally:
-        shutil.rmtree(private_root, ignore_errors=True)
-        cleanup_verified = not private_root.exists()
-        if not completed or not cleanup_verified:
-            shutil.rmtree(public_candidate, ignore_errors=True)
-    if not cleanup_verified:
-        raise CanaryError(
-            "private runtime cleanup verification failed"
-        ) from failure
-    if failure is not None:
-        raise failure
-    if not completed or not public_candidate.is_dir():
-        raise CanaryError("orchestrated canary did not produce a public packet")
-    os.replace(public_candidate, output_root)
-    return verify(repo_root, output_root)
+        if private_root.exists():
+            shutil.rmtree(private_root, ignore_errors=True)
+        if not succeeded:
+            if candidate_owned:
+                shutil.rmtree(public_candidate, ignore_errors=True)
+            if published_by_us:
+                shutil.rmtree(output_root, ignore_errors=True)
+        if (
+            private_root.exists()
+            or (not succeeded and candidate_owned and public_candidate.exists())
+            or (not succeeded and published_by_us and output_root.exists())
+        ):
+            raise CanaryError("failed runtime artifact cleanup verification")
 
 
 def _verify_baseline(root: Path, entry: object) -> str:
@@ -2757,18 +2768,6 @@ def _parser() -> argparse.ArgumentParser:
     prep.add_argument("--comp-hash", default=DEFAULT_COMP_HASH)
     prep.add_argument("--cli-version", default=DEFAULT_CLI_VERSION)
     prep.add_argument("--reasoning", default=DEFAULT_REASONING)
-    build_parser = sub.add_parser("build")
-    build_parser.add_argument("--repo-root", required=True)
-    build_parser.add_argument("--staging-root", required=True)
-    build_parser.add_argument("--out", required=True)
-    build_parser.add_argument("--arm-a-repo", required=True)
-    build_parser.add_argument("--arm-b-repo", required=True)
-    build_parser.add_argument("--arm-a-rollout", required=True)
-    build_parser.add_argument("--arm-b-rollout", required=True)
-    build_parser.add_argument("--arm-a-exec-events", required=True)
-    build_parser.add_argument("--arm-b-exec-events", required=True)
-    build_parser.add_argument("--credential-runner-receipt", required=True)
-    build_parser.add_argument("--nonce-hex")
     orchestrate_parser = sub.add_parser("orchestrate")
     orchestrate_parser.add_argument("--repo-root", required=True)
     orchestrate_parser.add_argument("--out", required=True)
@@ -2791,22 +2790,6 @@ def main(argv: list[str] | None = None) -> int:
                 comp_hash=args.comp_hash,
                 cli_version=args.cli_version,
                 reasoning=args.reasoning,
-            )
-        elif args.command == "build":
-            result = build(
-                Path(args.repo_root),
-                Path(args.staging_root),
-                Path(args.out),
-                arm_a_repo=Path(args.arm_a_repo),
-                arm_b_repo=Path(args.arm_b_repo),
-                arm_a_rollout=Path(args.arm_a_rollout),
-                arm_b_rollout=Path(args.arm_b_rollout),
-                arm_a_exec_events=Path(args.arm_a_exec_events),
-                arm_b_exec_events=Path(args.arm_b_exec_events),
-                credential_runner_receipt=Path(
-                    args.credential_runner_receipt
-                ),
-                nonce_hex=args.nonce_hex,
             )
         elif args.command == "orchestrate":
             result = orchestrate(

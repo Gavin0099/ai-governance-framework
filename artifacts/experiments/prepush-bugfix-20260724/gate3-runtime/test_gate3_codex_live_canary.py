@@ -1040,6 +1040,41 @@ def test_credential_receipt_rejects_failure_or_extra_fields(
         live._validate_credential_runner_receipt(path, route_plan)
 
 
+def test_hand_authored_exact_receipt_cannot_bypass_orchestrator(
+    tmp_path: Path,
+) -> None:
+    route_plan = _credential_plan(
+        tmp_path / "route-plan.json",
+        live.DEFAULT_PAIR_RUNNER,
+        live.DEFAULT_SESSION_LAUNCHER,
+    )
+    receipt = tmp_path / "receipt.json"
+    receipt.write_bytes(
+        live._json_bytes(
+            _valid_credential_receipt(
+                route_plan,
+                live.DEFAULT_PAIR_RUNNER,
+                live.DEFAULT_SESSION_LAUNCHER,
+            )
+        )
+    )
+    with pytest.raises(live.CanaryError, match="orchestration-only"):
+        live._build_orchestrated(
+            tmp_path,
+            tmp_path,
+            tmp_path / "out",
+            arm_a_repo=tmp_path,
+            arm_b_repo=tmp_path,
+            arm_a_rollout=tmp_path / "a.jsonl",
+            arm_b_rollout=tmp_path / "b.jsonl",
+            arm_a_exec_events=tmp_path / "a-exec.jsonl",
+            arm_b_exec_events=tmp_path / "b-exec.jsonl",
+            credential_runner_receipt=receipt,
+        )
+    with pytest.raises(SystemExit):
+        live._parser().parse_args(["build"])
+
+
 def _write_fake_codex(path: Path) -> None:
     path.write_text(
         "\r\n".join(
@@ -1052,12 +1087,21 @@ def _write_fake_codex(path: Path) -> None:
                 "  echo Logged in using ChatGPT",
                 "  exit /b 0",
                 ")",
-                'if "%1"=="exec" (',
-                '  echo exec>>"%FAKE_CODEX_LOG%"',
-                "  echo fake session output",
-                "  exit /b 0",
-                ")",
+                'if "%1"=="exec" goto exec_call',
                 "exit /b 13",
+                ":exec_call",
+                'echo exec>>"%FAKE_CODEX_LOG%"',
+                'if exist "%FAIL_A_MARKER%" goto fail_exec',
+                (
+                    'if exist "%FAIL_B_MARKER%" '
+                    'if exist "%FAIL_B_ARMED%" goto fail_exec'
+                ),
+                'if exist "%FAIL_B_MARKER%" type nul > "%FAIL_B_ARMED%"',
+                "echo fake session output",
+                "exit /b 0",
+                ":fail_exec",
+                'if exist "%FAIL_A_MARKER%" del "%FAIL_A_MARKER%"',
+                "exit /b 14",
                 "",
             ]
         ),
@@ -1070,6 +1114,7 @@ def _run_fake_pair(
     tmp_path: Path,
     *,
     fail_b_login: bool,
+    fail_exec: str | None = None,
     tamper: str | None = None,
     outside_temp: bool = False,
 ):
@@ -1131,6 +1176,16 @@ def _run_fake_pair(
     env = os.environ.copy()
     env["FAKE_CODEX_LOG"] = str(log)
     env["FAIL_CODEX_HOME"] = str(homes["B"]) if fail_b_login else ""
+    fail_a_marker = root / "fail-a.marker"
+    fail_b_marker = root / "fail-b.marker"
+    fail_b_armed = root / "fail-b.armed"
+    if fail_exec == "A":
+        fail_a_marker.write_text("fail\n", encoding="utf-8")
+    elif fail_exec == "B":
+        fail_b_marker.write_text("fail\n", encoding="utf-8")
+    env["FAIL_A_MARKER"] = str(fail_a_marker)
+    env["FAIL_B_MARKER"] = str(fail_b_marker)
+    env["FAIL_B_ARMED"] = str(fail_b_armed)
     command = [
         "powershell.exe",
         "-NoProfile",
@@ -1248,6 +1303,40 @@ def test_pair_runner_failed_preflight_starts_zero_fake_sessions_and_cleans(
         shutil.rmtree(root, ignore_errors=True)
 
 
+@pytest.mark.parametrize(
+    ("failed_treatment", "expected_exits"),
+    [
+        ("A", {"A": 14, "B": 0}),
+        ("B", {"A": 0, "B": 14}),
+    ],
+)
+def test_pair_runner_arm_failure_still_invokes_each_session_once_and_cleans(
+    tmp_path: Path,
+    failed_treatment: str,
+    expected_exits: dict[str, int],
+) -> None:
+    result, _, log, receipt_path, homes, _, _, _, root = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        fail_exec=failed_treatment,
+    )
+    try:
+        assert result.returncode == 1
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            "login",
+            "login",
+            "exec",
+            "exec",
+        ]
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        assert receipt["session_invocations"] == 2
+        assert receipt["session_exit_codes"] == expected_exits
+        assert not (homes["A"] / "auth.json").exists()
+        assert not (homes["B"] / "auth.json").exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def test_pair_runner_binds_production_auth_and_user_temp() -> None:
     source = live.DEFAULT_PAIR_RUNNER.read_text(encoding="utf-8")
     assert "[string]$CredentialSource" not in source
@@ -1350,6 +1439,7 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
             Path(command[-1]).mkdir(parents=True)
 
     process_count = 0
+    observed_pair_states: list[dict[str, object]] = []
 
     def fake_run(command: list[str], **_: object) -> SimpleNamespace:
         nonlocal process_count
@@ -1364,8 +1454,32 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
         (raw / "private-rollout.jsonl").write_text(
             "private\n", encoding="utf-8"
         )
+        pair_states = {
+            "preflight": {
+                "session_invocations": 0,
+                "session_exit_codes": {"A": None, "B": None},
+            },
+            "arm_a": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 14, "B": 0},
+            },
+            "arm_b": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 0, "B": 14},
+            },
+            "build": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 0, "B": 0},
+            },
+        }
+        observed_pair_states.append(pair_states[failure_phase])
         return SimpleNamespace(
-            returncode=0 if failure_phase == "build" else 1,
+            returncode={
+                "preflight": 2,
+                "arm_a": 1,
+                "arm_b": 1,
+                "build": 0,
+            }[failure_phase],
             stdout=b"",
             stderr=b"",
         )
@@ -1387,7 +1501,7 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
     monkeypatch.setattr(live, "prepare", fake_prepare)
     monkeypatch.setattr(live, "_run_private_process", fake_private_process)
     monkeypatch.setattr(live.subprocess, "run", fake_run)
-    monkeypatch.setattr(live, "build", fake_build)
+    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
     monkeypatch.setattr(
         live,
         "_single_rollout",
@@ -1401,6 +1515,26 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
     with pytest.raises(live.CanaryError):
         live.orchestrate(tmp_path, output, run_id="synthetic")
     assert process_count == 2
+    assert observed_pair_states == [
+        {
+            "preflight": {
+                "session_invocations": 0,
+                "session_exit_codes": {"A": None, "B": None},
+            },
+            "arm_a": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 14, "B": 0},
+            },
+            "arm_b": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 0, "B": 14},
+            },
+            "build": {
+                "session_invocations": 2,
+                "session_exit_codes": {"A": 0, "B": 0},
+            },
+        }[failure_phase]
+    ]
     assert not private_root.exists()
     assert not output.exists()
     assert list(tmp_path.glob(".published.candidate-*")) == []
@@ -1476,7 +1610,7 @@ def test_orchestrator_publishes_only_after_verified_cleanup(
     monkeypatch.setattr(live, "prepare", fake_prepare)
     monkeypatch.setattr(live, "_run_private_process", fake_private_process)
     monkeypatch.setattr(live.subprocess, "run", fake_run)
-    monkeypatch.setattr(live, "build", fake_build)
+    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
     monkeypatch.setattr(
         live,
         "_single_rollout",
@@ -1492,3 +1626,142 @@ def test_orchestrator_publishes_only_after_verified_cleanup(
     assert output.is_dir()
     assert not private_root.exists()
     assert list(tmp_path.glob(".published.candidate-*")) == []
+
+
+def _mock_successful_orchestrator(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    fail_post_publish_verify: bool = False,
+) -> tuple[Path, Path]:
+    private_root = tmp_path / "private-runtime-edge"
+    output = tmp_path / "published-edge"
+    monkeypatch.setattr(
+        live.tempfile,
+        "mkdtemp",
+        lambda **_: str(private_root.mkdir() or private_root),
+    )
+    monkeypatch.setattr(live.shutil, "which", lambda _: "npm.cmd")
+    monkeypatch.setattr(live.secrets, "token_hex", lambda _: "fixed")
+
+    def fake_prepare(
+        _repo: Path,
+        staging: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        (staging / "inputs").mkdir(parents=True)
+        for name in (
+            "baseline.bundle",
+            "producer-prompt-a.txt",
+            "producer-prompt-b.txt",
+        ):
+            (staging / "inputs" / name).write_text(
+                "synthetic\n", encoding="utf-8"
+            )
+        (staging / "route-plan.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {}
+
+    def fake_private_process(command: list[str], *, label: str) -> None:
+        if label == "temporary Codex CLI installation":
+            codex = (
+                private_root
+                / "cli"
+                / "node_modules"
+                / ".bin"
+                / "codex.cmd"
+            )
+            codex.parent.mkdir(parents=True)
+            codex.write_text("@echo off\n", encoding="utf-8")
+        elif "repository" in label:
+            Path(command[-1]).mkdir(parents=True)
+
+    def fake_run(command: list[str], **_: object) -> SimpleNamespace:
+        if "--version" in command:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"codex-cli {live.DEFAULT_CLI_VERSION}",
+                stderr="",
+            )
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    def fake_build(
+        _repo: Path,
+        _staging: Path,
+        built: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        built.mkdir()
+        (built / "canary-summary.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {"status": "PASS"}
+
+    def fake_verify(_repo: Path, root: Path) -> dict[str, object]:
+        if fail_post_publish_verify and root == output:
+            raise live.CanaryError("synthetic post-publish verify failure")
+        return {"status": "PASS"}
+
+    monkeypatch.setattr(live, "prepare", fake_prepare)
+    monkeypatch.setattr(live, "_run_private_process", fake_private_process)
+    monkeypatch.setattr(live.subprocess, "run", fake_run)
+    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
+    monkeypatch.setattr(
+        live,
+        "_single_rollout",
+        lambda home: home / "sessions" / "rollout.jsonl",
+    )
+    monkeypatch.setattr(live, "verify", fake_verify)
+    return private_root, output
+
+
+def test_orchestrator_collision_cleans_private_root_without_deleting_foreign(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path, monkeypatch
+    )
+    collision = tmp_path / ".published-edge.candidate-fixed"
+    collision.mkdir()
+    with pytest.raises(live.CanaryError, match="candidate path"):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not private_root.exists()
+    assert collision.is_dir()
+    assert not output.exists()
+
+
+def test_orchestrator_replace_failure_cleans_candidate_and_private_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path, monkeypatch
+    )
+    monkeypatch.setattr(
+        live.os,
+        "replace",
+        lambda *_: (_ for _ in ()).throw(OSError("synthetic replace failure")),
+    )
+    with pytest.raises(OSError, match="synthetic replace failure"):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not private_root.exists()
+    assert not output.exists()
+    assert not (tmp_path / ".published-edge.candidate-fixed").exists()
+
+
+def test_orchestrator_post_publish_verify_failure_removes_new_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path,
+        monkeypatch,
+        fail_post_publish_verify=True,
+    )
+    with pytest.raises(live.CanaryError, match="post-publish"):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not private_root.exists()
+    assert not output.exists()
+    assert not (tmp_path / ".published-edge.candidate-fixed").exists()
