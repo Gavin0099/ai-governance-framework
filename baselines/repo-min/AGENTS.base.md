@@ -71,6 +71,13 @@ canonical record through `governance_tools.memory_record`. Pre-commit and
 milestone, decision, or human-curation surfaces and are not rewritten after
 every session.
 
+When an implementation requires a canonical closeout companion, keep the
+implementation and closeout as separate commits on the same branch and in one
+pull request by default. A successful merge, push, or remote verification is
+delivery evidence only; it must not create another memory commit or second pull
+request. Open a follow-up slice only for a new defect, omitted required
+governance state, or explicit owner authorization.
+
 ## Session Closeout Obligation
 
 Writing `artifacts/session-closeout.txt` before session end is a **governance
