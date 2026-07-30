@@ -1058,19 +1058,8 @@ def test_hand_authored_exact_receipt_cannot_bypass_orchestrator(
             )
         )
     )
-    with pytest.raises(live.CanaryError, match="orchestration-only"):
-        live._build_orchestrated(
-            tmp_path,
-            tmp_path,
-            tmp_path / "out",
-            arm_a_repo=tmp_path,
-            arm_b_repo=tmp_path,
-            arm_a_rollout=tmp_path / "a.jsonl",
-            arm_b_rollout=tmp_path / "b.jsonl",
-            arm_a_exec_events=tmp_path / "a-exec.jsonl",
-            arm_b_exec_events=tmp_path / "b-exec.jsonl",
-            credential_runner_receipt=receipt,
-        )
+    assert not hasattr(live, "_build_orchestrated")
+    assert not hasattr(live, "_ORCHESTRATION_CAPABILITY")
     with pytest.raises(SystemExit):
         live._parser().parse_args(["build"])
 
@@ -1387,6 +1376,20 @@ def test_pair_runner_rejects_non_temp_private_runtime_before_login(
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _set_orchestrator_builder(
+    monkeypatch: pytest.MonkeyPatch,
+    builder: object,
+) -> None:
+    closure = dict(
+        zip(
+            live.orchestrate.__code__.co_freevars,
+            live.orchestrate.__closure__ or (),
+            strict=True,
+        )
+    )
+    monkeypatch.setattr(closure["builder"], "cell_contents", builder)
+
+
 @pytest.mark.parametrize(
     "failure_phase",
     ["preflight", "arm_a", "arm_b", "build"],
@@ -1501,7 +1504,7 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
     monkeypatch.setattr(live, "prepare", fake_prepare)
     monkeypatch.setattr(live, "_run_private_process", fake_private_process)
     monkeypatch.setattr(live.subprocess, "run", fake_run)
-    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
+    _set_orchestrator_builder(monkeypatch, fake_build)
     monkeypatch.setattr(
         live,
         "_single_rollout",
@@ -1610,7 +1613,7 @@ def test_orchestrator_publishes_only_after_verified_cleanup(
     monkeypatch.setattr(live, "prepare", fake_prepare)
     monkeypatch.setattr(live, "_run_private_process", fake_private_process)
     monkeypatch.setattr(live.subprocess, "run", fake_run)
-    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
+    _set_orchestrator_builder(monkeypatch, fake_build)
     monkeypatch.setattr(
         live,
         "_single_rollout",
@@ -1706,7 +1709,7 @@ def _mock_successful_orchestrator(
     monkeypatch.setattr(live, "prepare", fake_prepare)
     monkeypatch.setattr(live, "_run_private_process", fake_private_process)
     monkeypatch.setattr(live.subprocess, "run", fake_run)
-    monkeypatch.setattr(live, "_build_orchestrated", fake_build)
+    _set_orchestrator_builder(monkeypatch, fake_build)
     monkeypatch.setattr(
         live,
         "_single_rollout",
@@ -1729,6 +1732,35 @@ def test_orchestrator_collision_cleans_private_root_without_deleting_foreign(
         live.orchestrate(tmp_path, output, run_id="synthetic")
     assert not private_root.exists()
     assert collision.is_dir()
+    assert not output.exists()
+
+
+def test_orchestrator_atomic_candidate_race_preserves_foreign_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path, monkeypatch
+    )
+    candidate = tmp_path / ".published-edge.candidate-fixed"
+    real_mkdir = os.mkdir
+
+    def racing_mkdir(path: object, mode: int = 0o777) -> None:
+        if Path(path) == candidate:
+            real_mkdir(path, mode)
+            (candidate / "foreign.marker").write_text(
+                "foreign\n", encoding="utf-8"
+            )
+            raise FileExistsError("synthetic candidate race")
+        real_mkdir(path, mode)
+
+    monkeypatch.setattr(live.os, "mkdir", racing_mkdir)
+    with pytest.raises(FileExistsError, match="candidate race"):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not private_root.exists()
+    assert (candidate / "foreign.marker").read_text(
+        encoding="utf-8"
+    ) == "foreign\n"
     assert not output.exists()
 
 

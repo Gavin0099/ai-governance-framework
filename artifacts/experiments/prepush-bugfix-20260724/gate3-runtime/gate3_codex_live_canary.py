@@ -89,7 +89,6 @@ CREDENTIAL_CONTRACT = {
     "session_invocations": 2,
     "temporary_cli_installations": 1,
 }
-_ORCHESTRATION_CAPABILITY = object()
 SHELL_WRAPPER_RE = re.compile(
     r'^const r = await tools\.shell_command\(\{command:'
     r'(?P<command>"(?:\\.|[^"\\])*"),workdir:'
@@ -2026,10 +2025,7 @@ def _build_orchestrated(
     arm_b_exec_events: Path,
     credential_runner_receipt: Path,
     nonce_hex: str | None = None,
-    _capability: object | None = None,
 ) -> dict[str, Any]:
-    if _capability is not _ORCHESTRATION_CAPABILITY:
-        raise CanaryError("credential v4 build is orchestration-only")
     repo_root = repo_root.resolve()
     staging = staging.resolve()
     output_root = output_root.resolve()
@@ -2244,11 +2240,12 @@ def _run_private_process(command: list[str], *, label: str) -> None:
         raise CanaryError(f"{label} failed")
 
 
-def orchestrate(
+def _orchestrate_impl(
     repo_root: Path,
     output_root: Path,
     *,
     run_id: str,
+    _builder: Any,
 ) -> dict[str, Any]:
     repo_root = repo_root.resolve()
     output_root = output_root.resolve()
@@ -2389,7 +2386,7 @@ def orchestrate(
         )
         if pair_result.returncode != 0:
             raise CanaryError("authorized A/B pair failed")
-        _build_orchestrated(
+        _builder(
             repo_root,
             staging,
             private_built,
@@ -2400,10 +2397,14 @@ def orchestrate(
             arm_a_exec_events=paths["A"]["stdout"],
             arm_b_exec_events=paths["B"]["stdout"],
             credential_runner_receipt=credential_receipt,
-            _capability=_ORCHESTRATION_CAPABILITY,
         )
+        os.mkdir(public_candidate)
         candidate_owned = True
-        shutil.copytree(private_built, public_candidate)
+        shutil.copytree(
+            private_built,
+            public_candidate,
+            dirs_exist_ok=True,
+        )
         verify(repo_root, public_candidate)
         shutil.rmtree(private_root)
         if private_root.exists():
@@ -2428,6 +2429,29 @@ def orchestrate(
             or (not succeeded and published_by_us and output_root.exists())
         ):
             raise CanaryError("failed runtime artifact cleanup verification")
+
+
+def _bind_orchestrator(implementation: Any, builder: Any):
+    def bound(
+        repo_root: Path,
+        output_root: Path,
+        *,
+        run_id: str,
+    ) -> dict[str, Any]:
+        return implementation(
+            repo_root,
+            output_root,
+            run_id=run_id,
+            _builder=builder,
+        )
+
+    return bound
+
+
+orchestrate = _bind_orchestrator(_orchestrate_impl, _build_orchestrated)
+del _bind_orchestrator
+del _build_orchestrated
+del _orchestrate_impl
 
 
 def _verify_baseline(root: Path, entry: object) -> str:
