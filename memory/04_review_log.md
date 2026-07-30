@@ -3905,3 +3905,46 @@ Stop on any new blocking and do not start Gate 2.
 ### Next Recommendation
 Ask the owner to re-sign the exact approved manifest hash. Any candidate-byte
 change requires another independent review.
+
+## 2026-07-30 - Gate 3 Codex bundle identity privacy review
+
+### Review Input And Decision
+- Reviewed the independently approved namespace remediation, the fail-closed
+  wrapper run, and a later two-session replacement packet before publication.
+- Verdict for the replacement packet: `CHANGES_REQUESTED`.
+- Push disposition: do not push any branch history containing the affected
+  bundles.
+
+### Blocking Finding
+- Producer output commits inside both public `repo.bundle` files inherited the
+  operator's global Git author and committer identity because fresh clones did
+  not define a repo-local identity.
+- The public privacy verifier scanned compressed bundle bytes as text but did
+  not reconstruct commit metadata. It therefore returned a false privacy
+  `PASS`.
+- The same defect affected the earlier v3 evidence commit. A deletion commit
+  would leave the sensitive bundle blobs reachable in Git history, so the
+  owner authorized rebuilding the unpublished branch from `44930ac2`.
+
+### Preserved And Rebuilt State
+- The leaking evidence and dependent review-memory commits are no longer
+  ancestors of the rebuilt branch.
+- Win32/NT device and volume namespace remediation was reapplied as
+  `3aac6a27`.
+- The valid negative result for the non-canonical wrapper pair was rebuilt as
+  receipt commit `58c458fb`; it contains digests only and no public bundle.
+
+### Required Remediation
+1. Set a fixed synthetic `user.name` and `user.email` in each fresh A/B repo
+   before producer launch.
+2. Pin that identity in the frozen route/context contract.
+3. Reconstruct each public bundle during verification and reject baseline or
+   output commit author/committer metadata outside the fixed allowlist.
+4. Add regression tests for global-identity inheritance and bundle-metadata
+   tampering before using the remaining exact-two-session authorization.
+
+### Claim Boundary
+- The namespace remediation and wrapper fail-closed result remain valid.
+- Public bundle privacy, a successful replacement canary, push, counted Gate
+  3, Gate 3 start, blind scoring, Skill effectiveness, and owner signature are
+  not claimed.

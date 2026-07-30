@@ -32,6 +32,16 @@
   SHA-256 `7104b2e0...2147c`; canonical promotion and Gate 2 start remain
   separate and pending.
 
+- 2026-07-30 Gate 3 Codex live-canary history was rebuilt from `44930ac2`
+  after independent review found operator Git identity inside producer
+  `repo.bundle` commit metadata. The earlier leaking evidence and dependent
+  memory commits are no longer in branch ancestry. Win32/NT namespace privacy
+  coverage was reapplied as `3aac6a27`; the first replacement pair's
+  tool-wrapper failure remains preserved by negative receipt `58c458fb`.
+  Before another authorized two-session run, fresh repos must use a fixed
+  repo-local synthetic Git identity and the verifier must reconstruct bundle
+  commit metadata against a frozen allowlist. Do not push.
+
 ---
 
 ## Next Steps
