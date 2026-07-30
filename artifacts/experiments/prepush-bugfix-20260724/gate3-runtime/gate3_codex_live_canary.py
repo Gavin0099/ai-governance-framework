@@ -52,7 +52,7 @@ DEFAULT_PROVIDER = "openai"
 DEFAULT_TIMEZONE = "Asia/Taipei"
 PUBLIC_CONTEXT_TOKENS = {"A": "WORKSPACE_A", "B": "WORKSPACE_B"}
 GENERIC_CONTEXT_TOKEN = "WORKSPACE"
-SANITIZER_SCHEMA = "gate3-codex-public-evidence-sanitizer.v3"
+SANITIZER_SCHEMA = "gate3-codex-public-evidence-sanitizer.v4"
 SANITIZER_RULES = {
     "canonical_jsonl": True,
     "mapping_keys": "redacted_fail_closed_on_collision",
@@ -61,7 +61,7 @@ SANITIZER_RULES = {
         "windows_user_path_to_LOCAL_USER_PATH",
         "windows_sid_to_WINDOWS_SID",
         "desktop_hostname_to_LOCAL_HOST",
-        "all_windows_absolute_path_forms_to_LOCAL_ABSOLUTE_PATH",
+        "all_windows_absolute_and_device_namespace_forms_to_LOCAL_ABSOLUTE_PATH",
     ],
     "schema": SANITIZER_SCHEMA,
 }
@@ -81,9 +81,27 @@ WINDOWS_USER_PATH_RE = re.compile(
 WINDOWS_SID_RE = re.compile(r"S-\d(?:-\d+){2,}")
 DESKTOP_HOST_RE = re.compile(r"(?i)\bDESKTOP-[A-Z0-9]+\b")
 WINDOWS_PATH_COMPONENT = r"[^\\/\s\"'()<>{}\[\],]+"
+WINDOWS_NAMESPACE_COMPONENT = r"[^\\/\s\"'()<>\[\],]+"
 WINDOWS_ABSOLUTE_PATH_RE = re.compile(
     rf"""
     (?:
+        # Win32 device namespaces (\\.\ and \\?\) plus their slash-equivalent
+        # spellings. This intentionally covers generic namespace targets such
+        # as PhysicalDrive*, Volume{{GUID}}, GLOBALROOT and named pipes.
+        (?<![:A-Z0-9_])
+        [\\/]{{2,}}[?.][\\/]+
+        {WINDOWS_NAMESPACE_COMPONENT}
+        (?:[\\/]+{WINDOWS_NAMESPACE_COMPONENT})*
+        (?:[\\/]+)?
+      |
+        # Native NT object-manager namespace spellings equivalent to Win32
+        # device paths. Include documented aliases for the DOS-device tree.
+        (?<![:A-Z0-9_])
+        [\\/]+(?:Device|\?\?|Global\?\?|DosDevices)[\\/]+
+        {WINDOWS_NAMESPACE_COMPONENT}
+        (?:[\\/]+{WINDOWS_NAMESPACE_COMPONENT})*
+        (?:[\\/]+)?
+      |
         # Extended UNC: \\?\UNC\server\share or its JSON-escaped form.
         (?<![:A-Z0-9_])
         [\\/]{{2,}}\?[\\/]+UNC[\\/]+

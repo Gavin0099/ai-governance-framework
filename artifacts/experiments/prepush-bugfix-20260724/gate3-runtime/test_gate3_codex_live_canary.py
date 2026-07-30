@@ -530,6 +530,15 @@ def test_sanitizer_redacts_mapping_keys_and_all_absolute_paths(
         r"\\?\UNC\server\share\secret.txt",
         "\\\\?\\C:\\",
         r"\\?\C:\private\file.txt",
+        r"\\.\PhysicalDrive0",
+        r"\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\secret.txt",
+        r"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\secret.txt",
+        r"\Device\HarddiskVolume1\secret.txt",
+        r"\??\C:\private\file.txt",
+        r"\Global??\C:\private\file.txt",
+        r"\DosDevices\C:\private\file.txt",
+        r"//./PhysicalDrive0",
+        r"//?/Volume{01234567-89ab-cdef-0123-456789abcdef}/secret.txt",
     ],
 )
 def test_sanitizer_redacts_every_windows_absolute_path_form(
@@ -628,6 +637,15 @@ def test_public_privacy_scan_rejects_raw_host_identifier(
         r"\\?\UNC\server\share\secret.txt",
         "\\\\?\\C:\\",
         r"\\?\C:\private\file.txt",
+        r"\\.\PhysicalDrive0",
+        r"\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\secret.txt",
+        r"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\secret.txt",
+        r"\Device\HarddiskVolume1\secret.txt",
+        r"\??\C:\private\file.txt",
+        r"\Global??\C:\private\file.txt",
+        r"\DosDevices\C:\private\file.txt",
+        r"//./PhysicalDrive0",
+        r"//?/Volume{01234567-89ab-cdef-0123-456789abcdef}/secret.txt",
     ],
 )
 def test_public_privacy_scan_rejects_any_windows_absolute_path(
