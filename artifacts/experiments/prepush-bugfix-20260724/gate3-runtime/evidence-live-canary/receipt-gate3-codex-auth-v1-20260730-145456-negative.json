@@ -1,0 +1,55 @@
+{
+  "authorization": {
+    "exact_two_sessions": true,
+    "replacement_authorized": false,
+    "status": "CONSUMED_OR_INDETERMINATE_ASSUME_CONSUMED"
+  },
+  "cleanup": {
+    "auth_copies_present": false,
+    "candidate_roots_present": 0,
+    "cli_present": false,
+    "credential_source_exists_after_cleanup": true,
+    "private_raw_evidence_present": false,
+    "publication_present": false,
+    "rollouts_present": false,
+    "staging_present": false,
+    "synthetic_repos_present": false,
+    "temp_roots_present": 0,
+    "verification": "PASS"
+  },
+  "credential_privacy": {
+    "credential_bytes_or_content_in_public_evidence": false,
+    "credential_digest_in_public_evidence": false,
+    "credential_source_path_in_public_evidence": false
+  },
+  "failure": {
+    "error": "failed runtime artifact cleanup verification",
+    "observed_residue_class": "readonly_synthetic_git_object_directories",
+    "public_packet_published": false,
+    "status": "FAIL"
+  },
+  "implementation": {
+    "cleanup_fix_commit": "479f45f5",
+    "live_invocation_commit": "ad0ee5a8"
+  },
+  "not_claimed": [
+    "successful credential preflight",
+    "exact session count observed from retained private evidence",
+    "successful live A/B canary",
+    "public evidence packet",
+    "Gate 3 counted run",
+    "blind scoring",
+    "replacement authorization",
+    "push"
+  ],
+  "review": {
+    "cleanup_fix": "APPROVED",
+    "pre_live_implementation": "APPROVED"
+  },
+  "run_id": "gate3-codex-auth-v1-20260730-145456",
+  "schema": "gate3-codex-live-canary-negative-receipt.v1",
+  "session_execution": {
+    "evidence_retained": false,
+    "status": "INDETERMINATE_ASSUME_AUTHORIZATION_CONSUMED"
+  }
+}
