@@ -814,6 +814,96 @@ def test_bundle_commit_identity_rejects_inherited_operator_metadata(
     assert private_identity["email"] not in str(caught.value)
 
 
+def test_bundle_commit_identity_rejects_private_merge_parent(
+    tmp_path: Path,
+) -> None:
+    bundle, baseline, _ = _identity_bundle(
+        tmp_path,
+        live.PRODUCER_GIT_IDENTITY,
+    )
+    repo = tmp_path / "source"
+    live._git(repo, "branch", "valid-output")
+    live._git(repo, "checkout", "-q", "-b", "private-side", baseline)
+    live._git(repo, "config", "user.name", "Private Side")
+    live._git(repo, "config", "user.email", "private-side@example.invalid")
+    (repo / "side.txt").write_bytes(b"private side\n")
+    live._git(repo, "add", "side.txt")
+    live._git(
+        repo,
+        "commit",
+        "-q",
+        "-m",
+        "private side",
+        env=live.COMMIT_ENV,
+    )
+    live._git(repo, "checkout", "-q", "valid-output")
+    live._git(
+        repo,
+        "config",
+        "user.name",
+        live.PRODUCER_GIT_IDENTITY["name"],
+    )
+    live._git(
+        repo,
+        "config",
+        "user.email",
+        live.PRODUCER_GIT_IDENTITY["email"],
+    )
+    live._git(
+        repo,
+        "merge",
+        "--no-ff",
+        "-q",
+        "-m",
+        "merge output",
+        "private-side",
+        env=live.COMMIT_ENV,
+    )
+    output = live._git(repo, "rev-parse", "HEAD").decode().strip()
+    bundle.unlink()
+    live._git(repo, "bundle", "create", str(bundle), "--all")
+    with pytest.raises(live.CanaryError, match="commit graph"):
+        live._verify_bundle_commit_identities(
+            bundle,
+            baseline_commit=baseline,
+            output_commit=output,
+            producer_identity=live.PRODUCER_GIT_IDENTITY,
+        )
+
+
+def test_bundle_commit_identity_rejects_extra_private_ref(
+    tmp_path: Path,
+) -> None:
+    bundle, baseline, output = _identity_bundle(
+        tmp_path,
+        live.PRODUCER_GIT_IDENTITY,
+    )
+    repo = tmp_path / "source"
+    live._git(repo, "checkout", "-q", "-b", "private-ref", baseline)
+    live._git(repo, "config", "user.name", "Private Ref")
+    live._git(repo, "config", "user.email", "private-ref@example.invalid")
+    (repo / "private.txt").write_bytes(b"private ref\n")
+    live._git(repo, "add", "private.txt")
+    live._git(
+        repo,
+        "commit",
+        "-q",
+        "-m",
+        "private ref",
+        env=live.COMMIT_ENV,
+    )
+    live._git(repo, "checkout", "-q", "-")
+    bundle.unlink()
+    live._git(repo, "bundle", "create", str(bundle), "--all")
+    with pytest.raises(live.CanaryError, match="commit graph"):
+        live._verify_bundle_commit_identities(
+            bundle,
+            baseline_commit=baseline,
+            output_commit=output,
+            producer_identity=live.PRODUCER_GIT_IDENTITY,
+        )
+
+
 def test_launcher_sets_and_verifies_repo_local_synthetic_identity() -> None:
     source = live.DEFAULT_SESSION_LAUNCHER.read_text(encoding="utf-8")
     assert "config --local user.name $syntheticGitName" in source

@@ -569,8 +569,31 @@ def _verify_bundle_commit_identities(
             cwd=temp_root,
         )
         head = _git(repo, "rev-parse", "HEAD").decode("ascii").strip()
-        parent = _git(repo, "rev-parse", "HEAD^").decode("ascii").strip()
-        if head != output_commit or parent != baseline_commit:
+        output_graph = (
+            _git(repo, "rev-list", "--parents", "-n", "1", output_commit)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        baseline_graph = (
+            _git(repo, "rev-list", "--parents", "-n", "1", baseline_commit)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        reachable = {
+            value
+            for value in _git(repo, "rev-list", "--all")
+            .decode("ascii")
+            .splitlines()
+            if value
+        }
+        if (
+            head != output_commit
+            or output_graph != [output_commit, baseline_commit]
+            or baseline_graph != [baseline_commit]
+            or reachable != {baseline_commit, output_commit}
+        ):
             raise CanaryError("bundle commit graph differs from frozen route")
         return {
             "baseline": _assert_commit_identity(
