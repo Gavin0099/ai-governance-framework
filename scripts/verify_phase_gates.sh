@@ -73,6 +73,18 @@ else
     PASS=$((PASS + 1))
 fi
 
+# ── Gate 2b: Canonical governance drift ──────────────────────────────────────
+info "Gate 2b / Canonical governance drift"
+if "${PYTHON_CMD[@]}" governance_tools/governance_drift_checker.py \
+    --repo . \
+    --framework-root . \
+    --format human; then
+    ok "canonical governance drift"
+    PASS=$((PASS + 1))
+else
+    fail "canonical governance drift - refresh proves bookkeeping consistency, not owner authorization; review protected-state changes first"
+fi
+
 # ── Gate 3: Governance tools 可執行 ─────────────────────────
 info "Gate 3 / 工具可執行性"
 TOOLS=(

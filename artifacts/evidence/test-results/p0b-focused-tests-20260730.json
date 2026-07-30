@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 -m pytest -q tests/test_governance_workflow_contract.py tests/test_governance_drift_checker.py --basetemp C:\\tmp\\p0b-focused-receipt",
+  "exit_code": 0,
+  "started_at": "2026-07-30T09:04:14Z",
+  "finished_at": "2026-07-30T09:04:22Z",
+  "runner": "codex",
+  "linked_commit": "2da8c0d4c7bb9df5808eab063154d6c556a27e26",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/p0b-focused-tests-20260730.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

@@ -1711,19 +1711,21 @@ history.
 
 ## Definition Of Done For Current Planning Slice
 
-The P0a canonical-drift repair is done when:
+The P0b required-drift-gate slice is done when:
 
-- the exact PR #14 protected `AGENTS.base.md` delta is reviewed and retained as
-  a durable authorization artifact;
-- `PLAN.md` no longer describes the completed `8a98df2e` bookkeeping slice as
-  current work;
-- the canonical refresh path updates `.governance/baseline.yaml` only after
-  the protected-file review and final PLAN wording are present;
-- the refresh-generated `.gitignore` hygiene side effect is explicitly
-  excluded from this tranche unless separately reviewed and accepted;
-- `governance_drift_checker` returns `severity=ok`;
-- runtime, hook, CI, gate, schema, writer, and enforcement behavior remain
-  unchanged;
+- the existing canonical drift checker executes inside the required pull
+  request `Phase Gate Verification` path and fails closed on critical drift;
+- protected and baseline-only changes trigger the governance workflow;
+- a main-push `Canonical Drift Post-Merge Audit` rechecks merged state without
+  being added to branch-protection required contexts;
+- regression tests prove that an unrefreshed protected-file change is critical
+  and that canonical refresh restores bookkeeping consistency;
+- the workflow and reviewer language state that hash consistency is not proof
+  of owner authorization for a protected-file change;
+- canonical drift, focused workflow tests, Bash syntax, and the scoped
+  precommit gate pass;
+- runtime hooks, schemas, memory writer behavior, gate policy, branch
+  protection configuration, F-7 behavior, and G4 claims remain unchanged;
 - the scoped implementation is committed separately from its canonical memory
   closeout companion.
 
