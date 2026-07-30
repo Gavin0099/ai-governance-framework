@@ -1581,6 +1581,24 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   run. This does not establish a successful live A/B canary, does not count
   toward Gate 3, and does not open Gate 3.
 
+- [x] **Gate 3 Codex credential-seeding canary v2 ended as a non-counted,
+  non-scoreable packet-build negative result on 2026-07-30.** Implementation
+  commit `5055cc32` preserved an atomic privacy-safe failure receipt for run
+  `gate3-codex-auth-v2-20260730-175032`. The one authorized exact-two,
+  no-replacement orchestration recorded two successful ChatGPT login
+  preflights, exactly two session invocations and exit code 0 for both arms,
+  then failed at `packet_build`. The operator-observed error was `rollout must
+  contain one world_state`; the retained receipt proves the packet-build
+  failure stage but intentionally does not retain raw stderr. Cleanup passed
+  with zero residue, and no success packet was attempted, present or admitted.
+  Independent review approved the 923-byte failure receipt at SHA-256
+  `75efa6be6b05fbc7ed47583e70426ed4b958dba3b19da536480f3f9ad6f66c1b`
+  as privacy-safe negative evidence. The authorization is consumed and no
+  replacement was run. Before requesting another pair, audit the pinned
+  rollout `world_state` assumption offline and add privacy-safe diagnostic
+  evidence for that failure shape. This result does not count toward Gate 3
+  and does not open Gate 3.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
