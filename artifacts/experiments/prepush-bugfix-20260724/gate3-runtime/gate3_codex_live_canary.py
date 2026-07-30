@@ -77,13 +77,17 @@ SANITIZER_RULES = {
 }
 CREDENTIAL_CONTRACT = {
     "auth_route": "chatgpt",
+    "cleanup_before_publication": True,
     "credential_bytes_public": False,
     "credential_digest_public": False,
     "credential_source_path_public": False,
     "preflight_required": True,
+    "private_runtime_root": "user_temp",
+    "replacement_sessions": 0,
     "schema": "gate3-codex-credential-contract.v1",
     "secret_storage": "ephemeral_file_cache",
     "session_invocations": 2,
+    "temporary_cli_installations": 1,
 }
 SHELL_WRAPPER_RE = re.compile(
     r'^const r = await tools\.shell_command\(\{command:'
@@ -1975,13 +1979,26 @@ def _mechanical_score(
     }
 
 
-def _validate_credential_runner_receipt(path: Path) -> dict[str, Any]:
+def _validate_credential_runner_receipt(
+    path: Path,
+    route_plan_path: Path,
+) -> dict[str, Any]:
+    plan = _load_json(route_plan_path)
     receipt = _load_json(path)
     expected = {
         "auth_files_removed": True,
         "auth_route": "chatgpt",
         "credential_seed_compare": "PASS",
+        "implementation": {
+            "launcher_sha256": plan["frozen_route"][
+                "launcher_implementation_sha256"
+            ],
+            "pair_runner_sha256": plan["frozen_route"][
+                "pair_runner_implementation_sha256"
+            ],
+        },
         "login_status": {"A": "PASS", "B": "PASS"},
+        "route_plan_sha256": _sha256_file(route_plan_path),
         "schema": CREDENTIAL_RECEIPT_SCHEMA,
         "secret_material_retained": False,
         "session_exit_codes": {"A": 0, "B": 0},
@@ -2025,7 +2042,8 @@ def build(
     ):
         raise CanaryError("route plan identity is invalid")
     credential_receipt = _validate_credential_runner_receipt(
-        credential_runner_receipt.resolve()
+        credential_runner_receipt.resolve(),
+        staging / "route-plan.json",
     )
     public_credential_receipt = staging / "credential-runner-receipt.json"
     _write_json(public_credential_receipt, credential_receipt)
@@ -2200,6 +2218,207 @@ def build(
     return verify(repo_root, output_root)
 
 
+def _single_rollout(codex_home: Path) -> Path:
+    rollouts = sorted(
+        path
+        for path in (codex_home / "sessions").rglob("*.jsonl")
+        if path.is_file()
+    )
+    if len(rollouts) != 1:
+        raise CanaryError("isolated Codex home did not produce one rollout")
+    return rollouts[0]
+
+
+def _run_private_process(command: list[str], *, label: str) -> None:
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        check=False,
+        text=False,
+    )
+    if result.returncode != 0:
+        raise CanaryError(f"{label} failed")
+
+
+def orchestrate(
+    repo_root: Path,
+    output_root: Path,
+    *,
+    run_id: str,
+) -> dict[str, Any]:
+    repo_root = repo_root.resolve()
+    output_root = output_root.resolve()
+    if output_root.exists():
+        raise CanaryError(f"output already exists: {output_root}")
+    output_root.parent.mkdir(parents=True, exist_ok=True)
+    private_root = Path(tempfile.mkdtemp(prefix="gate3-codex-live-")).resolve()
+    public_candidate = (
+        output_root.parent
+        / f".{output_root.name}.candidate-{secrets.token_hex(8)}"
+    )
+    if public_candidate.exists():
+        raise CanaryError("public candidate path already exists")
+    private_built = private_root / "public-packet"
+    completed = False
+    cleanup_verified = False
+    failure: BaseException | None = None
+    try:
+        cli_root = private_root / "cli"
+        staging = private_root / "staging"
+        raw = private_root / "raw"
+        raw.mkdir()
+        homes = {
+            "A": private_root / "codex-home-a",
+            "B": private_root / "codex-home-b",
+        }
+        repos = {
+            "A": private_root / "repo-a",
+            "B": private_root / "repo-b",
+        }
+        for home in homes.values():
+            home.mkdir()
+        npm = shutil.which("npm.cmd") or shutil.which("npm")
+        if npm is None:
+            raise CanaryError("npm command is unavailable")
+        _run_private_process(
+            [
+                npm,
+                "install",
+                "--prefix",
+                str(cli_root),
+                f"@openai/codex@{DEFAULT_CLI_VERSION}",
+                "--no-save",
+                "--no-audit",
+                "--no-fund",
+            ],
+            label="temporary Codex CLI installation",
+        )
+        codex_command = cli_root / "node_modules" / ".bin" / "codex.cmd"
+        if not codex_command.is_file():
+            raise CanaryError("temporary Codex CLI entrypoint is missing")
+        version_result = subprocess.run(
+            [str(codex_command), "--version"],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        if (
+            version_result.returncode != 0
+            or not re.search(
+                rf"(?<![0-9.]){re.escape(DEFAULT_CLI_VERSION)}(?![0-9.])",
+                version_result.stdout + version_result.stderr,
+            )
+        ):
+            raise CanaryError("temporary Codex CLI build identity mismatch")
+        prepare(
+            repo_root,
+            staging,
+            run_id=run_id,
+            model=DEFAULT_MODEL,
+            comp_hash=DEFAULT_COMP_HASH,
+            cli_version=DEFAULT_CLI_VERSION,
+            reasoning=DEFAULT_REASONING,
+        )
+        baseline_bundle = staging / "inputs" / "baseline.bundle"
+        for treatment in ("A", "B"):
+            _run_private_process(
+                [
+                    "git",
+                    "clone",
+                    "-q",
+                    str(baseline_bundle),
+                    str(repos[treatment]),
+                ],
+                label=f"synthetic repository {treatment} creation",
+            )
+        paths = {
+            treatment: {
+                "stdout": raw / f"{treatment.lower()}.stdout.jsonl",
+                "stderr": raw / f"{treatment.lower()}.stderr.txt",
+                "exit": raw / f"{treatment.lower()}.exit.txt",
+            }
+            for treatment in ("A", "B")
+        }
+        credential_receipt = raw / "credential-runner-receipt.json"
+        pair_result = subprocess.run(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(DEFAULT_PAIR_RUNNER),
+                "-CodexCommand",
+                str(codex_command),
+                "-RoutePlanPath",
+                str(staging / "route-plan.json"),
+                "-ArmAWorkspace",
+                str(repos["A"]),
+                "-ArmBWorkspace",
+                str(repos["B"]),
+                "-ArmAPromptPath",
+                str(staging / "inputs" / "producer-prompt-a.txt"),
+                "-ArmBPromptPath",
+                str(staging / "inputs" / "producer-prompt-b.txt"),
+                "-ArmACodexHome",
+                str(homes["A"]),
+                "-ArmBCodexHome",
+                str(homes["B"]),
+                "-ArmAStdoutPath",
+                str(paths["A"]["stdout"]),
+                "-ArmBStdoutPath",
+                str(paths["B"]["stdout"]),
+                "-ArmAStderrPath",
+                str(paths["A"]["stderr"]),
+                "-ArmBStderrPath",
+                str(paths["B"]["stderr"]),
+                "-ArmAExitCodePath",
+                str(paths["A"]["exit"]),
+                "-ArmBExitCodePath",
+                str(paths["B"]["exit"]),
+                "-PrivateReceiptPath",
+                str(credential_receipt),
+            ],
+            capture_output=True,
+            check=False,
+            text=False,
+        )
+        if pair_result.returncode != 0:
+            raise CanaryError("authorized A/B pair failed")
+        build(
+            repo_root,
+            staging,
+            private_built,
+            arm_a_repo=repos["A"],
+            arm_b_repo=repos["B"],
+            arm_a_rollout=_single_rollout(homes["A"]),
+            arm_b_rollout=_single_rollout(homes["B"]),
+            arm_a_exec_events=paths["A"]["stdout"],
+            arm_b_exec_events=paths["B"]["stdout"],
+            credential_runner_receipt=credential_receipt,
+        )
+        shutil.copytree(private_built, public_candidate)
+        verify(repo_root, public_candidate)
+        completed = True
+    except BaseException as exc:
+        failure = exc
+    finally:
+        shutil.rmtree(private_root, ignore_errors=True)
+        cleanup_verified = not private_root.exists()
+        if not completed or not cleanup_verified:
+            shutil.rmtree(public_candidate, ignore_errors=True)
+    if not cleanup_verified:
+        raise CanaryError(
+            "private runtime cleanup verification failed"
+        ) from failure
+    if failure is not None:
+        raise failure
+    if not completed or not public_candidate.is_dir():
+        raise CanaryError("orchestrated canary did not produce a public packet")
+    os.replace(public_candidate, output_root)
+    return verify(repo_root, output_root)
+
+
 def _verify_baseline(root: Path, entry: object) -> str:
     if not isinstance(entry, dict):
         raise CanaryError("baseline receipt entry is absent")
@@ -2221,7 +2440,11 @@ def _verify_baseline(root: Path, entry: object) -> str:
     return str(receipt.get("linked_commit"))
 
 
-def _verify_credential_receipt(root: Path, entry: object) -> None:
+def _verify_credential_receipt(
+    root: Path,
+    entry: object,
+    route_plan_path: Path,
+) -> None:
     if not isinstance(entry, dict):
         raise CanaryError("credential receipt entry is absent")
     receipt_path = _source(entry.get("path"), root)
@@ -2230,7 +2453,7 @@ def _verify_credential_receipt(root: Path, entry: object) -> None:
         or entry.get("sha256") != _sha256_file(receipt_path)
     ):
         raise CanaryError("credential receipt artifact identity mismatch")
-    _validate_credential_runner_receipt(receipt_path)
+    _validate_credential_runner_receipt(receipt_path, route_plan_path)
 
 
 def _verify_route_receipt(
@@ -2417,7 +2640,9 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
     _verify_inventory(root, summary.get("artifact_inventory"))
     public_file_count = verify_public_privacy(root)
     _verify_credential_receipt(
-        root, summary.get("credential_runner_receipt")
+        root,
+        summary.get("credential_runner_receipt"),
+        plan_path,
     )
     baseline_commit = _verify_baseline(
         root, summary.get("baseline_test_receipt")
@@ -2544,6 +2769,10 @@ def _parser() -> argparse.ArgumentParser:
     build_parser.add_argument("--arm-b-exec-events", required=True)
     build_parser.add_argument("--credential-runner-receipt", required=True)
     build_parser.add_argument("--nonce-hex")
+    orchestrate_parser = sub.add_parser("orchestrate")
+    orchestrate_parser.add_argument("--repo-root", required=True)
+    orchestrate_parser.add_argument("--out", required=True)
+    orchestrate_parser.add_argument("--run-id", required=True)
     verify_parser = sub.add_parser("verify")
     verify_parser.add_argument("--repo-root", required=True)
     verify_parser.add_argument("--canary-root", required=True)
@@ -2578,6 +2807,12 @@ def main(argv: list[str] | None = None) -> int:
                     args.credential_runner_receipt
                 ),
                 nonce_hex=args.nonce_hex,
+            )
+        elif args.command == "orchestrate":
+            result = orchestrate(
+                Path(args.repo_root),
+                Path(args.out),
+                run_id=args.run_id,
             )
         else:
             result = verify(

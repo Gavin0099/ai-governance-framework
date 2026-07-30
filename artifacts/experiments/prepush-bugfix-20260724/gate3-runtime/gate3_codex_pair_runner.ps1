@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$CodexCommand,
     [Parameter(Mandatory = $true)]
-    [string]$CredentialSource,
+    [string]$RoutePlanPath,
     [Parameter(Mandatory = $true)]
     [string]$ArmAWorkspace,
     [Parameter(Mandatory = $true)]
@@ -33,8 +33,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $launcher = Join-Path $PSScriptRoot 'gate3_codex_session_launcher.ps1'
+$credentialSource = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.codex\auth.json'
 $privateRoot = Split-Path -Parent $PrivateReceiptPath
-$secretRoot = Join-Path $privateRoot '.credential-private'
+$userTemp = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
+$secretRoot = Join-Path $userTemp ("gate3-credential-" + [Guid]::NewGuid().ToString('N'))
 $seedPath = Join-Path $secretRoot 'seed.json'
 $loginAOut = Join-Path $secretRoot 'login-a.out'
 $loginAErr = Join-Path $secretRoot 'login-a.err'
@@ -52,6 +54,15 @@ $caughtFailure = $false
 $loginA = $false
 $loginB = $false
 $seedCompare = $false
+$pairRunnerSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $PSCommandPath
+).Hash.ToLowerInvariant()
+$launcherSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $launcher
+).Hash.ToLowerInvariant()
+$routePlanSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $RoutePlanPath
+).Hash.ToLowerInvariant()
 
 function Write-Utf8Atomic {
     param([string]$Path, [string]$Text)
@@ -59,6 +70,18 @@ function Write-Utf8Atomic {
     $utf8 = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($temporary, $Text, $utf8)
     Move-Item -LiteralPath $temporary -Destination $Path
+}
+
+function Assert-UserTempPath {
+    param([string]$Path)
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $tempPrefix = $userTemp.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullPath.StartsWith(
+        $tempPrefix,
+        [System.StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw 'Credential runner private runtime path is outside user Temp.'
+    }
 }
 
 function Set-CurrentUserOnlyAcl {
@@ -179,7 +202,8 @@ function Test-ChatGptLogin {
 
 foreach ($requiredFile in @(
     $CodexCommand,
-    $CredentialSource,
+    $credentialSource,
+    $RoutePlanPath,
     $ArmAPromptPath,
     $ArmBPromptPath,
     $launcher
@@ -187,6 +211,35 @@ foreach ($requiredFile in @(
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw 'Credential runner required input is missing.'
     }
+}
+foreach ($privateRuntimePath in @(
+    $CodexCommand,
+    $RoutePlanPath,
+    $ArmAWorkspace,
+    $ArmBWorkspace,
+    $ArmAPromptPath,
+    $ArmBPromptPath,
+    $ArmACodexHome,
+    $ArmBCodexHome,
+    $ArmAStdoutPath,
+    $ArmBStdoutPath,
+    $ArmAStderrPath,
+    $ArmBStderrPath,
+    $ArmAExitCodePath,
+    $ArmBExitCodePath,
+    $PrivateReceiptPath
+)) {
+    Assert-UserTempPath -Path $privateRuntimePath
+}
+$routePlan = Get-Content -Raw -LiteralPath $RoutePlanPath | ConvertFrom-Json
+if (
+    $routePlan.schema -ne 'gate3-codex-live-route-plan.v4' -or
+    $routePlan.frozen_route.pair_runner_implementation_sha256 -ne
+        $pairRunnerSha256 -or
+    $routePlan.frozen_route.launcher_implementation_sha256 -ne
+        $launcherSha256
+) {
+    throw 'Credential runner implementation identity preflight failed.'
 }
 foreach ($requiredDirectory in @(
     $privateRoot,
@@ -222,7 +275,7 @@ try {
     Set-CurrentUserOnlyAcl -Path $secretRoot -Container
     Set-CurrentUserOnlyAcl -Path $ArmACodexHome -Container
     Set-CurrentUserOnlyAcl -Path $ArmBCodexHome -Container
-    Copy-PrivateCredential -Source $CredentialSource -Destination $seedPath
+    Copy-PrivateCredential -Source $credentialSource -Destination $seedPath
     Copy-PrivateCredential -Source $seedPath -Destination $armAAuth
     Copy-PrivateCredential -Source $seedPath -Destination $armBAuth
     $seedCompare = (
@@ -250,6 +303,7 @@ try {
 
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher `
         -CodexCommand $CodexCommand `
+        -ExpectedLauncherSha256 $launcherSha256 `
         -CodexHome $ArmACodexHome `
         -Workspace $ArmAWorkspace `
         -PromptPath $ArmAPromptPath `
@@ -261,6 +315,7 @@ try {
 
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher `
         -CodexCommand $CodexCommand `
+        -ExpectedLauncherSha256 $launcherSha256 `
         -CodexHome $ArmBCodexHome `
         -Workspace $ArmBWorkspace `
         -PromptPath $ArmBPromptPath `
@@ -293,6 +348,11 @@ finally {
             A = if ($loginA) { 'PASS' } else { 'FAIL' }
             B = if ($loginB) { 'PASS' } else { 'FAIL' }
         }
+        implementation = [ordered]@{
+            launcher_sha256 = $launcherSha256
+            pair_runner_sha256 = $pairRunnerSha256
+        }
+        route_plan_sha256 = $routePlanSha256
         schema = 'gate3-codex-credential-runner-receipt.v1'
         secret_material_retained = $secretMaterialRetained
         session_exit_codes = [ordered]@{

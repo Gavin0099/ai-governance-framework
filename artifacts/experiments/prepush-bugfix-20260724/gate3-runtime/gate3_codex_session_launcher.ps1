@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$CodexCommand,
     [Parameter(Mandatory = $true)]
+    [string]$ExpectedLauncherSha256,
+    [Parameter(Mandatory = $true)]
     [string]$CodexHome,
     [Parameter(Mandatory = $true)]
     [string]$Workspace,
@@ -16,6 +18,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$observedLauncherSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $PSCommandPath
+).Hash.ToLowerInvariant()
+if ($observedLauncherSha256 -ne $ExpectedLauncherSha256) {
+    throw 'Session launcher implementation identity preflight failed.'
+}
 
 foreach ($path in @($PromptPath, $CodexCommand)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {

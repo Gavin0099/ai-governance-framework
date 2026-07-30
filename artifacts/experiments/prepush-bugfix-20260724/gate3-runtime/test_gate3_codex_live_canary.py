@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -933,12 +936,40 @@ def test_public_privacy_scan_rejects_credential_markers(
     assert violation in live._privacy_violations(payload)
 
 
-def _valid_credential_receipt() -> dict[str, object]:
+def _credential_plan(path: Path, pair_runner: Path, launcher: Path) -> Path:
+    path.write_bytes(
+        live._json_bytes(
+            {
+                "frozen_route": {
+                    "launcher_implementation_sha256": live._sha256_file(
+                        launcher
+                    ),
+                    "pair_runner_implementation_sha256": live._sha256_file(
+                        pair_runner
+                    ),
+                },
+                "schema": live.ROUTE_PLAN_SCHEMA,
+            }
+        )
+    )
+    return path
+
+
+def _valid_credential_receipt(
+    route_plan: Path,
+    pair_runner: Path,
+    launcher: Path,
+) -> dict[str, object]:
     return {
         "auth_files_removed": True,
         "auth_route": "chatgpt",
         "credential_seed_compare": "PASS",
+        "implementation": {
+            "launcher_sha256": live._sha256_file(launcher),
+            "pair_runner_sha256": live._sha256_file(pair_runner),
+        },
         "login_status": {"A": "PASS", "B": "PASS"},
+        "route_plan_sha256": live._sha256_file(route_plan),
         "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
         "secret_material_retained": False,
         "session_exit_codes": {"A": 0, "B": 0},
@@ -950,9 +981,20 @@ def test_credential_receipt_accepts_only_exact_safe_success(
     tmp_path: Path,
 ) -> None:
     path = tmp_path / "receipt.json"
-    receipt = _valid_credential_receipt()
+    route_plan = _credential_plan(
+        tmp_path / "route-plan.json",
+        live.DEFAULT_PAIR_RUNNER,
+        live.DEFAULT_SESSION_LAUNCHER,
+    )
+    receipt = _valid_credential_receipt(
+        route_plan,
+        live.DEFAULT_PAIR_RUNNER,
+        live.DEFAULT_SESSION_LAUNCHER,
+    )
     path.write_bytes(live._json_bytes(receipt))
-    assert live._validate_credential_runner_receipt(path) == receipt
+    assert (
+        live._validate_credential_runner_receipt(path, route_plan) == receipt
+    )
 
 
 @pytest.mark.parametrize(
@@ -964,6 +1006,14 @@ def test_credential_receipt_accepts_only_exact_safe_success(
         ("secret_material_retained", True),
         ("session_invocations", 1),
         ("session_invocations", 3),
+        (
+            "implementation",
+            {
+                "launcher_sha256": "0" * 64,
+                "pair_runner_sha256": "0" * 64,
+            },
+        ),
+        ("route_plan_sha256", "0" * 64),
         ("credential_digest", "not-allowed"),
         ("credential_source_path", "not-allowed"),
     ],
@@ -974,11 +1024,20 @@ def test_credential_receipt_rejects_failure_or_extra_fields(
     value: object,
 ) -> None:
     path = tmp_path / "receipt.json"
-    receipt = _valid_credential_receipt()
+    route_plan = _credential_plan(
+        tmp_path / "route-plan.json",
+        live.DEFAULT_PAIR_RUNNER,
+        live.DEFAULT_SESSION_LAUNCHER,
+    )
+    receipt = _valid_credential_receipt(
+        route_plan,
+        live.DEFAULT_PAIR_RUNNER,
+        live.DEFAULT_SESSION_LAUNCHER,
+    )
     receipt[field] = value
     path.write_bytes(live._json_bytes(receipt))
     with pytest.raises(live.CanaryError, match="receipt is invalid"):
-        live._validate_credential_runner_receipt(path)
+        live._validate_credential_runner_receipt(path, route_plan)
 
 
 def _write_fake_codex(path: Path) -> None:
@@ -1007,18 +1066,61 @@ def _write_fake_codex(path: Path) -> None:
     )
 
 
-def _run_fake_pair(tmp_path: Path, *, fail_b_login: bool):
-    fake = tmp_path / "fake-codex.cmd"
+def _run_fake_pair(
+    tmp_path: Path,
+    *,
+    fail_b_login: bool,
+    tamper: str | None = None,
+    outside_temp: bool = False,
+):
+    root = Path(tempfile.mkdtemp(prefix="gate3-credential-test-"))
+    fake = root / "fake-codex.cmd"
     _write_fake_codex(fake)
-    credential = tmp_path / "private-auth.json"
+    credential = root / "private-auth.json"
     credential.write_text('{"fake":"credential"}\n', encoding="utf-8")
-    log = tmp_path / "calls.txt"
-    private = tmp_path / "private"
+    runtime = root / "runtime"
+    runtime.mkdir()
+    pair_runner = runtime / live.DEFAULT_PAIR_RUNNER.name
+    launcher = runtime / live.DEFAULT_SESSION_LAUNCHER.name
+    pair_source = live.DEFAULT_PAIR_RUNNER.read_text(encoding="utf-8")
+    production_binding = (
+        "$credentialSource = Join-Path "
+        "([Environment]::GetFolderPath('UserProfile')) "
+        "'.codex\\auth.json'"
+    )
+    assert production_binding in pair_source
+    pair_runner.write_text(
+        pair_source.replace(
+            production_binding,
+            "$credentialSource = " + repr(str(credential)),
+            1,
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    launcher.write_bytes(live.DEFAULT_SESSION_LAUNCHER.read_bytes())
+    route_plan = _credential_plan(
+        root / "route-plan.json", pair_runner, launcher
+    )
+    if tamper == "runner":
+        pair_runner.write_text(
+            pair_runner.read_text(encoding="utf-8") + "\n# tampered\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    elif tamper == "launcher":
+        launcher.write_text(
+            launcher.read_text(encoding="utf-8") + "\n# tampered\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    log = root / "calls.txt"
+    private = root / "private"
     private.mkdir()
     receipt = private / "credential-runner-receipt.json"
-    homes = {"A": tmp_path / "home-a", "B": tmp_path / "home-b"}
-    repos = {"A": tmp_path / "repo-a", "B": tmp_path / "repo-b"}
-    prompts = {"A": tmp_path / "prompt-a.txt", "B": tmp_path / "prompt-b.txt"}
+    homes = {"A": root / "home-a", "B": root / "home-b"}
+    repos = {"A": root / "repo-a", "B": root / "repo-b"}
+    prompts = {"A": root / "prompt-a.txt", "B": root / "prompt-b.txt"}
     for treatment in ("A", "B"):
         homes[treatment].mkdir()
         repos[treatment].mkdir()
@@ -1035,13 +1137,13 @@ def _run_fake_pair(tmp_path: Path, *, fail_b_login: bool):
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        str(live.DEFAULT_PAIR_RUNNER),
+        str(pair_runner),
         "-CodexCommand",
         str(fake),
-        "-CredentialSource",
-        str(credential),
+        "-RoutePlanPath",
+        str(route_plan),
         "-ArmAWorkspace",
-        str(repos["A"]),
+        str(tmp_path if outside_temp else repos["A"]),
         "-ArmBWorkspace",
         str(repos["B"]),
         "-ArmAPromptPath",
@@ -1075,41 +1177,318 @@ def _run_fake_pair(tmp_path: Path, *, fail_b_login: bool):
         text=True,
         timeout=60,
     )
-    return result, credential, log, receipt, homes
+    return (
+        result,
+        credential,
+        log,
+        receipt,
+        homes,
+        route_plan,
+        pair_runner,
+        launcher,
+        root,
+    )
 
 
 def test_pair_runner_preflights_then_invokes_exactly_two_fake_sessions(
     tmp_path: Path,
 ) -> None:
-    result, credential, log, receipt_path, homes = _run_fake_pair(
-        tmp_path, fail_b_login=False
-    )
-    assert result.returncode == 0, result.stderr
-    assert log.read_text(encoding="utf-8").splitlines() == [
-        "login",
-        "login",
-        "exec",
-        "exec",
-    ]
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    assert receipt == _valid_credential_receipt()
-    assert credential.read_text(encoding="utf-8") == '{"fake":"credential"}\n'
-    assert not (homes["A"] / "auth.json").exists()
-    assert not (homes["B"] / "auth.json").exists()
-    assert not (receipt_path.parent / ".credential-private").exists()
+    result_data = _run_fake_pair(tmp_path, fail_b_login=False)
+    (
+        result,
+        credential,
+        log,
+        receipt_path,
+        homes,
+        route_plan,
+        pair_runner,
+        launcher,
+        root,
+    ) = result_data
+    try:
+        assert result.returncode == 0, result.stderr
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            "login",
+            "login",
+            "exec",
+            "exec",
+        ]
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        assert receipt == _valid_credential_receipt(
+            route_plan, pair_runner, launcher
+        )
+        assert (
+            credential.read_text(encoding="utf-8")
+            == '{"fake":"credential"}\n'
+        )
+        assert not (homes["A"] / "auth.json").exists()
+        assert not (homes["B"] / "auth.json").exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def test_pair_runner_failed_preflight_starts_zero_fake_sessions_and_cleans(
     tmp_path: Path,
 ) -> None:
-    result, _, log, receipt_path, homes = _run_fake_pair(
+    result, _, log, receipt_path, homes, _, _, _, root = _run_fake_pair(
         tmp_path, fail_b_login=True
     )
-    assert result.returncode == 2
-    assert log.read_text(encoding="utf-8").splitlines() == ["login", "login"]
-    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    assert receipt["session_invocations"] == 0
-    assert receipt["login_status"] == {"A": "PASS", "B": "FAIL"}
-    assert not (homes["A"] / "auth.json").exists()
-    assert not (homes["B"] / "auth.json").exists()
-    assert not (receipt_path.parent / ".credential-private").exists()
+    try:
+        assert result.returncode == 2
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            "login",
+            "login",
+        ]
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        assert receipt["session_invocations"] == 0
+        assert receipt["login_status"] == {"A": "PASS", "B": "FAIL"}
+        assert not (homes["A"] / "auth.json").exists()
+        assert not (homes["B"] / "auth.json").exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_pair_runner_binds_production_auth_and_user_temp() -> None:
+    source = live.DEFAULT_PAIR_RUNNER.read_text(encoding="utf-8")
+    assert "[string]$CredentialSource" not in source
+    assert (
+        "$credentialSource = Join-Path "
+        "([Environment]::GetFolderPath('UserProfile')) "
+        "'.codex\\auth.json'"
+    ) in source
+    assert "[System.IO.Path]::GetTempPath()" in source
+    assert "pair_runner_implementation_sha256" in source
+    assert "launcher_implementation_sha256" in source
+    launcher = live.DEFAULT_SESSION_LAUNCHER.read_text(encoding="utf-8")
+    assert "[string]$ExpectedLauncherSha256" in launcher
+    assert "$observedLauncherSha256 -ne $ExpectedLauncherSha256" in launcher
+
+
+@pytest.mark.parametrize("tamper", ["runner", "launcher"])
+def test_pair_runner_rejects_unpinned_implementation_before_login(
+    tmp_path: Path,
+    tamper: str,
+) -> None:
+    result, _, log, receipt, _, _, _, _, root = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        tamper=tamper,
+    )
+    try:
+        assert result.returncode != 0
+        assert not log.exists()
+        assert not receipt.exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_pair_runner_rejects_non_temp_private_runtime_before_login(
+    tmp_path: Path,
+) -> None:
+    result, _, log, receipt, _, _, _, _, root = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        outside_temp=True,
+    )
+    try:
+        assert result.returncode != 0
+        assert not log.exists()
+        assert not receipt.exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+@pytest.mark.parametrize(
+    "failure_phase",
+    ["preflight", "arm_a", "arm_b", "build"],
+)
+def test_orchestrator_cleans_every_private_asset_on_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_phase: str,
+) -> None:
+    private_root = tmp_path / "private-runtime"
+    output = tmp_path / "published"
+    monkeypatch.setattr(
+        live.tempfile,
+        "mkdtemp",
+        lambda **_: str(private_root.mkdir() or private_root),
+    )
+    monkeypatch.setattr(live.shutil, "which", lambda _: "npm.cmd")
+
+    def fake_prepare(
+        _repo: Path,
+        staging: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        (staging / "inputs").mkdir(parents=True)
+        for name in (
+            "baseline.bundle",
+            "producer-prompt-a.txt",
+            "producer-prompt-b.txt",
+        ):
+            (staging / "inputs" / name).write_text(
+                "synthetic\n", encoding="utf-8"
+            )
+        (staging / "route-plan.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {}
+
+    def fake_private_process(command: list[str], *, label: str) -> None:
+        if label == "temporary Codex CLI installation":
+            codex = (
+                private_root
+                / "cli"
+                / "node_modules"
+                / ".bin"
+                / "codex.cmd"
+            )
+            codex.parent.mkdir(parents=True)
+            codex.write_text("@echo off\n", encoding="utf-8")
+        elif "repository" in label:
+            Path(command[-1]).mkdir(parents=True)
+
+    process_count = 0
+
+    def fake_run(command: list[str], **_: object) -> SimpleNamespace:
+        nonlocal process_count
+        process_count += 1
+        if "--version" in command:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"codex-cli {live.DEFAULT_CLI_VERSION}",
+                stderr="",
+            )
+        raw = private_root / "raw"
+        (raw / "private-rollout.jsonl").write_text(
+            "private\n", encoding="utf-8"
+        )
+        return SimpleNamespace(
+            returncode=0 if failure_phase == "build" else 1,
+            stdout=b"",
+            stderr=b"",
+        )
+
+    def fake_build(
+        _repo: Path,
+        _staging: Path,
+        built: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        if failure_phase == "build":
+            raise live.CanaryError("synthetic build failure")
+        built.mkdir()
+        (built / "canary-summary.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {"status": "PASS"}
+
+    monkeypatch.setattr(live, "prepare", fake_prepare)
+    monkeypatch.setattr(live, "_run_private_process", fake_private_process)
+    monkeypatch.setattr(live.subprocess, "run", fake_run)
+    monkeypatch.setattr(live, "build", fake_build)
+    monkeypatch.setattr(
+        live,
+        "_single_rollout",
+        lambda home: home / "sessions" / "rollout.jsonl",
+    )
+    monkeypatch.setattr(
+        live,
+        "verify",
+        lambda *_: {"status": "PASS"},
+    )
+    with pytest.raises(live.CanaryError):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert process_count == 2
+    assert not private_root.exists()
+    assert not output.exists()
+    assert list(tmp_path.glob(".published.candidate-*")) == []
+
+
+def test_orchestrator_publishes_only_after_verified_cleanup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root = tmp_path / "private-runtime"
+    output = tmp_path / "published"
+    monkeypatch.setattr(
+        live.tempfile,
+        "mkdtemp",
+        lambda **_: str(private_root.mkdir() or private_root),
+    )
+    monkeypatch.setattr(live.shutil, "which", lambda _: "npm.cmd")
+
+    def fake_prepare(
+        _repo: Path,
+        staging: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        (staging / "inputs").mkdir(parents=True)
+        for name in (
+            "baseline.bundle",
+            "producer-prompt-a.txt",
+            "producer-prompt-b.txt",
+        ):
+            (staging / "inputs" / name).write_text(
+                "synthetic\n", encoding="utf-8"
+            )
+        (staging / "route-plan.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {}
+
+    def fake_private_process(command: list[str], *, label: str) -> None:
+        if label == "temporary Codex CLI installation":
+            codex = (
+                private_root
+                / "cli"
+                / "node_modules"
+                / ".bin"
+                / "codex.cmd"
+            )
+            codex.parent.mkdir(parents=True)
+            codex.write_text("@echo off\n", encoding="utf-8")
+        elif "repository" in label:
+            Path(command[-1]).mkdir(parents=True)
+
+    def fake_run(command: list[str], **_: object) -> SimpleNamespace:
+        if "--version" in command:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"codex-cli {live.DEFAULT_CLI_VERSION}",
+                stderr="",
+            )
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    def fake_build(
+        _repo: Path,
+        _staging: Path,
+        built: Path,
+        **_: object,
+    ) -> dict[str, object]:
+        built.mkdir()
+        (built / "canary-summary.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+        return {"status": "PASS"}
+
+    monkeypatch.setattr(live, "prepare", fake_prepare)
+    monkeypatch.setattr(live, "_run_private_process", fake_private_process)
+    monkeypatch.setattr(live.subprocess, "run", fake_run)
+    monkeypatch.setattr(live, "build", fake_build)
+    monkeypatch.setattr(
+        live,
+        "_single_rollout",
+        lambda home: home / "sessions" / "rollout.jsonl",
+    )
+    monkeypatch.setattr(
+        live,
+        "verify",
+        lambda *_: {"status": "PASS"},
+    )
+    result = live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert result == {"status": "PASS"}
+    assert output.is_dir()
+    assert not private_root.exists()
+    assert list(tmp_path.glob(".published.candidate-*")) == []
