@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-07-22
+> **最後更新**: 2026-07-30
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -91,6 +91,43 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-07-30:
+
+Theme:
+
+- Close the F-7 update-available truth correction after PR #12 merged.
+- Preserve the distinction between backend update availability and the
+  conservative full-adoption verdict.
+- Stop framework expansion unless a later consumer replay exposes a distinct
+  failure.
+
+Completed in this slice:
+
+- [x] PR #12 merged to `main` at `85f45018`. The F-7 report envelope now
+  preserves backend `framework_update_status=update_available` when a fresh
+  verified target is ahead of the current pin, while
+  `f7_final_status=not_verified` remains conservative.
+- [x] A disposable post-merge consumer replay from merged `main` observed the
+  old pin `66e1c614`, fresh target `85f45018`, fast-forward availability, the
+  complete three-column adoption table, and no consumer mutation in
+  report-only mode.
+- [x] The replay did not change writer, promotion, receipt schema, runtime
+  enforcement, or consumer files.
+
+Next milestone:
+
+- Run F-7 against a named real consumer only when the owner explicitly selects
+  that consumer and authorizes the applicable report-only or update boundary.
+- Treat a new observed consumer failure as the prerequisite for further F-7
+  framework changes.
+
+Claim ceiling:
+
+- CAN CLAIM: PR #12 is merged and the bounded disposable post-merge replay
+  preserved truthful `update_available` reporting and the full adoption table.
+- CANNOT CLAIM: any real consumer is updated, full adoption is verified,
+  report-only is enforcement, or the framework has reached G4 maturity.
 
 Current refresh - 2026-07-24:
 
