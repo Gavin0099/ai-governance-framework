@@ -42,6 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v1"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -110,6 +111,7 @@ OPENAI_SECRET_RE = re.compile(r"\bsk-[A-Za-z0-9_-]{12,}")
 TOKEN_FIELD_RE = re.compile(
     r"(?i)^(?:access_token|refresh_token|id_token)$"
 )
+PUBLIC_RUN_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,94}[a-z0-9])?$")
 WINDOWS_PATH_COMPONENT = r"[^\\/\s\"'()<>{}\[\],]+"
 WINDOWS_NAMESPACE_COMPONENT = r"[^\\/\s\"'()<>\[\],]+"
 WINDOWS_ABSOLUTE_PATH_RE = re.compile(
@@ -2256,6 +2258,170 @@ def _remove_private_tree(path: Path) -> None:
     shutil.rmtree(path, onerror=clear_readonly_and_retry)
 
 
+def _failure_execution_summary(
+    receipt_path: Path | None,
+    *,
+    pair_started: bool,
+) -> dict[str, Any]:
+    default = {
+        "credential_preflight": "NOT_OBSERVED",
+        "login_status": {"A": "NOT_OBSERVED", "B": "NOT_OBSERVED"},
+        "runner_receipt_status": "NOT_CREATED",
+        "session_exit_codes": {"A": None, "B": None},
+        "session_invocations": 0,
+    }
+    def invalid(status: str) -> dict[str, Any]:
+        default["runner_receipt_status"] = status
+        if pair_started:
+            default["session_invocations"] = None
+        return default
+
+    if receipt_path is None:
+        return invalid(
+            "MISSING_AFTER_RUNNER_START" if pair_started else "NOT_CREATED"
+        )
+    try:
+        if not receipt_path.is_file():
+            return invalid(
+                "MISSING_AFTER_RUNNER_START"
+                if pair_started
+                else "NOT_CREATED"
+            )
+        receipt = _load_json(receipt_path)
+        if _privacy_violations(_json_bytes(receipt)):
+            return invalid("PRIVACY_REJECTED")
+        invocations = receipt.get("session_invocations")
+        login_status = receipt.get("login_status")
+        exit_codes = receipt.get("session_exit_codes")
+        if (
+            receipt.get("schema") != CREDENTIAL_RECEIPT_SCHEMA
+            or not isinstance(invocations, int)
+            or isinstance(invocations, bool)
+            or invocations not in {0, 1, 2}
+            or not isinstance(login_status, dict)
+            or set(login_status) != {"A", "B"}
+            or any(
+                value not in {"PASS", "FAIL"}
+                for value in login_status.values()
+            )
+            or not isinstance(exit_codes, dict)
+            or set(exit_codes) != {"A", "B"}
+            or any(
+                value is not None
+                and (not isinstance(value, int) or isinstance(value, bool))
+                for value in exit_codes.values()
+            )
+            or (
+                invocations == 0
+                and exit_codes != {"A": None, "B": None}
+            )
+            or (
+                invocations == 1
+                and (
+                    not isinstance(exit_codes["A"], int)
+                    or isinstance(exit_codes["A"], bool)
+                    or exit_codes["B"] is not None
+                )
+            )
+            or (
+                invocations == 2
+                and any(
+                    not isinstance(exit_codes[arm], int)
+                    or isinstance(exit_codes[arm], bool)
+                    for arm in ("A", "B")
+                )
+            )
+            or (
+                invocations > 0
+                and login_status != {"A": "PASS", "B": "PASS"}
+            )
+        ):
+            return invalid("INVALID")
+        return {
+            "credential_preflight": (
+                "PASS"
+                if login_status == {"A": "PASS", "B": "PASS"}
+                else "FAIL"
+            ),
+            "login_status": {
+                "A": login_status["A"],
+                "B": login_status["B"],
+            },
+            "runner_receipt_status": "VALID",
+            "session_exit_codes": {
+                "A": exit_codes["A"],
+                "B": exit_codes["B"],
+            },
+            "session_invocations": invocations,
+        }
+    except Exception:
+        # The private runner receipt is untrusted evidence. This projection is
+        # deliberately total so malformed evidence cannot skip cleanup.
+        return invalid("INVALID")
+
+
+def _publish_failure_receipt(
+    output_root: Path,
+    *,
+    run_id: str,
+    failure_stage: str,
+    execution: dict[str, Any],
+    cleanup_status: str,
+    residue_classes: list[str],
+    success_packet_publication_attempted: bool,
+    success_packet_present: bool,
+) -> Path:
+    failure_root = output_root.with_name(f"{output_root.name}.failure")
+    if failure_root.exists():
+        raise CanaryError("failure receipt output already exists")
+    public_run_id = run_id if PUBLIC_RUN_ID_RE.fullmatch(run_id) else "REDACTED"
+    receipt = {
+        "authorization": {
+            "counted_gate3_run": False,
+            "replacement_sessions": 0,
+        },
+        "cleanup": {
+            "residue_classes": sorted(residue_classes),
+            "status": cleanup_status,
+        },
+        "credential_privacy": {
+            "credential_bytes_or_content_retained": False,
+            "credential_digest_retained": False,
+            "credential_source_path_retained": False,
+            "raw_output_retained": False,
+        },
+        "execution": execution,
+        "failure_stage": failure_stage,
+        "non_counted": True,
+        "run_id": public_run_id,
+        "schema": FAILURE_RECEIPT_SCHEMA,
+        "scoreable": False,
+        "success_packet_admitted": False,
+        "success_packet_present": success_packet_present,
+        "success_packet_publication_attempted": (
+            success_packet_publication_attempted
+        ),
+    }
+    payload = _json_bytes(receipt)
+    if _privacy_violations(payload):
+        raise CanaryError("failure receipt contains private material")
+    candidate = output_root.parent / (
+        f".{output_root.name}.failure-candidate-{secrets.token_hex(8)}"
+    )
+    candidate_owned = False
+    try:
+        os.mkdir(candidate)
+        candidate_owned = True
+        chain._atomic_write(candidate / "failure-receipt.json", payload)
+        verify_public_privacy(candidate)
+        os.rename(candidate, failure_root)
+        candidate_owned = False
+    finally:
+        if candidate_owned and candidate.exists():
+            _remove_private_tree(candidate)
+    return failure_root / "failure-receipt.json"
+
+
 def _orchestrate_impl(
     repo_root: Path,
     output_root: Path,
@@ -2265,8 +2431,13 @@ def _orchestrate_impl(
 ) -> dict[str, Any]:
     repo_root = repo_root.resolve()
     output_root = output_root.resolve()
+    if not PUBLIC_RUN_ID_RE.fullmatch(run_id):
+        raise CanaryError("run id is not a privacy-safe public identifier")
     if output_root.exists():
         raise CanaryError(f"output already exists: {output_root}")
+    failure_root = output_root.with_name(f"{output_root.name}.failure")
+    if failure_root.exists():
+        raise CanaryError(f"failure output already exists: {failure_root}")
     output_root.parent.mkdir(parents=True, exist_ok=True)
     private_root = Path(tempfile.mkdtemp(prefix="gate3-codex-live-")).resolve()
     public_candidate = (
@@ -2275,8 +2446,12 @@ def _orchestrate_impl(
     )
     private_built = private_root / "public-packet"
     candidate_owned = False
+    publication_attempted = False
     published_by_us = False
     succeeded = False
+    failure_stage = "setup"
+    pair_started = False
+    credential_receipt: Path | None = None
     try:
         if public_candidate.exists():
             raise CanaryError("public candidate path already exists")
@@ -2297,6 +2472,7 @@ def _orchestrate_impl(
         npm = shutil.which("npm.cmd") or shutil.which("npm")
         if npm is None:
             raise CanaryError("npm command is unavailable")
+        failure_stage = "cli_install"
         _run_private_process(
             [
                 npm,
@@ -2327,6 +2503,7 @@ def _orchestrate_impl(
             )
         ):
             raise CanaryError("temporary Codex CLI build identity mismatch")
+        failure_stage = "route_prepare"
         prepare(
             repo_root,
             staging,
@@ -2337,6 +2514,7 @@ def _orchestrate_impl(
             reasoning=DEFAULT_REASONING,
         )
         baseline_bundle = staging / "inputs" / "baseline.bundle"
+        failure_stage = "repository_prepare"
         for treatment in ("A", "B"):
             _run_private_process(
                 [
@@ -2357,6 +2535,8 @@ def _orchestrate_impl(
             for treatment in ("A", "B")
         }
         credential_receipt = raw / "credential-runner-receipt.json"
+        failure_stage = "pair_execution"
+        pair_started = True
         pair_result = subprocess.run(
             [
                 "powershell.exe",
@@ -2402,6 +2582,7 @@ def _orchestrate_impl(
         )
         if pair_result.returncode != 0:
             raise CanaryError("authorized A/B pair failed")
+        failure_stage = "packet_build"
         _builder(
             repo_root,
             staging,
@@ -2414,6 +2595,7 @@ def _orchestrate_impl(
             arm_b_exec_events=paths["B"]["stdout"],
             credential_runner_receipt=credential_receipt,
         )
+        failure_stage = "candidate_verification"
         os.mkdir(public_candidate)
         candidate_owned = True
         shutil.copytree(
@@ -2422,16 +2604,24 @@ def _orchestrate_impl(
             dirs_exist_ok=True,
         )
         verify(repo_root, public_candidate)
+        failure_stage = "private_cleanup"
         _remove_private_tree(private_root)
         if private_root.exists():
             raise CanaryError("private runtime cleanup verification failed")
+        failure_stage = "success_publication"
+        publication_attempted = True
         os.replace(public_candidate, output_root)
         candidate_owned = False
         published_by_us = True
+        failure_stage = "post_publication_verification"
         result = verify(repo_root, output_root)
         succeeded = True
         return result
     finally:
+        execution = _failure_execution_summary(
+            credential_receipt,
+            pair_started=pair_started,
+        )
         if private_root.exists():
             try:
                 _remove_private_tree(private_root)
@@ -2448,11 +2638,26 @@ def _orchestrate_impl(
                     _remove_private_tree(output_root)
                 except OSError:
                     pass
-        if (
-            private_root.exists()
-            or (not succeeded and candidate_owned and public_candidate.exists())
-            or (not succeeded and published_by_us and output_root.exists())
-        ):
+        residue_classes = []
+        if private_root.exists():
+            residue_classes.append("private_runtime")
+        if not succeeded and candidate_owned and public_candidate.exists():
+            residue_classes.append("public_candidate")
+        if not succeeded and published_by_us and output_root.exists():
+            residue_classes.append("success_output")
+        if not succeeded:
+            cleanup_status = "PASS" if not residue_classes else "FAIL"
+            _publish_failure_receipt(
+                output_root,
+                run_id=run_id,
+                failure_stage=failure_stage,
+                execution=execution,
+                cleanup_status=cleanup_status,
+                residue_classes=residue_classes,
+                success_packet_publication_attempted=publication_attempted,
+                success_packet_present=output_root.exists(),
+            )
+        if residue_classes:
             raise CanaryError("failed runtime artifact cleanup verification")
 
 

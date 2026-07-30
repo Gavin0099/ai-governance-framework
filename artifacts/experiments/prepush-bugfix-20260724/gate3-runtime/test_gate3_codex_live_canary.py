@@ -1487,6 +1487,26 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
             },
         }
         observed_pair_states.append(pair_states[failure_phase])
+        state = pair_states[failure_phase]
+        receipt_path = Path(
+            command[command.index("-PrivateReceiptPath") + 1]
+        )
+        receipt_path.write_text(
+            json.dumps(
+                {
+                    "login_status": (
+                        {"A": "FAIL", "B": "FAIL"}
+                        if failure_phase == "preflight"
+                        else {"A": "PASS", "B": "PASS"}
+                    ),
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": state["session_exit_codes"],
+                    "session_invocations": state["session_invocations"],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         return SimpleNamespace(
             returncode={
                 "preflight": 2,
@@ -1552,6 +1572,35 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
     assert not private_root.exists()
     assert not output.exists()
     assert list(tmp_path.glob(".published.candidate-*")) == []
+    failure_root = output.with_name(f"{output.name}.failure")
+    receipt_path = failure_root / "failure-receipt.json"
+    assert receipt_path.is_file()
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["schema"] == live.FAILURE_RECEIPT_SCHEMA
+    assert receipt["scoreable"] is False
+    assert receipt["success_packet_admitted"] is False
+    assert receipt["success_packet_publication_attempted"] is False
+    assert receipt["cleanup"] == {"residue_classes": [], "status": "PASS"}
+    assert receipt["execution"]["session_invocations"] == {
+        "preflight": 0,
+        "arm_a": 2,
+        "arm_b": 2,
+        "build": 2,
+    }[failure_phase]
+    assert receipt["execution"]["session_exit_codes"] == {
+        "preflight": {"A": None, "B": None},
+        "arm_a": {"A": 14, "B": 0},
+        "arm_b": {"A": 0, "B": 14},
+        "build": {"A": 0, "B": 0},
+    }[failure_phase]
+    assert receipt["failure_stage"] == {
+        "preflight": "pair_execution",
+        "arm_a": "pair_execution",
+        "arm_b": "pair_execution",
+        "build": "packet_build",
+    }[failure_phase]
+    assert live._privacy_violations(receipt_path.read_bytes()) == []
+    assert list(tmp_path.glob(".published.failure-candidate-*")) == []
 
 
 def test_orchestrator_publishes_only_after_verified_cleanup(
@@ -1640,6 +1689,7 @@ def test_orchestrator_publishes_only_after_verified_cleanup(
     assert output.is_dir()
     assert not private_root.exists()
     assert list(tmp_path.glob(".published.candidate-*")) == []
+    assert not output.with_name(f"{output.name}.failure").exists()
 
 
 def _mock_successful_orchestrator(
@@ -1782,16 +1832,33 @@ def test_orchestrator_replace_failure_cleans_candidate_and_private_root(
     private_root, output = _mock_successful_orchestrator(
         tmp_path, monkeypatch
     )
-    monkeypatch.setattr(
-        live.os,
-        "replace",
-        lambda *_: (_ for _ in ()).throw(OSError("synthetic replace failure")),
-    )
+    real_replace = live.os.replace
+    replace_calls = 0
+
+    def fail_first_replace(source: object, destination: object) -> None:
+        nonlocal replace_calls
+        replace_calls += 1
+        if replace_calls == 1:
+            raise OSError("synthetic replace failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(live.os, "replace", fail_first_replace)
     with pytest.raises(OSError, match="synthetic replace failure"):
         live.orchestrate(tmp_path, output, run_id="synthetic")
     assert not private_root.exists()
     assert not output.exists()
     assert not (tmp_path / ".published-edge.candidate-fixed").exists()
+    receipt = json.loads(
+        (
+            output.with_name(f"{output.name}.failure")
+            / "failure-receipt.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert replace_calls == 2
+    assert receipt["failure_stage"] == "success_publication"
+    assert receipt["success_packet_admitted"] is False
+    assert receipt["success_packet_publication_attempted"] is True
+    assert receipt["success_packet_present"] is False
 
 
 def test_orchestrator_post_publish_verify_failure_removes_new_output(
@@ -1808,3 +1875,325 @@ def test_orchestrator_post_publish_verify_failure_removes_new_output(
     assert not private_root.exists()
     assert not output.exists()
     assert not (tmp_path / ".published-edge.candidate-fixed").exists()
+    failure_receipt = json.loads(
+        (
+            output.with_name(f"{output.name}.failure")
+            / "failure-receipt.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert failure_receipt["success_packet_admitted"] is False
+    assert failure_receipt["success_packet_publication_attempted"] is True
+    assert failure_receipt["success_packet_present"] is False
+
+
+@pytest.mark.parametrize(
+    ("invocations", "exit_codes"),
+    [
+        (0, {"A": None, "B": None}),
+        (1, {"A": 7, "B": None}),
+        (2, {"A": 0, "B": 9}),
+    ],
+)
+def test_failure_execution_summary_preserves_exact_session_count(
+    tmp_path: Path,
+    invocations: int,
+    exit_codes: dict[str, int | None],
+) -> None:
+    receipt = tmp_path / "credential-receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "login_status": {"A": "PASS", "B": "PASS"},
+                "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                "session_exit_codes": exit_codes,
+                "session_invocations": invocations,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary = live._failure_execution_summary(receipt, pair_started=True)
+    assert summary == {
+        "credential_preflight": "PASS",
+        "login_status": {"A": "PASS", "B": "PASS"},
+        "runner_receipt_status": "VALID",
+        "session_exit_codes": exit_codes,
+        "session_invocations": invocations,
+    }
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_status"),
+    [
+        (b'{"schema":', "INVALID"),
+        (
+            json.dumps(
+                {
+                    "access_token": "sk-synthetic-secret-material",
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": None, "B": None},
+                    "session_invocations": 0,
+                }
+            ).encode("utf-8"),
+            "PRIVACY_REJECTED",
+        ),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": 7, "B": 9},
+                    "session_invocations": 0,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": None, "B": 7},
+                    "session_invocations": 1,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": 0, "B": None},
+                    "session_invocations": 2,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "FAIL", "B": "FAIL"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": 7, "B": None},
+                    "session_invocations": 1,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "FAIL"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": 0, "B": 9},
+                    "session_invocations": 2,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
+    ],
+)
+def test_failure_execution_summary_rejects_untrusted_receipts_without_throwing(
+    tmp_path: Path,
+    payload: bytes,
+    expected_status: str,
+) -> None:
+    receipt = tmp_path / "credential-receipt.json"
+    receipt.write_bytes(payload)
+    summary = live._failure_execution_summary(receipt, pair_started=True)
+    assert summary["runner_receipt_status"] == expected_status
+    assert summary["session_invocations"] is None
+
+
+def test_orchestrator_cleanup_failure_publishes_only_negative_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path,
+        monkeypatch,
+    )
+    real_remove = live._remove_private_tree
+
+    def leave_private_residue(path: Path) -> None:
+        if path == private_root:
+            return
+        real_remove(path)
+
+    monkeypatch.setattr(live, "_remove_private_tree", leave_private_residue)
+    with pytest.raises(
+        live.CanaryError,
+        match="failed runtime artifact cleanup verification",
+    ):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not output.exists()
+    receipt_path = (
+        output.with_name(f"{output.name}.failure") / "failure-receipt.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["failure_stage"] == "private_cleanup"
+    assert receipt["cleanup"] == {
+        "residue_classes": ["private_runtime"],
+        "status": "FAIL",
+    }
+    assert receipt["scoreable"] is False
+    assert receipt["success_packet_admitted"] is False
+    assert receipt["success_packet_present"] is False
+    assert receipt["success_packet_publication_attempted"] is False
+    assert live._privacy_violations(receipt_path.read_bytes()) == []
+
+
+def test_truncated_runner_receipt_cannot_skip_cleanup_or_negative_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path,
+        monkeypatch,
+    )
+
+    def truncated_pair(command: list[str], **_: object) -> SimpleNamespace:
+        if "--version" in command:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"codex-cli {live.DEFAULT_CLI_VERSION}",
+                stderr="",
+            )
+        receipt_path = Path(
+            command[command.index("-PrivateReceiptPath") + 1]
+        )
+        receipt_path.write_bytes(b'{"schema":')
+        return SimpleNamespace(returncode=1, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(live.subprocess, "run", truncated_pair)
+    with pytest.raises(live.CanaryError, match="authorized A/B pair failed"):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    assert not private_root.exists()
+    receipt_path = (
+        output.with_name(f"{output.name}.failure") / "failure-receipt.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["failure_stage"] == "pair_execution"
+    assert receipt["execution"]["runner_receipt_status"] == "INVALID"
+    assert receipt["execution"]["session_invocations"] is None
+    assert receipt["cleanup"] == {"residue_classes": [], "status": "PASS"}
+
+
+def test_pair_failure_stage_survives_cleanup_residue(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root, output = _mock_successful_orchestrator(
+        tmp_path,
+        monkeypatch,
+    )
+
+    def failed_pair(command: list[str], **_: object) -> SimpleNamespace:
+        if "--version" in command:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"codex-cli {live.DEFAULT_CLI_VERSION}",
+                stderr="",
+            )
+        receipt_path = Path(
+            command[command.index("-PrivateReceiptPath") + 1]
+        )
+        receipt_path.write_text(
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": live.CREDENTIAL_RECEIPT_SCHEMA,
+                    "session_exit_codes": {"A": 14, "B": 0},
+                    "session_invocations": 2,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=1, stdout=b"", stderr=b"")
+
+    real_remove = live._remove_private_tree
+
+    def leave_private_residue(path: Path) -> None:
+        if path == private_root:
+            return
+        real_remove(path)
+
+    monkeypatch.setattr(live.subprocess, "run", failed_pair)
+    monkeypatch.setattr(live, "_remove_private_tree", leave_private_residue)
+    with pytest.raises(
+        live.CanaryError,
+        match="failed runtime artifact cleanup verification",
+    ):
+        live.orchestrate(tmp_path, output, run_id="synthetic")
+    receipt_path = (
+        output.with_name(f"{output.name}.failure") / "failure-receipt.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["failure_stage"] == "pair_execution"
+    assert receipt["execution"]["session_exit_codes"] == {"A": 14, "B": 0}
+    assert receipt["cleanup"] == {
+        "residue_classes": ["private_runtime"],
+        "status": "FAIL",
+    }
+
+
+def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "published"
+    observed_candidates: list[dict[str, object]] = []
+    real_rename = live.os.rename
+
+    def observing_rename(source: object, destination: object) -> None:
+        candidate_receipt = Path(source) / "failure-receipt.json"
+        observed_candidates.append(
+            json.loads(candidate_receipt.read_text(encoding="utf-8"))
+        )
+        real_rename(source, destination)
+
+    monkeypatch.setattr(live.os, "rename", observing_rename)
+    receipt_path = live._publish_failure_receipt(
+        output,
+        run_id="eyJhbGciOiJIUzI1NiJ9.secret.signature",
+        failure_stage="packet_build",
+        execution={
+            "credential_preflight": "PASS",
+            "login_status": {"A": "PASS", "B": "PASS"},
+            "runner_receipt_status": "VALID",
+            "session_exit_codes": {"A": 0, "B": 3},
+            "session_invocations": 2,
+        },
+        cleanup_status="PASS",
+        residue_classes=[],
+        success_packet_publication_attempted=False,
+        success_packet_present=False,
+    )
+    published = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert observed_candidates == [published]
+    assert published["run_id"] == "REDACTED"
+    assert live._privacy_violations(receipt_path.read_bytes()) == []
+
+
+def test_orchestrator_rejects_non_public_run_id_before_private_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_root_created = False
+
+    def forbidden_mkdtemp(**_: object) -> str:
+        nonlocal private_root_created
+        private_root_created = True
+        raise AssertionError("private work must not start")
+
+    monkeypatch.setattr(live.tempfile, "mkdtemp", forbidden_mkdtemp)
+    with pytest.raises(live.CanaryError, match="privacy-safe"):
+        live.orchestrate(
+            tmp_path,
+            tmp_path / "published",
+            run_id="eyJhbGciOiJIUzI1NiJ9.secret.signature",
+        )
+    assert private_root_created is False
