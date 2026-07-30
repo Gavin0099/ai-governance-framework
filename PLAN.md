@@ -1567,6 +1567,20 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   This rehearsal is synthetic and non-counted; its scorer fixtures are not
   independent judgments and it does not approve, sign, promote or start Gate 3.
 
+- [x] **Gate 3 Codex credential-seeding canary ended as a non-counted negative
+  result on 2026-07-30.** The independently approved implementation at
+  `ad0ee5a8` invoked the one authorized exact-two/no-replacement orchestration,
+  but the run terminated at private cleanup verification and published no
+  public packet. The only residue was read-only synthetic Git object
+  directories; exact manual cleanup completed, and cleanup hardening commit
+  `479f45f5` subsequently passed independent review, focused tests 123/123 and
+  canonical runtime governance 194/194. The privacy-safe negative receipt is
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/receipt-gate3-codex-auth-v1-20260730-145456-negative.json`.
+  Session execution is not reconstructed from deleted private evidence, so the
+  authorization is conservatively treated as consumed and no replacement was
+  run. This does not establish a successful live A/B canary, does not count
+  toward Gate 3, and does not open Gate 3.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
