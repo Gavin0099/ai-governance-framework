@@ -176,6 +176,27 @@ canonical session memory:
 4. commit `memory/**` and any closeout companions separately;
 5. push both commits and verify the remote ref resolves to the intended head.
 
+### Single-PR Closeout Contract
+
+The two-commit sequence is a commit boundary, not a requirement for two pull
+requests. By default, keep the implementation commit and its canonical
+closeout companion commit on the same branch and deliver them through one pull
+request.
+
+When a canonical closeout companion is required, add it before the pull request
+is merged. Successful merge, push, and remote-ref verification belong in the
+final delivery report. They must not, by themselves, create another memory
+commit, repository mutation, follow-up branch, or second pull request.
+
+A follow-up slice is justified only when:
+
+- post-merge verification exposes a new defect or contradiction;
+- required governance state was omitted and must be corrected; or
+- the owner explicitly authorizes a separate bookkeeping or remediation slice.
+
+This contract does not weaken branch protection, required checks, review
+requirements, or the separation between implementation and closeout commits.
+
 `memory_binding: bound` proves only that the named commit resolves to a commit
 object in the local repository. It does not prove that the commit was pushed,
 that a remote contains it, or that the memory prose is true.
