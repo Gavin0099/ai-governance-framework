@@ -5,6 +5,11 @@ on:
     branches: [main, 'feature/**']
     paths:
       - '.github/workflows/governance.yml'
+      - '.governance/**'
+      - 'AGENTS.md'
+      - 'AGENTS.base.md'
+      - 'baselines/**'
+      - 'contract.yaml'
       - 'governance/**'
       - 'governance_tools/**'
       - 'runtime_hooks/**'
@@ -19,6 +24,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/governance.yml'
+      - '.governance/**'
+      - 'AGENTS.md'
+      - 'AGENTS.base.md'
+      - 'baselines/**'
+      - 'contract.yaml'
       - 'governance/**'
       - 'governance_tools/**'
       - 'runtime_hooks/**'
@@ -94,6 +104,24 @@ jobs:
           elif status == 'STALE':
               print(f'::warning file=PLAN.md::PLAN.md is STALE ({days}d). Consider updating soon.')
           "
+
+  canonical-drift-post-merge:
+    name: Canonical Drift Post-Merge Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install documented dependencies
+        run: pip install -r requirements.txt
+
+      - name: Audit canonical governance drift after merge
+        run: python governance_tools/governance_drift_checker.py --repo . --framework-root . --format human
 
   phase-gates:
     name: Phase Gate Verification

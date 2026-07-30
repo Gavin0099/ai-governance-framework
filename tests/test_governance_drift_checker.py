@@ -12,6 +12,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from governance_tools.adopt_governance import refresh_baseline
+from governance_tools.expansion_boundary_checker import ExpansionBoundaryResult
 from governance_tools.governance_drift_checker import (
     BaselineDriftResult,
     BASELINE_YAML_RELPATH,
@@ -25,7 +27,6 @@ from governance_tools.governance_drift_checker import (
     format_human,
     format_json,
 )
-from governance_tools.expansion_boundary_checker import ExpansionBoundaryResult
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent
 
@@ -151,6 +152,26 @@ def clean_repo(tmp_path):
     for name in ("01_active_task.md", "02_tech_stack.md", "03_knowledge_base.md", "04_review_log.md"):
         (mem / name).write_text(f"# {name}\n", encoding="utf-8")
     return tmp_path
+
+
+def test_bookkeeping_gate_blocks_until_canonical_refresh(clean_repo):
+    agents = clean_repo / "AGENTS.base.md"
+    agents.write_text(
+        agents.read_text(encoding="utf-8")
+        + "\nAuthorized content pending canonical refresh.\n",
+        encoding="utf-8",
+    )
+
+    drifted = check_governance_drift(clean_repo, FRAMEWORK_ROOT)
+    assert drifted.ok is False
+    assert drifted.severity == "critical"
+    assert drifted.checks["protected_files_unmodified"] is False
+
+    assert refresh_baseline(clean_repo, FRAMEWORK_ROOT, dry_run=False) == 0
+
+    refreshed = check_governance_drift(clean_repo, FRAMEWORK_ROOT)
+    assert refreshed.ok is True
+    assert refreshed.checks["protected_files_unmodified"] is True
 
 
 # ── _sha256_file ──────────────────────────────────────────────────────────────
