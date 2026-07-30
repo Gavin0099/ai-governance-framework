@@ -1,0 +1,110 @@
+{
+  "authorization": "exactly_two_non_counted_codex_live_canary_sessions_only",
+  "canary": {
+    "baseline_commit": "f9bb04baa88bfbc4ca69c76217a57f0c463f5dbc",
+    "build_exit_code": 2,
+    "build_failure": "tool input wrapper differs from the frozen route",
+    "model_build": "codex:gpt-5.6-luna:comp_hash=3000:cli=0.146.0",
+    "public_packet_created": false,
+    "run_id": "gate3-codex-live-v4-clean-20260730-094459",
+    "session_count": 2,
+    "status": "CHANGES_REQUESTED"
+  },
+  "checks": {
+    "canonical_precommit": {
+      "command": "scripts/run-runtime-governance.sh --mode enforce",
+      "passed": 194,
+      "status": "PASS"
+    },
+    "focused_unit_tests": {
+      "command": ".venv/Scripts/python.exe -m pytest -q --basetemp <TEMP> artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_live_canary.py",
+      "passed": 83,
+      "status": "PASS"
+    },
+    "privacy_namespace_regressions": {
+      "coverage": [
+        "\\\\.\\PhysicalDrive0",
+        "\\\\?\\Volume{GUID}\\...",
+        "\\\\?\\GLOBALROOT\\Device\\...",
+        "\\Device\\...",
+        "\\??\\...",
+        "\\Global??\\...",
+        "\\DosDevices\\...",
+        "//./PhysicalDrive0",
+        "//?/Volume{GUID}/..."
+      ],
+      "sanitizer_result": "PASS",
+      "verifier_result": "PASS"
+    },
+    "tool_input_contract": {
+      "arm_a": {
+        "batched_shell_records": 1,
+        "canonical_shell_records": 0,
+        "patch_records": 1,
+        "shell_records": 13,
+        "status": "FAIL",
+        "tool_call_records": 14
+      },
+      "arm_b": {
+        "batched_shell_records": 0,
+        "canonical_shell_records": 15,
+        "patch_records": 3,
+        "shell_records": 15,
+        "status": "PASS",
+        "tool_call_records": 18
+      },
+      "decision": "FAIL_CLOSED_BEFORE_PUBLICATION",
+      "reason": "Arm A used a non-canonical shell wrapper and combined two shell invocations in one tool record; the frozen prompt required one simple command per call."
+    }
+  },
+  "cleanup": {
+    "private_rollouts_removed": 2,
+    "private_staging_removed": true,
+    "synthetic_repositories_removed": 2,
+    "temporary_cli_removed": true,
+    "temporary_raw_evidence_removed": true,
+    "verified_absent_after_cleanup": true
+  },
+  "implementation": {
+    "commit": "3aac6a27d0643de087c28eb1aed0dc7e1962e85b",
+    "harness_sha256": "688b233dbf975ad48c51ce3c3f9967cd9f2b294e45276d743c3bb26aea6f0173",
+    "launcher_sha256": "d5a68ce4ab39e194520c369fb0c1fb03f091d005ffbf4257c1572ff7f8158577",
+    "sanitizer_rules_sha256": "06f55f43e43f79ea580aa6deee5cfbbc71bfd959357780af22f4edbda4ae2ade",
+    "sanitizer_schema": "gate3-codex-public-evidence-sanitizer.v4",
+    "tests_sha256": "e9c9fbb2896f26ab995535ea97ba2f09ad62bf607f2840574c7c8c87ceef596f"
+  },
+  "not_claimed": [
+    "successful paired A/B public evidence packet",
+    "offline verifier PASS for this run",
+    "independent approval",
+    "counted Gate 3 run",
+    "Gate 3 start",
+    "Skill effectiveness",
+    "human or model blind scoring",
+    "owner signature",
+    "public replay of deleted private raw evidence"
+  ],
+  "private_source_digests_before_deletion": {
+    "arm_a": {
+      "exec_events_sha256": "49ff40870f3e290a29a6fdf22e4a6e4882f545f3f0b59688062f342044dcbee9",
+      "output_commit": "c9f617d27e8e7997acfc8dd6e11a2d714dfc37f6",
+      "rollout_sha256": "9e6c1ad5f7286b0f39265ae6c9bbe471a8f3de82913f17acb0f459c8005d456b",
+      "session_exit_code": 0,
+      "stderr_sha256": "3a745686adfe2238367d245a1cf7c806b96d570bb0b6aac73e6ecb3449a7058a"
+    },
+    "arm_b": {
+      "exec_events_sha256": "dcf6d210f8bdb0ab2a1159c1200d91e82c0947a92542fa52f2b336e16aca7b7e",
+      "output_commit": "4be469b88b05b677f63e1c1f144dc09db99b0da7",
+      "rollout_sha256": "76726489198f012e9ae17e3ea1c88594677795ffd334673835ac9a588187de39",
+      "session_exit_code": 0,
+      "stderr_sha256": "c8e30c52319ff8c6cf9e10f26c081220b2743f976255359179a46374894f24a3"
+    },
+    "retention": "digests_only; source files deleted after cleanup verification"
+  },
+  "publication": {
+    "atomic_rename_attempted": false,
+    "public_output_exists": false,
+    "status": "NOT_PUBLISHED_BECAUSE_SOURCE_CONTRACT_FAILED"
+  },
+  "schema": "gate3-codex-live-canary-negative-receipt.v1"
+}
