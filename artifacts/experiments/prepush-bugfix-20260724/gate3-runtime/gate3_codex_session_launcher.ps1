@@ -39,6 +39,28 @@ $env:GIT_CONFIG_KEY_0 = 'safe.directory'
 $env:GIT_CONFIG_VALUE_0 = $safeWorkspace
 $env:PYTHONDONTWRITEBYTECODE = '1'
 
+$syntheticGitName = 'Gate3 Synthetic Producer'
+$syntheticGitEmail = 'gate3-producer@example.invalid'
+& git -C $Workspace config --local user.name $syntheticGitName
+if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to set the frozen synthetic Git user name.'
+}
+& git -C $Workspace config --local user.email $syntheticGitEmail
+if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to set the frozen synthetic Git user email.'
+}
+$actualGitName = (& git -C $Workspace config --local --get user.name)
+if ($LASTEXITCODE -ne 0) {
+    throw 'Frozen synthetic Git user name verification failed.'
+}
+$actualGitEmail = (& git -C $Workspace config --local --get user.email)
+if ($LASTEXITCODE -ne 0) {
+    throw 'Frozen synthetic Git user email verification failed.'
+}
+if ($actualGitName -ne $syntheticGitName -or $actualGitEmail -ne $syntheticGitEmail) {
+    throw 'Frozen synthetic Git identity verification failed.'
+}
+
 $arguments = @(
     'exec',
     '--strict-config',

@@ -37,7 +37,7 @@ DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
 SUMMARY_SCHEMA = "gate3-codex-live-canary.v3"
 ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v3"
 ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
-CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v1"
+CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
@@ -50,6 +50,14 @@ DEFAULT_CLI_VERSION = "0.146.0"
 DEFAULT_REASONING = "low"
 DEFAULT_PROVIDER = "openai"
 DEFAULT_TIMEZONE = "Asia/Taipei"
+BASELINE_GIT_IDENTITY = {
+    "email": "gate3-canary@example.invalid",
+    "name": "Gate3 Canary",
+}
+PRODUCER_GIT_IDENTITY = {
+    "email": "gate3-producer@example.invalid",
+    "name": "Gate3 Synthetic Producer",
+}
 PUBLIC_CONTEXT_TOKENS = {"A": "WORKSPACE_A", "B": "WORKSPACE_B"}
 GENERIC_CONTEXT_TOKEN = "WORKSPACE"
 SANITIZER_SCHEMA = "gate3-codex-public-evidence-sanitizer.v4"
@@ -488,6 +496,92 @@ def _git(
     ).stdout
 
 
+def _expanded_git_identity(identity: dict[str, str]) -> dict[str, str]:
+    return {
+        "author_email": identity["email"],
+        "author_name": identity["name"],
+        "committer_email": identity["email"],
+        "committer_name": identity["name"],
+    }
+
+
+def _commit_identity(repo: Path, commit: str) -> dict[str, str]:
+    raw = _git(
+        repo,
+        "show",
+        "-s",
+        "--format=%an%x00%ae%x00%cn%x00%ce%x00",
+        commit,
+    )
+    if raw.endswith(b"\r\n"):
+        raw = raw[:-2]
+    elif raw.endswith(b"\n"):
+        raw = raw[:-1]
+    parts = raw.split(b"\0")
+    if len(parts) != 5 or parts[-1] != b"":
+        raise CanaryError("commit identity metadata is malformed")
+    try:
+        values = [part.decode("utf-8", errors="strict") for part in parts[:4]]
+    except UnicodeDecodeError as exc:
+        raise CanaryError("commit identity metadata is not UTF-8") from exc
+    return dict(
+        zip(
+            (
+                "author_name",
+                "author_email",
+                "committer_name",
+                "committer_email",
+            ),
+            values,
+            strict=True,
+        )
+    )
+
+
+def _assert_commit_identity(
+    repo: Path,
+    commit: str,
+    expected: dict[str, str],
+) -> dict[str, str]:
+    actual = _commit_identity(repo, commit)
+    expanded = _expanded_git_identity(expected)
+    if actual != expanded:
+        raise CanaryError(
+            "commit identity is outside frozen synthetic allowlist"
+        )
+    return expanded
+
+
+def _verify_bundle_commit_identities(
+    bundle: Path,
+    *,
+    baseline_commit: str,
+    output_commit: str,
+    producer_identity: dict[str, str],
+) -> dict[str, dict[str, str]]:
+    with tempfile.TemporaryDirectory(
+        prefix="gate3-live-bundle-identity-"
+    ) as temp:
+        temp_root = Path(temp)
+        repo = temp_root / "repo"
+        _run(
+            ["git", "clone", "--quiet", str(bundle.resolve()), str(repo)],
+            cwd=temp_root,
+        )
+        head = _git(repo, "rev-parse", "HEAD").decode("ascii").strip()
+        parent = _git(repo, "rev-parse", "HEAD^").decode("ascii").strip()
+        if head != output_commit or parent != baseline_commit:
+            raise CanaryError("bundle commit graph differs from frozen route")
+        return {
+            "baseline": _assert_commit_identity(
+                repo, baseline_commit, BASELINE_GIT_IDENTITY
+            ),
+            "output": _assert_commit_identity(
+                repo, output_commit, producer_identity
+            ),
+        }
+
+
 def _implementation_identity(
     repo_root: Path,
     *,
@@ -611,8 +705,8 @@ def _create_baseline_repo(work_root: Path) -> tuple[Path, str]:
     repo.mkdir()
     _git(repo, "init", "-q")
     _git(repo, "config", "core.autocrlf", "false")
-    _git(repo, "config", "user.email", "gate3-canary@example.invalid")
-    _git(repo, "config", "user.name", "Gate3 Canary")
+    _git(repo, "config", "user.email", BASELINE_GIT_IDENTITY["email"])
+    _git(repo, "config", "user.name", BASELINE_GIT_IDENTITY["name"])
     (repo / "calc.py").write_bytes(b"def add(a, b):\n    return a - b\n")
     (repo / "test_calc.py").write_bytes(
         b"import unittest\n"
@@ -812,6 +906,7 @@ def prepare(
                 "model_build": (
                     f"codex:{model}:comp_hash={comp_hash}:cli={cli_version}"
                 ),
+                "producer_git_identity": PRODUCER_GIT_IDENTITY,
                 "reasoning": reasoning,
             },
             "implementation": implementation,
@@ -1470,6 +1565,18 @@ def _capture_outcome(
         raise CanaryError(
             f"producer {treatment} output is not exactly one child of baseline"
         )
+    git_identity = {
+        "baseline": _assert_commit_identity(
+            repo,
+            plan["baseline_commit"],
+            BASELINE_GIT_IDENTITY,
+        ),
+        "output": _assert_commit_identity(
+            repo,
+            output_commit,
+            plan["frozen_route"]["producer_git_identity"],
+        ),
+    }
     source_route = parse_rollout(
         rollout_source,
         expected_prompt=prompt_path.read_bytes(),
@@ -1580,6 +1687,7 @@ def _capture_outcome(
             "clean": True,
             "head_path": _relative(head_path, staging),
             "head_sha256": _sha256_file(head_path),
+            "git_identity": git_identity,
             "output_commit": output_commit,
             "schema": CAPTURE_RECEIPT_SCHEMA,
             "status_path": _relative(status_path, staging),
@@ -2107,6 +2215,7 @@ def _verify_capture(
     root: Path,
     outcome: dict[str, Any],
     admission: dict[str, Any],
+    plan: dict[str, Any],
 ) -> None:
     receipt = _load_json(_source(outcome.get("capture_receipt_path"), root))
     head = _source(receipt.get("head_path"), root)
@@ -2118,6 +2227,13 @@ def _verify_capture(
         or receipt.get("baseline_commit") != admission["baseline_commit"]
         or receipt.get("output_commit") != admission["output_commit"]
         or receipt.get("output_commit") != outcome.get("output_commit")
+        or receipt.get("git_identity")
+        != {
+            "baseline": _expanded_git_identity(BASELINE_GIT_IDENTITY),
+            "output": _expanded_git_identity(
+                plan["frozen_route"]["producer_git_identity"]
+            ),
+        }
         or receipt.get("head_sha256") != _sha256_file(head)
         or receipt.get("status_sha256") != _sha256_file(status)
         or status.read_bytes() != b""
@@ -2163,6 +2279,7 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
             f"codex:{DEFAULT_MODEL}:comp_hash={DEFAULT_COMP_HASH}:"
             f"cli={DEFAULT_CLI_VERSION}"
         ),
+        "producer_git_identity": PRODUCER_GIT_IDENTITY,
         "reasoning": DEFAULT_REASONING,
     }
     if (
@@ -2245,7 +2362,19 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         ):
             raise CanaryError("outcome summary mismatch")
         routes.append(_verify_route_receipt(root, outcome, plan))
-        _verify_capture(root, outcome, admission)
+        _verify_capture(root, outcome, admission, plan)
+        bundle_entry = admission.get("git_bundle")
+        if not isinstance(bundle_entry, dict):
+            raise CanaryError("git bundle admission entry is absent")
+        bundle = _source(bundle_entry.get("path"), root)
+        if bundle_entry.get("sha256") != _sha256_file(bundle):
+            raise CanaryError("git bundle digest mismatch")
+        _verify_bundle_commit_identities(
+            bundle,
+            baseline_commit=baseline_commit,
+            output_commit=outcome["output_commit"],
+            producer_identity=plan["frozen_route"]["producer_git_identity"],
+        )
     if len({route["session_id"] for route in routes}) != 2:
         raise CanaryError("A/B context identities are not distinct")
     if (
@@ -2265,6 +2394,7 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         "checks": {
             "artifact_inventory": "PASS",
             "baseline_failure_receipt": "PASS",
+            "bundle_commit_identity": "PASS",
             "candidate_exact_bytes": "PASS",
             "chain": "PASS",
             "commit_diff_receipt_binding": "PASS",

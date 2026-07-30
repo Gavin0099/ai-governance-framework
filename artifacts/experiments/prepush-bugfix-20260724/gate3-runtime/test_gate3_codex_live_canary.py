@@ -732,3 +732,92 @@ def test_git_safe_directories_are_process_local(tmp_path: Path) -> None:
             == tmp_path.resolve().as_posix()
         )
     assert os.environ.get("GIT_CONFIG_COUNT") == prior
+
+
+def _identity_bundle(
+    tmp_path: Path,
+    producer_identity: dict[str, str],
+) -> tuple[Path, str, str]:
+    repo = tmp_path / "source"
+    repo.mkdir()
+    live._git(repo, "init", "-q")
+    live._git(repo, "config", "core.autocrlf", "false")
+    live._git(
+        repo,
+        "config",
+        "user.name",
+        live.BASELINE_GIT_IDENTITY["name"],
+    )
+    live._git(
+        repo,
+        "config",
+        "user.email",
+        live.BASELINE_GIT_IDENTITY["email"],
+    )
+    (repo / "calc.py").write_bytes(b"return 1\n")
+    live._git(repo, "add", "calc.py")
+    live._git(repo, "commit", "-q", "-m", "baseline", env=live.COMMIT_ENV)
+    baseline = live._git(repo, "rev-parse", "HEAD").decode().strip()
+    live._git(repo, "config", "user.name", producer_identity["name"])
+    live._git(repo, "config", "user.email", producer_identity["email"])
+    (repo / "calc.py").write_bytes(b"return 2\n")
+    live._git(repo, "add", "calc.py")
+    live._git(repo, "commit", "-q", "-m", "output", env=live.COMMIT_ENV)
+    output = live._git(repo, "rev-parse", "HEAD").decode().strip()
+    bundle = tmp_path / "repo.bundle"
+    live._git(repo, "bundle", "create", str(bundle), "--all")
+    return bundle, baseline, output
+
+
+def test_bundle_commit_identity_accepts_frozen_synthetic_metadata(
+    tmp_path: Path,
+) -> None:
+    bundle, baseline, output = _identity_bundle(
+        tmp_path,
+        live.PRODUCER_GIT_IDENTITY,
+    )
+    result = live._verify_bundle_commit_identities(
+        bundle,
+        baseline_commit=baseline,
+        output_commit=output,
+        producer_identity=live.PRODUCER_GIT_IDENTITY,
+    )
+    assert result == {
+        "baseline": live._expanded_git_identity(
+            live.BASELINE_GIT_IDENTITY
+        ),
+        "output": live._expanded_git_identity(
+            live.PRODUCER_GIT_IDENTITY
+        ),
+    }
+
+
+def test_bundle_commit_identity_rejects_inherited_operator_metadata(
+    tmp_path: Path,
+) -> None:
+    private_identity = {
+        "email": "operator-private@example.invalid",
+        "name": "Operator Private",
+    }
+    bundle, baseline, output = _identity_bundle(tmp_path, private_identity)
+    with pytest.raises(
+        live.CanaryError,
+        match="outside frozen synthetic allowlist",
+    ) as caught:
+        live._verify_bundle_commit_identities(
+            bundle,
+            baseline_commit=baseline,
+            output_commit=output,
+            producer_identity=live.PRODUCER_GIT_IDENTITY,
+        )
+    assert private_identity["name"] not in str(caught.value)
+    assert private_identity["email"] not in str(caught.value)
+
+
+def test_launcher_sets_and_verifies_repo_local_synthetic_identity() -> None:
+    source = live.DEFAULT_SESSION_LAUNCHER.read_text(encoding="utf-8")
+    assert "config --local user.name $syntheticGitName" in source
+    assert "config --local user.email $syntheticGitEmail" in source
+    assert "config --global" not in source
+    assert live.PRODUCER_GIT_IDENTITY["name"] in source
+    assert live.PRODUCER_GIT_IDENTITY["email"] in source
