@@ -1688,6 +1688,44 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   under the same frozen route. This is a characterization of the acceptance
   set; it is not evidence that the CLI emits any particular rejected shape.
 
+- [x] **A real-emission corpus scan separates cosmetic wrapper variance from
+  privilege-affecting variance, and shows the pinned-build evidence is
+  circular.** `gate3_wrapper_corpus_scan.py` classifies `exec` tool inputs in
+  an existing local rollout corpus against the frozen route, at zero
+  authorization cost and without invoking a session. Aggregate result over
+  5,906 emissions in 56 sessions across four CLI builds: 234 accepted, 25
+  distinct rejected structural signatures, and the rejections split 4,572
+  cosmetic against 1,100 privilege-affecting. Cosmetic variance is dominated
+  by an execution-bound field and by envelope and argument-shape differences
+  that change nothing about what the call does. The privilege-affecting
+  remainder carries approval-policy, sandbox-permission or shell-semantics
+  fields, so a parse-and-compare that accepted wrappers by decoded command
+  alone would hand those boundaries away. Separately, every field name in
+  every rejected emission was already in `SAFE_TOOL_INPUT_FIELD_NAMES`, which
+  independently confirms the census vocabulary is complete.
+
+  Limitations, and they are the load-bearing part: every emission observed on
+  the pinned CLI build came from the 2026-07-29 common-harness rehearsal, the
+  same runs the wrapper was written against, so that build has zero
+  independent evidence in this corpus and its acceptance rate must not be
+  read as confirmation. The v3 to v5 emissions are unavailable because the
+  canary wipes its private runtime. The corpus is private material: it is a
+  usage profile even after redaction, so no report is retained in this
+  repository, no corpus location or digest is recorded, and the scan output
+  is git-ignored. The scanner defaults to folding thinly-attested signatures
+  into a count-only bucket and offers an aggregate-only mode, which is the
+  only shape that should ever be considered for publication, and then only
+  after human review. Anyone re-running the scan on their own corpus
+  reproduces the method; the numbers above are this corpus only.
+
+- [ ] **Characterize the unclassified emission group offline.** A group of
+  rejected emissions classifies as `other` tool family with an unparsed
+  argument, meaning the diagnostic recognizes neither a `shell_command` nor
+  an `apply_patch` call in them. Until that group is understood it is not
+  known whether it represents additional cosmetic variance or genuinely
+  different tool use. This needs no authorization and should be resolved
+  before the acceptance policy decision.
+
 - [ ] **Decide the wrapper acceptance policy before requesting another pair.**
   The probe establishes that byte-exact acceptance cannot survive normal
   emission variance, so further live pairs will keep failing at
@@ -1697,7 +1735,11 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   accepts any wrapper whose decoded command, workdir and tool family match
   the frozen route. The second widens what the route admits and is a
   governance-surface change, so it needs review before implementation, not
-  after.
+  after. The corpus scan constrains this decision: any parse-and-compare must
+  reject the privilege-affecting field set outright rather than compare on
+  the decoded command alone, and pinning from the prompt side reduces
+  variance without proving the model will comply. Owner decision on
+  2026-08-01 was to change neither surface yet and continue offline.
 
 - [x] **The red credential-boundary test was a test-environment assumption,
   not a runtime guard defect.**

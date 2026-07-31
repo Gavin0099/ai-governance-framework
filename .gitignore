@@ -170,3 +170,8 @@ gl_electron_tool/
 governance/fleet/governance_scope.local.yaml
 .latest-main/
 .github/hooks/session-end.json
+
+# Wrapper corpus scan output. Derived from private rollout corpora: it is a
+# usage profile even after the privacy check passes, so it stays local. Publish
+# only a human-reviewed --aggregate-only summary, never a full report.
+artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/**/wrapper-corpus-scan*.json
