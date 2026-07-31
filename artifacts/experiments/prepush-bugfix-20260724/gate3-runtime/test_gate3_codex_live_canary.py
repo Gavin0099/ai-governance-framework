@@ -7,6 +7,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1728,6 +1729,27 @@ def _write_fake_codex(path: Path) -> None:
     )
 
 
+def _outside_user_temp() -> Path:
+    """Return a path the runner must reject as outside the user Temp root.
+
+    This deliberately does not use ``tmp_path``. On a default Windows setup
+    pytest's basetemp lives under ``%TEMP%``, so ``tmp_path`` is inside the
+    very root the guard checks and the rejection never fires. The path is
+    never created: the runner's temp-root guard runs before its
+    directory-existence check, so the guard is what must reject it.
+    """
+    candidate = Path(tempfile.gettempdir()).anchor
+    assert candidate, "cannot locate a filesystem anchor outside user Temp"
+    outside = Path(candidate) / f"gate3-outside-temp-{uuid.uuid4().hex}"
+    temp_prefix = os.path.normcase(
+        os.path.join(os.path.realpath(tempfile.gettempdir()), "")
+    )
+    assert not os.path.normcase(str(outside)).startswith(temp_prefix), (
+        f"{outside} is not outside the user Temp root {temp_prefix}"
+    )
+    return outside
+
+
 def _run_fake_pair(
     tmp_path: Path,
     *,
@@ -1816,7 +1838,7 @@ def _run_fake_pair(
         "-RoutePlanPath",
         str(route_plan),
         "-ArmAWorkspace",
-        str(tmp_path if outside_temp else repos["A"]),
+        str(_outside_user_temp() if outside_temp else repos["A"]),
         "-ArmBWorkspace",
         str(repos["B"]),
         "-ArmAPromptPath",
@@ -1999,6 +2021,10 @@ def test_pair_runner_rejects_non_temp_private_runtime_before_login(
     )
     try:
         assert result.returncode != 0
+        # Name the guard. A non-zero exit alone would also be satisfied by a
+        # later failure that ran the credential preflight first, which is the
+        # exact ordering this test exists to rule out.
+        assert "outside user Temp" in result.stderr, result.stderr
         assert not log.exists()
         assert not receipt.exists()
     finally:

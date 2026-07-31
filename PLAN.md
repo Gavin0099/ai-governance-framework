@@ -1699,16 +1699,21 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   governance-surface change, so it needs review before implementation, not
   after.
 
-- [ ] **Root-cause the red credential-boundary test before the next live
-  credential run.** `test_pair_runner_rejects_non_temp_private_runtime_before_login`
-  fails on `2fe5ad61` and on every commit since. It asserts a non-zero exit
-  and that the launcher was never invoked; the exit is non-zero but the
-  launcher call log exists. The fixture's `outside_temp` flag only overrides
-  `-ArmAWorkspace`, while the test name and the runner's `Assert-UserTempPath`
-  guard both concern the private runtime root, which the runner derives
-  itself under user Temp. Either the fixture or the guard is mis-wired. This
-  is a credential-handling boundary, so it should be resolved before the next
-  run that touches real credentials.
+- [x] **The red credential-boundary test was a test-environment assumption,
+  not a runtime guard defect.**
+  `test_pair_runner_rejects_non_temp_private_runtime_before_login` had been
+  failing since at least `2fe5ad61`. The fixture fed pytest's `tmp_path` as
+  the supposedly-outside-Temp path, but on a default Windows setup pytest's
+  basetemp lives under `%TEMP%`, so the input was inside the very root
+  `Assert-UserTempPath` checks. The guard correctly did not fire, execution
+  continued into the credential preflight, and the assertion that no session
+  binary had been invoked failed. The runner itself is correct: its temp-root
+  guard covers all fifteen private-runtime path arguments and runs before the
+  credential seed, the login preflight and the launcher. The fixture now
+  builds a path anchored outside the temp root and self-checks that
+  assumption, and the test asserts the guard by name rather than accepting
+  any non-zero exit, so a later failure that ran the preflight first can no
+  longer satisfy it. The full Gate 3 runtime suite is green at 225/225.
 
 - [ ] **Read across v4 and v5 before requesting another pair.** The failing
   arm moved between runs (v4 failed on arm A, v5 failed on arm B) under the
