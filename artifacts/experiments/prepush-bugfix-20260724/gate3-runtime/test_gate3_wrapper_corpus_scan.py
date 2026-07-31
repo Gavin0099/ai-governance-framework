@@ -116,6 +116,27 @@ def test_aggregate_only_drops_every_breakdown(tmp_path: Path) -> None:
     assert report["privilege_affecting_rejections"] == 0
 
 
+def test_rejections_are_reported_by_class(tmp_path: Path) -> None:
+    """Scope violations must be countable separately from shape variance."""
+    _corpus(
+        tmp_path,
+        "1.0.0",
+        [
+            _rejected_with_secret(),
+            "const r = await tools.update_plan({plan:[]}); text(r)\n",
+            "text('nothing')\n",
+        ],
+    )
+    report = scan.scan(tmp_path, min_signature_count=1)
+    assert report["rejections_by_class"] == {
+        "single_frozen_call": 1,
+        "multiple_calls": 0,
+        "out_of_route_tool": 1,
+        "no_tool_call": 1,
+    }
+    assert "update_plan" not in json.dumps(report, sort_keys=True)
+
+
 def test_default_threshold_is_not_one() -> None:
     """The safe shape has to be the default, not an opt-in."""
     assert scan.DEFAULT_MIN_SIGNATURE_COUNT > 1

@@ -1718,13 +1718,24 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   after human review. Anyone re-running the scan on their own corpus
   reproduces the method; the numbers above are this corpus only.
 
-- [ ] **Characterize the unclassified emission group offline.** A group of
-  rejected emissions classifies as `other` tool family with an unparsed
-  argument, meaning the diagnostic recognizes neither a `shell_command` nor
-  an `apply_patch` call in them. Until that group is understood it is not
-  known whether it represents additional cosmetic variance or genuinely
-  different tool use. This needs no authorization and should be resolved
-  before the acceptance policy decision.
+- [x] **The unclassified emission group was three different failures wearing
+  one label, and the diagnostic now separates them.** The group that
+  classified as `other` tool family with an unparsed argument turned out to
+  contain multi-call inputs, inputs calling a tool the frozen route does not
+  carry at all, and inputs containing no tool call. Those are not
+  interchangeable: a route-scope violation is a different finding from
+  ordinary wrapper variance, and a receipt that labels them identically
+  cannot be read. `_tool_input_wrapper_diagnostic` now reports a
+  `rejection_class` drawn from `WRAPPER_REJECTION_CLASSES`, plus the total
+  `tools.*` token count and how many name a frozen-route family. Tool names
+  outside the route are counted but never named, because a corpus can carry
+  private MCP tool names and the class is what a reader needs. Re-running the
+  corpus scan resolves the whole rejected population into 5,009
+  single-frozen-call, 315 multiple-call, 279 out-of-route-tool and 69
+  no-tool-call emissions. The out-of-route group is the material one: those
+  were previously indistinguishable from formatting variance. Failure receipt
+  schema is now `gate3-codex-live-canary-failure-receipt.v5`. Acceptance is
+  still unchanged; this is diagnosis only.
 
 - [ ] **Decide the wrapper acceptance policy before requesting another pair.**
   The probe establishes that byte-exact acceptance cannot survive normal

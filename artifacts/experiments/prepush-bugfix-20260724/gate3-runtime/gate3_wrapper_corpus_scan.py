@@ -70,6 +70,7 @@ def _signature(source: str) -> dict[str, Any]:
         "privilege_affecting": any(
             value in PRIVILEGE_AFFECTING for value in semantics
         ),
+        "rejection_class": diagnostic["rejection_class"],
         "tool_family": diagnostic["tool_family"],
         "unknown_field_count": census["unknown_field_count"],
     }
@@ -179,6 +180,14 @@ def scan(
         "pinned_cli_version": live.DEFAULT_CLI_VERSION,
         "privilege_affecting_rejections": privilege_affecting,
         "cosmetic_rejections": rejected_total - privilege_affecting,
+        "rejections_by_class": {
+            name: sum(
+                entry["count"]
+                for entry in all_signatures
+                if entry["rejection_class"] == name
+            )
+            for name in live.WRAPPER_REJECTION_CLASSES
+        },
         "schema": "gate3-codex-wrapper-corpus-scan.v1",
         "sessions_with_exec_calls": sessions,
     }

@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v4"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v5"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -101,6 +101,17 @@ PATCH_WRAPPER_RE = re.compile(
     r'text\(await tools\.apply_patch\(patch\)\);\r?\n?$'
 )
 WRAPPER_MISMATCH_RETENTION_LIMIT = 32
+FROZEN_TOOL_FAMILIES = ("shell_command", "apply_patch")
+# Why a rejected tool input was rejected. These are not interchangeable:
+# out_of_route_tool is a route-scope violation, multiple_calls is a shape the
+# route does not model, and single_frozen_call is ordinary wrapper variance.
+# Collapsing them into one label makes a failure receipt unreadable.
+WRAPPER_REJECTION_CLASSES = (
+    "single_frozen_call",
+    "multiple_calls",
+    "out_of_route_tool",
+    "no_tool_call",
+)
 SAFE_TOOL_INPUT_FIELD_NAMES = (
     "command",
     "justification",
@@ -550,8 +561,15 @@ def _validated_world_states(
     return world_states
 
 
-def _tool_call_markers(source: str) -> list[tuple[int, int, str]]:
-    markers: list[tuple[int, int, str]] = []
+def _tool_call_tokens(source: str) -> list[tuple[int, int, str, bool]]:
+    """Scan for every ``tools.<name>(`` token outside strings and comments.
+
+    Returns ``(start, end, name, preceded_by_await)`` per token. Callers that
+    only want frozen-route calls filter with :func:`_tool_call_markers`; the
+    unfiltered list is what lets a rejection say whether it was one call, many
+    calls, or a tool outside the route at all.
+    """
+    tokens: list[tuple[int, int, str, bool]] = []
     quote: str | None = None
     escaped = False
     line_comment = False
@@ -613,7 +631,9 @@ def _tool_call_markers(source: str) -> list[tuple[int, int, str]]:
             slash_character_class = False
             index += 1
             continue
-        match = re.match(r"tools\.(shell_command|apply_patch)\s*\(", source[index:])
+        match = re.match(
+            r"tools\.(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\s*\(", source[index:]
+        )
         cursor = index
         while cursor and source[cursor - 1].isspace():
             cursor -= 1
@@ -628,12 +648,28 @@ def _tool_call_markers(source: str) -> list[tuple[int, int, str]]:
                 break
             cursor -= 1
         preceded_by_await = source[cursor:token_end] == "await"
-        if match is not None and preceded_by_await:
-            markers.append((index, index + match.end(), match.group(1)))
+        if match is not None:
+            tokens.append(
+                (
+                    index,
+                    index + match.end(),
+                    match.group("name"),
+                    preceded_by_await,
+                )
+            )
             index += match.end()
             continue
         index += 1
-    return markers
+    return tokens
+
+
+def _tool_call_markers(source: str) -> list[tuple[int, int, str]]:
+    """Frozen-route tool calls only: an awaited shell_command or apply_patch."""
+    return [
+        (start, end, name)
+        for start, end, name, awaited in _tool_call_tokens(source)
+        if awaited and name in FROZEN_TOOL_FAMILIES
+    ]
 
 
 def _tool_call_argument(
@@ -729,7 +765,29 @@ def _top_level_object_fields(argument: str) -> list[str | None] | None:
     return fields
 
 
+def _wrapper_rejection_class(source: str) -> tuple[str, int, int]:
+    """Classify why a tool input is not a frozen-route call.
+
+    Returns the class plus the total ``tools.*`` token count and how many of
+    those name a frozen-route family. Tool names outside the route are counted
+    but never named: a corpus can carry private MCP tool names, and the class
+    is what a reader needs.
+    """
+    tokens = _tool_call_tokens(source)
+    frozen = sum(1 for token in tokens if token[2] in FROZEN_TOOL_FAMILIES)
+    if not tokens:
+        return "no_tool_call", 0, 0
+    if len(tokens) > 1:
+        return "multiple_calls", len(tokens), frozen
+    if not frozen:
+        return "out_of_route_tool", len(tokens), 0
+    return "single_frozen_call", len(tokens), frozen
+
+
 def _tool_input_wrapper_diagnostic(source: str) -> dict[str, Any]:
+    rejection_class, token_count, frozen_token_count = (
+        _wrapper_rejection_class(source)
+    )
     markers = _tool_call_markers(source)
     tool_family = markers[0][2] if len(markers) == 1 else "other"
     argument_result = (
@@ -815,6 +873,9 @@ def _tool_input_wrapper_diagnostic(source: str) -> dict[str, Any]:
             "total_field_count": len(fields) if fields is not None else 0,
             "unknown_field_count": unknown_count,
         },
+        "frozen_tool_call_token_count": frozen_token_count,
+        "rejection_class": rejection_class,
+        "tool_call_token_count": token_count,
         "tool_family": tool_family,
     }
 
@@ -901,6 +962,20 @@ def _failure_rollout_diagnostics(
                 envelope = entry.get("envelope")
                 argument_shape = entry.get("argument_shape")
                 census = entry.get("field_name_census")
+                rejection_class = entry.get("rejection_class")
+                token_count = entry.get("tool_call_token_count")
+                frozen_token_count = entry.get("frozen_tool_call_token_count")
+                if (
+                    rejection_class not in WRAPPER_REJECTION_CLASSES
+                    or not isinstance(token_count, int)
+                    or isinstance(token_count, bool)
+                    or token_count < 0
+                    or not isinstance(frozen_token_count, int)
+                    or isinstance(frozen_token_count, bool)
+                    or frozen_token_count < 0
+                    or frozen_token_count > token_count
+                ):
+                    continue
                 if (
                     not isinstance(ordinal, int)
                     or isinstance(ordinal, bool)
@@ -950,7 +1025,10 @@ def _failure_rollout_diagnostics(
                             "total_field_count": total,
                             "unknown_field_count": unknown,
                         },
+                        "frozen_tool_call_token_count": frozen_token_count,
+                        "rejection_class": rejection_class,
                         "tool_call_ordinal": ordinal,
+                        "tool_call_token_count": token_count,
                         "tool_family": tool_family,
                     }
                 )

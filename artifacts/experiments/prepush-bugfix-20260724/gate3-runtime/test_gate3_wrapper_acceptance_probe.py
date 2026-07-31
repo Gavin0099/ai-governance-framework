@@ -66,8 +66,12 @@ def test_every_rejection_is_classified_and_privacy_safe() -> None:
             "argument_shape",
             "envelope",
             "field_name_census",
+            "frozen_tool_call_token_count",
+            "rejection_class",
+            "tool_call_token_count",
             "tool_family",
         }
+        assert classification["rejection_class"] in live.WRAPPER_REJECTION_CLASSES
     encoded = json.dumps(report, sort_keys=True).encode("utf-8")
     assert live._privacy_violations(encoded) == []
 

@@ -607,7 +607,10 @@ def test_wrapper_mismatch_records_only_privacy_safe_structure(
                     "total_field_count": 4,
                     "unknown_field_count": 1,
                 },
+                "frozen_tool_call_token_count": 1,
+                "rejection_class": "single_frozen_call",
                 "tool_call_ordinal": 1,
+                "tool_call_token_count": 1,
                 "tool_family": "shell_command",
             }
         ],
@@ -618,6 +621,64 @@ def test_wrapper_mismatch_records_only_privacy_safe_structure(
     assert b"synthetic-secret" not in encoded
     assert b"Users" not in encoded
     assert live._privacy_violations(encoded) == []
+
+
+def test_rejection_classes_separate_scope_from_shape(tmp_path: Path) -> None:
+    """A route-scope violation must not look like ordinary wrapper variance.
+
+    These three failures mean entirely different things: one call in an
+    unexpected shape, several calls in one input, and a tool the route does
+    not carry at all. A receipt that labels them identically is unreadable.
+    """
+    command = json.dumps("git status")
+    workdir = json.dumps(WORKSPACE)
+    cases = {
+        "single_frozen_call": (
+            f"const r = await tools.shell_command({{command:{command},"
+            f"timeout_ms:1,workdir:{workdir}}}); text(r)\n"
+        ),
+        "multiple_calls": (
+            f"const a = await tools.shell_command({{command:{command},"
+            f"workdir:{workdir}}});\n"
+            f"const b = await tools.shell_command({{command:{command},"
+            f"workdir:{workdir}}});\ntext(a + b)\n"
+        ),
+        "out_of_route_tool": (
+            "const r = await tools.update_plan({plan:[]}); text(r)\n"
+        ),
+        "no_tool_call": "text('nothing to run')\n",
+    }
+    for expected, source in cases.items():
+        diagnostic = live._tool_input_wrapper_diagnostic(source)
+        assert diagnostic["rejection_class"] == expected, expected
+    assert set(cases) == set(live.WRAPPER_REJECTION_CLASSES)
+
+
+def test_out_of_route_tool_names_are_counted_but_never_named() -> None:
+    """Tool names can be private; the class is what a reader needs."""
+    source = (
+        "const r = await tools.mcp__private_server__secret_action({});"
+        " text(r)\n"
+    )
+    diagnostic = live._tool_input_wrapper_diagnostic(source)
+    assert diagnostic["rejection_class"] == "out_of_route_tool"
+    assert diagnostic["tool_call_token_count"] == 1
+    assert diagnostic["frozen_tool_call_token_count"] == 0
+    encoded = live._json_bytes(diagnostic)
+    assert b"mcp__private_server" not in encoded
+    assert b"secret_action" not in encoded
+
+
+def test_tool_tokens_inside_strings_do_not_change_the_class() -> None:
+    command = json.dumps("echo await tools.update_plan({})")
+    workdir = json.dumps(WORKSPACE)
+    source = (
+        f"const r = await tools.shell_command({{command:{command},"
+        f"timeout_ms:1,workdir:{workdir}}}); text(r)\n"
+    )
+    diagnostic = live._tool_input_wrapper_diagnostic(source)
+    assert diagnostic["rejection_class"] == "single_frozen_call"
+    assert diagnostic["tool_call_token_count"] == 1
 
 
 def _bad_wrapper(command: str) -> str:
@@ -2889,8 +2950,11 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                                 "total_field_count": 4,
                                 "unknown_field_count": 1,
                             },
+                            "frozen_tool_call_token_count": 1,
                             "private_argument": "C:/Users/private/secret.txt",
+                            "rejection_class": "single_frozen_call",
                             "tool_call_ordinal": 2,
+                            "tool_call_token_count": 1,
                             "tool_family": "shell_command",
                         }
                     ],
@@ -2958,7 +3022,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                             "total_field_count": 4,
                             "unknown_field_count": 1,
                         },
+                        "frozen_tool_call_token_count": 1,
+                        "rejection_class": "single_frozen_call",
                         "tool_call_ordinal": 2,
+                        "tool_call_token_count": 1,
                         "tool_family": "shell_command",
                     }
                 ],
