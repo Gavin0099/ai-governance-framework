@@ -1,0 +1,37 @@
+{
+  "authorization": {
+    "counted_gate3_run": false,
+    "replacement_sessions": 0
+  },
+  "cleanup": {
+    "residue_classes": [],
+    "status": "PASS"
+  },
+  "credential_privacy": {
+    "credential_bytes_or_content_retained": false,
+    "credential_digest_retained": false,
+    "credential_source_path_retained": false,
+    "raw_output_retained": false
+  },
+  "execution": {
+    "credential_preflight": "NOT_OBSERVED",
+    "login_status": {
+      "A": "NOT_OBSERVED",
+      "B": "NOT_OBSERVED"
+    },
+    "runner_receipt_status": "NOT_CREATED",
+    "session_exit_codes": {
+      "A": null,
+      "B": null
+    },
+    "session_invocations": 0
+  },
+  "failure_stage": "route_prepare",
+  "non_counted": true,
+  "run_id": "gate3-codex-auth-v3-20260731-114500",
+  "schema": "gate3-codex-live-canary-failure-receipt.v2",
+  "scoreable": false,
+  "success_packet_admitted": false,
+  "success_packet_present": false,
+  "success_packet_publication_attempted": false
+}
