@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v1"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v2"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -478,6 +478,82 @@ def _load_jsonl(path: Path, *, label: str) -> list[dict[str, Any]]:
             raise CanaryError(f"{label} line {index} is not an object")
         records.append(value)
     return records
+
+
+def _world_state_census(
+    records: list[dict[str, Any]],
+) -> dict[str, int]:
+    world_state_records = [
+        record for record in records if record.get("type") == "world_state"
+    ]
+    object_payloads = [
+        record["payload"]
+        for record in world_state_records
+        if isinstance(record.get("payload"), dict)
+    ]
+    return {
+        "full_true_count": sum(
+            payload.get("full") is True for payload in object_payloads
+        ),
+        "object_payload_count": len(object_payloads),
+        "raw_count": len(world_state_records),
+        "state_object_count": sum(
+            isinstance(payload.get("state"), dict)
+            for payload in object_payloads
+        ),
+    }
+
+
+def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
+    return {
+        arm: {
+            "parse_phases": {
+                "public": "NOT_RUN",
+                "source": "NOT_RUN",
+            },
+            "public_census": None,
+            "source_census": None,
+        }
+        for arm in ("A", "B")
+    }
+
+
+def _failure_rollout_diagnostics(
+    diagnostics: object,
+) -> dict[str, dict[str, Any]]:
+    source = diagnostics if isinstance(diagnostics, dict) else {}
+    projected = _empty_rollout_diagnostics()
+    for arm in ("A", "B"):
+        observed = source.get(arm)
+        if not isinstance(observed, dict):
+            continue
+        phases = observed.get("parse_phases")
+        if isinstance(phases, dict):
+            for phase in ("source", "public"):
+                status = phases.get(phase)
+                if status in {"NOT_RUN", "PASS", "FAIL"}:
+                    projected[arm]["parse_phases"][phase] = status
+        for phase in ("source", "public"):
+            census = observed.get(f"{phase}_census")
+            if not isinstance(census, dict):
+                continue
+            values = {
+                field: census.get(field)
+                for field in (
+                    "full_true_count",
+                    "object_payload_count",
+                    "raw_count",
+                    "state_object_count",
+                )
+            }
+            if all(
+                isinstance(value, int)
+                and not isinstance(value, bool)
+                and value >= 0
+                for value in values.values()
+            ):
+                projected[arm][f"{phase}_census"] = values
+    return projected
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -1202,9 +1278,19 @@ def parse_rollout(
     expected_reasoning: str,
     expected_workspace: str,
     expected_context_contract: dict[str, Any],
+    rollout_diagnostic: dict[str, Any] | None = None,
+    parse_phase: str | None = None,
 ) -> dict[str, Any]:
+    if rollout_diagnostic is not None:
+        if parse_phase not in {"source", "public"}:
+            raise CanaryError("rollout diagnostic parse phase is invalid")
+        rollout_diagnostic["parse_phases"][parse_phase] = "FAIL"
     raw = path.read_bytes()
     records = _load_jsonl(path, label="rollout")
+    if rollout_diagnostic is not None:
+        rollout_diagnostic[f"{parse_phase}_census"] = _world_state_census(
+            records
+        )
     metas = [item["payload"] for item in records if item.get("type") == "session_meta"]
     if not metas:
         raise CanaryError("rollout has no session_meta")
@@ -1433,7 +1519,7 @@ def parse_rollout(
             world_states, expected_workspace=expected_workspace
         ),
     }
-    return {
+    result = {
         "base_instructions_sha256": _sha256_bytes(
             _json_bytes(context_identity["base_instructions"])
         ),
@@ -1471,6 +1557,9 @@ def parse_rollout(
         "turn_count": len(contexts),
         "user_message_count": len(user_messages),
     }
+    if rollout_diagnostic is not None:
+        rollout_diagnostic["parse_phases"][parse_phase] = "PASS"
+    return result
 
 
 def parse_exec_events(path: Path, *, expected_session_id: str) -> dict[str, Any]:
@@ -1609,6 +1698,7 @@ def _capture_outcome(
     plan: dict[str, Any],
     randomization_sha: str,
     baseline_receipt_sha: str,
+    rollout_diagnostic: dict[str, Any],
 ) -> dict[str, Any]:
     repo = repo.resolve()
     if _git(repo, "status", "--porcelain=v1", "--untracked-files=all") != b"":
@@ -1645,6 +1735,8 @@ def _capture_outcome(
         expected_reasoning=plan["frozen_route"]["reasoning"],
         expected_workspace=str(repo),
         expected_context_contract=plan["context_contract"],
+        rollout_diagnostic=rollout_diagnostic,
+        parse_phase="source",
     )
     source_exec_events = parse_exec_events(
         exec_events_source, expected_session_id=source_route["session_id"]
@@ -1675,6 +1767,8 @@ def _capture_outcome(
         expected_reasoning=plan["frozen_route"]["reasoning"],
         expected_workspace=context_token,
         expected_context_contract=plan["context_contract"],
+        rollout_diagnostic=rollout_diagnostic,
+        parse_phase="public",
     )
     exec_events = parse_exec_events(
         exec_events_path, expected_session_id=route["session_id"]
@@ -2027,6 +2121,7 @@ def _build_orchestrated(
     arm_a_exec_events: Path,
     arm_b_exec_events: Path,
     credential_runner_receipt: Path,
+    rollout_diagnostics: dict[str, dict[str, Any]],
     nonce_hex: str | None = None,
 ) -> dict[str, Any]:
     repo_root = repo_root.resolve()
@@ -2113,6 +2208,7 @@ def _build_orchestrated(
                     plan=plan,
                     randomization_sha=randomization_sha,
                     baseline_receipt_sha=baseline_receipt["sha256"],
+                    rollout_diagnostic=rollout_diagnostics[treatment],
                 )
             )
     sessions = {outcome["session_id"] for outcome in outcomes}
@@ -2370,6 +2466,7 @@ def _publish_failure_receipt(
     residue_classes: list[str],
     success_packet_publication_attempted: bool,
     success_packet_present: bool,
+    rollout_diagnostics: object = None,
 ) -> Path:
     failure_root = output_root.with_name(f"{output_root.name}.failure")
     if failure_root.exists():
@@ -2402,6 +2499,10 @@ def _publish_failure_receipt(
             success_packet_publication_attempted
         ),
     }
+    if failure_stage == "packet_build":
+        receipt["rollout_diagnostics"] = _failure_rollout_diagnostics(
+            rollout_diagnostics
+        )
     payload = _json_bytes(receipt)
     if _privacy_violations(payload):
         raise CanaryError("failure receipt contains private material")
@@ -2452,6 +2553,7 @@ def _orchestrate_impl(
     failure_stage = "setup"
     pair_started = False
     credential_receipt: Path | None = None
+    rollout_diagnostics = _empty_rollout_diagnostics()
     try:
         if public_candidate.exists():
             raise CanaryError("public candidate path already exists")
@@ -2583,17 +2685,31 @@ def _orchestrate_impl(
         if pair_result.returncode != 0:
             raise CanaryError("authorized A/B pair failed")
         failure_stage = "packet_build"
+        rollouts = {
+            arm: _single_rollout(homes[arm]) for arm in ("A", "B")
+        }
+        for arm, rollout in rollouts.items():
+            if not rollout.is_file():
+                continue
+            try:
+                records = _load_jsonl(rollout, label="rollout census")
+            except (CanaryError, OSError):
+                continue
+            rollout_diagnostics[arm]["source_census"] = (
+                _world_state_census(records)
+            )
         _builder(
             repo_root,
             staging,
             private_built,
             arm_a_repo=repos["A"],
             arm_b_repo=repos["B"],
-            arm_a_rollout=_single_rollout(homes["A"]),
-            arm_b_rollout=_single_rollout(homes["B"]),
+            arm_a_rollout=rollouts["A"],
+            arm_b_rollout=rollouts["B"],
             arm_a_exec_events=paths["A"]["stdout"],
             arm_b_exec_events=paths["B"]["stdout"],
             credential_runner_receipt=credential_receipt,
+            rollout_diagnostics=rollout_diagnostics,
         )
         failure_stage = "candidate_verification"
         os.mkdir(public_candidate)
@@ -2656,6 +2772,7 @@ def _orchestrate_impl(
                 residue_classes=residue_classes,
                 success_packet_publication_attempted=publication_attempted,
                 success_packet_present=output_root.exists(),
+                rollout_diagnostics=rollout_diagnostics,
             )
         if residue_classes:
             raise CanaryError("failed runtime artifact cleanup verification")

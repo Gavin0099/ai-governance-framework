@@ -234,7 +234,14 @@ def _rollout(
     )
 
 
-def _parse(tmp_path: Path, raw: bytes, prompt: bytes = b"frozen prompt"):
+def _parse(
+    tmp_path: Path,
+    raw: bytes,
+    prompt: bytes = b"frozen prompt",
+    *,
+    rollout_diagnostic: dict[str, object] | None = None,
+    parse_phase: str | None = None,
+):
     path = tmp_path / "rollout.jsonl"
     path.write_bytes(raw)
     return live.parse_rollout(
@@ -246,6 +253,8 @@ def _parse(tmp_path: Path, raw: bytes, prompt: bytes = b"frozen prompt"):
         expected_reasoning=live.DEFAULT_REASONING,
         expected_workspace=Path(WORKSPACE),
         expected_context_contract=_context_contract(),
+        rollout_diagnostic=rollout_diagnostic,
+        parse_phase=parse_phase,
     )
 
 
@@ -258,6 +267,123 @@ def test_parse_rollout_accepts_exact_route(tmp_path: Path) -> None:
     assert result["prompt_sha256"] == live._sha256_bytes(b"frozen prompt")
     assert result["machine_context_count"] == 1
     assert result["tool_inventory"][0]["kind"] == "shell_command"
+
+
+def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
+    records = [
+        json.loads(line)
+        for line in _rollout().splitlines()
+        if line.strip()
+    ]
+    index = next(
+        i for i, record in enumerate(records) if record["type"] == "world_state"
+    )
+    template = records.pop(index)
+    for offset, payload in enumerate(payloads):
+        record = dict(template)
+        record["payload"] = payload
+        records.insert(index + offset, record)
+    return b"".join(_line(record) for record in records)
+
+
+@pytest.mark.parametrize(
+    ("payloads", "expected_census", "accepted", "parse_phase"),
+    [
+        (
+            [],
+            {
+                "full_true_count": 0,
+                "object_payload_count": 0,
+                "raw_count": 0,
+                "state_object_count": 0,
+            },
+            False,
+            "source",
+        ),
+        (
+            [{"full": True, "state": {"cwd": WORKSPACE}}],
+            {
+                "full_true_count": 1,
+                "object_payload_count": 1,
+                "raw_count": 1,
+                "state_object_count": 1,
+            },
+            True,
+            "source",
+        ),
+        (
+            [
+                {"full": True, "state": {"cwd": WORKSPACE}},
+                {"full": False, "state": {}},
+            ],
+            {
+                "full_true_count": 1,
+                "object_payload_count": 2,
+                "raw_count": 2,
+                "state_object_count": 2,
+            },
+            False,
+            "public",
+        ),
+        (
+            ["non-object"],
+            {
+                "full_true_count": 0,
+                "object_payload_count": 0,
+                "raw_count": 1,
+                "state_object_count": 0,
+            },
+            False,
+            "public",
+        ),
+    ],
+    ids=["zero", "one", "two", "non-object"],
+)
+def test_world_state_census_diagnoses_cardinality_without_relaxing_acceptance(
+    tmp_path: Path,
+    payloads: list[object],
+    expected_census: dict[str, int],
+    accepted: bool,
+    parse_phase: str,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    raw = _rollout_with_world_state_payloads(payloads)
+    if accepted:
+        _parse(
+            tmp_path,
+            raw,
+            rollout_diagnostic=diagnostic,
+            parse_phase=parse_phase,
+        )
+        expected_status = "PASS"
+    else:
+        with pytest.raises(
+            live.CanaryError,
+            match="rollout must contain one world_state",
+        ):
+            _parse(
+                tmp_path,
+                raw,
+                rollout_diagnostic=diagnostic,
+                parse_phase=parse_phase,
+            )
+        expected_status = "FAIL"
+    assert diagnostic == {
+        "parse_phases": {
+            "public": (
+                expected_status if parse_phase == "public" else "NOT_RUN"
+            ),
+            "source": (
+                expected_status if parse_phase == "source" else "NOT_RUN"
+            ),
+        },
+        "public_census": (
+            expected_census if parse_phase == "public" else None
+        ),
+        "source_census": (
+            expected_census if parse_phase == "source" else None
+        ),
+    }
 
 
 def test_prepare_rejects_non_frozen_route(tmp_path: Path) -> None:
@@ -1522,9 +1648,18 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
         _repo: Path,
         _staging: Path,
         built: Path,
-        **_: object,
+        **kwargs: object,
     ) -> dict[str, object]:
         if failure_phase == "build":
+            diagnostics = kwargs["rollout_diagnostics"]
+            assert isinstance(diagnostics, dict)
+            diagnostics["A"]["parse_phases"]["source"] = "FAIL"
+            diagnostics["A"]["source_census"] = {
+                "full_true_count": 0,
+                "object_payload_count": 0,
+                "raw_count": 0,
+                "state_object_count": 0,
+            }
             raise live.CanaryError("synthetic build failure")
         built.mkdir()
         (built / "canary-summary.json").write_text(
@@ -1599,6 +1734,23 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
         "arm_b": "pair_execution",
         "build": "packet_build",
     }[failure_phase]
+    if failure_phase == "build":
+        assert receipt["rollout_diagnostics"]["A"] == {
+            "parse_phases": {
+                "public": "NOT_RUN",
+                "source": "FAIL",
+            },
+            "public_census": None,
+            "source_census": {
+                "full_true_count": 0,
+                "object_payload_count": 0,
+                "raw_count": 0,
+                "state_object_count": 0,
+            },
+        }
+        assert set(receipt["rollout_diagnostics"]) == {"A", "B"}
+    else:
+        assert "rollout_diagnostics" not in receipt
     assert live._privacy_violations(receipt_path.read_bytes()) == []
     assert list(tmp_path.glob(".published.failure-candidate-*")) == []
 
@@ -2171,10 +2323,79 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
         residue_classes=[],
         success_packet_publication_attempted=False,
         success_packet_present=False,
+        rollout_diagnostics={
+            "A": {
+                "parse_phases": {
+                    "source": "FAIL",
+                    "public": "NOT_RUN",
+                },
+                "source_census": {
+                    "full_true_count": 0,
+                    "object_payload_count": 0,
+                    "raw_count": 1,
+                    "state_object_count": 0,
+                },
+                "private_path": "C:/Users/private/rollout.jsonl",
+            },
+            "B": {
+                "parse_phases": {
+                    "source": "PASS",
+                    "public": "FAIL",
+                },
+                "source_census": {
+                    "full_true_count": 1,
+                    "object_payload_count": 1,
+                    "raw_count": 1,
+                    "state_object_count": 1,
+                },
+                "public_census": {
+                    "full_true_count": 2,
+                    "object_payload_count": 2,
+                    "raw_count": 2,
+                    "state_object_count": 2,
+                },
+                "private_blob_marker": "private",
+            },
+        },
     )
     published = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert observed_candidates == [published]
     assert published["run_id"] == "REDACTED"
+    assert published["rollout_diagnostics"] == {
+        "A": {
+            "parse_phases": {
+                "public": "NOT_RUN",
+                "source": "FAIL",
+            },
+            "public_census": None,
+            "source_census": {
+                "full_true_count": 0,
+                "object_payload_count": 0,
+                "raw_count": 1,
+                "state_object_count": 0,
+            },
+        },
+        "B": {
+            "parse_phases": {
+                "public": "FAIL",
+                "source": "PASS",
+            },
+            "public_census": {
+                "full_true_count": 2,
+                "object_payload_count": 2,
+                "raw_count": 2,
+                "state_object_count": 2,
+            },
+            "source_census": {
+                "full_true_count": 1,
+                "object_payload_count": 1,
+                "raw_count": 1,
+                "state_object_count": 1,
+            },
+        },
+    }
+    assert "private_path" not in receipt_path.read_text(encoding="utf-8")
+    assert "private_blob_marker" not in receipt_path.read_text(encoding="utf-8")
     assert live._privacy_violations(receipt_path.read_bytes()) == []
 
 
