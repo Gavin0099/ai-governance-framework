@@ -442,6 +442,10 @@ def test_world_state_census_and_parser_enforce_full_delta_contract(
         "source_census": (
             expected_census if parse_phase == "source" else None
         ),
+        "wrapper_mismatches": {
+            "public": [],
+            "source": [],
+        },
     }
 
 
@@ -552,6 +556,268 @@ def test_parse_rollout_rejects_command_chaining(tmp_path: Path) -> None:
     tool_input = _shell_input("git add calc.py; git commit -m chained")
     with pytest.raises(live.CanaryError, match="simple-command contract"):
         _parse(tmp_path, _rollout(tool_input=tool_input))
+
+
+def test_wrapper_mismatch_records_only_privacy_safe_structure(
+    tmp_path: Path,
+) -> None:
+    tool_input = (
+        "const r = await tools.shell_command({command:"
+        + json.dumps("Get-Content C:/Users/private/secret.txt")
+        + ",access_token:"
+        + json.dumps("sk-synthetic-secret-material")
+        + ",timeout_ms:120000,workdir:"
+        + json.dumps(WORKSPACE)
+        + "}); text(r)\n"
+    )
+    diagnostic = live._empty_rollout_diagnostics()["B"]
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="source",
+        )
+    assert diagnostic["wrapper_mismatches"] == {
+        "public": [],
+        "source": [
+            {
+                "argument_shape": "object",
+                "envelope": "const_await_then_text",
+                "field_name_census": {
+                    "known_field_counts": {
+                        "command": 1,
+                        "timeout_ms": 1,
+                        "workdir": 1,
+                    },
+                    "total_field_count": 4,
+                    "unknown_field_count": 1,
+                },
+                "tool_call_ordinal": 1,
+                "tool_family": "shell_command",
+            }
+        ],
+    }
+    encoded = live._json_bytes(diagnostic)
+    assert b"Get-Content" not in encoded
+    assert b"access_token" not in encoded
+    assert b"synthetic-secret" not in encoded
+    assert b"Users" not in encoded
+    assert live._privacy_violations(encoded) == []
+
+
+@pytest.mark.parametrize(
+    ("tool_input", "tool_family", "argument_shape"),
+    [
+        (
+            "const r = await tools.shell_command({workdir:"
+            + json.dumps(WORKSPACE)
+            + ",command:"
+            + json.dumps("git rev-parse HEAD")
+            + "}); text(r)\n",
+            "shell_command",
+            "object",
+        ),
+        (
+            "text(await tools.apply_patch("
+            + json.dumps("*** Begin Patch\n*** End Patch")
+            + "));\n",
+            "apply_patch",
+            "string",
+        ),
+        (
+            "text(await tools.shell_command ({command:"
+            + json.dumps("git rev-parse HEAD")
+            + ",workdir:"
+            + json.dumps(WORKSPACE)
+            + "}));\n",
+            "shell_command",
+            "object",
+        ),
+    ],
+    ids=["shell-field-order", "inline-apply-patch", "shell-call-whitespace"],
+)
+def test_wrapper_diagnostics_do_not_relax_acceptance(
+    tmp_path: Path,
+    tool_input: str,
+    tool_family: str,
+    argument_shape: str,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="public",
+        )
+    mismatch = diagnostic["wrapper_mismatches"]["public"][0]
+    assert mismatch["tool_family"] == tool_family
+    assert mismatch["argument_shape"] == argument_shape
+
+
+@pytest.mark.parametrize(
+    "argument",
+    [
+        '{command:/a,b/,workdir:"synthetic"}',
+        '{...secretFields,command:"synthetic",workdir:"synthetic"}',
+        '{["command"]:"synthetic",workdir:"synthetic"}',
+        '{command,workdir:"synthetic"}',
+    ],
+    ids=["regex-comma", "spread", "computed-key", "shorthand"],
+)
+def test_unsupported_object_syntax_degrades_to_zero_census(
+    tmp_path: Path,
+    argument: str,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    tool_input = f"text(await tools.shell_command({argument}));\n"
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="source",
+        )
+    mismatch = diagnostic["wrapper_mismatches"]["source"][0]
+    assert mismatch["tool_family"] == "shell_command"
+    assert mismatch["argument_shape"] == "unparsed"
+    assert mismatch["field_name_census"] == {
+        "known_field_counts": {},
+        "total_field_count": 0,
+        "unknown_field_count": 0,
+    }
+
+
+def test_tool_marker_inside_string_is_ignored(tmp_path: Path) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["B"]
+    tool_input = (
+        'const decoy = "tools.apply_patch("; '
+        'text(await tools.shell_command ({command:"synthetic",workdir:'
+        + json.dumps(WORKSPACE)
+        + '}));\n'
+    )
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="public",
+        )
+    mismatch = diagnostic["wrapper_mismatches"]["public"][0]
+    assert mismatch["tool_family"] == "shell_command"
+    assert mismatch["argument_shape"] == "object"
+    assert mismatch["field_name_census"] == {
+        "known_field_counts": {"command": 1, "workdir": 1},
+        "total_field_count": 2,
+        "unknown_field_count": 0,
+    }
+
+
+@pytest.mark.parametrize(
+    "tool_input",
+    [
+        'const r = await eviltools.shell_command({command:"synthetic",'
+        'workdir:"synthetic"}); text(r);\n',
+        'const decoy=/tools.apply_patch(x)/; text(decoy);\n',
+        'const r = await αtools.shell_command({command:"synthetic",'
+        'workdir:"synthetic"}); text(r);\n',
+        'class X { #tools = {shell_command(){}}; m(){ return '
+        'this.#tools.shell_command({command:"synthetic"}); } }\n',
+        'const decoy=/[/]tools.apply_patch(x)/; text(decoy);\n',
+        'const r = await this. tools.shell_command({command:"synthetic",'
+        'workdir:"synthetic"}); text(r);\n',
+    ],
+    ids=[
+        "prefixed-tools-identifier",
+        "regex-only-marker",
+        "unicode-prefixed-tools-identifier",
+        "private-tools-identifier",
+        "regex-character-class-marker",
+        "property-tools-with-whitespace",
+    ],
+)
+def test_non_tool_tokens_degrade_to_other_with_zero_census(
+    tmp_path: Path,
+    tool_input: str,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["B"]
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="source",
+        )
+    mismatch = diagnostic["wrapper_mismatches"]["source"][0]
+    assert mismatch["tool_family"] == "other"
+    assert mismatch["argument_shape"] == "unparsed"
+    assert mismatch["field_name_census"] == {
+        "known_field_counts": {},
+        "total_field_count": 0,
+        "unknown_field_count": 0,
+    }
+
+
+@pytest.mark.parametrize(
+    "tool_input",
+    [
+        'const decoy = "text(await tools.apply_patch("; text(decoy);\n',
+        'const decoy = 1; /* text(await tools.apply_patch("x")) */ '
+        'text(decoy);\n',
+        'const decoy = "text(await tools.apply_patch("; '
+        'await tools.shell_command({command:"synthetic"});\n',
+        'text(await tools.shell_command({command:"synthetic"})); '
+        'text(await tools.apply_patch(patch));\n',
+        'const r = await tools.shell_command({command:"synthetic"}); '
+        'consume(r);\n',
+        'const r = await tools.shell_command({command:"synthetic"})\n',
+        'text(await tools.shell_command({command:"synthetic"})\n',
+        'const p="synthetic"; text(await tools.apply_patch(p)\n',
+    ],
+    ids=[
+        "fake-envelope-in-string",
+        "fake-envelope-in-comment",
+        "real-marker-outside-supported-envelope",
+        "multiple-real-markers",
+        "const-wrong-consumer",
+        "const-missing-suffix",
+        "direct-truncated-suffix",
+        "bound-truncated-suffix",
+    ],
+)
+def test_unsupported_envelopes_degrade_to_other(
+    tmp_path: Path,
+    tool_input: str,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(tool_input=tool_input),
+            rollout_diagnostic=diagnostic,
+            parse_phase="public",
+        )
+    mismatch = diagnostic["wrapper_mismatches"]["public"][0]
+    assert mismatch["envelope"] == "other"
 
 
 @pytest.mark.parametrize(
@@ -1830,6 +2096,10 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
                 "raw_count": 0,
                 "state_object_count": 0,
             },
+            "wrapper_mismatches": {
+                "public": [],
+                "source": [],
+            },
         }
         assert set(receipt["rollout_diagnostics"]) == {"A", "B"}
     else:
@@ -2418,6 +2688,27 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                     "raw_count": 1,
                     "state_object_count": 0,
                 },
+                "wrapper_mismatches": {
+                    "source": [
+                        {
+                            "argument_shape": "object",
+                            "envelope": "const_await_then_text",
+                            "field_name_census": {
+                                "known_field_counts": {
+                                    "command": 1,
+                                    "timeout_ms": 1,
+                                    "workdir": 1,
+                                },
+                                "total_field_count": 4,
+                                "unknown_field_count": 1,
+                            },
+                            "private_argument": "C:/Users/private/secret.txt",
+                            "tool_call_ordinal": 2,
+                            "tool_family": "shell_command",
+                        }
+                    ],
+                    "public": [],
+                },
                 "private_path": "C:/Users/private/rollout.jsonl",
             },
             "B": {
@@ -2436,6 +2727,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                     "object_payload_count": 2,
                     "raw_count": 2,
                     "state_object_count": 2,
+                },
+                "wrapper_mismatches": {
+                    "source": [],
+                    "public": [],
                 },
                 "private_blob_marker": "private",
             },
@@ -2457,6 +2752,26 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "raw_count": 1,
                 "state_object_count": 0,
             },
+            "wrapper_mismatches": {
+                "public": [],
+                "source": [
+                    {
+                        "argument_shape": "object",
+                        "envelope": "const_await_then_text",
+                        "field_name_census": {
+                            "known_field_counts": {
+                                "command": 1,
+                                "timeout_ms": 1,
+                                "workdir": 1,
+                            },
+                            "total_field_count": 4,
+                            "unknown_field_count": 1,
+                        },
+                        "tool_call_ordinal": 2,
+                        "tool_family": "shell_command",
+                    }
+                ],
+            },
         },
         "B": {
             "parse_phases": {
@@ -2475,10 +2790,15 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "raw_count": 1,
                 "state_object_count": 1,
             },
+            "wrapper_mismatches": {
+                "public": [],
+                "source": [],
+            },
         },
     }
     assert "private_path" not in receipt_path.read_text(encoding="utf-8")
     assert "private_blob_marker" not in receipt_path.read_text(encoding="utf-8")
+    assert "private_argument" not in receipt_path.read_text(encoding="utf-8")
     assert live._privacy_violations(receipt_path.read_bytes()) == []
 
 

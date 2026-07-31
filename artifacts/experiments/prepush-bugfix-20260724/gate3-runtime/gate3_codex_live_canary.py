@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v2"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v3"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -99,6 +99,15 @@ SHELL_WRAPPER_RE = re.compile(
 PATCH_WRAPPER_RE = re.compile(
     r'^const patch = (?P<patch>"(?:\\.|[^"\\])*");\r?\n'
     r'text\(await tools\.apply_patch\(patch\)\);\r?\n?$'
+)
+SAFE_TOOL_INPUT_FIELD_NAMES = (
+    "command",
+    "justification",
+    "login",
+    "prefix_rule",
+    "sandbox_permissions",
+    "timeout_ms",
+    "workdir",
 )
 WINDOWS_USER_PATH_RE = re.compile(
     r"(?i)[A-Z]:[\\/]+Users[\\/]+[^\\/\s\"'()<>{}\[\]]+"
@@ -540,6 +549,275 @@ def _validated_world_states(
     return world_states
 
 
+def _tool_call_markers(source: str) -> list[tuple[int, int, str]]:
+    markers: list[tuple[int, int, str]] = []
+    quote: str | None = None
+    escaped = False
+    line_comment = False
+    block_comment = False
+    slash_literal = False
+    slash_character_class = False
+    index = 0
+    while index < len(source):
+        character = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if line_comment:
+            if character in "\r\n":
+                line_comment = False
+            index += 1
+            continue
+        if block_comment:
+            if character == "*" and following == "/":
+                block_comment = False
+                index += 2
+            else:
+                index += 1
+            continue
+        if slash_literal:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == "[" and not slash_character_class:
+                slash_character_class = True
+            elif character == "]" and slash_character_class:
+                slash_character_class = False
+            elif character == "/" and not slash_character_class:
+                slash_literal = False
+            index += 1
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+            index += 1
+            continue
+        if character in {'"', "'", "`"}:
+            quote = character
+            index += 1
+            continue
+        if character == "/" and following == "/":
+            line_comment = True
+            index += 2
+            continue
+        if character == "/" and following == "*":
+            block_comment = True
+            index += 2
+            continue
+        if character == "/":
+            slash_literal = True
+            slash_character_class = False
+            index += 1
+            continue
+        match = re.match(r"tools\.(shell_command|apply_patch)\s*\(", source[index:])
+        cursor = index
+        while cursor and source[cursor - 1].isspace():
+            cursor -= 1
+        token_end = cursor
+        while cursor:
+            previous = source[cursor - 1]
+            if not (
+                previous.isalnum()
+                or previous in "_$\u200c\u200d"
+                or ord(previous) > 127
+            ):
+                break
+            cursor -= 1
+        preceded_by_await = source[cursor:token_end] == "await"
+        if match is not None and preceded_by_await:
+            markers.append((index, index + match.end(), match.group(1)))
+            index += match.end()
+            continue
+        index += 1
+    return markers
+
+
+def _tool_call_argument(
+    source: str,
+    marker: tuple[int, int, str],
+) -> tuple[str, int] | None:
+    _, start, _ = marker
+    if start > len(source):
+        return None
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(start, len(source)):
+        character = source[index]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+            continue
+        if character in {'"', "'", "`"}:
+            quote = character
+        elif character in "[{(":
+            depth += 1
+        elif character in "]}":
+            if depth == 0:
+                return None
+            depth -= 1
+        elif character == ")":
+            if depth == 0:
+                return source[start:index], index + 1
+            depth -= 1
+    return None
+
+
+def _top_level_object_fields(argument: str) -> list[str | None] | None:
+    stripped = argument.strip()
+    if not stripped.startswith("{") or not stripped.endswith("}"):
+        return None
+    body = stripped[1:-1]
+    segments: list[str] = []
+    start = 0
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index, character in enumerate(body):
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+            continue
+        if character in {'"', "'", "`"}:
+            quote = character
+        elif character == "/":
+            return None
+        elif character in "[{(":
+            depth += 1
+        elif character in "]})":
+            if depth == 0:
+                return None
+            depth -= 1
+        elif character == "," and depth == 0:
+            segments.append(body[start:index])
+            start = index + 1
+    if quote is not None or depth != 0:
+        return None
+    segments.append(body[start:])
+    fields: list[str | None] = []
+    for segment in segments:
+        if not segment.strip():
+            continue
+        match = re.match(
+            r'^\s*(?:(?P<identifier>[A-Za-z_$][A-Za-z0-9_$]*)|'
+            r'(?P<quoted>"(?:\\.|[^"\\])*"))\s*:',
+            segment,
+        )
+        if match is None:
+            return None
+        if match.group("identifier") is not None:
+            fields.append(match.group("identifier"))
+            continue
+        try:
+            decoded = json.loads(match.group("quoted"))
+        except (json.JSONDecodeError, TypeError):
+            fields.append(None)
+        else:
+            fields.append(decoded if isinstance(decoded, str) else None)
+    return fields
+
+
+def _tool_input_wrapper_diagnostic(source: str) -> dict[str, Any]:
+    markers = _tool_call_markers(source)
+    tool_family = markers[0][2] if len(markers) == 1 else "other"
+    argument_result = (
+        _tool_call_argument(source, markers[0]) if len(markers) == 1 else None
+    )
+    marker_prefix = source[: markers[0][0]] if len(markers) == 1 else ""
+    const_match = re.fullmatch(
+        r"\s*const\s+[A-Za-z_$][A-Za-z0-9_$]*\s*=\s*await\s+",
+        marker_prefix,
+    )
+    direct_match = re.fullmatch(
+        r"\s*text\s*\(\s*await\s+",
+        marker_prefix,
+    )
+    bound_match = re.fullmatch(
+        r'\s*const\s+(?P<bound>[A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*'
+        r'"(?:\\.|[^"\\])*"\s*;\s*text\s*\(\s*await\s+',
+        marker_prefix,
+    )
+    suffix = source[argument_result[1] :] if argument_result is not None else ""
+    const_variable_match = re.fullmatch(
+        r"\s*const\s+(?P<result>[A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*await\s+",
+        marker_prefix,
+    )
+    const_suffix_matches = bool(
+        const_variable_match
+        and re.fullmatch(
+            rf"\s*;\s*text\s*\(\s*{re.escape(const_variable_match.group('result'))}"
+            r"\s*\)\s*;?\s*",
+            suffix,
+        )
+    )
+    text_suffix_matches = bool(
+        argument_result is not None
+        and re.fullmatch(r"\s*\)\s*;?\s*", suffix)
+    )
+    if argument_result is not None and const_match and const_suffix_matches:
+        envelope = "const_await_then_text"
+    elif argument_result is not None and direct_match and text_suffix_matches:
+        envelope = "direct_await_text"
+    elif (
+        argument_result is not None
+        and bound_match
+        and argument_result[0].strip() == bound_match.group("bound")
+        and text_suffix_matches
+    ):
+        envelope = "bound_argument_then_direct_await_text"
+    else:
+        envelope = "other"
+    argument = argument_result[0] if argument_result is not None else None
+    if argument is None:
+        argument_shape = "unparsed"
+        fields = None
+    else:
+        stripped = argument.strip()
+        fields = _top_level_object_fields(argument)
+        if fields is not None:
+            argument_shape = "object"
+        elif stripped.startswith("{"):
+            argument_shape = "unparsed"
+        elif re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", stripped):
+            argument_shape = "identifier"
+        elif stripped.startswith(('"', "'", "`")):
+            argument_shape = "string"
+        else:
+            argument_shape = "other"
+    known_counts = {}
+    if fields is not None:
+        for name in SAFE_TOOL_INPUT_FIELD_NAMES:
+            count = fields.count(name)
+            if count:
+                known_counts[name] = count
+    unknown_count = (
+        sum(name not in SAFE_TOOL_INPUT_FIELD_NAMES for name in fields)
+        if fields is not None
+        else 0
+    )
+    return {
+        "argument_shape": argument_shape,
+        "envelope": envelope,
+        "field_name_census": {
+            "known_field_counts": known_counts,
+            "total_field_count": len(fields) if fields is not None else 0,
+            "unknown_field_count": unknown_count,
+        },
+        "tool_family": tool_family,
+    }
+
+
 def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
     return {
         arm: {
@@ -549,6 +827,10 @@ def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
             },
             "public_census": None,
             "source_census": None,
+            "wrapper_mismatches": {
+                "public": [],
+                "source": [],
+            },
         }
         for arm in ("A", "B")
     }
@@ -589,6 +871,74 @@ def _failure_rollout_diagnostics(
                 for value in values.values()
             ):
                 projected[arm][f"{phase}_census"] = values
+        mismatches = observed.get("wrapper_mismatches")
+        if not isinstance(mismatches, dict):
+            continue
+        for phase in ("source", "public"):
+            entries = mismatches.get(phase)
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                ordinal = entry.get("tool_call_ordinal")
+                tool_family = entry.get("tool_family")
+                envelope = entry.get("envelope")
+                argument_shape = entry.get("argument_shape")
+                census = entry.get("field_name_census")
+                if (
+                    not isinstance(ordinal, int)
+                    or isinstance(ordinal, bool)
+                    or ordinal < 1
+                    or tool_family
+                    not in {"shell_command", "apply_patch", "other"}
+                    or envelope
+                    not in {
+                        "const_await_then_text",
+                        "direct_await_text",
+                        "bound_argument_then_direct_await_text",
+                        "other",
+                    }
+                    or argument_shape
+                    not in {"object", "identifier", "string", "other", "unparsed"}
+                    or not isinstance(census, dict)
+                ):
+                    continue
+                known = census.get("known_field_counts")
+                total = census.get("total_field_count")
+                unknown = census.get("unknown_field_count")
+                if not isinstance(known, dict) or not all(
+                    name in SAFE_TOOL_INPUT_FIELD_NAMES
+                    and isinstance(count, int)
+                    and not isinstance(count, bool)
+                    and count > 0
+                    for name, count in known.items()
+                ):
+                    continue
+                if (
+                    not isinstance(total, int)
+                    or isinstance(total, bool)
+                    or not isinstance(unknown, int)
+                    or isinstance(unknown, bool)
+                    or unknown < 0
+                    or total != sum(known.values()) + unknown
+                ):
+                    continue
+                projected[arm]["wrapper_mismatches"][phase].append(
+                    {
+                        "argument_shape": argument_shape,
+                        "envelope": envelope,
+                        "field_name_census": {
+                            "known_field_counts": {
+                                name: known[name] for name in sorted(known)
+                            },
+                            "total_field_count": total,
+                            "unknown_field_count": unknown,
+                        },
+                        "tool_call_ordinal": ordinal,
+                        "tool_family": tool_family,
+                    }
+                )
     return projected
 
 
@@ -1272,6 +1622,7 @@ def _parse_tool_call(
     payload: dict[str, Any],
     *,
     expected_workspace: str,
+    mismatch_diagnostic: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if payload.get("type") != "custom_tool_call" or payload.get("name") != "exec":
         raise CanaryError("rollout used a tool outside the frozen route")
@@ -1294,6 +1645,8 @@ def _parse_tool_call(
             expected_workspace=expected_workspace,
         )
     else:
+        if mismatch_diagnostic is not None:
+            mismatch_diagnostic.update(_tool_input_wrapper_diagnostic(source))
         raise CanaryError("tool input wrapper differs from the frozen route")
     return {
         "call_id": payload.get("call_id"),
@@ -1471,6 +1824,7 @@ def parse_rollout(
         raise CanaryError("rollout has no base instructions")
     world_states = _validated_world_states(records)
     calls: list[dict[str, Any]] = []
+    tool_call_ordinal = 0
     for item in records:
         if item.get("type") != "response_item":
             continue
@@ -1480,12 +1834,24 @@ def parse_rollout(
         if payload.get("type") == "tool_search_call":
             raise CanaryError("rollout used tool search despite the frozen route")
         if payload.get("type") in {"custom_tool_call", "function_call"}:
-            calls.append(
-                _parse_tool_call(
+            tool_call_ordinal += 1
+            mismatch_diagnostic: dict[str, Any] = {}
+            try:
+                parsed_call = _parse_tool_call(
                     payload,
                     expected_workspace=expected_workspace,
+                    mismatch_diagnostic=mismatch_diagnostic,
                 )
-            )
+            except CanaryError:
+                if mismatch_diagnostic and rollout_diagnostic is not None:
+                    rollout_diagnostic["wrapper_mismatches"][parse_phase].append(
+                        {
+                            **mismatch_diagnostic,
+                            "tool_call_ordinal": tool_call_ordinal,
+                        }
+                    )
+                raise
+            calls.append(parsed_call)
     timestamps = [
         item.get("timestamp")
         for item in records
