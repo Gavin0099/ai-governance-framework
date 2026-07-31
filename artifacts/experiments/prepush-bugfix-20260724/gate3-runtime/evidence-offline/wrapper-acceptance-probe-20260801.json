@@ -1,0 +1,256 @@
+{
+  "accepted_variants": [
+    "frozen_shell",
+    "frozen_patch"
+  ],
+  "authorization_cost": "none: offline probe, no session invoked",
+  "boundary": "Variants are hand-written plausible shapes, not observed emissions. A rejection here proves the acceptance set is narrower than the variant, not that the CLI emits it.",
+  "rejected_variants": [
+    "field_timeout_ms",
+    "field_justification",
+    "field_sandbox_permissions",
+    "field_login",
+    "field_prefix_rule",
+    "order_workdir_first",
+    "spacing_after_colon",
+    "quoted_keys",
+    "variable_named_result",
+    "direct_text_await",
+    "trailing_semicolon",
+    "no_workdir"
+  ],
+  "results": [
+    {
+      "accepted": true,
+      "rationale": "the exact shape the frozen route pins",
+      "variant_id": "frozen_shell"
+    },
+    {
+      "accepted": true,
+      "rationale": "the exact patch shape the frozen route pins",
+      "variant_id": "frozen_patch"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "timeout_ms": 1,
+            "workdir": 1
+          },
+          "total_field_count": 3,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "timeout_ms is a documented shell_command field",
+      "variant_id": "field_timeout_ms"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "justification": 1,
+            "workdir": 1
+          },
+          "total_field_count": 3,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "justification is emitted when a command needs escalation",
+      "variant_id": "field_justification"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "sandbox_permissions": 1,
+            "workdir": 1
+          },
+          "total_field_count": 3,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "sandbox_permissions is emitted under some approval policies",
+      "variant_id": "field_sandbox_permissions"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "login": 1,
+            "workdir": 1
+          },
+          "total_field_count": 3,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "login is emitted by some shell wrappers",
+      "variant_id": "field_login"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "prefix_rule": 1,
+            "workdir": 1
+          },
+          "total_field_count": 3,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "prefix_rule is emitted alongside prefix-based approvals",
+      "variant_id": "field_prefix_rule"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "object key order is not guaranteed by the emitter",
+      "variant_id": "order_workdir_first"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "a space after the key colon is ordinary formatting variance",
+      "variant_id": "spacing_after_colon"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "quoted object keys are valid JS and a plausible emission",
+      "variant_id": "quoted_keys"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "the result variable name is arbitrary",
+      "variant_id": "variable_named_result"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "direct_await_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "the result can be passed straight into text()",
+      "variant_id": "direct_text_await"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "a trailing semicolon after text(r) is ordinary formatting",
+      "variant_id": "trailing_semicolon"
+    },
+    {
+      "accepted": false,
+      "classification": {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1
+          },
+          "total_field_count": 1,
+          "unknown_field_count": 0
+        },
+        "tool_family": "shell_command"
+      },
+      "rationale": "workdir is omitted when the default cwd is used",
+      "variant_id": "no_workdir"
+    }
+  ],
+  "schema": "gate3-codex-wrapper-acceptance-probe.v1",
+  "variant_count": 14
+}

@@ -1657,6 +1657,59 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   receipts v3 through v5 were recorded in `52d3b2bb` and predate this schema,
   so all three are schema v2 and carry no wrapper classification.
 
+- [x] **One authorized pair now censuses the whole pair, not one fact.**
+  Implementation commit `67afb38a` keeps scanning after a rejected tool call
+  so every mismatch in a rollout is censused before the first error is
+  re-raised unchanged, caps retention at
+  `WRAPPER_MISMATCH_RETENTION_LIMIT` while recording the full count so
+  truncation is visible, and adds `_census_unparsed_arms` so an arm that
+  aborts the build no longer leaves the other arm at `NOT_RUN`. The census
+  pass writes no staging or chain state, admits nothing and swallows its own
+  errors, so it cannot mask or replace the original failure. Admission is
+  unchanged. Failure receipt schema is now
+  `gate3-codex-live-canary-failure-receipt.v4`. Still not covered: a
+  source-phase failure leaves the public phase `NOT_RUN`, because the public
+  rollout is only produced after the source parse succeeds.
+
+- [x] **The frozen route's wrapper acceptance is byte-exact, and that is the
+  root cause of the v4/v5 packet-build failures.** The offline probe
+  `gate3_wrapper_acceptance_probe.py` classified 14 plausible tool-input
+  shapes at zero authorization cost; the report is retained at
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-offline/wrapper-acceptance-probe-20260801.json`.
+  Only the two shapes the route pins are accepted. All 12 others are
+  rejected, including five that change nothing semantically: key order,
+  spacing after a colon, quoted object keys, the result variable name and a
+  trailing semicolon. Every field name in `SAFE_TOOL_INPUT_FIELD_NAMES`
+  other than `command` and `workdir` is also rejected, which confirms that
+  allowlist is a census vocabulary and not an accept list. Because
+  `SHELL_WRAPPER_RE` admits one byte sequence, ordinary run-to-run
+  formatting variance in model output is sufficient to fail `packet_build`,
+  which is consistent with the failing arm moving from A in v4 to B in v5
+  under the same frozen route. This is a characterization of the acceptance
+  set; it is not evidence that the CLI emits any particular rejected shape.
+
+- [ ] **Decide the wrapper acceptance policy before requesting another pair.**
+  The probe establishes that byte-exact acceptance cannot survive normal
+  emission variance, so further live pairs will keep failing at
+  `packet_build` for reasons that carry no scientific content. Two options,
+  owner decision: pin the emission shape from the prompt side so variance
+  never arises, or replace `SHELL_WRAPPER_RE` with a parse-and-compare that
+  accepts any wrapper whose decoded command, workdir and tool family match
+  the frozen route. The second widens what the route admits and is a
+  governance-surface change, so it needs review before implementation, not
+  after.
+
+- [ ] **Root-cause the red credential-boundary test before the next live
+  credential run.** `test_pair_runner_rejects_non_temp_private_runtime_before_login`
+  fails on `2fe5ad61` and on every commit since. It asserts a non-zero exit
+  and that the launcher was never invoked; the exit is non-zero but the
+  launcher call log exists. The fixture's `outside_temp` flag only overrides
+  `-ArmAWorkspace`, while the test name and the runner's `Assert-UserTempPath`
+  guard both concern the private runtime root, which the runner derives
+  itself under user Temp. Either the fixture or the guard is mis-wired. This
+  is a credential-handling boundary, so it should be resolved before the next
+  run that touches real credentials.
+
 - [ ] **Read across v4 and v5 before requesting another pair.** The failing
   arm moved between runs (v4 failed on arm A, v5 failed on arm B) under the
   same frozen route, so the rejected wrapper shape varies run to run rather
