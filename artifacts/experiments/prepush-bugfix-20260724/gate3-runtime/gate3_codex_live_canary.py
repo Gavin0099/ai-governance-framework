@@ -504,6 +504,42 @@ def _world_state_census(
     }
 
 
+def _validated_world_states(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    world_state_records = [
+        record for record in records if record.get("type") == "world_state"
+    ]
+    if not world_state_records:
+        raise CanaryError("rollout has no world_state baseline")
+    payloads = [record.get("payload") for record in world_state_records]
+    if any(not isinstance(payload, dict) for payload in payloads):
+        raise CanaryError("every world_state payload must be an object")
+    world_states = list(payloads)
+    if any(
+        not isinstance(payload.get("full"), bool)
+        or not isinstance(payload.get("state"), dict)
+        for payload in world_states
+    ):
+        raise CanaryError(
+            "every world_state must have a boolean full flag and object state"
+        )
+    full_indices = [
+        index
+        for index, payload in enumerate(world_states)
+        if payload["full"] is True
+    ]
+    if len(full_indices) != 1:
+        raise CanaryError(
+            "rollout must contain exactly one full world_state baseline"
+        )
+    if full_indices[0] != 0:
+        raise CanaryError(
+            "world_state full baseline must precede every delta"
+        )
+    return world_states
+
+
 def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
     return {
         arm: {
@@ -1433,14 +1469,7 @@ def parse_rollout(
     base_instructions = [meta.get("base_instructions") for meta in metas]
     if any(value is None for value in base_instructions):
         raise CanaryError("rollout has no base instructions")
-    world_states = [
-        item["payload"]
-        for item in records
-        if item.get("type") == "world_state"
-        and isinstance(item.get("payload"), dict)
-    ]
-    if len(world_states) != 1:
-        raise CanaryError("rollout must contain one world_state")
+    world_states = _validated_world_states(records)
     calls: list[dict[str, Any]] = []
     for item in records:
         if item.get("type") != "response_item":

@@ -287,7 +287,7 @@ def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
 
 
 @pytest.mark.parametrize(
-    ("payloads", "expected_census", "accepted", "parse_phase"),
+    ("payloads", "expected_census", "error", "parse_phase"),
     [
         (
             [],
@@ -297,7 +297,7 @@ def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
                 "raw_count": 0,
                 "state_object_count": 0,
             },
-            False,
+            "rollout has no world_state baseline",
             "source",
         ),
         (
@@ -308,7 +308,7 @@ def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
                 "raw_count": 1,
                 "state_object_count": 1,
             },
-            True,
+            None,
             "source",
         ),
         (
@@ -322,7 +322,7 @@ def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
                 "raw_count": 2,
                 "state_object_count": 2,
             },
-            False,
+            None,
             "public",
         ),
         (
@@ -333,22 +333,81 @@ def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
                 "raw_count": 1,
                 "state_object_count": 0,
             },
-            False,
+            "every world_state payload must be an object",
+            "public",
+        ),
+        (
+            [{"full": False, "state": {"cwd": WORKSPACE}}],
+            {
+                "full_true_count": 0,
+                "object_payload_count": 1,
+                "raw_count": 1,
+                "state_object_count": 1,
+            },
+            "rollout must contain exactly one full world_state baseline",
+            "source",
+        ),
+        (
+            [
+                {"full": True, "state": {"cwd": WORKSPACE}},
+                {"full": True, "state": {"model": live.DEFAULT_MODEL}},
+            ],
+            {
+                "full_true_count": 2,
+                "object_payload_count": 2,
+                "raw_count": 2,
+                "state_object_count": 2,
+            },
+            "rollout must contain exactly one full world_state baseline",
+            "public",
+        ),
+        (
+            [{"full": True, "state": "non-object"}],
+            {
+                "full_true_count": 1,
+                "object_payload_count": 1,
+                "raw_count": 1,
+                "state_object_count": 0,
+            },
+            "every world_state must have a boolean full flag and object state",
+            "source",
+        ),
+        (
+            [
+                {"full": False, "state": {"model": live.DEFAULT_MODEL}},
+                {"full": True, "state": {"cwd": WORKSPACE}},
+            ],
+            {
+                "full_true_count": 1,
+                "object_payload_count": 2,
+                "raw_count": 2,
+                "state_object_count": 2,
+            },
+            "world_state full baseline must precede every delta",
             "public",
         ),
     ],
-    ids=["zero", "one", "two", "non-object"],
+    ids=[
+        "zero",
+        "one-full",
+        "one-full-one-delta",
+        "non-object-payload",
+        "no-full",
+        "multiple-full",
+        "non-object-state",
+        "delta-before-full",
+    ],
 )
-def test_world_state_census_diagnoses_cardinality_without_relaxing_acceptance(
+def test_world_state_census_and_parser_enforce_full_delta_contract(
     tmp_path: Path,
     payloads: list[object],
     expected_census: dict[str, int],
-    accepted: bool,
+    error: str | None,
     parse_phase: str,
 ) -> None:
     diagnostic = live._empty_rollout_diagnostics()["A"]
     raw = _rollout_with_world_state_payloads(payloads)
-    if accepted:
+    if error is None:
         _parse(
             tmp_path,
             raw,
@@ -359,7 +418,7 @@ def test_world_state_census_diagnoses_cardinality_without_relaxing_acceptance(
     else:
         with pytest.raises(
             live.CanaryError,
-            match="rollout must contain one world_state",
+            match=error,
         ):
             _parse(
                 tmp_path,
@@ -384,6 +443,30 @@ def test_world_state_census_diagnoses_cardinality_without_relaxing_acceptance(
             expected_census if parse_phase == "source" else None
         ),
     }
+
+
+def test_world_state_delta_order_is_bound_into_context_identity(
+    tmp_path: Path,
+) -> None:
+    baseline = {"full": True, "state": {"cwd": WORKSPACE}}
+    first_delta = {"full": False, "state": {"model": live.DEFAULT_MODEL}}
+    second_delta = {"full": False, "state": {"summary": "auto"}}
+    original = _parse(
+        tmp_path,
+        _rollout_with_world_state_payloads(
+            [baseline, first_delta, second_delta]
+        ),
+    )
+    reordered = _parse(
+        tmp_path,
+        _rollout_with_world_state_payloads(
+            [baseline, second_delta, first_delta]
+        ),
+    )
+    assert (
+        original["context_identity_sha256"]
+        != reordered["context_identity_sha256"]
+    )
 
 
 def test_prepare_rejects_non_frozen_route(tmp_path: Path) -> None:
