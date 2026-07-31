@@ -1599,6 +1599,87 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   evidence for that failure shape. This result does not count toward Gate 3
   and does not open Gate 3.
 
+- [x] **Gate 3 Codex credential-seeding canary v3 ended as a non-counted,
+  non-scoreable route-prepare negative result on 2026-07-31.** Run
+  `gate3-codex-auth-v3-20260731-114500` failed at `route_prepare` before any
+  session was invoked: credential preflight and both arm login statuses are
+  `NOT_OBSERVED`, the credential runner receipt is `NOT_CREATED`, and
+  `session_invocations` is 0. No rollout was produced, so the receipt carries
+  no rollout diagnostics. Cleanup passed with zero residue and no success
+  packet was attempted, present or admitted. The 960-byte privacy-safe
+  failure receipt at SHA-256
+  `048fed0a4e75a9170c5ec0c5cac4cb6c407da11e2dd2cc7a59f53e64b1f52865`
+  is retained under
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-auth-v3-20260731-114500.failure/`.
+  This result does not count toward Gate 3 and does not open Gate 3.
+
+- [x] **Gate 3 Codex credential-seeding canary v4 ended as a non-counted,
+  non-scoreable packet-build negative result on 2026-07-31.** Run
+  `gate3-codex-auth-v4-20260731-121500` recorded a passing credential
+  preflight, `PASS` login for both arms, a `VALID` runner receipt, exactly two
+  session invocations and exit code 0 for both arms, then failed at
+  `packet_build`. The retained rollout diagnostics show arm A failing the
+  `source` parse phase with `public` `NOT_RUN`, and arm B never parsed at all
+  (`source` and `public` both `NOT_RUN`) because the first arm aborted the
+  build. Both arms retained an identical source census
+  (`raw_count=2`, `object_payload_count=2`, `state_object_count=2`,
+  `full_true_count=1`). Cleanup passed with zero residue and no success packet
+  was attempted, present or admitted. The 1533-byte privacy-safe failure
+  receipt at SHA-256
+  `fd1a55fc8bab933d3b88dd01a32992f3a99541216ce534a113ac4fa1214785fd`
+  is retained under
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-auth-v4-20260731-121500.failure/`.
+  This result does not count toward Gate 3 and does not open Gate 3.
+
+- [x] **Gate 3 Codex credential-seeding canary v5 ended as a non-counted,
+  non-scoreable packet-build negative result on 2026-07-31.** Run
+  `gate3-codex-auth-v5-20260731-184000` recorded the same passing execution
+  profile as v4 (preflight `PASS`, both logins `PASS`, `VALID` runner receipt,
+  exactly two invocations, exit code 0 for both arms) and again failed at
+  `packet_build`. This is the first run in which arm A cleared both parse
+  phases (`source` `PASS`, `public` `PASS`) with both censuses retained; arm B
+  failed the `source` phase with `public` `NOT_RUN`. Cleanup passed with zero
+  residue and no success packet was attempted, present or admitted. The
+  1653-byte privacy-safe failure receipt at SHA-256
+  `c1fd794d1b991e7a489defe0b1b6618f707b11631bc2ebb4fcc7010bd2c16191`
+  is retained under
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-auth-v5-20260731-184000.failure/`.
+  This result does not count toward Gate 3 and does not open Gate 3.
+
+- [x] **Tool-input wrapper mismatches now carry privacy-safe classification.**
+  Implementation commit `f242c7a6` bumps the failure receipt schema to
+  `gate3-codex-live-canary-failure-receipt.v3` and, on the packet-build
+  failure path only, records the rejected tool call's family, envelope shape,
+  argument shape and a field-name census restricted to a fixed allowlist of
+  structural key names. No command, argument value, path, raw payload or
+  credential material is retained, and unrecognized keys are counted without
+  being named. Acceptance of the known-legal wrappers is unchanged. Evidence
+  receipts v3 through v5 were recorded in `52d3b2bb` and predate this schema,
+  so all three are schema v2 and carry no wrapper classification.
+
+- [ ] **Read across v4 and v5 before requesting another pair.** The failing
+  arm moved between runs (v4 failed on arm A, v5 failed on arm B) under the
+  same frozen route, so the rejected wrapper shape varies run to run rather
+  than being a fixed per-arm defect. Treat the acceptable-wrapper set as
+  under-specified relative to what the model actually emits, and resolve that
+  offline against synthetic rollouts rather than by spending further
+  authorized pairs. Raw rollouts are wiped by cleanup
+  (`residue_classes=[]`, `raw_output_retained=false`), so no run to date can
+  be replayed offline and every live pair yields only the first mismatch
+  encountered.
+
+### Cannot Claim From The v3 To v5 Canary Entries
+
+- Cannot claim which implementation commit each of v3, v4 and v5 executed
+  against; the failure receipts do not record an implementation commit, and
+  the mapping above is stated only from receipt contents.
+- Cannot claim independent review of the v3, v4 and v5 receipts; unlike the
+  v2 receipt, these three are recorded here without a review approval.
+- Cannot claim the authorization disposition for v3. The receipt shows
+  `session_invocations=0` and `replacement_sessions=0`, so no session was
+  spent, but whether the authorization is treated as consumed is an owner
+  decision and is not decided here.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
