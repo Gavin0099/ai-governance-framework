@@ -100,11 +100,14 @@ def _rollout(
     machine_cwd: str = WORKSPACE,
     developer_text: str = "frozen developer instructions",
     tool_input: str | None = None,
+    tool_inputs: list[str] | None = None,
 ) -> bytes:
     if workspace_roots is None:
         workspace_roots = [WORKSPACE]
     if tool_input is None:
         tool_input = _shell_input("git rev-parse HEAD")
+    if tool_inputs is None:
+        tool_inputs = [tool_input]
     event_prompt = prompt if event_prompt is None else event_prompt
     return b"".join(
         [
@@ -218,18 +221,21 @@ def _rollout(
                     "type": "event_msg",
                 }
             ),
-            _line(
-                {
-                    "payload": {
-                        "call_id": "call-1",
-                        "input": tool_input,
-                        "name": "exec",
-                        "type": "custom_tool_call",
-                    },
-                    "timestamp": "2026-07-29T08:00:03Z",
-                    "type": "response_item",
-                }
-            ),
+            *[
+                _line(
+                    {
+                        "payload": {
+                            "call_id": f"call-{ordinal}",
+                            "input": entry,
+                            "name": "exec",
+                            "type": "custom_tool_call",
+                        },
+                        "timestamp": "2026-07-29T08:00:03Z",
+                        "type": "response_item",
+                    }
+                )
+                for ordinal, entry in enumerate(tool_inputs, start=1)
+            ],
         ]
     )
 
@@ -442,6 +448,10 @@ def test_world_state_census_and_parser_enforce_full_delta_contract(
         "source_census": (
             expected_census if parse_phase == "source" else None
         ),
+        "wrapper_mismatch_counts": {
+            "public": 0,
+            "source": 0,
+        },
         "wrapper_mismatches": {
             "public": [],
             "source": [],
@@ -607,6 +617,149 @@ def test_wrapper_mismatch_records_only_privacy_safe_structure(
     assert b"synthetic-secret" not in encoded
     assert b"Users" not in encoded
     assert live._privacy_violations(encoded) == []
+
+
+def _bad_wrapper(command: str) -> str:
+    return (
+        "const r = await tools.shell_command({command:"
+        + json.dumps(command)
+        + ",timeout_ms:120000,workdir:"
+        + json.dumps(WORKSPACE)
+        + "}); text(r)\n"
+    )
+
+
+def test_every_wrapper_mismatch_in_one_rollout_is_censused(
+    tmp_path: Path,
+) -> None:
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    with pytest.raises(
+        live.CanaryError,
+        match="tool input wrapper differs from the frozen route",
+    ):
+        _parse(
+            tmp_path,
+            _rollout(
+                tool_inputs=[
+                    _shell_input("git rev-parse HEAD"),
+                    _bad_wrapper("git status"),
+                    _shell_input("git diff"),
+                    _bad_wrapper("git log"),
+                ]
+            ),
+            rollout_diagnostic=diagnostic,
+            parse_phase="source",
+        )
+    assert diagnostic["wrapper_mismatch_counts"] == {"public": 0, "source": 2}
+    assert [
+        entry["tool_call_ordinal"]
+        for entry in diagnostic["wrapper_mismatches"]["source"]
+    ] == [2, 4]
+    assert diagnostic["parse_phases"]["source"] == "FAIL"
+
+
+def test_wrapper_mismatch_retention_is_bounded_but_counted(
+    tmp_path: Path,
+) -> None:
+    overflow = live.WRAPPER_MISMATCH_RETENTION_LIMIT + 5
+    diagnostic = live._empty_rollout_diagnostics()["A"]
+    with pytest.raises(live.CanaryError):
+        _parse(
+            tmp_path,
+            _rollout(
+                tool_inputs=[
+                    _bad_wrapper(f"git log -{index}") for index in range(overflow)
+                ]
+            ),
+            rollout_diagnostic=diagnostic,
+            parse_phase="source",
+        )
+    assert diagnostic["wrapper_mismatch_counts"]["source"] == overflow
+    assert (
+        len(diagnostic["wrapper_mismatches"]["source"])
+        == live.WRAPPER_MISMATCH_RETENTION_LIMIT
+    )
+    projected = live._failure_rollout_diagnostics({"A": diagnostic})
+    assert projected["A"]["wrapper_mismatch_counts"]["source"] == overflow
+    assert (
+        len(projected["A"]["wrapper_mismatches"]["source"])
+        == live.WRAPPER_MISMATCH_RETENTION_LIMIT
+    )
+
+
+def test_unparsed_arms_are_censused_after_another_arm_aborts(
+    tmp_path: Path,
+) -> None:
+    staging = tmp_path / "staging"
+    (staging / "inputs").mkdir(parents=True)
+    for arm in ("a", "b"):
+        (staging / "inputs" / f"producer-prompt-{arm}.txt").write_bytes(
+            b"frozen prompt"
+        )
+    sources = {}
+    for arm in ("A", "B"):
+        rollout = tmp_path / f"rollout-{arm.lower()}.jsonl"
+        rollout.write_bytes(_rollout())
+        sources[arm] = (Path(WORKSPACE), rollout, tmp_path / "events.jsonl")
+    diagnostics = live._empty_rollout_diagnostics()
+    diagnostics["A"]["parse_phases"]["source"] = "FAIL"
+    diagnostics["A"]["source_census"] = {
+        "full_true_count": 1,
+        "object_payload_count": 1,
+        "raw_count": 1,
+        "state_object_count": 1,
+    }
+    live._census_unparsed_arms(
+        sources=sources,
+        staging=staging,
+        plan={
+            "frozen_route": {
+                "model": live.DEFAULT_MODEL,
+                "comp_hash": live.DEFAULT_COMP_HASH,
+                "cli_version": live.DEFAULT_CLI_VERSION,
+                "reasoning": live.DEFAULT_REASONING,
+            },
+            "context_contract": _context_contract(),
+        },
+        rollout_diagnostics=diagnostics,
+    )
+    assert diagnostics["A"]["parse_phases"]["source"] == "FAIL"
+    assert diagnostics["A"]["source_census"]["raw_count"] == 1
+    assert diagnostics["B"]["parse_phases"]["source"] != "NOT_RUN"
+    assert isinstance(diagnostics["B"]["source_census"], dict)
+    assert diagnostics["B"]["parse_phases"]["public"] == "NOT_RUN"
+    assert diagnostics["B"]["public_census"] is None
+
+
+def test_arm_census_never_replaces_the_original_failure(
+    tmp_path: Path,
+) -> None:
+    staging = tmp_path / "staging"
+    (staging / "inputs").mkdir(parents=True)
+    missing = tmp_path / "absent.jsonl"
+    diagnostics = live._empty_rollout_diagnostics()
+    live._census_unparsed_arms(
+        sources={
+            arm: (Path(WORKSPACE), missing, missing) for arm in ("A", "B")
+        },
+        staging=staging,
+        plan={},
+        rollout_diagnostics=diagnostics,
+    )
+    assert diagnostics == live._empty_rollout_diagnostics()
+
+
+def test_first_wrapper_error_is_still_the_raised_error(tmp_path: Path) -> None:
+    with pytest.raises(live.CanaryError, match="simple-command contract"):
+        _parse(
+            tmp_path,
+            _rollout(
+                tool_inputs=[
+                    _shell_input("git add calc.py; git commit -m chained"),
+                    _bad_wrapper("git status"),
+                ]
+            ),
+        )
 
 
 @pytest.mark.parametrize(
@@ -2096,6 +2249,10 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
                 "raw_count": 0,
                 "state_object_count": 0,
             },
+            "wrapper_mismatch_counts": {
+                "public": 0,
+                "source": 0,
+            },
             "wrapper_mismatches": {
                 "public": [],
                 "source": [],
@@ -2688,6 +2845,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                     "raw_count": 1,
                     "state_object_count": 0,
                 },
+                "wrapper_mismatch_counts": {
+                    "source": 3,
+                    "public": 0,
+                },
                 "wrapper_mismatches": {
                     "source": [
                         {
@@ -2752,6 +2913,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "raw_count": 1,
                 "state_object_count": 0,
             },
+            "wrapper_mismatch_counts": {
+                "public": 0,
+                "source": 3,
+            },
             "wrapper_mismatches": {
                 "public": [],
                 "source": [
@@ -2789,6 +2954,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "object_payload_count": 1,
                 "raw_count": 1,
                 "state_object_count": 1,
+            },
+            "wrapper_mismatch_counts": {
+                "public": 0,
+                "source": 0,
             },
             "wrapper_mismatches": {
                 "public": [],

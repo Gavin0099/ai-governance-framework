@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v3"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v4"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -100,6 +100,7 @@ PATCH_WRAPPER_RE = re.compile(
     r'^const patch = (?P<patch>"(?:\\.|[^"\\])*");\r?\n'
     r'text\(await tools\.apply_patch\(patch\)\);\r?\n?$'
 )
+WRAPPER_MISMATCH_RETENTION_LIMIT = 32
 SAFE_TOOL_INPUT_FIELD_NAMES = (
     "command",
     "justification",
@@ -827,6 +828,10 @@ def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
             },
             "public_census": None,
             "source_census": None,
+            "wrapper_mismatch_counts": {
+                "public": 0,
+                "source": 0,
+            },
             "wrapper_mismatches": {
                 "public": [],
                 "source": [],
@@ -871,6 +876,16 @@ def _failure_rollout_diagnostics(
                 for value in values.values()
             ):
                 projected[arm][f"{phase}_census"] = values
+        counts = observed.get("wrapper_mismatch_counts")
+        if isinstance(counts, dict):
+            for phase in ("source", "public"):
+                count = counts.get(phase)
+                if (
+                    isinstance(count, int)
+                    and not isinstance(count, bool)
+                    and count >= 0
+                ):
+                    projected[arm]["wrapper_mismatch_counts"][phase] = count
         mismatches = observed.get("wrapper_mismatches")
         if not isinstance(mismatches, dict):
             continue
@@ -878,7 +893,7 @@ def _failure_rollout_diagnostics(
             entries = mismatches.get(phase)
             if not isinstance(entries, list):
                 continue
-            for entry in entries:
+            for entry in entries[:WRAPPER_MISMATCH_RETENTION_LIMIT]:
                 if not isinstance(entry, dict):
                     continue
                 ordinal = entry.get("tool_call_ordinal")
@@ -1825,6 +1840,7 @@ def parse_rollout(
     world_states = _validated_world_states(records)
     calls: list[dict[str, Any]] = []
     tool_call_ordinal = 0
+    first_tool_call_error: CanaryError | None = None
     for item in records:
         if item.get("type") != "response_item":
             continue
@@ -1842,16 +1858,27 @@ def parse_rollout(
                     expected_workspace=expected_workspace,
                     mismatch_diagnostic=mismatch_diagnostic,
                 )
-            except CanaryError:
+            except CanaryError as error:
+                # Keep scanning so one authorized pair censuses every rejected
+                # wrapper instead of only the first. The original error is
+                # re-raised below, so admission is unchanged.
                 if mismatch_diagnostic and rollout_diagnostic is not None:
-                    rollout_diagnostic["wrapper_mismatches"][parse_phase].append(
-                        {
-                            **mismatch_diagnostic,
-                            "tool_call_ordinal": tool_call_ordinal,
-                        }
-                    )
-                raise
+                    counts = rollout_diagnostic["wrapper_mismatch_counts"]
+                    counts[parse_phase] += 1
+                    retained = rollout_diagnostic["wrapper_mismatches"][parse_phase]
+                    if len(retained) < WRAPPER_MISMATCH_RETENTION_LIMIT:
+                        retained.append(
+                            {
+                                **mismatch_diagnostic,
+                                "tool_call_ordinal": tool_call_ordinal,
+                            }
+                        )
+                if first_tool_call_error is None:
+                    first_tool_call_error = error
+                continue
             calls.append(parsed_call)
+    if first_tool_call_error is not None:
+        raise first_tool_call_error
     timestamps = [
         item.get("timestamp")
         for item in records
@@ -2504,6 +2531,47 @@ def _validate_credential_runner_receipt(
     return receipt
 
 
+def _census_unparsed_arms(
+    *,
+    sources: dict[str, tuple[Path, Path, Path]],
+    staging: Path,
+    plan: dict[str, Any],
+    rollout_diagnostics: dict[str, dict[str, Any]],
+) -> None:
+    """Census the source rollouts of arms that never reached a parse.
+
+    When one arm aborts the packet build, the remaining arms are left as
+    ``NOT_RUN`` and a whole authorized pair yields a single failure fact. This
+    pass is diagnostics-only: it writes no staging or chain state, admits
+    nothing, and swallows its own errors so it can never mask or replace the
+    original failure.
+    """
+    for treatment, (repo, rollout_source, _) in sorted(sources.items()):
+        diagnostic = rollout_diagnostics.get(treatment)
+        if not isinstance(diagnostic, dict):
+            continue
+        if diagnostic["parse_phases"]["source"] != "NOT_RUN":
+            continue
+        prompt_path = (
+            staging / "inputs" / f"producer-prompt-{treatment.lower()}.txt"
+        )
+        try:
+            parse_rollout(
+                rollout_source,
+                expected_prompt=prompt_path.read_bytes(),
+                expected_model=plan["frozen_route"]["model"],
+                expected_comp_hash=plan["frozen_route"]["comp_hash"],
+                expected_cli_version=plan["frozen_route"]["cli_version"],
+                expected_reasoning=plan["frozen_route"]["reasoning"],
+                expected_workspace=str(repo.resolve()),
+                expected_context_contract=plan["context_contract"],
+                rollout_diagnostic=diagnostic,
+                parse_phase="source",
+            )
+        except (CanaryError, OSError, KeyError, TypeError, ValueError):
+            continue
+
+
 def _build_orchestrated(
     repo_root: Path,
     staging: Path,
@@ -2584,28 +2652,37 @@ def _build_orchestrated(
     }
     outcomes = []
     with _git_safe_directories([arm_a_repo, arm_b_repo]):
-        for anon_id, treatment in sorted(ANON_MAPPING.items()):
-            source_repo, source_rollout, source_exec_events = sources[treatment]
-            outcomes.append(
-                _capture_outcome(
-                    repo=source_repo,
-                    rollout_source=source_rollout,
-                    exec_events_source=source_exec_events,
-                    prompt_path=staging
-                    / "inputs"
-                    / f"producer-prompt-{treatment.lower()}.txt",
-                    anon_id=anon_id,
-                    treatment=treatment,
-                    suffix=treatment.lower(),
-                    staging=staging,
-                    chain_dir=chain_dir,
-                    contract_path=contract_path,
-                    plan=plan,
-                    randomization_sha=randomization_sha,
-                    baseline_receipt_sha=baseline_receipt["sha256"],
-                    rollout_diagnostic=rollout_diagnostics[treatment],
+        try:
+            for anon_id, treatment in sorted(ANON_MAPPING.items()):
+                source_repo, source_rollout, source_exec_events = sources[treatment]
+                outcomes.append(
+                    _capture_outcome(
+                        repo=source_repo,
+                        rollout_source=source_rollout,
+                        exec_events_source=source_exec_events,
+                        prompt_path=staging
+                        / "inputs"
+                        / f"producer-prompt-{treatment.lower()}.txt",
+                        anon_id=anon_id,
+                        treatment=treatment,
+                        suffix=treatment.lower(),
+                        staging=staging,
+                        chain_dir=chain_dir,
+                        contract_path=contract_path,
+                        plan=plan,
+                        randomization_sha=randomization_sha,
+                        baseline_receipt_sha=baseline_receipt["sha256"],
+                        rollout_diagnostic=rollout_diagnostics[treatment],
+                    )
                 )
+        except CanaryError:
+            _census_unparsed_arms(
+                sources=sources,
+                staging=staging,
+                plan=plan,
+                rollout_diagnostics=rollout_diagnostics,
             )
+            raise
     sessions = {outcome["session_id"] for outcome in outcomes}
     if len(sessions) != 2:
         raise CanaryError("A/B must come from two distinct fresh contexts")
