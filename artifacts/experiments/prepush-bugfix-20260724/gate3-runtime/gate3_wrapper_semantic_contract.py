@@ -43,6 +43,21 @@ Admitting it is the single highest-leverage relaxation available and it is an
 owner decision, not a default. Adding a name to ``TOLERATED_FIELDS`` is a
 governance-surface change and must go through review; the tests below pin the
 empty default so that change cannot be made silently.
+
+Tolerating a field by name alone would not be a small relaxation. An execution
+bound admitted by name accepts a negative value, a zero, an absurd value, a
+string, or a call expression evaluated at runtime -- none of which are the
+frozen route. So a name in ``TOLERATED_FIELDS`` is inert unless
+``TOLERATED_FIELD_VALUES`` also carries an exact preregistered integer for it,
+and the literal in the input must equal that integer.
+
+Two preconditions must be satisfied before any field is tolerated, and neither
+is implemented here because neither belongs to a proposal:
+
+* the tolerated value must be preregistered, and absence of the field is
+  equivalent only if the CLI default is itself pinned to that same value;
+* the value must enter the route and context digests and the A/B identity
+  comparison, so the two arms cannot silently differ on it.
 """
 
 from __future__ import annotations
@@ -63,19 +78,42 @@ CONTRACT_SCHEMA = "gate3-codex-wrapper-semantic-contract.v1"
 SEMANTIC_CORE_FIELDS = ("command", "workdir")
 
 # Deliberately empty. See "The open decision" above. Anything added here widens
-# what the route admits.
+# what the route admits, and a name alone is not enough to admit a field: it
+# must also appear in TOLERATED_FIELD_VALUES with an exact required value.
 TOLERATED_FIELDS: tuple[str, ...] = ()
+
+# Exact value required for each tolerated field. A name-only allowance would
+# admit any value: for an execution bound that means a negative number, a zero,
+# an absurd number, a string, or a call expression evaluated at runtime. None
+# means no value has been preregistered, so the field cannot be tolerated even
+# if someone adds its name above.
+TOLERATED_FIELD_VALUES: dict[str, int | None] = {
+    "timeout_ms": None,
+}
+
+# Wrapper forms whose prefix, suffix and result consumer the route already
+# validates end to end. Anything else is not a wrapper this contract will
+# reason about, however familiar its middle looks.
+VALIDATED_ENVELOPES = (
+    "const_await_then_text",
+    "direct_await_text",
+    "bound_argument_then_direct_await_text",
+)
 
 REFUSAL_REASONS = (
     "accepted",
     "not_single_frozen_call",
+    "envelope_not_validated",
     "argument_not_object",
     "core_field_missing",
     "duplicate_field",
     "extra_field",
     "privilege_affecting_field",
+    "tolerated_field_value_rejected",
     "value_rejected_by_route",
 )
+
+_INTEGER_LITERAL_RE = re.compile(r"[+-]?\d+")
 
 # Which refusal a non-core field earns. Naming these separately keeps a receipt
 # honest: an execution bound and a sandbox grant are not the same finding.
@@ -177,6 +215,15 @@ def evaluate(source: str, *, expected_workspace: str) -> dict[str, Any]:
     if len(markers) != 1:
         return verdict("not_single_frozen_call", rejection_class=rejection_class)
     family = markers[0][2]
+    # Finding one call and reading its argument says nothing about what
+    # surrounds it. Without this, a leading statement, a wrong consumer or a
+    # truncated input all pass: the middle looks right and nothing checks the
+    # rest. Reuse the route's own end-to-end envelope classification.
+    envelope = live._tool_input_wrapper_diagnostic(source)["envelope"]
+    if envelope not in VALIDATED_ENVELOPES:
+        return verdict(
+            "envelope_not_validated", tool_family=family, envelope=envelope
+        )
     argument_result = live._tool_call_argument(source, markers[0])
     if argument_result is None:
         return verdict("argument_not_object", tool_family=family)
@@ -216,6 +263,23 @@ def evaluate(source: str, *, expected_workspace: str) -> dict[str, Any]:
         )
     if extra:
         return verdict("extra_field", tool_family=family, fields=extra)
+    for name in sorted(set(fields) & set(TOLERATED_FIELDS)):
+        required = TOLERATED_FIELD_VALUES.get(name)
+        if required is None:
+            return verdict(
+                "tolerated_field_value_rejected",
+                tool_family=family,
+                fields=[name],
+                detail="no preregistered value",
+            )
+        literal = fields[name].strip()
+        if not _INTEGER_LITERAL_RE.fullmatch(literal) or int(literal) != required:
+            return verdict(
+                "tolerated_field_value_rejected",
+                tool_family=family,
+                fields=[name],
+                detail="value is not the preregistered integer",
+            )
     try:
         detail = live._validate_shell_command(
             live._decode_js_string(fields["command"], label="command"),

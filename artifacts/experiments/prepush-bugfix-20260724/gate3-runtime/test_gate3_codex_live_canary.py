@@ -443,6 +443,7 @@ def test_world_state_census_and_parser_enforce_full_delta_contract(
                 expected_status if parse_phase == "source" else "NOT_RUN"
             ),
         },
+        "census_status": {"public": "not_attempted", "source": "not_attempted"},
         "public_census": (
             expected_census if parse_phase == "public" else None
         ),
@@ -849,7 +850,63 @@ def test_arm_census_never_replaces_the_original_failure(
         plan={},
         rollout_diagnostics=diagnostics,
     )
-    assert diagnostics == live._empty_rollout_diagnostics()
+    # No phase is invented, and the original failure is untouched. But the
+    # pass does not fail silently either: a phase still at NOT_RUN says why.
+    for arm in ("A", "B"):
+        assert diagnostics[arm]["parse_phases"] == {
+            "public": "NOT_RUN",
+            "source": "NOT_RUN",
+        }
+        assert diagnostics[arm]["census_status"] == {
+            "public": "diagnostic_setup_failed",
+            "source": "diagnostic_setup_failed",
+        }
+        assert diagnostics[arm]["source_census"] is None
+        assert diagnostics[arm]["public_census"] is None
+
+
+def test_every_census_status_is_a_declared_value(tmp_path: Path) -> None:
+    """A receipt reader must never meet a status outside the vocabulary."""
+    staging = tmp_path / "staging"
+    (staging / "inputs").mkdir(parents=True)
+    for arm in ("a", "b"):
+        (staging / "inputs" / f"producer-prompt-{arm}.txt").write_bytes(
+            b"frozen prompt"
+        )
+    sources = {}
+    for arm in ("A", "B"):
+        rollout = tmp_path / f"rollout-{arm.lower()}.jsonl"
+        rollout.write_bytes(b"not a rollout\n")
+        sources[arm] = (Path(WORKSPACE), rollout, tmp_path / "events.jsonl")
+    diagnostics = live._empty_rollout_diagnostics()
+    live._census_incomplete_arms(
+        sources=sources,
+        staging=staging,
+        plan={
+            "frozen_route": {
+                "model": live.DEFAULT_MODEL,
+                "comp_hash": live.DEFAULT_COMP_HASH,
+                "cli_version": live.DEFAULT_CLI_VERSION,
+                "reasoning": live.DEFAULT_REASONING,
+            },
+            "context_contract": _context_contract(),
+        },
+        rollout_diagnostics=diagnostics,
+    )
+    projected = live._failure_rollout_diagnostics(diagnostics)
+    for arm in ("A", "B"):
+        for phase in ("source", "public"):
+            assert (
+                diagnostics[arm]["census_status"][phase]
+                in live.CENSUS_STATUSES
+            )
+            assert (
+                projected[arm]["census_status"][phase]
+                in live.CENSUS_STATUSES
+            )
+            # Attempted and still NOT_RUN is a legitimate outcome, but it is
+            # now distinguishable from never having been tried.
+            assert diagnostics[arm]["census_status"][phase] != "not_attempted"
 
 
 def test_first_wrapper_error_is_still_the_raised_error(tmp_path: Path) -> None:
@@ -2370,6 +2427,10 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
                 "public": "NOT_RUN",
                 "source": "FAIL",
             },
+            "census_status": {
+                "public": "not_attempted",
+                "source": "not_attempted",
+            },
             "public_census": None,
             "public_phase_from_diagnostic_copy": False,
             "source_census": {
@@ -3038,6 +3099,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "public": "NOT_RUN",
                 "source": "FAIL",
             },
+            "census_status": {
+                "public": "not_attempted",
+                "source": "not_attempted",
+            },
             "public_census": None,
             "public_phase_from_diagnostic_copy": False,
             "source_census": {
@@ -3078,6 +3143,10 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
             "parse_phases": {
                 "public": "FAIL",
                 "source": "PASS",
+            },
+            "census_status": {
+                "public": "not_attempted",
+                "source": "not_attempted",
             },
             "public_census": {
                 "full_true_count": 2,

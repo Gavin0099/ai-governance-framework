@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v6"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v7"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -485,8 +485,16 @@ def _load_json(path: Path) -> dict[str, Any]:
     return chain._load_json(path)
 
 
-def _load_jsonl(path: Path, *, label: str) -> list[dict[str, Any]]:
-    raw = path.read_bytes()
+def _load_jsonl(
+    path: Path | None,
+    *,
+    label: str,
+    raw: bytes | None = None,
+) -> list[dict[str, Any]]:
+    if raw is None:
+        if path is None:
+            raise CanaryError(f"{label} has no source")
+        raw = path.read_bytes()
     if not raw or not raw.endswith(b"\n"):
         raise CanaryError(f"{label} must be non-empty newline-terminated JSONL")
     records: list[dict[str, Any]] = []
@@ -880,9 +888,24 @@ def _tool_input_wrapper_diagnostic(source: str) -> dict[str, Any]:
     }
 
 
+CENSUS_STATUSES = (
+    "not_attempted",
+    "diagnostic_setup_failed",
+    "sanitize_failed",
+    "parse_attempted",
+)
+
+
 def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
     return {
         arm: {
+            # Why a phase left blank by a failed build stayed blank. Without
+            # this, "NOT_RUN" cannot distinguish a phase the diagnostic pass
+            # never reached from one where the pass itself broke.
+            "census_status": {
+                "public": "not_attempted",
+                "source": "not_attempted",
+            },
             "parse_phases": {
                 "public": "NOT_RUN",
                 "source": "NOT_RUN",
@@ -943,6 +966,12 @@ def _failure_rollout_diagnostics(
                 projected[arm][f"{phase}_census"] = values
         if observed.get("public_phase_from_diagnostic_copy") is True:
             projected[arm]["public_phase_from_diagnostic_copy"] = True
+        statuses = observed.get("census_status")
+        if isinstance(statuses, dict):
+            for phase in ("source", "public"):
+                status = statuses.get(phase)
+                if status in CENSUS_STATUSES:
+                    projected[arm]["census_status"][phase] = status
         counts = observed.get("wrapper_mismatch_counts")
         if isinstance(counts, dict):
             for phase in ("source", "public"):
@@ -1757,8 +1786,9 @@ def _parse_tool_call(
 
 
 def parse_rollout(
-    path: Path,
+    path: Path | None,
     *,
+    source_bytes: bytes | None = None,
     expected_prompt: bytes,
     expected_model: str,
     expected_comp_hash: str,
@@ -1773,8 +1803,16 @@ def parse_rollout(
         if parse_phase not in {"source", "public"}:
             raise CanaryError("rollout diagnostic parse phase is invalid")
         rollout_diagnostic["parse_phases"][parse_phase] = "FAIL"
-    raw = path.read_bytes()
-    records = _load_jsonl(path, label="rollout")
+    # source_bytes lets a caller parse a rollout it holds in memory. The
+    # diagnostic census of the public phase uses it so a sanitized copy of
+    # private material never touches the filesystem.
+    if source_bytes is None:
+        if path is None:
+            raise CanaryError("rollout has no source")
+        raw = path.read_bytes()
+    else:
+        raw = source_bytes
+    records = _load_jsonl(path, label="rollout", raw=source_bytes)
     if rollout_diagnostic is not None:
         rollout_diagnostic[f"{parse_phase}_census"] = _world_state_census(
             records
@@ -2631,15 +2669,19 @@ def _census_incomplete_arms(
     fraction of the four observations it cost, and the missing ones could only
     be bought with another pair.
 
-    The public phase is censused here from a sanitized copy made in a private
-    temporary directory, using the same sanitizer the build uses. That copy is
-    equivalent by construction but is not the staged artifact, so arms
-    censused this way are flagged: a reader must not mistake this for the
-    public rollout admission would have seen.
+    The public phase is censused from bytes sanitized in memory with the
+    build's own sanitizer. Nothing is written to disk: a sanitizer's output is
+    not the same thing as output proven publishable, so a copy of private
+    material is never given a filesystem path it could outlive this call
+    through. The bytes are equivalent by construction to the staged artifact
+    but are not it, so arms censused this way are flagged; a reader must not
+    mistake this for the public rollout admission would have seen.
 
-    Diagnostics only. It writes no staging or chain state, admits nothing,
-    leaves no residue, and swallows its own errors, so it can never mask or
-    replace the original failure.
+    Diagnostics only. It writes nothing anywhere, admits nothing, and never
+    lets its own failure escape. Its failures are not silent either: each
+    phase records a fixed-vocabulary ``census_status``, because a phase left
+    at ``NOT_RUN`` with no reason is indistinguishable from a phase nobody
+    tried, and one of those is a defect.
     """
     for treatment, (repo, rollout_source, _) in sorted(sources.items()):
         diagnostic = rollout_diagnostics.get(treatment)
@@ -2648,9 +2690,8 @@ def _census_incomplete_arms(
         prompt_path = (
             staging / "inputs" / f"producer-prompt-{treatment.lower()}.txt"
         )
-        common: dict[str, Any] = {}
         try:
-            common = {
+            common: dict[str, Any] = {
                 "expected_prompt": prompt_path.read_bytes(),
                 "expected_model": plan["frozen_route"]["model"],
                 "expected_comp_hash": plan["frozen_route"]["comp_hash"],
@@ -2658,9 +2699,15 @@ def _census_incomplete_arms(
                 "expected_reasoning": plan["frozen_route"]["reasoning"],
                 "expected_context_contract": plan["context_contract"],
             }
-        except (OSError, KeyError, TypeError):
+        except (OSError, KeyError, TypeError, ValueError):
+            for phase in ("source", "public"):
+                if diagnostic["parse_phases"][phase] == "NOT_RUN":
+                    diagnostic["census_status"][phase] = (
+                        "diagnostic_setup_failed"
+                    )
             continue
         if diagnostic["parse_phases"]["source"] == "NOT_RUN":
+            diagnostic["census_status"]["source"] = "parse_attempted"
             try:
                 parse_rollout(
                     rollout_source,
@@ -2675,27 +2722,28 @@ def _census_incomplete_arms(
             continue
         context_token = PUBLIC_CONTEXT_TOKENS.get(treatment)
         if context_token is None:
+            diagnostic["census_status"]["public"] = "diagnostic_setup_failed"
             continue
         try:
-            with tempfile.TemporaryDirectory(
-                prefix="gate3-public-census-"
-            ) as scratch:
-                copy = Path(scratch) / "rollout.jsonl"
-                copy.write_bytes(
-                    sanitize_jsonl(
-                        rollout_source,
-                        workspace=str(repo.resolve()),
-                        context_token=context_token,
-                    )
-                )
-                diagnostic["public_phase_from_diagnostic_copy"] = True
-                parse_rollout(
-                    copy,
-                    expected_workspace=context_token,
-                    rollout_diagnostic=diagnostic,
-                    parse_phase="public",
-                    **common,
-                )
+            sanitized = sanitize_jsonl(
+                rollout_source,
+                workspace=str(repo.resolve()),
+                context_token=context_token,
+            )
+        except (CanaryError, OSError, KeyError, TypeError, ValueError):
+            diagnostic["census_status"]["public"] = "sanitize_failed"
+            continue
+        diagnostic["public_phase_from_diagnostic_copy"] = True
+        diagnostic["census_status"]["public"] = "parse_attempted"
+        try:
+            parse_rollout(
+                None,
+                source_bytes=sanitized,
+                expected_workspace=context_token,
+                rollout_diagnostic=diagnostic,
+                parse_phase="public",
+                **common,
+            )
         except (CanaryError, OSError, KeyError, TypeError, ValueError):
             continue
 

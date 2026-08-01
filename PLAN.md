@@ -1657,9 +1657,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   receipts v3 through v5 were recorded in `52d3b2bb` and predate this schema,
   so all three are schema v2 and carry no wrapper classification.
 
-- [x] **One authorized pair now censuses both arms against both parse
-  phases.** Implementation commit `67afb38a` keeps scanning after a
-  rejected tool call
+- [x] **One authorized pair attempts every arm against every parse phase, and
+  says so when it cannot.** Implementation commit `67afb38a` keeps scanning
+  after a rejected tool call
   so every mismatch in a rollout is censused before the first error is
   re-raised unchanged, caps retention at
   `WRAPPER_MISMATCH_RETENTION_LIMIT` while recording the full count so
@@ -1669,14 +1669,26 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   errors, so it cannot mask or replace the original failure. Admission is
   unchanged. The remaining gap, that a source-phase failure left the public
   phase `NOT_RUN` because the public rollout is only produced after the
-  source parse succeeds, is closed by `_census_incomplete_arms`: it censuses
-  the public phase from a copy sanitized in a private temporary directory
-  using the build's own sanitizer. That copy is equivalent by construction
-  but is not the staged artifact, so any arm censused this way is flagged
-  with `public_phase_from_diagnostic_copy` and must not be read as the public
-  rollout admission would have seen. The temporary directory is removed even
-  on failure, and a test asserts no residue survives. Failure receipt schema
-  is now `gate3-codex-live-canary-failure-receipt.v6`.
+  source parse succeeds, is addressed by `_census_incomplete_arms`: it
+  censuses the public phase from bytes sanitized in memory with the build's
+  own sanitizer. Nothing is written to disk, because a sanitizer's output is
+  not the same thing as output proven publishable and a copy of private
+  material should not be given a path it could outlive the call through.
+  Those bytes are equivalent by construction to the staged artifact but are
+  not it, so any arm censused this way is flagged with
+  `public_phase_from_diagnostic_copy` and must not be read as the public
+  rollout admission would have seen.
+
+  This is not an unconditional guarantee that all four arm-by-phase cells are
+  filled, and must not be described as one. The helper can only fill a cell
+  when the prompt, the plan, the source rollout and the sanitizer are all
+  usable; when its own setup, sanitization or parse fails, the cell stays
+  `NOT_RUN`. What is guaranteed is that such a cell is no longer silent: each
+  phase carries a `census_status` from the fixed vocabulary
+  `CENSUS_STATUSES`, so a reader can tell a phase nobody reached from one
+  where the diagnostic pass itself broke. No exception text and no path is
+  retained. Failure receipt schema is now
+  `gate3-codex-live-canary-failure-receipt.v7`.
 
 - [x] **The frozen route's wrapper acceptance is byte-exact, and that is the
   root cause of the v4/v5 packet-build failures.** The offline probe
@@ -1784,10 +1796,16 @@ gates away from counted execution, and counted execution remains at zero.
 - Producer-output admission: not passing. No run has produced a scoreable
   packet, so the producer workflow must not be described as having succeeded
   end to end.
-- Failure receipt: collect-all across both arms and both parse phases, with
-  public-phase observations that came from a diagnostic copy flagged as such.
-  It still describes only why a build failed; it is not evidence about
-  producer output.
+- Failure receipt: attempts every arm against every parse phase and records a
+  fixed-vocabulary reason when it cannot complete one, with public-phase
+  observations taken from a diagnostic copy flagged as such. It is not an
+  unconditional guarantee that all four cells are filled, and it still
+  describes only why a build failed; it is not evidence about producer
+  output.
+- Wrapper acceptance proposal: reviewed once and found to accept incomplete
+  and statement-padded wrappers, and to tolerate fields by name without
+  constraining their values. Both are fixed and it remains unwired, but it
+  has not yet passed an independent review in its corrected form.
 - Offline corpus characterization: complete as a method. As acceptance-policy
   evidence it is limited and cannot decide a contract on its own: the pinned
   build's emissions in the corpus came from the same rehearsal the wrapper

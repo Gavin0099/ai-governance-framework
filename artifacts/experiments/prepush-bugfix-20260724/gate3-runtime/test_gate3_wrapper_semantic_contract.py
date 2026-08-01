@@ -54,6 +54,111 @@ def test_tolerated_fields_is_empty_by_default() -> None:
     assert contract.TOLERATED_FIELDS == ()
 
 
+def test_no_tolerated_field_has_a_preregistered_value_yet() -> None:
+    assert set(contract.TOLERATED_FIELD_VALUES) == {"timeout_ms"}
+    assert all(
+        value is None for value in contract.TOLERATED_FIELD_VALUES.values()
+    )
+
+
+# --- the envelope must be validated end to end ----------------------------
+#
+# Finding one call and reading its argument says nothing about what surrounds
+# it. Each of these has a correct-looking middle.
+
+
+def _call() -> str:
+    return (
+        f"tools.shell_command({{command:{json.dumps(COMMAND)},"
+        f"workdir:{json.dumps(WORKSPACE)}}})"
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "source"),
+    [
+        ("leading_statement", f"doSomething();\nconst r = await {_call()};"
+         " text(r);\n"),
+        ("trailing_statement", f"const r = await {_call()}; text(r);"
+         " cleanup();\n"),
+        ("wrong_consumer", f"const r = await {_call()}; consume(r);\n"),
+        ("no_consumer", f"const r = await {_call()};\n"),
+        ("truncated", f"const r = await {_call()}"),
+        ("consumer_of_other_variable",
+         f"const r = await {_call()}; text(other);\n"),
+        ("unclosed_text", f"text(await {_call()};\n"),
+        ("assigned_but_awaited_elsewhere",
+         f"let r; r = await {_call()}; text(r);\n"),
+    ],
+)
+def test_an_unvalidated_envelope_is_refused(label: str, source: str) -> None:
+    result = _evaluate(source)
+    assert result["accepted"] is False, label
+    assert result["reason"] in {
+        "envelope_not_validated",
+        "not_single_frozen_call",
+    }, label
+
+
+def test_only_route_validated_envelopes_can_reach_field_checks() -> None:
+    """A refusal reason about fields implies the envelope already passed."""
+    source = f"doSomething();\nconst r = await {_call()}; text(r);\n"
+    assert _reason(source) == "envelope_not_validated"
+
+
+# --- a tolerated field needs an exact value, not just a name --------------
+
+
+def _with_timeout(value: str) -> str:
+    return (
+        f"const r = await tools.shell_command({{command:{json.dumps(COMMAND)},"
+        f"timeout_ms:{value},workdir:{json.dumps(WORKSPACE)}}}); text(r)\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["-1", "0", "999999999999", '"not-a-number"', "computeTimeout()",
+     "true", "120000.5", "0x1E848", "null"],
+)
+def test_naming_a_field_tolerated_does_not_admit_arbitrary_values(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+) -> None:
+    """Name-only tolerance would accept every one of these."""
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    result = _evaluate(_with_timeout(value))
+    assert result["accepted"] is False, value
+    assert result["reason"] == "tolerated_field_value_rejected"
+    assert result["fields"] == ["timeout_ms"]
+
+
+def test_a_tolerated_field_is_inert_without_a_preregistered_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    result = _evaluate(_with_timeout("120000"))
+    assert result["reason"] == "tolerated_field_value_rejected"
+    assert result["detail"] == "no preregistered value"
+
+
+def test_the_exact_preregistered_value_is_the_only_one_admitted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    assert _reason(_with_timeout("120000")) == "accepted"
+    assert _reason(_with_timeout(" 120000 ")) == "accepted"
+    assert _reason(_with_timeout("120001")) == (
+        "tolerated_field_value_rejected"
+    )
+
+
 # --- what the contract accepts --------------------------------------------
 
 
@@ -205,12 +310,14 @@ def test_a_duplicate_field_is_refused_rather_than_last_one_winning() -> None:
 
 def test_a_non_object_argument_is_refused() -> None:
     assert _reason(
-        "const a = {command:'x'}; const r = await tools.shell_command(a);"
-        " text(r)\n"
-    ) == "argument_not_object"
-    assert _reason(
         f"const r = await tools.shell_command({json.dumps(COMMAND)}); text(r)\n"
     ) == "argument_not_object"
+    # An argument bound to a variable beforehand is refused earlier still: the
+    # extra statement means the envelope itself is not one the route validates.
+    assert _reason(
+        "const a = {command:'x'}; const r = await tools.shell_command(a);"
+        " text(r)\n"
+    ) == "envelope_not_validated"
 
 
 def test_computed_values_do_not_slip_through_as_an_object() -> None:

@@ -226,6 +226,29 @@ def _repo(tmp_path: Path) -> Path:
     return repo
 
 
+@pytest.fixture
+def outside_version_control(monkeypatch: pytest.MonkeyPatch):
+    """Make "not under a work tree" true regardless of where tmp_path lives.
+
+    pytest's basetemp is wherever the runner puts it, and in a managed
+    workspace that can be inside a checkout. A test for the success path must
+    not silently become a test of the refusal path because of that. The
+    predicate itself is covered separately against an explicit fixture.
+    """
+    real = scan._enclosing_git_root
+
+    def only_declared_repos(path: Path) -> Path | None:
+        found = real(path)
+        if found is None:
+            return None
+        # Honour repositories the test created itself; ignore any checkout the
+        # runner happens to have placed tmp_path inside.
+        return found if (found / ".git").is_dir() and found.name == "repo" else None
+
+    monkeypatch.setattr(scan, "_enclosing_git_root", only_declared_repos)
+    return None
+
+
 def test_full_report_is_refused_inside_a_git_work_tree(
     tmp_path: Path,
 ) -> None:
@@ -290,11 +313,27 @@ def test_full_report_is_never_written_to_stdout(
     assert capsys.readouterr().out == ""
 
 
-def test_full_report_writes_outside_version_control(tmp_path: Path) -> None:
+def test_enclosing_git_root_finds_the_nearest_work_tree(
+    tmp_path: Path,
+) -> None:
+    """The boundary predicate itself, on an explicit fixture."""
+    repo = _repo(tmp_path)
+    nested = repo / "a" / "b"
+    nested.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    assert scan._enclosing_git_root(nested) == repo
+    assert scan._enclosing_git_root(repo) == repo
+    inner = repo / "inner"
+    (inner / ".git").mkdir(parents=True)
+    assert scan._enclosing_git_root(inner) == inner
+
+
+def test_full_report_writes_outside_version_control(
+    tmp_path: Path,
+    outside_version_control: None,
+) -> None:
     out = tmp_path / "private" / "report.json"
-    assert scan._enclosing_git_root(out.parent) is None, (
-        "test precondition: the destination must not be under a git work tree"
-    )
     assert scan.main(
         [
             "--sessions-root",
@@ -311,6 +350,7 @@ def test_full_report_writes_outside_version_control(tmp_path: Path) -> None:
 def test_aggregate_only_may_still_go_to_stdout(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    outside_version_control: None,
 ) -> None:
     """The reviewable shape stays usable; only the full report is confined."""
     assert scan.main(
@@ -324,6 +364,7 @@ def test_aggregate_only_may_still_go_to_stdout(
 def test_a_refused_write_leaves_no_partial_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    outside_version_control: None,
 ) -> None:
     out = tmp_path / "private" / "report.json"
 
