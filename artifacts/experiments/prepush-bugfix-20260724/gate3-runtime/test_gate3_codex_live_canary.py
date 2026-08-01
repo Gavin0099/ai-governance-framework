@@ -19,6 +19,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import gate3_codex_live_canary as live
+import gate3_wrapper_semantic_contract as contract
 
 
 WORKSPACE = "C:/workspace"
@@ -3059,6 +3060,7 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                                 "total_field_count": 4,
                                 "unknown_field_count": 1,
                             },
+                            "contract_reason": "extra_field",
                             "frozen_tool_call_token_count": 1,
                             "private_argument": "C:/Users/private/secret.txt",
                             "rejection_class": "single_frozen_call",
@@ -3126,6 +3128,7 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "source": [
                     {
                         "argument_shape": "object",
+                        "contract_reason": "extra_field",
                         "envelope": "const_await_then_text",
                         "field_name_census": {
                             "known_field_counts": {
@@ -3177,6 +3180,15 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
             },
         },
     }
+    # Asserted on the published receipt, not on the intermediate diagnostic.
+    # The reason surviving projection is the whole point: without it a receipt
+    # cannot tell an extra field from a privilege-affecting one.
+    published_reason = published["rollout_diagnostics"]["A"][
+        "wrapper_mismatches"
+    ]["source"][0]["contract_reason"]
+    assert published_reason == "extra_field"
+    assert published_reason in contract.REFUSAL_REASONS
+    assert published["schema"] == live.FAILURE_RECEIPT_SCHEMA
     assert "private_path" not in receipt_path.read_text(encoding="utf-8")
     assert "private_blob_marker" not in receipt_path.read_text(encoding="utf-8")
     assert "private_argument" not in receipt_path.read_text(encoding="utf-8")
@@ -3202,3 +3214,42 @@ def test_orchestrator_rejects_non_public_run_id_before_private_work(
             run_id="eyJhbGciOiJIUzI1NiJ9.secret.signature",
         )
     assert private_root_created is False
+
+
+def test_an_unknown_contract_reason_is_dropped_from_the_receipt() -> None:
+    """Only the fixed vocabulary reaches a published receipt."""
+    diagnostics = live._empty_rollout_diagnostics()
+    diagnostics["A"]["wrapper_mismatches"]["source"].append(
+        {
+            "argument_shape": "object",
+            "contract_reason": "something_invented",
+            "envelope": "const_await_then_text",
+            "field_name_census": {
+                "known_field_counts": {"command": 1},
+                "total_field_count": 1,
+                "unknown_field_count": 0,
+            },
+            "frozen_tool_call_token_count": 1,
+            "rejection_class": "single_frozen_call",
+            "tool_call_ordinal": 1,
+            "tool_call_token_count": 1,
+            "tool_family": "shell_command",
+        }
+    )
+    projected = live._failure_rollout_diagnostics(diagnostics)
+    assert projected["A"]["wrapper_mismatches"]["source"] == []
+
+
+def test_receipt_schemas_moved_with_their_structure() -> None:
+    """A changed receipt shape under an unchanged token is not readable."""
+    assert live.ROUTE_RECEIPT_SCHEMA.endswith(".v4")
+    assert live.FAILURE_RECEIPT_SCHEMA.endswith(".v8")
+
+
+def test_route_verification_rejects_a_receipt_without_the_policy(
+    tmp_path: Path,
+) -> None:
+    """An older receipt cannot be verified under the current policy."""
+    source = Path(live.__file__).read_text(encoding="utf-8")
+    assert '"acceptance_policy_sha256",' in source
+    assert "route receipt acceptance policy differs" in source

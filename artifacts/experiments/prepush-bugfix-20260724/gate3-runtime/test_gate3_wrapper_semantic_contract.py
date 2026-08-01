@@ -78,6 +78,59 @@ def test_the_acceptance_policy_is_bound_into_the_route() -> None:
     )
 
 
+def test_the_policy_digest_pins_the_acceptance_implementation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Constants are not the policy; the code that decides is.
+
+    Loosening the numeric literal pattern changes what is admitted without
+    touching a single constant. A digest that stays identical through that is
+    worse than none, because it reads as evidence nothing changed.
+    """
+    before = contract.policy_digest()
+    real = Path(contract.__file__).resolve()
+    loosened = tmp_path / "loosened.py"
+    loosened.write_bytes(
+        real.read_bytes().replace(
+            b'_INTEGER_LITERAL_RE = re.compile(r"(?:0|[1-9][0-9]*)")',
+            b'_INTEGER_LITERAL_RE = re.compile(r"[+-]?\\d+")',
+        )
+    )
+    assert loosened.read_bytes() != real.read_bytes(), (
+        "fixture precondition: the loosened copy must actually differ"
+    )
+    monkeypatch.setattr(contract, "__file__", str(loosened))
+    assert contract.policy_digest() != before
+
+
+def test_the_policy_digest_pins_the_route_validators(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The command and patch validators the contract delegates to count too."""
+    before = contract.policy_digest()
+    altered = tmp_path / "altered.py"
+    altered.write_bytes(
+        Path(live.__file__).read_bytes() + b"\n# behaviour could change here\n"
+    )
+    monkeypatch.setattr(live, "__file__", str(altered))
+    assert contract.policy_digest() != before
+
+
+def test_the_digest_is_stable_across_line_ending_styles(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A CRLF checkout is not an acceptance difference."""
+    before = contract.policy_digest()
+    crlf = tmp_path / "crlf.py"
+    source = Path(contract.__file__).resolve().read_bytes()
+    crlf.write_bytes(source.replace(b"\n", b"\r\n"))
+    monkeypatch.setattr(contract, "__file__", str(crlf))
+    assert contract.policy_digest() == before
+
+
 def test_the_policy_digest_changes_when_the_policy_changes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

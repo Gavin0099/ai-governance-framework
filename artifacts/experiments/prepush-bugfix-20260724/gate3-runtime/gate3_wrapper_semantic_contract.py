@@ -7,10 +7,18 @@ contract also accepts, so the change is a widening and never a narrowing.
 
 What the route admits is itself evidence, so it is bound in. ``policy_digest``
 canonicalizes the whole acceptance policy -- the contract schema, the tolerated
-field names and their preregistered values and ranges -- into the route receipt
-and the context identity, and the A/B comparison requires both arms to carry
-the same digest. Two arms cannot silently be judged under different rules, and
-a receipt cannot be read without knowing which rules produced it.
+field names with their preregistered values and ranges, and the content digests
+of the code that actually decides acceptance -- into the route receipt and the
+context identity, and the A/B comparison requires both arms to carry the same
+digest. Two arms cannot silently be judged under different rules, and a receipt
+cannot be read without knowing which rules produced it.
+
+The implementation digests are the load-bearing part. Constants are not the
+policy: the grammars, the numeric literal pattern, the patch extraction and the
+route validators all decide what is admitted, and each can change without any
+constant moving. A digest over constants alone stays identical while behaviour
+shifts, which is worse than no digest at all, because it reads as evidence that
+nothing changed.
 
 Why a contract at all
 ---------------------
@@ -155,6 +163,35 @@ REFUSAL_REASONS = (
 _INTEGER_LITERAL_RE = re.compile(r"(?:0|[1-9][0-9]*)")
 
 
+def _implementation_sha256(path: Path) -> str:
+    """Hash a module's content, insensitive to checkout line endings.
+
+    Normalizing newlines keeps the digest stable across CRLF and LF checkouts,
+    which is not an acceptance difference, while still changing for every edit
+    that is one.
+    """
+    raw = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def implementation_digests() -> dict[str, str]:
+    """The code that actually decides acceptance.
+
+    Constants alone are not the policy. The grammars, the numeric literal
+    pattern, the patch extraction and the route validators this delegates to
+    all decide what is admitted, and every one of them can be changed without
+    touching a constant. Pinning only the constants leaves a digest that stays
+    identical while behaviour moves, which is worse than no digest, because it
+    reads as evidence that nothing changed.
+    """
+    return {
+        "route_validators_sha256": _implementation_sha256(Path(live.__file__)),
+        "semantic_contract_sha256": _implementation_sha256(
+            Path(__file__).resolve()
+        ),
+    }
+
+
 def policy() -> dict[str, Any]:
     """The acceptance policy in effect, as plain data.
 
@@ -169,6 +206,7 @@ def policy() -> dict[str, Any]:
     }
     return {
         "core_fields": sorted(SEMANTIC_CORE_FIELDS),
+        "implementation": implementation_digests(),
         "privilege_affecting_fields": sorted(PRIVILEGE_AFFECTING_FIELDS),
         "schema": CONTRACT_SCHEMA,
         "tolerated_field_ranges": {

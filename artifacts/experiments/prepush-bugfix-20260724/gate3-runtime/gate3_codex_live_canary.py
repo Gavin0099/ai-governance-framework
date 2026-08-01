@@ -39,11 +39,11 @@ DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
 
 SUMMARY_SCHEMA = "gate3-codex-live-canary.v4"
 ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v4"
-ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
+ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v4"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v7"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v8"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -1001,8 +1001,10 @@ def _failure_rollout_diagnostics(
                 rejection_class = entry.get("rejection_class")
                 token_count = entry.get("tool_call_token_count")
                 frozen_token_count = entry.get("frozen_tool_call_token_count")
+                contract_reason = entry.get("contract_reason")
                 if (
-                    rejection_class not in WRAPPER_REJECTION_CLASSES
+                    contract_reason not in contract.REFUSAL_REASONS
+                    or rejection_class not in WRAPPER_REJECTION_CLASSES
                     or not isinstance(token_count, int)
                     or isinstance(token_count, bool)
                     or token_count < 0
@@ -1053,6 +1055,7 @@ def _failure_rollout_diagnostics(
                 projected[arm]["wrapper_mismatches"][phase].append(
                     {
                         "argument_shape": argument_shape,
+                        "contract_reason": contract_reason,
                         "envelope": envelope,
                         "field_name_census": {
                             "known_field_counts": {
@@ -3541,6 +3544,7 @@ def _verify_route_receipt(
             not isinstance(source_attestation.get(field), str)
             or len(source_attestation[field]) != 64
             for field in (
+                "acceptance_policy_sha256",
                 "context_identity_sha256",
                 "exec_events_sha256",
                 "rollout_sha256",
@@ -3548,6 +3552,16 @@ def _verify_route_receipt(
         )
     ):
         raise CanaryError("route source attestation is invalid")
+    # A receipt is only readable against the rules that produced it, so
+    # verification refuses one that does not name them, or names different
+    # ones from the policy doing the verifying.
+    running_policy = contract.policy_digest()
+    if (
+        receipt.get("route", {}).get("acceptance_policy_sha256")
+        != running_policy
+        or source_attestation["acceptance_policy_sha256"] != running_policy
+    ):
+        raise CanaryError("route receipt acceptance policy differs")
     prompt = _source(receipt.get("prompt_path"), root)
     rollout = _source(receipt.get("rollout_path"), root)
     exec_events = _source(receipt.get("exec_events_path"), root)
