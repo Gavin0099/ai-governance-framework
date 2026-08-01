@@ -42,7 +42,7 @@ ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v3"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
-FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v5"
+FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v6"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
@@ -888,6 +888,10 @@ def _empty_rollout_diagnostics() -> dict[str, dict[str, Any]]:
                 "source": "NOT_RUN",
             },
             "public_census": None,
+            # True when the public phase was censused from a locally sanitized
+            # copy after the build had already failed, rather than from the
+            # staged artifact admission would have read.
+            "public_phase_from_diagnostic_copy": False,
             "source_census": None,
             "wrapper_mismatch_counts": {
                 "public": 0,
@@ -937,6 +941,8 @@ def _failure_rollout_diagnostics(
                 for value in values.values()
             ):
                 projected[arm][f"{phase}_census"] = values
+        if observed.get("public_phase_from_diagnostic_copy") is True:
+            projected[arm]["public_phase_from_diagnostic_copy"] = True
         counts = observed.get("wrapper_mismatch_counts")
         if isinstance(counts, dict):
             for phase in ("source", "public"):
@@ -2609,43 +2615,87 @@ def _validate_credential_runner_receipt(
     return receipt
 
 
-def _census_unparsed_arms(
+def _census_incomplete_arms(
     *,
     sources: dict[str, tuple[Path, Path, Path]],
     staging: Path,
     plan: dict[str, Any],
     rollout_diagnostics: dict[str, dict[str, Any]],
 ) -> None:
-    """Census the source rollouts of arms that never reached a parse.
+    """Fill in every parse phase an aborted build left at ``NOT_RUN``.
 
-    When one arm aborts the packet build, the remaining arms are left as
-    ``NOT_RUN`` and a whole authorized pair yields a single failure fact. This
-    pass is diagnostics-only: it writes no staging or chain state, admits
-    nothing, and swallows its own errors so it can never mask or replace the
-    original failure.
+    Two gaps used to survive a failed build. An arm that never got its turn
+    was left unparsed entirely, and an arm whose source parse failed never
+    reached the public phase, because the public rollout is only produced
+    after the source parse succeeds. Either way one authorized pair yielded a
+    fraction of the four observations it cost, and the missing ones could only
+    be bought with another pair.
+
+    The public phase is censused here from a sanitized copy made in a private
+    temporary directory, using the same sanitizer the build uses. That copy is
+    equivalent by construction but is not the staged artifact, so arms
+    censused this way are flagged: a reader must not mistake this for the
+    public rollout admission would have seen.
+
+    Diagnostics only. It writes no staging or chain state, admits nothing,
+    leaves no residue, and swallows its own errors, so it can never mask or
+    replace the original failure.
     """
     for treatment, (repo, rollout_source, _) in sorted(sources.items()):
         diagnostic = rollout_diagnostics.get(treatment)
         if not isinstance(diagnostic, dict):
             continue
-        if diagnostic["parse_phases"]["source"] != "NOT_RUN":
-            continue
         prompt_path = (
             staging / "inputs" / f"producer-prompt-{treatment.lower()}.txt"
         )
+        common: dict[str, Any] = {}
         try:
-            parse_rollout(
-                rollout_source,
-                expected_prompt=prompt_path.read_bytes(),
-                expected_model=plan["frozen_route"]["model"],
-                expected_comp_hash=plan["frozen_route"]["comp_hash"],
-                expected_cli_version=plan["frozen_route"]["cli_version"],
-                expected_reasoning=plan["frozen_route"]["reasoning"],
-                expected_workspace=str(repo.resolve()),
-                expected_context_contract=plan["context_contract"],
-                rollout_diagnostic=diagnostic,
-                parse_phase="source",
-            )
+            common = {
+                "expected_prompt": prompt_path.read_bytes(),
+                "expected_model": plan["frozen_route"]["model"],
+                "expected_comp_hash": plan["frozen_route"]["comp_hash"],
+                "expected_cli_version": plan["frozen_route"]["cli_version"],
+                "expected_reasoning": plan["frozen_route"]["reasoning"],
+                "expected_context_contract": plan["context_contract"],
+            }
+        except (OSError, KeyError, TypeError):
+            continue
+        if diagnostic["parse_phases"]["source"] == "NOT_RUN":
+            try:
+                parse_rollout(
+                    rollout_source,
+                    expected_workspace=str(repo.resolve()),
+                    rollout_diagnostic=diagnostic,
+                    parse_phase="source",
+                    **common,
+                )
+            except (CanaryError, OSError, KeyError, TypeError, ValueError):
+                pass
+        if diagnostic["parse_phases"]["public"] != "NOT_RUN":
+            continue
+        context_token = PUBLIC_CONTEXT_TOKENS.get(treatment)
+        if context_token is None:
+            continue
+        try:
+            with tempfile.TemporaryDirectory(
+                prefix="gate3-public-census-"
+            ) as scratch:
+                copy = Path(scratch) / "rollout.jsonl"
+                copy.write_bytes(
+                    sanitize_jsonl(
+                        rollout_source,
+                        workspace=str(repo.resolve()),
+                        context_token=context_token,
+                    )
+                )
+                diagnostic["public_phase_from_diagnostic_copy"] = True
+                parse_rollout(
+                    copy,
+                    expected_workspace=context_token,
+                    rollout_diagnostic=diagnostic,
+                    parse_phase="public",
+                    **common,
+                )
         except (CanaryError, OSError, KeyError, TypeError, ValueError):
             continue
 
@@ -2754,7 +2804,7 @@ def _build_orchestrated(
                     )
                 )
         except CanaryError:
-            _census_unparsed_arms(
+            _census_incomplete_arms(
                 sources=sources,
                 staging=staging,
                 plan=plan,

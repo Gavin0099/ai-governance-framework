@@ -1657,8 +1657,8 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   receipts v3 through v5 were recorded in `52d3b2bb` and predate this schema,
   so all three are schema v2 and carry no wrapper classification.
 
-- [~] **Partial: one authorized pair now censuses both arms, but not both
-  parse phases.** Implementation commit `67afb38a` keeps scanning after a
+- [x] **One authorized pair now censuses both arms against both parse
+  phases.** Implementation commit `67afb38a` keeps scanning after a
   rejected tool call
   so every mismatch in a rollout is censused before the first error is
   re-raised unchanged, caps retention at
@@ -1667,13 +1667,16 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   aborts the build no longer leaves the other arm at `NOT_RUN`. The census
   pass writes no staging or chain state, admits nothing and swallows its own
   errors, so it cannot mask or replace the original failure. Admission is
-  unchanged. Failure receipt schema is now
-  `gate3-codex-live-canary-failure-receipt.v4`. This is not collect-all: a
-  source-phase failure still leaves the public phase `NOT_RUN`, because the
-  public rollout is only produced after the source parse succeeds. One pair
-  therefore still cannot observe all four of A and B against source and
-  public, so the failure receipt is partial and must not be described as
-  complete.
+  unchanged. The remaining gap, that a source-phase failure left the public
+  phase `NOT_RUN` because the public rollout is only produced after the
+  source parse succeeds, is closed by `_census_incomplete_arms`: it censuses
+  the public phase from a copy sanitized in a private temporary directory
+  using the build's own sanitizer. That copy is equivalent by construction
+  but is not the staged artifact, so any arm censused this way is flagged
+  with `public_phase_from_diagnostic_copy` and must not be read as the public
+  rollout admission would have seen. The temporary directory is removed even
+  on failure, and a test asserts no residue survives. Failure receipt schema
+  is now `gate3-codex-live-canary-failure-receipt.v6`.
 
 - [x] **The frozen route's wrapper acceptance is byte-exact, and that is the
   root cause of the v4/v5 packet-build failures.** The offline probe
@@ -1781,9 +1784,10 @@ gates away from counted execution, and counted execution remains at zero.
 - Producer-output admission: not passing. No run has produced a scoreable
   packet, so the producer workflow must not be described as having succeeded
   end to end.
-- Failure receipt: partial. It retains a privacy-safe census and a rejection
-  class, but a source-phase failure leaves the public phase `NOT_RUN`, so a
-  single pair cannot observe both arms against both parse phases.
+- Failure receipt: collect-all across both arms and both parse phases, with
+  public-phase observations that came from a diagnostic copy flagged as such.
+  It still describes only why a build failed; it is not evidence about
+  producer output.
 - Offline corpus characterization: complete as a method. As acceptance-policy
   evidence it is limited and cannot decide a contract on its own: the pinned
   build's emissions in the corpus came from the same rehearsal the wrapper

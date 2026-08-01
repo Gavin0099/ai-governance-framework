@@ -446,6 +446,7 @@ def test_world_state_census_and_parser_enforce_full_delta_contract(
         "public_census": (
             expected_census if parse_phase == "public" else None
         ),
+        "public_phase_from_diagnostic_copy": False,
         "source_census": (
             expected_census if parse_phase == "source" else None
         ),
@@ -749,7 +750,7 @@ def test_wrapper_mismatch_retention_is_bounded_but_counted(
     )
 
 
-def test_unparsed_arms_are_censused_after_another_arm_aborts(
+def test_incomplete_arms_are_censused_after_another_arm_aborts(
     tmp_path: Path,
 ) -> None:
     staging = tmp_path / "staging"
@@ -771,7 +772,7 @@ def test_unparsed_arms_are_censused_after_another_arm_aborts(
         "raw_count": 1,
         "state_object_count": 1,
     }
-    live._census_unparsed_arms(
+    live._census_incomplete_arms(
         sources=sources,
         staging=staging,
         plan={
@@ -787,10 +788,50 @@ def test_unparsed_arms_are_censused_after_another_arm_aborts(
     )
     assert diagnostics["A"]["parse_phases"]["source"] == "FAIL"
     assert diagnostics["A"]["source_census"]["raw_count"] == 1
-    assert diagnostics["B"]["parse_phases"]["source"] != "NOT_RUN"
+    # Every phase the aborted build left blank is now filled in, for both
+    # arms. One pair should cost one pair's worth of observations.
+    for arm in ("A", "B"):
+        for phase in ("source", "public"):
+            assert diagnostics[arm]["parse_phases"][phase] != "NOT_RUN", (
+                arm,
+                phase,
+            )
     assert isinstance(diagnostics["B"]["source_census"], dict)
-    assert diagnostics["B"]["parse_phases"]["public"] == "NOT_RUN"
-    assert diagnostics["B"]["public_census"] is None
+    assert isinstance(diagnostics["B"]["public_census"], dict)
+    # And a reader is told the public phase did not run on the staged artifact.
+    assert diagnostics["A"]["public_phase_from_diagnostic_copy"] is True
+    assert diagnostics["B"]["public_phase_from_diagnostic_copy"] is True
+
+
+def test_public_census_leaves_no_temporary_residue(tmp_path: Path) -> None:
+    """The sanitized copy is private material; it must not outlive the pass."""
+    before = set(Path(tempfile.gettempdir()).glob("gate3-public-census-*"))
+    staging = tmp_path / "staging"
+    (staging / "inputs").mkdir(parents=True)
+    for arm in ("a", "b"):
+        (staging / "inputs" / f"producer-prompt-{arm}.txt").write_bytes(
+            b"frozen prompt"
+        )
+    sources = {}
+    for arm in ("A", "B"):
+        rollout = tmp_path / f"rollout-{arm.lower()}.jsonl"
+        rollout.write_bytes(_rollout())
+        sources[arm] = (Path(WORKSPACE), rollout, tmp_path / "events.jsonl")
+    live._census_incomplete_arms(
+        sources=sources,
+        staging=staging,
+        plan={
+            "frozen_route": {
+                "model": live.DEFAULT_MODEL,
+                "comp_hash": live.DEFAULT_COMP_HASH,
+                "cli_version": live.DEFAULT_CLI_VERSION,
+                "reasoning": live.DEFAULT_REASONING,
+            },
+            "context_contract": _context_contract(),
+        },
+        rollout_diagnostics=live._empty_rollout_diagnostics(),
+    )
+    assert set(Path(tempfile.gettempdir()).glob("gate3-public-census-*")) == before
 
 
 def test_arm_census_never_replaces_the_original_failure(
@@ -800,7 +841,7 @@ def test_arm_census_never_replaces_the_original_failure(
     (staging / "inputs").mkdir(parents=True)
     missing = tmp_path / "absent.jsonl"
     diagnostics = live._empty_rollout_diagnostics()
-    live._census_unparsed_arms(
+    live._census_incomplete_arms(
         sources={
             arm: (Path(WORKSPACE), missing, missing) for arm in ("A", "B")
         },
@@ -2330,6 +2371,7 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
                 "source": "FAIL",
             },
             "public_census": None,
+            "public_phase_from_diagnostic_copy": False,
             "source_census": {
                 "full_true_count": 0,
                 "object_payload_count": 0,
@@ -2997,6 +3039,7 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "source": "FAIL",
             },
             "public_census": None,
+            "public_phase_from_diagnostic_copy": False,
             "source_census": {
                 "full_true_count": 0,
                 "object_payload_count": 0,
@@ -3042,6 +3085,7 @@ def test_failure_receipt_is_complete_before_atomic_publication_and_redacts_run_i
                 "raw_count": 2,
                 "state_object_count": 2,
             },
+            "public_phase_from_diagnostic_copy": False,
             "source_census": {
                 "full_true_count": 1,
                 "object_payload_count": 1,
