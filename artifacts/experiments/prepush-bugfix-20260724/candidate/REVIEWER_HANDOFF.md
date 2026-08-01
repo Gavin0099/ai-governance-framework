@@ -4,8 +4,8 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 
 | | Commit |
 |---|---|
-| Candidate manifest | `71b8c2da…c22b00be` |
-| Supersedes | `8975ea60…4eb9e92d`, in a chain from `51ac1219…a5a6801` |
+| Candidate manifest | `0ef7db4a…b59d52a0` |
+| Supersedes | `71b8c2da…c22b00be`, in a chain from `51ac1219…a5a6801` |
 
 This document is not itself a candidate file, so it does not appear in the
 manifest. Submit against the branch head.
@@ -27,7 +27,7 @@ Counted Gate 3 execution stands at zero. No successful scorer packet exists.
 **This is the review target.**
 
 Manifest: `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json`
-Manifest SHA-256: `71b8c2daa5bccf06d6a9f1d1b09379c7967f95a29738b3ed5b4e12ccc22b00be`
+Manifest SHA-256: `0ef7db4ac7f20d59ae44e05d4748800a9abc68d829879566819aa521b59d52a0`
 Declared base commit: `3dbafc7f8f75feba485167b09d85345a3c7ac9cc`
 
 Six files, all verified byte-intact against the manifest as of this handoff:
@@ -37,9 +37,9 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 | `5f4dc9e7…` | 6447 | `.gitattributes` |
 | `84d0265b…` | 16704 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
 | `9ea0ed43…` | 4433 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
-| `4df41f4e…` | 7580 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
-| `abf5fcf3…` | 94105 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
-| `81ecffe2…` | 71585 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
+| `a5423920…` | 8194 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
+| `1450767b…` | 97575 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
+| `dd46e34d…` | 70594 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
 To re-verify independently, start with the narrow check. It reads the manifest
 and the six files and nothing else, so it has no side effects and its failure
@@ -84,9 +84,9 @@ move is a consequence of a required fix, not drift. Current identity:
 
 | | SHA-256 |
 |---|---|
-| Acceptance policy digest | `d2433ed4e15da49856adae837afc9597de249cb89eaa27be775a72d691e5a081` |
+| Acceptance policy digest | `8a69ca35802d9504615666700e8df4c6be077c73dd65e4e7b2846a3918461685` |
 | Semantic contract | `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13` |
-| Route validators | `0b5b931c3c285938badf1e344fb67ca81dcb1bd927368d7bb9e2f283334e1e4e` |
+| Route validators | `2427716287f91a6f12c854f125e9d0365d3078835cd7f16c1ac1aa4f98b3c3d7` |
 
 What the policy admits: cosmetic wrapper variance only — whitespace, key order,
 quoted keys, the result variable's name, a trailing semicolon, direct

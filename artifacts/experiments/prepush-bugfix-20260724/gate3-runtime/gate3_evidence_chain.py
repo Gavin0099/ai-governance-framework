@@ -1664,69 +1664,148 @@ def _source_under_root(relative: object, root: Path) -> Path:
 TASK_DECISION_RUN_FIELDS = ("primary", "second", "verifier")
 
 
-def _load_pair_sources(
-    sources: list[dict[str, Any]],
+def _scorer_output(submission: dict[str, Any], anon_id: str) -> dict[str, Any]:
+    for output in submission.get("outputs", []):
+        if isinstance(output, dict) and output.get("anon_id") == anon_id:
+            return output
+    raise EvidenceError("scorer submission does not cover the anonymous id")
+
+
+def _verifier_fields(
+    metrics: dict[str, Any],
+    admission: dict[str, Any],
+    chain_dir: Path,
+    contract: dict[str, Any],
+) -> dict[str, bool]:
+    """Read the objective fields out of verifier-side sealed evidence.
+
+    Not from the scorer submissions. A field the scorers report is a judgement
+    however objective it sounds, and the contract names the sealed artifact
+    each of these comes from.
+    """
+    observations = metrics.get("method_observations")
+    if not isinstance(observations, dict):
+        raise EvidenceError("sealed metrics carry no method observations")
+    baseline = observations.get("failing_regression_before_fix")
+    if not isinstance(baseline, dict):
+        raise EvidenceError("sealed metrics carry no baseline regression observation")
+    receipts = admission.get("receipts")
+    if not isinstance(receipts, list) or not receipts:
+        raise EvidenceError("admission retains no test receipts")
+    exit_codes = []
+    for entry in receipts:
+        path = _source_from_event(entry.get("path"), chain_dir)
+        if _sha256_file(path) != entry.get("sha256"):
+            raise EvidenceError("retained test receipt digest mismatch")
+        exit_codes.append(_load_json(path).get("exit_code"))
+    return {
+        "completed_under_cap": metrics.get("completed_under_cap") is True,
+        "regression_baseline_fail": baseline.get("observed") is True,
+        "regression_passes_after_fix": all(code == 0 for code in exit_codes),
+    }
+
+
+def _pair_from_chain(
+    chain_dir: Path,
+    contract_path: Path,
+    contract: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Derive one pair entirely from a completed, verified chain.
+
+    Nothing is taken from the caller but the chain directory. Accepting
+    caller-supplied scorer JSON alongside a valid chain proves only that some
+    valid chain exists somewhere; it says nothing about where the scores came
+    from.
+    """
+    report = verify_chain(chain_dir, contract_path, require_state="mapping_released")
+    files = _event_files(chain_dir)
+    events = [_load_json(path) for path in files]
+    randomization = _load_json(
+        _source_from_event(events[0]["randomization_record_path"], chain_dir)
+    )
+    study_kind = randomization["study_kind"]
+    treatments = contract["evidence_chain"]["mapping_treatments"][study_kind]
+    mapping_event = events[6]
+    mapping_path = _source_from_event(mapping_event["mapping_path"], chain_dir)
+    if _sha256_file(mapping_path) != mapping_event["mapping_sha256"]:
+        raise EvidenceError("released mapping digest differs from its event")
+    mapping = _load_json(mapping_path)["mapping"]
+    submissions = {}
+    for role, index in (("primary", 4), ("second", 5)):
+        event = events[index]
+        path = _source_from_event(event["submission_path"], chain_dir)
+        if _sha256_file(path) != event["submission_sha256"]:
+            raise EvidenceError("scorer submission digest differs from its event")
+        submissions[role] = _load_json(path)
+    sealed = {
+        event["anon_id"]: event
+        for event in events[1:3]
+    }
+    policy = contract["decision_rule"]["scorer_disagreement_policy"]
+    runs: dict[str, Any] = {}
+    for anon_id, treatment in mapping.items():
+        if treatment not in treatments:
+            raise EvidenceError("released mapping names an unregistered treatment")
+        event = sealed[anon_id]
+        metrics = _load_json(_source_from_event(event["metrics_path"], chain_dir))
+        admission = _load_json(_source_from_event(event["admission_path"], chain_dir))
+        run: dict[str, Any] = {}
+        for role in ("primary", "second"):
+            output = _scorer_output(submissions[role], anon_id)
+            run[role] = {
+                field: output.get(field) is True
+                if field != "critical_residuals_zero"
+                else output.get("critical_residuals") == 0
+                for field in policy["scorer_judged_fields"]
+            }
+        run["verifier"] = _verifier_fields(
+            metrics, admission, chain_dir, contract
+        )
+        runs[treatment] = run
+    pair = {
+        "pair_id": randomization["pair_id"],
+        "repeat_index": randomization["repeat_index"],
+        "runs": runs,
+    }
+    pinned = {
+        "chain_dir": None,
+        "chain_head_sha256": report["head_sha256"],
+        "pair_id": pair["pair_id"],
+        "repeat_index": pair["repeat_index"],
+        "study_kind": study_kind,
+    }
+    return pair, pinned
+
+
+def _pairs_from_chains(
+    chain_dirs: list[Any],
     evidence_root: Path,
     contract_path: Path,
+    contract: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Load pairs from pinned artifacts rather than from the caller.
-
-    A verifier handed the same dictionaries the builder used verifies nothing:
-    coordinated edits to source and receipt agree with each other. These are
-    read from disk, checked against the digests the receipt pins, and bound to
-    the sealed chain head of the pair they came from.
-    """
-    loaded: list[dict[str, Any]] = []
+    if not isinstance(chain_dirs, list) or not chain_dirs:
+        raise EvidenceError("task decision pins no chains")
+    pairs: list[dict[str, Any]] = []
     pinned: list[dict[str, Any]] = []
-    for source in sources:
-        chain_dir = _source_under_root(source.get("chain_dir"), evidence_root)
-        report = verify_chain(chain_dir, contract_path)
-        if report["head_sha256"] != source.get("chain_head_sha256"):
-            raise EvidenceError("task decision pair chain head differs")
-        runs: dict[str, Any] = {}
-        pinned_runs: dict[str, Any] = {}
-        artifacts = source.get("runs")
-        if not isinstance(artifacts, dict) or set(artifacts) != {"A", "B"}:
-            raise EvidenceError("task decision pair must pin exactly two arms")
-        for arm in ("A", "B"):
-            entry = artifacts[arm]
-            if not isinstance(entry, dict) or set(entry) != set(
-                TASK_DECISION_RUN_FIELDS
-            ):
-                raise EvidenceError("task decision run must pin exactly three roles")
-            run: dict[str, Any] = {}
-            pinned_run: dict[str, Any] = {}
-            for role in TASK_DECISION_RUN_FIELDS:
-                reference = entry[role]
-                if not isinstance(reference, dict) or set(reference) != {
-                    "path",
-                    "sha256",
-                }:
-                    raise EvidenceError("task decision artifact reference is invalid")
-                path = _source_under_root(reference["path"], evidence_root)
-                if _sha256_file(path) != reference["sha256"]:
-                    raise EvidenceError("task decision artifact digest mismatch")
-                run[role] = _load_json(path)
-                pinned_run[role] = dict(reference)
-            runs[arm] = run
-            pinned_runs[arm] = pinned_run
-        loaded.append(
-            {
-                "pair_id": source["pair_id"],
-                "repeat_index": source["repeat_index"],
-                "runs": runs,
-            }
-        )
-        pinned.append(
-            {
-                "chain_dir": source["chain_dir"],
-                "chain_head_sha256": source["chain_head_sha256"],
-                "pair_id": source["pair_id"],
-                "repeat_index": source["repeat_index"],
-                "runs": pinned_runs,
-            }
-        )
-    return loaded, pinned
+    seen_identity: set[str] = set()
+    seen_resolved: set[str] = set()
+    for relative in chain_dirs:
+        chain_dir = _source_under_root(relative, evidence_root)
+        resolved = str(chain_dir.resolve())
+        pair, entry = _pair_from_chain(chain_dir, contract_path, contract)
+        # One experiment counted twice is not two pairs. Reject both the same
+        # directory and the same sealed head reached by another path.
+        if resolved in seen_resolved or entry["chain_head_sha256"] in seen_identity:
+            raise EvidenceError("task decision reuses one chain as two pairs")
+        seen_resolved.add(resolved)
+        seen_identity.add(entry["chain_head_sha256"])
+        entry["chain_dir"] = relative
+        pairs.append(pair)
+        pinned.append(entry)
+    kinds = {entry["study_kind"] for entry in pinned}
+    if len(kinds) != 1:
+        raise EvidenceError("task decision mixes study kinds")
+    return pairs, pinned
 
 
 def publish_task_decision(
@@ -1739,7 +1818,9 @@ def publish_task_decision(
 ) -> Path:
     """Build the decision from pinned artifacts and publish it create-once."""
     contract, _ = load_contract(contract_path)
-    pairs, pinned = _load_pair_sources(sources, evidence_root, contract_path)
+    pairs, pinned = _pairs_from_chains(
+        sources, evidence_root, contract_path, contract
+    )
     decision = build_task_decision(task_id, study_kind, pairs, contract)
     decision["pair_sources"] = pinned
     _publish_create_once(receipt_path, _json_bytes(decision))
@@ -1758,7 +1839,12 @@ def verify_task_decision(
     if not isinstance(sources, list) or not sources:
         raise EvidenceError("task decision does not pin its pair sources")
     contract, _ = load_contract(contract_path)
-    pairs, pinned = _load_pair_sources(sources, evidence_root, contract_path)
+    pairs, pinned = _pairs_from_chains(
+        [entry.get("chain_dir") for entry in sources],
+        evidence_root,
+        contract_path,
+        contract,
+    )
     rebuilt = build_task_decision(
         receipt.get("task_id"),
         str(receipt.get("study_kind", "")),
@@ -2309,7 +2395,7 @@ def main(argv: list[str] | None = None) -> int:
                 Path(args.receipt),
                 args.task_id,
                 args.study_kind,
-                _load_json(Path(args.sources))["pair_sources"],
+                _load_json(Path(args.sources))["chain_dirs"],
                 Path(args.evidence_root),
                 Path(args.contract),
             )

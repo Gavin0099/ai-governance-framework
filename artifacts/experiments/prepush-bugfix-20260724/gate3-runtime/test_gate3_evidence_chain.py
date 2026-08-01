@@ -1676,134 +1676,103 @@ class Gate3TaskDecisionTests(unittest.TestCase):
 
 
 class Gate3TaskDecisionReceiptTests(Gate3ChainFixture, unittest.TestCase):
-    """The receipt must be bound to artifacts, not to the caller's dicts.
+    """Everything must come from the chain, and each pair from a distinct one.
 
-    A verifier handed the same dictionaries the builder used verifies nothing:
-    coordinated edits to source and receipt agree with each other.
+    A valid chain plus digest-valid arbitrary JSON proves only that some valid
+    chain exists somewhere. The scores have to come from that chain.
     """
 
     def setUp(self) -> None:
         super().setUp()
         self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        self.policy = self.contract["decision_rule"][
-            "scorer_disagreement_policy"
-        ]
-        self.seal_pair()
-        self.head = chain.verify_chain(self.chain_dir, CONTRACT)["head_sha256"]
         self.receipt = self.evidence_root / "task-decision.json"
+        self.full_chain()
 
-    def _artifact(self, name: str, value: dict) -> dict[str, str]:
-        path = self.evidence_root / "decisions" / name
-        write_json(path, value)
-        return {
-            "path": self.evidence_relative(path),
-            "sha256": digest(path.read_bytes()),
-        }
+    def _dirs(self) -> list[str]:
+        return [self.evidence_relative(self.chain_dir)]
 
-    def _run_refs(self, prefix: str, *, qualifying: bool) -> dict[str, object]:
-        judged = {
-            field: qualifying
-            for field in self.policy["scorer_judged_fields"]
-        }
-        verifier = {
-            field: True
-            for field in self.policy["verifier_determined_fields"]
-        }
-        return {
-            "primary": self._artifact(f"{prefix}-primary.json", judged),
-            "second": self._artifact(f"{prefix}-second.json", judged),
-            "verifier": self._artifact(f"{prefix}-verifier.json", verifier),
-        }
-
-    def _sources(self) -> list[dict[str, object]]:
-        return [
-            {
-                "chain_dir": self.evidence_relative(self.chain_dir),
-                "chain_head_sha256": self.head,
-                "pair_id": f"task-1-pair-{index}",
-                "repeat_index": index,
-                "runs": {
-                    "A": self._run_refs(f"p{index}-a", qualifying=False),
-                    "B": self._run_refs(f"p{index}-b", qualifying=True),
-                },
-            }
-            for index in (1, 2)
-        ]
-
-    def _publish(self) -> dict:
-        chain.publish_task_decision(
-            self.receipt, "task-1", "skill_primary",
-            self._sources(), self.evidence_root, CONTRACT,
+    def test_scores_are_derived_from_the_chain(self) -> None:
+        pairs, pinned = chain._pairs_from_chains(
+            self._dirs(), self.evidence_root, CONTRACT, self.contract
         )
-        return json.loads(self.receipt.read_text(encoding="utf-8"))
-
-    def test_a_published_receipt_verifies_from_its_pinned_sources(self) -> None:
-        receipt = self._publish()
-        result = chain.verify_task_decision(
-            receipt, self.evidence_root, CONTRACT
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual(set(pairs[0]["runs"]), {"A", "B"})
+        policy = self.contract["decision_rule"]["scorer_disagreement_policy"]
+        self.assertEqual(
+            set(pairs[0]["runs"]["A"]["primary"]),
+            set(policy["scorer_judged_fields"]),
         )
-        self.assertEqual(result["winner"], "B")
-        self.assertEqual(result["status"], "decided")
+        self.assertEqual(
+            set(pairs[0]["runs"]["A"]["verifier"]),
+            set(policy["verifier_determined_fields"]),
+        )
+        self.assertEqual(pinned[0]["study_kind"], "skill_primary")
 
-    def test_publication_is_create_once(self) -> None:
-        self._publish()
-        with self.assertRaises(chain.EvidenceError):
-            chain.publish_task_decision(
-                self.receipt, "task-1", "skill_primary",
-                self._sources(), self.evidence_root, CONTRACT,
+    def test_one_chain_cannot_serve_as_two_pairs(self) -> None:
+        """The previous fixture did exactly this and passed."""
+        with self.assertRaisesRegex(chain.EvidenceError, "reuses one chain"):
+            chain._pairs_from_chains(
+                self._dirs() * 2, self.evidence_root, CONTRACT, self.contract
             )
 
-    def test_editing_a_source_artifact_is_caught(self) -> None:
-        receipt = self._publish()
-        path = self.evidence_root / "decisions" / "p1-a-primary.json"
-        write_json(path, {
-            field: True for field in self.policy["scorer_judged_fields"]
-        })
-        with self.assertRaisesRegex(chain.EvidenceError, "digest mismatch"):
-            chain.verify_task_decision(receipt, self.evidence_root, CONTRACT)
+    def test_an_incomplete_chain_is_refused(self) -> None:
+        other = self.evidence_root / "chain-2"
+        chain.commit_randomization(other, CONTRACT, self.randomization_record)
+        with self.assertRaises(chain.EvidenceError):
+            chain._pairs_from_chains(
+                [self.evidence_relative(other)],
+                self.evidence_root, CONTRACT, self.contract,
+            )
 
-    def test_coordinated_source_and_receipt_tampering_is_caught(self) -> None:
-        """Edit the artifact and the digest that pins it, together.
+    def test_a_path_outside_the_evidence_root_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "escapes evidence root"):
+            chain._pairs_from_chains(
+                ["../outside"], self.evidence_root, CONTRACT, self.contract
+            )
 
-        The digest check now agrees, so only recomputing the decision from the
-        loaded bytes catches it.
-        """
-        receipt = self._publish()
-        path = self.evidence_root / "decisions" / "p1-a-primary.json"
-        write_json(path, {
-            field: True for field in self.policy["scorer_judged_fields"]
-        })
-        receipt["pair_sources"][0]["runs"]["A"]["primary"]["sha256"] = digest(
-            path.read_bytes()
-        )
-        with self.assertRaisesRegex(chain.EvidenceError, "recomputed decision"):
-            chain.verify_task_decision(receipt, self.evidence_root, CONTRACT)
+    def test_editing_a_submission_after_sealing_is_caught(self) -> None:
+        primary = self.evidence_root / "primary.json"
+        payload = self.score("primary")
+        payload["outputs"][0]["oracle_acceptance"] = False
+        write_json(primary, payload)
+        with self.assertRaises(chain.EvidenceError):
+            chain._pairs_from_chains(
+                self._dirs(), self.evidence_root, CONTRACT, self.contract
+            )
 
-    def test_a_forged_chain_head_is_caught(self) -> None:
-        receipt = self._publish()
-        receipt["pair_sources"][0]["chain_head_sha256"] = "f" * 64
-        with self.assertRaisesRegex(chain.EvidenceError, "chain head differs"):
-            chain.verify_task_decision(receipt, self.evidence_root, CONTRACT)
+    def test_cli_publishes_and_verifies_end_to_end(self) -> None:
+        sources = self.evidence_root / "sources.json"
+        write_json(sources, {"chain_dirs": self._dirs() * 1})
+        # One chain is one pair, and a task needs two; prove the CLI surfaces
+        # that as a parseable failure rather than a traceback.
+        report = self.evidence_root / "report.json"
+        code = chain.main([
+            "publish-task-decision",
+            "--receipt", str(self.receipt),
+            "--task-id", "task-1",
+            "--study-kind", "skill_primary",
+            "--sources", str(sources),
+            "--evidence-root", str(self.evidence_root),
+            "--contract", str(CONTRACT),
+            "--json-out", str(report),
+        ])
+        self.assertEqual(code, 2)
+        parsed = json.loads(report.read_text(encoding="utf-8"))
+        self.assertEqual(parsed["status"], "FAIL")
+        self.assertIn("at least two pairs", parsed["error"])
+        self.assertFalse(self.receipt.exists())
 
-    def test_a_receipt_without_pinned_sources_is_refused(self) -> None:
-        receipt = self._publish()
-        receipt.pop("pair_sources")
-        with self.assertRaisesRegex(chain.EvidenceError, "does not pin"):
-            chain.verify_task_decision(receipt, self.evidence_root, CONTRACT)
-
-    def test_a_tampered_verdict_is_caught(self) -> None:
-        receipt = self._publish()
-        for field, value in (
-            ("winner", "A"),
-            ("status", "third_pair_required"),
-            ("qualifying_success_counts", {"A": 2, "B": 0}),
-        ):
-            with self.subTest(field=field):
-                with self.assertRaisesRegex(
-                    chain.EvidenceError, "recomputed decision"
-                ):
-                    chain.verify_task_decision(
-                        dict(receipt, **{field: value}),
-                        self.evidence_root,
-                        CONTRACT,
-                    )
+    def test_cli_verify_reports_a_parseable_failure(self) -> None:
+        write_json(self.receipt, {"schema": "wrong"})
+        report = self.evidence_root / "verify-report.json"
+        code = chain.main([
+            "verify-task-decision",
+            "--receipt", str(self.receipt),
+            "--evidence-root", str(self.evidence_root),
+            "--contract", str(CONTRACT),
+            "--json-out", str(report),
+        ])
+        self.assertEqual(code, 2)
+        parsed = json.loads(report.read_text(encoding="utf-8"))
+        self.assertEqual(parsed["status"], "FAIL")
+        self.assertIn("schema is invalid", parsed["error"])

@@ -47,7 +47,7 @@ FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v8"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "71b8c2daa5bccf06d6a9f1d1b09379c7967f95a29738b3ed5b4e12ccc22b00be"
+    "0ef7db4ac7f20d59ae44e05d4748800a9abc68d829879566819aa521b59d52a0"
 )
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_COMP_HASH = "3000"

@@ -68,16 +68,22 @@
       "rule": "a_run_is_a_qualifying_success_only_when_both_scorer_submissions_independently_satisfy_every_scorer_judged_qualifying_criterion",
       "sample_size_unchanged_by_conflict": true,
       "scorer_judged_fields": [
+        "critical_residuals_zero",
+        "no_new_scoped_regression",
         "oracle_acceptance",
-        "original_defect_caught",
-        "no_new_scoped_regression"
+        "original_defect_caught"
       ],
+      "scorer_judged_rationale": "critical_residuals_zero is judged, not observed: the preregistration has no verifier-produced artifact carrying a residual count, so calling it verifier-determined would have been a claim the evidence cannot support. Conservative intersection therefore applies to it.",
       "verifier_determined_fields": [
         "completed_under_cap",
         "regression_baseline_fail",
-        "regression_passes_after_fix",
-        "critical_residuals_zero"
-      ]
+        "regression_passes_after_fix"
+      ],
+      "verifier_field_sources": {
+        "completed_under_cap": "sealed_run_metrics_completed_under_cap",
+        "regression_baseline_fail": "sealed_run_metrics_method_observation_failing_regression_before_fix",
+        "regression_passes_after_fix": "every_retained_test_receipt_exit_code_is_zero"
+      }
     },
     "task_winner": "higher_qualifying_success_count_after_frozen_pairs_else_tie"
   },
