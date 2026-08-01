@@ -48,15 +48,29 @@ shell-semantics fields; more than one tool call; a tool outside the route; no
 tool call; a non-object argument; a missing core field; and any decoded value
 the route's own validation rejects.
 
-The open decision
------------------
-``TOLERATED_FIELDS`` is empty. The corpus evidence says one field dominates the
-rejected population by a wide margin: an execution bound, which does not change
-which command runs or where, but does change whether it is allowed to finish.
-Admitting it is the single highest-leverage relaxation available and it is an
-owner decision, not a default. Adding a name to ``TOLERATED_FIELDS`` is a
-governance-surface change and must go through review; the tests below pin the
-empty default so that change cannot be made silently.
+The decision on the execution bound
+-----------------------------------
+Settled on 2026-08-01: the execution bound is not tolerated. ``TOLERATED_FIELDS``
+stays empty.
+
+The case for tolerating it rested on a corpus statistic -- that field dominated
+the rejected population -- but that statistic came from ordinary interactive
+sessions on other CLI builds, carrying a different tool surface. It is not the
+population the frozen route produces. Under frozen-route conditions the one
+piece of non-circular evidence available is live canary v5, where arm A cleared
+both parse phases while acceptance was still byte-exact: an entire session of
+calls matching the frozen shape, with no execution bound present at all. The
+model can and did emit the pinned shape.
+
+Tolerating a field is therefore a widening with no demonstrated need. If a
+future run shows the frozen route emitting the field, that is new evidence and
+this decision can be revisited; it should not be revisited on the strength of
+the corpus statistic that prompted it the first time.
+
+The machinery for tolerating a field is retained and tested, so revisiting is
+cheap: a name in ``TOLERATED_FIELDS``, an exact value in
+``TOLERATED_FIELD_VALUES``, and a review. That is a governance-surface change,
+and the tests below pin the empty default so it cannot be made silently.
 
 Tolerating a field by name alone would not be a small relaxation. An execution
 bound admitted by name accepts a negative value, a zero, an absurd value, a

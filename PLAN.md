@@ -1766,7 +1766,33 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   schema is now `gate3-codex-live-canary-failure-receipt.v5`. Acceptance is
   still unchanged; this is diagnosis only.
 
-- [ ] **Decide the wrapper acceptance policy before requesting another pair.**
+- [x] **Wrapper acceptance policy decided 2026-08-01: cosmetic equivalence is
+  admitted, the execution bound is not.** The semantic-equivalence contract is
+  wired into acceptance and independently reviewed. It admits whitespace, key
+  order, quoted keys, the result variable's name, a trailing semicolon, direct
+  text-await and an inline patch argument, and refuses extra fields,
+  privilege-affecting fields, multiple calls, out-of-route tools, unvalidated
+  envelopes, duplicate fields and any value the route already rejects. The
+  acceptance policy, including content digests of the contract and the route
+  validators, is bound into the route receipt, the source attestation and the
+  context identity; the A/B check and route verification both require a
+  matching digest. Route receipt is `v4`, failure receipt is `v8`, and a
+  refusal carries the contract reason into the published receipt.
+
+  `TOLERATED_FIELDS` stays empty. The case for admitting the execution bound
+  rested on a corpus statistic drawn from ordinary interactive sessions on
+  other CLI builds with a different tool surface, which is not the population
+  the frozen route produces. The non-circular evidence under frozen-route
+  conditions points the other way: in live canary v5, arm A cleared both parse
+  phases while acceptance was still byte-exact, meaning an entire session of
+  calls matched the frozen shape with no execution bound present. Tolerating
+  the field would be a widening with no demonstrated need. The machinery for
+  doing so is retained and tested, so the decision is cheap to revisit if a
+  frozen-route run ever shows the field emitted; it should not be revisited on
+  the strength of the corpus statistic alone.
+
+- [ ] **Superseded: decide the wrapper acceptance policy before requesting
+  another pair.**
   The probe establishes that byte-exact acceptance cannot survive normal
   emission variance, so further live pairs will keep failing at
   `packet_build` for reasons that carry no scientific content. Two options,
@@ -1811,8 +1837,11 @@ gates away from counted execution, and counted execution remains at zero.
   build's emissions in the corpus came from the same rehearsal the wrapper
   was written against, and the v3 to v5 failing rollouts were wiped by
   cleanup and cannot be replayed.
-- Wrapper acceptance policy: undecided. A written proposal exists and is not
-  wired into acceptance.
+- Wrapper acceptance policy: decided 2026-08-01 and wired, independently
+  reviewed. The execution bound is not tolerated.
+- Stop line, agreed 2026-08-01: at most one further non-counted live pair. If
+  it fails on another wrapper detail, Gate 3 pauses and the experiment channel
+  is re-evaluated. No additional census tooling, no replacement session.
 - Preregistration: candidate only. Independent approval, owner exact-byte
   signature and canonical promotion are all outstanding.
 - Natural-bug and resource admission, and separate Gate 3 start authority:
