@@ -54,7 +54,15 @@ def run_git(repo: Path, *args: str) -> bytes:
     return completed.stdout
 
 
-class Gate3EvidenceChainTests(unittest.TestCase):
+class Gate3ChainFixture:
+    """Shared chain fixture.
+
+    Deliberately not a TestCase. When this was one, every class that
+    needed the fixture inherited its tests too and the runner collected
+    them again per subclass: 115 collections for 47 distinct tests, with
+    no added coverage and nearly triple the runtime.
+    """
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -509,6 +517,8 @@ class Gate3EvidenceChainTests(unittest.TestCase):
         chain.release_mapping(self.chain_dir, CONTRACT, mapping)
         return primary, second, mapping
 
+
+class Gate3EvidenceChainTests(Gate3ChainFixture, unittest.TestCase):
     def test_completed_and_timeout_metrics_validate(self) -> None:
         contract, _ = chain.load_contract(CONTRACT)
         chain.validate_metrics(
@@ -1189,7 +1199,7 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class Gate3SingleFactorTests(Gate3EvidenceChainTests):
+class Gate3SingleFactorTests(Gate3ChainFixture, unittest.TestCase):
     """Every non-studied input must be equal across the two arms.
 
     Checking each arm against its own preregistered digests is not the same
@@ -1234,7 +1244,7 @@ class Gate3SingleFactorTests(Gate3EvidenceChainTests):
             self.seal_pair()
 
 
-class Gate3ScorerBlindnessTests(Gate3EvidenceChainTests):
+class Gate3ScorerBlindnessTests(Gate3ChainFixture, unittest.TestCase):
     """The packet must not tell the scorer which arm it is looking at.
 
     Withholding the mapping is not blindness if the packet names the arm.
@@ -1399,4 +1409,80 @@ class Gate3SampleSizeTests(unittest.TestCase):
         # The promotion threshold is written against exactly this count.
         self.assertEqual(
             contract["decision_rule"]["promotion_requires"]["b_task_wins_min"], 2
+        )
+
+
+class Gate3DisagreementBoundaryTests(unittest.TestCase):
+    """Disagreement must not become a side door to extra runs.
+
+    The third pair is a frozen adaptive sample decided before signature, not
+    an adjudication device. It still triggers on post-intersection counts, and
+    nothing triggers a fourth.
+    """
+
+    def setUp(self) -> None:
+        self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        self.policy = self.contract["decision_rule"][
+            "scorer_disagreement_policy"
+        ]
+
+    def test_conflict_authorizes_no_replacement_or_adjudication_run(
+        self,
+    ) -> None:
+        self.assertTrue(
+            self.policy[
+                "conflict_does_not_authorize_replacement_or_adjudication_run"
+            ]
+        )
+        self.assertEqual(
+            self.contract["scorer_submission"]["roles"], ["primary", "second"]
+        )
+
+    def test_the_frozen_third_pair_rule_still_applies(self) -> None:
+        self.assertTrue(
+            self.policy["frozen_third_pair_rule_applies_to_post_intersection_counts"]
+        )
+        self.assertIn(
+            "tied_qualifying_success_count",
+            self.contract["primary_study"]["third_pair_trigger"],
+        )
+
+    def test_no_fourth_pair_under_any_disagreement_or_tie(self) -> None:
+        self.assertTrue(self.policy["no_fourth_pair_under_any_disagreement_or_tie"])
+        self.assertEqual(
+            self.policy["maximum_pairs_per_task"],
+            self.contract["primary_study"]["maximum_pairs_per_task"],
+        )
+        self.assertEqual(self.policy["maximum_pairs_per_task"], 3)
+
+    def test_a_conflicted_run_still_counts_toward_the_pair(self) -> None:
+        """The conflicted run is non-qualifying, not absent.
+
+        A tie can therefore arise from conflict, and the frozen third pair may
+        follow. That is the adaptive sample doing what it was preregistered to
+        do, not disagreement buying an extra run.
+        """
+        verifier = {
+            field: True
+            for field in self.policy["verifier_determined_fields"]
+        }
+        agreed = {
+            field: True for field in self.policy["scorer_judged_fields"]
+        }
+        conflicted = dict(agreed, oracle_acceptance=False)
+        result = chain.resolve_qualifying_success(
+            agreed, conflicted, verifier, self.contract
+        )
+        self.assertFalse(result["qualifying_success"])
+        self.assertTrue(result["scorers_conflicted"])
+        self.assertEqual(result["conflicting_fields"], ["oracle_acceptance"])
+        self.assertTrue(self.policy["sample_size_unchanged_by_conflict"])
+
+    def test_scorer_independence_is_required(self) -> None:
+        self.assertIn(
+            "independently_satisfy_every_scorer_judged_qualifying_criterion",
+            self.policy["rule"],
+        )
+        self.assertTrue(
+            self.contract["scorer_submission"]["scorer_context_must_differ"]
         )

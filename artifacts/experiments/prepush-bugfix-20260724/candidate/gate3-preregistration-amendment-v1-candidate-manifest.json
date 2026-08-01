@@ -17,9 +17,9 @@
       "sha256": "9ea0ed43e8ef133c355848756d0f3f27ae438e3d51ad3b3e8ea4010a02a8f685"
     },
     {
-      "bytes": 7164,
+      "bytes": 7580,
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json",
-      "sha256": "11fce85f5f02d67a9cacb4664a20033bc028c06425486276298e8cd96b310a02"
+      "sha256": "4df41f4ec1965aa666e702190b57635e64c5369be9c8be9ee69eb883bbd6bf7b"
     },
     {
       "bytes": 81295,
@@ -27,9 +27,9 @@
       "sha256": "223e63b09d64b2280f77c9cd658c66c95f9bf466d48292776e062ecb105fede2"
     },
     {
-      "bytes": 54572,
+      "bytes": 57894,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py",
-      "sha256": "8c7e88eb47f05f6abb3a885d7b08e3e53195ab9ed9c4f091a92cb3d014979dc6"
+      "sha256": "d6edee60b816506eedf267a542dfc7c9f069995603f18586ac31fc8145ca9119"
     }
   ],
   "not_claimed": [

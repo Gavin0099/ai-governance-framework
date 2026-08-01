@@ -1838,10 +1838,10 @@ gates away from counted execution, and counted execution remains at zero.
   reviewed. The execution bound is not tolerated. The earlier description of
   this as an unwired proposal awaiting corrected review is superseded; it
   described the state before `8fba4cba` and `880ce166`.
-- Acceptance policy digest: `1f23b94a80e41c76fe9966e382c6069235b0a6c4335c7c1c673bb6a8f9bd1ba9`, over contract
+- Acceptance policy digest: `e9b5d250754b1e5d3e8ec55d4fbd151ee86f0c13ef2958b027439414ae538ad4`, over contract
   `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`
   and route validators
-  `f67f9ec7da08ca0c71511123616f29741070674f8db4685fd821dd81e07c162b`.
+  `1925191b81ad7b5611bca2eda9838676c638fbe781d2cd6d2518f26b457445c5`.
   This supersedes `35a45dc4…d76c266c`, which was recorded as frozen before the
   preregistration semantic review. That review required the scorer packet to
   carry an exact field set, and the canary's own packet builder emitted a

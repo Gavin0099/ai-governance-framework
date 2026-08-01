@@ -6,6 +6,23 @@
     "ordering_chain": "local_create_once_digest_chain_not_writer_authentication",
     "skill_effectiveness": "not_claimed"
   },
+  "comparison_controls": {
+    "cross_arm_equal_policy": "every_admission_input_digest_not_listed_as_varying_must_be_equal_across_the_two_arms",
+    "policy": "exactly_one_treatment_factor_may_differ_across_arms_per_study_kind",
+    "rationale": "A difference in any other input makes the arm difference uninterpretable as the studied effect.",
+    "varying_input_digests": {
+      "governance_diagnostic": [
+        "governance_instruction_sha256"
+      ],
+      "skill_primary": [
+        "treatment_packet_sha256"
+      ],
+      "validator_diagnostic": [
+        "validator_bundle_sha256",
+        "validator_config_sha256"
+      ]
+    }
+  },
   "decision_rule": {
     "cost_gate": {
       "even_sample_median": "arithmetic_mean_of_two_middle_values",
@@ -29,13 +46,26 @@
       "product_success_difference_win_min": 1,
       "wins_span_consumer_repos_min": 2
     },
+    "qualifying_success_requires": [
+      "completed_under_cap",
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "no_new_scoped_regression",
+      "critical_residuals_zero"
+    ],
     "scorer_disagreement_policy": {
       "conflict_disposition": "run_is_not_a_qualifying_success",
+      "conflict_does_not_authorize_replacement_or_adjudication_run": true,
+      "frozen_third_pair_rule_applies_to_post_intersection_counts": true,
+      "maximum_pairs_per_task": 3,
+      "no_fourth_pair_under_any_disagreement_or_tie": true,
       "objective_fields_source": "verifier",
       "policy": "conservative_intersection",
-      "rationale": "Disagreement must not be resolvable in the direction that inflates the measured effect, and must not change the effective sample size.",
+      "rationale": "Disagreement must not be resolvable toward the larger effect, must not change the effective sample size, and must not become a side door to extra runs. The third pair is a frozen adaptive sample, not an adjudication device, so it still triggers on post-intersection counts.",
       "retain_both_submissions_and_conflict_record": true,
-      "rule": "a_run_is_a_qualifying_success_only_if_both_scorers_judge_every_scorer_judged_field_as_passing",
+      "rule": "a_run_is_a_qualifying_success_only_when_both_scorer_submissions_independently_satisfy_every_scorer_judged_qualifying_criterion",
       "sample_size_unchanged_by_conflict": true,
       "scorer_judged_fields": [
         "oracle_acceptance",
@@ -49,33 +79,7 @@
         "critical_residuals_zero"
       ]
     },
-    "qualifying_success_requires": [
-      "completed_under_cap",
-      "oracle_acceptance",
-      "regression_baseline_fail",
-      "regression_passes_after_fix",
-      "original_defect_caught",
-      "no_new_scoped_regression",
-      "critical_residuals_zero"
-    ],
     "task_winner": "higher_qualifying_success_count_after_frozen_pairs_else_tie"
-  },
-  "comparison_controls": {
-    "cross_arm_equal_policy": "every_admission_input_digest_not_listed_as_varying_must_be_equal_across_the_two_arms",
-    "policy": "exactly_one_treatment_factor_may_differ_across_arms_per_study_kind",
-    "rationale": "A difference in any other input makes the arm difference uninterpretable as the studied effect.",
-    "varying_input_digests": {
-      "governance_diagnostic": [
-        "governance_instruction_sha256"
-      ],
-      "skill_primary": [
-        "treatment_packet_sha256"
-      ],
-      "validator_diagnostic": [
-        "validator_bundle_sha256",
-        "validator_config_sha256"
-      ]
-    }
   },
   "diagnostic_studies": {
     "governance_diagnostic": {
@@ -99,6 +103,11 @@
       "second_scorer_submitted",
       "mapping_released"
     ],
+    "mapping_commitment": {
+      "commitment_payload_schema": "gate3-mapping-reveal-commitment.v1",
+      "nonce_hex_characters": 64,
+      "randomization_record_schema": "gate3-randomization-record.v1"
+    },
     "mapping_treatments": {
       "governance_diagnostic": [
         "B",
@@ -112,11 +121,6 @@
         "C",
         "D"
       ]
-    },
-    "mapping_commitment": {
-      "commitment_payload_schema": "gate3-mapping-reveal-commitment.v1",
-      "nonce_hex_characters": 64,
-      "randomization_record_schema": "gate3-randomization-record.v1"
     },
     "previous_event_digest": "sha256_of_exact_previous_event_file_bytes",
     "publication": "canonical_utf8_json_create_once"
