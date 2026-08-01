@@ -1850,11 +1850,22 @@ gates away from counted execution, and counted execution remains at zero.
 - Acceptance policy evidence identity: changed. Admission semantics did not
   change when the execution-bound decision was recorded, but the policy digest
   did, because it deliberately pins the contract's own bytes and the docstring
-  was edited. Route receipts carrying an earlier policy digest are refused by
-  the current verifier. That is the intended fail-closed behaviour, and it
-  means all rehearsal and canary evidence produced before the current digest
-  is historical evidence: it attests to what happened under the policy of its
-  day, and cannot be re-verified under this one.
+  was edited. The consequence is narrow and must be stated narrowly. Codex
+  live-route receipts carrying an earlier `acceptance_policy_sha256`, and
+  evidence whose verification depends on that field, are refused by the
+  current route verifier. That is the intended fail-closed behaviour, and it
+  makes exactly that material historical evidence: it attests to what happened
+  under the policy of its day and cannot be re-verified under this one.
+
+  It does not reach further. The common-harness rehearsal and the
+  preregistration candidate bytes are verified by tooling that does not
+  consult the acceptance policy digest, and both still verify under the
+  current tools: `gate3_common_harness.py verify` returns `status=PASS` with
+  all seven checks passing, including `candidate_exact_bytes`, and the
+  candidate manifest is still
+  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`. An
+  earlier revision of this entry described all prior rehearsal and canary
+  evidence as historical, which was wrong and is corrected here.
 - Stop line, agreed 2026-08-01: at most one further non-counted live pair. If
   it fails on another wrapper detail, Gate 3 pauses and the experiment channel
   is re-evaluated. No additional census tooling, no replacement session.
