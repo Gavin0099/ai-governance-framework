@@ -609,6 +609,7 @@ def test_wrapper_mismatch_records_only_privacy_safe_structure(
                     "total_field_count": 4,
                     "unknown_field_count": 1,
                 },
+                "contract_reason": "extra_field",
                 "frozen_tool_call_token_count": 1,
                 "rejection_class": "single_frozen_call",
                 "tool_call_ordinal": 1,
@@ -936,7 +937,9 @@ def test_first_wrapper_error_is_still_the_raised_error(tmp_path: Path) -> None:
         ),
         (
             "text(await tools.apply_patch("
-            + json.dumps("*** Begin Patch\n*** End Patch")
+            + json.dumps(
+                "*** Begin Patch\n*** Update File: calc.py\n*** End Patch\n"
+            )
             + "));\n",
             "apply_patch",
             "string",
@@ -953,26 +956,29 @@ def test_first_wrapper_error_is_still_the_raised_error(tmp_path: Path) -> None:
     ],
     ids=["shell-field-order", "inline-apply-patch", "shell-call-whitespace"],
 )
-def test_wrapper_diagnostics_do_not_relax_acceptance(
+def test_cosmetic_variants_are_now_admitted_by_the_contract(
     tmp_path: Path,
     tool_input: str,
     tool_family: str,
     argument_shape: str,
 ) -> None:
-    diagnostic = live._empty_rollout_diagnostics()["A"]
-    with pytest.raises(
-        live.CanaryError,
-        match="tool input wrapper differs from the frozen route",
-    ):
-        _parse(
-            tmp_path,
-            _rollout(tool_input=tool_input),
-            rollout_diagnostic=diagnostic,
-            parse_phase="public",
-        )
-    mismatch = diagnostic["wrapper_mismatches"]["public"][0]
-    assert mismatch["tool_family"] == tool_family
-    assert mismatch["argument_shape"] == argument_shape
+    """These used to be rejected. Admitting them is the point of the wiring.
+
+    Each runs the same command in the same place as the frozen shape and
+    differs only in key order, call spacing, or passing the patch inline
+    instead of through a binding.
+    """
+    result = _parse(
+        tmp_path,
+        _rollout(tool_input=tool_input),
+        rollout_diagnostic=live._empty_rollout_diagnostics()["A"],
+        parse_phase="public",
+    )
+    assert result["tool_inventory"][0]["kind"] == tool_family
+    # The byte-exact regexes still reject them, which is what makes this a
+    # widening rather than a restatement.
+    assert not live.SHELL_WRAPPER_RE.fullmatch(tool_input)
+    assert not live.PATCH_WRAPPER_RE.fullmatch(tool_input)
 
 
 @pytest.mark.parametrize(

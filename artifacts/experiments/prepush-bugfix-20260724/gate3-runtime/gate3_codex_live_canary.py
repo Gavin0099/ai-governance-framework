@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import gate3_evidence_chain as chain
+import gate3_wrapper_semantic_contract as contract
 
 
 HERE = Path(__file__).resolve().parent
@@ -1757,24 +1758,26 @@ def _parse_tool_call(
     source = payload.get("input")
     if not isinstance(source, str):
         raise CanaryError("tool input is absent")
-    shell_match = SHELL_WRAPPER_RE.fullmatch(source)
-    patch_match = PATCH_WRAPPER_RE.fullmatch(source)
-    if shell_match:
-        detail = _validate_shell_command(
-            _decode_js_string(shell_match.group("command"), label="command"),
-            workdir=_decode_js_string(
-                shell_match.group("workdir"), label="workdir"
-            ),
-            expected_workspace=expected_workspace,
-        )
-    elif patch_match:
-        detail = _validate_patch(
-            _decode_js_string(patch_match.group("patch"), label="patch"),
-            expected_workspace=expected_workspace,
-        )
+    # Acceptance is the semantic-equivalence contract, not the byte-exact
+    # regexes. The regexes stay as the definition of the frozen shape, and a
+    # test asserts the contract accepts everything they accept, so this is a
+    # widening that cannot narrow what was already admitted.
+    verdict = contract.evaluate(source, expected_workspace=expected_workspace)
+    if verdict["accepted"]:
+        detail = verdict["detail"]
+    elif verdict["reason"] == "value_rejected_by_route":
+        # The wrapper was fine and the route refused what it carried. Raise the
+        # route's own message: a command reaching outside the workspace is a
+        # different finding from a wrapper this route does not recognize, and
+        # collapsing them would hide the more serious one.
+        raise CanaryError(verdict["detail"])
     else:
         if mismatch_diagnostic is not None:
             mismatch_diagnostic.update(_tool_input_wrapper_diagnostic(source))
+            # The contract's reason says which rule refused, which the
+            # structural classification alone cannot: an extra field and a
+            # privilege-affecting field look identical without it.
+            mismatch_diagnostic["contract_reason"] = verdict["reason"]
         raise CanaryError("tool input wrapper differs from the frozen route")
     return {
         "call_id": payload.get("call_id"),
@@ -2009,6 +2012,11 @@ def parse_rollout(
     if not timestamps:
         raise CanaryError("rollout has no timestamps")
     context_identity = {
+        # What the route was willing to admit is part of what identifies the
+        # context. A rollout judged under a different acceptance policy is not
+        # the same observation, and this makes that difference visible in the
+        # identity digest rather than only in a side field.
+        "acceptance_policy": contract.policy(),
         "base_instructions": _normalised_context_view(
             base_instructions, expected_workspace=expected_workspace
         ),
@@ -2069,6 +2077,7 @@ def parse_rollout(
         ),
         "cli_version": expected_cli_version,
         "comp_hash": expected_comp_hash,
+        "acceptance_policy_sha256": contract.policy_digest(),
         "context_identity_sha256": _sha256_bytes(_json_bytes(context_identity)),
         "developer_instructions_sha256": _sha256_bytes(
             _json_bytes(context_identity["developer_instructions"])
@@ -2408,6 +2417,9 @@ def _capture_outcome(
             "route": route,
             "schema": ROUTE_RECEIPT_SCHEMA,
             "source_attestation": {
+                "acceptance_policy_sha256": source_route[
+                    "acceptance_policy_sha256"
+                ],
                 "context_identity_sha256": source_route[
                     "context_identity_sha256"
                 ],
@@ -2870,6 +2882,16 @@ def _build_orchestrated(
         != route_receipts[1]["route"]["permission_fingerprint"]
     ):
         raise CanaryError("A/B permission fingerprints differ")
+    # Both arms must have been judged under the same acceptance policy, and
+    # under the policy this process is running. Otherwise a comparison could
+    # rest on one arm having been admitted by looser rules than the other.
+    policy_digests = {
+        receipt[section]["acceptance_policy_sha256"]
+        for receipt in route_receipts
+        for section in ("route", "source_attestation")
+    }
+    if policy_digests != {contract.policy_digest()}:
+        raise CanaryError("A/B acceptance policies differ")
     if (
         route_receipts[0]["route"]["context_identity_sha256"]
         != route_receipts[1]["route"]["context_identity_sha256"]

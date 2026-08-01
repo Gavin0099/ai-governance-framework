@@ -1,10 +1,16 @@
-"""Proposed strict semantic-equivalence contract for frozen-route tool inputs.
+"""Strict semantic-equivalence contract for frozen-route tool inputs.
 
-NOT WIRED INTO ACCEPTANCE. The live route still admits exactly what
-``SHELL_WRAPPER_RE`` and ``PATCH_WRAPPER_RE`` admit. Widening what the route
-admits is a governance-surface change; this module exists so that change can be
-reviewed against a written contract and a test suite instead of being argued
-from a diff. Nothing here is called by ``gate3_codex_live_canary`` at runtime.
+WIRED INTO ACCEPTANCE. This decides what the live route admits, replacing the
+byte-exact wrapper regexes as the acceptance test. Those regexes remain as the
+definition of the frozen shape, and a test asserts everything they accept this
+contract also accepts, so the change is a widening and never a narrowing.
+
+What the route admits is itself evidence, so it is bound in. ``policy_digest``
+canonicalizes the whole acceptance policy -- the contract schema, the tolerated
+field names and their preregistered values and ranges -- into the route receipt
+and the context identity, and the A/B comparison requires both arms to carry
+the same digest. Two arms cannot silently be judged under different rules, and
+a receipt cannot be read without knowing which rules produced it.
 
 Why a contract at all
 ---------------------
@@ -70,6 +76,8 @@ is implemented here because neither belongs to a proposal:
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -145,6 +153,40 @@ REFUSAL_REASONS = (
 # preregistered number. That is text normalization quietly widening acceptance,
 # which is the failure mode this contract exists to avoid.
 _INTEGER_LITERAL_RE = re.compile(r"(?:0|[1-9][0-9]*)")
+
+
+def policy() -> dict[str, Any]:
+    """The acceptance policy in effect, as plain data.
+
+    Only fields with a usable preregistered value are reported as tolerated,
+    so the policy describes what is actually admitted rather than what someone
+    intended to admit.
+    """
+    tolerated = {
+        name: preregistered_value(name)
+        for name in sorted(TOLERATED_FIELDS)
+        if preregistered_value(name) is not None
+    }
+    return {
+        "core_fields": sorted(SEMANTIC_CORE_FIELDS),
+        "privilege_affecting_fields": sorted(PRIVILEGE_AFFECTING_FIELDS),
+        "schema": CONTRACT_SCHEMA,
+        "tolerated_field_ranges": {
+            name: list(TOLERATED_FIELD_RANGES[name])
+            for name in sorted(tolerated)
+            if name in TOLERATED_FIELD_RANGES
+        },
+        "tolerated_fields": tolerated,
+        "validated_envelopes": sorted(VALIDATED_ENVELOPES),
+    }
+
+
+def policy_digest() -> str:
+    """SHA-256 over the canonicalized policy, for binding into receipts."""
+    encoded = json.dumps(
+        policy(), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _is_plain_int(value: object) -> bool:
@@ -260,6 +302,27 @@ def _object_fields(argument: str) -> dict[str, str] | None:
     return fields
 
 
+_BOUND_LITERAL_RE = re.compile(
+    r'\s*const\s+(?P<name>[A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*'
+    r'(?P<literal>"(?:\\.|[^"\\])*")\s*;\s*text\s*\(\s*await\s+'
+)
+
+
+def _patch_literal(
+    source: str,
+    marker: tuple[int, int, str],
+    argument: str,
+) -> str | None:
+    """Recover the patch string, whether passed directly or via a binding."""
+    stripped = argument.strip()
+    if stripped.startswith('"'):
+        return stripped
+    bound = _BOUND_LITERAL_RE.fullmatch(source[: marker[0]])
+    if bound is not None and bound.group("name") == stripped:
+        return bound.group("literal")
+    return None
+
+
 def evaluate(source: str, *, expected_workspace: str) -> dict[str, Any]:
     """Judge one tool input against the contract. Never raises on input."""
 
@@ -292,18 +355,25 @@ def evaluate(source: str, *, expected_workspace: str) -> dict[str, Any]:
         return verdict("argument_not_object", tool_family=family)
 
     if family == "apply_patch":
-        # The route's patch form binds a string, not an object. Reuse its own
+        # The route's patch form binds the patch to a variable and passes the
+        # variable, so the literal lives in the prefix rather than in the
+        # argument. Recover it before validating, and reuse the route's own
         # validation rather than inventing a second notion of a valid patch.
+        literal = _patch_literal(source, markers[0], argument_result[0])
+        if literal is None:
+            return verdict("argument_not_object", tool_family=family)
         try:
-            patch = live._decode_js_string(argument_result[0].strip(), label="patch")
-            live._validate_patch(patch, expected_workspace=expected_workspace)
+            patch = live._decode_js_string(literal, label="patch")
+            detail = live._validate_patch(
+                patch, expected_workspace=expected_workspace
+            )
         except live.CanaryError as error:
             return verdict(
                 "value_rejected_by_route",
                 tool_family=family,
                 detail=str(error),
             )
-        return verdict("accepted", tool_family=family)
+        return verdict("accepted", tool_family=family, detail=detail)
 
     fields = _object_fields(argument_result[0])
     if fields is None:

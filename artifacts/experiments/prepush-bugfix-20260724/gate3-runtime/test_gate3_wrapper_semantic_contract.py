@@ -42,11 +42,78 @@ def _frozen() -> str:
 # --- the contract is not wired into acceptance ----------------------------
 
 
-def test_contract_is_not_reachable_from_the_live_route() -> None:
-    """A proposal must not change what the route admits by being imported."""
+def test_the_live_route_decides_acceptance_with_this_contract() -> None:
     source = Path(live.__file__).read_text(encoding="utf-8")
-    assert "gate3_wrapper_semantic_contract" not in source
-    assert "semantic_contract" not in source
+    assert "gate3_wrapper_semantic_contract" in source
+    assert "contract.evaluate(" in source
+
+
+def test_the_contract_accepts_everything_the_frozen_regexes_accept() -> None:
+    """The wiring must be a widening, never a narrowing.
+
+    Anything the byte-exact regexes admitted was admitted before this change,
+    so if the contract refused any of it the wiring would be a regression in
+    the one direction that matters.
+    """
+    frozen_shell = _frozen()
+    frozen_patch = (
+        "const patch = "
+        + json.dumps("*** Begin Patch\n*** Update File: calc.py\n*** End Patch\n")
+        + ";\ntext(await tools.apply_patch(patch));\n"
+    )
+    for source in (frozen_shell, frozen_patch):
+        assert live.SHELL_WRAPPER_RE.fullmatch(
+            source
+        ) or live.PATCH_WRAPPER_RE.fullmatch(source)
+        assert _reason(source) == "accepted", source
+
+
+def test_the_acceptance_policy_is_bound_into_the_route() -> None:
+    """A receipt must say which rules produced it."""
+    digest = contract.policy_digest()
+    assert len(digest) == 64
+    assert contract.policy()["tolerated_fields"] == {}
+    assert "acceptance_policy_sha256" in Path(live.__file__).read_text(
+        encoding="utf-8"
+    )
+
+
+def test_the_policy_digest_changes_when_the_policy_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = contract.policy_digest()
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    assert contract.policy_digest() != before
+    assert contract.policy()["tolerated_fields"] == {"timeout_ms": 120000}
+
+
+def test_an_unusable_declaration_does_not_appear_as_tolerated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The policy must describe what is admitted, not what was intended."""
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": True}
+    )
+    assert contract.policy()["tolerated_fields"] == {}
+    assert contract.policy_digest() == _policy_digest_with_nothing_tolerated()
+
+
+def _policy_digest_with_nothing_tolerated() -> str:
+    import hashlib
+
+    saved = contract.TOLERATED_FIELDS
+    try:
+        contract.TOLERATED_FIELDS = ()
+        encoded = json.dumps(
+            contract.policy(), sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+    finally:
+        contract.TOLERATED_FIELDS = saved
 
 
 def test_tolerated_fields_is_empty_by_default() -> None:
