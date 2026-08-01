@@ -47,7 +47,7 @@ FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v8"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "0ef7db4ac7f20d59ae44e05d4748800a9abc68d829879566819aa521b59d52a0"
+    "ad31adb5f0c1e47e5f2e6038ff377cf2568062ba72e319d1ff49fbf966ef4290"
 )
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_COMP_HASH = "3000"
@@ -2225,8 +2225,10 @@ def _duration_ms(start: str, finish: str) -> int:
         raise CanaryError("rollout timestamps are not ISO-8601") from exc
 
 
-def _method_observations() -> dict[str, dict[str, Any]]:
-    return {
+def _method_observations(
+    baseline_receipt_sha256: str | None = None,
+) -> dict[str, dict[str, Any]]:
+    values = {
         name: {"evidence_sha256": [], "observed": False}
         for name in (
             "reproduction_before_first_edit",
@@ -2237,6 +2239,14 @@ def _method_observations() -> dict[str, dict[str, Any]]:
             "claim_bounded_to_evidence",
         )
     }
+    if baseline_receipt_sha256 is not None:
+        # The observation must name the retained receipt, or
+        # regression_baseline_fail is self-reported.
+        values["failing_regression_before_fix"] = {
+            "evidence_sha256": [baseline_receipt_sha256],
+            "observed": True,
+        }
+    return values
 
 
 def _capture_outcome(
@@ -2253,7 +2263,7 @@ def _capture_outcome(
     contract_path: Path,
     plan: dict[str, Any],
     randomization_sha: str,
-    baseline_receipt_sha: str,
+    baseline_receipt: dict[str, str],
     rollout_diagnostic: dict[str, Any],
 ) -> dict[str, Any]:
     repo = repo.resolve()
@@ -2473,7 +2483,7 @@ def _capture_outcome(
             "receipt_set_sha256": receipt_set_sha,
             "schema": chain.OUTCOME_PACKET_SCHEMA,
             "scorer_payload": {
-                "baseline_test_receipt_sha256": baseline_receipt_sha,
+                "baseline_test_receipt_sha256": baseline_receipt["sha256"],
                 "final_diff_utf8": final_diff.read_text(encoding="utf-8"),
                 "test_exit_code": test_exit,
             },
@@ -2493,6 +2503,7 @@ def _capture_outcome(
         {
             "anon_id": anon_id,
             "baseline_commit": plan["baseline_commit"],
+            "baseline_test_receipt": dict(baseline_receipt),
             "event_log": {
                 "path": _relative(event_log, staging),
                 "sha256": _sha256_file(event_log),
@@ -2558,7 +2569,9 @@ def _capture_outcome(
                 ),
             },
             "harness_contract_sha256": harness_sha,
-            "method_observations": _method_observations(),
+            "method_observations": _method_observations(
+                baseline_receipt["sha256"]
+            ),
             "model_build": plan["frozen_route"]["model_build"],
             "pair_id": plan["run_id"],
             "permissions_sha256": plan["common_inputs"][
@@ -2861,7 +2874,7 @@ def _build_orchestrated(
                         contract_path=contract_path,
                         plan=plan,
                         randomization_sha=randomization_sha,
-                        baseline_receipt_sha=baseline_receipt["sha256"],
+                        baseline_receipt=baseline_receipt,
                         rollout_diagnostic=rollout_diagnostics[treatment],
                     )
                 )

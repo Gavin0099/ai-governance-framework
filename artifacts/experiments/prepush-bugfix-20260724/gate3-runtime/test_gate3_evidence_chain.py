@@ -211,6 +211,8 @@ class Gate3ChainFixture:
         suffix: str,
         *,
         completed: bool,
+        pair_id: str = "task-1-pair-1",
+        repeat_index: int = 1,
     ) -> tuple[Path, Path, Path, Path]:
         repo = self.root / f"repo-{suffix}"
         run_git(self.root, "clone", "--quiet", str(self.base_repo), str(repo))
@@ -278,6 +280,29 @@ class Gate3ChainFixture:
                 "sha256": digest(receipt.read_bytes()),
             }
         ]
+        # A real retained receipt showing the regression failing at the
+        # baseline. regression_baseline_fail is read from this, not from a
+        # metrics flag asserting the observation happened.
+        baseline_output = self.evidence_root / f"baseline-output-{suffix}.txt"
+        baseline_output.write_bytes(b"1 failed\n")
+        baseline_receipt = self.evidence_root / f"baseline-receipt-{suffix}.json"
+        write_json(
+            baseline_receipt,
+            {
+                "command": "pytest -q",
+                "exit_code": 1,
+                "expected_failure": True,
+                "linked_commit": self.baseline_commit,
+                "output_path": self.evidence_relative(baseline_output),
+                "output_sha256": digest(baseline_output.read_bytes()),
+                "schema": "gate3-synthetic-baseline-test-receipt.v1",
+            },
+        )
+        self.baseline_receipt_sha256 = digest(baseline_receipt.read_bytes())
+        self.baseline_receipt_ref = {
+            "path": self.evidence_relative(baseline_receipt),
+            "sha256": self.baseline_receipt_sha256,
+        }
         receipt_set_sha = digest(chain._json_bytes(receipt_index))
         packet = self.evidence_root / f"packet-{suffix}.json"
         write_json(
@@ -313,6 +338,7 @@ class Gate3ChainFixture:
             {
                 "anon_id": anon_id,
                 "baseline_commit": self.baseline_commit,
+                "baseline_test_receipt": dict(self.baseline_receipt_ref),
                 "event_log": {
                     "path": self.evidence_relative(event_log),
                     "sha256": digest(event_log.read_bytes()),
@@ -339,14 +365,33 @@ class Gate3ChainFixture:
             },
         )
         metrics = self.evidence_root / f"metrics-{suffix}.json"
-        write_json(metrics, self.metrics(anon_id, packet, completed=completed))
+        write_json(metrics, self.metrics(
+            anon_id,
+            packet,
+            completed=completed,
+            suffix=suffix,
+            pair_id=pair_id,
+            repeat_index=repeat_index,
+        ))
         return repo, packet, metrics, admission
 
     def metrics(
-        self, anon_id: str, packet: Path, *, completed: bool
+        self,
+        anon_id: str,
+        packet: Path,
+        *,
+        completed: bool,
+        suffix: str | None = None,
+        pair_id: str = "task-1-pair-1",
+        repeat_index: int = 1,
     ) -> dict[str, object]:
         observation = {"observed": False, "evidence_sha256": []}
-        suffix = "a" if anon_id == "OUT-111111111111" else "b"
+        baseline_observation = {
+            "observed": True,
+            "evidence_sha256": [self.baseline_receipt_sha256],
+        }
+        if suffix is None:
+            suffix = "a" if anon_id == "OUT-111111111111" else "b"
         event_log = self.evidence_root / f"event-log-{suffix}.jsonl"
         return {
             "anon_id": anon_id,
@@ -377,7 +422,9 @@ class Gate3ChainFixture:
             "method_observations": {
                 "claim_bounded_to_evidence": copy.deepcopy(observation),
                 "defect_reintroduction_performed": copy.deepcopy(observation),
-                "failing_regression_before_fix": copy.deepcopy(observation),
+                "failing_regression_before_fix": copy.deepcopy(
+                    baseline_observation
+                ),
                 "post_restore_retest_performed": copy.deepcopy(observation),
                 "reproduction_before_first_edit": copy.deepcopy(observation),
                 "root_cause_recorded_before_first_edit": copy.deepcopy(
@@ -386,12 +433,12 @@ class Gate3ChainFixture:
             },
             "harness_contract_sha256": self.harness_sha256,
             "model_build": "model-build-1",
-            "pair_id": "task-1-pair-1",
+            "pair_id": pair_id,
             "permissions_sha256": self.common_input_artifacts[
                 "permissions_sha256"
             ]["sha256"],
             "randomization_record_sha256": self.randomization_sha256,
-            "repeat_index": 1,
+            "repeat_index": repeat_index,
             "run_id": f"run-{anon_id[-4:]}",
             "schema": "gate3-run-metrics.v1",
             "scorer_rubric_sha256": self.common_input_artifacts[
@@ -1684,7 +1731,9 @@ class Gate3TaskDecisionReceiptTests(Gate3ChainFixture, unittest.TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        # load_contract, not a raw parse: the runtime stashes the harness
+        # policies on the contract and the derivation needs them.
+        self.contract, _ = chain.load_contract(CONTRACT)
         self.receipt = self.evidence_root / "task-decision.json"
         self.full_chain()
 
@@ -1776,3 +1825,250 @@ class Gate3TaskDecisionReceiptTests(Gate3ChainFixture, unittest.TestCase):
         parsed = json.loads(report.read_text(encoding="utf-8"))
         self.assertEqual(parsed["status"], "FAIL")
         self.assertIn("schema is invalid", parsed["error"])
+
+
+class Gate3BaselineEvidenceTests(Gate3ChainFixture, unittest.TestCase):
+    """regression_baseline_fail must rest on a receipt, not on a flag.
+
+    A metrics observation with an evidence digest that names nothing is
+    self-report however well-formed the digest looks.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.contract, _ = chain.load_contract(CONTRACT)
+
+    def _seal_with_admission(self, mutate) -> None:
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        mutate(admission)
+        write_json(self.admission_b, admission)
+        self.seal_pair()
+
+    def _seal_with_metrics(self, mutate) -> None:
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        mutate(metrics)
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_fabricated_evidence_digest_is_refused(self) -> None:
+        """The exact PoC: a well-formed digest naming nothing."""
+        with self.assertRaisesRegex(chain.EvidenceError, "does not name its receipt"):
+            self._seal_with_metrics(
+                lambda m: m["method_observations"][
+                    "failing_regression_before_fix"
+                ].update({"evidence_sha256": ["0" * 64]})
+            )
+
+    def test_an_absent_baseline_receipt_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "pins no baseline"):
+            self._seal_with_admission(
+                lambda a: a.pop("baseline_test_receipt")
+            )
+
+    def test_a_baseline_receipt_that_passed_is_refused(self) -> None:
+        path = self.evidence_root / "baseline-receipt-b.json"
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        receipt["exit_code"] = 0
+        write_json(path, receipt)
+        with self.assertRaises(chain.EvidenceError):
+            self._seal_with_admission(
+                lambda a: a["baseline_test_receipt"].update(
+                    {"sha256": digest(path.read_bytes())}
+                )
+            )
+
+    def test_a_baseline_receipt_for_another_commit_is_refused(self) -> None:
+        path = self.evidence_root / "baseline-receipt-b.json"
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        receipt["linked_commit"] = "f" * 40
+        write_json(path, receipt)
+        with self.assertRaises(chain.EvidenceError):
+            self._seal_with_admission(
+                lambda a: a["baseline_test_receipt"].update(
+                    {"sha256": digest(path.read_bytes())}
+                )
+            )
+
+    def test_a_tampered_baseline_output_is_refused(self) -> None:
+        (self.evidence_root / "baseline-output-b.txt").write_bytes(b"0 failed\n")
+        with self.assertRaisesRegex(chain.EvidenceError, "output digest mismatch"):
+            self.seal_pair()
+
+
+class Gate3TaskIdentityTests(Gate3ChainFixture, unittest.TestCase):
+    """Identity comes from the sealed chains, not from the caller."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.contract, _ = chain.load_contract(CONTRACT)
+        self.full_chain()
+        self.pinned = chain._pairs_from_chains(
+            [self.evidence_relative(self.chain_dir)],
+            self.evidence_root, CONTRACT, self.contract,
+        )[1]
+
+    def test_task_id_is_pinned_from_the_randomization_record(self) -> None:
+        self.assertEqual(self.pinned[0]["task_id"], "task-1")
+        self.assertEqual(self.pinned[0]["study_kind"], "skill_primary")
+
+    def test_a_relabelled_task_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "task_id differs"):
+            chain._assert_expected_identity(
+                "some-other-task", "skill_primary", self.pinned
+            )
+
+    def test_a_relabelled_study_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "study_kind differs"):
+            chain._assert_expected_identity(
+                "task-1", "governance_diagnostic", self.pinned
+            )
+
+    def test_the_matching_identity_is_accepted(self) -> None:
+        chain._assert_expected_identity("task-1", "skill_primary", self.pinned)
+
+
+class Gate3TaskDecisionCliTests(Gate3ChainFixture, unittest.TestCase):
+    """The success path, through the CLI, with two distinct chains.
+
+    The previous CLI tests only exercised refusals, so a publish that works
+    was never actually run.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.contract, _ = chain.load_contract(CONTRACT)
+        self.receipt = self.evidence_root / "task-decision.json"
+        self.full_chain()
+        self.second_chain = self._second_chain()
+        self.sources = self.evidence_root / "sources.json"
+        write_json(self.sources, {"chain_dirs": [
+            self.evidence_relative(self.chain_dir),
+            self.evidence_relative(self.second_chain),
+        ]})
+
+    def _second_chain(self) -> Path:
+        """A genuinely separate pair: new outcomes, new randomization."""
+        chain_dir = self.evidence_root / "chain-2"
+        mapping = {"OUT-333333333333": "A", "OUT-444444444444": "B"}
+        record = self.evidence_root / "randomization-2.json"
+        write_json(record, {
+            "anonymous_ids": sorted(mapping),
+            "mapping_commitment_sha256": chain._mapping_commitment(
+                mapping, "skill_primary", self.nonce_hex
+            ),
+            "pair_id": "task-1-pair-2",
+            "repeat_index": 2,
+            "schema": "gate3-randomization-record.v1",
+            "study_kind": "skill_primary",
+            "task_id": "task-1",
+            "treatment_inputs": self.treatment_inputs,
+        })
+        record_sha = digest(record.read_bytes())
+        self.common_input_artifacts["randomization_record_sha256"] = {
+            "path": self.evidence_relative(record),
+            "sha256": record_sha,
+        }
+        # metrics() reads this directly; leaving it on the first record would
+        # make the second pair's admission and metrics disagree.
+        self.randomization_sha256 = record_sha
+        outcomes = {
+            anon: self.make_outcome(
+                anon, treat, suffix, completed=True,
+                pair_id="task-1-pair-2", repeat_index=2,
+            )
+            for anon, treat, suffix in (
+                ("OUT-333333333333", "A", "c"),
+                ("OUT-444444444444", "B", "d"),
+            )
+        }
+        chain.commit_randomization(chain_dir, CONTRACT, record)
+        for anon in sorted(outcomes):
+            repo, packet, metrics, admission = outcomes[anon]
+            chain.seal_outcome(
+                chain_dir, CONTRACT, packet, metrics, admission, repo
+            )
+        chain.close_blind_set(chain_dir, CONTRACT, "skill_primary")
+        for role in ("primary", "second"):
+            path = self.evidence_root / f"{role}-2.json"
+            write_json(path, self.score_for(role, mapping, outcomes))
+            chain.submit_scorer(chain_dir, CONTRACT, role, path)
+        reveal = self.evidence_root / "mapping-2.json"
+        write_json(reveal, {
+            "mapping": mapping,
+            "nonce_hex": self.nonce_hex,
+            "randomization_record_sha256": record_sha,
+            "schema": "gate3-mapping-release.v1",
+            "study_kind": "skill_primary",
+        })
+        chain.release_mapping(chain_dir, CONTRACT, reveal)
+        return chain_dir
+
+    def score_for(self, role: str, mapping: dict, outcomes: dict) -> dict:
+        base = self.score(role)
+        base["outputs"] = [
+            dict(output, anon_id=anon)
+            for output, anon in zip(base["outputs"], sorted(mapping))
+        ]
+        base["blind_input_set_sha256"] = chain._blind_input_set_sha256({
+            anon: {"packet_sha256": digest(outcomes[anon][1].read_bytes())}
+            for anon in mapping
+        })
+        base["scorer_context_id"] = f"{role}-context-2"
+        return base
+
+    def _publish(self, out: Path) -> int:
+        return chain.main([
+            "publish-task-decision",
+            "--receipt", str(self.receipt),
+            "--task-id", "task-1",
+            "--study-kind", "skill_primary",
+            "--sources", str(self.sources),
+            "--evidence-root", str(self.evidence_root),
+            "--contract", str(CONTRACT),
+            "--json-out", str(out),
+        ])
+
+    def test_cli_publishes_then_verifies(self) -> None:
+        report = self.evidence_root / "publish.json"
+        self.assertEqual(self._publish(report), 0)
+        self.assertEqual(
+            json.loads(report.read_text(encoding="utf-8"))["status"], "PASS"
+        )
+        verify_report = self.evidence_root / "verify.json"
+        self.assertEqual(chain.main([
+            "verify-task-decision",
+            "--receipt", str(self.receipt),
+            "--evidence-root", str(self.evidence_root),
+            "--contract", str(CONTRACT),
+            "--json-out", str(verify_report),
+        ]), 0)
+        parsed = json.loads(verify_report.read_text(encoding="utf-8"))
+        self.assertEqual(parsed["status"], "PASS")
+        self.assertIn(parsed["task_status"], {"decided", "third_pair_required"})
+
+    def test_cli_publication_is_create_once(self) -> None:
+        self.assertEqual(self._publish(self.evidence_root / "p1.json"), 0)
+        report = self.evidence_root / "p2.json"
+        self.assertEqual(self._publish(report), 2)
+        self.assertEqual(
+            json.loads(report.read_text(encoding="utf-8"))["status"], "FAIL"
+        )
+
+    def test_cli_refuses_a_relabelled_task(self) -> None:
+        report = self.evidence_root / "relabel.json"
+        code = chain.main([
+            "publish-task-decision",
+            "--receipt", str(self.receipt),
+            "--task-id", "task-9",
+            "--study-kind", "skill_primary",
+            "--sources", str(self.sources),
+            "--evidence-root", str(self.evidence_root),
+            "--contract", str(CONTRACT),
+            "--json-out", str(report),
+        ])
+        self.assertEqual(code, 2)
+        self.assertIn(
+            "task_id differs",
+            json.loads(report.read_text(encoding="utf-8"))["error"],
+        )
+        self.assertFalse(self.receipt.exists())

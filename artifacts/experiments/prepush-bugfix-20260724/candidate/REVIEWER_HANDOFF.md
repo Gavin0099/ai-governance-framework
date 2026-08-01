@@ -4,8 +4,8 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 
 | | Commit |
 |---|---|
-| Candidate manifest | `0ef7db4a…b59d52a0` |
-| Supersedes | `71b8c2da…c22b00be`, in a chain from `51ac1219…a5a6801` |
+| Candidate manifest | `ad31adb5…66ef4290` |
+| Supersedes | `0ef7db4a…b59d52a0`, in a chain from `51ac1219…a5a6801` |
 
 This document is not itself a candidate file, so it does not appear in the
 manifest. Submit against the branch head.
@@ -27,7 +27,7 @@ Counted Gate 3 execution stands at zero. No successful scorer packet exists.
 **This is the review target.**
 
 Manifest: `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json`
-Manifest SHA-256: `0ef7db4ac7f20d59ae44e05d4748800a9abc68d829879566819aa521b59d52a0`
+Manifest SHA-256: `ad31adb5f0c1e47e5f2e6038ff377cf2568062ba72e319d1ff49fbf966ef4290`
 Declared base commit: `3dbafc7f8f75feba485167b09d85345a3c7ac9cc`
 
 Six files, all verified byte-intact against the manifest as of this handoff:
@@ -36,10 +36,10 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 |---|---|---|
 | `5f4dc9e7…` | 6447 | `.gitattributes` |
 | `84d0265b…` | 16704 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
-| `9ea0ed43…` | 4433 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
+| `2216cbf7…` | 5701 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
 | `a5423920…` | 8194 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
-| `1450767b…` | 97575 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
-| `dd46e34d…` | 70594 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
+| `b9b16ef5…` | 101723 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
+| `0158ac8f…` | 82680 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
 To re-verify independently, start with the narrow check. It reads the manifest
 and the six files and nothing else, so it has no side effects and its failure
@@ -84,9 +84,9 @@ move is a consequence of a required fix, not drift. Current identity:
 
 | | SHA-256 |
 |---|---|
-| Acceptance policy digest | `8a69ca35802d9504615666700e8df4c6be077c73dd65e4e7b2846a3918461685` |
+| Acceptance policy digest | `0766e4c65649ec5451f1a1ee30e9688883c42e60dd9ee07ca9d1a31efa462252` |
 | Semantic contract | `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13` |
-| Route validators | `2427716287f91a6f12c854f125e9d0365d3078835cd7f16c1ac1aa4f98b3c3d7` |
+| Route validators | `9e6ec8ec5e160f9285d2393ecc5c9b010a812014576da06cb1b0c6bb70ce685d` |
 
 What the policy admits: cosmetic wrapper variance only — whitespace, key order,
 quoted keys, the result variable's name, a trailing semicolon, direct
@@ -159,7 +159,7 @@ re-evaluated. No additional census tooling, no replacement session.
 
 | Check | Result |
 |---|---|
-| Gate 3 focused suite | 414 passed, 0 failed |
+| Gate 3 focused suite | 426 passed, 0 failed |
 | Canonical precommit (`--mode enforce`) | pass |
 | `verify-candidate` | `status=PASS`, 7/7 |
 | Common-harness rebuild and verify | `status=PASS`, 7/7 |

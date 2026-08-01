@@ -12,9 +12,9 @@
       "sha256": "84d0265b065a26091b739aaf05165e72e83e04ecdcd5c9138bb7c266feae9a7a"
     },
     {
-      "bytes": 4433,
+      "bytes": 5701,
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json",
-      "sha256": "9ea0ed43e8ef133c355848756d0f3f27ae438e3d51ad3b3e8ea4010a02a8f685"
+      "sha256": "2216cbf7d6ba128ce0840361457799ccac36a5aef54c13e170932335b4d25615"
     },
     {
       "bytes": 8194,
@@ -22,14 +22,14 @@
       "sha256": "a542392080a1653f1fb83278eddafbabb7f5806b6098a653999cda461adfa8cb"
     },
     {
-      "bytes": 97575,
+      "bytes": 101723,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
-      "sha256": "1450767b95fb8c2565db0ef629d5fd13bb4ed625c63f9a10c304e6735fc4bdd0"
+      "sha256": "b9b16ef59d01f0d8415a1bd7b1729f040a38436c96789e7f9376109b03471094"
     },
     {
-      "bytes": 70594,
+      "bytes": 82680,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py",
-      "sha256": "dd46e34d28afb3c6679fad481880a5983184a67132d3678842154aa3ecc02e85"
+      "sha256": "0158ac8f7a38d27a802f0bd749555a1a74f594892ec8a2207269f3411089d88c"
     }
   ],
   "not_claimed": [

@@ -324,8 +324,24 @@ def load_contract(path: Path) -> tuple[dict[str, Any], str]:
         or not payload_policy["allowed_fields"]
     ):
         raise EvidenceError("candidate harness packet contract differs from runtime")
+    baseline_policy = harness_value.get("baseline_test_receipt")
+    if (
+        not isinstance(baseline_policy, dict)
+        or baseline_policy.get("must_be_expected_failure") is not True
+        or baseline_policy.get("must_link_baseline_commit") is not True
+        or baseline_policy.get("must_report_non_zero_exit") is not True
+        or baseline_policy.get("must_be_named_by_method_observation")
+        != "failing_regression_before_fix"
+        or not isinstance(baseline_policy.get("schema_suffix"), str)
+        or not baseline_policy["schema_suffix"]
+        or not isinstance(baseline_policy.get("required_fields"), list)
+    ):
+        raise EvidenceError(
+            "candidate harness baseline receipt contract differs from runtime"
+        )
     value["_harness_contract_sha256"] = _sha256_bytes(harness_raw)
     value["_scorer_packet_policy"] = packet_policy
+    value["_baseline_receipt_policy"] = baseline_policy
     return value, _sha256_bytes(raw)
 
 
@@ -341,6 +357,56 @@ def _scorer_visible_strings(value: Any, *, keys: bool = True):
             yield from _scorer_visible_strings(item, keys=keys)
     elif isinstance(value, str):
         yield value
+
+
+def _validated_baseline_receipt(
+    admission: dict[str, Any],
+    metrics: dict[str, Any],
+    chain_dir: Path,
+    policy: dict[str, Any],
+) -> dict[str, Any]:
+    """Verify the retained receipt that shows the regression failing.
+
+    A metrics flag saying the observation happened, with an evidence digest
+    that names nothing, is self-report. This requires the artifact, checks it
+    fails at the baseline commit, and requires the observation to name it.
+    """
+    reference = admission.get("baseline_test_receipt")
+    if not isinstance(reference, dict) or set(reference) != {"path", "sha256"}:
+        raise EvidenceError("admission pins no baseline test receipt")
+    path = _source_from_event(reference["path"], chain_dir)
+    digest = _sha256_file(path)
+    if digest != reference["sha256"]:
+        raise EvidenceError("baseline test receipt digest mismatch")
+    receipt = _load_json(path)
+    missing = [
+        field for field in policy["required_fields"] if field not in receipt
+    ]
+    if missing:
+        raise EvidenceError("baseline test receipt is missing required fields")
+    if not str(receipt["schema"]).endswith(policy["schema_suffix"]):
+        raise EvidenceError("baseline test receipt schema is invalid")
+    if receipt.get("expected_failure") is not True:
+        raise EvidenceError("baseline test receipt is not an expected failure")
+    if receipt.get("exit_code") == 0 or not isinstance(
+        receipt.get("exit_code"), int
+    ):
+        raise EvidenceError("baseline test receipt did not fail")
+    if receipt.get("linked_commit") != admission.get("baseline_commit"):
+        raise EvidenceError("baseline test receipt is not linked to the baseline")
+    output = _source_from_event(receipt["output_path"], chain_dir)
+    if _sha256_file(output) != receipt["output_sha256"]:
+        raise EvidenceError("baseline test output digest mismatch")
+    observation = metrics.get("method_observations", {}).get(
+        policy["must_be_named_by_method_observation"]
+    )
+    if not isinstance(observation, dict) or digest not in observation.get(
+        "evidence_sha256", []
+    ):
+        raise EvidenceError(
+            "baseline regression observation does not name its receipt"
+        )
+    return receipt
 
 
 def _validate_scorer_packet_shape(
@@ -687,6 +753,9 @@ def validate_admission(
     ):
         raise EvidenceError("outcome packet identity or schema is invalid")
     _validate_scorer_packet_shape(packet, contract["_scorer_packet_policy"])
+    _validated_baseline_receipt(
+        admission, metrics, chain_dir, contract["_baseline_receipt_policy"]
+    )
     packet_sha = _sha256_bytes(packet_raw)
     if (
         admission.get("output_packet_sha256") != packet_sha
@@ -1683,12 +1752,9 @@ def _verifier_fields(
     however objective it sounds, and the contract names the sealed artifact
     each of these comes from.
     """
-    observations = metrics.get("method_observations")
-    if not isinstance(observations, dict):
-        raise EvidenceError("sealed metrics carry no method observations")
-    baseline = observations.get("failing_regression_before_fix")
-    if not isinstance(baseline, dict):
-        raise EvidenceError("sealed metrics carry no baseline regression observation")
+    baseline_receipt = _validated_baseline_receipt(
+        admission, metrics, chain_dir, contract["_baseline_receipt_policy"]
+    )
     receipts = admission.get("receipts")
     if not isinstance(receipts, list) or not receipts:
         raise EvidenceError("admission retains no test receipts")
@@ -1700,7 +1766,8 @@ def _verifier_fields(
         exit_codes.append(_load_json(path).get("exit_code"))
     return {
         "completed_under_cap": metrics.get("completed_under_cap") is True,
-        "regression_baseline_fail": baseline.get("observed") is True,
+        # From the verified receipt, not from a flag asserting the observation.
+        "regression_baseline_fail": baseline_receipt["exit_code"] != 0,
         "regression_passes_after_fix": all(code == 0 for code in exit_codes),
     }
 
@@ -1773,8 +1840,21 @@ def _pair_from_chain(
         "pair_id": pair["pair_id"],
         "repeat_index": pair["repeat_index"],
         "study_kind": study_kind,
+        "task_id": randomization["task_id"],
     }
     return pair, pinned
+
+
+def _assert_expected_identity(
+    task_id: object,
+    study_kind: object,
+    pinned: list[dict[str, Any]],
+) -> None:
+    """Refuse a stated identity that the chains do not carry."""
+    if task_id != pinned[0]["task_id"]:
+        raise EvidenceError("task decision task_id differs from the sealed chains")
+    if study_kind != pinned[0]["study_kind"]:
+        raise EvidenceError("task decision study_kind differs from the sealed chains")
 
 
 def _pairs_from_chains(
@@ -1805,6 +1885,11 @@ def _pairs_from_chains(
     kinds = {entry["study_kind"] for entry in pinned}
     if len(kinds) != 1:
         raise EvidenceError("task decision mixes study kinds")
+    if kinds != {"skill_primary"}:
+        raise EvidenceError("task decision serves the primary study only")
+    tasks = {entry["task_id"] for entry in pinned}
+    if len(tasks) != 1:
+        raise EvidenceError("task decision mixes tasks")
     return pairs, pinned
 
 
@@ -1821,7 +1906,13 @@ def publish_task_decision(
     pairs, pinned = _pairs_from_chains(
         sources, evidence_root, contract_path, contract
     )
-    decision = build_task_decision(task_id, study_kind, pairs, contract)
+    # The caller does not get to name the task. Identity comes from the sealed
+    # randomization records; what is passed in is only an expectation, and a
+    # mismatch is a refusal rather than a relabelling.
+    _assert_expected_identity(task_id, study_kind, pinned)
+    decision = build_task_decision(
+        pinned[0]["task_id"], pinned[0]["study_kind"], pairs, contract
+    )
     decision["pair_sources"] = pinned
     _publish_create_once(receipt_path, _json_bytes(decision))
     return receipt_path
@@ -1845,11 +1936,11 @@ def verify_task_decision(
         contract_path,
         contract,
     )
+    _assert_expected_identity(
+        receipt.get("task_id"), receipt.get("study_kind"), pinned
+    )
     rebuilt = build_task_decision(
-        receipt.get("task_id"),
-        str(receipt.get("study_kind", "")),
-        pairs,
-        contract,
+        pinned[0]["task_id"], pinned[0]["study_kind"], pairs, contract
     )
     rebuilt["pair_sources"] = pinned
     if receipt != rebuilt:

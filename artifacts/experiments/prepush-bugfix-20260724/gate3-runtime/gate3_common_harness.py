@@ -35,7 +35,7 @@ CAPTURE_RECEIPT_SCHEMA = "gate3-live-capture-receipt.v1"
 BASELINE_RECEIPT_SCHEMA = "gate3-synthetic-baseline-test-receipt.v1"
 AUTHORIZATION = "non_counted_synthetic_rehearsal_only"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "0ef7db4ac7f20d59ae44e05d4748800a9abc68d829879566819aa521b59d52a0"
+    "ad31adb5f0c1e47e5f2e6038ff377cf2568062ba72e319d1ff49fbf966ef4290"
 )
 ANON_MAPPING = {
     "OUT-111111111111": "A",
@@ -365,7 +365,9 @@ def _record_baseline_failure(
     }
 
 
-def _method_observations() -> dict[str, dict[str, Any]]:
+def _method_observations(
+    baseline_receipt_sha256: str | None = None,
+) -> dict[str, dict[str, Any]]:
     names = (
         "reproduction_before_first_edit",
         "root_cause_recorded_before_first_edit",
@@ -374,10 +376,18 @@ def _method_observations() -> dict[str, dict[str, Any]]:
         "post_restore_retest_performed",
         "claim_bounded_to_evidence",
     )
-    return {
+    values = {
         name: {"evidence_sha256": [], "observed": False}
         for name in names
     }
+    if baseline_receipt_sha256 is not None:
+        # The observation has to name the retained receipt; an empty evidence
+        # list would make regression_baseline_fail self-reported.
+        values["failing_regression_before_fix"] = {
+            "evidence_sha256": [baseline_receipt_sha256],
+            "observed": True,
+        }
+    return values
 
 
 def _build_outcome(
@@ -394,8 +404,9 @@ def _build_outcome(
     common_inputs: dict[str, dict[str, str]],
     treatment_inputs: dict[str, dict[str, dict[str, str]]],
     randomization_sha256: str,
-    baseline_test_receipt_sha256: str,
+    baseline_test_receipt: dict[str, str],
 ) -> dict[str, Any]:
+    baseline_test_receipt_sha256 = baseline_test_receipt["sha256"]
     repo = work_root / f"repo-{suffix}"
     _git(work_root, "clone", "--quiet", str(base_repo), str(repo))
     _git(repo, "config", "user.email", "gate3-rehearsal@example.invalid")
@@ -545,6 +556,7 @@ def _build_outcome(
         {
             "anon_id": anon_id,
             "baseline_commit": baseline_commit,
+            "baseline_test_receipt": dict(baseline_test_receipt),
             "event_log": {
                 "path": _relative(event_log, evidence_root),
                 "sha256": _sha256_file(event_log),
@@ -598,7 +610,9 @@ def _build_outcome(
                 "wall_clock_ms": 1000 if treatment == "A" else 1100,
             },
             "harness_contract_sha256": harness_sha,
-            "method_observations": _method_observations(),
+            "method_observations": _method_observations(
+                baseline_test_receipt_sha256
+            ),
             "model_build": "synthetic-model-build-v1",
             "pair_id": "synthetic-pair-1",
             "permissions_sha256": common_inputs[
@@ -778,9 +792,7 @@ def _build_into(
                     common_inputs=common_inputs,
                     treatment_inputs=treatment_artifacts,
                     randomization_sha256=randomization_sha,
-                    baseline_test_receipt_sha256=baseline_test_receipt[
-                        "sha256"
-                    ],
+                    baseline_test_receipt=baseline_test_receipt,
                 )
             )
 
