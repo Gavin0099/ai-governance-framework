@@ -62,7 +62,10 @@ Produce an exact-byte, reviewable Gate 3 protocol candidate that:
 
 ### Primary Skill study
 
-- At least three separately originated natural bug tasks.
+- Exactly three separately originated natural bug tasks, frozen before the
+  first counted run. Not a minimum: the promotion threshold below is written
+  against three, and allowing the sample to grow afterwards would let a
+  disappointing result be answered with more runs.
 - At least two consumer repositories.
 - No duplicated root-cause family.
 - Two initial A/B pairs per task, with a fresh context for every run.
@@ -72,6 +75,12 @@ Produce an exact-byte, reviewable Gate 3 protocol candidate that:
 - Within each pair, A and B share the same baseline, task packet, model build,
   permissions, budget, scorer rubric and frozen harness contract. Only the
   presence of the Bug Fix Skill differs.
+- This is enforced, not merely stated. `comparison_controls` in the protocol
+  contract names the one input digest a study kind may vary, and the blind set
+  cannot be closed if the two arms differ in any other input digest, or if
+  they do not differ in the studied one. A pair whose governance or validator
+  inputs also varied would measure a mixture and could not be read as the
+  Skill effect.
 - Before either producer runs, the experimenter creates a canonical
   `gate3-randomization-record.v1` containing the two anonymous IDs, treatment
   input digests and `sha256(canonical mapping reveal + 256-bit nonce)`.
@@ -190,6 +199,22 @@ Each scorer submission must cover the exact closed anonymous set. Completed
 runs require all conditional-quality fields. Non-completed runs require those
 fields to be null. This prevents a timeout from being presented as a known
 zero-quality fix.
+
+Two scorers need a stated rule for disagreeing, or they are one scorer plus an
+argument that whoever reads the result later gets to settle. The rule is
+conservative intersection:
+
+- A run is a qualifying success only if both scorers judge every scorer-judged
+  field as passing.
+- Any disagreement makes the run not a qualifying success. Both submissions and
+  a conflict record are retained.
+- The run stays in the denominator. A conflict must not shrink the effective
+  sample, and must not be resolvable toward the larger effect.
+- Objective fields are not voted on. Test outcomes, commits and receipts are
+  determined by the verifier, which observed them; scorers judge only
+  `oracle_acceptance`, `original_defect_caught` and `no_new_scoped_regression`.
+
+No re-run, no third adjudicator, no primary-scorer override.
 
 Each submission also binds `scorer_identity`, `scorer_context_id`,
 `model_build`, the frozen rubric digest and the exact blind-input-set digest.

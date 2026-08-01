@@ -29,6 +29,26 @@
       "product_success_difference_win_min": 1,
       "wins_span_consumer_repos_min": 2
     },
+    "scorer_disagreement_policy": {
+      "conflict_disposition": "run_is_not_a_qualifying_success",
+      "objective_fields_source": "verifier",
+      "policy": "conservative_intersection",
+      "rationale": "Disagreement must not be resolvable in the direction that inflates the measured effect, and must not change the effective sample size.",
+      "retain_both_submissions_and_conflict_record": true,
+      "rule": "a_run_is_a_qualifying_success_only_if_both_scorers_judge_every_scorer_judged_field_as_passing",
+      "sample_size_unchanged_by_conflict": true,
+      "scorer_judged_fields": [
+        "oracle_acceptance",
+        "original_defect_caught",
+        "no_new_scoped_regression"
+      ],
+      "verifier_determined_fields": [
+        "completed_under_cap",
+        "regression_baseline_fail",
+        "regression_passes_after_fix",
+        "critical_residuals_zero"
+      ]
+    },
     "qualifying_success_requires": [
       "completed_under_cap",
       "oracle_acceptance",
@@ -39,6 +59,23 @@
       "critical_residuals_zero"
     ],
     "task_winner": "higher_qualifying_success_count_after_frozen_pairs_else_tie"
+  },
+  "comparison_controls": {
+    "cross_arm_equal_policy": "every_admission_input_digest_not_listed_as_varying_must_be_equal_across_the_two_arms",
+    "policy": "exactly_one_treatment_factor_may_differ_across_arms_per_study_kind",
+    "rationale": "A difference in any other input makes the arm difference uninterpretable as the studied effect.",
+    "varying_input_digests": {
+      "governance_diagnostic": [
+        "governance_instruction_sha256"
+      ],
+      "skill_primary": [
+        "treatment_packet_sha256"
+      ],
+      "validator_diagnostic": [
+        "validator_bundle_sha256",
+        "validator_config_sha256"
+      ]
+    }
   },
   "diagnostic_studies": {
     "governance_diagnostic": {
@@ -100,7 +137,8 @@
     "initial_pairs_per_task": 2,
     "maximum_pairs_per_task": 3,
     "minimum_consumer_repos": 2,
-    "minimum_natural_bug_tasks": 3,
+    "natural_bug_tasks": 3,
+    "natural_bug_tasks_policy": "exactly_three_frozen_before_first_counted_run_no_post_hoc_expansion",
     "pair_controls": [
       "baseline_commit",
       "randomization_record_sha256",

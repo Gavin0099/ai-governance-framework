@@ -35,7 +35,7 @@ CAPTURE_RECEIPT_SCHEMA = "gate3-live-capture-receipt.v1"
 BASELINE_RECEIPT_SCHEMA = "gate3-synthetic-baseline-test-receipt.v1"
 AUTHORIZATION = "non_counted_synthetic_rehearsal_only"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801"
+    "38e2bf33373aab25350ceba21734ea334453682119f71a533465e80c0ccedfb6"
 )
 ANON_MAPPING = {
     "OUT-111111111111": "A",
@@ -255,10 +255,14 @@ def _treatment_inputs(
                 f"inputs/treatment-{lower}.txt",
                 f"synthetic treatment {treatment}\n".encode("utf-8"),
             ),
+            # Shared content across arms on purpose. A skill_primary
+            # comparison varies the treatment packet and nothing else; these
+            # previously differed per arm, which made the rehearsal model a
+            # comparison that could not be interpreted.
             "governance_instruction_sha256": _retain(
                 evidence_root,
                 f"inputs/governance-{lower}.txt",
-                f"governance instructions for {treatment}\n".encode("utf-8"),
+                b"governance instructions\n",
             ),
             "validator_bundle_sha256": _retain(
                 evidence_root,
@@ -269,7 +273,7 @@ def _treatment_inputs(
                 evidence_root,
                 f"inputs/validator-{lower}.json",
                 (
-                    json.dumps({"treatment": treatment}, sort_keys=True)
+                    json.dumps({"mode": "shared"}, sort_keys=True)
                     + "\n"
                 ).encode("utf-8"),
             ),
@@ -523,7 +527,6 @@ def _build_outcome(
                     baseline_test_receipt_sha256
                 ),
                 "final_diff_utf8": final_diff.read_text(encoding="utf-8"),
-                "rehearsal_only": True,
                 "test_exit_code": test_exit,
             },
         },

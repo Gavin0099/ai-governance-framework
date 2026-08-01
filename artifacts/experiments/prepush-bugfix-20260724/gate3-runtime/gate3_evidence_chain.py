@@ -303,8 +303,84 @@ def load_contract(path: Path) -> tuple[dict[str, Any], str]:
         or receipt.get("index_policy") != "sorted_unique_paths"
     ):
         raise EvidenceError("candidate harness receipt contract differs from runtime")
+    packet_policy = harness_value.get("scorer_packet")
+    payload_policy = (
+        packet_policy.get("scorer_payload")
+        if isinstance(packet_policy, dict)
+        else None
+    )
+    if (
+        not isinstance(packet_policy, dict)
+        or packet_policy.get("field_policy")
+        != "exact_set_no_additional_top_level_fields"
+        or not isinstance(packet_policy.get("forbidden_identity_substrings"), list)
+        or not packet_policy["forbidden_identity_substrings"]
+        or not isinstance(payload_policy, dict)
+        or payload_policy.get("field_policy") != "exact_set_no_additional_fields"
+        or payload_policy.get("value_policy")
+        != "scalar_values_only_no_nested_objects_or_arrays"
+        or not isinstance(payload_policy.get("allowed_fields"), list)
+        or not payload_policy["allowed_fields"]
+    ):
+        raise EvidenceError("candidate harness packet contract differs from runtime")
     value["_harness_contract_sha256"] = _sha256_bytes(harness_raw)
+    value["_scorer_packet_policy"] = packet_policy
     return value, _sha256_bytes(raw)
+
+
+def _scorer_visible_strings(value: Any, *, keys: bool = True):
+    """Yield every key and string value anywhere inside a scorer packet."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if keys and isinstance(key, str):
+                yield key
+            yield from _scorer_visible_strings(item, keys=keys)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _scorer_visible_strings(item, keys=keys)
+    elif isinstance(value, str):
+        yield value
+
+
+def _validate_scorer_packet_shape(
+    packet: dict[str, Any], policy: dict[str, Any]
+) -> None:
+    """Refuse a packet that carries more than the scorer is meant to see.
+
+    Requiring the necessary fields to be present says nothing about what else
+    rides along. Withholding the mapping is not blindness if the packet names
+    the arm, so the field set is exact and every key and string value in the
+    whole document is checked against the forbidden vocabulary.
+    """
+    if set(packet) != set(policy["required_fields"]):
+        raise EvidenceError("outcome packet carries fields outside the exact set")
+    payload_policy = policy["scorer_payload"]
+    payload = packet["scorer_payload"]
+    if set(payload) != set(payload_policy["allowed_fields"]):
+        raise EvidenceError(
+            "outcome packet scorer_payload differs from the allowed field set"
+        )
+    for item in payload.values():
+        if isinstance(item, (dict, list)):
+            raise EvidenceError("outcome packet scorer_payload value is not scalar")
+    forbidden = tuple(policy["forbidden_identity_substrings"])
+    exempt = set(payload_policy.get("identity_scan_exempt_fields", ()))
+    scanned = {
+        key: value for key, value in packet.items() if key != "scorer_payload"
+    }
+    scanned["scorer_payload"] = {
+        key: value for key, value in payload.items() if key not in exempt
+    }
+    # Keys are never exempt, only the values of declared producer-output
+    # fields. A fix may legitimately contain any word; a field name may not.
+    for text in _scorer_visible_strings(scanned):
+        lowered = text.lower()
+        if any(marker in lowered for marker in forbidden):
+            raise EvidenceError("outcome packet reveals treatment identity")
+    for key in payload:
+        lowered = key.lower()
+        if any(marker in lowered for marker in forbidden):
+            raise EvidenceError("outcome packet reveals treatment identity")
 
 
 def _mapping_commitment(
@@ -609,6 +685,7 @@ def validate_admission(
         or not isinstance(packet.get("scorer_payload"), dict)
     ):
         raise EvidenceError("outcome packet identity or schema is invalid")
+    _validate_scorer_packet_shape(packet, contract["_scorer_packet_policy"])
     packet_sha = _sha256_bytes(packet_raw)
     if (
         admission.get("output_packet_sha256") != packet_sha
@@ -1384,6 +1461,84 @@ def seal_outcome(
     )
 
 
+def resolve_qualifying_success(
+    primary: dict[str, Any],
+    second: dict[str, Any],
+    verifier: dict[str, Any],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Decide one run's qualifying success from two scorers, conservatively.
+
+    Two scorers with no stated disagreement rule is not two scorers; it is one
+    scorer plus an unresolved argument, and whoever reads the result later gets
+    to pick. Under conservative intersection a run qualifies only if both
+    scorers pass every scorer-judged field. Disagreement makes it not a
+    qualifying success and leaves it in the denominator, so a conflict cannot
+    quietly shrink the sample or be resolved toward the larger effect.
+
+    Objective fields are not voted on. Test outcomes, commits and receipts come
+    from the verifier, which observed them.
+    """
+    policy = contract["decision_rule"]["scorer_disagreement_policy"]
+    conflicts: list[str] = []
+    judged: dict[str, bool] = {}
+    for field in policy["scorer_judged_fields"]:
+        first, other = primary.get(field), second.get(field)
+        if first != other:
+            conflicts.append(field)
+            judged[field] = False
+            continue
+        judged[field] = first is True
+    determined = {
+        field: verifier.get(field) is True
+        for field in policy["verifier_determined_fields"]
+    }
+    return {
+        "conflicting_fields": sorted(conflicts),
+        "qualifying_success": all(judged.values()) and all(determined.values()),
+        "scorer_judged": judged,
+        "scorers_conflicted": bool(conflicts),
+        "verifier_determined": determined,
+    }
+
+
+def _assert_single_varying_factor(
+    admissions: list[dict[str, Any]],
+    study_kind: str,
+    contract: dict[str, Any],
+) -> None:
+    """Refuse a pair whose arms differ in more than the studied factor.
+
+    Checking that each arm matches its own preregistered digests says nothing
+    about how the arms differ from each other. If governance and validator
+    inputs vary alongside the skill packet, the arm difference cannot be read
+    as the skill effect, and the whole comparison silently measures a mixture.
+    """
+    controls = contract["comparison_controls"]
+    varying = controls["varying_input_digests"].get(study_kind)
+    if not isinstance(varying, list) or not varying:
+        raise EvidenceError("study_kind has no declared varying factor")
+    varying_set = set(varying)
+    digests = []
+    for admission in admissions:
+        entry = admission.get("input_digests")
+        if not isinstance(entry, dict):
+            raise EvidenceError("sealed outcome admission has no input digests")
+        digests.append(entry)
+    for field in ADMISSION_INPUT_DIGEST_FIELDS:
+        if field in varying_set:
+            continue
+        first, second = digests[0].get(field), digests[1].get(field)
+        if first != second:
+            raise EvidenceError(
+                "sealed outcomes differ in an input outside the studied factor"
+            )
+    if all(
+        digests[0].get(field) == digests[1].get(field) for field in varying_set
+    ):
+        raise EvidenceError("sealed outcomes do not differ in the studied factor")
+
+
 def close_blind_set(
     chain_dir: Path,
     contract_path: Path,
@@ -1427,6 +1582,11 @@ def close_blind_set(
         raise EvidenceError("sealed outcomes reuse one run_id")
     if study_kind not in contract["evidence_chain"]["mapping_treatments"]:
         raise EvidenceError("study_kind is not registered")
+    admissions = [
+        _load_json(_source_from_event(event["admission_path"], chain_dir))
+        for event in events
+    ]
+    _assert_single_varying_factor(admissions, study_kind, contract)
     if (
         study_kind != randomization_record["study_kind"]
         or anon_ids != randomization_record["anonymous_ids"]

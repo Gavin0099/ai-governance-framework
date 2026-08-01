@@ -63,6 +63,19 @@
     "owner_signature_forbidden_without_this_contract": true
   },
   "scorer_packet": {
+    "field_policy": "exact_set_no_additional_top_level_fields",
+    "forbidden_identity_substrings": [
+      "arm",
+      "assignment",
+      "condition",
+      "governance_instruction",
+      "skill",
+      "treatment",
+      "validator_bundle",
+      "validator_config"
+    ],
+    "identity_leak_policy": "no_key_or_string_value_anywhere_in_the_packet_may_name_or_reveal_the_arm_assignment",
+    "rationale": "Blindness enforced only by withholding the mapping is not enforced at all if the packet itself names the arm.",
     "required_fields": [
       "schema",
       "anon_id",
@@ -73,7 +86,20 @@
       "harness_contract_sha256",
       "scorer_payload"
     ],
-    "schema": "gate3-outcome-packet.v1"
+    "schema": "gate3-outcome-packet.v1",
+    "scorer_payload": {
+      "allowed_fields": [
+        "baseline_test_receipt_sha256",
+        "final_diff_utf8",
+        "test_exit_code"
+      ],
+      "field_policy": "exact_set_no_additional_fields",
+      "identity_scan_exempt_fields": [
+        "final_diff_utf8"
+      ],
+      "identity_scan_exempt_rationale": "Producer output cannot be constrained by vocabulary; a fix may legitimately contain any word. Its confidentiality is the sanitizer's job, not the packet schema's. Keys are never exempt.",
+      "value_policy": "scalar_values_only_no_nested_objects_or_arrays"
+    }
   },
   "schema": "gate3-common-harness-contract.v1",
   "test_receipt": {

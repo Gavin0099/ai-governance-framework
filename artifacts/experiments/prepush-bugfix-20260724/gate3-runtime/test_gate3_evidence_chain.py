@@ -88,34 +88,35 @@ class Gate3EvidenceChainTests(unittest.TestCase):
             "OUT-222222222222": "B",
         }
         self.nonce_hex = "ab" * 32
+        # A skill_primary comparison varies the skill packet and nothing else.
+        # These three inputs are deliberately shared: if they differed, B minus
+        # A would be a mixture of skill, governance and validator effects and
+        # could not be read as the skill effect at all.
+        shared_governance = self.retain_input(
+            "governance-shared.txt", b"governance shared\n"
+        )
+        shared_validator_bundle = self.retain_input(
+            "validator-shared.py", b"print('validator shared')\n"
+        )
+        shared_validator_config = self.retain_input(
+            "validator-shared.json", b'{"mode":"shared"}\n'
+        )
         self.treatment_input_artifacts = {
             "A": {
                 "treatment_packet_sha256": self.retain_input(
-                    "treatment-a.txt", b"treatment A\n"
+                    "treatment-a.txt", b"no skill packet\n"
                 ),
-                "governance_instruction_sha256": self.retain_input(
-                    "governance-a.txt", b"governance A\n"
-                ),
-                "validator_bundle_sha256": self.retain_input(
-                    "validator-a.py", b"print('validator A')\n"
-                ),
-                "validator_config_sha256": self.retain_input(
-                    "validator-a.json", b'{"treatment":"A"}\n'
-                ),
+                "governance_instruction_sha256": shared_governance,
+                "validator_bundle_sha256": shared_validator_bundle,
+                "validator_config_sha256": shared_validator_config,
             },
             "B": {
                 "treatment_packet_sha256": self.retain_input(
-                    "treatment-b.txt", b"treatment B\n"
+                    "treatment-b.txt", b"skill packet\n"
                 ),
-                "governance_instruction_sha256": self.retain_input(
-                    "governance-b.txt", b"governance B\n"
-                ),
-                "validator_bundle_sha256": self.retain_input(
-                    "validator-b.py", b"print('validator B')\n"
-                ),
-                "validator_config_sha256": self.retain_input(
-                    "validator-b.json", b'{"treatment":"B"}\n'
-                ),
+                "governance_instruction_sha256": shared_governance,
+                "validator_bundle_sha256": shared_validator_bundle,
+                "validator_config_sha256": shared_validator_config,
             },
         }
         self.treatment_inputs = {
@@ -281,7 +282,13 @@ class Gate3EvidenceChainTests(unittest.TestCase):
                 "output_commit": output_commit,
                 "receipt_set_sha256": receipt_set_sha,
                 "schema": "gate3-outcome-packet.v1",
-                "scorer_payload": {"summary": f"candidate {suffix}"},
+                "scorer_payload": {
+                    "baseline_test_receipt_sha256": hashlib.sha256(
+                        f"baseline {suffix}".encode("utf-8")
+                    ).hexdigest(),
+                    "final_diff_utf8": f"candidate {suffix}",
+                    "test_exit_code": 0,
+                },
             },
         )
         input_artifacts = {
@@ -773,13 +780,31 @@ class Gate3EvidenceChainTests(unittest.TestCase):
         with self.assertRaisesRegex(chain.EvidenceError, "commitment"):
             chain.release_mapping(self.chain_dir, CONTRACT, swapped)
 
-    def test_admitted_treatment_must_match_released_mapping(self) -> None:
+    def test_two_arms_carrying_one_treatment_are_refused_at_blind_set(
+        self,
+    ) -> None:
+        """Both arms on the same skill packet is not a comparison at all.
+
+        This used to be spelled as a mapping-binding failure, and it reached
+        that check because nothing earlier noticed that the two arms were now
+        identical. The single-varying-factor rule refuses it first, which is
+        the more direct statement of what is wrong.
+        """
         admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
         admission["treatment"] = "A"
         admission["input_digests"].update(self.treatment_inputs["A"])
         admission["input_artifacts"].update(
             self.treatment_input_artifacts["A"]
         )
+        write_json(self.admission_b, admission)
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "do not differ in the studied factor"
+        ):
+            self.seal_pair()
+
+    def test_admitted_treatment_must_match_released_mapping(self) -> None:
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["treatment"] = "A"
         write_json(self.admission_b, admission)
         self.seal_pair()
         primary = self.evidence_root / "primary.json"
@@ -1162,3 +1187,216 @@ class Gate3EvidenceChainTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Gate3SingleFactorTests(Gate3EvidenceChainTests):
+    """Every non-studied input must be equal across the two arms.
+
+    Checking each arm against its own preregistered digests is not the same
+    check: it passes happily while the arms differ in three ways at once, which
+    is how the original fixture shipped.
+    """
+
+    def _seal_with_b_field(self, field: str, digest: str) -> None:
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["input_digests"][field] = digest
+        write_json(self.admission_b, admission)
+        self.seal_pair()
+
+    def test_each_non_studied_input_must_match_across_arms(self) -> None:
+        for field in (
+            "baseline_instruction_sha256",
+            "governance_instruction_sha256",
+            "validator_bundle_sha256",
+            "validator_config_sha256",
+            "task_packet_sha256",
+            "permissions_sha256",
+            "budget_sha256",
+            "scorer_rubric_sha256",
+        ):
+            with self.subTest(field=field):
+                self.setUp()
+                with self.assertRaises(chain.EvidenceError):
+                    self._seal_with_b_field(field, "c" * 64)
+
+    def test_the_studied_factor_must_actually_differ(self) -> None:
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["input_digests"]["treatment_packet_sha256"] = (
+            self.treatment_inputs["A"]["treatment_packet_sha256"]
+        )
+        admission["input_artifacts"]["treatment_packet_sha256"] = (
+            self.treatment_input_artifacts["A"]["treatment_packet_sha256"]
+        )
+        write_json(self.admission_b, admission)
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "do not differ in the studied factor"
+        ):
+            self.seal_pair()
+
+
+class Gate3ScorerBlindnessTests(Gate3EvidenceChainTests):
+    """The packet must not tell the scorer which arm it is looking at.
+
+    Withholding the mapping is not blindness if the packet names the arm.
+    """
+
+    def _seal_with_packet(self, mutate) -> None:
+        """Mutate the packet and re-bind every digest that covers it.
+
+        Without the re-binding the run stops at a digest mismatch, which is a
+        different check and would let a leak test pass for the wrong reason.
+        """
+        packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
+        mutate(packet)
+        write_json(self.packet_b, packet)
+        packet_sha = digest(self.packet_b.read_bytes())
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["output_packet_sha256"] = packet_sha
+        write_json(self.admission_b, admission)
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["artifacts"]["output_packet_sha256"] = packet_sha
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_top_level_treatment_field_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "exact set"):
+            self._seal_with_packet(
+                lambda packet: packet.update({"treatment": "A"})
+            )
+
+    def test_a_nested_treatment_field_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "allowed field set"):
+            self._seal_with_packet(
+                lambda packet: packet["scorer_payload"].update(
+                    {"treatment": "A"}
+                )
+            )
+
+    def test_an_identity_naming_value_is_refused(self) -> None:
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "reveals treatment identity"
+        ):
+            self._seal_with_packet(
+                lambda packet: packet["scorer_payload"].update(
+                    {"baseline_test_receipt_sha256": "inputs/treatment-b.txt"}
+                )
+            )
+
+    def test_a_nested_payload_object_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "not scalar"):
+            self._seal_with_packet(
+                lambda packet: packet["scorer_payload"].update(
+                    {"test_exit_code": {"arm": "B"}}
+                )
+            )
+
+    def test_producer_diff_content_is_not_vocabulary_checked(self) -> None:
+        """A fix may legitimately contain any word, including these."""
+        self._seal_with_packet(
+            lambda packet: packet["scorer_payload"].update(
+                {
+                    "final_diff_utf8": (
+                        "def apply_treatment(skill, arm):\n    return skill\n"
+                    )
+                }
+            )
+        )
+
+
+class Gate3ScorerDisagreementTests(unittest.TestCase):
+    """Conservative intersection, and what it deliberately refuses to do."""
+
+    def setUp(self) -> None:
+        self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        self.policy = self.contract["decision_rule"][
+            "scorer_disagreement_policy"
+        ]
+        self.verifier = {
+            field: True
+            for field in self.policy["verifier_determined_fields"]
+        }
+
+    def _score(self, **overrides: bool) -> dict[str, object]:
+        value = {
+            field: True for field in self.policy["scorer_judged_fields"]
+        }
+        value.update(overrides)
+        return value
+
+    def test_both_scorers_passing_is_a_qualifying_success(self) -> None:
+        result = chain.resolve_qualifying_success(
+            self._score(), self._score(), self.verifier, self.contract
+        )
+        self.assertTrue(result["qualifying_success"])
+        self.assertFalse(result["scorers_conflicted"])
+
+    def test_disagreement_is_not_a_qualifying_success(self) -> None:
+        for field in self.policy["scorer_judged_fields"]:
+            with self.subTest(field=field):
+                result = chain.resolve_qualifying_success(
+                    self._score(),
+                    self._score(**{field: False}),
+                    self.verifier,
+                    self.contract,
+                )
+                self.assertFalse(result["qualifying_success"])
+                self.assertEqual(result["conflicting_fields"], [field])
+
+    def test_disagreement_does_not_discard_the_run(self) -> None:
+        """The conflicted run stays countable; only its verdict is negative.
+
+        Dropping it instead would shrink the denominator, and the promotion
+        threshold is written against a fixed sample size.
+        """
+        result = chain.resolve_qualifying_success(
+            self._score(),
+            self._score(oracle_acceptance=False),
+            self.verifier,
+            self.contract,
+        )
+        self.assertIn("qualifying_success", result)
+        self.assertFalse(result["qualifying_success"])
+        self.assertTrue(result["scorers_conflicted"])
+
+    def test_agreement_cannot_override_the_verifier(self) -> None:
+        """Objective fields are observed, not voted on."""
+        for field in self.policy["verifier_determined_fields"]:
+            with self.subTest(field=field):
+                result = chain.resolve_qualifying_success(
+                    self._score(),
+                    self._score(),
+                    {**self.verifier, field: False},
+                    self.contract,
+                )
+                self.assertFalse(result["qualifying_success"])
+                self.assertFalse(result["scorers_conflicted"])
+
+    def test_the_policy_is_conservative_intersection(self) -> None:
+        self.assertEqual(self.policy["policy"], "conservative_intersection")
+        self.assertTrue(self.policy["sample_size_unchanged_by_conflict"])
+        self.assertTrue(self.policy["retain_both_submissions_and_conflict_record"])
+        self.assertEqual(self.policy["objective_fields_source"], "verifier")
+        self.assertFalse(
+            set(self.policy["scorer_judged_fields"])
+            & set(self.policy["verifier_determined_fields"])
+        )
+        self.assertEqual(
+            sorted(
+                self.policy["scorer_judged_fields"]
+                + self.policy["verifier_determined_fields"]
+            ),
+            sorted(self.contract["decision_rule"]["qualifying_success_requires"]),
+        )
+
+
+class Gate3SampleSizeTests(unittest.TestCase):
+    def test_the_task_count_is_exactly_three(self) -> None:
+        contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        primary = contract["primary_study"]
+        self.assertEqual(primary["natural_bug_tasks"], 3)
+        self.assertNotIn("minimum_natural_bug_tasks", primary)
+        self.assertIn("no_post_hoc_expansion", primary["natural_bug_tasks_policy"])
+        # The promotion threshold is written against exactly this count.
+        self.assertEqual(
+            contract["decision_rule"]["promotion_requires"]["b_task_wins_min"], 2
+        )

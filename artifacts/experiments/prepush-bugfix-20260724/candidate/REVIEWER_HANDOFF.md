@@ -4,12 +4,11 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 
 | | Commit |
 |---|---|
-| Candidate source state described here | `2aa8279d` |
-| Commit that added this handoff | `cd965dde` |
+| Candidate manifest | `38e2bf33…0ccedfb6` |
+| Supersedes | `51ac1219…a5a6801`, changed by the semantic review below |
 
-The two differ because this document is not itself a candidate file. Submit
-against `cd965dde`; the bytes under review are those at `2aa8279d`, and this
-handoff changed none of them.
+This document is not itself a candidate file, so it does not appear in the
+manifest. Submit against the branch head.
 
 ## What is being asked of you
 
@@ -28,7 +27,7 @@ Counted Gate 3 execution stands at zero. No successful scorer packet exists.
 **This is the review target.**
 
 Manifest: `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json`
-Manifest SHA-256: `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`
+Manifest SHA-256: `38e2bf33373aab25350ceba21734ea334453682119f71a533465e80c0ccedfb6`
 Declared base commit: `3dbafc7f8f75feba485167b09d85345a3c7ac9cc`
 
 Six files, all verified byte-intact against the manifest as of this handoff:
@@ -36,11 +35,11 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 | SHA-256 (prefix) | Bytes | Path |
 |---|---|---|
 | `5f4dc9e7…` | 6447 | `.gitattributes` |
-| `33f5844b…` | 15265 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
-| `a6a74cb1…` | 3321 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
-| `d6bee8fb…` | 5524 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
-| `1617c1d5…` | 74375 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
-| `1c95d332…` | 44497 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
+| `84d0265b…` | 16704 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
+| `9ea0ed43…` | 4433 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
+| `11fce85f…` | 7164 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
+| `223e63b0…` | 81295 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
+| `8c7e88eb…` | 54572 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
 To re-verify independently, start with the narrow check. It reads the manifest
 and the six files and nothing else, so it has no side effects and its failure
@@ -77,14 +76,17 @@ authentication, Skill effectiveness.
 **not** members of the candidate manifest. Verified: neither path appears in
 it. They serve the final non-counted Codex route canary only.
 
-They have been independently reviewed on their own track and approved. Current
-identity:
+They have been independently reviewed on their own track and approved. The
+policy digest moved during the preregistration semantic review: that review
+required the scorer packet to carry an exact field set, and the canary's own
+packet builder emitted a field outside it, so the canary had to change. The
+move is a consequence of a required fix, not drift. Current identity:
 
 | | SHA-256 |
 |---|---|
-| Acceptance policy digest | `35a45dc43140c1cec6ca2607ccae12287837ebaecf3b50065feccb35d76c266c` |
+| Acceptance policy digest | `1f23b94a80e41c76fe9966e382c6069235b0a6c4335c7c1c673bb6a8f9bd1ba9` |
 | Semantic contract | `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13` |
-| Route validators | `e91ac11774b6dfeb818429de25c0efd4ceea916071ec65e1f0de7ffa0e372cc1` |
+| Route validators | `f67f9ec7da08ca0c71511123616f29741070674f8db4685fd821dd81e07c162b` |
 
 What the policy admits: cosmetic wrapper variance only — whitespace, key order,
 quoted keys, the result variable's name, a trailing semicolon, direct
@@ -157,11 +159,12 @@ re-evaluated. No additional census tooling, no replacement session.
 
 | Check | Result |
 |---|---|
-| Gate 3 focused suite | 371 passed, 0 failed |
+| Gate 3 focused suite | 453 passed, 0 failed |
 | Canonical precommit (`--mode enforce`) | pass |
+| `verify-candidate` | `status=PASS`, 7/7 |
 | Common-harness rebuild and verify | `status=PASS`, 7/7 |
 | Candidate bytes vs manifest | intact |
-| Policy digest after reconciliation | unchanged |
+| Acceptance policy digest | moved; see section 2 |
 | Working tree | clean, branch synced |
 
 Not independently reproduced in this repository: the focused-suite count across

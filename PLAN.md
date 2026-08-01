@@ -1838,15 +1838,17 @@ gates away from counted execution, and counted execution remains at zero.
   reviewed. The execution bound is not tolerated. The earlier description of
   this as an unwired proposal awaiting corrected review is superseded; it
   described the state before `8fba4cba` and `880ce166`.
-- Acceptance policy digest after this reconciliation:
-  `35a45dc43140c1cec6ca2607ccae12287837ebaecf3b50065feccb35d76c266c`, over
-  contract `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`
+- Acceptance policy digest: `1f23b94a80e41c76fe9966e382c6069235b0a6c4335c7c1c673bb6a8f9bd1ba9`, over contract
+  `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`
   and route validators
-  `e91ac11774b6dfeb818429de25c0efd4ceea916071ec65e1f0de7ffa0e372cc1`. Any
-  further edit to either file, including a comment, moves this digest. It
-  should therefore be treated as frozen from here until the final canary, and
-  the reviewer handoff should quote it. It is not claimed to be final: it is
-  final only if neither file is touched again.
+  `f67f9ec7da08ca0c71511123616f29741070674f8db4685fd821dd81e07c162b`.
+  This supersedes `35a45dc4…d76c266c`, which was recorded as frozen before the
+  preregistration semantic review. That review required the scorer packet to
+  carry an exact field set, and the canary's own packet builder emitted a
+  field outside it, so the canary had to change and the digest moved with it.
+  The move was a consequence of a required fix, not a drift; it is noted here
+  rather than quietly re-pinned. Any further edit to either file, including a
+  comment, moves it again.
 - Acceptance policy evidence identity: changed. Admission semantics did not
   change when the execution-bound decision was recorded, but the policy digest
   did, because it deliberately pins the contract's own bytes and the docstring
