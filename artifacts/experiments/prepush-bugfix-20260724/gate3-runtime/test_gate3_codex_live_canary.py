@@ -3246,10 +3246,129 @@ def test_receipt_schemas_moved_with_their_structure() -> None:
     assert live.FAILURE_RECEIPT_SCHEMA.endswith(".v8")
 
 
-def test_route_verification_rejects_a_receipt_without_the_policy(
+_HEX64 = "a" * 64
+
+
+def _flip_first_hex(digest: str) -> str:
+    """Change one character, whatever the digest happens to start with.
+
+    Hard-coding a replacement character silently makes the mutation a no-op
+    whenever the digest already begins with it.
+    """
+    replacement = "0" if digest[0] != "0" else "1"
+    return replacement + digest[1:]
+
+
+def _route_verification_fixture(root: Path, receipt: dict) -> tuple:
+    """A receipt on disk plus the outcome and plan the verifier needs."""
+    for name in ("prompt.txt", "rollout.jsonl", "exec-events.jsonl"):
+        (root / name).write_bytes(b"synthetic\n")
+    (root / "route-receipt.json").write_text(
+        json.dumps(receipt, sort_keys=True), encoding="utf-8"
+    )
+    outcome = {
+        "route_receipt_path": "route-receipt.json",
+        "session_id": SESSION_ID,
+        "treatment": "A",
+    }
+    plan = {
+        "context_contract": {
+            "public_context_tokens": live.PUBLIC_CONTEXT_TOKENS,
+        },
+        "frozen_route": {"model_build": "synthetic-build"},
+    }
+    return outcome, plan
+
+
+def _valid_route_receipt(policy: str) -> dict:
+    return {
+        "authorization": live.AUTHORIZATION,
+        "exec_events_path": "exec-events.jsonl",
+        "exec_events_sha256": _HEX64,
+        "expected_model_build": "synthetic-build",
+        "prompt_path": "prompt.txt",
+        "prompt_sha256": _HEX64,
+        "public_context_token": live.PUBLIC_CONTEXT_TOKENS["A"],
+        "rollout_path": "rollout.jsonl",
+        "rollout_sha256": _HEX64,
+        "route": {"acceptance_policy_sha256": policy},
+        "schema": live.ROUTE_RECEIPT_SCHEMA,
+        "source_attestation": {
+            "acceptance_policy_sha256": policy,
+            "context_identity_sha256": _HEX64,
+            "exec_events_bytes": 1,
+            "exec_events_sha256": _HEX64,
+            "exec_thread_id": SESSION_ID,
+            "rollout_bytes": 1,
+            "rollout_sha256": _HEX64,
+            "sanitizer_rules_sha256": live._sanitizer_rules_sha256(),
+            "source_context_verified": True,
+            "source_tool_contract_verified": True,
+        },
+        "treatment": "A",
+    }
+
+
+def test_route_verification_reaches_past_the_policy_check(
     tmp_path: Path,
 ) -> None:
-    """An older receipt cannot be verified under the current policy."""
-    source = Path(live.__file__).read_text(encoding="utf-8")
-    assert '"acceptance_policy_sha256",' in source
-    assert "route receipt acceptance policy differs" in source
+    """Baseline: a receipt naming the running policy gets past that gate.
+
+    Without this, the rejection tests below could pass for the wrong reason.
+    It then fails on the artifact digests, which these synthetic files cannot
+    satisfy, and that is the point: the policy check is not what stopped it.
+    """
+    receipt = _valid_route_receipt(contract.policy_digest())
+    outcome, plan = _route_verification_fixture(tmp_path, receipt)
+    with pytest.raises(live.CanaryError, match="artifact digest mismatch"):
+        live._verify_route_receipt(tmp_path, outcome, plan)
+
+
+@pytest.mark.parametrize(
+    ("label", "mutate", "expected"),
+    [
+        (
+            "policy_absent",
+            lambda r: r["route"].pop("acceptance_policy_sha256"),
+            "acceptance policy differs",
+        ),
+        (
+            "attestation_policy_absent",
+            lambda r: r["source_attestation"].pop("acceptance_policy_sha256"),
+            "source attestation is invalid",
+        ),
+        (
+            "policy_byte_changed",
+            lambda r: r["route"].update(
+                {"acceptance_policy_sha256": _flip_first_hex(contract.policy_digest())}
+            ),
+            "acceptance policy differs",
+        ),
+        (
+            "attestation_policy_byte_changed",
+            lambda r: r["source_attestation"].update(
+                {"acceptance_policy_sha256": _flip_first_hex(contract.policy_digest())}
+            ),
+            "acceptance policy differs",
+        ),
+        (
+            "old_schema",
+            lambda r: r.update(
+                {"schema": "gate3-codex-live-route-receipt.v3"}
+            ),
+            "route receipt identity is invalid",
+        ),
+    ],
+)
+def test_route_verification_refuses_a_receipt_it_cannot_read(
+    tmp_path: Path,
+    label: str,
+    mutate,
+    expected: str,
+) -> None:
+    """Calls the verifier. A source-string search would pass on dead code."""
+    receipt = _valid_route_receipt(contract.policy_digest())
+    mutate(receipt)
+    outcome, plan = _route_verification_fixture(tmp_path, receipt)
+    with pytest.raises(live.CanaryError, match=expected):
+        live._verify_route_receipt(tmp_path, outcome, plan)

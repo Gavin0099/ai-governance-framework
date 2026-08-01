@@ -122,13 +122,22 @@ def test_the_digest_is_stable_across_line_ending_styles(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A CRLF checkout is not an acceptance difference."""
+    """A CRLF checkout is not an acceptance difference.
+
+    Normalize to LF before expanding. Replacing every "\\n" in a checkout that
+    is already CRLF produces "\\r\\r\\n", which is neither form and makes the
+    test fail on exactly the configuration it exists to protect.
+    """
     before = contract.policy_digest()
-    crlf = tmp_path / "crlf.py"
     source = Path(contract.__file__).resolve().read_bytes()
-    crlf.write_bytes(source.replace(b"\n", b"\r\n"))
-    monkeypatch.setattr(contract, "__file__", str(crlf))
-    assert contract.policy_digest() == before
+    lf = source.replace(b"\r\n", b"\n")
+    crlf = lf.replace(b"\n", b"\r\n")
+    assert b"\r\r\n" not in crlf, "fixture precondition: no doubled carriage return"
+    for label, content in (("lf", lf), ("crlf", crlf)):
+        copy = tmp_path / f"{label}.py"
+        copy.write_bytes(content)
+        monkeypatch.setattr(contract, "__file__", str(copy))
+        assert contract.policy_digest() == before, label
 
 
 def test_the_policy_digest_changes_when_the_policy_changes(
