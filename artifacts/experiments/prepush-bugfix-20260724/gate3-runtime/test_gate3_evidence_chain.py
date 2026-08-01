@@ -1486,3 +1486,152 @@ class Gate3DisagreementBoundaryTests(unittest.TestCase):
         self.assertTrue(
             self.contract["scorer_submission"]["scorer_context_must_differ"]
         )
+
+
+class Gate3TaskDecisionTests(unittest.TestCase):
+    """The disagreement boundary, exercised through the deciding code path.
+
+    Asserting the contract's flags proves only that the flags are set. These
+    build an actual decision and check what it refuses.
+    """
+
+    def setUp(self) -> None:
+        self.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        self.policy = self.contract["decision_rule"][
+            "scorer_disagreement_policy"
+        ]
+
+    def _run(self, *, qualifying: bool = True, completed: bool = True,
+             conflict: bool = False) -> dict[str, object]:
+        judged = {
+            field: qualifying
+            for field in self.policy["scorer_judged_fields"]
+        }
+        second = dict(judged)
+        if conflict:
+            second["oracle_acceptance"] = not judged["oracle_acceptance"]
+        verifier = {
+            field: True
+            for field in self.policy["verifier_determined_fields"]
+        }
+        verifier["completed_under_cap"] = completed
+        return {"primary": judged, "second": second, "verifier": verifier}
+
+    def _pair(self, index: int, *, a: dict, b: dict, **extra) -> dict:
+        return {
+            "pair_id": f"task-1-pair-{index}",
+            "repeat_index": index,
+            "runs": {"A": a, "B": b},
+            **extra,
+        }
+
+    def _decide(self, pairs: list[dict]) -> dict[str, object]:
+        return chain.build_task_decision(
+            "task-1", "skill_primary", pairs, self.contract
+        )
+
+    def test_two_clear_pairs_decide_the_task(self) -> None:
+        decision = self._decide([
+            self._pair(1, a=self._run(qualifying=False), b=self._run()),
+            self._pair(2, a=self._run(qualifying=False), b=self._run()),
+        ])
+        self.assertEqual(decision["status"], "decided")
+        self.assertEqual(decision["winner"], "B")
+        self.assertEqual(decision["qualifying_success_counts"], {"A": 0, "B": 2})
+
+    def test_a_tie_after_two_pairs_requires_the_third(self) -> None:
+        decision = self._decide([
+            self._pair(1, a=self._run(), b=self._run()),
+            self._pair(2, a=self._run(), b=self._run()),
+        ])
+        self.assertEqual(decision["status"], "third_pair_required")
+        self.assertIsNone(decision["winner"])
+
+    def test_a_non_completed_run_requires_the_third_pair(self) -> None:
+        decision = self._decide([
+            self._pair(1, a=self._run(completed=False), b=self._run()),
+            self._pair(2, a=self._run(qualifying=False), b=self._run()),
+        ])
+        self.assertEqual(decision["status"], "third_pair_required")
+
+    def test_conflict_does_not_authorize_a_replacement_pair(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "no replacement"):
+            self._decide([
+                self._pair(1, a=self._run(conflict=True), b=self._run()),
+                self._pair(2, a=self._run(), b=self._run(),
+                           replacement_for="task-1-pair-1"),
+            ])
+
+    def test_a_fourth_pair_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "frozen maximum"):
+            self._decide([
+                self._pair(index, a=self._run(), b=self._run())
+                for index in (1, 2, 3, 4)
+            ])
+
+    def test_three_pairs_decide_even_when_still_tied(self) -> None:
+        decision = self._decide([
+            self._pair(index, a=self._run(), b=self._run())
+            for index in (1, 2, 3)
+        ])
+        self.assertEqual(decision["status"], "decided")
+        self.assertIsNone(decision["winner"])
+
+    def test_an_adjudicating_third_scorer_is_refused(self) -> None:
+        run = self._run()
+        run["adjudicator"] = dict(run["primary"])
+        with self.assertRaisesRegex(chain.EvidenceError, "exactly the two roles"):
+            self._decide([
+                self._pair(1, a=run, b=self._run()),
+                self._pair(2, a=self._run(), b=self._run()),
+            ])
+
+    def test_a_repeated_pair_is_refused(self) -> None:
+        pair = self._pair(1, a=self._run(), b=self._run())
+        with self.assertRaisesRegex(chain.EvidenceError, "repeats a pair_id"):
+            self._decide([pair, dict(pair, repeat_index=2)])
+
+    def test_a_gap_in_the_pair_sequence_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "sequence has a gap"):
+            self._decide([
+                self._pair(1, a=self._run(), b=self._run()),
+                self._pair(3, a=self._run(), b=self._run()),
+            ])
+
+    def test_one_pair_is_not_a_task(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "at least two pairs"):
+            self._decide([self._pair(1, a=self._run(), b=self._run())])
+
+    def test_the_conflict_record_is_retained(self) -> None:
+        decision = self._decide([
+            self._pair(1, a=self._run(conflict=True), b=self._run()),
+            self._pair(2, a=self._run(qualifying=False), b=self._run()),
+        ])
+        self.assertEqual(len(decision["conflict_record"]), 1)
+        self.assertEqual(decision["conflict_record"][0]["arm"], "A")
+        self.assertEqual(
+            decision["conflict_record"][0]["fields"], ["oracle_acceptance"]
+        )
+        # The conflicted run stayed in its pair rather than being dropped.
+        self.assertEqual(decision["pair_count"], 2)
+
+    def test_a_tampered_decision_receipt_is_refused(self) -> None:
+        pairs = [
+            self._pair(1, a=self._run(qualifying=False), b=self._run()),
+            self._pair(2, a=self._run(qualifying=False), b=self._run()),
+        ]
+        receipt = self._decide(pairs)
+        chain.verify_task_decision(receipt, pairs, self.contract)
+        for field, value in (
+            ("winner", "A"),
+            ("status", "third_pair_required"),
+            ("qualifying_success_counts", {"A": 2, "B": 0}),
+            ("pair_count", 3),
+        ):
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(
+                    chain.EvidenceError, "recomputed decision"
+                ):
+                    chain.verify_task_decision(
+                        dict(receipt, **{field: value}), pairs, self.contract
+                    )

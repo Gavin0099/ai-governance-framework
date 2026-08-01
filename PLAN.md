@@ -1838,10 +1838,10 @@ gates away from counted execution, and counted execution remains at zero.
   reviewed. The execution bound is not tolerated. The earlier description of
   this as an unwired proposal awaiting corrected review is superseded; it
   described the state before `8fba4cba` and `880ce166`.
-- Acceptance policy digest: `e9b5d250754b1e5d3e8ec55d4fbd151ee86f0c13ef2958b027439414ae538ad4`, over contract
+- Acceptance policy digest: `60a1761ca30c629466e776cd3807d59d5d87fd07f67266a1b4aa06941d7aecbd`, over contract
   `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`
   and route validators
-  `1925191b81ad7b5611bca2eda9838676c638fbe781d2cd6d2518f26b457445c5`.
+  `f655202aa151ae3bbee215654a1b787d0dbe659d024f4f28ded44f5382fe0e5e`.
   This supersedes `35a45dc4…d76c266c`, which was recorded as frozen before the
   preregistration semantic review. That review required the scorer packet to
   carry an exact field set, and the canary's own packet builder emitted a
@@ -1865,7 +1865,8 @@ gates away from counted execution, and counted execution remains at zero.
   current tools: `gate3_common_harness.py verify` returns `status=PASS` with
   all seven checks passing, including `candidate_exact_bytes`, and the
   candidate manifest is still
-  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`. An
+  `8975ea60b8e6f1a98bef8160d0568b89b2de75f6a3d077c7cd7850c34eb9e92d`,
+  which supersedes `51ac1219…a5a6801` and `38e2bf33…0ccedfb6`. An
   earlier revision of this entry described all prior rehearsal and canary
   evidence as historical, which was wrong and is corrected here.
 - Stop line, agreed 2026-08-01: at most one further non-counted live pair. If

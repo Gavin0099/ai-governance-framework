@@ -24,6 +24,7 @@ RANDOMIZATION_SCHEMA = "gate3-randomization-record.v1"
 MAPPING_COMMITMENT_SCHEMA = "gate3-mapping-reveal-commitment.v1"
 ADMISSION_SCHEMA = "gate3-outcome-admission.v1"
 OUTCOME_PACKET_SCHEMA = "gate3-outcome-packet.v1"
+TASK_DECISION_SCHEMA = "gate3-task-decision.v1"
 RECEIPT_SCHEMA = "gate3-test-evidence-receipt.v1"
 HARNESS_CONTRACT_SCHEMA = "gate3-common-harness-contract.v1"
 EVENT_SCHEMA = "gate3-ordering-event.v1"
@@ -1500,6 +1501,144 @@ def resolve_qualifying_success(
         "scorers_conflicted": bool(conflicts),
         "verifier_determined": determined,
     }
+
+
+def _pair_qualifying_counts(
+    pairs: list[dict[str, Any]],
+    contract: dict[str, Any],
+) -> tuple[dict[str, int], list[dict[str, Any]], bool]:
+    """Resolve every run in every pair, conservatively."""
+    counts = {"A": 0, "B": 0}
+    detail: list[dict[str, Any]] = []
+    any_non_completed = False
+    for pair in pairs:
+        entry: dict[str, Any] = {
+            "pair_id": pair["pair_id"],
+            "repeat_index": pair["repeat_index"],
+            "runs": {},
+        }
+        for arm in ("A", "B"):
+            run = pair["runs"][arm]
+            resolved = resolve_qualifying_success(
+                run["primary"], run["second"], run["verifier"], contract
+            )
+            if resolved["qualifying_success"]:
+                counts[arm] += 1
+            if run["verifier"].get("completed_under_cap") is not True:
+                any_non_completed = True
+            entry["runs"][arm] = resolved
+        detail.append(entry)
+    return counts, detail, any_non_completed
+
+
+def build_task_decision(
+    task_id: str,
+    study_kind: str,
+    pairs: list[dict[str, Any]],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Decide a task from exactly two or three verified pairs.
+
+    The disagreement boundary was written into the contract as flags, and flags
+    are not enforcement: nothing refused a fourth pair, an adjudicator or a
+    replacement, because no code path decided a task at all. This is that path.
+
+    A tie after two pairs, or any non-completed run, requires the third pair,
+    which is the frozen adaptive sample. After three pairs the task is decided
+    however the counts fall. Nothing authorizes a fourth.
+    """
+    policy = contract["decision_rule"]["scorer_disagreement_policy"]
+    maximum = policy["maximum_pairs_per_task"]
+    roles = list(contract["scorer_submission"]["roles"])
+    if study_kind not in contract["evidence_chain"]["mapping_treatments"]:
+        raise EvidenceError("task decision study_kind is not registered")
+    if not isinstance(pairs, list) or len(pairs) < 2:
+        raise EvidenceError("task decision requires at least two pairs")
+    if len(pairs) > maximum:
+        raise EvidenceError("task decision exceeds the frozen maximum pairs")
+    seen_ids: set[str] = set()
+    seen_indexes: set[int] = set()
+    for pair in pairs:
+        pair_id = pair.get("pair_id")
+        repeat_index = pair.get("repeat_index")
+        if not isinstance(pair_id, str) or not pair_id.strip():
+            raise EvidenceError("task decision pair_id must be non-empty")
+        if pair_id in seen_ids:
+            raise EvidenceError("task decision repeats a pair_id")
+        seen_ids.add(pair_id)
+        if repeat_index not in range(1, maximum + 1):
+            raise EvidenceError("task decision repeat_index is out of range")
+        if repeat_index in seen_indexes:
+            raise EvidenceError("task decision repeats a repeat_index")
+        seen_indexes.add(repeat_index)
+        if pair.get("replacement_for") is not None:
+            raise EvidenceError(
+                "task decision admits no replacement pair"
+            )
+        runs = pair.get("runs")
+        if not isinstance(runs, dict) or set(runs) != {"A", "B"}:
+            raise EvidenceError("task decision pair must carry exactly two arms")
+        for run in runs.values():
+            if not isinstance(run, dict) or set(run) != {
+                "primary",
+                "second",
+                "verifier",
+            }:
+                raise EvidenceError(
+                    "task decision run must carry exactly the two roles and the "
+                    "verifier"
+                )
+    if seen_indexes != set(range(1, len(pairs) + 1)):
+        raise EvidenceError("task decision repeat_index sequence has a gap")
+    counts, detail, any_non_completed = _pair_qualifying_counts(pairs, contract)
+    conflicted = [
+        {
+            "arm": arm,
+            "fields": entry["runs"][arm]["conflicting_fields"],
+            "pair_id": entry["pair_id"],
+        }
+        for entry in detail
+        for arm in ("A", "B")
+        if entry["runs"][arm]["scorers_conflicted"]
+    ]
+    tied = counts["A"] == counts["B"]
+    if len(pairs) < maximum and (tied or any_non_completed):
+        status = "third_pair_required"
+        winner = None
+    else:
+        status = "decided"
+        winner = None if tied else max(counts, key=counts.__getitem__)
+    return {
+        "conflict_record": conflicted,
+        "pair_count": len(pairs),
+        "pairs": detail,
+        "qualifying_success_counts": counts,
+        "schema": TASK_DECISION_SCHEMA,
+        "scorer_roles": roles,
+        "status": status,
+        "study_kind": study_kind,
+        "task_id": task_id,
+        "winner": winner,
+    }
+
+
+def verify_task_decision(
+    receipt: dict[str, Any],
+    pairs: list[dict[str, Any]],
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Recompute the decision and refuse any receipt that differs."""
+    if receipt.get("schema") != TASK_DECISION_SCHEMA:
+        raise EvidenceError("task decision schema is invalid")
+    rebuilt = build_task_decision(
+        str(receipt.get("task_id", "")),
+        str(receipt.get("study_kind", "")),
+        pairs,
+        contract,
+    )
+    if receipt != rebuilt:
+        raise EvidenceError("task decision differs from the recomputed decision")
+    return rebuilt
 
 
 def _assert_single_varying_factor(
