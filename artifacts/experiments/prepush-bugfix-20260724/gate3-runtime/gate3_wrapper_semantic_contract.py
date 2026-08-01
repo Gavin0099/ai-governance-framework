@@ -87,8 +87,10 @@ field un-tolerated, so a misconfiguration narrows what is accepted rather than
 widening it. The admitted numeric form is plain decimal only: no sign, no
 leading zeros, no underscores, no hex, no float.
 
-Two preconditions must be satisfied before any field is tolerated, and neither
-is implemented here because neither belongs to a proposal:
+Two preconditions must be satisfied before any field is ever tolerated. The
+second is now implemented -- the acceptance policy, including any tolerated
+value, is bound into the route and context digests and checked across the A/B
+comparison. The first is not, and cannot be until a value is chosen:
 
 * the tolerated value must be preregistered, and absence of the field is
   equivalent only if the CLI default is itself pinned to that same value;
@@ -115,7 +117,7 @@ CONTRACT_SCHEMA = "gate3-codex-wrapper-semantic-contract.v1"
 # field is admitted unless it is listed in TOLERATED_FIELDS.
 SEMANTIC_CORE_FIELDS = ("command", "workdir")
 
-# Deliberately empty. See "The open decision" above. Anything added here widens
+# Deliberately empty, by the decision recorded above. Anything added here widens
 # what the route admits, and a name alone is not enough to admit a field: it
 # must also appear in TOLERATED_FIELD_VALUES with an exact required value.
 TOLERATED_FIELDS: tuple[str, ...] = ()

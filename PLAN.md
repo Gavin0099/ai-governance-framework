@@ -1791,8 +1791,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   frozen-route run ever shows the field emitted; it should not be revisited on
   the strength of the corpus statistic alone.
 
-- [ ] **Superseded: decide the wrapper acceptance policy before requesting
-  another pair.**
+- [x] **Superseded by the decision above: decide the wrapper acceptance
+  policy before requesting another pair.** Retained for the reasoning that
+  led there; the conclusion it reaches is no longer the current position.
   The probe establishes that byte-exact acceptance cannot survive normal
   emission variance, so further live pairs will keep failing at
   `packet_build` for reasons that carry no scientific content. Two options,
@@ -1828,35 +1829,64 @@ gates away from counted execution, and counted execution remains at zero.
   unconditional guarantee that all four cells are filled, and it still
   describes only why a build failed; it is not evidence about producer
   output.
-- Wrapper acceptance proposal: reviewed once and found to accept incomplete
-  and statement-padded wrappers, and to tolerate fields by name without
-  constraining their values. Both are fixed and it remains unwired, but it
-  has not yet passed an independent review in its corrected form.
 - Offline corpus characterization: complete as a method. As acceptance-policy
   evidence it is limited and cannot decide a contract on its own: the pinned
   build's emissions in the corpus came from the same rehearsal the wrapper
   was written against, and the v3 to v5 failing rollouts were wiped by
   cleanup and cannot be replayed.
-- Wrapper acceptance policy: decided 2026-08-01 and wired, independently
-  reviewed. The execution bound is not tolerated.
+- Wrapper acceptance policy: decided 2026-08-01, wired, and independently
+  reviewed. The execution bound is not tolerated. The earlier description of
+  this as an unwired proposal awaiting corrected review is superseded; it
+  described the state before `8fba4cba` and `880ce166`.
+- Acceptance policy digest after this reconciliation:
+  `35a45dc43140c1cec6ca2607ccae12287837ebaecf3b50065feccb35d76c266c`, over
+  contract `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`
+  and route validators
+  `e91ac11774b6dfeb818429de25c0efd4ceea916071ec65e1f0de7ffa0e372cc1`. Any
+  further edit to either file, including a comment, moves this digest. It
+  should therefore be treated as frozen from here until the final canary, and
+  the reviewer handoff should quote it. It is not claimed to be final: it is
+  final only if neither file is touched again.
+- Acceptance policy evidence identity: changed. Admission semantics did not
+  change when the execution-bound decision was recorded, but the policy digest
+  did, because it deliberately pins the contract's own bytes and the docstring
+  was edited. Route receipts carrying an earlier policy digest are refused by
+  the current verifier. That is the intended fail-closed behaviour, and it
+  means all rehearsal and canary evidence produced before the current digest
+  is historical evidence: it attests to what happened under the policy of its
+  day, and cannot be re-verified under this one.
 - Stop line, agreed 2026-08-01: at most one further non-counted live pair. If
   it fails on another wrapper detail, Gate 3 pauses and the experiment channel
   is re-evaluated. No additional census tooling, no replacement session.
 - Preregistration: candidate only. Independent approval, owner exact-byte
   signature and canonical promotion are all outstanding.
 - Natural-bug and resource admission, and separate Gate 3 start authority:
-  outstanding.
+  outstanding. These gate counted execution, not the final non-counted canary.
 
-Order of work from here, and no step may be skipped: publication hardening;
-acceptance policy proposal; owner decision on whether to change the
-governance surface; acceptance implementation; synthetic mutations, focused
-tests, canonical precommit and independent review; and only then a request
-for a new exact-two, no-replacement canary.
+Order of work from here, and no step may be skipped. Publication hardening,
+the acceptance policy proposal, the owner decision, the acceptance
+implementation and its independent review are all complete. What remains:
+
+1. Independent review of the preregistration candidate bytes.
+2. Owner exact-byte signature.
+3. Canonical promotion.
+4. A separate exact-two, no-replacement authorization for the final
+   non-counted Codex route canary, which runs under
+   `non_counted_codex_live_canary_only` and does not require Gate 3 to have
+   been started.
+5. Natural-bug and resource admission, after that canary.
+6. Separate Gate 3 start authority.
+7. Counted execution.
+
+Steps 4 and 6 are different authorizations and must not be conflated: the
+final canary proves the route, and Gate 3 start authority opens the counted
+experiment. An earlier statement in this branch ordered the canary after Gate
+3 start authority; that was wrong and is corrected here.
 
 Cannot claim from this section: that only minor fixes remain, that the
 producer workflow has succeeded, that offline corpus evidence is sufficient
-to decide acceptance, or that a successful canary would by itself open
-Gate 3.
+to decide acceptance, that the current policy digest is final, or that a
+successful canary would by itself open Gate 3.
 
 - [x] **The red credential-boundary test was a test-environment assumption,
   not a runtime guard defect.**
@@ -1874,7 +1904,13 @@ Gate 3.
   any non-zero exit, so a later failure that ran the preflight first can no
   longer satisfy it. The full Gate 3 runtime suite is green at 225/225.
 
-- [ ] **Read across v4 and v5 before requesting another pair.** The failing
+- [x] **Resolved: read across v4 and v5 before requesting another pair.**
+  Closed by the offline characterization, the semantic wiring and the stop
+  line. The reading below stands as the reasoning of its day, with one
+  correction: the inference that the acceptable-wrapper set is under-specified
+  relative to what the model emits drew on corpus-wide statistics from a
+  different tool surface. Under frozen-route conditions, v5 arm A cleared both
+  parse phases under byte-exact acceptance. The failing
   arm moved between runs (v4 failed on arm A, v5 failed on arm B) under the
   same frozen route, so the rejected wrapper shape varies run to run rather
   than being a fixed per-arm defect. Treat the acceptable-wrapper set as
