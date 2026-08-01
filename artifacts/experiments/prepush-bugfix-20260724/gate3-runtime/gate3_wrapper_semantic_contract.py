@@ -51,6 +51,14 @@ frozen route. So a name in ``TOLERATED_FIELDS`` is inert unless
 ``TOLERATED_FIELD_VALUES`` also carries an exact preregistered integer for it,
 and the literal in the input must equal that integer.
 
+The declaration is validated too, not just the input. ``bool`` is a subclass of
+``int``, so ``True`` would pass a naive type check and then match a literal
+``1``; a negative or zero execution bound is not a bound; and an absurd one is
+no different from having none. A declaration that fails validation leaves the
+field un-tolerated, so a misconfiguration narrows what is accepted rather than
+widening it. The admitted numeric form is plain decimal only: no sign, no
+leading zeros, no underscores, no hex, no float.
+
 Two preconditions must be satisfied before any field is tolerated, and neither
 is implemented here because neither belongs to a proposal:
 
@@ -91,6 +99,19 @@ TOLERATED_FIELD_VALUES: dict[str, int | None] = {
     "timeout_ms": None,
 }
 
+# Bounds on what may be preregistered, checked on the declaration itself and
+# not only on the input. Without this the declaration is the weak link: bool is
+# a subclass of int, so True would sail through an isinstance check and then
+# match a literal 1; a negative or zero bound is not an execution bound; and an
+# absurd bound is indistinguishable from none at all.
+#
+# This is a contract-level sanity range, not a claim about what the CLI itself
+# accepts. Confirming the chosen value against the CLI is part of
+# preregistering it.
+TOLERATED_FIELD_RANGES: dict[str, tuple[int, int]] = {
+    "timeout_ms": (1, 3_600_000),
+}
+
 # Wrapper forms whose prefix, suffix and result consumer the route already
 # validates end to end. Anything else is not a wrapper this contract will
 # reason about, however familiar its middle looks.
@@ -113,7 +134,30 @@ REFUSAL_REASONS = (
     "value_rejected_by_route",
 )
 
-_INTEGER_LITERAL_RE = re.compile(r"[+-]?\d+")
+# The only numeric form admitted: plain decimal, no sign, no leading zeros, no
+# underscores, no hex, no float. A signed or zero-padded literal parses to the
+# same number but is not a form the frozen route emits, and admitting more
+# spellings than necessary buys nothing.
+_INTEGER_LITERAL_RE = re.compile(r"0|[1-9]\d*")
+
+
+def preregistered_value(name: str) -> int | None:
+    """Return the declared value for a field, or None if it is not usable.
+
+    Validates the declaration, not the input. A declaration that fails here
+    leaves the field un-tolerated, which is the safe direction: a
+    misconfiguration narrows what is accepted rather than widening it.
+    """
+    value = TOLERATED_FIELD_VALUES.get(name)
+    if value is None or isinstance(value, bool) or not isinstance(value, int):
+        return None
+    bounds = TOLERATED_FIELD_RANGES.get(name)
+    if bounds is None:
+        return None
+    low, high = bounds
+    if not low <= value <= high:
+        return None
+    return value
 
 # Which refusal a non-core field earns. Naming these separately keeps a receipt
 # honest: an execution bound and a sandbox grant are not the same finding.
@@ -264,13 +308,13 @@ def evaluate(source: str, *, expected_workspace: str) -> dict[str, Any]:
     if extra:
         return verdict("extra_field", tool_family=family, fields=extra)
     for name in sorted(set(fields) & set(TOLERATED_FIELDS)):
-        required = TOLERATED_FIELD_VALUES.get(name)
+        required = preregistered_value(name)
         if required is None:
             return verdict(
                 "tolerated_field_value_rejected",
                 tool_family=family,
                 fields=[name],
-                detail="no preregistered value",
+                detail="no usable preregistered value",
             )
         literal = fields[name].strip()
         if not _INTEGER_LITERAL_RE.fullmatch(literal) or int(literal) != required:

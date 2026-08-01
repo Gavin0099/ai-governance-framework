@@ -61,6 +61,100 @@ def test_no_tolerated_field_has_a_preregistered_value_yet() -> None:
     )
 
 
+def test_every_tolerable_field_declares_a_range() -> None:
+    assert set(contract.TOLERATED_FIELD_RANGES) == set(
+        contract.TOLERATED_FIELD_VALUES
+    )
+    for low, high in contract.TOLERATED_FIELD_RANGES.values():
+        assert isinstance(low, int) and not isinstance(low, bool)
+        assert isinstance(high, int) and not isinstance(high, bool)
+        assert 0 < low <= high
+
+
+# --- the declaration is validated, not only the input ---------------------
+
+
+@pytest.mark.parametrize(
+    ("label", "declared"),
+    [
+        ("bool_true", True),
+        ("bool_false", False),
+        ("zero", 0),
+        ("negative", -1),
+        ("above_range", 3_600_001),
+        ("float", 120000.0),
+        ("string", "120000"),
+        ("none_explicit", None),
+    ],
+)
+def test_an_invalid_declaration_leaves_the_field_untolerated(
+    monkeypatch: pytest.MonkeyPatch,
+    label: str,
+    declared: object,
+) -> None:
+    """A misconfiguration must narrow acceptance, never widen it.
+
+    bool is the one that would actually slip: it is a subclass of int, so a
+    naive isinstance check passes and True then matches a literal 1.
+    """
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": declared}
+    )
+    assert contract.preregistered_value("timeout_ms") is None, label
+    for literal in ("1", "0", "120000", "-1"):
+        result = _evaluate(_with_timeout(literal))
+        assert result["accepted"] is False, (label, literal)
+        assert result["reason"] == "tolerated_field_value_rejected"
+        assert result["detail"] == "no usable preregistered value"
+
+
+def test_a_field_without_a_declared_range_cannot_be_tolerated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    monkeypatch.setattr(contract, "TOLERATED_FIELD_RANGES", {})
+    assert contract.preregistered_value("timeout_ms") is None
+
+
+@pytest.mark.parametrize("declared", [1, 120000, 3_600_000])
+def test_a_valid_declaration_is_accepted_at_its_bounds(
+    monkeypatch: pytest.MonkeyPatch,
+    declared: int,
+) -> None:
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": declared}
+    )
+    assert contract.preregistered_value("timeout_ms") == declared
+    assert _reason(_with_timeout(str(declared))) == "accepted"
+
+
+# --- only one numeric spelling is admitted --------------------------------
+
+
+@pytest.mark.parametrize(
+    "literal",
+    ["+120000", "0120000", "00120000", "1_20_000", "0x1D4C0", "120000.",
+     "1.2e5", " +120000"],
+)
+def test_alternative_spellings_of_the_right_number_are_refused(
+    monkeypatch: pytest.MonkeyPatch,
+    literal: str,
+) -> None:
+    """Same value, different spelling. Not a form the route emits."""
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    result = _evaluate(_with_timeout(literal))
+    assert result["accepted"] is False, literal
+    assert result["reason"] == "tolerated_field_value_rejected"
+
+
 # --- the envelope must be validated end to end ----------------------------
 #
 # Finding one call and reading its argument says nothing about what surrounds
@@ -142,7 +236,7 @@ def test_a_tolerated_field_is_inert_without_a_preregistered_value(
     monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
     result = _evaluate(_with_timeout("120000"))
     assert result["reason"] == "tolerated_field_value_rejected"
-    assert result["detail"] == "no preregistered value"
+    assert result["detail"] == "no usable preregistered value"
 
 
 def test_the_exact_preregistered_value_is_the_only_one_admitted(
@@ -370,6 +464,54 @@ def test_a_tool_token_inside_the_command_string_is_not_a_second_call() -> None:
         + " }); text(r)\n"
     )
     assert _reason(source) == "value_rejected_by_route"
+
+
+# --- review proof-of-concept regressions ----------------------------------
+#
+# Verbatim from the review that found the contract accepted them. Kept as
+# their own test so a future refactor of the envelope or value checks cannot
+# quietly re-open either hole.
+
+_POC_CALL = (
+    'tools.shell_command({command:"git rev-parse HEAD",'
+    'workdir:"C:/workspace"})'
+)
+
+
+@pytest.mark.parametrize(
+    ("label", "source"),
+    [
+        ("statement_before_wrapper",
+         f"doSomething();\nconst r = await {_POC_CALL};\ntext(r);\n"),
+        ("result_passed_to_another_consumer",
+         f"const r = await {_POC_CALL};\nconsume(r);\n"),
+        ("wrapper_without_a_consumer", f"const r = await {_POC_CALL}\n"),
+    ],
+)
+def test_envelope_proof_of_concepts_stay_refused(
+    label: str,
+    source: str,
+) -> None:
+    result = _evaluate(source)
+    assert result["accepted"] is False, label
+    assert result["reason"] == "envelope_not_validated", label
+
+
+@pytest.mark.parametrize(
+    "value", ["-1", "0", "999999999999", '"not-a-number"', "computeTimeout()"]
+)
+def test_value_proof_of_concepts_stay_refused(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+) -> None:
+    """Each of these was accepted when timeout_ms was tolerated by name."""
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    result = _evaluate(_with_timeout(value))
+    assert result["accepted"] is False, value
+    assert result["reason"] == "tolerated_field_value_rejected", value
 
 
 # --- verdict shape ---------------------------------------------------------
