@@ -1657,8 +1657,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   receipts v3 through v5 were recorded in `52d3b2bb` and predate this schema,
   so all three are schema v2 and carry no wrapper classification.
 
-- [x] **One authorized pair now censuses the whole pair, not one fact.**
-  Implementation commit `67afb38a` keeps scanning after a rejected tool call
+- [~] **Partial: one authorized pair now censuses both arms, but not both
+  parse phases.** Implementation commit `67afb38a` keeps scanning after a
+  rejected tool call
   so every mismatch in a rollout is censused before the first error is
   re-raised unchanged, caps retention at
   `WRAPPER_MISMATCH_RETENTION_LIMIT` while recording the full count so
@@ -1667,9 +1668,12 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   pass writes no staging or chain state, admits nothing and swallows its own
   errors, so it cannot mask or replace the original failure. Admission is
   unchanged. Failure receipt schema is now
-  `gate3-codex-live-canary-failure-receipt.v4`. Still not covered: a
-  source-phase failure leaves the public phase `NOT_RUN`, because the public
-  rollout is only produced after the source parse succeeds.
+  `gate3-codex-live-canary-failure-receipt.v4`. This is not collect-all: a
+  source-phase failure still leaves the public phase `NOT_RUN`, because the
+  public rollout is only produced after the source parse succeeds. One pair
+  therefore still cannot observe all four of A and B against source and
+  public, so the failure receipt is partial and must not be described as
+  complete.
 
 - [x] **The frozen route's wrapper acceptance is byte-exact, and that is the
   root cause of the v4/v5 packet-build failures.** The offline probe
@@ -1692,17 +1696,26 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   privilege-affecting variance, and shows the pinned-build evidence is
   circular.** `gate3_wrapper_corpus_scan.py` classifies `exec` tool inputs in
   an existing local rollout corpus against the frozen route, at zero
-  authorization cost and without invoking a session. Aggregate result over
-  5,906 emissions in 56 sessions across four CLI builds: 234 accepted, 25
-  distinct rejected structural signatures, and the rejections split 4,572
-  cosmetic against 1,100 privilege-affecting. Cosmetic variance is dominated
-  by an execution-bound field and by envelope and argument-shape differences
-  that change nothing about what the call does. The privilege-affecting
-  remainder carries approval-policy, sandbox-permission or shell-semantics
-  fields, so a parse-and-compare that accepted wrappers by decoded command
-  alone would hand those boundaries away. Separately, every field name in
-  every rejected emission was already in `SAFE_TOOL_INPUT_FIELD_NAMES`, which
-  independently confirms the census vocabulary is complete.
+  authorization cost and without invoking a session. Across several thousand
+  emissions spanning several CLI builds, a small minority were accepted and
+  the rejections resolved into a few dozen distinct structural signatures.
+  Most rejected emissions were cosmetic, dominated by an execution-bound
+  field and by envelope and argument-shape differences that change nothing
+  about what the call does; a substantial minority were privilege-affecting,
+  carrying approval-policy, sandbox-permission or shell-semantics fields, so
+  a parse-and-compare that accepted wrappers by decoded command alone would
+  hand those boundaries away. Separately, every field name in every rejected
+  emission was already in `SAFE_TOOL_INPUT_FIELD_NAMES`, which independently
+  confirms the census vocabulary is complete.
+
+  These figures are stated qualitatively on purpose. An earlier revision of
+  this entry, and the commits that introduced it, recorded exact session,
+  emission, build and rejection counts derived from a private corpus. Precise
+  counts of that kind are a usage profile, so the wording was narrowed here
+  rather than in history: the earlier revision remains reachable in this
+  branch's git history and was deliberately not rewritten. Exact figures
+  remain reproducible locally by whoever holds the corpus, using the
+  committed scanner.
 
   Limitations, and they are the load-bearing part: every emission observed on
   the pinned CLI build came from the 2026-07-29 common-harness rehearsal, the
@@ -1730,10 +1743,11 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `tools.*` token count and how many name a frozen-route family. Tool names
   outside the route are counted but never named, because a corpus can carry
   private MCP tool names and the class is what a reader needs. Re-running the
-  corpus scan resolves the whole rejected population into 5,009
-  single-frozen-call, 315 multiple-call, 279 out-of-route-tool and 69
-  no-tool-call emissions. The out-of-route group is the material one: those
-  were previously indistinguishable from formatting variance. Failure receipt
+  corpus scan resolves the whole rejected population into the four classes,
+  with single-frozen-call dominant and the remainder split across
+  multiple-call, out-of-route-tool and no-tool-call. The out-of-route group
+  is the material one: those were previously indistinguishable from
+  formatting variance. Failure receipt
   schema is now `gate3-codex-live-canary-failure-receipt.v5`. Acceptance is
   still unchanged; this is diagnosis only.
 
@@ -1751,6 +1765,47 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   the decoded command alone, and pinning from the prompt side reduces
   variance without proving the model will comply. Owner decision on
   2026-08-01 was to change neither surface yet and continue offline.
+
+### Gate 3 Live Canary Readiness As Of 2026-08-01
+
+Stated deliberately narrowly. An earlier revision of this section described
+the remaining work as a final stretch before counted execution; that was too
+optimistic and is corrected here.
+
+Gate 3 has entered live-canary route hardening. It is several independent
+gates away from counted execution, and counted execution remains at zero.
+
+- Codex launcher, credential seeding, authentication and session execution:
+  passing. v4 and v5 each invoked exactly two sessions with exit code 0 on
+  both arms and cleaned up with zero residue.
+- Producer-output admission: not passing. No run has produced a scoreable
+  packet, so the producer workflow must not be described as having succeeded
+  end to end.
+- Failure receipt: partial. It retains a privacy-safe census and a rejection
+  class, but a source-phase failure leaves the public phase `NOT_RUN`, so a
+  single pair cannot observe both arms against both parse phases.
+- Offline corpus characterization: complete as a method. As acceptance-policy
+  evidence it is limited and cannot decide a contract on its own: the pinned
+  build's emissions in the corpus came from the same rehearsal the wrapper
+  was written against, and the v3 to v5 failing rollouts were wiped by
+  cleanup and cannot be replayed.
+- Wrapper acceptance policy: undecided. A written proposal exists and is not
+  wired into acceptance.
+- Preregistration: candidate only. Independent approval, owner exact-byte
+  signature and canonical promotion are all outstanding.
+- Natural-bug and resource admission, and separate Gate 3 start authority:
+  outstanding.
+
+Order of work from here, and no step may be skipped: publication hardening;
+acceptance policy proposal; owner decision on whether to change the
+governance surface; acceptance implementation; synthetic mutations, focused
+tests, canonical precommit and independent review; and only then a request
+for a new exact-two, no-replacement canary.
+
+Cannot claim from this section: that only minor fixes remain, that the
+producer workflow has succeeded, that offline corpus evidence is sufficient
+to decide acceptance, or that a successful canary would by itself open
+Gate 3.
 
 - [x] **The red credential-boundary test was a test-environment assumption,
   not a runtime guard defect.**
