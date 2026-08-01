@@ -87,8 +87,12 @@ def _signature(source: str) -> dict[str, Any]:
 
 
 CLI_VERSION_CLASSES = ("pinned", "other_valid_semver", "unknown_or_invalid")
+# [0-9] rather than \d, for the same reason as the contract's literal pattern:
+# \d spans every Unicode decimal digit, so a version carrying full-width or
+# Arabic-Indic digits would classify as a valid semver instead of falling to
+# unknown_or_invalid, which is the direction hostile metadata should fall.
 SEMVER_RE = re.compile(
-    r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
     r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
 )
 # A build string is free text. It has been seen carrying custom build names,

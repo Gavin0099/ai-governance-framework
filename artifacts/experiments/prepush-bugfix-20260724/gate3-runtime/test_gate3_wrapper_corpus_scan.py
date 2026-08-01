@@ -454,6 +454,19 @@ def test_hostile_cli_version_metadata_never_reaches_the_report(
     assert live._privacy_violations(encoded.encode("utf-8")) == []
 
 
+@pytest.mark.parametrize(
+    "value", ["1.4６.0", "1.46.٠", "０.1.0", "1.4२.0"],
+)
+def test_non_ascii_digits_do_not_pass_as_a_valid_semver(value: str) -> None:
+    """Same defect class as the contract's numeric literal.
+
+    \\d spans Unicode, so these would classify as valid semver. Hostile or
+    unexpected metadata must fall to unknown_or_invalid instead.
+    """
+    assert scan.SEMVER_RE.fullmatch(value) is None
+    assert scan._cli_version_class(value) == "unknown_or_invalid"
+
+
 def test_every_emitted_cli_class_is_a_declared_class(tmp_path: Path) -> None:
     _corpus(tmp_path, live.DEFAULT_CLI_VERSION, [_accepted()])
     _corpus(tmp_path, "not-a-version", [_rejected_with_secret()])

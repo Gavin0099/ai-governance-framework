@@ -120,6 +120,86 @@ def test_a_field_without_a_declared_range_cannot_be_tolerated(
     assert contract.preregistered_value("timeout_ms") is None
 
 
+@pytest.mark.parametrize(
+    ("label", "bounds"),
+    [
+        ("string_bounds", ("1", "3600000")),
+        ("single_element", (1,)),
+        ("three_elements", (1, 10, 100)),
+        ("not_a_tuple", 1),
+        ("list_not_tuple", [1, 3600000]),
+        ("none", None),
+        ("low_is_zero", (0, 10)),
+        ("low_above_high", (10, 1)),
+        ("bool_low", (True, 10)),
+        ("bool_high", (1, True)),
+        ("float_bounds", (1.0, 10.0)),
+    ],
+)
+def test_a_malformed_range_declaration_refuses_rather_than_raising(
+    monkeypatch: pytest.MonkeyPatch,
+    label: str,
+    bounds: object,
+) -> None:
+    """A broken config must narrow acceptance, not crash the analyzer.
+
+    Unpacking the range before checking its shape turned a misconfiguration
+    into a TypeError or ValueError out of the function that was asked to judge
+    a wrapper.
+    """
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_RANGES", {"timeout_ms": bounds}
+    )
+    assert contract.preregistered_value("timeout_ms") is None, label
+    result = _evaluate(_with_timeout("120000"))
+    assert result["accepted"] is False, label
+    assert result["reason"] == "tolerated_field_value_rejected", label
+
+
+# --- only ASCII decimal digits count as digits ----------------------------
+
+
+@pytest.mark.parametrize(
+    ("label", "literal"),
+    [
+        ("full_width_tail", "1２００００"),
+        ("arabic_indic_tail", "1٢٠٠٠٠"),
+        ("full_width_whole", "１２００００"),
+        ("devanagari_tail", "1२००००"),
+        ("nd_superscript", "1²2⁰⁰⁰"),
+    ],
+)
+def test_non_ascii_digits_cannot_impersonate_the_preregistered_value(
+    monkeypatch: pytest.MonkeyPatch,
+    label: str,
+    literal: str,
+) -> None:
+    """Python's \\d spans Unicode, and int() parses those digits too.
+
+    Each of these evaluates to a number a naive check would compare equal to
+    the preregistered one. Accepting them would be text normalization widening
+    the route by accident.
+    """
+    monkeypatch.setattr(contract, "TOLERATED_FIELDS", ("timeout_ms",))
+    monkeypatch.setattr(
+        contract, "TOLERATED_FIELD_VALUES", {"timeout_ms": 120000}
+    )
+    result = _evaluate(_with_timeout(literal))
+    assert result["accepted"] is False, label
+    assert result["reason"] == "tolerated_field_value_rejected", label
+
+
+def test_the_literal_pattern_itself_is_ascii_only() -> None:
+    for literal in ("1２０", "１２", "1٢٠"):
+        assert contract._INTEGER_LITERAL_RE.fullmatch(literal) is None
+    for literal in ("0", "1", "120000", "3600000"):
+        assert contract._INTEGER_LITERAL_RE.fullmatch(literal)
+
+
 @pytest.mark.parametrize("declared", [1, 120000, 3_600_000])
 def test_a_valid_declaration_is_accepted_at_its_bounds(
     monkeypatch: pytest.MonkeyPatch,

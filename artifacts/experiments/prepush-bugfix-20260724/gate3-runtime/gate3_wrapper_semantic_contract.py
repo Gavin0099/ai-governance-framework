@@ -134,11 +134,22 @@ REFUSAL_REASONS = (
     "value_rejected_by_route",
 )
 
-# The only numeric form admitted: plain decimal, no sign, no leading zeros, no
-# underscores, no hex, no float. A signed or zero-padded literal parses to the
-# same number but is not a form the frozen route emits, and admitting more
-# spellings than necessary buys nothing.
-_INTEGER_LITERAL_RE = re.compile(r"0|[1-9]\d*")
+# The only numeric form admitted: plain ASCII decimal, no sign, no leading
+# zeros, no underscores, no hex, no float. A signed or zero-padded literal
+# parses to the same number but is not a form the frozen route emits, and
+# admitting more spellings than necessary buys nothing.
+#
+# Written [0-9] rather than \d on purpose. Python's \d matches every Unicode
+# decimal digit, and int() parses those too, so \d would accept a literal that
+# mixes ASCII and full-width or Arabic-Indic digits and evaluates to the
+# preregistered number. That is text normalization quietly widening acceptance,
+# which is the failure mode this contract exists to avoid.
+_INTEGER_LITERAL_RE = re.compile(r"(?:0|[1-9][0-9]*)")
+
+
+def _is_plain_int(value: object) -> bool:
+    """True for a real int. bool subclasses int, so it is excluded here."""
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def preregistered_value(name: str) -> int | None:
@@ -149,12 +160,20 @@ def preregistered_value(name: str) -> int | None:
     misconfiguration narrows what is accepted rather than widening it.
     """
     value = TOLERATED_FIELD_VALUES.get(name)
-    if value is None or isinstance(value, bool) or not isinstance(value, int):
+    if not _is_plain_int(value):
         return None
     bounds = TOLERATED_FIELD_RANGES.get(name)
-    if bounds is None:
+    # Validate the range's own shape before unpacking it. A malformed range is
+    # a misconfiguration like any other, and a misconfiguration must narrow
+    # acceptance, not raise out of the analyzer that was asked to judge a
+    # wrapper.
+    if not isinstance(bounds, tuple) or len(bounds) != 2:
         return None
     low, high = bounds
+    if not _is_plain_int(low) or not _is_plain_int(high):
+        return None
+    if not 0 < low <= high:
+        return None
     if not low <= value <= high:
         return None
     return value
