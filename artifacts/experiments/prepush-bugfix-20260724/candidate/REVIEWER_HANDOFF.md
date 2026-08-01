@@ -1,6 +1,15 @@
 # Gate 3 Preregistration — Reviewer Handoff
 
-Prepared 2026-08-01 on branch `codex/gate3-gpt-live-canary-v3-clean` at `2aa8279d`.
+Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
+
+| | Commit |
+|---|---|
+| Candidate source state described here | `2aa8279d` |
+| Commit that added this handoff | `cd965dde` |
+
+The two differ because this document is not itself a candidate file. Submit
+against `cd965dde`; the bytes under review are those at `2aa8279d`, and this
+handoff changed none of them.
 
 ## What is being asked of you
 
@@ -33,14 +42,27 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 | `1617c1d5…` | 74375 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
 | `1c95d332…` | 44497 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
-To re-verify independently:
+To re-verify independently, start with the narrow check. It reads the manifest
+and the six files and nothing else, so it has no side effects and its failure
+modes are unambiguous:
+
+```bash
+python artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py verify-candidate --repo-root . --manifest artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json
+```
+
+Expect `status=PASS`, seven checks — the six files plus
+`byte_preservation_attributes_complete` — and the manifest SHA-256 above.
+
+Only if you want the second layer of evidence, that the candidate bytes also
+drive a working rehearsal end to end, run the fuller build. It writes a
+scratch tree:
 
 ```bash
 python artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_common_harness.py build --repo-root . --out <scratch-dir>
 ```
 
-Expect `status=PASS`, seven of seven checks including `candidate_exact_bytes`,
-and the manifest SHA-256 above. This was re-run at handoff time and passed.
+Expect `status=PASS`, seven of seven checks including `candidate_exact_bytes`.
+Both were re-run at handoff time and passed.
 
 The manifest's own `not_claimed` list is authoritative and unchanged:
 independent approval, owner signature, canonical promotion, safe structured
