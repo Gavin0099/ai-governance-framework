@@ -211,10 +211,32 @@ conservative intersection:
 - The run stays in the denominator. A conflict must not shrink the effective
   sample, and must not be resolvable toward the larger effect.
 - Objective fields are not voted on. Test outcomes, commits and receipts are
-  determined by the verifier, which observed them; scorers judge only
-  `oracle_acceptance`, `original_defect_caught` and `no_new_scoped_regression`.
+  determined by the verifier, which observed them; scorers judge
+  `oracle_acceptance`, `original_defect_caught`, `no_new_scoped_regression`
+  and `critical_residuals_zero`. The last is judged rather than observed
+  because no verifier-produced artifact carries a residual count;
+  calling it verifier-determined would claim evidence that does not exist.
 
 No re-run, no third adjudicator, no primary-scorer override.
+
+The verifier-determined fields are read from retained artifacts, not from
+metrics flags. `completed_under_cap` comes from the sealed run metrics;
+`regression_baseline_fail` comes from a retained baseline test receipt that
+fails at the baseline commit, not from the method observation asserting it;
+`regression_passes_after_fix` comes from the exit codes of the retained test
+receipts. Every observed method observation must name a digest that resolves
+to a retained artifact, so an observation whose evidence resolves to nothing
+is refused.
+
+What the scorer reads is bound to what was retained. The packet's diff must
+equal the retained final diff bytes, its exit code must equal the aggregate of
+the retained receipts, and its baseline receipt digest must equal the admitted
+one. Packet integrity alone would let every artifact verify while the scorer
+scored different content.
+
+Not mechanically enforced: the aggregate promotion rule across the three tasks
+is evaluated by hand. Only the per-task decision and the cost gate have an
+executable path, so promotion must not be described as fail-closed.
 
 Each submission also binds `scorer_identity`, `scorer_context_id`,
 `model_build`, the frozen rubric digest and the exact blind-input-set digest.

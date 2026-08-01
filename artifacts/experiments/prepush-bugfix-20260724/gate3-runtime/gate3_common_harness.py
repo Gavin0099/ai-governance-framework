@@ -35,7 +35,7 @@ CAPTURE_RECEIPT_SCHEMA = "gate3-live-capture-receipt.v1"
 BASELINE_RECEIPT_SCHEMA = "gate3-synthetic-baseline-test-receipt.v1"
 AUTHORIZATION = "non_counted_synthetic_rehearsal_only"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "ad31adb5f0c1e47e5f2e6038ff377cf2568062ba72e319d1ff49fbf966ef4290"
+    "b0a4163759dc6896b837964286176ecd9030793fcd0a7bc2852baa4888fa0b75"
 )
 ANON_MAPPING = {
     "OUT-111111111111": "A",

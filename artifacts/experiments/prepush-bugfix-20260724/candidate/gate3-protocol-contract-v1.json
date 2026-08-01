@@ -58,6 +58,7 @@
     "scorer_disagreement_policy": {
       "conflict_disposition": "run_is_not_a_qualifying_success",
       "conflict_does_not_authorize_replacement_or_adjudication_run": true,
+      "evidence_authority": "A metrics flag is not evidence. Every observed method observation must name a digest that resolves to a retained artifact, and regression_baseline_fail is read from the retained baseline receipt rather than from the observation flag.",
       "frozen_third_pair_rule_applies_to_post_intersection_counts": true,
       "maximum_pairs_per_task": 3,
       "no_fourth_pair_under_any_disagreement_or_tie": true,
@@ -81,7 +82,7 @@
       ],
       "verifier_field_sources": {
         "completed_under_cap": "sealed_run_metrics_completed_under_cap",
-        "regression_baseline_fail": "sealed_run_metrics_method_observation_failing_regression_before_fix",
+        "regression_baseline_fail": "retained_baseline_test_receipt_with_non_zero_exit_linked_to_the_baseline_commit",
         "regression_passes_after_fix": "every_retained_test_receipt_exit_code_is_zero"
       }
     },
@@ -139,6 +140,9 @@
     "preferred_write_route": "structured_patch_or_write_with_stored_bytes_and_sha256",
     "retaining_base64_requires_owner_scope_acceptance": true
   },
+  "not_mechanically_enforced": {
+    "aggregate_promotion_decision": "promotion_requires is evaluated by hand. Only the per-task decision and the cost gate have an executable path, so promotion must not be described as fail-closed."
+  },
   "primary_study": {
     "arms": [
       "A",
@@ -191,6 +195,13 @@
     ]
   },
   "schema": "gate3-protocol-contract.v1",
+  "scorer_packet_binding": {
+    "baseline_test_receipt_sha256": "must_equal_the_admitted_baseline_receipt_digest",
+    "final_diff_utf8": "must_equal_the_retained_final_diff_bytes",
+    "policy": "scorer_visible_content_must_equal_the_retained_artifacts_it_describes",
+    "rationale": "The bundle, diff and receipts can all verify while the scorer is shown different content. Packet integrity is not packet truthfulness.",
+    "test_exit_code": "must_equal_the_aggregate_exit_code_of_the_retained_test_receipts"
+  },
   "scorer_submission": {
     "blind_input_set_digest_required": true,
     "conditional_quality_fields": [

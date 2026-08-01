@@ -359,6 +359,36 @@ def _scorer_visible_strings(value: Any, *, keys: bool = True):
         yield value
 
 
+def _assert_observations_resolve(
+    metrics: dict[str, Any],
+    known_digests: set[str],
+) -> None:
+    """Every observed method observation must name retained evidence.
+
+    Checking that a digest is sixty-four hex characters proves it is a digest,
+    not that it describes anything. An observation whose evidence resolves to
+    nothing is an assertion wearing the shape of proof.
+    """
+    observations = metrics.get("method_observations")
+    if not isinstance(observations, dict):
+        raise EvidenceError("sealed metrics carry no method observations")
+    for name, observation in sorted(observations.items()):
+        if not isinstance(observation, dict):
+            raise EvidenceError("method observation is malformed")
+        if observation.get("observed") is not True:
+            continue
+        evidence = observation.get("evidence_sha256")
+        if not isinstance(evidence, list) or not evidence:
+            raise EvidenceError(
+                "observed method observation carries no evidence"
+            )
+        for digest in evidence:
+            if digest not in known_digests:
+                raise EvidenceError(
+                    "method observation evidence resolves to no retained artifact"
+                )
+
+
 def _validated_baseline_receipt(
     admission: dict[str, Any],
     metrics: dict[str, Any],
@@ -378,7 +408,10 @@ def _validated_baseline_receipt(
     digest = _sha256_file(path)
     if digest != reference["sha256"]:
         raise EvidenceError("baseline test receipt digest mismatch")
+    raw = path.read_bytes()
     receipt = _load_json(path)
+    if raw != _json_bytes(receipt):
+        raise EvidenceError("baseline test receipt is not canonical JSON")
     missing = [
         field for field in policy["required_fields"] if field not in receipt
     ]
@@ -388,10 +421,11 @@ def _validated_baseline_receipt(
         raise EvidenceError("baseline test receipt schema is invalid")
     if receipt.get("expected_failure") is not True:
         raise EvidenceError("baseline test receipt is not an expected failure")
-    if receipt.get("exit_code") == 0 or not isinstance(
-        receipt.get("exit_code"), int
-    ):
+    # bool subclasses int, so True would read as exit code 1 and pass.
+    if type(receipt.get("exit_code")) is not int or receipt["exit_code"] <= 0:
         raise EvidenceError("baseline test receipt did not fail")
+    if not isinstance(receipt.get("command"), str) or not receipt["command"].strip():
+        raise EvidenceError("baseline test receipt names no command")
     if receipt.get("linked_commit") != admission.get("baseline_commit"):
         raise EvidenceError("baseline test receipt is not linked to the baseline")
     output = _source_from_event(receipt["output_path"], chain_dir)
@@ -400,8 +434,10 @@ def _validated_baseline_receipt(
     observation = metrics.get("method_observations", {}).get(
         policy["must_be_named_by_method_observation"]
     )
-    if not isinstance(observation, dict) or digest not in observation.get(
-        "evidence_sha256", []
+    if (
+        not isinstance(observation, dict)
+        or observation.get("observed") is not True
+        or digest not in observation.get("evidence_sha256", [])
     ):
         raise EvidenceError(
             "baseline regression observation does not name its receipt"
@@ -753,6 +789,12 @@ def validate_admission(
     ):
         raise EvidenceError("outcome packet identity or schema is invalid")
     _validate_scorer_packet_shape(packet, contract["_scorer_packet_policy"])
+    baseline_reference = admission.get("baseline_test_receipt")
+    if not isinstance(baseline_reference, dict) or not isinstance(
+        baseline_reference.get("sha256"), str
+    ):
+        raise EvidenceError("admission pins no baseline test receipt")
+    baseline_receipt_sha = baseline_reference["sha256"]
     _validated_baseline_receipt(
         admission, metrics, chain_dir, contract["_baseline_receipt_policy"]
     )
@@ -835,6 +877,41 @@ def validate_admission(
         or packet.get("receipt_set_sha256") != receipt_set_sha
     ):
         raise EvidenceError("receipt set digest is invalid")
+
+    # What the scorer reads must be what was retained. Verifying the packet's
+    # own digest proves the packet is intact, not that its contents describe
+    # the run: the bundle, diff and receipts can all be correct while the
+    # scorer is shown something else entirely.
+    payload = packet["scorer_payload"]
+    if payload.get("final_diff_utf8") != final_diff_path.read_bytes().decode(
+        "utf-8", errors="replace"
+    ):
+        raise EvidenceError("scorer payload diff differs from the retained diff")
+    exit_code = payload.get("test_exit_code")
+    if type(exit_code) is not int or exit_code != 0:
+        raise EvidenceError(
+            "scorer payload exit code differs from the retained receipts"
+        )
+    if payload.get("baseline_test_receipt_sha256") != baseline_receipt_sha:
+        raise EvidenceError(
+            "scorer payload baseline receipt differs from the admitted one"
+        )
+
+    retained_digests = {
+        baseline_receipt_sha,
+        final_diff_sha,
+        packet_sha,
+        *(entry["sha256"] for entry in receipt_index),
+        *(
+            entry["sha256"]
+            for entry in admission["input_artifacts"].values()
+            if isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
+        ),
+    }
+    event_log_digest = admission.get("event_log", {}).get("sha256")
+    if isinstance(event_log_digest, str):
+        retained_digests.add(event_log_digest)
+    _assert_observations_resolve(metrics, retained_digests)
 
     bundle = admission.get("git_bundle")
     if not isinstance(bundle, dict):

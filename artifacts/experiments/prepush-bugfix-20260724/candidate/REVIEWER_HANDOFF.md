@@ -4,8 +4,8 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 
 | | Commit |
 |---|---|
-| Candidate manifest | `ad31adb5…66ef4290` |
-| Supersedes | `0ef7db4a…b59d52a0`, in a chain from `51ac1219…a5a6801` |
+| Candidate manifest | `b0a41637…88fa0b75` |
+| Supersedes | `ad31adb5…66ef4290`, in a chain from `51ac1219…a5a6801` |
 
 This document is not itself a candidate file, so it does not appear in the
 manifest. Submit against the branch head.
@@ -27,7 +27,7 @@ Counted Gate 3 execution stands at zero. No successful scorer packet exists.
 **This is the review target.**
 
 Manifest: `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json`
-Manifest SHA-256: `ad31adb5f0c1e47e5f2e6038ff377cf2568062ba72e319d1ff49fbf966ef4290`
+Manifest SHA-256: `b0a4163759dc6896b837964286176ecd9030793fcd0a7bc2852baa4888fa0b75`
 Declared base commit: `3dbafc7f8f75feba485167b09d85345a3c7ac9cc`
 
 Six files, all verified byte-intact against the manifest as of this handoff:
@@ -35,11 +35,11 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 | SHA-256 (prefix) | Bytes | Path |
 |---|---|---|
 | `5f4dc9e7…` | 6447 | `.gitattributes` |
-| `84d0265b…` | 16704 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
+| `2039e7e9…` | 18012 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
 | `2216cbf7…` | 5701 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
-| `a5423920…` | 8194 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
-| `b9b16ef5…` | 101723 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
-| `0158ac8f…` | 82680 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
+| `4f93643c…` | 9228 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
+| `3df1c1ad…` | 105184 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
+| `a9288597…` | 88916 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
 To re-verify independently, start with the narrow check. It reads the manifest
 and the six files and nothing else, so it has no side effects and its failure
@@ -84,9 +84,9 @@ move is a consequence of a required fix, not drift. Current identity:
 
 | | SHA-256 |
 |---|---|
-| Acceptance policy digest | `0766e4c65649ec5451f1a1ee30e9688883c42e60dd9ee07ca9d1a31efa462252` |
+| Acceptance policy digest | `8f73307a45ea13cfaebfaf4ab14a4b220633d08dbe1ca338ec67d85c605070c1` |
 | Semantic contract | `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13` |
-| Route validators | `9e6ec8ec5e160f9285d2393ecc5c9b010a812014576da06cb1b0c6bb70ce685d` |
+| Route validators | `e2cbc77755ba8b3611b431de8c5107809b9d7cae98d25392241618281d4e16c9` |
 
 What the policy admits: cosmetic wrapper variance only — whitespace, key order,
 quoted keys, the result variable's name, a trailing semicolon, direct
@@ -159,7 +159,7 @@ re-evaluated. No additional census tooling, no replacement session.
 
 | Check | Result |
 |---|---|
-| Gate 3 focused suite | 426 passed, 0 failed |
+| Gate 3 focused suite | 437 passed, 0 failed |
 | Canonical precommit (`--mode enforce`) | pass |
 | `verify-candidate` | `status=PASS`, 7/7 |
 | Common-harness rebuild and verify | `status=PASS`, 7/7 |
@@ -170,6 +170,16 @@ re-evaluated. No additional census tooling, no replacement session.
 Not independently reproduced in this repository: the focused-suite count across
 other environments. A prior review environment hit pytest basetemp permission
 errors that were setup failures, not assertion failures.
+
+## Known limits, stated rather than discovered
+
+- The aggregate promotion rule across the three tasks is evaluated by hand.
+  Only the per-task decision and the cost gate have an executable path, so
+  promotion is not fail-closed and must not be described as such.
+- `verify-task-decision` rebuilds the decision semantically and refuses any
+  difference, but does not pin the published receipt's exact bytes: a
+  reformatting of the JSON still verifies. Create-once publication is local,
+  and as the amendment already records, that is not writer authentication.
 
 ## Cannot claim
 

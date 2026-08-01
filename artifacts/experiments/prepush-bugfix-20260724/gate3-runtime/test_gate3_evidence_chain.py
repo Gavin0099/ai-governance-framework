@@ -316,10 +316,8 @@ class Gate3ChainFixture:
                 "receipt_set_sha256": receipt_set_sha,
                 "schema": "gate3-outcome-packet.v1",
                 "scorer_payload": {
-                    "baseline_test_receipt_sha256": hashlib.sha256(
-                        f"baseline {suffix}".encode("utf-8")
-                    ).hexdigest(),
-                    "final_diff_utf8": f"candidate {suffix}",
+                    "baseline_test_receipt_sha256": self.baseline_receipt_sha256,
+                    "final_diff_utf8": final_diff.read_text(encoding="utf-8"),
                     "test_exit_code": 0,
                 },
             },
@@ -1348,15 +1346,19 @@ class Gate3ScorerBlindnessTests(Gate3ChainFixture, unittest.TestCase):
             )
 
     def test_producer_diff_content_is_not_vocabulary_checked(self) -> None:
-        """A fix may legitimately contain any word, including these."""
-        self._seal_with_packet(
-            lambda packet: packet["scorer_payload"].update(
-                {
-                    "final_diff_utf8": (
-                        "def apply_treatment(skill, arm):\n    return skill\n"
-                    )
-                }
-            )
+        """A fix may legitimately contain any word, including these.
+
+        Asserted against the shape validator directly. Sealing would now fail
+        for a different reason: the diff must equal the retained bytes, which
+        is a separate guarantee added later.
+        """
+        packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
+        packet["scorer_payload"]["final_diff_utf8"] = (
+            "def apply_treatment(skill, arm):" + chr(10) + "    return skill"
+        )
+        contract, _ = chain.load_contract(CONTRACT)
+        chain._validate_scorer_packet_shape(
+            packet, contract["_scorer_packet_policy"]
         )
 
 
@@ -2072,3 +2074,132 @@ class Gate3TaskDecisionCliTests(Gate3ChainFixture, unittest.TestCase):
             json.loads(report.read_text(encoding="utf-8"))["error"],
         )
         self.assertFalse(self.receipt.exists())
+
+
+class Gate3ScorerPayloadBindingTests(Gate3ChainFixture, unittest.TestCase):
+    """What the scorer reads must be what was retained.
+
+    Verbatim from the review that found all three accepted. The bundle, diff
+    and receipts can all be correct while the scorer is shown something else.
+    """
+
+    def _seal_with_payload(self, field: str, value: object) -> None:
+        packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
+        packet["scorer_payload"][field] = value
+        write_json(self.packet_b, packet)
+        packet_sha = digest(self.packet_b.read_bytes())
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["output_packet_sha256"] = packet_sha
+        write_json(self.admission_b, admission)
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["artifacts"]["output_packet_sha256"] = packet_sha
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_substituted_diff_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "differs from the retained diff"):
+            self._seal_with_payload(
+                "final_diff_utf8", "THIS IS NOT THE RETAINED DIFF"
+            )
+
+    def test_a_fabricated_exit_code_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "differs from the retained receipts"):
+            self._seal_with_payload("test_exit_code", 999)
+
+    def test_a_boolean_exit_code_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "differs from the retained receipts"):
+            self._seal_with_payload("test_exit_code", True)
+
+    def test_a_fabricated_baseline_digest_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "differs from the admitted one"):
+            self._seal_with_payload("baseline_test_receipt_sha256", "0" * 64)
+
+
+class Gate3ObservationEvidenceTests(Gate3ChainFixture, unittest.TestCase):
+    """An observation whose evidence resolves to nothing is an assertion."""
+
+    def _seal_with_observation(self, name: str, value: dict) -> None:
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["method_observations"][name] = value
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_fabricated_observation_digest_is_refused(self) -> None:
+        """The review's proof-of-concept, verbatim."""
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "resolves to no retained artifact"
+        ):
+            self._seal_with_observation(
+                "claim_bounded_to_evidence",
+                {"observed": True, "evidence_sha256": ["0" * 64]},
+            )
+
+    def test_an_observed_claim_without_evidence_is_refused(self) -> None:
+        # validate_metrics already refuses this, with its own wording.
+        with self.assertRaisesRegex(chain.EvidenceError, "lacks digest evidence"):
+            self._seal_with_observation(
+                "claim_bounded_to_evidence",
+                {"observed": True, "evidence_sha256": []},
+            )
+
+    def test_an_observation_naming_a_retained_artifact_is_accepted(self) -> None:
+        self._seal_with_observation(
+            "claim_bounded_to_evidence",
+            {"observed": True, "evidence_sha256": [self.baseline_receipt_sha256]},
+        )
+
+    def test_an_unobserved_claim_needs_no_evidence(self) -> None:
+        self._seal_with_observation(
+            "claim_bounded_to_evidence",
+            {"observed": False, "evidence_sha256": []},
+        )
+
+
+class Gate3BaselineTypeTests(Gate3ChainFixture, unittest.TestCase):
+    """bool is an int, and an unobserved flag is not an observation."""
+
+    def _reseal(self, mutate) -> None:
+        path = self.evidence_root / "baseline-receipt-b.json"
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+        mutate(receipt)
+        write_json(path, receipt)
+        new_sha = digest(path.read_bytes())
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["baseline_test_receipt"]["sha256"] = new_sha
+        write_json(self.admission_b, admission)
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["method_observations"]["failing_regression_before_fix"][
+            "evidence_sha256"
+        ] = [new_sha]
+        write_json(self.metrics_b, metrics)
+        packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
+        packet["scorer_payload"]["baseline_test_receipt_sha256"] = new_sha
+        write_json(self.packet_b, packet)
+        packet_sha = digest(self.packet_b.read_bytes())
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["output_packet_sha256"] = packet_sha
+        write_json(self.admission_b, admission)
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["artifacts"]["output_packet_sha256"] = packet_sha
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_boolean_exit_code_cannot_impersonate_a_failure(self) -> None:
+        """The review's proof-of-concept, verbatim: exit_code true."""
+        with self.assertRaisesRegex(chain.EvidenceError, "did not fail"):
+            self._reseal(lambda r: r.update({"exit_code": True}))
+
+    def test_a_commandless_baseline_receipt_is_refused(self) -> None:
+        with self.assertRaisesRegex(chain.EvidenceError, "names no command"):
+            self._reseal(lambda r: r.update({"command": "   "}))
+
+    def test_an_unobserved_baseline_flag_is_refused(self) -> None:
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["method_observations"]["failing_regression_before_fix"][
+            "observed"
+        ] = False
+        write_json(self.metrics_b, metrics)
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "does not name its receipt"
+        ):
+            self.seal_pair()
