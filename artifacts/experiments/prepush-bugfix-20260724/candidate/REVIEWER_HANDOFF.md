@@ -4,8 +4,8 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 
 | | Commit |
 |---|---|
-| Candidate manifest | `8975ea60…4eb9e92d` |
-| Supersedes | `38e2bf33…0ccedfb6`, itself superseding `51ac1219…a5a6801` |
+| Candidate manifest | `71b8c2da…c22b00be` |
+| Supersedes | `8975ea60…4eb9e92d`, in a chain from `51ac1219…a5a6801` |
 
 This document is not itself a candidate file, so it does not appear in the
 manifest. Submit against the branch head.
@@ -27,7 +27,7 @@ Counted Gate 3 execution stands at zero. No successful scorer packet exists.
 **This is the review target.**
 
 Manifest: `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json`
-Manifest SHA-256: `8975ea60b8e6f1a98bef8160d0568b89b2de75f6a3d077c7cd7850c34eb9e92d`
+Manifest SHA-256: `71b8c2daa5bccf06d6a9f1d1b09379c7967f95a29738b3ed5b4e12ccc22b00be`
 Declared base commit: `3dbafc7f8f75feba485167b09d85345a3c7ac9cc`
 
 Six files, all verified byte-intact against the manifest as of this handoff:
@@ -38,8 +38,8 @@ Six files, all verified byte-intact against the manifest as of this handoff:
 | `84d0265b…` | 16704 | `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md` |
 | `9ea0ed43…` | 4433 | `artifacts/…/candidate/gate3-harness-contract-v1.json` |
 | `4df41f4e…` | 7580 | `artifacts/…/candidate/gate3-protocol-contract-v1.json` |
-| `e0687fb8…` | 86721 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
-| `c4957157…` | 64151 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
+| `abf5fcf3…` | 94105 | `artifacts/…/gate3-runtime/gate3_evidence_chain.py` |
+| `81ecffe2…` | 71585 | `artifacts/…/gate3-runtime/test_gate3_evidence_chain.py` |
 
 To re-verify independently, start with the narrow check. It reads the manifest
 and the six files and nothing else, so it has no side effects and its failure
@@ -84,9 +84,9 @@ move is a consequence of a required fix, not drift. Current identity:
 
 | | SHA-256 |
 |---|---|
-| Acceptance policy digest | `60a1761ca30c629466e776cd3807d59d5d87fd07f67266a1b4aa06941d7aecbd` |
+| Acceptance policy digest | `d2433ed4e15da49856adae837afc9597de249cb89eaa27be775a72d691e5a081` |
 | Semantic contract | `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13` |
-| Route validators | `f655202aa151ae3bbee215654a1b787d0dbe659d024f4f28ded44f5382fe0e5e` |
+| Route validators | `0b5b931c3c285938badf1e344fb67ca81dcb1bd927368d7bb9e2f283334e1e4e` |
 
 What the policy admits: cosmetic wrapper variance only — whitespace, key order,
 quoted keys, the result variable's name, a trailing semicolon, direct
@@ -159,7 +159,7 @@ re-evaluated. No additional census tooling, no replacement session.
 
 | Check | Result |
 |---|---|
-| Gate 3 focused suite | 402 passed, 0 failed |
+| Gate 3 focused suite | 414 passed, 0 failed |
 | Canonical precommit (`--mode enforce`) | pass |
 | `verify-candidate` | `status=PASS`, 7/7 |
 | Common-harness rebuild and verify | `status=PASS`, 7/7 |

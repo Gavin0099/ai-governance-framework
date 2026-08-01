@@ -1552,6 +1552,8 @@ def build_task_decision(
     roles = list(contract["scorer_submission"]["roles"])
     if study_kind not in contract["evidence_chain"]["mapping_treatments"]:
         raise EvidenceError("task decision study_kind is not registered")
+    if not isinstance(task_id, str) or not task_id or task_id.strip() != task_id:
+        raise EvidenceError("task decision task_id must be non-empty and trimmed")
     if not isinstance(pairs, list) or len(pairs) < 2:
         raise EvidenceError("task decision requires at least two pairs")
     if len(pairs) > maximum:
@@ -1561,8 +1563,15 @@ def build_task_decision(
     for pair in pairs:
         pair_id = pair.get("pair_id")
         repeat_index = pair.get("repeat_index")
-        if not isinstance(pair_id, str) or not pair_id.strip():
+        if (
+            not isinstance(pair_id, str)
+            or not pair_id
+            or pair_id.strip() != pair_id
+        ):
             raise EvidenceError("task decision pair_id must be non-empty")
+        # bool is a subclass of int, so True would pass as repeat_index 1.
+        if type(repeat_index) is not int:
+            raise EvidenceError("task decision repeat_index must be an integer")
         if pair_id in seen_ids:
             raise EvidenceError("task decision repeats a pair_id")
         seen_ids.add(pair_id)
@@ -1590,6 +1599,19 @@ def build_task_decision(
                 )
     if seen_indexes != set(range(1, len(pairs) + 1)):
         raise EvidenceError("task decision repeat_index sequence has a gap")
+    pairs = sorted(pairs, key=lambda pair: pair["repeat_index"])
+    if len(pairs) == maximum:
+        # The third pair is only authorized by what the first two produced.
+        # Without this, a decided task can be reopened by appending a pair
+        # until the counts move, which is optional stopping through the back
+        # door and defeats the frozen sample size.
+        head_counts, _, head_non_completed = _pair_qualifying_counts(
+            pairs[: maximum - 1], contract
+        )
+        if head_counts["A"] != head_counts["B"] and not head_non_completed:
+            raise EvidenceError(
+                "third pair is unauthorized: the first two pairs decided the task"
+            )
     counts, detail, any_non_completed = _pair_qualifying_counts(pairs, contract)
     conflicted = [
         {
@@ -1622,20 +1644,128 @@ def build_task_decision(
     }
 
 
+def _source_under_root(relative: object, root: Path) -> Path:
+    """Resolve a path recorded relative to an evidence root.
+
+    _source_from_event resolves against a chain directory's parent, which is
+    one level too high for a root-relative reference and silently reads the
+    wrong tree.
+    """
+    if not isinstance(relative, str) or not relative:
+        raise EvidenceError("task decision source path is invalid")
+    candidate = root.joinpath(*relative.split("/"))
+    try:
+        candidate.resolve().relative_to(root.resolve())
+    except ValueError as exc:
+        raise EvidenceError("task decision source path escapes evidence root") from exc
+    return candidate
+
+
+TASK_DECISION_RUN_FIELDS = ("primary", "second", "verifier")
+
+
+def _load_pair_sources(
+    sources: list[dict[str, Any]],
+    evidence_root: Path,
+    contract_path: Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Load pairs from pinned artifacts rather than from the caller.
+
+    A verifier handed the same dictionaries the builder used verifies nothing:
+    coordinated edits to source and receipt agree with each other. These are
+    read from disk, checked against the digests the receipt pins, and bound to
+    the sealed chain head of the pair they came from.
+    """
+    loaded: list[dict[str, Any]] = []
+    pinned: list[dict[str, Any]] = []
+    for source in sources:
+        chain_dir = _source_under_root(source.get("chain_dir"), evidence_root)
+        report = verify_chain(chain_dir, contract_path)
+        if report["head_sha256"] != source.get("chain_head_sha256"):
+            raise EvidenceError("task decision pair chain head differs")
+        runs: dict[str, Any] = {}
+        pinned_runs: dict[str, Any] = {}
+        artifacts = source.get("runs")
+        if not isinstance(artifacts, dict) or set(artifacts) != {"A", "B"}:
+            raise EvidenceError("task decision pair must pin exactly two arms")
+        for arm in ("A", "B"):
+            entry = artifacts[arm]
+            if not isinstance(entry, dict) or set(entry) != set(
+                TASK_DECISION_RUN_FIELDS
+            ):
+                raise EvidenceError("task decision run must pin exactly three roles")
+            run: dict[str, Any] = {}
+            pinned_run: dict[str, Any] = {}
+            for role in TASK_DECISION_RUN_FIELDS:
+                reference = entry[role]
+                if not isinstance(reference, dict) or set(reference) != {
+                    "path",
+                    "sha256",
+                }:
+                    raise EvidenceError("task decision artifact reference is invalid")
+                path = _source_under_root(reference["path"], evidence_root)
+                if _sha256_file(path) != reference["sha256"]:
+                    raise EvidenceError("task decision artifact digest mismatch")
+                run[role] = _load_json(path)
+                pinned_run[role] = dict(reference)
+            runs[arm] = run
+            pinned_runs[arm] = pinned_run
+        loaded.append(
+            {
+                "pair_id": source["pair_id"],
+                "repeat_index": source["repeat_index"],
+                "runs": runs,
+            }
+        )
+        pinned.append(
+            {
+                "chain_dir": source["chain_dir"],
+                "chain_head_sha256": source["chain_head_sha256"],
+                "pair_id": source["pair_id"],
+                "repeat_index": source["repeat_index"],
+                "runs": pinned_runs,
+            }
+        )
+    return loaded, pinned
+
+
+def publish_task_decision(
+    receipt_path: Path,
+    task_id: str,
+    study_kind: str,
+    sources: list[dict[str, Any]],
+    evidence_root: Path,
+    contract_path: Path,
+) -> Path:
+    """Build the decision from pinned artifacts and publish it create-once."""
+    contract, _ = load_contract(contract_path)
+    pairs, pinned = _load_pair_sources(sources, evidence_root, contract_path)
+    decision = build_task_decision(task_id, study_kind, pairs, contract)
+    decision["pair_sources"] = pinned
+    _publish_create_once(receipt_path, _json_bytes(decision))
+    return receipt_path
+
+
 def verify_task_decision(
     receipt: dict[str, Any],
-    pairs: list[dict[str, Any]],
-    contract: dict[str, Any],
+    evidence_root: Path,
+    contract_path: Path,
 ) -> dict[str, Any]:
-    """Recompute the decision and refuse any receipt that differs."""
+    """Reload the pinned sources, recompute, and refuse any difference."""
     if receipt.get("schema") != TASK_DECISION_SCHEMA:
         raise EvidenceError("task decision schema is invalid")
+    sources = receipt.get("pair_sources")
+    if not isinstance(sources, list) or not sources:
+        raise EvidenceError("task decision does not pin its pair sources")
+    contract, _ = load_contract(contract_path)
+    pairs, pinned = _load_pair_sources(sources, evidence_root, contract_path)
     rebuilt = build_task_decision(
-        str(receipt.get("task_id", "")),
+        receipt.get("task_id"),
         str(receipt.get("study_kind", "")),
         pairs,
         contract,
     )
+    rebuilt["pair_sources"] = pinned
     if receipt != rebuilt:
         raise EvidenceError("task decision differs from the recomputed decision")
     return rebuilt
@@ -2071,6 +2201,21 @@ def _parser() -> argparse.ArgumentParser:
     )
     verify.add_argument("--json-out")
 
+    decide = sub.add_parser("publish-task-decision")
+    decide.add_argument("--receipt", required=True)
+    decide.add_argument("--task-id", required=True)
+    decide.add_argument("--study-kind", required=True)
+    decide.add_argument("--sources", required=True)
+    decide.add_argument("--evidence-root", required=True)
+    decide.add_argument("--contract", required=True)
+    decide.add_argument("--json-out")
+
+    verify_decision = sub.add_parser("verify-task-decision")
+    verify_decision.add_argument("--receipt", required=True)
+    verify_decision.add_argument("--evidence-root", required=True)
+    verify_decision.add_argument("--contract", required=True)
+    verify_decision.add_argument("--json-out")
+
     build = sub.add_parser("build-candidate-manifest")
     build.add_argument("--repo-root", required=True)
     build.add_argument("--out", required=True)
@@ -2158,6 +2303,34 @@ def main(argv: list[str] | None = None) -> int:
                 Path(args.out),
                 args.source_base_commit,
             )
+            print(json.dumps(result, sort_keys=True))
+        elif args.command == "publish-task-decision":
+            published = publish_task_decision(
+                Path(args.receipt),
+                args.task_id,
+                args.study_kind,
+                _load_json(Path(args.sources))["pair_sources"],
+                Path(args.evidence_root),
+                Path(args.contract),
+            )
+            result = {
+                "receipt_sha256": _sha256_file(published),
+                "status": "PASS",
+            }
+            _write_report(args.json_out, result)
+            print(json.dumps(result, sort_keys=True))
+        elif args.command == "verify-task-decision":
+            decision = verify_task_decision(
+                _load_json(Path(args.receipt)),
+                Path(args.evidence_root),
+                Path(args.contract),
+            )
+            result = {
+                "status": "PASS",
+                "task_status": decision["status"],
+                "winner": decision["winner"],
+            }
+            _write_report(args.json_out, result)
             print(json.dumps(result, sort_keys=True))
         elif args.command == "verify-candidate":
             result = verify_candidate(
