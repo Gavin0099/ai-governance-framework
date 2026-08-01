@@ -69,15 +69,15 @@ def _rejected_with_secret() -> str:
     )
 
 
-def test_scan_counts_acceptance_per_cli_version(tmp_path: Path) -> None:
+def test_scan_counts_acceptance_per_cli_class(tmp_path: Path) -> None:
     _corpus(tmp_path, "1.0.0", [_accepted(), _rejected_with_secret()])
-    _corpus(tmp_path, "2.0.0", [_rejected_with_secret()])
+    _corpus(tmp_path, "not-a-version", [_rejected_with_secret()])
     report = scan.scan(tmp_path, min_signature_count=1)
     assert report["exec_tool_calls"] == 3
     assert report["exec_tool_calls_accepted"] == 1
-    assert report["by_cli_version"] == {
-        "1.0.0": {"accepted": 1, "total": 2},
-        "2.0.0": {"accepted": 0, "total": 1},
+    assert report["by_cli_class"] == {
+        "other_valid_semver": {"accepted": 1, "total": 2},
+        "unknown_or_invalid": {"accepted": 0, "total": 1},
     }
     assert report["sessions_with_exec_calls"] == 2
 
@@ -204,3 +204,219 @@ def test_unparsable_lines_and_non_exec_calls_are_ignored(
 def test_main_refuses_a_missing_sessions_root(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         scan.main(["--sessions-root", str(tmp_path / "absent")])
+
+
+# --- publication boundary -------------------------------------------------
+#
+# Keeping full reports out of version control used to be a convention: a
+# .gitignore rule matching one filename pattern, plus whoever ran the command.
+# These cover what the tool now refuses on its own.
+
+
+def _sessions(tmp_path: Path) -> Path:
+    root = tmp_path / "sessions"
+    root.mkdir()
+    _corpus(root, "1.0.0", [_accepted(), _rejected_with_secret()])
+    return root
+
+
+def _repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    return repo
+
+
+def test_full_report_is_refused_inside_a_git_work_tree(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    with pytest.raises(SystemExit) as failure:
+        scan.main(
+            [
+                "--sessions-root",
+                str(_sessions(tmp_path)),
+                "--out",
+                str(repo / "evidence" / "report.json"),
+            ]
+        )
+    assert "git repository" in str(failure.value)
+    assert not (repo / "evidence").exists()
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["report.json", "wrapper-corpus-scan.json", "notes.txt", ".hidden.json"],
+)
+def test_renaming_the_output_does_not_bypass_the_boundary(
+    tmp_path: Path,
+    name: str,
+) -> None:
+    """The old .gitignore rule matched one filename pattern. This does not."""
+    repo = _repo(tmp_path)
+    with pytest.raises(SystemExit) as failure:
+        scan.main(
+            [
+                "--sessions-root",
+                str(_sessions(tmp_path)),
+                "--out",
+                str(repo / name),
+            ]
+        )
+    assert "git repository" in str(failure.value)
+
+
+def test_boundary_holds_for_a_nested_repository(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    nested = repo / "a" / "b" / "c"
+    nested.mkdir(parents=True)
+    with pytest.raises(SystemExit):
+        scan.main(
+            [
+                "--sessions-root",
+                str(_sessions(tmp_path)),
+                "--out",
+                str(nested / "report.json"),
+            ]
+        )
+
+
+def test_full_report_is_never_written_to_stdout(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as failure:
+        scan.main(["--sessions-root", str(_sessions(tmp_path))])
+    assert "--out" in str(failure.value)
+    assert capsys.readouterr().out == ""
+
+
+def test_full_report_writes_outside_version_control(tmp_path: Path) -> None:
+    out = tmp_path / "private" / "report.json"
+    assert scan._enclosing_git_root(out.parent) is None, (
+        "test precondition: the destination must not be under a git work tree"
+    )
+    assert scan.main(
+        [
+            "--sessions-root",
+            str(_sessions(tmp_path)),
+            "--out",
+            str(out),
+        ]
+    ) == 0
+    written = json.loads(out.read_text(encoding="utf-8"))
+    assert written["exec_tool_calls"] == 2
+    assert not list(out.parent.glob("*.partial"))
+
+
+def test_aggregate_only_may_still_go_to_stdout(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The reviewable shape stays usable; only the full report is confined."""
+    assert scan.main(
+        ["--sessions-root", str(_sessions(tmp_path)), "--aggregate-only"]
+    ) == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["aggregate_only"] is True
+    assert "by_cli_class" not in printed
+
+
+def test_a_refused_write_leaves_no_partial_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    out = tmp_path / "private" / "report.json"
+
+    def explode(*_args: object, **_kwargs: object) -> None:
+        raise OSError("disk went away")
+
+    monkeypatch.setattr(scan.os, "replace", explode)
+    with pytest.raises(OSError):
+        scan.main(
+            [
+                "--sessions-root",
+                str(_sessions(tmp_path)),
+                "--out",
+                str(out),
+            ]
+        )
+    assert not out.exists()
+    assert not list(out.parent.glob("*.partial"))
+
+
+# --- cli version normalization --------------------------------------------
+
+
+def test_pinned_and_other_versions_are_classified_not_echoed(
+    tmp_path: Path,
+) -> None:
+    _corpus(tmp_path, live.DEFAULT_CLI_VERSION, [_accepted()])
+    _corpus(tmp_path, "0.145.0-alpha.18", [_rejected_with_secret()])
+    report = scan.scan(tmp_path, min_signature_count=1)
+    assert report["by_cli_class"] == {
+        "other_valid_semver": {"accepted": 0, "total": 1},
+        "pinned": {"accepted": 1, "total": 1},
+    }
+    encoded = json.dumps(report, sort_keys=True)
+    # No value read out of the corpus survives. The pinned version does appear,
+    # as the report's own `pinned_cli_version` label, but that is a constant
+    # published in this repository, not something the corpus told us.
+    assert "0.145.0-alpha.18" not in encoded
+    assert encoded.count(live.DEFAULT_CLI_VERSION) == 1
+    assert report["pinned_cli_version"] == live.DEFAULT_CLI_VERSION
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "C:/Users/daish/builds/codex-custom",
+        "internal-build-daish-laptop",
+        "0.146.0 (built by daish)",
+        "",
+        "x" * (scan.MAX_CLI_VERSION_LENGTH + 1),
+        None,
+        12345,
+        {"version": "0.146.0"},
+    ],
+)
+def test_hostile_cli_version_metadata_never_reaches_the_report(
+    tmp_path: Path,
+    value: object,
+) -> None:
+    """The field is free text; it must be classified, never carried through."""
+    assert scan._cli_version_class(value) == "unknown_or_invalid"
+    path = tmp_path / "rollout.jsonl"
+    path.write_text(
+        _record({"payload": {"cli_version": value}, "type": "session_meta"})
+        + "\n"
+        + _record(
+            {
+                "payload": {
+                    "input": _rejected_with_secret(),
+                    "name": "exec",
+                    "type": "custom_tool_call",
+                },
+                "type": "response_item",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = scan.scan(tmp_path, min_signature_count=1)
+    assert report["by_cli_class"] == {
+        "unknown_or_invalid": {"accepted": 0, "total": 1}
+    }
+    encoded = json.dumps(report, sort_keys=True)
+    if isinstance(value, str) and value:
+        assert value not in encoded
+    assert "daish" not in encoded
+    assert live._privacy_violations(encoded.encode("utf-8")) == []
+
+
+def test_every_emitted_cli_class_is_a_declared_class(tmp_path: Path) -> None:
+    _corpus(tmp_path, live.DEFAULT_CLI_VERSION, [_accepted()])
+    _corpus(tmp_path, "not-a-version", [_rejected_with_secret()])
+    report = scan.scan(tmp_path, min_signature_count=1)
+    assert set(report["by_cli_class"]) <= set(scan.CLI_VERSION_CLASSES)
+    for entry in report["rejected_signatures"]:
+        assert set(entry["cli_classes"]) <= set(scan.CLI_VERSION_CLASSES)

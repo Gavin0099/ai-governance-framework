@@ -15,16 +15,23 @@ refused if ``_privacy_violations`` finds anything.
 Passing that check is not a licence to publish. It shows no obvious sensitive
 string survived; it does not show that statistics derived from someone's
 private sessions are fit to publish. A full report describes a usage profile --
-which CLI builds, how much, which rare structures -- and a rare structure can
-identify a session on its own. Two defaults exist for that reason:
+how much, which rare structures -- and a rare structure can identify a session
+on its own. So a full report is treated as private working material, and that
+is enforced here rather than left to whoever runs the command:
 
+* it must be written to ``--out``, never to stdout, where a session log or a
+  terminal scrollback would keep a copy;
+* ``--out`` is refused if it resolves inside any git work tree, so it cannot
+  be staged from here under any filename;
+* it is written atomically, so an interrupted or refused run leaves nothing;
 * ``--min-signature-count`` folds thinly-attested signatures into a count-only
-  bucket, so no classification rests on a handful of sessions.
-* ``--aggregate-only`` drops the per-version and per-signature breakdowns
-  entirely and keeps the totals and the cosmetic/privilege split, which is the
-  shape to use if a report is ever reviewed for publication.
+  bucket, so no classification rests on a handful of sessions;
+* CLI build strings are classified, never echoed. That field is free text and
+  can carry a custom build name, a path or an account name.
 
-Treat a full report as local working material.
+``--aggregate-only`` keeps the totals and the cosmetic/privilege split and
+drops every breakdown. That is the only shape to consider for publication, and
+then only after human review.
 
 Usage:
     python gate3_wrapper_corpus_scan.py --sessions-root <dir> --out <report>
@@ -35,7 +42,10 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
+import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -76,13 +86,34 @@ def _signature(source: str) -> dict[str, Any]:
     }
 
 
+CLI_VERSION_CLASSES = ("pinned", "other_valid_semver", "unknown_or_invalid")
+SEMVER_RE = re.compile(
+    r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
+)
+# A build string is free text. It has been seen carrying custom build names,
+# and nothing stops it carrying a path or an account name. Classify it and
+# discard the value; a version string is not worth the risk of echoing.
+MAX_CLI_VERSION_LENGTH = 64
+
+
+def _cli_version_class(value: object) -> str:
+    if not isinstance(value, str) or len(value) > MAX_CLI_VERSION_LENGTH:
+        return "unknown_or_invalid"
+    if value == live.DEFAULT_CLI_VERSION:
+        return "pinned"
+    if SEMVER_RE.fullmatch(value):
+        return "other_valid_semver"
+    return "unknown_or_invalid"
+
+
 def _exec_inputs(path: Path):
-    """Yield (cli_version, tool input) for exec calls in one rollout."""
+    """Yield (cli version class, tool input) for exec calls in one rollout."""
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return
-    cli_version = "<unknown>"
+    cli_version = "unknown_or_invalid"
     for line in text.splitlines():
         line = line.strip()
         if not line:
@@ -97,7 +128,7 @@ def _exec_inputs(path: Path):
         if not isinstance(payload, dict):
             continue
         if record.get("type") == "session_meta":
-            cli_version = str(payload.get("cli_version", "<unknown>"))
+            cli_version = _cli_version_class(payload.get("cli_version"))
         if (
             payload.get("type") != "custom_tool_call"
             or payload.get("name") != "exec"
@@ -109,6 +140,63 @@ def _exec_inputs(path: Path):
 
 
 DEFAULT_MIN_SIGNATURE_COUNT = 5
+
+
+class PublicationBoundaryError(Exception):
+    """Refusal to put a full report anywhere it could be published."""
+
+
+def _enclosing_git_root(path: Path) -> Path | None:
+    for candidate in (path, *path.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return None
+
+
+def _private_destination(out: Path) -> Path:
+    """Resolve a full-report destination, refusing anything under version control.
+
+    Keeping full reports out of the repository used to rest on a ``.gitignore``
+    rule matching one filename pattern and on whoever ran the command. Neither
+    survives a rename or a different ``--out``. The destination is checked
+    after symlink resolution, and against any enclosing git work tree rather
+    than only this repository, so a full report cannot be staged from here.
+    """
+    resolved = out.expanduser().resolve()
+    if resolved.is_dir():
+        raise PublicationBoundaryError(
+            "full report destination is a directory; name the file"
+        )
+    git_root = _enclosing_git_root(resolved.parent)
+    if git_root is not None:
+        raise PublicationBoundaryError(
+            "refusing to write a full report inside a git repository "
+            f"({git_root}). Write it outside version control, or use "
+            "--aggregate-only for a shape that is reviewable for publication."
+        )
+    return resolved
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Write via a temporary sibling, so a failure leaves nothing behind."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        newline="\n",
+        dir=path.parent,
+        prefix=f"{path.name}.",
+        suffix=".partial",
+        delete=False,
+    )
+    temporary = Path(handle.name)
+    try:
+        with handle:
+            handle.write(text)
+        os.replace(temporary, path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def scan(
@@ -136,11 +224,11 @@ def scan(
             unknown_fields_seen += signature["unknown_field_count"]
             key = json.dumps(signature, sort_keys=True)
             entry = signatures.setdefault(
-                key, {**signature, "count": 0, "cli_versions": {}}
+                key, {**signature, "count": 0, "cli_classes": {}}
             )
             entry["count"] += 1
-            entry["cli_versions"][cli_version] = (
-                entry["cli_versions"].get(cli_version, 0) + 1
+            entry["cli_classes"][cli_version] = (
+                entry["cli_classes"].get(cli_version, 0) + 1
             )
         if seen_any:
             sessions += 1
@@ -148,7 +236,7 @@ def scan(
         signatures.values(), key=lambda entry: (-entry["count"], entry["envelope"])
     )
     for entry in all_signatures:
-        entry["cli_versions"] = dict(sorted(entry["cli_versions"].items()))
+        entry["cli_classes"] = dict(sorted(entry["cli_classes"].items()))
     retained = [
         entry for entry in all_signatures if entry["count"] >= min_signature_count
     ]
@@ -194,7 +282,7 @@ def scan(
     if aggregate_only:
         report["aggregate_only"] = True
         return report
-    report["by_cli_version"] = {
+    report["by_cli_class"] = {
         version: {"accepted": accepted.get(version, 0), "total": count}
         for version, count in sorted(totals.items())
     }
@@ -223,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
         "--aggregate-only",
         action="store_true",
         help=(
-            "drop the per-version and per-signature breakdowns; use this "
+            "drop the per-class and per-signature breakdowns; use this "
             "shape if a report is ever reviewed for publication"
         ),
     )
@@ -232,6 +320,24 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("sessions root is not a directory")
     if args.min_signature_count < 1:
         raise SystemExit("minimum signature count must be at least 1")
+    # Resolve the destination before reading anything. A refusal should cost
+    # nothing and, more importantly, should not happen with a full report
+    # already built and one line away from being printed.
+    destination: Path | None = None
+    if args.aggregate_only:
+        destination = args.out.expanduser().resolve() if args.out else None
+    else:
+        if args.out is None:
+            raise SystemExit(
+                "a full report needs --out. It is private working material, "
+                "so it is not written to stdout, where a session log would "
+                "capture it. Use --aggregate-only for a shape that can be "
+                "reviewed for publication."
+            )
+        try:
+            destination = _private_destination(args.out)
+        except PublicationBoundaryError as error:
+            raise SystemExit(str(error)) from error
     report = scan(
         args.sessions_root,
         min_signature_count=args.min_signature_count,
@@ -241,9 +347,8 @@ def main(argv: list[str] | None = None) -> int:
     violations = live._privacy_violations(encoded.encode("utf-8"))
     if violations:
         raise SystemExit(f"corpus report is not privacy-safe: {violations}")
-    if args.out is not None:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(encoded, encoding="utf-8", newline="\n")
+    if destination is not None:
+        _atomic_write(destination, encoded)
     else:
         sys.stdout.write(encoded)
     return 0
