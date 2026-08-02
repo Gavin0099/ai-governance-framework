@@ -2186,12 +2186,29 @@ class Gate3ObservationEvidenceTests(Gate3ChainFixture, unittest.TestCase):
 class Gate3DiffByteBindingTests(Gate3ChainFixture, unittest.TestCase):
     """The packet diff must encode to the retained bytes exactly."""
 
-    def _seal_with_diff(self, value: object) -> None:
+    def _seal_with_diff(
+        self,
+        payload_diff: object,
+        *,
+        retained: bytes | None = None,
+    ) -> None:
+        """Rewrite the diff coherently, so only the new check can refuse it.
+
+        Every digest that already binds the diff is updated first. Without
+        that, the run stops at the top-level final_diff_sha256 binding and the
+        test passes whether or not the exact-byte check exists at all.
+        """
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
         packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
-        packet["scorer_payload"]["final_diff_utf8"] = value
+        if retained is not None:
+            diff_path = self.evidence_root / admission["final_diff"]["path"]
+            diff_path.write_bytes(retained)
+            diff_sha = digest(retained)
+            admission["final_diff"]["sha256"] = diff_sha
+            packet["final_diff_sha256"] = diff_sha
+        packet["scorer_payload"]["final_diff_utf8"] = payload_diff
         write_json(self.packet_b, packet)
         packet_sha = digest(self.packet_b.read_bytes())
-        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
         admission["output_packet_sha256"] = packet_sha
         write_json(self.admission_b, admission)
         metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
@@ -2202,26 +2219,53 @@ class Gate3DiffByteBindingTests(Gate3ChainFixture, unittest.TestCase):
     def test_a_replacement_character_cannot_stand_for_invalid_bytes(
         self,
     ) -> None:
-        """The regression for this review.
+        """A lossy decode is many-to-one.
 
-        A lossy decode is many-to-one: retained 0xFF and a packet carrying
-        U+FFFD both decoded to the same string and compared equal. Encoding
-        instead makes that impossible, and an invalid-UTF-8 diff fails closed
-        because no string encodes to it.
+        Retained 0xFF and a packet carrying U+FFFD both decoded to the same
+        string and compared equal. Every other digest binding the diff is
+        updated here, so the exact-byte check is the only thing left that can
+        refuse it, and the assertion names that refusal.
         """
-        diff_path = self.evidence_root / "final-diff-b.patch"
-        diff_path.write_bytes(bytes([0xFF, 0xFE]) + b" not valid utf-8" + bytes([0x0A]))
-        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
-        admission["final_diff"]["sha256"] = digest(diff_path.read_bytes())
-        write_json(self.admission_b, admission)
-        with self.assertRaises(chain.EvidenceError):
+        with self.assertRaisesRegex(
+            chain.EvidenceError,
+            "scorer payload diff differs from the retained diff",
+        ):
             self._seal_with_diff(
-                "�� not valid utf-8" + chr(10)
+                "�� not valid utf-8" + chr(10),
+                retained=bytes([0xFF, 0xFE])
+                + b" not valid utf-8"
+                + bytes([0x0A]),
+            )
+
+    def test_a_coherently_substituted_diff_is_refused(self) -> None:
+        """Valid UTF-8, every digest consistent, still not the retained diff."""
+        with self.assertRaisesRegex(
+            chain.EvidenceError,
+            "scorer payload diff differs from the retained diff",
+        ):
+            self._seal_with_diff(
+                "this is not the retained diff" + chr(10),
+                retained=b"--- a/calc.py" + bytes([0x0A]),
             )
 
     def test_a_non_string_diff_is_refused(self) -> None:
-        with self.assertRaises(chain.EvidenceError):
+        with self.assertRaisesRegex(
+            chain.EvidenceError,
+            "scorer payload diff differs from the retained diff",
+        ):
             self._seal_with_diff(None)
+
+    def test_the_matching_diff_is_accepted(self) -> None:
+        """Baseline: the check is not refusing everything.
+
+        The retained diff is left alone. Rewriting it would fail earlier
+        against the bundled commits, which is a different guarantee.
+        """
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        retained = (
+            self.evidence_root / admission["final_diff"]["path"]
+        ).read_bytes()
+        self._seal_with_diff(retained.decode("utf-8"))
 
 
 class Gate3BaselineTypeTests(Gate3ChainFixture, unittest.TestCase):

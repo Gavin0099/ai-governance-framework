@@ -227,10 +227,11 @@ fails at the baseline commit, not from the method observation asserting it;
 receipts. An observation may be marked observed only where the contract declares an
 evidence kind for it and every digest it names is a retained artifact of that
 kind. Only `failing_regression_before_fix` has one. The remaining five method
-observations have no artifact that specifically supports them, so they are
-recorded as unverified self-report and must not be described as
-evidence-backed; naming some unrelated retained artifact would prove only that
-the artifact exists.
+observations have no artifact that specifically supports them, so they cannot
+be marked observed. They are not recorded as self-report either: nothing
+preserves a producer assertion about them, so they are simply unmeasured and
+must not be cited as evidence of anything. Naming some unrelated retained
+artifact would prove only that the artifact exists.
 
 What the scorer reads is bound to what was retained. The packet's diff must encode
 to the retained final diff bytes exactly, with an invalid-UTF-8 diff failing

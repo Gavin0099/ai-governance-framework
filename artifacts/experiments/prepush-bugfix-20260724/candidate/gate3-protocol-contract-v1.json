@@ -179,6 +179,14 @@
       "changed_files",
       "diff_bytes"
     ],
+    "disabled_as_verified_observations": [
+      "claim_bounded_to_evidence",
+      "defect_reintroduction_performed",
+      "post_restore_retest_performed",
+      "reproduction_before_first_edit",
+      "root_cause_recorded_before_first_edit"
+    ],
+    "disabled_observation_rationale": "No retained artifact specifically supports these, so they cannot be marked observed. They are not recorded as self-report either: no field preserves a producer assertion about them, so they are simply unmeasured and must not be cited as evidence of anything.",
     "method_observation_evidence_kinds": {
       "failing_regression_before_fix": [
         "baseline_test_receipt"
@@ -198,15 +206,7 @@
       "completed",
       "timed_out",
       "failed"
-    ],
-    "unverified_self_report_observations": [
-      "claim_bounded_to_evidence",
-      "defect_reintroduction_performed",
-      "post_restore_retest_performed",
-      "reproduction_before_first_edit",
-      "root_cause_recorded_before_first_edit"
-    ],
-    "unverified_self_report_rationale": "No retained artifact specifically supports these, so they cannot be marked observed and must not be described as evidence-backed. Recording them as unverified is honest; presenting them as verified would not be."
+    ]
   },
   "schema": "gate3-protocol-contract.v1",
   "scorer_packet_binding": {
