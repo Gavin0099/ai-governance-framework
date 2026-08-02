@@ -35,6 +35,8 @@ DEFAULT_CANDIDATE_MANIFEST = (
 DEFAULT_SKILL_PACKET = EXPERIMENT_ROOT / "skill-packet-bugfix.md"
 DEFAULT_SESSION_LAUNCHER = HERE / "gate3_codex_session_launcher.ps1"
 DEFAULT_PAIR_RUNNER = HERE / "gate3_codex_pair_runner.ps1"
+DEFAULT_CREDENTIAL_COMMON = HERE / "gate3_codex_credential_common.ps1"
+DEFAULT_CALIBRATION_RUNNER = HERE / "gate3_codex_calibration_runner.ps1"
 DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
 
 SUMMARY_SCHEMA = "gate3-codex-live-canary.v4"
@@ -1549,6 +1551,9 @@ def prepare(
             "frozen_route": {
                 "cli_version": cli_version,
                 "comp_hash": comp_hash,
+                "credential_common_implementation_sha256": _sha256_file(
+                    DEFAULT_CREDENTIAL_COMMON
+                ),
                 "launcher_implementation_sha256": _sha256_file(
                     DEFAULT_SESSION_LAUNCHER
                 ),
@@ -2658,6 +2663,9 @@ def _validate_credential_runner_receipt(
         "auth_route": "chatgpt",
         "credential_seed_compare": "PASS",
         "implementation": {
+            "credential_common_sha256": plan["frozen_route"][
+                "credential_common_implementation_sha256"
+            ],
             "launcher_sha256": plan["frozen_route"][
                 "launcher_implementation_sha256"
             ],
@@ -2963,6 +2971,9 @@ def _build_orchestrated(
         "frozen_route": plan["frozen_route"],
         "harness_implementation_sha256": _sha256_file(Path(__file__)),
         "implementation": plan["implementation"],
+        "credential_common_implementation_sha256": _sha256_file(
+            DEFAULT_CREDENTIAL_COMMON
+        ),
         "launcher_implementation_sha256": _sha256_file(
             DEFAULT_SESSION_LAUNCHER
         ),
@@ -3670,6 +3681,9 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
     expected_frozen_route = {
         "cli_version": DEFAULT_CLI_VERSION,
         "comp_hash": DEFAULT_COMP_HASH,
+        "credential_common_implementation_sha256": _sha256_file(
+            DEFAULT_CREDENTIAL_COMMON
+        ),
         "launcher_implementation_sha256": _sha256_file(
             DEFAULT_SESSION_LAUNCHER
         ),

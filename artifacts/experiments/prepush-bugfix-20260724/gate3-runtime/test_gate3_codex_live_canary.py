@@ -1732,11 +1732,21 @@ def test_public_privacy_scan_rejects_credential_markers(
     assert violation in live._privacy_violations(payload)
 
 
-def _credential_plan(path: Path, pair_runner: Path, launcher: Path) -> Path:
+def _credential_plan(
+    path: Path,
+    pair_runner: Path,
+    launcher: Path,
+    credential_common: Path | None = None,
+) -> Path:
+    if credential_common is None:
+        credential_common = pair_runner.parent / "gate3_codex_credential_common.ps1"
     path.write_bytes(
         live._json_bytes(
             {
                 "frozen_route": {
+                    "credential_common_implementation_sha256": live._sha256_file(
+                        credential_common
+                    ),
                     "launcher_implementation_sha256": live._sha256_file(
                         launcher
                     ),
@@ -1761,6 +1771,9 @@ def _valid_credential_receipt(
         "auth_route": "chatgpt",
         "credential_seed_compare": "PASS",
         "implementation": {
+            "credential_common_sha256": live._sha256_file(
+                pair_runner.parent / live.DEFAULT_CREDENTIAL_COMMON.name
+            ),
             "launcher_sha256": live._sha256_file(launcher),
             "pair_runner_sha256": live._sha256_file(pair_runner),
         },
@@ -1950,6 +1963,11 @@ def _run_fake_pair(
         newline="\n",
     )
     launcher.write_bytes(live.DEFAULT_SESSION_LAUNCHER.read_bytes())
+    # The shared credential primitives must travel with the runner: it
+    # dot-sources them and pins their digest.
+    (runtime / live.DEFAULT_CREDENTIAL_COMMON.name).write_bytes(
+        live.DEFAULT_CREDENTIAL_COMMON.read_bytes()
+    )
     route_plan = _credential_plan(
         root / "route-plan.json", pair_runner, launcher
     )
@@ -2151,9 +2169,17 @@ def test_pair_runner_binds_production_auth_and_user_temp() -> None:
         "([Environment]::GetFolderPath('UserProfile')) "
         "'.codex\\auth.json'"
     ) in source
-    assert "[System.IO.Path]::GetTempPath()" in source
+    # The user-Temp confinement moved into the shared credential file, which
+    # the runner dot-sources and pins. Assert both halves, so the guarantee
+    # cannot be lost by the extraction.
+    assert "Get-UserTempRoot" in source
     assert "pair_runner_implementation_sha256" in source
     assert "launcher_implementation_sha256" in source
+    assert "credential_common_implementation_sha256" in source
+    common = live.DEFAULT_CREDENTIAL_COMMON.read_text(encoding="utf-8")
+    assert "[System.IO.Path]::GetTempPath()" in common
+    assert "function Assert-UserTempPath" in common
+    assert "function Copy-PrivateCredential" in common
     launcher = live.DEFAULT_SESSION_LAUNCHER.read_text(encoding="utf-8")
     assert "[string]$ExpectedLauncherSha256" in launcher
     assert "$observedLauncherSha256 -ne $ExpectedLauncherSha256" in launcher
