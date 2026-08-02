@@ -179,6 +179,12 @@
       "changed_files",
       "diff_bytes"
     ],
+    "method_observation_evidence_kinds": {
+      "failing_regression_before_fix": [
+        "baseline_test_receipt"
+      ]
+    },
+    "method_observation_evidence_policy": "An observation may be marked observed only if this mapping declares an evidence kind for it and every digest it names is a retained artifact of that kind. Naming some other retained artifact proves the artifact exists, not that it supports the observation.",
     "method_observation_fields": [
       "reproduction_before_first_edit",
       "root_cause_recorded_before_first_edit",
@@ -192,12 +198,21 @@
       "completed",
       "timed_out",
       "failed"
-    ]
+    ],
+    "unverified_self_report_observations": [
+      "claim_bounded_to_evidence",
+      "defect_reintroduction_performed",
+      "post_restore_retest_performed",
+      "reproduction_before_first_edit",
+      "root_cause_recorded_before_first_edit"
+    ],
+    "unverified_self_report_rationale": "No retained artifact specifically supports these, so they cannot be marked observed and must not be described as evidence-backed. Recording them as unverified is honest; presenting them as verified would not be."
   },
   "schema": "gate3-protocol-contract.v1",
   "scorer_packet_binding": {
     "baseline_test_receipt_sha256": "must_equal_the_admitted_baseline_receipt_digest",
-    "final_diff_utf8": "must_equal_the_retained_final_diff_bytes",
+    "final_diff_encoding_policy": "Exact byte equality after UTF-8 encoding. A lossy decode is many-to-one: distinct retained bytes can compare equal through the replacement character, so a diff that is not valid UTF-8 fails closed instead.",
+    "final_diff_utf8": "must_encode_to_the_retained_final_diff_bytes_exactly",
     "policy": "scorer_visible_content_must_equal_the_retained_artifacts_it_describes",
     "rationale": "The bundle, diff and receipts can all verify while the scorer is shown different content. Packet integrity is not packet truthfulness.",
     "test_exit_code": "must_equal_the_aggregate_exit_code_of_the_retained_test_receipts"

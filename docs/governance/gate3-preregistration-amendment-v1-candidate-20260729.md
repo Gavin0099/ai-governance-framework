@@ -224,12 +224,17 @@ metrics flags. `completed_under_cap` comes from the sealed run metrics;
 `regression_baseline_fail` comes from a retained baseline test receipt that
 fails at the baseline commit, not from the method observation asserting it;
 `regression_passes_after_fix` comes from the exit codes of the retained test
-receipts. Every observed method observation must name a digest that resolves
-to a retained artifact, so an observation whose evidence resolves to nothing
-is refused.
+receipts. An observation may be marked observed only where the contract declares an
+evidence kind for it and every digest it names is a retained artifact of that
+kind. Only `failing_regression_before_fix` has one. The remaining five method
+observations have no artifact that specifically supports them, so they are
+recorded as unverified self-report and must not be described as
+evidence-backed; naming some unrelated retained artifact would prove only that
+the artifact exists.
 
-What the scorer reads is bound to what was retained. The packet's diff must
-equal the retained final diff bytes, its exit code must equal the aggregate of
+What the scorer reads is bound to what was retained. The packet's diff must encode
+to the retained final diff bytes exactly, with an invalid-UTF-8 diff failing
+closed rather than comparing equal through replacement characters, its exit code must equal the aggregate of
 the retained receipts, and its baseline receipt digest must equal the admitted
 one. Packet integrity alone would let every artifact verify while the scorer
 scored different content.

@@ -2116,7 +2116,11 @@ class Gate3ScorerPayloadBindingTests(Gate3ChainFixture, unittest.TestCase):
 
 
 class Gate3ObservationEvidenceTests(Gate3ChainFixture, unittest.TestCase):
-    """An observation whose evidence resolves to nothing is an assertion."""
+    """Evidence must be of a kind that can support the observation.
+
+    Resolving to some retained artifact proves the artifact exists. A baseline
+    failure receipt says nothing about whether the producer bounded its claims.
+    """
 
     def _seal_with_observation(self, name: str, value: dict) -> None:
         metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
@@ -2125,34 +2129,99 @@ class Gate3ObservationEvidenceTests(Gate3ChainFixture, unittest.TestCase):
         self.seal_pair()
 
     def test_a_fabricated_observation_digest_is_refused(self) -> None:
-        """The review's proof-of-concept, verbatim."""
-        with self.assertRaisesRegex(
-            chain.EvidenceError, "resolves to no retained artifact"
-        ):
+        with self.assertRaises(chain.EvidenceError):
             self._seal_with_observation(
                 "claim_bounded_to_evidence",
                 {"observed": True, "evidence_sha256": ["0" * 64]},
             )
 
-    def test_an_observed_claim_without_evidence_is_refused(self) -> None:
-        # validate_metrics already refuses this, with its own wording.
-        with self.assertRaisesRegex(chain.EvidenceError, "lacks digest evidence"):
+    def test_an_unrelated_retained_artifact_is_not_evidence(self) -> None:
+        """The regression for this review.
+
+        This previously passed: the baseline receipt is retained, so the
+        digest resolved, so the observation was accepted. Existence is not
+        support.
+        """
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "no verifiable evidence kind"
+        ):
             self._seal_with_observation(
                 "claim_bounded_to_evidence",
-                {"observed": True, "evidence_sha256": []},
+                {
+                    "observed": True,
+                    "evidence_sha256": [self.baseline_receipt_sha256],
+                },
             )
 
-    def test_an_observation_naming_a_retained_artifact_is_accepted(self) -> None:
+    def test_the_baseline_observation_accepts_its_own_receipt(self) -> None:
+        """The one observation with a declared evidence kind."""
         self._seal_with_observation(
-            "claim_bounded_to_evidence",
-            {"observed": True, "evidence_sha256": [self.baseline_receipt_sha256]},
+            "failing_regression_before_fix",
+            {
+                "observed": True,
+                "evidence_sha256": [self.baseline_receipt_sha256],
+            },
         )
+
+    def test_the_baseline_observation_rejects_another_kind(self) -> None:
+        """Refused by the baseline-specific check, which runs first and is
+        stricter: it requires that observation to name its own receipt."""
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        other = admission["receipts"][0]["sha256"]
+        with self.assertRaisesRegex(
+            chain.EvidenceError, "does not name its receipt"
+        ):
+            self._seal_with_observation(
+                "failing_regression_before_fix",
+                {"observed": True, "evidence_sha256": [other]},
+            )
 
     def test_an_unobserved_claim_needs_no_evidence(self) -> None:
         self._seal_with_observation(
             "claim_bounded_to_evidence",
             {"observed": False, "evidence_sha256": []},
         )
+
+
+class Gate3DiffByteBindingTests(Gate3ChainFixture, unittest.TestCase):
+    """The packet diff must encode to the retained bytes exactly."""
+
+    def _seal_with_diff(self, value: object) -> None:
+        packet = json.loads(self.packet_b.read_text(encoding="utf-8"))
+        packet["scorer_payload"]["final_diff_utf8"] = value
+        write_json(self.packet_b, packet)
+        packet_sha = digest(self.packet_b.read_bytes())
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["output_packet_sha256"] = packet_sha
+        write_json(self.admission_b, admission)
+        metrics = json.loads(self.metrics_b.read_text(encoding="utf-8"))
+        metrics["artifacts"]["output_packet_sha256"] = packet_sha
+        write_json(self.metrics_b, metrics)
+        self.seal_pair()
+
+    def test_a_replacement_character_cannot_stand_for_invalid_bytes(
+        self,
+    ) -> None:
+        """The regression for this review.
+
+        A lossy decode is many-to-one: retained 0xFF and a packet carrying
+        U+FFFD both decoded to the same string and compared equal. Encoding
+        instead makes that impossible, and an invalid-UTF-8 diff fails closed
+        because no string encodes to it.
+        """
+        diff_path = self.evidence_root / "final-diff-b.patch"
+        diff_path.write_bytes(bytes([0xFF, 0xFE]) + b" not valid utf-8" + bytes([0x0A]))
+        admission = json.loads(self.admission_b.read_text(encoding="utf-8"))
+        admission["final_diff"]["sha256"] = digest(diff_path.read_bytes())
+        write_json(self.admission_b, admission)
+        with self.assertRaises(chain.EvidenceError):
+            self._seal_with_diff(
+                "�� not valid utf-8" + chr(10)
+            )
+
+    def test_a_non_string_diff_is_refused(self) -> None:
+        with self.assertRaises(chain.EvidenceError):
+            self._seal_with_diff(None)
 
 
 class Gate3BaselineTypeTests(Gate3ChainFixture, unittest.TestCase):

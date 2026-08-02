@@ -7,9 +7,9 @@
       "sha256": "5f4dc9e7371f6b62caa33c18cbf79cee5fed3101d8c0e3ef112b2f1d9e3e8557"
     },
     {
-      "bytes": 18012,
+      "bytes": 18439,
       "path": "docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md",
-      "sha256": "2039e7e952a6a8a7be5e83b75da94bf51b1a7a021df477b5b471062c82eb63c9"
+      "sha256": "b06580c872896ab6e807e01bee5383f36f4f27a91c772785c4f84ebf370fc639"
     },
     {
       "bytes": 5701,
@@ -17,19 +17,19 @@
       "sha256": "2216cbf7d6ba128ce0840361457799ccac36a5aef54c13e170932335b4d25615"
     },
     {
-      "bytes": 9228,
+      "bytes": 10424,
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json",
-      "sha256": "4f93643c2e92ee47aa4e3e3e22068bc251f7abdcce5c02501eb60dd0e03458e9"
+      "sha256": "c599623f892f83838b5f34fb3e39cf28cbf1b4981b8612de45276c63197f6def"
     },
     {
-      "bytes": 105184,
+      "bytes": 106119,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
-      "sha256": "3df1c1ad4b6a80e9e092544fba7f4684484a31bba8217de5547e2a29d9bc332d"
+      "sha256": "1d20ea1ce5da19b04f5205779efad60ce7cadadc74d3ceb17a544097d765209e"
     },
     {
-      "bytes": 88916,
+      "bytes": 91856,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py",
-      "sha256": "a92885972cb40482085858c03e17ea76037a7a34de93b1e1fef58775a74ab341"
+      "sha256": "8e118201b89bd051b0884803369502acedc69f59def3214d8a5c380cd75a1174"
     }
   ],
   "not_claimed": [

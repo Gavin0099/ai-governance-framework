@@ -361,14 +361,19 @@ def _scorer_visible_strings(value: Any, *, keys: bool = True):
 
 def _assert_observations_resolve(
     metrics: dict[str, Any],
-    known_digests: set[str],
+    typed_digests: dict[str, set[str]],
+    contract: dict[str, Any],
 ) -> None:
-    """Every observed method observation must name retained evidence.
+    """An observation may only cite evidence of a kind that can support it.
 
-    Checking that a digest is sixty-four hex characters proves it is a digest,
-    not that it describes anything. An observation whose evidence resolves to
-    nothing is an assertion wearing the shape of proof.
+    Resolving to some retained artifact proves the artifact exists. A baseline
+    failure receipt says nothing about whether the producer bounded its claims,
+    so accepting it as evidence for that observation was a category error, not
+    a looser check. Observations with no declared evidence kind cannot be
+    marked observed at all; the contract records them as unverified
+    self-report rather than dressing them as evidence-backed.
     """
+    allowed = contract["run_metrics"]["method_observation_evidence_kinds"]
     observations = metrics.get("method_observations")
     if not isinstance(observations, dict):
         raise EvidenceError("sealed metrics carry no method observations")
@@ -377,15 +382,25 @@ def _assert_observations_resolve(
             raise EvidenceError("method observation is malformed")
         if observation.get("observed") is not True:
             continue
+        kinds = allowed.get(name)
+        if not kinds:
+            raise EvidenceError(
+                "method observation has no verifiable evidence kind and "
+                "cannot be marked observed"
+            )
+        permitted: set[str] = set()
+        for kind in kinds:
+            permitted |= typed_digests.get(kind, set())
         evidence = observation.get("evidence_sha256")
         if not isinstance(evidence, list) or not evidence:
             raise EvidenceError(
                 "observed method observation carries no evidence"
             )
         for digest in evidence:
-            if digest not in known_digests:
+            if digest not in permitted:
                 raise EvidenceError(
-                    "method observation evidence resolves to no retained artifact"
+                    "method observation evidence is not of a kind that "
+                    "supports it"
                 )
 
 
@@ -883,9 +898,14 @@ def validate_admission(
     # the run: the bundle, diff and receipts can all be correct while the
     # scorer is shown something else entirely.
     payload = packet["scorer_payload"]
-    if payload.get("final_diff_utf8") != final_diff_path.read_bytes().decode(
-        "utf-8", errors="replace"
-    ):
+    # Encode and compare bytes. Decoding with errors="replace" is many-to-one:
+    # distinct retained bytes collapse onto the replacement character and would
+    # compare equal. A diff that is not valid UTF-8 has no string that encodes
+    # to it, so it fails closed here.
+    payload_diff = payload.get("final_diff_utf8")
+    if not isinstance(payload_diff, str) or payload_diff.encode(
+        "utf-8"
+    ) != final_diff_path.read_bytes():
         raise EvidenceError("scorer payload diff differs from the retained diff")
     exit_code = payload.get("test_exit_code")
     if type(exit_code) is not int or exit_code != 0:
@@ -897,21 +917,16 @@ def validate_admission(
             "scorer payload baseline receipt differs from the admitted one"
         )
 
-    retained_digests = {
-        baseline_receipt_sha,
-        final_diff_sha,
-        packet_sha,
-        *(entry["sha256"] for entry in receipt_index),
-        *(
-            entry["sha256"]
-            for entry in admission["input_artifacts"].values()
-            if isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
-        ),
+    typed_digests = {
+        "baseline_test_receipt": {baseline_receipt_sha},
+        "final_diff": {final_diff_sha},
+        "output_packet": {packet_sha},
+        "test_receipt": {entry["sha256"] for entry in receipt_index},
     }
     event_log_digest = admission.get("event_log", {}).get("sha256")
     if isinstance(event_log_digest, str):
-        retained_digests.add(event_log_digest)
-    _assert_observations_resolve(metrics, retained_digests)
+        typed_digests["event_log"] = {event_log_digest}
+    _assert_observations_resolve(metrics, typed_digests, contract)
 
     bundle = admission.get("git_bundle")
     if not isinstance(bundle, dict):
