@@ -1835,14 +1835,66 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   admission, Gate 3 start, or any counted execution. Counted Gate 3 execution
   remains at zero.
 
+- [x] **Final authorized non-counted canary v6 executed 2026-08-02 and failed
+  at `packet_build`. Gate 3 is PAUSED. Counted execution remains 0.** Run
+  `gate3-codex-auth-v6-20260802-130957`, authorized as exactly two sessions
+  with no replacement under `non_counted_codex_live_canary_only`. The
+  authorization is consumed and no replacement was run.
+
+  Execution succeeded and admission did not. Credential preflight PASS, both
+  arm logins PASS, runner receipt VALID, exactly two session invocations, exit
+  code 0 on both arms, cleanup PASS with zero residue classes, no success
+  packet attempted, present or admitted, `scoreable` false. The privacy-safe
+  negative receipt is retained unmodified at SHA-256
+  `12edf19a0165f0e5de76f3eeea397a0a5d91193b02b520b6a9aa582111174765`.
+
+  What the evidence does and does not support, stated carefully because the
+  first summary of this run overstated it:
+
+  - The wrapper was **not** tested. `wrapper_mismatch_counts` is zero for both
+    arms in both phases, and that means the parser never reached the wrapper
+    scan, not that the wrappers matched. Session context identity is validated
+    at `gate3_codex_live_canary.py:1846` and the wrapper scan begins at
+    `:1970`, so the run stopped before admission of tool inputs was ever
+    attempted. No claim about wrapper conformance may be drawn from this run.
+  - The root cause is operator-observed, not independently reproducible from
+    the retained public evidence. The runtime error named `originator` as the
+    frozen context field that differed. The receipt records only
+    `failure_stage=packet_build`; it carries no fixed-vocabulary mismatch
+    field, and the private rollouts were wiped by cleanup. The cause is
+    therefore consistent with the code's fail-closed branch but cannot be
+    re-derived from the public artifact.
+  - Arm A's diagnostics are internally inconsistent: `source_census` is
+    populated and `parse_phases.source` is `FAIL` while
+    `census_status.source` reads `not_attempted`. The census is written before
+    the context check raises, but `census_status` is only set by the
+    diagnostic completion pass, which skips a phase that is no longer
+    `NOT_RUN`. The four-cell diagnostic state cannot be described as
+    internally consistent. Left unfixed in this slice deliberately.
+
+  Stop-line disposition: the handoff carries two limits, at most one further
+  non-counted pair and no replacement session. The wrapper clause was an
+  additional trigger, not a condition that grants further attempts when a
+  failure is non-wrapper. The single authorized pair has been used, so no
+  further live pair is authorized and none may be requested without the owner
+  explicitly revising the stop line.
+
+  Not done in this slice and not to be inferred: no census fix, no relaxation
+  of the frozen `originator` expectation, no re-authorization. Whether
+  `originator` belongs in the frozen identity at all is an offline decision;
+  changing it would alter the signed contract and require fresh review,
+  signature and promotion rather than reuse of the 2026-08-02 approval.
+
 ### Gate 3 Live Canary Readiness As Of 2026-08-01
 
 Stated deliberately narrowly. An earlier revision of this section described
 the remaining work as a final stretch before counted execution; that was too
 optimistic and is corrected here.
 
-Gate 3 has entered live-canary route hardening. It is several independent
-gates away from counted execution, and counted execution remains at zero.
+Gate 3 is PAUSED as of 2026-08-02. The single authorized non-counted canary
+was executed and failed at `packet_build`; the authorization is consumed and
+counted execution remains at zero. Resuming requires an owner decision to
+revise the stop line, not merely another fix.
 
 - Codex launcher, credential seeding, authentication and session execution:
   passing. v4 and v5 each invoked exactly two sessions with exit code 0 on
