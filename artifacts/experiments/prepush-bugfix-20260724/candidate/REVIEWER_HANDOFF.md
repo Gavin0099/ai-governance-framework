@@ -10,9 +10,23 @@ Branch `codex/gate3-gpt-live-canary-v3-clean`, prepared 2026-08-01.
 This document is not itself a candidate file, so it does not appear in the
 manifest. Submit against the branch head.
 
-## What is being asked of you
+## Status: signed 2026-08-02
 
-Independent review of the preregistration candidate bytes, so the owner can
+Independent semantic review returned APPROVED and the owner signed exact
+manifest `d64817c2ceb190f43764b0d08c098deb821ca4755e273e045dec34812cc97d00`
+at commit `32e109d8`. Canonical promotion is recorded in `PLAN.md`.
+
+The signature is append-only, so no signed byte was edited. The manifest's own
+`authorization` field therefore still reads
+`pending_independent_review_and_owner_signature`: editing it would change the
+digest that was signed. The PLAN entry is the authority record.
+
+This document is retained as the review packet. What follows describes what
+was reviewed.
+
+## What was asked of the reviewer
+
+Independent review of the preregistration candidate bytes, so the owner could
 sign them. Nothing here authorizes Gate 3, and nothing here asks you to
 approve the acceptance implementation — that is deliberately not part of the
 signed set. See the four sections below; they are separate on purpose and
@@ -141,10 +155,11 @@ This authorization is not Gate 3 start authority and does not require Gate 3 to
 have been started. The two were conflated in an earlier record and that is
 corrected. Correct order:
 
-1. Independent review of section 1 ← **you are here**
-2. Owner exact-byte signature
-3. Canonical promotion
+1. Independent review of section 1 — done, APPROVED
+2. Owner exact-byte signature — done 2026-08-02
+3. Canonical promotion — done, recorded in PLAN
 4. Separate exact-two/no-replacement authorization; run the final canary
+   ← **outstanding**
 5. Natural-bug and resource admission
 6. Separate Gate 3 start authority
 7. Counted execution

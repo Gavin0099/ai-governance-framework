@@ -1808,6 +1808,33 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   variance without proving the model will comply. Owner decision on
   2026-08-01 was to change neither surface yet and continue offline.
 
+- [x] **Gate 3 preregistration amendment v1 independently approved and owner
+  signed 2026-08-02 at exact manifest SHA-256
+  `d64817c2ceb190f43764b0d08c098deb821ca4755e273e045dec34812cc97d00`
+  (commit `32e109d8`).** Independent semantic review returned APPROVED after
+  the final two findings, typed observation evidence and exact diff-byte
+  binding, were closed and their regressions were shown to detect the absence
+  of the checks they name. The owner approved that exact digest.
+
+  The signature is append-only. No signed byte was edited, following the
+  amendment v4 precedent: the amendment is `files[1]` of the signed manifest,
+  so editing its status line would invalidate the signature it carries. For
+  the same reason the manifest's own `authorization` field still reads
+  `pending_independent_review_and_owner_signature` — editing it would change
+  the very digest that was signed. This PLAN line is the authority record and
+  supersedes that field; a reader who consults only the manifest will see the
+  pre-signature wording, which is a known and deliberate cost of append-only
+  signing.
+
+  Canonical promotion is recorded here rather than by rewriting a pointer,
+  because Gate 3 has no separate preflight manifest of the kind the Gate 2
+  promotion updated. Nothing was recomputed. `verify-candidate` was re-run
+  after promotion and the signed bytes verified UNCHANGED at 7/7 PASS.
+
+  This does not authorize the final canary, natural-bug or resource
+  admission, Gate 3 start, or any counted execution. Counted Gate 3 execution
+  remains at zero.
+
 ### Gate 3 Live Canary Readiness As Of 2026-08-01
 
 Stated deliberately narrowly. An earlier revision of this section described
