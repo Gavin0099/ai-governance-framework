@@ -83,24 +83,22 @@ _CORE_SESSION_START_KEYS: frozenset[str] = frozenset({
     "fidelity",
     "origin",
     "summary_kind",
+    # version compatibility + controlled-refusal surface, stable since 2026-05-03
+    "advisory_only",
+    "disabled_runtime_features",
+    "enabled_runtime_features",
+    "error",
+    "legacy_capability_policy",
+    "missing_migrations",
+    "mode",
+    "reason",
+    "repo_manifest_found",
+    "status",
+    "verdict",
+    "version_compatibility",
 })
 
-# version compatibility + controlled_refusal surface — admitted 154ad4d / governance-runtime-policy
-# _run_version_compatibility_advisory() and _build_controlled_refusal_result() return these.
-# advisory_only/mode/reason/status/verdict govern session blocking; others are informational.
 _TRANSITIONAL_SESSION_START_KEYS: dict[str, dict] = {
-    "advisory_only":             {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "disabled_runtime_features": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "enabled_runtime_features":  {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "error":                     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "legacy_capability_policy":  {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "missing_migrations":        {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "mode":                      {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "reason":                    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "repo_manifest_found":       {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "status":                    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "verdict":                   {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "version_compatibility":     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
     # P1a session lifecycle identity; metadata only, not a decision input.
     "session_envelope":          {"status": "transitional", "expected": "core", "admitted_date": "2026-07-29", "source_commit": "a0683a5c"},
 }
@@ -139,27 +137,25 @@ _CORE_PRE_TASK_KEYS: frozenset[str] = frozenset({
     "observations",
     "signals_checked",
     "snapshot",
+    # Context signal / evidence quality helpers, stable since 2026-05-03.
+    "action_decision",
+    "alternative_root_causes",
+    "destructive_change",
+    "direct_evidence_frozen",
+    "evidence",
+    "external_side_effect",
+    "has_no_evidence_marker",
+    "has_strong_marker",
+    "partial_context",
+    "reframed_task",
+    "shared_interface",
+    "source",
+    "stated_premise",
+    "user_asserts_root_cause",
+    "valid_request",
 })
 
-# context signal / evidence quality helpers — admitted 154ad4d / governance-runtime-policy
-# _evaluate_context_signals() and _evaluate_evidence_quality() helper return dicts;
-# AST scans all return-dict literals, not only the top-level run_pre_task_check().
 _TRANSITIONAL_PRE_TASK_KEYS: dict[str, dict] = {
-    "action_decision":       {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "alternative_root_causes": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "destructive_change":    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "direct_evidence_frozen": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "evidence":              {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "external_side_effect":  {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "has_no_evidence_marker": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "has_strong_marker":     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "partial_context":       {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "reframed_task":         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "shared_interface":      {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "source":                {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "stated_premise":        {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "user_asserts_root_cause": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "valid_request":         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
 }
 
 KNOWN_PRE_TASK_KEYS = _CORE_PRE_TASK_KEYS | frozenset(_TRANSITIONAL_PRE_TASK_KEYS)
@@ -189,14 +185,15 @@ _CORE_POST_TASK_KEYS: frozenset[str] = frozenset({
     "rules",
     "snapshot",
     "warnings",
+    # Assumption and phase-classification results, stable since 2026-05-03.
+    "assumption_advisories",
+    "assumption_check",
+    "phase_classification",
 })
 
 # assumption check + phase classification — admitted 154ad4d / governance-runtime-policy
 # consumption pattern visibility v0.1 — admitted 288521a / 2026-05-05
 _TRANSITIONAL_POST_TASK_KEYS: dict[str, dict] = {
-    "assumption_advisories":                    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "assumption_check":                         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "phase_classification":                     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
     # consumption pattern visibility (helper return dict keys)
     "by_consumer":                              {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
     "by_field":                                 {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
