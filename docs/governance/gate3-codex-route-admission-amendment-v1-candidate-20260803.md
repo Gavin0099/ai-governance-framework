@@ -9,9 +9,10 @@ separate implementation, review, signature and promotion sequence completes.
 
 ## Purpose
 
-Record the owner's evidence-informed ruling for the two context fields left
-open by the approved Gate 3 Codex route simplification specification:
-`originator` and `source`.
+Record the owner's evidence-informed rulings for the context and instruction
+identity fields left open by the approved Gate 3 Codex route simplification
+specification and the two calibration probes: `originator`, `source`,
+`context_window`, `git`, and the unresolved developer-instruction source.
 
 The ruling replaces neither the existing preregistration candidate nor its
 manifest. It is a candidate input to a future admission revision.
@@ -30,6 +31,14 @@ rationale = execution and instruction surface identity;
             cross-pair drift is validity-critical
 ```
 
+Follow-up owner rulings accepted on `2026-08-03`:
+
+```text
+context_window = new structural inventory row for per-session identity
+git = new structural inventory row for initial repository identity
+developer instruction = unresolved; observed v2 digest is not an admission anchor
+```
+
 Calibration source:
 
 | Field | Value |
@@ -37,6 +46,7 @@ Calibration source:
 | run ID | `gate3-codex-calibration-v1-20260803-150000` |
 | execution source commit | `76aac8302a8c1e2b8f7ecbcf7a8b1c0313b11290` |
 | public receipt schema | `gate3-codex-calibration-probe-receipt.v3` |
+| repo-bound public receipt | `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-calibration-v1-20260803-150000.calibration.json` |
 | public receipt bytes | `8139` |
 | public receipt SHA-256 | `d333ad13ce2b6c5a3ce841cd465efc0c646ad1a6f3e1fcfe3f32a23c4e5faab2` |
 | session invocations | exactly `1` |
@@ -67,10 +77,15 @@ Follow-up calibration and independent read-only disposition review:
 | execution source commit | `34b022102550eaa1236bf6f344e3c7c5c5523357` |
 | public receipt schema | `gate3-codex-calibration-probe-receipt.v4` |
 | nested public calibration schema | `gate3-codex-calibration-public-receipt.v2` |
+| repo-bound public receipt | `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-calibration-v2-20260803-215100.calibration.json` |
 | public receipt bytes | `7904` |
 | public receipt SHA-256 | `9166b24d5801c9ad64cfdba09cf00d25a7926ed8dcb08a294e6b9253aff52e71` |
 | session invocations | exactly `1` |
 | orchestrator retries | `0` |
+| observed wrapper calls | `0` |
+| observed turns | `1` |
+| observed session metadata records | `1` |
+| path match census | all five match counts were `0` |
 | formal admission performed | `false` |
 | scoreable | `false` |
 | cleanup | `PASS` |
@@ -83,6 +98,25 @@ from the public receipt, and the ordered developer-instruction structure. The
 review published only the privacy-safe field dispositions and structural
 comparison below. It published no private artifact path or digest, credential,
 raw value, instruction content or rollout.
+
+The follow-up session issued no tool call, so it exercised no wrapper shape and
+did not observe repository state after a producer commit. Its path census also
+reported zero matches for session metadata cwd, turn cwd, machine cwd, turn
+workspace root and machine workspace root. The calibration therefore supports
+closed structural inspection of the recorded metadata only. It does not prove
+wrapper acceptance, expected-workspace placement, post-commit Git projection,
+or a complete producer workflow. The original calibration issued only one tool
+call and therefore could not have completed the producer workflow.
+
+A later owner-authorized, read-only inspection of the official Codex `0.146.0`
+package and source at tag `rust-v0.146.0` (commit
+`e363b08c9175ac1cbe5893615dd2cb9ddf95043b`) established the structural and
+semantic sources needed to classify `context_window` and `git`. No Codex
+session was launched and no package binary was executed during that
+inspection. The source establishes that `context_window.window_id` is a
+UUIDv7 session-window identity rather than token capacity, and that `git` is
+an optional repository projection containing `commit_hash`, `branch`, and
+`repository_url`.
 
 ## Ruling
 
@@ -124,11 +158,16 @@ The two values may not be learned or replaced from a counted run.
 
 ## Instruction identity observed with the ruling
 
-The calibration session observed one base-instruction content anchor:
+Both calibration sessions observed the same base-instruction content identity:
 
 ```text
 072920a4e81002dc96aa4b7be4e9079c81edcfc0c93ea4e6cd4a31fb50f299db
 ```
+
+Disposition: **stable across the two observed calibrations (`2/2`), but
+observation only in this amendment**. This candidate does not replace the
+simplification specification's existing `D then B / experiment` treatment and
+does not promote the observed digest to a new frozen anchor.
 
 The original calibration observed two developer-instruction records with two
 distinct content digests, so its historical anchor status was correctly
@@ -140,11 +179,30 @@ This is both cardinality drift and content drift, not merely a collapse from
 two records to one. The historical `multiple` statement remains run-specific
 history and is not rewritten.
 
-No canonical developer-instruction record structure or normalized content
-anchor is established by these observations. The approved simplification
-specification continues to require an explicit owner choice, independent
-review and pre-counted-run freezing before such an anchor can govern formal
-admission.
+The follow-up calibration observed the following developer-instruction
+identity:
+
+```text
+record count = exactly 1
+ordered structure = one-record singleton list
+normalized content SHA-256 =
+  31c31c4ac9a140c384fc9ac9159101c92662e48369416aa40998a29d841a1a1d
+status = observation only; not an admission anchor
+```
+
+This value is not calibration-frozen. The original and follow-up probes used
+the same CLI version, model/build identity, base-instruction anchor, launcher,
+live-canary route and byte-identical repository `AGENTS.md`, yet the developer
+records changed from two records to one and the digest sets did not overlap.
+The repo-side launcher does not inject those developer records, and the
+retained evidence does not identify their controlling source. Freezing the v2
+digest would therefore make admission depend on an unexplained, presently
+uncontrolled input.
+
+The historical two-record observation remains run-specific evidence and is
+not rewritten. Formal admission must remain blocked until the developer-record
+source is identified, its authority and normalization boundary are specified,
+and a replacement rule passes independent review before any counted run.
 
 ## Follow-up calibration field dispositions
 
@@ -164,58 +222,119 @@ anchor.
 
 ### `context_window`
 
-Disposition: **genuinely new admission field**.
+Disposition: **new coverage inventory row (E); structurally validated
+observational session identity**.
 
-Reason: no closed-inventory row currently covers context-capacity metadata,
-and capacity may affect producer behavior. This amendment records the field's
-existence but does not choose hard-frozen, calibration-frozen, pair-equal,
-normalized-equal or observational semantics for it. Formal admission must
-remain fail closed until an explicit owner ruling is independently reviewed
-and promoted before any counted run.
+Reason: official Codex `0.146.0` source defines this field as an optional
+`SessionContextWindow` whose `window_id` is generated as UUIDv7. It is not the
+model token-capacity field and therefore must not be frozen to a capacity
+literal or treated as a pair-equal value. The follow-up v2 calibration observed
+the object (`1/1`). The v1 public receipt exposes only an aggregate unknown-field
+count and cannot establish whether `context_window` was present. The official
+source structure and owner ruling support the candidate presence rule, but the
+public calibration evidence does not prove presence across two probes or an
+unexercised complete producer lifecycle.
+
+Required treatment:
+
+- admission must consume exactly one initial `session_meta` record emitted
+  before the first tool call;
+- the initial `context_window` object must be present and its exact key set must
+  be `{ "window_id" }`;
+- `window_id` must be a valid UUIDv7 string;
+- the A and B sessions must have distinct `window_id` values; and
+- no observed `window_id` may become an exact-value, calibration-frozen, or
+  pair-equal anchor.
+
+A missing or additional initial metadata record, missing object, unknown
+subfield, invalid UUIDv7 value, or reuse across the A/B sessions must fail
+closed. No claim is made that a window identity remains unchanged across
+compaction or another later session-lifecycle event; the calibration did not
+exercise that lifecycle.
 
 ### `git`
 
-Disposition: **unresolved**.
+Disposition: **new coverage inventory row (E); initial repository projection**.
 
-Reason: a name-only census cannot prove whether the field aliases the frozen
-baseline Git identity, represents additional repository state, or contains a
-separate nested structure. Formal admission must remain fail closed until a
-privacy-safe type/subfield projection or a separately reviewed owner ruling
-proves its mapping. It must not be silently aliased from its name.
+Reason: official Codex `0.146.0` source defines `git` as the optional repository
+projection collected from the session working directory, with optional
+`commit_hash`, `branch`, and `repository_url` fields. This source inspection
+defines the structure, but the zero path-match census does not prove that the
+calibration ran in the expected synthetic workspace. The rule below therefore
+binds only the unique initial session metadata record and does not claim that
+the calibration verified a post-commit projection. Presence is required because
+the formal route requires every arm to start inside a fresh synthetic Git
+repository; absence would contradict that admitted route rather than represent
+an allowed non-Git variant.
 
-None of the three fields is classified as **already covered structure** on the
-available evidence.
+Required treatment:
+
+- admission must consume the same unique initial `session_meta` record emitted
+  before the first tool call;
+- the `git` object must be present; its allowed key set is
+  `{ "commit_hash", "branch", "repository_url" }`, and its required keys are
+  `commit_hash` and `branch`;
+- the initial `commit_hash` must exactly equal the frozen baseline commit;
+- `branch` must be a non-empty string and pair-equal across A and B, but is not
+  frozen to a historical literal; and
+- `repository_url` must either be absent or be JSON `null`; both representations
+  mean that the fresh synthetic repository has no remote, while any non-null
+  value must fail closed.
+
+A missing or additional initial metadata record, missing object, unknown
+subfield, missing or mismatched initial commit, empty or cross-arm-mismatched
+branch, or non-null repository URL must fail closed. The later producer
+`output_commit` must not be compared to this initial metadata field; it remains
+governed by the existing requirement that the output commit has the frozen
+baseline as its sole parent and by the retained bundle/outcome verification.
+
+Both `context_window.window_id` and the `git` subfields must be added explicitly
+to the simplification specification's coverage inventory before implementation
+review. Official source semantics alone do not make them already-covered rows.
 
 ## Required future implementation behavior
 
 A later implementation tranche may consume this amendment only if it:
 
-1. pins these exact amendment bytes through the admission policy identity;
+1. pins the exact bytes of an independently reviewed superseding amendment
+   that resolves the developer-instruction source and authority rule;
 2. extracts `originator` and `source` from the verified session context rather
    than from caller-supplied summary data;
 3. checks both literals before wrapper or producer-output admission;
-4. binds both arms and every pair to the same promoted amendment identity;
-5. publishes a fixed-vocabulary, privacy-safe rejection reason without
+4. validates `context_window` and `git` with the structural and cross-arm
+   invariants above, deriving the frozen baseline commit from the admitted
+   experiment inputs rather than caller-supplied summary data;
+5. adds the new context-window and Git rows to the closed coverage inventory;
+6. does not admit any observed developer-instruction digest until a separately
+   reviewed source and authority rule supersedes the unresolved status above;
+7. binds both arms and every pair to the same promoted amendment identity;
+8. publishes a fixed-vocabulary, privacy-safe rejection reason without
    publishing arbitrary observed values; and
-6. includes mutation tests for missing, non-string, mismatched, duplicated and
-   cross-pair-drift cases.
+9. includes mutation tests for missing, malformed, mismatched, duplicated,
+   reordered, unknown-field, cross-arm-drift and forbidden-reuse cases,
+   including `0`, `1`, and `2` pre-tool `session_meta` records before the
+   exactly-one rule may be promoted.
 
 This section specifies required behavior only. No such runtime change is made
-or claimed by this document. Because this candidate still records unresolved
-admission semantics, it may not itself become an admitting policy. The
-accepted rulings must first be incorporated into revised amendment bytes and
-those exact bytes must pass independent review.
+or claimed by this document. Because the developer-instruction source remains
+unresolved, these revised candidate bytes may not themselves become an
+admitting policy. They must pass independent semantic review, then be
+superseded by a separately reviewed source ruling before the later
+implementation, manifest, signature and promotion steps below.
 
 ## Review and promotion sequence
 
 The required order is:
 
-1. independent semantic review of this candidate;
-2. owner rulings for `context_window`, the unresolved `git` field and the
-   canonical developer-instruction structure/content anchor;
-3. incorporation of the accepted rulings into revised amendment bytes;
-4. independent semantic review of those exact revised amendment bytes;
-5. preparation and review of the formal admission implementation;
+1. independent semantic review of these exact revised amendment bytes and the
+   repo-bound v2 public receipt;
+2. identification and owner ruling for the developer-instruction source,
+   authority and normalization boundary;
+3. incorporation and independent review of that ruling in exact superseding
+   amendment bytes;
+4. preparation and review of the formal admission implementation and coverage
+   inventory additions;
+5. mutation evidence demonstrating each fail-closed rule above;
 6. one exact candidate manifest covering the reviewed amendment bytes and
    implementation;
 7. exact-byte owner signature;
@@ -228,20 +347,32 @@ that a future pair will pass.
 
 ## Claim ceiling
 
-This candidate claims only that the owner accepted two experiment-wide
-calibration anchors from the original non-counted probe, and that the
-follow-up calibration's privacy-safe field dispositions and
-developer-instruction drift are documented. It does not resolve the new or
-unresolved admission semantics.
+This candidate claims only that the two non-counted calibration receipts are
+preserved with their limitations, that the owner accepted the initial-context
+field dispositions as revised above, and that official Codex `0.146.0` source
+supports the stated field structures. It specifies candidate admission
+semantics for `originator`, `source`, the initial `context_window` and initial
+`git` projection. It leaves developer-instruction authority unresolved and
+does not implement, independently approve, sign, promote, or execute any rule.
 
 ## Cannot claim
 
 - Independent approval of this amendment.
-- A canonical developer-instruction structure or content anchor.
-- Admission semantics for `context_window`.
-- Proof that `git` aliases the frozen baseline Git identity or another approved
-  structure.
-- Runtime enforcement of either anchor.
+- Identification or control of the developer-instruction source.
+- Reproducibility of the observed v2 developer digest in another session.
+- The cause of the v1-to-v2 developer-record cardinality and content drift.
+- Wrapper conformance from the v2 calibration, which issued no tool call.
+- Expected-workspace placement from either calibration's zero path-match
+  census.
+- Stability of `context_window.window_id` across compaction or later lifecycle
+  events.
+- Presence of `context_window` in the v1 calibration; its public receipt does
+  not identify the three unknown field names.
+- The number of `session_meta` records emitted before the first tool call in a
+  complete producer workflow; the exactly-one rule remains a candidate pending
+  `0`/`1`/`2` synthetic coverage.
+- Runtime enforcement of any ruling in this amendment.
+- Mutation-test proof for the newly accepted admission rules.
 - A rebuilt or signed candidate manifest.
 - Canonical promotion.
 - Authorization for another session or live pair.
