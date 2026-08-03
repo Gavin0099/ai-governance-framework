@@ -1,0 +1,287 @@
+{
+  "admission_performed": false,
+  "authorization": "non_counted_codex_calibration_probe_only",
+  "calibration": {
+    "admission_performed": false,
+    "authorization": "non_counted_codex_calibration_probe_only",
+    "envelope_statuses": {
+      "base_instruction": "single",
+      "developer_instruction": "multiple",
+      "machine_context": "single",
+      "session_identity": "single",
+      "session_meta": "single",
+      "turn_context": "single"
+    },
+    "instruction_content_anchor": {
+      "base": {
+        "sha256": "072920a4e81002dc96aa4b7be4e9079c81edcfc0c93ea4e6cd4a31fb50f299db",
+        "status": "single"
+      },
+      "developer": {
+        "status": "multiple"
+      }
+    },
+    "instruction_record_sha256": {
+      "base": [
+        "072920a4e81002dc96aa4b7be4e9079c81edcfc0c93ea4e6cd4a31fb50f299db"
+      ],
+      "developer": [
+        "cc571816babaabd78c1b1bc73dcd44659bc686b90c71899003a0cef06f15bd27",
+        "81d37acb6feff552b562f712b1e854339d90a0b19aa9f271047cca787f77a51a"
+      ]
+    },
+    "non_counted": true,
+    "path_census": {
+      "machine_cwd_match": 0,
+      "machine_root_entry_count": 1,
+      "machine_root_match": 0,
+      "session_meta_cwd_match": 0,
+      "turn_cwd_match": 0,
+      "turn_root_entry_count": 1,
+      "turn_root_match": 0
+    },
+    "prompt_statuses": {
+      "event_user_message": "exact",
+      "response_user_message": "exact"
+    },
+    "public_context": {
+      "booleans": {
+        "realtime_active": {
+          "status": "single_safe",
+          "value": false
+        }
+      },
+      "collaboration": {
+        "developer_instructions": {
+          "status": "null"
+        },
+        "mode": {
+          "status": "single_safe",
+          "value": "default"
+        },
+        "model": {
+          "status": "match"
+        },
+        "reasoning_effort": {
+          "status": "match"
+        },
+        "status": "single_safe"
+      },
+      "dates": {
+        "machine_current_date": {
+          "status": "single_safe",
+          "value": "2026-08-03"
+        },
+        "turn_current_date": {
+          "status": "single_safe",
+          "value": "2026-08-03"
+        }
+      },
+      "enums": {
+        "approval_policy": {
+          "status": "single_safe",
+          "value": "never"
+        },
+        "approvals_reviewer": {
+          "status": "single_safe",
+          "value": "user"
+        },
+        "history_mode": {
+          "status": "single_safe",
+          "value": "legacy"
+        },
+        "machine_file_system_type": {
+          "status": "single_safe",
+          "value": "unrestricted"
+        },
+        "machine_permission_profile_type": {
+          "status": "single_safe",
+          "value": "disabled"
+        },
+        "machine_shell": {
+          "status": "single_safe",
+          "value": "powershell"
+        },
+        "machine_timezone": {
+          "status": "single_safe",
+          "value": "Asia/Taipei"
+        },
+        "model_provider": {
+          "status": "single_safe",
+          "value": "openai"
+        },
+        "multi_agent_version": {
+          "status": "single_safe",
+          "value": "v1"
+        },
+        "permission_profile_type": {
+          "status": "single_safe",
+          "value": "disabled"
+        },
+        "personality": {
+          "status": "single_safe",
+          "value": "pragmatic"
+        },
+        "sandbox_policy_type": {
+          "status": "single_safe",
+          "value": "danger-full-access"
+        },
+        "summary": {
+          "status": "single_safe",
+          "value": "auto"
+        },
+        "thread_source": {
+          "status": "single_safe",
+          "value": "user"
+        },
+        "timezone": {
+          "status": "single_safe",
+          "value": "Asia/Taipei"
+        }
+      },
+      "identifiers": {
+        "session_id": {
+          "json_types": [
+            "string"
+          ],
+          "length_buckets": [
+            "17_64"
+          ],
+          "presence_count": 1,
+          "unique_count": 1
+        },
+        "turn_id": {
+          "json_types": [
+            "string"
+          ],
+          "length_buckets": [
+            "17_64"
+          ],
+          "presence_count": 1,
+          "unique_count": 1
+        }
+      },
+      "identities": {
+        "cli_version": {
+          "status": "match"
+        },
+        "comp_hash": {
+          "status": "match"
+        },
+        "effort": {
+          "status": "match"
+        },
+        "model": {
+          "status": "match"
+        }
+      },
+      "open_rulings": {
+        "originator": {
+          "json_types": [
+            "string"
+          ],
+          "length_buckets": [
+            "1_16"
+          ],
+          "presence_count": 1
+        },
+        "source": {
+          "json_types": [
+            "string"
+          ],
+          "length_buckets": [
+            "1_16"
+          ],
+          "presence_count": 1
+        }
+      }
+    },
+    "record_counts": {
+      "base_instruction": 1,
+      "developer_instruction": 2,
+      "event_user_message": 1,
+      "exact_event_prompt": 1,
+      "exact_response_prompt": 1,
+      "machine_context": 1,
+      "malformed_base_instruction": 0,
+      "malformed_developer_instruction": 0,
+      "malformed_machine_context": 0,
+      "non_string_event_prompt": 0,
+      "session_meta_object": 1,
+      "session_meta_raw": 1,
+      "turn_context_object": 1,
+      "turn_context_raw": 1,
+      "unmatched_event_prompt": 0,
+      "unmatched_response_user_message": 0
+    },
+    "schema": "gate3-codex-calibration-public-receipt.v1",
+    "scoreable": false,
+    "signed_identity": {
+      "cli_version": "0.146.0",
+      "comp_hash": "3000",
+      "effort": "low",
+      "model": "gpt-5.6-luna"
+    },
+    "source_status": "ok",
+    "success_packet_capable": false,
+    "unknown_context_field_count": 3,
+    "world_state_census": {
+      "full_true_count": 1,
+      "object_payload_count": 2,
+      "raw_count": 2,
+      "state_object_count": 2
+    },
+    "world_state_status": "multiple",
+    "wrapper_census": [
+      {
+        "argument_shape": "object",
+        "envelope": "const_await_then_text",
+        "field_name_census": {
+          "known_field_counts": {
+            "command": 1,
+            "workdir": 1
+          },
+          "total_field_count": 2,
+          "unknown_field_count": 0
+        },
+        "frozen_tool_call_token_count": 1,
+        "input_status": "string",
+        "rejection_class": "single_frozen_call",
+        "tool_call_ordinal": 1,
+        "tool_call_token_count": 1,
+        "tool_family": "shell_command"
+      }
+    ]
+  },
+  "cleanup": {
+    "private_decision_artifact_retained": true,
+    "private_temporary_residue": false,
+    "status": "PASS"
+  },
+  "execution": {
+    "runner_invocations": 1,
+    "runner_retries_by_orchestrator": 0,
+    "runner_status": "PASS"
+  },
+  "implementation": {
+    "calibration_cli_sha256": "c71f046abce8cbca31122c74f5f0d68fd455a6b0e8aa80c6aab49e36cdb01654",
+    "calibration_collector_sha256": "3703cf9b6e59cab06484bdd53b4e60802b6fd973a18fde835773a8c9f19d04a0",
+    "calibration_probe_sha256": "12834f0420738c4ad198025c479eca813540c4f533025fa331cc62893a79118d",
+    "calibration_runner_sha256": "33cccefed6d740f9eed6893c626ce6caf327ec55520d5c4802aceb70718d1142",
+    "credential_common_sha256": "ce6095b5548e00ef58d0ce39056d2dde8ff27e7c495afddc4735373515cff9c8",
+    "evidence_chain_sha256": "1d20ea1ce5da19b04f5205779efad60ce7cadadc74d3ceb17a544097d765209e",
+    "live_canary_sha256": "7aff8070743cb81667b8e12507d5efdc3a2fffbb8f50105c07907d5807b83e69",
+    "route_plan_sha256": "236442276817fcb4eeca4957056af84e42f1d29e0f1882f27d279afd5f4aa9a5",
+    "session_launcher_sha256": "fa9a597e2fbb759ef21916e8a8ae368954c4b3c8deca5e61a239eba9cd109dbb",
+    "wrapper_contract_sha256": "9a824005d45304066e7193d7c2d25203dccf89351b2d5ed494f8647c56f0d01d"
+  },
+  "non_counted": true,
+  "private_artifact_disclosure": {
+    "digest_published": false,
+    "path_published": false
+  },
+  "run_id": "gate3-codex-calibration-v1-20260803-150000",
+  "schema": "gate3-codex-calibration-probe-receipt.v3",
+  "scoreable": false,
+  "success_packet_capable": false
+}
