@@ -15,6 +15,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -122,7 +124,7 @@ def _write_plan(state, **overrides) -> None:
     plan = {
         "authorization": CALIBRATION_AUTHORIZATION,
         "frozen_route": frozen,
-        "schema": "gate3-codex-calibration-route-plan.v1",
+        "schema": "gate3-codex-calibration-route-plan.v2",
     }
     plan.update(overrides)
     state["plan"].write_bytes(live._json_bytes(plan))
@@ -175,7 +177,7 @@ def test_exactly_one_session_is_invoked(rig) -> None:
     assert receipt["session_invocations"] == 1
     assert receipt["replacement_sessions"] == 0
     assert receipt["authorization"] == CALIBRATION_AUTHORIZATION
-    assert receipt["schema"] == "gate3-codex-calibration-runner-receipt.v1"
+    assert receipt["schema"] == "gate3-codex-calibration-runner-receipt.v2"
     assert receipt["login_status"] == "PASS"
     # One login preflight plus one session. A pair would show three.
     assert len(rig["log"].read_text(encoding="utf-8").splitlines()) == 2
@@ -245,11 +247,89 @@ def test_a_tampered_shared_credential_file_is_refused(rig) -> None:
     assert not rig["log"].exists()
 
 
+def test_tampered_shared_code_cannot_execute_before_digest_refusal(rig) -> None:
+    marker = rig["root"] / "common-executed.txt"
+    escaped = str(marker).replace("'", "''")
+    rig["common"].write_text(
+        f"Set-Content -LiteralPath '{escaped}' -Value 'executed'\n"
+        + rig["common"].read_text(encoding="utf-8"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    result = _run(rig)
+    assert result.returncode != 0
+    assert not marker.exists()
+    assert not rig["log"].exists()
+
+
+def test_concurrent_source_swap_cannot_change_locked_snapshot(rig) -> None:
+    """Swap both originals after snapshot lock; only frozen copies may run."""
+    marker = rig["root"] / "concurrent-marker.txt"
+    safe_common_sha = live._sha256_file(rig["common"])
+    safe_launcher_sha = live._sha256_file(rig["launcher"])
+    # Keep the runner alive after publishing snapshot-ready.json.
+    fake_text = rig["fake"].read_text(encoding="ascii")
+    rig["fake"].write_text(
+        fake_text.replace("@echo off\n", "@echo off\nping -n 3 127.0.0.1 >nul\n"),
+        encoding="ascii",
+        newline="",
+    )
+    observed: dict[str, object] = {}
+
+    def invoke() -> None:
+        observed["result"] = _run(rig)
+
+    thread = threading.Thread(target=invoke)
+    thread.start()
+    deadline = time.monotonic() + 20
+    snapshot: Path | None = None
+    while time.monotonic() < deadline:
+        candidates = list(rig["private"].glob(".implementation-snapshot-*"))
+        if candidates and (candidates[0] / "snapshot-ready.json").exists():
+            snapshot = candidates[0]
+            break
+        time.sleep(0.01)
+    assert snapshot is not None, "runner did not publish its locked snapshot"
+    escaped = str(marker).replace("'", "''")
+    rig["common"].write_text(
+        f"Set-Content -LiteralPath '{escaped}' -Value 'common'\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    rig["launcher"].write_text(
+        f"Set-Content -LiteralPath '{escaped}' -Value 'launcher'\nexit 0\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    with pytest.raises(OSError):
+        (snapshot / live.DEFAULT_CREDENTIAL_COMMON.name).write_text(
+            "unverified\n", encoding="utf-8"
+        )
+    thread.join(timeout=30)
+    assert not thread.is_alive()
+    result = observed["result"]
+    assert result.returncode == 0, result.stderr
+    assert not marker.exists()
+    receipt = json.loads(rig["receipt"].read_text(encoding="utf-8"))
+    assert receipt["implementation"] == {
+        "calibration_runner_sha256": live._sha256_file(rig["runner"]),
+        "credential_common_sha256": safe_common_sha,
+        "launcher_sha256": safe_launcher_sha,
+    }
+
+
 def test_the_route_plan_authorization_must_also_be_calibration(rig) -> None:
     _write_plan(rig, authorization=PAIR_AUTHORIZATION)
     result = _run(rig)
     # The preflight throws before the try block, so PowerShell exits 1 here,
     # the same convention the pair runner uses. What matters is that nothing ran.
+    assert result.returncode != 0
+    assert not rig["log"].exists()
+
+
+def test_the_superseded_route_plan_schema_is_refused(rig) -> None:
+    _write_plan(rig, schema="gate3-codex-calibration-route-plan.v1")
+    result = _run(rig)
     assert result.returncode != 0
     assert not rig["log"].exists()
 

@@ -42,18 +42,9 @@ $CALIBRATION_AUTHORIZATION = 'non_counted_codex_calibration_probe_only'
 
 $launcher = Join-Path $PSScriptRoot 'gate3_codex_session_launcher.ps1'
 $credentialCommon = Join-Path $PSScriptRoot 'gate3_codex_credential_common.ps1'
-. $credentialCommon
 
 $credentialSource = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.codex\auth.json'
 $privateRoot = Split-Path -Parent $PrivateReceiptPath
-$userTemp = Get-UserTempRoot
-$secretRoot = Join-Path $userTemp ("gate3-calibration-" + [Guid]::NewGuid().ToString('N'))
-$seedPath = Join-Path $secretRoot 'seed.json'
-$loginOut = Join-Path $secretRoot 'login.out'
-$loginErr = Join-Path $secretRoot 'login.err'
-$sessionAuth = Join-Path $CodexHome 'auth.json'
-$secretPaths = @($seedPath, $sessionAuth)
-$privateTransientPaths = @($loginOut, $loginErr)
 $preflightPassed = $false
 $sessionInvocations = 0
 $sessionExit = $null
@@ -61,18 +52,87 @@ $caughtFailure = $false
 $login = $false
 $seedCompare = $false
 
-$runnerSha256 = (
-    Get-FileHash -Algorithm SHA256 -LiteralPath $PSCommandPath
-).Hash.ToLowerInvariant()
-$launcherSha256 = (
-    Get-FileHash -Algorithm SHA256 -LiteralPath $launcher
-).Hash.ToLowerInvariant()
-$credentialCommonSha256 = (
-    Get-FileHash -Algorithm SHA256 -LiteralPath $credentialCommon
-).Hash.ToLowerInvariant()
-$routePlanSha256 = (
-    Get-FileHash -Algorithm SHA256 -LiteralPath $RoutePlanPath
-).Hash.ToLowerInvariant()
+function New-ImplementationSnapshot {
+    param(
+        [string]$Parent,
+        [string]$CommonSource,
+        [string]$LauncherSource
+    )
+    $root = Join-Path $Parent ('.implementation-snapshot-' + [Guid]::NewGuid().ToString('N'))
+    [void]([IO.Directory]::CreateDirectory($root))
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    $acl = New-Object Security.AccessControl.DirectorySecurity
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object Security.AccessControl.FileSystemAccessRule(
+        $identity,
+        [Security.AccessControl.FileSystemRights]::FullControl,
+        [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit',
+        [Security.AccessControl.PropagationFlags]::None,
+        [Security.AccessControl.AccessControlType]::Allow
+    )
+    $acl.AddAccessRule($rule)
+    [IO.Directory]::SetAccessControl($root, $acl)
+    $common = Join-Path $root 'gate3_codex_credential_common.ps1'
+    $launcherCopy = Join-Path $root 'gate3_codex_session_launcher.ps1'
+    [IO.File]::WriteAllBytes($common, [IO.File]::ReadAllBytes($CommonSource))
+    [IO.File]::WriteAllBytes($launcherCopy, [IO.File]::ReadAllBytes($LauncherSource))
+    $commonLock = New-Object IO.FileStream(
+        $common,
+        [IO.FileMode]::Open,
+        [IO.FileAccess]::Read,
+        [IO.FileShare]::Read
+    )
+    $launcherLock = New-Object IO.FileStream(
+        $launcherCopy,
+        [IO.FileMode]::Open,
+        [IO.FileAccess]::Read,
+        [IO.FileShare]::Read
+    )
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+        $commonSha = ([BitConverter]::ToString(
+            $sha.ComputeHash($commonLock)
+        )).Replace('-', '').ToLowerInvariant()
+        $launcherSha = ([BitConverter]::ToString(
+            $sha.ComputeHash($launcherLock)
+        )).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $sha.Dispose()
+    }
+    $ready = [ordered]@{
+        common_sha256 = $commonSha
+        launcher_sha256 = $launcherSha
+        schema = 'gate3-codex-implementation-snapshot.v1'
+    }
+    [IO.File]::WriteAllText(
+        (Join-Path $root 'snapshot-ready.json'),
+        (($ready | ConvertTo-Json -Compress) + [Environment]::NewLine),
+        (New-Object Text.UTF8Encoding($false))
+    )
+    return [pscustomobject]@{
+        CommonLock = $commonLock
+        CommonPath = $common
+        CommonSha256 = $commonSha
+        LauncherLock = $launcherLock
+        LauncherPath = $launcherCopy
+        LauncherSha256 = $launcherSha
+        Root = $root
+    }
+}
+
+function Close-ImplementationSnapshot {
+    param($Snapshot)
+    if ($null -eq $Snapshot) { return }
+    $Snapshot.CommonLock.Dispose()
+    $Snapshot.LauncherLock.Dispose()
+    if (Test-Path -LiteralPath $Snapshot.Root) {
+        Remove-Item -LiteralPath $Snapshot.Root -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $Snapshot.Root) {
+        throw 'Implementation snapshot cleanup failed.'
+    }
+}
 
 # Authorization first, before any credential is touched. A calibration
 # authorization is the only thing this script accepts; a pair authorization
@@ -94,6 +154,45 @@ foreach ($requiredFile in @(
         throw 'Calibration runner required input is missing.'
     }
 }
+$runnerSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $PSCommandPath
+).Hash.ToLowerInvariant()
+$implementationSnapshot = New-ImplementationSnapshot `
+    -Parent $privateRoot `
+    -CommonSource $credentialCommon `
+    -LauncherSource $launcher
+$launcherSha256 = $implementationSnapshot.LauncherSha256
+$credentialCommonSha256 = $implementationSnapshot.CommonSha256
+$routePlanSha256 = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $RoutePlanPath
+).Hash.ToLowerInvariant()
+$routePlan = Get-Content -Raw -LiteralPath $RoutePlanPath | ConvertFrom-Json
+if (
+    $routePlan.schema -ne 'gate3-codex-calibration-route-plan.v2' -or
+    $routePlan.authorization -ne $CALIBRATION_AUTHORIZATION -or
+    $routePlan.frozen_route.calibration_runner_implementation_sha256 -ne
+        $runnerSha256 -or
+    $routePlan.frozen_route.launcher_implementation_sha256 -ne
+        $launcherSha256 -or
+    $routePlan.frozen_route.credential_common_implementation_sha256 -ne
+        $credentialCommonSha256
+) {
+    Close-ImplementationSnapshot -Snapshot $implementationSnapshot
+    throw 'Calibration runner implementation identity preflight failed.'
+}
+
+# The common file is executable PowerShell. Verify its exact bytes before it is
+# dot-sourced so tampered code cannot run before the mismatch is reported.
+try {
+. $implementationSnapshot.CommonPath
+$userTemp = Get-UserTempRoot
+$secretRoot = Join-Path $userTemp ("gate3-calibration-" + [Guid]::NewGuid().ToString('N'))
+$seedPath = Join-Path $secretRoot 'seed.json'
+$loginOut = Join-Path $secretRoot 'login.out'
+$loginErr = Join-Path $secretRoot 'login.err'
+$sessionAuth = Join-Path $CodexHome 'auth.json'
+$secretPaths = @($seedPath, $sessionAuth)
+$privateTransientPaths = @($loginOut, $loginErr)
 foreach ($privateRuntimePath in @(
     $CodexCommand,
     $RoutePlanPath,
@@ -106,19 +205,6 @@ foreach ($privateRuntimePath in @(
     $PrivateReceiptPath
 )) {
     Assert-UserTempPath -Path $privateRuntimePath
-}
-$routePlan = Get-Content -Raw -LiteralPath $RoutePlanPath | ConvertFrom-Json
-if (
-    $routePlan.schema -ne 'gate3-codex-calibration-route-plan.v1' -or
-    $routePlan.authorization -ne $CALIBRATION_AUTHORIZATION -or
-    $routePlan.frozen_route.calibration_runner_implementation_sha256 -ne
-        $runnerSha256 -or
-    $routePlan.frozen_route.launcher_implementation_sha256 -ne
-        $launcherSha256 -or
-    $routePlan.frozen_route.credential_common_implementation_sha256 -ne
-        $credentialCommonSha256
-) {
-    throw 'Calibration runner implementation identity preflight failed.'
 }
 foreach ($requiredDirectory in @($privateRoot, $Workspace, $CodexHome)) {
     if (-not (Test-Path -LiteralPath $requiredDirectory -PathType Container)) {
@@ -138,6 +224,11 @@ foreach ($mustBeAbsent in @(
         throw 'Calibration runner output already exists.'
     }
 }
+}
+catch {
+    Close-ImplementationSnapshot -Snapshot $implementationSnapshot
+    throw
+}
 
 try {
     [void](New-Item -ItemType Directory -Path $secretRoot)
@@ -150,6 +241,7 @@ try {
         throw 'Credential seed byte comparison failed.'
     }
     $login = Test-ChatGptLogin `
+        -CodexCommand $CodexCommand `
         -CodexHome $CodexHome `
         -StdoutPath $loginOut `
         -StderrPath $loginErr
@@ -161,7 +253,7 @@ try {
     if ($sessionInvocations -ne 0) {
         throw 'Calibration runner attempted more than one session.'
     }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher `
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $implementationSnapshot.LauncherPath `
         -CodexCommand $CodexCommand `
         -ExpectedLauncherSha256 $launcherSha256 `
         -CodexHome $CodexHome `
@@ -201,7 +293,7 @@ finally {
         login_status = if ($login) { 'PASS' } else { 'FAIL' }
         replacement_sessions = 0
         route_plan_sha256 = $routePlanSha256
-        schema = 'gate3-codex-calibration-runner-receipt.v1'
+        schema = 'gate3-codex-calibration-runner-receipt.v2'
         secret_material_retained = $secretMaterialRetained
         session_exit_code = $sessionExit
         session_invocations = $sessionInvocations
@@ -209,6 +301,7 @@ finally {
     Write-Utf8Atomic `
         -Path $PrivateReceiptPath `
         -Text (($receipt | ConvertTo-Json -Depth 5) + [Environment]::NewLine)
+    Close-ImplementationSnapshot -Snapshot $implementationSnapshot
 }
 
 if ($caughtFailure) {

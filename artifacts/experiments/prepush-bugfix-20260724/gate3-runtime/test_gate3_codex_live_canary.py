@@ -7,6 +7,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -1936,10 +1937,20 @@ def _run_fake_pair(
     fail_exec: str | None = None,
     tamper: str | None = None,
     outside_temp: bool = False,
+    concurrent_swap: bool = False,
+    parent_snapshot: bool = False,
 ):
     root = Path(tempfile.mkdtemp(prefix="gate3-credential-test-"))
     fake = root / "fake-codex.cmd"
     _write_fake_codex(fake)
+    if concurrent_swap:
+        fake.write_text(
+            fake.read_text(encoding="utf-8").replace(
+                "@echo off\n", "@echo off\nping -n 3 127.0.0.1 >nul\n", 1
+            ),
+            encoding="utf-8",
+            newline="",
+        )
     credential = root / "private-auth.json"
     credential.write_text('{"fake":"credential"}\n', encoding="utf-8")
     runtime = root / "runtime"
@@ -1983,6 +1994,20 @@ def _run_fake_pair(
             encoding="utf-8",
             newline="\n",
         )
+    elif tamper == "credential_common":
+        common = runtime / live.DEFAULT_CREDENTIAL_COMMON.name
+        marker = root / "common-executed.txt"
+        escaped = str(marker).replace("'", "''")
+        common.write_text(
+            f"Set-Content -LiteralPath '{escaped}' -Value 'executed'\n"
+            + common.read_text(encoding="utf-8"),
+            encoding="utf-8",
+            newline="\n",
+        )
+    elif tamper == "route_schema":
+        plan_value = json.loads(route_plan.read_text(encoding="utf-8"))
+        plan_value["schema"] = "gate3-codex-live-route-plan.v4"
+        route_plan.write_bytes(live._json_bytes(plan_value))
     log = root / "calls.txt"
     private = root / "private"
     private.mkdir()
@@ -2048,14 +2073,101 @@ def _run_fake_pair(
         "-PrivateReceiptPath",
         str(receipt),
     ]
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        check=False,
-        env=env,
-        text=True,
-        timeout=60,
-    )
+    if parent_snapshot:
+        common = runtime / live.DEFAULT_CREDENTIAL_COMMON.name
+        expected_identity = {
+            "credential_common_sha256": live._sha256_file(common),
+            "launcher_sha256": live._sha256_file(launcher),
+            "pair_runner_sha256": live._sha256_file(pair_runner),
+        }
+        parent_marker = root / "parent-runner-swap-executed.txt"
+
+        def swap_parent_sources(snapshots: dict[str, Path]) -> None:
+            escaped = str(parent_marker).replace("'", "''")
+            pair_runner.write_text(
+                f"Set-Content -LiteralPath '{escaped}' -Value 'pair'\nexit 0\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            common.write_text(
+                f"Set-Content -LiteralPath '{escaped}' -Value 'common'\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            launcher.write_text(
+                f"Set-Content -LiteralPath '{escaped}' -Value 'launcher'\nexit 0\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            for snapshot_path in snapshots.values():
+                with pytest.raises(OSError):
+                    snapshot_path.write_text("unverified\n", encoding="utf-8")
+
+        with live._locked_pair_runner_snapshot(
+            pair_runner,
+            common,
+            launcher,
+            private,
+            expected_identity,
+            _after_locked=swap_parent_sources,
+        ) as snapshot:
+            command[5] = str(snapshot)
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                check=False,
+                env=env,
+                text=True,
+                timeout=60,
+            )
+        assert not parent_marker.exists()
+    elif concurrent_swap:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            text=True,
+        )
+        deadline = time.monotonic() + 20
+        snapshot: Path | None = None
+        while time.monotonic() < deadline:
+            candidates = list(private.glob(".implementation-snapshot-*"))
+            if candidates and (candidates[0] / "snapshot-ready.json").exists():
+                snapshot = candidates[0]
+                break
+            time.sleep(0.01)
+        assert snapshot is not None, "pair runner did not publish its snapshot"
+        marker = root / "common-executed.txt"
+        escaped = str(marker).replace("'", "''")
+        common = runtime / live.DEFAULT_CREDENTIAL_COMMON.name
+        common.write_text(
+            f"Set-Content -LiteralPath '{escaped}' -Value 'common'\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        launcher.write_text(
+            f"Set-Content -LiteralPath '{escaped}' -Value 'launcher'\nexit 0\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        with pytest.raises(OSError):
+            (snapshot / live.DEFAULT_CREDENTIAL_COMMON.name).write_text(
+                "unverified\n", encoding="utf-8"
+            )
+        stdout, stderr = process.communicate(timeout=60)
+        result = subprocess.CompletedProcess(
+            command, process.returncode, stdout, stderr
+        )
+    else:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            check=False,
+            env=env,
+            text=True,
+            timeout=60,
+        )
     return (
         result,
         credential,
@@ -2185,7 +2297,10 @@ def test_pair_runner_binds_production_auth_and_user_temp() -> None:
     assert "$observedLauncherSha256 -ne $ExpectedLauncherSha256" in launcher
 
 
-@pytest.mark.parametrize("tamper", ["runner", "launcher"])
+@pytest.mark.parametrize(
+    "tamper",
+    ["runner", "launcher", "credential_common", "route_schema"],
+)
 def test_pair_runner_rejects_unpinned_implementation_before_login(
     tmp_path: Path,
     tamper: str,
@@ -2199,8 +2314,207 @@ def test_pair_runner_rejects_unpinned_implementation_before_login(
         assert result.returncode != 0
         assert not log.exists()
         assert not receipt.exists()
+        assert not (root / "common-executed.txt").exists()
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def test_pair_runner_concurrent_swap_cannot_change_locked_snapshot(
+    tmp_path: Path,
+) -> None:
+    result_data = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        concurrent_swap=True,
+    )
+    result, _, _, receipt_path, _, route_plan, pair_runner, launcher, root = (
+        result_data
+    )
+    try:
+        assert result.returncode == 0, result.stderr
+        assert not (root / "common-executed.txt").exists()
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        plan = json.loads(route_plan.read_text(encoding="utf-8"))
+        expected = _valid_credential_receipt(route_plan, pair_runner, launcher)
+        expected["implementation"] = {
+            "credential_common_sha256": plan["frozen_route"][
+                "credential_common_implementation_sha256"
+            ],
+            "launcher_sha256": plan["frozen_route"][
+                "launcher_implementation_sha256"
+            ],
+            "pair_runner_sha256": plan["frozen_route"][
+                "pair_runner_implementation_sha256"
+            ],
+        }
+        # Originals were swapped after the snapshot; the receipt remains bound
+        # to the route-plan bytes that were actually executed from the snapshot.
+        assert receipt == expected
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_live_parent_executes_locked_pair_runner_snapshot(tmp_path: Path) -> None:
+    source = tmp_path / "pair-runner.ps1"
+    marker = tmp_path / "pair-runner-marker.txt"
+    safe = (
+        f"Set-Content -LiteralPath '{str(marker).replace("'", "''")}' "
+        "-Value 'safe'\nexit 0\n"
+    )
+    source.write_text(safe, encoding="utf-8", newline="\n")
+    expected = live._sha256_file(source)
+    private = tmp_path / "private"
+    private.mkdir()
+
+    common = tmp_path / live.DEFAULT_CREDENTIAL_COMMON.name
+    launcher = tmp_path / live.DEFAULT_SESSION_LAUNCHER.name
+    common.write_bytes(live.DEFAULT_CREDENTIAL_COMMON.read_bytes())
+    launcher.write_bytes(live.DEFAULT_SESSION_LAUNCHER.read_bytes())
+    expected_identity = {
+        "credential_common_sha256": live._sha256_file(common),
+        "launcher_sha256": live._sha256_file(launcher),
+        "pair_runner_sha256": expected,
+    }
+
+    def swap_after_lock(snapshots: dict[str, Path]) -> None:
+        source.write_text(
+            f"Set-Content -LiteralPath '{str(marker).replace("'", "''")}' "
+            "-Value 'malicious'\nexit 0\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        with pytest.raises(OSError):
+            snapshots["pair_runner_sha256"].write_text(
+                "unverified\n", encoding="utf-8"
+            )
+
+    with live._locked_pair_runner_snapshot(
+        source,
+        common,
+        launcher,
+        private,
+        expected_identity,
+        _after_locked=swap_after_lock,
+    ) as snapshot:
+        completed = subprocess.run(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(snapshot),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+    assert marker.read_text(encoding="utf-8").strip() == "safe"
+    assert not (private / "pair-runner-snapshot").exists()
+
+
+def test_live_parent_snapshot_runs_the_real_fake_pair_route(tmp_path: Path) -> None:
+    result_data = _run_fake_pair(
+        tmp_path, fail_b_login=False, parent_snapshot=True
+    )
+    result, _, log, receipt, _, _, _, _, root = result_data
+    try:
+        assert result.returncode == 0, result.stderr
+        assert len(log.read_text(encoding="utf-8").splitlines()) == 4
+        observed = json.loads(receipt.read_text(encoding="utf-8"))
+        assert observed["session_invocations"] == 2
+        assert observed["session_exit_codes"] == {"A": 0, "B": 0}
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_verify_rejects_mutated_top_level_credential_common_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo_root = live.EXPERIMENT_ROOT.parents[2]
+    implementation = {"commit": "0" * 40, "files": {}}
+    frozen_route = {
+        "cli_version": live.DEFAULT_CLI_VERSION,
+        "comp_hash": live.DEFAULT_COMP_HASH,
+        "credential_common_implementation_sha256": live._sha256_file(
+            live.DEFAULT_CREDENTIAL_COMMON
+        ),
+        "launcher_implementation_sha256": live._sha256_file(
+            live.DEFAULT_SESSION_LAUNCHER
+        ),
+        "pair_runner_implementation_sha256": live._sha256_file(
+            live.DEFAULT_PAIR_RUNNER
+        ),
+        "model": live.DEFAULT_MODEL,
+        "model_build": (
+            f"codex:{live.DEFAULT_MODEL}:comp_hash={live.DEFAULT_COMP_HASH}:"
+            f"cli={live.DEFAULT_CLI_VERSION}"
+        ),
+        "producer_git_identity": live.PRODUCER_GIT_IDENTITY,
+        "reasoning": live.DEFAULT_REASONING,
+    }
+    privacy = {"sanitizer_rules_sha256": live._sanitizer_rules_sha256()}
+    plan = {
+        "credential_contract": live.CREDENTIAL_CONTRACT,
+        "context_contract": {
+            "provider": live.DEFAULT_PROVIDER,
+            "public_context_tokens": live.PUBLIC_CONTEXT_TOKENS,
+        },
+        "frozen_route": frozen_route,
+        "implementation": implementation,
+        "privacy": privacy,
+        "schema": live.ROUTE_PLAN_SCHEMA,
+    }
+    plan_path = tmp_path / "route-plan.json"
+    plan_path.write_bytes(live._json_bytes(plan))
+    summary = {
+        "artifact_inventory": [],
+        "authorization": live.AUTHORIZATION,
+        "candidate_manifest_sha256": live.EXPECTED_CANDIDATE_MANIFEST_SHA256,
+        "candidate_verification_checks": 7,
+        "credential_common_implementation_sha256": live._sha256_file(
+            live.DEFAULT_CREDENTIAL_COMMON
+        ),
+        "credential_contract": live.CREDENTIAL_CONTRACT,
+        "frozen_route": frozen_route,
+        "harness_implementation_sha256": live._sha256_file(Path(live.__file__)),
+        "implementation": implementation,
+        "launcher_implementation_sha256": live._sha256_file(
+            live.DEFAULT_SESSION_LAUNCHER
+        ),
+        "pair_runner_implementation_sha256": live._sha256_file(
+            live.DEFAULT_PAIR_RUNNER
+        ),
+        "privacy": privacy,
+        "rehearsal_kind": live.REHEARSAL_KIND,
+        "route_plan_sha256": live._sha256_file(plan_path),
+        "schema": live.SUMMARY_SCHEMA,
+        "tests_implementation_sha256": live._sha256_file(live.DEFAULT_TESTS),
+    }
+    summary_path = tmp_path / "canary-summary.json"
+    monkeypatch.setattr(
+        live, "_implementation_identity", lambda *_args, **_kwargs: implementation
+    )
+    monkeypatch.setattr(
+        live,
+        "_validate_candidate",
+        lambda _root: (_ for _ in ()).throw(
+            live.CanaryError("reached candidate validation")
+        ),
+    )
+    summary_path.write_bytes(live._json_bytes(summary))
+    with pytest.raises(live.CanaryError, match="reached candidate validation"):
+        live.verify(repo_root, tmp_path)
+
+    mutated = dict(summary)
+    current = mutated["credential_common_implementation_sha256"]
+    mutated["credential_common_implementation_sha256"] = (
+        ("0" if current[0] != "0" else "1") + current[1:]
+    )
+    summary_path.write_bytes(live._json_bytes(mutated))
+    with pytest.raises(live.CanaryError, match="canary summary identity is invalid"):
+        live.verify(repo_root, tmp_path)
 
 
 def test_pair_runner_rejects_non_temp_private_runtime_before_login(
@@ -2264,6 +2578,7 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
         lambda **_: str(private_root.mkdir() or private_root),
     )
     monkeypatch.setattr(live.shutil, "which", lambda _: "npm.cmd")
+    monkeypatch.setattr(live, "_set_snapshot_acl", lambda _path: None)
 
     def fake_prepare(
         _repo: Path,
@@ -2279,8 +2594,10 @@ def test_orchestrator_cleans_every_private_asset_on_failure(
             (staging / "inputs" / name).write_text(
                 "synthetic\n", encoding="utf-8"
             )
-        (staging / "route-plan.json").write_text(
-            "{}\n", encoding="utf-8"
+        _credential_plan(
+            staging / "route-plan.json",
+            live.DEFAULT_PAIR_RUNNER,
+            live.DEFAULT_SESSION_LAUNCHER,
         )
         return {}
 
@@ -2515,8 +2832,10 @@ def test_orchestrator_publishes_only_after_verified_cleanup(
             (staging / "inputs" / name).write_text(
                 "synthetic\n", encoding="utf-8"
             )
-        (staging / "route-plan.json").write_text(
-            "{}\n", encoding="utf-8"
+        _credential_plan(
+            staging / "route-plan.json",
+            live.DEFAULT_PAIR_RUNNER,
+            live.DEFAULT_SESSION_LAUNCHER,
         )
         return {}
 
@@ -2591,6 +2910,7 @@ def _mock_successful_orchestrator(
         lambda **_: str(private_root.mkdir() or private_root),
     )
     monkeypatch.setattr(live.shutil, "which", lambda _: "npm.cmd")
+    monkeypatch.setattr(live, "_set_snapshot_acl", lambda _path: None)
     monkeypatch.setattr(live.secrets, "token_hex", lambda _: "fixed")
 
     def fake_prepare(
@@ -2607,8 +2927,10 @@ def _mock_successful_orchestrator(
             (staging / "inputs" / name).write_text(
                 "synthetic\n", encoding="utf-8"
             )
-        (staging / "route-plan.json").write_text(
-            "{}\n", encoding="utf-8"
+        _credential_plan(
+            staging / "route-plan.json",
+            live.DEFAULT_PAIR_RUNNER,
+            live.DEFAULT_SESSION_LAUNCHER,
         )
         return {}
 
@@ -2811,6 +3133,17 @@ def test_failure_execution_summary_preserves_exact_session_count(
     ("payload", "expected_status"),
     [
         (b'{"schema":', "INVALID"),
+        (
+            json.dumps(
+                {
+                    "login_status": {"A": "PASS", "B": "PASS"},
+                    "schema": "gate3-codex-credential-runner-receipt.v1",
+                    "session_exit_codes": {"A": 0, "B": 0},
+                    "session_invocations": 2,
+                }
+            ).encode("utf-8"),
+            "INVALID",
+        ),
         (
             json.dumps(
                 {

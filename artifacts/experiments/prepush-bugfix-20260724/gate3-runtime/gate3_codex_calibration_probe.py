@@ -15,9 +15,27 @@ import gate3_codex_live_canary as live
 
 AUTHORIZATION = calibration.AUTHORIZATION
 PRIVATE_SCHEMA = "gate3-codex-calibration-private-decision.v1"
-PUBLIC_SCHEMA = "gate3-codex-calibration-probe-receipt.v1"
-FAILURE_SCHEMA = "gate3-codex-calibration-probe-failure-receipt.v1"
+PUBLIC_SCHEMA = "gate3-codex-calibration-probe-receipt.v3"
+FAILURE_SCHEMA = "gate3-codex-calibration-probe-failure-receipt.v3"
 RUN_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,95}")
+SHA256_RE = re.compile(r"[0-9a-f]{64}")
+IMPLEMENTATION_FIELDS = frozenset(
+    {
+        "calibration_cli_sha256",
+        "calibration_collector_sha256",
+        "calibration_probe_sha256",
+        "calibration_runner_sha256",
+        "credential_common_sha256",
+        "evidence_chain_sha256",
+        "live_canary_sha256",
+        "route_plan_sha256",
+        "session_launcher_sha256",
+        "wrapper_contract_sha256",
+    }
+)
+RESIDUE_CLASSES = frozenset(
+    {"private_runtime", "runner_private_runtime", "success_output"}
+)
 FAILURE_STAGES = frozenset(
     {
         "authorization",
@@ -35,6 +53,17 @@ FAILURE_STAGES = frozenset(
 
 class ProbeError(RuntimeError):
     """A fixed-message calibration orchestration failure."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        residue_classes: tuple[str, ...] = (),
+    ) -> None:
+        super().__init__(message)
+        if not set(residue_classes).issubset(RESIDUE_CLASSES):
+            raise ValueError("calibration residue class is invalid")
+        self.residue_classes = residue_classes
 
 
 class PublicationError(ProbeError):
@@ -335,10 +364,22 @@ def _validate_runner_result(value: object) -> RunnerResult:
     return value
 
 
+def _validate_implementation_identity(value: object) -> dict[str, str]:
+    if not isinstance(value, dict) or set(value) != IMPLEMENTATION_FIELDS:
+        raise ProbeError("calibration implementation identity is invalid")
+    if any(
+        not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None
+        for digest in value.values()
+    ):
+        raise ProbeError("calibration implementation identity is invalid")
+    return {key: value[key] for key in sorted(value)}
+
+
 def _success_receipt(
     observation: calibration.CalibrationObservation,
     *,
     run_id: str,
+    implementation_identity: dict[str, str],
 ) -> bytes:
     value = {
         "admission_performed": False,
@@ -354,6 +395,7 @@ def _success_receipt(
             "runner_retries_by_orchestrator": 0,
             "runner_status": "PASS",
         },
+        "implementation": implementation_identity,
         "non_counted": True,
         "private_artifact_disclosure": {
             "digest_published": False,
@@ -377,9 +419,12 @@ def _failure_receipt(
     runner_invocations: int,
     cleanup_status: str,
     residue_classes: list[str],
+    implementation_identity: dict[str, str],
 ) -> bytes:
     if failure_stage not in FAILURE_STAGES:
         raise ProbeError("calibration failure stage is invalid")
+    if not set(residue_classes).issubset(RESIDUE_CLASSES):
+        raise ProbeError("calibration residue class is invalid")
     value = {
         "admission_performed": False,
         "authorization": AUTHORIZATION,
@@ -392,6 +437,7 @@ def _failure_receipt(
             "runner_retries_by_orchestrator": 0,
         },
         "failure_stage": failure_stage,
+        "implementation": implementation_identity,
         "non_counted": True,
         "private_artifact_disclosure": {
             "credential_content_retained": False,
@@ -438,6 +484,7 @@ def orchestrate(
     expected_workspace: str,
     expected_prompt: bytes,
     signed_identity: dict[str, str],
+    implementation_identity: dict[str, str],
     private_parent: Path,
     runner: Runner,
     _acl_setter: AclSetter = _windows_current_user_only_acl,
@@ -450,6 +497,9 @@ def orchestrate(
     success_path = success_path.resolve()
     failure_path = _assert_output_preflight(success_path)
     private_parent = _assert_private_parent(private_parent)
+    implementation_identity = _validate_implementation_identity(
+        implementation_identity
+    )
     try:
         if Path(os.path.commonpath([success_path, private_parent])) == private_parent:
             raise ProbeError("calibration public output overlaps private Temp")
@@ -498,7 +548,11 @@ def orchestrate(
             _acl_setter,
         )
         failure_stage = "public_projection"
-        public_payload = _success_receipt(observation, run_id=run_id)
+        public_payload = _success_receipt(
+            observation,
+            run_id=run_id,
+            implementation_identity=implementation_identity,
+        )
         if set(private_root.iterdir()) != {private_artifact}:
             raise ProbeError("calibration private temporary cleanup failed")
         failure_stage = "success_publication"
@@ -520,6 +574,8 @@ def orchestrate(
         else:
             reported = ProbeError("calibration orchestration failed")
         residue_classes = _cleanup_private_root(private_root)
+        if isinstance(reported, ProbeError):
+            residue_classes.extend(reported.residue_classes)
         if success_owned and success_path.exists():
             try:
                 success_path.unlink()
@@ -533,6 +589,7 @@ def orchestrate(
             runner_invocations=runner_invocations,
             cleanup_status="FAIL" if residue_classes else "PASS",
             residue_classes=residue_classes,
+            implementation_identity=implementation_identity,
         )
         if _publisher(failure_path, failure_payload) is not True:
             raise ProbeError("calibration failure publication ownership is invalid")

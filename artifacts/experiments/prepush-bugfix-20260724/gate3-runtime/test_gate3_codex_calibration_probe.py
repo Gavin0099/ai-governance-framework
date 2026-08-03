@@ -28,6 +28,13 @@ def _identity() -> dict[str, str]:
     }
 
 
+def _implementation() -> dict[str, str]:
+    return {
+        field: f"{index:064x}"
+        for index, field in enumerate(sorted(probe.IMPLEMENTATION_FIELDS), 1)
+    }
+
+
 class SyntheticRunner:
     def __init__(
         self,
@@ -72,6 +79,7 @@ def _run(
         expected_workspace=fixtures.WORKSPACE,
         expected_prompt=b"frozen prompt",
         signed_identity=_identity(),
+        implementation_identity=_implementation(),
         private_parent=private_root,
         runner=runner,
         _acl_setter=_synthetic_acl(acl_calls),
@@ -98,6 +106,7 @@ def test_success_calls_runner_once_and_publishes_two_closed_artifacts(
         assert public["admission_performed"] is False
         assert public["scoreable"] is False
         assert public["success_packet_capable"] is False
+        assert public["implementation"] == _implementation()
         assert public["private_artifact_disclosure"] == {
             "digest_published": False,
             "path_published": False,
@@ -158,6 +167,26 @@ def test_runner_failure_is_not_replaced_and_cleans_private_runtime(
             "runner_retries_by_orchestrator": 0,
         }
         assert receipt["cleanup"] == {"residue_classes": [], "status": "PASS"}
+
+
+def test_runner_cleanup_residue_is_projected_into_negative_receipt(
+    tmp_path: Path,
+) -> None:
+    runner = SyntheticRunner(
+        error=probe.ProbeError(
+            "synthetic runner cleanup failure",
+            residue_classes=("runner_private_runtime",),
+        )
+    )
+    with tempfile.TemporaryDirectory() as private:
+        with pytest.raises(probe.ProbeError):
+            _run(tmp_path, Path(private), runner)
+    receipt = json.loads((tmp_path / "probe.json.failure.json").read_bytes())
+    assert receipt["cleanup"] == {
+        "residue_classes": ["runner_private_runtime"],
+        "status": "FAIL",
+    }
+    assert not (tmp_path / "probe.json").exists()
 
 
 @pytest.mark.parametrize(
@@ -294,6 +323,7 @@ def test_acl_setup_failure_keeps_root_visible_to_cleanup_census(
                 expected_workspace=fixtures.WORKSPACE,
                 expected_prompt=b"frozen prompt",
                 signed_identity=_identity(),
+                implementation_identity=_implementation(),
                 private_parent=private_parent,
                 runner=runner,
                 _acl_setter=fail_acl,
@@ -351,6 +381,7 @@ def test_failure_receipt_has_closed_privacy_safe_schema(tmp_path: Path) -> None:
         "cleanup",
         "execution",
         "failure_stage",
+        "implementation",
         "non_counted",
         "private_artifact_disclosure",
         "run_id",
@@ -401,6 +432,7 @@ def test_invalid_frozen_identity_refuses_before_runner(tmp_path: Path) -> None:
                 expected_workspace=fixtures.WORKSPACE,
                 expected_prompt=b"frozen prompt",
                 signed_identity={**_identity(), "model": "contains space"},
+                implementation_identity=_implementation(),
                 private_parent=Path(private),
                 runner=runner,
                 _acl_setter=_synthetic_acl([]),
@@ -409,6 +441,31 @@ def test_invalid_frozen_identity_refuses_before_runner(tmp_path: Path) -> None:
     receipt = json.loads((tmp_path / "probe.json.failure.json").read_bytes())
     assert receipt["failure_stage"] == "frozen_input"
     assert receipt["execution"]["runner_invocations"] == 0
+
+
+def test_invalid_implementation_identity_refuses_before_runner(
+    tmp_path: Path,
+) -> None:
+    runner = SyntheticRunner()
+    with tempfile.TemporaryDirectory() as private:
+        with pytest.raises(
+            probe.ProbeError,
+            match="implementation identity is invalid",
+        ):
+            probe.orchestrate(
+                tmp_path / "probe.json",
+                run_id="gate3-calibration-synthetic",
+                authorization=calibration.AUTHORIZATION,
+                expected_workspace=fixtures.WORKSPACE,
+                expected_prompt=b"frozen prompt",
+                signed_identity=_identity(),
+                implementation_identity={**_implementation(), "extra": "0" * 64},
+                private_parent=Path(private),
+                runner=runner,
+                _acl_setter=_synthetic_acl([]),
+            )
+    assert runner.calls == 0
+    assert not (tmp_path / "probe.json").exists()
 
 
 def test_cleanup_retries_before_negative_publication(
@@ -467,6 +524,7 @@ def test_public_output_cannot_overlap_private_temp() -> None:
                 expected_workspace=fixtures.WORKSPACE,
                 expected_prompt=b"frozen prompt",
                 signed_identity=_identity(),
+                implementation_identity=_implementation(),
                 private_parent=private_parent,
                 runner=runner,
                 _acl_setter=_synthetic_acl([]),

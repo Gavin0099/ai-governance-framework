@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import ctypes
 import hashlib
 import json
 import os
@@ -39,12 +40,12 @@ DEFAULT_CREDENTIAL_COMMON = HERE / "gate3_codex_credential_common.ps1"
 DEFAULT_CALIBRATION_RUNNER = HERE / "gate3_codex_calibration_runner.ps1"
 DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
 
-SUMMARY_SCHEMA = "gate3-codex-live-canary.v4"
-ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v4"
+SUMMARY_SCHEMA = "gate3-codex-live-canary.v5"
+ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v5"
 ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v4"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
-CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v1"
+CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v2"
 FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v8"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
@@ -313,6 +314,112 @@ def _sha256_bytes(payload: bytes) -> str:
 
 def _sha256_file(path: Path) -> str:
     return _sha256_bytes(path.read_bytes())
+
+
+def _set_snapshot_acl(path: Path) -> None:
+    script = r"""
+$ErrorActionPreference = 'Stop'
+$path = $env:GATE3_SNAPSHOT_ACL_PATH
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = New-Object Security.AccessControl.DirectorySecurity
+$acl.SetAccessRuleProtection($true, $false)
+$rule = New-Object Security.AccessControl.FileSystemAccessRule(
+    $identity,
+    [Security.AccessControl.FileSystemRights]::FullControl,
+    [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit',
+    [Security.AccessControl.PropagationFlags]::None,
+    [Security.AccessControl.AccessControlType]::Allow
+)
+$acl.AddAccessRule($rule)
+[IO.Directory]::SetAccessControl($path, $acl)
+$observed = [IO.Directory]::GetAccessControl($path)
+$rules = @($observed.GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier]))
+if (-not $observed.AreAccessRulesProtected -or $rules.Count -ne 1 -or
+    $rules[0].IdentityReference -ne $identity) { throw 'snapshot ACL invalid' }
+"""
+    environment = os.environ.copy()
+    environment["GATE3_SNAPSHOT_ACL_PATH"] = str(path)
+    completed = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-Command", script],
+        capture_output=True,
+        check=False,
+        env=environment,
+    )
+    if completed.returncode != 0:
+        raise CanaryError("pair runner snapshot ACL failed")
+
+
+def _lock_snapshot_file(path: Path) -> int:
+    if os.name != "nt":
+        raise CanaryError("pair runner snapshot locking is unavailable")
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateFileW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+    kernel32.CreateFileW.restype = ctypes.c_void_p
+    handle = kernel32.CreateFileW(
+        str(path), 0x80000000, 0x00000001, None, 3, 0x00000080, None
+    )
+    if handle in (None, ctypes.c_void_p(-1).value):
+        raise CanaryError("pair runner snapshot lock failed")
+    return int(handle)
+
+
+@contextmanager
+def _locked_pair_runner_snapshot(
+    pair_runner_source: Path,
+    credential_common_source: Path,
+    launcher_source: Path,
+    parent: Path,
+    expected_identity: dict[str, str],
+    *,
+    _acl_setter: Any = None,
+    _after_locked: Any = None,
+):
+    root = parent / "pair-runner-snapshot"
+    handles: list[int] = []
+    if root.exists():
+        raise CanaryError("pair runner snapshot already exists")
+    root.mkdir()
+    try:
+        if _acl_setter is None:
+            _acl_setter = _set_snapshot_acl
+        _acl_setter(root)
+        sources = {
+            "pair_runner_sha256": pair_runner_source,
+            "credential_common_sha256": credential_common_source,
+            "launcher_sha256": launcher_source,
+        }
+        snapshots = {}
+        for key, source in sources.items():
+            snapshot = root / source.name
+            snapshot.write_bytes(source.read_bytes())
+            handles.append(_lock_snapshot_file(snapshot))
+            snapshots[key] = snapshot
+        observed = {
+            key: _sha256_file(snapshots[key]) for key in sorted(snapshots)
+        }
+        if observed != expected_identity:
+            raise CanaryError("pair runner snapshot identity mismatch")
+        if _after_locked is not None:
+            _after_locked(snapshots)
+        yield snapshots["pair_runner_sha256"]
+    finally:
+        if handles:
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+            for handle in reversed(handles):
+                kernel32.CloseHandle(ctypes.c_void_p(handle))
+        if root.exists():
+            shutil.rmtree(root)
+        if root.exists():
+            raise CanaryError("pair runner snapshot cleanup failed")
 
 
 def _json_bytes(value: object) -> bytes:
@@ -3335,18 +3442,39 @@ def _orchestrate_impl(
         credential_receipt = raw / "credential-runner-receipt.json"
         failure_stage = "pair_execution"
         pair_started = True
-        pair_result = subprocess.run(
-            [
+        route_plan_path = staging / "route-plan.json"
+        route_plan_value = _load_json(route_plan_path)
+        frozen_route = route_plan_value["frozen_route"]
+        expected_pair_identity = {
+            "credential_common_sha256": frozen_route[
+                "credential_common_implementation_sha256"
+            ],
+            "launcher_sha256": frozen_route[
+                "launcher_implementation_sha256"
+            ],
+            "pair_runner_sha256": frozen_route[
+                "pair_runner_implementation_sha256"
+            ],
+        }
+        with _locked_pair_runner_snapshot(
+            DEFAULT_PAIR_RUNNER,
+            DEFAULT_CREDENTIAL_COMMON,
+            DEFAULT_SESSION_LAUNCHER,
+            private_root,
+            expected_pair_identity,
+        ) as pair_runner_snapshot:
+            pair_result = subprocess.run(
+                [
                 "powershell.exe",
                 "-NoProfile",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-File",
-                str(DEFAULT_PAIR_RUNNER),
+                str(pair_runner_snapshot),
                 "-CodexCommand",
                 str(codex_command),
                 "-RoutePlanPath",
-                str(staging / "route-plan.json"),
+                str(route_plan_path),
                 "-ArmAWorkspace",
                 str(repos["A"]),
                 "-ArmBWorkspace",
@@ -3373,11 +3501,11 @@ def _orchestrate_impl(
                 str(paths["B"]["exit"]),
                 "-PrivateReceiptPath",
                 str(credential_receipt),
-            ],
-            capture_output=True,
-            check=False,
-            text=False,
-        )
+                ],
+                capture_output=True,
+                check=False,
+                text=False,
+            )
         if pair_result.returncode != 0:
             raise CanaryError("authorized A/B pair failed")
         failure_stage = "packet_build"
@@ -3706,6 +3834,8 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         != EXPECTED_CANDIDATE_MANIFEST_SHA256
         or summary.get("harness_implementation_sha256")
         != _sha256_file(Path(__file__))
+        or summary.get("credential_common_implementation_sha256")
+        != _sha256_file(DEFAULT_CREDENTIAL_COMMON)
         or summary.get("launcher_implementation_sha256")
         != _sha256_file(DEFAULT_SESSION_LAUNCHER)
         or summary.get("pair_runner_implementation_sha256")

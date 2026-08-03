@@ -13,10 +13,8 @@
 # pins. A shared file that nothing pins would be a new unverified execution
 # surface, which is the opposite of what extracting it is for.
 
-$script:userTemp = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
-
 function Get-UserTempRoot {
-    return $script:userTemp
+    return [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 }
 
 function Write-Utf8Atomic {
@@ -121,6 +119,7 @@ function Test-ExactBytes {
 
 function Test-ChatGptLogin {
     param(
+        [string]$CodexCommand,
         [string]$CodexHome,
         [string]$StdoutPath,
         [string]$StderrPath
