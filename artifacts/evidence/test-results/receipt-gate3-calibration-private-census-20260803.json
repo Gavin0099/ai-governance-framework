@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe -m pytest artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_calibration.py artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_calibration_probe.py artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_calibration_cli.py artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_calibration_runner.py -q --tb=short --basetemp D:\\ai-governance-framework\\.gate3-test-tmp\\memory-evidence -p no:cacheprovider",
+  "exit_code": 0,
+  "started_at": "2026-08-03T09:22:05Z",
+  "finished_at": "2026-08-03T09:22:27Z",
+  "runner": "codex",
+  "linked_commit": "34b022102550eaa1236bf6f344e3c7c5c5523357",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-calibration-private-census-20260803.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
