@@ -722,7 +722,10 @@ def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> Non
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 
-def test_existing_memory_normalization_uses_active_guard_result(tmp_path: Path, monkeypatch) -> None:
+def test_existing_memory_normalization_completed_when_active_window_is_clean(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     repo = tmp_path / "repo"
     (repo / "memory").mkdir(parents=True)
     (repo / "memory" / "2026-06-11.md").write_text("historical memory\n", encoding="utf-8")
@@ -742,7 +745,7 @@ def test_existing_memory_normalization_uses_active_guard_result(tmp_path: Path, 
         fake_run,
     )
 
-    assert _check_existing_memory_normalization(repo) == "verified"
+    assert _check_existing_memory_normalization(repo) == "completed"
 
 
 def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: Path, monkeypatch) -> None:
@@ -765,6 +768,55 @@ def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: P
     assert _check_existing_memory_normalization(repo) == "needed"
 
 
+def test_existing_memory_normalization_does_not_treat_report_only_ok_as_complete(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = tmp_path / "repo"
+    (repo / "memory").mkdir(parents=True)
+    (repo / "memory" / "2026-06-11.md").write_text("memory\n", encoding="utf-8")
+
+    def fake_run(*args, **kwargs):
+        return SimpleNamespace(
+            returncode=0,
+            stdout=(
+                '{"ok": true, "ok_meaning": '
+                '"guard_executed_report_only_not_authority_clean"}'
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_governance_submodule_updater.subprocess.run",
+        fake_run,
+    )
+
+    assert _check_existing_memory_normalization(repo) == "not_verified"
+
+
+def test_existing_memory_normalization_rejects_invalid_active_count(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = tmp_path / "repo"
+    (repo / "memory").mkdir(parents=True)
+    (repo / "memory" / "2026-06-11.md").write_text("memory\n", encoding="utf-8")
+
+    def fake_run(*args, **kwargs):
+        return SimpleNamespace(
+            returncode=0,
+            stdout='{"active_non_canonical_writer": {"count": -1}}',
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_governance_submodule_updater.subprocess.run",
+        fake_run,
+    )
+
+    assert _check_existing_memory_normalization(repo) == "not_verified"
+
+
 def test_existing_memory_normalization_is_cwd_independent(
     tmp_path: Path,
     monkeypatch,
@@ -780,7 +832,9 @@ def test_existing_memory_normalization_is_cwd_independent(
     launch_dir.mkdir()
     monkeypatch.chdir(launch_dir)
 
-    assert _check_existing_memory_normalization(repo) == "verified"
+    # Pre-window historical debt remains warning-only; this stage reports only
+    # whether the active normalization window is complete.
+    assert _check_existing_memory_normalization(repo) == "completed"
 
 
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
