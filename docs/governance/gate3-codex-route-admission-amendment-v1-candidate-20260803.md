@@ -59,6 +59,31 @@ That extraction verified:
 No credential, credential digest, instruction text, command, path or raw
 rollout is incorporated into this amendment.
 
+Follow-up calibration and independent read-only disposition review:
+
+| Field | Value |
+|---|---|
+| run ID | `gate3-codex-calibration-v2-20260803-215100` |
+| execution source commit | `34b022102550eaa1236bf6f344e3c7c5c5523357` |
+| public receipt schema | `gate3-codex-calibration-probe-receipt.v4` |
+| nested public calibration schema | `gate3-codex-calibration-public-receipt.v2` |
+| public receipt bytes | `7904` |
+| public receipt SHA-256 | `9166b24d5801c9ad64cfdba09cf00d25a7926ed8dcb08a294e6b9253aff52e71` |
+| session invocations | exactly `1` |
+| orchestrator retries | `0` |
+| formal admission performed | `false` |
+| scoreable | `false` |
+| cleanup | `PASS` |
+
+The follow-up review used an authorized, read-only access to the
+current-user-only private decision artifact. It verified the private/public
+run and schema binding, the protected non-inherited DACL boundary, the total
+three-field census under `session_meta`, the absence of the private field names
+from the public receipt, and the ordered developer-instruction structure. The
+review published only the privacy-safe field dispositions and structural
+comparison below. It published no private artifact path or digest, credential,
+raw value, instruction content or rollout.
+
 ## Ruling
 
 ### `originator`
@@ -105,26 +130,61 @@ The calibration session observed one base-instruction content anchor:
 072920a4e81002dc96aa4b7be4e9079c81edcfc0c93ea4e6cd4a31fb50f299db
 ```
 
-The developer-instruction anchor status was `multiple`. This amendment does
-not collapse those records into one value and does not declare their content
-identity resolved. The approved simplification specification continues to
-govern developer-instruction structure as pair-equal and normalized content
-anchors as calibration-frozen after explicit review.
+The original calibration observed two developer-instruction records with two
+distinct content digests, so its historical anchor status was correctly
+recorded as `multiple`.
 
-## Open calibration findings
+The follow-up calibration observed one developer-instruction record with one
+content digest. That digest was not present in the original two-digest set.
+This is both cardinality drift and content drift, not merely a collapse from
+two records to one. The historical `multiple` statement remains run-specific
+history and is not rewritten.
 
-The public calibration receipt reports `unknown_context_field_count = 3`.
-Their names and values were not projected into public evidence. This amendment
-does not classify, ignore or admit them.
+No canonical developer-instruction record structure or normalized content
+anchor is established by these observations. The approved simplification
+specification continues to require an explicit owner choice, independent
+review and pre-counted-run freezing before such an anchor can govern formal
+admission.
 
-Before any new pair authorization, a separate reviewed decision must either:
+## Follow-up calibration field dispositions
 
-1. map each field into the approved closed context inventory with an explicit
-   disposition; or
-2. prove that the count is caused by fields already covered under a canonical
-   alias or structural projection.
+The follow-up public receipt reports `unknown_context_field_count = 3`, all
+under `session_meta`. The authorized independent review classified the three
+privacy-safe schema tokens as follows. No raw value was published or used as a
+caller-supplied admission fact.
 
-Formal admission must remain fail closed for genuinely unknown context fields.
+### `timestamp`
+
+Disposition: **canonical alias** of the approved general `timestamps`
+observational row.
+
+Required treatment: validate parseability and ordering only. Do not require
+exact-value equality and do not promote the observed value to a calibration
+anchor.
+
+### `context_window`
+
+Disposition: **genuinely new admission field**.
+
+Reason: no closed-inventory row currently covers context-capacity metadata,
+and capacity may affect producer behavior. This amendment records the field's
+existence but does not choose hard-frozen, calibration-frozen, pair-equal,
+normalized-equal or observational semantics for it. Formal admission must
+remain fail closed until an explicit owner ruling is independently reviewed
+and promoted before any counted run.
+
+### `git`
+
+Disposition: **unresolved**.
+
+Reason: a name-only census cannot prove whether the field aliases the frozen
+baseline Git identity, represents additional repository state, or contains a
+separate nested structure. Formal admission must remain fail closed until a
+privacy-safe type/subfield projection or a separately reviewed owner ruling
+proves its mapping. It must not be silently aliased from its name.
+
+None of the three fields is classified as **already covered structure** on the
+available evidence.
 
 ## Required future implementation behavior
 
@@ -141,20 +201,26 @@ A later implementation tranche may consume this amendment only if it:
    cross-pair-drift cases.
 
 This section specifies required behavior only. No such runtime change is made
-or claimed by this document.
+or claimed by this document. Because this candidate still records unresolved
+admission semantics, it may not itself become an admitting policy. The
+accepted rulings must first be incorporated into revised amendment bytes and
+those exact bytes must pass independent review.
 
 ## Review and promotion sequence
 
 The required order is:
 
 1. independent semantic review of this candidate;
-2. resolution of the three unknown context fields and the multiple developer
-   instruction anchor;
-3. preparation and review of the formal admission implementation;
-4. one exact candidate manifest covering the amendment and implementation;
-5. exact-byte owner signature;
-6. canonical promotion; and
-7. only then, separate consideration of an exact-session live-pair
+2. owner rulings for `context_window`, the unresolved `git` field and the
+   canonical developer-instruction structure/content anchor;
+3. incorporation of the accepted rulings into revised amendment bytes;
+4. independent semantic review of those exact revised amendment bytes;
+5. preparation and review of the formal admission implementation;
+6. one exact candidate manifest covering the reviewed amendment bytes and
+   implementation;
+7. exact-byte owner signature;
+8. canonical promotion; and
+9. only then, separate consideration of an exact-session live-pair
    authorization.
 
 No later step may treat this calibration probe as a scored result or as proof
@@ -163,14 +229,18 @@ that a future pair will pass.
 ## Claim ceiling
 
 This candidate claims only that the owner accepted two experiment-wide
-calibration anchors from the named non-counted probe and that the proposed
-future admission semantics are documented.
+calibration anchors from the original non-counted probe, and that the
+follow-up calibration's privacy-safe field dispositions and
+developer-instruction drift are documented. It does not resolve the new or
+unresolved admission semantics.
 
 ## Cannot claim
 
 - Independent approval of this amendment.
-- Resolution of the multiple developer-instruction anchor.
-- Resolution of the three unknown context fields.
+- A canonical developer-instruction structure or content anchor.
+- Admission semantics for `context_window`.
+- Proof that `git` aliases the frozen baseline Git identity or another approved
+  structure.
 - Runtime enforcement of either anchor.
 - A rebuilt or signed candidate manifest.
 - Canonical promotion.
