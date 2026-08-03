@@ -120,6 +120,10 @@ def test_success_calls_runner_once_and_publishes_two_closed_artifacts(
             "originator": {"status": "single", "values": ["Codex Desktop"]},
             "source": {"status": "single", "values": ["exec"]},
         }
+        assert private_value["ordered_developer_instruction_sha256"] == public[
+            "calibration"
+        ]["instruction_record_sha256"]["developer"]
+        assert private_value["unknown_context_field_census"] == []
         private_bytes = result.private_artifact.read_bytes()
         assert fixtures.WORKSPACE.encode() not in private_bytes
         assert b"frozen prompt" not in private_bytes
@@ -127,6 +131,33 @@ def test_success_calls_runner_once_and_publishes_two_closed_artifacts(
             result.private_artifact
         }
         assert [container for _, container in acl_calls] == [True, False, False]
+
+
+def test_private_unknown_names_never_cross_the_public_projection(
+    tmp_path: Path,
+) -> None:
+    records = [json.loads(line) for line in fixtures._rollout().splitlines()]
+    records[0]["payload"]["private_probe_name"] = "private-probe-value"
+    rollout = b"".join(fixtures._line(record) for record in records)
+    runner = SyntheticRunner(result=probe.RunnerResult(rollout, 0))
+    with tempfile.TemporaryDirectory() as private:
+        result = _run(tmp_path, Path(private), runner)
+        private_value = json.loads(result.private_artifact.read_bytes())
+        public = json.loads(result.public_receipt.read_bytes())
+        assert private_value["unknown_context_field_census"] == [
+            {
+                "class": "session_meta",
+                "count": 1,
+                "name": "private_probe_name",
+            }
+        ]
+        assert public["calibration"]["unknown_context_class_counts"] == {
+            field_class: int(field_class == "session_meta")
+            for field_class in calibration.UNKNOWN_CONTEXT_CLASSES
+        }
+        public_bytes = result.public_receipt.read_bytes()
+        assert b"private_probe_name" not in public_bytes
+        assert b"private-probe-value" not in public_bytes
 
 
 def test_wrong_authorization_publishes_zero_invocation_failure(

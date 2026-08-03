@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import xml.etree.ElementTree as ET
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -13,8 +14,8 @@ import gate3_codex_live_canary as live
 import gate3_evidence_chain as chain
 
 
-PUBLIC_RECEIPT_SCHEMA = "gate3-codex-calibration-public-receipt.v1"
-PRIVATE_OBSERVATION_SCHEMA = "gate3-codex-calibration-observation.v1"
+PUBLIC_RECEIPT_SCHEMA = "gate3-codex-calibration-public-receipt.v2"
+PRIVATE_OBSERVATION_SCHEMA = "gate3-codex-calibration-observation.v2"
 AUTHORIZATION = "non_counted_codex_calibration_probe_only"
 
 SOURCE_STATUSES = frozenset(
@@ -68,6 +69,19 @@ COLLABORATION_SETTING_FIELDS = frozenset(
 TYPE_OBJECT_FIELDS = frozenset({"type"})
 BASE_INSTRUCTION_FIELDS = frozenset({"text"})
 OPEN_RULING_FIELDS = ("originator", "source")
+UNKNOWN_CONTEXT_CLASSES = frozenset(
+    {
+        "base_instruction",
+        "collaboration_mode",
+        "collaboration_settings",
+        "machine_attribute",
+        "machine_element",
+        "permission_profile",
+        "sandbox_policy",
+        "session_meta",
+        "turn_context",
+    }
+)
 
 PUBLIC_ENUM_ALLOWLISTS = {
     "approval_policy": frozenset({"never"}),
@@ -187,6 +201,7 @@ class CalibrationObservation:
     world_state_census: dict[str, int]
     world_state_status: str
     wrapper_census: tuple[dict[str, Any], ...]
+    unknown_context_field_census: tuple[dict[str, Any], ...]
     unknown_context_field_count: int
 
 
@@ -373,11 +388,11 @@ def _content_anchor(digests: list[str]) -> dict[str, Any]:
     return {"sha256": unique[0], "status": "single"}
 
 
-def _machine_unknown_count(text: str) -> int:
+def _machine_unknown_fields(text: str) -> list[tuple[str, str]]:
     matches = re.findall(
         r"<environment_context>.*?</environment_context>", text, flags=re.DOTALL
     )
-    count = 0
+    result: list[tuple[str, str]] = []
     for matched in matches:
         try:
             root = ET.fromstring(matched)
@@ -385,36 +400,73 @@ def _machine_unknown_count(text: str) -> int:
             continue
         for element in root.iter():
             if element.tag not in MACHINE_CONTEXT_TAGS:
-                count += 1
+                result.append(("machine_element", element.tag))
             allowed = MACHINE_CONTEXT_ATTRIBUTES.get(element.tag, frozenset())
-            count += len(set(element.attrib) - allowed)
-    return count
+            result.extend(
+                ("machine_attribute", f"{element.tag}@{name}")
+                for name in set(element.attrib) - allowed
+            )
+    return result
 
 
-def _unknown_context_count(
+def _unknown_context_census(
     metas: list[dict[str, Any]],
     turns: list[dict[str, Any]],
     user_texts: list[str],
-) -> int:
-    count = sum(len(set(meta) - SESSION_META_FIELDS) for meta in metas)
-    count += sum(len(set(turn) - TURN_CONTEXT_FIELDS) for turn in turns)
+) -> tuple[dict[str, Any], ...]:
+    observed: list[tuple[str, str]] = []
+    observed.extend(
+        ("session_meta", name)
+        for meta in metas
+        for name in set(meta) - SESSION_META_FIELDS
+    )
+    observed.extend(
+        ("turn_context", name)
+        for turn in turns
+        for name in set(turn) - TURN_CONTEXT_FIELDS
+    )
     for meta in metas:
         base = meta.get("base_instructions")
         if isinstance(base, dict):
-            count += len(set(base) - BASE_INSTRUCTION_FIELDS)
+            observed.extend(
+                ("base_instruction", name)
+                for name in set(base) - BASE_INSTRUCTION_FIELDS
+            )
     for turn in turns:
         for field in ("permission_profile", "sandbox_policy"):
             value = turn.get(field)
             if isinstance(value, dict):
-                count += len(set(value) - TYPE_OBJECT_FIELDS)
+                observed.extend(
+                    (field, name) for name in set(value) - TYPE_OBJECT_FIELDS
+                )
         collaboration = turn.get("collaboration_mode")
         if isinstance(collaboration, dict):
-            count += len(set(collaboration) - COLLABORATION_FIELDS)
+            observed.extend(
+                ("collaboration_mode", name)
+                for name in set(collaboration) - COLLABORATION_FIELDS
+            )
             settings = collaboration.get("settings")
             if isinstance(settings, dict):
-                count += len(set(settings) - COLLABORATION_SETTING_FIELDS)
-    count += sum(_machine_unknown_count(text) for text in user_texts)
-    return count
+                observed.extend(
+                    ("collaboration_settings", name)
+                    for name in set(settings) - COLLABORATION_SETTING_FIELDS
+                )
+    for text in user_texts:
+        observed.extend(_machine_unknown_fields(text))
+    counts = Counter(observed)
+    return tuple(
+        {"class": field_class, "count": count, "name": name}
+        for (field_class, name), count in sorted(counts.items())
+    )
+
+
+def _unknown_context_class_counts(
+    census: tuple[dict[str, Any], ...],
+) -> dict[str, int]:
+    result = {field_class: 0 for field_class in UNKNOWN_CONTEXT_CLASSES}
+    for item in census:
+        result[item["class"]] += item["count"]
+    return result
 
 
 def _path_counts(
@@ -640,6 +692,7 @@ def _empty_observation(
         world_state_census={field: 0 for field in WORLD_STATE_CENSUS_FIELDS},
         world_state_status="absent",
         wrapper_census=(),
+        unknown_context_field_census=(),
         unknown_context_field_count=0,
     )
 
@@ -805,6 +858,7 @@ def collect(
         },
     }
     world_census = live._world_state_census(records)
+    unknown_context_census = _unknown_context_census(metas, turns, user_texts)
     record_counts = {
         "base_instruction": len(base_digests),
         "developer_instruction": len(developer_payloads),
@@ -883,7 +937,10 @@ def collect(
         world_state_census=world_census,
         world_state_status=_world_state_status(world_census),
         wrapper_census=_wrapper_census(records),
-        unknown_context_field_count=_unknown_context_count(metas, turns, user_texts),
+        unknown_context_field_census=unknown_context_census,
+        unknown_context_field_count=sum(
+            item["count"] for item in unknown_context_census
+        ),
     )
 
 
@@ -1056,6 +1113,102 @@ def _validate_instruction_anchors(
     return copy.deepcopy(expected)
 
 
+def _validate_unknown_context_census(
+    value: object,
+) -> tuple[dict[str, Any], ...]:
+    if not isinstance(value, tuple):
+        raise live.CanaryError("calibration unknown context census type is invalid")
+    result: list[dict[str, Any]] = []
+    identities: set[tuple[str, str]] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"class", "count", "name"}:
+            raise live.CanaryError("calibration unknown context census is not closed")
+        field_class = item["class"]
+        name = item["name"]
+        count = item["count"]
+        if (
+            field_class not in UNKNOWN_CONTEXT_CLASSES
+            or not isinstance(name, str)
+            or not name
+            or len(name.encode("utf-8")) > 256
+            or any(ord(character) < 32 for character in name)
+            or not _is_count(count)
+            or count == 0
+        ):
+            raise live.CanaryError("calibration unknown context census value is invalid")
+        identity = (field_class, name)
+        if identity in identities:
+            raise live.CanaryError("calibration unknown context census repeats a field")
+        identities.add(identity)
+        result.append({"class": field_class, "count": count, "name": name})
+    expected = sorted(result, key=lambda item: (item["class"], item["name"]))
+    if result != expected:
+        raise live.CanaryError("calibration unknown context census order is invalid")
+    return tuple(copy.deepcopy(result))
+
+
+def _validate_private_rulings(value: object) -> dict[str, dict[str, Any]]:
+    result = _require_exact_keys(
+        value, frozenset(OPEN_RULING_FIELDS), label="private rulings"
+    )
+    projected: dict[str, dict[str, Any]] = {}
+    for field in OPEN_RULING_FIELDS:
+        item = result[field]
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"status", "values"}
+            or item["status"] not in PRIVATE_RULING_STATUSES
+            or not isinstance(item["values"], tuple)
+        ):
+            raise live.CanaryError("calibration private ruling schema is invalid")
+        status = item["status"]
+        values = item["values"]
+        if status in {"missing", "unsafe"}:
+            valid = not values
+        else:
+            valid = (
+                all(isinstance(value, str) and value for value in values)
+                and tuple(sorted(set(values))) == values
+                and ((status == "single" and len(values) == 1) or
+                     (status == "multiple" and len(values) > 1))
+                and not any(
+                    len(value.encode("utf-8")) > 256
+                    or live._privacy_violations(live._json_bytes({"value": value}))
+                    for value in values
+                )
+            )
+        if not valid:
+            raise live.CanaryError("calibration private ruling value is invalid")
+        projected[field] = {"status": status, "values": list(values)}
+    return projected
+
+
+def private_evidence(observation: CalibrationObservation) -> dict[str, Any]:
+    """Return the closed private-only decision fields after full validation."""
+
+    if not isinstance(observation, CalibrationObservation):
+        raise TypeError("calibration observation type is required")
+    if not _is_count(observation.unknown_context_field_count):
+        raise live.CanaryError("calibration unknown context count is invalid")
+    records = _validate_instruction_records(observation.instruction_record_sha256)
+    anchors = _validate_instruction_anchors(
+        observation.instruction_content_anchor, records
+    )
+    census = _validate_unknown_context_census(
+        observation.unknown_context_field_census
+    )
+    if sum(item["count"] for item in census) != observation.unknown_context_field_count:
+        raise live.CanaryError("calibration unknown context census total differs")
+    return {
+        "instruction_content_anchor": anchors,
+        "open_ruling_values": _validate_private_rulings(
+            observation.private_ruling_values
+        ),
+        "ordered_developer_instruction_sha256": records["developer"],
+        "unknown_context_field_census": list(census),
+    }
+
+
 def _validate_wrapper_census(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, tuple):
         raise live.CanaryError("calibration wrapper census type is invalid")
@@ -1112,6 +1265,14 @@ def public_receipt(observation: CalibrationObservation) -> dict[str, Any]:
     if not _is_count(observation.unknown_context_field_count):
         raise live.CanaryError("calibration unknown context count is invalid")
     instruction_records = _validate_instruction_records(observation.instruction_record_sha256)
+    unknown_context_census = _validate_unknown_context_census(
+        observation.unknown_context_field_census
+    )
+    if (
+        sum(item["count"] for item in unknown_context_census)
+        != observation.unknown_context_field_count
+    ):
+        raise live.CanaryError("calibration unknown context census total differs")
     receipt = {
         "admission_performed": False,
         "authorization": AUTHORIZATION,
@@ -1128,6 +1289,9 @@ def public_receipt(observation: CalibrationObservation) -> dict[str, Any]:
         "signed_identity": signed_identity,
         "source_status": observation.source_status,
         "success_packet_capable": False,
+        "unknown_context_class_counts": _unknown_context_class_counts(
+            unknown_context_census
+        ),
         "unknown_context_field_count": observation.unknown_context_field_count,
         "world_state_census": _validate_counts(observation.world_state_census, WORLD_STATE_CENSUS_FIELDS, label="world-state census"),
         "world_state_status": observation.world_state_status,

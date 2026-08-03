@@ -142,6 +142,14 @@ def test_public_projection_never_contains_open_ruling_values_or_paths() -> None:
     assert fixtures.WORKSPACE.encode() not in encoded
     assert live._privacy_violations(encoded) == []
     assert receipt["unknown_context_field_count"] == 1
+    assert receipt["unknown_context_class_counts"] == {
+        field_class: int(field_class == "session_meta")
+        for field_class in calibration.UNKNOWN_CONTEXT_CLASSES
+    }
+    private = calibration.private_evidence(observation)
+    assert private["unknown_context_field_census"] == [
+        {"class": "session_meta", "count": 1, "name": "unknown_private_field"}
+    ]
 
 
 @pytest.mark.parametrize(
@@ -194,6 +202,9 @@ def test_instruction_digest_separates_count_from_content() -> None:
         "sha256": observation.instruction_record_sha256["developer"][0],
         "status": "single",
     }
+    assert calibration.private_evidence(observation)[
+        "ordered_developer_instruction_sha256"
+    ] == observation.instruction_record_sha256["developer"]
 
 
 def test_world_state_mutations_are_censused_without_acceptance() -> None:
@@ -241,11 +252,62 @@ def test_identity_mismatch_does_not_publish_observed_value() -> None:
 
 def test_unknown_context_count_requires_non_bool_nonnegative_integer() -> None:
     observation = _collect()
-    for invalid in (True, -1, "Private Surface Label"):
+    for invalid in (False, True, -1, "Private Surface Label"):
+        mutated = replace(observation, unknown_context_field_count=invalid)
         with pytest.raises(live.CanaryError, match="unknown context count"):
-            calibration.public_receipt(
-                replace(observation, unknown_context_field_count=invalid)
-            )
+            calibration.private_evidence(mutated)
+        with pytest.raises(live.CanaryError, match="unknown context count"):
+            calibration.public_receipt(mutated)
+
+
+@pytest.mark.parametrize(
+    ("census", "message"),
+    [
+        ([], "census type"),
+        (({"class": "unknown", "count": 1, "name": "field"},), "census value"),
+        (({"class": "session_meta", "count": 1, "name": ""},), "census value"),
+        (({"class": "session_meta", "count": True, "name": "field"},), "census value"),
+        (({"class": "session_meta", "count": 0, "name": "field"},), "census value"),
+        (
+            (
+                {"class": "session_meta", "count": 1, "name": "field"},
+                {"class": "session_meta", "count": 1, "name": "field"},
+            ),
+            "repeats a field",
+        ),
+        (
+            (
+                {"class": "turn_context", "count": 1, "name": "z"},
+                {"class": "session_meta", "count": 1, "name": "a"},
+            ),
+            "census order",
+        ),
+    ],
+)
+def test_unknown_context_census_mutations_fail_closed(
+    census: object, message: str
+) -> None:
+    observation = _collect()
+    mutated = replace(
+        observation,
+        unknown_context_field_census=census,  # type: ignore[arg-type]
+        unknown_context_field_count=2,
+    )
+    with pytest.raises(live.CanaryError, match=message):
+        calibration.private_evidence(mutated)
+    with pytest.raises(live.CanaryError, match=message):
+        calibration.public_receipt(mutated)
+
+
+def test_unknown_context_census_total_must_match_public_count() -> None:
+    records = _records(fixtures._rollout())
+    records[0]["payload"]["private_name"] = "private-value"  # type: ignore[index]
+    observation = _collect(_raw(records))
+    mutated = replace(observation, unknown_context_field_count=2)
+    with pytest.raises(live.CanaryError, match="census total differs"):
+        calibration.private_evidence(mutated)
+    with pytest.raises(live.CanaryError, match="census total differs"):
+        calibration.public_receipt(mutated)
 
 
 def test_open_ruling_missing_null_and_multiple_are_distinct() -> None:
@@ -287,6 +349,26 @@ def test_nested_unknown_context_names_are_aggregate_only() -> None:
     assert b"private_nested_name" not in encoded
     assert b"private_permission" not in encoded
     assert b"not-published" not in encoded
+    assert receipt["unknown_context_class_counts"] == {
+        field_class: int(
+            field_class in {"collaboration_settings", "permission_profile"}
+        )
+        for field_class in calibration.UNKNOWN_CONTEXT_CLASSES
+    }
+    assert calibration.private_evidence(observation)[
+        "unknown_context_field_census"
+    ] == [
+        {
+            "class": "collaboration_settings",
+            "count": 1,
+            "name": "private_nested_name",
+        },
+        {
+            "class": "permission_profile",
+            "count": 1,
+            "name": "private_permission",
+        },
+    ]
 
 
 def test_machine_unknown_elements_and_attributes_are_aggregate_only() -> None:
@@ -304,12 +386,33 @@ def test_machine_unknown_elements_and_attributes_are_aggregate_only() -> None:
         '<private_machine_field private_attr="x">secret</private_machine_field>'
         "</environment_context>",
     )
-    receipt = calibration.public_receipt(_collect(_raw(records)))
+    observation = _collect(_raw(records))
+    receipt = calibration.public_receipt(observation)
     encoded = live._json_bytes(receipt)
     assert receipt["unknown_context_field_count"] == 2
     assert b"private_machine_field" not in encoded
     assert b"private_attr" not in encoded
     assert b"secret" not in encoded
+    assert receipt["unknown_context_class_counts"] == {
+        field_class: int(
+            field_class in {"machine_attribute", "machine_element"}
+        )
+        for field_class in calibration.UNKNOWN_CONTEXT_CLASSES
+    }
+    assert calibration.private_evidence(observation)[
+        "unknown_context_field_census"
+    ] == [
+        {
+            "class": "machine_attribute",
+            "count": 1,
+            "name": "private_machine_field@private_attr",
+        },
+        {
+            "class": "machine_element",
+            "count": 1,
+            "name": "private_machine_field",
+        },
+    ]
 
 
 def test_known_nested_and_machine_context_have_fixed_projections() -> None:

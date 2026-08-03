@@ -14,8 +14,8 @@ import gate3_codex_live_canary as live
 
 
 AUTHORIZATION = calibration.AUTHORIZATION
-PRIVATE_SCHEMA = "gate3-codex-calibration-private-decision.v1"
-PUBLIC_SCHEMA = "gate3-codex-calibration-probe-receipt.v3"
+PRIVATE_SCHEMA = "gate3-codex-calibration-private-decision.v2"
+PUBLIC_SCHEMA = "gate3-codex-calibration-probe-receipt.v4"
 FAILURE_SCHEMA = "gate3-codex-calibration-probe-failure-receipt.v3"
 RUN_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,95}")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -309,16 +309,10 @@ def _publish_create_once_owned(path: Path, payload: bytes) -> bool:
 def _private_payload(
     observation: calibration.CalibrationObservation, *, run_id: str
 ) -> bytes:
+    evidence = calibration.private_evidence(observation)
     value = {
         "authorization": AUTHORIZATION,
-        "instruction_content_anchor": observation.instruction_content_anchor,
-        "open_ruling_values": {
-            field: {
-                "status": observation.private_ruling_values[field]["status"],
-                "values": list(observation.private_ruling_values[field]["values"]),
-            }
-            for field in calibration.OPEN_RULING_FIELDS
-        },
+        **evidence,
         "run_id": run_id,
         "schema": PRIVATE_SCHEMA,
     }
