@@ -1271,15 +1271,17 @@ def _check_existing_memory_normalization(repo: Path) -> str:
     except json.JSONDecodeError:
         return "not_verified"
     active = payload.get("active_non_canonical_writer")
-    if isinstance(active, dict):
-        active_count = active.get("count")
-        if isinstance(active_count, int) and active_count > 0:
-            return "needed"
-        if isinstance(active_count, int) and active_count == 0 and payload.get("ok") is True:
-            return "verified"
-    if payload.get("ok") is True:
-        return "verified"
-    return "not_verified"
+    if not isinstance(active, dict):
+        return "not_verified"
+    active_count = active.get("count")
+    if not isinstance(active_count, int) or isinstance(active_count, bool) or active_count < 0:
+        return "not_verified"
+    if active_count > 0:
+        return "needed"
+    # The guard's report-only ok=True means only that the guard executed; it is
+    # not an authority-clean signal. A zero active-window count satisfies this
+    # F-7 stage without claiming that historical warning debt was normalized.
+    return "completed"
 
 
 def _check_gitignore_hygiene(repo: Path) -> str:
