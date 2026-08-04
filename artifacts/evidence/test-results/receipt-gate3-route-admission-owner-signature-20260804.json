@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -c \"import hashlib,json,subprocess;raw=subprocess.check_output(['git','cat-file','blob','HEAD:artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-codex-route-admission-v1-candidate-manifest.json']);m=json.loads(raw);assert len(raw)==2633;assert hashlib.sha256(raw).hexdigest()=='1034a53ca1f8416ab45f1ea07c85efd82efd17df38047736d79b19b8fb055071';assert len(m['files'])==9;assert all(len((b:=subprocess.check_output(['git','cat-file','blob',m['source_base_commit']+':'+e['path']])))==e['bytes'] and hashlib.sha256(b).hexdigest()==e['sha256'] for e in m['files']);print('PASS signed manifest 9/9 at checkpoint 654b148d')\"",
+  "exit_code": 0,
+  "started_at": "2026-08-04T07:42:35Z",
+  "finished_at": "2026-08-04T07:42:36Z",
+  "runner": "codex",
+  "linked_commit": "654b148dc5e28be8bd76766aed274dc414d1c91f",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-route-admission-owner-signature-20260804.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

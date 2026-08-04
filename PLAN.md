@@ -2253,3 +2253,48 @@ Cannot claim from this correction: independent approval of the rebuilt
 manifest, a new owner signature, canonical promotion, live-session authority,
 a successful scorer packet, natural-bug/resource admission, Gate 3 start
 authority or any counted result.
+
+## Gate 3 Route Admission Owner Signature — 2026-08-04
+
+- [x] Independent review returned `APPROVED` for the clean-checkout-derived
+  candidate manifest committed in checkpoint `654b148d`.
+- [x] The owner signed the exact 2,633-byte manifest at SHA-256
+  `1034a53ca1f8416ab45f1ea07c85efd82efd17df38047736d79b19b8fb055071`.
+- [x] Post-sign verification matched the committed manifest identity and all
+  nine member byte counts and SHA-256 values against their pinned Git blobs.
+- [ ] Canonical promotion remains separately authorized and has not occurred.
+
+This signature authorizes no session, live pair, natural-bug/resource
+admission, Gate 3 start or counted execution. A future promotion must cite this
+exact digest, and any manifest-byte change requires a new review and signature.
+
+Cannot claim from this signature: canonical promotion, live-session authority,
+a successful scorer packet, natural-bug/resource admission, Gate 3 start
+authority or any counted result.
+
+## Gate 3 Route Admission Canonical Promotion — Corrected Identity — 2026-08-04
+
+- [x] The owner separately authorized canonical promotion of exact manifest
+  SHA-256
+  `1034a53ca1f8416ab45f1ea07c85efd82efd17df38047736d79b19b8fb055071`.
+- [x] The promoted manifest is the 2,633-byte candidate committed at checkpoint
+  `654b148d`; post-sign verification matched all nine member identities against
+  the Git blobs pinned by source commit
+  `f8ce1f17954ec61da73369562626714d7e429258`.
+- [x] This corrected promotion supersedes only the invalid clean-checkout
+  identity `d8f441ae...c14a`. Historical signature, failure and correction
+  records remain append-only and are not rewritten.
+
+Promotion scope and remaining gates:
+
+- This promotion establishes the formal Gate 3 Codex route-admission policy
+  identity. It does not authorize a session or canary pair.
+- Any future non-counted pair still requires a new, explicit exactly-two,
+  no-replacement execution authorization with a fixed run ID and clean detached
+  worktree.
+- Natural-bug/resource admission and independent Gate 3 start authority remain
+  mandatory before counted A/B/C/D execution. Counted execution remains zero.
+
+Cannot claim from this promotion: live-session authority, a successful scorer
+packet, natural-bug/resource admission, Gate 3 start authority or any counted
+result.
