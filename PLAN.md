@@ -2417,3 +2417,34 @@ Promotion scope and remaining authority:
 Cannot claim from this promotion: live-session authority, a successful scorer
 packet, natural-bug/resource admission, Gate 3 start authority or any counted
 result.
+
+## Gate 3 v1 Login-Status Contamination Attribution Closeout — 2026-08-05
+
+- [x] The owner authorized a zero-session contamination probe using the pinned
+  Codex CLI build. The probe executed only the isolated login-status operation;
+  it did not execute `codex exec`, send a prompt, call a model or create an A/B
+  session.
+- [x] The isolated `CODEX_HOME` produced zero `sessions/**/*.jsonl` artifacts.
+  The privacy-safe public result is retained at
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-v1-login-status-contamination-probe-20260805/probe-receipt.json`.
+- [x] Cleanup passed. The temporary CLI, credential copy, scratch home and
+  private stdout/stderr were removed; the residue check found zero matching
+  probe directories.
+
+Attribution boundary:
+
+- The observed result excludes the specific hypothesis that the isolated
+  login-status preflight itself created a rollout JSONL under `sessions/` in
+  this pinned-build probe.
+- It does not reconstruct the deleted v9 private runtime and therefore cannot
+  establish whether v9 produced zero, one or multiple rollout files, whether a
+  rollout was stored elsewhere, or whether timing affected discovery.
+- The durable v1 root-cause statement is therefore narrower: evidence
+  acquisition lacked an observation point before private cleanup, so the v9
+  acquisition failure remains unresolvable from retained evidence.
+- Gate 3 v1 remains closed and counted execution remains zero. This closeout
+  does not authorize a v1 retry or any Gate 3 route v2 work.
+
+Cannot claim from this probe: the exact v9 failure cause, Codex rollout-layout
+instability, a successful scorer packet, Gate 3 start, any counted result, or
+authorization to begin Gate 3 route v2.

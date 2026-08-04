@@ -1,0 +1,14 @@
+{
+  "schema": "gate3-v1-login-status-contamination-probe.v1",
+  "status": "PASS",
+  "sessions_jsonl_cardinality": "zero",
+  "cleanup": "PASS",
+  "disposition": "login_status_contamination_not_observed",
+  "claim_ceiling": "The isolated login-status operation did not create a sessions JSONL artifact in this probe.",
+  "cannot_claim": [
+    "the Gate 3 v9 rollout cardinality",
+    "the Gate 3 v9 rollout storage location",
+    "the exact cause of the Gate 3 v9 evidence-acquisition failure",
+    "Codex rollout-layout stability"
+  ]
+}
