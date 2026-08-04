@@ -2216,3 +2216,40 @@ authority. Counted A/B/C/D execution remains zero.
 Cannot claim from this ruling: current live-session authority, a scheduled or
 running canary, a successful scorer packet, natural-bug/resource admission,
 Gate 3 start authority or any counted result.
+
+## Gate 3 Route Admission Promotion Correction — 2026-08-04
+
+- [x] Zero-session preflight from clean detached commit `f8ce1f17` rejected the
+  promoted manifest before CLI installation, credential handling or session
+  invocation. Eight of nine entries reproduced; the committed
+  `gate3_wrapper_semantic_contract.py` blob is 20,114 bytes with SHA-256
+  `b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13`,
+  while the signed manifest recorded a 20,594-byte CRLF working-copy value.
+- [x] The prior owner signature and canonical promotion for manifest SHA-256
+  `d8f441aea3a611f291e2714b7b0b3614dd5970dfb00320075c44f7097625c14a`
+  are invalid for clean-checkout execution. This correction is append-only and
+  does not rewrite the historical signature or promotion record above.
+- [x] The candidate manifest was rebuilt from the committed blobs at
+  `f8ce1f17954ec61da73369562626714d7e429258`; all nine member byte counts and
+  SHA-256 values reproduce from Git blobs. The rebuilt 2,633-byte candidate
+  manifest has SHA-256
+  `1034a53ca1f8416ab45f1ea07c85efd82efd17df38047736d79b19b8fb055071`;
+  a detached `core.autocrlf=true` checkout reproduced all nine entries with a
+  clean status. Independent approval remains required.
+
+Current authority boundary:
+
+- The rebuilt manifest is an unsigned candidate pending independent review and
+  a new exact-byte owner signature. It is not canonically promoted.
+- The failed preflight invoked zero sessions. No CLI, credential copy, private
+  rollout, staging tree or synthetic repository survived cleanup.
+- No prior live authorization may be reused for the rebuilt manifest. A future
+  canary requires a new owner signature, canonical promotion and a separately
+  granted exactly-two/no-replacement session authorization.
+- Natural-bug/resource admission and independent Gate 3 start authority remain
+  mandatory before counted execution. Counted A/B/C/D execution remains zero.
+
+Cannot claim from this correction: independent approval of the rebuilt
+manifest, a new owner signature, canonical promotion, live-session authority,
+a successful scorer packet, natural-bug/resource admission, Gate 3 start
+authority or any counted result.

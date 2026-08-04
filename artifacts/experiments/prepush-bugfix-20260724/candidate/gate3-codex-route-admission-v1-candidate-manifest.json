@@ -37,9 +37,9 @@
       "sha256": "fa9a597e2fbb759ef21916e8a8ae368954c4b3c8deca5e61a239eba9cd109dbb"
     },
     {
-      "bytes": 20594,
+      "bytes": 20114,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_wrapper_semantic_contract.py",
-      "sha256": "9a824005d45304066e7193d7c2d25203dccf89351b2d5ed494f8647c56f0d01d"
+      "sha256": "b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13"
     },
     {
       "bytes": 146179,
@@ -58,5 +58,5 @@
   "purpose": "Exact reviewed Gate 3 Codex route admission amendment and implementation bytes for owner signature and later canonical promotion; this manifest does not authorize a session.",
   "reviewed_implementation_commit": "65f321611cb63c9b7f344c513ec8dcdc39cd8742",
   "schema": "gate3-codex-route-admission-candidate-set.v1",
-  "source_base_commit": "65f321611cb63c9b7f344c513ec8dcdc39cd8742"
+  "source_base_commit": "f8ce1f17954ec61da73369562626714d7e429258"
 }
