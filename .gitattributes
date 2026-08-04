@@ -60,3 +60,12 @@
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py -text
 /docs/governance/gate3-codex-route-admission-amendment-v1-candidate-20260803.md -text
+/docs/governance/gate3-codex-route-simplification-spec-20260802.md -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_credential_common.ps1 -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_live_canary.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_pair_runner.ps1 -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_session_launcher.ps1 -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_wrapper_semantic_contract.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_live_canary.py -text
+/artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-codex-route-admission-v1-candidate-manifest.json -text
+/.gitattributes -text

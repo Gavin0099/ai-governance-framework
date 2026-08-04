@@ -1,0 +1,62 @@
+{
+  "authorization": "pending_exact_byte_owner_signature_and_canonical_promotion",
+  "files": [
+    {
+      "bytes": 7337,
+      "path": ".gitattributes",
+      "sha256": "abe5c1648ee22adce810bea5d2c5ac9a2a7e67b9c3cd9b7d7a49c24f5fcbe91b"
+    },
+    {
+      "bytes": 19785,
+      "path": "docs/governance/gate3-codex-route-admission-amendment-v1-candidate-20260803.md",
+      "sha256": "d4e3228bab51524d9fd6bce876e24fa47584b0fbafe5d04d96e9d9d9ae0dc8d6"
+    },
+    {
+      "bytes": 25821,
+      "path": "docs/governance/gate3-codex-route-simplification-spec-20260802.md",
+      "sha256": "9a4d9b60a76b4a59f1bafa610b5e0842f076e07cab9b58ff7b9b1ec8e1d01efb"
+    },
+    {
+      "bytes": 5737,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_credential_common.ps1",
+      "sha256": "734018043523f8a50812c0f0ce481970c1c9cbbb9ba89d2dc35832f71f2ae33e"
+    },
+    {
+      "bytes": 157459,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_live_canary.py",
+      "sha256": "2dce6f0bc0ecbf6df5e3cf0fd358b361da701bfa81d3891e0d896b00186016d8"
+    },
+    {
+      "bytes": 13128,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_pair_runner.ps1",
+      "sha256": "851fd6fd4a7df11c44a7fb6d8a69442c699fc0331c4c5e8cc86f87b8497cd31e"
+    },
+    {
+      "bytes": 3896,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_session_launcher.ps1",
+      "sha256": "fa9a597e2fbb759ef21916e8a8ae368954c4b3c8deca5e61a239eba9cd109dbb"
+    },
+    {
+      "bytes": 20594,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_wrapper_semantic_contract.py",
+      "sha256": "9a824005d45304066e7193d7c2d25203dccf89351b2d5ed494f8647c56f0d01d"
+    },
+    {
+      "bytes": 146179,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_live_canary.py",
+      "sha256": "af16d9593220ed89e70d75bf05b968c0c810188c74ec8b6ce3f32b244ea11405"
+    }
+  ],
+  "not_claimed": [
+    "exact-byte owner signature",
+    "canonical promotion",
+    "live-pair authorization",
+    "natural-bug or resource admission",
+    "Gate 3 start authority",
+    "counted execution"
+  ],
+  "purpose": "Exact reviewed Gate 3 Codex route admission amendment and implementation bytes for owner signature and later canonical promotion; this manifest does not authorize a session.",
+  "reviewed_implementation_commit": "65f321611cb63c9b7f344c513ec8dcdc39cd8742",
+  "schema": "gate3-codex-route-admission-candidate-set.v1",
+  "source_base_commit": "65f321611cb63c9b7f344c513ec8dcdc39cd8742"
+}
