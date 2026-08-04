@@ -6,12 +6,24 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.expansion_boundary_checker import (
     ExpansionBoundaryResult,
     Violation,
+    _CORE_POST_TASK_KEYS,
+    _TRANSITIONAL_POST_TASK_KEYS,
     _TRANSITIONAL_SESSION_START_KEYS,
     run_checks,
 )
 
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent
+VISIBILITY_OUTPUT_KEYS = {
+    "by_consumer",
+    "by_field",
+    "by_type",
+    "contract_version",
+    "high_frequency_misuse_triggers_enforcement",
+    "notice",
+    "total_violations",
+    "visibility_only",
+}
 
 
 def test_expansion_boundary_checker_accepts_current_pre_task_decision_boundary_surface():
@@ -46,6 +58,11 @@ def test_session_envelope_is_admitted_as_transitional_lifecycle_metadata():
         and Path(violation.file).name == "session_start.py"
     ]
     assert unexpected == []
+
+
+def test_stable_visibility_output_keys_are_core_not_transitional():
+    assert VISIBILITY_OUTPUT_KEYS <= _CORE_POST_TASK_KEYS
+    assert VISIBILITY_OUTPUT_KEYS.isdisjoint(_TRANSITIONAL_POST_TASK_KEYS)
 
 
 def test_expansion_boundary_checker_run_checks_contract_shape():
