@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import hashlib,importlib.util,json,pathlib,sys\nroot=pathlib.Path.cwd()\nreceipt=root/'artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-auth-v9-20260804-184444.failure/failure-receipt.json'\nraw=receipt.read_bytes()\nassert hashlib.sha256(raw).hexdigest()=='3e3962b2c5590e71ed76e2e0568c5d64eb46cabdb39487a607bcee9c66b3ae86'\nvalue=json.loads(raw)\nassert value['execution']['session_invocations']==2\nassert value['authorization']['replacement_sessions']==0\nassert value['execution']['session_exit_codes']=={'A':0,'B':0}\nassert value['failure_stage']=='packet_build'\nassert value['scoreable'] is False and value['success_packet_present'] is False\nruntime=root/'artifacts/experiments/prepush-bugfix-20260724/gate3-runtime'\nsys.path.insert(0,str(runtime))\nspec=importlib.util.spec_from_file_location('gate3_live',runtime/'gate3_codex_live_canary.py')\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nmodule.verify_public_privacy(receipt.parent)\nprint('PASS: Gate 3 v1 final negative receipt exact identity, execution boundary and public privacy verified')\"",
+  "exit_code": 0,
+  "started_at": "2026-08-04T16:07:04Z",
+  "finished_at": "2026-08-04T16:07:04Z",
+  "runner": "gate3-v1-final-closeout-verifier",
+  "linked_commit": "1c85d9b121e2609d7af0bd198dd6b89859e3fe24",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-v1-final-closeout-20260805.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
