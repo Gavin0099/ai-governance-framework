@@ -642,6 +642,9 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "[human_readable_adoption_summary]" in agents_text
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
+    assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "update_report_complete=false" in agents_text
+    assert "completion_claim_allowed=false" in agents_text
     assert "happy-path-only tests" in agents_text
     assert "expected values must come from a spec/invariant/fixture" in agents_text
     assert "mock-only assertions are weak evidence" in agents_text
@@ -732,6 +735,9 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "[human_readable_adoption_summary]" in agents_text
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
+    assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "update_report_complete=false" in agents_text
+    assert "completion_claim_allowed=false" in agents_text
     assert "happy-path-only tests" in agents_text
     assert "expected values must come from a spec/invariant/fixture" in agents_text
     assert "mock-only assertions are weak evidence" in agents_text

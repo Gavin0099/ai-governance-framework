@@ -6,7 +6,7 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.6
+# Response Envelope Contract v0.7
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
@@ -24,15 +24,173 @@ default_load: on-demand
 > three non-empty lines and moved the audit ledger after it. Acceptance remains
 > actual reader judgment; no validator, hook, CI, gate, or default behavior was
 > added or changed.
+> v0.7 (2026-08-04): separates the complete machine envelope from the default
+> human rendering. Compact Chinese-first responses omit empty audit fields;
+> forced expansion is limited to failed or partial work, an owner decision
+> request, or an explicit full-evidence request. Dirty state, high-risk scope,
+> and expressible limitations use one compact `注意：` line. Required machine
+> fields and evidence semantics are unchanged; progress updates are governed by
+> `AGENTS.md`.
 
 ## Purpose
 
 This contract defines the minimum governance fields for structured agent
 responses when a response is produced by a recognizable workflow event.
 
-The goal is not compression. The goal is to keep task authority, scope, claim
-ceiling, evidence, and risk disclosure separate enough that reviewers can audit
-what was done, what was claimed, and what remains unproven.
+The goal is to keep task authority, scope, claim ceiling, evidence, and risk
+disclosure separate enough that reviewers can audit what was done, what was
+claimed, and what remains unproven without forcing every reader to decode the
+full audit ledger. The machine envelope and the human response are different
+surfaces: evidence remains complete even when the default human rendering is
+compact.
+
+## Rendering Modes
+
+The complete machine envelope is the canonical record for validation, receipts,
+and independent review. It must remain associated with the workflow event or
+session that produced the response. A compact human response is only a
+projection: it must never replace, mutate, or become the sole surviving copy of
+the machine envelope. If the canonical record cannot be preserved, classify the
+result as failed or partial and use expanded reporting.
+
+The retained envelope must remain associated with the event or session that
+produced it. A failed or ambiguous preservation check is part of the
+`failed_or_partial` expanded path; it does not add a required envelope field.
+
+The renderer may select, reorder, and translate existing envelope values. It
+must not infer `verified`, `safe`, `no issues`, or equivalent trust claims from
+an omitted warning, an empty display field, or a passing structural check. Every
+human-facing claim must remain traceable to a named envelope value or an
+explicitly identified human judgment. Such a judgment must already be recorded
+as an input with its source and authority; the renderer may display or translate
+it but may not create or upgrade it while rendering.
+
+### Compact by default
+
+For a complete task with supporting evidence, use the current session language
+and show the existing three-line preface:
+
+```text
+Result: <what is complete>
+Reason: <the most important supporting result>
+Next step: <one concrete next action, or a complete sentence saying none is needed>
+```
+
+Use translated labels in the session language. In Chinese, prefer:
+
+```text
+完成：<實際完成的成果>
+原因：<最重要的支持結果>
+下一步：<一個具體的下一步；沒有則用完整句子說明>
+```
+
+Compact requires complete `done`, supporting `evidence_refs`, traceable
+`task_authority`, `claim_ceiling`, and `next_action`, plus the retained machine
+record. Keep non-decision-relevant `not_claimed` data machine-side. Structural
+`PASS` is not a semantic trust claim, and `Reason` must use existing evidence.
+
+Dirty state, high-risk scope, or a decision-relevant limitation may add one
+`注意：` line when that line preserves the claim boundary. If it cannot, use
+`failed_or_partial` expanded reporting. Rendering metadata is optional and
+must not become a required field or a new trust claim; `mode` and `mode_source`
+remain event-derived.
+
+### Expanded by trigger
+
+Evaluate these three stable trigger IDs before choosing the rendering mode. Any
+matching trigger forces expanded reporting; otherwise use compact rendering.
+When more than one applies, the first row is the primary reason.
+
+| Priority | Trigger ID | Source | Required response |
+| --- | --- | --- | --- |
+| 1 | `full_evidence_request` | explicit user request | Expanded report; state the request plainly. |
+| 2 | `owner_decision_required` | current workflow decision context | Expanded report with the decision and the reply or action that resolves it. |
+| 3 | `failed_or_partial` | `done`, evidence, preservation, and rendering context | Expanded report with the incomplete, contradictory, unavailable, or unprojectable result. |
+
+`failed_or_partial` includes incomplete `done`, failed or unavailable required
+validation, contradictory evidence, an unavailable canonical record, or a
+claim/next-action boundary that cannot be preserved in compact form. Dirty
+worktree state, high-risk authority scope, and a decision-relevant limitation
+remain compact when one `注意：` line can state their effect without changing
+the claim. An ambiguous rendering predicate takes the failed/partial path.
+
+F-7 terminal results remain a dedicated expanded-report exception. They must
+relay the complete adoption summary required by `governance/F7_FULL_UPDATE.md`;
+when that summary is unavailable, preserve the protocol's
+`update_report_complete=false` and `completion_claim_allowed=false` fallback
+instead of compressing the result into the ordinary compact projection.
+
+Expanded output preserves every decision-relevant non-claim and the complete
+machine field meanings. A `注意：` line may replace a visible `Cannot claim`
+section only when it states the boundary honestly; it never removes machine
+`not_claimed` data. When multiple ordinary triggers apply, report the primary
+one first and each additional trigger once, preserving `evidence_refs` order.
+
+### Language and terminology
+
+Human-facing prose and labels use the current session language. In a Chinese
+session, translate conceptual reporting terms such as ordinary expansion
+policy（一般展開規則）、dirty state（工作樹未乾淨）、authority surface（治理或
+權限面）、limitation（限制）、compact（精簡版）、progress update（進度更新）、
+adoption summary（導入摘要）、fallback（退路）、scoped diff（本次範圍差異）
+and diagnostics（靜態檢查）. Keep English only for an exact file path, command,
+commit, API, schema field, or fixed machine token. Do not show an English
+conceptual label and its translated duplicate in the same compact response.
+
+When a trigger ID must be shown, gloss it on first use:
+`full_evidence_request`（要求完整證據）、`owner_decision_required`（需要負責人
+決定）、`failed_or_partial`（失敗或只完成一部分）. When another exact token is
+shown, give its plain-language meaning once, for example: `PASS`（檢查通過）.
+
+The machine envelope keeps canonical field names such as `claim_ceiling`,
+`not_claimed`, and `evidence_refs`; human responses normally use 宣稱界線、
+尚未確認的事項、 and 證據來源 instead. The human `下一步` or `Next step`
+sentence is a plain-language projection of the machine `next_action` value,
+not a second independently authored decision. The projection must preserve the
+action's conditions, uncertainty, and scope; it may shorten wording but may not
+add, remove, or upgrade an action. If `next_action` is absent, conditional in a
+way that cannot be expressed plainly, stale, or contains multiple actions that
+cannot be ordered unambiguously, use expanded reporting and state the ambiguity.
+If a recommendation is needed, it must also be traceable to the envelope's
+evidence and claim boundary.
+
+For this rule, `next_action` is stale when it conflicts with the current scope,
+status, evidence, or already-completed work. In expanded reporting, retain the
+exact machine value or an unambiguous traceability reference beside the
+translated projection.
+
+A compact `next_action` must contain one ordered action that can be expressed as
+an action, target, and any applicable condition without changing its meaning.
+The existing value `none` is also valid when `done` is complete, no
+decision-relevant item exists, and the envelope explicitly recommends no action;
+render it as a complete sentence rather than the bare token. Multiple actions
+are valid only when their order is explicit. An absent, stale, conditionally
+incomplete, or unordered value forces expanded reporting.
+The expanded traceability reference is the retained envelope's event or session
+identifier plus the `next_action` field name; the exact machine value remains
+available through that reference.
+
+Prose and user-facing labels use the session language. Exact machine field
+names may appear only as code literals, traceability references, or fixed tokens
+that require exact comparison; do not expose them as a second translated label
+in the compact response.
+
+Keep the compact `注意：` line for one decision-relevant limitation only. Do
+not put test commands, test counts, `git diff --check`, diagnostics, or general
+work status in that line; keep those under a post-preface `驗證：` section or in
+the machine `evidence_refs`. Render worktree status as `工作樹仍不乾淨` and add
+the exact token only when needed: `NOT CLEAN`（工作樹不乾淨）.
+
+Evidence commands in a human report must be runnable from the repository root;
+retain the complete path such as `tests/test_response_envelope_validator.py`.
+File references must use the actual workspace-relative path and verified
+1-based line number; never invent or reuse a stale line reference.
+
+### Progress updates
+
+Progress-update content and frequency are governed by the always-loaded
+`AGENTS.md` rule. This on-demand contract does not impose a hard maximum on
+progress updates.
 
 ## Authority Boundary
 

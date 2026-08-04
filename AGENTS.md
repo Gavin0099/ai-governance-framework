@@ -29,7 +29,11 @@ Before acting, load the detailed protocol only when its trigger applies:
 
 2. Final report / closeout:
    read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
-   Use result-first reporting and do not omit Cannot claim / not_claimed.
+   Use result-first reporting and preserve `not_claimed` in the complete
+   machine envelope. In compact human output, omit the visible Cannot claim
+   section only when no decision-relevant item exists or a compact `注意：`
+   line preserves that boundary; expanded output must show every
+   decision-relevant non-claim.
    When surfacing machine / guard field tokens, pair each with a one-line
    plain-language meaning; keep the field, add the gloss.
 
@@ -199,10 +203,41 @@ Final reports and closeout must follow
 
 Result-first reporting is required. Event-driven `mode` must be event-derived,
 not agent-selected. `mode_source`, `task_authority`, `scope`, `done`,
-`not_claimed`, `evidence_refs`, and `risk` must remain separate.
+`claim_ceiling`, `not_claimed`, `evidence_refs`, `risk`, and `next_action` must
+remain separate.
 
-Do not omit Cannot claim / not_claimed. `PASS` must always include a command,
-artifact, or source; bare `PASS` is not valid.
+Preserve `not_claimed`, `task_authority`, `claim_ceiling`, and `evidence_refs`
+in the complete machine envelope. A compact human response may omit the visible
+   Cannot claim section only when no decision-relevant item exists or the compact
+   `注意：` line preserves that boundary; it must not discard the machine data.
+   Force expanded reporting only for failed or partial work, an owner decision
+   required, or an explicit full-evidence request. Dirty state, decision-relevant
+   limitations, and high-risk authority surfaces use one compact `注意：` line
+   when that line can state their effect honestly; otherwise classify the result
+   as failed or partial. `PASS` must always include a command, artifact, or
+   source; bare `PASS` is not valid.
+
+   In a Chinese session, translate conceptual reporting terms. Keep English
+   only for exact paths, commands, commits, APIs, schema fields, fixed machine
+   tokens, and trigger IDs; gloss trigger IDs on first use:
+   `full_evidence_request`（要求完整證據）、`owner_decision_required`（需要負責人
+   決定）、`failed_or_partial`（失敗或只完成一部分）. Do not put test commands,
+   counts, diagnostics, or general worktree status in `注意：`; put validation
+   details under `驗證：` or in `evidence_refs`, and keep `注意：` for the one
+   decision-relevant limitation.
+
+   Report commands from the repository root with their complete paths, such as
+   `tests/test_response_envelope_validator.py`. Every file reference must use
+   the actual workspace-relative path and verified 1-based line number.
+
+#### Progress Updates
+
+Progress updates are content-dense and on demand. Each update must contain at
+least one new discovery, root-cause convergence, or plan change. Omit updates
+that only narrate routine commands, searches, or repeated validation, and do
+not impose a hard maximum number of updates. Keep each update concise and in
+the current session language; the final report states the result rather than
+replaying progress history.
 
 ### 8. Commit Checkpoint (reporting convention, not a gate)
 
