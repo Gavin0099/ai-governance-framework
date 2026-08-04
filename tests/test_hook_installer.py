@@ -63,7 +63,9 @@ def test_install_governance_hooks_writes_windows_safe_config_without_bom(tmp_pat
 
     assert result.ok is True
     config = repo / ".git" / "hooks" / "ai-governance-framework-root"
-    assert config.read_bytes().startswith(str(framework.resolve()).encode("utf-8"))
+    expected_root = str(framework.resolve()).replace("\\", "/")
+    assert config.read_bytes().startswith(expected_root.encode("utf-8"))
+    assert b"\r\n" not in config.read_bytes()
     assert not config.read_bytes().startswith(b"\xef\xbb\xbf")
     validation = validate_hook_install(repo)
     assert validation.valid is True
@@ -85,6 +87,24 @@ def test_install_governance_hooks_is_idempotent(tmp_path: Path) -> None:
     assert first.ok is True
     assert second.ok is True
     assert second.changed_files == []
+
+
+def test_install_governance_hooks_normalizes_shell_hooks_to_lf(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _make_framework(framework)
+    for hook_name in ("pre-commit", "pre-push"):
+        hook = framework / "scripts" / "hooks" / hook_name
+        hook.write_bytes(hook.read_bytes().replace(b"\n", b"\r\n"))
+
+    result = install_governance_hooks(repo, framework, include_copilot=False)
+
+    assert result.ok is True
+    for hook_name in ("pre-commit", "pre-push"):
+        installed = (repo / ".git" / "hooks" / hook_name).read_bytes()
+        assert b"\r\n" not in installed
+        assert b"\n" in installed
 
 
 def test_install_governance_hooks_backs_up_unmanaged_hook(tmp_path: Path) -> None:
@@ -144,6 +164,15 @@ def test_managed_hooks_resolve_target_root_from_invocation_worktree_first() -> N
     for hook_name in ("pre-commit", "pre-push"):
         text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
         assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"' in text
+
+
+def test_managed_hooks_normalize_windows_framework_paths() -> None:
+    for hook_name in ("pre-commit", "pre-push"):
+        text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
+        assert 'case "$FRAMEWORK_ROOT" in' in text
+        assert 'DRIVE_PATH="${FRAMEWORK_ROOT:2}"' in text
+        assert 'FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"' in text
+        assert 'FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"' in text
 
 
 def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:

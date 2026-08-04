@@ -163,10 +163,22 @@ def _framework_root_from_hook_config(repo_root: Path) -> Path | None:
         return None
     if not raw:
         return None
-    candidate = Path(raw)
+    candidate = _resolve_cross_platform_path(raw)
     if not candidate.is_absolute():
         candidate = (repo_root / candidate).resolve()
     return candidate.resolve()
+
+
+def _resolve_cross_platform_path(raw: str) -> Path:
+    """Resolve a Windows drive path when the checker runs under Git Bash Python."""
+    if len(raw) >= 3 and raw[1] == ":" and raw[2] in "/\\":
+        drive = raw[0].lower()
+        relative = raw[3:].replace("\\", "/")
+        for prefix in (Path("/mnt") / drive, Path("/") / drive):
+            candidate = prefix / relative
+            if candidate.exists():
+                return candidate.resolve()
+    return Path(raw)
 
 
 def _is_memory_file(path_text: str) -> bool:

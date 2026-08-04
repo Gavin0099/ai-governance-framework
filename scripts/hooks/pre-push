@@ -16,6 +16,21 @@ if [ -z "$FRAMEWORK_ROOT" ]; then
     FRAMEWORK_ROOT="$TARGET_REPO_ROOT"
 fi
 
+case "$FRAMEWORK_ROOT" in
+    [A-Za-z]:*)
+        DRIVE="${FRAMEWORK_ROOT:0:1}"
+        DRIVE_PATH="${FRAMEWORK_ROOT:2}"
+        DRIVE_PATH="${DRIVE_PATH//\\//}"
+        DRIVE_LOWER="$(printf '%s' "$DRIVE" | tr '[:upper:]' '[:lower:]')"
+        if [ -d "/mnt/$DRIVE_LOWER/$DRIVE_PATH" ]; then
+            FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"
+        elif [ -d "/$DRIVE_LOWER/$DRIVE_PATH" ]; then
+            FRAMEWORK_ROOT="/$DRIVE_LOWER/$DRIVE_PATH"
+        fi
+        ;;
+esac
+    FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"
+
 PYTHON_LIB="$FRAMEWORK_ROOT/scripts/lib/python.sh"
 if [ ! -f "$PYTHON_LIB" ]; then
     echo "[governance] warning: missing framework Python helper: $PYTHON_LIB"

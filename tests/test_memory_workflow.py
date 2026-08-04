@@ -266,6 +266,21 @@ def test_external_hook_framework_root_path_supported(tmp_path: Path) -> None:
     assert "canonical writer not found" not in result.warnings
 
 
+def test_windows_style_hook_framework_root_path_supported(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-b", "main"], check=True, stdout=subprocess.PIPE)
+    _make_framework_surface(framework)
+    windows_style = str(framework).replace("\\", "/")
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", windows_style)
+
+    result = assess_memory_workflow(repo, changed_files=["memory/2026-06-09.md"])
+
+    assert result.canonical_writer_path is not None
+    assert result.authority_guard_path is not None
+
+
 def test_possible_memory_task_is_advisory_without_memory_diff(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
 
