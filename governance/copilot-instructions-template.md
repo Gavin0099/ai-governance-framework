@@ -35,120 +35,78 @@ When the working tree is dirty, produce a concise `git status` summary only.
 Stage only files explicitly listed by the user or required by the DONE scope.
 Do not read, explain, stage, or modify unrelated dirty or untracked files.
 
-### Rule 4: Structured Report Format
+### Rule 4: Result-First Rendering
 
-When reporting task completion, use this exact format. Fixed vocabulary only — no free-form narrative in these fields.
+When reporting task completion, follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+The complete machine envelope remains the canonical record. Keep
+`mode_source`, `task_authority`, `scope`, `done`, `claim_ceiling`,
+`not_claimed`, `evidence_refs`, `risk`, and `next_action` separate and
+traceable; compact human text is only a projection and never replaces that
+record.
 
-Event-driven response envelope:
-- When using a `mode` field, follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
-- `mode` must be event-derived, not agent-selected.
-- Keep `mode_source`, `task_authority`, `scope`, `done`, `not_claimed`, `evidence_refs`, and `risk` separate.
-- `task_authority` distinguishes authorized work from autonomous expansion.
-- `evidence_refs` records commands, artifacts, or reviewer sources supporting the DONE claim; it does not upgrade semantic authority.
-- Do not replace claim ceiling or risk disclosure with confidence scores, effort estimates, or broad impact analysis.
+### Compact by default
 
-Vocabulary definitions:
-- `NOT PRESENT` = the mechanism, artifact, or enforcement does not exist
-- `NOT CLAIMED` = the capability or conclusion is not being asserted this session
-- `PASS` = must always include `— <command or source>` (never bare)
+For a complete task with supporting evidence, use the first three lines in the
+session language. Add one `注意：` line when dirty state, high-risk scope, or a
+decision-relevant limitation needs to be visible but can still be stated
+without changing the claim boundary:
 
-**Language rule:** Content language must match the session language. Sub-field labels (`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`, `claim inflation`, `evidence maturity`) and fixed vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`, `NOT PRESENT`) remain in English regardless of session language. Section headers may be translated.
-
-English format:
-```
-Validation:
-- structural:    PASS — <command> | FAIL — <command> | NOT RUN
-- build:         PASS — <command> | FAIL — <command> | NOT RUN
-- semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
-- behavioral:    NOT PRESENT | verified — [how]
-- ext evidence:  NOT PRESENT | [source and scope]
-
-Risk:
-- scope drift:        none | [description]
-- claim inflation:    none | [description]
-- evidence maturity:  [one line]
-
-Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
-
-Cannot claim this session:
-- [list what was NOT validated, NOT verified, NOT proven]
+```text
+Result: <what is complete>
+Reason: <the supporting evidence and claim boundary>
+Next step: <one concrete action, or a complete sentence saying none is needed>
+注意：<one decision-relevant limitation, when applicable>
 ```
 
-Chinese format (when session language is Chinese):
-```
-驗證：
-- structural:    PASS — <指令> | FAIL — <指令> | NOT RUN
-- build:         PASS — <指令> | FAIL — <指令> | NOT RUN
-- semantic:      NOT CLAIMED | PASS — 人工審查：[審查者/日期]
-- behavioral:    NOT PRESENT | 已驗證 — [如何]
-- ext evidence:  NOT PRESENT | [來源與範圍]
+In Chinese, use `完成：`, `原因：`, and `下一步：`. Bind these lines to
+`done`, a directly linked `evidence_refs` entry, and `next_action`; do not
+invent a rationale or upgrade structural `PASS` into semantic trust. A
+non-decision-relevant `not_claimed` item may remain machine-side without a
+visible Cannot claim section. Keep the event/session traceability path,
+`task_authority`, and `claim_ceiling` available even when they remain in the
+machine record.
 
-風險：
-- scope drift:        none | [說明]
-- claim inflation:    none | [說明]
-- evidence maturity:  [一行說明]
+### Expanded by trigger
 
-附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
+Use expanded reporting only when one of these three conditions applies:
 
-本次無法宣告：
-- [列出未驗證、未確認、未證明的項目]
-```
+- `full_evidence_request`（要求完整證據）：使用者明確要求完整證據；
+- `owner_decision_required`（需要負責人決定）：目前需要負責人回覆或授權；
+- `failed_or_partial`（失敗或只完成一部分）：工作失敗、只完成一部分，或必要驗證無法取得、互相矛盾、無法保留宣稱界線。
 
-Do NOT omit `Cannot claim` / `本次無法宣告`. It is required in every completion report.
+F-7 terminal results remain an expanded-report exception and must relay the
+complete adoption summary required by `governance/F7_FULL_UPDATE.md`, including
+the unavailable-summary fallback when applicable.
 
-**Examples:**
+Expanded output keeps all decision-relevant `not_claimed` items, risks, claim
+boundaries, evidence references, and the exact or traceable machine
+`next_action`. Emit the primary expansion reason first, then other matching
+reasons once in contract priority order. Preserve the machine envelope even
+when the human report is expanded.
 
-Schema-only change (markdown, no runtime):
-```
-Validation:
-- structural:    PASS — grep section_refs *.md
-- build:         NOT RUN — markdown-only change
-- semantic:      NOT CLAIMED
-- behavioral:    NOT PRESENT
-- ext evidence:  NOT PRESENT
-Risk:
-- scope drift:        none
-- claim inflation:    none
-- evidence maturity:  structural layer only; no semantic verification
-Incidental cleanup:   none
-Cannot claim this session:
-- semantic correctness of section references
-- PDF-level content verification
-```
+### Language and progress
 
-Pilot attachment change (build pass, no semantic verification):
-```
-Validation:
-- structural:    PASS — validate_wiki_frontmatter
-- build:         PASS — npm.cmd run build (exit 0)
-- semantic:      NOT CLAIMED
-- behavioral:    NOT PRESENT
-- ext evidence:  NOT PRESENT
-Risk:
-- scope drift:        none — pilot limited to 4 existing entries
-- claim inflation:    none — claim_level unchanged (inferred)
-- evidence maturity:  build-verified only; high-risk coverage below original plan
-Incidental cleanup:   none
-Cannot claim this session:
-- bit-level semantic verification of attached spec sections
-- high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
-- verified status upgrade
-```
+Use the current session language for prose and labels. In a Chinese session,
+translate conceptual terms such as ordinary expansion policy（一般展開規則）、
+dirty state（工作樹未乾淨）、authority surface（治理或權限面）、limitation
+（限制）、compact（精簡版）、progress update（進度更新）、adoption summary
+（導入摘要）、fallback（退路）、scoped diff（本次範圍差異）與 diagnostics
+（靜態檢查）. Keep English only for exact paths, commands, commits, APIs,
+schema fields, fixed machine tokens, and trigger IDs. When an exact token is
+shown, add its plain-language meaning once.
 
-Failed / partial validation:
-```
-Validation:
-- structural:    PASS — validate_wiki_frontmatter
-- build:         FAIL — npm.cmd run build (exit 1, see error above)
-- semantic:      NOT CLAIMED
-- behavioral:    NOT PRESENT
-- ext evidence:  NOT PRESENT
-Risk:
-- scope drift:        none
-- claim inflation:    none — task not complete
-- evidence maturity:  build failure; no completion evidence
-Incidental cleanup:   none
-Cannot claim this session:
-- task complete
-- any validation above build layer
-```
+Keep `注意：` for one decision-relevant limitation. Do not put test commands,
+test counts, `git diff --check`, diagnostics, or general worktree status in it;
+put those under `驗證：` or the machine `evidence_refs`. Report commands with
+complete repository-root paths such as `tests/test_response_envelope_validator.py`,
+and use actual workspace-relative file links and verified line numbers.
+
+Progress updates must contain at least one new discovery, root-cause convergence,
+or plan change. Omit updates that only narrate routine commands, searches, or
+repeated validation; there is no hard maximum number of updates.
+
+Fixed vocabulary remains exact where it is part of machine evidence:
+`NOT PRESENT`, `NOT CLAIMED`, `PASS`, `FAIL`, and `NOT RUN`. `PASS` must include
+a command, artifact, or source; bare `PASS` is invalid. Do not replace claim
+ceiling, risk, authority, or evidence maturity with confidence scores or broad
+impact prose.
