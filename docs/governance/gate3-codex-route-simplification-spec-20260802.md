@@ -181,12 +181,16 @@ permissive default.
 |---|---|---|
 | `history_mode` | B / experiment | Behavior-relevant environment value; calibrate, approve, then freeze. |
 | `model_provider` | A / experiment | Same authority as the study-level provider row above. |
-| `originator` | O | May identify an execution or instruction surface; requires the ruling below. |
-| `source` | O | Must be ruled together with `originator`. |
+| `originator` | A / experiment | Owner-calibrated execution-surface anchor: exactly `Codex Desktop`; mismatch is validity-critical. |
+| `source` | A / experiment | Owner-calibrated session-source anchor: exactly `exec`; ruled together with `originator`. |
 | `thread_source` | B / experiment | May affect conversation construction; calibrate and freeze. |
 | session-meta `cwd` | D → pair-equal after normalization | Raw arm paths differ; both must reduce to the signed generic workspace token. |
 | session ID | E | Must be non-empty, internally consistent and distinct across arms; exact value is identity only. |
 | CLI version | A / experiment | Duplicate observation of the study-frozen CLI identity. |
+| initial `context_window.window_id` | E / session | Required canonical UUIDv7 in the unique pre-first-tool metadata record; A/B values must be distinct and are tokenized before context comparison. |
+| initial `git.commit_hash` | A / experiment input | Must equal the frozen baseline commit before the first tool call. |
+| initial `git.branch` | C / pair | Must be non-empty and pair-equal, but is not frozen to a historical branch literal. |
+| initial `git.repository_url` | A / structural invariant | Must be absent or JSON null; a non-null remote changes the admitted synthetic-repository surface. |
 
 ### Context envelope and record structure
 
@@ -195,17 +199,20 @@ fields above. No full-list equality check may silently choose their scope.
 
 | Envelope or record structure | Disposition / scope | Reason |
 |---|---|---|
-| session-meta presence and session-ID consistency | A / structural invariant | At least one record is required; all records in one rollout must name the same non-empty session identity. |
-| session-meta record count and order | C / pair | Both arms must expose the same count and canonical record ordering; the count may vary between separately authorized pairs and is recorded. |
+| pre-first-tool session-meta count | A / structural invariant | Exactly one initial record is required; synthetic 0/1/2 coverage is a promotion gate. |
+| post-tool session-meta records | E | May be retained as lifecycle observations but do not replace or multiply the unique initial admission record. |
+| session-ID consistency | A / structural invariant | Every metadata record in one rollout must name the same non-empty session identity. |
 | turn-context presence | A / structural invariant | At least one turn-context record is required. |
 | turn-context record count and order | C / pair | Both arms must expose the same count and canonical order; the published route retains `turn_count`. |
 | machine-context message cardinality | A / structural invariant | Exactly one machine-context envelope is required; zero or multiple envelopes fail closed. |
 | task-prompt user-message cardinality | A / structural invariant | Exactly one byte-exact frozen task prompt is required and no unmatched user message is allowed. |
 | event user-message list | A / structural invariant | The event projection must be exactly the singleton frozen task prompt in canonical order. |
-| base-instruction record presence | A / structural invariant | Every session-meta record must carry base instructions; absence fails closed. |
-| base-instruction record count and order | C / pair, then B content anchor | Both arms must expose the same canonical list structure; normalized content digests are separately calibration-frozen under the instruction row below. |
-| developer-instruction record presence | A / structural invariant | At least one developer-instruction record is required. |
-| developer-instruction record count and order | C / pair, then B content anchor | Both arms must expose the same canonical list structure; normalized content digests are separately calibration-frozen. |
+| initial base-instruction record presence | A / structural invariant | The unique pre-first-tool session-meta record must carry base instructions; absence fails closed. |
+| initial base-instruction record count and order | C / pair, then B content anchor | Both arms must expose the same canonical list structure in the unique pre-first-tool record; normalized content digests are separately calibration-frozen under the instruction row below. |
+| post-tool base-instruction fields | E | May be absent or changed in later session-meta lifecycle records; they are recorded but cannot change the initial admission identity. |
+| pre-first-tool developer envelope | D → C / pair | Exactly one initial message is required. Its ordered content-item sections must come from the closed pinned-Codex marker inventory; per-session IDs and workspace paths are narrowly tokenized before A/B equality. |
+| config-level developer override | A / experiment | Must be absent; unmarked initial content fails closed and isolated `CODEX_HOME` must be empty before credential seeding. |
+| post-tool developer records | E | Structurally counted only; their content cannot change initial admission identity. |
 
 ### Turn and collaboration context
 
@@ -238,7 +245,7 @@ fields above. No full-list equality check may silently choose their scope.
 | machine `permission_profile_type` | A / experiment | Duplicate capability-boundary observation. |
 | machine `file_system_type` | A / experiment | Filesystem capability boundary. |
 | base instructions | D then B / experiment | Normalize workspace paths, hash exact UTF-8 bytes, approve the digest after calibration, then freeze it. Never publish instruction text. |
-| developer instructions | D then B / experiment | Same rule as base instructions. |
+| developer instructions | D → C / pair | No raw digest is an anchor. The pinned Codex implementation defines a closed pre-first-tool section envelope; only narrowly normalized canonical JSON is compared across arms. |
 | paths inside any instruction or context string | D | Only the exact arm workspace may map to `WORKSPACE`; unknown absolute/device paths fail public projection. |
 
 ### World state and wrapper surface
@@ -251,28 +258,22 @@ fields above. No full-list equality check may silently choose their scope.
 | wrapper shapes emitted by calibration | E | Census of what one session emitted; absence is not proof that another shape cannot appear. |
 | timestamps | E | Must be parseable and preserve ordering; exact values are not comparison controls. |
 
-## Open rulings
+## Resolved rulings and remaining study decision
 
-1. **`originator`.** If it denotes a different execution surface or different
-   instruction source, it is validity-critical. Because the literal used by
-   this redesign would be learned from calibration, its disposition is B, not
-   A; the owner records the validity rationale when accepting the B anchor. If
-   it is only a label, the owner may still choose B for experiment-wide drift
-   detection or E if there is evidence that the value cannot affect behavior.
-   The calibration evidence exposes its exact value only to the private
-   decision artifact, alongside the normalized base-instruction digest.
+1. **`originator`.** Resolved by the owner as the calibration-frozen,
+   experiment-wide execution-surface anchor `Codex Desktop`. Drift is
+   validity-critical and fails closed.
 
-2. **`source`.** Rule on it together with `originator`; it may describe the
-   same execution-surface distinction.
+2. **`source`.** Resolved together with `originator` as the
+   calibration-frozen, experiment-wide anchor `exec`.
 
 3. **Codex live route.** Simplification does not make the channel cheap. A
    different producer channel would change the research question from “does
    the Skill help real Codex?” and is a separate study decision.
 
-An open ruling blocks changes to formal admission, candidate rebuilding, pair
-authorization and counted execution. It does **not** block the offline
-collector implementation or the single calibration probe whose evidence is
-needed to resolve the ruling.
+The route choice remains a study decision. The resolved context rulings permit
+candidate formal-admission implementation, but do not authorize signature,
+promotion, another pair or counted execution.
 
 ## Counted-run anchoring prohibition
 
@@ -429,22 +430,25 @@ session. The required order after offline approval is:
 1. owner grants exact-one, no-replacement calibration authorization;
 2. the probe produces the private decision artifact and privacy-safe public
    receipt;
-3. the owner rules on `originator` and `source` from the private evidence;
+3. the owner rules on `originator`, `source` and developer-envelope authority
+   from the private evidence plus pinned implementation source;
 4. the accepted anchors and rationales enter a new admission amendment;
-5. independent review, exact-byte signature and canonical promotion complete;
-6. only then may a separate pair authorization be considered.
+5. the formal admission implementation and amendment pass independent review;
+6. exact-byte signature and canonical promotion complete; and
+7. only then may a separate pair authorization be considered.
 
 ## Claim ceiling
 
-This specification may claim only a proposed classification, complete current
-field inventory, proposed privacy boundary and recommended offline tranche. It
-does not claim that any behavior is implemented or enforced.
+This specification records the classification and coverage inventory consumed
+by a candidate formal-admission implementation. The candidate implementation
+may enforce these rows in tests, but this specification does not claim that the
+amendment or implementation is independently approved, signed or promoted.
 
 ## Cannot claim
 
 - That this specification is independently approved, signed or promoted.
-- That the collector, schema or privacy boundary exists in runtime.
-- That a calibration session is authorized.
-- That `originator` or `source` has been classified.
+- That the candidate formal-admission implementation is independently approved.
+- That the amendment or implementation is owner-signed or promoted.
+- That another calibration session or live pair is authorized.
 - That one probe covers future wrappers or predicts a pair will pass.
 - That Gate 3 may resume or counted execution is anything other than zero.

@@ -13,6 +13,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import uuid
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from datetime import datetime
@@ -39,10 +40,14 @@ DEFAULT_PAIR_RUNNER = HERE / "gate3_codex_pair_runner.ps1"
 DEFAULT_CREDENTIAL_COMMON = HERE / "gate3_codex_credential_common.ps1"
 DEFAULT_CALIBRATION_RUNNER = HERE / "gate3_codex_calibration_runner.ps1"
 DEFAULT_TESTS = HERE / "test_gate3_codex_live_canary.py"
+DEFAULT_ROUTE_ADMISSION_AMENDMENT = (
+    EXPERIMENT_ROOT.parents[2]
+    / "docs/governance/gate3-codex-route-admission-amendment-v1-candidate-20260803.md"
+)
 
-SUMMARY_SCHEMA = "gate3-codex-live-canary.v5"
-ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v5"
-ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v4"
+SUMMARY_SCHEMA = "gate3-codex-live-canary.v6"
+ROUTE_PLAN_SCHEMA = "gate3-codex-live-route-plan.v6"
+ROUTE_RECEIPT_SCHEMA = "gate3-codex-live-route-receipt.v5"
 CAPTURE_RECEIPT_SCHEMA = "gate3-codex-live-capture-receipt.v2"
 BASELINE_RECEIPT_SCHEMA = "gate3-codex-live-baseline-test-receipt.v1"
 CREDENTIAL_RECEIPT_SCHEMA = "gate3-codex-credential-runner-receipt.v2"
@@ -51,6 +56,9 @@ AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
     "d64817c2ceb190f43764b0d08c098deb821ca4755e273e045dec34812cc97d00"
+)
+EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256 = (
+    "d4e3228bab51524d9fd6bce876e24fa47584b0fbafe5d04d96e9d9d9ae0dc8d6"
 )
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_COMP_HASH = "3000"
@@ -270,6 +278,18 @@ CONTEXT_TURN_EXPECTED = {
     "summary": "auto",
     "timezone": DEFAULT_TIMEZONE,
 }
+INITIAL_DEVELOPER_SECTION_MARKERS = {
+    "apps": ("<apps_instructions>", "</apps_instructions>"),
+    "collaboration": ("<collaboration_mode>", "</collaboration_mode>"),
+    "context_window": ("<context_window>", "</context_window>"),
+    "environments": ("<environments_instructions>", "</environments_instructions>"),
+    "multi_agent": ("<multi_agent_mode>", "</multi_agent_mode>"),
+    "permissions": ("<permissions instructions>", "</permissions instructions>"),
+    "personality": ("<personality_spec>", "</personality_spec>"),
+    "plugins": ("<plugins_instructions>", "</plugins_instructions>"),
+    "skills": ("<skills_instructions>", "</skills_instructions>"),
+}
+SESSION_META_GIT_KEYS = {"branch", "commit_hash", "repository_url"}
 ANON_MAPPING = {
     "OUT-111111111111": "A",
     "OUT-222222222222": "B",
@@ -1561,6 +1581,11 @@ def prepare(
         DEFAULT_REASONING,
     ):
         raise CanaryError("prepare arguments differ from the frozen Codex route")
+    if (
+        _sha256_file(DEFAULT_ROUTE_ADMISSION_AMENDMENT)
+        != EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+    ):
+        raise CanaryError("route admission amendment differs from candidate identity")
     if staging_root.exists():
         raise CanaryError(f"staging root already exists: {staging_root}")
     candidate_checks = _validate_candidate(repo_root)
@@ -1673,6 +1698,9 @@ def prepare(
                 ),
                 "producer_git_identity": PRODUCER_GIT_IDENTITY,
                 "reasoning": reasoning,
+                "route_admission_amendment_sha256": _sha256_file(
+                    DEFAULT_ROUTE_ADMISSION_AMENDMENT
+                ),
             },
             "implementation": implementation,
             "privacy": {
@@ -1785,6 +1813,128 @@ def _instruction_text(payload: dict[str, Any]) -> str:
     if not parts:
         raise CanaryError("instruction message has no text")
     return "".join(parts)
+
+
+def _first_tool_call_index(records: list[dict[str, Any]]) -> int:
+    for index, item in enumerate(records):
+        payload = item.get("payload")
+        if (
+            item.get("type") == "response_item"
+            and isinstance(payload, dict)
+            and payload.get("type")
+            in {"custom_tool_call", "function_call", "tool_search_call"}
+        ):
+            return index
+    return len(records)
+
+
+def _validate_initial_session_meta(
+    meta: dict[str, Any],
+    *,
+    expected_baseline_commit: str,
+) -> dict[str, str]:
+    context_window = meta.get("context_window")
+    if not isinstance(context_window, dict) or set(context_window) != {"window_id"}:
+        raise CanaryError("initial session_meta context_window structure is invalid")
+    window_id = context_window.get("window_id")
+    if not isinstance(window_id, str):
+        raise CanaryError("initial context window id is invalid")
+    try:
+        parsed_window_id = uuid.UUID(window_id)
+    except ValueError as exc:
+        raise CanaryError("initial context window id is invalid") from exc
+    if parsed_window_id.version != 7 or str(parsed_window_id) != window_id:
+        raise CanaryError("initial context window id is not canonical UUIDv7")
+
+    git_context = meta.get("git")
+    if not isinstance(git_context, dict):
+        raise CanaryError("initial session_meta git structure is invalid")
+    if not set(git_context).issubset(SESSION_META_GIT_KEYS) or not {
+        "branch",
+        "commit_hash",
+    }.issubset(git_context):
+        raise CanaryError("initial session_meta git structure is invalid")
+    commit_hash = git_context.get("commit_hash")
+    branch = git_context.get("branch")
+    if commit_hash != expected_baseline_commit:
+        raise CanaryError("initial git commit differs from frozen baseline")
+    if not isinstance(branch, str) or not branch.strip() or branch != branch.strip():
+        raise CanaryError("initial git branch is invalid")
+    if "repository_url" in git_context and git_context["repository_url"] is not None:
+        raise CanaryError("initial git repository URL must be absent or null")
+    return {"branch": branch, "commit_hash": commit_hash, "window_id": window_id}
+
+
+def _developer_content_sections(payload: dict[str, Any]) -> list[str]:
+    content = payload.get("content")
+    if not isinstance(content, list) or not content:
+        raise CanaryError("developer message content is invalid")
+    sections: list[str] = []
+    for item in content:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"text", "type"}
+            or item.get("type") not in {"input_text", "text"}
+            or not isinstance(item.get("text"), str)
+            or not item["text"]
+        ):
+            raise CanaryError("developer message section is invalid")
+        sections.append(item["text"])
+    return sections
+
+
+def _normalise_initial_developer_envelope(
+    payloads: list[dict[str, Any]],
+    *,
+    expected_workspace: str,
+    session_id: str,
+    window_id: str,
+) -> dict[str, Any]:
+    if len(payloads) != 1:
+        raise CanaryError("initial developer envelope count is invalid")
+    normalised: list[dict[str, str]] = []
+    seen_kinds: set[str] = set()
+    for text in _developer_content_sections(payloads[0]):
+        matches = [
+            (kind, opening, closing)
+            for kind, (opening, closing) in INITIAL_DEVELOPER_SECTION_MARKERS.items()
+            if text.startswith(opening) and text.endswith(closing)
+        ]
+        if len(matches) != 1:
+            # An unmarked leading section is the Codex config-level developer
+            # override. Unknown marked sections are also outside this frozen route.
+            raise CanaryError("initial developer section source is unknown")
+        kind, opening, closing = matches[0]
+        if kind in seen_kinds:
+            raise CanaryError("initial developer section kind is duplicated")
+        seen_kinds.add(kind)
+        body = text[len(opening) : -len(closing)]
+        if kind == "context_window":
+            expected_lines = [
+                f"Thread id: {session_id}",
+                f"First context window id: {window_id}",
+                f"Current context window id: {window_id}",
+            ]
+            if body.strip().splitlines() != expected_lines:
+                raise CanaryError(
+                    "initial developer context window is not bound to session_meta"
+                )
+            body = (
+                "\nThread id: SESSION_ID\n"
+                "First context window id: WINDOW_ID\n"
+                "Current context window id: WINDOW_ID\n"
+            )
+        body = _normalised_context_view(
+            body,
+            expected_workspace=expected_workspace,
+        )
+        normalised.append({"body": body, "kind": kind})
+    if "context_window" not in seen_kinds:
+        raise CanaryError("initial developer envelope lacks context window authority")
+    return {
+        "sections": normalised,
+        "source_policy": "pinned_codex_0.146.0_pre_first_tool_closed_sections",
+    }
 
 
 def _decode_js_string(value: str, *, label: str) -> str:
@@ -1913,6 +2063,7 @@ def parse_rollout(
     expected_cli_version: str,
     expected_reasoning: str,
     expected_workspace: str,
+    expected_baseline_commit: str,
     expected_context_contract: dict[str, Any],
     rollout_diagnostic: dict[str, Any] | None = None,
     parse_phase: str | None = None,
@@ -1935,9 +2086,21 @@ def parse_rollout(
         rollout_diagnostic[f"{parse_phase}_census"] = _world_state_census(
             records
         )
+    first_tool_call_index = _first_tool_call_index(records)
+    pre_tool_records = records[:first_tool_call_index]
     metas = [item["payload"] for item in records if item.get("type") == "session_meta"]
-    if not metas:
-        raise CanaryError("rollout has no session_meta")
+    initial_metas = [
+        item["payload"]
+        for item in pre_tool_records
+        if item.get("type") == "session_meta" and isinstance(item.get("payload"), dict)
+    ]
+    if len(initial_metas) != 1:
+        raise CanaryError("rollout must have exactly one pre-first-tool session_meta")
+    initial_meta = initial_metas[0]
+    initial_projection = _validate_initial_session_meta(
+        initial_meta,
+        expected_baseline_commit=expected_baseline_commit,
+    )
     session_ids = {
         str(meta.get("id") or meta.get("session_id") or "") for meta in metas
     }
@@ -1951,7 +2114,7 @@ def parse_rollout(
     providers = {str(meta.get("model_provider", "")) for meta in metas}
     if providers != {expected_context_contract["provider"]}:
         raise CanaryError("rollout model provider differs from frozen context")
-    for meta in metas:
+    for meta in (initial_meta,):
         for field, expected in expected_context_contract["meta"].items():
             if meta.get(field) != expected:
                 raise CanaryError(
@@ -2064,18 +2227,34 @@ def parse_rollout(
     if event_user_messages != [expected_prompt_text]:
         raise CanaryError("event user message differs from exact task prompt")
     received_prompt = prompt_matches[0].encode("utf-8")
-    developer_texts = [
-        _instruction_text(item["payload"])
-        for item in records
+    initial_developer_payloads = [
+        item["payload"]
+        for item in pre_tool_records
         if item.get("type") == "response_item"
         and isinstance(item.get("payload"), dict)
         and item["payload"].get("type") == "message"
         and item["payload"].get("role") == "developer"
     ]
-    if not developer_texts:
+    if not initial_developer_payloads:
         raise CanaryError("rollout has no developer instructions")
-    base_instructions = [meta.get("base_instructions") for meta in metas]
-    if any(value is None for value in base_instructions):
+    initial_developer_envelope = _normalise_initial_developer_envelope(
+        initial_developer_payloads,
+        expected_workspace=expected_workspace,
+        session_id=next(iter(session_ids)),
+        window_id=initial_projection["window_id"],
+    )
+    post_tool_developer_records = [
+        item["payload"]
+        for item in records[first_tool_call_index + 1 :]
+        if item.get("type") == "response_item"
+        and isinstance(item.get("payload"), dict)
+        and item["payload"].get("type") == "message"
+        and item["payload"].get("role") == "developer"
+    ]
+    for payload in post_tool_developer_records:
+        _developer_content_sections(payload)
+    base_instructions = [initial_meta.get("base_instructions")]
+    if base_instructions[0] is None:
         raise CanaryError("rollout has no base instructions")
     world_states = _validated_world_states(records)
     calls: list[dict[str, Any]] = []
@@ -2135,26 +2314,27 @@ def parse_rollout(
         "base_instructions": _normalised_context_view(
             base_instructions, expected_workspace=expected_workspace
         ),
-        "developer_instructions": _normalised_context_view(
-            developer_texts, expected_workspace=expected_workspace
-        ),
+        "initial_developer_envelope": initial_developer_envelope,
         "machine_context": _normalised_context_view(
             machine, expected_workspace=expected_workspace
         ),
-        "session_meta": [
-            _normalised_context_view(
-                {
-                    "cli_version": meta.get("cli_version"),
-                    "cwd": meta.get("cwd"),
-                    **{
-                        field: meta.get(field)
-                        for field in expected_context_contract["meta"]
-                    },
+        "session_meta": _normalised_context_view(
+            {
+                "cli_version": initial_meta.get("cli_version"),
+                "cwd": initial_meta.get("cwd"),
+                "git": {
+                    "branch": initial_projection["branch"],
+                    "commit_hash": initial_projection["commit_hash"],
+                    "repository_url": None,
                 },
-                expected_workspace=expected_workspace,
-            )
-            for meta in metas
-        ],
+                "context_window": {"window_id": "WINDOW_ID"},
+                **{
+                    field: initial_meta.get(field)
+                    for field in expected_context_contract["meta"]
+                },
+            },
+            expected_workspace=expected_workspace,
+        ),
         "turn_context": [
             _normalised_context_view(
                 {
@@ -2194,9 +2374,13 @@ def parse_rollout(
         "comp_hash": expected_comp_hash,
         "acceptance_policy_sha256": contract.policy_digest(),
         "context_identity_sha256": _sha256_bytes(_json_bytes(context_identity)),
-        "developer_instructions_sha256": _sha256_bytes(
-            _json_bytes(context_identity["developer_instructions"])
+        "initial_developer_envelope_sha256": _sha256_bytes(
+            _json_bytes(context_identity["initial_developer_envelope"])
         ),
+        "initial_git_branch": initial_projection["branch"],
+        "initial_window_id": initial_projection["window_id"],
+        "post_tool_developer_record_count": len(post_tool_developer_records),
+        "pre_tool_session_meta_count": len(initial_metas),
         "finished_at": timestamps[-1],
         "history_modes": sorted(
             {json.dumps(meta.get("history_mode"), sort_keys=True) for meta in metas}
@@ -2412,6 +2596,7 @@ def _capture_outcome(
         expected_cli_version=plan["frozen_route"]["cli_version"],
         expected_reasoning=plan["frozen_route"]["reasoning"],
         expected_workspace=str(repo),
+        expected_baseline_commit=plan["baseline_commit"],
         expected_context_contract=plan["context_contract"],
         rollout_diagnostic=rollout_diagnostic,
         parse_phase="source",
@@ -2444,6 +2629,7 @@ def _capture_outcome(
         expected_cli_version=plan["frozen_route"]["cli_version"],
         expected_reasoning=plan["frozen_route"]["reasoning"],
         expected_workspace=context_token,
+        expected_baseline_commit=plan["baseline_commit"],
         expected_context_contract=plan["context_contract"],
         rollout_diagnostic=rollout_diagnostic,
         parse_phase="public",
@@ -2839,6 +3025,7 @@ def _census_incomplete_arms(
                 "expected_comp_hash": plan["frozen_route"]["comp_hash"],
                 "expected_cli_version": plan["frozen_route"]["cli_version"],
                 "expected_reasoning": plan["frozen_route"]["reasoning"],
+                "expected_baseline_commit": plan["baseline_commit"],
                 "expected_context_contract": plan["context_contract"],
             }
         except (OSError, KeyError, TypeError, ValueError):
@@ -2888,6 +3075,19 @@ def _census_incomplete_arms(
             )
         except (CanaryError, OSError, KeyError, TypeError, ValueError):
             continue
+
+
+def _validate_cross_arm_admission(route_views: list[dict[str, Any]]) -> None:
+    if len(route_views) != 2:
+        raise CanaryError("cross-arm admission requires exactly two routes")
+    if len({route["initial_window_id"] for route in route_views}) != 2:
+        raise CanaryError("A/B initial context window identities are not distinct")
+    if len({route["initial_git_branch"] for route in route_views}) != 1:
+        raise CanaryError("A/B initial git branches differ")
+    if len(
+        {route["initial_developer_envelope_sha256"] for route in route_views}
+    ) != 1:
+        raise CanaryError("A/B initial developer envelopes differ")
 
 
 def _build_orchestrated(
@@ -3029,6 +3229,9 @@ def _build_orchestrated(
         != route_receipts[1]["source_attestation"]["context_identity_sha256"]
     ):
         raise CanaryError("A/B frozen context identities differ")
+    _validate_cross_arm_admission(
+        [receipt["route"] for receipt in route_receipts]
+    )
     chain.close_blind_set(chain_dir, contract_path, "skill_primary")
     close_event = _load_json(chain._event_files(chain_dir)[3])
     for role in ("primary", "second"):
@@ -3730,6 +3933,7 @@ def _verify_route_receipt(
         expected_cli_version=plan["frozen_route"]["cli_version"],
         expected_reasoning=plan["frozen_route"]["reasoning"],
         expected_workspace=context_token,
+        expected_baseline_commit=plan["baseline_commit"],
         expected_context_contract=plan["context_contract"],
     )
     if receipt.get("route") != rebuilt:
@@ -3806,6 +4010,11 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         != implementation
     ):
         raise CanaryError("implementation commit identity is invalid")
+    if (
+        _sha256_file(DEFAULT_ROUTE_ADMISSION_AMENDMENT)
+        != EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+    ):
+        raise CanaryError("route admission amendment differs from candidate identity")
     expected_frozen_route = {
         "cli_version": DEFAULT_CLI_VERSION,
         "comp_hash": DEFAULT_COMP_HASH,
@@ -3825,6 +4034,9 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         ),
         "producer_git_identity": PRODUCER_GIT_IDENTITY,
         "reasoning": DEFAULT_REASONING,
+        "route_admission_amendment_sha256": (
+            EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+        ),
     }
     if (
         summary.get("schema") != SUMMARY_SCHEMA
@@ -3944,6 +4156,7 @@ def verify(repo_root: Path, root: Path) -> dict[str, Any]:
         != routes[1]["_source_context_identity_sha256"]
     ):
         raise CanaryError("A/B public or source context identities differ")
+    _validate_cross_arm_admission(routes)
     return {
         "candidate_manifest_sha256": EXPECTED_CANDIDATE_MANIFEST_SHA256,
         "checks": {

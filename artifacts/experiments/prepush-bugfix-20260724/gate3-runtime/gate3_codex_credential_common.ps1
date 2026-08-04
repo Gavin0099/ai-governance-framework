@@ -67,6 +67,14 @@ function Set-CurrentUserOnlyAcl {
     $acl.SetAccessRuleProtection($true, $false)
     [void]$acl.AddAccessRule($rule)
     Set-Acl -LiteralPath $Path -AclObject $acl
+    if (-not (Test-CurrentUserOnlyAcl -Path $Path)) {
+        throw 'Private credential ACL verification failed.'
+    }
+}
+
+function Test-CurrentUserOnlyAcl {
+    param([string]$Path)
+    $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
     $observed = Get-Acl -LiteralPath $Path
     $allowRules = @(
         $observed.Access |
@@ -77,6 +85,7 @@ function Set-CurrentUserOnlyAcl {
     )
     if (
         -not $observed.AreAccessRulesProtected -or
+        @($observed.Access).Count -ne 1 -or
         $allowRules.Count -ne 1 -or
         $allowRules[0].IdentityReference.Translate(
             [System.Security.Principal.SecurityIdentifier]
@@ -84,8 +93,9 @@ function Set-CurrentUserOnlyAcl {
         $allowRules[0].FileSystemRights -ne
             [System.Security.AccessControl.FileSystemRights]::FullControl
     ) {
-        throw 'Private credential ACL verification failed.'
+        return $false
     }
+    return $true
 }
 
 function Copy-PrivateCredential {

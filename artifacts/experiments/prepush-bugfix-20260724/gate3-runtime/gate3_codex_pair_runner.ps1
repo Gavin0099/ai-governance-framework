@@ -153,7 +153,7 @@ $routePlanSha256 = (
 ).Hash.ToLowerInvariant()
 $routePlan = Get-Content -Raw -LiteralPath $RoutePlanPath | ConvertFrom-Json
 if (
-    $routePlan.schema -ne 'gate3-codex-live-route-plan.v5' -or
+    $routePlan.schema -ne 'gate3-codex-live-route-plan.v6' -or
     $routePlan.frozen_route.pair_runner_implementation_sha256 -ne
         $pairRunnerSha256 -or
     $routePlan.frozen_route.launcher_implementation_sha256 -ne
@@ -210,6 +210,11 @@ foreach ($requiredDirectory in @(
         throw 'Credential runner required directory is missing.'
     }
 }
+foreach ($codexHome in @($ArmACodexHome, $ArmBCodexHome)) {
+    if (@(Get-ChildItem -LiteralPath $codexHome -Force).Count -ne 0) {
+        throw 'Isolated Codex home must be empty before credential seeding.'
+    }
+}
 foreach ($mustBeAbsent in @(
     $PrivateReceiptPath,
     $secretRoot,
@@ -261,8 +266,25 @@ try {
     if (-not $loginA -or -not $loginB) {
         throw 'Credential preflight did not confirm the ChatGPT route.'
     }
-    if (-not (Test-ExactBytes -Left $armAAuth -Right $armBAuth)) {
-        throw 'Credential homes differ after login preflight.'
+    foreach ($codexHomeState in @(
+        [ordered]@{ Path = $ArmACodexHome; Auth = $armAAuth },
+        [ordered]@{ Path = $ArmBCodexHome; Auth = $armBAuth }
+    )) {
+        $inventory = @(Get-ChildItem -LiteralPath $codexHomeState.Path -Force)
+        if (
+            $inventory.Count -ne 1 -or
+            $inventory[0].PSIsContainer -or
+            $inventory[0].FullName -ne $codexHomeState.Auth
+        ) {
+            throw 'Credential home inventory changed after login preflight.'
+        }
+        if (
+            -not (Test-ExactBytes -Left $seedPath -Right $codexHomeState.Auth) -or
+            -not (Test-CurrentUserOnlyAcl -Path $codexHomeState.Path) -or
+            -not (Test-CurrentUserOnlyAcl -Path $codexHomeState.Auth)
+        ) {
+            throw 'Credential home integrity changed after login preflight.'
+        }
     }
     $preflightPassed = $true
 
@@ -294,6 +316,13 @@ catch {
     $caughtFailure = $true
 }
 finally {
+    foreach ($codexHomePath in @($ArmACodexHome, $ArmBCodexHome)) {
+        if (Test-Path -LiteralPath $codexHomePath) {
+            foreach ($child in @(Get-ChildItem -LiteralPath $codexHomePath -Force)) {
+                Remove-Item -LiteralPath $child.FullName -Recurse -Force
+            }
+        }
+    }
     foreach ($path in @($secretPaths + $privateTransientPaths)) {
         if (Test-Path -LiteralPath $path) {
             Remove-Item -LiteralPath $path -Force

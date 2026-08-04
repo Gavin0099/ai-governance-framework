@@ -25,6 +25,8 @@ import gate3_wrapper_semantic_contract as contract
 
 WORKSPACE = "C:/workspace"
 SESSION_ID = "019facd0-11a5-7673-8914-ca863bff0588"
+WINDOW_ID = "019facd0-11a5-7673-8914-ca863bff0589"
+BASELINE_COMMIT = "a" * 40
 CURRENT_DATE = "2026-07-29"
 
 
@@ -101,7 +103,11 @@ def _rollout(
     turn_cwd: str = WORKSPACE,
     workspace_roots: list[str] | None = None,
     machine_cwd: str = WORKSPACE,
-    developer_text: str = "frozen developer instructions",
+    developer_text: str | None = None,
+    developer_sections: list[str] | None = None,
+    window_id: str = WINDOW_ID,
+    baseline_commit: str = BASELINE_COMMIT,
+    branch: str = "main",
     tool_input: str | None = None,
     tool_inputs: list[str] | None = None,
 ) -> bytes:
@@ -111,6 +117,16 @@ def _rollout(
         tool_input = _shell_input("git rev-parse HEAD")
     if tool_inputs is None:
         tool_inputs = [tool_input]
+    if developer_text is None:
+        developer_text = (
+            "<context_window>\n"
+            f"Thread id: {session_id}\n"
+            f"First context window id: {window_id}\n"
+            f"Current context window id: {window_id}\n"
+            "</context_window>"
+        )
+    if developer_sections is None:
+        developer_sections = [developer_text]
     event_prompt = prompt if event_prompt is None else event_prompt
     return b"".join(
         [
@@ -122,6 +138,12 @@ def _rollout(
                         "cwd": meta_cwd,
                         "history_mode": "legacy",
                         "id": session_id,
+                        "context_window": {"window_id": window_id},
+                        "git": {
+                            "branch": branch,
+                            "commit_hash": baseline_commit,
+                            "repository_url": None,
+                        },
                         "model_provider": provider,
                         "originator": "Codex Desktop",
                         "session_id": session_id,
@@ -168,7 +190,8 @@ def _rollout(
                 {
                     "payload": {
                         "content": [
-                            {"text": developer_text, "type": "input_text"}
+                            {"text": text, "type": "input_text"}
+                            for text in developer_sections
                         ],
                         "role": "developer",
                         "type": "message",
@@ -261,10 +284,19 @@ def _parse(
         expected_cli_version=live.DEFAULT_CLI_VERSION,
         expected_reasoning=live.DEFAULT_REASONING,
         expected_workspace=Path(WORKSPACE),
+        expected_baseline_commit=BASELINE_COMMIT,
         expected_context_contract=_context_contract(),
         rollout_diagnostic=rollout_diagnostic,
         parse_phase=parse_phase,
     )
+
+
+def _rollout_records(raw: bytes) -> list[dict[str, object]]:
+    return [json.loads(line) for line in raw.splitlines() if line.strip()]
+
+
+def _rollout_bytes(records: list[dict[str, object]]) -> bytes:
+    return b"".join(_line(record) for record in records)
 
 
 def test_parse_rollout_accepts_exact_route(tmp_path: Path) -> None:
@@ -276,6 +308,9 @@ def test_parse_rollout_accepts_exact_route(tmp_path: Path) -> None:
     assert result["prompt_sha256"] == live._sha256_bytes(b"frozen prompt")
     assert result["machine_context_count"] == 1
     assert result["tool_inventory"][0]["kind"] == "shell_command"
+    assert result["pre_tool_session_meta_count"] == 1
+    assert result["post_tool_developer_record_count"] == 0
+    assert "developer_instructions_sha256" not in result
 
 
 def _rollout_with_world_state_payloads(payloads: list[object]) -> bytes:
@@ -557,14 +592,420 @@ def test_context_fingerprint_changes_with_developer_instructions(
     first = _parse(tmp_path, _rollout())
     second_path = tmp_path / "second"
     second_path.mkdir()
+    context_section = (
+        "<context_window>\n"
+        f"Thread id: {SESSION_ID}\n"
+        f"First context window id: {WINDOW_ID}\n"
+        f"Current context window id: {WINDOW_ID}\n"
+        "</context_window>"
+    )
     second = _parse(
         second_path,
-        _rollout(developer_text="different developer instructions"),
+        _rollout(
+            developer_sections=[
+                context_section,
+                "<skills_instructions>different</skills_instructions>",
+            ]
+        ),
     )
     assert (
         first["context_identity_sha256"]
         != second["context_identity_sha256"]
     )
+
+
+@pytest.mark.parametrize("pre_tool_meta_count", [0, 2])
+def test_pre_first_tool_session_meta_promotion_gate_rejects_zero_or_two(
+    tmp_path: Path,
+    pre_tool_meta_count: int,
+) -> None:
+    records = _rollout_records(_rollout())
+    meta = next(record for record in records if record["type"] == "session_meta")
+    records = [record for record in records if record["type"] != "session_meta"]
+    for _ in range(pre_tool_meta_count):
+        records.insert(0, json.loads(json.dumps(meta)))
+    with pytest.raises(live.CanaryError, match="exactly one pre-first-tool"):
+        _parse(tmp_path, _rollout_bytes(records))
+
+
+@pytest.mark.parametrize("post_tool_base", [None, "changed post-tool base"])
+def test_post_tool_session_meta_does_not_change_initial_admission(
+    tmp_path: Path,
+    post_tool_base: str | None,
+) -> None:
+    baseline = _parse(tmp_path, _rollout())
+    records = _rollout_records(_rollout())
+    meta = next(record for record in records if record["type"] == "session_meta")
+    post_tool_meta = json.loads(json.dumps(meta))
+    if post_tool_base is None:
+        post_tool_meta["payload"].pop("base_instructions")
+    else:
+        post_tool_meta["payload"]["base_instructions"] = {
+            "text": post_tool_base
+        }
+    records.append(post_tool_meta)
+    second_path = tmp_path / "post-meta"
+    second_path.mkdir()
+    observed = _parse(second_path, _rollout_bytes(records))
+    assert observed["pre_tool_session_meta_count"] == 1
+    assert observed["context_identity_sha256"] == baseline["context_identity_sha256"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (lambda value: value.update({"extra": "x"}), "context_window structure"),
+        (
+            lambda value: value.update(
+                {"window_id": "550e8400-e29b-41d4-a716-446655440000"}
+            ),
+            "canonical UUIDv7",
+        ),
+        (
+            lambda value: value.update({"window_id": WINDOW_ID.upper()}),
+            "canonical UUIDv7",
+        ),
+    ],
+)
+def test_initial_context_window_fails_closed(
+    tmp_path: Path,
+    mutation,
+    message: str,
+) -> None:
+    records = _rollout_records(_rollout())
+    meta = next(record["payload"] for record in records if record["type"] == "session_meta")
+    mutation(meta["context_window"])
+    with pytest.raises(live.CanaryError, match=message):
+        _parse(tmp_path, _rollout_bytes(records))
+
+
+@pytest.mark.parametrize(
+    ("git_value", "message"),
+    [
+        ({"branch": "main"}, "git structure"),
+        (
+            {
+                "branch": "main",
+                "commit_hash": "b" * 40,
+                "repository_url": None,
+            },
+            "frozen baseline",
+        ),
+        (
+            {
+                "branch": " ",
+                "commit_hash": BASELINE_COMMIT,
+                "repository_url": None,
+            },
+            "git branch",
+        ),
+        (
+            {
+                "branch": "main",
+                "commit_hash": BASELINE_COMMIT,
+                "repository_url": "https://example.invalid/repo",
+            },
+            "repository URL",
+        ),
+        (
+            {
+                "branch": "main",
+                "commit_hash": BASELINE_COMMIT,
+                "repository_url": None,
+                "unknown": True,
+            },
+            "git structure",
+        ),
+    ],
+)
+def test_initial_git_projection_fails_closed(
+    tmp_path: Path,
+    git_value: dict[str, object],
+    message: str,
+) -> None:
+    records = _rollout_records(_rollout())
+    meta = next(record["payload"] for record in records if record["type"] == "session_meta")
+    meta["git"] = git_value
+    with pytest.raises(live.CanaryError, match=message):
+        _parse(tmp_path, _rollout_bytes(records))
+
+
+def test_unknown_or_config_override_developer_section_fails_closed(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(live.CanaryError, match="section source is unknown"):
+        _parse(tmp_path, _rollout(developer_text="unmarked config override"))
+
+
+def test_initial_developer_envelope_rejects_duplicate_and_malformed_sections(
+    tmp_path: Path,
+) -> None:
+    context = (
+        "<context_window>\n"
+        f"Thread id: {SESSION_ID}\n"
+        f"First context window id: {WINDOW_ID}\n"
+        f"Current context window id: {WINDOW_ID}\n"
+        "</context_window>"
+    )
+    with pytest.raises(live.CanaryError, match="kind is duplicated"):
+        _parse(tmp_path, _rollout(developer_sections=[context, context]))
+
+    records = _rollout_records(_rollout())
+    developer = next(
+        record["payload"]
+        for record in records
+        if record["type"] == "response_item"
+        and record["payload"].get("role") == "developer"
+    )
+    developer["content"][0]["unexpected"] = True
+    malformed_path = tmp_path / "malformed"
+    malformed_path.mkdir()
+    with pytest.raises(live.CanaryError, match="section is invalid"):
+        _parse(malformed_path, _rollout_bytes(records))
+
+
+def test_initial_developer_context_window_must_bind_to_session_meta(
+    tmp_path: Path,
+) -> None:
+    changed = _rollout().replace(
+        f"Thread id: {SESSION_ID}".encode(),
+        b"Thread id: 019facd0-11a5-7673-8914-ca863bff0599",
+    )
+    with pytest.raises(live.CanaryError, match="not bound to session_meta"):
+        _parse(tmp_path, changed)
+
+
+def test_initial_developer_section_order_is_part_of_cross_arm_identity(
+    tmp_path: Path,
+) -> None:
+    context = (
+        "<context_window>\n"
+        f"Thread id: {SESSION_ID}\n"
+        f"First context window id: {WINDOW_ID}\n"
+        f"Current context window id: {WINDOW_ID}\n"
+        "</context_window>"
+    )
+    skills = "<skills_instructions>same</skills_instructions>"
+    first = _parse(tmp_path, _rollout(developer_sections=[context, skills]))
+    second_path = tmp_path / "reordered"
+    second_path.mkdir()
+    second = _parse(
+        second_path,
+        _rollout(developer_sections=[skills, context]),
+    )
+    assert (
+        first["initial_developer_envelope_sha256"]
+        != second["initial_developer_envelope_sha256"]
+    )
+
+
+def test_collaboration_developer_override_must_be_null(tmp_path: Path) -> None:
+    records = _rollout_records(_rollout())
+    context = next(
+        record["payload"] for record in records if record["type"] == "turn_context"
+    )
+    context["collaboration_mode"]["settings"]["developer_instructions"] = "override"
+    with pytest.raises(live.CanaryError, match="collaboration context"):
+        _parse(tmp_path, _rollout_bytes(records))
+
+
+def test_post_tool_developer_record_is_observational_only(tmp_path: Path) -> None:
+    baseline = _parse(tmp_path, _rollout())
+    records = _rollout_records(_rollout())
+    records.append(
+        {
+            "payload": {
+                "content": [{"text": "post-tool update", "type": "input_text"}],
+                "role": "developer",
+                "type": "message",
+            },
+            "timestamp": "2026-07-29T08:00:04Z",
+            "type": "response_item",
+        }
+    )
+    second_path = tmp_path / "post-developer"
+    second_path.mkdir()
+    observed = _parse(second_path, _rollout_bytes(records))
+    assert observed["post_tool_developer_record_count"] == 1
+    assert observed["context_identity_sha256"] == baseline["context_identity_sha256"]
+
+
+def test_cross_arm_admission_enforces_window_branch_and_developer_identity() -> None:
+    first = {
+        "initial_developer_envelope_sha256": "a" * 64,
+        "initial_git_branch": "main",
+        "initial_window_id": WINDOW_ID,
+    }
+    second = {
+        **first,
+        "initial_window_id": "019facd0-11a5-7673-8914-ca863bff0590",
+    }
+    live._validate_cross_arm_admission([first, second])
+    for field, value, message in (
+        ("initial_window_id", WINDOW_ID, "not distinct"),
+        ("initial_git_branch", "other", "branches differ"),
+        ("initial_developer_envelope_sha256", "b" * 64, "envelopes differ"),
+    ):
+        mutated = dict(second)
+        mutated[field] = value
+        with pytest.raises(live.CanaryError, match=message):
+            live._validate_cross_arm_admission([first, mutated])
+
+
+def test_offline_verify_reruns_cross_arm_admission(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root = live.EXPERIMENT_ROOT.parents[2]
+    baseline = "1" * 40
+    model_build = (
+        f"codex:{live.DEFAULT_MODEL}:comp_hash={live.DEFAULT_COMP_HASH}:"
+        f"cli={live.DEFAULT_CLI_VERSION}"
+    )
+    frozen_route = {
+        "cli_version": live.DEFAULT_CLI_VERSION,
+        "comp_hash": live.DEFAULT_COMP_HASH,
+        "credential_common_implementation_sha256": live._sha256_file(
+            live.DEFAULT_CREDENTIAL_COMMON
+        ),
+        "launcher_implementation_sha256": live._sha256_file(
+            live.DEFAULT_SESSION_LAUNCHER
+        ),
+        "pair_runner_implementation_sha256": live._sha256_file(
+            live.DEFAULT_PAIR_RUNNER
+        ),
+        "model": live.DEFAULT_MODEL,
+        "model_build": model_build,
+        "producer_git_identity": live.PRODUCER_GIT_IDENTITY,
+        "reasoning": live.DEFAULT_REASONING,
+        "route_admission_amendment_sha256": (
+            live.EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+        ),
+    }
+    implementation = {"commit": "2" * 40, "files": {}}
+    privacy = {"sanitizer_rules_sha256": live._sanitizer_rules_sha256()}
+    plan = {
+        "baseline_commit": baseline,
+        "context_contract": {
+            "provider": live.DEFAULT_PROVIDER,
+            "public_context_tokens": live.PUBLIC_CONTEXT_TOKENS,
+        },
+        "credential_contract": live.CREDENTIAL_CONTRACT,
+        "frozen_route": frozen_route,
+        "implementation": implementation,
+        "privacy": privacy,
+        "schema": live.ROUTE_PLAN_SCHEMA,
+    }
+    plan_path = tmp_path / "route-plan.json"
+    plan_path.write_bytes(live._json_bytes(plan))
+    outcomes = []
+    admissions: dict[str, dict[str, object]] = {}
+    for index, (anon_id, treatment) in enumerate(live.ANON_MAPPING.items()):
+        prefix = f"arm-{index}"
+        packet = tmp_path / f"{prefix}-packet.json"
+        metrics = tmp_path / f"{prefix}-metrics.json"
+        admission_path = tmp_path / f"{prefix}-admission.json"
+        bundle = tmp_path / f"{prefix}.bundle"
+        for path in (packet, metrics, admission_path):
+            path.write_text("{}\n", encoding="utf-8")
+        bundle.write_bytes(f"bundle-{index}".encode("ascii"))
+        output_commit = str(index + 3) * 40
+        outcome = {
+            "admission_path": admission_path.name,
+            "anon_id": anon_id,
+            "baseline_commit": baseline,
+            "metrics_path": metrics.name,
+            "output_commit": output_commit,
+            "packet_path": packet.name,
+            "treatment": treatment,
+        }
+        outcomes.append(outcome)
+        admissions[packet.name] = {
+            **outcome,
+            "git_bundle": {
+                "path": bundle.name,
+                "sha256": live._sha256_file(bundle),
+            },
+            "model_build": model_build,
+        }
+    summary = {
+        "artifact_inventory": [],
+        "authorization": live.AUTHORIZATION,
+        "baseline_test_receipt": {},
+        "candidate_manifest_sha256": live.EXPECTED_CANDIDATE_MANIFEST_SHA256,
+        "candidate_verification_checks": 7,
+        "chain": {"event_count": 7, "head_sha256": "4" * 64, "state": "mapping_released"},
+        "credential_common_implementation_sha256": frozen_route[
+            "credential_common_implementation_sha256"
+        ],
+        "credential_contract": live.CREDENTIAL_CONTRACT,
+        "credential_runner_receipt": {},
+        "frozen_route": frozen_route,
+        "harness_implementation_sha256": live._sha256_file(Path(live.__file__)),
+        "implementation": implementation,
+        "launcher_implementation_sha256": frozen_route[
+            "launcher_implementation_sha256"
+        ],
+        "outcomes": outcomes,
+        "pair_runner_implementation_sha256": frozen_route[
+            "pair_runner_implementation_sha256"
+        ],
+        "privacy": privacy,
+        "rehearsal_kind": live.REHEARSAL_KIND,
+        "route_plan_sha256": live._sha256_file(plan_path),
+        "schema": live.SUMMARY_SCHEMA,
+        "tests_implementation_sha256": live._sha256_file(live.DEFAULT_TESTS),
+    }
+    (tmp_path / "canary-summary.json").write_bytes(live._json_bytes(summary))
+    monkeypatch.setattr(live, "_implementation_identity", lambda *_a, **_k: implementation)
+    monkeypatch.setattr(live, "_validate_candidate", lambda _root: 7)
+    monkeypatch.setattr(live, "_verify_inventory", lambda *_a: None)
+    monkeypatch.setattr(live, "verify_public_privacy", lambda _root: 1)
+    monkeypatch.setattr(live, "_verify_credential_receipt", lambda *_a: None)
+    monkeypatch.setattr(live, "_verify_baseline", lambda *_a: baseline)
+    monkeypatch.setattr(live.chain, "load_contract", lambda _path: ({}, b""))
+    monkeypatch.setattr(
+        live.chain,
+        "verify_chain",
+        lambda *_a, **_k: {
+            "event_count": 7,
+            "head_sha256": "4" * 64,
+            "state": "mapping_released",
+        },
+    )
+    monkeypatch.setattr(live.chain, "validate_metrics", lambda *_a, **_k: {})
+    monkeypatch.setattr(
+        live.chain,
+        "validate_admission",
+        lambda _admission, packet, *_a: admissions[packet.name],
+    )
+    route_values = iter(
+        [
+            {
+                "_source_context_identity_sha256": "5" * 64,
+                "context_identity_sha256": "5" * 64,
+                "initial_developer_envelope_sha256": "6" * 64,
+                "initial_git_branch": "main",
+                "initial_window_id": WINDOW_ID,
+                "permission_fingerprint": "7" * 64,
+                "session_id": SESSION_ID,
+            },
+            {
+                "_source_context_identity_sha256": "5" * 64,
+                "context_identity_sha256": "5" * 64,
+                "initial_developer_envelope_sha256": "6" * 64,
+                "initial_git_branch": "main",
+                "initial_window_id": WINDOW_ID,
+                "permission_fingerprint": "7" * 64,
+                "session_id": "019facd0-11a5-7673-8914-ca863bff0599",
+            },
+        ]
+    )
+    monkeypatch.setattr(live, "_verify_route_receipt", lambda *_a: next(route_values))
+    monkeypatch.setattr(live, "_verify_capture", lambda *_a: None)
+    monkeypatch.setattr(live, "_verify_bundle_commit_identities", lambda *_a, **_k: None)
+    with pytest.raises(live.CanaryError, match="window identities are not distinct"):
+        live.verify(repo_root, tmp_path)
 
 
 def test_parse_rollout_rejects_command_chaining(tmp_path: Path) -> None:
@@ -780,6 +1221,7 @@ def test_incomplete_arms_are_censused_after_another_arm_aborts(
         sources=sources,
         staging=staging,
         plan={
+            "baseline_commit": BASELINE_COMMIT,
             "frozen_route": {
                 "model": live.DEFAULT_MODEL,
                 "comp_hash": live.DEFAULT_COMP_HASH,
@@ -1398,6 +1840,7 @@ def test_sanitized_rollout_remains_strictly_parseable(
         expected_cli_version=live.DEFAULT_CLI_VERSION,
         expected_reasoning=live.DEFAULT_REASONING,
         expected_workspace=live.PUBLIC_CONTEXT_TOKENS["A"],
+        expected_baseline_commit=BASELINE_COMMIT,
         expected_context_contract=_context_contract(),
     )
     assert result["session_id"] == SESSION_ID
@@ -1883,6 +2326,10 @@ def _write_fake_codex(path: Path) -> None:
                 'if "%1"=="login" (',
                 '  echo login>>"%FAKE_CODEX_LOG%"',
                 '  if /i "%CODEX_HOME%"=="%FAIL_CODEX_HOME%" exit /b 12',
+                (
+                    '  if /i "%CODEX_HOME%"=="%INJECT_CONFIG_HOME%" '
+                    'echo injected=true>"%CODEX_HOME%\\config.toml"'
+                ),
                 "  echo Logged in using ChatGPT",
                 "  exit /b 0",
                 ")",
@@ -1939,6 +2386,8 @@ def _run_fake_pair(
     outside_temp: bool = False,
     concurrent_swap: bool = False,
     parent_snapshot: bool = False,
+    prepopulate_home: bool = False,
+    inject_login_config: bool = False,
 ):
     root = Path(tempfile.mkdtemp(prefix="gate3-credential-test-"))
     fake = root / "fake-codex.cmd"
@@ -2017,6 +2466,10 @@ def _run_fake_pair(
     prompts = {"A": root / "prompt-a.txt", "B": root / "prompt-b.txt"}
     for treatment in ("A", "B"):
         homes[treatment].mkdir()
+        if prepopulate_home and treatment == "A":
+            (homes[treatment] / "config.toml").write_text(
+                'developer_instructions="override"\n', encoding="utf-8"
+            )
         repos[treatment].mkdir()
         live._git(repos[treatment], "init", "-q")
         prompts[treatment].write_text(
@@ -2025,6 +2478,9 @@ def _run_fake_pair(
     env = os.environ.copy()
     env["FAKE_CODEX_LOG"] = str(log)
     env["FAIL_CODEX_HOME"] = str(homes["B"]) if fail_b_login else ""
+    env["INJECT_CONFIG_HOME"] = (
+        str(homes["A"]) if inject_login_config else ""
+    )
     fail_a_marker = root / "fail-a.marker"
     fail_b_marker = root / "fail-b.marker"
     fail_b_armed = root / "fail-b.armed"
@@ -2233,6 +2689,50 @@ def test_pair_runner_failed_preflight_starts_zero_fake_sessions_and_cleans(
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         assert receipt["session_invocations"] == 0
         assert receipt["login_status"] == {"A": "PASS", "B": "FAIL"}
+        assert not (homes["A"] / "auth.json").exists()
+        assert not (homes["B"] / "auth.json").exists()
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_pair_runner_rechecks_only_auth_home_after_login_before_sessions(
+    tmp_path: Path,
+) -> None:
+    result, _, log, receipt_path, homes, _, _, _, root = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        inject_login_config=True,
+    )
+    try:
+        assert result.returncode == 2
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            "login",
+            "login",
+        ]
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        assert receipt["session_invocations"] == 0
+        assert receipt["login_status"] == {"A": "PASS", "B": "PASS"}
+        assert receipt["auth_route"] == "unverified"
+        for home in homes.values():
+            assert list(home.iterdir()) == []
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_pair_runner_rejects_nonempty_codex_home_before_credential_seeding(
+    tmp_path: Path,
+) -> None:
+    result, _, log, receipt, homes, _, _, _, root = _run_fake_pair(
+        tmp_path,
+        fail_b_login=False,
+        prepopulate_home=True,
+    )
+    try:
+        assert result.returncode != 0
+        assert "must be empty before credential seeding" in result.stderr
+        assert not log.exists()
+        assert not receipt.exists()
+        assert (homes["A"] / "config.toml").exists()
         assert not (homes["A"] / "auth.json").exists()
         assert not (homes["B"] / "auth.json").exists()
     finally:
@@ -2453,6 +2953,9 @@ def test_verify_rejects_mutated_top_level_credential_common_digest(
         ),
         "producer_git_identity": live.PRODUCER_GIT_IDENTITY,
         "reasoning": live.DEFAULT_REASONING,
+        "route_admission_amendment_sha256": (
+            live.EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+        ),
     }
     privacy = {"sanitizer_rules_sha256": live._sanitizer_rules_sha256()}
     plan = {
@@ -3601,8 +4104,31 @@ def test_an_unknown_contract_reason_is_dropped_from_the_receipt() -> None:
 
 def test_receipt_schemas_moved_with_their_structure() -> None:
     """A changed receipt shape under an unchanged token is not readable."""
-    assert live.ROUTE_RECEIPT_SCHEMA.endswith(".v4")
+    assert live.ROUTE_RECEIPT_SCHEMA.endswith(".v5")
     assert live.FAILURE_RECEIPT_SCHEMA.endswith(".v8")
+
+
+def test_route_admission_amendment_exact_bytes_are_pinned(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert (
+        live._sha256_file(live.DEFAULT_ROUTE_ADMISSION_AMENDMENT)
+        == live.EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256
+    )
+    changed = tmp_path / "changed-amendment.md"
+    changed.write_bytes(live.DEFAULT_ROUTE_ADMISSION_AMENDMENT.read_bytes() + b"\n")
+    monkeypatch.setattr(live, "DEFAULT_ROUTE_ADMISSION_AMENDMENT", changed)
+    with pytest.raises(live.CanaryError, match="amendment differs"):
+        live.prepare(
+            live.EXPERIMENT_ROOT.parents[2],
+            tmp_path / "staging",
+            run_id="candidate-amendment-pin-test",
+            model=live.DEFAULT_MODEL,
+            comp_hash=live.DEFAULT_COMP_HASH,
+            cli_version=live.DEFAULT_CLI_VERSION,
+            reasoning=live.DEFAULT_REASONING,
+        )
 
 
 _HEX64 = "a" * 64
