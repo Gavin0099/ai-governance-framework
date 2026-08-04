@@ -2298,3 +2298,51 @@ Promotion scope and remaining gates:
 Cannot claim from this promotion: live-session authority, a successful scorer
 packet, natural-bug/resource admission, Gate 3 start authority or any counted
 result.
+
+## Gate 3 Preregistration Identity Repin — 2026-08-04
+
+- [x] The authorized zero-session preflight for fixed run ID
+  `gate3-codex-auth-v8-20260804-160000` stopped during `prepare`, before CLI
+  installation, login, credential copying or session invocation. The promoted
+  preregistration manifest reproduced five of six members; its `.gitattributes`
+  identity described historical bytes rather than the current committed bytes.
+- [x] The current committed `.gitattributes` is 7,337 bytes with SHA-256
+  `abe5c1648ee22adce810bea5d2c5ac9a2a7e67b9c3cd9b7d7a49c24f5fcbe91b`.
+  The preregistration candidate manifest has been repinned to that identity and
+  to source commit `3c2f194f38464bdccdb75384fe000bc9e5e3c49a`.
+- [x] The resulting 1,843-byte preregistration candidate manifest has SHA-256
+  `cbbcea0f614c3e34b03c2a102a71393de71b05da5fdae25884b98aff579e095b`.
+  It supersedes promoted preregistration identity
+  `d64817c2...` but is currently unsigned and unpromoted.
+- [x] The live-canary expected preregistration digest and its regression test
+  now point to the repinned candidate. Because those implementation bytes
+  changed, the route-admission candidate manifest was rebuilt as a coordinated
+  identity update.
+- [x] The resulting 2,672-byte route-admission candidate manifest has SHA-256
+  `71ec318b86bb56b2d683226a3ba46938e5e8186c8dd57aeb1ff027366a42ca70`.
+  It supersedes promoted route-admission identity
+  `1034a53c...5071` but is currently unsigned and unpromoted.
+- [x] Independent review rejected an earlier repin draft because its
+  `reviewed_implementation_commit` named the prior promotion commit rather than
+  a commit containing the proposed implementation bytes. Because this slice
+  is not authorized to commit, the corrected candidate removes that false
+  anchor and explicitly records
+  `pending_independent_review_of_proposed_bytes` instead.
+- [x] A clean proposed-commit checkout reproduced preregistration verification
+  6/6, route-admission verification 9/9 and live-canary `prepare` without
+  installing a CLI or invoking a session.
+
+Authority boundary:
+
+- The stopped v8 attempt invoked zero sessions. Its exactly-two authorization
+  does not automatically transfer to changed preregistration or
+  route-admission identities.
+- Both replacement manifests require independent review, exact-byte owner
+  signatures and separate canonical promotions before any future live
+  execution request may be considered.
+- Natural-bug/resource admission and independent Gate 3 start authority remain
+  mandatory before counted A/B/C/D execution. Counted execution remains zero.
+
+Cannot claim from this repin: independent approval, owner signature, canonical
+promotion, live-session authority, a successful scorer packet,
+natural-bug/resource admission, Gate 3 start authority or any counted result.

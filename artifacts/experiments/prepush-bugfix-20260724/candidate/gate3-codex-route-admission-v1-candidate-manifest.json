@@ -1,5 +1,5 @@
 {
-  "authorization": "pending_exact_byte_owner_signature_and_canonical_promotion",
+  "authorization": "pending_independent_review_exact_byte_owner_signature_and_canonical_promotion",
   "files": [
     {
       "bytes": 7337,
@@ -24,7 +24,7 @@
     {
       "bytes": 157459,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_codex_live_canary.py",
-      "sha256": "2dce6f0bc0ecbf6df5e3cf0fd358b361da701bfa81d3891e0d896b00186016d8"
+      "sha256": "5eefbccae32d86d2d0d3e712b98867fe3cfe50134b807a09c238eef25d600c8c"
     },
     {
       "bytes": 13128,
@@ -42,9 +42,9 @@
       "sha256": "b000d3bc34f21a958d3d7b14f5c00c82e7ef94fb68b3d3f2ffca051f15b49c13"
     },
     {
-      "bytes": 146179,
+      "bytes": 146478,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_codex_live_canary.py",
-      "sha256": "af16d9593220ed89e70d75bf05b968c0c810188c74ec8b6ce3f32b244ea11405"
+      "sha256": "d1894df3c4116e03107a9b68b7d9f3190de6e351ea0ce216528bb79fc099a563"
     }
   ],
   "not_claimed": [
@@ -55,8 +55,8 @@
     "Gate 3 start authority",
     "counted execution"
   ],
-  "purpose": "Exact reviewed Gate 3 Codex route admission amendment and implementation bytes for owner signature and later canonical promotion; this manifest does not authorize a session.",
-  "reviewed_implementation_commit": "65f321611cb63c9b7f344c513ec8dcdc39cd8742",
+  "implementation_review_status": "pending_independent_review_of_proposed_bytes",
+  "purpose": "Proposed Gate 3 Codex route admission amendment and implementation bytes pending independent review, owner signature and later canonical promotion; this manifest does not authorize a session.",
   "schema": "gate3-codex-route-admission-candidate-set.v1",
-  "source_base_commit": "f8ce1f17954ec61da73369562626714d7e429258"
+  "source_base_commit": "3c2f194f38464bdccdb75384fe000bc9e5e3c49a"
 }

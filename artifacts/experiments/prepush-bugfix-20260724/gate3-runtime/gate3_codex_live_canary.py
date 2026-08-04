@@ -55,7 +55,7 @@ FAILURE_RECEIPT_SCHEMA = "gate3-codex-live-canary-failure-receipt.v8"
 AUTHORIZATION = "non_counted_codex_live_canary_only"
 REHEARSAL_KIND = "fresh_live_codex_ab_non_counted_privacy_safe"
 EXPECTED_CANDIDATE_MANIFEST_SHA256 = (
-    "d64817c2ceb190f43764b0d08c098deb821ca4755e273e045dec34812cc97d00"
+    "cbbcea0f614c3e34b03c2a102a71393de71b05da5fdae25884b98aff579e095b"
 )
 EXPECTED_ROUTE_ADMISSION_AMENDMENT_SHA256 = (
     "d4e3228bab51524d9fd6bce876e24fa47584b0fbafe5d04d96e9d9d9ae0dc8d6"

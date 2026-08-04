@@ -4257,3 +4257,12 @@ def test_route_verification_refuses_a_receipt_it_cannot_read(
     outcome, plan = _route_verification_fixture(tmp_path, receipt)
     with pytest.raises(live.CanaryError, match=expected):
         live._verify_route_receipt(tmp_path, outcome, plan)
+
+
+def test_pinned_preregistration_manifest_matches_current_candidate_bytes() -> None:
+    repo_root = HERE.parents[3]
+    assert (
+        live._sha256_file(live.DEFAULT_CANDIDATE_MANIFEST)
+        == live.EXPECTED_CANDIDATE_MANIFEST_SHA256
+    )
+    assert live._validate_candidate(repo_root) == 7

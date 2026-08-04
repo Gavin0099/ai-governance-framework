@@ -2,9 +2,9 @@
   "authorization": "pending_independent_review_and_owner_signature",
   "files": [
     {
-      "bytes": 6447,
+      "bytes": 7337,
       "path": ".gitattributes",
-      "sha256": "5f4dc9e7371f6b62caa33c18cbf79cee5fed3101d8c0e3ef112b2f1d9e3e8557"
+      "sha256": "abe5c1648ee22adce810bea5d2c5ac9a2a7e67b9c3cd9b7d7a49c24f5fcbe91b"
     },
     {
       "bytes": 18554,
@@ -44,5 +44,5 @@
   ],
   "purpose": "Exact candidate bytes for independent review and later owner signature; PASS does not authorize Gate 3.",
   "schema": "gate3-preregistration-amendment-candidate-set.v1",
-  "source_base_commit": "3dbafc7f8f75feba485167b09d85345a3c7ac9cc"
+  "source_base_commit": "3c2f194f38464bdccdb75384fe000bc9e5e3c49a"
 }
