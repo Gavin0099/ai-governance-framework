@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import hashlib,json,pathlib,subprocess\nroot=pathlib.Path.cwd()\nchecks=[\n('artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json','cbbcea0f614c3e34b03c2a102a71393de71b05da5fdae25884b98aff579e095b',6),\n('artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-codex-route-admission-v1-candidate-manifest.json','71ec318b86bb56b2d683226a3ba46938e5e8186c8dd57aeb1ff027366a42ca70',9),\n]\nfor path,expected,count in checks:\n    raw=subprocess.check_output(['git','show','HEAD:'+path])\n    assert hashlib.sha256(raw).hexdigest()==expected\n    manifest=json.loads(raw)\n    assert len(manifest['files'])==count\n    for entry in manifest['files']:\n        member=subprocess.check_output(['git','show','HEAD:'+entry['path']])\n        assert len(member)==entry['bytes']\n        assert hashlib.sha256(member).hexdigest()==entry['sha256']\nprint('PASS: owner-signed preregistration 6/6 and route-admission 9/9 exact bytes verified at 911ea562')\"",
+  "exit_code": 0,
+  "started_at": "2026-08-04T10:17:47Z",
+  "finished_at": "2026-08-04T10:17:48Z",
+  "runner": "gate3-dual-manifest-promotion-verifier",
+  "linked_commit": "911ea562db6b799ae41eeec55a8f69e54a3e33b5",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-dual-manifest-promotion-20260804.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

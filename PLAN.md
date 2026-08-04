@@ -2346,3 +2346,36 @@ Authority boundary:
 Cannot claim from this repin: independent approval, owner signature, canonical
 promotion, live-session authority, a successful scorer packet,
 natural-bug/resource admission, Gate 3 start authority or any counted result.
+
+## Gate 3 Dual Manifest Owner Signature and Canonical Promotion — 2026-08-04
+
+- [x] Independent review returned `APPROVED` for the five-file repin committed
+  at checkpoint `911ea562db6b799ae41eeec55a8f69e54a3e33b5`.
+- [x] The owner signed exact preregistration manifest SHA-256
+  `cbbcea0f614c3e34b03c2a102a71393de71b05da5fdae25884b98aff579e095b`
+  and exact route-admission manifest SHA-256
+  `71ec318b86bb56b2d683226a3ba46938e5e8186c8dd57aeb1ff027366a42ca70`.
+- [x] The owner separately authorized canonical promotion of those same two
+  exact identities. No manifest byte was rewritten to record its own approval.
+- [x] Canonical verification at checkpoint `911ea562` matched both signed
+  manifest digests and every pinned member: preregistration 6/6 and
+  route-admission 9/9. Evidence is bound to
+  `artifacts/evidence/test-results/receipt-gate3-dual-manifest-promotion-20260804.json`.
+- [x] These promoted identities supersede preregistration promotion
+  `d64817c2...` and route-admission promotion `1034a53c...5071` for future
+  execution. Historical authority and failure records remain append-only.
+
+Promotion scope and remaining authority:
+
+- This promotion establishes the current preregistration and formal Codex
+  route-admission identities. It does not authorize a session or canary pair.
+- A future non-counted pair requires a new explicit exactly-two,
+  no-replacement authorization naming a fixed run ID and these promoted
+  identities. The earlier v8 authorization was consumed by a zero-session
+  preflight attempt and does not transfer.
+- Natural-bug/resource admission and independent Gate 3 start authority remain
+  mandatory before counted A/B/C/D execution. Counted execution remains zero.
+
+Cannot claim from this promotion: live-session authority, a successful scorer
+packet, natural-bug/resource admission, Gate 3 start authority or any counted
+result.

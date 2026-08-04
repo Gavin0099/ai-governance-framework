@@ -1,0 +1,1 @@
+PASS: owner-signed preregistration 6/6 and route-admission 9/9 exact bytes verified at 911ea562
