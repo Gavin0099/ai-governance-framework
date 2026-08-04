@@ -38,6 +38,53 @@ def _find_bash() -> str | None:
     return None
 
 
+def _write_runtime_fixture(tmp_path: Path, fake_python_body: str) -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+    fixture_script = tmp_path / "scripts" / "run-runtime-governance.sh"
+    fixture_library = tmp_path / "scripts" / "lib" / "python.sh"
+    fixture_library.parent.mkdir(parents=True)
+    fixture_script.write_text(text, encoding="utf-8", newline="\n")
+    fixture_script.chmod(0o755)
+    fixture_library.write_text(
+        (Path("scripts") / "lib" / "python.sh").read_text(encoding="utf-8"),
+        encoding="utf-8",
+        newline="\n",
+    )
+    fake_python = tmp_path / "bin" / "fake_python"
+    fake_python.parent.mkdir()
+    fake_python.write_text(
+        fake_python_body,
+        encoding="utf-8",
+        newline="\n",
+    )
+    fake_python.chmod(0o755)
+
+
+def test_runtime_governance_smoke_accepts_empty_overrides(tmp_path: Path) -> None:
+    bash = _find_bash()
+    if bash is None:
+        pytest.skip("bash is required to execute the runtime-governance wrapper contract")
+
+    _write_runtime_fixture(tmp_path, "#!/usr/bin/env bash\nexit 0\n")
+
+    probe = r"""
+export PATH="$(pwd)/bin:/usr/bin:/mingw64/bin:$PATH"
+export AI_GOVERNANCE_PYTHON=fake_python
+./scripts/run-runtime-governance.sh --mode smoke
+"""
+    result = subprocess.run(
+        [bash, "-c", probe],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "[runtime-governance] complete" in result.stdout
+    assert "unbound variable" not in result.stderr
+
+
 def test_runtime_governance_smoke_explicitly_propagates_injected_failure(
     tmp_path: Path,
 ) -> None:
@@ -53,22 +100,10 @@ def test_runtime_governance_smoke_explicitly_propagates_injected_failure(
     assert run_smoke_block.count("|| return $?") == 14
     assert "set -e" not in run_smoke_block
 
-    # The repository may be checked out with CRLF on Windows. This test locks
-    # the shell control-flow contract, so execute an LF-normalized fixture
-    # without rewriting the tracked script.
-    fixture_script = tmp_path / "scripts" / "run-runtime-governance.sh"
-    fixture_library = tmp_path / "scripts" / "lib" / "python.sh"
-    fixture_library.parent.mkdir(parents=True)
-    fixture_script.write_text(text, encoding="utf-8", newline="\n")
-    fixture_script.chmod(0o755)
-    fixture_library.write_text(
-        (Path("scripts") / "lib" / "python.sh").read_text(encoding="utf-8"),
-        encoding="utf-8",
-        newline="\n",
-    )
-    fake_python = tmp_path / "bin" / "fake_python"
-    fake_python.parent.mkdir()
-    fake_python.write_text(
+    # The repository may be checked out with CRLF on Windows. The helper
+    # executes an LF-normalized fixture without rewriting the tracked script.
+    _write_runtime_fixture(
+        tmp_path,
         """#!/usr/bin/env bash
 previous=""
 saw_smoke=false
@@ -83,10 +118,7 @@ for arg in "$@"; do
 done
 exit 0
 """,
-        encoding="utf-8",
-        newline="\n",
     )
-    fake_python.chmod(0o755)
 
     probe = r"""
 export PATH="$(pwd)/bin:/usr/bin:/mingw64/bin:$PATH"
