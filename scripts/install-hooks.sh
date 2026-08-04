@@ -46,6 +46,7 @@ done
 TARGET_HOOKS_DIR="$TARGET_REPO/.git/hooks"
 HOOK_CONFIG="$TARGET_HOOKS_DIR/ai-governance-framework-root"
 FRAMEWORK_ROOT="$(realpath "$SCRIPT_DIR/..")"
+FRAMEWORK_ROOT_CONFIG_VALUE="$FRAMEWORK_ROOT"
 PYTHON_LIB="$FRAMEWORK_ROOT/scripts/lib/python.sh"
 HOOK_VALIDATOR="$FRAMEWORK_ROOT/governance_tools/hook_install_validator.py"
 
@@ -95,7 +96,7 @@ install_hook() {
     if [ "$DRY_RUN" = true ]; then
         echo "  [dry-run] 安裝 $hook_name → $dst"
     else
-        cp "$src" "$dst"
+        tr -d '\r' < "$src" > "$dst"
         chmod +x "$dst"
         echo "  ✅ 安裝 $hook_name"
     fi
@@ -107,9 +108,9 @@ install_hook "pre-push"
 
 if [ "$DRY_RUN" = true ]; then
     echo "  [dry-run] 寫入 framework root 設定 → $HOOK_CONFIG"
-    echo "            內容: $FRAMEWORK_ROOT"
+    echo "            內容: $FRAMEWORK_ROOT_CONFIG_VALUE"
 else
-    printf '%s\n' "$FRAMEWORK_ROOT" > "$HOOK_CONFIG"
+    printf '%s\n' "$FRAMEWORK_ROOT_CONFIG_VALUE" > "$HOOK_CONFIG"
     echo "  ✅ 寫入 framework root 設定"
 fi
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import asdict, dataclass, field
@@ -72,6 +73,14 @@ def _write_bytes_if_changed(path: Path, payload: bytes) -> bool:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
     return True
+
+
+def _shell_hook_payload(path: Path) -> bytes:
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
+def _framework_root_config_value(path: Path) -> str:
+    return path.as_posix() if os.name == "nt" else str(path)
 
 
 def _has_marker(path: Path, marker: str) -> bool:
@@ -159,14 +168,15 @@ def install_governance_hooks(
             errors.append(f"missing source hook: {source}")
             continue
         _backup_unmanaged(target, FRAMEWORK_MARKER, backups)
-        if _write_bytes_if_changed(target, source.read_bytes()):
+        if _write_bytes_if_changed(target, _shell_hook_payload(source)):
             changed.append(str(target))
         installed.append(str(target))
 
     config = hook_dir / "ai-governance-framework-root"
     # Python's utf-8 writer does not emit a BOM. Keep a trailing newline to match
     # shell-created config files while preserving deterministic content.
-    if _write_text_if_changed(config, f"{framework_root}\n"):
+    config_payload = f"{_framework_root_config_value(framework_root)}\n".encode("utf-8")
+    if _write_bytes_if_changed(config, config_payload):
         changed.append(str(config))
     installed.append(str(config))
 
