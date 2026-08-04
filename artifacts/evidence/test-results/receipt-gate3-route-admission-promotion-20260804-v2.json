@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -c \"import hashlib,json,pathlib,subprocess; root=pathlib.Path.cwd(); p=root/'artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-codex-route-admission-v1-candidate-manifest.json'; raw=p.read_bytes(); expected='d8f441aea3a611f291e2714b7b0b3614dd5970dfb00320075c44f7097625c14a'; m=json.loads(raw); entries=[(root/e['path'],e) for e in m['files']]; assert hashlib.sha256(raw).hexdigest()==expected; assert len(entries)==9; assert all(q.stat().st_size==e['bytes'] and hashlib.sha256(q.read_bytes()).hexdigest()==e['sha256'] and 'text: unset' in subprocess.check_output(['git','check-attr','text','--',e['path']],text=True) for q,e in entries); assert 'text: unset' in subprocess.check_output(['git','check-attr','text','--',str(p.relative_to(root))],text=True); print('PASS: signed manifest and 9/9 exact files verified')\"",
+  "exit_code": 0,
+  "started_at": "2026-08-04T06:37:36Z",
+  "finished_at": "2026-08-04T06:37:37Z",
+  "runner": "gate3-route-admission-promotion-verifier",
+  "linked_commit": "67fdc61bbe3471c735f4dd6df2c108967e5e0970",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gate3-route-admission-promotion-20260804-v2.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

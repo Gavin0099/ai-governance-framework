@@ -1,0 +1,1 @@
+PASS: signed manifest and 9/9 exact files verified

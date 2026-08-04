@@ -2155,3 +2155,39 @@ This planning / structured-memory bookkeeping refresh is done when:
 - Cannot claim semantic verification of every historical milestone.
 - Cannot claim GitHub release / README / topics are current.
 - Cannot claim workspace clean while runtime ledgers remain dirty.
+
+## Gate 3 Codex Route Admission Canonical Promotion — 2026-08-04
+
+- [x] The formal Codex route admission implementation, mutation evidence and
+  governing amendment were independently reviewed and returned `APPROVED`.
+- [x] Exact candidate manifest prepared at commit `67fdc61b`:
+  `artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-codex-route-admission-v1-candidate-manifest.json`.
+- [x] The manifest covers nine byte-preserved files and is 2,633 bytes with
+  SHA-256
+  `d8f441aea3a611f291e2714b7b0b3614dd5970dfb00320075c44f7097625c14a`.
+- [x] On 2026-08-04 the owner explicitly signed that exact manifest digest and
+  authorized canonical promotion.
+- [x] Canonical promotion is effective for the exact bytes named by that
+  manifest. The signature is append-only: the manifest's pending authorization
+  wording remains unchanged because editing it would invalidate the signed
+  digest. This PLAN entry is the authority record.
+- [x] Post-sign verification confirmed all nine file byte counts and SHA-256
+  values, `-text` byte preservation for every member and the manifest, and the
+  reviewed implementation source commit
+  `65f321611cb63c9b7f344c513ec8dcdc39cd8742` as a reachable ancestor.
+
+Promotion scope and next gates:
+
+- This promotion authorizes the formal admission policy identity only. It does
+  not authorize a calibration session, non-counted live pair, natural-bug or
+  resource admission, Gate 3 start, or counted execution.
+- The previously consumed final-canary authorization and stop line remain in
+  force. A new live pair requires a separate owner decision that explicitly
+  changes that stop line and grants exact-session/no-replacement authority.
+- Natural-bug/resource admission and separate Gate 3 start authority remain
+  mandatory before any counted A/B/C/D execution. Counted Gate 3 execution
+  remains zero.
+
+Cannot claim from this promotion: a successful live scorer packet, restored
+live-pair authority, natural-bug/resource admission, Gate 3 start authority,
+or any measured Skill effect.
