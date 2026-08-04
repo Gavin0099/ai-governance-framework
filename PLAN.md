@@ -2181,9 +2181,10 @@ Promotion scope and next gates:
 - This promotion authorizes the formal admission policy identity only. It does
   not authorize a calibration session, non-counted live pair, natural-bug or
   resource admission, Gate 3 start, or counted execution.
-- The previously consumed final-canary authorization and stop line remain in
-  force. A new live pair requires a separate owner decision that explicitly
-  changes that stop line and grants exact-session/no-replacement authority.
+- The previously consumed final-canary authorization remains consumed. The
+  2026-08-01 stop line was superseded by the append-only owner ruling below;
+  that ruling permits a future authorization request but does not itself grant
+  session authority.
 - Natural-bug/resource admission and separate Gate 3 start authority remain
   mandatory before any counted A/B/C/D execution. Counted Gate 3 execution
   remains zero.
@@ -2191,3 +2192,27 @@ Promotion scope and next gates:
 Cannot claim from this promotion: a successful live scorer packet, restored
 live-pair authority, natural-bug/resource admission, Gate 3 start authority,
 or any measured Skill effect.
+
+### Gate 3 non-counted canary stop-line revision — 2026-08-04
+
+- [x] The owner superseded the consumed 2026-08-01 stop line for one narrow
+  purpose: a future request may seek authorization for exactly one additional
+  non-counted A/B canary pair.
+- [x] Any such request must specify exactly two new sessions, no replacement,
+  a clean detached execution worktree, a fixed run ID and the canonically
+  promoted implementation identity.
+- [x] This ruling is not execution authorization. No session may start until
+  the owner separately grants an exact-session authorization for that pair.
+- [x] Whether the pair succeeds or fails, the revised stop line is consumed
+  after that one authorized attempt. No replacement or further pair follows
+  automatically.
+- [x] This ruling changes neither formal admission semantics nor the signed
+  manifest. Historical handoff text remains unchanged as evidence of the
+  authority that applied at its own time.
+
+Still required independently: natural-bug/resource admission and Gate 3 start
+authority. Counted A/B/C/D execution remains zero.
+
+Cannot claim from this ruling: current live-session authority, a scheduled or
+running canary, a successful scorer packet, natural-bug/resource admission,
+Gate 3 start authority or any counted result.
