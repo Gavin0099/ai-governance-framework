@@ -184,6 +184,18 @@ def assess_session_closeout_binding(
             "completion_marker_path": str(completion_path),
         }
 
+    # A canonical artifact without its create-last completion marker is a
+    # partial prior invocation.  It must be recovered explicitly; treating it
+    # as a fresh closeout would re-read the repository-wide legacy closeout
+    # file and could bind another task's prose to this session.
+    if canonical_path.is_file():
+        return {
+            "status": "canonical_closeout_incomplete",
+            "session_id": session_id,
+            "canonical_closeout_path": str(canonical_path),
+            "completion_marker_path": str(completion_path),
+        }
+
     envelope = read_session_envelope(session_id, project_root)
     if envelope is None:
         return {"status": "session_envelope_missing", "session_id": session_id}
@@ -201,6 +213,15 @@ def assess_session_closeout_binding(
             "session_id": session_id,
             "candidate_session_id": candidate_session_id,
             "session_envelope_path": envelope["artifact_path"],
+        }
+
+    schema_ok, schema_reason = _validate_candidate_schema(candidate_payload)
+    if not schema_ok:
+        return {
+            "status": "session_candidate_schema_invalid",
+            "session_id": session_id,
+            "session_envelope_path": envelope["artifact_path"],
+            "schema_reason": schema_reason,
         }
 
     started_at = _parse_aware_utc(str(envelope.get("started_at") or ""))

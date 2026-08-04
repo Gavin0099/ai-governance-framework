@@ -1,4 +1,7 @@
 from pathlib import Path
+import os
+import shutil
+import stat
 import subprocess
 
 from governance_tools.session_end_hook import (
@@ -10,6 +13,21 @@ from governance_tools.session_end_hook import (
     run_session_end_hook,
 )
 from runtime_hooks.core._canonical_closeout import write_session_envelope
+
+
+_FIXTURE_ROOT = Path(__file__).parent / "_tmp_session_end_hook_memory_truth"
+
+
+def _reset_fixture(name: str) -> Path:
+    path = _FIXTURE_ROOT / name
+    if path.exists():
+        def _remove_readonly(function, raw_path, _exc_info):
+            os.chmod(raw_path, stat.S_IWRITE)
+            function(raw_path)
+
+        shutil.rmtree(path, onexc=_remove_readonly)
+    path.mkdir(parents=True)
+    return path
 
 
 def _init_git_repo(repo: Path) -> None:
@@ -138,46 +156,42 @@ def test_no_update_promotion_tier_keeps_non_promoting_runtime_contract() -> None
     assert contract["memory_mode"] == "stateless"
 
 
-def test_missing_closeout_writes_fail_closed_daily_record(tmp_path: Path) -> None:
-    _init_git_repo(tmp_path)
+def test_missing_closeout_does_not_write_unbound_daily_record() -> None:
+    repo = _reset_fixture("missing_closeout")
+    _init_git_repo(repo)
     write_session_envelope(
         "missing-closeout-memory-truth",
-        tmp_path,
+        repo,
         provider="test",
     )
 
     result = run_session_end_hook(
-        tmp_path,
+        repo,
         hook_session_id="missing-closeout-memory-truth",
         ledger_write_allowed=False,
     )
 
     assert result["closeout_status"] == STATUS_MISSING
-    assert result["daily_memory_write_attempted"] is True
-    assert result["daily_memory_write_status"] == "written"
-    assert result["daily_memory_state_status"] == "satisfied"
-    assert result["memory_update_result"] == "updated"
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_state_status"] == "not_required"
+    assert result["memory_update_result"] == "skipped"
     assert result["promoted"] is False
     assert result["decision"] == "DO_NOT_PROMOTE"
-
-    daily_memory_path = Path(result["daily_memory_path"])
-    assert daily_memory_path.is_file()
-    daily_memory = daily_memory_path.read_text(encoding="utf-8")
-    assert "FAIL_CLOSED_CLOSEOUT_MISSING" in daily_memory
-    assert "canonical_closeout_status=missing" in daily_memory
+    assert result["daily_memory_path"] is None
+    assert not (repo / "memory").exists()
 
 
-def test_schema_invalid_closeout_writes_fail_closed_daily_record(
-    tmp_path: Path,
-) -> None:
-    _init_git_repo(tmp_path)
+def test_schema_invalid_closeout_does_not_write_unbound_daily_record() -> None:
+    repo = _reset_fixture("schema_invalid_closeout")
+    _init_git_repo(repo)
     write_session_envelope(
         "invalid-closeout-memory-truth",
-        tmp_path,
+        repo,
         provider="test",
     )
 
-    closeout_path = tmp_path / "artifacts" / "session-closeout.txt"
+    closeout_path = repo / "artifacts" / "session-closeout.txt"
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
     closeout_path.write_text(
         "TASK_INTENT: incomplete closeout for memory truth replay\n",
@@ -185,22 +199,17 @@ def test_schema_invalid_closeout_writes_fail_closed_daily_record(
     )
 
     result = run_session_end_hook(
-        tmp_path,
+        repo,
         hook_session_id="invalid-closeout-memory-truth",
         ledger_write_allowed=False,
     )
 
     assert result["closeout_status"] == "schema_invalid"
-    assert result["daily_memory_write_attempted"] is True
-    assert result["daily_memory_write_status"] == "written"
-    assert result["daily_memory_state_status"] == "satisfied"
-    assert result["memory_update_result"] == "updated"
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_state_status"] == "not_required"
+    assert result["memory_update_result"] == "skipped"
     assert result["promoted"] is False
     assert result["decision"] == "DO_NOT_PROMOTE"
-
-    daily_memory_path = Path(result["daily_memory_path"])
-    assert daily_memory_path.is_file()
-    daily_memory = daily_memory_path.read_text(encoding="utf-8")
-    assert "FAIL_CLOSED_CLOSEOUT_SCHEMA_INVALID" in daily_memory
-    assert "closeout_status=schema_invalid" in daily_memory
-    assert "canonical_closeout_status=missing" in daily_memory
+    assert result["daily_memory_path"] is None
+    assert not (repo / "memory").exists()

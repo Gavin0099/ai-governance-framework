@@ -1887,36 +1887,69 @@ def run_session_end_hook(
         and hook_session_id != current_session_id
     )
 
-    clf = classify_closeout(closeout_path, project_root)
-    session_envelope = read_session_envelope(session_id, project_root)
     canonical_closeout_path = (
         project_root / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
     )
+    preexisting_binding = assess_session_closeout_binding(
+        session_id,
+        project_root,
+        None,
+    )
+    preexisting_status = str(preexisting_binding.get("status") or "")
     pre_binding_status = "eligible"
     pre_binding_detail: dict[str, Any] = {}
-    if closeout_path.is_file() and not canonical_closeout_path.is_file():
-        if session_envelope is None:
-            pre_binding_status = "session_envelope_missing"
-        else:
-            try:
-                started_at = datetime.fromisoformat(
-                    str(session_envelope["started_at"]).replace("Z", "+00:00")
-                ).astimezone(timezone.utc)
-                closeout_mtime = datetime.fromtimestamp(
-                    closeout_path.stat().st_mtime,
-                    timezone.utc,
-                )
-                if closeout_mtime < started_at:
-                    pre_binding_status = "closeout_before_session_start"
-                    pre_binding_detail = {
-                        "session_started_at": started_at.isoformat(),
-                        "closeout_mtime": closeout_mtime.isoformat(),
-                    }
-            except (OSError, TypeError, ValueError):
-                pre_binding_status = "session_envelope_invalid"
+    skip_legacy_closeout_ingest = False
+    if current_session_id_conflict:
+        pre_binding_status = "current_session_id_conflict"
+        pre_binding_detail = {
+            "hook_session_id": hook_session_id,
+            "current_session_id": current_session_id,
+        }
+        skip_legacy_closeout_ingest = True
+    elif preexisting_status in {
+        "already_consumed",
+        "canonical_closeout_incomplete",
+    }:
+        pre_binding_status = preexisting_status
+        pre_binding_detail = {
+            key: value
+            for key, value in preexisting_binding.items()
+            if key not in {"status", "session_id"}
+        }
+        skip_legacy_closeout_ingest = True
+
+    if skip_legacy_closeout_ingest:
+        clf = _fail_closed_session_binding_classification(
+            status=pre_binding_status,
+            detail=pre_binding_detail,
+        )
+    else:
+        clf = classify_closeout(closeout_path, project_root)
+        session_envelope = read_session_envelope(session_id, project_root)
+        if closeout_path.is_file() and not canonical_closeout_path.is_file():
+            if session_envelope is None:
+                pre_binding_status = "session_envelope_missing"
+            else:
+                try:
+                    started_at = datetime.fromisoformat(
+                        str(session_envelope["started_at"]).replace("Z", "+00:00")
+                    ).astimezone(timezone.utc)
+                    closeout_mtime = datetime.fromtimestamp(
+                        closeout_path.stat().st_mtime,
+                        timezone.utc,
+                    )
+                    if closeout_mtime < started_at:
+                        pre_binding_status = "closeout_before_session_start"
+                        pre_binding_detail = {
+                            "session_started_at": started_at.isoformat(),
+                            "closeout_mtime": closeout_mtime.isoformat(),
+                        }
+                except (OSError, TypeError, ValueError):
+                    pre_binding_status = "session_envelope_invalid"
     session_candidate: dict[str, Any] | None = None
     if (
-        pre_binding_status == "eligible"
+        not skip_legacy_closeout_ingest
+        and pre_binding_status == "eligible"
         and clf["closeout_status"] == STATUS_VALID
     ):
         session_candidate = pick_latest_candidate(session_id, project_root)
@@ -2015,10 +2048,15 @@ def run_session_end_hook(
     # Gate evaluation — policy-driven, not hardcoded.
     # load_policy discovers: project_root/governance/gate_policy.yaml first,
     # then framework default, then builtin.  Provenance is always recorded.
-    already_consumed = (
-        (result.get("session_binding") or {}).get("status") == "already_consumed"
+    binding_result_status = str(
+        (result.get("session_binding") or {}).get("status") or ""
     )
-    if already_consumed:
+    side_effects_skipped = binding_result_status in {
+        "already_consumed",
+        "canonical_closeout_incomplete",
+        "current_session_id_conflict",
+    }
+    if side_effects_skipped:
         closeout_status = STATUS_STALE_OR_MISMATCHED
         memory_tier = MEMORY_TIER_NONE
         fields = {}
@@ -2081,7 +2119,7 @@ def run_session_end_hook(
 
     # Persist canonical audit entry — non-blocking, repo-local, observability only.
     # See _append_canonical_audit_log() for authority boundary documentation.
-    if not already_consumed:
+    if not side_effects_skipped:
         _append_canonical_audit_log(
             project_root=project_root,
             session_id=session_id,
@@ -2130,7 +2168,7 @@ def run_session_end_hook(
     # Advisory-only — log write failures must not interrupt the session result.
     taxonomy_expansion_log_entry: dict | None = None
     if (
-        not already_consumed
+        not side_effects_skipped
         and failure_disposition_data
         and failure_disposition_data.get("taxonomy_expansion_signal")
     ):
@@ -2164,7 +2202,7 @@ def run_session_end_hook(
     try:
         # v0.2 rollout: candidate + significance classifier + advisory report.
         # Advisory only; never changes gate outcome.
-        if not already_consumed:
+        if not side_effects_skipped:
             commit_hash = _resolve_head_commit(project_root)
             memory_significance_artifacts = write_candidate_and_advisory(
                 repo_root=project_root,
@@ -2183,7 +2221,7 @@ def run_session_end_hook(
     # preferred_session_id → scope=current_session.
     # Bridge is now always called; it handles None/missing transcript_path by
     # attempting auto-detection from ~/.claude/projects/.
-    if not already_consumed:
+    if not side_effects_skipped:
         _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     # Memory authority observation surface — Phase 1 (non-blocking, repo-scoped).

@@ -904,19 +904,29 @@ def run_session_end(
 
     public_api_diff = (checks or {}).get("public_api_diff") if checks else None
     _closeout_candidate = pick_latest_candidate(session_id, project_root)
-    session_binding = (
-        assess_session_closeout_binding(
-            session_id,
-            project_root,
-            _closeout_candidate,
+    if enforce_session_binding and checks.get("closeout_current_session_id_conflict"):
+        session_binding = {
+            "status": "current_session_id_conflict",
+            "session_id": session_id,
+        }
+    else:
+        session_binding = (
+            assess_session_closeout_binding(
+                session_id,
+                project_root,
+                _closeout_candidate,
+            )
+            if enforce_session_binding
+            else {"status": "not_enforced", "session_id": session_id}
         )
-        if enforce_session_binding
-        else {"status": "not_enforced", "session_id": session_id}
-    )
     binding_status = str(session_binding.get("status") or "")
     binding_valid = not enforce_session_binding or binding_status == "valid"
 
-    if enforce_session_binding and binding_status == "already_consumed":
+    if enforce_session_binding and binding_status in {
+        "already_consumed",
+        "canonical_closeout_incomplete",
+        "current_session_id_conflict",
+    }:
         runtime_root = project_root / "artifacts" / "runtime"
         canonical_path = runtime_root / "closeouts" / f"{session_id}.json"
         try:
@@ -929,11 +939,22 @@ def run_session_end(
                 existing_artifacts=frozenset(),
                 runtime_signals={},
             )
+        already_consumed = binding_status == "already_consumed"
+        recovery_required = binding_status == "canonical_closeout_incomplete"
+        if already_consumed:
+            decision = "ALREADY_CONSUMED"
+            reason = "session_closeout_already_consumed"
+        elif recovery_required:
+            decision = "RECOVERY_REQUIRED"
+            reason = "session_closeout_incomplete_recovery_required"
+        else:
+            decision = "SESSION_ID_CONFLICT"
+            reason = "session_closeout_current_session_id_conflict"
         return {
-            "ok": True,
+            "ok": already_consumed,
             "session_id": session_id,
-            "decision": "ALREADY_CONSUMED",
-            "policy": {"decision": "STOP", "reason": "session_closeout_already_consumed"},
+            "decision": decision,
+            "policy": {"decision": "STOP", "reason": reason},
             "curated": None,
             "snapshot": None,
             "promotion": None,
@@ -942,7 +963,7 @@ def run_session_end(
                 "candidate_signals": [],
                 "promotion_considered": False,
                 "decision": "skipped",
-                "reason": "session_closeout_already_consumed",
+                "reason": reason,
             },
             "candidate_artifact": str(runtime_root / "candidates" / f"{session_id}.json"),
             "curated_artifact": str(runtime_root / "curated" / f"{session_id}.json"),
@@ -973,11 +994,25 @@ def run_session_end(
                 "session_end_invoked": True,
                 "canonical_closeout_written": False,
                 "claim_binding_written": False,
-                "already_consumed": True,
+                "already_consumed": already_consumed,
+                "recovery_required": recovery_required,
             },
             "session_binding": session_binding,
-            "warnings": ["Session closeout was already consumed; side effects were skipped."],
-            "errors": [],
+            "warnings": [
+                "Session closeout was already consumed; side effects were skipped."
+                if already_consumed
+                else (
+                    "Session closeout has a canonical artifact without a valid "
+                    "completion marker; recovery is required and side effects were skipped."
+                    if recovery_required
+                    else "Hook and current-session identifiers conflict; side effects were skipped."
+                )
+            ],
+            "errors": [] if already_consumed else [
+                "Session closeout recovery is required before another closeout attempt."
+                if recovery_required
+                else "Session identifier conflict must be resolved before closeout."
+            ],
         }
     if enforce_session_binding and not binding_valid:
         warnings.append(
@@ -997,6 +1032,34 @@ def run_session_end(
         if daily_memory_write_required is None
         else daily_memory_write_required
     )
+    if enforce_session_binding:
+        # Daily memory is an attribution-bearing side effect.  Under enforced
+        # binding it may only use the task and summary from the candidate that
+        # was verified against this session envelope.
+        raw_bound_task = (_closeout_candidate or {}).get("task_intent")
+        raw_bound_summary = (_closeout_candidate or {}).get("work_summary")
+        bound_task = (
+            raw_bound_task.strip() if isinstance(raw_bound_task, str) else ""
+        )
+        bound_summary = (
+            raw_bound_summary.strip() if isinstance(raw_bound_summary, str) else ""
+        )
+        bound_memory_attribution_valid = bool(
+            binding_valid
+            and _closeout_candidate is not None
+            and bound_task
+            and bound_summary
+        )
+        daily_memory_write_expected = bool(
+            daily_memory_write_expected
+            and bound_memory_attribution_valid
+        )
+        if bound_memory_attribution_valid:
+            contract = {
+                **contract,
+                "task": bound_task,
+            }
+            summary = bound_summary
     daily_memory_write_attempted = False
     daily_memory_write_status = "skipped"
     daily_memory_record_identity: str | None = None

@@ -78,9 +78,14 @@ def test_session_end_enforces_valid_session_bound_candidate(local_project_root):
     assert result["snapshot"] is not None
     assert result["promotion"] is not None
     assert result["canonical_closeout"]["closeout_status"] == "valid"
+    daily_memory = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
+    assert "Bound runtime closeout" in daily_memory
+    assert "Validated one session-bound closeout." in daily_memory
+    assert "Runtime governance closeout" not in daily_memory
+    assert "Bound session" not in daily_memory
 
 
-def test_failed_artifact_emission_does_not_mark_session_consumed(
+def test_failed_artifact_emission_requires_explicit_recovery_before_retry(
     local_project_root,
     monkeypatch,
 ):
@@ -125,6 +130,7 @@ def test_failed_artifact_emission_does_not_mark_session_consumed(
     assert first["ok"] is False
     assert canonical_path.exists()
     assert not completion_path.exists()
+    canonical_bytes = canonical_path.read_bytes()
 
     monkeypatch.setattr(session_end_module, "_write_json", original_write_json)
     second = run_session_end(
@@ -137,12 +143,12 @@ def test_failed_artifact_emission_does_not_mark_session_consumed(
         enforce_session_binding=True,
     )
 
-    assert second["ok"] is True
-    assert second["session_binding"]["status"] == "valid"
-    assert canonical_path.exists()
-    assert completion_path.exists()
-    assert Path(second["verdict_artifact"]).exists()
-    assert Path(second["trace_artifact"]).exists()
+    assert second["ok"] is False
+    assert second["session_binding"]["status"] == "canonical_closeout_incomplete"
+    assert second["decision"] == "RECOVERY_REQUIRED"
+    assert canonical_path.read_bytes() == canonical_bytes
+    assert not completion_path.exists()
+    assert second["daily_memory_write_attempted"] is False
 
 
 def test_session_end_rejects_candidate_created_before_session_start(local_project_root):
@@ -178,9 +184,84 @@ def test_session_end_rejects_candidate_created_before_session_start(local_projec
     assert result["snapshot"] is None
     assert result["promotion"] is None
     assert result["canonical_closeout"]["closeout_status"] == "missing"
-    assert result["daily_memory_write_status"] == "written"
-    daily_memory = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
-    assert "FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED" in daily_memory
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_path"] is None
+
+
+def test_bound_candidate_with_blank_task_cannot_write_daily_memory(
+    local_project_root,
+):
+    session_id = "2026-08-03-bound-blank-task"
+    write_session_envelope(session_id, local_project_root, provider="codex")
+    write_candidate(
+        session_id,
+        local_project_root,
+        _closeout_candidate(task_intent=""),
+    )
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="blank task candidate",
+        summary="caller-supplied summary must not substitute",
+        daily_memory_write_required=True,
+        enforce_session_binding=True,
+    )
+
+    assert result["session_binding"]["status"] == "valid"
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_path"] is None
+
+
+@pytest.mark.parametrize(
+    ("case_name", "field", "invalid_value", "remove_field"),
+    [
+        pytest.param("task-dict", "task_intent", {"forged": "task"}, False, id="task-dict"),
+        pytest.param("task-list", "task_intent", ["forged task"], False, id="task-list"),
+        pytest.param("task-integer", "task_intent", 123, False, id="task-integer"),
+        pytest.param("task-missing", "task_intent", None, True, id="task-missing"),
+        pytest.param("summary-dict", "work_summary", {"forged": "summary"}, False, id="summary-dict"),
+        pytest.param("summary-list", "work_summary", ["forged summary"], False, id="summary-list"),
+        pytest.param("summary-integer", "work_summary", 123, False, id="summary-integer"),
+        pytest.param("summary-missing", "work_summary", None, True, id="summary-missing"),
+    ],
+)
+def test_schema_invalid_bound_candidate_cannot_authorize_daily_memory(
+    local_project_root,
+    case_name,
+    field,
+    invalid_value,
+    remove_field,
+):
+    session_id = f"2026-08-04-bound-schema-invalid-{case_name}"
+    candidate = _closeout_candidate()
+    if remove_field:
+        candidate.pop(field)
+    else:
+        candidate[field] = invalid_value
+    write_session_envelope(session_id, local_project_root, provider="codex")
+    write_candidate(session_id, local_project_root, candidate)
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="schema-invalid candidate",
+        summary="caller input must not substitute",
+        daily_memory_write_required=True,
+        enforce_session_binding=True,
+    )
+
+    assert result["session_binding"]["status"] == "session_candidate_schema_invalid"
+    assert result["decision"] == "DO_NOT_PROMOTE"
+    assert result["daily_memory_write_expected"] is False
+    assert result["daily_memory_write_attempted"] is False
+    assert result["daily_memory_write_status"] == "skipped"
+    assert result["daily_memory_path"] is None
 
 
 def test_session_end_consumes_each_bound_session_once(local_project_root):
