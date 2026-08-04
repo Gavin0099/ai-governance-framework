@@ -1,0 +1,81 @@
+{
+  "authorization": {
+    "counted_gate3_run": false,
+    "replacement_sessions": 0
+  },
+  "cleanup": {
+    "residue_classes": [],
+    "status": "PASS"
+  },
+  "credential_privacy": {
+    "credential_bytes_or_content_retained": false,
+    "credential_digest_retained": false,
+    "credential_source_path_retained": false,
+    "raw_output_retained": false
+  },
+  "execution": {
+    "credential_preflight": "PASS",
+    "login_status": {
+      "A": "PASS",
+      "B": "PASS"
+    },
+    "runner_receipt_status": "VALID",
+    "session_exit_codes": {
+      "A": 0,
+      "B": 0
+    },
+    "session_invocations": 2
+  },
+  "failure_stage": "packet_build",
+  "non_counted": true,
+  "rollout_diagnostics": {
+    "A": {
+      "census_status": {
+        "public": "not_attempted",
+        "source": "not_attempted"
+      },
+      "parse_phases": {
+        "public": "NOT_RUN",
+        "source": "NOT_RUN"
+      },
+      "public_census": null,
+      "public_phase_from_diagnostic_copy": false,
+      "source_census": null,
+      "wrapper_mismatch_counts": {
+        "public": 0,
+        "source": 0
+      },
+      "wrapper_mismatches": {
+        "public": [],
+        "source": []
+      }
+    },
+    "B": {
+      "census_status": {
+        "public": "not_attempted",
+        "source": "not_attempted"
+      },
+      "parse_phases": {
+        "public": "NOT_RUN",
+        "source": "NOT_RUN"
+      },
+      "public_census": null,
+      "public_phase_from_diagnostic_copy": false,
+      "source_census": null,
+      "wrapper_mismatch_counts": {
+        "public": 0,
+        "source": 0
+      },
+      "wrapper_mismatches": {
+        "public": [],
+        "source": []
+      }
+    }
+  },
+  "run_id": "gate3-codex-auth-v9-20260804-184444",
+  "schema": "gate3-codex-live-canary-failure-receipt.v8",
+  "scoreable": false,
+  "success_packet_admitted": false,
+  "success_packet_present": false,
+  "success_packet_publication_attempted": false
+}

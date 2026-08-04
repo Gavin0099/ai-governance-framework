@@ -2299,6 +2299,44 @@ Cannot claim from this promotion: live-session authority, a successful scorer
 packet, natural-bug/resource admission, Gate 3 start authority or any counted
 result.
 
+## Gate 3 v1 Live Route Final Closeout — 2026-08-04
+
+- [x] The owner authorized one final exactly-two, no-replacement non-counted
+  A/B canary from detached commit
+  `c805336762a543b4816d496fc43bf34077931ff2`, fixed run ID
+  `gate3-codex-auth-v9-20260804-184444` and the promoted preregistration and
+  route-admission identities above.
+- [x] The runner invoked exactly two sessions, with zero replacement. Both
+  isolated login preflights passed and both session processes exited zero.
+- [x] The attempt failed at `packet_build` because the isolated Codex homes did
+  not satisfy the frozen exactly-one-rollout requirement. No success packet
+  was built, admitted or offered for scoring.
+- [x] A/B source and public parse phases remained `NOT_RUN` with census status
+  `not_attempted`. Their zero wrapper-mismatch counts therefore do not assert
+  wrapper conformance.
+- [x] Cleanup passed with no current-run private residue. The retained public
+  directory contains only the privacy-safe negative receipt at
+  `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/evidence-live-canary/gate3-codex-auth-v9-20260804-184444.failure/failure-receipt.json`,
+  exact SHA-256
+  `3e3962b2c5590e71ed76e2e0568c5d64eb46cabdb39487a607bcee9c66b3ae86`.
+- [x] Independent read-only review returned `APPROVED`: the receipt matches the
+  committed v8 schema and privacy contract and supports only a final
+  non-counted route failure, not a model, Skill, wrapper or treatment result.
+
+Owner disposition:
+
+- Gate 3 v1 live route is closed. Counted execution remains zero.
+- `_single_rollout()` will not be modified as a pretext for another v1 live
+  pair. No replacement, third session or further v1 canary is authorized.
+- A possible Gate 3 route v2 is deferred. It may be considered only after this
+  v1 receipt and closeout are durably archived; no v2 specification,
+  implementation, calibration or session is authorized by this closeout.
+
+Cannot claim from this closeout: rollout cardinality or storage location,
+wrapper conformance, producer task completion, Skill or model effectiveness,
+successful scorer evidence, natural-bug/resource admission, Gate 3 start or
+any counted A/B/C/D result.
+
 ## Gate 3 Preregistration Identity Repin — 2026-08-04
 
 - [x] The authorized zero-session preflight for fixed run ID
