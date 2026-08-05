@@ -570,6 +570,35 @@ def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tm
     assert "firmware-specific risks" in refreshed
 
 
+def test_refresh_repo_local_instructions_replaces_section_after_preceding_risk_heading(
+    tmp_path: Path,
+) -> None:
+    consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
+    agents = consumer / "AGENTS.md"
+    agents.write_text(
+        "# CFU\n\n"
+        "## CFU Risk Levels\n\n"
+        "firmware-specific risks\n\n"
+        "## AI Governance Update Intent Rule\n\n"
+        "stale intent\n\n"
+        "## AI Governance Memory Workflow Router\n\n"
+        "<!-- governance:key=memory_workflow -->\n"
+        "existing router\n",
+        encoding="utf-8",
+    )
+
+    result = _refresh_repo_local_instructions(consumer, framework)
+    refreshed = agents.read_text(encoding="utf-8")
+
+    assert result["status"] == "updated"
+    assert refreshed.count("## AI Governance Update Intent Rule") == 1
+    assert refreshed.count("## CFU Risk Levels") == 1
+    assert refreshed.count("## AI Governance Memory Workflow Router") == 1
+    assert "firmware-specific risks" in refreshed
+    assert "intent rule" in refreshed
+    assert "existing router" in refreshed
+
+
 def test_refresh_repo_local_instructions_blocks_without_risk_heading(tmp_path: Path) -> None:
     consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
     agents = consumer / "AGENTS.md"

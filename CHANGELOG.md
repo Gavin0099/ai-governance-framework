@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.3.0
+
+Release candidate metadata prepared 2026-07-31. GitHub Release and tag status
+仍需另外驗證，這個 heading 不代表遠端已發布。
+
+- Added an F-7 response-envelope surface check for explicit contract version
+  markers in `AGENTS.md`, Copilot instructions, and the reference contract
+  heading. Legacy markers keep the existing text, add the current v0.7 compact
+  policy summary, and downgrade the result to `partially_updated`.
+- Added regression coverage for legacy conflicts and for historical changelog
+  text inside a current v0.7 contract; the focused response-envelope, hook,
+  and F-7 set passes with 61 tests.
+- Added the v1.3.0 release-facing note, GitHub draft, and publish checklist.
+- Release-note boundary: candidate metadata does not prove a published tag,
+  GitHub Release, consumer-repo adoption, or full fleet synchronization.
+
+Release note: [docs/releases/v1.3.0.md](docs/releases/v1.3.0.md).
+
 ## Unreleased
 
 ### Canonical memory commit provenance - 2026-07-27

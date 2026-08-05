@@ -2,6 +2,7 @@
 <!-- AI Governance Framework: copilot-instructions v1.0 -->
 <!-- Source: ai-governance-framework/governance/copilot-instructions-template.md -->
 <!-- Deploy via: bash scripts/install-hooks.sh --target /path/to/repo -->
+<!-- Response envelope contract: v0.7 -->
 
 ## DONE Boundary Rules (MANDATORY)
 

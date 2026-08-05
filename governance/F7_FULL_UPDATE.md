@@ -10,7 +10,7 @@ default_load: on-demand
 
 Status: extracted from AGENTS.md
 Semantic change: no
-Runtime behavior change: yes — submodule consumer apply path now refreshes memory workflow router coverage and managed hook advisory coverage.
+Runtime behavior change: yes — submodule consumer apply path now refreshes memory workflow router coverage, managed hook advisory coverage, and explicit response-envelope version compatibility.
 Enforcement change: no
 
 ## Purpose
@@ -30,10 +30,11 @@ A submodule pointer update alone is insufficient and must be reported as
 
 1. framework pointer update
 2. repo-local instruction refresh
-3. memory writer coverage check
-4. hook / validator coverage check
-5. existing memory normalization status check
-6. final adoption status report backed by `governance_maturity_summary`
+3. response-envelope surface compatibility check
+4. memory writer coverage check
+5. hook / validator coverage check
+6. existing memory normalization status check
+7. final adoption status report backed by `governance_maturity_summary`
 
 ## Layered Status Fields
 
@@ -43,6 +44,7 @@ repo_local_instruction: updated | already_current | blocked | missing | not_veri
 memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+response_envelope_surface: verified | conflict | not_verified
 governance_maturity_summary: present | not_available | not_run
 human_readable_adoption_summary: reported | not_reported
 ai_governance_update_result: reported | not_reported
@@ -52,7 +54,7 @@ final_status: full_update_completed | already_current | partially_updated | manu
 `full_update_completed` may be used only when every required stage is
 `updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
 
-If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
+If any required surface is `missing`, `needed`, `blocked`, `conflict`, or `not_verified`,
 the final status must not be `full_update_completed`.
 
 Manual pointer, gitlink, checkout, or lock-file edits that bypass F-7 may be
@@ -139,6 +141,9 @@ surfaces:
 - refreshes / appends AI Governance update rules in `AGENTS.md`
 - ensures an `AGENTS.md` `governance:key=memory_workflow` router section
 - installs managed hook advisory files from the governance submodule checkout
+- checks explicit response-envelope contract version markers in managed
+  instruction surfaces; a legacy marker produces `response_envelope_surface:
+  conflict` and prevents `full_update_completed`
 - surfaces `governance_maturity_summary` as a report-only adoption visibility
   stage for consuming-repo operators
 - reports `full_update_completed` only when memory workflow coverage, hook
@@ -151,6 +156,8 @@ itself implement updater automation for all stages.
 
 Not claimed unless separately implemented and validated:
 - updater automation performs all F-7 stages for all repo roles
+- arbitrary prose contradictions in unmanaged instruction surfaces are detected;
+  the compatibility check currently handles explicit contract version markers
 - validators changed
 - artifact schema changed
 - existing memory was normalized

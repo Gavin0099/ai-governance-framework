@@ -1,8 +1,8 @@
 # Release 信心檢查清單（legacy path）
 
-更新日期：2026-07-27
+更新日期：2026-07-31
 
-這份歷史路徑目前用來確認 `v1.2.0` 的 release-facing 文件與 reader
+這份歷史路徑目前用來確認 `v1.3.0` 的 release-facing 文件與 reader
 是否一致。它不是宣告 GitHub Release 或 tag 已發布，也不是宣告系統
 已成為完整 policy engine。
 
@@ -12,24 +12,24 @@
 - [x] `start_session.md` 提供 guided entry path
 - [x] `python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human`
 - [x] `python governance_tools/example_readiness.py --format human`
-- [x] `python governance_tools/release_readiness.py --version v1.2.0 --format human`
-- [x] `python governance_tools/governance_auditor.py --project-root . --release-version v1.2.0 --format human`
-- [x] `python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.2.0 --contract examples/usb-hub-contract/contract.yaml --format human`
-- [x] `python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.2.0 --contract examples/usb-hub-contract/contract.yaml --publish-docs-status --format human`
+- [x] `python governance_tools/release_readiness.py --version v1.3.0 --format human`
+- [x] `python governance_tools/governance_auditor.py --project-root . --release-version v1.3.0 --format human`
+- [x] `python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.3.0 --contract examples/usb-hub-contract/contract.yaml --format human`
+- [x] `python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.3.0 --contract examples/usb-hub-contract/contract.yaml --publish-docs-status --format human`
 - [x] `python governance_tools/trust_signal_publication_reader.py --project-root . --docs-status --format human`
-- [x] `python governance_tools/release_package_snapshot.py --version v1.2.0 --publish-docs-release --format human`
-- [x] `python governance_tools/release_package_reader.py --version v1.2.0 --project-root . --docs-release --format human`
+- [x] `python governance_tools/release_package_snapshot.py --version v1.3.0 --publish-docs-release --format human`
+- [x] `python governance_tools/release_package_reader.py --version v1.3.0 --project-root . --docs-release --format human`
 - [x] `python governance_tools/release_package_publication_reader.py --project-root . --docs-release-root --format human`
-- [x] `python governance_tools/release_surface_overview.py --version v1.2.0 --format human`
+- [x] `python governance_tools/release_surface_overview.py --version v1.3.0 --format human`
 - [x] `bash scripts/verify_phase_gates.sh`
 
 ## 對外發布面檢查
 
 - [x] `README.md` 已能說明 release-facing 邊界
-- [x] `CHANGELOG.md` 與 `docs/releases/v1.2.0.md` 對齊
-- [x] `docs/releases/v1.2.0.md` 已就位
-- [x] `docs/releases/v1.2.0-github-release.md` 已就位
-- [x] `docs/releases/v1.2.0-publish-checklist.md` 已就位
+- [x] `CHANGELOG.md` 與 `docs/releases/v1.3.0.md` 對齊
+- [x] `docs/releases/v1.3.0.md` 已就位
+- [x] `docs/releases/v1.3.0-github-release.md` 已就位
+- [x] `docs/releases/v1.3.0-publish-checklist.md` 已就位
 - [x] `docs/releases/v1.0.0-alpha.md` 保留作為上一版 release 參照
 - [x] `docs/releases/v1.0.0-alpha-github-release.md` 保留作為上一版 release 參照
 - [x] `docs/releases/v1.0.0-alpha-publish-checklist.md` 保留作為上一版 release 參照
