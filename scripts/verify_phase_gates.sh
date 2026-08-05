@@ -19,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PASS=0
 FAIL=0
-RELEASE_VERSION="v1.2.0"
+RELEASE_VERSION="v1.3.0"
 
 ok()   { echo "  ✅ $1"; }
 fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
