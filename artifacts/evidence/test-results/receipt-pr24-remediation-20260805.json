@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check 27eb175a..adeae561",
+  "exit_code": 0,
+  "started_at": "2026-08-05T12:28:34Z",
+  "finished_at": "2026-08-05T12:28:34Z",
+  "runner": "codex",
+  "linked_commit": "adeae5617e3669a53d91331575bf1a1f30959ce9",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-pr24-remediation-20260805.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
