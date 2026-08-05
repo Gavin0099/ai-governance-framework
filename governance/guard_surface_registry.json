@@ -1,0 +1,114 @@
+{
+  "registry_schema": "guard_surface_registry.v0.1",
+  "purpose": "Declare, per guard surface, what evidence proves each adoption level. Read by governance_tools.guard_enforcement_census. Adding a tool to governance_tools/ does not register it here; registration is a deliberate act.",
+  "levels": [
+    "present",
+    "configured",
+    "invoked",
+    "covered",
+    "verdict_influencing",
+    "blocking"
+  ],
+  "surfaces": [
+    {
+      "id": "memory_authority_guard",
+      "title": "Memory authority guard",
+      "module": "governance_tools/memory_authority_guard.py",
+      "wiring_sites": [
+        {
+          "path": "governance_tools/session_end_hook.py",
+          "marker": "from governance_tools.memory_authority_guard import run_guard"
+        }
+      ],
+      "invocation_evidence": [
+        {
+          "glob": "artifacts/runtime/closeout-receipts/*.json",
+          "json_key": "memory_authority_guard_ran",
+          "expect_true": true
+        }
+      ],
+      "verdict_fields": [
+        "memory_authority_guard_ran",
+        "memory_authority_warning_codes"
+      ],
+      "emitted_codes": [
+        "unbound_memory",
+        "non_canonical_writer",
+        "structural_memory_auto_write",
+        "private_memory_cited",
+        "missing_canonical_memory",
+        "test_evidence_provenance_not_found",
+        "session_like_non_session_memory_type"
+      ],
+      "coverage_mode": "full_scan",
+      "coverage_roots": [
+        "memory"
+      ],
+      "_coverage_note": "The guard scans every daily file under memory/ on each run, so coverage follows from invocation plus the root existing."
+    },
+    {
+      "id": "claim_enforcement_checker",
+      "title": "Claim enforcement checker",
+      "module": "governance_tools/claim_enforcement_checker.py",
+      "wiring_sites": [
+        {
+          "path": "runtime_hooks/core/session_end.py",
+          "marker": "from governance_tools.claim_enforcement_checker import evaluate"
+        }
+      ],
+      "invocation_evidence": [
+        {
+          "glob": "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson",
+          "ndjson": true
+        }
+      ],
+      "verdict_fields": [
+        "claim_enforcement"
+      ],
+      "emitted_codes": [],
+      "coverage_mode": "changed_paths",
+      "coverage_scope_key": "examined_paths",
+      "_coverage_note": "Session-scoped: coverage can only be claimed once a run records which paths it examined. Until then this surface stops at invoked."
+    },
+    {
+      "id": "claim_validator_binding",
+      "title": "Claim-to-validator receipt binding",
+      "module": "governance_tools/claim_validator_binding.py",
+      "wiring_sites": [
+        {
+          "path": "governance_tools/session_end_hook.py",
+          "marker": "claim_validator_binding"
+        },
+        {
+          "path": "runtime_hooks/core/session_end.py",
+          "marker": "claim_validator_binding"
+        }
+      ],
+      "invocation_evidence": [],
+      "verdict_fields": [],
+      "emitted_codes": [],
+      "coverage_mode": "changed_paths",
+      "coverage_scope_key": "examined_paths"
+    },
+    {
+      "id": "daily_memory_gate",
+      "title": "Daily memory gate",
+      "module": "governance_tools/daily_memory_gate.py",
+      "wiring_sites": [
+        {
+          "path": "governance_tools/session_end_hook.py",
+          "marker": "daily_memory_gate"
+        },
+        {
+          "path": "runtime_hooks/core/session_end.py",
+          "marker": "daily_memory_gate"
+        }
+      ],
+      "invocation_evidence": [],
+      "verdict_fields": [],
+      "emitted_codes": [],
+      "coverage_mode": "changed_paths",
+      "coverage_scope_key": "examined_paths"
+    }
+  ]
+}

@@ -522,11 +522,67 @@ def test_evidence_provenance_advisory_accepts_existing_artifact(tmp_path: Path) 
     receipt.write_text("{}", encoding="utf-8")
     evidence = "PASS: focused suite; receipt artifacts/evidence/test-results/receipt-x.json"
     assert evidence_provenance_advisory(evidence, tmp_path) is None
-    # a cited path that does not exist keeps the advisory
+    # A cited path that does not exist keeps the advisory, but under its own
+    # reason: citing a missing receipt is a different failure from citing
+    # nothing at all, and the advisory now agrees with the guard it mirrors.
     missing = "PASS: focused suite; receipt artifacts/evidence/test-results/missing.json"
     assert evidence_provenance_advisory(missing, tmp_path) == (
-        "test_evidence_success_claim_without_artifact"
+        "test_evidence_artifact_not_found"
     )
+
+
+def test_evidence_provenance_advisory_honours_declared_evidence_roots(
+    tmp_path: Path,
+) -> None:
+    """A repo that declares its own evidence root is not told it has no evidence."""
+    from governance_tools.memory_authority_guard import evidence_provenance_advisory
+
+    (tmp_path / "contract.yaml").write_text(
+        "name: consumer\nevidence_roots:\n  - Tools/TestTools/Evidence\n",
+        encoding="utf-8",
+    )
+    receipt = tmp_path / "Tools" / "TestTools" / "Evidence" / "run-1.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("{}", encoding="utf-8")
+
+    accepted = "PASS: driver suite; receipt Tools/TestTools/Evidence/run-1.json"
+    assert evidence_provenance_advisory(accepted, tmp_path) is None
+
+    # Declaring roots is additive: the framework still writes its own runtime
+    # receipts under artifacts/, so that root stays accepted.
+    framework_owned = tmp_path / "artifacts" / "evidence"
+    framework_owned.mkdir(parents=True)
+    (framework_owned / "run-1.json").write_text("{}", encoding="utf-8")
+    assert (
+        evidence_provenance_advisory(
+            "PASS: driver suite; receipt artifacts/evidence/run-1.json", tmp_path
+        )
+        is None
+    )
+
+    # A location neither the framework nor the contract declared is a gap.
+    stray = tmp_path / "scratch"
+    stray.mkdir()
+    (stray / "run-2.json").write_text("{}", encoding="utf-8")
+    reason = evidence_provenance_advisory(
+        "PASS: driver suite; receipt scratch/run-2.json", tmp_path
+    )
+    assert reason is not None
+    assert reason.startswith("test_evidence_artifact_outside_declared_roots")
+
+
+def test_naming_a_test_target_is_not_evidence_in_an_undeclared_root(
+    tmp_path: Path,
+) -> None:
+    """"pytest tests/test_x.py" cites what ran, not proof of what happened."""
+    from governance_tools.memory_authority_guard import evidence_provenance_advisory
+
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_x.py").write_text("# test", encoding="utf-8")
+
+    reason = evidence_provenance_advisory("PASS: pytest tests/test_x.py", tmp_path)
+    assert reason == "test_evidence_success_claim_without_artifact"
 
 
 def test_cli_success_evidence_without_artifact_prints_advisory(tmp_path: Path) -> None:
