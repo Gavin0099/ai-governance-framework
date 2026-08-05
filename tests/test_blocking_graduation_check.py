@@ -156,10 +156,12 @@ def test_missing_attestation_is_not_met(tmp_path: Path) -> None:
     assert "attestation_absent" in approval["detail"]
 
 
-def test_valid_owner_attestation_is_met(tmp_path: Path) -> None:
+def test_structurally_valid_owner_attestation_remains_unevaluable(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     _attest(repo)
-    assert _by_id(evaluate(repo, now=NOW), "owner_approval")["status"] == MET
+    approval = _by_id(evaluate(repo, now=NOW), "owner_approval")
+    assert approval["status"] == UNEVALUABLE
+    assert "signer_identity_unverified" in approval["detail"]
 
 
 @pytest.mark.parametrize(
@@ -211,13 +213,14 @@ def test_wrong_attestation_schema_is_rejected(tmp_path: Path) -> None:
 
 # ── overall gating ────────────────────────────────────────────────────────────
 
-def test_all_criteria_met_permits_a_proposal_only(tmp_path: Path) -> None:
+def test_self_reported_owner_attestation_cannot_permit_a_proposal(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     _receipts(repo, ran=10, total=10)
     _attest(repo)
 
     result = evaluate(repo, now=NOW)
-    assert result["ready_to_propose"] is True
+    assert result["ready_to_propose"] is False
+    assert result["criteria_unevaluable"] == 1
     # Proposing is not enabling: no policy file was written.
     assert not (repo / "governance" / "memory_blocking_policy.json").exists()
     assert any("human edit" in line for line in result["claim_ceiling"])
@@ -271,7 +274,9 @@ def test_approval_is_bound_to_the_criteria_it_approved(tmp_path: Path) -> None:
     """Weakening the criteria after signing must invalidate the signature."""
     repo = _repo(tmp_path)
     _attest(repo)
-    assert _by_id(evaluate(repo, now=NOW), "owner_approval")["status"] == MET
+    first = _by_id(evaluate(repo, now=NOW), "owner_approval")
+    assert first["status"] == UNEVALUABLE
+    assert "signer_identity_unverified" in first["detail"]
 
     criteria = json.loads(
         (repo / "governance" / "blocking_graduation_criteria.json").read_text("utf-8")
@@ -376,6 +381,32 @@ def test_historical_baseline_buckets_do_not_fail_non_interference(
         age_days=400,
     )
     assert _by_id(evaluate(repo, now=NOW), "baseline_non_interference")["status"] == MET
+
+
+def test_legacy_baseline_without_machine_readable_file_is_unevaluable(
+    tmp_path: Path,
+) -> None:
+    criteria = {
+        **CRITERIA,
+        "criteria": [
+            {
+                "id": "baseline_non_interference",
+                "kind": "machine",
+                "baseline_glob": (
+                    "artifacts/governance/memory-authority-baseline-*.json"
+                ),
+            }
+        ],
+    }
+    repo = _repo(tmp_path, criteria)
+    _write_baseline(
+        repo,
+        [{"code": "non_canonical_writer", "count": 1}],
+        age_days=400,
+    )
+    entry = _by_id(evaluate(repo, now=NOW), "baseline_non_interference")
+    assert entry["status"] == UNEVALUABLE
+    assert "missing_machine_readable_file" in entry["detail"]
 
 
 # ── rollback ─────────────────────────────────────────────────────────────────

@@ -214,8 +214,13 @@ def _check_attestation(
         result.detail = f"attestation_stale:{age_days:.0f}d>{max_age_days}d"
         return result
 
-    result.status = MET
-    result.detail = f"attested_by={attested_by} age={age_days:.0f}d"
+    # Repository JSON proves only that bytes naming this owner exist. This
+    # process can create those bytes too, so it cannot authenticate the signer.
+    result.status = UNEVALUABLE
+    result.detail = (
+        f"declared_attestation_valid_but_signer_identity_unverified:"
+        f"attested_by={attested_by} age={age_days:.0f}d"
+    )
     result.evidence = [rel, authority_ref]
     return result
 
@@ -400,13 +405,33 @@ def _check_baseline_non_interference(
     # that simply omits the field would otherwise make this check pass
     # vacuously — the exact failure mode it is meant to detect.
     cutoff = f"{ACTIVE_WINDOW_FROM}.md"
-    leaked = [
+    writer_buckets = [
         bucket
         for bucket in buckets
         if isinstance(bucket, dict)
         and bucket.get("code") == "non_canonical_writer"
-        and _DAILY_FILENAME.match(str(bucket.get("file") or ""))
-        and str(bucket.get("file")) >= cutoff
+    ]
+    missing_file = [
+        bucket
+        for bucket in writer_buckets
+        if not _DAILY_FILENAME.match(str(bucket.get("file") or ""))
+    ]
+    if missing_file:
+        # Baseline schema v0.2 did not retain the identity fields used to make
+        # each bucket key. Treat those legacy bytes as unevaluable: reporting
+        # MET would claim non-interference from data that cannot answer it.
+        result.status = UNEVALUABLE
+        result.detail = (
+            f"baseline_missing_machine_readable_file:{path.name} "
+            f"affected_buckets={len(missing_file)}"
+        )
+        result.evidence = [path.name]
+        return result
+
+    leaked = [
+        bucket
+        for bucket in writer_buckets
+        if str(bucket.get("file")) >= cutoff
     ]
     result.detail = (
         f"baseline={path.name} buckets={len(buckets)} active_from={ACTIVE_WINDOW_FROM} "
@@ -574,6 +599,7 @@ def evaluate(
         "claim_ceiling": [
             "ready_to_propose means the recorded preconditions hold, not that blocking is safe",
             "enabling a code stays a human edit to governance/memory_blocking_policy.json",
+            "repository JSON can declare an attestation but cannot authenticate its signer",
             "this tool cannot satisfy owner approval and never enables anything",
         ],
     }

@@ -58,6 +58,13 @@ def test_bucket_counts_collapses_same_key_and_excludes_unknown() -> None:
     assert all(b["code"] in BASELINEABLE_CODES for b in buckets.values())
 
 
+def test_bucket_counts_preserves_machine_readable_identity_fields() -> None:
+    bucket = next(iter(bucket_counts([_ncw("2026-05-05.md")]).values()))
+    assert bucket["file"] == "2026-05-05.md"
+    assert bucket["entry"] == "- memory_type: session-derived"
+    assert bucket["reason"] == "session_derived_entry_not_written_by_memory_record"
+
+
 def test_build_baseline_refuses_active_si2() -> None:
     # a recent non_canonical_writer is active relative to PAST -> SI-2 refusal
     with pytest.raises(ValueError, match="SI-2"):

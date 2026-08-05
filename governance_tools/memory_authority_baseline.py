@@ -93,13 +93,22 @@ def bucket_counts(violations: Sequence[dict]) -> "OrderedDict[str, dict]":
         key = identity_key(violation)
         bucket = buckets.get(key)
         if bucket is None:
-            buckets[key] = {
+            bucket = {
                 "identity_key": key,
                 "code": violation.get("code"),
                 "count": 1,
                 "reason": violation.get("reason"),
                 "display": _display(violation),
             }
+            # Preserve the machine-readable identity fields used to build the
+            # bucket key. Downstream checks must not reverse-parse the
+            # human-only ``display`` string to recover a daily filename.
+            for field in IDENTITY_FIELDS.get(
+                str(violation.get("code", "")), _DEFAULT_FIELDS
+            ):
+                if field not in bucket and violation.get(field) is not None:
+                    bucket[field] = violation.get(field)
+            buckets[key] = bucket
         else:
             bucket["count"] += 1
     return buckets

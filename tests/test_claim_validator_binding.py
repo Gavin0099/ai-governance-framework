@@ -22,6 +22,7 @@ from governance_tools.claim_validator_binding import (  # noqa: E402
     RECEIPT_SCHEMA,
     STRENGTH_OBSERVED,
     VERDICT_BOUND,
+    VERDICT_NOT_REQUIRED,
     VERDICT_UNBOUND,
     check_claim_binding,
     load_binding_registry,
@@ -142,8 +143,14 @@ def test_observed_claims_need_no_receipt(tmp_path: Path) -> None:
     """A claim that asserts only observation is not downgraded for lacking proof."""
     repo = _repo(tmp_path)
     result = _check(repo, None, claimed_strength=STRENGTH_OBSERVED)
-    assert result.bound
+    assert not result.bound
+    assert result.satisfied
+    assert result.verdict == VERDICT_NOT_REQUIRED
     assert result.effective_strength == STRENGTH_OBSERVED
+    payload = result.as_dict()
+    assert payload["binding_strength"] is None
+    assert payload["validator"] is None
+    assert payload["not_claimed"] == ["any producer or validator binding"]
 
 
 # ── everything that must downgrade ────────────────────────────────────────────

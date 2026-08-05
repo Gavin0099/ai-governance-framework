@@ -269,6 +269,66 @@ def test_changed_paths_coverage_requires_the_run_to_record_its_scope(
     assert _only(run_census(repo))["checks"]["covered"]["value"] is True
 
 
+def test_changed_paths_empty_or_malformed_scope_is_not_covered(
+    tmp_path: Path,
+) -> None:
+    surface = {
+        **SURFACE,
+        "coverage_mode": "changed_paths",
+        "coverage_scope_key": "examined_paths",
+    }
+    repo = _make_repo(tmp_path, surface)
+    _add_module(repo)
+    _add_wiring(repo)
+
+    for scope in ([], "a.py", [""], ["a.py", 3]):
+        _add_invocation(repo, {"demo_guard_ran": True, "examined_paths": scope})
+        entry = _only(run_census(repo))
+        assert entry["level"] == "invoked"
+        assert entry["checks"]["covered"]["value"] is False
+
+
+def test_coverage_and_verdict_use_the_same_selected_invocation(
+    tmp_path: Path,
+) -> None:
+    surface = {
+        **SURFACE,
+        "coverage_mode": "changed_paths",
+        "coverage_scope_key": "examined_paths",
+        "invocation_evidence": [
+            {
+                "glob": "artifacts/receipts/current/*.json",
+                "json_key": "demo_guard_ran",
+                "expect_true": True,
+            },
+            {
+                "glob": "artifacts/receipts/old/*.json",
+                "json_key": "demo_guard_ran",
+                "expect_true": True,
+            },
+        ],
+    }
+    repo = _make_repo(tmp_path, surface)
+    _add_module(repo)
+    _add_wiring(repo)
+    old = repo / "artifacts" / "receipts" / "old" / "r.json"
+    old.parent.mkdir(parents=True)
+    old.write_text(
+        json.dumps({"demo_guard_ran": True, "examined_paths": ["old.py"]}),
+        encoding="utf-8",
+    )
+    stamp = time.time() - 86400
+    import os
+    os.utime(old, (stamp, stamp))
+    current = repo / "artifacts" / "receipts" / "current" / "r.json"
+    current.parent.mkdir(parents=True)
+    current.write_text(json.dumps({"demo_guard_ran": True}), encoding="utf-8")
+
+    entry = _only(run_census(repo))
+    assert entry["level"] == "invoked"
+    assert "examined_scope" in entry["checks"]["covered"]["reason"]
+
+
 # ── version alignment ─────────────────────────────────────────────────────────
 
 def _write_lock(repo: Path, **fields) -> None:

@@ -66,6 +66,7 @@ STRENGTH_OBSERVED = "observed"
 
 VERDICT_BOUND = "bound"
 VERDICT_UNBOUND = "unbound"
+VERDICT_NOT_REQUIRED = "not_required"
 DOWNGRADE_TO = "observed_unverified"
 
 # What a `bound` verdict is actually built from. Named so a reader cannot
@@ -119,6 +120,15 @@ class BindingResult:
     def bound(self) -> bool:
         return self.verdict == VERDICT_BOUND
 
+    @property
+    def satisfied(self) -> bool:
+        """Whether the claim may retain its requested strength.
+
+        Observed claims are accepted because binding is not required, not
+        because a producer was bound to them.
+        """
+        return self.verdict in {VERDICT_BOUND, VERDICT_NOT_REQUIRED}
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "claim_kind": self.claim_kind,
@@ -130,11 +140,19 @@ class BindingResult:
             "effective_strength": self.effective_strength,
             "binding_strength": BINDING_STRENGTH if self.bound else None,
             "claim_ceiling": (
-                "every checked field is self-reported by the receipt; binding "
-                "shows schema and anchor consistency with a registered "
-                "producer, not that the validator ran"
+                "binding is not required for this observed-strength claim"
+                if self.verdict == VERDICT_NOT_REQUIRED
+                else (
+                    "every checked field is self-reported by the receipt; binding "
+                    "shows schema and anchor consistency with a registered "
+                    "producer, not that the validator ran"
+                )
             ),
-            "not_claimed": list(NOT_CLAIMED),
+            "not_claimed": (
+                ["any producer or validator binding"]
+                if self.verdict == VERDICT_NOT_REQUIRED
+                else list(NOT_CLAIMED)
+            ),
         }
 
 
@@ -256,7 +274,7 @@ def check_claim_binding(
     # Observed-strength claims assert nothing a validator could confirm, so
     # they need no receipt and are left exactly as claimed.
     if claimed_strength != STRENGTH_STRONG:
-        result.verdict = VERDICT_BOUND
+        result.verdict = VERDICT_NOT_REQUIRED
         result.effective_strength = claimed_strength
         result.reasons.append("non_strong_claim_requires_no_receipt")
         return result
@@ -395,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
         for reason in result.reasons:
             print(f"  - {reason}")
 
-    return 1 if (args.fail_on_unbound and not result.bound) else 0
+    return 1 if (args.fail_on_unbound and not result.satisfied) else 0
 
 
 if __name__ == "__main__":

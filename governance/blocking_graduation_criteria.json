@@ -16,7 +16,7 @@
     "agent",
     "ai"
   ],
-  "_authority_note": "An attestation must name someone in owner_registry, cite an authority document matching authority_ref_patterns, and carry the digest of this criteria file. Without the digest an approval floats free of what it approved: the criteria could be weakened afterwards and the signature would still verify.",
+  "_authority_note": "An attestation must name someone in owner_registry, cite an authority document matching authority_ref_patterns, and carry the digest of this criteria file. These checks validate a declaration, not signer identity: repository JSON remains unevaluable until identity provenance is supplied outside the agent's write authority.",
   "owner_registry": [
     "GavinWu"
   ],

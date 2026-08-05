@@ -93,6 +93,8 @@ class LevelCheck:
     value: bool
     evidence: list[str] = field(default_factory=list)
     reason: str | None = None
+    source_path: Path | None = None
+    source_payload: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {"value": self.value, "evidence": self.evidence, "reason": self.reason}
@@ -176,8 +178,12 @@ def _iter_glob(project_root: Path, pattern: str) -> list[Path]:
 
 def _newest_matching(
     project_root: Path, spec: dict[str, Any], limit: int = 400
-) -> tuple[Path, float] | None:
-    """Newest file satisfying one invocation-evidence spec, with its mtime."""
+) -> tuple[Path, float, dict[str, Any] | None] | None:
+    """Newest invocation satisfying one evidence spec.
+
+    Parsed payload is retained so later levels stay bound to this exact
+    invocation rather than finding a convenient field in stale evidence.
+    """
     pattern = str(spec.get("glob") or "").strip()
     if not pattern:
         return None
@@ -192,14 +198,21 @@ def _newest_matching(
 
     for path in candidates[:limit]:
         if not json_key and not is_ndjson:
-            return path, path.stat().st_mtime
+            return path, path.stat().st_mtime, None
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
         if is_ndjson:
-            if any(line.strip() for line in text.splitlines()):
-                return path, path.stat().st_mtime
+            for line in reversed(text.splitlines()):
+                if not line.strip():
+                    continue
+                try:
+                    payload = json.loads(line)
+                except Exception:
+                    continue
+                if isinstance(payload, dict):
+                    return path, path.stat().st_mtime, payload
             continue
         try:
             payload = json.loads(text)
@@ -209,7 +222,7 @@ def _newest_matching(
             continue
         if expect_true and not payload.get(json_key):
             continue
-        return path, path.stat().st_mtime
+        return path, path.stat().st_mtime, payload
     return None
 
 
@@ -220,7 +233,7 @@ def _check_invoked(
     if not specs:
         return LevelCheck(False, reason="no_invocation_evidence_declared")
 
-    best: tuple[Path, float] | None = None
+    best: tuple[Path, float, dict[str, Any] | None] | None = None
     for spec in specs:
         found = _newest_matching(project_root, spec)
         if found and (best is None or found[1] > best[1]):
@@ -228,7 +241,7 @@ def _check_invoked(
     if best is None:
         return LevelCheck(False, reason="no_invocation_evidence_found")
 
-    path, mtime = best
+    path, mtime, payload = best
     age_days = max(0.0, (now - mtime) / 86400.0)
     rel = path.relative_to(project_root).as_posix()
     evidence = [f"{rel} (age {age_days:.1f}d)"]
@@ -240,7 +253,12 @@ def _check_invoked(
             evidence=evidence,
             reason=f"invocation_evidence_stale:{age_days:.1f}d>{max_age_days}d",
         )
-    return LevelCheck(True, evidence=evidence)
+    return LevelCheck(
+        True,
+        evidence=evidence,
+        source_path=path,
+        source_payload=payload,
+    )
 
 
 def _check_covered(
@@ -276,21 +294,23 @@ def _check_covered(
             return LevelCheck(
                 False, reason="changed_paths_declared_without_coverage_scope_key"
             )
-        for spec in surface.get("invocation_evidence") or []:
-            found = _newest_matching(project_root, spec)
-            if not found:
-                continue
-            path, _mtime = found
-            try:
-                text = path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            if f'"{key}"' in text:
-                rel = path.relative_to(project_root).as_posix()
-                return LevelCheck(True, evidence=[f"{rel}:{key}"])
-        # The honest outcome for most surfaces today: runs happen, but nothing
-        # records which paths were in scope, so coverage cannot be claimed.
-        return LevelCheck(False, reason=f"examined_scope_not_recorded:{key}")
+        payload = invoked.source_payload
+        if payload is None:
+            return LevelCheck(False, reason="invocation_payload_not_structured")
+        if key not in payload:
+            return LevelCheck(False, reason=f"examined_scope_not_recorded:{key}")
+        scope = payload.get(key)
+        if not isinstance(scope, list):
+            return LevelCheck(False, reason=f"examined_scope_invalid_type:{key}")
+        examined = [
+            item.strip() for item in scope if isinstance(item, str) and item.strip()
+        ]
+        if len(examined) != len(scope) or not examined:
+            return LevelCheck(False, reason=f"examined_scope_empty_or_invalid:{key}")
+        if invoked.source_path is None:
+            return LevelCheck(False, reason="invocation_source_path_missing")
+        rel = invoked.source_path.relative_to(project_root).as_posix()
+        return LevelCheck(True, evidence=[f"{rel}:{key}:{len(examined)}"])
 
     return LevelCheck(False, reason=f"unknown_coverage_mode:{mode}")
 
@@ -310,20 +330,13 @@ def _check_verdict_influencing(
     if not invoked.value:
         return LevelCheck(False, reason="not_invoked")
 
-    specs = surface.get("invocation_evidence") or []
-    for spec in specs:
-        found = _newest_matching(project_root, spec)
-        if not found:
-            continue
-        path, _mtime = found
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        present = [name for name in fields if f'"{name}"' in text]
-        if len(present) == len(fields):
-            rel = path.relative_to(project_root).as_posix()
-            return LevelCheck(True, evidence=[f"{rel}:{','.join(present)}"])
+    payload = invoked.source_payload
+    if payload is None:
+        return LevelCheck(False, reason="invocation_payload_not_structured")
+    present = [name for name in fields if name in payload]
+    if len(present) == len(fields) and invoked.source_path is not None:
+        rel = invoked.source_path.relative_to(project_root).as_posix()
+        return LevelCheck(True, evidence=[f"{rel}:{','.join(present)}"])
     return LevelCheck(False, reason="verdict_fields_absent_from_invocation_evidence")
 
 

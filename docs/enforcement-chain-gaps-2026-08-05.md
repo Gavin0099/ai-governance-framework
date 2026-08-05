@@ -189,6 +189,8 @@ alongside a real basis is fine; resting on it alone is not.
 
 Unbound strong claims are downgraded to `observed_unverified`. Whether an
 unbound claim also blocks is a policy decision this module does not make.
+Observed-strength claims report `not_required`, not `bound`: retaining an
+observation-grade claim does not imply any producer or validator binding.
 
 **Code:** `governance_tools/claim_validator_binding.py`, registry
 `governance/claim_binding_registry.json` (schema `claim_binding_registry.v0.1`),
@@ -226,13 +228,15 @@ observation window with too few sessions answers nothing, and must read as
 neither pass nor fail. Unevaluable blocks a proposal exactly as failing does,
 because the question stays open.
 
-Attestations must name a signer in `owner_registry` (a human name alone is not
-an authorisation), cite an authority document matching
+Attestations must name a signer in `owner_registry`, cite an authority document matching
 `authority_ref_patterns` (any existing file would otherwise do — `README.md` is
 not an authority document), carry the sha256 of the criteria file so an
 approval is bound to what it approved, record a true result, and be within the
-age window. An agent signing off on its own enforcement — including its own
-mutation test or fixture review — is rejected outright.
+age window. Those checks validate the declaration, not the signer: repository
+JSON is inside the agent's write authority, so every structurally valid
+attestation remains `unevaluable` until identity provenance is verified by a
+mechanism outside that authority. An attestation that names an AI identity is
+rejected outright.
 
 Weakening the criteria after signing invalidates the signature, because the
 recorded digest no longer matches.
