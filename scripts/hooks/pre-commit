@@ -45,6 +45,25 @@ if [ ! -f "$PYTHON_LIB" ]; then
 fi
 . "$PYTHON_LIB"
 
+# Advisory-only hook staleness check.
+# `.git/hooks` is an untracked copy: when the framework source hook changes and
+# the copy is not reinstalled, governance dispatch degrades silently and no
+# canonical memory record is written. Observed 2026-08-04 (two merged PRs with
+# no canonical record). Advisory only; never blocks a commit.
+HOOK_SOURCE="$FRAMEWORK_ROOT/scripts/hooks/pre-commit"
+HOOK_SELF="${BASH_SOURCE[0]:-}"
+if [ -n "$HOOK_SELF" ] && [ -f "$HOOK_SOURCE" ] && [ -f "$HOOK_SELF" ]; then
+    if ! cmp -s "$HOOK_SELF" "$HOOK_SOURCE"; then
+        echo ""
+        echo "⚠️  [governance] installed pre-commit hook differs from framework source"
+        echo "   installed: $HOOK_SELF"
+        echo "   source:    $HOOK_SOURCE"
+        echo "   run: python -X utf8 -m governance_tools.hook_installer --repo . --framework-root \"$FRAMEWORK_ROOT\" --hooks-only"
+        echo "   note: advisory only; commit is not blocked by this check"
+        echo ""
+    fi
+fi
+
 PLAN_FILE="$TARGET_REPO_ROOT/PLAN.md"
 TOOL="$FRAMEWORK_ROOT/governance_tools/plan_freshness.py"
 MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"

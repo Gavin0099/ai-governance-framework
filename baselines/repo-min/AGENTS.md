@@ -72,6 +72,15 @@ adoption cannot claim: <short cannot-claim list from the summary | NOT REPORTED>
 human_readable_adoption_summary: REPORTED | NOT REPORTED
 ```
 
+### Response Envelope Boundary
+
+- Response envelope contract version: v0.7. Compact human responses are the
+  default.
+- Ordinary expanded reporting has exactly three triggers:
+  `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`.
+- Keep validation commands, counts, and diagnostics under `驗證` or
+  `evidence_refs`; use `注意` only for one decision-relevant limitation.
+
 If the session only updates `AGENTS.md` or other local instruction files, report
 that as an instruction-file update and mark the AI Governance Framework update
 as `not_verified`. Do not collapse instruction-file sync into framework update

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -53,12 +54,20 @@ NOT_APPLICABLE = "not_applicable"
 NOT_VERIFIED = "not_verified"
 
 F7_UPDATE_BOUNDARY_MARKER = "<!-- governance:key=f7_update_boundary -->"
+RESPONSE_ENVELOPE_CONTRACT_VERSION = "v0.7"
+_RESPONSE_ENVELOPE_VERSION_PATTERN = re.compile(
+    r"response envelope contract(?:\s+version)?\s*[:=]?\s*v?(\d+\.\d+)",
+    re.IGNORECASE,
+)
 F7_UPDATE_BOUNDARY_BLOCK = (
     f"{F7_UPDATE_BOUNDARY_MARKER}\n"
     "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
     "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
     "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` table rows as a table, not a prose summary, and include the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
     "- F-7 terminal results are an expanded-report exception to the compact three-line default: relay the complete adoption table and preserve its machine status, claim boundary, evidence references, and next action.\n"
+    f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}. Compact human responses are the default.\n"
+    "- Ordinary expanded reporting has exactly three triggers: `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`.\n"
+    "- Keep validation commands, counts, and diagnostics under `驗證` or `evidence_refs`; use `注意` only for one decision-relevant limitation.\n"
     "- If the adoption table is unavailable or cannot be relayed, report `human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`, and `completion_claim_allowed=false` with the reason; do not fabricate rows or claim a complete update report.\n"
     "- When a `mode` is used, keep `mode` event-derived with its `mode_source`; the human projection must not create trust claims or replace the canonical machine envelope.\n"
     "- Non-trivial feature or bugfix work must not be reported with happy-path-only tests: reproducible bugs need regression tests when feasible, expected values must come from a spec/invariant/fixture rather than copied production logic, mock-only assertions are weak evidence unless observable behavior is asserted, and domain validators need pass/fail fixtures plus an execution harness before fixture evidence is treated as strong.\n"
@@ -301,6 +310,34 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
     if maturity.status in {"scaffold_only", "generic_filled"}:
         return "updated", [str(agents_path)], []
     return "updated_preserved_repo_rules", [str(agents_path)], []
+
+
+def _response_envelope_surface_conflicts(repo_root: Path) -> list[str]:
+    surfaces = (
+        Path("AGENTS.md"),
+        Path(".github/copilot-instructions.md"),
+        Path("governance/RESPONSE_ENVELOPE_CONTRACT.md"),
+    )
+    conflicts: list[str] = []
+    for relative_path in surfaces:
+        path = repo_root / relative_path
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if relative_path.as_posix() == "governance/RESPONSE_ENVELOPE_CONTRACT.md":
+            text = next(
+                (
+                    line
+                    for line in text.splitlines()
+                    if line.startswith("# Response Envelope Contract")
+                ),
+                "",
+            )
+        versions = {f"v{match}" for match in _RESPONSE_ENVELOPE_VERSION_PATTERN.findall(text)}
+        for version in sorted(versions):
+            if version != RESPONSE_ENVELOPE_CONTRACT_VERSION:
+                conflicts.append(f"{relative_path.as_posix()}: {version}")
+    return conflicts
 
 
 def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
@@ -561,6 +598,7 @@ def _external_f7_completed(readiness: Any, repo_root: Path, framework_root: Path
             _framework_lock_commit_current(readiness, framework_root),
             _agents_memory_workflow_router_present(repo_root),
             _pre_commit_memory_workflow_advisory_present(repo_root),
+            not _response_envelope_surface_conflicts(repo_root),
         ]
     )
 
@@ -586,6 +624,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         "agents_calibration": (before.agents_calibration or {}).get("status", NOT_VERIFIED),
         "memory_workflow_router": "verified" if _agents_memory_workflow_router_present(repo_root) else NOT_VERIFIED,
         "memory_workflow_hook_advisory": "verified" if _pre_commit_memory_workflow_advisory_present(repo_root) else NOT_VERIFIED,
+        "response_envelope_surface": NOT_VERIFIED,
     }
 
     if apply:
@@ -608,6 +647,8 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
     stages["memory_workflow_router"] = "verified" if _agents_memory_workflow_router_present(repo_root) else NOT_VERIFIED
     stages["memory_workflow_hook_advisory"] = "verified" if _pre_commit_memory_workflow_advisory_present(repo_root) else NOT_VERIFIED
+    response_envelope_conflicts = _response_envelope_surface_conflicts(repo_root)
+    stages["response_envelope_surface"] = "conflict" if response_envelope_conflicts else "verified"
     stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, framework_root)
     final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
@@ -620,6 +661,11 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
             "release-current is not F-7 completion"
+        )
+    if response_envelope_conflicts:
+        warnings.append(
+            "f7-diagnostic: response envelope contract versions conflict across instruction surfaces; "
+            "review legacy instructions before claiming full update"
         )
     if governance_surface_status:
         warnings.append(
@@ -661,6 +707,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             "framework_version": after.framework_version,
             "framework_version_diagnostics": diagnostics,
             "agents_baseline_diagnostics": _agents_baseline_diagnostics(repo_root),
+            "response_envelope_conflicts": response_envelope_conflicts,
             "uncommitted_governance_surfaces": governance_surface_status,
             "remediation_plan": remediation_plan,
             "framework_head_commit": _framework_head_commit(framework_root),

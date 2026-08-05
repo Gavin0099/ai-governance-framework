@@ -146,15 +146,15 @@ jobs:
 
       - name: Build trust signal overview artifacts
         run: |
-          python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.2.0 --contract examples/usb-hub-contract/contract.yaml --strict-runtime --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
-          python governance_tools/release_package_snapshot.py --version v1.2.0 --write-bundle artifacts/release-package/v1.2.0 --format human
-          python governance_tools/release_package_publication_reader.py --file artifacts/release-package/v1.2.0/PUBLICATION_MANIFEST.json --format human
-          python governance_tools/release_surface_overview.py --version v1.2.0 --bundle-manifest artifacts/release-package/v1.2.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.2.0/PUBLICATION_MANIFEST.json --format human --output artifacts/release-surface/release_surface_overview.txt
-          python governance_tools/release_surface_overview.py --version v1.2.0 --bundle-manifest artifacts/release-package/v1.2.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.2.0/PUBLICATION_MANIFEST.json --format json --output artifacts/release-surface/release_surface_overview.json
-          python governance_tools/release_surface_overview.py --version v1.2.0 --bundle-manifest artifacts/release-package/v1.2.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.2.0/PUBLICATION_MANIFEST.json --format markdown --output artifacts/release-surface/release_surface_overview.md
-          python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.2.0 --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest artifacts/release-package/v1.2.0/MANIFEST.json --release-publication-manifest artifacts/release-package/v1.2.0/PUBLICATION_MANIFEST.json --write-bundle artifacts/reviewer-handoff/v1.2.0 --publish-status-dir artifacts/reviewer-handoff/published --publication-root artifacts/reviewer-handoff --format human
-          python governance_tools/reviewer_handoff_reader.py --release-version v1.2.0 --file artifacts/reviewer-handoff/v1.2.0/MANIFEST.json --format human
-          python governance_tools/reviewer_handoff_publication_reader.py --release-version v1.2.0 --file artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json --format human
+          python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.3.0 --contract examples/usb-hub-contract/contract.yaml --strict-runtime --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
+          python governance_tools/release_package_snapshot.py --version v1.3.0 --write-bundle artifacts/release-package/v1.3.0 --format human
+          python governance_tools/release_package_publication_reader.py --file artifacts/release-package/v1.3.0/PUBLICATION_MANIFEST.json --format human
+          python governance_tools/release_surface_overview.py --version v1.3.0 --bundle-manifest artifacts/release-package/v1.3.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.3.0/PUBLICATION_MANIFEST.json --format human --output artifacts/release-surface/release_surface_overview.txt
+          python governance_tools/release_surface_overview.py --version v1.3.0 --bundle-manifest artifacts/release-package/v1.3.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.3.0/PUBLICATION_MANIFEST.json --format json --output artifacts/release-surface/release_surface_overview.json
+          python governance_tools/release_surface_overview.py --version v1.3.0 --bundle-manifest artifacts/release-package/v1.3.0/MANIFEST.json --publication-manifest artifacts/release-package/v1.3.0/PUBLICATION_MANIFEST.json --format markdown --output artifacts/release-surface/release_surface_overview.md
+          python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.3.0 --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest artifacts/release-package/v1.3.0/MANIFEST.json --release-publication-manifest artifacts/release-package/v1.3.0/PUBLICATION_MANIFEST.json --write-bundle artifacts/reviewer-handoff/v1.3.0 --publish-status-dir artifacts/reviewer-handoff/published --publication-root artifacts/reviewer-handoff --format human
+          python governance_tools/reviewer_handoff_reader.py --release-version v1.3.0 --file artifacts/reviewer-handoff/v1.3.0/MANIFEST.json --format human
+          python governance_tools/reviewer_handoff_publication_reader.py --release-version v1.3.0 --file artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json --format human
 
       - name: Upload trust signal overview artifacts
         if: always()

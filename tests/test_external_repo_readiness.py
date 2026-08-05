@@ -7,6 +7,7 @@ from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_repo_readiness import assess_external_repo, format_human
+from governance_tools.framework_versioning import current_framework_release
 
 
 FIXTURE_ROOT = Path("tests/_tmp_external_repo_readiness")
@@ -86,7 +87,7 @@ def test_assess_external_repo_returns_ready_for_complete_repo() -> None:
 
     _make_framework(framework_root)
     _make_target_repo(target_root, framework_root)
-    _write_lock(target_root, "1.2.0")
+    _write_lock(target_root, current_framework_release())
 
     result = assess_external_repo(target_root)
 

@@ -40,7 +40,7 @@ def _init_repo(repo: Path) -> None:
 
 def _make_framework(root: Path) -> None:
     _init_repo(root)
-    _write(root / "README.md", "[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]\n")
+    _write(root / "README.md", "[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)]\n")
     _write(
         root / "scripts" / "hooks" / "pre-commit",
         "#!/usr/bin/env bash\n"
@@ -67,7 +67,7 @@ def _make_framework(root: Path) -> None:
         json.dumps(
             {
                 "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
-                "adopted_release": "1.2.0",
+                "adopted_release": "1.3.0",
                 "adopted_commit": "stale-template-commit",
                 "framework_interface_version": "1",
                 "framework_compatible": ">=1.0.0,<2.0.0",
@@ -156,6 +156,11 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     framework = tmp_path / "framework"
     _make_framework(framework)
     _make_external_contract_repo(repo)
+    _write(
+        repo / "governance" / "RESPONSE_ENVELOPE_CONTRACT.md",
+        "# Response Envelope Contract v0.7\n"
+        "> v0.6 historical release note\n",
+    )
     _write(
         repo / "AGENTS.md",
         "<!-- governance-baseline: overridable -->\n"
@@ -643,6 +648,10 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "Response envelope contract version: v0.7" in agents_text
+    assert "full_evidence_request" in agents_text
+    assert "owner_decision_required" in agents_text
+    assert "failed_or_partial" in agents_text
     assert "update_report_complete=false" in agents_text
     assert "completion_claim_allowed=false" in agents_text
     assert "happy-path-only tests" in agents_text
@@ -736,6 +745,10 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "Response envelope contract version: v0.7" in agents_text
+    assert "full_evidence_request" in agents_text
+    assert "owner_decision_required" in agents_text
+    assert "failed_or_partial" in agents_text
     assert "update_report_complete=false" in agents_text
     assert "completion_claim_allowed=false" in agents_text
     assert "happy-path-only tests" in agents_text
@@ -745,6 +758,31 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
     assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" in agents_text
     assert "--format json` from the framework environment" not in agents_text
+
+
+def test_external_contract_apply_marks_legacy_response_envelope_conflict(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        repo / "AGENTS.md",
+        "# Contract Agent Rules\n\n"
+        "<!-- Response envelope contract: v0.1 -->\n"
+        "- Keep the existing domain rules.\n",
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.ok is True
+    assert result.f7_final_status == "partially_updated"
+    assert result.stages["response_envelope_surface"] == "conflict"
+    assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.1"]
+    assert "Response envelope contract: v0.1" in agents_text
+    assert "Response envelope contract version: v0.7" in agents_text
+    assert "full_evidence_request" in agents_text
+    assert any("response envelope contract versions conflict" in warning for warning in result.warnings)
 
 
 def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outside_boundary(tmp_path: Path) -> None:

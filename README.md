@@ -2,10 +2,10 @@
 
 > 讓 AI coding agent 的**邊界、證據、宣稱**可被審核——契約式執行、artifact 證據驗證、fail-closed 決策。
 
-**Version 1.2.0** · Python 3.9+（核心 stdlib-only）· 3,200+ tests · Windows / Git Bash 驗證 · [English summary below](#english-summary)
+**Version 1.3.0 candidate** · Python 3.9+（核心 stdlib-only）· 3,200+ tests · Windows / Git Bash 驗證 · [English summary below](#english-summary)
 
 目前版本的 release-facing 說明見
-[`docs/releases/v1.2.0.md`](docs/releases/v1.2.0.md)。文件與 CI reader
+[`docs/releases/v1.3.0.md`](docs/releases/v1.3.0.md)。文件與 CI reader
 就緒不等於 GitHub Release 或 tag 已發布；遠端發布狀態必須另外查證。
 
 ---

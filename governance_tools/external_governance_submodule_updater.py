@@ -967,7 +967,12 @@ def _find_agents_update_end(text: str, start: int) -> int | None:
         r"(?mi)^##\s+.*\bRisk Levels\b.*$", text[start:]
     )
     if custom_risk_heading is None:
-        return None
+        if not re.search(r"(?mi)^##\s+.*\bRisk Levels\b.*$", text[:start]):
+            return None
+        for heading in re.finditer(r"(?mi)^##\s+.*$", text):
+            if heading.start() > start:
+                return heading.start()
+        return len(text)
     return start + custom_risk_heading.start()
 
 
