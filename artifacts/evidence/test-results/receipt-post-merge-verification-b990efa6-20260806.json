@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/ -q --tb=short --basetemp C:\\tmp\\agf-post-merge-full-suite-b990efa6",
+  "exit_code": 0,
+  "started_at": "2026-08-06T06:00:39Z",
+  "finished_at": "2026-08-06T06:14:12Z",
+  "runner": "codex-post-merge-verification",
+  "linked_commit": "b990efa61a36a9d62b34455b8807e6a9d519560c",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-post-merge-verification-b990efa6-20260806.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
