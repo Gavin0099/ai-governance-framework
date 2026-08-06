@@ -24,12 +24,50 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _write_crlf_frozen_materials(root: Path) -> Path:
+    frozen_payload = json.loads((REPO_ROOT / FROZEN).read_text(encoding="utf-8"))
+    for relative_path in frozen_payload["paths"].values():
+        source = (REPO_ROOT / relative_path).read_bytes().replace(b"\r\n", b"\n")
+        target = root / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.replace(b"\n", b"\r\n"))
+    frozen = root / FROZEN
+    _write_json(frozen, frozen_payload)
+    return frozen
+
+
 def test_frozen_bundle_hashes_match_repo_materials() -> None:
     frozen = validate_frozen_bundle(FROZEN, REPO_ROOT)
 
     assert frozen["status"] == "step1_frozen_materials"
     assert frozen["controls"]["a_b_runs_completed"] is False
     assert frozen["controls"]["ledger_decision_effect_updated"] is False
+
+
+def test_frozen_bundle_hashes_accept_crlf_checkout(tmp_path: Path) -> None:
+    frozen = _write_crlf_frozen_materials(tmp_path)
+
+    result = validate_frozen_bundle(frozen, tmp_path)
+
+    assert result["status"] == "step1_frozen_materials"
+
+
+def test_frozen_bundle_hashes_reject_content_change_in_crlf_checkout(
+    tmp_path: Path,
+) -> None:
+    frozen = _write_crlf_frozen_materials(tmp_path)
+    payload = json.loads(frozen.read_text(encoding="utf-8"))
+    target_diff = tmp_path / payload["paths"]["target_diff"]
+    target_diff.write_bytes(target_diff.read_bytes() + b"substantive change\r\n")
+
+    with pytest.raises(FrozenBundleError) as exc_info:
+        validate_frozen_bundle(frozen, tmp_path)
+
+    error = json.loads(str(exc_info.value))
+    assert error["code"] == "frozen_bundle_hash_mismatch"
+    assert [item["field"] for item in error["mismatches"]] == [
+        "target_diff_sha256"
+    ]
 
 
 def test_scores_line_alias_anchor_fp_and_unscored_findings(tmp_path: Path) -> None:

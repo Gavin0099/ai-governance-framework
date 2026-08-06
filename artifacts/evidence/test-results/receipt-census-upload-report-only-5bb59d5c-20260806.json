@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest -q tests/test_governance_workflow_contract.py --basetemp C:\\tmp\\agf-census-upload-receipt --tb=short",
+  "exit_code": 0,
+  "started_at": "2026-08-06T06:29:41Z",
+  "finished_at": "2026-08-06T06:29:42Z",
+  "runner": "codex",
+  "linked_commit": "5bb59d5ce85f7e96713fe3d9dad2160d2933e026",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-upload-report-only-5bb59d5c-20260806.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
