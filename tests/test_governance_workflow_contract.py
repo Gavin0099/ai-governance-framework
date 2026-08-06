@@ -30,6 +30,20 @@ def test_governance_workflow_triggers_on_memory_changes() -> None:
     assert "- 'memory/**'" in pull_request_section
 
 
+def test_full_test_suite_is_an_independent_job_with_report_only_census() -> None:
+    text = _workflow_text()
+    job_section = _section(text, "  full-test-suite:", "  memory-workflow-selective:")
+
+    assert "name: Full Test Suite" in job_section
+    assert "run: python -m pytest tests/ -q --tb=short" in job_section
+    assert "if: github.event_name != 'push'" not in job_section
+    assert "name: Build guard enforcement census (report-only)" in job_section
+    assert "continue-on-error: true" in job_section
+    assert "python -m governance_tools.guard_enforcement_census" in job_section
+    assert "--require-level" not in job_section
+    assert "name: guard-enforcement-census" in job_section
+
+
 def test_governance_workflow_runs_selective_memory_blocker() -> None:
     text = _workflow_text()
     job_section = _section(text, "  memory-workflow-selective:", "  plan-freshness:")

@@ -1,7 +1,7 @@
 {
   "schema_version": "skill_ab_frozen_bundle.v0.1",
   "subject": "codex-review-fast",
-  "frozen_at": "2026-07-09",
+  "frozen_at": "2026-08-06",
   "status": "step1_frozen_materials",
   "paths": {
     "ground_truth": "docs/governance/skill-ab-codex-review-fast.ground-truth.json",
@@ -13,7 +13,7 @@
     "ground_truth_sha256": "c815d37af7660a428d2d2d3cc183053d3539396bb5ef262a8fcecd0335e09f97",
     "allowlist_sha256": "c0db0b0c0412692351d8c695c496181e52abefcb84deccc9e825802ecc3cd139",
     "target_diff_sha256": "2959820abfb652b3d68a27944a16140995a741c5b535463865f35492f32a36fb",
-    "scorer_sha256": "09e1ffa1c09dd4c7f2091cd63647b6725dcff408e733992ba0cb8b0f129a0004"
+    "scorer_sha256": "7a235e6cf1450bedc3b23e76d258f1e31452f24018ba1fe90ef162b85504dc05"
   },
   "controls": {
     "a_b_runs_completed": false,

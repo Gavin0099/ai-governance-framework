@@ -46,6 +46,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  full-test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install documented dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run full test suite
+        run: python -m pytest tests/ -q --tb=short
+
+      - name: Build guard enforcement census (report-only)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/governance-report
+          python -m governance_tools.guard_enforcement_census \
+            --project-root . \
+            --format human \
+            | tee artifacts/governance-report/guard-enforcement-census.txt
+          python -m governance_tools.guard_enforcement_census \
+            --project-root . \
+            --format json \
+            > artifacts/governance-report/guard-enforcement-census.json
+
+      - name: Upload guard enforcement census
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-enforcement-census
+          path: artifacts/governance-report/
+          if-no-files-found: warn
+
   memory-workflow-selective:
     name: Memory Workflow Selective Blocker
     runs-on: ubuntu-latest
