@@ -1,0 +1,97 @@
+{
+  "criteria_schema": "blocking_graduation_criteria.v0.1",
+  "purpose": "Conditions a report-only guard code must satisfy before an owner may enable it in memory_blocking_policy.json. Read by governance_tools.blocking_graduation_check.",
+  "rejected_criterion": {
+    "name": "consecutive_days_with_zero_findings",
+    "why_rejected": "Zero findings is ambiguous between 'clean' and 'never ran, scope too narrow, matcher broken, or baseline swallowed it'. A quiet signal is evidence of nothing until execution coverage is proven separately."
+  },
+  "observation_window_days": 30,
+  "attestation_max_age_days": 90,
+  "ai_identities_may_not_attest": [
+    "claude",
+    "codex",
+    "copilot",
+    "gemini",
+    "gpt",
+    "agent",
+    "ai"
+  ],
+  "_authority_note": "An attestation must name someone in owner_registry, cite an authority document matching authority_ref_patterns, and carry the digest of this criteria file. These checks validate a declaration, not signer identity: repository JSON remains unevaluable until identity provenance is supplied outside the agent's write authority.",
+  "owner_registry": [
+    "GavinWu"
+  ],
+  "authority_ref_patterns": [
+    "governance/*.md",
+    "docs/governance/*.md",
+    "PLAN.md"
+  ],
+  "require_criteria_digest": true,
+  "baseline_glob": "artifacts/governance/memory-authority-baseline-*.json",
+  "criteria": [
+    {
+      "id": "guard_execution_coverage",
+      "kind": "machine",
+      "description": "The guard is at census level 'invoked' or higher, so findings come from real runs.",
+      "surface_id": "memory_authority_guard",
+      "min_level": "invoked"
+    },
+    {
+      "id": "session_coverage",
+      "kind": "machine",
+      "description": "The guard ran in a sufficient fraction of sessions closed inside the observation window.",
+      "evidence_glob": "artifacts/runtime/closeout-receipts/*.json",
+      "ran_key": "memory_authority_guard_ran",
+      "min_ratio": 0.9,
+      "min_sessions": 10
+    },
+    {
+      "id": "active_violations_clear",
+      "kind": "machine",
+      "description": "No active (in-window) non-canonical writer violations remain. Historical debt stays advisory and is deliberately not counted here.",
+      "code": "non_canonical_writer"
+    },
+    {
+      "id": "fixture_discrimination",
+      "kind": "attestation",
+      "description": "Known-positive and known-negative fixtures were both judged correctly, proving the check discriminates rather than always passing.",
+      "attestation": "artifacts/governance/blocking-graduation/fixture-verification.json"
+    },
+    {
+      "id": "false_signal_review",
+      "kind": "attestation",
+      "description": "A sample of false positives and false negatives was reviewed and dispositioned.",
+      "attestation": "artifacts/governance/blocking-graduation/false-signal-review.json"
+    },
+    {
+      "id": "bypass_mutation_test",
+      "kind": "attestation",
+      "description": "A mutation run confirmed the check fails when the property it protects is broken.",
+      "attestation": "artifacts/governance/blocking-graduation/bypass-mutation.json"
+    },
+    {
+      "id": "positive_control",
+      "kind": "attestation",
+      "description": "A deliberately introduced in-window finding was observed actually blocking. Proving the check fires is not the same as proving the block lands.",
+      "attestation": "artifacts/governance/blocking-graduation/positive-control.json"
+    },
+    {
+      "id": "baseline_non_interference",
+      "kind": "machine",
+      "description": "The frozen baseline suppresses only historical debt and cannot suppress an in-window finding.",
+      "baseline_glob": "artifacts/governance/memory-authority-baseline-*.json"
+    },
+    {
+      "id": "rollback_available",
+      "kind": "machine",
+      "description": "A documented break-glass path exists: the policy file carries an `enabled` switch, is writable, and states how to disable it.",
+      "policy_path": "governance/memory_blocking_policy.json"
+    },
+    {
+      "id": "owner_approval",
+      "kind": "attestation",
+      "description": "The owner explicitly approved this enforcement profile. Never satisfiable by an AI agent.",
+      "attestation": "artifacts/governance/blocking-graduation/owner-approval.json",
+      "human_only": true
+    }
+  ]
+}

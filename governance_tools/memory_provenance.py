@@ -11,8 +11,20 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Sequence
+
+if __package__ in (None, ""):  # pragma: no cover - direct-script fallback
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from governance_tools.evidence_roots import (
+    EvidenceRootPolicy,
+    find_evidence_tokens,
+    load_evidence_root_policy,
+    normalize_token,
+    policy_from_values,
+)
 
 REAL_COMMIT_RE = re.compile(r"^[a-f0-9]{5,40}$", re.IGNORECASE)
 UNBOUND_COMMIT_TOKENS = frozenset(
@@ -22,7 +34,6 @@ MIXED_SCOPE_CODE = "mixed_scope_memory_binding"
 CANONICAL_WRITER = "governance_tools.memory_record"
 
 _FIELD_RE = re.compile(r"^\s{0,4}(?P<key>[a-z_]+):\s*(?P<value>.*)$")
-_ARTIFACT_PATH_RE = re.compile(r"\bartifacts/[A-Za-z0-9_.\-/]+")
 
 
 def _run_git(
@@ -160,13 +171,28 @@ def _added_canonical_entries(patch: str) -> list[dict[str, str]]:
     ]
 
 
-def _entry_artifact_refs(entries: Sequence[dict[str, str]]) -> set[str]:
+def _entry_artifact_refs(
+    entries: Sequence[dict[str, str]], policy: EvidenceRootPolicy
+) -> set[str]:
     refs: set[str] = set()
     for entry in entries:
-        refs.update(_normalize_path(item) for item in _ARTIFACT_PATH_RE.findall(
-            entry.get("test_evidence", "")
-        ))
+        for token in find_evidence_tokens(entry.get("test_evidence", ""), policy):
+            refs.add(_normalize_path(normalize_token(token)))
     return refs
+
+
+def _companion_patterns(policy: EvidenceRootPolicy) -> list[re.Pattern[str]]:
+    """Closeout companion shapes, anchored under each declared evidence root."""
+    patterns: list[re.Pattern[str]] = []
+    for root in policy.roots:
+        escaped = re.escape(root)
+        patterns.append(
+            re.compile(rf"{escaped}/evidence/test-results/receipt-[^/]+\.(json|txt)")
+        )
+        patterns.append(
+            re.compile(rf"{escaped}/runtime/(closeouts|verdicts)/[^/]+\.json")
+        )
+    return patterns
 
 
 def _is_closeout_companion_path(
@@ -174,7 +200,10 @@ def _is_closeout_companion_path(
     *,
     plan_updated: bool,
     cited_artifacts: set[str],
+    companion_patterns: Sequence[re.Pattern[str]] | None = None,
 ) -> bool:
+    if companion_patterns is None:
+        companion_patterns = _companion_patterns(policy_from_values(None))
     normalized = _normalize_path(path_text)
     if _is_memory_path(normalized):
         return True
@@ -182,11 +211,7 @@ def _is_closeout_companion_path(
         return plan_updated
     if normalized in cited_artifacts:
         return True
-    if re.fullmatch(r"artifacts/evidence/test-results/receipt-[^/]+\.(json|txt)", normalized):
-        return True
-    if re.fullmatch(r"artifacts/runtime/(closeouts|verdicts)/[^/]+\.json", normalized):
-        return True
-    return False
+    return any(pattern.fullmatch(normalized) for pattern in companion_patterns)
 
 
 def _finding_for_scope(
@@ -215,7 +240,9 @@ def _finding_for_scope(
     plan_updated = any(
         entry.get("plan_reconciliation") == "updated" for entry in entries
     )
-    cited_artifacts = _entry_artifact_refs(entries)
+    policy = load_evidence_root_policy(project_root)
+    cited_artifacts = _entry_artifact_refs(entries, policy)
+    companion_patterns = _companion_patterns(policy)
     disallowed_paths = sorted(
         {
             _normalize_path(path)
@@ -224,6 +251,7 @@ def _finding_for_scope(
                 path,
                 plan_updated=plan_updated,
                 cited_artifacts=cited_artifacts,
+                companion_patterns=companion_patterns,
             )
         }
     )

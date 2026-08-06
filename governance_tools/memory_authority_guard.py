@@ -47,6 +47,14 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from governance_tools.evidence_roots import (
+    EvidenceRootPolicy,
+    classify_evidence_path,
+    find_evidence_tokens,
+    find_pathlike_tokens,
+    load_evidence_root_policy,
+    looks_like_evidence_file,
+)
 from governance_tools.memory_provenance import (
     git_commit_exists as _git_commit_exists,
     git_commits_exist as _git_commits_exist,
@@ -76,9 +84,10 @@ _TEST_EVIDENCE = re.compile(r'(?m)^\s*test_evidence:\s*(.+)$', re.IGNORECASE)
 _TEST_EVIDENCE_SUCCESS = re.compile(
     r'\b(?:PASS|passed|success(?:ful|fully)?)\b', re.IGNORECASE
 )
-_TEST_EVIDENCE_ARTIFACT_PATH = re.compile(
-    r'(?P<path>(?:\.?[\\/])?artifacts[\\/][^\s,;]+)', re.IGNORECASE
-)
+# Evidence path matching is no longer hardcoded to artifacts/. The accepted
+# roots come from contract.yaml `evidence_roots:` (framework default:
+# ["artifacts"]) — see governance_tools/evidence_roots.py. Helpers below take
+# an EvidenceRootPolicy; passing None resolves the default policy.
 _MEMORY_BINDING = re.compile(r'(?m)^\s*memory_binding:\s*\S+', re.IGNORECASE)
 _AUTHORITY_OVERRIDE = re.compile(r'(?m)^\s*authority_override:\s*(.+)$', re.IGNORECASE)
 _NEXT_STEP = re.compile(r'(?m)^\s*next_step:\s*.+$', re.IGNORECASE)
@@ -221,41 +230,81 @@ def _snippet(block: str, length: int = 80) -> str:
     return first_line[:length]
 
 
-def _normalize_artifact_token(token: str) -> str:
-    return token.strip().strip('`"\'()[]{}<>').rstrip(".:")
+def _evidence_policy(
+    project_root: Path | None, policy: EvidenceRootPolicy | None
+) -> EvidenceRootPolicy:
+    return policy if policy is not None else load_evidence_root_policy(project_root)
 
 
-def _resolve_artifact_path(project_root: Path, token: str) -> Path | None:
-    normalized = _normalize_artifact_token(token)
-    if not normalized:
-        return None
-
-    candidate = Path(normalized)
-    if not candidate.is_absolute():
-        candidate = project_root / candidate
-
-    try:
-        resolved_project_root = project_root.resolve()
-        resolved_candidate = candidate.resolve()
-    except OSError:
-        return None
-
-    try:
-        resolved_candidate.relative_to(resolved_project_root)
-    except ValueError:
-        return None
-
-    return resolved_candidate if resolved_candidate.is_file() else None
+def _resolve_artifact_path(
+    project_root: Path,
+    token: str,
+    policy: EvidenceRootPolicy | None = None,
+) -> Path | None:
+    verdict = classify_evidence_path(
+        project_root, token, _evidence_policy(project_root, policy)
+    )
+    return verdict.resolved_path if verdict.ok else None
 
 
-def _artifact_path_exists(project_root: Path, token: str) -> bool:
-    return _resolve_artifact_path(project_root, token) is not None
+def _artifact_path_exists(
+    project_root: Path,
+    token: str,
+    policy: EvidenceRootPolicy | None = None,
+) -> bool:
+    return _resolve_artifact_path(project_root, token, policy) is not None
+
+
+def _existing_evidence_paths(
+    evidence: str,
+    project_root: Path,
+    policy: EvidenceRootPolicy,
+) -> list[Path]:
+    resolved: list[Path] = []
+    for token in find_evidence_tokens(evidence, policy):
+        verdict = classify_evidence_path(project_root, token, policy)
+        if verdict.ok and verdict.resolved_path is not None:
+            resolved.append(verdict.resolved_path)
+    return resolved
+
+
+# The subcode is the honest restatement of each reason. "Success claim without
+# artifact" over-claims: all the checker really knows is that no *parsable*
+# reference was found in free-text prose. Path detection is heuristic — quoted
+# paths, unusual formats and undeclared extensions can all be missed — so the
+# bucket name must not assert that the author cited nothing.
+_PROVENANCE_SUBCODES = {
+    "test_evidence_success_claim_without_artifact": (
+        "no_parsable_artifact_reference"
+    ),
+    "test_evidence_artifact_not_found": "artifact_not_found",
+    "test_evidence_artifact_outside_declared_roots": "outside_declared_roots",
+    "test_evidence_artifact_path_unsafe": "path_unsafe",
+}
+
+
+def _provenance_subcode(reason: str) -> str:
+    return _PROVENANCE_SUBCODES.get(reason.split(":", 1)[0], "unclassified")
 
 
 def _test_evidence_provenance_violation(
     block: str,
     project_root: Path | None,
+    policy: EvidenceRootPolicy | None = None,
 ) -> str | None:
+    """Classify a success claim's evidence citation into one triage bucket.
+
+    The returned reason distinguishes four genuinely different situations that
+    were previously collapsed into ``..._without_artifact``:
+
+      * no path cited at all                    → success_claim_without_artifact
+      * path cited outside the declared roots   → artifact_outside_declared_roots
+      * path cited that escapes the repo        → artifact_path_unsafe
+      * path inside a root but absent on disk   → artifact_not_found
+
+    Only the first is evidence of an unsupported claim; the second usually means
+    the repo stores evidence somewhere it never declared in contract.yaml.
+    """
     if project_root is None:
         return None
 
@@ -267,17 +316,46 @@ def _test_evidence_provenance_violation(
     if not _TEST_EVIDENCE_SUCCESS.search(evidence):
         return None
 
-    artifact_tokens = [
-        artifact_match.group("path")
-        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
+    resolved_policy = _evidence_policy(project_root, policy)
+    verdicts = [
+        classify_evidence_path(project_root, token, resolved_policy)
+        for token in find_evidence_tokens(evidence, resolved_policy)
     ]
-    if not artifact_tokens:
-        return "test_evidence_success_claim_without_artifact"
-
-    if any(_artifact_path_exists(project_root, token) for token in artifact_tokens):
+    if any(verdict.ok for verdict in verdicts):
         return None
 
-    return "test_evidence_artifact_not_found"
+    if verdicts:
+        if any(verdict.is_unsafe for verdict in verdicts):
+            unsafe = next(verdict for verdict in verdicts if verdict.is_unsafe)
+            return f"test_evidence_artifact_path_unsafe:{unsafe.status}"
+        return "test_evidence_artifact_not_found"
+
+    # Nothing matched the declared roots. Before calling this an unsupported
+    # claim, check whether the entry cited an existing output file somewhere
+    # else — a repo storing evidence outside its declared roots is a contract
+    # gap, not a false PASS. A cited test target or source file does not count:
+    # naming what you ran is not producing evidence of the result.
+    roots = ",".join(resolved_policy.roots)
+    for token in find_pathlike_tokens(evidence):
+        verdict = classify_evidence_path(project_root, token, resolved_policy)
+        if verdict.status != "outside_declared_roots" or verdict.relative_path is None:
+            continue
+        exists = verdict.resolved_path is not None and verdict.resolved_path.is_file()
+        if not exists:
+            continue
+        if not looks_like_evidence_file(
+            verdict.relative_path, resolved_policy.suffixes, exists=exists
+        ):
+            continue
+        return (
+            "test_evidence_artifact_outside_declared_roots:"
+            f"{verdict.relative_path}:declared_roots={roots}"
+        )
+    # Legacy reason string, deliberately unchanged: memory_authority_baseline
+    # builds its bucket identity from `reason`, so renaming it would invalidate
+    # every existing baseline and force a rebuild — the exact move that washes
+    # historical debt away. The honest name lives in `provenance_subcode`.
+    return "test_evidence_success_claim_without_artifact"
 
 
 _BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
@@ -445,6 +523,7 @@ def _test_evidence_durability_violation(
     *,
     has_git_worktree: bool | None = None,
     ignored_path_cache: dict[str, bool] | None = None,
+    policy: EvidenceRootPolicy | None = None,
 ) -> tuple[str, str] | None:
     """R3 Option C: evidence artifacts must survive a fresh checkout.
 
@@ -463,16 +542,9 @@ def _test_evidence_durability_violation(
     if not _TEST_EVIDENCE_SUCCESS.search(evidence):
         return None
 
-    existing = [
-        resolved
-        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
-        if (
-            resolved := _resolve_artifact_path(
-                project_root, artifact_match.group("path")
-            )
-        )
-        is not None
-    ]
+    existing = _existing_evidence_paths(
+        evidence, project_root, _evidence_policy(project_root, policy)
+    )
     if not existing:
         return None
     git_worktree = (
@@ -506,29 +578,40 @@ def _test_evidence_durability_violation(
 
 
 def evidence_provenance_advisory(
-    test_evidence: str, project_root: "Path | None"
+    test_evidence: str,
+    project_root: "Path | None",
+    policy: EvidenceRootPolicy | None = None,
 ) -> str | None:
     """Write-time advisory mirror of test_evidence_provenance_not_found.
 
     Canonical writers call this before appending an entry so a success claim
-    without an existing artifacts/ path is surfaced while the author can still
+    without an existing evidence path is surfaced while the author can still
     attach a receipt, instead of becoming a new above-baseline guard warning
     at the next closeout. Report-only; callers must never block on it.
+
+    Accepted locations come from the repo's declared `evidence_roots:`, so a
+    repo that keeps receipts outside ``artifacts/`` gets a targeted reason
+    instead of a bare "no artifact" advisory.
     """
     evidence = (test_evidence or "").strip()
     if not evidence or not _TEST_EVIDENCE_SUCCESS.search(evidence):
         return None
-    if project_root is not None:
-        for match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence):
-            if _resolve_artifact_path(project_root, match.group("path")) is not None:
-                return None
-    return "test_evidence_success_claim_without_artifact"
+    if project_root is None:
+        return "test_evidence_success_claim_without_artifact"
+    # The shared checker reads a whole entry block and matches one
+    # `test_evidence:` line, so a multi-line value is flattened first rather
+    # than silently losing everything after the first newline.
+    flattened = " ".join(evidence.split())
+    return _test_evidence_provenance_violation(
+        f"test_evidence: {flattened}", project_root, policy
+    )
 
 
 def _test_evidence_metadata_violation(
     block: str,
     project_root: Path | None,
     filename: str,
+    policy: EvidenceRootPolicy | None = None,
 ) -> tuple[str, str] | None:
     """Advisory metadata check for success evidence whose artifact exists.
 
@@ -545,16 +628,9 @@ def _test_evidence_metadata_violation(
     if not _TEST_EVIDENCE_SUCCESS.search(evidence):
         return None
 
-    existing = [
-        resolved
-        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
-        if (
-            resolved := _resolve_artifact_path(
-                project_root, artifact_match.group("path")
-            )
-        )
-        is not None
-    ]
+    existing = _existing_evidence_paths(
+        evidence, project_root, _evidence_policy(project_root, policy)
+    )
     if not existing:
         return None  # covered by test_evidence_provenance_not_found
 
@@ -772,6 +848,8 @@ def check_non_daily_session_shaped_memory_files(
 def check_daily_memory(
     memory_root: Path,
     project_root: Path | None = None,
+    *,
+    evidence_policy: EvidenceRootPolicy | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Check 1: unbound_memory
@@ -779,7 +857,11 @@ def check_daily_memory(
 
     Returns (violations, coverage_stats).
     coverage_stats: {"total_entries": N, "bound_entries": M}
+
+    evidence_policy is resolved once per run so the contract is read a single
+    time rather than per entry.
     """
+    policy = _evidence_policy(project_root, evidence_policy)
     violations: list[dict[str, Any]] = []
     total_entries = 0
     bound_entries = 0
@@ -843,10 +925,16 @@ def check_daily_memory(
                     'reason': reason,
                 })
 
-            evidence_reason = _test_evidence_provenance_violation(block, project_root)
+            evidence_reason = _test_evidence_provenance_violation(
+                block, project_root, policy
+            )
             if evidence_reason:
                 violations.append({
                     'code': 'test_evidence_provenance_not_found',
+                    # Machine-triage bucket: the code alone cannot distinguish
+                    # "claimed PASS with no evidence" from "evidence lives in an
+                    # undeclared root". Consumers should group on this.
+                    'provenance_subcode': _provenance_subcode(evidence_reason),
                     'severity': 'warning',
                     'file': str(fpath.name),
                     'entry': _snippet(block),
@@ -854,7 +942,7 @@ def check_daily_memory(
                 })
 
             metadata_violation = _test_evidence_metadata_violation(
-                block, project_root, fpath.name
+                block, project_root, fpath.name, policy
             )
             if metadata_violation:
                 metadata_code, metadata_reason = metadata_violation
@@ -872,6 +960,7 @@ def check_daily_memory(
                 fpath.name,
                 has_git_worktree=has_git_worktree,
                 ignored_path_cache=ignored_path_cache,
+                policy=policy,
             )
             if durability_violation:
                 durability_code, durability_reason = durability_violation
@@ -1257,7 +1346,10 @@ def run_guard(
     """
     violations: list[dict[str, Any]] = []
 
-    daily_violations, daily_coverage = check_daily_memory(memory_root, project_root)
+    evidence_policy = load_evidence_root_policy(project_root)
+    daily_violations, daily_coverage = check_daily_memory(
+        memory_root, project_root, evidence_policy=evidence_policy
+    )
     violations.extend(daily_violations)
     if changed_files:
         violations.extend(
@@ -1354,6 +1446,11 @@ def run_guard(
             'mode': policy_mode,
             'override_mode': override_mode,
         },
+        # Which directories counted as evidence for this run, and whether that
+        # came from the repo's contract or the framework default. A reader
+        # triaging provenance findings needs this to tell a real unsupported
+        # claim from an undeclared evidence location.
+        'evidence_root_policy': evidence_policy.as_dict(),
         'violation_count': len(violations),
         'violation_counts_by_code': counts,
         'authority_coverage_rate': authority_coverage_rate,

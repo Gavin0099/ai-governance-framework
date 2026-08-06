@@ -1,0 +1,29 @@
+{
+  "_template_note": "Copy to governance/claim_binding_registry.json in the consuming repo and replace the example binding. Delete this key. An empty or absent registry means no claim kind is registered, so every strong claim is unbound — that is the correct starting state, not a problem to paper over with a placeholder binding.",
+  "registry_schema": "claim_binding_registry.v0.1",
+  "bindings": [
+    {
+      "claim_kind": "driver_install_verified",
+      "validator": "validators/driver_result_validator.py",
+      "strength": "strong",
+      "receipt_schema": "domain_validator_receipt.v0.1",
+      "_note": "The validator owns the semantics — parse the tool output and decide what happened. The framework only checks that this claim came from this registered validator, ran in this session against this commit, and rests on more than an exit code."
+    }
+  ],
+  "_receipt_shape": {
+    "_note": "Shape the registered validator must emit. Written to a path under one of the repo's declared evidence_roots.",
+    "receipt_schema": "domain_validator_receipt.v0.1",
+    "claim_kind": "driver_install_verified",
+    "validator": "validators/driver_result_validator.py",
+    "verdict": "pass | fail | inconclusive",
+    "verdict_basis": "What was actually checked. 'exit code 0' alone is rejected: a tool exiting cleanly is not a judgement about what it did.",
+    "command": "the exact command that was run",
+    "exit_code": 0,
+    "started_at": "2026-08-05T00:00:00Z",
+    "finished_at": "2026-08-05T00:00:04Z",
+    "session_id": "session id this run belongs to",
+    "linked_commit": "commit the run was performed against, or no_git_worktree",
+    "evidence_paths": ["paths under a declared evidence root; each must exist"],
+    "cannot_claim": ["at least one honest limit of this verdict"]
+  }
+}

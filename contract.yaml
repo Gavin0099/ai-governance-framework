@@ -12,3 +12,9 @@ rule_roots:
   - governance/rules
 validators:
   - governance_tools/architecture_drift_checker.py
+# Repo-relative directories that may hold test evidence. Consumer declarations
+# are additive: `artifacts` is framework-owned and always accepted, so listing
+# it here is documentation rather than configuration. Repos that store receipts
+# elsewhere add their own roots to this list.
+evidence_roots:
+  - artifacts

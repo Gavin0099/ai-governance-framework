@@ -240,7 +240,7 @@ sessions or unusual workflows.
 | `missing_canonical_memory` | warning | no | Commits exist but no daily memory file exists for the date |
 | `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
-| `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing `artifacts/...` provenance path |
+| `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing provenance path under a declared evidence root (see below) |
 | `session_like_non_session_memory_type` | warning in raw guard; blocker in policy-backed gates | raw guard: no; `memory_workflow` / CI with policy file: yes | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
 | `authority_override_used` | warning | no | A policy-backed blocker was downgraded by an `authority_override` entry field |
 | `non_daily_session_shaped_memory_entry` | warning | no | Non-daily `memory/*.md` file contains a block that looks like a daily session-derived memory entry |
@@ -260,6 +260,24 @@ Current semantics:
   that load `governance/memory_blocking_policy.json`, the same code is the first
   selective blocker for active-window entries. Pre-window reasons and entries
   carrying `authority_override` stay report-only.
+- `test_evidence_provenance_not_found` accepts evidence under any root declared
+  in the repo's `contract.yaml` as `evidence_roots:`, **in addition to** the
+  framework-owned root `artifacts`. Consumer declarations are additive: the
+  framework writes its own runtime closeouts, verdicts and receipts under
+  `artifacts/`, so a contract cannot remove it. An `evidence_roots:` key present
+  but empty is reported as `contract_declared_empty` with a warning, not as an
+  absent declaration.
+- The finding's `provenance_subcode` splits it into four triage buckets that
+  must not be collapsed: `no_parsable_artifact_reference` (no reference the
+  tool could parse — path detection is heuristic, so this is a parser outcome,
+  never proof the author cited nothing), `outside_declared_roots` (an existing
+  output file cited from an undeclared location — a contract gap),
+  `artifact_not_found` (declared root, absent file), and `path_unsafe`
+  (absolute, traversing, or escaping the repository). The `reason` string keeps
+  its legacy wording because `memory_authority_baseline` derives bucket
+  identity from `reason`; renaming it would invalidate every existing baseline.
+  `run_guard` reports the roots in effect under `evidence_root_policy` so a
+  reader can tell which case applies.
 - `authority_override_used` is report-only in all current paths. It makes
   blocker downgrades visible in guard output; `memory_workflow` and CI surface
   it when the override occurs in the current memory diff. It is audit
