@@ -44,6 +44,7 @@ from governance_tools.runtime_reliability_observation import (
 from runtime_hooks.core._canonical_closeout import (
     assess_session_closeout_binding,
     build_canonical_closeout,
+    classify_binding_status,
     pick_latest_candidate,
     write_canonical_closeout,
     write_closeout_completion_marker,
@@ -915,6 +916,20 @@ def run_session_end(
     )
     binding_status = str(session_binding.get("status") or "")
     binding_valid = not enforce_session_binding or binding_status == "valid"
+    # Additive reporting field, enforcement mode ONLY. Reviewers need to tell
+    # "this id is finished" from "this id can be corrected and re-run"; the
+    # status string alone does not say which. Never used as a control
+    # condition — see the marker guard.
+    #
+    # Deliberately NOT set when binding is not enforced. The non-enforced
+    # payload carries the sentinel status "not_enforced", which is neither a
+    # rejection nor a completion, so no class literal describes it: classifying
+    # it would report "recoverable" and assert that a non-existent rejection
+    # can be retried. Adding a third literal to cover it would widen a
+    # vocabulary the owner approved as exactly two. Leaving the key absent
+    # keeps the non-enforced return shape byte-identical to its previous form.
+    if enforce_session_binding:
+        session_binding["class"] = classify_binding_status(binding_status)
 
     if enforce_session_binding and binding_status == "already_consumed":
         runtime_root = project_root / "artifacts" / "runtime"
@@ -1304,11 +1319,36 @@ def run_session_end(
         ]
         if claim_enforcement_check_path is not None:
             required_completion_artifacts.append(claim_enforcement_check_path)
-        write_closeout_completion_marker(
-            session_id,
-            project_root,
-            required_completion_artifacts,
-        )
+        # Consume the session id ONLY when the closeout actually succeeded.
+        #
+        # A rejected binding is recoverable: the operator can fix the envelope
+        # or candidate and re-run the SAME id. Writing the completion marker
+        # here would make that impossible, so a fixable input error would cost
+        # a session id — which is what it used to do.
+        #
+        # Everything above still runs on rejection: the canonical closeout,
+        # verdict, trace and daily memory record are all preserved, so the
+        # rejected attempt stays auditable. Only consumption is withheld.
+        #
+        # The guard is `binding_valid`, not the reported class:
+        # `not enforce_session_binding or binding_status == "valid"`. Callers
+        # that do not enforce binding therefore keep their current behaviour
+        # exactly, and enforcement consumes on "valid" alone.
+        #
+        # This mirrors the existing partial-emission invariant — see
+        # tests/test_runtime_session_end.py
+        # ::test_failed_artifact_emission_does_not_mark_session_consumed.
+        #
+        # Scope: structural axis only. The hook-only content axis
+        # (`session_candidate_content_mismatch`) still reaches here with a
+        # structurally valid binding and still consumes the id; that is
+        # Tranche 1b, not this change.
+        if binding_valid:
+            write_closeout_completion_marker(
+                session_id,
+                project_root,
+                required_completion_artifacts,
+            )
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)
