@@ -157,6 +157,47 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
     return {**payload, "artifact_path": str(path)}
 
 
+# Session-binding status classes.
+#
+# A recoverable rejection means the operator can correct the input and re-run
+# the SAME session id. It does NOT mean the rejection is soft: binding stays
+# fail-closed, nothing is promoted, and no completion is claimed. The class is
+# reported for reviewers; it is deliberately NOT the condition that guards the
+# completion marker — see session_end.run_session_end, which guards on
+# `binding_valid` so that non-enforcing callers keep their current behaviour.
+#
+# Scope note: these are the statuses produced by assess_session_closeout_binding
+# (the structural axis). The hook-only content axis
+# (`session_candidate_content_mismatch`) is NOT covered here; see the
+# session-binding retryable state machine spec, Tranche 1b.
+BINDING_CLASS_TERMINAL = "terminal"
+BINDING_CLASS_RECOVERABLE = "recoverable"
+
+_TERMINAL_BINDING_STATUSES = frozenset({
+    "valid",             # closeout succeeded; the id is consumed
+    "already_consumed",  # a previous run consumed it; nothing left to retry
+})
+_RECOVERABLE_BINDING_STATUSES = frozenset({
+    "session_envelope_missing",
+    "session_candidate_missing",
+    "session_candidate_mismatch",
+    "candidate_generated_at_missing",
+    "candidate_before_session_start",
+})
+
+
+def classify_binding_status(status: str) -> str:
+    """Return the class of a structural session-binding status.
+
+    An unrecognised status is reported as recoverable. That is the conservative
+    direction: it never asserts that an unknown rejection is final, and it
+    cannot widen consumption, because consumption is guarded separately.
+    """
+    if status in _TERMINAL_BINDING_STATUSES:
+        return BINDING_CLASS_TERMINAL
+    return BINDING_CLASS_RECOVERABLE
+
+
 def assess_session_closeout_binding(
     session_id: str,
     project_root: Path,

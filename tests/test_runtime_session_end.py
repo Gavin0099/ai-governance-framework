@@ -183,6 +183,132 @@ def test_session_end_rejects_candidate_created_before_session_start(local_projec
     assert "FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED" in daily_memory
 
 
+def test_binding_rejection_does_not_mark_session_consumed(local_project_root):
+    """A recoverable binding rejection must leave the session id re-runnable.
+
+    Mirrors test_failed_artifact_emission_does_not_mark_session_consumed: the
+    canonical closeout is written for auditability, the completion marker is
+    not, and correcting the input lets the SAME id close out. Before this
+    invariant existed, a fixable candidate timestamp cost a whole session id.
+    """
+    session_id = "2026-08-06-retry-after-binding-rejection"
+    started_at = datetime.now(timezone.utc)
+    write_session_envelope(
+        session_id,
+        local_project_root,
+        provider="codex",
+        started_at=started_at.isoformat(),
+    )
+    write_candidate(
+        session_id,
+        local_project_root,
+        _closeout_candidate(
+            generated_at=(started_at - timedelta(minutes=1)).isoformat(),
+        ),
+    )
+
+    canonical_path = (
+        local_project_root
+        / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
+    )
+    completion_path = (
+        local_project_root
+        / "artifacts" / "runtime" / "closeout-completions" / f"{session_id}.json"
+    )
+
+    first = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="stale candidate must not consume the session",
+        summary="Rejected stale candidate",
+        daily_memory_write_required=True,
+        enforce_session_binding=True,
+    )
+
+    assert first["session_binding"]["status"] == "candidate_before_session_start"
+    assert first["session_binding"]["class"] == "recoverable"
+    assert first["decision"] == "DO_NOT_PROMOTE"
+    assert first["promotion"] is None
+    # Attempt evidence is preserved...
+    assert canonical_path.exists()
+    # Option A (owner-approved 2026-08-06): the fail-closed daily memory record
+    # is still written on a rejected attempt.
+    assert first["daily_memory_write_status"] == "written"
+    # ...but the id is NOT consumed.
+    assert not completion_path.exists()
+
+    # Correct the candidate and retry the SAME session id.
+    write_candidate(
+        session_id,
+        local_project_root,
+        _closeout_candidate(
+            generated_at=datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    second = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="corrected candidate",
+        summary="Corrected candidate",
+        daily_memory_write_required=True,
+        enforce_session_binding=True,
+    )
+
+    assert second["session_binding"]["status"] == "valid"
+    assert second["session_binding"]["class"] == "terminal"
+    assert completion_path.exists()
+
+
+def test_binding_status_classes_pin_known_mappings_and_unknown_fallback():
+    """Pin the known structural mappings and the intentional unknown fallback.
+
+    This does NOT detect a newly added status that nobody classified: the
+    fallback is deliberate and swallows unknown values by design. It only pins
+    that the known set keeps its assigned classes and that the fallback stays
+    report-only-safe (never asserting finality for something unrecognised).
+    """
+    from runtime_hooks.core._canonical_closeout import classify_binding_status
+
+    assert classify_binding_status("valid") == "terminal"
+    assert classify_binding_status("already_consumed") == "terminal"
+    for status in (
+        "session_envelope_missing",
+        "session_candidate_missing",
+        "session_candidate_mismatch",
+        "candidate_generated_at_missing",
+        "candidate_before_session_start",
+    ):
+        assert classify_binding_status(status) == "recoverable", status
+    # Intentional fallback: never assert finality for an unrecognised status.
+    assert classify_binding_status("some_future_status") == "recoverable"
+
+
+def test_non_enforced_session_binding_payload_is_unchanged(local_project_root):
+    """A non-enforcing caller must get the exact payload it got before.
+
+    `not_enforced` is a sentinel, not a rejection: no class literal describes
+    it. Classifying it would report "recoverable" and imply a non-existent
+    rejection could be retried, so the key must be absent entirely.
+    """
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-08-06-not-enforced",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="Non-enforced closeout",
+    )
+
+    assert result["session_binding"] == {
+        "status": "not_enforced",
+        "session_id": "2026-08-06-not-enforced",
+    }
+
+
 def test_session_end_consumes_each_bound_session_once(local_project_root):
     session_id = "2026-07-29-bound-consume-once"
     write_session_envelope(
