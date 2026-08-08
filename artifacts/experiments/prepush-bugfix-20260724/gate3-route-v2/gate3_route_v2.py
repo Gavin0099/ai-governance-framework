@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import ctypes
 import hashlib
 import json
@@ -7,6 +9,7 @@ import os
 import re
 import shutil
 import stat
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,13 +17,16 @@ from typing import Any, Callable, Mapping
 
 
 AUTHORIZATION = "gate3_route_v2_synthetic_non_scoring_only"
-ACTION_SCHEMA = "gate3-route-v2.action.v1"
+LIVE_AUTHORIZATION = "gate3_route_v2_single_session_non_scoring_only"
+AUTHORIZATIONS = frozenset({AUTHORIZATION, LIVE_AUTHORIZATION})
+PREFLIGHT_SCHEMA = "gate3-route-v2.preflight.v1"
+ACTION_SCHEMA = "gate3-route-v2.action.v3"
 ATTESTATION_SCHEMA = "gate3-route-v2.content-attestation.v1"
 PACKET_SCHEMA = "gate3-route-v2.packet.v1"
 SEAL_SCHEMA = "gate3-route-v2.observation-seal.v1"
 FINAL_SCHEMA = "gate3-route-v2.final-receipt.v1"
-EXTERNAL_SCHEMA = "gate3-route-v2.external-terminal.v1"
-LOCATOR_SCHEMA = "gate3-route-v2.recovery-locator.v1"
+EXTERNAL_SCHEMA = "gate3-route-v2.external-terminal.v2"
+LOCATOR_SCHEMA = "gate3-route-v2.recovery-locator.v2"
 RUN_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{7,79}", re.ASCII)
 ARTIFACT_ID_RE = re.compile(r"[a-z0-9][a-z0-9_.-]{0,79}", re.ASCII)
 SHA256_RE = re.compile(r"[0-9a-f]{64}", re.ASCII)
@@ -30,6 +36,7 @@ TERMINAL_STAGES = frozenset(
         "final_publication_exhausted",
         "final_publication_failure",
         "action_publication_failure",
+        "preflight_publication_failure",
         "locator_prelaunch_failure",
         "orphan_without_seal",
         "preseal_attestation_failure",
@@ -40,7 +47,11 @@ TERMINAL_STAGES = frozenset(
     }
 )
 LOCATOR_ABSENT_TERMINALS = frozenset(
-    {"action_publication_failure", "locator_prelaunch_failure"}
+    {
+        "action_publication_failure",
+        "preflight_publication_failure",
+        "locator_prelaunch_failure",
+    }
 )
 
 
@@ -88,6 +99,73 @@ class RouteResult:
     final_receipt: Path | None
     external_terminal: Path | None
     decision: str
+
+
+_LIVE_RUNNER_TOKEN = object()
+
+
+class TrustedLiveRunner:
+    """Non-subclassable capability assembled only after a measured preflight."""
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        raise TypeError("TrustedLiveRunner cannot be subclassed")
+
+    def __init__(
+        self,
+        *,
+        _token: object,
+        execution_identity: Mapping[str, str],
+        preflight: bytes,
+        invoke: Callable[[], SyntheticResult],
+    ) -> None:
+        if _token is not _LIVE_RUNNER_TOKEN:
+            raise RouteV2Error("trusted live runner capability is invalid")
+        self._execution_identity = _validate_execution_identity(execution_identity)
+        self._preflight = preflight
+        self._invoke = invoke
+
+    def execution_identity(self) -> Mapping[str, str]:
+        return dict(self._execution_identity)
+
+    def preflight_bytes(self) -> bytes:
+        return self._preflight
+
+    def __call__(self) -> SyntheticResult:
+        return self._invoke()
+
+
+def _trusted_live_runner(
+    *,
+    execution_identity: Mapping[str, str],
+    preflight: bytes,
+    invoke: Callable[[], SyntheticResult],
+) -> TrustedLiveRunner:
+    owner = getattr(invoke, "__self__", None)
+    owner_type = type(owner)
+    module = sys.modules.get("gate3_route_v2_codex")
+    canonical_type = getattr(module, "CodexExecRunner", None)
+    canonical_invoke = getattr(module, "_TRUSTED_CODEX_INVOKE", None)
+    if (
+        owner is None
+        or owner_type is not canonical_type
+        or getattr(invoke, "__func__", None) is not canonical_invoke
+    ):
+        raise RouteV2Error("trusted live runner provenance is invalid")
+    module_path = Path(str(getattr(module, "__file__", "")))
+    identity = _validate_execution_identity(execution_identity)
+    if (
+        not module_path.is_file()
+        or _sha256_file(module_path) != identity["runner_sha256"]
+        or owner.execution_identity() != identity
+        or owner.preflight_bytes() != preflight
+    ):
+        raise RouteV2Error("trusted live runner provenance is invalid")
+    return TrustedLiveRunner(
+        _token=_LIVE_RUNNER_TOKEN,
+        execution_identity=identity,
+        preflight=preflight,
+        invoke=invoke,
+    )
 
 
 Publisher = Callable[[Path, bytes], None]
@@ -438,9 +516,197 @@ def _validate_run_id(run_id: object) -> str:
 
 
 def _validate_authorization(value: object) -> str:
-    if value != AUTHORIZATION:
+    if not isinstance(value, str) or value not in AUTHORIZATIONS:
         raise RouteV2Error("authorization is invalid")
-    return AUTHORIZATION
+    return value
+
+
+def _default_execution_identity() -> dict[str, str]:
+    implementation = _implementation_sha256()
+    return {
+        "cli_version": "synthetic",
+        "command_contract_sha256": implementation,
+        "executable_sha256": implementation,
+        "kind": "synthetic",
+        "runner_sha256": implementation,
+    }
+
+
+def _validate_execution_identity(value: object) -> dict[str, str]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "cli_version",
+        "command_contract_sha256",
+        "executable_sha256",
+        "kind",
+        "runner_sha256",
+    }:
+        raise RouteV2Error("execution identity is invalid")
+    normalized = dict(value)
+    if normalized.get("kind") not in {"codex_exec", "synthetic"}:
+        raise RouteV2Error("execution identity is invalid")
+    cli_version = normalized.get("cli_version")
+    if (
+        not isinstance(cli_version, str)
+        or not cli_version
+        or cli_version != cli_version.strip()
+        or len(cli_version) > 80
+        or any(ord(char) < 0x20 or ord(char) > 0x7E for char in cli_version)
+    ):
+        raise RouteV2Error("execution identity is invalid")
+    for key in (
+        "command_contract_sha256",
+        "executable_sha256",
+        "runner_sha256",
+    ):
+        if not isinstance(normalized.get(key), str) or SHA256_RE.fullmatch(
+            normalized[key]
+        ) is None:
+            raise RouteV2Error("execution identity is invalid")
+    return normalized
+
+
+def _validate_execution_binding(
+    authorization: object, execution_identity: object
+) -> tuple[str, dict[str, str]]:
+    validated_authorization = _validate_authorization(authorization)
+    identity = _validate_execution_identity(execution_identity)
+    if (
+        validated_authorization == AUTHORIZATION
+        and identity["kind"] != "synthetic"
+    ) or (
+        validated_authorization == LIVE_AUTHORIZATION
+        and identity["kind"] != "codex_exec"
+    ):
+        raise RouteV2Error("authorization and execution identity differ")
+    return validated_authorization, identity
+
+
+def _synthetic_preflight_bytes(run_id: str) -> bytes:
+    identity = _default_execution_identity()
+    return _json_bytes(
+        {
+            "authorization": AUTHORIZATION,
+            "checks": {
+                "cleanup": "not_applicable",
+                "exec_help": "not_applicable",
+                "root_help": "not_applicable",
+                "version": "not_applicable",
+            },
+            "environment_policy_sha256": _implementation_sha256(),
+            "environment_projection_sha256": _implementation_sha256(),
+            "execution_identity": identity,
+            "probe_outputs": {},
+            "required_flags": [],
+            "run_id": _validate_run_id(run_id),
+            "schema": PREFLIGHT_SCHEMA,
+        }
+    )
+
+
+def _validate_preflight(
+    payload: bytes, run_id: str, authorization: str
+) -> tuple[dict[str, Any], dict[str, str]]:
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RouteV2Error("preflight receipt is invalid") from exc
+    if not isinstance(value, dict) or payload != _json_bytes(value):
+        raise RouteV2Error("preflight receipt is invalid")
+    if set(value) != {
+        "authorization",
+            "checks",
+            "environment_policy_sha256",
+            "environment_projection_sha256",
+            "execution_identity",
+            "probe_outputs",
+        "required_flags",
+        "run_id",
+        "schema",
+    } or (
+        value.get("schema") != PREFLIGHT_SCHEMA
+        or value.get("run_id") != run_id
+        or value.get("authorization") != authorization
+        or SHA256_RE.fullmatch(str(value.get("environment_policy_sha256"))) is None
+        or SHA256_RE.fullmatch(str(value.get("environment_projection_sha256"))) is None
+    ):
+        raise RouteV2Error("preflight receipt is invalid")
+    identity = _validate_execution_binding(
+        value.get("authorization"), value.get("execution_identity")
+    )[1]
+    checks = value.get("checks")
+    flags = value.get("required_flags")
+    probe_outputs = value.get("probe_outputs")
+    if authorization == LIVE_AUTHORIZATION:
+        if checks != {
+            "cleanup": "PASS",
+            "exec_help": "PASS",
+            "root_help": "PASS",
+            "version": "PASS",
+        } or flags != sorted(
+            [
+                "--ephemeral",
+                "--json",
+                "--output-last-message",
+                    "--output-schema",
+                    "--dangerously-bypass-approvals-and-sandbox",
+            ]
+        ) or not isinstance(probe_outputs, Mapping) or set(probe_outputs) != {
+            "exec_help", "root_help", "version"
+        }:
+            raise RouteV2Error("live preflight checks are incomplete")
+        decoded = {
+            name: _validate_probe_output(probe_outputs[name])
+            for name in ("exec_help", "root_help", "version")
+        }
+        if decoded["version"][0].decode("utf-8", errors="strict").strip() != "codex-cli 0.146.0":
+            raise RouteV2Error("live preflight version source differs")
+        if not (decoded["root_help"][0] + decoded["root_help"][1]).decode(
+            "utf-8", errors="strict"
+        ).strip():
+            raise RouteV2Error("live preflight root help source is empty")
+        exec_help = (decoded["exec_help"][0] + decoded["exec_help"][1]).decode(
+            "utf-8", errors="strict"
+        )
+        if any(flag not in exec_help for flag in flags):
+            raise RouteV2Error("live preflight exec help source differs")
+    elif checks != {
+        "cleanup": "not_applicable",
+        "exec_help": "not_applicable",
+        "root_help": "not_applicable",
+        "version": "not_applicable",
+    } or flags != [] or probe_outputs != {}:
+        raise RouteV2Error("synthetic preflight checks are invalid")
+    return value, identity
+
+
+def _validate_probe_output(value: object) -> tuple[bytes, bytes]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "returncode", "stderr_b64", "stderr_len", "stderr_sha256",
+        "stdout_b64", "stdout_len", "stdout_sha256",
+    } or type(value.get("returncode")) is not int or value.get("returncode") != 0:
+        raise RouteV2Error("live preflight probe output is invalid")
+    decoded: dict[str, bytes] = {}
+    for stream in ("stdout", "stderr"):
+        encoded = value.get(f"{stream}_b64")
+        length = value.get(f"{stream}_len")
+        digest = value.get(f"{stream}_sha256")
+        if not isinstance(encoded, str) or type(length) is not int or length < 0:
+            raise RouteV2Error("live preflight probe output is invalid")
+        try:
+            payload = base64.b64decode(encoded, validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise RouteV2Error("live preflight probe output is invalid") from exc
+        if len(payload) != length or digest != _sha256_bytes(payload):
+            raise RouteV2Error("live preflight probe output is invalid")
+        if len(payload) > 262_144:
+            raise PublicPrivacyError("preflight probe output is too large")
+        try:
+            text = payload.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise PublicPrivacyError("preflight probe output is not UTF-8") from exc
+        _validate_public_payload(_json_bytes({"probe_text": text}))
+        decoded[stream] = payload
+    return decoded["stdout"], decoded["stderr"]
 
 
 def _validate_artifacts(value: Mapping[str, bytes]) -> dict[str, bytes]:
@@ -493,17 +759,32 @@ def action_bytes(
     prompt: bytes,
     output_schema: dict[str, Any],
     expected_workspace: Mapping[str, bytes],
+    authorization: str = AUTHORIZATION,
+    execution_identity: Mapping[str, str] | None = None,
+    preflight_sha256: str | None = None,
 ) -> bytes:
     run_id = _validate_run_id(run_id)
     if not isinstance(prompt, bytes):
         raise RouteV2Error("prompt bytes are invalid")
     schema = _validate_schema_definition(output_schema)
     expected = _validate_artifacts(expected_workspace)
+    authorization, identity = _validate_execution_binding(
+        authorization,
+        execution_identity if execution_identity is not None else _default_execution_identity()
+    )
+    if preflight_sha256 is None:
+        if authorization != AUTHORIZATION:
+            raise RouteV2Error("live action requires a preflight identity")
+        preflight_sha256 = _sha256_bytes(_synthetic_preflight_bytes(run_id))
+    if SHA256_RE.fullmatch(preflight_sha256) is None:
+        raise RouteV2Error("preflight identity is invalid")
     return _json_bytes(
         {
-            "authorization": AUTHORIZATION,
+            "authorization": authorization,
+            "execution_identity": identity,
             "expected_workspace": _artifact_projection(expected),
             "output_schema": schema,
+            "preflight_sha256": preflight_sha256,
             "prompt_sha256": _sha256_bytes(prompt),
             "run_id": run_id,
             "schema": ACTION_SCHEMA,
@@ -786,9 +1067,11 @@ def _assert_distinct_roots(
         raise RouteV2Error("recovery artifact is inside route output")
 
 
-def _locator_value(run_id: str, private_root: Path) -> dict[str, str]:
+def _locator_value(
+    run_id: str, private_root: Path, authorization: str = AUTHORIZATION
+) -> dict[str, str]:
     return {
-        "authorization": AUTHORIZATION,
+        "authorization": _validate_authorization(authorization),
         "cleanup_target": str(private_root.resolve()),
         "run_id": run_id,
         "schema": LOCATOR_SCHEMA,
@@ -840,22 +1123,28 @@ def _validate_locator(
     run_id: str,
     private_root: Path,
     acl_verify: AclProtector = _verify_current_user_only,
+    authorization: str = AUTHORIZATION,
 ) -> None:
     acl_verify(path.parent, True)
     acl_verify(path, False)
     value = _load_object(path)
-    if value != _locator_value(run_id, private_root) or path.read_bytes() != _json_bytes(
-        value
-    ):
+    if value != _locator_value(
+        run_id, private_root, authorization
+    ) or path.read_bytes() != _json_bytes(value):
         raise RouteV2Error("recovery locator identity is invalid")
 
 
 def _external_terminal(
-    *, run_id: str, stage: str, cleanup: str, locator_absent: bool
+    *,
+    run_id: str,
+    stage: str,
+    cleanup: str,
+    locator_absent: bool,
+    authorization: str = AUTHORIZATION,
 ) -> dict[str, object]:
     return {
         "admissible_route_result": False,
-        "authorization": AUTHORIZATION,
+        "authorization": _validate_authorization(authorization),
         "cleanup": cleanup,
         "locator_absent": locator_absent,
         "run_id": run_id,
@@ -864,7 +1153,9 @@ def _external_terminal(
     }
 
 
-def _validate_external_value(value: dict[str, Any], run_id: str) -> None:
+def _validate_external_value(
+    value: dict[str, Any], run_id: str, authorization: str = AUTHORIZATION
+) -> None:
     if (
         set(value)
         != {
@@ -878,7 +1169,7 @@ def _validate_external_value(value: dict[str, Any], run_id: str) -> None:
         }
         or value.get("schema") != EXTERNAL_SCHEMA
         or value.get("run_id") != run_id
-        or value.get("authorization") != AUTHORIZATION
+        or value.get("authorization") != _validate_authorization(authorization)
         or value.get("admissible_route_result") is not False
         or value.get("cleanup") != "PASS"
         or type(value.get("locator_absent")) is not bool
@@ -899,6 +1190,7 @@ def _publish_external_closeout(
     locator: Path,
     publish: Publisher,
     remove_locator: LocatorRemover,
+    authorization: str = AUTHORIZATION,
 ) -> None:
     if not cleanup_passed:
         return
@@ -911,6 +1203,7 @@ def _publish_external_closeout(
         stage=stage,
         cleanup="PASS",
         locator_absent=not _locator_residue(locator),
+        authorization=authorization,
     )
     publish(external_path, _json_bytes(value))
     remove_locator(locator)
@@ -1014,6 +1307,22 @@ def orchestrate(
         raise RouteV2Error("prompt bytes are invalid")
     schema = _validate_schema_definition(output_schema)
     expected = _validate_artifacts(expected_workspace)
+    if authorization == LIVE_AUTHORIZATION:
+        if type(runner) is not TrustedLiveRunner:
+            raise RouteV2Error("live authorization requires a trusted runner")
+        preflight_payload = runner.preflight_bytes()
+        _, execution_identity = _validate_preflight(
+            preflight_payload, run_id, authorization
+        )
+        if execution_identity != _validate_execution_identity(
+            runner.execution_identity()
+        ):
+            raise RouteV2Error("runner differs from measured preflight")
+    else:
+        preflight_payload = _synthetic_preflight_bytes(run_id)
+        _, execution_identity = _validate_preflight(
+            preflight_payload, run_id, authorization
+        )
     plan = fault_plan or FaultPlan()
     publish = _faulting_publisher(plan, _publisher, public=True)
     publish_private = _faulting_publisher(plan, _publisher, public=False)
@@ -1041,11 +1350,30 @@ def orchestrate(
     output_root.mkdir(parents=True)
     external_path.parent.mkdir(parents=True, exist_ok=True)
 
+    try:
+        publish(output_root / "preflight.json", preflight_payload)
+    except BaseException as exc:
+        _publish_external_closeout(
+            external_path,
+            output_root=output_root,
+            run_id=run_id,
+            stage="preflight_publication_failure",
+            cleanup_passed=True,
+            locator=locator,
+            publish=publish,
+            remove_locator=lambda _: None,
+            authorization=authorization,
+        )
+        raise RouteV2Error("preflight publication failed before invocation") from exc
+
     action_payload = action_bytes(
         run_id=run_id,
         prompt=prompt,
         output_schema=schema,
         expected_workspace=expected,
+        authorization=authorization,
+        execution_identity=execution_identity,
+        preflight_sha256=_sha256_bytes(preflight_payload),
     )
     action = json.loads(action_payload)
     try:
@@ -1060,6 +1388,7 @@ def orchestrate(
             locator=locator,
             publish=publish,
             remove_locator=lambda _: None,
+            authorization=authorization,
         )
         raise RouteV2Error("action publication failed before invocation") from exc
 
@@ -1067,9 +1396,13 @@ def orchestrate(
     try:
         locator.parent.mkdir(parents=True)
         _acl(locator.parent, True)
-        publish_private(locator, _json_bytes(_locator_value(run_id, private_root)))
+        publish_private(
+            locator, _json_bytes(_locator_value(run_id, private_root, authorization))
+        )
         _acl(locator, False)
-        _validate_locator(locator, run_id, private_root, _acl_verify)
+        _validate_locator(
+            locator, run_id, private_root, _acl_verify, authorization
+        )
     except BaseException:
         try:
             if _locator_residue(locator):
@@ -1086,6 +1419,7 @@ def orchestrate(
             locator=locator,
             publish=publish,
             remove_locator=lambda _: None,
+            authorization=authorization,
         )
         raise RouteV2Error("locator prelaunch validation failed")
 
@@ -1202,6 +1536,7 @@ def orchestrate(
             locator=locator,
             publish=publish,
             remove_locator=remove_locator,
+            authorization=authorization,
         )
         raise RouteV2Error(f"synthetic route failed before seal: {stage}") from exc
 
@@ -1231,6 +1566,7 @@ def orchestrate(
             locator=locator,
             publish=publish,
             remove_locator=remove_locator,
+            authorization=authorization,
         )
         raise RouteV2Error("final receipt publication failed") from exc
 
@@ -1279,7 +1615,7 @@ def reconcile(
     _assert_distinct_roots(output_root, private_root, locator, external_path)
     if not locator.exists():
         raise RouteV2Error("recovery locator is absent")
-    _validate_locator(locator, run_id, private_root, _acl_verify)
+    _validate_locator(locator, run_id, private_root, _acl_verify, authorization)
     cleanup_passed = _attempt_cleanup(clean, private_root)
     if not cleanup_passed:
         raise RouteV2Error("recovery cleanup failed")
@@ -1288,7 +1624,7 @@ def reconcile(
     seal_path = output_root / "seal.json"
     if external_path.exists():
         terminal = _load_object(external_path)
-        _validate_external_value(terminal, run_id)
+        _validate_external_value(terminal, run_id, authorization)
         remove_locator(locator)
         if _locator_residue(locator):
             raise RouteV2Error("recovery locator residue remains")
@@ -1325,6 +1661,7 @@ def reconcile(
                 locator=locator,
                 publish=publish,
                 remove_locator=remove_locator,
+                authorization=authorization,
             )
             return RouteResult(output_root, locator, None, external_path, "NO_ADMISSIBLE")
         remove_locator(locator)
@@ -1341,6 +1678,7 @@ def reconcile(
         locator=locator,
         publish=publish,
         remove_locator=remove_locator,
+        authorization=authorization,
     )
     return RouteResult(output_root, locator, None, external_path, "NO_ADMISSIBLE")
 
@@ -1378,13 +1716,14 @@ def verify(
         raise RouteV2Error("private cleanup target still exists")
     paths = {
         name: output_root / f"{name}.json"
-        for name in ("action", "attestation", "packet", "seal", "final")
+        for name in ("preflight", "action", "attestation", "packet", "seal", "final")
     }
     if any(not path.is_file() for path in paths.values()):
         raise RouteV2Error("route artifact set is incomplete")
     if _sha256_file(paths["final"]) != expected_final_sha256:
         raise RouteV2Error("final receipt differs from pinned identity")
     action = _load_object(paths["action"])
+    preflight = _load_object(paths["preflight"])
     attestation = _load_object(paths["attestation"])
     packet = _load_object(paths["packet"])
     seal = _load_object(paths["seal"])
@@ -1393,18 +1732,29 @@ def verify(
         raise RouteV2Error("action differs from pinned identity")
     if set(action) != {
         "authorization",
+        "execution_identity",
         "expected_workspace",
         "output_schema",
+        "preflight_sha256",
         "prompt_sha256",
         "run_id",
         "schema",
     } or (
         action.get("schema") != ACTION_SCHEMA
         or action.get("run_id") != run_id
-        or action.get("authorization") != AUTHORIZATION
+        or action.get("authorization") not in AUTHORIZATIONS
         or SHA256_RE.fullmatch(str(action.get("prompt_sha256"))) is None
+        or action.get("preflight_sha256") != _sha256_file(paths["preflight"])
     ):
         raise RouteV2Error("action identity is invalid")
+    _validate_execution_binding(
+        action.get("authorization"), action.get("execution_identity")
+    )
+    _, preflight_identity = _validate_preflight(
+        paths["preflight"].read_bytes(), run_id, action["authorization"]
+    )
+    if preflight_identity != action["execution_identity"]:
+        raise RouteV2Error("action differs from measured preflight")
     _validate_schema_definition(action.get("output_schema"))
     _validate_projection(action.get("expected_workspace"))
     if set(attestation) != {
@@ -1599,9 +1949,11 @@ def verify_external_terminal(
     locator_root: Path,
     run_id: str,
     expected_terminal_sha256: str,
+    expected_authorization: str = AUTHORIZATION,
     _trusted_route_root: Path | None = None,
 ) -> dict[str, Any]:
     run_id = _validate_run_id(run_id)
+    expected_authorization = _validate_authorization(expected_authorization)
     if SHA256_RE.fullmatch(expected_terminal_sha256) is None:
         raise RouteV2Error("expected external terminal identity is invalid")
     locator = _locator_path(locator_root, run_id)
@@ -1623,7 +1975,7 @@ def verify_external_terminal(
     if _sha256_file(terminal_path) != expected_terminal_sha256:
         raise RouteV2Error("external terminal differs from pinned identity")
     value = _load_object(terminal_path)
-    _validate_external_value(value, run_id)
+    _validate_external_value(value, run_id, expected_authorization)
     return {
         "admissible_route_result": False,
         "run_id": run_id,
