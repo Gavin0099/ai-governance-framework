@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import importlib
 import json
 import os
 import shutil
@@ -732,5 +733,20 @@ def main(argv: Sequence[str] | None = None, *, _probe: Probe = _native_probe) ->
             shutil.rmtree(preflight_root)
 
 
+def _entrypoint() -> int:
+    """Delegate file execution to the canonical import identity.
+
+    Running this file directly gives its first module instance the name
+    ``__main__``.  The trusted-runner boundary intentionally accepts only the
+    canonical ``gate3_route_v2_codex`` module, so the executable entrypoint must
+    import that identity before it constructs the runner.
+    """
+    canonical = importlib.import_module("gate3_route_v2_codex")
+    canonical_path = Path(str(getattr(canonical, "__file__", ""))).resolve()
+    if canonical_path != Path(__file__).resolve():
+        raise route.RouteV2Error("canonical CLI module path differs")
+    return canonical.main()
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_entrypoint())
