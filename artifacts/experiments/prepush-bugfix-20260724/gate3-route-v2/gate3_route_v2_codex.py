@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import ctypes
 import json
 import os
@@ -21,7 +20,7 @@ import gate3_route_v2 as route
 
 PINNED_CLI_VERSION = "codex-cli 0.146.0"
 COMMAND_CONTRACT_SCHEMA = "gate3-route-v2.codex-command.v2"
-PREFLIGHT_CONTRACT_SCHEMA = "gate3-route-v2.codex-preflight.v1"
+PREFLIGHT_CONTRACT_SCHEMA = "gate3-route-v2.codex-preflight.v2"
 REQUIRED_FLAGS = (
     "--ephemeral",
     "--json",
@@ -437,16 +436,13 @@ def _probe_output(result: _ContainedResult) -> dict[str, object]:
         if len(payload) > 262_144:
             raise route.PublicPrivacyError("preflight probe output is too large")
         try:
-            text = payload.decode("utf-8", errors="strict")
+            payload.decode("utf-8", errors="strict")
         except UnicodeDecodeError as exc:
             raise route.PublicPrivacyError("preflight probe output is not UTF-8") from exc
-        route._validate_public_payload(route._json_bytes({"probe_text": text}))
     return {
         "returncode": result.returncode,
-        "stderr_b64": base64.b64encode(result.stderr).decode("ascii"),
         "stderr_len": len(result.stderr),
         "stderr_sha256": route._sha256_bytes(result.stderr),
-        "stdout_b64": base64.b64encode(result.stdout).decode("ascii"),
         "stdout_len": len(result.stdout),
         "stdout_sha256": route._sha256_bytes(result.stdout),
     }
@@ -515,6 +511,13 @@ def _measure_preflight(
                     "cleanup": "PASS", "exec_help": "PASS",
                     "root_help": "PASS", "version": "PASS",
                 },
+                "compatibility": {
+                    "required_flag_presence": {
+                        flag: flag in exec_help_text for flag in sorted(REQUIRED_FLAGS)
+                    },
+                    "root_help_nonempty": bool(root_help_text.strip()),
+                    "version_match": observed_version == PINNED_CLI_VERSION,
+                },
                 "environment_policy_sha256": _environment_policy_sha256(),
                 "environment_projection_sha256": environment_projection,
                 "execution_identity": identity,
@@ -528,6 +531,7 @@ def _measure_preflight(
                 "schema": route.PREFLIGHT_SCHEMA,
             }
         )
+        route._validate_public_payload(payload)
         return payload, snapshot
     except BaseException:
         if preflight_root.exists():
