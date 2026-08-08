@@ -283,6 +283,35 @@ def test_exact_codex_runner_builds_capability_and_live_action_binds_preflight(
     assert action["execution_identity"] == identity
 
 
+def test_subprocess_cli_entrypoint_uses_canonical_module_provenance(
+    tmp_path: Path,
+) -> None:
+    """Regression: direct file execution must not construct an __main__ runner."""
+    sentinel = "CANONICAL_MAIN_SELECTED"
+    (tmp_path / "sitecustomize.py").write_text(
+        "import gate3_route_v2_codex as canonical\n"
+        "def fake_main(*args, **kwargs):\n"
+        f"    print({sentinel!r})\n"
+        "    return 23\n"
+        "canonical.main = fake_main\n",
+        encoding="utf-8",
+    )
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join((str(tmp_path), str(HERE)))
+    completed = subprocess.run(
+        [sys.executable, str(Path(codex.__file__).resolve())],
+        cwd=HERE,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert completed.returncode == 23
+    assert completed.stdout == sentinel + "\n"
+    assert "trusted live runner provenance is invalid" not in completed.stderr
+
+
 def test_invalid_probe_digest_is_rejected_offline(tmp_path: Path) -> None:
     payload, _, _ = _measure(tmp_path)
     value = json.loads(payload)
