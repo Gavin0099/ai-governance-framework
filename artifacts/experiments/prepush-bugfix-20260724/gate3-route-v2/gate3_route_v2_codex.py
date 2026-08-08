@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-import importlib
 import json
 import os
 import shutil
@@ -29,6 +28,7 @@ REQUIRED_FLAGS = (
     "--output-schema",
     "--dangerously-bypass-approvals-and-sandbox",
 )
+AB_REQUIRED_FLAGS = tuple(sorted((*REQUIRED_FLAGS, "--model")))
 ENVIRONMENT_SOURCE_KEYS = (
     "COMSPEC",
     "PATHEXT",
@@ -70,6 +70,11 @@ COMMAND_TEMPLATE = (
     "--dangerously-bypass-approvals-and-sandbox",
     "-",
 )
+AB_COMMAND_TEMPLATE = COMMAND_TEMPLATE[:-1] + (
+    "--model",
+    "<owner-selected-model>",
+    "-",
+)
 WINDOWS_GUARD = (
     "import os,pathlib,sys,time\n"
     "p=pathlib.Path(sys.argv[1])\n"
@@ -93,6 +98,24 @@ def _command_contract_sha256() -> str:
                     "interpreter_sha256": route._sha256_file(Path(sys.executable)),
                     "isolated_flags": ["-I", "-S"],
                     "source_sha256": route._sha256_bytes(WINDOWS_GUARD.encode("utf-8")),
+                },
+            }
+        )
+    )
+
+
+def _ab_command_contract_sha256() -> str:
+    return route._sha256_bytes(
+        route._json_bytes(
+            {
+                "argv": list(AB_COMMAND_TEMPLATE),
+                "schema": "gate3-route-v2.codex-ab-command.v1",
+                "windows_guard": {
+                    "interpreter_sha256": route._sha256_file(Path(sys.executable)),
+                    "isolated_flags": ["-I", "-S"],
+                    "source_sha256": route._sha256_bytes(
+                        WINDOWS_GUARD.encode("utf-8")
+                    ),
                 },
             }
         )
@@ -456,6 +479,8 @@ def _measure_preflight(
     expected_executable_sha256: str,
     preflight_root: Path,
     probe: Probe = _native_probe,
+    _required_flags: Sequence[str] = REQUIRED_FLAGS,
+    _command_contract_digest: str | None = None,
 ) -> tuple[bytes, Path]:
     if route.SHA256_RE.fullmatch(expected_executable_sha256) is None:
         raise route.RouteV2Error("expected executable identity is invalid")
@@ -491,7 +516,7 @@ def _measure_preflight(
             raise route.RouteV2Error("Codex version differs from the frozen version")
         if not root_help_text.strip():
             raise route.RouteV2Error("Codex root help is empty")
-        if any(flag not in exec_help_text for flag in REQUIRED_FLAGS):
+        if any(flag not in exec_help_text for flag in _required_flags):
             raise route.RouteV2Error("Codex help lacks a required flag")
         if any(home.iterdir()):
             raise route.RouteV2Error("zero-session preflight created private residue")
@@ -499,7 +524,9 @@ def _measure_preflight(
         identity = route._validate_execution_identity(
             {
                 "cli_version": observed_version,
-                "command_contract_sha256": _command_contract_sha256(),
+                "command_contract_sha256": (
+                    _command_contract_digest or _command_contract_sha256()
+                ),
                 "executable_sha256": expected_executable_sha256,
                 "kind": "codex_exec",
                 "runner_sha256": _implementation_sha256(),
@@ -514,7 +541,7 @@ def _measure_preflight(
                 },
                 "compatibility": {
                     "required_flag_presence": {
-                        flag: flag in exec_help_text for flag in sorted(REQUIRED_FLAGS)
+                        flag: flag in exec_help_text for flag in sorted(_required_flags)
                     },
                     "root_help_nonempty": bool(root_help_text.strip()),
                     "version_match": observed_version == PINNED_CLI_VERSION,
@@ -527,7 +554,7 @@ def _measure_preflight(
                     "root_help": _probe_output(root_help),
                     "version": _probe_output(version),
                 },
-                "required_flags": sorted(REQUIRED_FLAGS),
+                "required_flags": sorted(_required_flags),
                 "run_id": route._validate_run_id(run_id),
                 "schema": route.PREFLIGHT_SCHEMA,
             }
@@ -540,6 +567,14 @@ def _measure_preflight(
         raise
 
 
+def _measure_ab_preflight(**kwargs: Any) -> tuple[bytes, Path]:
+    return _measure_preflight(
+        **kwargs,
+        _required_flags=AB_REQUIRED_FLAGS,
+        _command_contract_digest=_ab_command_contract_sha256(),
+    )
+
+
 @dataclass(frozen=True)
 class CodexExecRunner:
     run_id: str
@@ -547,23 +582,43 @@ class CodexExecRunner:
     private_root: Path
     auth_payload: bytes
     measured_preflight: bytes
+    model_id: str | None = None
     prompt: bytes = PROMPT
     output_schema: Mapping[str, Any] = field(default_factory=lambda: OUTPUT_SCHEMA)
     baseline_workspace: Mapping[str, bytes] = field(default_factory=lambda: BASELINE_WORKSPACE)
     observed_artifact_ids: Sequence[str] = tuple(EXPECTED_WORKSPACE)
     timeout_seconds: int = 300
+    _prepared: bool = field(default=False, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.auth_payload, bytes) or not self.auth_payload:
             raise route.RouteV2Error("credential seed payload is invalid")
         if type(self.timeout_seconds) is not int or not 1 <= self.timeout_seconds <= 3600:
             raise route.RouteV2Error("runner timeout is invalid")
+        if self.model_id is not None:
+            route._validate_public_token(self.model_id, "model identity")
         route._validate_schema_definition(dict(self.output_schema))
         route._validate_artifacts(self.baseline_workspace)
         _, identity = route._validate_preflight(
             self.measured_preflight, route._validate_run_id(self.run_id),
             route.LIVE_AUTHORIZATION,
         )
+        preflight_value = json.loads(self.measured_preflight)
+        expected_flags = (
+            sorted(AB_REQUIRED_FLAGS)
+            if self.model_id is not None
+            else sorted(REQUIRED_FLAGS)
+        )
+        expected_command_digest = (
+            _ab_command_contract_sha256()
+            if self.model_id is not None
+            else _command_contract_sha256()
+        )
+        if (
+            preflight_value.get("required_flags") != expected_flags
+            or identity["command_contract_sha256"] != expected_command_digest
+        ):
+            raise route.RouteV2Error("runner model and preflight profile differ")
         if identity["executable_sha256"] != route._sha256_file(self.executable_snapshot):
             raise route.RouteV2Error("runner executable differs from measured preflight")
 
@@ -582,13 +637,19 @@ class CodexExecRunner:
         )
 
     def command(self, schema_path: Path, final_path: Path) -> list[str]:
-        return [
+        command = [
             str(self.executable_snapshot), "exec", "--json", "--ephemeral",
             "--output-last-message", str(final_path), "--output-schema",
-            str(schema_path), "--dangerously-bypass-approvals-and-sandbox", "-",
+            str(schema_path), "--dangerously-bypass-approvals-and-sandbox",
         ]
+        if self.model_id is not None:
+            command.extend(("--model", self.model_id))
+        command.append("-")
+        return command
 
-    def __call__(self) -> route.SyntheticResult:
+    def prepare_private(self, staged_workspace: Mapping[str, bytes]) -> None:
+        if self._prepared:
+            raise route.RouteV2Error("runner private workspace is already prepared")
         private_root = self.private_root.resolve()
         workspace = private_root / "workspace"
         codex_home = private_root / "codex-home"
@@ -598,8 +659,9 @@ class CodexExecRunner:
         codex_home.mkdir()
         route._current_user_only(workspace, True)
         route._current_user_only(codex_home, True)
-        for artifact_id, payload in route._validate_artifacts(self.baseline_workspace).items():
+        for artifact_id, payload in route._validate_artifacts(staged_workspace).items():
             path = _safe_artifact_path(workspace, artifact_id)
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(payload)
             route._current_user_only(path, False)
         auth_path = codex_home / "auth.json"
@@ -609,6 +671,16 @@ class CodexExecRunner:
         route._verify_current_user_only(auth_path, False)
         if {path.name for path in codex_home.iterdir()} != {"auth.json"}:
             raise route.RouteV2Error("isolated Codex home inventory is invalid")
+        object.__setattr__(self, "_prepared", True)
+
+    def __call__(self) -> route.SyntheticResult:
+        private_root = self.private_root.resolve()
+        workspace = private_root / "workspace"
+        codex_home = private_root / "codex-home"
+        if not self._prepared:
+            self.prepare_private(self.baseline_workspace)
+        elif not workspace.is_dir() or not codex_home.is_dir():
+            raise route.RouteV2Error("prepared runner private workspace is missing")
         schema_path = private_root / "output-schema.json"
         final_path = private_root / "final-message.json"
         schema_path.write_bytes(route._json_bytes(dict(self.output_schema)))
@@ -646,6 +718,183 @@ class CodexExecRunner:
 
 
 _TRUSTED_CODEX_INVOKE = CodexExecRunner.__call__
+
+
+class CodexABArmRunner:
+    """One live Codex arm bound to a signed pair manifest and staged bytes."""
+
+    def __init__(
+        self,
+        *,
+        run_id: str,
+        contract_manifest_sha256: str,
+        executable_snapshot: Path,
+        auth_payload: bytes,
+        measured_preflight: bytes,
+        model_id: str,
+        staged_files: Mapping[str, bytes],
+        expected_artifact_ids: Sequence[str],
+        prompt: bytes,
+        output_schema: Mapping[str, Any],
+    ) -> None:
+        route._validate_run_id(run_id)
+        if route.SHA256_RE.fullmatch(contract_manifest_sha256) is None:
+            raise route.RouteV2Error("contract manifest identity is invalid")
+        self.run_id = run_id
+        self._contract = contract_manifest_sha256
+        self._executable = executable_snapshot
+        self._auth = auth_payload
+        self._preflight = measured_preflight
+        self._model = route._validate_public_token(model_id, "model identity")
+        self._files = route._validate_artifacts(staged_files)
+        self._expected_ids = tuple(expected_artifact_ids)
+        self._prompt = prompt
+        self._schema = dict(output_schema)
+        self._runner: CodexExecRunner | None = None
+        self.calls = 0
+        preflight_value, identity = route._validate_preflight(
+            measured_preflight, run_id, route.LIVE_AUTHORIZATION
+        )
+        if (
+            preflight_value["required_flags"] != sorted(AB_REQUIRED_FLAGS)
+            or identity["command_contract_sha256"] != _ab_command_contract_sha256()
+        ):
+            raise route.RouteV2Error("live A/B preflight profile is invalid")
+
+    def credential_matches(self, expected: bytes) -> bool:
+        return isinstance(expected, bytes) and self._auth == expected
+
+    def admission_matches(self, arm: Mapping[str, object], model_id: str) -> bool:
+        treatment = arm.get("treatment_projection")
+        if not isinstance(treatment, Mapping):
+            return False
+        packet = self._files.get("skill.packet")
+        manifest = self._files.get("treatment-manifest.json")
+        packet_digest = treatment.get("treatment_packet_sha256")
+        packet_match = (
+            treatment.get("state") == "absent"
+            and packet_digest == "absent"
+            and packet is None
+        ) or (
+            treatment.get("state") == "present"
+            and isinstance(packet, bytes)
+            and packet_digest == route._sha256_bytes(packet)
+        )
+        try:
+            manifest_value = json.loads(manifest.decode("utf-8")) if manifest else None
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return False
+        manifest_match = (
+            isinstance(manifest, bytes)
+            and manifest == route._json_bytes(manifest_value)
+            and treatment.get("treatment_manifest_sha256")
+            == route._sha256_bytes(manifest)
+            and manifest_value
+            == {
+                "packet_artifact_id": (
+                    "absent" if treatment.get("state") == "absent" else "skill.packet"
+                ),
+                "packet_sha256": packet_digest,
+                "state": treatment.get("state"),
+            }
+        )
+        projection = {
+            "artifacts": route._artifact_projection(self._files)
+        }
+        return (
+            self._model == model_id
+            and route._sha256_bytes(route._json_bytes(projection))
+            == arm.get("staged_input_manifest_sha256")
+            and packet_match
+            and manifest_match
+        )
+
+    def execution_identity(self) -> dict[str, str]:
+        value = json.loads(self._preflight)["execution_identity"]
+        return route._validate_execution_identity(value)
+
+    def preflight_bytes(self) -> bytes:
+        return self._preflight
+
+    def capability(self) -> route.TrustedLiveABArmRunner:
+        return route._trusted_live_ab_arm_runner(
+            execution_identity=self.execution_identity(),
+            preflight=self._preflight,
+            prepare=self._prepare,
+            invoke=self._invoke,
+        )
+
+    def _prepare(self, private_root: Path, action_payload: bytes) -> bytes:
+        if self._runner is not None or self.calls:
+            raise route.RouteV2Error("live A/B runner preparation is not create-once")
+        action = json.loads(action_payload)
+        projection = {"artifacts": route._artifact_projection(self._files)}
+        staged_digest = route._sha256_bytes(route._json_bytes(projection))
+        if staged_digest != action.get("staged_input_manifest_sha256"):
+            raise route.RouteV2Error("staged input manifest differs")
+        if action.get("model_id") != self._model:
+            raise route.RouteV2Error("model selector differs")
+        treatment = action.get("treatment_projection")
+        if not isinstance(treatment, Mapping) or not self.admission_matches(
+            {
+                "staged_input_manifest_sha256": staged_digest,
+                "treatment_projection": treatment,
+            },
+            self._model,
+        ):
+            raise route.RouteV2Error("live A/B staged admission differs")
+        runner = CodexExecRunner(
+            run_id=self.run_id,
+            executable_snapshot=self._executable,
+            private_root=private_root,
+            auth_payload=self._auth,
+            measured_preflight=self._preflight,
+            model_id=self._model,
+            prompt=self._prompt,
+            output_schema=self._schema,
+            baseline_workspace=self._files,
+            observed_artifact_ids=self._expected_ids,
+        )
+        runner.prepare_private(self._files)
+        self._runner = runner
+        return route._json_bytes(
+            {
+                "action_sha256": route._sha256_bytes(action_payload),
+                "arm_id": action["arm_id"],
+                "contract_manifest_sha256": self._contract,
+                "credential_acl": "PASS",
+                "model_id": self._model,
+                "model_selector_match": "PASS",
+                "only_auth_inventory": "PASS",
+                "pair_action_sha256": action["pair_action_sha256"],
+                "pair_id": action["pair_id"],
+                "run_id": action["run_id"],
+                "schema": route.INPUT_ATTESTATION_SCHEMA,
+                "staged_acl": "PASS",
+                "staged_content_match": "PASS",
+                "staged_input_manifest_sha256": staged_digest,
+                "staged_inventory_match": "PASS",
+                "treatment_packet_sha256": treatment["treatment_packet_sha256"],
+                "treatment_state": treatment["state"],
+                "validator_sha256": _implementation_sha256(),
+            }
+        )
+
+    def _invoke(self) -> route.SyntheticResult:
+        if self._runner is None or self.calls:
+            raise route.RouteV2Error("live A/B runner invocation order is invalid")
+        self.calls += 1
+        return self._runner()
+
+
+_TRUSTED_LIVE_AB_PREPARE = CodexABArmRunner._prepare
+_TRUSTED_LIVE_AB_INVOKE = CodexABArmRunner._invoke
+route._register_live_ab_provenance(
+    canonical_type=CodexABArmRunner,
+    prepare_function=_TRUSTED_LIVE_AB_PREPARE,
+    invoke_function=_TRUSTED_LIVE_AB_INVOKE,
+    module_path=Path(__file__),
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -734,18 +983,8 @@ def main(argv: Sequence[str] | None = None, *, _probe: Probe = _native_probe) ->
 
 
 def _entrypoint() -> int:
-    """Delegate file execution to the canonical import identity.
-
-    Running this file directly gives its first module instance the name
-    ``__main__``.  The trusted-runner boundary intentionally accepts only the
-    canonical ``gate3_route_v2_codex`` module, so the executable entrypoint must
-    import that identity before it constructs the runner.
-    """
-    canonical = importlib.import_module("gate3_route_v2_codex")
-    canonical_path = Path(str(getattr(canonical, "__file__", ""))).resolve()
-    if canonical_path != Path(__file__).resolve():
-        raise route.RouteV2Error("canonical CLI module path differs")
-    return canonical.main()
+    """Use this measured module instance without a replaceable re-import."""
+    return main()
 
 
 if __name__ == "__main__":
