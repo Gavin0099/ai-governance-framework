@@ -1,0 +1,1631 @@
+from __future__ import annotations
+
+import ctypes
+import hashlib
+import json
+import os
+import re
+import shutil
+import stat
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+
+AUTHORIZATION = "gate3_route_v2_synthetic_non_scoring_only"
+ACTION_SCHEMA = "gate3-route-v2.action.v1"
+ATTESTATION_SCHEMA = "gate3-route-v2.content-attestation.v1"
+PACKET_SCHEMA = "gate3-route-v2.packet.v1"
+SEAL_SCHEMA = "gate3-route-v2.observation-seal.v1"
+FINAL_SCHEMA = "gate3-route-v2.final-receipt.v1"
+EXTERNAL_SCHEMA = "gate3-route-v2.external-terminal.v1"
+LOCATOR_SCHEMA = "gate3-route-v2.recovery-locator.v1"
+RUN_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{7,79}", re.ASCII)
+ARTIFACT_ID_RE = re.compile(r"[a-z0-9][a-z0-9_.-]{0,79}", re.ASCII)
+SHA256_RE = re.compile(r"[0-9a-f]{64}", re.ASCII)
+TRUSTED_ROUTE_ROOT = Path(tempfile.gettempdir()) / "gate3-route-v2-runtime"
+TERMINAL_STAGES = frozenset(
+    {
+        "final_publication_exhausted",
+        "final_publication_failure",
+        "action_publication_failure",
+        "locator_prelaunch_failure",
+        "orphan_without_seal",
+        "preseal_attestation_failure",
+        "preseal_packet_failure",
+        "preseal_private_acl_failure",
+        "preseal_runner_failure",
+        "preseal_seal_failure",
+    }
+)
+LOCATOR_ABSENT_TERMINALS = frozenset(
+    {"action_publication_failure", "locator_prelaunch_failure"}
+)
+
+
+class RouteV2Error(RuntimeError):
+    """Fail-closed synthetic route error."""
+
+
+class PublicationError(RouteV2Error):
+    """Create-once publication failed."""
+
+
+class PublicPrivacyError(RouteV2Error):
+    """A proposed public artifact crossed the closed privacy boundary."""
+
+
+class SyntheticCrash(BaseException):
+    """Test-only process interruption that intentionally bypasses closeout."""
+
+
+@dataclass(frozen=True)
+class SyntheticResult:
+    exit_code: int
+    stdout: bytes | None
+    final_message: bytes | None
+    workspace: Mapping[str, bytes] | None
+    exit_classification: str | None = None
+    stdout_capture: str | None = None
+    final_capture: str | None = None
+    workspace_capture: str | None = None
+
+
+@dataclass(frozen=True)
+class FaultPlan:
+    publication_failures: frozenset[str] = field(default_factory=frozenset)
+    privacy_failures: frozenset[str] = field(default_factory=frozenset)
+    crash_after: str | None = None
+    cleanup_failures: int = 0
+    locator_removal_failures: int = 0
+
+
+@dataclass(frozen=True)
+class RouteResult:
+    output_root: Path
+    locator: Path
+    final_receipt: Path | None
+    external_terminal: Path | None
+    decision: str
+
+
+Publisher = Callable[[Path, bytes], None]
+AclProtector = Callable[[Path, bool], None]
+Cleaner = Callable[[Path], bool]
+LocatorRemover = Callable[[Path], None]
+Runner = Callable[[], SyntheticResult]
+
+
+def _json_bytes(value: object) -> bytes:
+    return (
+        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    ).encode("utf-8")
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def _implementation_sha256() -> str:
+    return _sha256_file(Path(__file__))
+
+
+def _load_object(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RouteV2Error(f"invalid JSON artifact: {path.name}") from exc
+    if not isinstance(value, dict):
+        raise RouteV2Error(f"JSON artifact is not an object: {path.name}")
+    if path.read_bytes() != _json_bytes(value):
+        raise RouteV2Error(f"JSON artifact is not canonical: {path.name}")
+    return value
+
+
+def _publish_create_once(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        raise PublicationError(f"create-once target exists: {path.name}")
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path)
+        except FileExistsError as exc:
+            raise PublicationError(f"create-once target exists: {path.name}") from exc
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _validate_public_payload(payload: bytes) -> None:
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PublicPrivacyError("public artifact is not canonical JSON") from exc
+    if not isinstance(value, dict) or payload != _json_bytes(value):
+        raise PublicPrivacyError("public artifact is not canonical JSON")
+
+    forbidden = (
+        re.compile(r"(?i)(?:[a-z]:[\\/]|\\\\[?.\\]?\\|\\\\[^\\]+\\[^\\]+)"),
+        re.compile(r"(?i)(?:/home/|/users/|\\users\\|appdata[\\/])"),
+        re.compile(r"(?i)(?:sk-[a-z0-9_-]{8,}|bearer\s+[a-z0-9._-]{8,})"),
+    )
+
+    def walk(item: object) -> None:
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if not isinstance(key, str) or any(ord(char) < 0x20 for char in key):
+                    raise PublicPrivacyError("public artifact key is invalid")
+                walk(child)
+        elif isinstance(item, list):
+            for child in item:
+                walk(child)
+        elif isinstance(item, str):
+            if any(pattern.search(item) for pattern in forbidden):
+                raise PublicPrivacyError("public artifact contains a private surface")
+
+    walk(value)
+
+
+def _current_user_only(path: Path, container: bool) -> None:
+    if os.name != "nt":
+        os.chmod(path, 0o700 if container else 0o600)
+        observed = stat.S_IMODE(path.stat().st_mode)
+        if observed & 0o077:
+            raise RouteV2Error("current-user-only ACL verification failed")
+        return
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    token = ctypes.c_void_p()
+    sid_text = ctypes.c_wchar_p()
+    descriptor = ctypes.c_void_p()
+    rendered = ctypes.c_wchar_p()
+    try:
+        advapi32.OpenProcessToken.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        advapi32.OpenProcessToken.restype = ctypes.c_int
+        advapi32.GetTokenInformation.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.GetTokenInformation.restype = ctypes.c_int
+        advapi32.ConvertSidToStringSidW.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_wchar_p),
+        ]
+        advapi32.ConvertSidToStringSidW.restype = ctypes.c_int
+        advapi32.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype = (
+            ctypes.c_int
+        )
+        advapi32.SetFileSecurityW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+        ]
+        advapi32.SetFileSecurityW.restype = ctypes.c_int
+        advapi32.GetFileSecurityW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.GetFileSecurityW.restype = ctypes.c_int
+        advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_wchar_p),
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype = (
+            ctypes.c_int
+        )
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.restype = ctypes.c_void_p
+
+        if not advapi32.OpenProcessToken(
+            kernel32.GetCurrentProcess(), 0x0008, ctypes.byref(token)
+        ):
+            raise OSError(ctypes.get_last_error())
+        required = ctypes.c_uint32()
+        advapi32.GetTokenInformation(token, 1, None, 0, ctypes.byref(required))
+        token_buffer = ctypes.create_string_buffer(required.value)
+        if not advapi32.GetTokenInformation(
+            token, 1, token_buffer, required.value, ctypes.byref(required)
+        ):
+            raise OSError(ctypes.get_last_error())
+        sid_pointer = ctypes.cast(token_buffer, ctypes.POINTER(ctypes.c_void_p))[0]
+        if not advapi32.ConvertSidToStringSidW(sid_pointer, ctypes.byref(sid_text)):
+            raise OSError(ctypes.get_last_error())
+        inheritance = "OICI" if container else ""
+        expected_ace = f"(A;{inheritance};FA;;;{sid_text.value})"
+        sddl = f"D:P{expected_ace}"
+        descriptor_size = ctypes.c_uint32()
+        if not advapi32.ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl, 1, ctypes.byref(descriptor), ctypes.byref(descriptor_size)
+        ):
+            raise OSError(ctypes.get_last_error())
+        if not advapi32.SetFileSecurityW(
+            str(path), 0x00000004 | 0x80000000, descriptor
+        ):
+            raise OSError(ctypes.get_last_error())
+        observed_size = ctypes.c_uint32()
+        advapi32.GetFileSecurityW(
+            str(path), 0x00000004, None, 0, ctypes.byref(observed_size)
+        )
+        observed = ctypes.create_string_buffer(observed_size.value)
+        if not advapi32.GetFileSecurityW(
+            str(path),
+            0x00000004,
+            observed,
+            observed_size.value,
+            ctypes.byref(observed_size),
+        ):
+            raise OSError(ctypes.get_last_error())
+        rendered_size = ctypes.c_uint32()
+        if not advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            observed,
+            1,
+            0x00000004,
+            ctypes.byref(rendered),
+            ctypes.byref(rendered_size),
+        ):
+            raise OSError(ctypes.get_last_error())
+        observed_sddl = rendered.value or ""
+        if (
+            not observed_sddl.startswith("D:P")
+            or observed_sddl.count("(") != 1
+            or expected_ace not in observed_sddl
+        ):
+            raise RouteV2Error("current-user-only ACL verification failed")
+    except (OSError, ValueError) as exc:
+        raise RouteV2Error("current-user-only ACL verification failed") from exc
+    finally:
+        if token.value:
+            kernel32.CloseHandle(token)
+        if sid_text:
+            kernel32.LocalFree(sid_text)
+        if descriptor.value:
+            kernel32.LocalFree(descriptor)
+        if rendered:
+            kernel32.LocalFree(rendered)
+
+
+def _verify_current_user_only(path: Path, container: bool) -> None:
+    if os.name != "nt":
+        observed = stat.S_IMODE(path.stat().st_mode)
+        if observed & 0o077:
+            raise RouteV2Error("current-user-only ACL verification failed")
+        return
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    token = ctypes.c_void_p()
+    sid_text = ctypes.c_wchar_p()
+    rendered = ctypes.c_wchar_p()
+    try:
+        advapi32.OpenProcessToken.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        advapi32.OpenProcessToken.restype = ctypes.c_int
+        advapi32.GetTokenInformation.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.GetTokenInformation.restype = ctypes.c_int
+        advapi32.ConvertSidToStringSidW.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_wchar_p),
+        ]
+        advapi32.ConvertSidToStringSidW.restype = ctypes.c_int
+        advapi32.GetFileSecurityW.argtypes = [
+            ctypes.c_wchar_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.GetFileSecurityW.restype = ctypes.c_int
+        advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_wchar_p),
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype = (
+            ctypes.c_int
+        )
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.restype = ctypes.c_void_p
+        if not advapi32.OpenProcessToken(
+            kernel32.GetCurrentProcess(), 0x0008, ctypes.byref(token)
+        ):
+            raise OSError(ctypes.get_last_error())
+        required = ctypes.c_uint32()
+        advapi32.GetTokenInformation(token, 1, None, 0, ctypes.byref(required))
+        token_buffer = ctypes.create_string_buffer(required.value)
+        if not advapi32.GetTokenInformation(
+            token, 1, token_buffer, required.value, ctypes.byref(required)
+        ):
+            raise OSError(ctypes.get_last_error())
+        sid_pointer = ctypes.cast(token_buffer, ctypes.POINTER(ctypes.c_void_p))[0]
+        if not advapi32.ConvertSidToStringSidW(sid_pointer, ctypes.byref(sid_text)):
+            raise OSError(ctypes.get_last_error())
+        inheritance = "OICI" if container else ""
+        expected_ace = f"(A;{inheritance};FA;;;{sid_text.value})"
+        observed_size = ctypes.c_uint32()
+        advapi32.GetFileSecurityW(
+            str(path), 0x00000004, None, 0, ctypes.byref(observed_size)
+        )
+        observed = ctypes.create_string_buffer(observed_size.value)
+        if not advapi32.GetFileSecurityW(
+            str(path),
+            0x00000004,
+            observed,
+            observed_size.value,
+            ctypes.byref(observed_size),
+        ):
+            raise OSError(ctypes.get_last_error())
+        rendered_size = ctypes.c_uint32()
+        if not advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            observed,
+            1,
+            0x00000004,
+            ctypes.byref(rendered),
+            ctypes.byref(rendered_size),
+        ):
+            raise OSError(ctypes.get_last_error())
+        observed_sddl = rendered.value or ""
+        if (
+            not observed_sddl.startswith("D:P")
+            or observed_sddl.count("(") != 1
+            or expected_ace not in observed_sddl
+        ):
+            raise RouteV2Error("current-user-only ACL verification failed")
+    except (OSError, ValueError) as exc:
+        raise RouteV2Error("current-user-only ACL verification failed") from exc
+    finally:
+        if token.value:
+            kernel32.CloseHandle(token)
+        if sid_text:
+            kernel32.LocalFree(sid_text)
+        if rendered:
+            kernel32.LocalFree(rendered)
+
+
+def _validate_run_id(run_id: object) -> str:
+    if not isinstance(run_id, str) or RUN_ID_RE.fullmatch(run_id) is None:
+        raise RouteV2Error("run identity is invalid")
+    return run_id
+
+
+def _validate_authorization(value: object) -> str:
+    if value != AUTHORIZATION:
+        raise RouteV2Error("authorization is invalid")
+    return AUTHORIZATION
+
+
+def _validate_artifacts(value: Mapping[str, bytes]) -> dict[str, bytes]:
+    if not isinstance(value, Mapping):
+        raise RouteV2Error("workspace artifact map is invalid")
+    result: dict[str, bytes] = {}
+    for key, payload in value.items():
+        if not isinstance(key, str) or ARTIFACT_ID_RE.fullmatch(key) is None:
+            raise RouteV2Error("workspace artifact identity is invalid")
+        if not isinstance(payload, bytes):
+            raise RouteV2Error("workspace artifact payload is invalid")
+        result[key] = payload
+    return dict(sorted(result.items()))
+
+
+def _artifact_projection(value: Mapping[str, bytes]) -> list[dict[str, object]]:
+    return [
+        {"artifact_id": key, "bytes": len(payload), "sha256": _sha256_bytes(payload)}
+        for key, payload in sorted(value.items())
+    ]
+
+
+def _validate_projection(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list):
+        raise RouteV2Error("workspace projection is invalid")
+    normalized: list[dict[str, object]] = []
+    for item in value:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"artifact_id", "bytes", "sha256"}
+            or not isinstance(item.get("artifact_id"), str)
+            or ARTIFACT_ID_RE.fullmatch(item["artifact_id"]) is None
+            or type(item.get("bytes")) is not int
+            or item["bytes"] < 0
+            or not isinstance(item.get("sha256"), str)
+            or SHA256_RE.fullmatch(item["sha256"]) is None
+        ):
+            raise RouteV2Error("workspace projection is invalid")
+        normalized.append(dict(item))
+    if normalized != sorted(normalized, key=lambda item: str(item["artifact_id"])):
+        raise RouteV2Error("workspace projection is not canonical")
+    if len({item["artifact_id"] for item in normalized}) != len(normalized):
+        raise RouteV2Error("workspace projection repeats an artifact")
+    return normalized
+
+
+def action_bytes(
+    *,
+    run_id: str,
+    prompt: bytes,
+    output_schema: dict[str, Any],
+    expected_workspace: Mapping[str, bytes],
+) -> bytes:
+    run_id = _validate_run_id(run_id)
+    if not isinstance(prompt, bytes):
+        raise RouteV2Error("prompt bytes are invalid")
+    schema = _validate_schema_definition(output_schema)
+    expected = _validate_artifacts(expected_workspace)
+    return _json_bytes(
+        {
+            "authorization": AUTHORIZATION,
+            "expected_workspace": _artifact_projection(expected),
+            "output_schema": schema,
+            "prompt_sha256": _sha256_bytes(prompt),
+            "run_id": run_id,
+            "schema": ACTION_SCHEMA,
+        }
+    )
+
+
+def _validate_schema_definition(schema: object) -> dict[str, Any]:
+    if not isinstance(schema, dict):
+        raise RouteV2Error("output schema is invalid")
+    allowed = {"additionalProperties", "properties", "required", "type"}
+    if set(schema) - allowed or schema.get("type") != "object":
+        raise RouteV2Error("output schema is invalid")
+    properties = schema.get("properties")
+    required = schema.get("required")
+    if not isinstance(properties, dict) or not isinstance(required, list):
+        raise RouteV2Error("output schema is invalid")
+    if schema.get("additionalProperties") is not False:
+        raise RouteV2Error("output schema is invalid")
+    if any(not isinstance(name, str) for name in required) or set(required) - set(
+        properties
+    ):
+        raise RouteV2Error("output schema is invalid")
+    for name, rule in properties.items():
+        if not isinstance(name, str) or not isinstance(rule, dict):
+            raise RouteV2Error("output schema is invalid")
+        if set(rule) - {"enum", "type"} or rule.get("type") not in {
+            "boolean",
+            "integer",
+            "number",
+            "string",
+        }:
+            raise RouteV2Error("output schema is invalid")
+        if "enum" in rule and not isinstance(rule["enum"], list):
+            raise RouteV2Error("output schema is invalid")
+    return schema
+
+
+def _matches_schema(value: object, schema: dict[str, Any]) -> bool:
+    if not isinstance(value, dict):
+        return False
+    properties = schema["properties"]
+    if set(schema["required"]) - set(value):
+        return False
+    if set(value) - set(properties):
+        return False
+    type_map: dict[str, type | tuple[type, ...]] = {
+        "boolean": bool,
+        "integer": int,
+        "number": (int, float),
+        "string": str,
+    }
+    for name, item in value.items():
+        expected = properties[name]["type"]
+        if expected == "integer" and isinstance(item, bool):
+            return False
+        if expected == "number" and isinstance(item, bool):
+            return False
+        if not isinstance(item, type_map[expected]):
+            return False
+        if "enum" in properties[name] and item not in properties[name]["enum"]:
+            return False
+    return True
+
+
+def _validate_result(value: object) -> SyntheticResult:
+    if not isinstance(value, SyntheticResult):
+        raise RouteV2Error("synthetic runner result is invalid")
+    if type(value.exit_code) is not int:
+        raise RouteV2Error("synthetic runner result is invalid")
+    exit_classification = value.exit_classification or (
+        "zero" if value.exit_code == 0 else "nonzero"
+    )
+    if exit_classification not in {"zero", "nonzero", "signal_or_termination"}:
+        raise RouteV2Error("synthetic runner result is invalid")
+    if (
+        (exit_classification == "zero" and value.exit_code != 0)
+        or (exit_classification == "nonzero" and value.exit_code == 0)
+        or (exit_classification == "signal_or_termination" and value.exit_code >= 0)
+    ):
+        raise RouteV2Error("synthetic runner result is invalid")
+    stdout_capture = value.stdout_capture or "captured"
+    if stdout_capture not in {"captured", "capture_failed"} or (
+        (stdout_capture == "captured" and not isinstance(value.stdout, bytes))
+        or (stdout_capture == "capture_failed" and value.stdout is not None)
+    ):
+        raise RouteV2Error("synthetic runner result is invalid")
+    final_capture = value.final_capture or (
+        "absent" if value.final_message is None else "captured"
+    )
+    if final_capture not in {"captured", "absent", "read_failed"} or (
+        (final_capture == "captured" and not isinstance(value.final_message, bytes))
+        or (final_capture != "captured" and value.final_message is not None)
+    ):
+        raise RouteV2Error("synthetic runner result is invalid")
+    workspace_capture = value.workspace_capture or "captured"
+    if workspace_capture not in {"captured", "capture_failed"} or (
+        (workspace_capture == "captured" and not isinstance(value.workspace, Mapping))
+        or (workspace_capture == "capture_failed" and value.workspace is not None)
+    ):
+        raise RouteV2Error("synthetic runner result is invalid")
+    return SyntheticResult(
+        exit_code=value.exit_code,
+        stdout=value.stdout,
+        final_message=value.final_message,
+        workspace=(
+            _validate_artifacts(value.workspace)
+            if workspace_capture == "captured"
+            else None
+        ),
+        exit_classification=exit_classification,
+        stdout_capture=stdout_capture,
+        final_capture=final_capture,
+        workspace_capture=workspace_capture,
+    )
+
+
+def _attestation(
+    result: SyntheticResult | None, output_schema: dict[str, Any]
+) -> tuple[dict[str, Any], bool, bool]:
+    if result is None:
+        return (
+            {
+                "exit_classification": "unavailable",
+                "final_message": {"status": "absent"},
+                "final_schema_validation": "not_attempted",
+                "schema": ATTESTATION_SCHEMA,
+                "schema_sha256": _sha256_bytes(_json_bytes(output_schema)),
+                "stdout": {"status": "absent", "validation": "not_attempted"},
+                "validator_sha256": _implementation_sha256(),
+                "workspace_capture": "not_attempted",
+            },
+            False,
+            False,
+        )
+    if result.stdout_capture == "capture_failed":
+        stdout_identity: dict[str, object] = {
+            "status": "capture_failed",
+            "validation": "not_attempted",
+        }
+        stdout_valid = False
+    else:
+        assert result.stdout is not None
+        lines = result.stdout.splitlines()
+        stdout_values: list[object] = []
+        stdout_valid = bool(lines)
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                stdout_values.append(json.loads(line))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                stdout_valid = False
+        stdout_valid = stdout_valid and bool(stdout_values) and len(stdout_values) == len(
+            [line for line in lines if line.strip()]
+        )
+        stdout_status = "empty" if not result.stdout else "nonempty"
+        stdout_identity = {
+            "bytes": len(result.stdout),
+            "json_value_count": len(stdout_values),
+            "sha256": _sha256_bytes(result.stdout),
+            "status": stdout_status,
+            "validation": "PASS" if stdout_valid else "FAIL",
+        }
+    final_status = "absent"
+    final_valid = False
+    final_identity: dict[str, object] = {"status": final_status}
+    final_validation = "not_attempted"
+    if result.final_capture == "read_failed":
+        final_status = "read_failed"
+        final_identity = {"status": final_status}
+    elif result.final_message is not None:
+        final_status = "empty" if not result.final_message else "nonempty"
+        final_identity = {
+            "bytes": len(result.final_message),
+            "sha256": _sha256_bytes(result.final_message),
+            "status": final_status,
+        }
+        try:
+            final_value = json.loads(result.final_message.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            final_value = None
+        final_valid = _matches_schema(final_value, output_schema)
+        final_validation = "PASS" if final_valid else "FAIL"
+
+    attestation = {
+        "exit_classification": result.exit_classification,
+        "final_message": final_identity,
+        "final_schema_validation": final_validation,
+        "schema": ATTESTATION_SCHEMA,
+        "schema_sha256": _sha256_bytes(_json_bytes(output_schema)),
+        "stdout": stdout_identity,
+        "validator_sha256": _implementation_sha256(),
+        "workspace_capture": (
+            "PASS" if result.workspace_capture == "captured" else "FAIL"
+        ),
+    }
+    return attestation, stdout_valid, final_valid
+
+
+def _faulting_publisher(
+    plan: FaultPlan, delegate: Publisher, *, public: bool
+) -> Publisher:
+    def publish(path: Path, payload: bytes) -> None:
+        if path.name in plan.publication_failures:
+            raise PublicationError(f"injected publication failure: {path.name}")
+        if public:
+            if path.name in plan.privacy_failures:
+                raise PublicPrivacyError(
+                    f"injected public privacy failure: {path.name}"
+                )
+            _validate_public_payload(payload)
+        delegate(path, payload)
+
+    return publish
+
+
+def _faulting_cleaner(plan: FaultPlan) -> Cleaner:
+    remaining = plan.cleanup_failures
+
+    def clean(path: Path) -> bool:
+        nonlocal remaining
+        if remaining:
+            remaining -= 1
+            return False
+        shutil.rmtree(path, ignore_errors=False) if path.exists() else None
+        return not path.exists()
+
+    return clean
+
+
+def _attempt_cleanup(clean: Cleaner, path: Path) -> bool:
+    try:
+        reported = clean(path)
+    except Exception:
+        return False
+    return reported is True and not path.exists()
+
+
+def _faulting_remover(plan: FaultPlan) -> LocatorRemover:
+    remaining = plan.locator_removal_failures
+
+    def remove(path: Path) -> None:
+        nonlocal remaining
+        if remaining and (path.exists() or path.parent.exists()):
+            remaining -= 1
+            raise RouteV2Error("locator removal failed")
+        if path.exists():
+            path.unlink()
+        if path.parent.exists():
+            path.parent.rmdir()
+
+    return remove
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _assert_distinct_roots(
+    output_root: Path, private_root: Path, locator: Path, external_path: Path
+) -> None:
+    resolved = [
+        output_root.resolve(),
+        private_root.resolve(),
+        locator.resolve(),
+        external_path.resolve(),
+    ]
+    if len(set(resolved)) != 4:
+        raise RouteV2Error("route roots overlap")
+    if _is_within(output_root, private_root) or _is_within(private_root, output_root):
+        raise RouteV2Error("public or recovery artifact is inside cleanup target")
+    if _is_within(locator, private_root) or _is_within(external_path, private_root):
+        raise RouteV2Error("public or recovery artifact is inside cleanup target")
+    if _is_within(locator, output_root) or _is_within(external_path, output_root):
+        raise RouteV2Error("recovery artifact is inside route output")
+
+
+def _locator_value(run_id: str, private_root: Path) -> dict[str, str]:
+    return {
+        "authorization": AUTHORIZATION,
+        "cleanup_target": str(private_root.resolve()),
+        "run_id": run_id,
+        "schema": LOCATOR_SCHEMA,
+    }
+
+
+def _trusted_roots(
+    run_id: str, override: Path | None = None
+) -> tuple[Path, Path, Path, Path]:
+    root = (TRUSTED_ROUTE_ROOT if override is None else override).resolve()
+    return (
+        root / "public" / run_id,
+        root / "private" / f"gate3-v2-{run_id}",
+        root / "locators" / run_id / "locator.json",
+        root / "external" / f"{run_id}.terminal.json",
+    )
+
+
+def _validate_trusted_roots(
+    *,
+    output_root: Path,
+    locator: Path,
+    external_path: Path,
+    run_id: str,
+    override: Path | None,
+) -> Path:
+    expected_output, private_root, expected_locator, expected_external = _trusted_roots(
+        run_id, override
+    )
+    if (
+        output_root.resolve() != expected_output
+        or locator.resolve() != expected_locator
+        or external_path.resolve() != expected_external
+    ):
+        raise RouteV2Error("route path differs from trusted layout")
+    return private_root
+
+
+def _locator_path(locator_root: Path, run_id: str) -> Path:
+    return locator_root.resolve() / run_id / "locator.json"
+
+
+def _locator_residue(locator: Path) -> bool:
+    return locator.exists() or locator.parent.exists()
+
+
+def _validate_locator(
+    path: Path,
+    run_id: str,
+    private_root: Path,
+    acl_verify: AclProtector = _verify_current_user_only,
+) -> None:
+    acl_verify(path.parent, True)
+    acl_verify(path, False)
+    value = _load_object(path)
+    if value != _locator_value(run_id, private_root) or path.read_bytes() != _json_bytes(
+        value
+    ):
+        raise RouteV2Error("recovery locator identity is invalid")
+
+
+def _external_terminal(
+    *, run_id: str, stage: str, cleanup: str, locator_absent: bool
+) -> dict[str, object]:
+    return {
+        "admissible_route_result": False,
+        "authorization": AUTHORIZATION,
+        "cleanup": cleanup,
+        "locator_absent": locator_absent,
+        "run_id": run_id,
+        "schema": EXTERNAL_SCHEMA,
+        "terminal": stage,
+    }
+
+
+def _validate_external_value(value: dict[str, Any], run_id: str) -> None:
+    if (
+        set(value)
+        != {
+            "admissible_route_result",
+            "authorization",
+            "cleanup",
+            "locator_absent",
+            "run_id",
+            "schema",
+            "terminal",
+        }
+        or value.get("schema") != EXTERNAL_SCHEMA
+        or value.get("run_id") != run_id
+        or value.get("authorization") != AUTHORIZATION
+        or value.get("admissible_route_result") is not False
+        or value.get("cleanup") != "PASS"
+        or type(value.get("locator_absent")) is not bool
+        or value.get("terminal") not in TERMINAL_STAGES
+        or value.get("locator_absent")
+        is not (value.get("terminal") in LOCATOR_ABSENT_TERMINALS)
+    ):
+        raise RouteV2Error("external terminal is invalid")
+
+
+def _publish_external_closeout(
+    external_path: Path,
+    *,
+    output_root: Path,
+    run_id: str,
+    stage: str,
+    cleanup_passed: bool,
+    locator: Path,
+    publish: Publisher,
+    remove_locator: LocatorRemover,
+) -> None:
+    if not cleanup_passed:
+        return
+    if output_root.exists():
+        shutil.rmtree(output_root, ignore_errors=False)
+    if output_root.exists():
+        raise RouteV2Error("partial route artifact residue remains")
+    value = _external_terminal(
+        run_id=run_id,
+        stage=stage,
+        cleanup="PASS",
+        locator_absent=not _locator_residue(locator),
+    )
+    publish(external_path, _json_bytes(value))
+    remove_locator(locator)
+    if _locator_residue(locator):
+        raise RouteV2Error("recovery locator residue remains")
+    # The record intentionally says the locator existed at publication time.
+    # Its absence is established independently by the reconciler/verifier.
+
+
+def _load_recovery_chain(
+    output_root: Path, run_id: str
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    attestation_path = output_root / "attestation.json"
+    packet_path = output_root / "packet.json"
+    seal_path = output_root / "seal.json"
+    if not all(path.is_file() for path in (attestation_path, packet_path, seal_path)):
+        raise RouteV2Error("recovery chain is incomplete")
+    packet = _load_object(packet_path)
+    seal = _load_object(seal_path)
+    if (
+        packet.get("schema") != PACKET_SCHEMA
+        or packet.get("run_id") != run_id
+        or type(packet.get("eligible_success")) is not bool
+        or set(seal)
+        != {
+            "attestation_sha256",
+            "cleanup",
+            "decision",
+            "observations",
+            "packet_sha256",
+            "run_id",
+            "schema",
+        }
+        or seal.get("schema") != SEAL_SCHEMA
+        or seal.get("run_id") != run_id
+        or seal.get("cleanup") != "PENDING"
+        or seal.get("decision") != "PENDING"
+        or not isinstance(seal.get("observations"), dict)
+        or seal.get("attestation_sha256") != _sha256_file(attestation_path)
+        or seal.get("packet_sha256") != _sha256_file(packet_path)
+    ):
+        raise RouteV2Error("recovery chain identity is invalid")
+    return packet, seal
+
+
+def _validate_recovery_final(output_root: Path, run_id: str) -> str:
+    packet, seal = _load_recovery_chain(output_root, run_id)
+    final = _load_object(output_root / "final.json")
+    expected_decision = (
+        "SUCCESS"
+        if packet["eligible_success"]
+        and final.get("cleanup") == "PASS"
+        and final.get("recovery") == "none"
+        else "FAILURE"
+    )
+    if (
+        set(final)
+        != {
+            "cleanup",
+            "decision",
+            "locator_required",
+            "packet_sha256",
+            "recovery",
+            "run_id",
+            "schema",
+            "seal_sha256",
+        }
+        or final.get("schema") != FINAL_SCHEMA
+        or final.get("run_id") != run_id
+        or final.get("packet_sha256") != _sha256_bytes(_json_bytes(packet))
+        or final.get("seal_sha256") != _sha256_bytes(_json_bytes(seal))
+        or final.get("cleanup") not in {"PASS", "FAIL"}
+        or final.get("recovery") not in {"none", "interrupted_after_seal"}
+        or final.get("decision") != expected_decision
+        or final.get("locator_required") is not (final.get("cleanup") == "FAIL")
+    ):
+        raise RouteV2Error("recovery final identity is invalid")
+    return expected_decision
+
+
+def orchestrate(
+    output_root: Path,
+    *,
+    locator_root: Path,
+    external_root: Path,
+    run_id: str,
+    authorization: str,
+    prompt: bytes,
+    output_schema: dict[str, Any],
+    expected_workspace: Mapping[str, bytes],
+    runner: Runner,
+    fault_plan: FaultPlan | None = None,
+    _publisher: Publisher = _publish_create_once,
+    _acl: AclProtector = _current_user_only,
+    _acl_verify: AclProtector = _verify_current_user_only,
+    _trusted_route_root: Path | None = None,
+) -> RouteResult:
+    run_id = _validate_run_id(run_id)
+    _validate_authorization(authorization)
+    if not isinstance(prompt, bytes):
+        raise RouteV2Error("prompt bytes are invalid")
+    schema = _validate_schema_definition(output_schema)
+    expected = _validate_artifacts(expected_workspace)
+    plan = fault_plan or FaultPlan()
+    publish = _faulting_publisher(plan, _publisher, public=True)
+    publish_private = _faulting_publisher(plan, _publisher, public=False)
+    clean = _faulting_cleaner(plan)
+    remove_locator = _faulting_remover(plan)
+
+    output_root = output_root.resolve()
+    locator = _locator_path(locator_root, run_id)
+    external_path = (external_root.resolve() / f"{run_id}.terminal.json").resolve()
+    private_root = _validate_trusted_roots(
+        output_root=output_root,
+        locator=locator,
+        external_path=external_path,
+        run_id=run_id,
+        override=_trusted_route_root,
+    )
+    _assert_distinct_roots(output_root, private_root, locator, external_path)
+    if (
+        output_root.exists()
+        or private_root.exists()
+        or locator.parent.exists()
+        or external_path.exists()
+    ):
+        raise RouteV2Error("route output collision")
+    output_root.mkdir(parents=True)
+    external_path.parent.mkdir(parents=True, exist_ok=True)
+
+    action_payload = action_bytes(
+        run_id=run_id,
+        prompt=prompt,
+        output_schema=schema,
+        expected_workspace=expected,
+    )
+    action = json.loads(action_payload)
+    try:
+        publish(output_root / "action.json", action_payload)
+    except BaseException as exc:
+        _publish_external_closeout(
+            external_path,
+            output_root=output_root,
+            run_id=run_id,
+            stage="action_publication_failure",
+            cleanup_passed=True,
+            locator=locator,
+            publish=publish,
+            remove_locator=lambda _: None,
+        )
+        raise RouteV2Error("action publication failed before invocation") from exc
+
+    runner_calls = 0
+    try:
+        locator.parent.mkdir(parents=True)
+        _acl(locator.parent, True)
+        publish_private(locator, _json_bytes(_locator_value(run_id, private_root)))
+        _acl(locator, False)
+        _validate_locator(locator, run_id, private_root, _acl_verify)
+    except BaseException:
+        try:
+            if _locator_residue(locator):
+                remove_locator(locator)
+        finally:
+            if _locator_residue(locator):
+                raise RouteV2Error("partial locator residue remains")
+        _publish_external_closeout(
+            external_path,
+            output_root=output_root,
+            run_id=run_id,
+            stage="locator_prelaunch_failure",
+            cleanup_passed=True,
+            locator=locator,
+            publish=publish,
+            remove_locator=lambda _: None,
+        )
+        raise RouteV2Error("locator prelaunch validation failed")
+
+    stage = "private_acl"
+    seal_path = output_root / "seal.json"
+    final_path = output_root / "final.json"
+    try:
+        private_root.mkdir(parents=True)
+        _acl(private_root, True)
+        stage = "runner"
+        runner_calls += 1
+        try:
+            result = _validate_result(runner())
+        except Exception:
+            result = None
+        if runner_calls != 1:
+            raise RouteV2Error("synthetic runner invocation count is invalid")
+        if plan.crash_after == "runner":
+            raise SyntheticCrash("injected crash after runner")
+
+        if result is not None:
+            if result.stdout_capture == "captured":
+                assert result.stdout is not None
+                stdout_path = private_root / "stdout.ndjson"
+                stdout_path.write_bytes(result.stdout)
+                _acl(stdout_path, False)
+            if result.final_capture == "captured":
+                assert result.final_message is not None
+                final_private = private_root / "final-message.json"
+                final_private.write_bytes(result.final_message)
+                _acl(final_private, False)
+
+        stage = "attestation"
+        attestation, stdout_valid, final_valid = _attestation(result, schema)
+        publish(output_root / "attestation.json", _json_bytes(attestation))
+        if plan.crash_after == "attestation":
+            raise SyntheticCrash("injected crash after attestation")
+
+        stage = "packet"
+        workspace_captured = (
+            result is not None and result.workspace_capture == "captured"
+        )
+        observed = (
+            _artifact_projection(result.workspace)
+            if workspace_captured and result is not None and result.workspace is not None
+            else []
+        )
+        workspace_match = workspace_captured and observed == action["expected_workspace"]
+        packet = {
+            "action_sha256": _sha256_bytes(_json_bytes(action)),
+            "attestation_sha256": _sha256_bytes(_json_bytes(attestation)),
+            "checks": {
+                "exit_zero": result is not None
+                and result.exit_classification == "zero",
+                "final_schema": final_valid,
+                "stdout_ndjson": stdout_valid,
+                "workspace_matches_expected": workspace_match,
+            },
+            "eligible_success": all(
+                (
+                    result is not None and result.exit_classification == "zero",
+                    final_valid,
+                    stdout_valid,
+                    workspace_match,
+                )
+            ),
+            "observed_workspace": observed,
+            "run_id": run_id,
+            "schema": PACKET_SCHEMA,
+        }
+        publish(output_root / "packet.json", _json_bytes(packet))
+
+        stage = "seal"
+        seal = {
+            "attestation_sha256": packet["attestation_sha256"],
+            "cleanup": "PENDING",
+            "decision": "PENDING",
+            "observations": {
+                "exit_classification": attestation["exit_classification"],
+                "final_message": attestation["final_message"]["status"],
+                "final_schema": attestation["final_schema_validation"],
+                "packet_assembly": "PASS",
+                "process_launch": "attempted",
+                "stdout_capture": attestation["stdout"]["status"],
+                "stdout_ndjson": attestation["stdout"]["validation"],
+                "workspace_capture": (
+                    attestation["workspace_capture"]
+                ),
+                "workspace_validation": (
+                    "PASS"
+                    if workspace_match
+                    else "FAIL"
+                    if workspace_captured
+                    else "not_attempted"
+                ),
+            },
+            "packet_sha256": _sha256_bytes(_json_bytes(packet)),
+            "run_id": run_id,
+            "schema": SEAL_SCHEMA,
+        }
+        publish(seal_path, _json_bytes(seal))
+        if plan.crash_after == "seal":
+            raise SyntheticCrash("injected crash after seal")
+    except SyntheticCrash:
+        raise
+    except BaseException as exc:
+        cleanup_passed = _attempt_cleanup(clean, private_root)
+        _publish_external_closeout(
+            external_path,
+            output_root=output_root,
+            run_id=run_id,
+            stage=f"preseal_{stage}_failure",
+            cleanup_passed=cleanup_passed,
+            locator=locator,
+            publish=publish,
+            remove_locator=remove_locator,
+        )
+        raise RouteV2Error(f"synthetic route failed before seal: {stage}") from exc
+
+    cleanup_passed = _attempt_cleanup(clean, private_root)
+    if plan.crash_after == "cleanup":
+        raise SyntheticCrash("injected crash after cleanup")
+    decision = "SUCCESS" if packet["eligible_success"] and cleanup_passed else "FAILURE"
+    final = {
+        "cleanup": "PASS" if cleanup_passed else "FAIL",
+        "decision": decision,
+        "locator_required": not cleanup_passed,
+        "packet_sha256": seal["packet_sha256"],
+        "recovery": "none",
+        "run_id": run_id,
+        "schema": FINAL_SCHEMA,
+        "seal_sha256": _sha256_bytes(_json_bytes(seal)),
+    }
+    try:
+        publish(final_path, _json_bytes(final))
+    except BaseException as exc:
+        _publish_external_closeout(
+            external_path,
+            output_root=output_root,
+            run_id=run_id,
+            stage="final_publication_failure",
+            cleanup_passed=cleanup_passed,
+            locator=locator,
+            publish=publish,
+            remove_locator=remove_locator,
+        )
+        raise RouteV2Error("final receipt publication failed") from exc
+
+    if cleanup_passed:
+        remove_locator(locator)
+        if _locator_residue(locator):
+            raise RouteV2Error("recovery locator residue remains")
+
+    return RouteResult(
+        output_root=output_root,
+        locator=locator,
+        final_receipt=final_path,
+        external_terminal=None,
+        decision=decision,
+    )
+
+
+def reconcile(
+    output_root: Path,
+    *,
+    locator_root: Path,
+    external_root: Path,
+    run_id: str,
+    authorization: str,
+    fault_plan: FaultPlan | None = None,
+    _publisher: Publisher = _publish_create_once,
+    _acl_verify: AclProtector = _verify_current_user_only,
+    _trusted_route_root: Path | None = None,
+) -> RouteResult:
+    run_id = _validate_run_id(run_id)
+    _validate_authorization(authorization)
+    plan = fault_plan or FaultPlan()
+    publish = _faulting_publisher(plan, _publisher, public=True)
+    clean = _faulting_cleaner(plan)
+    remove_locator = _faulting_remover(plan)
+    output_root = output_root.resolve()
+    locator = _locator_path(locator_root, run_id)
+    external_path = (external_root.resolve() / f"{run_id}.terminal.json").resolve()
+    private_root = _validate_trusted_roots(
+        output_root=output_root,
+        locator=locator,
+        external_path=external_path,
+        run_id=run_id,
+        override=_trusted_route_root,
+    )
+    _assert_distinct_roots(output_root, private_root, locator, external_path)
+    if not locator.exists():
+        raise RouteV2Error("recovery locator is absent")
+    _validate_locator(locator, run_id, private_root, _acl_verify)
+    cleanup_passed = _attempt_cleanup(clean, private_root)
+    if not cleanup_passed:
+        raise RouteV2Error("recovery cleanup failed")
+
+    final_path = output_root / "final.json"
+    seal_path = output_root / "seal.json"
+    if external_path.exists():
+        terminal = _load_object(external_path)
+        _validate_external_value(terminal, run_id)
+        remove_locator(locator)
+        if _locator_residue(locator):
+            raise RouteV2Error("recovery locator residue remains")
+        return RouteResult(output_root, locator, None, external_path, "NO_ADMISSIBLE")
+
+    if final_path.exists():
+        decision = _validate_recovery_final(output_root, run_id)
+        remove_locator(locator)
+        if _locator_residue(locator):
+            raise RouteV2Error("recovery locator residue remains")
+        return RouteResult(output_root, locator, final_path, None, str(decision))
+
+    if seal_path.exists():
+        _, seal = _load_recovery_chain(output_root, run_id)
+        final = {
+            "cleanup": "PASS",
+            "decision": "FAILURE",
+            "locator_required": False,
+            "packet_sha256": seal.get("packet_sha256"),
+            "recovery": "interrupted_after_seal",
+            "run_id": run_id,
+            "schema": FINAL_SCHEMA,
+            "seal_sha256": _sha256_file(seal_path),
+        }
+        try:
+            publish(final_path, _json_bytes(final))
+        except BaseException:
+            _publish_external_closeout(
+                external_path,
+                output_root=output_root,
+                run_id=run_id,
+                stage="final_publication_exhausted",
+                cleanup_passed=True,
+                locator=locator,
+                publish=publish,
+                remove_locator=remove_locator,
+            )
+            return RouteResult(output_root, locator, None, external_path, "NO_ADMISSIBLE")
+        remove_locator(locator)
+        if _locator_residue(locator):
+            raise RouteV2Error("recovery locator residue remains")
+        return RouteResult(output_root, locator, final_path, None, "FAILURE")
+
+    _publish_external_closeout(
+        external_path,
+        output_root=output_root,
+        run_id=run_id,
+        stage="orphan_without_seal",
+        cleanup_passed=True,
+        locator=locator,
+        publish=publish,
+        remove_locator=remove_locator,
+    )
+    return RouteResult(output_root, locator, None, external_path, "NO_ADMISSIBLE")
+
+
+def verify(
+    output_root: Path,
+    *,
+    locator_root: Path,
+    external_root: Path,
+    run_id: str,
+    expected_action_sha256: str,
+    expected_final_sha256: str,
+    _trusted_route_root: Path | None = None,
+) -> dict[str, Any]:
+    run_id = _validate_run_id(run_id)
+    if SHA256_RE.fullmatch(expected_action_sha256) is None:
+        raise RouteV2Error("expected action identity is invalid")
+    if SHA256_RE.fullmatch(expected_final_sha256) is None:
+        raise RouteV2Error("expected final identity is invalid")
+    output_root = output_root.resolve()
+    locator = _locator_path(locator_root, run_id)
+    external_path = external_root.resolve() / f"{run_id}.terminal.json"
+    private_root = _validate_trusted_roots(
+        output_root=output_root,
+        locator=locator,
+        external_path=external_path,
+        run_id=run_id,
+        override=_trusted_route_root,
+    )
+    if _locator_residue(locator):
+        raise RouteV2Error("recovery locator still exists")
+    if external_path.exists():
+        raise RouteV2Error("same-run external terminal exists")
+    if private_root.exists():
+        raise RouteV2Error("private cleanup target still exists")
+    paths = {
+        name: output_root / f"{name}.json"
+        for name in ("action", "attestation", "packet", "seal", "final")
+    }
+    if any(not path.is_file() for path in paths.values()):
+        raise RouteV2Error("route artifact set is incomplete")
+    if _sha256_file(paths["final"]) != expected_final_sha256:
+        raise RouteV2Error("final receipt differs from pinned identity")
+    action = _load_object(paths["action"])
+    attestation = _load_object(paths["attestation"])
+    packet = _load_object(paths["packet"])
+    seal = _load_object(paths["seal"])
+    final = _load_object(paths["final"])
+    if _sha256_file(paths["action"]) != expected_action_sha256:
+        raise RouteV2Error("action differs from pinned identity")
+    if set(action) != {
+        "authorization",
+        "expected_workspace",
+        "output_schema",
+        "prompt_sha256",
+        "run_id",
+        "schema",
+    } or (
+        action.get("schema") != ACTION_SCHEMA
+        or action.get("run_id") != run_id
+        or action.get("authorization") != AUTHORIZATION
+        or SHA256_RE.fullmatch(str(action.get("prompt_sha256"))) is None
+    ):
+        raise RouteV2Error("action identity is invalid")
+    _validate_schema_definition(action.get("output_schema"))
+    _validate_projection(action.get("expected_workspace"))
+    if set(attestation) != {
+        "exit_classification",
+        "final_message",
+        "final_schema_validation",
+        "schema",
+        "schema_sha256",
+        "stdout",
+        "validator_sha256",
+        "workspace_capture",
+    } or (
+        attestation.get("schema") != ATTESTATION_SCHEMA
+        or attestation.get("schema_sha256")
+        != _sha256_bytes(_json_bytes(action["output_schema"]))
+        or attestation.get("validator_sha256") != _implementation_sha256()
+        or attestation.get("final_schema_validation")
+        not in {"PASS", "FAIL", "not_attempted"}
+        or attestation.get("exit_classification")
+        not in {"zero", "nonzero", "signal_or_termination", "unavailable"}
+        or attestation.get("workspace_capture") not in {"PASS", "FAIL", "not_attempted"}
+    ):
+        raise RouteV2Error("attestation identity is invalid")
+    stdout_attestation = attestation.get("stdout")
+    final_attestation = attestation.get("final_message")
+    if (
+        not isinstance(stdout_attestation, dict)
+        or stdout_attestation.get("status")
+        not in {"absent", "capture_failed", "empty", "nonempty"}
+        or stdout_attestation.get("validation") not in {"PASS", "FAIL", "not_attempted"}
+        or not isinstance(final_attestation, dict)
+        or final_attestation.get("status")
+        not in {"absent", "empty", "nonempty", "read_failed"}
+    ):
+        raise RouteV2Error("attestation structure is invalid")
+    if stdout_attestation.get("status") in {"absent", "capture_failed"}:
+        if set(stdout_attestation) != {"status", "validation"} or stdout_attestation.get(
+            "validation"
+        ) != "not_attempted":
+            raise RouteV2Error("attestation structure is invalid")
+    elif (
+        set(stdout_attestation)
+        != {"bytes", "json_value_count", "sha256", "status", "validation"}
+        or type(stdout_attestation.get("bytes")) is not int
+        or type(stdout_attestation.get("json_value_count")) is not int
+        or stdout_attestation["bytes"] < 0
+        or stdout_attestation["json_value_count"] < 0
+        or SHA256_RE.fullmatch(str(stdout_attestation.get("sha256"))) is None
+        or stdout_attestation.get("validation") == "not_attempted"
+        or (stdout_attestation.get("status") == "empty")
+        is not (stdout_attestation["bytes"] == 0)
+    ):
+        raise RouteV2Error("attestation structure is invalid")
+    if final_attestation.get("status") in {"absent", "read_failed"}:
+        if set(final_attestation) != {"status"} or attestation.get(
+            "final_schema_validation"
+        ) != "not_attempted":
+            raise RouteV2Error("attestation structure is invalid")
+    elif (
+        set(final_attestation) != {"bytes", "sha256", "status"}
+        or type(final_attestation.get("bytes")) is not int
+        or final_attestation["bytes"] < 0
+        or SHA256_RE.fullmatch(str(final_attestation.get("sha256"))) is None
+        or attestation.get("final_schema_validation") == "not_attempted"
+        or (final_attestation.get("status") == "empty")
+        is not (final_attestation["bytes"] == 0)
+    ):
+        raise RouteV2Error("attestation structure is invalid")
+    if attestation.get("exit_classification") == "unavailable":
+        if (
+            stdout_attestation.get("status") != "absent"
+            or final_attestation.get("status") != "absent"
+            or attestation.get("workspace_capture") != "not_attempted"
+        ):
+            raise RouteV2Error("attestation unavailable state is invalid")
+    elif stdout_attestation.get("status") == "absent":
+        raise RouteV2Error("attestation capture state is invalid")
+    if set(packet) != {
+        "action_sha256",
+        "attestation_sha256",
+        "checks",
+        "eligible_success",
+        "observed_workspace",
+        "run_id",
+        "schema",
+    } or packet.get("schema") != PACKET_SCHEMA or packet.get("run_id") != run_id:
+        raise RouteV2Error("packet identity is invalid")
+    _validate_projection(packet.get("observed_workspace"))
+    raw_checks = packet.get("checks")
+    workspace_check = (
+        raw_checks.get("workspace_matches_expected")
+        if isinstance(raw_checks, dict)
+        else None
+    )
+    expected_observations = {
+        "exit_classification": attestation["exit_classification"],
+        "final_message": final_attestation["status"],
+        "final_schema": attestation["final_schema_validation"],
+        "packet_assembly": "PASS",
+        "process_launch": "attempted",
+        "stdout_capture": stdout_attestation["status"],
+        "stdout_ndjson": stdout_attestation["validation"],
+        "workspace_capture": (
+            attestation["workspace_capture"]
+        ),
+        "workspace_validation": (
+            "not_attempted"
+            if attestation.get("workspace_capture") != "PASS"
+            else "PASS"
+            if workspace_check is True
+            else "FAIL"
+        ),
+    }
+    if seal != {
+        "attestation_sha256": _sha256_file(paths["attestation"]),
+        "cleanup": "PENDING",
+        "decision": "PENDING",
+        "observations": expected_observations,
+        "packet_sha256": _sha256_file(paths["packet"]),
+        "run_id": run_id,
+        "schema": SEAL_SCHEMA,
+    }:
+        raise RouteV2Error("observation seal linkage is invalid")
+    if packet.get("action_sha256") != _sha256_file(paths["action"]):
+        raise RouteV2Error("packet action linkage is invalid")
+    if packet.get("attestation_sha256") != _sha256_file(paths["attestation"]):
+        raise RouteV2Error("packet attestation linkage is invalid")
+    expected_match = (
+        attestation.get("workspace_capture") == "PASS"
+        and packet.get("observed_workspace") == action.get("expected_workspace")
+    )
+    checks = packet.get("checks")
+    if (
+        not isinstance(checks, dict)
+        or set(checks)
+        != {"exit_zero", "final_schema", "stdout_ndjson", "workspace_matches_expected"}
+        or any(type(item) is not bool for item in checks.values())
+        or checks.get("workspace_matches_expected") is not expected_match
+        or checks.get("exit_zero")
+        is not (attestation.get("exit_classification") == "zero")
+        or checks.get("stdout_ndjson")
+        is not (stdout_attestation.get("validation") == "PASS")
+        or checks.get("final_schema")
+        is not (attestation.get("final_schema_validation") == "PASS")
+    ):
+        raise RouteV2Error("workspace decision is invalid")
+    eligible = bool(checks) and all(checks.values())
+    if packet.get("eligible_success") is not eligible:
+        raise RouteV2Error("packet decision is invalid")
+    expected_decision = (
+        "SUCCESS"
+        if eligible
+        and final.get("cleanup") == "PASS"
+        and final.get("recovery") == "none"
+        else "FAILURE"
+    )
+    if (
+        set(final)
+        != {
+            "cleanup",
+            "decision",
+            "locator_required",
+            "packet_sha256",
+            "recovery",
+            "run_id",
+            "schema",
+            "seal_sha256",
+        }
+        or final.get("schema") != FINAL_SCHEMA
+        or final.get("run_id") != run_id
+        or final.get("packet_sha256") != _sha256_file(paths["packet"])
+        or final.get("seal_sha256") != _sha256_file(paths["seal"])
+        or final.get("decision") != expected_decision
+        or final.get("cleanup") not in {"PASS", "FAIL"}
+        or final.get("recovery") not in {"none", "interrupted_after_seal"}
+        or final.get("locator_required") is not (final.get("cleanup") == "FAIL")
+    ):
+        raise RouteV2Error("final decision linkage is invalid")
+    return {
+        "claim": "synthetic_layer0_only",
+        "decision": expected_decision,
+        "raw_content_revalidated": False,
+        "run_id": run_id,
+        "status": "PASS",
+    }
+
+
+def verify_external_terminal(
+    external_root: Path,
+    *,
+    output_root: Path,
+    locator_root: Path,
+    run_id: str,
+    expected_terminal_sha256: str,
+    _trusted_route_root: Path | None = None,
+) -> dict[str, Any]:
+    run_id = _validate_run_id(run_id)
+    if SHA256_RE.fullmatch(expected_terminal_sha256) is None:
+        raise RouteV2Error("expected external terminal identity is invalid")
+    locator = _locator_path(locator_root, run_id)
+    terminal_path = external_root.resolve() / f"{run_id}.terminal.json"
+    private_root = _validate_trusted_roots(
+        output_root=output_root.resolve(),
+        locator=locator,
+        external_path=terminal_path,
+        run_id=run_id,
+        override=_trusted_route_root,
+    )
+    if (
+        _locator_residue(locator)
+        or private_root.exists()
+        or output_root.resolve().exists()
+        or not terminal_path.is_file()
+    ):
+        raise RouteV2Error("external terminal closeout is incomplete")
+    if _sha256_file(terminal_path) != expected_terminal_sha256:
+        raise RouteV2Error("external terminal differs from pinned identity")
+    value = _load_object(terminal_path)
+    _validate_external_value(value, run_id)
+    return {
+        "admissible_route_result": False,
+        "run_id": run_id,
+        "status": "PASS",
+    }
