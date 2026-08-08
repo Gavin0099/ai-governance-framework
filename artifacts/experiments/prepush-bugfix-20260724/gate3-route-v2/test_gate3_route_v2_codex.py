@@ -60,6 +60,55 @@ def _measure(tmp_path: Path, probe: Probe | None = None) -> tuple[bytes, Path, P
     return payload, snapshot, selected
 
 
+def test_single_session_cli_and_runner_remain_model_optional(tmp_path: Path) -> None:
+    parsed = codex._parser().parse_args(
+        [
+            "--run-id", RUN_ID,
+            "--authorization", route.LIVE_AUTHORIZATION,
+            "--codex-exe", str(Path(sys.executable)),
+            "--expected-executable-sha256", route._sha256_file(Path(sys.executable)),
+            "--auth-file", "auth.json",
+        ]
+    )
+    assert not hasattr(parsed, "model")
+    preflight, snapshot, _ = _measure(tmp_path)
+    runner = codex.CodexExecRunner(
+        run_id=RUN_ID,
+        executable_snapshot=snapshot,
+        private_root=tmp_path / "private",
+        auth_payload=b"{}\n",
+        measured_preflight=preflight,
+    )
+    assert "--model" not in runner.command(Path("schema.json"), Path("final.json"))
+
+
+@pytest.mark.parametrize("profile", ["legacy_with_model", "ab_without_model"])
+def test_model_presence_and_preflight_profile_are_bidirectionally_bound(
+    tmp_path: Path, profile: str
+) -> None:
+    preflight, snapshot, _ = _measure(tmp_path)
+    model_id: str | None = "owner-model" if profile == "legacy_with_model" else None
+    if profile == "ab_without_model":
+        value = json.loads(preflight)
+        value["required_flags"] = sorted(codex.AB_REQUIRED_FLAGS)
+        value["compatibility"]["required_flag_presence"] = {
+            flag: True for flag in sorted(codex.AB_REQUIRED_FLAGS)
+        }
+        value["execution_identity"][
+            "command_contract_sha256"
+        ] = codex._ab_command_contract_sha256()
+        preflight = route._json_bytes(value)
+    with pytest.raises(route.RouteV2Error, match="model and preflight profile differ"):
+        codex.CodexExecRunner(
+            run_id=RUN_ID,
+            executable_snapshot=snapshot,
+            private_root=tmp_path / "private",
+            auth_payload=b"{}\n",
+            measured_preflight=preflight,
+            model_id=model_id,
+        )
+
+
 def test_preflight_measures_exact_snapshot_version_help_and_closed_environment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -283,10 +332,10 @@ def test_exact_codex_runner_builds_capability_and_live_action_binds_preflight(
     assert action["execution_identity"] == identity
 
 
-def test_subprocess_cli_entrypoint_uses_canonical_module_provenance(
+def test_subprocess_cli_entrypoint_does_not_reimport_replaceable_main(
     tmp_path: Path,
 ) -> None:
-    """Regression: direct file execution must not construct an __main__ runner."""
+    """A sitecustomize rewrite of an imported twin must not select the entrypoint."""
     sentinel = "CANONICAL_MAIN_SELECTED"
     (tmp_path / "sitecustomize.py").write_text(
         "import gate3_route_v2_codex as canonical\n"
@@ -307,9 +356,9 @@ def test_subprocess_cli_entrypoint_uses_canonical_module_provenance(
         timeout=30,
         check=False,
     )
-    assert completed.returncode == 23
-    assert completed.stdout == sentinel + "\n"
-    assert "trusted live runner provenance is invalid" not in completed.stderr
+    assert completed.returncode != 23
+    assert sentinel not in completed.stdout
+    assert "provenance is already registered" in completed.stderr
 
 
 def test_invalid_probe_digest_is_rejected_offline(tmp_path: Path) -> None:

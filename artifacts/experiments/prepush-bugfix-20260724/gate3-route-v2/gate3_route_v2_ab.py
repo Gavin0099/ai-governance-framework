@@ -12,6 +12,7 @@ import gate3_route_v2 as route
 
 
 AUTHORIZATION = "gate3_route_v2_ab_synthetic_non_counted_only"
+LIVE_AUTHORIZATION = "gate3_route_v2_ab_live_non_counted_only"
 MANIFEST_SCHEMA = "gate3-route-v2-ab.contract-manifest.v1"
 PREFLIGHT_SCHEMA = "gate3-route-v2-ab.pair-preflight-attestation.v1"
 PAIR_ACTION_SCHEMA = "gate3-route-v2-ab.pair-action.v1"
@@ -206,6 +207,11 @@ def build_contract_manifest(
     arm_b_files: Mapping[str, bytes],
     treatment_packet_sha256: str,
     execution_order: tuple[str, str] = ("A", "B"),
+    pair_authorization: str = AUTHORIZATION,
+    single_arm_authorization: str = route.AUTHORIZATION,
+    model_build_identity: Mapping[str, str] | None = None,
+    single_arm_runner_sha256: str | None = None,
+    live_adapter_sha256: str | None = None,
 ) -> bytes:
     pair_id = route._validate_public_token(pair_id, "pair identity")
     model_id = route._validate_public_token(model_id, "model identity")
@@ -219,6 +225,11 @@ def build_contract_manifest(
         raise route.RouteV2Error("treatment packet identity is invalid")
     if set(execution_order) != {"A", "B"} or len(execution_order) != 2:
         raise route.RouteV2Error("execution order is invalid")
+    if (pair_authorization, single_arm_authorization) not in {
+        (AUTHORIZATION, route.AUTHORIZATION),
+        (LIVE_AUTHORIZATION, route.LIVE_AUTHORIZATION),
+    }:
+        raise route.RouteV2Error("pair authorization profile is invalid")
     schema = route._validate_schema_definition(output_schema)
     baseline = staged_manifest(baseline_workspace)
     expected = staged_manifest(expected_workspace)
@@ -254,12 +265,32 @@ def build_contract_manifest(
         "output_schema_sha256": _canonical_digest(schema),
         "prompt_sha256": route._sha256_bytes(prompt),
     }
+    runner_implementation = single_arm_runner_sha256 or implementation
+    if route.SHA256_RE.fullmatch(runner_implementation) is None:
+        raise route.RouteV2Error("single-arm runner identity is invalid")
+    adapter_implementation = live_adapter_sha256 or implementation
+    if route.SHA256_RE.fullmatch(adapter_implementation) is None:
+        raise route.RouteV2Error("live adapter identity is invalid")
+    if model_build_identity is not None and (
+        set(model_build_identity)
+        != {
+            "cli_version",
+            "command_contract_sha256",
+            "executable_sha256",
+            "model_id",
+            "runner_sha256",
+        }
+        or model_build_identity.get("model_id") != model_id
+        or model_build_identity.get("runner_sha256") != runner_implementation
+    ):
+        raise route.RouteV2Error("model build identity is invalid")
     implementations = {
+        "live_adapter_sha256": adapter_implementation,
         "pair_builder_sha256": implementation,
         "pair_orchestrator_sha256": implementation,
         "pair_verifier_sha256": implementation,
         "single_arm_route_sha256": route_implementation,
-        "single_arm_runner_sha256": implementation,
+        "single_arm_runner_sha256": runner_implementation,
         "single_arm_verifier_sha256": route_implementation,
     }
     arm_sources = {
@@ -278,23 +309,27 @@ def build_contract_manifest(
         {
             "arm_id": arm_id,
             **arm_sources[arm_id],
-            "single_arm_authorization": route.AUTHORIZATION,
+            "single_arm_authorization": single_arm_authorization,
             "treatment_projection": treatments[arm_id],
         }
         for arm_id in execution_order
     ]
     value = {
         "action_inputs": action_inputs,
-        "authorization": AUTHORIZATION,
+        "authorization": pair_authorization,
         "design_sha256": route._sha256_file(DESIGN_PATH),
         "implementations": implementations,
-        "model_build_identity": {
-            "cli_version": "synthetic",
-            "command_contract_sha256": route_implementation,
-            "executable_sha256": route_implementation,
-            "model_id": model_id,
-            "runner_sha256": implementation,
-        },
+        "model_build_identity": (
+            dict(model_build_identity)
+            if model_build_identity is not None
+            else {
+                "cli_version": "synthetic",
+                "command_contract_sha256": route_implementation,
+                "executable_sha256": route_implementation,
+                "model_id": model_id,
+                "runner_sha256": implementation,
+            }
+        ),
         "ordered_arms": ordered_arms,
         "pair_id": pair_id,
         "policies": policies,
@@ -330,7 +365,7 @@ def _validate_manifest(payload: bytes, expected_sha256: str) -> dict[str, Any]:
             "staged_input_projections",
         }
         or value.get("schema") != MANIFEST_SCHEMA
-        or value.get("authorization") != AUTHORIZATION
+        or value.get("authorization") not in {AUTHORIZATION, LIVE_AUTHORIZATION}
         or value.get("design_sha256") != route._sha256_file(DESIGN_PATH)
     ):
         raise route.RouteV2Error("contract manifest is invalid")
@@ -348,6 +383,7 @@ def _validate_manifest(payload: bytes, expected_sha256: str) -> dict[str, Any]:
     implementations = _digest_map(
         value.get("implementations"),
         {
+            "live_adapter_sha256",
             "pair_builder_sha256",
             "pair_orchestrator_sha256",
             "pair_verifier_sha256",
@@ -357,14 +393,16 @@ def _validate_manifest(payload: bytes, expected_sha256: str) -> dict[str, Any]:
         },
         "implementation identity",
     )
-    if implementations != {
+    expected_implementations = {
+        "live_adapter_sha256": implementations["live_adapter_sha256"],
         "pair_builder_sha256": _implementation_sha256(),
         "pair_orchestrator_sha256": _implementation_sha256(),
         "pair_verifier_sha256": _implementation_sha256(),
         "single_arm_route_sha256": route._implementation_sha256(),
-        "single_arm_runner_sha256": _implementation_sha256(),
+        "single_arm_runner_sha256": implementations["single_arm_runner_sha256"],
         "single_arm_verifier_sha256": route._implementation_sha256(),
-    }:
+    }
+    if implementations != expected_implementations:
         raise route.RouteV2Error("implementation identity differs")
     _digest_map(
         value.get("policies"),
@@ -392,8 +430,15 @@ def _validate_manifest(payload: bytes, expected_sha256: str) -> dict[str, Any]:
     for key in ("command_contract_sha256", "executable_sha256", "runner_sha256"):
         if not isinstance(model.get(key), str) or route.SHA256_RE.fullmatch(model[key]) is None:
             raise route.RouteV2Error("model build identity is invalid")
-    if model.get("cli_version") != "synthetic":
+    profile_is_live = value["authorization"] == LIVE_AUTHORIZATION
+    if (not profile_is_live and model.get("cli_version") != "synthetic") or (
+        profile_is_live and model.get("cli_version") == "synthetic"
+    ):
         raise route.RouteV2Error("model build identity is invalid")
+    if (
+        model.get("runner_sha256") != implementations["single_arm_runner_sha256"]
+    ):
+        raise route.RouteV2Error("model build identity differs from runner")
     arms = value.get("ordered_arms")
     if not isinstance(arms, list) or len(arms) != 2:
         raise route.RouteV2Error("ordered arms are invalid")
@@ -404,7 +449,11 @@ def _validate_manifest(payload: bytes, expected_sha256: str) -> dict[str, Any]:
         if not isinstance(arm, Mapping) or set(arm) != {
             "arm_id", "context_token", "run_id", "single_arm_authorization",
             "staged_input_manifest_sha256", "treatment_projection",
-        } or arm.get("arm_id") != arm_id or arm.get("single_arm_authorization") != route.AUTHORIZATION:
+        } or arm.get("arm_id") != arm_id or arm.get(
+            "single_arm_authorization"
+        ) != (
+            route.LIVE_AUTHORIZATION if profile_is_live else route.AUTHORIZATION
+        ):
             raise route.RouteV2Error("ordered arms are invalid")
         route._validate_run_id(arm.get("run_id"))
         route._validate_public_token(arm.get("context_token"), "context token")
@@ -479,7 +528,7 @@ def _pair_action(
     implementations = manifest["implementations"]
     policies = manifest["policies"]
     return {
-        "authorization": AUTHORIZATION,
+        "authorization": manifest["authorization"],
         "baseline_workspace_sha256": action_inputs["baseline_workspace_sha256"],
         "common_harness_sha256": policies["common_harness"],
         "contract_manifest_sha256": _canonical_digest(manifest),
@@ -490,6 +539,7 @@ def _pair_action(
         "ordered_arms": manifest["ordered_arms"],
         "output_schema_sha256": action_inputs["output_schema_sha256"],
         "pair_builder_sha256": implementations["pair_builder_sha256"],
+        "live_adapter_sha256": implementations["live_adapter_sha256"],
         "pair_id": manifest["pair_id"],
         "pair_orchestrator_sha256": implementations["pair_orchestrator_sha256"],
         "pair_preflight_attestation_sha256": preflight_sha256,
@@ -690,14 +740,24 @@ def orchestrate_pair(
     output_schema: dict[str, Any],
     expected_workspace: Mapping[str, bytes],
     credential_fixture: bytes,
-    arm_runners: Mapping[str, SyntheticABArmRunner],
+    arm_runners: Mapping[str, object],
 ) -> PairResult:
     manifest = _validate_manifest(contract_manifest, expected_manifest_sha256)
     if set(arm_runners) != {"A", "B"} or not isinstance(credential_fixture, bytes):
         raise route.RouteV2Error("pair runner set is invalid")
+    capabilities: dict[str, route.TrustedABArmRunner | route.TrustedLiveABArmRunner] = {}
+    expected_capability_type = (
+        route.TrustedLiveABArmRunner
+        if manifest["authorization"] == LIVE_AUTHORIZATION
+        else route.TrustedABArmRunner
+    )
+    for arm_id in ("A", "B"):
+        capability = arm_runners[arm_id].capability()  # type: ignore[attr-defined]
+        if type(capability) is not expected_capability_type:
+            raise route.RouteV2Error("pair runner provenance is invalid")
+        capabilities[arm_id] = capability
     if any(
-        type(arm_runners[arm_id]) is not SyntheticABArmRunner
-        or not arm_runners[arm_id].credential_matches(credential_fixture)
+        not arm_runners[arm_id].credential_matches(credential_fixture)  # type: ignore[attr-defined]
         for arm_id in ("A", "B")
     ):
         raise route.RouteV2Error("pair credential fixtures differ")
@@ -711,7 +771,7 @@ def orchestrate_pair(
         raise route.RouteV2Error("pair invocation inputs differ from manifest")
     model_id = manifest["model_build_identity"]["model_id"]
     if any(
-        not arm_runners[arm["arm_id"]].admission_matches(arm, model_id)
+        not arm_runners[arm["arm_id"]].admission_matches(arm, model_id)  # type: ignore[attr-defined]
         for arm in manifest["ordered_arms"]
     ):
         raise route.RouteV2Error("pair staged admission differs from manifest")
@@ -798,11 +858,11 @@ def orchestrate_pair(
                 locator_root=arm_runtime / "locators",
                 external_root=arm_runtime / "external",
                 run_id=run_id,
-                authorization=route.AUTHORIZATION,
+                authorization=arm["single_arm_authorization"],
                 prompt=prompt,
                 output_schema=output_schema,
                 expected_workspace=expected_workspace,
-                runner=arm_runners[arm_id].capability(),
+                runner=capabilities[arm_id],
                 ab_admission=admission,
                 _trusted_route_root=arm_runtime,
             )
@@ -1066,7 +1126,7 @@ def _rebuild_receipt(
             or input_attestation.get("contract_manifest_sha256")
             != expected_manifest_sha256
             or input_attestation.get("validator_sha256")
-            != manifest["implementations"]["pair_verifier_sha256"]
+            != manifest["implementations"]["single_arm_runner_sha256"]
         ):
             raise route.RouteV2Error("arm evidence differs from manifest")
         arm_execution = arm_action.get("execution_identity")
@@ -1123,7 +1183,11 @@ def _rebuild_receipt(
         "arms": arms,
         "attempt_ledger_final_sha256": route._sha256_file(output_root / "attempt-ledger.sha256"),
         "checks": checks,
-        "claim_ceiling": "synthetic_non_counted_route_qualification_only",
+        "claim_ceiling": (
+            "live_non_counted_route_qualification_only"
+            if manifest["authorization"] == LIVE_AUTHORIZATION
+            else "synthetic_non_counted_route_qualification_only"
+        ),
         "contract_manifest_sha256": expected_manifest_sha256,
         "decision": decision,
         "model_build_identity": manifest["model_build_identity"],
@@ -1155,7 +1219,7 @@ def verify_pair(
     if proposed != route._json_bytes(rebuilt):
         raise route.RouteV2Error("pair receipt differs from reconstruction")
     return {
-        "claim": "synthetic_non_counted_route_qualification_only",
+        "claim": rebuilt["claim_ceiling"],
         "decision": rebuilt["decision"],
         "pair_id": manifest["pair_id"],
         "status": "PASS",

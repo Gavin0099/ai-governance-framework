@@ -235,6 +235,113 @@ def _trusted_ab_arm_runner(
     )
 
 
+_LIVE_AB_RUNNER_TOKEN = object()
+
+
+class TrustedLiveABArmRunner:
+    """Live A/B capability with measured preflight and staged-input attestation."""
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        raise TypeError("TrustedLiveABArmRunner cannot be subclassed")
+
+    def __init__(
+        self,
+        *,
+        _token: object,
+        execution_identity: Mapping[str, str],
+        preflight: bytes,
+        prepare: Callable[[Path, bytes], bytes],
+        invoke: Callable[[], SyntheticResult],
+    ) -> None:
+        if _token is not _LIVE_AB_RUNNER_TOKEN:
+            raise RouteV2Error("trusted live A/B runner capability is invalid")
+        self._execution_identity = _validate_execution_identity(execution_identity)
+        self._preflight = preflight
+        self._prepare = prepare
+        self._invoke = invoke
+
+    def execution_identity(self) -> Mapping[str, str]:
+        return dict(self._execution_identity)
+
+    def preflight_bytes(self) -> bytes:
+        return self._preflight
+
+    def prepare(self, private_root: Path, action_payload: bytes) -> bytes:
+        return self._prepare(private_root, action_payload)
+
+    def __call__(self) -> SyntheticResult:
+        return self._invoke()
+
+
+def _live_ab_provenance_registry() -> tuple[Callable[..., None], Callable[..., TrustedLiveABArmRunner]]:
+    registered: tuple[type, Callable[..., object], Callable[..., object], Path, str] | None = None
+
+    def register(
+        *,
+        canonical_type: type,
+        prepare_function: Callable[..., object],
+        invoke_function: Callable[..., object],
+        module_path: Path,
+    ) -> None:
+        nonlocal registered
+        path = module_path.resolve()
+        if registered is not None:
+            raise RouteV2Error("live A/B runner provenance is already registered")
+        if (
+            not isinstance(canonical_type, type)
+            or prepare_function is not canonical_type.__dict__.get("_prepare")
+            or invoke_function is not canonical_type.__dict__.get("_invoke")
+            or not path.is_file()
+        ):
+            raise RouteV2Error("live A/B runner provenance registration is invalid")
+        registered = (
+            canonical_type,
+            prepare_function,
+            invoke_function,
+            path,
+            _sha256_file(path),
+        )
+
+    def build(
+        *,
+        execution_identity: Mapping[str, str],
+        preflight: bytes,
+        prepare: Callable[[Path, bytes], bytes],
+        invoke: Callable[[], SyntheticResult],
+    ) -> TrustedLiveABArmRunner:
+        if registered is None:
+            raise RouteV2Error("live A/B runner provenance is not registered")
+        canonical_type, prepare_function, invoke_function, module_path, module_digest = registered
+        prepare_owner = getattr(prepare, "__self__", None)
+        invoke_owner = getattr(invoke, "__self__", None)
+        identity = _validate_execution_identity(execution_identity)
+        if (
+            prepare_owner is None
+            or prepare_owner is not invoke_owner
+            or type(prepare_owner) is not canonical_type
+            or getattr(prepare, "__func__", None) is not prepare_function
+            or getattr(invoke, "__func__", None) is not invoke_function
+            or not module_path.is_file()
+            or _sha256_file(module_path) != module_digest
+            or module_digest != identity["runner_sha256"]
+            or prepare_owner.execution_identity() != identity
+            or prepare_owner.preflight_bytes() != preflight
+        ):
+            raise RouteV2Error("trusted live A/B runner provenance is invalid")
+        return TrustedLiveABArmRunner(
+            _token=_LIVE_AB_RUNNER_TOKEN,
+            execution_identity=identity,
+            preflight=preflight,
+            prepare=prepare,
+            invoke=invoke,
+        )
+
+    return register, build
+
+
+_register_live_ab_provenance, _trusted_live_ab_arm_runner = _live_ab_provenance_registry()
+
+
 Publisher = Callable[[Path, bytes], None]
 AclProtector = Callable[[Path, bool], None]
 Cleaner = Callable[[Path], bool]
@@ -717,20 +824,22 @@ def _validate_preflight(
     flags = value.get("required_flags")
     probe_outputs = value.get("probe_outputs")
     if authorization == LIVE_AUTHORIZATION:
+        legacy_flags = sorted(
+            [
+                "--ephemeral",
+                "--json",
+                "--output-last-message",
+                "--output-schema",
+                "--dangerously-bypass-approvals-and-sandbox",
+            ]
+        )
+        ab_flags = sorted([*legacy_flags, "--model"])
         if checks != {
             "cleanup": "PASS",
             "exec_help": "PASS",
             "root_help": "PASS",
             "version": "PASS",
-        } or flags != sorted(
-            [
-                "--ephemeral",
-                "--json",
-                "--output-last-message",
-                    "--output-schema",
-                    "--dangerously-bypass-approvals-and-sandbox",
-            ]
-        ) or not isinstance(probe_outputs, Mapping) or set(probe_outputs) != {
+        } or flags not in (legacy_flags, ab_flags) or not isinstance(probe_outputs, Mapping) or set(probe_outputs) != {
             "exec_help", "root_help", "version"
         }:
             raise RouteV2Error("live preflight checks are incomplete")
@@ -880,8 +989,8 @@ def action_bytes(
             "schema": ACTION_SCHEMA,
         }
     if ab_admission is not None:
-        if authorization != AUTHORIZATION:
-            raise RouteV2Error("A/B admission requires synthetic authorization")
+        if authorization not in {AUTHORIZATION, LIVE_AUTHORIZATION}:
+            raise RouteV2Error("A/B admission authorization is invalid")
         admission = _validate_ab_admission(ab_admission)
         action.update(admission)
         action["schema"] = AB_ACTION_SCHEMA
@@ -1549,12 +1658,18 @@ def orchestrate(
         raise RouteV2Error("prompt bytes are invalid")
     schema = _validate_schema_definition(output_schema)
     expected = _validate_artifacts(expected_workspace)
-    if ab_admission is not None and type(runner) is not TrustedABArmRunner:
+    if ab_admission is not None and type(runner) not in {
+        TrustedABArmRunner,
+        TrustedLiveABArmRunner,
+    }:
         raise RouteV2Error("A/B admission requires a trusted A/B runner")
-    if ab_admission is not None and authorization != AUTHORIZATION:
-        raise RouteV2Error("A/B admission requires synthetic authorization")
+    if ab_admission is not None and authorization not in {
+        AUTHORIZATION,
+        LIVE_AUTHORIZATION,
+    }:
+        raise RouteV2Error("A/B admission authorization is invalid")
     if authorization == LIVE_AUTHORIZATION:
-        if type(runner) is not TrustedLiveRunner:
+        if type(runner) not in {TrustedLiveRunner, TrustedLiveABArmRunner}:
             raise RouteV2Error("live authorization requires a trusted runner")
         preflight_payload = runner.preflight_bytes()
         _, execution_identity = _validate_preflight(
@@ -1683,7 +1798,7 @@ def orchestrate(
         _acl(private_root, True)
         input_attestation: dict[str, object] | None = None
         if ab_admission is not None:
-            assert type(runner) is TrustedABArmRunner
+            assert type(runner) in {TrustedABArmRunner, TrustedLiveABArmRunner}
             stage = "input_attestation"
             input_payload = runner.prepare(private_root, action_payload)
             input_attestation = _validate_input_attestation(input_payload, action)
