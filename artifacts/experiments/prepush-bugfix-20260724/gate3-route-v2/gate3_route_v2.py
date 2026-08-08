@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-import binascii
 import ctypes
 import hashlib
 import json
@@ -19,7 +17,7 @@ from typing import Any, Callable, Mapping
 AUTHORIZATION = "gate3_route_v2_synthetic_non_scoring_only"
 LIVE_AUTHORIZATION = "gate3_route_v2_single_session_non_scoring_only"
 AUTHORIZATIONS = frozenset({AUTHORIZATION, LIVE_AUTHORIZATION})
-PREFLIGHT_SCHEMA = "gate3-route-v2.preflight.v1"
+PREFLIGHT_SCHEMA = "gate3-route-v2.preflight.v2"
 ACTION_SCHEMA = "gate3-route-v2.action.v3"
 ATTESTATION_SCHEMA = "gate3-route-v2.content-attestation.v1"
 PACKET_SCHEMA = "gate3-route-v2.packet.v1"
@@ -592,6 +590,11 @@ def _synthetic_preflight_bytes(run_id: str) -> bytes:
                 "root_help": "not_applicable",
                 "version": "not_applicable",
             },
+            "compatibility": {
+                "required_flag_presence": {},
+                "root_help_nonempty": "not_applicable",
+                "version_match": "not_applicable",
+            },
             "environment_policy_sha256": _implementation_sha256(),
             "environment_projection_sha256": _implementation_sha256(),
             "execution_identity": identity,
@@ -615,6 +618,7 @@ def _validate_preflight(
     if set(value) != {
         "authorization",
             "checks",
+            "compatibility",
             "environment_policy_sha256",
             "environment_projection_sha256",
             "execution_identity",
@@ -634,6 +638,7 @@ def _validate_preflight(
         value.get("authorization"), value.get("execution_identity")
     )[1]
     checks = value.get("checks")
+    compatibility = value.get("compatibility")
     flags = value.get("required_flags")
     probe_outputs = value.get("probe_outputs")
     if authorization == LIVE_AUTHORIZATION:
@@ -654,59 +659,69 @@ def _validate_preflight(
             "exec_help", "root_help", "version"
         }:
             raise RouteV2Error("live preflight checks are incomplete")
-        decoded = {
+        _validate_live_compatibility(compatibility, flags)
+        validated_outputs = {
             name: _validate_probe_output(probe_outputs[name])
             for name in ("exec_help", "root_help", "version")
         }
-        if decoded["version"][0].decode("utf-8", errors="strict").strip() != "codex-cli 0.146.0":
-            raise RouteV2Error("live preflight version source differs")
-        if not (decoded["root_help"][0] + decoded["root_help"][1]).decode(
-            "utf-8", errors="strict"
-        ).strip():
-            raise RouteV2Error("live preflight root help source is empty")
-        exec_help = (decoded["exec_help"][0] + decoded["exec_help"][1]).decode(
-            "utf-8", errors="strict"
-        )
-        if any(flag not in exec_help for flag in flags):
-            raise RouteV2Error("live preflight exec help source differs")
+        if validated_outputs["version"]["stdout_len"] == 0 or any(
+            validated_outputs[name]["stdout_len"]
+            + validated_outputs[name]["stderr_len"]
+            == 0
+            for name in ("root_help", "exec_help")
+        ):
+            raise RouteV2Error("live preflight probe output is empty")
     elif checks != {
         "cleanup": "not_applicable",
         "exec_help": "not_applicable",
         "root_help": "not_applicable",
         "version": "not_applicable",
+    } or compatibility != {
+        "required_flag_presence": {},
+        "root_help_nonempty": "not_applicable",
+        "version_match": "not_applicable",
     } or flags != [] or probe_outputs != {}:
         raise RouteV2Error("synthetic preflight checks are invalid")
     return value, identity
 
 
-def _validate_probe_output(value: object) -> tuple[bytes, bytes]:
+def _validate_live_compatibility(value: object, flags: list[str]) -> None:
     if not isinstance(value, Mapping) or set(value) != {
-        "returncode", "stderr_b64", "stderr_len", "stderr_sha256",
-        "stdout_b64", "stdout_len", "stdout_sha256",
+        "required_flag_presence", "root_help_nonempty", "version_match"
+    }:
+        raise RouteV2Error("live preflight compatibility is invalid")
+    presence = value.get("required_flag_presence")
+    if (
+        not isinstance(presence, Mapping)
+        or set(presence) != set(flags)
+        or any(type(presence[flag]) is not bool or presence[flag] is not True for flag in flags)
+        or type(value.get("root_help_nonempty")) is not bool
+        or value.get("root_help_nonempty") is not True
+        or type(value.get("version_match")) is not bool
+        or value.get("version_match") is not True
+    ):
+        raise RouteV2Error("live preflight compatibility is invalid")
+
+
+def _validate_probe_output(value: object) -> dict[str, object]:
+    # Raw probe bytes are private and deleted after the pinned builder emits this
+    # attestation. Offline verification checks the closed shape and chain identity;
+    # it does not reconstruct version/help semantics from these digests.
+    if not isinstance(value, Mapping) or set(value) != {
+        "returncode", "stderr_len", "stderr_sha256", "stdout_len", "stdout_sha256",
     } or type(value.get("returncode")) is not int or value.get("returncode") != 0:
         raise RouteV2Error("live preflight probe output is invalid")
-    decoded: dict[str, bytes] = {}
     for stream in ("stdout", "stderr"):
-        encoded = value.get(f"{stream}_b64")
         length = value.get(f"{stream}_len")
         digest = value.get(f"{stream}_sha256")
-        if not isinstance(encoded, str) or type(length) is not int or length < 0:
+        if (
+            type(length) is not int
+            or not 0 <= length <= 262_144
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+        ):
             raise RouteV2Error("live preflight probe output is invalid")
-        try:
-            payload = base64.b64decode(encoded, validate=True)
-        except (ValueError, binascii.Error) as exc:
-            raise RouteV2Error("live preflight probe output is invalid") from exc
-        if len(payload) != length or digest != _sha256_bytes(payload):
-            raise RouteV2Error("live preflight probe output is invalid")
-        if len(payload) > 262_144:
-            raise PublicPrivacyError("preflight probe output is too large")
-        try:
-            text = payload.decode("utf-8", errors="strict")
-        except UnicodeDecodeError as exc:
-            raise PublicPrivacyError("preflight probe output is not UTF-8") from exc
-        _validate_public_payload(_json_bytes({"probe_text": text}))
-        decoded[stream] = payload
-    return decoded["stdout"], decoded["stderr"]
+    return dict(value)
 
 
 def _validate_artifacts(value: Mapping[str, bytes]) -> dict[str, bytes]:

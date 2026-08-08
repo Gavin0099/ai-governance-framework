@@ -886,7 +886,14 @@ def test_external_terminal_class_is_closed_even_when_repinning(
 
 @pytest.mark.parametrize(
     "artifact",
-    ["action.json", "attestation.json", "packet.json", "seal.json", "final.json"],
+    [
+        "preflight.json",
+        "action.json",
+        "attestation.json",
+        "packet.json",
+        "seal.json",
+        "final.json",
+    ],
 )
 def test_mutation_of_any_retained_artifact_fails_verification(
     tmp_path: Path, artifact: str
@@ -929,6 +936,40 @@ def test_coherent_action_rewrite_is_rejected_by_external_pin(tmp_path: Path) -> 
     final["packet_sha256"] = route._sha256_file(packet_path)
     final["seal_sha256"] = route._sha256_file(seal_path)
     final_path.write_bytes(route._json_bytes(final))
+    with pytest.raises(route.RouteV2Error, match="pinned identity"):
+        _verify(roots)
+
+
+def test_coherent_preflight_chain_rewrite_is_rejected_by_external_pin(
+    tmp_path: Path,
+) -> None:
+    _, roots = _run(tmp_path, Runner())
+    preflight_path = roots["output"] / "preflight.json"
+    preflight = json.loads(preflight_path.read_bytes())
+    preflight["environment_policy_sha256"] = "0" * 64
+    preflight_path.write_bytes(route._json_bytes(preflight))
+
+    action_path = roots["output"] / "action.json"
+    action = json.loads(action_path.read_bytes())
+    action["preflight_sha256"] = route._sha256_file(preflight_path)
+    action_path.write_bytes(route._json_bytes(action))
+
+    packet_path = roots["output"] / "packet.json"
+    packet = json.loads(packet_path.read_bytes())
+    packet["action_sha256"] = route._sha256_file(action_path)
+    packet_path.write_bytes(route._json_bytes(packet))
+
+    seal_path = roots["output"] / "seal.json"
+    seal = json.loads(seal_path.read_bytes())
+    seal["packet_sha256"] = route._sha256_file(packet_path)
+    seal_path.write_bytes(route._json_bytes(seal))
+
+    final_path = roots["output"] / "final.json"
+    final = json.loads(final_path.read_bytes())
+    final["packet_sha256"] = route._sha256_file(packet_path)
+    final["seal_sha256"] = route._sha256_file(seal_path)
+    final_path.write_bytes(route._json_bytes(final))
+
     with pytest.raises(route.RouteV2Error, match="pinned identity"):
         _verify(roots)
 

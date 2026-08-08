@@ -79,6 +79,11 @@ def test_preflight_measures_exact_snapshot_version_help_and_closed_environment(
         "root_help": "PASS",
         "version": "PASS",
     }
+    assert receipt["compatibility"] == {
+        "required_flag_presence": {flag: True for flag in sorted(codex.REQUIRED_FLAGS)},
+        "root_help_nonempty": True,
+        "version_match": True,
+    }
     assert receipt["required_flags"] == sorted(codex.REQUIRED_FLAGS)
     assert receipt["execution_identity"]["cli_version"] == codex.PINNED_CLI_VERSION
     assert receipt["execution_identity"]["executable_sha256"] == route._sha256_file(
@@ -278,13 +283,89 @@ def test_exact_codex_runner_builds_capability_and_live_action_binds_preflight(
     assert action["execution_identity"] == identity
 
 
-def test_probe_source_byte_mutation_is_rejected_offline(tmp_path: Path) -> None:
+def test_invalid_probe_digest_is_rejected_offline(tmp_path: Path) -> None:
     payload, _, _ = _measure(tmp_path)
     value = json.loads(payload)
-    value["probe_outputs"]["exec_help"]["stdout_b64"] = ""
+    value["probe_outputs"]["exec_help"]["stdout_sha256"] = "not-a-digest"
     mutated = route._json_bytes(value)
     with pytest.raises(route.RouteV2Error, match="probe output"):
         route._validate_preflight(mutated, RUN_ID, route.LIVE_AUTHORIZATION)
+
+
+def test_private_surface_in_help_is_not_projected_publicly(tmp_path: Path) -> None:
+    private_surface = "C:\\Users\\operator\\private-tool-home"
+
+    def probe(command: list[str] | tuple[str, ...], cwd: Path, env: dict[str, str]):
+        if command[-1] == "--version":
+            return _contained(stdout=(codex.PINNED_CLI_VERSION + "\n").encode())
+        return _contained(
+            stdout=(" ".join(codex.REQUIRED_FLAGS) + "\n" + private_surface).encode()
+        )
+
+    payload, _, _ = _measure(tmp_path, probe=probe)
+    receipt = json.loads(payload)
+    assert private_surface.encode() not in payload
+    assert all(
+        not key.endswith("_b64")
+        for output in receipt["probe_outputs"].values()
+        for key in output
+    )
+    route._validate_preflight(payload, RUN_ID, route.LIVE_AUTHORIZATION)
+
+
+@pytest.mark.parametrize("mutation", ["version", "flag", "extra_flag", "raw_output"])
+def test_closed_compatibility_mutations_are_rejected_offline(
+    tmp_path: Path, mutation: str
+) -> None:
+    payload, _, _ = _measure(tmp_path)
+    value = json.loads(payload)
+    if mutation == "version":
+        value["compatibility"]["version_match"] = False
+    elif mutation == "flag":
+        first = sorted(codex.REQUIRED_FLAGS)[0]
+        value["compatibility"]["required_flag_presence"][first] = False
+    elif mutation == "extra_flag":
+        value["compatibility"]["required_flag_presence"]["--future-flag"] = True
+    else:
+        value["probe_outputs"]["exec_help"]["stdout_b64"] = ""
+    with pytest.raises(route.RouteV2Error, match="preflight"):
+        route._validate_preflight(
+            route._json_bytes(value), RUN_ID, route.LIVE_AUTHORIZATION
+        )
+
+
+@pytest.mark.parametrize("numeric", [1, 1.0])
+@pytest.mark.parametrize("target", ["version", "root_help", "one_flag", "all_flags"])
+def test_numeric_compatibility_values_are_rejected_offline(
+    tmp_path: Path, target: str, numeric: int | float
+) -> None:
+    payload, _, _ = _measure(tmp_path)
+    value = json.loads(payload)
+    if target == "version":
+        value["compatibility"]["version_match"] = numeric
+    elif target == "root_help":
+        value["compatibility"]["root_help_nonempty"] = numeric
+    elif target == "one_flag":
+        first = sorted(codex.REQUIRED_FLAGS)[0]
+        value["compatibility"]["required_flag_presence"][first] = numeric
+    else:
+        value["compatibility"]["required_flag_presence"] = {
+            flag: numeric for flag in codex.REQUIRED_FLAGS
+        }
+    with pytest.raises(route.RouteV2Error, match="compatibility"):
+        route._validate_preflight(
+            route._json_bytes(value), RUN_ID, route.LIVE_AUTHORIZATION
+        )
+
+
+def test_preflight_v1_schema_is_rejected_offline(tmp_path: Path) -> None:
+    payload, _, _ = _measure(tmp_path)
+    value = json.loads(payload)
+    value["schema"] = "gate3-route-v2.preflight.v1"
+    with pytest.raises(route.RouteV2Error, match="preflight receipt"):
+        route._validate_preflight(
+            route._json_bytes(value), RUN_ID, route.LIVE_AUTHORIZATION
+        )
 
 
 @pytest.mark.parametrize(
