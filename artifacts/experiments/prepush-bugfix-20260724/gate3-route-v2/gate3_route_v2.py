@@ -19,8 +19,11 @@ LIVE_AUTHORIZATION = "gate3_route_v2_single_session_non_scoring_only"
 AUTHORIZATIONS = frozenset({AUTHORIZATION, LIVE_AUTHORIZATION})
 PREFLIGHT_SCHEMA = "gate3-route-v2.preflight.v2"
 ACTION_SCHEMA = "gate3-route-v2.action.v3"
+AB_ACTION_SCHEMA = "gate3-route-v2.action.v4"
 ATTESTATION_SCHEMA = "gate3-route-v2.content-attestation.v1"
 PACKET_SCHEMA = "gate3-route-v2.packet.v1"
+AB_PACKET_SCHEMA = "gate3-route-v2.packet.v2"
+INPUT_ATTESTATION_SCHEMA = "gate3-route-v2.input-attestation.v1"
 SEAL_SCHEMA = "gate3-route-v2.observation-seal.v1"
 FINAL_SCHEMA = "gate3-route-v2.final-receipt.v1"
 EXTERNAL_SCHEMA = "gate3-route-v2.external-terminal.v2"
@@ -162,6 +165,72 @@ def _trusted_live_runner(
         _token=_LIVE_RUNNER_TOKEN,
         execution_identity=identity,
         preflight=preflight,
+        invoke=invoke,
+    )
+
+
+_AB_RUNNER_TOKEN = object()
+
+
+class TrustedABArmRunner:
+    """Synthetic A/B capability that stages and attests before one invocation."""
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        raise TypeError("TrustedABArmRunner cannot be subclassed")
+
+    def __init__(
+        self,
+        *,
+        _token: object,
+        execution_identity: Mapping[str, str],
+        prepare: Callable[[Path, bytes], bytes],
+        invoke: Callable[[], SyntheticResult],
+    ) -> None:
+        if _token is not _AB_RUNNER_TOKEN:
+            raise RouteV2Error("trusted A/B runner capability is invalid")
+        self._execution_identity = _validate_execution_identity(execution_identity)
+        self._prepare = prepare
+        self._invoke = invoke
+
+    def prepare(self, private_root: Path, action_payload: bytes) -> bytes:
+        return self._prepare(private_root, action_payload)
+
+    def execution_identity(self) -> Mapping[str, str]:
+        return dict(self._execution_identity)
+
+    def __call__(self) -> SyntheticResult:
+        return self._invoke()
+
+
+def _trusted_ab_arm_runner(
+    *,
+    execution_identity: Mapping[str, str],
+    prepare: Callable[[Path, bytes], bytes],
+    invoke: Callable[[], SyntheticResult],
+) -> TrustedABArmRunner:
+    prepare_owner = getattr(prepare, "__self__", None)
+    invoke_owner = getattr(invoke, "__self__", None)
+    module = sys.modules.get("gate3_route_v2_ab")
+    canonical_type = getattr(module, "SyntheticABArmRunner", None)
+    identity = _validate_execution_identity(execution_identity)
+    module_path = Path(str(getattr(module, "__file__", "")))
+    if (
+        prepare_owner is None
+        or prepare_owner is not invoke_owner
+        or type(prepare_owner) is not canonical_type
+        or getattr(prepare, "__func__", None)
+        is not getattr(module, "_TRUSTED_AB_PREPARE", None)
+        or getattr(invoke, "__func__", None)
+        is not getattr(module, "_TRUSTED_AB_INVOKE", None)
+        or not module_path.is_file()
+        or _sha256_file(module_path) != identity["runner_sha256"]
+        or prepare_owner.execution_identity() != identity
+    ):
+        raise RouteV2Error("trusted A/B runner provenance is invalid")
+    return TrustedABArmRunner(
+        _token=_AB_RUNNER_TOKEN,
+        execution_identity=identity,
+        prepare=prepare,
         invoke=invoke,
     )
 
@@ -579,8 +648,14 @@ def _validate_execution_binding(
     return validated_authorization, identity
 
 
-def _synthetic_preflight_bytes(run_id: str) -> bytes:
-    identity = _default_execution_identity()
+def _synthetic_preflight_bytes(
+    run_id: str, execution_identity: Mapping[str, str] | None = None
+) -> bytes:
+    identity = _validate_execution_identity(
+        execution_identity
+        if execution_identity is not None
+        else _default_execution_identity()
+    )
     return _json_bytes(
         {
             "authorization": AUTHORIZATION,
@@ -777,6 +852,7 @@ def action_bytes(
     authorization: str = AUTHORIZATION,
     execution_identity: Mapping[str, str] | None = None,
     preflight_sha256: str | None = None,
+    ab_admission: Mapping[str, object] | None = None,
 ) -> bytes:
     run_id = _validate_run_id(run_id)
     if not isinstance(prompt, bytes):
@@ -793,8 +869,7 @@ def action_bytes(
         preflight_sha256 = _sha256_bytes(_synthetic_preflight_bytes(run_id))
     if SHA256_RE.fullmatch(preflight_sha256) is None:
         raise RouteV2Error("preflight identity is invalid")
-    return _json_bytes(
-        {
+    action: dict[str, object] = {
             "authorization": authorization,
             "execution_identity": identity,
             "expected_workspace": _artifact_projection(expected),
@@ -804,7 +879,158 @@ def action_bytes(
             "run_id": run_id,
             "schema": ACTION_SCHEMA,
         }
-    )
+    if ab_admission is not None:
+        if authorization != AUTHORIZATION:
+            raise RouteV2Error("A/B admission requires synthetic authorization")
+        admission = _validate_ab_admission(ab_admission)
+        action.update(admission)
+        action["schema"] = AB_ACTION_SCHEMA
+    return _json_bytes(action)
+
+
+def _validate_public_token(value: object, label: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > 120
+        or any(ord(char) < 0x20 or ord(char) > 0x7E for char in value)
+    ):
+        raise RouteV2Error(f"{label} is invalid")
+    return value
+
+
+def _validate_treatment_projection(value: object) -> dict[str, str]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "state",
+        "treatment_manifest_sha256",
+        "treatment_packet_sha256",
+    }:
+        raise RouteV2Error("treatment projection is invalid")
+    state = value.get("state")
+    packet = value.get("treatment_packet_sha256")
+    manifest = value.get("treatment_manifest_sha256")
+    if not isinstance(manifest, str) or SHA256_RE.fullmatch(manifest) is None:
+        raise RouteV2Error("treatment projection is invalid")
+    if state == "absent" and packet == "absent":
+        return {
+            "state": "absent",
+            "treatment_manifest_sha256": manifest,
+            "treatment_packet_sha256": "absent",
+        }
+    if (
+        state != "present"
+        or not isinstance(packet, str)
+        or SHA256_RE.fullmatch(packet) is None
+    ):
+        raise RouteV2Error("treatment projection is invalid")
+    return {
+        "state": "present",
+        "treatment_manifest_sha256": manifest,
+        "treatment_packet_sha256": packet,
+    }
+
+
+def _validate_ab_admission(value: object) -> dict[str, object]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "arm_id",
+        "model_id",
+        "pair_action_sha256",
+        "pair_id",
+        "staged_input_manifest_sha256",
+        "treatment_projection",
+    }:
+        raise RouteV2Error("A/B admission is invalid")
+    arm_id = value.get("arm_id")
+    if arm_id not in {"A", "B"}:
+        raise RouteV2Error("A/B arm identity is invalid")
+    pair_id = _validate_public_token(value.get("pair_id"), "pair identity")
+    model_id = _validate_public_token(value.get("model_id"), "model identity")
+    pair_action = value.get("pair_action_sha256")
+    staged = value.get("staged_input_manifest_sha256")
+    if (
+        not isinstance(pair_action, str)
+        or SHA256_RE.fullmatch(pair_action) is None
+        or not isinstance(staged, str)
+        or SHA256_RE.fullmatch(staged) is None
+    ):
+        raise RouteV2Error("A/B admission digest is invalid")
+    treatment = _validate_treatment_projection(value.get("treatment_projection"))
+    if (arm_id == "A") is not (treatment["state"] == "absent"):
+        raise RouteV2Error("A/B treatment differs from arm identity")
+    return {
+        "arm_id": arm_id,
+        "model_id": model_id,
+        "pair_action_sha256": pair_action,
+        "pair_id": pair_id,
+        "staged_input_manifest_sha256": staged,
+        "treatment_projection": treatment,
+    }
+
+
+def _validate_input_attestation(
+    payload: bytes, action: Mapping[str, object]
+) -> dict[str, object]:
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RouteV2Error("input attestation is invalid") from exc
+    expected_keys = {
+        "action_sha256",
+        "arm_id",
+        "contract_manifest_sha256",
+        "credential_acl",
+        "model_id",
+        "model_selector_match",
+        "only_auth_inventory",
+        "pair_action_sha256",
+        "pair_id",
+        "run_id",
+        "schema",
+        "staged_acl",
+        "staged_content_match",
+        "staged_input_manifest_sha256",
+        "staged_inventory_match",
+        "treatment_packet_sha256",
+        "treatment_state",
+        "validator_sha256",
+    }
+    treatment = action.get("treatment_projection")
+    if (
+        not isinstance(value, dict)
+        or payload != _json_bytes(value)
+        or set(value) != expected_keys
+        or value.get("schema") != INPUT_ATTESTATION_SCHEMA
+        or value.get("pair_id") != action.get("pair_id")
+        or value.get("arm_id") != action.get("arm_id")
+        or value.get("run_id") != action.get("run_id")
+        or value.get("pair_action_sha256") != action.get("pair_action_sha256")
+        or value.get("action_sha256") != _sha256_bytes(_json_bytes(dict(action)))
+        or value.get("model_id") != action.get("model_id")
+        or value.get("staged_input_manifest_sha256")
+        != action.get("staged_input_manifest_sha256")
+        or not isinstance(treatment, Mapping)
+        or value.get("treatment_state") != treatment.get("state")
+        or value.get("treatment_packet_sha256")
+        != treatment.get("treatment_packet_sha256")
+        or any(
+            value.get(key) != "PASS"
+            for key in (
+                "credential_acl",
+                "model_selector_match",
+                "only_auth_inventory",
+                "staged_acl",
+                "staged_content_match",
+                "staged_inventory_match",
+            )
+        )
+        or not isinstance(value.get("contract_manifest_sha256"), str)
+        or SHA256_RE.fullmatch(value["contract_manifest_sha256"]) is None
+        or not isinstance(value.get("validator_sha256"), str)
+        or SHA256_RE.fullmatch(value["validator_sha256"]) is None
+    ):
+        raise RouteV2Error("input attestation is invalid")
+    return value
 
 
 def _validate_schema_definition(schema: object) -> dict[str, Any]:
@@ -1310,6 +1536,7 @@ def orchestrate(
     output_schema: dict[str, Any],
     expected_workspace: Mapping[str, bytes],
     runner: Runner,
+    ab_admission: Mapping[str, object] | None = None,
     fault_plan: FaultPlan | None = None,
     _publisher: Publisher = _publish_create_once,
     _acl: AclProtector = _current_user_only,
@@ -1322,6 +1549,10 @@ def orchestrate(
         raise RouteV2Error("prompt bytes are invalid")
     schema = _validate_schema_definition(output_schema)
     expected = _validate_artifacts(expected_workspace)
+    if ab_admission is not None and type(runner) is not TrustedABArmRunner:
+        raise RouteV2Error("A/B admission requires a trusted A/B runner")
+    if ab_admission is not None and authorization != AUTHORIZATION:
+        raise RouteV2Error("A/B admission requires synthetic authorization")
     if authorization == LIVE_AUTHORIZATION:
         if type(runner) is not TrustedLiveRunner:
             raise RouteV2Error("live authorization requires a trusted runner")
@@ -1334,7 +1565,12 @@ def orchestrate(
         ):
             raise RouteV2Error("runner differs from measured preflight")
     else:
-        preflight_payload = _synthetic_preflight_bytes(run_id)
+        synthetic_identity = (
+            runner.execution_identity()
+            if ab_admission is not None and type(runner) is TrustedABArmRunner
+            else None
+        )
+        preflight_payload = _synthetic_preflight_bytes(run_id, synthetic_identity)
         _, execution_identity = _validate_preflight(
             preflight_payload, run_id, authorization
         )
@@ -1389,6 +1625,7 @@ def orchestrate(
         authorization=authorization,
         execution_identity=execution_identity,
         preflight_sha256=_sha256_bytes(preflight_payload),
+        ab_admission=ab_admission,
     )
     action = json.loads(action_payload)
     try:
@@ -1444,6 +1681,13 @@ def orchestrate(
     try:
         private_root.mkdir(parents=True)
         _acl(private_root, True)
+        input_attestation: dict[str, object] | None = None
+        if ab_admission is not None:
+            assert type(runner) is TrustedABArmRunner
+            stage = "input_attestation"
+            input_payload = runner.prepare(private_root, action_payload)
+            input_attestation = _validate_input_attestation(input_payload, action)
+            publish(output_root / "input-attestation.json", input_payload)
         stage = "runner"
         runner_calls += 1
         try:
@@ -1503,8 +1747,12 @@ def orchestrate(
             ),
             "observed_workspace": observed,
             "run_id": run_id,
-            "schema": PACKET_SCHEMA,
+            "schema": AB_PACKET_SCHEMA if input_attestation is not None else PACKET_SCHEMA,
         }
+        if input_attestation is not None:
+            packet["input_attestation_sha256"] = _sha256_bytes(
+                _json_bytes(input_attestation)
+            )
         publish(output_root / "packet.json", _json_bytes(packet))
 
         stage = "seal"
@@ -1729,7 +1977,31 @@ def verify(
         raise RouteV2Error("same-run external terminal exists")
     if private_root.exists():
         raise RouteV2Error("private cleanup target still exists")
-    paths = {
+    expected_names = {
+        "action.json",
+        "attestation.json",
+        "final.json",
+        "packet.json",
+        "preflight.json",
+        "seal.json",
+    }
+    observed_entries = list(output_root.iterdir()) if output_root.is_dir() else []
+    if any(
+        entry.is_symlink()
+        or not entry.is_file()
+        or bool(
+            getattr(entry.stat(follow_symlinks=False), "st_file_attributes", 0)
+            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        )
+        for entry in observed_entries
+    ):
+        raise RouteV2Error("route artifact set contains an unsupported entry")
+    observed_names = {entry.name for entry in observed_entries}
+    if observed_names != expected_names and observed_names != expected_names | {
+        "input-attestation.json"
+    }:
+        raise RouteV2Error("route artifact set is not closed")
+    paths: dict[str, Path] = {
         name: output_root / f"{name}.json"
         for name in ("preflight", "action", "attestation", "packet", "seal", "final")
     }
@@ -1738,6 +2010,17 @@ def verify(
     if _sha256_file(paths["final"]) != expected_final_sha256:
         raise RouteV2Error("final receipt differs from pinned identity")
     action = _load_object(paths["action"])
+    is_ab = action.get("schema") == AB_ACTION_SCHEMA
+    input_attestation: dict[str, object] | None = None
+    if is_ab:
+        paths["input-attestation"] = output_root / "input-attestation.json"
+        if not paths["input-attestation"].is_file():
+            raise RouteV2Error("route artifact set is incomplete")
+        input_attestation = _load_object(paths["input-attestation"])
+    if observed_names != (
+        expected_names | {"input-attestation.json"} if is_ab else expected_names
+    ):
+        raise RouteV2Error("route artifact set differs from action schema")
     preflight = _load_object(paths["preflight"])
     attestation = _load_object(paths["attestation"])
     packet = _load_object(paths["packet"])
@@ -1745,7 +2028,7 @@ def verify(
     final = _load_object(paths["final"])
     if _sha256_file(paths["action"]) != expected_action_sha256:
         raise RouteV2Error("action differs from pinned identity")
-    if set(action) != {
+    base_action_keys = {
         "authorization",
         "execution_identity",
         "expected_workspace",
@@ -1754,8 +2037,17 @@ def verify(
         "prompt_sha256",
         "run_id",
         "schema",
-    } or (
-        action.get("schema") != ACTION_SCHEMA
+    }
+    ab_action_keys = base_action_keys | {
+        "arm_id",
+        "model_id",
+        "pair_action_sha256",
+        "pair_id",
+        "staged_input_manifest_sha256",
+        "treatment_projection",
+    }
+    if set(action) != (ab_action_keys if is_ab else base_action_keys) or (
+        action.get("schema") != (AB_ACTION_SCHEMA if is_ab else ACTION_SCHEMA)
         or action.get("run_id") != run_id
         or action.get("authorization") not in AUTHORIZATIONS
         or SHA256_RE.fullmatch(str(action.get("prompt_sha256"))) is None
@@ -1765,6 +2057,12 @@ def verify(
     _validate_execution_binding(
         action.get("authorization"), action.get("execution_identity")
     )
+    if is_ab:
+        _validate_ab_admission(
+            {key: action[key] for key in ab_action_keys - base_action_keys}
+        )
+        assert input_attestation is not None
+        _validate_input_attestation(paths["input-attestation"].read_bytes(), action)
     _, preflight_identity = _validate_preflight(
         paths["preflight"].read_bytes(), run_id, action["authorization"]
     )
@@ -1847,7 +2145,7 @@ def verify(
             raise RouteV2Error("attestation unavailable state is invalid")
     elif stdout_attestation.get("status") == "absent":
         raise RouteV2Error("attestation capture state is invalid")
-    if set(packet) != {
+    packet_keys = {
         "action_sha256",
         "attestation_sha256",
         "checks",
@@ -1855,7 +2153,19 @@ def verify(
         "observed_workspace",
         "run_id",
         "schema",
-    } or packet.get("schema") != PACKET_SCHEMA or packet.get("run_id") != run_id:
+    }
+    if is_ab:
+        packet_keys.add("input_attestation_sha256")
+    if (
+        set(packet) != packet_keys
+        or packet.get("schema") != (AB_PACKET_SCHEMA if is_ab else PACKET_SCHEMA)
+        or packet.get("run_id") != run_id
+        or (
+            is_ab
+            and packet.get("input_attestation_sha256")
+            != _sha256_file(paths["input-attestation"])
+        )
+    ):
         raise RouteV2Error("packet identity is invalid")
     _validate_projection(packet.get("observed_workspace"))
     raw_checks = packet.get("checks")
