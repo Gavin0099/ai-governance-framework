@@ -237,6 +237,51 @@ def test_zero_session_preflight_rejects_coherent_identity_drift_without_auth(
     assert not (tmp_path / "pair-public").exists()
 
 
+def test_zero_session_preflight_rejects_current_interpreter_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+    monkeypatch.setattr(codex, "_ab_command_contract_sha256", lambda: "0" * 64)
+
+    with pytest.raises(
+        route.RouteV2Error, match="interpreter differs from signed manifest"
+    ):
+        live.verify_live_pair_preflight(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+        )
+
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_live_pair_rejects_current_interpreter_drift_before_auth_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    auth = tmp_path / "missing-auth.json"
+    monkeypatch.setattr(codex, "_ab_command_contract_sha256", lambda: "0" * 64)
+
+    with pytest.raises(
+        route.RouteV2Error, match="interpreter differs from signed manifest"
+    ):
+        live._orchestrate_pinned_pair(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            owner_pin=_owner_pin(manifest),
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+            auth_file=auth,
+        )
+
+    assert not auth.exists()
+    assert not (tmp_path / "pair-public").exists()
+
+
 def test_zero_session_preflight_rejects_executable_snapshot_drift_without_auth(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

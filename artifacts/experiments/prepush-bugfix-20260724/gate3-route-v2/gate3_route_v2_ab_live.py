@@ -225,6 +225,12 @@ def _verify_pre_session_inputs(
         raise route.RouteV2Error("pair output collision")
     if manifest["implementations"]["live_adapter_sha256"] != _implementation_sha256():
         raise route.RouteV2Error("live A/B adapter differs from signed manifest")
+    expected_model = manifest["model_build_identity"]
+    if (
+        codex._ab_command_contract_sha256()
+        != expected_model["command_contract_sha256"]
+    ):
+        raise route.RouteV2Error("live A/B interpreter differs from signed manifest")
 
     identities: dict[str, dict[str, str]] = {}
     arm_by_id = {arm["arm_id"]: arm for arm in manifest["ordered_arms"]}
@@ -244,7 +250,6 @@ def _verify_pre_session_inputs(
         identities[arm_id] = identity
     if identities["A"] != identities["B"]:
         raise route.RouteV2Error("live A/B execution identities differ")
-    expected_model = manifest["model_build_identity"]
     if any(
         identities["A"][key] != expected_model[key]
         for key in (
