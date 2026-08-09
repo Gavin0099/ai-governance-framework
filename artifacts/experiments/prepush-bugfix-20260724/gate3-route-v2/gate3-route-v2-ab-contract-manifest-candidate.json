@@ -8,7 +8,7 @@
   "authorization": "gate3_route_v2_ab_live_non_counted_only",
   "design_sha256": "048bae6f4153a4698b6b3688e67197e2225807c7f3f8d2160b239523767e0622",
   "implementations": {
-    "live_adapter_sha256": "4c3327e571ddaafbdcc0bcc9e8d8489a11d34afa602c8f58e3d90a81fc77d9a9",
+    "live_adapter_sha256": "880ac1ebc8b9fd07f9a7933a3ab741723634c8b28ddc6c686f4e50124b858f4a",
     "pair_builder_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
     "pair_orchestrator_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
     "pair_verifier_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
@@ -18,7 +18,7 @@
   },
   "model_build_identity": {
     "cli_version": "codex-cli 0.146.0",
-    "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
+    "command_contract_sha256": "faa5344db21f181f893669bd99a7d39980b3ef5d5c1cdfb42512b40e409fbcd9",
     "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
     "model_id": "gpt-5.2",
     "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
