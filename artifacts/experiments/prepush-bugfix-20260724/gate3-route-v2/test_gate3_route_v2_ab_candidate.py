@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -44,6 +46,75 @@ def test_candidate_runtime_inputs_match_source_commit() -> None:
         )
         assert completed.returncode == 0
         assert completed.stdout == path.read_bytes()
+
+
+def test_reconstruction_inputs_survive_autocrlf_checkout(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    checkout = tmp_path / "checkout"
+    repo.mkdir()
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+
+    paths = (candidate.ATTRIBUTES_PATH, *candidate.BYTE_PRESERVATION_PATHS)
+    for source in paths:
+        relative = source.relative_to(candidate.REPO_ROOT)
+        destination = repo / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+    subprocess.run(
+        [
+            "git",
+            "add",
+            "--",
+            *(str(path.relative_to(candidate.REPO_ROOT)) for path in paths),
+        ],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "core.autocrlf=true",
+            "checkout-index",
+            "--force",
+            "--all",
+            f"--prefix={checkout}{os.sep}",
+        ],
+        cwd=repo,
+        check=True,
+    )
+
+    for source in candidate.BYTE_PRESERVATION_PATHS:
+        relative = source.relative_to(candidate.REPO_ROOT)
+        assert (checkout / relative).read_bytes() == source.read_bytes()
+
+
+def test_candidate_rejects_missing_byte_preservation_rule(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = subprocess.run
+
+    def missing_rule(
+        *args: object, **kwargs: object
+    ) -> subprocess.CompletedProcess[bytes]:
+        command = args[0]
+        if isinstance(command, list) and command[:3] == ["git", "check-attr", "-z"]:
+            relative = command[-1]
+            assert isinstance(relative, str)
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                b"\0".join(
+                    (relative.encode("utf-8"), b"text", b"unspecified", b"")
+                ),
+                b"",
+            )
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(candidate.subprocess, "run", missing_rule)
+    with pytest.raises(route.RouteV2Error, match="not byte-preserved"):
+        candidate.verify_candidate()
 
 
 def test_coherent_source_and_artifact_rewrite_is_rejected(

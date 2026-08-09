@@ -2,6 +2,11 @@
   "authorization": "pending_independent_review_and_owner_signature",
   "files": [
     {
+      "bytes": 6622,
+      "path": ".gitattributes",
+      "sha256": "ffcf044b1206dc59915c0b86b5c1a9fd82c22c1223160da171f58d34db02a4e1"
+    },
+    {
       "bytes": 2214,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-7aa6144d-20260809.json",
       "sha256": "cff2b87f5d6d7d554e6f3a06381db78a44705053c2870497de59ccdf716897bc"
@@ -42,9 +47,9 @@
       "sha256": "048bae6f4153a4698b6b3688e67197e2225807c7f3f8d2160b239523767e0622"
     },
     {
-      "bytes": 6383,
+      "bytes": 7170,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_candidate.py",
-      "sha256": "1f92159969d4c9d0607ba2a4004cad68a04f88118f1cb9a5fa5c158babba607a"
+      "sha256": "c34b376fdc0f45a31eb1e3ffa240697400f4ef347899f3d228025d2f969ee38c"
     }
   ],
   "frozen_execution": {
