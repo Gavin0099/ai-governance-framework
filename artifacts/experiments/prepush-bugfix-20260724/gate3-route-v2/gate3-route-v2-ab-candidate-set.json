@@ -7,14 +7,14 @@
       "sha256": "ffcf044b1206dc59915c0b86b5c1a9fd82c22c1223160da171f58d34db02a4e1"
     },
     {
-      "bytes": 2214,
-      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-7aa6144d-20260809.json",
-      "sha256": "cff2b87f5d6d7d554e6f3a06381db78a44705053c2870497de59ccdf716897bc"
+      "bytes": 2229,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-f1e00ae6-20260810.json",
+      "sha256": "95ad495e4021a8cf7a7c5524f2bcdeffb7951c4c67e06a9887254d21b5f3cda3"
     },
     {
       "bytes": 4900,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-contract-manifest-candidate.json",
-      "sha256": "93566267da68379429bddd2ad5a84567608a655087134ebc70a0acd1971fe964"
+      "sha256": "23595e4a10fb196aed44424c2dcb5faaf59d2e1f7b09fffe5991b9a8228dd5a3"
     },
     {
       "bytes": 1373,
@@ -32,9 +32,9 @@
       "sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66"
     },
     {
-      "bytes": 13608,
+      "bytes": 17011,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_live.py",
-      "sha256": "4c3327e571ddaafbdcc0bcc9e8d8489a11d34afa602c8f58e3d90a81fc77d9a9"
+      "sha256": "880ac1ebc8b9fd07f9a7933a3ab741723634c8b28ddc6c686f4e50124b858f4a"
     },
     {
       "bytes": 43903,
@@ -49,7 +49,7 @@
     {
       "bytes": 7170,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_candidate.py",
-      "sha256": "c34b376fdc0f45a31eb1e3ffa240697400f4ef347899f3d228025d2f969ee38c"
+      "sha256": "ed45e1296d7d5c294c2156de6e4e79ef8ee226bc893490133223187822e25bd3"
     }
   ],
   "frozen_execution": {
@@ -73,7 +73,7 @@
     "Gate 3 counted execution",
     "Skill effectiveness"
   ],
-  "qualification_preflight_sha256": "cff2b87f5d6d7d554e6f3a06381db78a44705053c2870497de59ccdf716897bc",
+  "qualification_preflight_sha256": "95ad495e4021a8cf7a7c5524f2bcdeffb7951c4c67e06a9887254d21b5f3cda3",
   "schema": "gate3-route-v2-ab.candidate-set.v1",
-  "source_base_commit": "7aa6144d9c4ca8deb909aab0822328129e1a337c"
+  "source_base_commit": "f1e00ae6072e935e8e2ec632ded7660a6a6518fd"
 }

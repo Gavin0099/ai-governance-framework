@@ -190,6 +190,136 @@ def test_model_and_build_mismatch_fail_before_auth_read(
     assert not auth.exists()
 
 
+def test_zero_session_preflight_verifies_signed_identity_without_auth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+
+    receipt = live.verify_live_pair_preflight(
+        tmp_path / "pair-public",
+        contract_manifest=manifest,
+        executable_snapshots=executables,
+        measured_preflights=preflights,
+        staged_files=staged,
+    )
+
+    assert receipt["schema"] == live.PREFLIGHT_RECEIPT_SCHEMA
+    assert receipt["authorization"] == live.PREFLIGHT_AUTHORIZATION
+    assert set(receipt["checks"].values()) == {"PASS"}
+    assert receipt["contract_manifest_sha256"] == route._sha256_bytes(manifest)
+    assert receipt["pair_id"] == PAIR_ID
+    assert receipt["run_ids"] == list(RUN_IDS)
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_zero_session_preflight_rejects_coherent_identity_drift_without_auth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    for arm_id in ("A", "B"):
+        value = json.loads(preflights[arm_id])
+        value["execution_identity"]["command_contract_sha256"] = "0" * 64
+        preflights[arm_id] = route._json_bytes(value)
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+
+    with pytest.raises(
+        route.RouteV2Error, match="execution identity differs from manifest"
+    ):
+        live.verify_live_pair_preflight(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+        )
+
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_zero_session_preflight_rejects_current_interpreter_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+    monkeypatch.setattr(codex, "_ab_command_contract_sha256", lambda: "0" * 64)
+
+    with pytest.raises(
+        route.RouteV2Error, match="interpreter differs from signed manifest"
+    ):
+        live.verify_live_pair_preflight(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+        )
+
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_live_pair_rejects_current_interpreter_drift_before_auth_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    auth = tmp_path / "missing-auth.json"
+    monkeypatch.setattr(codex, "_ab_command_contract_sha256", lambda: "0" * 64)
+
+    with pytest.raises(
+        route.RouteV2Error, match="interpreter differs from signed manifest"
+    ):
+        live._orchestrate_pinned_pair(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            owner_pin=_owner_pin(manifest),
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+            auth_file=auth,
+        )
+
+    assert not auth.exists()
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_zero_session_preflight_rejects_executable_snapshot_drift_without_auth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    executables["A"].write_bytes(b"mutated executable")
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+
+    with pytest.raises(route.RouteV2Error, match="executable snapshot differs"):
+        live.verify_live_pair_preflight(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+        )
+
+    assert not (tmp_path / "pair-public").exists()
+
+
+def test_zero_session_preflight_rejects_staged_input_drift_without_auth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    staged["B"]["task.md"] = b"mutated task\n"
+    monkeypatch.setattr(live, "_load_owner_pin", lambda: _owner_pin(manifest))
+
+    with pytest.raises(route.RouteV2Error, match="staged input differs from manifest"):
+        live.verify_live_pair_preflight(
+            tmp_path / "pair-public",
+            contract_manifest=manifest,
+            executable_snapshots=executables,
+            measured_preflights=preflights,
+            staged_files=staged,
+        )
+
+    assert not (tmp_path / "pair-public").exists()
+
+
 def test_completed_nonzero_first_arm_still_runs_exactly_two_without_replacement(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -391,3 +521,113 @@ def test_wrong_authorization_subprocess_never_reads_inputs(tmp_path: Path) -> No
     assert completed.returncode != 0
     assert "live A/B authorization is invalid" in completed.stderr
     assert not missing.exists()
+
+
+def test_zero_session_preflight_subprocess_rejects_credentials_before_inputs(
+    tmp_path: Path,
+) -> None:
+    missing = tmp_path / "missing"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(Path(live.__file__).resolve()),
+            "--preflight-only",
+            "--authorization",
+            live.PREFLIGHT_AUTHORIZATION,
+            "--manifest",
+            str(missing),
+            "--output-root",
+            str(tmp_path / "out"),
+            "--auth-file",
+            str(missing),
+            "--arm-a-executable",
+            str(missing),
+            "--arm-a-preflight",
+            str(missing),
+            "--arm-a-staged",
+            str(missing),
+            "--arm-b-executable",
+            str(missing),
+            "--arm-b-preflight",
+            str(missing),
+            "--arm-b-staged",
+            str(missing),
+        ],
+        cwd=HERE,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode != 0
+    assert "zero-session preflight must not receive credentials" in completed.stderr
+    assert not missing.exists()
+
+
+def test_zero_session_preflight_subprocess_dispatches_successfully(
+    tmp_path: Path,
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_bytes(manifest)
+    preflight_paths: dict[str, Path] = {}
+    staged_roots: dict[str, Path] = {}
+    for arm_id in ("A", "B"):
+        preflight_path = tmp_path / f"preflight-{arm_id}.json"
+        preflight_path.write_bytes(preflights[arm_id])
+        preflight_paths[arm_id] = preflight_path
+        staged_root = tmp_path / f"staged-{arm_id}"
+        for relative, payload in staged[arm_id].items():
+            target = staged_root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(payload)
+        staged_roots[arm_id] = staged_root
+
+    driver = (
+        "import sys\n"
+        "import gate3_route_v2 as route\n"
+        "import gate3_route_v2_ab_live as live\n"
+        f"manifest_sha256 = {route._sha256_bytes(manifest)!r}\n"
+        "pin = route._json_bytes({"
+        "'manifest_sha256': manifest_sha256, "
+        "'schema': live.OWNER_PIN_SCHEMA, "
+        "'status': 'SIGNED_AND_PROMOTED'})\n"
+        "live._load_owner_pin = lambda: live._owner_pin_from_bytes(pin)\n"
+        "raise SystemExit(live.main(sys.argv[1:]))\n"
+    )
+    output_root = tmp_path / "pair-public"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            driver,
+            "--preflight-only",
+            "--authorization",
+            live.PREFLIGHT_AUTHORIZATION,
+            "--manifest",
+            str(manifest_path),
+            "--output-root",
+            str(output_root),
+            "--arm-a-executable",
+            str(executables["A"]),
+            "--arm-a-preflight",
+            str(preflight_paths["A"]),
+            "--arm-a-staged",
+            str(staged_roots["A"]),
+            "--arm-b-executable",
+            str(executables["B"]),
+            "--arm-b-preflight",
+            str(preflight_paths["B"]),
+            "--arm-b-staged",
+            str(staged_roots["B"]),
+        ],
+        cwd=HERE,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    receipt = json.loads(completed.stdout)
+    assert receipt["schema"] == live.PREFLIGHT_RECEIPT_SCHEMA
+    assert receipt["authorization"] == live.PREFLIGHT_AUTHORIZATION
+    assert receipt["checks"]["manifest_identity"] == "PASS"
+    assert not output_root.exists()
