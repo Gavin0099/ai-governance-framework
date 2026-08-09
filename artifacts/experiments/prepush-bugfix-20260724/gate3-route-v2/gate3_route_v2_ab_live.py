@@ -13,6 +13,8 @@ import gate3_route_v2_codex as codex
 
 
 AUTHORIZATION = pair.LIVE_AUTHORIZATION
+PREFLIGHT_AUTHORIZATION = "gate3_route_v2_ab_zero_session_preflight_only"
+PREFLIGHT_RECEIPT_SCHEMA = "gate3-route-v2-ab.zero-session-preflight.v1"
 OWNER_PIN_SCHEMA = "gate3-route-v2-ab.owner-manifest-pin.v1"
 OWNER_PIN_PATH = Path(__file__).with_name("gate3-route-v2-ab-owner-pin.json")
 _OWNER_PIN_TOKEN = object()
@@ -196,7 +198,7 @@ def build_live_contract_manifest(
     return manifest
 
 
-def _orchestrate_pinned_pair(
+def _verify_pre_session_inputs(
     output_root: Path,
     *,
     contract_manifest: bytes,
@@ -204,8 +206,7 @@ def _orchestrate_pinned_pair(
     executable_snapshots: Mapping[str, Path],
     measured_preflights: Mapping[str, bytes],
     staged_files: Mapping[str, Mapping[str, bytes]],
-    auth_file: Path,
-) -> pair.PairResult:
+) -> tuple[dict[str, Any], str, dict[str, dict[str, str]]]:
     if type(owner_pin) is not OwnerManifestPin:
         raise route.RouteV2Error("owner manifest pin is invalid")
     expected_manifest_sha256 = owner_pin.manifest_sha256
@@ -259,6 +260,66 @@ def _orchestrate_pinned_pair(
             arm_id
         ]["staged_input_manifest_sha256"]:
             raise route.RouteV2Error("live A/B staged input differs from manifest")
+
+    return manifest, expected_manifest_sha256, identities
+
+
+def verify_live_pair_preflight(
+    output_root: Path,
+    *,
+    contract_manifest: bytes,
+    executable_snapshots: Mapping[str, Path],
+    measured_preflights: Mapping[str, bytes],
+    staged_files: Mapping[str, Mapping[str, bytes]],
+) -> dict[str, object]:
+    """Verify every live-pair input that precedes credential access or execution."""
+    manifest, expected_manifest_sha256, identities = _verify_pre_session_inputs(
+        output_root,
+        contract_manifest=contract_manifest,
+        owner_pin=_load_owner_pin(),
+        executable_snapshots=executable_snapshots,
+        measured_preflights=measured_preflights,
+        staged_files=staged_files,
+    )
+    receipt: dict[str, object] = {
+        "authorization": PREFLIGHT_AUTHORIZATION,
+        "checks": {
+            "cross_arm_identity": "PASS",
+            "executable_snapshots": "PASS",
+            "manifest_identity": "PASS",
+            "output_collision": "PASS",
+            "staged_inputs": "PASS",
+        },
+        "contract_manifest_sha256": expected_manifest_sha256,
+        "execution_identity": identities["A"],
+        "pair_id": manifest["pair_id"],
+        "run_ids": [arm["run_id"] for arm in manifest["ordered_arms"]],
+        "schema": PREFLIGHT_RECEIPT_SCHEMA,
+    }
+    route._validate_public_payload(route._json_bytes(receipt))
+    return receipt
+
+
+def _orchestrate_pinned_pair(
+    output_root: Path,
+    *,
+    contract_manifest: bytes,
+    owner_pin: OwnerManifestPin,
+    executable_snapshots: Mapping[str, Path],
+    measured_preflights: Mapping[str, bytes],
+    staged_files: Mapping[str, Mapping[str, bytes]],
+    auth_file: Path,
+) -> pair.PairResult:
+    manifest, expected_manifest_sha256, _ = _verify_pre_session_inputs(
+        output_root,
+        contract_manifest=contract_manifest,
+        owner_pin=owner_pin,
+        executable_snapshots=executable_snapshots,
+        measured_preflights=measured_preflights,
+        staged_files=staged_files,
+    )
+    arm_by_id = {arm["arm_id"]: arm for arm in manifest["ordered_arms"]}
+    expected_model = manifest["model_build_identity"]
 
     auth_file = _checked_file(auth_file, "credential seed")
     route._verify_current_user_only(auth_file, False)
@@ -317,9 +378,10 @@ def _parser() -> argparse.ArgumentParser:
         description="Run one authorized non-counted Gate 3 route v2 A/B pair."
     )
     parser.add_argument("--authorization", required=True)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--auth-file", type=Path, required=True)
+    parser.add_argument("--auth-file", type=Path)
     for arm in ("a", "b"):
         parser.add_argument(f"--arm-{arm}-executable", type=Path, required=True)
         parser.add_argument(f"--arm-{arm}-preflight", type=Path, required=True)
@@ -329,25 +391,44 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    if args.authorization != AUTHORIZATION:
+    if args.preflight_only:
+        if args.authorization != PREFLIGHT_AUTHORIZATION:
+            raise route.RouteV2Error("zero-session preflight authorization is invalid")
+        if args.auth_file is not None:
+            raise route.RouteV2Error("zero-session preflight must not receive credentials")
+    elif args.authorization != AUTHORIZATION:
         raise route.RouteV2Error("live A/B authorization is invalid")
+    elif args.auth_file is None:
+        raise route.RouteV2Error("credential seed is required")
     manifest = _checked_file(args.manifest, "contract manifest").read_bytes()
     preflights = {
         "A": _checked_file(args.arm_a_preflight, "arm A preflight").read_bytes(),
         "B": _checked_file(args.arm_b_preflight, "arm B preflight").read_bytes(),
     }
+    executable_snapshots = {
+        "A": args.arm_a_executable,
+        "B": args.arm_b_executable,
+    }
+    staged_files = {
+        "A": _load_staged(args.arm_a_staged),
+        "B": _load_staged(args.arm_b_staged),
+    }
+    if args.preflight_only:
+        receipt = verify_live_pair_preflight(
+            args.output_root,
+            contract_manifest=manifest,
+            executable_snapshots=executable_snapshots,
+            measured_preflights=preflights,
+            staged_files=staged_files,
+        )
+        print(route._json_bytes(receipt).decode("utf-8"), end="")
+        return 0
     result = orchestrate_live_pair(
         args.output_root,
         contract_manifest=manifest,
-        executable_snapshots={
-            "A": args.arm_a_executable,
-            "B": args.arm_b_executable,
-        },
+        executable_snapshots=executable_snapshots,
         measured_preflights=preflights,
-        staged_files={
-            "A": _load_staged(args.arm_a_staged),
-            "B": _load_staged(args.arm_b_staged),
-        },
+        staged_files=staged_files,
         auth_file=args.auth_file,
     )
     print(json.dumps({"decision": result.decision, "verified": True}))
