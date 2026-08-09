@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import stat
 import subprocess
 import sys
 import time
@@ -58,6 +59,15 @@ def _measure(tmp_path: Path, probe: Probe | None = None) -> tuple[bytes, Path, P
         probe=selected,
     )
     return payload, snapshot, selected
+
+
+def _write_observed_helper_tree(home: Path, suffix: str = "Ab12") -> Path:
+    helper = home / "tmp" / "arg0" / f"codex-arg0{suffix}"
+    helper.mkdir(parents=True)
+    (helper / ".lock").write_bytes(b"")
+    (helper / "applypatch.bat").write_bytes(b"@echo off\r\n")
+    (helper / "apply_patch.bat").write_bytes(b"@echo off\r\n")
+    return helper
 
 
 def test_single_session_cli_and_runner_remain_model_optional(tmp_path: Path) -> None:
@@ -144,6 +154,265 @@ def test_preflight_measures_exact_snapshot_version_help_and_closed_environment(
         assert "OPENAI_API_KEY" not in env
         assert "CODEX_UNCONTROLLED" not in env
         assert set(env) <= set(codex.ENVIRONMENT_SOURCE_KEYS) | {"CODEX_HOME", "NO_COLOR"}
+
+
+def test_preflight_accepts_only_observed_helper_tree_and_removes_it(
+    tmp_path: Path,
+) -> None:
+    class HelperProbe(Probe):
+        def __call__(
+            self,
+            command: list[str] | tuple[str, ...],
+            cwd: Path,
+            env: dict[str, str],
+        ) -> codex._ContainedResult:
+            if command[-1] == "--version":
+                _write_observed_helper_tree(Path(env["CODEX_HOME"]))
+            return super().__call__(command, cwd, env)
+
+    payload, snapshot, _ = _measure(tmp_path, HelperProbe())
+    assert json.loads(payload)["checks"]["cleanup"] == "PASS"
+    assert snapshot.is_file()
+    assert not (tmp_path / "preflight" / "codex-home").exists()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "auth_file",
+        "sessions_directory",
+        "extra_helper_file",
+        "missing_helper_file",
+        "second_helper_directory",
+        "non_ascii_suffix",
+        "empty_helper_file",
+        "oversized_helper_file",
+    ],
+)
+def test_preflight_rejects_every_helper_tree_expansion(
+    tmp_path: Path, mutation: str
+) -> None:
+    def probe(
+        command: list[str] | tuple[str, ...], cwd: Path, env: dict[str, str]
+    ) -> codex._ContainedResult:
+        if command[-1] == "--version":
+            home = Path(env["CODEX_HOME"])
+            helper = _write_observed_helper_tree(
+                home, "１２" if mutation == "non_ascii_suffix" else "Ab12"
+            )
+            if mutation == "auth_file":
+                (home / "auth.json").write_bytes(b"{}")
+            elif mutation == "sessions_directory":
+                (home / "sessions").mkdir()
+            elif mutation == "extra_helper_file":
+                (helper / "unknown").write_bytes(b"x")
+            elif mutation == "missing_helper_file":
+                (helper / "apply_patch.bat").unlink()
+            elif mutation == "second_helper_directory":
+                _write_observed_helper_tree(home, "Cd34")
+            elif mutation == "empty_helper_file":
+                (helper / "applypatch.bat").write_bytes(b"")
+            elif mutation == "oversized_helper_file":
+                (helper / "applypatch.bat").write_bytes(b"x" * 65_537)
+        if command[-1] == "--version":
+            return _contained(stdout=(codex.PINNED_CLI_VERSION + "\n").encode())
+        return _contained(stdout=(" ".join(codex.REQUIRED_FLAGS) + "\n").encode())
+
+    with pytest.raises(route.RouteV2Error, match="private residue"):
+        codex._measure_preflight(
+            run_id=RUN_ID,
+            executable=Path(sys.executable),
+            expected_executable_sha256=route._sha256_file(Path(sys.executable)),
+            preflight_root=tmp_path / "preflight",
+            probe=probe,
+        )
+    assert not (tmp_path / "preflight").exists()
+
+
+def test_bounded_cleanup_retries_transient_windows_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "locked"
+    root.mkdir()
+    (root / "artifact").write_bytes(b"x")
+    real_remove = codex._remove_tree_once
+    calls = 0
+
+    def transient(path: Path) -> None:
+        nonlocal calls
+        if path == root:
+            calls += 1
+            if calls < 3:
+                raise PermissionError("synthetic Windows lock")
+        real_remove(path)
+
+    monkeypatch.setattr(codex, "_remove_tree_once", transient)
+    monkeypatch.setattr(codex.time, "sleep", lambda _: None)
+    codex._remove_tree_bounded(root)
+    assert calls == 3
+    assert not root.exists()
+
+
+def test_bounded_cleanup_reports_permanent_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "locked"
+    root.mkdir()
+    monkeypatch.setattr(codex, "_CLEANUP_ATTEMPTS", 3)
+    monkeypatch.setattr(codex.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        codex,
+        "_remove_tree_once",
+        lambda _: (_ for _ in ()).throw(PermissionError("permanent lock")),
+    )
+    with pytest.raises(route.RouteV2Error, match="cleanup failed"):
+        codex._remove_tree_bounded(root)
+
+
+def test_preexisting_preflight_root_is_never_claimed_or_deleted(tmp_path: Path) -> None:
+    root = tmp_path / "preflight"
+    root.mkdir()
+    sentinel = root / "owner-data.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+    with pytest.raises(FileExistsError):
+        codex._measure_preflight(
+            run_id=RUN_ID,
+            executable=Path(sys.executable),
+            expected_executable_sha256=route._sha256_file(Path(sys.executable)),
+            preflight_root=root,
+            probe=Probe(),
+        )
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+
+
+def test_original_preflight_and_cleanup_failures_are_both_retained(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "preflight"
+    real_remove = codex._remove_tree_once
+
+    def residue_probe(
+        command: list[str] | tuple[str, ...], cwd: Path, env: dict[str, str]
+    ) -> codex._ContainedResult:
+        if command[-1] == "--version":
+            (Path(env["CODEX_HOME"]) / "unexpected").write_text("x")
+            return _contained(stdout=(codex.PINNED_CLI_VERSION + "\n").encode())
+        return _contained(stdout=(" ".join(codex.REQUIRED_FLAGS) + "\n").encode())
+
+    monkeypatch.setattr(codex, "_CLEANUP_ATTEMPTS", 2)
+    monkeypatch.setattr(codex.time, "sleep", lambda _: None)
+    monkeypatch.setattr(
+        codex,
+        "_remove_tree_once",
+        lambda _: (_ for _ in ()).throw(PermissionError("permanent lock")),
+    )
+    with pytest.raises(BaseExceptionGroup) as raised:
+        codex._measure_preflight(
+            run_id=RUN_ID,
+            executable=Path(sys.executable),
+            expected_executable_sha256=route._sha256_file(Path(sys.executable)),
+            preflight_root=root,
+            probe=residue_probe,
+        )
+    messages = [str(item) for item in raised.value.exceptions]
+    assert any("private residue" in message for message in messages)
+    assert any("cleanup failed" in message for message in messages)
+    monkeypatch.setattr(codex, "_remove_tree_once", real_remove)
+    real_remove(root)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows junction regression")
+def test_replaced_home_junction_is_rejected_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel.txt"
+    sentinel.write_text("preserve", encoding="utf-8")
+
+    def junction_probe(
+        command: list[str] | tuple[str, ...], cwd: Path, env: dict[str, str]
+    ) -> codex._ContainedResult:
+        if command[-1] == "--version":
+            home = Path(env["CODEX_HOME"])
+            os.rmdir(home)
+            completed = subprocess.run(
+                ["cmd.exe", "/d", "/c", "mklink", "/J", str(home), str(outside)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if completed.returncode != 0:
+                pytest.skip("junction creation is unavailable")
+            return _contained(stdout=(codex.PINNED_CLI_VERSION + "\n").encode())
+        return _contained(stdout=(" ".join(codex.REQUIRED_FLAGS) + "\n").encode())
+
+    with pytest.raises(route.RouteV2Error, match="private residue"):
+        codex._measure_preflight(
+            run_id=RUN_ID,
+            executable=Path(sys.executable),
+            expected_executable_sha256=route._sha256_file(Path(sys.executable)),
+            preflight_root=tmp_path / "preflight",
+            probe=junction_probe,
+        )
+    assert sentinel.read_text(encoding="utf-8") == "preserve"
+    assert not (tmp_path / "preflight").exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows hardlink regression")
+def test_helper_hardlink_is_rejected_without_changing_external_file(
+    tmp_path: Path,
+) -> None:
+    sentinel = tmp_path / "outside-helper.bat"
+    sentinel_bytes = b"@echo off\r\n"
+    sentinel.write_bytes(sentinel_bytes)
+    os.chmod(sentinel, stat.S_IREAD)
+    before = os.stat(sentinel)
+
+    def hardlink_probe(
+        command: list[str] | tuple[str, ...], cwd: Path, env: dict[str, str]
+    ) -> codex._ContainedResult:
+        if command[-1] == "--version":
+            helper = _write_observed_helper_tree(Path(env["CODEX_HOME"]))
+            (helper / "applypatch.bat").unlink()
+            try:
+                os.link(sentinel, helper / "applypatch.bat")
+            except OSError:
+                pytest.skip("hardlink creation is unavailable")
+            return _contained(stdout=(codex.PINNED_CLI_VERSION + "\n").encode())
+        return _contained(stdout=(" ".join(codex.REQUIRED_FLAGS) + "\n").encode())
+
+    root = tmp_path / "preflight"
+    try:
+        with pytest.raises((route.RouteV2Error, BaseExceptionGroup)) as raised:
+            codex._measure_preflight(
+                run_id=RUN_ID,
+                executable=Path(sys.executable),
+                expected_executable_sha256=route._sha256_file(Path(sys.executable)),
+                preflight_root=root,
+                probe=hardlink_probe,
+            )
+
+        def messages(error: BaseException) -> list[str]:
+            if isinstance(error, BaseExceptionGroup):
+                return [
+                    message
+                    for child in error.exceptions
+                    for message in messages(child)
+                ]
+            return [str(error)]
+
+        assert any("private residue" in message for message in messages(raised.value))
+        after = os.stat(sentinel)
+        assert sentinel.read_bytes() == sentinel_bytes
+        assert after.st_mode == before.st_mode
+        assert getattr(after, "st_file_attributes", None) == getattr(
+            before, "st_file_attributes", None
+        )
+    finally:
+        os.chmod(sentinel, stat.S_IWRITE)
+        if root.exists():
+            codex._remove_tree_bounded(root)
 
 
 @pytest.mark.parametrize(

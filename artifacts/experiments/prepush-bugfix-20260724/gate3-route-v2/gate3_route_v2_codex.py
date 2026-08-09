@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -449,6 +450,142 @@ def _job_is_empty(job: int | None) -> bool:
 Probe = Callable[[Sequence[str], Path, Mapping[str, str]], _ContainedResult]
 
 
+_ZERO_SESSION_HELPER_FILES = frozenset(
+    {".lock", "applypatch.bat", "apply_patch.bat"}
+)
+_CLEANUP_ATTEMPTS = 20
+_CLEANUP_DELAY_SECONDS = 0.05
+
+
+def _is_reparse_stat(value: os.stat_result) -> bool:
+    return stat.S_ISLNK(value.st_mode) or bool(
+        getattr(value, "st_file_attributes", 0)
+        & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    )
+
+
+def _closed_directory_entries(path: Path, expected: set[str], label: str) -> None:
+    try:
+        root_value = os.lstat(path)
+    except OSError as exc:
+        raise route.RouteV2Error(f"{label} is unreadable") from exc
+    if not stat.S_ISDIR(root_value.st_mode) or _is_reparse_stat(root_value):
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    try:
+        with os.scandir(path) as scanned:
+            entries = {entry.name: entry for entry in scanned}
+    except OSError as exc:
+        raise route.RouteV2Error(f"{label} is unreadable") from exc
+    if set(entries) != expected:
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    for entry in entries.values():
+        try:
+            value = entry.stat(follow_symlinks=False)
+        except OSError as exc:
+            raise route.RouteV2Error(f"{label} is unreadable") from exc
+        if _is_reparse_stat(value):
+            raise route.RouteV2Error("zero-session preflight created private residue")
+
+
+def _validate_closed_zero_session_residue(home: Path) -> None:
+    """Accept only the pinned CLI's observed closed helper topology."""
+    try:
+        home_value = os.lstat(home)
+    except OSError as exc:
+        raise route.RouteV2Error("zero-session helper root is unreadable") from exc
+    if not stat.S_ISDIR(home_value.st_mode) or _is_reparse_stat(home_value):
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    try:
+        with os.scandir(home) as entries:
+            empty = next(entries, None) is None
+    except OSError as exc:
+        raise route.RouteV2Error("zero-session helper root is unreadable") from exc
+    if empty:
+        return
+    _closed_directory_entries(home, {"tmp"}, "zero-session helper root")
+    tmp = home / "tmp"
+    if not tmp.is_dir():
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    _closed_directory_entries(tmp, {"arg0"}, "zero-session helper tmp")
+    arg0 = tmp / "arg0"
+    if not arg0.is_dir():
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    try:
+        with os.scandir(arg0) as entries:
+            helpers = list(entries)
+    except OSError as exc:
+        raise route.RouteV2Error("zero-session helper arg0 is unreadable") from exc
+    if len(helpers) != 1:
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    helper = helpers[0]
+    suffix = helper.name.removeprefix("codex-arg0")
+    try:
+        helper_stat = helper.stat(follow_symlinks=False)
+    except OSError as exc:
+        raise route.RouteV2Error("zero-session helper is unreadable") from exc
+    if (
+        not helper.name.startswith("codex-arg0")
+        or not suffix
+        or not suffix.isascii()
+        or not suffix.isalnum()
+        or not stat.S_ISDIR(helper_stat.st_mode)
+        or _is_reparse_stat(helper_stat)
+    ):
+        raise route.RouteV2Error("zero-session preflight created private residue")
+    helper_path = Path(helper.path)
+    _closed_directory_entries(
+        helper_path, set(_ZERO_SESSION_HELPER_FILES), "zero-session helper"
+    )
+    for name in _ZERO_SESSION_HELPER_FILES:
+        path = helper_path / name
+        value = os.lstat(path)
+        if (
+            not stat.S_ISREG(value.st_mode)
+            or value.st_nlink != 1
+            or (name == ".lock" and value.st_size != 0)
+            or (name != ".lock" and not 0 < value.st_size <= 65_536)
+        ):
+            raise route.RouteV2Error("zero-session preflight created private residue")
+
+
+def _remove_tree_once(path: Path) -> None:
+    value = os.lstat(path)
+    if _is_reparse_stat(value):
+        if stat.S_ISDIR(value.st_mode):
+            os.rmdir(path)
+        else:
+            os.unlink(path)
+        return
+    if not stat.S_ISDIR(value.st_mode):
+        if value.st_nlink > 1:
+            os.unlink(path)
+            return
+        os.chmod(path, stat.S_IWRITE)
+        os.unlink(path)
+        return
+    with os.scandir(path) as entries:
+        children = [Path(entry.path) for entry in entries]
+    for child in children:
+        _remove_tree_once(child)
+    os.chmod(path, stat.S_IWRITE)
+    os.rmdir(path)
+
+
+def _remove_tree_bounded(path: Path) -> None:
+    last_error: OSError | None = None
+    for attempt in range(_CLEANUP_ATTEMPTS):
+        if not os.path.lexists(path):
+            return
+        try:
+            _remove_tree_once(path)
+            return
+        except OSError as exc:
+            last_error = exc
+            if attempt + 1 < _CLEANUP_ATTEMPTS:
+                time.sleep(_CLEANUP_DELAY_SECONDS)
+    raise route.RouteV2Error("zero-session preflight cleanup failed") from last_error
+
+
 def _native_probe(command: Sequence[str], cwd: Path, env: Mapping[str, str]) -> _ContainedResult:
     return _run_contained(
         command, input_bytes=b"", cwd=cwd, env=env, timeout_seconds=30
@@ -487,8 +624,10 @@ def _measure_preflight(
     source = executable.resolve()
     if not source.is_file() or route._sha256_file(source) != expected_executable_sha256:
         raise route.RouteV2Error("Codex executable differs from the pinned identity")
+    owned_root = False
     try:
         preflight_root.mkdir(parents=True)
+        owned_root = True
         route._current_user_only(preflight_root, True)
         snapshot = preflight_root / "codex.exe"
         shutil.copyfile(source, snapshot)
@@ -518,9 +657,8 @@ def _measure_preflight(
             raise route.RouteV2Error("Codex root help is empty")
         if any(flag not in exec_help_text for flag in _required_flags):
             raise route.RouteV2Error("Codex help lacks a required flag")
-        if any(home.iterdir()):
-            raise route.RouteV2Error("zero-session preflight created private residue")
-        shutil.rmtree(home)
+        _validate_closed_zero_session_residue(home)
+        _remove_tree_bounded(home)
         identity = route._validate_execution_identity(
             {
                 "cli_version": observed_version,
@@ -561,9 +699,15 @@ def _measure_preflight(
         )
         route._validate_public_payload(payload)
         return payload, snapshot
-    except BaseException:
-        if preflight_root.exists():
-            shutil.rmtree(preflight_root)
+    except BaseException as original_error:
+        if owned_root and os.path.lexists(preflight_root):
+            try:
+                _remove_tree_bounded(preflight_root)
+            except BaseException as cleanup_error:
+                raise BaseExceptionGroup(
+                    "zero-session preflight and cleanup both failed",
+                    [original_error, cleanup_error],
+                ) from original_error
         raise
 
 
