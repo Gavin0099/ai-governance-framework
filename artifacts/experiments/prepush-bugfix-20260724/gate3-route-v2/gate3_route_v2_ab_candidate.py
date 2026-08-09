@@ -25,17 +25,18 @@ CONTEXT_TOKENS = ("ARM_A_CONTEXT", "ARM_B_CONTEXT")
 PREFLIGHT_PATH = HERE / "gate3-route-v2-ab-preflight-7aa6144d-20260809.json"
 CONTRACT_PATH = HERE / "gate3-route-v2-ab-contract-manifest-candidate.json"
 CANDIDATE_PATH = HERE / "gate3-route-v2-ab-candidate-set.json"
+ATTRIBUTES_PATH = REPO_ROOT / ".gitattributes"
 TREATMENT_PATH = REPO_ROOT / (
     "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md"
 )
 CANDIDATE_SCHEMA = "gate3-route-v2-ab.candidate-set.v1"
+BYTE_PRESERVATION_PATHS = (pair.DESIGN_PATH.resolve(), TREATMENT_PATH)
 SOURCE_COMMIT_INPUTS = (
     Path(route.__file__).resolve(),
     Path(pair.__file__).resolve(),
     Path(live.__file__).resolve(),
     Path(codex.__file__).resolve(),
-    pair.DESIGN_PATH.resolve(),
-    TREATMENT_PATH,
+    *BYTE_PRESERVATION_PATHS,
 )
 
 
@@ -69,6 +70,24 @@ def _verify_source_commit_inputs() -> None:
     for path in SOURCE_COMMIT_INPUTS:
         if path.read_bytes() != _source_commit_bytes(path):
             raise route.RouteV2Error("candidate source differs from source commit")
+
+
+def _verify_byte_preservation_attributes() -> None:
+    for path in BYTE_PRESERVATION_PATHS:
+        relative = _relative(path)
+        completed = subprocess.run(
+            ["git", "check-attr", "-z", "text", "--", relative],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=False,
+        )
+        expected = b"\0".join(
+            (relative.encode("utf-8"), b"text", b"unset", b"")
+        )
+        if completed.returncode != 0 or completed.stdout != expected:
+            raise route.RouteV2Error(
+                "candidate reconstruction input is not byte-preserved"
+            )
 
 
 def _staged_inputs(treatment: bytes) -> dict[str, dict[str, bytes]]:
@@ -134,6 +153,7 @@ def build_contract_manifest() -> bytes:
 def build_candidate_set(contract_manifest: bytes) -> bytes:
     pair._validate_manifest(contract_manifest, route._sha256_bytes(contract_manifest))
     files = [
+        ATTRIBUTES_PATH,
         PREFLIGHT_PATH,
         CONTRACT_PATH,
         TREATMENT_PATH,
@@ -170,6 +190,7 @@ def build_candidate_set(contract_manifest: bytes) -> bytes:
 
 
 def verify_candidate() -> dict[str, str]:
+    _verify_byte_preservation_attributes()
     _verify_source_commit_inputs()
     contract = CONTRACT_PATH.read_bytes()
     if contract != build_contract_manifest():
