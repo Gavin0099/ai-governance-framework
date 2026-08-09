@@ -1,0 +1,108 @@
+{
+  "action_inputs": {
+    "baseline_workspace_sha256": "552e81ec46006010ab170c3b9d473c52d62ecb344ca3ffa34cc164f02d38d255",
+    "expected_workspace_sha256": "90130cfcfa7f88abd3350087050dfaf4e99a2c23ffb07af6ccb75984e49d7805",
+    "output_schema_sha256": "c7124e2c7cb644c79435130d36456aa38ee30bb9496c8e40983f4c16a54cdfe9",
+    "prompt_sha256": "893017fc31af01f9e4fe6201e7c2737dd6add954cc45a887613be2d350c79b27"
+  },
+  "authorization": "gate3_route_v2_ab_live_non_counted_only",
+  "design_sha256": "048bae6f4153a4698b6b3688e67197e2225807c7f3f8d2160b239523767e0622",
+  "implementations": {
+    "live_adapter_sha256": "4c3327e571ddaafbdcc0bcc9e8d8489a11d34afa602c8f58e3d90a81fc77d9a9",
+    "pair_builder_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
+    "pair_orchestrator_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
+    "pair_verifier_sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66",
+    "single_arm_route_sha256": "53f2ba2d436562ea0589b1c4639e340c35939ae321cb5dd17197e29627ff2d10",
+    "single_arm_runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",
+    "single_arm_verifier_sha256": "53f2ba2d436562ea0589b1c4639e340c35939ae321cb5dd17197e29627ff2d10"
+  },
+  "model_build_identity": {
+    "cli_version": "codex-cli 0.146.0",
+    "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
+    "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
+    "model_id": "gpt-5.2",
+    "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+  },
+  "ordered_arms": [
+    {
+      "arm_id": "A",
+      "context_token": "ARM_A_CONTEXT",
+      "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-a",
+      "single_arm_authorization": "gate3_route_v2_single_session_non_scoring_only",
+      "staged_input_manifest_sha256": "bb5f7dffa6927ade273412fca4ac5e4e0feb1b9a236279bdda35905d726f9384",
+      "treatment_projection": {
+        "state": "absent",
+        "treatment_manifest_sha256": "1343b6513e2ca5994f524745427bbea7305f6d80a964b90df29c74f46dc70b7a",
+        "treatment_packet_sha256": "absent"
+      }
+    },
+    {
+      "arm_id": "B",
+      "context_token": "ARM_B_CONTEXT",
+      "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-b",
+      "single_arm_authorization": "gate3_route_v2_single_session_non_scoring_only",
+      "staged_input_manifest_sha256": "af352cda219939da4749a147cf599bf58d8d7c334d4a24d02dcce97c2db577c1",
+      "treatment_projection": {
+        "state": "present",
+        "treatment_manifest_sha256": "268e2f8c8a1c61a237ba2d863bb44a12ee86592b3f86aeff89064b21c5c59da6",
+        "treatment_packet_sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+      }
+    }
+  ],
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "policies": {
+    "common_harness": "27d59b16a4c269b980ac04d02176ba3ba4c0d21394b787a8afeb20c0b51f6214",
+    "credential": "8f83e58cecee2bfa8bb71295cd54c9fe455881063a3b728920e897d7b82eda18",
+    "environment": "c82a07174fcc3e6e9ead58869bd4bf769b2b65da07fa6e7d8cfa21dd08b7940f",
+    "path_normalization": "74afa4f41ac882b58c44f0e64ce53c4500336dc4bc3669fd51abf8f5164831e4",
+    "permissions": "bf266095043b4593333813bbc4977e421e0685abf92d24f4944b26e517dda9d9",
+    "schema_set": "d03edbc364b5de3e6213b5ca9fbd952f242fb0b1f5e66c2cdc0c6f426d779a45",
+    "timeout": "db786dc1a43dd0023a9cb67be71e7614f4bf7732ac5cca54633f9edecdf4bc20"
+  },
+  "schema": "gate3-route-v2-ab.contract-manifest.v1",
+  "staged_input_projections": {
+    "A": {
+      "artifacts": [
+        {
+          "artifact_id": "result.txt",
+          "bytes": 8,
+          "sha256": "45fc7ab706e6fb509993b6fcae9d4d423c96f8e840c8f64c1a61f5c817c8a870"
+        },
+        {
+          "artifact_id": "task.md",
+          "bytes": 60,
+          "sha256": "73d2433d004f635dd183f02e8c92b30673033b5c7e25cd2ad5190328e7ea2492"
+        },
+        {
+          "artifact_id": "treatment-manifest.json",
+          "bytes": 87,
+          "sha256": "1343b6513e2ca5994f524745427bbea7305f6d80a964b90df29c74f46dc70b7a"
+        }
+      ]
+    },
+    "B": {
+      "artifacts": [
+        {
+          "artifact_id": "result.txt",
+          "bytes": 8,
+          "sha256": "45fc7ab706e6fb509993b6fcae9d4d423c96f8e840c8f64c1a61f5c817c8a870"
+        },
+        {
+          "artifact_id": "skill.packet",
+          "bytes": 1373,
+          "sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+        },
+        {
+          "artifact_id": "task.md",
+          "bytes": 60,
+          "sha256": "73d2433d004f635dd183f02e8c92b30673033b5c7e25cd2ad5190328e7ea2492"
+        },
+        {
+          "artifact_id": "treatment-manifest.json",
+          "bytes": 152,
+          "sha256": "268e2f8c8a1c61a237ba2d863bb44a12ee86592b3f86aeff89064b21c5c59da6"
+        }
+      ]
+    }
+  }
+}
