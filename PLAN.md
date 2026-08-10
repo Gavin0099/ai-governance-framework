@@ -1574,21 +1574,16 @@ independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.
 
-- [ ] **Gate 3 paired-screening preregistration candidate revised
-  2026-07-29; re-review/signature pending.** Commit `c5be84db` binds the
-  preregistered mapping before producer execution, requires two distinct scorer
-  contexts, rejects zero or unavailable core-cost data as promotion evidence,
-  and verifies each admitted outcome against retained input bytes, a clean
-  output commit, portable Git bundle, exact diff, event log and test receipts.
-  The experiment-local common-harness contract is now part of the exact
-  candidate set. Focused tests passed 33/33; canonical precommit passed runtime
-  smoke plus 190/190; `core.autocrlf=true` index checkout preserved all seven
-  candidate paths byte-for-byte. Exact candidate-manifest SHA-256:
-  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`.
-  This is not independently approved, owner-signed or canonical. Gate 3 remains
-  blocked on independent review of these revised bytes, explicit owner
-  signature, later promotion, natural-bug/resource admission and separate start
-  authority.
+- [x] **Gate 3 NON_SUCCESS pair-final manifest promoted 2026-08-11.** The
+  offline integrity fix is bound to source commit `204965c9`; exact candidate
+  manifest SHA-256
+  `db86a97b36a2e80e43e9e0765f07f20cb00e07aa813cbf54bea2b587f3c02baa`
+  received an independent read-only approval with zero blocking findings. Owner
+  promotion commit `8da68734` pins contract-manifest SHA-256
+  `fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440`.
+  Candidate reconstruction passed, focused Gate 3 tests passed 51/51, and the
+  canonical precommit passed runtime smoke plus 197/197. Fresh zero-session
+  preflight and receipt review remain pending; live replay is not authorized.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
