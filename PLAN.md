@@ -1582,8 +1582,11 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   promotion commit `8da68734` pins contract-manifest SHA-256
   `fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440`.
   Candidate reconstruction passed, focused Gate 3 tests passed 51/51, and the
-  canonical precommit passed runtime smoke plus 197/197. Fresh zero-session
-  preflight and receipt review remain pending; live replay is not authorized.
+  canonical precommit passed runtime smoke plus 197/197. Fresh credential-free
+  zero-session preflight receipt SHA-256
+  `6bd5a72e0f2b6b4ed508fafff3645a4eff4808614c132ee854e9a67bc00af586`
+  passed byte-exact reconstruction review in commit `84849892`; live replay is
+  not authorized pending a separate independent decision.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
