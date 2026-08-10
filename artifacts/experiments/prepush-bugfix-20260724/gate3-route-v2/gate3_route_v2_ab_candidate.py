@@ -13,8 +13,8 @@ import gate3_route_v2_codex as codex
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[3]
-SOURCE_COMMIT = "f1e00ae6072e935e8e2ec632ded7660a6a6518fd"
-PREFLIGHT_SHA256 = "95ad495e4021a8cf7a7c5524f2bcdeffb7951c4c67e06a9887254d21b5f3cda3"
+SOURCE_COMMIT = "bc163263af10e1149a5e7c973b0d3a8854d2b4e3"
+PREFLIGHT_SHA256 = "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957"
 PAIR_ID = "gate3-route-v2-ab-live-v2-20260809"
 MODEL_ID = "gpt-5.2"
 RUN_IDS = (
@@ -22,7 +22,7 @@ RUN_IDS = (
     "gate3-route-v2-ab-live-v2-20260809-arm-b",
 )
 CONTEXT_TOKENS = ("ARM_A_CONTEXT", "ARM_B_CONTEXT")
-PREFLIGHT_PATH = HERE / "gate3-route-v2-ab-preflight-f1e00ae6-20260810.json"
+PREFLIGHT_PATH = HERE / "gate3-route-v2-ab-preflight-bc163263-20260810.json"
 CONTRACT_PATH = HERE / "gate3-route-v2-ab-contract-manifest-candidate.json"
 CANDIDATE_PATH = HERE / "gate3-route-v2-ab-candidate-set.json"
 ATTRIBUTES_PATH = REPO_ROOT / ".gitattributes"

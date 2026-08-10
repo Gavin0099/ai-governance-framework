@@ -8,13 +8,13 @@
     },
     {
       "bytes": 2229,
-      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-f1e00ae6-20260810.json",
-      "sha256": "95ad495e4021a8cf7a7c5524f2bcdeffb7951c4c67e06a9887254d21b5f3cda3"
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-bc163263-20260810.json",
+      "sha256": "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957"
     },
     {
       "bytes": 4900,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-contract-manifest-candidate.json",
-      "sha256": "23595e4a10fb196aed44424c2dcb5faaf59d2e1f7b09fffe5991b9a8228dd5a3"
+      "sha256": "a386d6fb813258f7e1463de9ffbe295ef84eff086416e70f87ea56a892794dca"
     },
     {
       "bytes": 1373,
@@ -32,9 +32,9 @@
       "sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66"
     },
     {
-      "bytes": 17011,
+      "bytes": 17016,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_live.py",
-      "sha256": "880ac1ebc8b9fd07f9a7933a3ab741723634c8b28ddc6c686f4e50124b858f4a"
+      "sha256": "48d549aafb9f2f1499365d3c47609e6096b153642686fe82e4ed7e4e3733612b"
     },
     {
       "bytes": 43903,
@@ -49,7 +49,7 @@
     {
       "bytes": 7170,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_candidate.py",
-      "sha256": "ed45e1296d7d5c294c2156de6e4e79ef8ee226bc893490133223187822e25bd3"
+      "sha256": "677d147c52539dfe0f17299baacb085d8f09ba28220a94c891997cd34007a470"
     }
   ],
   "frozen_execution": {
@@ -73,7 +73,7 @@
     "Gate 3 counted execution",
     "Skill effectiveness"
   ],
-  "qualification_preflight_sha256": "95ad495e4021a8cf7a7c5524f2bcdeffb7951c4c67e06a9887254d21b5f3cda3",
+  "qualification_preflight_sha256": "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957",
   "schema": "gate3-route-v2-ab.candidate-set.v1",
-  "source_base_commit": "f1e00ae6072e935e8e2ec632ded7660a6a6518fd"
+  "source_base_commit": "bc163263af10e1149a5e7c973b0d3a8854d2b4e3"
 }
