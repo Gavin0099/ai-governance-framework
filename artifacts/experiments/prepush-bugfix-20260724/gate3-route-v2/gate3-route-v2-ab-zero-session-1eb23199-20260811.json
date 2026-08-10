@@ -1,0 +1,24 @@
+{
+  "authorization": "gate3_route_v2_ab_zero_session_preflight_only",
+  "checks": {
+    "cross_arm_identity": "PASS",
+    "executable_snapshots": "PASS",
+    "manifest_identity": "PASS",
+    "output_collision": "PASS",
+    "staged_inputs": "PASS"
+  },
+  "contract_manifest_sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440",
+  "execution_identity": {
+    "cli_version": "codex-cli 0.146.0",
+    "command_contract_sha256": "faa5344db21f181f893669bd99a7d39980b3ef5d5c1cdfb42512b40e409fbcd9",
+    "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
+    "kind": "codex_exec",
+    "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+  },
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "run_ids": [
+    "gate3-route-v2-ab-live-v2-20260809-arm-a",
+    "gate3-route-v2-ab-live-v2-20260809-arm-b"
+  ],
+  "schema": "gate3-route-v2-ab.zero-session-preflight.v1"
+}
