@@ -14,7 +14,7 @@
     {
       "bytes": 4900,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-contract-manifest-candidate.json",
-      "sha256": "a386d6fb813258f7e1463de9ffbe295ef84eff086416e70f87ea56a892794dca"
+      "sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440"
     },
     {
       "bytes": 1373,
@@ -27,9 +27,9 @@
       "sha256": "53f2ba2d436562ea0589b1c4639e340c35939ae321cb5dd17197e29627ff2d10"
     },
     {
-      "bytes": 51011,
+      "bytes": 51018,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab.py",
-      "sha256": "d774897d1365fcd7b36f726bbb326b5cdbd65278874e7fbcdd8ff8847c0b6d66"
+      "sha256": "3f6697550376d4838054a722e91c1d9b70216c4a0604494c0fef8642d8ad4d7d"
     },
     {
       "bytes": 17016,
@@ -47,9 +47,14 @@
       "sha256": "048bae6f4153a4698b6b3688e67197e2225807c7f3f8d2160b239523767e0622"
     },
     {
-      "bytes": 7170,
+      "bytes": 23424,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_route_v2_ab_live.py",
+      "sha256": "92a0b5e0da59fb0f2a3e8a0d93bf21287e7bd75c3c18360e640be0bdb39724c8"
+    },
+    {
+      "bytes": 7251,
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_candidate.py",
-      "sha256": "677d147c52539dfe0f17299baacb085d8f09ba28220a94c891997cd34007a470"
+      "sha256": "8c0444001bbf8be1bcc3057d891687a3ba57029efa623a970d7fc6b13fd2702d"
     }
   ],
   "frozen_execution": {
@@ -75,5 +80,5 @@
   ],
   "qualification_preflight_sha256": "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957",
   "schema": "gate3-route-v2-ab.candidate-set.v1",
-  "source_base_commit": "bc163263af10e1149a5e7c973b0d3a8854d2b4e3"
+  "source_base_commit": "204965c94bd843d599986d9f9d0fd552ea053dff"
 }

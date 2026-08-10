@@ -13,7 +13,7 @@ import gate3_route_v2_codex as codex
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[3]
-SOURCE_COMMIT = "bc163263af10e1149a5e7c973b0d3a8854d2b4e3"
+SOURCE_COMMIT = "204965c94bd843d599986d9f9d0fd552ea053dff"
 PREFLIGHT_SHA256 = "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957"
 PAIR_ID = "gate3-route-v2-ab-live-v2-20260809"
 MODEL_ID = "gpt-5.2"
@@ -29,6 +29,7 @@ ATTRIBUTES_PATH = REPO_ROOT / ".gitattributes"
 TREATMENT_PATH = REPO_ROOT / (
     "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md"
 )
+LIVE_TEST_PATH = HERE / "test_gate3_route_v2_ab_live.py"
 CANDIDATE_SCHEMA = "gate3-route-v2-ab.candidate-set.v1"
 BYTE_PRESERVATION_PATHS = (pair.DESIGN_PATH.resolve(), TREATMENT_PATH)
 SOURCE_COMMIT_INPUTS = (
@@ -162,6 +163,7 @@ def build_candidate_set(contract_manifest: bytes) -> bytes:
         Path(live.__file__).resolve(),
         Path(codex.__file__).resolve(),
         pair.DESIGN_PATH.resolve(),
+        LIVE_TEST_PATH,
         Path(__file__).resolve(),
     ]
     value = {

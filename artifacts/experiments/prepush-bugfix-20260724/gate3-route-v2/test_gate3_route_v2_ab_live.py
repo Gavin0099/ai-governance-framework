@@ -169,6 +169,51 @@ def test_live_adapter_runs_exactly_two_synthetic_subprocess_boundaries(
     }
 
 
+def test_live_probe_stderr_difference_publishes_offline_verifiable_non_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, preflights, executables, staged = _manifest(tmp_path)
+    arm_b_preflight = json.loads(preflights["B"])
+    for observation in arm_b_preflight["probe_outputs"].values():
+        observation["stderr_sha256"] = "0" * 64
+    preflights["B"] = route._json_bytes(arm_b_preflight)
+
+    def fake_run(
+        command: list[str],
+        *,
+        input_bytes: bytes,
+        cwd: Path,
+        env: dict[str, str],
+        timeout_seconds: int,
+    ) -> codex._ContainedResult:
+        (cwd / "result.txt").write_bytes(b"CALIBRATION_OK\n")
+        final_path = Path(command[command.index("--output-last-message") + 1])
+        final_path.write_bytes(b'{"status":"ok"}')
+        return _contained(stdout=b'{"type":"turn.completed"}\n')
+
+    monkeypatch.setattr(codex, "_run_contained", fake_run)
+    output = tmp_path / "pair-public"
+    result = live._orchestrate_pinned_pair(
+        output,
+        contract_manifest=manifest,
+        owner_pin=_owner_pin(manifest),
+        executable_snapshots=executables,
+        measured_preflights=preflights,
+        staged_files=staged,
+        auth_file=_auth(tmp_path),
+    )
+
+    receipt = json.loads(result.receipt.read_text(encoding="utf-8"))
+    assert receipt["checks"]["cross_arm_equality"] == "FAIL"
+    assert result.decision == "NON_SUCCESS"
+    assert pair.verify_pair(
+        output,
+        contract_manifest=manifest,
+        expected_manifest_sha256=route._sha256_bytes(manifest),
+        expected_pins=result.pins,
+    )["decision"] == "NON_SUCCESS"
+
+
 def test_model_and_build_mismatch_fail_before_auth_read(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
