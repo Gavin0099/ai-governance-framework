@@ -1585,8 +1585,11 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   canonical precommit passed runtime smoke plus 197/197. Fresh credential-free
   zero-session preflight receipt SHA-256
   `6bd5a72e0f2b6b4ed508fafff3645a4eff4808614c132ee854e9a67bc00af586`
-  passed byte-exact reconstruction review in commit `84849892`; live replay is
-  not authorized pending a separate independent decision.
+  passed byte-exact reconstruction review in commit `84849892`. A separate
+  independent read-only review authorized one exact non-counted live pair at
+  HEAD `7d035c1d`, using the bundled-Python command contract `faa5344d…` only.
+  Live has not run; retry, replacement, counted execution, other interpreters,
+  and automatic execution remain unauthorized.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
