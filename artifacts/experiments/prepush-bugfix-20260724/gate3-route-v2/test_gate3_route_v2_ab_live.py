@@ -622,12 +622,17 @@ def test_zero_session_preflight_subprocess_dispatches_successfully(
         ],
         cwd=HERE,
         capture_output=True,
-        text=True,
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
+    route._validate_public_payload(completed.stdout)
+    assert completed.stdout.endswith(b"\n")
+    assert not completed.stdout.endswith(b"\r\n")
     receipt = json.loads(completed.stdout)
     assert receipt["schema"] == live.PREFLIGHT_RECEIPT_SCHEMA
     assert receipt["authorization"] == live.PREFLIGHT_AUTHORIZATION
     assert receipt["checks"]["manifest_identity"] == "PASS"
     assert not output_root.exists()
+
+    with pytest.raises(route.PublicPrivacyError, match="canonical JSON"):
+        route._validate_public_payload(completed.stdout.replace(b"\n", b"\r\n"))
