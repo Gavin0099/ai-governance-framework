@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import stat
+import sys
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -426,7 +427,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             measured_preflights=preflights,
             staged_files=staged_files,
         )
-        print(route._json_bytes(receipt).decode("utf-8"), end="")
+        sys.stdout.buffer.write(route._json_bytes(receipt))
         return 0
     result = orchestrate_live_pair(
         args.output_root,
