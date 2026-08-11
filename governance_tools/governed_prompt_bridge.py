@@ -16,6 +16,7 @@ PROVIDER_ALIASES = {
     "chatgpt": "chatgpt",
     "chatgot": "chatgpt",   # common typo alias
     "claude": "claude",
+    "copilot": "copilot",
     "gemini": "gemini",
     "gemnin": "gemini",     # common typo alias
 }
@@ -32,7 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Provider bridge for governed prompt generation."
     )
-    parser.add_argument("--provider", required=True, help="chatgpt|claude|gemini (aliases: chatgot, gemnin)")
+    parser.add_argument(
+        "--provider",
+        required=True,
+        help="chatgpt|claude|copilot|gemini (aliases: chatgot, gemnin)",
+    )
     parser.add_argument("--lang", required=True)
     parser.add_argument("--level", required=True)
     parser.add_argument("--scope", required=True)

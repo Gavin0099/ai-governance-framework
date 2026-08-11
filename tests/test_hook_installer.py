@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -47,7 +48,9 @@ def _make_framework(root: Path) -> None:
     )
     _write(
         root / "governance/copilot-hooks-vscode-template.json",
-        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+        '{"version":1,"hooks":{'
+        '"SessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],'
+        '"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
     )
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
@@ -521,3 +524,103 @@ def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:
     assert "runtime_hooks/adapters/copilot/lifecycle.py" in text
     assert "ai-governance-vscode.json" in text
     assert "ai-governance-copilot.json" in text
+
+
+def _lifecycle(repo: Path) -> Path:
+    return repo / ".github" / "hooks" / "ai-governance-lifecycle.py"
+
+
+def _vscode_config(repo: Path) -> Path:
+    return repo / ".github" / "hooks" / "ai-governance-vscode.json"
+
+
+def test_edited_lifecycle_bridge_is_backed_up_before_replacement(tmp_path: Path) -> None:
+    """AGR-09: a consumer edit to the managed bridge must not vanish silently.
+
+    The edited file still carries the framework marker, so a marker check alone
+    would skip the backup and overwrite the edit with no record of it.
+    """
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    install_governance_hooks(repo, framework)
+
+    edited = _lifecycle(repo).read_text(encoding="utf-8") + "\n# CFU: dynamic memory pressure\n"
+    _write(_lifecycle(repo), edited)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is True
+    backups = [Path(item) for item in result.backups]
+    assert any(item.name.startswith("ai-governance-lifecycle.py.bak.") for item in backups)
+    kept = next(item for item in backups if item.name.startswith("ai-governance-lifecycle.py.bak."))
+    assert "CFU: dynamic memory pressure" in kept.read_text(encoding="utf-8")
+
+
+def test_edited_vscode_hook_config_is_backed_up_before_replacement(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    install_governance_hooks(repo, framework)
+    _write(_vscode_config(repo), '{"version":1,"hooks":{"UserPromptSubmit":[]}}\n')
+
+    result = install_governance_hooks(repo, framework)
+
+    assert any(
+        Path(item).name.startswith("ai-governance-vscode.json.bak.") for item in result.backups
+    )
+
+
+def test_unmodified_lifecycle_files_are_not_backed_up_on_reinstall(tmp_path: Path) -> None:
+    """Framework upgrades must not litter consumer repos with backups."""
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    install_governance_hooks(repo, framework)
+
+    # Framework ships a new bridge; the consumer never touched theirs.
+    source = framework / "runtime_hooks" / "adapters" / "copilot" / "lifecycle.py"
+    _write(source, source.read_text(encoding="utf-8") + "\n# upstream v2\n")
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.backups == []
+    assert "upstream v2" in _lifecycle(repo).read_text(encoding="utf-8")
+
+
+def test_managed_manifest_records_installed_lifecycle_digests(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+
+    install_governance_hooks(repo, framework)
+
+    manifest = json.loads(
+        (repo / ".github" / "hooks" / ".ai-governance-managed.json").read_text(encoding="utf-8")
+    )
+    assert manifest["version"] == 1
+    assert manifest["files"][".github/hooks/ai-governance-lifecycle.py"] == _content_digest(
+        _lifecycle(repo).read_text(encoding="utf-8")
+    )
+
+
+def test_lifecycle_install_stays_byte_idempotent(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    install_governance_hooks(repo, framework)
+
+    second = install_governance_hooks(repo, framework)
+
+    assert second.changed_files == []
+    assert second.backups == []
+
+
+def test_shipped_vscode_template_registers_session_start_and_stop() -> None:
+    payload = json.loads(
+        (REPO_ROOT / "governance" / "copilot-hooks-vscode-template.json").read_text(encoding="utf-8")
+    )
+
+    assert set(payload["hooks"]) == {"SessionStart", "Stop"}
+    assert "--event-type session_start" in payload["hooks"]["SessionStart"][0]["command"]
+    assert "--event-type session_end" in payload["hooks"]["Stop"][0]["command"]

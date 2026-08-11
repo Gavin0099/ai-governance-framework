@@ -79,6 +79,13 @@ def _managed_copilot_hook_config(
     path: Path,
     expected_events: dict[str, tuple[str, str]],
 ) -> bool:
+    """Check that every managed event is present and correctly wired.
+
+    Extra events are permitted. Each surface has its own supported event names,
+    and a consumer may register hooks the framework does not manage; requiring
+    an exact set marked such a config unmanaged even when every governed event
+    was wired correctly.
+    """
     if not path.is_file():
         return False
     try:
@@ -88,7 +95,7 @@ def _managed_copilot_hook_config(
     hooks = payload.get("hooks")
     if payload.get("version") != 1 or not isinstance(hooks, dict):
         return False
-    if set(hooks) != set(expected_events):
+    if not set(expected_events).issubset(hooks):
         return False
     for event_name, (expected_event_type, expected_surface) in expected_events.items():
         entries = hooks.get(event_name)
@@ -343,7 +350,10 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     vscode_hooks_present = vscode_hooks.is_file()
     vscode_hooks_governed = _managed_copilot_hook_config(
         vscode_hooks,
-        {"Stop": ("session_end", "auto")},
+        {
+            "SessionStart": ("session_start", "auto"),
+            "Stop": ("session_end", "auto"),
+        },
     )
     copilot_hooks_present = copilot_hooks.is_file()
     copilot_hooks_governed = _managed_copilot_hook_config(

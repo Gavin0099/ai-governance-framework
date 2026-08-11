@@ -250,8 +250,12 @@ def test_hook_templates_use_independent_surface_event_names() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    assert set(vscode["hooks"]) == {"Stop"}
+    # VS Code names its events in PascalCase and ends a session with `Stop`;
+    # the Copilot CLI uses camelCase and its own sessionEnd. The spellings must
+    # not be shared between the two surfaces.
+    assert set(vscode["hooks"]) == {"SessionStart", "Stop"}
     assert set(copilot["hooks"]) == {"sessionStart", "sessionEnd"}
+    assert not set(vscode["hooks"]) & set(copilot["hooks"])
     for payload in (vscode, copilot):
         for entries in payload["hooks"].values():
             assert "ai-governance-lifecycle.py" in entries[0]["command"]

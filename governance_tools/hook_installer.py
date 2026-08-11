@@ -45,6 +45,11 @@ LEGACY_COPILOT_TEMPLATE_DIGESTS = frozenset(
 )
 COPILOT_HOOK_COMMAND_MARKER = "ai-governance-lifecycle.py"
 HOOK_NAMES = ("pre-commit", "pre-push")
+# Records the digest of every managed lifecycle file this installer wrote, so a
+# later install can tell "the framework wrote this" from "the consumer edited
+# this". Without it, a marker check passes on an edited file and the edit is
+# overwritten with no backup.
+MANAGED_MANIFEST_REL = Path(".github/hooks/.ai-governance-managed.json")
 COPILOT_LIFECYCLE_FILES = (
     (
         Path("runtime_hooks/adapters/copilot/lifecycle.py"),
@@ -185,6 +190,40 @@ def _merge_managed_block(existing_text: str | None, block: str) -> tuple[str, st
     if not preserved:
         return f"{block}\n", "created"
     return f"{preserved}\n\n{block}\n", "appended"
+
+
+def _read_managed_manifest(repo_root: Path) -> dict[str, str]:
+    path = repo_root / MANAGED_MANIFEST_REL
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    files = payload.get("files")
+    if not isinstance(files, dict):
+        return {}
+    return {str(key): str(value) for key, value in files.items()}
+
+
+def _write_managed_manifest(
+    repo_root: Path,
+    recorded: dict[str, str],
+    changed: list[str],
+    installed: list[str],
+) -> None:
+    path = repo_root / MANAGED_MANIFEST_REL
+    payload = (
+        json.dumps(
+            {"version": 1, "files": dict(sorted(recorded.items()))},
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    )
+    if _write_bytes_if_changed(path, payload.encode("utf-8")):
+        changed.append(str(path))
+    installed.append(str(path))
 
 
 def _backup_file(path: Path, backups: list[str]) -> None:
@@ -372,15 +411,37 @@ def install_governance_hooks(
         # Lifecycle files are additive for framework versions that provide
         # them. Older framework fixtures remain installable, while the
         # validator reports the absent lifecycle surface as advisory.
-        for source_rel, target_rel, marker in COPILOT_LIFECYCLE_FILES:
+        #
+        # These are replaced whole — the bridge has to stay in step with the
+        # framework — so anything that is not byte-for-byte what this installer
+        # last wrote is backed up first. A marker check is not enough: an edited
+        # file still carries the marker, and its edits would be lost silently.
+        manifest = _read_managed_manifest(repo_root)
+        wrote_lifecycle_file = False
+        for source_rel, target_rel, _marker in COPILOT_LIFECYCLE_FILES:
             source = framework_root / source_rel
             if not source.is_file():
                 continue
             target = repo_root / target_rel
-            _backup_unmanaged(target, marker, backups)
-            if _write_bytes_if_changed(target, source.read_bytes()):
+            payload = source.read_bytes()
+            payload_digest = _content_digest(payload.decode("utf-8", errors="replace"))
+            key = target_rel.as_posix()
+
+            if target.is_file():
+                current_digest = _content_digest(
+                    target.read_text(encoding="utf-8", errors="replace")
+                )
+                if current_digest != payload_digest and manifest.get(key) != current_digest:
+                    _backup_file(target, backups)
+
+            if _write_bytes_if_changed(target, payload):
                 changed.append(str(target))
+            manifest[key] = payload_digest
             installed.append(str(target))
+            wrote_lifecycle_file = True
+
+        if wrote_lifecycle_file:
+            _write_managed_manifest(repo_root, manifest, changed, installed)
 
     return HookInstallApplyResult(
         ok=not errors,
