@@ -8,6 +8,8 @@ from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.hook_installer import (
     COPILOT_BLOCK_BEGIN,
     COPILOT_BLOCK_END,
+    LEGACY_COPILOT_TEMPLATE_DIGESTS,
+    _content_digest,
     install_copilot_instructions,
     install_governance_hooks,
 )
@@ -249,48 +251,25 @@ def test_copilot_instructions_replace_only_managed_block_on_update(tmp_path: Pat
     assert text.count(COPILOT_BLOCK_BEGIN) == 1
 
 
-def _template_revisions() -> list[str]:
-    return subprocess.run(
-        ["git", "log", "--format=%H", "--", "governance/copilot-instructions-template.md"],
-        cwd=REPO_ROOT,
-        text=True,
-        encoding="utf-8",
-        stdout=subprocess.PIPE,
-        check=True,
-    ).stdout.split()
-
-
-def _template_at(revision: str) -> str:
-    return subprocess.run(
-        ["git", "show", f"{revision}:governance/copilot-instructions-template.md"],
-        cwd=REPO_ROOT,
-        text=True,
-        encoding="utf-8",
-        stdout=subprocess.PIPE,
-        check=True,
-    ).stdout
+LEGACY_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "copilot_legacy_templates"
 
 
 def _legacy_shipped_templates() -> list[str]:
-    """Every shipped template that predates the managed block.
+    """Every pre-managed-block template this framework shipped, verbatim.
 
-    "Legacy" means exactly "has no managed block", so revisions committed after
-    this feature are excluded by content — the fixture does not go stale the
-    moment the template is edited again.
+    These are checked in rather than read out of git history: CI clones are
+    shallow, so `git log` on the template returns only the tip — which now has a
+    managed block and is not legacy at all. The fixtures are the evidence for
+    what a consumer may still be holding, and they work from a tarball too.
     """
-    seen: list[str] = []
-    for revision in _template_revisions():
-        shipped = _template_at(revision)
-        if not shipped or COPILOT_BLOCK_BEGIN in shipped or shipped in seen:
-            continue
-        seen.append(shipped)
-    return seen
+    files = sorted(LEGACY_FIXTURE_DIR.glob("*.md.fixture"))
+    return [path.read_text(encoding="utf-8") for path in files]
 
 
 def _legacy_shipped_template() -> str:
-    """The most recent shipped template that a consumer could still be holding."""
+    """One pre-managed-block template, for tests that only need a legacy file."""
     legacy = _legacy_shipped_templates()
-    assert legacy, "no pre-managed-block template revisions found"
+    assert legacy, f"no legacy template fixtures in {LEGACY_FIXTURE_DIR}"
     return legacy[0]
 
 
@@ -328,6 +307,24 @@ def test_edited_legacy_install_is_not_migrated_away(tmp_path: Path) -> None:
     assert "Never touch vendor/." in _instructions(repo).read_text(encoding="utf-8")
 
 
+def test_legacy_fixtures_and_pinned_digests_agree() -> None:
+    """The fixtures and LEGACY_COPILOT_TEMPLATE_DIGESTS must describe the same set.
+
+    Checked in both directions: a fixture with no pinned digest means a consumer
+    would be refused, and a pinned digest with no fixture is content nothing
+    verifies.
+    """
+    fixture_digests = {_content_digest(text) for text in _legacy_shipped_templates()}
+
+    assert fixture_digests, f"no legacy template fixtures in {LEGACY_FIXTURE_DIR}"
+    assert fixture_digests == set(LEGACY_COPILOT_TEMPLATE_DIGESTS)
+
+    # Fixture filenames carry their own digest, so a mangled fixture is obvious.
+    for path in sorted(LEGACY_FIXTURE_DIR.glob("*.md.fixture")):
+        digest = _content_digest(path.read_text(encoding="utf-8"))
+        assert digest.startswith(path.name.split(".")[0]), path.name
+
+
 def test_every_shipped_template_digest_is_recognised_as_legacy(tmp_path: Path) -> None:
     """Each pre-managed-block template must still migrate cleanly.
 
@@ -335,7 +332,7 @@ def test_every_shipped_template_digest_is_recognised_as_legacy(tmp_path: Path) -
     template this framework ever shipped must not be refused.
     """
     legacy = _legacy_shipped_templates()
-    assert len(legacy) >= 2  # guard against the git plumbing silently returning nothing
+    assert len(legacy) >= 2
 
     for index, shipped in enumerate(legacy):
         repo = tmp_path / f"repo{index}"
