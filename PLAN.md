@@ -1588,8 +1588,13 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   passed byte-exact reconstruction review in commit `84849892`. A separate
   independent read-only review authorized one exact non-counted live pair at
   HEAD `7d035c1d`, using the bundled-Python command contract `faa5344d…` only.
-  Live has not run; retry, replacement, counted execution, other interpreters,
-  and automatic execution remain unauthorized.
+  The one authorized pair ran once on 2026-08-11 and terminated `NON_SUCCESS`:
+  both arms exited zero but produced no final message and left the calibrated
+  workspace unchanged. Public pair-final SHA-256 is
+  `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
+  offline byte-exact reconstruction passed in evidence commit `53fc93f7`.
+  Retry, replacement, counted execution, other interpreters, and any treatment
+  or Skill-effect conclusion remain unauthorized.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
