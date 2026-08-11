@@ -1592,9 +1592,19 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   both arms exited zero but produced no final message and left the calibrated
   workspace unchanged. Public pair-final SHA-256 is
   `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
-  offline byte-exact reconstruction passed in evidence commit `53fc93f7`.
-  Retry, replacement, counted execution, other interpreters, and any treatment
-  or Skill-effect conclusion remain unauthorized.
+  the public bytes in evidence commit `53fc93f7` were internally coherent, but
+  independent review found that its exact Git tree omitted three contract-
+  required empty runtime directories. Repair commit `230679cf` adds a checkout
+  materializer that restores only those empty directories before delegating to
+  the unchanged frozen verifier. Exact `git archive 53fc93f7` reconstruction,
+  58/58 focused tests and a separate independent read-only review all passed;
+  the live evidence, promoted contract and owner pin were not changed. Public
+  evidence confirms task-execution failure in both arms because `result.txt`
+  stayed at the `PENDING\n` baseline. The nearer cause of the absent final
+  message remains unresolved between CLI final-output production and model
+  completion because raw NDJSON event types were not published. Retry,
+  replacement, counted execution, other interpreters, and any treatment or
+  Skill-effect conclusion remain unauthorized.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
