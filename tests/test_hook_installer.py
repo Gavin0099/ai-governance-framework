@@ -249,24 +249,49 @@ def test_copilot_instructions_replace_only_managed_block_on_update(tmp_path: Pat
     assert text.count(COPILOT_BLOCK_BEGIN) == 1
 
 
-def _legacy_shipped_template() -> str:
-    """A real previously-shipped template, byte-identical to what consumers have."""
-    text = subprocess.run(
+def _template_revisions() -> list[str]:
+    return subprocess.run(
         ["git", "log", "--format=%H", "--", "governance/copilot-instructions-template.md"],
         cwd=REPO_ROOT,
         text=True,
         encoding="utf-8",
         stdout=subprocess.PIPE,
         check=True,
-    ).stdout.split()[0]
+    ).stdout.split()
+
+
+def _template_at(revision: str) -> str:
     return subprocess.run(
-        ["git", "show", f"{text}:governance/copilot-instructions-template.md"],
+        ["git", "show", f"{revision}:governance/copilot-instructions-template.md"],
         cwd=REPO_ROOT,
         text=True,
         encoding="utf-8",
         stdout=subprocess.PIPE,
         check=True,
     ).stdout
+
+
+def _legacy_shipped_templates() -> list[str]:
+    """Every shipped template that predates the managed block.
+
+    "Legacy" means exactly "has no managed block", so revisions committed after
+    this feature are excluded by content — the fixture does not go stale the
+    moment the template is edited again.
+    """
+    seen: list[str] = []
+    for revision in _template_revisions():
+        shipped = _template_at(revision)
+        if not shipped or COPILOT_BLOCK_BEGIN in shipped or shipped in seen:
+            continue
+        seen.append(shipped)
+    return seen
+
+
+def _legacy_shipped_template() -> str:
+    """The most recent shipped template that a consumer could still be holding."""
+    legacy = _legacy_shipped_templates()
+    assert legacy, "no pre-managed-block template revisions found"
+    return legacy[0]
 
 
 def test_copilot_instructions_migrate_pre_managed_block_install(tmp_path: Path) -> None:
@@ -304,28 +329,15 @@ def test_edited_legacy_install_is_not_migrated_away(tmp_path: Path) -> None:
 
 
 def test_every_shipped_template_digest_is_recognised_as_legacy(tmp_path: Path) -> None:
-    """Each historically shipped template must still migrate cleanly."""
-    revisions = subprocess.run(
-        ["git", "log", "--format=%H", "--", "governance/copilot-instructions-template.md"],
-        cwd=REPO_ROOT,
-        text=True,
-        encoding="utf-8",
-        stdout=subprocess.PIPE,
-        check=True,
-    ).stdout.split()
-    seen: set[str] = set()
-    for index, revision in enumerate(revisions):
-        shipped = subprocess.run(
-            ["git", "show", f"{revision}:governance/copilot-instructions-template.md"],
-            cwd=REPO_ROOT,
-            text=True,
-            encoding="utf-8",
-            stdout=subprocess.PIPE,
-            check=True,
-        ).stdout
-        if not shipped or shipped in seen:
-            continue
-        seen.add(shipped)
+    """Each pre-managed-block template must still migrate cleanly.
+
+    Guards LEGACY_COPILOT_TEMPLATE_DIGESTS against drift: a consumer holding any
+    template this framework ever shipped must not be refused.
+    """
+    legacy = _legacy_shipped_templates()
+    assert len(legacy) >= 2  # guard against the git plumbing silently returning nothing
+
+    for index, shipped in enumerate(legacy):
         repo = tmp_path / f"repo{index}"
         framework = _managed_framework(tmp_path / f"framework{index}")
         (repo / ".git" / "hooks").mkdir(parents=True)
@@ -333,9 +345,24 @@ def test_every_shipped_template_digest_is_recognised_as_legacy(tmp_path: Path) -
 
         result = install_governance_hooks(repo, framework)
 
-        assert result.ok is True, f"{revision}: {result.errors}"
-        assert result.copilot_instructions_mode == "migrated", revision
-    assert len(seen) >= 2  # guard against the git plumbing silently returning nothing
+        assert result.ok is True, f"legacy[{index}]: {result.errors}"
+        assert result.copilot_instructions_mode == "migrated", f"legacy[{index}]"
+
+
+def test_managed_block_template_is_not_treated_as_legacy(tmp_path: Path) -> None:
+    """The shipped template itself must take the `replaced` path, not `migrated`."""
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    current = (REPO_ROOT / "governance" / "copilot-instructions-template.md").read_text(
+        encoding="utf-8"
+    )
+    _write(_instructions(repo), current)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is True
+    assert result.copilot_instructions_mode == "replaced"
 
 
 def test_copilot_instructions_install_is_byte_idempotent(tmp_path: Path) -> None:
