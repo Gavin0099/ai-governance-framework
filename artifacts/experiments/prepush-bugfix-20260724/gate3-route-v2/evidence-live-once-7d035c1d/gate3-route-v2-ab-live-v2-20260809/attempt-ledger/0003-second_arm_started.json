@@ -1,0 +1,11 @@
+{
+  "arm_id": "B",
+  "event_type": "second_arm_started",
+  "ordinal": 3,
+  "pair_action_sha256": "86a5616e52ecfa12d9b441a0ee5df2a713944ec0883d10feff2dee17ce409850",
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "previous_event_sha256": "232f88b2e767548c4b02841f6bab802a64dbaee61d7db81cce0f79990f4a3c7e",
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-b",
+  "schema": "gate3-route-v2-ab.attempt-ledger-event.v1",
+  "terminal_class": "not_applicable"
+}
