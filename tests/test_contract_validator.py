@@ -152,3 +152,19 @@ class TestFormatJson:
 
     def test_json_is_valid_json(self):
         assert isinstance(json.loads(format_json(validate_contract("no contract"))), dict)
+
+
+def test_loaded_without_human_oversight_is_valid():
+    """SYSTEM_PROMPT.md §2.8 forbids listing HUMAN-OVERSIGHT unless a human
+    supplied it, so requiring it here made the canonical rule unsatisfiable."""
+    result = validate_contract(_make_contract(LOADED="SYSTEM_PROMPT, AGENT, TESTING"))
+
+    assert result.compliant is True, result.errors
+    assert not any("HUMAN-OVERSIGHT" in error for error in result.errors)
+
+
+def test_loaded_still_requires_system_prompt():
+    result = validate_contract(_make_contract(LOADED="AGENT, TESTING"))
+
+    assert result.compliant is False
+    assert any("SYSTEM_PROMPT" in error for error in result.errors)

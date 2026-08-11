@@ -627,6 +627,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         "response_envelope_surface": NOT_VERIFIED,
     }
 
+    hook_backups: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -634,9 +635,22 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         errors.extend(lock_errors)
 
         hook_result = install_governance_hooks(repo_root, framework_root)
-        stages["hook_validator_enforcement"] = "updated" if hook_result.changed_files else ("verified" if hook_result.ok else BLOCKED)
+        # Failure is decided before progress: a partial install writes some hooks
+        # and still fails, and reporting that as `updated` next to an overall
+        # `blocked` status would be contradictory evidence.
+        stages["hook_validator_enforcement"] = (
+            BLOCKED
+            if not hook_result.ok
+            else "updated"
+            if hook_result.changed_files
+            else "verified"
+        )
         changed.extend(hook_result.changed_files)
         errors.extend(hook_result.errors)
+        # Backups are the only record of content this install replaced. Dropping
+        # them here would leave a consumer unable to tell from the F-7 report that
+        # any of their own instruction content was moved aside.
+        hook_backups.extend(hook_result.backups)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
@@ -657,6 +671,11 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     governance_surface_status = _uncommitted_governance_surfaces(repo_root)
     remediation_plan = _f7_remediation_plan(repo_root)
     warnings = list(after.warnings)
+    for backup in hook_backups:
+        warnings.append(
+            f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
+            "review it before discarding — repository-specific instructions may live there"
+        )
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
