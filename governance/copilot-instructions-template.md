@@ -1,8 +1,12 @@
+<!-- AI Governance Framework: copilot-instructions BEGIN -->
 # Copilot Workspace Instructions
-<!-- AI Governance Framework: copilot-instructions v1.0 -->
+<!-- AI Governance Framework: copilot-instructions v1.1 -->
 <!-- Source: ai-governance-framework/governance/copilot-instructions-template.md -->
 <!-- Deploy via: bash scripts/install-hooks.sh --target /path/to/repo -->
 <!-- Response envelope contract: v0.7 -->
+<!-- Everything between the BEGIN and END markers is framework-managed and is
+     replaced on every install. Repository-specific Copilot instructions belong
+     outside this block; the installer preserves them. -->
 
 ## DONE Boundary Rules (MANDATORY)
 
@@ -111,3 +115,86 @@ Fixed vocabulary remains exact where it is part of machine evidence:
 a command, artifact, or source; bare `PASS` is invalid. Do not replace claim
 ceiling, risk, authority, or evidence maturity with confidence scores or broad
 impact prose.
+
+## Governance Contract Output (MANDATORY)
+
+The rules in the region below are projected verbatim from the canonical source
+named in the projection header, which also carries the projection version and
+the content digest of that canonical section. Do not edit them here. Edit the
+canonical section, then regenerate:
+
+```bash
+python -m governance_tools.copilot_instructions_projection --framework-root . --write
+```
+
+<!-- ai-governance:checkpoint-projection BEGIN version=1.1 source=governance/SYSTEM_PROMPT.md#2.8 sha256=b32221ce4cc77f6ca4320aee3d34c4ea6c426f4de1fed02e1a509fa2fdb117c2 -->
+### 2.8 Governance Contract Output
+
+在以下時點輸出此 block：
+- task 開始
+- milestone 完成
+- scope 改變
+- stop / escalation 事件
+- 任何 contract 欄位發生實質變化時
+
+若只是 routine progress commentary 且 state 未變，可省略。
+
+```text
+[Governance Contract]
+LANG     = <value>
+LEVEL    = <value>
+SCOPE    = <value>
+PLAN     = <current phase> / <sprint> / <task>
+LOADED   = <comma-separated list of loaded governance docs>
+CONTEXT  = <context name> -> <responsible for X>; NOT: <not responsible for Y>
+PRESSURE = <SAFE|WARNING|CRITICAL|EMERGENCY> (<line count>/200)
+AGENT_ID = <agent-id>       # optional; required in multi-agent sessions
+SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
+```
+
+欄位規則：
+- `LANG`: `C | C++ | C# | ObjC | Swift | JS | Python | Verilog | SystemVerilog`
+- `LEVEL`: `L0 | L1 | L2`
+- `SCOPE`: `feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver`
+- `PLAN`: 取自 `PLAN.md`；若人類明確授權 governance analysis，可標 `Out-of-scope`
+- `LOADED`: must name governance docs actually loaded into the agent context. It must include `SYSTEM_PROMPT`; `HUMAN-OVERSIGHT.md` is human-only authority and must not be listed as loaded unless a human explicitly provides it.
+- `CONTEXT`: 必須同時包含 `->` 與 `NOT:`
+- `PRESSURE`: 必須含 label 與 line count
+- `SESSION`: 當 `AGENT_ID` 存在時必填
+
+格式錯誤的 contract block 屬於 governance failure。
+<!-- ai-governance:checkpoint-projection END -->
+
+### Surface adaptation: incomplete governance context
+
+This subsection is authored by the framework for Copilot surfaces. It does not
+override the canonical rules above; it states what to do when they cannot be
+satisfied honestly.
+
+`LOADED` must name governance documents actually loaded into this context, and
+the canonical rules require `SYSTEM_PROMPT` among them. This instructions file
+is a projection of one canonical section — it is not `SYSTEM_PROMPT.md`, and its
+presence is not evidence that `SYSTEM_PROMPT.md` was read. When
+`governance/SYSTEM_PROMPT.md` has not actually been loaded into the current
+context, no compliant `[Governance Contract]` block can be produced.
+
+In that case emit this notice at the same checkpoints, and never emit a
+`[Governance Contract]` block whose `LOADED` names documents that were not read:
+
+```text
+[Governance Contract: UNAVAILABLE]
+REASON  = governance context incomplete
+MISSING = SYSTEM_PROMPT
+SOURCE  = .github/copilot-instructions.md (checkpoint projection)
+NEXT    = load governance/SYSTEM_PROMPT.md, or ask the human to provide it
+```
+
+Reading `governance/SYSTEM_PROMPT.md` during the session clears the notice; from
+that point the canonical block applies. Resolve the canonical path against this
+repository's governance root — it may sit under a submodule or a contract
+directory rather than `governance/` at the repository root.
+
+Filling in field values by inference, or reusing a `[Governance Contract]` block
+from an earlier session, is a governance failure. The block is evidence of what
+was loaded, not a formatting ritual.
+<!-- AI Governance Framework: copilot-instructions END -->

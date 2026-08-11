@@ -20,6 +20,9 @@ HOOKS_SRC="$SCRIPT_DIR/hooks"
 TARGET_REPO="$SCRIPT_DIR/.."
 DRY_RUN=false
 VERIFY_AFTER_INSTALL=true
+# Any managed surface that could not be installed sets this. A partial install
+# must not report success — the caller has to be able to tell from the exit code.
+INSTALL_FAILED=false
 
 # ── 參數解析 ──────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -117,7 +120,6 @@ fi
 # ── 部署 Copilot instructions ──────────────────────────────────────────────
 COPILOT_TEMPLATE="$FRAMEWORK_ROOT/governance/copilot-instructions-template.md"
 COPILOT_DST="$TARGET_REPO/.github/copilot-instructions.md"
-COPILOT_MARKER="AI Governance Framework: copilot-instructions"
 
 deploy_copilot_instructions() {
     if [ ! -f "$COPILOT_TEMPLATE" ]; then
@@ -132,15 +134,26 @@ deploy_copilot_instructions() {
         echo "  [dry-run] 部署 .github/copilot-instructions.md → $COPILOT_DST"
     else
         mkdir -p "$github_dir"
-        # 若已存在且不是 governance framework 版本，備份
-        if [ -f "$COPILOT_DST" ] && ! grep -q "$COPILOT_MARKER" "$COPILOT_DST" 2>/dev/null; then
-            local backup="${COPILOT_DST}.bak.$(date +%Y%m%d_%H%M%S)"
-            cp "$COPILOT_DST" "$backup"
-            echo "  💾 備份現有 copilot-instructions → $(basename "$backup")"
+        # 合併由 Python installer 執行：只覆寫 managed block，保留 consumer 自訂內容。
+        # 兩個 installer 共用同一份合併邏輯，避免 shell 與 Python 版本行為分歧。
+        . "$PYTHON_LIB"
+        if ! set_python_cmd; then
+            echo "  ❌ 找不到 Python，無法合併 copilot-instructions（managed block 需要 Python）"
+            print_python_resolution_help "install-hooks"
+            INSTALL_FAILED=true
+            return
         fi
-        cp "$COPILOT_TEMPLATE" "$COPILOT_DST"
-        echo "  ✅ 部署 .github/copilot-instructions.md"
-        echo "  ℹ️  請執行: git add .github/copilot-instructions.md && git commit -m 'chore: add AI Governance Copilot instructions'"
+        if PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer \
+            --repo "$(realpath "$TARGET_REPO")" \
+            --framework-root "$FRAMEWORK_ROOT" \
+            --copilot-instructions-only; then
+            echo "  ✅ 部署 .github/copilot-instructions.md（managed block）"
+            echo "  ℹ️  請執行: git add .github/copilot-instructions.md && git commit -m 'chore: add AI Governance Copilot instructions'"
+        else
+            echo "  ❌ copilot-instructions 合併失敗，未修改既有檔案"
+            INSTALL_FAILED=true
+            return
+        fi
     fi
     INSTALLED=$((INSTALLED + 1))
 }
@@ -189,6 +202,11 @@ echo ""
 if [ "$DRY_RUN" = true ]; then
     echo "[dry-run] 完成（未實際修改）"
     echo "  將安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
+elif [ "$INSTALL_FAILED" = true ]; then
+    echo "❌ 安裝未完成（partial install）"
+    echo "   已安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
+    echo "   上方標記 ❌ 的項目未套用；請修正後重跑，不要當作已安裝。"
+    exit 1
 else
     echo "✅ 安裝完成"
     echo "   已安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
@@ -197,6 +215,8 @@ else
         . "$PYTHON_LIB"
         if set_python_cmd; then
             echo "🔎 驗證 hook 安裝狀態："
+            # Verification stays advisory (pre-existing behaviour): it reports
+            # warnings for surfaces this script does not install.
             "${PYTHON_CMD[@]}" "$HOOK_VALIDATOR" --repo "$(realpath "$TARGET_REPO")" || true
             echo ""
         else

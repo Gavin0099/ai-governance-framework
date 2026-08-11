@@ -1,6 +1,7 @@
 /.gitattributes -text
 /scripts/run-runtime-governance.sh text eol=lf
 /scripts/lib/python.sh text eol=lf
+/scripts/install-hooks.sh text eol=lf
 /scripts/hooks/* text eol=lf
 /docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md -text
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-smoke-20260726/** -text -whitespace

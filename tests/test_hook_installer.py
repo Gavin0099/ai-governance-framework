@@ -1,12 +1,26 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
 from governance_tools.hook_install_validator import validate_hook_install
-from governance_tools.hook_installer import install_governance_hooks
+from governance_tools.hook_installer import (
+    COPILOT_BLOCK_BEGIN,
+    COPILOT_BLOCK_END,
+    install_copilot_instructions,
+    install_governance_hooks,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+MANAGED_TEMPLATE = (
+    f"{COPILOT_BLOCK_BEGIN}\n"
+    "# Copilot Workspace Instructions\n"
+    "<!-- AI Governance Framework: copilot-instructions v1.1 -->\n"
+    "framework rules\n"
+    f"{COPILOT_BLOCK_END}\n"
+)
 
 
 def _write(path: Path, text: str) -> None:
@@ -173,6 +187,309 @@ def test_managed_hooks_normalize_windows_framework_paths() -> None:
         assert 'DRIVE_PATH="${FRAMEWORK_ROOT:2}"' in text
         assert 'FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"' in text
         assert 'FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"' in text
+
+
+def _managed_framework(root: Path) -> Path:
+    _make_framework(root)
+    _write(root / "governance" / "copilot-instructions-template.md", MANAGED_TEMPLATE)
+    return root
+
+
+def _instructions(repo: Path) -> Path:
+    return repo / ".github" / "copilot-instructions.md"
+
+
+def test_copilot_instructions_created_when_target_is_absent(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is True
+    assert result.copilot_instructions_mode == "created"
+    assert _instructions(repo).read_text(encoding="utf-8") == MANAGED_TEMPLATE
+
+
+def test_copilot_instructions_preserve_consumer_content(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _write(_instructions(repo), "# House rules\n\nUse tabs, never spaces.\n")
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.copilot_instructions_mode == "appended"
+    text = _instructions(repo).read_text(encoding="utf-8")
+    assert "Use tabs, never spaces." in text
+    assert "framework rules" in text
+    assert text.count(COPILOT_BLOCK_BEGIN) == 1
+    # The consumer's own file was not framework-written, so it is also backed up.
+    assert any(Path(item).name.startswith("copilot-instructions.md.bak.") for item in result.backups)
+
+
+def test_copilot_instructions_replace_only_managed_block_on_update(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _write(_instructions(repo), "# House rules\n\nUse tabs.\n")
+    install_governance_hooks(repo, framework)
+
+    _write(
+        framework / "governance" / "copilot-instructions-template.md",
+        MANAGED_TEMPLATE.replace("framework rules", "framework rules v2"),
+    )
+    result = install_governance_hooks(repo, framework)
+
+    assert result.copilot_instructions_mode == "replaced"
+    text = _instructions(repo).read_text(encoding="utf-8")
+    assert "Use tabs." in text
+    assert "framework rules v2" in text
+    assert "framework rules\n" not in text
+    assert text.count(COPILOT_BLOCK_BEGIN) == 1
+
+
+def _legacy_shipped_template() -> str:
+    """A real previously-shipped template, byte-identical to what consumers have."""
+    text = subprocess.run(
+        ["git", "log", "--format=%H", "--", "governance/copilot-instructions-template.md"],
+        cwd=REPO_ROOT,
+        text=True,
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+        check=True,
+    ).stdout.split()[0]
+    return subprocess.run(
+        ["git", "show", f"{text}:governance/copilot-instructions-template.md"],
+        cwd=REPO_ROOT,
+        text=True,
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+        check=True,
+    ).stdout
+
+
+def test_copilot_instructions_migrate_pre_managed_block_install(tmp_path: Path) -> None:
+    """A whole-file install from an older framework version becomes one managed block."""
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _write(_instructions(repo), _legacy_shipped_template())
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.copilot_instructions_mode == "migrated"
+    text = _instructions(repo).read_text(encoding="utf-8")
+    assert text == MANAGED_TEMPLATE
+    assert "DONE Boundary Rules" not in text  # the old shipped rules are gone
+    # Migration rewrites the whole file, so the previous content is kept.
+    assert any(Path(item).name.startswith("copilot-instructions.md.bak.") for item in result.backups)
+
+
+def test_edited_legacy_install_is_not_migrated_away(tmp_path: Path) -> None:
+    """A hand-edited legacy file must not lose its consumer rules to migration."""
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    edited = _legacy_shipped_template().rstrip("\n") + "\n\n## House rule\n\nNever touch vendor/.\n"
+    _write(_instructions(repo), edited)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is False
+    assert any("edited after install" in error for error in result.errors)
+    # The active file is untouched — the consumer rule is still where Copilot reads it.
+    assert _instructions(repo).read_text(encoding="utf-8") == edited
+    assert "Never touch vendor/." in _instructions(repo).read_text(encoding="utf-8")
+
+
+def test_every_shipped_template_digest_is_recognised_as_legacy(tmp_path: Path) -> None:
+    """Each historically shipped template must still migrate cleanly."""
+    revisions = subprocess.run(
+        ["git", "log", "--format=%H", "--", "governance/copilot-instructions-template.md"],
+        cwd=REPO_ROOT,
+        text=True,
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+        check=True,
+    ).stdout.split()
+    seen: set[str] = set()
+    for index, revision in enumerate(revisions):
+        shipped = subprocess.run(
+            ["git", "show", f"{revision}:governance/copilot-instructions-template.md"],
+            cwd=REPO_ROOT,
+            text=True,
+            encoding="utf-8",
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
+        if not shipped or shipped in seen:
+            continue
+        seen.add(shipped)
+        repo = tmp_path / f"repo{index}"
+        framework = _managed_framework(tmp_path / f"framework{index}")
+        (repo / ".git" / "hooks").mkdir(parents=True)
+        _write(_instructions(repo), shipped)
+
+        result = install_governance_hooks(repo, framework)
+
+        assert result.ok is True, f"{revision}: {result.errors}"
+        assert result.copilot_instructions_mode == "migrated", revision
+    assert len(seen) >= 2  # guard against the git plumbing silently returning nothing
+
+
+def test_copilot_instructions_install_is_byte_idempotent(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _write(_instructions(repo), "# House rules\n\nUse tabs.\n")
+
+    install_governance_hooks(repo, framework)
+    first = _instructions(repo).read_bytes()
+    second_result = install_governance_hooks(repo, framework)
+
+    assert second_result.changed_files == []
+    assert _instructions(repo).read_bytes() == first
+
+
+def test_copilot_instructions_tolerate_crlf_checkout(tmp_path: Path) -> None:
+    """core.autocrlf=true checkouts must not be reported as a pending change."""
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    install_governance_hooks(repo, framework)
+    target = _instructions(repo)
+    crlf = target.read_bytes().replace(b"\n", b"\r\n")
+    target.write_bytes(crlf)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.changed_files == []
+    assert result.backups == []
+    assert target.read_bytes() == crlf
+
+
+def test_copilot_instructions_refuse_to_merge_ambiguous_markers(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    damaged = MANAGED_TEMPLATE + f"{COPILOT_BLOCK_BEGIN}\nstray\n{COPILOT_BLOCK_END}\n"
+    _write(_instructions(repo), damaged)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is False
+    assert any("managed BEGIN" in error for error in result.errors)
+    assert _instructions(repo).read_text(encoding="utf-8") == damaged
+
+
+def test_copilot_instructions_only_leaves_git_hooks_untouched(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+
+    result = install_copilot_instructions(repo, framework)
+
+    assert result.ok is True
+    assert result.copilot_instructions_mode == "created"
+    assert _instructions(repo).is_file()
+    assert not (repo / ".git" / "hooks" / "pre-commit").exists()
+    assert not (repo / ".git" / "hooks" / "ai-governance-framework-root").exists()
+
+
+def test_legacy_template_without_markers_is_wrapped(tmp_path: Path) -> None:
+    """Older framework fixtures ship an unwrapped template; it still installs."""
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)  # writes the v1.0 unwrapped template
+    (repo / ".git" / "hooks").mkdir(parents=True)
+
+    result = install_governance_hooks(repo, framework)
+
+    assert result.ok is True
+    text = _instructions(repo).read_text(encoding="utf-8")
+    assert text.startswith(COPILOT_BLOCK_BEGIN)
+    assert text.rstrip("\n").endswith(COPILOT_BLOCK_END)
+
+
+def test_shipped_template_is_a_single_managed_block() -> None:
+    text = (REPO_ROOT / "governance" / "copilot-instructions-template.md").read_text(encoding="utf-8")
+
+    assert text.count(COPILOT_BLOCK_BEGIN) == 1
+    assert text.count(COPILOT_BLOCK_END) == 1
+    assert text.startswith(COPILOT_BLOCK_BEGIN)
+
+
+def _shell_fixture_repo(name: str) -> Path:
+    """Fixture inside the repo tree: Git Bash launched from Python resolves only
+    cwd-relative paths, so the target must share a drive with the script."""
+    path = REPO_ROOT / "tests" / "_tmp_shell_installer" / name
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
+    return path
+
+
+def test_shell_installer_fails_loudly_when_copilot_merge_is_refused() -> None:
+    """A refused merge must not exit 0 or claim the install completed."""
+    repo = _shell_fixture_repo("ambiguous_markers")
+    _run(["git", "init"], cwd=repo)
+    damaged = (
+        f"{COPILOT_BLOCK_BEGIN}\nframework rules\n{COPILOT_BLOCK_END}\n"
+        f"{COPILOT_BLOCK_BEGIN}\nstray\n{COPILOT_BLOCK_END}\n"
+    )
+    _write(_instructions(repo), damaged)
+    before = _instructions(repo).read_bytes()
+    relative_target = repo.relative_to(REPO_ROOT).as_posix()
+
+    completed = subprocess.run(
+        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        cwd=REPO_ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+    assert completed.returncode != 0, completed.stdout
+    assert "安裝完成" not in completed.stdout
+    assert "partial install" in completed.stdout
+    assert _instructions(repo).read_bytes() == before
+    shutil.rmtree(repo, ignore_errors=True)
+
+
+def test_shell_installer_preserves_consumer_instructions_end_to_end() -> None:
+    repo = _shell_fixture_repo("consumer_content")
+    _run(["git", "init"], cwd=repo)
+    _write(_instructions(repo), "# House rules\n\nNever touch vendor/.\n")
+    relative_target = repo.relative_to(REPO_ROOT).as_posix()
+
+    completed = subprocess.run(
+        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        cwd=REPO_ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout
+    text = _instructions(repo).read_text(encoding="utf-8")
+    assert "Never touch vendor/." in text
+    assert text.count(COPILOT_BLOCK_BEGIN) == 1
+    assert "checkpoint-projection BEGIN" in text
+    shutil.rmtree(repo, ignore_errors=True)
+
+
+def test_shell_installer_delegates_copilot_merge_to_python_installer() -> None:
+    text = (REPO_ROOT / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
+
+    assert "--copilot-instructions-only" in text
+    assert 'cp "$COPILOT_TEMPLATE" "$COPILOT_DST"' not in text
 
 
 def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:

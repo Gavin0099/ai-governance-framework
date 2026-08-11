@@ -859,3 +859,65 @@ def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow
     assert result.repo_role == "external_contract_repo"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
     assert result.details["memory_workflow_hook_advisory_present"] is True
+
+
+def test_f7_partial_hook_install_failure_is_blocked_not_updated(tmp_path: Path) -> None:
+    """A partial install must not report `updated` next to an overall blocked status."""
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    # Framework-marked instructions that match no shipped template: the installer
+    # cannot prove they are unedited, so it refuses to migrate them.
+    edited_legacy = (
+        "# Copilot Workspace Instructions\n"
+        "<!-- AI Governance Framework: copilot-instructions v1.0 -->\n"
+        "old framework rules\n"
+        "\n## House rule\n\nNever touch vendor/.\n"
+    )
+    instructions = repo / ".github" / "copilot-instructions.md"
+    _write(instructions, edited_legacy)
+    before = instructions.read_bytes()
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    # Git hooks really were written, so this is a partial install, not a no-op.
+    assert (repo / ".git" / "hooks" / "pre-commit").is_file()
+    assert any("pre-commit" in path for path in result.changed_files)
+
+    assert result.stages["hook_validator_enforcement"] == "blocked"
+    assert result.f7_final_status == "blocked"
+    assert result.ok is False
+    assert any("edited after install" in error for error in result.errors)
+
+    # The consumer's instructions are untouched — their rule is still where Copilot reads it.
+    assert instructions.read_bytes() == before
+    assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
+
+    human = format_human(result)
+    assert "hook_validator_enforcement" in human
+    assert "updated" not in human.split("hook_validator_enforcement")[1].split("\n")[0]
+
+
+def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Path) -> None:
+    """Backups are the only record of replaced content, so they must reach the report."""
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    instructions = repo / ".github" / "copilot-instructions.md"
+    _write(instructions, "# House rules\n\nNever touch vendor/.\n")
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    backup_warnings = [w for w in result.warnings if "kept a backup at" in w]
+    assert backup_warnings, result.warnings
+    assert any("copilot-instructions.md.bak." in w for w in backup_warnings)
+
+    human = format_human(result)
+    assert "kept a backup at" in human
+    payload = json.dumps(asdict(result), ensure_ascii=False)
+    assert "copilot-instructions.md.bak." in payload
+
+    # The consumer content survived the install that produced the backup.
+    assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
