@@ -146,11 +146,11 @@ deploy_copilot_instructions() {
         if PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer \
             --repo "$(realpath "$TARGET_REPO")" \
             --framework-root "$FRAMEWORK_ROOT" \
-            --copilot-instructions-only; then
-            echo "  ✅ 部署 .github/copilot-instructions.md（managed block）"
-            echo "  ℹ️  請執行: git add .github/copilot-instructions.md && git commit -m 'chore: add AI Governance Copilot instructions'"
+            --copilot-only; then
+            echo "  ✅ 部署 .github/copilot-instructions.md 與 lifecycle hooks（managed）"
+            echo "  ℹ️  請執行: git add .github && git commit -m 'chore: add AI Governance Copilot surface'"
         else
-            echo "  ❌ copilot-instructions 合併失敗，未修改既有檔案"
+            echo "  ❌ Copilot surface 合併失敗，未修改既有檔案"
             INSTALL_FAILED=true
             return
         fi
@@ -160,43 +160,9 @@ deploy_copilot_instructions() {
 
 deploy_copilot_instructions
 
-# ── 部署 Copilot / VS Code lifecycle hooks ───────────────────────────────
-COPILOT_LIFECYCLE_SOURCES=(
-    "$FRAMEWORK_ROOT/runtime_hooks/adapters/copilot/lifecycle.py"
-    "$FRAMEWORK_ROOT/governance/copilot-hooks-vscode-template.json"
-    "$FRAMEWORK_ROOT/governance/copilot-hooks-session-end-template.json"
-)
-COPILOT_LIFECYCLE_TARGETS=(
-    "$TARGET_REPO/.github/hooks/ai-governance-lifecycle.py"
-    "$TARGET_REPO/.github/hooks/ai-governance-vscode.json"
-    "$TARGET_REPO/.github/hooks/ai-governance-copilot.json"
-)
-
-deploy_copilot_lifecycle_hooks() {
-    local hook_dir="$TARGET_REPO/.github/hooks"
-    local index source target backup
-    for index in "${!COPILOT_LIFECYCLE_SOURCES[@]}"; do
-        source="${COPILOT_LIFECYCLE_SOURCES[$index]}"
-        target="${COPILOT_LIFECYCLE_TARGETS[$index]}"
-        if [ ! -f "$source" ]; then
-            continue
-        fi
-        if [ "$DRY_RUN" = true ]; then
-            echo "  [dry-run] 部署 Copilot lifecycle hook → $target"
-            continue
-        fi
-        mkdir -p "$hook_dir"
-        if [ -f "$target" ] && ! grep -q "ai-governance-lifecycle.py\\|Thin lifecycle bridge for VS Code and GitHub Copilot hooks" "$target" 2>/dev/null; then
-            backup="${target}.bak.$(date +%Y%m%d_%H%M%S)"
-            cp "$target" "$backup"
-            echo "  💾 備份現有 Copilot lifecycle hook → $(basename "$backup")"
-        fi
-        cp "$source" "$target"
-        echo "  ✅ 部署 Copilot lifecycle hook → $target"
-    done
-}
-
-deploy_copilot_lifecycle_hooks
+# Copilot lifecycle hooks are deployed by the same Python call above
+# (--copilot-only). Reimplementing the backup rules here is what let an
+# edited lifecycle file be overwritten with no backup.
 
 echo ""
 if [ "$DRY_RUN" = true ]; then

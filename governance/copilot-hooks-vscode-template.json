@@ -1,13 +1,6 @@
 {
   "version": 1,
   "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto",
-        "timeout": 30
-      }
-    ],
     "Stop": [
       {
         "type": "command",

@@ -27,7 +27,13 @@ VALID_RISK_LEVELS = {"low", "medium", "high"}
 VALID_OVERSIGHT_LEVELS = {"auto", "review-required", "human-approval"}
 VALID_MEMORY_MODES = {"stateless", "candidate", "durable"}
 
-REQUIRED_LOADED = {"SYSTEM_PROMPT", "HUMAN-OVERSIGHT"}
+# SYSTEM_PROMPT.md §2.8 is canonical and can_override:false: LOADED must name
+# documents actually loaded, must include SYSTEM_PROMPT, and must NOT list
+# HUMAN-OVERSIGHT.md unless a human explicitly provided it. Requiring
+# HUMAN-OVERSIGHT here made the two rules impossible to satisfy together for an
+# agent that was never handed it, so the requirement is dropped rather than
+# weakening the authority boundary to match the tool.
+REQUIRED_LOADED = {"SYSTEM_PROMPT"}
 DISPLAY_FIELDS = [
     "LANG",
     "LEVEL",

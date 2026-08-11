@@ -48,9 +48,7 @@ def _make_framework(root: Path) -> None:
     )
     _write(
         root / "governance/copilot-hooks-vscode-template.json",
-        '{"version":1,"hooks":{'
-        '"SessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],'
-        '"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
     )
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
@@ -512,18 +510,40 @@ def test_shell_installer_preserves_consumer_instructions_end_to_end() -> None:
     shutil.rmtree(repo, ignore_errors=True)
 
 
-def test_shell_installer_delegates_copilot_merge_to_python_installer() -> None:
-    text = (REPO_ROOT / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
-
-    assert "--copilot-instructions-only" in text
-    assert 'cp "$COPILOT_TEMPLATE" "$COPILOT_DST"' not in text
-
-
 def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:
+    """Deployment is asserted by running the installer, not by grepping it.
+
+    The lifecycle files now come from the shared Python path, so their source
+    paths no longer appear in the shell script at all.
+    """
+    repo = _shell_fixture_repo("lifecycle_surface")
+    _run(["git", "init"], cwd=repo)
+    relative_target = repo.relative_to(REPO_ROOT).as_posix()
+
+    completed = subprocess.run(
+        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        cwd=REPO_ROOT, text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
+    )
+
+    assert completed.returncode == 0, completed.stdout
+    hooks = repo / ".github" / "hooks"
+    for name in (
+        "ai-governance-lifecycle.py",
+        "ai-governance-vscode.json",
+        "ai-governance-copilot.json",
+        ".ai-governance-managed.json",
+    ):
+        assert (hooks / name).is_file(), name
+    assert validate_hook_install(repo).checks["copilot_lifecycle_installed"] is True
+    shutil.rmtree(repo, ignore_errors=True)
+
+
+def test_shell_installer_does_not_copy_managed_files_itself() -> None:
     text = (REPO_ROOT / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
-    assert "runtime_hooks/adapters/copilot/lifecycle.py" in text
-    assert "ai-governance-vscode.json" in text
-    assert "ai-governance-copilot.json" in text
+
+    assert 'cp "$COPILOT_TEMPLATE" "$COPILOT_DST"' not in text
+    assert 'cp "$source" "$target"' not in text
 
 
 def _lifecycle(repo: Path) -> Path:
@@ -616,11 +636,85 @@ def test_lifecycle_install_stays_byte_idempotent(tmp_path: Path) -> None:
     assert second.backups == []
 
 
-def test_shipped_vscode_template_registers_session_start_and_stop() -> None:
-    payload = json.loads(
-        (REPO_ROOT / "governance" / "copilot-hooks-vscode-template.json").read_text(encoding="utf-8")
+def test_installed_configs_register_each_session_boundary_exactly_once(tmp_path: Path) -> None:
+    """The invariant is the merged event set, not either file on its own.
+
+    VS Code loads every *.json under .github/hooks and normalizes the Copilot
+    config's lowerCamelCase names to PascalCase, so both installed files land in
+    one event table. A second start handler there writes the session envelope
+    twice — see docs/stop-hook-setup.md.
+    """
+    repo = tmp_path / "repo"
+    framework = _managed_framework(tmp_path / "framework")
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _write(
+        framework / "governance" / "copilot-hooks-vscode-template.json",
+        (REPO_ROOT / "governance" / "copilot-hooks-vscode-template.json").read_text(encoding="utf-8"),
+    )
+    _write(
+        framework / "governance" / "copilot-hooks-session-end-template.json",
+        (REPO_ROOT / "governance" / "copilot-hooks-session-end-template.json").read_text(
+            encoding="utf-8"
+        ),
     )
 
-    assert set(payload["hooks"]) == {"SessionStart", "Stop"}
-    assert "--event-type session_start" in payload["hooks"]["SessionStart"][0]["command"]
-    assert "--event-type session_end" in payload["hooks"]["Stop"][0]["command"]
+    install_governance_hooks(repo, framework)
+
+    merged: dict[str, list[str]] = {}
+    for name in ("ai-governance-vscode.json", "ai-governance-copilot.json"):
+        payload = json.loads((repo / ".github" / "hooks" / name).read_text(encoding="utf-8"))
+        for event, entries in payload["hooks"].items():
+            # VS Code's normalization of the Copilot config's event names.
+            normalized = event[0].upper() + event[1:]
+            merged.setdefault(normalized, []).extend(entry["command"] for entry in entries)
+
+    starts = [cmd for cmds in merged.values() for cmd in cmds if "--event-type session_start" in cmd]
+    ends = [cmd for cmds in merged.values() for cmd in cmds if "--event-type session_end" in cmd]
+
+    assert len(starts) == 1, merged
+    assert "SessionStart" in merged
+    # Stop and SessionEnd are distinct VS Code / Copilot CLI end boundaries; each
+    # surface fires only its own, so one entry apiece is correct.
+    assert len(ends) == 2, merged
+    assert {"Stop", "SessionEnd"} <= set(merged)
+
+
+def test_shell_installer_backs_up_edited_lifecycle_file_end_to_end() -> None:
+    """AGR-09 through the shell entry point, which had its own copy of the rules.
+
+    Both entry points must apply the same backup semantics; a marker check plus
+    an unconditional cp is what destroyed the consumer's work.
+    """
+    repo = _shell_fixture_repo("lifecycle_edit")
+    _run(["git", "init"], cwd=repo)
+    relative_target = repo.relative_to(REPO_ROOT).as_posix()
+    shell = ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"]
+
+    first = subprocess.run(
+        shell, cwd=REPO_ROOT, text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
+    )
+    assert first.returncode == 0, first.stdout
+
+    bridge = repo / ".github" / "hooks" / "ai-governance-lifecycle.py"
+    assert bridge.is_file(), first.stdout
+    _write(bridge, bridge.read_text(encoding="utf-8") + "\n# CFU: dynamic memory pressure\n")
+
+    second = subprocess.run(
+        shell, cwd=REPO_ROOT, text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
+    )
+
+    assert second.returncode == 0, second.stdout
+    backups = sorted((repo / ".github" / "hooks").glob("ai-governance-lifecycle.py.bak.*"))
+    assert backups, sorted(p.name for p in (repo / ".github" / "hooks").iterdir())
+    assert "CFU: dynamic memory pressure" in backups[0].read_text(encoding="utf-8")
+    shutil.rmtree(repo, ignore_errors=True)
+
+
+def test_shell_installer_has_no_second_copy_of_lifecycle_rules() -> None:
+    text = (REPO_ROOT / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
+
+    assert "--copilot-only" in text
+    assert "deploy_copilot_lifecycle_hooks" not in text
+    assert "COPILOT_LIFECYCLE_TARGETS" not in text

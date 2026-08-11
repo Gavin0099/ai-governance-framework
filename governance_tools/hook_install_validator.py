@@ -79,12 +79,14 @@ def _managed_copilot_hook_config(
     path: Path,
     expected_events: dict[str, tuple[str, str]],
 ) -> bool:
-    """Check that every managed event is present and correctly wired.
+    """Check that the config declares exactly the managed events, wired correctly.
 
-    Extra events are permitted. Each surface has its own supported event names,
-    and a consumer may register hooks the framework does not manage; requiring
-    an exact set marked such a config unmanaged even when every governed event
-    was wired correctly.
+    The set is exact on purpose. VS Code loads every `*.json` under
+    `.github/hooks/` and converts the Copilot config's lowerCamelCase names to
+    PascalCase, so `sessionStart` there is already VS Code's start handler.
+    Declaring `SessionStart` in the VS Code config as well registers a second
+    handler for the same boundary and writes the session envelope twice, so an
+    extra event is a defect to report rather than a variation to tolerate.
     """
     if not path.is_file():
         return False
@@ -95,7 +97,7 @@ def _managed_copilot_hook_config(
     hooks = payload.get("hooks")
     if payload.get("version") != 1 or not isinstance(hooks, dict):
         return False
-    if not set(expected_events).issubset(hooks):
+    if set(hooks) != set(expected_events):
         return False
     for event_name, (expected_event_type, expected_surface) in expected_events.items():
         entries = hooks.get(event_name)
@@ -348,12 +350,11 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
         COPILOT_LIFECYCLE_MARKER,
     )
     vscode_hooks_present = vscode_hooks.is_file()
+    # VS Code's start handler comes from the Copilot config's `sessionStart`
+    # after name normalization; declaring it here too would double-register.
     vscode_hooks_governed = _managed_copilot_hook_config(
         vscode_hooks,
-        {
-            "SessionStart": ("session_start", "auto"),
-            "Stop": ("session_end", "auto"),
-        },
+        {"Stop": ("session_end", "auto")},
     )
     copilot_hooks_present = copilot_hooks.is_file()
     copilot_hooks_governed = _managed_copilot_hook_config(
@@ -379,7 +380,11 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     if not checks["copilot_lifecycle_installed"]:
         warnings.append(
             "Copilot lifecycle hooks are not fully installed; expected managed "
-            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs"
+            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs. "
+            "Note that the VS Code config declares Stop only: VS Code loads every *.json under "
+            ".github/hooks and normalizes the Copilot config's sessionStart to SessionStart, so "
+            "adding SessionStart to the VS Code config registers a second start handler and "
+            "writes the session envelope twice"
         )
 
     resolved_framework_root = framework_root.resolve() if framework_root is not None else None

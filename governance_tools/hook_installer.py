@@ -315,15 +315,119 @@ def _apply_copilot_instructions(
     return mode
 
 
+def _apply_copilot_lifecycle_files(
+    repo_root: Path,
+    framework_root: Path,
+    *,
+    installed: list[str],
+    changed: list[str],
+    backups: list[str],
+) -> None:
+    """Install the managed lifecycle bridge and its two hook configs.
+
+    Lifecycle files are additive for framework versions that provide them, so
+    older framework fixtures remain installable and the validator reports an
+    absent lifecycle surface as advisory.
+
+    These are replaced whole — the bridge has to stay in step with the framework
+    — so anything that is not byte-for-byte what this installer last wrote is
+    backed up first. A marker check is not enough: an edited file still carries
+    the marker, and its edits would be lost silently.
+    """
+    manifest = _read_managed_manifest(repo_root)
+    wrote_any = False
+    for source_rel, target_rel, _marker in COPILOT_LIFECYCLE_FILES:
+        source = framework_root / source_rel
+        if not source.is_file():
+            continue
+        target = repo_root / target_rel
+        payload = source.read_bytes()
+        payload_digest = _content_digest(payload.decode("utf-8", errors="replace"))
+        key = target_rel.as_posix()
+
+        if target.is_file():
+            current_digest = _content_digest(target.read_text(encoding="utf-8", errors="replace"))
+            if current_digest != payload_digest and manifest.get(key) != current_digest:
+                _backup_file(target, backups)
+
+        if _write_bytes_if_changed(target, payload):
+            changed.append(str(target))
+        manifest[key] = payload_digest
+        installed.append(str(target))
+        wrote_any = True
+
+    if wrote_any:
+        _write_managed_manifest(repo_root, manifest, changed, installed)
+
+
+def _apply_copilot_surface(
+    repo_root: Path,
+    framework_root: Path,
+    *,
+    installed: list[str],
+    changed: list[str],
+    backups: list[str],
+    errors: list[str],
+) -> str | None:
+    mode = _apply_copilot_instructions(
+        repo_root,
+        framework_root,
+        installed=installed,
+        changed=changed,
+        backups=backups,
+        errors=errors,
+    )
+    _apply_copilot_lifecycle_files(
+        repo_root,
+        framework_root,
+        installed=installed,
+        changed=changed,
+        backups=backups,
+    )
+    return mode
+
+
+def install_copilot_surface(
+    repo_root: Path,
+    framework_root: Path,
+) -> HookInstallApplyResult:
+    """Install the whole managed Copilot surface: instructions plus lifecycle.
+
+    scripts/install-hooks.sh delegates here so both entry points apply the same
+    backup and merge semantics. Reimplementing them in shell is what let an
+    edited lifecycle file be overwritten with no backup.
+    """
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+    installed: list[str] = []
+    changed: list[str] = []
+    backups: list[str] = []
+    errors: list[str] = []
+    mode = _apply_copilot_surface(
+        repo_root,
+        framework_root,
+        installed=installed,
+        changed=changed,
+        backups=backups,
+        errors=errors,
+    )
+    return HookInstallApplyResult(
+        ok=not errors,
+        repo_root=str(repo_root),
+        framework_root=str(framework_root),
+        installed_files=installed,
+        changed_files=changed,
+        backups=backups,
+        errors=errors,
+        copilot_instructions_mode=mode,
+    )
+
+
 def install_copilot_instructions(
     repo_root: Path,
     framework_root: Path,
 ) -> HookInstallApplyResult:
-    """Install only the managed Copilot instructions block.
-
-    scripts/install-hooks.sh delegates here so the shell and Python installers
-    apply the same managed-block merge instead of two divergent copies.
-    """
+    """Install only the managed Copilot instructions block."""
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     installed: list[str] = []
@@ -399,7 +503,7 @@ def install_governance_hooks(
     installed.append(str(config))
 
     if include_copilot:
-        copilot_mode = _apply_copilot_instructions(
+        copilot_mode = _apply_copilot_surface(
             repo_root,
             framework_root,
             installed=installed,
@@ -407,41 +511,6 @@ def install_governance_hooks(
             backups=backups,
             errors=errors,
         )
-
-        # Lifecycle files are additive for framework versions that provide
-        # them. Older framework fixtures remain installable, while the
-        # validator reports the absent lifecycle surface as advisory.
-        #
-        # These are replaced whole — the bridge has to stay in step with the
-        # framework — so anything that is not byte-for-byte what this installer
-        # last wrote is backed up first. A marker check is not enough: an edited
-        # file still carries the marker, and its edits would be lost silently.
-        manifest = _read_managed_manifest(repo_root)
-        wrote_lifecycle_file = False
-        for source_rel, target_rel, _marker in COPILOT_LIFECYCLE_FILES:
-            source = framework_root / source_rel
-            if not source.is_file():
-                continue
-            target = repo_root / target_rel
-            payload = source.read_bytes()
-            payload_digest = _content_digest(payload.decode("utf-8", errors="replace"))
-            key = target_rel.as_posix()
-
-            if target.is_file():
-                current_digest = _content_digest(
-                    target.read_text(encoding="utf-8", errors="replace")
-                )
-                if current_digest != payload_digest and manifest.get(key) != current_digest:
-                    _backup_file(target, backups)
-
-            if _write_bytes_if_changed(target, payload):
-                changed.append(str(target))
-            manifest[key] = payload_digest
-            installed.append(str(target))
-            wrote_lifecycle_file = True
-
-        if wrote_lifecycle_file:
-            _write_managed_manifest(repo_root, manifest, changed, installed)
 
     return HookInstallApplyResult(
         ok=not errors,
@@ -469,12 +538,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Install only the managed .github/copilot-instructions.md block; do not touch git hooks.",
     )
+    parser.add_argument(
+        "--copilot-only",
+        action="store_true",
+        help="Install the managed Copilot surface (instructions plus lifecycle); do not touch git hooks.",
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
 
-    if args.copilot_instructions_only:
-        if args.hooks_only:
-            parser.error("--hooks-only and --copilot-instructions-only are mutually exclusive")
+    exclusive = [args.hooks_only, args.copilot_instructions_only, args.copilot_only]
+    if sum(1 for flag in exclusive if flag) > 1:
+        parser.error(
+            "--hooks-only, --copilot-instructions-only and --copilot-only are mutually exclusive"
+        )
+
+    if args.copilot_only:
+        result = install_copilot_surface(args.repo, args.framework_root)
+    elif args.copilot_instructions_only:
         result = install_copilot_instructions(args.repo, args.framework_root)
     else:
         result = install_governance_hooks(

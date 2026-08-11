@@ -486,9 +486,7 @@ def test_managed_copilot_lifecycle_surface_is_observable_and_advisory() -> None:
     )
     _write(
         repo_root / ".github" / "hooks" / "ai-governance-vscode.json",
-        '{"version":1,"hooks":{'
-        '"SessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],'
-        '"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
     )
     _write(
         repo_root / ".github" / "hooks" / "ai-governance-copilot.json",
@@ -643,15 +641,13 @@ def _lifecycle_surface(repo_root: Path, vscode_hooks: str) -> None:
 
 
 _VSCODE_GOVERNED = (
-    '{"version":1,"hooks":{'
-    '"SessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],'
-    '"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n'
+    '{"version":1,"hooks":{"Stop":[{"type":"command","command":'
+    '"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n'
 )
 
 
-def test_vscode_session_start_plus_stop_is_governed() -> None:
-    """AGR-09 §3.3: declaring SessionStart must not mark the config unmanaged."""
-    repo_root, _ = _checkpoint_fixture("vscode_session_start")
+def test_vscode_stop_only_config_is_governed() -> None:
+    repo_root, _ = _checkpoint_fixture("vscode_stop_only")
     _lifecycle_surface(repo_root, _VSCODE_GOVERNED)
 
     result = validate_hook_install(repo_root)
@@ -660,24 +656,35 @@ def test_vscode_session_start_plus_stop_is_governed() -> None:
     assert result.checks["copilot_lifecycle_installed"] is True
 
 
-def test_vscode_config_tolerates_extra_consumer_events() -> None:
-    """A consumer hook the framework does not manage must not fail the check."""
-    repo_root, _ = _checkpoint_fixture("vscode_extra_event")
-    extra = json.loads(_VSCODE_GOVERNED)
-    extra["hooks"]["UserPromptSubmit"] = [{"type": "command", "command": "python ./local-check.py"}]
-    _lifecycle_surface(repo_root, json.dumps(extra))
+def test_vscode_config_declaring_session_start_is_not_governed() -> None:
+    """AGR-09 §3.3 asked for this to be accepted; it must stay a defect.
+
+    VS Code already gets its start handler from the Copilot config's
+    `sessionStart` after name normalization, so declaring `SessionStart` here
+    registers a second handler and writes the session envelope twice.
+    """
+    repo_root, _ = _checkpoint_fixture("vscode_double_start")
+    doubled = json.loads(_VSCODE_GOVERNED)
+    doubled["hooks"]["SessionStart"] = [
+        {
+            "type": "command",
+            "command": (
+                "python .github/hooks/ai-governance-lifecycle.py "
+                "--event-type session_start --surface auto"
+            ),
+        }
+    ]
+    _lifecycle_surface(repo_root, json.dumps(doubled))
 
     result = validate_hook_install(repo_root)
 
-    assert result.checks["copilot_vscode_hooks_governed"] is True
+    assert result.checks["copilot_vscode_hooks_governed"] is False
+    assert any("writes the session envelope twice" in w for w in result.warnings)
 
 
-def test_vscode_config_missing_session_start_is_not_governed() -> None:
-    """Dropping a managed event must still be caught."""
-    repo_root, _ = _checkpoint_fixture("vscode_missing_session_start")
-    only_stop = json.loads(_VSCODE_GOVERNED)
-    del only_stop["hooks"]["SessionStart"]
-    _lifecycle_surface(repo_root, json.dumps(only_stop))
+def test_vscode_config_missing_stop_is_not_governed() -> None:
+    repo_root, _ = _checkpoint_fixture("vscode_missing_stop")
+    _lifecycle_surface(repo_root, '{"version":1,"hooks":{}}\n')
 
     result = validate_hook_install(repo_root)
 
@@ -687,8 +694,8 @@ def test_vscode_config_missing_session_start_is_not_governed() -> None:
 def test_vscode_config_with_wrong_event_wiring_is_not_governed() -> None:
     repo_root, _ = _checkpoint_fixture("vscode_wrong_wiring")
     miswired = json.loads(_VSCODE_GOVERNED)
-    miswired["hooks"]["SessionStart"][0]["command"] = (
-        "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"
+    miswired["hooks"]["Stop"][0]["command"] = (
+        "python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"
     )
     _lifecycle_surface(repo_root, json.dumps(miswired))
 
