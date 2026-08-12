@@ -12,6 +12,8 @@ same canonical section into each of them:
 
     governance/copilot-instructions-template.md   -> GitHub Copilot
     AGENTS.md                                     -> Codex
+    CLAUDE.md                                     -> Claude Code
+    GEMINI.md                                     -> Gemini
 
 The copy is a projection, not a second source of truth: `--check` recomputes the
 section and its digest from SYSTEM_PROMPT.md and fails when a surface has
@@ -45,6 +47,15 @@ TEMPLATE_REL = "governance/copilot-instructions-template.md"
 PROJECTION_TARGETS: tuple[tuple[str, str], ...] = (
     (TEMPLATE_REL, "copilot"),
     ("AGENTS.md", "codex"),
+    ("CLAUDE.md", "claude"),
+    ("GEMINI.md", "gemini"),
+    # The starter pack is a simpler onboarding tier, but it shipped its own
+    # two-field contract in three places at once. Same canon, same digest, so it
+    # cannot drift away from the framework a consumer graduates into.
+    ("examples/starter-pack/SYSTEM_PROMPT.md", "starter-pack-canon"),
+    ("examples/starter-pack/.github/copilot-instructions.md", "starter-pack-copilot"),
+    ("examples/starter-pack/CLAUDE.md", "starter-pack-claude"),
+    ("examples/starter-pack/GEMINI.md", "starter-pack-gemini"),
 )
 
 PROJECTION_BEGIN_PREFIX = "<!-- ai-governance:checkpoint-projection BEGIN"

@@ -206,7 +206,11 @@ def test_every_declared_surface_carries_the_projection() -> None:
     """Cross-agent parity: each agent reads a different file; all must carry the rules."""
     results = check_all_projections(REPO_ROOT)
 
-    assert {r.surface for r in results} == {"copilot", "codex"}
+    assert {r.surface for r in results} == {
+        "copilot", "codex", "claude", "gemini",
+        "starter-pack-canon", "starter-pack-copilot",
+        "starter-pack-claude", "starter-pack-gemini",
+    }
     for result in results:
         assert result.ok is True, (result.surface, result.errors)
         assert result.drift is False, result.surface
@@ -223,9 +227,24 @@ def test_all_surfaces_project_the_same_canonical_digest() -> None:
     )
 
 
-def test_agents_md_is_a_declared_surface() -> None:
-    """Codex reads AGENTS.md; before this it carried no contract rules at all."""
-    assert ("AGENTS.md", "codex") in PROJECTION_TARGETS
+def test_each_agent_has_a_declared_surface() -> None:
+    """Every agent reads a different file; each must be a projection target."""
+    paths = {rel for rel, _ in PROJECTION_TARGETS}
+
+    assert {"AGENTS.md", "CLAUDE.md", "GEMINI.md"} <= paths
+    assert any(rel.endswith("copilot-instructions-template.md") for rel in paths)
+
+
+def test_starter_pack_shares_the_framework_canon() -> None:
+    """The simpler tier used to ship its own two-field contract in three files.
+
+    A consumer graduating from the starter pack to the full framework must not
+    have to relearn the contract, and the tier must not drift on its own.
+    """
+    surfaces = {rel for rel, name in PROJECTION_TARGETS if name.startswith("starter-pack")}
+
+    assert len(surfaces) == 4
+    assert all(rel.startswith("examples/starter-pack/") for rel in surfaces)
 
 
 def test_a_surface_missing_its_region_is_an_error_not_a_skip(tmp_path: Path) -> None:
