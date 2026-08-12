@@ -173,6 +173,7 @@ PLAN     = <current phase> / <sprint> / <task>
 LOADED   = <comma-separated list of loaded governance docs>
 CONTEXT  = <context name> -> <responsible for X>; NOT: <not responsible for Y>
 PRESSURE = <SAFE|WARNING|CRITICAL|EMERGENCY> (<line count>/200)
+         # 或 <LEVEL> (<line count>/200 lines; <char count> chars)
 AGENT_ID = <agent-id>       # optional; required in multi-agent sessions
 SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 ```
@@ -195,7 +196,13 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
   比對**區分大小寫**。因此 `SYSTEM_PROMPT.txt`、`MY_SYSTEM_PROMPT.md`、`system_prompt`
   都不是 `SYSTEM_PROMPT`。寫出完整路徑比裸 token 攜帶更多可稽核資訊，兩者同等合法。
 - `CONTEXT`: 必須同時包含 `->` 與 `NOT:`
-- `PRESSURE`: 必須含 label 與 line count
+- `PRESSURE`: 必須含 label 與**實際的** line count，兩種形式擇一：
+  - `<LEVEL> (<line count>/200)`
+  - `<LEVEL> (<line count>/200 lines; <char count> chars)`
+  第二種形式存在的理由：§7.4 的判級依據是「行數**或**字元數任一達標」，只寫 line count
+  時，因字元數達標而升級的判定在 contract 裡無法被檢視。需要說明判級理由時用第二種。
+  兩個數字都必須是實際整數；分母固定 200。`(<line count>/200)` 這種未替換的樣板、
+  `(pending exact line count/200)` 這類佔位字串、非數字與負數都屬格式錯誤。
 - `SESSION`: 當 `AGENT_ID` 存在時必填
 
 格式錯誤的 contract block 屬於 governance failure。

@@ -102,8 +102,17 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
 
 
 PRESSURE_LINE_LIMIT = 200
+# Two accepted shapes, per §2.8:
+#   SAFE (45/200)
+#   WARNING (87/200 lines; 9642 chars)
+#
+# The second exists because §7.4 escalates on lines *or* characters. An agent
+# that reports WARNING at 87 lines is right only if the character count crossed
+# 8000, and with the short form that reasoning is invisible. Rejecting the richer
+# form punished the output that best evidenced its own level.
 _PRESSURE_PATTERN = re.compile(
-    r"^(?P<level>[A-Za-z]+)\s*\(\s*(?P<count>\d+)\s*/\s*(?P<limit>\d+)\s*\)$"
+    r"^(?P<level>[A-Za-z]+)\s*\(\s*(?P<count>\d+)\s*/\s*(?P<limit>\d+)"
+    r"(?:\s*lines\s*;\s*(?P<chars>\d+)\s*chars)?\s*\)$"
 )
 
 
