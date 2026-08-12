@@ -168,3 +168,67 @@ def test_loaded_still_requires_system_prompt():
 
     assert result.compliant is False
     assert any("SYSTEM_PROMPT" in error for error in result.errors)
+
+
+class TestLangCardinality:
+    """SYSTEM_PROMPT.md §2.8 allows a comma-separated LANG list (decision 2B)."""
+
+    def test_single_language_still_valid(self):
+        assert validate_contract(_make_contract(LANG="C++")).compliant is True
+
+    def test_comma_separated_languages_are_valid(self):
+        assert validate_contract(_make_contract(LANG="C, C++")).compliant is True
+
+    def test_separator_tolerates_missing_whitespace(self):
+        assert validate_contract(_make_contract(LANG="C,C++")).compliant is True
+
+    def test_slash_form_is_rejected_with_a_migration_hint(self):
+        """`/` cannot separate a list: `I/O` is already a SCOPE value."""
+        result = validate_contract(_make_contract(LANG="C/C++"))
+
+        assert result.compliant is False
+        error = next(e for e in result.errors if e.startswith("LANG"))
+        assert "C/C++" in error
+        assert "'C, C++'" in error
+
+    def test_unknown_language_in_a_list_is_rejected(self):
+        result = validate_contract(_make_contract(LANG="C, Rust"))
+
+        assert result.compliant is False
+        assert any("Rust" in e for e in result.errors)
+
+    def test_duplicate_languages_are_rejected(self):
+        result = validate_contract(_make_contract(LANG="C, C"))
+
+        assert result.compliant is False
+        assert any("duplicate" in e for e in result.errors)
+
+    def test_empty_lang_is_still_required(self):
+        result = validate_contract(_make_contract(LANG=""))
+
+        assert result.compliant is False
+        assert any("LANG field is required" in e for e in result.errors)
+
+
+class TestScopeCardinality:
+    """SCOPE stays single-valued (decision 3): it drives routing, LANG does not."""
+
+    def test_single_scope_is_valid(self):
+        assert validate_contract(_make_contract(SCOPE="tooling")).compliant is True
+
+    def test_io_scope_containing_a_slash_is_still_valid(self):
+        """Guards the reason `/` was rejected as a LANG separator."""
+        assert validate_contract(_make_contract(SCOPE="I/O")).compliant is True
+
+    def test_comma_separated_scope_is_rejected_with_reason(self):
+        result = validate_contract(_make_contract(SCOPE="tooling, review"))
+
+        assert result.compliant is False
+        error = next(e for e in result.errors if e.startswith("SCOPE"))
+        assert "single-valued" in error
+
+    def test_slash_separated_scope_is_rejected(self):
+        result = validate_contract(_make_contract(SCOPE="tooling / review"))
+
+        assert result.compliant is False
+        assert any(e.startswith("SCOPE invalid") for e in result.errors)

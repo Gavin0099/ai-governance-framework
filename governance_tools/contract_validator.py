@@ -93,6 +93,51 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
         errors.append(f"{key} invalid: '{value}'. Allowed: {sorted(valid_values)}")
 
 
+def parse_lang_list(raw: str) -> list[str]:
+    """Split a LANG field into its declared languages, preserving order."""
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _validate_lang(fields: dict, errors: list[str]) -> None:
+    """Validate LANG as a comma-separated list of canonical language values.
+
+    SYSTEM_PROMPT.md §2.8 allows a cross-language task to declare more than one
+    language. The separator is a comma, matching LOADED: `/` cannot serve as one
+    because it is already part of the `I/O` SCOPE value, so `C/C++` is a single
+    unrecognised token rather than two languages.
+    """
+    raw = fields.get("LANG", "").strip()
+    if not raw:
+        errors.append("LANG field is required")
+        return
+
+    langs = parse_lang_list(raw)
+    if not langs:
+        errors.append("LANG must name at least one language")
+        return
+
+    invalid = [item for item in langs if item not in VALID_LANG]
+    if invalid:
+        hint = ""
+        if any("/" in item for item in invalid):
+            suggestion = ", ".join(
+                part.strip()
+                for item in invalid
+                for part in item.split("/")
+                if part.strip() in VALID_LANG
+            )
+            if suggestion:
+                hint = f" Use a comma-separated list instead, e.g. '{suggestion}'."
+        errors.append(
+            f"LANG invalid: {invalid}. Allowed: {sorted(VALID_LANG)}.{hint}"
+        )
+        return
+
+    duplicates = sorted({item for item in langs if langs.count(item) > 1})
+    if duplicates:
+        errors.append(f"LANG lists duplicate language(s): {duplicates}")
+
+
 def _validate_rules(fields: dict, errors: list[str], available: set[str] | None = None) -> None:
     rules_raw = fields.get("RULES", "").strip()
     if not rules_raw:
@@ -126,11 +171,7 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     errors: list[str] = []
     warnings: list[str] = []
 
-    lang = fields.get("LANG", "").strip()
-    if not lang:
-        errors.append("LANG field is required")
-    elif lang not in VALID_LANG:
-        errors.append(f"LANG invalid: '{lang}'. Allowed: {sorted(VALID_LANG)}")
+    _validate_lang(fields, errors)
 
     level = fields.get("LEVEL", "").strip()
     if not level:
@@ -138,11 +179,20 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     elif level not in VALID_LEVEL:
         errors.append(f"LEVEL invalid: '{level}'. Allowed: {sorted(VALID_LEVEL)}")
 
+    # SCOPE is single-valued per SYSTEM_PROMPT.md §2.8: it drives review, testing
+    # and governance routing, and a list would need precedence rules that do not
+    # exist. LANG has no such consequence, which is why only LANG takes a list.
     scope = fields.get("SCOPE", "").strip()
     if not scope:
         errors.append("SCOPE field is required")
     elif scope not in VALID_SCOPE:
-        errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
+        if "," in scope:
+            errors.append(
+                f"SCOPE invalid: '{scope}'. SCOPE is single-valued; split the task or pick the "
+                f"dominant scope. Allowed: {sorted(VALID_SCOPE)}"
+            )
+        else:
+            errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
 
     if not fields.get("PLAN", "").strip():
         warnings.append("PLAN missing; recommended to bind responses to PLAN.md")
