@@ -101,6 +101,53 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
         errors.append(f"{key} invalid: '{value}'. Allowed: {sorted(valid_values)}")
 
 
+PRESSURE_LINE_LIMIT = 200
+_PRESSURE_PATTERN = re.compile(
+    r"^(?P<level>[A-Za-z]+)\s*\(\s*(?P<count>\d+)\s*/\s*(?P<limit>\d+)\s*\)$"
+)
+
+
+def _validate_pressure(fields: dict, errors: list[str]) -> None:
+    """Require a real line count, not something shaped like one.
+
+    §2.8 already says PRESSURE must carry a label and a line count, and that a
+    malformed contract block is a governance failure. The previous check only
+    read the label and downgraded a missing count to a warning, so an unfilled
+    template (`SAFE (<line count>/200)`), a placeholder
+    (`SAFE (pending exact line count/200)`), a non-number, a negative value and a
+    wrong denominator all validated as compliant. A number that cannot be read
+    is not evidence of memory pressure, and this field is one of the inputs a
+    reviewer uses to judge whether cleanup was due.
+
+    This enforces the existing rule; it does not change the thresholds in §7.4.
+    """
+    pressure = fields.get("PRESSURE", "").strip()
+    if not pressure:
+        errors.append("PRESSURE field is required")
+        return
+
+    match = _PRESSURE_PATTERN.match(pressure)
+    if match is None:
+        errors.append(
+            f"PRESSURE invalid: '{pressure}'. Expected "
+            f"<{'|'.join(sorted(VALID_PRESSURE_LEVELS))}> (<line count>/{PRESSURE_LINE_LIMIT}) "
+            f"with an actual integer line count, e.g. 'SAFE (45/{PRESSURE_LINE_LIMIT})'"
+        )
+        return
+
+    level_name = match.group("level")
+    if level_name not in VALID_PRESSURE_LEVELS:
+        errors.append(
+            f"PRESSURE invalid: '{level_name}'. Allowed: {sorted(VALID_PRESSURE_LEVELS)}"
+        )
+
+    limit = int(match.group("limit"))
+    if limit != PRESSURE_LINE_LIMIT:
+        errors.append(
+            f"PRESSURE denominator invalid: '{limit}'. Expected {PRESSURE_LINE_LIMIT}"
+        )
+
+
 def normalize_loaded_identifier(raw: str) -> str:
     """Reduce a LOADED entry to its canonical document identifier.
 
@@ -292,17 +339,7 @@ def validate_contract(
         if "NOT:" not in context:
             errors.append("CONTEXT must include a 'NOT:' exclusion clause")
 
-    pressure = fields.get("PRESSURE", "").strip()
-    if not pressure:
-        errors.append("PRESSURE field is required")
-    else:
-        level_name = pressure.split("(")[0].strip()
-        if level_name not in VALID_PRESSURE_LEVELS:
-            errors.append(
-                f"PRESSURE invalid: '{level_name}'. Allowed: {sorted(VALID_PRESSURE_LEVELS)}"
-            )
-        if "(" not in pressure or "/" not in pressure:
-            warnings.append("PRESSURE should include line-count context, e.g. SAFE (45/200)")
+    _validate_pressure(fields, errors)
 
     if include_runtime:
         _validate_runtime_fields(fields, errors, available_rules=available_rules)
