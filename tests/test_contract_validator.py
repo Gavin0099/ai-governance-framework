@@ -138,10 +138,16 @@ class TestValidateContractCompliant:
         assert result.compliant
         assert any("PLAN" in w for w in result.warnings)
 
-    def test_pressure_without_line_count_is_warning(self):
+    def test_pressure_without_line_count_is_an_error(self):
+        """This used to be a warning, which is what let filler counts through.
+
+        §2.8 requires a label *and* a line count, and calls a malformed block a
+        governance failure; tolerating a missing count contradicted both.
+        """
         result = validate_contract(_make_contract(PRESSURE="SAFE"))
-        assert result.compliant
-        assert any("PRESSURE" in w for w in result.warnings)
+
+        assert result.compliant is False
+        assert any("PRESSURE invalid" in e for e in result.errors)
 
     def test_session_without_agent_id_is_warning(self):
         result = validate_contract(_make_contract(SESSION="2026-03-06-01"))
@@ -363,3 +369,63 @@ class TestLoadedIdentifierNormalization:
     )
     def test_normalization_is_exact(self, raw, expected):
         assert normalize_loaded_identifier(raw) == expected
+
+
+class TestPressureLineCount:
+    """§2.8 requires a label and a line count; the count has to be a real number.
+
+    Observed passing before this check existed, in real sessions and fixtures:
+    an unfilled template, a placeholder phrase, a negative count and a wrong
+    denominator. A number that cannot be read is not evidence of memory pressure.
+    """
+
+    @pytest.mark.parametrize(
+        "pressure",
+        [
+            "SAFE (0/200)",
+            "SAFE (39/200)",
+            "WARNING (185/200)",
+            "CRITICAL (210/200)",
+            "EMERGENCY (260/200)",
+            "SAFE(39/200)",
+            "SAFE ( 39 / 200 )",
+        ],
+    )
+    def test_real_line_counts_are_accepted(self, pressure):
+        assert validate_contract(_make_contract(PRESSURE=pressure)).compliant is True
+
+    @pytest.mark.parametrize(
+        "pressure",
+        [
+            "SAFE (<line count>/200)",              # template never filled in
+            "SAFE (pending exact line count/200)",  # observed in a real session
+            "SAFE (abc/200)",
+            "SAFE (39.5/200)",
+            "SAFE (-5/200)",
+            "SAFE 39/200",                          # no parentheses
+            "SAFE",                                 # was only a warning before
+        ],
+    )
+    def test_unreadable_line_counts_are_rejected(self, pressure):
+        result = validate_contract(_make_contract(PRESSURE=pressure))
+
+        assert result.compliant is False
+        assert any(e.startswith("PRESSURE invalid") for e in result.errors)
+
+    def test_wrong_denominator_is_rejected_with_its_own_message(self):
+        result = validate_contract(_make_contract(PRESSURE="SAFE (39/999)"))
+
+        assert result.compliant is False
+        assert any("denominator invalid" in e for e in result.errors)
+
+    def test_unknown_level_is_still_reported_as_a_level_problem(self):
+        result = validate_contract(_make_contract(PRESSURE="NOTALEVEL (39/200)"))
+
+        assert result.compliant is False
+        assert any("NOTALEVEL" in e and "Allowed" in e for e in result.errors)
+
+    def test_missing_pressure_is_still_required(self):
+        result = validate_contract(_make_contract(PRESSURE=""))
+
+        assert result.compliant is False
+        assert any("PRESSURE field is required" in e for e in result.errors)
