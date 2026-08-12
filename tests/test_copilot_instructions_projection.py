@@ -6,7 +6,9 @@ import pytest
 
 from governance_tools.copilot_instructions_projection import (
     CANONICAL_SECTION_HEADING,
+    PROJECTION_TARGETS,
     build_parser,
+    check_all_projections,
     canonical_source_token,
     extract_projection_region,
     main,
@@ -198,3 +200,40 @@ def test_extract_projection_region_rejects_reversed_markers() -> None:
 
     with pytest.raises(ValueError, match="END marker precedes BEGIN"):
         extract_projection_region(reversed_region)
+
+
+def test_every_declared_surface_carries_the_projection() -> None:
+    """Cross-agent parity: each agent reads a different file; all must carry the rules."""
+    results = check_all_projections(REPO_ROOT)
+
+    assert {r.surface for r in results} == {"copilot", "codex"}
+    for result in results:
+        assert result.ok is True, (result.surface, result.errors)
+        assert result.drift is False, result.surface
+        assert result.found_version == CHECKPOINT_PROJECTION_VERSION, result.surface
+
+
+def test_all_surfaces_project_the_same_canonical_digest() -> None:
+    """Parity is the same rules, not merely each file having some rules."""
+    digests = {r.found_sha256 for r in check_all_projections(REPO_ROOT)}
+
+    assert len(digests) == 1
+    assert digests.pop() == section_digest(
+        extract_canonical_section((REPO_ROOT / "governance" / "SYSTEM_PROMPT.md").read_text(encoding="utf-8"))
+    )
+
+
+def test_agents_md_is_a_declared_surface() -> None:
+    """Codex reads AGENTS.md; before this it carried no contract rules at all."""
+    assert ("AGENTS.md", "codex") in PROJECTION_TARGETS
+
+
+def test_a_surface_missing_its_region_is_an_error_not_a_skip(tmp_path: Path) -> None:
+    framework = _make_framework(tmp_path / "framework")
+    _write(framework / "AGENTS.md", "# AGENTS\n\nno projection region here\n")
+
+    results = check_all_projections(framework)
+    codex = next(r for r in results if r.surface == "codex")
+
+    assert codex.ok is False
+    assert any("projection region" in e for e in codex.errors)

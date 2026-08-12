@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-Project the canonical Governance Contract checkpoint rules into the Copilot
-instructions template.
+Project the canonical Governance Contract checkpoint rules into every agent
+instruction surface.
 
 `governance/SYSTEM_PROMPT.md` §2.8 is the single source of truth for when a
-`[Governance Contract]` block must be emitted. Copilot surfaces read
-`.github/copilot-instructions.md` and generally cannot load SYSTEM_PROMPT.md, so
-the canonical section is copied verbatim into
-`governance/copilot-instructions-template.md` between generated markers and
-pinned by content hash.
+`[Governance Contract]` block must be emitted. Agents receive those rules by
+reading their own instruction file at session start — not by hook injection; the
+Copilot session_start hook returns no `additionalContext` and never has. Each
+agent reads a different markdown file, so cross-agent parity means projecting the
+same canonical section into each of them:
+
+    governance/copilot-instructions-template.md   -> GitHub Copilot
+    AGENTS.md                                     -> Codex
 
 The copy is a projection, not a second source of truth: `--check` recomputes the
-section and its digest from SYSTEM_PROMPT.md and fails when the template has
-drifted. Validators read the header token instead of grepping prose, so the
-installed instructions can be checked without matching natural-language wording.
+section and its digest from SYSTEM_PROMPT.md and fails when a surface has
+drifted. Validators read the header token instead of grepping prose, so an
+installed surface can be checked without matching natural-language wording.
 """
 
 from __future__ import annotations
@@ -32,6 +35,17 @@ CANONICAL_SOURCE_REL = "governance/SYSTEM_PROMPT.md"
 CANONICAL_SECTION_ID = "2.8"
 CANONICAL_SECTION_HEADING = "### 2.8 Governance Contract Output"
 TEMPLATE_REL = "governance/copilot-instructions-template.md"
+
+# Every agent surface that must carry the canonical checkpoint rules.
+#
+# The rules reach an agent by being in the file it reads at session start, not
+# by hook injection — the Copilot session_start hook returns no additionalContext
+# and never has. Each agent reads a different markdown file, so parity is a
+# matter of projecting into each of them, not of four different hook APIs.
+PROJECTION_TARGETS: tuple[tuple[str, str], ...] = (
+    (TEMPLATE_REL, "copilot"),
+    ("AGENTS.md", "codex"),
+)
 
 PROJECTION_BEGIN_PREFIX = "<!-- ai-governance:checkpoint-projection BEGIN"
 PROJECTION_END = "<!-- ai-governance:checkpoint-projection END -->"
@@ -52,6 +66,7 @@ class ProjectionCheckResult:
     template_path: str
     canonical_source: str
     expected_version: str
+    surface: str | None = None
     found_version: str | None = None
     expected_sha256: str | None = None
     found_sha256: str | None = None
@@ -173,14 +188,38 @@ def render_template(template_text: str, system_prompt_text: str) -> str:
     return rendered if rendered.endswith("\n") else rendered + "\n"
 
 
-def check_projection(framework_root: Path, *, write: bool = False) -> ProjectionCheckResult:
+def check_all_projections(
+    framework_root: Path,
+    *,
+    write: bool = False,
+) -> list[ProjectionCheckResult]:
+    """Check every agent surface that must carry the canonical checkpoint rules.
+
+    A surface listed in PROJECTION_TARGETS but missing its projection region is
+    an error, not a skip: an agent reading a file with no rules emits no contract,
+    which is the parity gap this exists to close.
+    """
+    return [
+        check_projection(framework_root, template_rel=relative_path, surface=surface, write=write)
+        for relative_path, surface in PROJECTION_TARGETS
+    ]
+
+
+def check_projection(
+    framework_root: Path,
+    *,
+    template_rel: str = TEMPLATE_REL,
+    surface: str | None = None,
+    write: bool = False,
+) -> ProjectionCheckResult:
     framework_root = framework_root.resolve()
-    template_path = framework_root / TEMPLATE_REL
+    template_path = framework_root / template_rel
     source_path = framework_root / CANONICAL_SOURCE_REL
     result = ProjectionCheckResult(
         ok=False,
         framework_root=str(framework_root),
         template_path=str(template_path),
+        surface=surface,
         canonical_source=str(source_path),
         expected_version=CHECKPOINT_PROJECTION_VERSION,
     )
@@ -239,6 +278,7 @@ def format_human(result: ProjectionCheckResult) -> str:
         f"ok               = {result.ok}",
         f"drift            = {result.drift}",
         f"written          = {result.written}",
+        f"surface          = {result.surface or '(default)'}",
         f"template         = {result.template_path}",
         f"canonical_source = {result.canonical_source}",
         f"expected_version = {result.expected_version}",
@@ -278,12 +318,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    result = check_projection(args.framework_root, write=args.write)
+    results = check_all_projections(args.framework_root, write=args.write)
     if args.format == "json":
-        print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
+        print(json.dumps([asdict(item) for item in results], ensure_ascii=False, indent=2))
     else:
-        print(format_human(result))
-    return 0 if result.ok else 1
+        print("\n\n".join(format_human(item) for item in results))
+    return 0 if all(item.ok for item in results) else 1
 
 
 if __name__ == "__main__":  # pragma: no cover
