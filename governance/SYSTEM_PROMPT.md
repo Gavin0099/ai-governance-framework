@@ -188,6 +188,12 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
   因此不接受清單。任務橫跨多個 scope 時，拆成多個 task 或選擇主導的那一個。
 - `PLAN`: 取自 `PLAN.md`；若人類明確授權 governance analysis，可標 `Out-of-scope`
 - `LOADED`: must name governance docs actually loaded into the agent context. It must include `SYSTEM_PROMPT`; `HUMAN-OVERSIGHT.md` is human-only authority and must not be listed as loaded unless a human explicitly provides it.
+  每個項目以逗號分隔。文件識別採**最後一段路徑、可省略 `.md`**，因此下列四種寫法識別為同一份文件：
+  `SYSTEM_PROMPT`、`SYSTEM_PROMPT.md`、`governance/SYSTEM_PROMPT.md`、
+  `ai-governance-framework\governance\SYSTEM_PROMPT.md`。
+  正規化規則：`\` 一律視為 `/`；取最後一段；**只有 `.md` 可省略**，其他副檔名不得省略；
+  比對**區分大小寫**。因此 `SYSTEM_PROMPT.txt`、`MY_SYSTEM_PROMPT.md`、`system_prompt`
+  都不是 `SYSTEM_PROMPT`。寫出完整路徑比裸 token 攜帶更多可稽核資訊，兩者同等合法。
 - `CONTEXT`: 必須同時包含 `->` 與 `NOT:`
 - `PRESSURE`: 必須含 label 與 line count
 - `SESSION`: 當 `AGENT_ID` 存在時必填

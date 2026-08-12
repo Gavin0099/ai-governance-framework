@@ -13,6 +13,7 @@ from governance_tools.contract_validator import (
     DISPLAY_CONTRACT_FIELDS,
     RUNTIME_CONTRACT_FIELDS,
     extract_contract_block,
+    normalize_loaded_identifier,
     validate_display_contract,
     validate_runtime_contract,
     format_json,
@@ -299,3 +300,66 @@ class TestContractAuthoritySplit:
 
         assert validate_runtime_contract(self._block(broken_display)).compliant is True
         assert validate_display_contract(self._block(broken_display)).compliant is False
+
+
+class TestLoadedIdentifierNormalization:
+    """§2.8: last path segment, optional `.md`, case-sensitive.
+
+    Observed in a real Copilot session: the reply that had actually read the file
+    wrote the full path and failed this check, while the bare token passed. The
+    rule named `SYSTEM_PROMPT` without saying whether that was a token or a path.
+    """
+
+    def test_bare_token_is_accepted(self):
+        assert validate_contract(_make_contract(LOADED="SYSTEM_PROMPT")).compliant is True
+
+    def test_filename_is_accepted(self):
+        assert validate_contract(_make_contract(LOADED="SYSTEM_PROMPT.md")).compliant is True
+
+    def test_relative_path_is_accepted(self):
+        assert validate_contract(
+            _make_contract(LOADED="governance/SYSTEM_PROMPT.md")
+        ).compliant is True
+
+    def test_windows_path_is_accepted(self):
+        """The exact form emitted by Copilot in the observed session."""
+        assert validate_contract(
+            _make_contract(LOADED=r"ai-governance-framework\governance\SYSTEM_PROMPT.md")
+        ).compliant is True
+
+    def test_mixed_forms_in_one_list_are_accepted(self):
+        assert validate_contract(
+            _make_contract(LOADED="governance/SYSTEM_PROMPT.md, AGENT, TESTING.md")
+        ).compliant is True
+
+    @pytest.mark.parametrize(
+        "loaded",
+        [
+            "SYSTEM_PROMPT.txt",       # only .md may be omitted
+            "SYSTEM_PROMPT.md.bak",
+            "MY_SYSTEM_PROMPT.md",     # suffix match must not count
+            "SYSTEM_PROMPTS.md",
+            "system_prompt",           # matching is case-sensitive
+            "governance/AGENT.md",     # a different document
+        ],
+    )
+    def test_similar_names_are_rejected(self, loaded):
+        result = validate_contract(_make_contract(LOADED=loaded))
+
+        assert result.compliant is False
+        assert any("LOADED missing required documents" in e for e in result.errors)
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("SYSTEM_PROMPT", "SYSTEM_PROMPT"),
+            ("SYSTEM_PROMPT.md", "SYSTEM_PROMPT"),
+            ("governance/SYSTEM_PROMPT.md", "SYSTEM_PROMPT"),
+            (r"a\b\SYSTEM_PROMPT.md", "SYSTEM_PROMPT"),
+            ("  SYSTEM_PROMPT.md  ", "SYSTEM_PROMPT"),
+            ("SYSTEM_PROMPT.txt", "SYSTEM_PROMPT.txt"),
+            ("MY_SYSTEM_PROMPT.md", "MY_SYSTEM_PROMPT"),
+        ],
+    )
+    def test_normalization_is_exact(self, raw, expected):
+        assert normalize_loaded_identifier(raw) == expected
