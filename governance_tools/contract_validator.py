@@ -101,6 +101,24 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
         errors.append(f"{key} invalid: '{value}'. Allowed: {sorted(valid_values)}")
 
 
+def normalize_loaded_identifier(raw: str) -> str:
+    """Reduce a LOADED entry to its canonical document identifier.
+
+    SYSTEM_PROMPT.md §2.8: take the last path segment, treating `\\` as `/`, and
+    allow `.md` alone to be omitted. Matching is case-sensitive.
+
+    An agent that writes the full path it actually read carries more auditable
+    information than a bare token, and used to fail this check for it — the rule
+    named `SYSTEM_PROMPT` without saying whether that was a token or a path.
+    Only `.md` is optional, and only the final segment is compared, so
+    `SYSTEM_PROMPT.txt` and `MY_SYSTEM_PROMPT.md` remain different documents.
+    """
+    segment = raw.strip().replace("\\", "/").rsplit("/", 1)[-1]
+    if segment.endswith(".md"):
+        segment = segment[: -len(".md")]
+    return segment
+
+
 def parse_lang_list(raw: str) -> list[str]:
     """Split a LANG field into its declared languages, preserving order."""
     return [item.strip() for item in raw.split(",") if item.strip()]
@@ -258,7 +276,9 @@ def validate_contract(
     if not loaded_raw:
         errors.append("LOADED field is required")
     else:
-        loaded_docs = {doc.strip() for doc in loaded_raw.split(",") if doc.strip()}
+        loaded_docs = {
+            normalize_loaded_identifier(doc) for doc in loaded_raw.split(",") if doc.strip()
+        }
         missing_required = REQUIRED_LOADED - loaded_docs
         if missing_required:
             errors.append(f"LOADED missing required documents: {sorted(missing_required)}")
