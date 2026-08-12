@@ -1619,6 +1619,19 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   pair, and does not change its `NON_SUCCESS` result or establish Gate 3 or
   treatment effectiveness.
 
+- [x] **Gate 3 final-message diagnostic integration design accepted
+  2026-08-12.** Design commit `23bbe0c3` records the independently approved
+  lifecycle-observer, pre-cleanup seal/cleanup/receipt, recovery-state,
+  public-schema, verifier, privacy, crash and TOCTOU candidate at exact
+  SHA-256
+  `5d6c735c1bcb030de2a6a1facb3cac19bb97b1942482e594910c12188bc18bb2`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The canonical precommit completed with runtime smoke passing and
+  197/197 focused tests. This checkpoint accepts design bytes only: no
+  lifecycle integration is implemented, no credentials or preflight/live were
+  used or authorized, the consumed pair is not reused/retried/replaced, and no
+  Gate 3 success or treatment/Skill effectiveness is established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
