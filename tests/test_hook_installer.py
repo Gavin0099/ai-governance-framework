@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from governance_tools.copilot_instructions_projection import extract_projection_region
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.hook_installer import (
     COPILOT_BLOCK_BEGIN,
@@ -718,3 +719,79 @@ def test_shell_installer_has_no_second_copy_of_lifecycle_rules() -> None:
     assert "--copilot-only" in text
     assert "deploy_copilot_lifecycle_hooks" not in text
     assert "COPILOT_LIFECYCLE_TARGETS" not in text
+
+
+class TestAgentContractSurfaces:
+    """Consumers had Copilot rules only; the other three agents got nothing.
+
+    Projecting into the framework's own AGENTS.md / CLAUDE.md / GEMINI.md gave the
+    framework repo parity. Nothing deployed those to a consumer, so every consumer
+    measured had `AGENTS.md` with no contract and no CLAUDE.md/GEMINI.md at all.
+    """
+
+    def _consumer(self, tmp_path, agents_text=None):
+        repo = tmp_path / "consumer"
+        (repo / ".git" / "hooks").mkdir(parents=True)
+        if agents_text is not None:
+            _write(repo / "AGENTS.md", agents_text)
+        return repo
+
+    def test_all_three_surfaces_receive_the_contract(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n\nHouse rules.\n")
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+            text = (repo / name).read_text(encoding="utf-8")
+            assert text.count("checkpoint-projection BEGIN") == 1, name
+
+    def test_existing_consumer_content_survives(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n\n## House rules\n\nNever touch vendor/.\n")
+
+        result = install_governance_hooks(repo, Path("."))
+
+        text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Never touch vendor/." in text
+        assert any(Path(b).name.startswith("AGENTS.md.bak.") for b in result.backups)
+
+    def test_missing_surfaces_are_created(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n")
+
+        install_governance_hooks(repo, Path("."))
+
+        assert (repo / "CLAUDE.md").is_file()
+        assert (repo / "GEMINI.md").is_file()
+
+    def test_reinstall_is_idempotent(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n\nHouse rules.\n")
+        install_governance_hooks(repo, Path("."))
+
+        second = install_governance_hooks(repo, Path("."))
+
+        assert second.changed_files == []
+        assert second.backups == []
+
+    def test_a_consumer_file_is_never_replaced_wholesale(self, tmp_path):
+        """No legacy whole-file form exists for these, so migration must not apply."""
+        repo = self._consumer(tmp_path, "# AGENTS\n\nAI Governance Framework mentions itself.\n")
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        assert "AI Governance Framework mentions itself." in (
+            repo / "AGENTS.md"
+        ).read_text(encoding="utf-8")
+
+    def test_all_surfaces_carry_the_same_canonical_digest(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n")
+        install_governance_hooks(repo, Path("."))
+
+        digests = set()
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+            header, _, _, _ = extract_projection_region(
+                (repo / name).read_text(encoding="utf-8")
+            )
+            digests.add(header["sha256"])
+
+        assert len(digests) == 1
