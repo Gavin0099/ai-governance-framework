@@ -10,7 +10,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.contract_validator import (
+    DISPLAY_CONTRACT_FIELDS,
+    RUNTIME_CONTRACT_FIELDS,
     extract_contract_block,
+    validate_display_contract,
+    validate_runtime_contract,
     format_json,
     parse_contract_fields,
     validate_contract,
@@ -232,3 +236,66 @@ class TestScopeCardinality:
 
         assert result.compliant is False
         assert any(e.startswith("SCOPE invalid") for e in result.errors)
+
+
+class TestContractAuthoritySplit:
+    """Decision 1B: display and runtime contracts validate separately."""
+
+    DISPLAY_ONLY = {
+        "LANG": "C, C++", "LEVEL": "L2", "SCOPE": "kernel-driver", "PLAN": "PLAN.md",
+        "LOADED": "SYSTEM_PROMPT", "CONTEXT": "repo -> x; NOT: y",
+        "PRESSURE": "SAFE (10/200)",
+    }
+
+    def _block(self, fields):
+        body = "\n".join(f"{k} = {v}" for k, v in fields.items())
+        return f"[Governance Contract]\n{body}\n"
+
+    def test_field_groups_do_not_overlap(self):
+        assert not set(DISPLAY_CONTRACT_FIELDS) & set(RUNTIME_CONTRACT_FIELDS)
+
+    def test_display_only_block_passes_display_validation(self):
+        result = validate_display_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is True
+
+    def test_display_only_block_fails_runtime_validation(self):
+        """A display pass says nothing about whether a task may execute."""
+        result = validate_runtime_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is False
+        assert any("RULES" in e for e in result.errors)
+
+    def test_validate_contract_still_requires_runtime_fields_by_default(self):
+        """The migration must not silently stop checking the runtime fields.
+
+        Relaxing this default would leave resolved_rules empty and MEMORY_MODE
+        falling back to candidate, disabling rule routing and the durable-memory
+        oversight gate with nothing reported.
+        """
+        result = validate_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is False
+
+    def test_opting_out_of_runtime_validation_is_explicit(self):
+        assert validate_contract(
+            self._block(self.DISPLAY_ONLY), include_runtime=False
+        ).compliant is True
+
+    def test_full_block_passes_all_three_entry_points(self):
+        result = validate_contract(_make_contract())
+
+        assert result.compliant is True
+        assert validate_display_contract(_make_contract()).compliant is True
+        assert validate_runtime_contract(_make_contract()).compliant is True
+
+    def test_runtime_validation_ignores_display_field_errors(self):
+        """Each validator answers to its own authority."""
+        broken_display = dict(self.DISPLAY_ONLY)
+        broken_display["LANG"] = "Rust"
+        broken_display.update(
+            {"RULES": "common", "RISK": "low", "OVERSIGHT": "auto", "MEMORY_MODE": "candidate"}
+        )
+
+        assert validate_runtime_contract(self._block(broken_display)).compliant is True
+        assert validate_display_contract(self._block(broken_display)).compliant is False

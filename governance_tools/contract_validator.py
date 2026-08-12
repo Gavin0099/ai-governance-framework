@@ -34,7 +34,12 @@ VALID_MEMORY_MODES = {"stateless", "candidate", "durable"}
 # agent that was never handed it, so the requirement is dropped rather than
 # weakening the authority boundary to match the tool.
 REQUIRED_LOADED = {"SYSTEM_PROMPT"}
-DISPLAY_FIELDS = [
+
+# Two contracts, two authorities. SYSTEM_PROMPT.md §2.8 defines the display
+# fields a human sees at task start; governance/RUNTIME_CONTRACT.md defines the
+# fields runtime_hooks/ gates on. They were one list for five months only because
+# 8994a5e1 removed the runtime fields from the codex without migrating the tool.
+DISPLAY_CONTRACT_FIELDS = [
     "LANG",
     "LEVEL",
     "SCOPE",
@@ -42,13 +47,16 @@ DISPLAY_FIELDS = [
     "LOADED",
     "CONTEXT",
     "PRESSURE",
+    "AGENT_ID",
+    "SESSION",
+]
+RUNTIME_CONTRACT_FIELDS = [
     "RULES",
     "RISK",
     "OVERSIGHT",
     "MEMORY_MODE",
-    "AGENT_ID",
-    "SESSION",
 ]
+DISPLAY_FIELDS = DISPLAY_CONTRACT_FIELDS + RUNTIME_CONTRACT_FIELDS
 
 
 @dataclass
@@ -157,7 +165,56 @@ def _validate_rules(fields: dict, errors: list[str], available: set[str] | None 
         )
 
 
-def validate_contract(text: str, available_rules: set[str] | None = None) -> ValidationResult:
+def _validate_runtime_fields(
+    fields: dict,
+    errors: list[str],
+    available_rules: set[str] | None = None,
+) -> None:
+    """Validate the runtime contract fields defined by governance/RUNTIME_CONTRACT.md."""
+    _validate_rules(fields, errors, available=available_rules)
+    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
+    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
+    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+
+
+def validate_display_contract(text: str) -> ValidationResult:
+    """Validate only the SYSTEM_PROMPT.md §2.8 display fields.
+
+    A display pass says nothing about whether a task may execute. Do not report
+    it as runtime compliance — see governance/RUNTIME_CONTRACT.md.
+    """
+    return validate_contract(text, include_runtime=False)
+
+
+def validate_runtime_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+) -> ValidationResult:
+    """Validate only the governance/RUNTIME_CONTRACT.md fields."""
+    block = extract_contract_block(text)
+    if block is None:
+        return ValidationResult(
+            compliant=False,
+            contract_found=False,
+            fields={},
+            errors=["[Governance Contract] block not found"],
+        )
+    fields = parse_contract_fields(block)
+    errors: list[str] = []
+    _validate_runtime_fields(fields, errors, available_rules=available_rules)
+    return ValidationResult(
+        compliant=not errors,
+        contract_found=True,
+        fields=fields,
+        errors=errors,
+    )
+
+
+def validate_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+    include_runtime: bool = True,
+) -> ValidationResult:
     block = extract_contract_block(text)
     if block is None:
         return ValidationResult(
@@ -227,10 +284,8 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
         if "(" not in pressure or "/" not in pressure:
             warnings.append("PRESSURE should include line-count context, e.g. SAFE (45/200)")
 
-    _validate_rules(fields, errors, available=available_rules)
-    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
-    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
-    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+    if include_runtime:
+        _validate_runtime_fields(fields, errors, available_rules=available_rules)
 
     agent_id = fields.get("AGENT_ID", "").strip()
     session = fields.get("SESSION", "").strip()
