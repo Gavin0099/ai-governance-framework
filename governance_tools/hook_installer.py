@@ -44,6 +44,18 @@ LEGACY_COPILOT_TEMPLATE_DIGESTS = frozenset(
     }
 )
 COPILOT_HOOK_COMMAND_MARKER = "ai-governance-lifecycle.py"
+# The instruction file each agent reads at session start. Copilot has its own
+# template and its own managed block; these three are files a consumer already
+# owns, so the contract goes in as a block alongside their content and never
+# replaces the file.
+AGENT_CONTRACT_TEMPLATE_REL = Path("governance/agent-contract-template.md")
+AGENT_CONTRACT_BLOCK_BEGIN = "<!-- AI Governance Framework: agent-contract BEGIN -->"
+AGENT_CONTRACT_BLOCK_END = "<!-- AI Governance Framework: agent-contract END -->"
+AGENT_CONTRACT_TARGETS = (
+    (Path("AGENTS.md"), "codex"),
+    (Path("CLAUDE.md"), "claude"),
+    (Path("GEMINI.md"), "gemini"),
+)
 HOOK_NAMES = ("pre-commit", "pre-push")
 # Records the digest of every managed lifecycle file this installer wrote, so a
 # later install can tell "the framework wrote this" from "the consumer edited
@@ -127,18 +139,22 @@ def _content_digest(text: str) -> str:
     return hashlib.sha256(_normalize_newlines(text).strip("\n").encode("utf-8")).hexdigest()
 
 
-def _extract_managed_block(source_text: str) -> str:
-    """Return the framework-managed region of the Copilot instructions template.
+def _extract_managed_block(
+    source_text: str,
+    begin: str = COPILOT_BLOCK_BEGIN,
+    end: str = COPILOT_BLOCK_END,
+) -> str:
+    """Return the framework-managed region of a template.
 
     Templates from framework versions that predate the managed block have no
     BEGIN/END markers; the whole file is framework content, so it is wrapped.
     """
     text = _normalize_newlines(source_text).strip("\n")
     lines = text.split("\n")
-    begins = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_BEGIN]
-    ends = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_END]
+    begins = [i for i, line in enumerate(lines) if line.strip() == begin]
+    ends = [i for i, line in enumerate(lines) if line.strip() == end]
     if not begins and not ends:
-        return f"{COPILOT_BLOCK_BEGIN}\n{text}\n{COPILOT_BLOCK_END}"
+        return f"{begin}\n{text}\n{end}"
     if len(begins) != 1 or len(ends) != 1 or ends[0] < begins[0]:
         raise ValueError(
             f"template must contain exactly one managed block "
@@ -147,20 +163,33 @@ def _extract_managed_block(source_text: str) -> str:
     return "\n".join(lines[begins[0] : ends[0] + 1])
 
 
-def _merge_managed_block(existing_text: str | None, block: str) -> tuple[str, str]:
+def _merge_managed_block(
+    existing_text: str | None,
+    block: str,
+    begin: str = COPILOT_BLOCK_BEGIN,
+    end: str = COPILOT_BLOCK_END,
+    legacy_digests: frozenset[str] = LEGACY_COPILOT_TEMPLATE_DIGESTS,
+    legacy_marker: str | None = COPILOT_MARKER,
+) -> tuple[str, str]:
     """Splice the managed block into the target, preserving consumer content.
 
     Returns the new file text and the mode describing what happened:
     `created`, `replaced`, `migrated` (pre-managed-block framework file), or
     `appended` (the target was written by the consumer, not the framework).
+
+    The marker pair is a parameter because the same merge serves more than one
+    surface: `.github/copilot-instructions.md` and the agent instruction files a
+    consumer already owns. Only the Copilot surface has legacy whole-file
+    installs to migrate, so the other surfaces pass `legacy_marker=None` and
+    append rather than ever replacing a file wholesale.
     """
     if existing_text is None:
         return f"{block}\n", "created"
 
     text = _normalize_newlines(existing_text)
     lines = text.split("\n")
-    begins = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_BEGIN]
-    ends = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_END]
+    begins = [i for i, line in enumerate(lines) if line.strip() == begin]
+    ends = [i for i, line in enumerate(lines) if line.strip() == end]
 
     if begins or ends:
         if len(begins) != 1 or len(ends) != 1 or ends[0] < begins[0]:
@@ -171,13 +200,13 @@ def _merge_managed_block(existing_text: str | None, block: str) -> tuple[str, st
         merged = "\n".join(lines[: begins[0]] + block.split("\n") + lines[ends[0] + 1 :])
         return merged.rstrip("\n") + "\n", "replaced"
 
-    if COPILOT_MARKER in text:
+    if legacy_marker is not None and legacy_marker in text:
         # Written by a framework version that replaced the whole file. Migrating
         # means replacing all of it, so only do that when the content is provably
         # untouched framework output. A marker alone does not prove that: the
         # consumer may have added rules to the installed file, and those would
         # survive only in the backup.
-        if _content_digest(text) in LEGACY_COPILOT_TEMPLATE_DIGESTS:
+        if _content_digest(text) in legacy_digests:
             return f"{block}\n", "migrated"
         raise ValueError(
             "target carries a framework marker but no managed block, and its content matches "
@@ -360,6 +389,73 @@ def _apply_copilot_lifecycle_files(
         _write_managed_manifest(repo_root, manifest, changed, installed)
 
 
+def _apply_agent_contract_surfaces(
+    repo_root: Path,
+    framework_root: Path,
+    *,
+    installed: list[str],
+    changed: list[str],
+    backups: list[str],
+    errors: list[str],
+) -> dict[str, str]:
+    """Install the checkpoint contract into every agent's instruction file.
+
+    Copilot reads `.github/copilot-instructions.md`, Codex reads `AGENTS.md`,
+    Claude Code reads `CLAUDE.md`, Gemini reads `GEMINI.md`. Projecting the rules
+    into the framework's own copies gave the framework repo parity; a consumer
+    still only had Copilot, because nothing deployed the other three.
+
+    These files belong to the consumer, so the contract goes in as a managed
+    block and everything outside it is preserved. There is no legacy whole-file
+    form to migrate here, so `legacy_marker=None`: this installer never replaces
+    one of these files wholesale.
+    """
+    source = framework_root / AGENT_CONTRACT_TEMPLATE_REL
+    modes: dict[str, str] = {}
+    if not source.is_file():
+        # Older framework checkouts have no template; the surface is additive.
+        return modes
+
+    try:
+        block = _extract_managed_block(
+            _read_text(source), AGENT_CONTRACT_BLOCK_BEGIN, AGENT_CONTRACT_BLOCK_END
+        )
+    except ValueError as exc:
+        errors.append(f"cannot read {source}: {exc}")
+        return modes
+
+    for target_rel, surface in AGENT_CONTRACT_TARGETS:
+        target = repo_root / target_rel
+        existing = _read_text(target) if target.is_file() else None
+        try:
+            merged, mode = _merge_managed_block(
+                existing,
+                block,
+                AGENT_CONTRACT_BLOCK_BEGIN,
+                AGENT_CONTRACT_BLOCK_END,
+                legacy_digests=frozenset(),
+                legacy_marker=None,
+            )
+        except ValueError as exc:
+            errors.append(f"cannot update {target}: {exc}")
+            continue
+
+        if existing is not None and _normalize_newlines(existing) == merged:
+            installed.append(str(target))
+            modes[surface] = mode
+            continue
+
+        if existing is not None and mode == "appended":
+            _backup_file(target, backups)
+
+        if _write_bytes_if_changed(target, merged.encode("utf-8")):
+            changed.append(str(target))
+        installed.append(str(target))
+        modes[surface] = mode
+
+    return modes
+
+
 def _apply_copilot_surface(
     repo_root: Path,
     framework_root: Path,
@@ -383,6 +479,14 @@ def _apply_copilot_surface(
         installed=installed,
         changed=changed,
         backups=backups,
+    )
+    _apply_agent_contract_surfaces(
+        repo_root,
+        framework_root,
+        installed=installed,
+        changed=changed,
+        backups=backups,
+        errors=errors,
     )
     return mode
 

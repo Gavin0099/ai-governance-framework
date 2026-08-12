@@ -46,6 +46,7 @@ TEMPLATE_REL = "governance/copilot-instructions-template.md"
 # matter of projecting into each of them, not of four different hook APIs.
 PROJECTION_TARGETS: tuple[tuple[str, str], ...] = (
     (TEMPLATE_REL, "copilot"),
+    ("governance/agent-contract-template.md", "agent-contract"),
     ("AGENTS.md", "codex"),
     ("CLAUDE.md", "claude"),
     ("GEMINI.md", "gemini"),

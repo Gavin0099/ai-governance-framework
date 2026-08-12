@@ -207,7 +207,7 @@ def test_every_declared_surface_carries_the_projection() -> None:
     results = check_all_projections(REPO_ROOT)
 
     assert {r.surface for r in results} == {
-        "copilot", "codex", "claude", "gemini",
+        "copilot", "agent-contract", "codex", "claude", "gemini",
         "starter-pack-canon", "starter-pack-copilot",
         "starter-pack-claude", "starter-pack-gemini",
     }
