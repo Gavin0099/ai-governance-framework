@@ -150,7 +150,12 @@ deploy_copilot_instructions() {
             echo "  ✅ 部署 .github/copilot-instructions.md 與 lifecycle hooks（managed）"
             echo "  ℹ️  請執行: git add .github && git commit -m 'chore: add AI Governance Copilot surface'"
         else
-            echo "  ❌ Copilot surface 合併失敗，未修改既有檔案"
+            # 只有 instructions 的 managed block 保證未被修改：Python installer
+            # 在合併被拒時不寫入該檔。lifecycle 檔在同一次呼叫中可能已經更新或
+            # 已建立備份，因此不能一併宣稱「未修改」。
+            echo "  ❌ Copilot surface 合併失敗"
+            echo "     instructions 未修改；其他 surface 可能已部分更新或已建立備份"
+            echo "     請檢查 .github/ 下的 *.bak.* 與 .github/hooks/ 內容後再重跑"
             INSTALL_FAILED=true
             return
         fi
