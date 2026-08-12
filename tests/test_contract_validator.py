@@ -10,7 +10,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.contract_validator import (
+    DISPLAY_CONTRACT_FIELDS,
+    RUNTIME_CONTRACT_FIELDS,
     extract_contract_block,
+    validate_display_contract,
+    validate_runtime_contract,
     format_json,
     parse_contract_fields,
     validate_contract,
@@ -168,3 +172,130 @@ def test_loaded_still_requires_system_prompt():
 
     assert result.compliant is False
     assert any("SYSTEM_PROMPT" in error for error in result.errors)
+
+
+class TestLangCardinality:
+    """SYSTEM_PROMPT.md §2.8 allows a comma-separated LANG list (decision 2B)."""
+
+    def test_single_language_still_valid(self):
+        assert validate_contract(_make_contract(LANG="C++")).compliant is True
+
+    def test_comma_separated_languages_are_valid(self):
+        assert validate_contract(_make_contract(LANG="C, C++")).compliant is True
+
+    def test_separator_tolerates_missing_whitespace(self):
+        assert validate_contract(_make_contract(LANG="C,C++")).compliant is True
+
+    def test_slash_form_is_rejected_with_a_migration_hint(self):
+        """`/` cannot separate a list: `I/O` is already a SCOPE value."""
+        result = validate_contract(_make_contract(LANG="C/C++"))
+
+        assert result.compliant is False
+        error = next(e for e in result.errors if e.startswith("LANG"))
+        assert "C/C++" in error
+        assert "'C, C++'" in error
+
+    def test_unknown_language_in_a_list_is_rejected(self):
+        result = validate_contract(_make_contract(LANG="C, Rust"))
+
+        assert result.compliant is False
+        assert any("Rust" in e for e in result.errors)
+
+    def test_duplicate_languages_are_rejected(self):
+        result = validate_contract(_make_contract(LANG="C, C"))
+
+        assert result.compliant is False
+        assert any("duplicate" in e for e in result.errors)
+
+    def test_empty_lang_is_still_required(self):
+        result = validate_contract(_make_contract(LANG=""))
+
+        assert result.compliant is False
+        assert any("LANG field is required" in e for e in result.errors)
+
+
+class TestScopeCardinality:
+    """SCOPE stays single-valued (decision 3): it drives routing, LANG does not."""
+
+    def test_single_scope_is_valid(self):
+        assert validate_contract(_make_contract(SCOPE="tooling")).compliant is True
+
+    def test_io_scope_containing_a_slash_is_still_valid(self):
+        """Guards the reason `/` was rejected as a LANG separator."""
+        assert validate_contract(_make_contract(SCOPE="I/O")).compliant is True
+
+    def test_comma_separated_scope_is_rejected_with_reason(self):
+        result = validate_contract(_make_contract(SCOPE="tooling, review"))
+
+        assert result.compliant is False
+        error = next(e for e in result.errors if e.startswith("SCOPE"))
+        assert "single-valued" in error
+
+    def test_slash_separated_scope_is_rejected(self):
+        result = validate_contract(_make_contract(SCOPE="tooling / review"))
+
+        assert result.compliant is False
+        assert any(e.startswith("SCOPE invalid") for e in result.errors)
+
+
+class TestContractAuthoritySplit:
+    """Decision 1B: display and runtime contracts validate separately."""
+
+    DISPLAY_ONLY = {
+        "LANG": "C, C++", "LEVEL": "L2", "SCOPE": "kernel-driver", "PLAN": "PLAN.md",
+        "LOADED": "SYSTEM_PROMPT", "CONTEXT": "repo -> x; NOT: y",
+        "PRESSURE": "SAFE (10/200)",
+    }
+
+    def _block(self, fields):
+        body = "\n".join(f"{k} = {v}" for k, v in fields.items())
+        return f"[Governance Contract]\n{body}\n"
+
+    def test_field_groups_do_not_overlap(self):
+        assert not set(DISPLAY_CONTRACT_FIELDS) & set(RUNTIME_CONTRACT_FIELDS)
+
+    def test_display_only_block_passes_display_validation(self):
+        result = validate_display_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is True
+
+    def test_display_only_block_fails_runtime_validation(self):
+        """A display pass says nothing about whether a task may execute."""
+        result = validate_runtime_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is False
+        assert any("RULES" in e for e in result.errors)
+
+    def test_validate_contract_still_requires_runtime_fields_by_default(self):
+        """The migration must not silently stop checking the runtime fields.
+
+        Relaxing this default would leave resolved_rules empty and MEMORY_MODE
+        falling back to candidate, disabling rule routing and the durable-memory
+        oversight gate with nothing reported.
+        """
+        result = validate_contract(self._block(self.DISPLAY_ONLY))
+
+        assert result.compliant is False
+
+    def test_opting_out_of_runtime_validation_is_explicit(self):
+        assert validate_contract(
+            self._block(self.DISPLAY_ONLY), include_runtime=False
+        ).compliant is True
+
+    def test_full_block_passes_all_three_entry_points(self):
+        result = validate_contract(_make_contract())
+
+        assert result.compliant is True
+        assert validate_display_contract(_make_contract()).compliant is True
+        assert validate_runtime_contract(_make_contract()).compliant is True
+
+    def test_runtime_validation_ignores_display_field_errors(self):
+        """Each validator answers to its own authority."""
+        broken_display = dict(self.DISPLAY_ONLY)
+        broken_display["LANG"] = "Rust"
+        broken_display.update(
+            {"RULES": "common", "RISK": "low", "OVERSIGHT": "auto", "MEMORY_MODE": "candidate"}
+        )
+
+        assert validate_runtime_contract(self._block(broken_display)).compliant is True
+        assert validate_display_contract(self._block(broken_display)).compliant is False

@@ -34,7 +34,12 @@ VALID_MEMORY_MODES = {"stateless", "candidate", "durable"}
 # agent that was never handed it, so the requirement is dropped rather than
 # weakening the authority boundary to match the tool.
 REQUIRED_LOADED = {"SYSTEM_PROMPT"}
-DISPLAY_FIELDS = [
+
+# Two contracts, two authorities. SYSTEM_PROMPT.md §2.8 defines the display
+# fields a human sees at task start; governance/RUNTIME_CONTRACT.md defines the
+# fields runtime_hooks/ gates on. They were one list for five months only because
+# 8994a5e1 removed the runtime fields from the codex without migrating the tool.
+DISPLAY_CONTRACT_FIELDS = [
     "LANG",
     "LEVEL",
     "SCOPE",
@@ -42,13 +47,16 @@ DISPLAY_FIELDS = [
     "LOADED",
     "CONTEXT",
     "PRESSURE",
+    "AGENT_ID",
+    "SESSION",
+]
+RUNTIME_CONTRACT_FIELDS = [
     "RULES",
     "RISK",
     "OVERSIGHT",
     "MEMORY_MODE",
-    "AGENT_ID",
-    "SESSION",
 ]
+DISPLAY_FIELDS = DISPLAY_CONTRACT_FIELDS + RUNTIME_CONTRACT_FIELDS
 
 
 @dataclass
@@ -93,6 +101,51 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
         errors.append(f"{key} invalid: '{value}'. Allowed: {sorted(valid_values)}")
 
 
+def parse_lang_list(raw: str) -> list[str]:
+    """Split a LANG field into its declared languages, preserving order."""
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _validate_lang(fields: dict, errors: list[str]) -> None:
+    """Validate LANG as a comma-separated list of canonical language values.
+
+    SYSTEM_PROMPT.md §2.8 allows a cross-language task to declare more than one
+    language. The separator is a comma, matching LOADED: `/` cannot serve as one
+    because it is already part of the `I/O` SCOPE value, so `C/C++` is a single
+    unrecognised token rather than two languages.
+    """
+    raw = fields.get("LANG", "").strip()
+    if not raw:
+        errors.append("LANG field is required")
+        return
+
+    langs = parse_lang_list(raw)
+    if not langs:
+        errors.append("LANG must name at least one language")
+        return
+
+    invalid = [item for item in langs if item not in VALID_LANG]
+    if invalid:
+        hint = ""
+        if any("/" in item for item in invalid):
+            suggestion = ", ".join(
+                part.strip()
+                for item in invalid
+                for part in item.split("/")
+                if part.strip() in VALID_LANG
+            )
+            if suggestion:
+                hint = f" Use a comma-separated list instead, e.g. '{suggestion}'."
+        errors.append(
+            f"LANG invalid: {invalid}. Allowed: {sorted(VALID_LANG)}.{hint}"
+        )
+        return
+
+    duplicates = sorted({item for item in langs if langs.count(item) > 1})
+    if duplicates:
+        errors.append(f"LANG lists duplicate language(s): {duplicates}")
+
+
 def _validate_rules(fields: dict, errors: list[str], available: set[str] | None = None) -> None:
     rules_raw = fields.get("RULES", "").strip()
     if not rules_raw:
@@ -112,7 +165,56 @@ def _validate_rules(fields: dict, errors: list[str], available: set[str] | None 
         )
 
 
-def validate_contract(text: str, available_rules: set[str] | None = None) -> ValidationResult:
+def _validate_runtime_fields(
+    fields: dict,
+    errors: list[str],
+    available_rules: set[str] | None = None,
+) -> None:
+    """Validate the runtime contract fields defined by governance/RUNTIME_CONTRACT.md."""
+    _validate_rules(fields, errors, available=available_rules)
+    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
+    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
+    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+
+
+def validate_display_contract(text: str) -> ValidationResult:
+    """Validate only the SYSTEM_PROMPT.md §2.8 display fields.
+
+    A display pass says nothing about whether a task may execute. Do not report
+    it as runtime compliance — see governance/RUNTIME_CONTRACT.md.
+    """
+    return validate_contract(text, include_runtime=False)
+
+
+def validate_runtime_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+) -> ValidationResult:
+    """Validate only the governance/RUNTIME_CONTRACT.md fields."""
+    block = extract_contract_block(text)
+    if block is None:
+        return ValidationResult(
+            compliant=False,
+            contract_found=False,
+            fields={},
+            errors=["[Governance Contract] block not found"],
+        )
+    fields = parse_contract_fields(block)
+    errors: list[str] = []
+    _validate_runtime_fields(fields, errors, available_rules=available_rules)
+    return ValidationResult(
+        compliant=not errors,
+        contract_found=True,
+        fields=fields,
+        errors=errors,
+    )
+
+
+def validate_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+    include_runtime: bool = True,
+) -> ValidationResult:
     block = extract_contract_block(text)
     if block is None:
         return ValidationResult(
@@ -126,11 +228,7 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     errors: list[str] = []
     warnings: list[str] = []
 
-    lang = fields.get("LANG", "").strip()
-    if not lang:
-        errors.append("LANG field is required")
-    elif lang not in VALID_LANG:
-        errors.append(f"LANG invalid: '{lang}'. Allowed: {sorted(VALID_LANG)}")
+    _validate_lang(fields, errors)
 
     level = fields.get("LEVEL", "").strip()
     if not level:
@@ -138,11 +236,20 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     elif level not in VALID_LEVEL:
         errors.append(f"LEVEL invalid: '{level}'. Allowed: {sorted(VALID_LEVEL)}")
 
+    # SCOPE is single-valued per SYSTEM_PROMPT.md §2.8: it drives review, testing
+    # and governance routing, and a list would need precedence rules that do not
+    # exist. LANG has no such consequence, which is why only LANG takes a list.
     scope = fields.get("SCOPE", "").strip()
     if not scope:
         errors.append("SCOPE field is required")
     elif scope not in VALID_SCOPE:
-        errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
+        if "," in scope:
+            errors.append(
+                f"SCOPE invalid: '{scope}'. SCOPE is single-valued; split the task or pick the "
+                f"dominant scope. Allowed: {sorted(VALID_SCOPE)}"
+            )
+        else:
+            errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
 
     if not fields.get("PLAN", "").strip():
         warnings.append("PLAN missing; recommended to bind responses to PLAN.md")
@@ -177,10 +284,8 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
         if "(" not in pressure or "/" not in pressure:
             warnings.append("PRESSURE should include line-count context, e.g. SAFE (45/200)")
 
-    _validate_rules(fields, errors, available=available_rules)
-    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
-    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
-    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+    if include_runtime:
+        _validate_runtime_fields(fields, errors, available_rules=available_rules)
 
     agent_id = fields.get("AGENT_ID", "").strip()
     session = fields.get("SESSION", "").strip()

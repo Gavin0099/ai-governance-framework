@@ -32,6 +32,15 @@
 
 這些欄位到現在仍然是 runtime decision path 的核心骨架。
 
+> **它們現在的 canonical home 是 [`governance/RUNTIME_CONTRACT.md`](../governance/RUNTIME_CONTRACT.md)。**
+>
+> 這四個欄位原本寫在 `SYSTEM_PROMPT.md` §2.8（commit `94c0870c`，2026-03-12，
+> 與 validator、本文件同一個變更）。commit `8994a5e1`（2026-03-20）重寫 canonical
+> 時移除了那段，卻沒有同步 validator 與本文件——於是 validator 要求四個沒有法典
+> 依據的欄位，而 runtime 繼續依賴它們。`RUNTIME_CONTRACT.md` 是把這段 drift 收回
+> 的結果：display contract（§2.8 的七欄位）與 runtime contract（這四個欄位）
+> 分屬不同權威、不同 surface，分開驗證。
+
 當時的例子像這樣：
 
 ```text
