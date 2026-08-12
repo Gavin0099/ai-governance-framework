@@ -429,3 +429,51 @@ class TestPressureLineCount:
 
         assert result.compliant is False
         assert any("PRESSURE field is required" in e for e in result.errors)
+
+
+class TestPressureCharCountForm:
+    """§7.4 escalates on lines *or* characters; §2.8 now has room to say which.
+
+    Observed: `WARNING (87/200 lines; 9642 chars)` from a real session. 87 lines
+    is below the 180-line threshold, so WARNING is correct only because 9642
+    characters crossed 8000. The short form cannot show that, and rejecting the
+    long form punished the output that best evidenced its own level.
+    """
+
+    @pytest.mark.parametrize(
+        "pressure",
+        [
+            "WARNING (87/200 lines; 9642 chars)",
+            "WARNING (87/200 lines;9642 chars)",
+            "EMERGENCY (260/200 lines; 13000 chars)",
+            "SAFE (0/200 lines; 0 chars)",
+        ],
+    )
+    def test_char_count_form_is_accepted(self, pressure):
+        assert validate_contract(_make_contract(PRESSURE=pressure)).compliant is True
+
+    def test_short_form_remains_valid(self):
+        assert validate_contract(_make_contract(PRESSURE="SAFE (45/200)")).compliant is True
+
+    @pytest.mark.parametrize(
+        "pressure",
+        [
+            "SAFE (87/200 lines; abc chars)",  # char count must be a number too
+            "SAFE (87/200 lines)",             # half the suffix
+            "SAFE (87/200; 9642 chars)",       # suffix without the `lines` label
+            "SAFE (<line count>/200 lines; <char count> chars)",
+        ],
+    )
+    def test_partial_or_filler_suffix_is_rejected(self, pressure):
+        result = validate_contract(_make_contract(PRESSURE=pressure))
+
+        assert result.compliant is False
+        assert any(e.startswith("PRESSURE invalid") for e in result.errors)
+
+    def test_the_block_observed_in_the_session_validates(self):
+        """Regression for the exact form that a real agent emitted."""
+        result = validate_contract(
+            _make_contract(PRESSURE="WARNING (87/200 lines; 9642 chars)")
+        )
+
+        assert result.compliant is True
