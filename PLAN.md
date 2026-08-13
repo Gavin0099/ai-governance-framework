@@ -1690,8 +1690,10 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `71fe98ec433d33a53339c0ccedbd40d9287a0ec5f091911daeff0e6ff2f95bf6`.
   Independent exact-digest read-only review returned `APPROVED` with zero open
   findings; four adjacent Gate 3 offline suites passed 497/497. The reviewed
-  design authority remains an uncommitted candidate at exact SHA-256
-  `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`.
+  design basis is preserved retrospectively in commit `dc76c293` at exact
+  SHA-256 `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`;
+  this does not establish that the design was repository-available or committed
+  authority before implementation commit `854fef93`.
   This tranche uses injected synthetic results only: it does not wire or launch
   the real runner, prove private-stdout correspondence or execution provenance,
   use credentials, run preflight/live, or reuse, retry, or replace the consumed
