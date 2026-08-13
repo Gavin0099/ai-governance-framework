@@ -1663,6 +1663,22 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   remains `NON_SUCCESS`, and Gate 3 success or treatment/Skill effectiveness is
   not established.
 
+- [x] **Gate 3 actual-capture adapter minimal offline tranche completed
+  2026-08-13.** Implementation commit `25a9da65` adds only the pure private
+  NDJSON parser ACL, privacy-safe lifecycle projector, closed public capture
+  artifacts, create-once synthetic publisher/verifier behavior, and focused
+  offline tests. Exact implementation SHA-256 is
+  `67d098138d2442f1c68aae462d350a7a461e191d831b8bea8799d3498ee1d99d`;
+  exact test SHA-256 is
+  `8e85f607cdb5493b2a53ccf6aa801152e2a99f0e7c81cf77a561c3d5bf56f1a5`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings, and the three focused offline suites passed 448/448. This tranche
+  does not wire `CodexExecRunner`, prove correspondence between private stdout
+  and public markers, use credentials, run preflight/live, or reuse, retry, or
+  replace the consumed pair. The public positive claim remains
+  `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
