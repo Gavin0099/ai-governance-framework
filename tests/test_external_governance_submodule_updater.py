@@ -2235,3 +2235,79 @@ def test_divergent_duplicate_routers_are_reported_not_merged() -> None:
 
     assert unresolved is True
     assert "never edit memory records" in collapsed
+
+
+MEMORY_WORKFLOW_MARKER_FOR_TEST = "<!-- governance:key=memory_workflow -->"
+
+
+def _baseline_router_block(framework_root: Path) -> str:
+    """Take the router text from the shipped baseline, not from the generator.
+
+    This is the whole point of the test below. `_memory_workflow_router_section()`
+    and `baselines/repo-min/AGENTS.md` place the blank line on opposite sides of
+    the marker, so a fixture built from the generator agrees with an implementation
+    that compares against the generator while neither matches a real consumer file.
+    That pairing shipped a no-op collapse through a green suite.
+    """
+    lines = (framework_root / "baselines" / "repo-min" / "AGENTS.md").read_text(
+        encoding="utf-8"
+    ).splitlines(keepends=True)
+    start = next(
+        i for i, line in enumerate(lines)
+        if line.strip() == "## AI Governance Memory Workflow Router"
+    )
+    end = start + 1
+    while end < len(lines):
+        stripped = lines[end].strip()
+        if stripped and stripped != MEMORY_WORKFLOW_MARKER_FOR_TEST and not stripped.startswith("- "):
+            break
+        end += 1
+    return "".join(lines[start:end])
+
+
+def test_refresh_keeps_one_router_on_a_real_consumer_shape(tmp_path: Path) -> None:
+    """Reproduces the shape that made a real consumer grow a router per apply.
+
+    Three things have to line up, and they did in the field:
+      - the consumer's `Risk Levels` heading sits *before* the update-intent
+        section, so the end of the replaced region falls through to "next `##`"
+      - the router is that next `##` heading, so the injected section's own copy
+        lands beside it rather than replacing it
+      - the agent contract block follows, carrying no `##` heading of its own
+
+    No consumer content is used: the router text comes from this repo's baseline
+    and the surrounding scaffold is written here.
+    """
+    framework_root = Path(__file__).resolve().parents[1]
+    router = _baseline_router_block(framework_root)
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    (consumer / "AGENTS.md").write_text(
+        "# AGENTS\n\n"
+        "## Repo-Specific Risk Levels\n\n"
+        "- L1: routine changes\n\n"
+        "## AI Governance Update Intent Rule\n\n"
+        "Older text that the refresh replaces.\n\n"
+        f"{router}\n"
+        "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+        "contract rules\n"
+        "<!-- AI Governance Framework: agent-contract END -->\n",
+        encoding="utf-8",
+    )
+
+    read = lambda: (consumer / "AGENTS.md").read_text(encoding="utf-8")
+    reports = []
+    for _ in range(3):
+        reports.append(_refresh_repo_local_instructions(consumer, framework_root))
+        text = read()
+        assert text.count("## AI Governance Memory Workflow Router") == 1
+        assert text.count(MEMORY_WORKFLOW_MARKER_FOR_TEST) == 1
+
+    settled = read()
+    for report in reports:
+        assert report["errors"] == []
+    # Nothing further changes once it has settled, and the report says so.
+    assert reports[2]["changed_files"] == []
+    assert read() == settled
+    assert settled.count("agent-contract BEGIN") == 1
+    assert "## Repo-Specific Risk Levels" in settled
