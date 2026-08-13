@@ -1647,6 +1647,22 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
   conclusion is established.
 
+- [x] **Gate 3 actual-capture adapter design accepted 2026-08-13.** Design
+  commit `420a7f42` records the independently approved private-stdout parser
+  ACL, privacy-safe lifecycle projection, create-once capture evidence links,
+  crash/TOCTOU fail-closed plan, and minimal offline implementation tranche at
+  exact SHA-256
+  `6d52ecda73c542e300c1612a712beb38c4ce7b44a66e5335965d254052905a34`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The public claim ceiling is limited to internally linked adapter
+  reports and `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; it does not
+  prove correspondence to private stdout, executable provenance, lifecycle
+  truth, model completion, or final-answer production. This checkpoint accepts
+  design bytes only: implementation, credentials, preflight, live execution,
+  old-pair reuse, retry, and replacement remain unauthorized; the consumed pair
+  remains `NON_SUCCESS`, and Gate 3 success or treatment/Skill effectiveness is
+  not established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
