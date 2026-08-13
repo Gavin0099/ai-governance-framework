@@ -2190,3 +2190,48 @@ def test_non_fast_forward_update_checkout_runs_only_when_explicitly_allowed(
         "ai-governance-framework",
         "governance/.update-receipt.json",
     ]
+
+
+def test_duplicate_memory_workflow_routers_are_collapsed() -> None:
+    """The refresh injects a section that already carries a router.
+
+    When a consumer's existing router is the next `##` heading after the update
+    intent section, the injected copy lands immediately before the surviving one.
+    The marker guard then finds a marker and does nothing, so the pair persisted
+    and grew by one on every apply. Observed on a real consumer, not in CI.
+    """
+    from governance_tools.external_governance_submodule_updater import (
+        MEMORY_WORKFLOW_MARKER,
+        _collapse_duplicate_memory_workflow_routers,
+        _memory_workflow_router_section,
+    )
+
+    canonical = _memory_workflow_router_section()
+    doubled = f"# AGENTS\n\nHouse rules.\n\n{canonical}\n{canonical}\n## Next\n"
+
+    collapsed, unresolved = _collapse_duplicate_memory_workflow_routers(doubled)
+
+    assert collapsed.count(MEMORY_WORKFLOW_MARKER) == 1
+    assert collapsed.count("## AI Governance Memory Workflow Router") == 1
+    assert unresolved is False
+    assert "House rules." in collapsed
+    assert "## Next" in collapsed
+    # Collapsing is idempotent and leaves a single copy untouched.
+    assert _collapse_duplicate_memory_workflow_routers(collapsed)[0] == collapsed
+
+
+def test_divergent_duplicate_routers_are_reported_not_merged() -> None:
+    """A second block that is not byte-identical may carry a consumer edit."""
+    from governance_tools.external_governance_submodule_updater import (
+        _collapse_duplicate_memory_workflow_routers,
+        _memory_workflow_router_section,
+    )
+
+    canonical = _memory_workflow_router_section()
+    edited = canonical.replace("do not edit memory records", "never edit memory records")
+    text = f"# AGENTS\n\n{canonical}\n{edited}\n"
+
+    collapsed, unresolved = _collapse_duplicate_memory_workflow_routers(text)
+
+    assert unresolved is True
+    assert "never edit memory records" in collapsed
