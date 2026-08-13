@@ -178,6 +178,87 @@ def test_completed_nonzero_arm_keeps_exactly_two_and_publishes_non_success(
     assert {arm: runner.calls for arm, runner in runners.items()} == {"A": 1, "B": 1}
 
 
+def test_cross_arm_mismatch_publishes_offline_verifiable_non_success(
+    tmp_path: Path,
+) -> None:
+    output, manifest, _, pins = _run(tmp_path)
+    arm_root = output / "arm-runtime" / "public" / RUN_IDS[1]
+
+    preflight_path = arm_root / "preflight.json"
+    _rewrite(
+        preflight_path,
+        lambda value: value.__setitem__("environment_projection_sha256", "0" * 64),
+    )
+    action_path = arm_root / "action.json"
+    _rewrite(
+        action_path,
+        lambda value: value.__setitem__(
+            "preflight_sha256", route._sha256_file(preflight_path)
+        ),
+    )
+    input_path = arm_root / "input-attestation.json"
+    _rewrite(
+        input_path,
+        lambda value: value.__setitem__(
+            "action_sha256", route._sha256_file(action_path)
+        ),
+    )
+    packet_path = arm_root / "packet.json"
+
+    def update_packet(value: dict[str, object]) -> None:
+        value["action_sha256"] = route._sha256_file(action_path)
+        value["input_attestation_sha256"] = route._sha256_file(input_path)
+
+    _rewrite(packet_path, update_packet)
+    seal_path = arm_root / "seal.json"
+    _rewrite(
+        seal_path,
+        lambda value: value.__setitem__(
+            "packet_sha256", route._sha256_file(packet_path)
+        ),
+    )
+    final_path = arm_root / "final.json"
+
+    def update_final(value: dict[str, object]) -> None:
+        value["packet_sha256"] = route._sha256_file(packet_path)
+        value["seal_sha256"] = route._sha256_file(seal_path)
+
+    _rewrite(final_path, update_final)
+    final_digest = route._sha256_file(final_path)
+    (output / "arm-b-final.sha256").write_bytes(ab._pin_bytes(final_digest))
+    pins["arm_b_final_sha256"] = final_digest
+
+    (output / "pair-final.json").unlink()
+    receipt = ab._rebuild_receipt(
+        output,
+        manifest=json.loads(manifest),
+        expected_manifest_sha256=route._sha256_bytes(manifest),
+        expected_pins=pins,
+    )
+    assert receipt["checks"]["cross_arm_equality"] == "FAIL"
+    assert receipt["decision"] == "NON_SUCCESS"
+    route._publish_create_once(output / "pair-final.json", route._json_bytes(receipt))
+
+    assert ab.verify_pair(
+        output,
+        contract_manifest=manifest,
+        expected_manifest_sha256=route._sha256_bytes(manifest),
+        expected_pins=pins,
+    )["decision"] == "NON_SUCCESS"
+
+    _rewrite(
+        output / "pair-final.json",
+        lambda value: value.__setitem__("decision", "SUCCESS"),
+    )
+    with pytest.raises(route.RouteV2Error, match="pair receipt differs"):
+        ab.verify_pair(
+            output,
+            contract_manifest=manifest,
+            expected_manifest_sha256=route._sha256_bytes(manifest),
+            expected_pins=pins,
+        )
+
+
 @pytest.mark.parametrize(
     "mutation",
     [

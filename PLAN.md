@@ -1574,21 +1574,78 @@ independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.
 
-- [ ] **Gate 3 paired-screening preregistration candidate revised
-  2026-07-29; re-review/signature pending.** Commit `c5be84db` binds the
-  preregistered mapping before producer execution, requires two distinct scorer
-  contexts, rejects zero or unavailable core-cost data as promotion evidence,
-  and verifies each admitted outcome against retained input bytes, a clean
-  output commit, portable Git bundle, exact diff, event log and test receipts.
-  The experiment-local common-harness contract is now part of the exact
-  candidate set. Focused tests passed 33/33; canonical precommit passed runtime
-  smoke plus 190/190; `core.autocrlf=true` index checkout preserved all seven
-  candidate paths byte-for-byte. Exact candidate-manifest SHA-256:
-  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`.
-  This is not independently approved, owner-signed or canonical. Gate 3 remains
-  blocked on independent review of these revised bytes, explicit owner
-  signature, later promotion, natural-bug/resource admission and separate start
-  authority.
+- [x] **Gate 3 NON_SUCCESS pair-final manifest promoted 2026-08-11.** The
+  offline integrity fix is bound to source commit `204965c9`; exact candidate
+  manifest SHA-256
+  `db86a97b36a2e80e43e9e0765f07f20cb00e07aa813cbf54bea2b587f3c02baa`
+  received an independent read-only approval with zero blocking findings. Owner
+  promotion commit `8da68734` pins contract-manifest SHA-256
+  `fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440`.
+  Candidate reconstruction passed, focused Gate 3 tests passed 51/51, and the
+  canonical precommit passed runtime smoke plus 197/197. Fresh credential-free
+  zero-session preflight receipt SHA-256
+  `6bd5a72e0f2b6b4ed508fafff3645a4eff4808614c132ee854e9a67bc00af586`
+  passed byte-exact reconstruction review in commit `84849892`. A separate
+  independent read-only review authorized one exact non-counted live pair at
+  HEAD `7d035c1d`, using the bundled-Python command contract `faa5344d…` only.
+  The one authorized pair ran once on 2026-08-11 and terminated `NON_SUCCESS`:
+  both arms exited zero but produced no final message and left the calibrated
+  workspace unchanged. Public pair-final SHA-256 is
+  `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
+  the public bytes in evidence commit `53fc93f7` were internally coherent, but
+  independent review found that its exact Git tree omitted three contract-
+  required empty runtime directories. Repair commit `230679cf` adds a checkout
+  materializer that restores only those empty directories before delegating to
+  the unchanged frozen verifier. Exact `git archive 53fc93f7` reconstruction,
+  58/58 focused tests and a separate independent read-only review all passed;
+  the live evidence, promoted contract and owner pin were not changed. Public
+  evidence confirms task-execution failure in both arms because `result.txt`
+  stayed at the `PENDING\n` baseline. The nearer cause of the absent final
+  message remains unresolved between CLI final-output production and model
+  completion because raw NDJSON event types were not published. Retry,
+  replacement, counted execution, other interpreters, and any treatment or
+  Skill-effect conclusion remain unauthorized.
+
+- [x] **Gate 3 final-message diagnostic offline tranche completed
+  2026-08-12.** Implementation commit `7c1c42e0` adds only the pure in-memory
+  synthetic classifier and its focused tests. The exact module SHA-256 is
+  `4cb72ccc7b901be65d28c17fb3d7563e7ea82b541bea82bf06f4d89357e55e71`;
+  the exact test SHA-256 is
+  `ed32358e23b69f2751775ddafb9cc8c12bca0897a6c6274ab2b59b39f3d320f2`.
+  Focused offline validation passed 62/62, and an independent byte-exact
+  read-only review returned `APPROVED` with no open findings. This tranche
+  does not integrate a lifecycle observer or evidence publication, does not
+  use credentials or authorize preflight/live, does not reuse the consumed
+  pair, and does not change its `NON_SUCCESS` result or establish Gate 3 or
+  treatment effectiveness.
+
+- [x] **Gate 3 final-message diagnostic integration design accepted
+  2026-08-12.** Design commit `23bbe0c3` records the independently approved
+  lifecycle-observer, pre-cleanup seal/cleanup/receipt, recovery-state,
+  public-schema, verifier, privacy, crash and TOCTOU candidate at exact
+  SHA-256
+  `5d6c735c1bcb030de2a6a1facb3cac19bb97b1942482e594910c12188bc18bb2`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The canonical precommit completed with runtime smoke passing and
+  197/197 focused tests. This checkpoint accepts design bytes only: no
+  lifecycle integration is implemented, no credentials or preflight/live were
+  used or authorized, the consumed pair is not reused/retried/replaced, and no
+  Gate 3 success or treatment/Skill effectiveness is established.
+
+- [x] **Gate 3 final-message diagnostic offline integration completed
+  2026-08-13.** Implementation commit `e3b70173` adds the synthetic retained-
+  fixture lifecycle observer, create-once store, pre-cleanup seal/cleanup/
+  receipt chain, route and external recovery profiles, privacy verifier, and
+  crash/TOCTOU fail-closed behavior. The exact implementation SHA-256 is
+  `a9d17a16ee6f21a1ed3d7a113a23a827e9812e70ff313516ae306d364a857367`;
+  the exact test SHA-256 is
+  `1213541126ebf49a3a4804a431442a5ce053e21b6946c3b4d836bcd4ccc10e1e`.
+  Independent exact-byte read-only review returned `APPROVED` with zero open
+  findings, and focused offline validation passed 185/185. This milestone is
+  synthetic and offline only: no credentials, preflight, live execution, old-
+  pair reuse, retry, or replacement occurred or is authorized; the consumed
+  pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
+  conclusion is established.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic

@@ -1,0 +1,10 @@
+{
+  "cleanup": "PASS",
+  "decision": "FAILURE",
+  "locator_required": false,
+  "packet_sha256": "662c2cadba8454f7c89cf01354c2dc2fab6c3f8fb382a4b3c9020e4b3315d38a",
+  "recovery": "none",
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-b",
+  "schema": "gate3-route-v2.final-receipt.v1",
+  "seal_sha256": "96ae1c1c939b43a37ae6df40a4ab79f6be2ffda1f97307b6d72f031c0e959634"
+}

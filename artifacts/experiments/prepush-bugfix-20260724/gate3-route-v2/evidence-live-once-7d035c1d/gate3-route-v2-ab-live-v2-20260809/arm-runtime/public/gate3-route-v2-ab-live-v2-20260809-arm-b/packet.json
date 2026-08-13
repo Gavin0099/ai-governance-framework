@@ -1,0 +1,26 @@
+{
+  "action_sha256": "a5ade983e0041e5f8f603efcb3e0d7eca0aa06eebbbce11f936106765e0d469f",
+  "attestation_sha256": "abb9ee85769dd245a31b647939c3bdefb51813646e3a82adcf46c41ddb0b6911",
+  "checks": {
+    "exit_zero": true,
+    "final_schema": false,
+    "stdout_ndjson": true,
+    "workspace_matches_expected": false
+  },
+  "eligible_success": false,
+  "input_attestation_sha256": "8bc3ce28b9e56697f1bb3b2768a6539eb1151864967be7857058ace40d5ca375",
+  "observed_workspace": [
+    {
+      "artifact_id": "result.txt",
+      "bytes": 8,
+      "sha256": "45fc7ab706e6fb509993b6fcae9d4d423c96f8e840c8f64c1a61f5c817c8a870"
+    },
+    {
+      "artifact_id": "task.md",
+      "bytes": 60,
+      "sha256": "73d2433d004f635dd183f02e8c92b30673033b5c7e25cd2ad5190328e7ea2492"
+    }
+  ],
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-b",
+  "schema": "gate3-route-v2.packet.v2"
+}

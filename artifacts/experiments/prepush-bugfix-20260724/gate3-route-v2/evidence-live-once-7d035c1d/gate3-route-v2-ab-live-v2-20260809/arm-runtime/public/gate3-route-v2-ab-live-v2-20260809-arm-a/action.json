@@ -1,0 +1,51 @@
+{
+  "arm_id": "A",
+  "authorization": "gate3_route_v2_single_session_non_scoring_only",
+  "execution_identity": {
+    "cli_version": "codex-cli 0.146.0",
+    "command_contract_sha256": "faa5344db21f181f893669bd99a7d39980b3ef5d5c1cdfb42512b40e409fbcd9",
+    "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
+    "kind": "codex_exec",
+    "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+  },
+  "expected_workspace": [
+    {
+      "artifact_id": "result.txt",
+      "bytes": 15,
+      "sha256": "ab5ca0fcc9b0be9b51be7d2636e1cdf9730ce51e7cc6de979b4785580a4a207b"
+    },
+    {
+      "artifact_id": "task.md",
+      "bytes": 60,
+      "sha256": "73d2433d004f635dd183f02e8c92b30673033b5c7e25cd2ad5190328e7ea2492"
+    }
+  ],
+  "model_id": "gpt-5.2",
+  "output_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "enum": [
+          "ok"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "status"
+    ],
+    "type": "object"
+  },
+  "pair_action_sha256": "86a5616e52ecfa12d9b441a0ee5df2a713944ec0883d10feff2dee17ce409850",
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "preflight_sha256": "e3793704785f3dd3df0b1aed3853c16d6bf8a9e4b611cf15f37c1b29077763d6",
+  "prompt_sha256": "893017fc31af01f9e4fe6201e7c2737dd6add954cc45a887613be2d350c79b27",
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-a",
+  "schema": "gate3-route-v2.action.v4",
+  "staged_input_manifest_sha256": "bb5f7dffa6927ade273412fca4ac5e4e0feb1b9a236279bdda35905d726f9384",
+  "treatment_projection": {
+    "state": "absent",
+    "treatment_manifest_sha256": "1343b6513e2ca5994f524745427bbea7305f6d80a964b90df29c74f46dc70b7a",
+    "treatment_packet_sha256": "absent"
+  }
+}

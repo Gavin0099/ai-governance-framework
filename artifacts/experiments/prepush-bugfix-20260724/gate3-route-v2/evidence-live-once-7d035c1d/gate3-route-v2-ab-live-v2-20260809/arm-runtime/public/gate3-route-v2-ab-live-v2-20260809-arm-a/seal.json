@@ -1,0 +1,19 @@
+{
+  "attestation_sha256": "cf13ad36eb3c133a38d841b5861e746f8d24e118f6eeab994f7a623f43d65b52",
+  "cleanup": "PENDING",
+  "decision": "PENDING",
+  "observations": {
+    "exit_classification": "zero",
+    "final_message": "absent",
+    "final_schema": "not_attempted",
+    "packet_assembly": "PASS",
+    "process_launch": "attempted",
+    "stdout_capture": "nonempty",
+    "stdout_ndjson": "PASS",
+    "workspace_capture": "PASS",
+    "workspace_validation": "FAIL"
+  },
+  "packet_sha256": "ae99d0f5fbd8cdbee3b17ef701f5ae0378adbf1b0fcf2017dc82aac512b8caa0",
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-a",
+  "schema": "gate3-route-v2.observation-seal.v1"
+}
