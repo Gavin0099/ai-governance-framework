@@ -1161,8 +1161,10 @@ def _rebuild_receipt(
                 "treatment_state": arm["treatment_projection"]["state"],
             }
         )
-    if normalized_actions[0] != normalized_actions[1] or normalized_preflights[0] != normalized_preflights[1]:
-        raise route.RouteV2Error("cross-arm identity differs")
+    cross_arm_equal = (
+        normalized_actions[0] == normalized_actions[1]
+        and normalized_preflights[0] == normalized_preflights[1]
+    )
     terminal_events = [event for event in events if event["event_type"].endswith("_terminal")]
     if any(
         event["terminal_class"] != arm_decisions[event["arm_id"]]
@@ -1173,7 +1175,7 @@ def _rebuild_receipt(
         "arm_verification": "PASS" if arm_success else "FAIL",
         "cleanup": "PASS" if not (output_root.parent / f".{manifest['pair_id']}.private").exists() else "FAIL",
         "credential_equality": "PASS",
-        "cross_arm_equality": "PASS",
+        "cross_arm_equality": "PASS" if cross_arm_equal else "FAIL",
         "distinct_contexts": "PASS",
         "exactly_two_no_replacement": "PASS" if len(events) == 6 else "FAIL",
         "treatment_only_difference": "PASS",

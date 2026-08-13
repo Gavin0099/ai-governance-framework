@@ -1,0 +1,18 @@
+{
+  "exit_classification": "zero",
+  "final_message": {
+    "status": "absent"
+  },
+  "final_schema_validation": "not_attempted",
+  "schema": "gate3-route-v2.content-attestation.v1",
+  "schema_sha256": "c7124e2c7cb644c79435130d36456aa38ee30bb9496c8e40983f4c16a54cdfe9",
+  "stdout": {
+    "bytes": 725,
+    "json_value_count": 5,
+    "sha256": "519d7f6de8219ff73ddc95486266806f123ed26d723d6b553715396e542892b0",
+    "status": "nonempty",
+    "validation": "PASS"
+  },
+  "validator_sha256": "53f2ba2d436562ea0589b1c4639e340c35939ae321cb5dd17197e29627ff2d10",
+  "workspace_capture": "PASS"
+}

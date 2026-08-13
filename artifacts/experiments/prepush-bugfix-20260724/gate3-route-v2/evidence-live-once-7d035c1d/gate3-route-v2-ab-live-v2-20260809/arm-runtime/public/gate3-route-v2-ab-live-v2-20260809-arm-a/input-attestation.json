@@ -1,0 +1,20 @@
+{
+  "action_sha256": "0ac10cfcdc5bb9471f04d903f284ad3db10922fd4eee6d616bed542ac0559886",
+  "arm_id": "A",
+  "contract_manifest_sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440",
+  "credential_acl": "PASS",
+  "model_id": "gpt-5.2",
+  "model_selector_match": "PASS",
+  "only_auth_inventory": "PASS",
+  "pair_action_sha256": "86a5616e52ecfa12d9b441a0ee5df2a713944ec0883d10feff2dee17ce409850",
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "run_id": "gate3-route-v2-ab-live-v2-20260809-arm-a",
+  "schema": "gate3-route-v2.input-attestation.v1",
+  "staged_acl": "PASS",
+  "staged_content_match": "PASS",
+  "staged_input_manifest_sha256": "bb5f7dffa6927ade273412fca4ac5e4e0feb1b9a236279bdda35905d726f9384",
+  "staged_inventory_match": "PASS",
+  "treatment_packet_sha256": "absent",
+  "treatment_state": "absent",
+  "validator_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+}

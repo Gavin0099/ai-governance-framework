@@ -1,0 +1,11 @@
+{
+  "arm_id": "not_applicable",
+  "event_type": "pair_closed",
+  "ordinal": 5,
+  "pair_action_sha256": "86a5616e52ecfa12d9b441a0ee5df2a713944ec0883d10feff2dee17ce409850",
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "previous_event_sha256": "e28369458b345b3329f374a110d4a1970757f23329b1e7e62acaaa859c04e754",
+  "run_id": "not_applicable",
+  "schema": "gate3-route-v2-ab.attempt-ledger-event.v1",
+  "terminal_class": "not_applicable"
+}
