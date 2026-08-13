@@ -5,9 +5,12 @@ import subprocess
 from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
+from unittest import mock
 
+from governance_tools import f7_full_update
 from governance_tools.external_governance_submodule_updater import UpdateResult
 from governance_tools.f7_full_update import (
+    _agents_memory_workflow_router_present,
     _ensure_agents_keyed_sections,
     classify_repo,
     format_human,
@@ -928,12 +931,39 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
 
 
+def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> UpdateResult:
+    return UpdateResult(
+        ok=ok,
+        mode="apply",
+        update_mode="already_current" if ok else "blocked",
+        fast_forward=None,
+        repo=str(repo),
+        submodule_path="ai-governance-framework",
+        before_head="0" * 40,
+        target_head="0" * 40 if ok else "1" * 40,
+        after_head="0" * 40,
+        staged_files=[],
+        committed=False,
+        commit_hash=None,
+        message="ok" if ok else "pre-existing governance overlap",
+        errors=list(errors or []),
+        full_update_stage_report={"final_status": "updated" if ok else "blocked"},
+    )
+
+
 def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> None:
     """F-7 claims to refresh repo-local governance instructions.
 
     For a submodule consumer it did not: install_governance_hooks was only
     reachable from the external-contract backend, so the files every agent reads
     at session start were never deployed for this repo role.
+
+    The updater is stubbed to succeed because surface deployment is now gated on
+    it. An earlier version of this test used a fixture whose submodule was never
+    registered, so the updater failed on every run and the surfaces appeared only
+    because the installer ran regardless — it asserted deployment while standing
+    on the fail-closed hole that `test_blocked_updater_does_not_write_instruction_surfaces`
+    now covers.
     """
     repo = tmp_path / "consumer"
     framework = repo / "ai-governance-framework"
@@ -953,18 +983,23 @@ def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> Non
         "<!-- AI Governance Framework: agent-contract END -->\n",
     )
 
-    result = run_f7_full_update(
-        repo_root=repo,
-        framework_root=framework,
-        apply=True,
-        submodule_path="ai-governance-framework",
-    )
+    with mock.patch.object(
+        f7_full_update,
+        "update_governance_submodule",
+        side_effect=lambda **kwargs: _update_result(repo, ok=True),
+    ):
+        result = run_f7_full_update(
+            repo_root=repo,
+            framework_root=framework,
+            apply=True,
+            submodule_path="ai-governance-framework",
+        )
 
     for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
         text = (repo / name).read_text(encoding="utf-8")
         assert "agent-contract BEGIN" in text, name
     assert "House rules." in (repo / "AGENTS.md").read_text(encoding="utf-8")
-    assert result.stages.get("hook_validator_enforcement") in {"updated", "verified", "blocked"}
+    assert result.stages.get("hook_validator_enforcement") in {"updated", "verified"}
 
 
 def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
@@ -995,6 +1030,106 @@ def test_agents_refresh_stays_idempotent(tmp_path: Path) -> None:
     text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert text.count("governance:key=memory_workflow") == 1
     assert text.count("governance:key=f7_update_boundary") == 1
+
+
+def test_existing_router_without_the_marker_is_not_duplicated(tmp_path: Path) -> None:
+    """Writer and report had drifted apart on what "present" means.
+
+    The report called the router present on content; the writer keyed only on the
+    managed marker. A router installed by hand, or by a version predating the
+    marker, satisfies one and not the other — so every apply appended a second
+    copy while reporting the stage `verified`.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(
+        repo / "AGENTS.md",
+        "# AGENTS\n\n"
+        "## AI Governance Memory Workflow Router\n\n"
+        "- Before claiming completion for any change touching `memory/**`, run "
+        "`python -m governance_tools.memory_workflow --check --repo .`.\n",
+    )
+
+    for _ in range(3):
+        _ensure_agents_keyed_sections(repo)
+
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert text.count("AI Governance Memory Workflow Router") == 1
+    assert text.count("governance:key=memory_workflow") == 0
+    # The report must not claim more than the writer did.
+    assert _agents_memory_workflow_router_present(repo) is True
+
+
+def test_blocked_updater_does_not_write_instruction_surfaces(tmp_path: Path) -> None:
+    """Fail-closed has to mean closed.
+
+    The updater refuses to touch a repo whose governance surfaces carry
+    uncommitted changes it did not make. Installing anyway writes precisely those
+    surfaces, so the run reported `blocked` after changing files on disk.
+    """
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://example.invalid/ai-governance-framework.git\n",
+    )
+    _make_framework(framework)
+
+    before = {
+        name: (repo / name).read_text(encoding="utf-8") if (repo / name).is_file() else None
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", ".github/copilot-instructions.md")
+    }
+
+    def _blocked_updater(**kwargs) -> UpdateResult:
+        return _update_result(
+            repo,
+            ok=False,
+            errors=["pre-existing uncommitted governance changes: AGENTS.md"],
+        )
+
+    def _must_not_run(*args, **kwargs):
+        raise AssertionError("install_governance_hooks ran after the updater was blocked")
+
+    with mock.patch.object(
+        f7_full_update, "update_governance_submodule", side_effect=_blocked_updater
+    ), mock.patch.object(f7_full_update, "install_governance_hooks", side_effect=_must_not_run):
+        result = run_f7_full_update(
+            repo_root=repo,
+            framework_root=framework,
+            apply=True,
+            submodule_path="ai-governance-framework",
+        )
+
+    assert result.ok is False
+    assert result.stages.get("hook_validator_enforcement") == "blocked"
+    for name, original in before.items():
+        current = (repo / name).read_text(encoding="utf-8") if (repo / name).is_file() else None
+        assert current == original, name
+
+
+def test_framework_root_config_guard_accepts_either_separator(tmp_path: Path) -> None:
+    """Two writers, two formats, and a guard that compared them as strings.
+
+    The hook installer writes `as_posix()` on Windows; the updater wrote
+    `str(Path)`. On Windows those never compare equal, so once the installer had
+    touched the file the overlap guard read it as consumer-edited and refused to
+    proceed — permanently, since the next run wrote the other form back.
+    """
+    from governance_tools.external_governance_submodule_updater import (
+        _framework_root_config_matches,
+    )
+
+    submodule_repo = tmp_path / "consumer" / "ai-governance-framework"
+    submodule_repo.mkdir(parents=True)
+
+    assert _framework_root_config_matches(f"{submodule_repo}\n", submodule_repo)
+    assert _framework_root_config_matches(f"{submodule_repo.as_posix()}\n", submodule_repo)
+    assert not _framework_root_config_matches("", submodule_repo)
+    assert not _framework_root_config_matches(f"{tmp_path / 'elsewhere'}\n", submodule_repo)
 
 
 def test_f7_accepts_a_non_origin_framework_remote() -> None:
