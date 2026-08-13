@@ -1,6 +1,6 @@
 # Gate 3 Actual Capture Adapter Design Candidate
 
-Status: design-only candidate for draft MR; not accepted or implemented
+Status: merged design-only candidate under remediation; not accepted or implemented
 
 Date: 2026-08-13
 
@@ -54,10 +54,13 @@ This candidate defines that missing boundary. It does not authorize execution.
    This material is corroborating context, not the pinned 0.146.0 wire
    authority. The future adapter must use reviewed retained conformance fixtures
    for the exact pinned command contract.
-8. At candidate creation time, this branch is 33 commits behind and 21 commits
-   ahead of `origin/main`, with zero overlapping changed paths since merge base
-   `a694ddbc601636877f581ee87875ece31ff87af1`. An MR is therefore recommended
-   before implementation expands this branch further.
+8. GitHub MR #52 merged the Gate 3 branch head `4f18556421124cc31f9db54a8b7aceb13cc5efe7`
+   into `origin/main` through merge commit
+   `a1ac299928f52c51a69aafe996f23cb1bfcf8c4e`. That merge carried this
+   design-only candidate into mainline history but did not accept its semantics
+   or authorize implementation. Independent review of merged candidate digest
+   `b67109816a2631ef0499775b4e86e42afc277b25118c5a6995a2b239fcd1cd76`
+   requested the bounded remediation recorded in this revision.
 
 ## Target Outcome
 
@@ -127,7 +130,7 @@ This DONE condition is a recommendation, not current implementation authority.
 | raw-envelope parser | Adapter/ACL | validate private NDJSON framing and extract only admitted discriminants | retain, hash, log or return content-bearing fields |
 | lifecycle projector | Application/pure | map admitted discriminants to canonical content-free markers | read files, launch processes or infer model intent |
 | capture publisher | Infrastructure | create-once publish contract, authorization, result and projection bytes | retry, overwrite or synthesize missing results |
-| diagnostic classifier | Domain/pure | combine verified axes under the existing claim ceiling | inspect private bytes or infer unobserved effects |
+| diagnostic classifier | Domain/pure | combine internally linked adapter reports with existing public axes under the claim ceiling | inspect private bytes or infer unobserved effects |
 | retained-package verifier | Application/pure plus read-only adapter | reconstruct canonical public bytes, links, profiles and privacy rules | authenticate the original private stdout or execution environment |
 
 The raw-envelope parser is an Anti-Corruption Layer. Codex wire objects are an
@@ -254,7 +257,10 @@ Rules:
 - `ordinal` is an exact non-boolean integer, zero-based and contiguous.
 - `item_marker` is `none` for non-item events.
 - Marker and item-marker vocabularies are closed.
-- No identifier, content, count, size, duration or timestamp is included.
+- No identifier, content, raw-byte/message/token/usage count, raw byte size,
+  duration or timestamp is included. The number of entries and their contiguous
+  ordinals necessarily disclose lifecycle event cardinality; that limited
+  structural metadata is explicitly admitted by the privacy contract below.
 - Canonical JSON is UTF-8, sorted keys, compact separators and one trailing LF.
 
 ### Complete lifecycle
@@ -333,6 +339,10 @@ Unknown status/code combinations fail verification. Authorization without a
 result is permanently `CAPTURE_RESULT_UNKNOWN`. It may not be filled in after
 restart, retried, replaced or inferred from final-path or workspace state.
 
+The capture result is an adapter-produced public attestation. Its internal
+links do not independently prove that the projected markers correspond to the
+private stdout bytes returned by the claimed executable.
+
 ## Binding to the Existing Evidence Chain
 
 For a future route package, the pre-cleanup observation seal must bind exact
@@ -357,11 +367,19 @@ External recovery profiles must retain authorization, any result that was
 durably published, every public transition record and the exact pre-cleanup
 seal when one exists. They must not recreate a missing result or projection.
 
+The public verifier may establish only that these retained public artifacts are
+canonical, create-once, digest-linked and mutually consistent under the proposed
+contract. Because raw stdout and any raw-stream digest are intentionally absent,
+the verifier cannot independently establish correspondence between the private
+stdout and the adapter-reported projection, executable provenance, or lifecycle
+event truth.
+
 ## Diagnostic Semantics and Claim Ceiling
 
-The adapter supplies observations, not causes.
+The adapter supplies reported discriminants, not independently verified
+observations or causes.
 
-| Verified observations | Maximum diagnostic statement |
+| Internally linked adapter report | Maximum adapter-reported diagnostic statement |
 | --- | --- |
 | capture non-complete | `ADAPTER_CAPTURE_FAILURE` or `INDETERMINATE` |
 | complete lifecycle, `turn_completed`, admitted completed `agent_message`, final path never created | `CLI_FINAL_OUTPUT_MATERIALIZATION_NOT_OBSERVED_WITH_AGENT_MESSAGE_EVENT` |
@@ -375,11 +393,20 @@ produced, because the exec JSON event does not reliably expose a final-answer
 phase. The public statement must not use `MODEL_COMPLETION_CONFIRMED`,
 `FINAL_ANSWER_PRODUCED` or equivalent wording.
 
+Every table row is conditioned on an internally consistent public attestation
+chain. The corresponding diagnostic token means that the adapter reported the
+listed discriminants under the proposed contract; it does not mean an
+independent observer verified the private stream or that the report corresponds
+to bytes emitted by the claimed executable. The strongest positive verifier
+claim is `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`.
+
 This design may claim only that a proposed adapter contract can preserve
-content-free event discriminants for later verification. It cannot claim that:
+content-free, adapter-reported event discriminants for later internal-link
+verification. It cannot claim that:
 
 - any adapter, schema or verifier is implemented;
 - raw private stdout is independently reconstructable;
+- adapter-reported markers independently correspond to private stdout;
 - captured bytes came from the claimed executable;
 - the CLI event stream is complete outside the pinned contract;
 - a model produced or failed to produce a final answer;
@@ -395,7 +422,8 @@ content-free event discriminants for later verification. It cannot claim that:
 - SHA-256 of reviewed static source/schema/contract bytes;
 - SHA-256 of canonical public artifacts;
 - closed status, failure, process, marker and item-marker tokens;
-- contiguous event ordinals;
+- contiguous event ordinals and the lifecycle event cardinality necessarily
+  disclosed by the number of projection entries;
 - action and arm bindings already admitted by the future public contract; and
 - fixed `raw_retention = NONE`.
 
@@ -412,6 +440,13 @@ content-free event discriminants for later verification. It cannot claim that:
 - environment or credential data;
 - exception messages derived from private parsing; and
 - unknown raw type/item values.
+
+Lifecycle event cardinality is admitted only to reconstruct ordering and the
+closed lifecycle shape. It can still correlate otherwise separate runs, so the
+public contract must not combine it with identifiers, timestamps, durations,
+raw sizes, message/token/usage counts or other high-entropy run metadata. Event
+cardinality is not evidence of semantic truth, task progress, model output or
+executable provenance.
 
 Privacy validation is deny-by-default and recursive. Unknown keys, string
 values outside closed token sets, non-canonical bytes, extra artifacts or a
@@ -545,23 +580,24 @@ Do not wire the adapter into `CodexExecRunner` in that tranche. Runtime wiring
 is a later separately reviewed decision because it changes a trusted process
 boundary and would require a new exact command/capture contract.
 
-## MR and Mainline Sequencing
+## Post-Merge Review and Mainline State
 
-An MR is recommended now. The branch has materially diverged from `main` even
-though the changed-path overlap is currently zero. The owner has directed that
-branch integration be surfaced before further work. The safest sequence is:
+GitHub MR #52 is already merged into `main` at merge commit
+`a1ac299928f52c51a69aafe996f23cb1bfcf8c4e`. The merge resolved branch
+integration only: it did not accept this candidate, authorize implementation,
+or upgrade any Gate 3 claim.
 
-1. commit this candidate without treating it as accepted;
-2. open a draft MR for the existing Gate 3 branch;
-3. independently review the exact candidate bytes in the MR;
-4. let CI/review expose integration issues against current `main`;
-5. accept or revise the candidate only from explicit review disposition;
-6. reconcile `main` only through the reviewed MR path; and
-7. begin the offline adapter implementation from an updated branch after the
-   MR disposition is clear.
+The bounded post-merge sequence is now:
 
-This candidate and the current owner direction authorize draft-MR preparation
-only. They do not authorize merge, rebase or conflict resolution.
+1. remediate only the two blocking review findings and stale MR wording;
+2. compute a new exact candidate digest;
+3. independently review those exact bytes read-only;
+4. separately decide whether to accept and commit the revised candidate; and
+5. only after separate owner authorization, begin the recommended offline
+   implementation tranche from current mainline history.
+
+This revision authorizes no implementation, credentials, preflight, live
+execution, old-pair reuse, retry, replacement, commit or push.
 
 ## Review Questions
 
@@ -581,7 +617,8 @@ An independent reviewer should answer:
    transition without reconstructing missing results?
 9. Is the first implementation tranche offline, minimal and independent of the
    live runner?
-10. Is an MR required before implementation expands the diverged branch?
+10. Does any post-merge implementation remain subject to separate owner
+    authorization after exact-digest candidate acceptance?
 
 ## External Reference Boundary
 
