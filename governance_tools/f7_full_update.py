@@ -91,11 +91,16 @@ class F7Result:
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
     ai_governance_update_result: dict[str, Any] = field(default_factory=dict)
+    tool_provenance: dict[str, Any] = field(default_factory=dict)
     update_receipt: dict[str, Any] = field(
         default_factory=lambda: skipped_update_receipt("not an apply path")
     )
 
     def __post_init__(self) -> None:
+        # Set here rather than at each return so no result path can be added
+        # later that reports a target without disclosing what produced it.
+        if not self.tool_provenance:
+            self.tool_provenance = _tool_provenance()
         if not self.final_report_requirement:
             self.final_report_requirement = _build_final_report_requirement(
                 self.stages.get("governance_maturity_summary")
@@ -373,6 +378,37 @@ def _is_legacy_f7_json_validation_line(line: str) -> bool:
         and "--format json" in stripped
         and "from the framework environment" in stripped
     )
+
+
+def _tool_provenance() -> dict[str, Any]:
+    """Which checkout produced this report.
+
+    Every head in this report describes the repo being updated. None of them
+    describes the code doing the updating, and the two are routinely different
+    checkouts — `framework_root` is the consumer's nested copy, while the tool
+    runs from wherever the module was imported.
+
+    On 2026-08-13 that gap cost a wrong conclusion: a run from a checkout four
+    commits behind reported a target of `20c97b94` throughout, and the report
+    gave no way to see that the code producing it predated the fix under test.
+
+    Disclosure only. Nothing here gates or blocks: there is no general notion of
+    a "required" revision to compare against, and inventing one would be a
+    different decision than recording what ran.
+    """
+    tool_root = Path(__file__).resolve().parent.parent
+    code, stdout, _stderr = _git(tool_root, ["rev-parse", "HEAD"])
+    revision = stdout.strip() if code == 0 else ""
+    dirty_code, dirty_out, _ = _git(tool_root, ["status", "--porcelain"])
+    return {
+        "executing_root": str(tool_root),
+        "executing_revision": revision or "unknown",
+        "executing_worktree_dirty": bool(dirty_out.strip()) if dirty_code == 0 else None,
+        "claim_boundary": (
+            "identifies the checkout that produced this report; it is not compared "
+            "against any required revision"
+        ),
+    }
 
 
 def _framework_head_commit(framework_root: Path) -> str:
@@ -898,6 +934,9 @@ def format_human(result: F7Result) -> str:
         f"repo_role={result.repo_role}",
         f"f7_final_status={result.f7_final_status}",
         f"repo_root={result.repo_root}",
+        f"produced_by_revision={result.tool_provenance.get('executing_revision', 'unknown')}",
+        f"produced_by_root={result.tool_provenance.get('executing_root', 'unknown')}",
+        f"produced_by_worktree_dirty={result.tool_provenance.get('executing_worktree_dirty')}",
         "[human_readable_update_summary]",
         (
             "F-7 full update workflow means the complete AI Governance update flow: "

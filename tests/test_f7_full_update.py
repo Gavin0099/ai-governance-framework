@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import asdict
 from datetime import date as _date
@@ -1145,3 +1146,33 @@ def test_f7_accepts_a_non_origin_framework_remote() -> None:
     assert {"target_ref", "fetch_remote", "fetch_ref"} <= set(params)
     assert params["fetch_remote"].default == "origin"
     assert params["fetch_ref"].default == "main"
+
+
+def test_every_result_discloses_the_revision_that_produced_it(tmp_path: Path) -> None:
+    """Every head in this report describes the repo being updated, not the updater.
+
+    On 2026-08-13 a run from a checkout four commits behind reported a target of
+    `20c97b94` throughout, and nothing in the output revealed that the code
+    producing the report predated the fix under test. The conclusion drawn from
+    that run was wrong.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    result = run_f7_full_update(repo_root=repo, framework_root=repo, apply=False)
+
+    provenance = result.tool_provenance
+    assert provenance["executing_root"] == str(Path(f7_full_update.__file__).resolve().parent.parent)
+    assert re.fullmatch(r"[0-9a-f]{40}|unknown", provenance["executing_revision"])
+    assert "not compared against any required revision" in provenance["claim_boundary"]
+    # The human report carries it too — a JSON-only field would not have been
+    # read in the situation this exists for.
+    assert "produced_by_revision=" in format_human(result)
+
+
+def test_provenance_is_set_on_every_result_path() -> None:
+    """Set in __post_init__, so a future result path cannot omit it."""
+    result = f7_full_update.F7Result(
+        ok=False, mode="dry_run", repo_root="x", repo_role="not_governed", f7_final_status="x"
+    )
+    assert result.tool_provenance["executing_revision"]
