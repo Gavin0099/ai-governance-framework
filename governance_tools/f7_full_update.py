@@ -293,7 +293,12 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
     inserts: list[str] = []
-    if "governance:key=memory_workflow" not in before and "memory_workflow" not in before:
+    # Keyed on the marker alone. The guard also required the bare word
+    # `memory_workflow` to be absent, so any repo that merely mentioned it —
+    # in a router, a command example, a note — never received the block at all,
+    # permanently. The marker is what makes this idempotent; the substring only
+    # made it unreachable.
+    if "governance:key=memory_workflow" not in before:
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
             "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
@@ -744,6 +749,9 @@ def run_f7_full_update(
     framework_root: Path,
     apply: bool = False,
     submodule_path: str = "ai-governance-framework",
+    target_ref: str | None = None,
+    fetch_remote: str = "origin",
+    fetch_ref: str = "main",
 ) -> F7Result:
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
@@ -785,21 +793,51 @@ def run_f7_full_update(
         result = update_governance_submodule(
             repo=repo_root,
             submodule_path=submodule_path,
+            target_ref=target_ref,
+            fetch_remote=fetch_remote,
+            fetch_ref=fetch_ref,
             dry_run=not apply,
             stage=False,
             commit=False,
         )
         stages = dict(result.full_update_stage_report)
+
+        # A submodule consumer used to stop at the pointer, lock and receipt.
+        # install_governance_hooks was only reachable from the external-contract
+        # backend, so the instruction surfaces every agent reads at session start
+        # were never deployed to this repo role — the consumer had to run the
+        # installer by hand, or go without. F-7 claims to refresh repo-local
+        # governance instructions; for half its consumers it did not.
+        surface_changed: list[str] = []
+        surface_backups: list[str] = []
+        if apply:
+            hook_result = install_governance_hooks(repo_root, repo_root / submodule_path)
+            stages["hook_validator_enforcement"] = (
+                BLOCKED
+                if not hook_result.ok
+                else "updated"
+                if hook_result.changed_files
+                else "verified"
+            )
+            surface_changed.extend(hook_result.changed_files)
+            surface_backups.extend(hook_result.backups)
+            result.errors.extend(hook_result.errors)
+
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
         final_status = _status_with_lock_consistency(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
         )
-        changed_files = list(result.staged_files)
+        changed_files = list(result.staged_files) + surface_changed
         if result.update_receipt.get("status") == "written":
             changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
+        warnings = [
+            f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
+            "review it before discarding — repository-specific instructions may live there"
+            for backup in surface_backups
+        ]
         return F7Result(
-            ok=result.ok,
+            ok=result.ok and not result.errors,
             mode=result.mode,
             repo_root=str(repo_root),
             repo_role=role,
@@ -807,6 +845,7 @@ def run_f7_full_update(
             stages=stages,
             changed_files=sorted(set(changed_files)),
             errors=result.errors,
+            warnings=warnings,
             details={"submodule_backend": asdict(result)},
             update_receipt=result.update_receipt,
         )
@@ -880,6 +919,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--framework-root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--submodule-path", default="ai-governance-framework")
+    # A consumer whose authoritative framework remote is not `origin` had no way
+    # to say so: the target always resolved to origin/main. A repo with a stale
+    # personal-account mirror on origin and the real upstream on another remote
+    # would fail ff-only against a months-old commit, with no flag to correct it.
+    parser.add_argument(
+        "--fetch-remote",
+        default="origin",
+        help="Remote holding the authoritative framework ref (default: origin).",
+    )
+    parser.add_argument(
+        "--fetch-ref",
+        default="main",
+        help="Branch on --fetch-remote to update toward (default: main).",
+    )
+    parser.add_argument(
+        "--target-ref",
+        help="Explicit target commit or ref; overrides --fetch-remote/--fetch-ref resolution.",
+    )
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
@@ -889,6 +946,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         framework_root=args.framework_root,
         apply=args.apply,
         submodule_path=args.submodule_path,
+        target_ref=args.target_ref,
+        fetch_remote=args.fetch_remote,
+        fetch_ref=args.fetch_ref,
     )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))

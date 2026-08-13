@@ -7,7 +7,12 @@ from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_governance_submodule_updater import UpdateResult
-from governance_tools.f7_full_update import classify_repo, format_human, run_f7_full_update
+from governance_tools.f7_full_update import (
+    _ensure_agents_keyed_sections,
+    classify_repo,
+    format_human,
+    run_f7_full_update,
+)
 from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
@@ -921,3 +926,87 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
 
     # The consumer content survived the install that produced the backup.
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
+
+
+def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> None:
+    """F-7 claims to refresh repo-local governance instructions.
+
+    For a submodule consumer it did not: install_governance_hooks was only
+    reachable from the external-contract backend, so the files every agent reads
+    at session start were never deployed for this repo role.
+    """
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://example.invalid/ai-governance-framework.git\n",
+    )
+    _make_framework(framework)
+    _write(
+        framework / "governance" / "agent-contract-template.md",
+        "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+        "contract rules\n"
+        "<!-- AI Governance Framework: agent-contract END -->\n",
+    )
+
+    result = run_f7_full_update(
+        repo_root=repo,
+        framework_root=framework,
+        apply=True,
+        submodule_path="ai-governance-framework",
+    )
+
+    for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+        text = (repo / name).read_text(encoding="utf-8")
+        assert "agent-contract BEGIN" in text, name
+    assert "House rules." in (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.stages.get("hook_validator_enforcement") in {"updated", "verified", "blocked"}
+
+
+def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
+    """The guard also required the bare word to be absent.
+
+    Any repo that merely mentioned `memory_workflow` — in a router, a command
+    example, a note — never received the block at all, permanently.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nSee memory_workflow docs.\n")
+
+    first, _, _ = _ensure_agents_keyed_sections(repo)
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert text.count("governance:key=memory_workflow") == 1
+    assert first != "verified"
+
+
+def test_agents_refresh_stays_idempotent(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+
+    for _ in range(3):
+        _ensure_agents_keyed_sections(repo)
+
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert text.count("governance:key=memory_workflow") == 1
+    assert text.count("governance:key=f7_update_boundary") == 1
+
+
+def test_f7_accepts_a_non_origin_framework_remote() -> None:
+    """A consumer whose authoritative remote is not `origin` had no way to say so.
+
+    The target always resolved to origin/main, so a repo with a stale mirror on
+    origin failed ff-only against a months-old commit with no flag to correct it.
+    """
+    import inspect
+    from governance_tools.f7_full_update import run_f7_full_update as run
+
+    params = inspect.signature(run).parameters
+    assert {"target_ref", "fetch_remote", "fetch_ref"} <= set(params)
+    assert params["fetch_remote"].default == "origin"
+    assert params["fetch_ref"].default == "main"
