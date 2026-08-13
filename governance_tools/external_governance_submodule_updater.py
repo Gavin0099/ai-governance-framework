@@ -977,6 +977,9 @@ def _find_agents_update_end(text: str, start: int) -> int | None:
     return start + custom_risk_heading.start()
 
 
+MEMORY_WORKFLOW_MARKER = "<!-- governance:key=memory_workflow -->"
+
+
 def _memory_workflow_router_section() -> str:
     return (
         "## AI Governance Memory Workflow Router\n\n"
@@ -993,6 +996,29 @@ def _memory_workflow_router_section() -> str:
     )
 
 
+def _collapse_duplicate_memory_workflow_routers(text: str) -> tuple[str, bool]:
+    """Keep exactly one router, and report when that cannot be decided safely.
+
+    `_refresh_repo_local_instructions` replaces everything from the update-intent
+    heading to the next `##` heading with the baseline section — and that section
+    carries a router of its own. When a consumer's existing router *is* the next
+    `##` heading, the injected copy lands immediately before the surviving one and
+    the file ends with two. The guard below then finds a marker and correctly does
+    nothing, so the pair persisted and grew by one on every apply.
+
+    Only byte-identical copies are collapsed. A divergent second block may hold a
+    consumer edit, so it is left in place and reported.
+
+    Returns the text and whether unresolved duplicate markers remain.
+    """
+    canonical = _memory_workflow_router_section()
+    if text.count(canonical) > 1:
+        head, _, tail = text.partition(canonical)
+        text = head + canonical + tail.replace(canonical, "")
+        text = re.sub(r"\n{3,}", "\n\n", text)
+    return text, text.count(MEMORY_WORKFLOW_MARKER) > 1
+
+
 def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
     agents = repo / "AGENTS.md"
     if not agents.exists():
@@ -1002,14 +1028,22 @@ def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
             "errors": [f"missing AGENTS.md: {agents}"],
         }
     current = _read_text(agents)
-    if "governance:key=memory_workflow" in current and "memory_workflow" in current:
-        return {"status": "verified", "changed_files": [], "errors": []}
-    updated = current.rstrip() + "\n\n" + _memory_workflow_router_section()
+    updated, duplicate_markers = _collapse_duplicate_memory_workflow_routers(current)
+    if MEMORY_WORKFLOW_MARKER not in updated:
+        updated = updated.rstrip() + "\n\n" + _memory_workflow_router_section()
     changed = _write_text_if_changed(agents, updated)
+    errors: list[str] = []
+    if duplicate_markers:
+        # Two router blocks that are not byte-identical are not ours to merge:
+        # one of them may carry a consumer edit. Say so rather than pick.
+        errors.append(
+            "AGENTS.md carries more than one memory workflow router and they are not "
+            "identical; review them by hand before claiming the surface is current"
+        )
     return {
-        "status": "updated" if changed else "verified",
+        "status": "blocked" if errors else "updated" if changed else "verified",
         "changed_files": ["AGENTS.md"] if changed else [],
-        "errors": [],
+        "errors": errors,
     }
 
 
