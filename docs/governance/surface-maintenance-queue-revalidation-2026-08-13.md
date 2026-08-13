@@ -19,12 +19,25 @@ something real.
 
 | | count |
 |---|---|
-| mechanically confirmed present | 78 |
-| present, after a manual check corrected a false absence | 4 |
+| present | 82 |
 | absent, and intended to be | 5 |
-| conceptual — no script can decide | 14 |
+| **determined** | **87** |
+| undetermined — no locator a script can resolve | 14 |
 | **total** | **101** |
-| **silently lost load-bearing surfaces** | **0** |
+
+**Among the 87 determined entries, none was silently lost.** The 14 undetermined
+entries are not covered by that statement, and nothing here should be read as
+clearing them.
+
+An earlier draft of this note put "silently lost load-bearing surfaces = 0" at
+the top of the table without that qualifier, while listing the 14 unjudged
+entries further down. Those two things cannot both be said. A count of zero
+across 101 requires having looked at 101.
+
+Per-entry results — `defense`, resolution type, resolved locator, method,
+status, evidence — are in
+[`surface-maintenance-queue-revalidation-2026-08-13.ledger.json`](surface-maintenance-queue-revalidation-2026-08-13.ledger.json),
+so the sweep can be rechecked without rerunning it.
 
 ### The five absences are the executed retirements
 
@@ -89,3 +102,7 @@ maintenance cost, or that its recorded disposition is still the right one. The
 frequency and cost classes in the queue were not re-derived; `maintenance_cost_class`
 is still `unassessed` on the entries that shipped that way. Nothing here
 authorises retiring, merging or downgrading anything.
+
+The "none silently lost" finding covers the 87 determined entries only. The 14
+undetermined entries have not been checked by any means — not mechanically, not
+by hand — and could contain a lost surface without this audit knowing.
