@@ -3984,3 +3984,41 @@ successive revisions of a design candidate.
 Independent exact-digest review of `6c3552e2…`. Do not begin the mapping-only
 offline tranche before that review returns, and do not treat design approval as
 credential, preflight or live authority.
+
+## 2026-08-13 — Gate 3 bridge design candidate accepted (`5e0279c9…`)
+
+### Findings And Resolution
+- Two further review rounds followed the record above. Round 3 on `6c3552e2…`
+  returned `CHANGES_REQUESTED` with one blocking and one warning: the
+  `Authorization Boundary` said "four preconditions" after a fifth had been
+  added, so the workspace-baseline authority could be read as outside the
+  production blocking set; and the base line named only the pre-merge design
+  baseline while the candidate commit sits on a later main.
+- Both were corrected with a two-line change. A limited diff confirmed no other
+  byte differed (4 insertions, 2 deletions).
+- Round 4 on `5e0279c9…` returned `APPROVED` with zero open findings.
+
+### Evidence
+- accepted candidate SHA-256
+  `5e0279c9115f9f4eb47f3e2fd713091c58e8028be9bc6760ca5f462a21e7a015`,
+  design commit `013f227a`, blob identical on the remote branch.
+- committed blob CR=0, LF=651.
+- `git diff --check origin/main..013f227a`: PASS.
+- scope: `.gitattributes` and the candidate file only.
+- the four source files named by the candidate are byte-identical between
+  `0e8f3b79` and `cc304a90`, verified by blob comparison rather than assumed.
+- PR #64 checks: 11 success, 1 skipped, 0 pending, 0 failed.
+
+### Not Claimed
+- No GitHub review record exists for PR #64 (`reviews=0`, empty
+  `reviewDecision`). Acceptance is the owner's, not an external reviewer's.
+- Design acceptance is not implementation, credential, preflight or live
+  authority.
+- The five production-wiring preconditions remain unsolved; two of them reopen
+  the integration contract digest pinned by the runner/capture milestone.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+Merge the accepted design with its PLAN and memory reconciliation in the same
+pull request, then treat the mapping-only offline tranche as a separately
+authorized slice.
