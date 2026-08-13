@@ -1196,17 +1196,29 @@ def test_provenance_survives_the_tool_updating_its_own_checkout(tmp_path: Path, 
     head = {"sha": before_sha}
     real_git = f7_full_update._git
 
-    def moving_git(root: Path, args):
+    # `_git` reports whatever HEAD currently is, with no side effect of its own.
+    # An earlier version advanced HEAD on the first read instead, which made the
+    # test insensitive to the thing it is for: with only the entry-point sampling
+    # call removed, `__post_init__` became the *first* read and still saw the old
+    # sha, so the test passed against the defect.
+    def reading_git(root: Path, args):
         if list(args) == ["rev-parse", "HEAD"] and Path(root) == Path(
             f7_full_update.__file__
         ).resolve().parent.parent:
-            sha = head["sha"]
-            # Whatever reads HEAD next sees the post-merge value.
-            head["sha"] = after_sha
-            return 0, f"{sha}\n", ""
+            return 0, f"{head['sha']}\n", ""
         return real_git(root, args)
 
-    monkeypatch.setattr(f7_full_update, "_git", moving_git)
+    real_classify = f7_full_update.classify_repo
+
+    def classify_and_move_head(*args, **kwargs):
+        # Stands in for the updater's `merge --ff-only`: it runs after the entry
+        # point samples and before the result is constructed, which is exactly
+        # the window the cached value has to survive.
+        head["sha"] = after_sha
+        return real_classify(*args, **kwargs)
+
+    monkeypatch.setattr(f7_full_update, "_git", reading_git)
+    monkeypatch.setattr(f7_full_update, "classify_repo", classify_and_move_head)
     f7_full_update._TOOL_PROVENANCE = None
     try:
         repo = tmp_path / "repo"
