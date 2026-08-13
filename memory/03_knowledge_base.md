@@ -270,3 +270,54 @@
 - Oversight: auto
 - Summary: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
 
+
+## A relative project root can make memory_record write outside memory_root (2026-08-13)
+
+**Symptom.** An unexplained `docs/governance/memory/2026-08-13.md` appeared in the
+worktree containing a `governance_tools.memory_record` session_end entry
+(`FAIL_CLOSED_CLOSEOUT_MISSING`, anchored to `100c6c34`). It was untracked and
+not gitignored, so it surfaced as unexplained dirty state during review.
+
+**Mechanism.** A hook or memory writer invoked with an omitted or relative
+`--project-root` resolves that root against the current working directory. Run
+from anywhere other than the repository root, it will create a second `memory/`
+tree at that location.
+
+**What was observed, and what was inferred.** Observed: a convenience command of
+the form `cd docs/governance && sha256sum <file>` ran earlier in the same
+session, and the misplaced file appeared under `docs/governance/`. Inferred: that
+the writer resolved its root against that directory. No retained command
+transcript proves the causal link — the observation is consistent with this
+mechanism, which is not the same as demonstrating it.
+
+**Why it matters.** `AGENT.md` declares `memory_root: memory/` and
+`operational_records_must_stay_under_memory_root: true`. A record written outside
+that root is not cross-agent memory authority, is invisible to the memory
+authority guard's expected paths, and shows up to a reviewer as unexplained
+untracked state next to governance documents.
+
+**Avoidance.** Pass an **absolute, canonical** repository root to any memory
+writer. `--project-root .` is not a fix — it is the default, and it resolves
+against whatever cwd happens to be current. Resolve the root first and pass the
+result:
+
+```bash
+python -m governance_tools.memory_record --project-root "$(git rev-parse --show-toplevel)" ...
+```
+
+Independently, do not `cd` for convenience in agent shell calls — pass paths to
+the command instead, `sha256sum docs/governance/x.md` rather than
+`cd docs/governance && sha256sum x.md`. If a `cd` is unavoidable, restore the
+repository root in the same command. The second habit reduces exposure; only the
+first removes the dependency on cwd.
+
+**Detection.** `git status --untracked-files=all` will show a `memory/` directory
+somewhere other than the repository root. Treat any `**/memory/` path outside the
+root as misplaced, not as new state. This detection is bounded: it only finds
+misplaced directories that are still **inside** the current repository. A writer
+invoked from outside the repository writes somewhere Git never looks, and leaves
+no signal in `git status` at all.
+
+**Related.** This is the same failure family as the `memory_record` commit-anchor
+lesson: the writer infers context from ambient state, so ambient state must be
+controlled explicitly rather than assumed.
