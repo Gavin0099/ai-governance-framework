@@ -34,9 +34,11 @@
 
 ## Latest Review (2026-08-13)
 
-- Gate 3 bridge candidate `6c3552e2…` remains unapproved pending independent
-  exact-digest review; no P3 implementation, credentials, preflight or live is
-  authorized. Full record in `memory/04_review_log.md`.
+- Gate 3 bridge design accepted at exact SHA-256 `5e0279c9…` (design commit
+  `013f227a`); the earlier `ed7807d6…`, `71a6943d…` and `6c3552e2…` digests were
+  rejected and are not approval targets. Design acceptance only: credentials,
+  preflight and live remain unauthorized, and the five production-wiring
+  preconditions are unsolved. Full record in `memory/04_review_log.md`.
 
 ## Claim Ceiling
 

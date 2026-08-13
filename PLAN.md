@@ -1701,6 +1701,28 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
   `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
 
+- [x] **Gate 3 real-runner contained-result bridge design accepted 2026-08-13.**
+  Design commit `013f227a` records the `_ContainedResult` to
+  `InjectedContainedResult` mapping, the single stdout handoff, stderr exclusion,
+  non-interference with `CodexExecRunner.__call__` and `TrustedLiveRunner`, the
+  launch-authority/TOCTOU/capture ordering, the fail-closed disposition mapping,
+  and a mapping-only offline tranche, at exact SHA-256
+  `5e0279c9115f9f4eb47f3e2fd713091c58e8028be9bc6760ca5f462a21e7a015`.
+  Exact-digest read-only review returned `APPROVED` with zero open findings after
+  three earlier revisions were rejected; the superseded digests `ed7807d6…`,
+  `71a6943d…` and `6c3552e2…` are not approval targets. No GitHub review record
+  exists for the pull request; this acceptance is the owner's.
+  The accepted design explicitly does not solve five production-wiring
+  preconditions: bridge-source runtime binding, pre-seal credential-residue
+  recovery, a structural non-`repr` boundary, machine-enforced exclusivity
+  between the runner call path and the bridge, and a workspace-baseline
+  authority. Two of those reopen the integration contract digest pinned by the
+  runner/capture integration milestone.
+  This checkpoint accepts design bytes only. Implementation, credentials,
+  preflight, live execution, old-pair reuse, retry and replacement remain
+  unauthorized at this checkpoint; the consumed pair remains `NON_SUCCESS`, and
+  Gate 3 or treatment/Skill effectiveness is not established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
