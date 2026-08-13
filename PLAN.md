@@ -1632,6 +1632,21 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   used or authorized, the consumed pair is not reused/retried/replaced, and no
   Gate 3 success or treatment/Skill effectiveness is established.
 
+- [x] **Gate 3 final-message diagnostic offline integration completed
+  2026-08-13.** Implementation commit `e3b70173` adds the synthetic retained-
+  fixture lifecycle observer, create-once store, pre-cleanup seal/cleanup/
+  receipt chain, route and external recovery profiles, privacy verifier, and
+  crash/TOCTOU fail-closed behavior. The exact implementation SHA-256 is
+  `a9d17a16ee6f21a1ed3d7a113a23a827e9812e70ff313516ae306d364a857367`;
+  the exact test SHA-256 is
+  `1213541126ebf49a3a4804a431442a5ce053e21b6946c3b4d836bcd4ccc10e1e`.
+  Independent exact-byte read-only review returned `APPROVED` with zero open
+  findings, and focused offline validation passed 185/185. This milestone is
+  synthetic and offline only: no credentials, preflight, live execution, old-
+  pair reuse, retry, or replacement occurred or is authorized; the consumed
+  pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
+  conclusion is established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
