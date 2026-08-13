@@ -978,6 +978,11 @@ def _find_agents_update_end(text: str, start: int) -> int | None:
 
 
 MEMORY_WORKFLOW_MARKER = "<!-- governance:key=memory_workflow -->"
+_ROUTER_HEADING = "## AI Governance Memory Workflow Router"
+
+
+def _normalize_router_block(block: str) -> str:
+    return re.sub(r"\s+", " ", block).strip()
 
 
 def _memory_workflow_router_section() -> str:
@@ -1006,16 +1011,43 @@ def _collapse_duplicate_memory_workflow_routers(text: str) -> tuple[str, bool]:
     the file ends with two. The guard below then finds a marker and correctly does
     nothing, so the pair persisted and grew by one on every apply.
 
-    Only byte-identical copies are collapsed. A divergent second block may hold a
-    consumer edit, so it is left in place and reported.
+    Blocks are compared to each other, not to `_memory_workflow_router_section()`.
+    The copy in `baselines/repo-min/AGENTS.md` puts its blank line after the
+    marker and the generated one puts it before, so nothing in a real consumer
+    file ever equals that string — an earlier version of this function compared
+    against it and silently collapsed nothing.
+
+    Copies that differ only in whitespace are collapsed. One that differs in
+    content may hold a consumer edit, so it is left in place and reported.
 
     Returns the text and whether unresolved duplicate markers remain.
     """
-    canonical = _memory_workflow_router_section()
-    if text.count(canonical) > 1:
-        head, _, tail = text.partition(canonical)
-        text = head + canonical + tail.replace(canonical, "")
-        text = re.sub(r"\n{3,}", "\n\n", text)
+    lines = text.splitlines(keepends=True)
+    spans: list[tuple[int, int]] = []
+    for index, line in enumerate(lines):
+        if line.strip() != _ROUTER_HEADING:
+            continue
+        # The block is its own heading, marker and bullets — not everything up to
+        # the next `##`. The last router in a file is followed by the agent
+        # contract block, which carries no `##` heading, so a heading-to-heading
+        # span swallowed it and no two copies ever compared equal.
+        end = index + 1
+        while end < len(lines):
+            stripped = lines[end].strip()
+            if stripped and stripped != MEMORY_WORKFLOW_MARKER and not stripped.startswith("- "):
+                break
+            end += 1
+        spans.append((index, end))
+
+    if len(spans) > 1:
+        kept = _normalize_router_block("".join(lines[spans[0][0] : spans[0][1]]))
+        dropped: set[int] = set()
+        for start, end in spans[1:]:
+            if _normalize_router_block("".join(lines[start:end])) == kept:
+                dropped.update(range(start, end))
+        if dropped:
+            text = "".join(line for i, line in enumerate(lines) if i not in dropped)
+            text = re.sub(r"\n{3,}", "\n\n", text)
     return text, text.count(MEMORY_WORKFLOW_MARKER) > 1
 
 
@@ -1054,6 +1086,7 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
     target_agents = repo / "AGENTS.md"
     changed: list[str] = []
     errors: list[str] = []
+    agents_before = _read_text(target_agents) if target_agents.exists() else None
 
     if not source_base.exists():
         errors.append("missing source baselines/repo-min/AGENTS.base.md")
@@ -1097,6 +1130,14 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
         if changed_file not in changed:
             changed.append(changed_file)
     errors.extend(router_report["errors"])
+
+    # The section refresh writes a copy of the router, and the step above removes
+    # it again. Both writes are real, and the net effect on the file is nothing —
+    # so reporting AGENTS.md as changed would claim an update that did not happen.
+    if "AGENTS.md" in changed:
+        agents_after = _read_text(target_agents) if target_agents.exists() else None
+        if agents_after == agents_before:
+            changed.remove("AGENTS.md")
 
     if errors:
         status = "blocked"
