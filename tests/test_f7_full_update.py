@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import asdict
 from datetime import date as _date
@@ -1145,3 +1146,106 @@ def test_f7_accepts_a_non_origin_framework_remote() -> None:
     assert {"target_ref", "fetch_remote", "fetch_ref"} <= set(params)
     assert params["fetch_remote"].default == "origin"
     assert params["fetch_ref"].default == "main"
+
+
+def test_every_result_discloses_the_revision_that_produced_it(tmp_path: Path) -> None:
+    """Every head in this report describes the repo being updated, not the updater.
+
+    On 2026-08-13 a run from a checkout four commits behind reported a target of
+    `20c97b94` throughout, and nothing in the output revealed that the code
+    producing the report predated the fix under test. The conclusion drawn from
+    that run was wrong.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    result = run_f7_full_update(repo_root=repo, framework_root=repo, apply=False)
+
+    provenance = result.tool_provenance
+    assert provenance["executing_root"] == str(Path(f7_full_update.__file__).resolve().parent.parent)
+    assert re.fullmatch(r"[0-9a-f]{40}|unknown", provenance["executing_revision"])
+    assert "not compared against any required revision" in provenance["claim_boundary"]
+    # The human report carries it too — a JSON-only field would not have been
+    # read in the situation this exists for.
+    assert "produced_by_revision=" in format_human(result)
+
+
+def test_provenance_is_set_on_every_result_path() -> None:
+    """Set in __post_init__, so a future result path cannot omit it."""
+    f7_full_update._TOOL_PROVENANCE = None
+    try:
+        result = f7_full_update.F7Result(
+            ok=False, mode="dry_run", repo_root="x", repo_role="not_governed", f7_final_status="x"
+        )
+        assert result.tool_provenance["executing_revision"]
+    finally:
+        f7_full_update._TOOL_PROVENANCE = None
+
+
+def test_provenance_survives_the_tool_updating_its_own_checkout(tmp_path: Path, monkeypatch) -> None:
+    """The documented invocation runs the tool from the checkout it updates.
+
+    `cd <consumer>/ai-governance-framework && python -m governance_tools.f7_full_update
+    --repo ../` makes the tool root and the fast-forwarded framework root the same
+    directory. Sampling after the merge reads the new HEAD while the code that
+    actually ran came from the old one — the field would then name a revision that
+    did not produce the report, which is the exact misstatement it exists to prevent.
+    """
+    before_sha = "a" * 40
+    after_sha = "b" * 40
+    head = {"sha": before_sha}
+    real_git = f7_full_update._git
+
+    # `_git` reports whatever HEAD currently is, with no side effect of its own.
+    # An earlier version advanced HEAD on the first read instead, which made the
+    # test insensitive to the thing it is for: with only the entry-point sampling
+    # call removed, `__post_init__` became the *first* read and still saw the old
+    # sha, so the test passed against the defect.
+    def reading_git(root: Path, args):
+        if list(args) == ["rev-parse", "HEAD"] and Path(root) == Path(
+            f7_full_update.__file__
+        ).resolve().parent.parent:
+            return 0, f"{head['sha']}\n", ""
+        return real_git(root, args)
+
+    real_classify = f7_full_update.classify_repo
+
+    def classify_and_move_head(*args, **kwargs):
+        # Stands in for the updater's `merge --ff-only`: it runs after the entry
+        # point samples and before the result is constructed, which is exactly
+        # the window the cached value has to survive.
+        head["sha"] = after_sha
+        return real_classify(*args, **kwargs)
+
+    monkeypatch.setattr(f7_full_update, "_git", reading_git)
+    monkeypatch.setattr(f7_full_update, "classify_repo", classify_and_move_head)
+    f7_full_update._TOOL_PROVENANCE = None
+    try:
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        result = run_f7_full_update(repo_root=repo, framework_root=repo, apply=False)
+
+        assert result.tool_provenance["executing_revision"] == before_sha
+        assert result.tool_provenance["sampled"] == "before_any_mutation"
+        # A result built later in the same process reports the same thing.
+        later = f7_full_update.F7Result(
+            ok=True, mode="apply", repo_root="x", repo_role="submodule_consumer", f7_final_status="x"
+        )
+        assert later.tool_provenance["executing_revision"] == before_sha
+    finally:
+        f7_full_update._TOOL_PROVENANCE = None
+
+
+def test_human_report_carries_the_provenance_claim_boundary(tmp_path: Path) -> None:
+    """The field is printed because a human will not open the JSON.
+
+    That reasoning applies to the limit on what it means as much as to the value.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    text = format_human(run_f7_full_update(repo_root=repo, framework_root=repo, apply=False))
+
+    assert "produced_by_claim_boundary=" in text
+    assert "not compared against any required revision" in text
+    assert "produced_by_sampled=before_any_mutation" in text

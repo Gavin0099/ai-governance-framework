@@ -91,11 +91,16 @@ class F7Result:
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
     ai_governance_update_result: dict[str, Any] = field(default_factory=dict)
+    tool_provenance: dict[str, Any] = field(default_factory=dict)
     update_receipt: dict[str, Any] = field(
         default_factory=lambda: skipped_update_receipt("not an apply path")
     )
 
     def __post_init__(self) -> None:
+        # Set here rather than at each return so no result path can be added
+        # later that reports a target without disclosing what produced it.
+        if not self.tool_provenance:
+            self.tool_provenance = _tool_provenance()
         if not self.final_report_requirement:
             self.final_report_requirement = _build_final_report_requirement(
                 self.stages.get("governance_maturity_summary")
@@ -373,6 +378,58 @@ def _is_legacy_f7_json_validation_line(line: str) -> bool:
         and "--format json" in stripped
         and "from the framework environment" in stripped
     )
+
+
+_TOOL_PROVENANCE: dict[str, Any] | None = None
+
+
+def _tool_provenance() -> dict[str, Any]:
+    """Which checkout produced this report, sampled before anything mutates.
+
+    Captured once per process and cached. The timing is the whole point: when
+    this tool is invoked from a consumer's nested framework checkout — the
+    documented form, `cd <consumer>/ai-governance-framework && python -m
+    governance_tools.f7_full_update --repo ../` — `tool_root` *is* the checkout
+    the updater fast-forwards. Sampling after that merge reads the new HEAD
+    while the code still running in memory came from the old one, so the report
+    would name a revision that did not produce it. That is the precise
+    misstatement this field exists to prevent.
+
+    `run_f7_full_update` primes this before any mutation. A bare `F7Result`
+    built outside that entry point falls back to sampling at construction,
+    which is correct as long as nothing has moved HEAD in between.
+
+    Every head in this report describes the repo being updated. None of them
+    describes the code doing the updating, and the two are routinely different
+    checkouts — `framework_root` is the consumer's nested copy, while the tool
+    runs from wherever the module was imported.
+
+    On 2026-08-13 that gap cost a wrong conclusion: a run from a checkout four
+    commits behind reported a target of `20c97b94` throughout, and the report
+    gave no way to see that the code producing it predated the fix under test.
+
+    Disclosure only. Nothing here gates or blocks: there is no general notion of
+    a "required" revision to compare against, and inventing one would be a
+    different decision than recording what ran.
+    """
+    global _TOOL_PROVENANCE
+    if _TOOL_PROVENANCE is not None:
+        return dict(_TOOL_PROVENANCE)
+    tool_root = Path(__file__).resolve().parent.parent
+    code, stdout, _stderr = _git(tool_root, ["rev-parse", "HEAD"])
+    revision = stdout.strip() if code == 0 else ""
+    dirty_code, dirty_out, _ = _git(tool_root, ["status", "--porcelain"])
+    _TOOL_PROVENANCE = {
+        "executing_root": str(tool_root),
+        "executing_revision": revision or "unknown",
+        "executing_worktree_dirty": bool(dirty_out.strip()) if dirty_code == 0 else None,
+        "sampled": "before_any_mutation",
+        "claim_boundary": (
+            "identifies the checkout that produced this report, sampled before any "
+            "mutation; it is not compared against any required revision"
+        ),
+    }
+    return dict(_TOOL_PROVENANCE)
 
 
 def _framework_head_commit(framework_root: Path) -> str:
@@ -771,6 +828,9 @@ def run_f7_full_update(
     fetch_remote: str = "origin",
     fetch_ref: str = "main",
 ) -> F7Result:
+    # First statement, deliberately. Once the updater fast-forwards, the tool's
+    # own checkout may no longer be the one whose code is running.
+    _tool_provenance()
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     role = classify_repo(repo_root, submodule_path=submodule_path)
@@ -898,6 +958,14 @@ def format_human(result: F7Result) -> str:
         f"repo_role={result.repo_role}",
         f"f7_final_status={result.f7_final_status}",
         f"repo_root={result.repo_root}",
+        f"produced_by_revision={result.tool_provenance.get('executing_revision', 'unknown')}",
+        f"produced_by_root={result.tool_provenance.get('executing_root', 'unknown')}",
+        f"produced_by_worktree_dirty={result.tool_provenance.get('executing_worktree_dirty')}",
+        f"produced_by_sampled={result.tool_provenance.get('sampled', '-')}",
+        # The reason this block is printed at all is that a human will not open
+        # the JSON. That applies to the limit on what it means as much as to the
+        # value itself.
+        f"produced_by_claim_boundary={result.tool_provenance.get('claim_boundary', '-')}",
         "[human_readable_update_summary]",
         (
             "F-7 full update workflow means the complete AI Governance update flow: "
