@@ -57,6 +57,10 @@
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_terminal_outcome.py -text
 /docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md -text
 /docs/governance/gate3-route-v2-ab-design-candidate-20260808.md -text
+/docs/governance/gate3-final-message-diagnostic-design-candidate-20260811.md -text
+/docs/governance/gate3-final-message-diagnostic-integration-design-candidate-20260812.md -text
+/docs/governance/gate3-final-message-actual-capture-adapter-design-candidate-20260813.md -text
+/docs/governance/gate3-final-message-actual-capture-runner-integration-design-candidate-20260813.md -text
 /artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json -text
