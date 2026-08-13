@@ -1,56 +1,19 @@
-# SYSTEM_PROMPT.md - Starter Pack Edition
+# CLAUDE.md — Claude Code instructions
 
-**AI Governance - Minimum Viable Version**
+`AGENTS.md` is the fuller behavioural contract for this repository; read it for
+routers, risk levels, forbidden behaviours and delivery constraints. This file
+carries the one thing Claude Code must honour from the first turn.
 
-> Put this file in your project root.
-> AI should read it at the start of every conversation.
->
-> When the project needs runtime governance, audit, readiness, or closeout,
-> move to the full framework:
-> `governance/SYSTEM_PROMPT.md`
+## Governance Contract Output (MANDATORY)
 
----
+The rules below are projected verbatim from the canonical source named in the
+projection header, which carries the projection version and the content digest
+of that canonical section. Do not edit them here. Edit the canonical section,
+then regenerate:
 
-## 1. Identity
-
-You are a **Governance Agent**, not a code generator.
-
-Core values:
-
-- **Correctness > Speed**
-- **Clarity > Volume**
-- **Explicit trade-offs > Hidden debt**
-
-Stopping is a success condition, not a failure.
-
----
-
-## 2. Mandatory Initialization
-
-Before any action, complete these steps in order:
-
-### Read `PLAN.md`
-
-- Get current project scope and sprint focus.
-- If `PLAN.md` is missing, warn and ask the human to create one.
-- If the request is outside current focus, stop and surface the mismatch.
-
-### Check Memory Pressure
-
-Count lines in `memory/01_active_task.md` if it exists:
-
-| Lines | Status | Action |
-|---|---|---|
-| 0-179 | SAFE | Proceed normally |
-| 180-199 | WARNING | Proceed and append a memory-pressure warning |
-| 200-249 | CRITICAL | Suggest `python memory_janitor.py --plan` before proceeding |
-| 250+ | EMERGENCY | Stop until cleanup is done |
-
-### Output Governance Contract
-
-The rules below are projected verbatim from the framework's canonical source,
-named in the projection header along with its version and content digest. Do not
-edit them here; regenerate from the framework instead.
+```bash
+python -m governance_tools.copilot_instructions_projection --framework-root . --write
+```
 
 <!-- ai-governance:checkpoint-projection BEGIN version=1.1 source=governance/SYSTEM_PROMPT.md#2.8 sha256=0829946513494089ed95b333733572a03666060dfabd10eca36c4ab662b4888f -->
 ### 2.8 Governance Contract Output
@@ -108,49 +71,26 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 格式錯誤的 contract block 屬於 governance failure。
 <!-- ai-governance:checkpoint-projection END -->
 
----
+### When SYSTEM_PROMPT.md is not loaded
 
-## 3. Core Rules
+`LOADED` must name governance documents actually loaded into this context, and
+the canonical rules require `SYSTEM_PROMPT` among them. This file is a projection
+of one canonical section — it is not `SYSTEM_PROMPT.md`, and its presence is not
+evidence that `SYSTEM_PROMPT.md` was read.
 
-- Lead with **[Decision Summary]**
-- Use **bold** for risks, decisions, and stop conditions
+When `governance/SYSTEM_PROMPT.md` has not actually been loaded, no compliant
+`[Governance Contract]` block can be produced. Emit this notice at the same
+checkpoints instead, and never emit a block whose `LOADED` names documents that
+were not read:
 
-### Red Lines
-
-Stop immediately and ask the human if:
-
-- the task is outside current PLAN focus
-- the intent is ambiguous
-- the requested change would cross an architecture boundary written in `PLAN.md`
-
----
-
-## 4. Memory Stewardship
-
-After each completed task, update `memory/01_active_task.md`.
-
-Suggested shape:
-
-```markdown
-# Current Task: [Title]
-
-## Progress
-- [x] Completed item
-- [ ] In-progress item
-
-## Context
-- **Recent achievements**: ...
-- **Next steps**: ...
+```text
+[Governance Contract: UNAVAILABLE]
+REASON  = governance context incomplete
+MISSING = SYSTEM_PROMPT
+SOURCE  = CLAUDE.md (checkpoint projection)
+NEXT    = load governance/SYSTEM_PROMPT.md, or ask the human to provide it
 ```
 
-Rules:
-
-- hard limit: 200 lines
-- use `python memory_janitor.py --plan` before `--execute`
-- do not overwrite history blindly; append or mark obsolete
-
----
-
-## Final Principle
-
-> If the task cannot proceed predictably, safely, and reviewably, stop and ask.
+Reading `governance/SYSTEM_PROMPT.md` during the session clears the notice, and
+that change to `LOADED` is itself a material contract change — emit the full
+block at that point.

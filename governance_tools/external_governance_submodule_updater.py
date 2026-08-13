@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
+from governance_tools.hook_installer import _framework_root_config_value
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     summary_to_dict as governance_maturity_summary_to_dict,
@@ -1176,19 +1177,43 @@ def _preexisting_unmanaged_hook_overlaps(
         if not stat.S_ISREG(config_stat.st_mode):
             overlapping.append(".git/hooks/ai-governance-framework-root")
             return sorted(overlapping)
-        expected = f"{submodule_repo}\n"
         try:
-            config_matches = (
-                config.read_text(encoding="utf-8", errors="replace") == expected
-            )
+            config_text = config.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             raise SubmoduleUpdateError(
                 f"cannot inspect pre-existing hook config {config}: {exc}"
             ) from exc
-        if not config_matches:
+        if not _framework_root_config_matches(config_text, submodule_repo):
             overlapping.append(".git/hooks/ai-governance-framework-root")
 
     return sorted(overlapping)
+
+
+def _framework_root_config_matches(text: str, submodule_repo: Path) -> bool:
+    """Compare the recorded framework root as a path, not as a string.
+
+    Two writers produce this file. The hook installer writes `Path.as_posix()` on
+    Windows; this module wrote `str(Path)`, which is backslashes there. The two
+    forms never compare equal, so once the installer had touched the file this
+    guard read it as consumer-edited content and refused to proceed — and hand-
+    correcting it did not help, because the next run wrote the other form back.
+
+    The question the guard is asking is whether this file still points at our
+    submodule. That survives a change of separator, so ask it about paths.
+    """
+    recorded = text.strip()
+    if not recorded:
+        return False
+    try:
+        candidate = Path(recorded)
+    except (OSError, ValueError):
+        return False
+    if candidate == submodule_repo:
+        return True
+    try:
+        return candidate.resolve() == submodule_repo.resolve()
+    except (OSError, ValueError, RuntimeError):
+        return False
 
 
 def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
@@ -1220,7 +1245,7 @@ def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
             changed.append(str(target))
 
     config = hook_dir / "ai-governance-framework-root"
-    if _write_text_if_changed(config, f"{submodule_repo}\n"):
+    if _write_text_if_changed(config, f"{_framework_root_config_value(submodule_repo)}\n"):
         changed.append(str(config))
 
     if errors:

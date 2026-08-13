@@ -5,9 +5,17 @@ import subprocess
 from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
+from unittest import mock
 
+from governance_tools import f7_full_update
 from governance_tools.external_governance_submodule_updater import UpdateResult
-from governance_tools.f7_full_update import classify_repo, format_human, run_f7_full_update
+from governance_tools.f7_full_update import (
+    _agents_memory_workflow_router_present,
+    _ensure_agents_keyed_sections,
+    classify_repo,
+    format_human,
+    run_f7_full_update,
+)
 from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
@@ -859,3 +867,281 @@ def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow
     assert result.repo_role == "external_contract_repo"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
     assert result.details["memory_workflow_hook_advisory_present"] is True
+
+
+def test_f7_partial_hook_install_failure_is_blocked_not_updated(tmp_path: Path) -> None:
+    """A partial install must not report `updated` next to an overall blocked status."""
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    # Framework-marked instructions that match no shipped template: the installer
+    # cannot prove they are unedited, so it refuses to migrate them.
+    edited_legacy = (
+        "# Copilot Workspace Instructions\n"
+        "<!-- AI Governance Framework: copilot-instructions v1.0 -->\n"
+        "old framework rules\n"
+        "\n## House rule\n\nNever touch vendor/.\n"
+    )
+    instructions = repo / ".github" / "copilot-instructions.md"
+    _write(instructions, edited_legacy)
+    before = instructions.read_bytes()
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    # Git hooks really were written, so this is a partial install, not a no-op.
+    assert (repo / ".git" / "hooks" / "pre-commit").is_file()
+    assert any("pre-commit" in path for path in result.changed_files)
+
+    assert result.stages["hook_validator_enforcement"] == "blocked"
+    assert result.f7_final_status == "blocked"
+    assert result.ok is False
+    assert any("edited after install" in error for error in result.errors)
+
+    # The consumer's instructions are untouched — their rule is still where Copilot reads it.
+    assert instructions.read_bytes() == before
+    assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
+
+    human = format_human(result)
+    assert "hook_validator_enforcement" in human
+    assert "updated" not in human.split("hook_validator_enforcement")[1].split("\n")[0]
+
+
+def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Path) -> None:
+    """Backups are the only record of replaced content, so they must reach the report."""
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    instructions = repo / ".github" / "copilot-instructions.md"
+    _write(instructions, "# House rules\n\nNever touch vendor/.\n")
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    backup_warnings = [w for w in result.warnings if "kept a backup at" in w]
+    assert backup_warnings, result.warnings
+    assert any("copilot-instructions.md.bak." in w for w in backup_warnings)
+
+    human = format_human(result)
+    assert "kept a backup at" in human
+    payload = json.dumps(asdict(result), ensure_ascii=False)
+    assert "copilot-instructions.md.bak." in payload
+
+    # The consumer content survived the install that produced the backup.
+    assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
+
+
+def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> UpdateResult:
+    return UpdateResult(
+        ok=ok,
+        mode="apply",
+        update_mode="already_current" if ok else "blocked",
+        fast_forward=None,
+        repo=str(repo),
+        submodule_path="ai-governance-framework",
+        before_head="0" * 40,
+        target_head="0" * 40 if ok else "1" * 40,
+        after_head="0" * 40,
+        staged_files=[],
+        committed=False,
+        commit_hash=None,
+        message="ok" if ok else "pre-existing governance overlap",
+        errors=list(errors or []),
+        full_update_stage_report={"final_status": "updated" if ok else "blocked"},
+    )
+
+
+def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> None:
+    """F-7 claims to refresh repo-local governance instructions.
+
+    For a submodule consumer it did not: install_governance_hooks was only
+    reachable from the external-contract backend, so the files every agent reads
+    at session start were never deployed for this repo role.
+
+    The updater is stubbed to succeed because surface deployment is now gated on
+    it. An earlier version of this test used a fixture whose submodule was never
+    registered, so the updater failed on every run and the surfaces appeared only
+    because the installer ran regardless — it asserted deployment while standing
+    on the fail-closed hole that `test_blocked_updater_does_not_write_instruction_surfaces`
+    now covers.
+    """
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://example.invalid/ai-governance-framework.git\n",
+    )
+    _make_framework(framework)
+    _write(
+        framework / "governance" / "agent-contract-template.md",
+        "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+        "contract rules\n"
+        "<!-- AI Governance Framework: agent-contract END -->\n",
+    )
+
+    with mock.patch.object(
+        f7_full_update,
+        "update_governance_submodule",
+        side_effect=lambda **kwargs: _update_result(repo, ok=True),
+    ):
+        result = run_f7_full_update(
+            repo_root=repo,
+            framework_root=framework,
+            apply=True,
+            submodule_path="ai-governance-framework",
+        )
+
+    for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+        text = (repo / name).read_text(encoding="utf-8")
+        assert "agent-contract BEGIN" in text, name
+    assert "House rules." in (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.stages.get("hook_validator_enforcement") in {"updated", "verified"}
+
+
+def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
+    """The guard also required the bare word to be absent.
+
+    Any repo that merely mentioned `memory_workflow` — in a router, a command
+    example, a note — never received the block at all, permanently.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nSee memory_workflow docs.\n")
+
+    first, _, _ = _ensure_agents_keyed_sections(repo)
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+
+    assert text.count("governance:key=memory_workflow") == 1
+    assert first != "verified"
+
+
+def test_agents_refresh_stays_idempotent(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+
+    for _ in range(3):
+        _ensure_agents_keyed_sections(repo)
+
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert text.count("governance:key=memory_workflow") == 1
+    assert text.count("governance:key=f7_update_boundary") == 1
+
+
+def test_existing_router_without_the_marker_is_not_duplicated(tmp_path: Path) -> None:
+    """Writer and report had drifted apart on what "present" means.
+
+    The report called the router present on content; the writer keyed only on the
+    managed marker. A router installed by hand, or by a version predating the
+    marker, satisfies one and not the other — so every apply appended a second
+    copy while reporting the stage `verified`.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True)
+    _write(
+        repo / "AGENTS.md",
+        "# AGENTS\n\n"
+        "## AI Governance Memory Workflow Router\n\n"
+        "- Before claiming completion for any change touching `memory/**`, run "
+        "`python -m governance_tools.memory_workflow --check --repo .`.\n",
+    )
+
+    for _ in range(3):
+        _ensure_agents_keyed_sections(repo)
+
+    text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert text.count("AI Governance Memory Workflow Router") == 1
+    assert text.count("governance:key=memory_workflow") == 0
+    # The report must not claim more than the writer did.
+    assert _agents_memory_workflow_router_present(repo) is True
+
+
+def test_blocked_updater_does_not_write_instruction_surfaces(tmp_path: Path) -> None:
+    """Fail-closed has to mean closed.
+
+    The updater refuses to touch a repo whose governance surfaces carry
+    uncommitted changes it did not make. Installing anyway writes precisely those
+    surfaces, so the run reported `blocked` after changing files on disk.
+    """
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n\nHouse rules.\n")
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://example.invalid/ai-governance-framework.git\n",
+    )
+    _make_framework(framework)
+
+    before = {
+        name: (repo / name).read_text(encoding="utf-8") if (repo / name).is_file() else None
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", ".github/copilot-instructions.md")
+    }
+
+    def _blocked_updater(**kwargs) -> UpdateResult:
+        return _update_result(
+            repo,
+            ok=False,
+            errors=["pre-existing uncommitted governance changes: AGENTS.md"],
+        )
+
+    def _must_not_run(*args, **kwargs):
+        raise AssertionError("install_governance_hooks ran after the updater was blocked")
+
+    with mock.patch.object(
+        f7_full_update, "update_governance_submodule", side_effect=_blocked_updater
+    ), mock.patch.object(f7_full_update, "install_governance_hooks", side_effect=_must_not_run):
+        result = run_f7_full_update(
+            repo_root=repo,
+            framework_root=framework,
+            apply=True,
+            submodule_path="ai-governance-framework",
+        )
+
+    assert result.ok is False
+    assert result.stages.get("hook_validator_enforcement") == "blocked"
+    for name, original in before.items():
+        current = (repo / name).read_text(encoding="utf-8") if (repo / name).is_file() else None
+        assert current == original, name
+
+
+def test_framework_root_config_guard_accepts_either_separator(tmp_path: Path) -> None:
+    """Two writers, two formats, and a guard that compared them as strings.
+
+    The hook installer writes `as_posix()` on Windows; the updater wrote
+    `str(Path)`. On Windows those never compare equal, so once the installer had
+    touched the file the overlap guard read it as consumer-edited and refused to
+    proceed — permanently, since the next run wrote the other form back.
+    """
+    from governance_tools.external_governance_submodule_updater import (
+        _framework_root_config_matches,
+    )
+
+    submodule_repo = tmp_path / "consumer" / "ai-governance-framework"
+    submodule_repo.mkdir(parents=True)
+
+    assert _framework_root_config_matches(f"{submodule_repo}\n", submodule_repo)
+    assert _framework_root_config_matches(f"{submodule_repo.as_posix()}\n", submodule_repo)
+    assert not _framework_root_config_matches("", submodule_repo)
+    assert not _framework_root_config_matches(f"{tmp_path / 'elsewhere'}\n", submodule_repo)
+
+
+def test_f7_accepts_a_non_origin_framework_remote() -> None:
+    """A consumer whose authoritative remote is not `origin` had no way to say so.
+
+    The target always resolved to origin/main, so a repo with a stale mirror on
+    origin failed ff-only against a months-old commit with no flag to correct it.
+    """
+    import inspect
+    from governance_tools.f7_full_update import run_f7_full_update as run
+
+    params = inspect.signature(run).parameters
+    assert {"target_ref", "fetch_remote", "fetch_ref"} <= set(params)
+    assert params["fetch_remote"].default == "origin"
+    assert params["fetch_ref"].default == "main"

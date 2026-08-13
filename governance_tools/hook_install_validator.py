@@ -10,12 +10,27 @@ import json
 import re
 import shlex
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from governance_tools.copilot_instructions_projection import (
+    CHECKPOINT_PROJECTION_VERSION,
+    CANONICAL_SOURCE_REL,
+    canonical_source_token,
+    extract_canonical_section,
+    extract_projection_region,
+    section_digest,
+)
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
 COPILOT_INSTRUCTIONS_MARKER = "AI Governance Framework: copilot-instructions"
+COPILOT_BLOCK_BEGIN = "<!-- AI Governance Framework: copilot-instructions BEGIN -->"
+COPILOT_BLOCK_END = "<!-- AI Governance Framework: copilot-instructions END -->"
 COPILOT_LIFECYCLE_MARKER = "Thin lifecycle bridge for VS Code and GitHub Copilot hooks."
 COPILOT_HOOK_COMMAND_MARKER = "ai-governance-lifecycle.py"
 REQUIRED_FRAMEWORK_FILES = [
@@ -64,6 +79,15 @@ def _managed_copilot_hook_config(
     path: Path,
     expected_events: dict[str, tuple[str, str]],
 ) -> bool:
+    """Check that the config declares exactly the managed events, wired correctly.
+
+    The set is exact on purpose. VS Code loads every `*.json` under
+    `.github/hooks/` and converts the Copilot config's lowerCamelCase names to
+    PascalCase, so `sessionStart` there is already VS Code's start handler.
+    Declaring `SessionStart` in the VS Code config as well registers a second
+    handler for the same boundary and writes the session envelope twice, so an
+    extra event is a defect to report rather than a variation to tolerate.
+    """
     if not path.is_file():
         return False
     try:
@@ -140,6 +164,133 @@ def _resolve_hook_dir(repo_root: Path) -> Path:
     return repo_root / ".git" / "hooks"
 
 
+_PROJECTION_CHECK_KEYS = (
+    "copilot_instructions_managed_block_unique",
+    "copilot_checkpoint_projection_present",
+    "copilot_checkpoint_projection_inside_managed_block",
+    "copilot_checkpoint_source_expected",
+    "copilot_checkpoint_version_current",
+    "copilot_checkpoint_body_matches_header",
+    "copilot_checkpoint_matches_canonical",
+)
+
+
+def _check_copilot_instructions_projection(
+    instructions_path: Path,
+    framework_root: Path | None,
+    checks: dict[str, bool],
+    warnings: list[str],
+) -> None:
+    """Report-only checks on the installed Copilot instructions.
+
+    The projection header is a claim, not evidence: the digest of the body that
+    actually shipped is recomputed and compared against both the header and the
+    canonical section. Nothing here matches checkpoint wording — prose is not a
+    reliable signal that the rules are present and current. Every check is set on
+    every path, so an unverifiable state reads as False rather than absent.
+    """
+    for key in _PROJECTION_CHECK_KEYS:
+        checks[key] = False
+
+    if not instructions_path.is_file():
+        return
+
+    try:
+        text = instructions_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        warnings.append(f"cannot read {instructions_path}: {exc}")
+        return
+
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    begins = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_BEGIN]
+    ends = [i for i, line in enumerate(lines) if line.strip() == COPILOT_BLOCK_END]
+    block_unique = len(begins) == 1 and len(ends) == 1 and begins[0] < ends[0]
+    checks["copilot_instructions_managed_block_unique"] = block_unique
+    if not block_unique:
+        ordering = (
+            " (END precedes BEGIN)"
+            if len(begins) == 1 and len(ends) == 1 and begins[0] > ends[0]
+            else ""
+        )
+        warnings.append(
+            f"{instructions_path} has {len(begins)} managed BEGIN and {len(ends)} managed END "
+            f"markers{ordering}; expected exactly one matched pair in order — reinstall will "
+            "refuse to merge until this is resolved"
+        )
+
+    try:
+        header, body, projection_begin, projection_end = extract_projection_region(text)
+    except ValueError as exc:
+        warnings.append(
+            f"{instructions_path} has no usable checkpoint projection ({exc}); "
+            "Governance Contract checkpoint rules are not known to be installed"
+        )
+        return
+    checks["copilot_checkpoint_projection_present"] = True
+
+    inside = block_unique and begins[0] < projection_begin and projection_end < ends[0]
+    checks["copilot_checkpoint_projection_inside_managed_block"] = inside
+    if not inside:
+        warnings.append(
+            f"{instructions_path} checkpoint projection sits outside the framework-managed "
+            "block; reinstall will not refresh it"
+        )
+
+    expected_source = canonical_source_token()
+    source_expected = header["source"] == expected_source
+    checks["copilot_checkpoint_source_expected"] = source_expected
+    if not source_expected:
+        warnings.append(
+            f"{instructions_path} checkpoint projection claims source {header['source']}; "
+            f"framework projects from {expected_source}"
+        )
+
+    version_current = header["version"] == CHECKPOINT_PROJECTION_VERSION
+    checks["copilot_checkpoint_version_current"] = version_current
+    if not version_current:
+        warnings.append(
+            f"{instructions_path} checkpoint projection is version {header['version']}; "
+            f"framework expects {CHECKPOINT_PROJECTION_VERSION} — reinstall to update"
+        )
+
+    body_digest = section_digest(body)
+    body_matches_header = body_digest == header["sha256"]
+    checks["copilot_checkpoint_body_matches_header"] = body_matches_header
+    if not body_matches_header:
+        warnings.append(
+            f"{instructions_path} checkpoint projection body does not match its own header; "
+            f"header sha256={header['sha256']}, body sha256={body_digest} — the rules were "
+            "edited or removed after the header was written"
+        )
+
+    if framework_root is None:
+        warnings.append(
+            f"cannot verify {instructions_path} against canonical "
+            f"{CANONICAL_SOURCE_REL}: framework root is unknown"
+        )
+        return
+
+    canonical_path = framework_root / CANONICAL_SOURCE_REL
+    try:
+        expected = section_digest(
+            extract_canonical_section(canonical_path.read_text(encoding="utf-8"))
+        )
+    except (OSError, ValueError) as exc:
+        warnings.append(f"cannot derive canonical checkpoint digest from {canonical_path}: {exc}")
+        return
+
+    # Both must hold: the header must claim the canonical digest, and the body
+    # actually present must hash to it.
+    matches = header["sha256"] == expected and body_digest == expected
+    checks["copilot_checkpoint_matches_canonical"] = matches
+    if not matches:
+        warnings.append(
+            f"{instructions_path} checkpoint projection does not match {canonical_path}; "
+            f"expected sha256={expected}, header sha256={header['sha256']}, "
+            f"body sha256={body_digest} — reinstall to update"
+        )
+
+
 def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -> HookInstallResult:
     repo_root = repo_root.resolve()
     hook_dir = _resolve_hook_dir(repo_root)
@@ -199,6 +350,8 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
         COPILOT_LIFECYCLE_MARKER,
     )
     vscode_hooks_present = vscode_hooks.is_file()
+    # VS Code's start handler comes from the Copilot config's `sessionStart`
+    # after name normalization; declaring it here too would double-register.
     vscode_hooks_governed = _managed_copilot_hook_config(
         vscode_hooks,
         {"Stop": ("session_end", "auto")},
@@ -227,7 +380,11 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     if not checks["copilot_lifecycle_installed"]:
         warnings.append(
             "Copilot lifecycle hooks are not fully installed; expected managed "
-            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs"
+            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs. "
+            "Note that the VS Code config declares Stop only: VS Code loads every *.json under "
+            ".github/hooks and normalizes the Copilot config's sessionStart to SessionStart, so "
+            "adding SessionStart to the VS Code config registers a second start handler and "
+            "writes the session envelope twice"
         )
 
     resolved_framework_root = framework_root.resolve() if framework_root is not None else None
@@ -260,6 +417,13 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
                     errors.append(f"framework root missing required file: {resolved_framework_root / relpath}")
     else:
         checks["framework_root_exists"] = False
+
+    _check_copilot_instructions_projection(
+        copilot_instructions,
+        resolved_framework_root if checks.get("framework_root_exists") else None,
+        checks,
+        warnings,
+    )
 
     return HookInstallResult(
         valid=len(errors) == 0,

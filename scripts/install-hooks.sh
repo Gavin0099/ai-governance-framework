@@ -20,6 +20,9 @@ HOOKS_SRC="$SCRIPT_DIR/hooks"
 TARGET_REPO="$SCRIPT_DIR/.."
 DRY_RUN=false
 VERIFY_AFTER_INSTALL=true
+# Any managed surface that could not be installed sets this. A partial install
+# must not report success — the caller has to be able to tell from the exit code.
+INSTALL_FAILED=false
 
 # ── 參數解析 ──────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -117,7 +120,6 @@ fi
 # ── 部署 Copilot instructions ──────────────────────────────────────────────
 COPILOT_TEMPLATE="$FRAMEWORK_ROOT/governance/copilot-instructions-template.md"
 COPILOT_DST="$TARGET_REPO/.github/copilot-instructions.md"
-COPILOT_MARKER="AI Governance Framework: copilot-instructions"
 
 deploy_copilot_instructions() {
     if [ ! -f "$COPILOT_TEMPLATE" ]; then
@@ -132,63 +134,50 @@ deploy_copilot_instructions() {
         echo "  [dry-run] 部署 .github/copilot-instructions.md → $COPILOT_DST"
     else
         mkdir -p "$github_dir"
-        # 若已存在且不是 governance framework 版本，備份
-        if [ -f "$COPILOT_DST" ] && ! grep -q "$COPILOT_MARKER" "$COPILOT_DST" 2>/dev/null; then
-            local backup="${COPILOT_DST}.bak.$(date +%Y%m%d_%H%M%S)"
-            cp "$COPILOT_DST" "$backup"
-            echo "  💾 備份現有 copilot-instructions → $(basename "$backup")"
+        # 合併由 Python installer 執行：只覆寫 managed block，保留 consumer 自訂內容。
+        # 兩個 installer 共用同一份合併邏輯，避免 shell 與 Python 版本行為分歧。
+        . "$PYTHON_LIB"
+        if ! set_python_cmd; then
+            echo "  ❌ 找不到 Python，無法合併 copilot-instructions（managed block 需要 Python）"
+            print_python_resolution_help "install-hooks"
+            INSTALL_FAILED=true
+            return
         fi
-        cp "$COPILOT_TEMPLATE" "$COPILOT_DST"
-        echo "  ✅ 部署 .github/copilot-instructions.md"
-        echo "  ℹ️  請執行: git add .github/copilot-instructions.md && git commit -m 'chore: add AI Governance Copilot instructions'"
+        if PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer \
+            --repo "$(realpath "$TARGET_REPO")" \
+            --framework-root "$FRAMEWORK_ROOT" \
+            --copilot-only; then
+            echo "  ✅ 部署 .github/copilot-instructions.md 與 lifecycle hooks（managed）"
+            echo "  ℹ️  請執行: git add .github && git commit -m 'chore: add AI Governance Copilot surface'"
+        else
+            # 只有 instructions 的 managed block 保證未被修改：Python installer
+            # 在合併被拒時不寫入該檔。lifecycle 檔在同一次呼叫中可能已經更新或
+            # 已建立備份，因此不能一併宣稱「未修改」。
+            echo "  ❌ Copilot surface 合併失敗"
+            echo "     instructions 未修改；其他 surface 可能已部分更新或已建立備份"
+            echo "     請檢查 .github/ 下的 *.bak.* 與 .github/hooks/ 內容後再重跑"
+            INSTALL_FAILED=true
+            return
+        fi
     fi
     INSTALLED=$((INSTALLED + 1))
 }
 
 deploy_copilot_instructions
 
-# ── 部署 Copilot / VS Code lifecycle hooks ───────────────────────────────
-COPILOT_LIFECYCLE_SOURCES=(
-    "$FRAMEWORK_ROOT/runtime_hooks/adapters/copilot/lifecycle.py"
-    "$FRAMEWORK_ROOT/governance/copilot-hooks-vscode-template.json"
-    "$FRAMEWORK_ROOT/governance/copilot-hooks-session-end-template.json"
-)
-COPILOT_LIFECYCLE_TARGETS=(
-    "$TARGET_REPO/.github/hooks/ai-governance-lifecycle.py"
-    "$TARGET_REPO/.github/hooks/ai-governance-vscode.json"
-    "$TARGET_REPO/.github/hooks/ai-governance-copilot.json"
-)
-
-deploy_copilot_lifecycle_hooks() {
-    local hook_dir="$TARGET_REPO/.github/hooks"
-    local index source target backup
-    for index in "${!COPILOT_LIFECYCLE_SOURCES[@]}"; do
-        source="${COPILOT_LIFECYCLE_SOURCES[$index]}"
-        target="${COPILOT_LIFECYCLE_TARGETS[$index]}"
-        if [ ! -f "$source" ]; then
-            continue
-        fi
-        if [ "$DRY_RUN" = true ]; then
-            echo "  [dry-run] 部署 Copilot lifecycle hook → $target"
-            continue
-        fi
-        mkdir -p "$hook_dir"
-        if [ -f "$target" ] && ! grep -q "ai-governance-lifecycle.py\\|Thin lifecycle bridge for VS Code and GitHub Copilot hooks" "$target" 2>/dev/null; then
-            backup="${target}.bak.$(date +%Y%m%d_%H%M%S)"
-            cp "$target" "$backup"
-            echo "  💾 備份現有 Copilot lifecycle hook → $(basename "$backup")"
-        fi
-        cp "$source" "$target"
-        echo "  ✅ 部署 Copilot lifecycle hook → $target"
-    done
-}
-
-deploy_copilot_lifecycle_hooks
+# Copilot lifecycle hooks are deployed by the same Python call above
+# (--copilot-only). Reimplementing the backup rules here is what let an
+# edited lifecycle file be overwritten with no backup.
 
 echo ""
 if [ "$DRY_RUN" = true ]; then
     echo "[dry-run] 完成（未實際修改）"
     echo "  將安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
+elif [ "$INSTALL_FAILED" = true ]; then
+    echo "❌ 安裝未完成（partial install）"
+    echo "   已安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
+    echo "   上方標記 ❌ 的項目未套用；請修正後重跑，不要當作已安裝。"
+    exit 1
 else
     echo "✅ 安裝完成"
     echo "   已安裝: $INSTALLED 個 hooks，跳過: $SKIPPED 個"
@@ -197,6 +186,8 @@ else
         . "$PYTHON_LIB"
         if set_python_cmd; then
             echo "🔎 驗證 hook 安裝狀態："
+            # Verification stays advisory (pre-existing behaviour): it reports
+            # warnings for surfaces this script does not install.
             "${PYTHON_CMD[@]}" "$HOOK_VALIDATOR" --repo "$(realpath "$TARGET_REPO")" || true
             echo ""
         else

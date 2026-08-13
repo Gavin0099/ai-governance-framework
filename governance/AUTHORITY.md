@@ -39,6 +39,7 @@
 | `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/RULE_REGISTRY.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/RUNTIME_CONTRACT.md` | agent-runtime | canonical | false | ~ | on-demand |
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
 | `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
