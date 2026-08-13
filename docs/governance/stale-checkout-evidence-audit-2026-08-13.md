@@ -17,9 +17,15 @@ Git refused to place a tracked file over untracked content; F-7 reported
 **2. No automated flow continued.** Neither `f7_full_update.py` nor
 `external_governance_submodule_updater.py` invokes tests or emits a verdict
 after a failed update. The only matches for test invocation in the update path
-are incidental: a path-prefix filter at `f7_full_update.py:506` (`_pytest_tmp`)
-and a comment at `runtime_hooks/core/session_end.py:1110`. There is no hook that
-runs a suite once an update returns blocked.
+are incidental: a `_pytest_tmp` path-prefix filter inside
+`f7_full_update._classify_non_allowlisted_dirty`, and a comment inside
+`runtime_hooks.core.session_end.run_session_end`. There is no hook that runs a
+suite once an update returns blocked.
+
+(References here are by function name rather than line number. The first draft
+cited `f7_full_update.py:506`, which the same commit's own additions had already
+shifted to 563 — a line number in a note about stale evidence should not itself
+go stale.)
 
 **3. The test run was operator-initiated.** A suite was run by hand in a
 worktree whose `main` could not advance, so it executed sources from `ea0dcdf1`
@@ -51,11 +57,21 @@ commits, and the report offered no way to see it.
 ## Change made
 
 `F7Result.tool_provenance` — `executing_root`, `executing_revision`,
-`executing_worktree_dirty`, and a claim boundary. Set in `__post_init__`, so a
-result path added later cannot report a target without disclosing what produced
-it. Surfaced in the human report as `produced_by_revision`, not JSON only: a
+`executing_worktree_dirty`, `sampled`, and a claim boundary. Set in
+`__post_init__`, so a result path added later cannot report a target without
+disclosing what produced it. Surfaced in the human report, not JSON only: a
 field that is not printed would not have been read in the situation it exists
-for.
+for. The claim boundary is printed for the same reason.
+
+**Sampled before any mutation, and this matters.** The first draft sampled at
+result construction. In the documented invocation —
+`cd <consumer>/ai-governance-framework && python -m governance_tools.f7_full_update --repo ../` —
+the tool root *is* the checkout the updater fast-forwards, so that draft read
+the post-merge HEAD while the code in memory came from before it, and would have
+named a revision that did not produce the report. Provenance is now captured
+once, at the first statement of `run_f7_full_update`, and cached for the
+process. A regression test moves HEAD mid-run and asserts the initial revision
+is still reported; it fails against the post-update sampling it replaced.
 
 **Disclosure only.** It does not gate, block, or compare. There is no general
 notion of a "required" revision for an arbitrary invocation, and inventing one
