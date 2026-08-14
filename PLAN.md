@@ -119,6 +119,14 @@ Ordered next work:
 
 Observation only:
 
+- The pre-push freshness gate checks the wrong subject. `scripts/hooks/pre-push`
+  runs the smoke as `cd "$FRAMEWORK_ROOT"`, and `pre_task_check` reads
+  `project_root / "PLAN.md"` from the working tree. Neither the pushing
+  worktree nor the pushed commit is passed in, so a PASS means "the primary
+  checkout's uncommitted PLAN.md was fresh at the moment the hook ran" — not
+  that the PLAN being pushed is fresh. Editing that one file satisfies the
+  gate. Same wrong-subject shape as a provenance field naming a revision that
+  did not produce the report. Recorded, not fixed here.
 - Reviewer-facing body drift on PR #57 and PR #60: the branch content was
   corrected while the pull request description continued to publish withdrawn
   claims. Both instances were caught by external review, neither by CI. This is
@@ -130,10 +138,16 @@ Observation only:
   ("Do not claim...", "Keep ... separate", "Wait for a real consumer"). A
   constraint cannot be ticked, so the unchecked count never reaches zero and
   carries no signal, while every refresh must re-read all of them to find the
-  few that are actionable. That cost is why this header sat 15 days past a
-  7-day threshold. Separating standing constraints from current intent, and
-  completed history from both, is a candidate slice — not started, and not
-  authorised here.
+  few that are actionable. The line counts and the constraint/task split are
+  checkable facts; that this cost is what delayed the refresh is an owner
+  observation, not something a script or census established. Separating
+  standing constraints from current intent, and completed history from both,
+  is a candidate slice — not started, and not authorised here.
+- Any lifecycle restructuring must first disposition PR #28, which already
+  carries a fleet census, a lifecycle contract spec, heading decision tables
+  and a rollover proposal with open items. Reuse, supersede or explicitly
+  reject those inputs; do not create a second, parallel PLAN lifecycle
+  contract beside it.
 
 Anti-goals:
 
