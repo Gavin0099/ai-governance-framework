@@ -8,7 +8,7 @@ only a closed, internally linked attestation chain.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Mapping
 
 import gate3_final_message_actual_capture as capture
@@ -110,6 +110,17 @@ V2_RUNTIME_SUBJECTS = frozenset(V1_RUNTIME_SUBJECTS | {"bridge_source"})
 # caller intent rather than execution provenance.  Opening it needs a durable
 # production-admission authority, a real runner path, and machine-enforced path
 # exclusivity, none of which exist.
+LEGACY_V1_EVIDENCE_CLASS = "LEGACY_V1_SYNTHETIC"
+
+# Baseline claim ladder.  Public bytes alone can only establish that a digest
+# was declared; supplying the private map adds that the map hashes to it.  No
+# arrangement of inputs establishes that a run performed the comparison — that
+# is a property of the code path, not of any artifact.
+BASELINE_DIGEST_DECLARED = "BASELINE_DIGEST_DECLARED"
+SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST = (
+    "SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST"
+)
+
 EVIDENCE_CLASS_SYNTHETIC = "SYNTHETIC"
 EVIDENCE_CLASS_PRODUCTION = "PRODUCTION"
 V2_EVIDENCE_CLASSES = ("SYNTHETIC",)
@@ -137,18 +148,13 @@ RUNTIME_SUBJECTS_BY_VERSION = {
     CONTRACT_V2: V2_RUNTIME_SUBJECTS,
 }
 
-# The coordinator still emits v1.  Switching emission is A3, together with the
-# observer ownership migration; a v2 authority model without the coordinator
-# enforcement behind it must not be presented as an active contract.
-RUNNER_INTEGRATION_CONTRACT_BYTES = V1_CONTRACT_BYTES
+# The coordinator emits v2 only.  v1 remains verifiable so that every package
+# already produced keeps its meaning, but there is no flag, parameter or
+# environment variable that makes the coordinator emit v1 again.
+RUNNER_INTEGRATION_CONTRACT_BYTES = V2_CONTRACT_BYTES
 
-# Versions a verifier will accept.  v2 is identifiable but **not verifiable**
-# until A3 lands: the coordinator does not emit it, baseline admission is not
-# enforced, and observer ownership has not migrated.  Without this gate a caller
-# could hand-build a coherently relinked v2 package and have it verified, which
-# would make the v2 contract active in evidence terms while none of its
-# enforcement exists.  A3 adds CONTRACT_V2 here and removes this note.
-VERIFIABLE_CONTRACT_VERSIONS = frozenset({CONTRACT_V1})
+# Versions a verifier will accept.  Both are verifiable; only v2 is producible.
+VERIFIABLE_CONTRACT_VERSIONS = frozenset({CONTRACT_V1, CONTRACT_V2})
 
 
 class IntegrationError(ValueError):
@@ -296,6 +302,33 @@ class RuntimeAuthorityV2:
         }
 
 
+def baseline_snapshot(baseline: Mapping[str, bytes]) -> dict[str, bytes]:
+    """Copy a caller-held baseline into a private, immutable-by-value snapshot.
+
+    Reading a caller mapping twice is a TOCTOU seam: the digest would bind what
+    was present at admission while the later comparison would read whatever the
+    caller holds by then.  Everything downstream must use this snapshot.
+
+    Iteration is inside the failure boundary because a hostile mapping can raise
+    from ``items()``; the raised message must never reach a caller.
+    """
+
+    try:
+        if not isinstance(baseline, Mapping):
+            raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+        snapshot = {name: payload for name, payload in baseline.items()}
+    except IntegrationError:
+        raise
+    except Exception:
+        raise IntegrationError("WORKSPACE_BASELINE_INVALID") from None
+    if not all(
+        type(name) is str and name and type(payload) is bytes
+        for name, payload in snapshot.items()
+    ):
+        raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+    return {name: bytes(payload) for name, payload in snapshot.items()}
+
+
 def workspace_baseline_digest(baseline: Mapping[str, bytes]) -> str:
     """Digest over the canonical `{artifact_id: content_digest}` map.
 
@@ -304,14 +337,10 @@ def workspace_baseline_digest(baseline: Mapping[str, bytes]) -> str:
     confirm it by recomputation.  No confirmation-resistance is claimed.
     """
 
-    if not isinstance(baseline, Mapping) or not all(
-        type(name) is str and name and type(payload) is bytes
-        for name, payload in baseline.items()
-    ):
-        raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+    snapshot = baseline_snapshot(baseline)
     return capture.sha256(
         capture.canonical_bytes(
-            {name: capture.sha256(payload) for name, payload in baseline.items()}
+            {name: capture.sha256(payload) for name, payload in snapshot.items()}
         )
     )
 
@@ -350,6 +379,8 @@ class Verification:
     code: str
     profile: str | None = None
     claim: str | None = None
+    evidence_class: str | None = None
+    baseline_claim: str | None = None
 
 
 def _validate_v1_authority(authority: "RuntimeAuthority") -> None:
@@ -651,13 +682,41 @@ class RunnerIntegrationCoordinator:
     capture_store: capture.CreateOnceStore
     evidence_store: capture.CreateOnceStore
     bindings: capture.CaptureBindings
-    authority: RuntimeAuthority
+    authority: RuntimeAuthorityV2
     runtime_readers: Mapping[str, Callable[[], bytes]]
     invoke: Callable[[], InjectedContainedResult]
     observe_final: Callable[[], str]
-    observe_workspace: Callable[[], str]
+    workspace_baseline: Mapping[str, bytes]
+    read_workspace: Callable[[], Mapping[str, bytes]]
     cleanup: Callable[[], str]
     crash_at: str | None = None
+    _admitted_baseline: dict[str, bytes] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
+    def _observe_workspace(self) -> str:
+        """Derive the workspace axis here, not through a caller-supplied callback.
+
+        A callback field would accept any zero-argument callable, so an admission
+        helper elsewhere could always be bypassed.  Owning the comparison removes
+        the substitution surface: there is no callable to replace.
+        """
+
+        if self._admitted_baseline is None:
+            return "CAPTURE_FAILED"
+        try:
+            observed = self.read_workspace()
+            if not isinstance(observed, Mapping):
+                return "CAPTURE_FAILED"
+            sampled = {name: payload for name, payload in observed.items()}
+        except Exception:
+            return "CAPTURE_FAILED"
+        if not all(
+            type(name) is str and type(payload) is bytes
+            for name, payload in sampled.items()
+        ):
+            return "CAPTURE_FAILED"
+        return "UNCHANGED" if sampled == self._admitted_baseline else "CHANGED"
 
     def _crash(self, point: str) -> None:
         if self.crash_at == point:
@@ -680,15 +739,15 @@ class RunnerIntegrationCoordinator:
 
     def _publish_authority(self) -> str:
         if self.authority.integration_contract_sha256 != capture.sha256(
-            RUNNER_INTEGRATION_CONTRACT_BYTES
+            V2_CONTRACT_BYTES
         ):
             raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
         contract_digest = self.evidence_store.publish(
-            INTEGRATION_CONTRACT_PATH, RUNNER_INTEGRATION_CONTRACT_BYTES
+            INTEGRATION_CONTRACT_PATH, V2_CONTRACT_BYTES
         )
         if (
             self.evidence_store.read(INTEGRATION_CONTRACT_PATH)
-            != RUNNER_INTEGRATION_CONTRACT_BYTES
+            != V2_CONTRACT_BYTES
             or contract_digest != self.authority.integration_contract_sha256
         ):
             raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
@@ -887,6 +946,18 @@ class RunnerIntegrationCoordinator:
         ):
             raise IntegrationError("INTEGRATION_AUTHORITY_MISMATCH")
         _validate_runtime_binding(self.authority, self.bindings)
+        # Baseline admission, before any side effect.  A supplied baseline that
+        # does not hash to the authorized digest is a closed admission failure,
+        # not a CAPTURE_FAILED observation: the two mean different things.
+        admitted = baseline_snapshot(self.workspace_baseline)
+        if (
+            workspace_baseline_digest(admitted)
+            != self.authority.workspace_baseline_sha256
+        ):
+            raise IntegrationError("WORKSPACE_BASELINE_NOT_ADMITTED")
+        # Everything after this point reads the snapshot, never the caller's
+        # mapping, so a post-admission mutation cannot change what was compared.
+        self._admitted_baseline = admitted
         if self.capture_store.files or self.evidence_store.files:
             raise IntegrationError("INTEGRATION_ALREADY_STARTED")
 
@@ -946,10 +1017,7 @@ class RunnerIntegrationCoordinator:
             final_state = self.observe_final()
         except Exception:
             final_state = "READ_FAILED"
-        try:
-            workspace_state = self.observe_workspace()
-        except Exception:
-            workspace_state = "CAPTURE_FAILED"
+        workspace_state = self._observe_workspace()
         if type(final_state) is not str or final_state not in FINAL_STATES:
             final_state = "READ_FAILED"
         if type(workspace_state) is not str or workspace_state not in WORKSPACE_STATES:
@@ -1024,7 +1092,16 @@ def verify_package(
     evidence_store: capture.CreateOnceStore,
     bindings: capture.CaptureBindings,
     authority: RuntimeAuthority,
+    workspace_baseline: Mapping[str, bytes] | None = None,
 ) -> Verification:
+    """Verify a retained package and report its claim ladder rung.
+
+    `workspace_baseline` is the private map, supplied out of band.  Without it a
+    v2 baseline binding can only be reported as declared.
+    """
+
+    evidence_class: str | None = None
+    baseline_claim: str | None = None
     try:
         # Contract-first: the retained contract bytes decide which authority
         # schema and runtime inventory apply.  Validating the authority before
@@ -1034,6 +1111,18 @@ def verify_package(
         if version not in VERIFIABLE_CONTRACT_VERSIONS:
             raise IntegrationError("CONTRACT_VERSION_NOT_ACTIVE")
         validate_authority_for_version(authority, version)
+        if version == CONTRACT_V1:
+            evidence_class = LEGACY_V1_EVIDENCE_CLASS
+        else:
+            evidence_class = authority.evidence_class
+            baseline_claim = BASELINE_DIGEST_DECLARED
+            if workspace_baseline is not None:
+                if (
+                    workspace_baseline_digest(workspace_baseline)
+                    != authority.workspace_baseline_sha256
+                ):
+                    raise IntegrationError("SUPPLIED_BASELINE_MAP_MISMATCH")
+                baseline_claim = SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST
         if (
             bindings.action_sha256 != authority.action_sha256
             or bindings.arm != authority.arm
@@ -1064,7 +1153,7 @@ def verify_package(
                 "stage": "OBSERVATION_CHAIN_AUTHORIZED",
             }:
                 raise IntegrationError("OBSERVATION_STAGE_INVALID")
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
         if profile == "RUNNER_SEAL_UNAVAILABLE":
             capture_verification = capture.verify_public(capture_store, bindings)
             if not capture_verification.verified:
@@ -1119,7 +1208,7 @@ def verify_package(
                     WORKSPACE_OBSERVATION_SCHEMA,
                     WORKSPACE_STATES,
                 )
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
         if profile not in {"RUNNER_CAPTURE_FINALIZED", "RUNNER_CAPTURE_NEGATIVE"}:
             raise IntegrationError("PROFILE_INVALID")
 
@@ -1136,7 +1225,7 @@ def verify_package(
                 capture_store, evidence_store, bindings, authority
             ) != profile:
                 raise IntegrationError("PROFILE_INVALID")
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
 
         cleanup_unknown_paths = sealed_prefix | {CLEANUP_AUTHORIZATION_PATH}
         if set(evidence_store.files) == cleanup_unknown_paths:
@@ -1160,7 +1249,9 @@ def verify_package(
                 "seal_sha256": capture.sha256(evidence_store.read(SEAL_PATH)),
             }:
                 raise IntegrationError("CLEANUP_AUTHORIZATION_INVALID")
-            return Verification(True, "CLEANUP_RESULT_UNKNOWN", profile, None)
+            return Verification(
+                True, "CLEANUP_RESULT_UNKNOWN", profile, None, evidence_class, baseline_claim
+            )
 
         capture_verification = capture.verify_public(capture_store, bindings)
         if not capture_verification.verified:
@@ -1300,7 +1391,9 @@ def verify_package(
             )
         ):
             raise IntegrationError("FINALIZATION_LINK_INVALID")
-        return Verification(True, "VERIFIED", expected_profile, PUBLIC_CLAIM)
+        return Verification(
+            True, "VERIFIED", expected_profile, PUBLIC_CLAIM, evidence_class, baseline_claim
+        )
     except (IntegrationError, capture.CaptureError) as exc:
         return Verification(False, getattr(exc, "code", "PUBLIC_ARTIFACT_INVALID"))
     except Exception:

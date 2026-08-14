@@ -4,15 +4,15 @@ The bridge maps exactly one contained result into the ``InjectedContainedResult`
 the merged coordinator consumes.  It never launches a process, reads
 credentials, retains stdout, or renders either result object.
 
-Scope is mapping characterization only.  The bridge participates in no runtime
-authority: its own source is not a ``RUNTIME_SUBJECTS`` member, and the
-workspace verdict it derives is a caller-supplied comparison, not public
-evidence about a real workspace.
+The bridge owns the contained-result mapping and the final-output observation.
+It does **not** own workspace observation: under contract v2 the coordinator
+receives the private baseline map and the authorized digest and performs that
+comparison itself.
 """
 
 from __future__ import annotations
 
-from typing import Callable, Mapping
+from typing import Callable
 
 import gate3_final_message_runner_integration as integration
 
@@ -20,9 +20,6 @@ import gate3_final_message_runner_integration as integration
 FINAL_CAPTURED = "CAPTURED"
 FINAL_ABSENT = "ABSENT"
 FINAL_READ_FAILED = "READ_FAILED"
-WORKSPACE_CHANGED = "CHANGED"
-WORKSPACE_UNCHANGED = "UNCHANGED"
-WORKSPACE_CAPTURE_FAILED = "CAPTURE_FAILED"
 
 
 class BridgeError(ValueError):
@@ -122,37 +119,11 @@ def make_observe_final(read_final: Callable[[], bytes | None]) -> Callable[[], s
     return observe_final
 
 
-def make_observe_workspace(
-    read_workspace: Callable[[], Mapping[str, bytes]],
-    baseline: Mapping[str, bytes],
-) -> Callable[[], str]:
-    """Build a content-free workspace observation callback.
-
-    The baseline is supplied by the caller and is **not** authority-bound: no
-    merged authority carries a workspace baseline field.  The resulting verdict
-    is therefore a comparison against whatever the caller supplied, and must not
-    be read as public evidence about a real workspace.
-    """
-
-    if not isinstance(baseline, Mapping) or not all(
-        type(name) is str and type(payload) is bytes
-        for name, payload in baseline.items()
-    ):
-        raise BridgeError("WORKSPACE_BASELINE_INVALID")
-    expected = dict(baseline)
-
-    def observe_workspace() -> str:
-        try:
-            observed = read_workspace()
-        except Exception:
-            return WORKSPACE_CAPTURE_FAILED
-        if not isinstance(observed, Mapping) or not all(
-            type(name) is str and type(payload) is bytes
-            for name, payload in observed.items()
-        ):
-            return WORKSPACE_CAPTURE_FAILED
-        return (
-            WORKSPACE_UNCHANGED if dict(observed) == expected else WORKSPACE_CHANGED
-        )
-
-    return observe_workspace
+# `make_observe_workspace` was retired when the contract v2 coordinator took
+# ownership of workspace observation.  It built a callback that closed over a
+# caller-supplied baseline, but the coordinator field accepted any zero-argument
+# callable, so nothing forced callers through the builder.  Ownership moved
+# rather than gaining a check inside it: the coordinator now receives the private
+# baseline map and the authorized digest and performs the comparison itself,
+# leaving no callable to substitute.  The bridge keeps its mapping, disposition
+# and privacy behaviour, and `make_observe_final` is unaffected.

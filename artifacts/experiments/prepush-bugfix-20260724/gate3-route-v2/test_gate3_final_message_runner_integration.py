@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import copy
 import json
+import pathlib
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
 
 import gate3_final_message_actual_capture as capture
 import gate3_final_message_runner_integration as integration
+import gate3_runner_integration_oracle as oracle
 
 
 RAW_COMPLETE = (
@@ -25,84 +28,6 @@ RUNTIME_BYTES = {
     "projector_contract": capture.PROJECTOR_CONTRACT_BYTES,
     "public_schemas": capture.canonical_bytes(capture.public_schema_sha256()),
 }
-EXPECTED_INTEGRATION_CONTRACT_BYTES = (
-    b'{"checkpoints":["before_authorization","before_invocation",'
-    b'"before_private_parse","before_seal"],'
-    b'"cleanup_protocol":"CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",'
-    b'"launch_ordinal":1,'
-    b'"observation_protocol":"CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",'
-    b'"profiles":["RUNNER_CAPTURE_FINALIZED","RUNNER_CAPTURE_NEGATIVE",'
-    b'"RUNNER_CAPTURE_RESULT_UNKNOWN","RUNNER_SEAL_UNAVAILABLE"],'
-    b'"replacement":false,"retry":false,"runtime_subjects":['
-    b'"adapter_contract","adapter_source","integration_source",'
-    b'"projector_contract","public_schemas","raw_contract","runner_source"],'
-    b'"schema":"gate3-route-v2.runner-integration-contract.v1",'
-    b'"stdout_handoff_count":1}\n'
-)
-EXPECTED_PUBLIC_CHAIN_BYTES = {
-    "final-output-observation.json": (
-        b'{"schema":"gate3-route-v2.final-output-observation.v1",'
-        b'"state":"CAPTURED"}\n'
-    ),
-    "workspace-observation.json": (
-        b'{"schema":"gate3-route-v2.workspace-observation.v1",'
-        b'"state":"CHANGED"}\n'
-    ),
-    "runner-cleanup-result.json": (
-        b'{"result":"PASS","schema":"gate3-route-v2.runner-cleanup-result.v1",'
-        b'"seal_sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01173d3ffe0d4"}\n'
-    ),
-    "runner-cleanup-authorization.json": (
-        b'{"attempt_ordinal":1,"profile":"RUNNER_CAPTURE_FINALIZED","retry":false,'
-        b'"schema":"gate3-route-v2.runner-cleanup-authorization.v1",'
-        b'"seal_sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01173d3ffe0d4"}\n'
-    ),
-    "runner-receipt.json": (
-        b'{"cleanup_sha256":"93a83580706b3023662a0fdcd0ab5c25e777615736d2d8827aedee5796297be3",'
-        b'"disposition":"DIAGNOSTIC_RECEIPT","profile":"RUNNER_CAPTURE_FINALIZED",'
-        b'"schema":"gate3-route-v2.runner-receipt.v1",'
-        b'"seal_sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01173d3ffe0d4"}\n'
-    ),
-    "runner-finalization.json": (
-        b'{"disposition":"FINALIZED_DIAGNOSTIC","profile":"RUNNER_CAPTURE_FINALIZED",'
-        b'"receipt_sha256":"fb834f85882e754388bb33018d9ae9a6fe4105cb06a5fbbaccfb145371f5a0d3",'
-        b'"schema":"gate3-route-v2.runner-finalization.v1"}\n'
-    ),
-    "runner-observation-seal.json": (
-        b'{"authority_sha256":"1235b265f88d1015e458eb864beef810355ea4e559d78f091d04c25fe64ece18",'
-        b'"capture_artifact_sha256":{"capture-authorization.json":"77f62cdbd95ed6ab1314ed760c61c0b4e6fd6d9b676dc7e1d20b9bc0a23b5edf",'
-        b'"capture-result.json":"d0f3610664cc28d1f528514e4377afe976b02407659f7c0fce67903ea21757d9",'
-        b'"lifecycle-projection.json":"2f5675e7b589a5af94fe253d8a3a9301d807391e73c4449641d7de2cd46d5396",'
-        b'"process-result.json":"e762121801d1561ce157df9de85c06060854e988176314e9875c663703f8a050"},'
-        b'"capture_status":"COMPLETE","final_observation_sha256":"f052c4cdd94713533a6a7c3ff5d74968190224ca176f5867864acf026216d1b4",'
-        b'"integration_contract_sha256":"efac9147b39cc5290fc60c7e3516bebc774c4c22c8b026658755e127614ccc91",'
-        b'"observation_stage_sha256":"4b4bb2de9115282219fbef7c721413a35382c35a1cafec8fe0e521a0b551be07",'
-        b'"profile":"RUNNER_CAPTURE_FINALIZED","schema":"gate3-route-v2.runner-observation-seal.v1",'
-        b'"workspace_observation_sha256":"b1dd83d698aece172fbc8b6507161926c4535d6964dd81ae9b2d4722853f4ccf"}\n'
-    ),
-    "runner-observation-stage.json": (
-        b'{"capture_authorization_sha256":"77f62cdbd95ed6ab1314ed760c61c0b4e6fd6d9b676dc7e1d20b9bc0a23b5edf",'
-        b'"schema":"gate3-route-v2.observation-stage.v1",'
-        b'"stage":"OBSERVATION_CHAIN_AUTHORIZED"}\n'
-    ),
-    "runner-integration-authority.json": (
-        b'{"action_sha256":"000e728a3555becf524dc2f9ef0d0b6338ccd024d5aebdc3d89ee74a0170feb2",'
-        b'"arm":"A","capture_bindings_sha256":"77f62cdbd95ed6ab1314ed760c61c0b4e6fd6d9b676dc7e1d20b9bc0a23b5edf",'
-        b'"capture_ordinal":1,"git_commit":"e7410b3469d4e3112904b4f822180e51d5c1a3ea",'
-        b'"integration_blob":"d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd",'
-        b'"integration_contract_sha256":"efac9147b39cc5290fc60c7e3516bebc774c4c22c8b026658755e127614ccc91",'
-        b'"launch_ordinal":1,"replacement":false,"retry":false,'
-        b'"runner_blob":"d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",'
-        b'"runtime_sha256":{"adapter_contract":"be06661ba87ecdb3255524aedf6df775f27b96b9a57c8a1c005150a0755c1206",'
-        b'"adapter_source":"67d098138d2442f1c68aae462d350a7a461e191d831b8bea8799d3498ee1d99d",'
-        b'"integration_source":"4785aa2413b1bcc4cd1cc5112c9520e53691fb14c07ab9cc0636f39f0af2510b",'
-        b'"projector_contract":"e60f346e182e8c146e3aaadda2aa3c659abf22a03ae641b1c45769a81b0e3965",'
-        b'"public_schemas":"eb47a6ce92326ab68a05f177c169cf99b93b971a0e39a77a96a797f497f1b26d",'
-        b'"raw_contract":"6d04e7371b740435ad5aa2e10986e003d7157e7c0aef68de5f476f76afbc57eb",'
-        b'"runner_source":"e9be4d2adae79c99a314d1b79f15339b41b2dacdeed1424e23724ed136c481ff"},'
-        b'"schema":"gate3-route-v2.runner-integration-authority.v1"}\n'
-    ),
-}
 
 
 def bindings() -> capture.CaptureBindings:
@@ -110,6 +35,8 @@ def bindings() -> capture.CaptureBindings:
 
 
 def authority() -> integration.RuntimeAuthority:
+    """v1 authority, used only to verify packages produced before v2."""
+
     current = bindings()
     return integration.RuntimeAuthority(
         action_sha256=current.action_sha256,
@@ -117,9 +44,7 @@ def authority() -> integration.RuntimeAuthority:
         git_commit="e7410b3469d4e3112904b4f822180e51d5c1a3ea",
         runner_blob="d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",
         integration_blob="d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd",
-        integration_contract_sha256=capture.sha256(
-            integration.RUNNER_INTEGRATION_CONTRACT_BYTES
-        ),
+        integration_contract_sha256=capture.sha256(integration.V1_CONTRACT_BYTES),
         capture_bindings_sha256=capture.sha256(
             capture.canonical_bytes(current.authorization())
         ),
@@ -129,10 +54,15 @@ def authority() -> integration.RuntimeAuthority:
     )
 
 
+V2_RUNTIME_BYTES = {**RUNTIME_BYTES, "bridge_source": b"synthetic bridge source\n"}
+
+
 def readers() -> dict[str, object]:
+    """v2 readers: the eight-subject inventory the active contract requires."""
+
     return {
         name: (lambda payload=payload: payload)
-        for name, payload in RUNTIME_BYTES.items()
+        for name, payload in V2_RUNTIME_BYTES.items()
     }
 
 
@@ -144,6 +74,27 @@ def contained(*, raw: bytes = RAW_COMPLETE) -> integration.InjectedContainedResu
     )
 
 
+def workspace_reader_for(state: str):
+    """Translate a wanted workspace verdict into a reader over the baseline.
+
+    The verdict is no longer a caller-supplied token: the coordinator derives it
+    by comparing what the reader returns against the admitted baseline.  Tests
+    therefore express intent through the reader, not through a return value.
+    """
+
+    if state == "UNCHANGED":
+        return lambda: dict(SYNTHETIC_BASELINE)
+    if state == "CHANGED":
+        return lambda: {**SYNTHETIC_BASELINE, "notes.md": b"edited\n"}
+    if state == "CAPTURE_FAILED":
+
+        def raising() -> dict[str, bytes]:
+            raise OSError("workspace unreadable")
+
+        return raising
+    raise AssertionError(f"unsupported workspace state: {state}")
+
+
 def coordinator(
     *,
     capture_store: capture.CreateOnceStore | None = None,
@@ -152,6 +103,9 @@ def coordinator(
     runtime_readers=None,
     final_state: str = "CAPTURED",
     workspace_state: str = "CHANGED",
+    workspace_baseline=None,
+    read_workspace=None,
+    current_authority=None,
     cleanup=None,
     crash_at: str | None = None,
 ) -> integration.RunnerIntegrationCoordinator:
@@ -159,11 +113,14 @@ def coordinator(
         capture_store=capture_store or capture.CreateOnceStore(),
         evidence_store=evidence_store or capture.CreateOnceStore(),
         bindings=bindings(),
-        authority=authority(),
+        authority=current_authority or authority_v2(),
         runtime_readers=runtime_readers or readers(),
         invoke=invoke or contained,
         observe_final=lambda: final_state,
-        observe_workspace=lambda: workspace_state,
+        workspace_baseline=(
+            dict(SYNTHETIC_BASELINE) if workspace_baseline is None else workspace_baseline
+        ),
+        read_workspace=read_workspace or workspace_reader_for(workspace_state),
         cleanup=cleanup or (lambda: "PASS"),
         crash_at=crash_at,
     )
@@ -202,26 +159,26 @@ def test_complete_path_consumes_one_launch_and_verifies_closed_package() -> None
     assert integration.verify_package(
         current.capture_store, current.evidence_store, current.bindings, current.authority
     ) == integration.Verification(
-        True, "VERIFIED", "RUNNER_CAPTURE_FINALIZED", capture.PUBLIC_CLAIM
+        True, "VERIFIED", "RUNNER_CAPTURE_FINALIZED", capture.PUBLIC_CLAIM,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
 
 def test_public_contract_matches_independent_literal_bytes() -> None:
     current, _ = run_complete()
 
-    assert integration.RUNNER_INTEGRATION_CONTRACT_BYTES == EXPECTED_INTEGRATION_CONTRACT_BYTES
+    assert integration.RUNNER_INTEGRATION_CONTRACT_BYTES == oracle.ORACLE_V2_CONTRACT_BYTES
     assert (
         current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
-        == EXPECTED_INTEGRATION_CONTRACT_BYTES
+        == oracle.ORACLE_V2_CONTRACT_BYTES
     )
 
 
 def test_complete_public_chain_matches_independent_literal_bytes() -> None:
     current, _ = run_complete()
-    actual = dict(current.evidence_store.files)
-    actual.pop(integration.INTEGRATION_CONTRACT_PATH)
 
-    assert actual == EXPECTED_PUBLIC_CHAIN_BYTES
+    assert dict(current.evidence_store.files) == oracle.ORACLE_V2_EVIDENCE_BYTES
 
 
 @pytest.mark.parametrize(
@@ -378,7 +335,9 @@ def test_authorization_without_result_is_permanent_unknown_and_not_reinvoked() -
     assert integration.verify_package(
         capture_store, evidence_store, current.bindings, current.authority
     ) == integration.Verification(
-        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None
+        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
     capture_store.files[capture.AUTHORIZATION_PATH] = b"{}\n"
@@ -429,7 +388,9 @@ def test_adapter_partial_durable_prefix_reconstructs_unknown(
         current.authority,
     )
     assert checked == integration.Verification(
-        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None
+        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
 
@@ -449,7 +410,9 @@ def test_capture_result_after_durability_crash_reconstructs_seal_unavailable() -
         current.bindings,
         current.authority,
     ) == integration.Verification(
-        True, "VERIFIED", "RUNNER_SEAL_UNAVAILABLE", None
+        True, "VERIFIED", "RUNNER_SEAL_UNAVAILABLE", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
 
@@ -530,7 +493,9 @@ def test_cleanup_side_effect_crash_before_result_is_permanent_unknown_no_retry()
         current.authority,
     )
     assert checked == integration.Verification(
-        True, "CLEANUP_RESULT_UNKNOWN", "RUNNER_CAPTURE_FINALIZED", None
+        True, "CLEANUP_RESULT_UNKNOWN", "RUNNER_CAPTURE_FINALIZED", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
     resumed = coordinator(
@@ -636,14 +601,18 @@ def test_untyped_invocation_exception_remains_unknown_not_start_failed() -> None
         current.bindings,
         current.authority,
     ) == integration.Verification(
-        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None
+        True, "VERIFIED", "RUNNER_CAPTURE_RESULT_UNKNOWN", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
 
 def test_observation_exceptions_publish_closed_negative_observations() -> None:
     current = coordinator()
     current.observe_final = lambda: (_ for _ in ()).throw(RuntimeError("PRIVATE_FINAL_CANARY"))
-    current.observe_workspace = lambda: (_ for _ in ()).throw(RuntimeError("PRIVATE_WORKSPACE_CANARY"))
+    current.read_workspace = lambda: (_ for _ in ()).throw(
+        RuntimeError("PRIVATE_WORKSPACE_CANARY")
+    )
     result = current.run()
 
     assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
@@ -654,14 +623,20 @@ def test_observation_exceptions_publish_closed_negative_observations() -> None:
 
 @pytest.mark.parametrize(
     ("final_value", "workspace_value", "expected_final", "expected_workspace"),
-    (([], "CHANGED", "READ_FAILED", "CHANGED"), ("CAPTURED", {}, "CAPTURED", "CAPTURE_FAILED")),
+    (
+        ([], "CHANGED", "READ_FAILED", "CHANGED"),
+        ("CAPTURED", "not-a-mapping", "CAPTURED", "CAPTURE_FAILED"),
+    ),
 )
 def test_non_string_observations_are_durably_normalized(
     final_value, workspace_value, expected_final: str, expected_workspace: str
 ) -> None:
     current = coordinator()
     current.observe_final = lambda: final_value
-    current.observe_workspace = lambda: workspace_value
+    if workspace_value in {"CHANGED", "UNCHANGED"}:
+        current.read_workspace = workspace_reader_for(workspace_value)
+    else:
+        current.read_workspace = lambda: workspace_value
     result = current.run()
 
     assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
@@ -711,7 +686,9 @@ def test_negative_cleanup_requires_explicit_terminal_admission() -> None:
         current.bindings,
         current.authority,
     ) == integration.Verification(
-        True, "VERIFIED", "RUNNER_CAPTURE_NEGATIVE", None
+        True, "VERIFIED", "RUNNER_CAPTURE_NEGATIVE", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
 
@@ -833,7 +810,9 @@ def test_seal_unavailable_never_admits_cleanup() -> None:
         current.authority,
     )
     assert checked == integration.Verification(
-        True, "VERIFIED", "RUNNER_SEAL_UNAVAILABLE", None
+        True, "VERIFIED", "RUNNER_SEAL_UNAVAILABLE", None,
+        "SYNTHETIC",
+        integration.BASELINE_DIGEST_DECLARED,
     )
 
     current.evidence_store.files["unexpected.json"] = b"{}\n"
@@ -1028,9 +1007,9 @@ PRE_A1_EVIDENCE_BYTES = {
 
 
 def test_frozen_v1_literal_matches_the_pinned_digest() -> None:
-    assert integration.V1_CONTRACT_BYTES == EXPECTED_INTEGRATION_CONTRACT_BYTES
+    assert integration.V1_CONTRACT_BYTES == oracle.ORACLE_V1_CONTRACT_BYTES
     assert capture.sha256(integration.V1_CONTRACT_BYTES) == PINNED_V1_CONTRACT_SHA256
-    assert integration.RUNNER_INTEGRATION_CONTRACT_BYTES is integration.V1_CONTRACT_BYTES
+    assert integration.V1_CONTRACT_BYTES in integration.CONTRACT_BYTES_BY_VERSION.values()
 
 
 def test_frozen_v1_bytes_do_not_follow_live_constants(
@@ -1145,14 +1124,22 @@ def test_pre_a1_v1_package_verifies_without_running_any_coordinator() -> None:
 
 
 def test_pre_a1_fixture_is_independent_of_the_current_producer() -> None:
-    """The fixture is a captured artifact, not this run's output."""
+    """The fixture is a captured v1 artifact, not this run's v2 output."""
 
     current, _ = run_complete()
     assert set(current.capture_store.files) == set(PRE_A1_CAPTURE_BYTES)
     assert set(current.evidence_store.files) == set(PRE_A1_EVIDENCE_BYTES)
     assert (
+        PRE_A1_EVIDENCE_BYTES[integration.INTEGRATION_CONTRACT_PATH]
+        == oracle.ORACLE_V1_CONTRACT_BYTES
+    )
+    assert (
+        current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
+        == oracle.ORACLE_V2_CONTRACT_BYTES
+    )
+    assert (
         PRE_A1_EVIDENCE_BYTES[integration.SEAL_PATH]
-        == EXPECTED_PUBLIC_CHAIN_BYTES["runner-observation-seal.json"]
+        != current.evidence_store.read(integration.SEAL_PATH)
     )
 
 
@@ -1183,7 +1170,7 @@ def test_mutated_pre_a1_capture_artifact_fails_closed(
     "profile_crash",
     ["after_authorization_before_invoke", "after_capture_before_observations"],
 )
-def test_retained_partial_v1_packages_still_identify_and_verify(
+def test_retained_partial_packages_still_identify_and_verify(
     profile_crash: str,
 ) -> None:
     current = coordinator(crash_at=profile_crash)
@@ -1194,13 +1181,13 @@ def test_retained_partial_v1_packages_still_identify_and_verify(
         integration.identify_contract_version(
             retained.read(integration.INTEGRATION_CONTRACT_PATH)
         )
-        == integration.CONTRACT_V1
+        == integration.CONTRACT_V2
     )
     result = integration.verify_package(
         capture.CreateOnceStore(dict(current.capture_store.files)),
         retained,
         bindings(),
-        authority(),
+        authority_v2(),
     )
     assert result.verified
 
@@ -1210,12 +1197,6 @@ def test_authority_validator_dispatch_rejects_unknown_versions() -> None:
         integration.validate_authority_for_version(authority(), "no-such-version")
     assert caught.value.code == "CONTRACT_VERSION_UNKNOWN"
 
-
-def test_coordinator_still_emits_exactly_the_frozen_v1_contract() -> None:
-    current, _ = run_complete()
-    payload = current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
-    assert payload == integration.V1_CONTRACT_BYTES
-    assert capture.sha256(payload) == PINNED_V1_CONTRACT_SHA256
 
 
 # --- A2: v2 contract literal, authority model and validator dispatch -------
@@ -1394,154 +1375,35 @@ def test_baseline_digest_does_not_expose_artifact_identities() -> None:
         assert payload.decode() not in digest
 
 
-def test_coordinator_still_emits_v1_and_does_not_activate_v2() -> None:
-    """A2 adds the model only; emission switching is A3."""
 
-    assert (
-        integration.RUNNER_INTEGRATION_CONTRACT_BYTES is integration.V1_CONTRACT_BYTES
+# --- A3: v2 activation and observer ownership -----------------------------
+
+
+def test_v2_is_now_both_producible_and_verifiable() -> None:
+    assert integration.RUNNER_INTEGRATION_CONTRACT_BYTES is integration.V2_CONTRACT_BYTES
+    assert integration.VERIFIABLE_CONTRACT_VERSIONS == frozenset(
+        {integration.CONTRACT_V1, integration.CONTRACT_V2}
     )
+
+
+def test_coordinator_emits_v2_and_cannot_be_asked_for_v1() -> None:
     current, _ = run_complete()
     payload = current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
-    assert integration.identify_contract_version(payload) == integration.CONTRACT_V1
+    assert integration.identify_contract_version(payload) == integration.CONTRACT_V2
     authority_artifact = parsed(
         current.evidence_store, integration.INTEGRATION_AUTHORITY_PATH
     )
-    assert authority_artifact["schema"] == integration.INTEGRATION_AUTHORITY_SCHEMA
-    assert "evidence_class" not in authority_artifact
-    assert "workspace_baseline_sha256" not in authority_artifact
-
-
-# --- A2: v2 is identifiable but not yet verifiable -------------------------
-
-
-def relink_as_v2(
-    evidence: dict[str, bytes], capture_files: dict[str, bytes]
-) -> dict[str, bytes]:
-    """Rebuild a coherent v2 package with every ordinary digest link recomputed.
-
-    This is the hostile case: nothing is left stale, so the package fails only on
-    the version gate itself rather than on a broken link.
-    """
-
-    relinked = dict(evidence)
-    relinked[integration.INTEGRATION_CONTRACT_PATH] = integration.V2_CONTRACT_BYTES
-    authority_payload = capture.canonical_bytes(authority_v2().public_value())
-    relinked[integration.INTEGRATION_AUTHORITY_PATH] = authority_payload
-
-    seal = json.loads(relinked[integration.SEAL_PATH])
-    seal["authority_sha256"] = capture.sha256(authority_payload)
-    seal["integration_contract_sha256"] = capture.sha256(integration.V2_CONTRACT_BYTES)
-    seal["capture_artifact_sha256"] = {
-        path: capture.sha256(payload)
-        for path, payload in sorted(capture_files.items())
-    }
-    seal_payload = capture.canonical_bytes(seal)
-    relinked[integration.SEAL_PATH] = seal_payload
-    seal_sha = capture.sha256(seal_payload)
-    profile = str(seal["profile"])
-
-    cleanup_authorization = capture.canonical_bytes(
-        {
-            "attempt_ordinal": 1,
-            "profile": profile,
-            "retry": False,
-            "schema": integration.CLEANUP_AUTHORIZATION_SCHEMA,
-            "seal_sha256": seal_sha,
-        }
+    assert authority_artifact["schema"] == integration.INTEGRATION_AUTHORITY_SCHEMA_V2
+    assert authority_artifact["evidence_class"] == "SYNTHETIC"
+    assert "workspace_baseline_sha256" in authority_artifact
+    coordinator_fields = set(
+        integration.RunnerIntegrationCoordinator.__dataclass_fields__
     )
-    relinked[integration.CLEANUP_AUTHORIZATION_PATH] = cleanup_authorization
-    cleanup_payload = capture.canonical_bytes(
-        {
-            "result": "PASS",
-            "schema": integration.CLEANUP_SCHEMA,
-            "seal_sha256": seal_sha,
-        }
-    )
-    relinked[integration.CLEANUP_PATH] = cleanup_payload
-    receipt_payload = capture.canonical_bytes(
-        {
-            "cleanup_sha256": capture.sha256(cleanup_payload),
-            "disposition": "DIAGNOSTIC_RECEIPT",
-            "profile": profile,
-            "schema": integration.RECEIPT_SCHEMA,
-            "seal_sha256": seal_sha,
-        }
-    )
-    relinked[integration.RECEIPT_PATH] = receipt_payload
-    relinked[integration.FINALIZATION_PATH] = capture.canonical_bytes(
-        {
-            "disposition": "FINALIZED_DIAGNOSTIC",
-            "profile": profile,
-            "receipt_sha256": capture.sha256(receipt_payload),
-            "schema": integration.FINALIZATION_SCHEMA,
-        }
-    )
-    return relinked
+    assert "observe_workspace" not in coordinator_fields
+    assert {"workspace_baseline", "read_workspace"} <= coordinator_fields
 
 
-def test_v2_is_identifiable_but_not_verifiable_before_activation() -> None:
-    assert integration.CONTRACT_V2 in integration.CONTRACT_BYTES_BY_VERSION
-    assert integration.CONTRACT_V2 not in integration.VERIFIABLE_CONTRACT_VERSIONS
-    assert integration.VERIFIABLE_CONTRACT_VERSIONS == frozenset(
-        {integration.CONTRACT_V1}
-    )
-
-
-def test_coherently_relinked_v2_package_is_rejected_as_not_active() -> None:
-    """Every ordinary digest link is recomputed, so only the gate can reject it."""
-
-    current, result = run_complete()
-    assert result.profile == "RUNNER_CAPTURE_FINALIZED"
-    capture_files = dict(current.capture_store.files)
-    relinked = relink_as_v2(dict(current.evidence_store.files), capture_files)
-
-    assert (
-        integration.identify_contract_version(
-            relinked[integration.INTEGRATION_CONTRACT_PATH]
-        )
-        == integration.CONTRACT_V2
-    )
-
-    verification = integration.verify_package(
-        capture.CreateOnceStore(capture_files),
-        capture.CreateOnceStore(relinked),
-        bindings(),
-        authority_v2(),
-    )
-    assert not verification.verified
-    assert verification.code == "CONTRACT_VERSION_NOT_ACTIVE"
-
-
-def test_relinked_package_would_otherwise_be_internally_coherent() -> None:
-    """Guard the guard: the rejection is the gate, not an accidental stale link."""
-
-    current, _ = run_complete()
-    capture_files = dict(current.capture_store.files)
-    relinked = relink_as_v2(dict(current.evidence_store.files), capture_files)
-
-    seal = json.loads(relinked[integration.SEAL_PATH])
-    seal_sha = capture.sha256(relinked[integration.SEAL_PATH])
-    assert seal["authority_sha256"] == capture.sha256(
-        relinked[integration.INTEGRATION_AUTHORITY_PATH]
-    )
-    assert seal["integration_contract_sha256"] == capture.sha256(
-        relinked[integration.INTEGRATION_CONTRACT_PATH]
-    )
-    for path in (
-        integration.CLEANUP_AUTHORIZATION_PATH,
-        integration.CLEANUP_PATH,
-        integration.RECEIPT_PATH,
-    ):
-        assert json.loads(relinked[path])["seal_sha256"] == seal_sha
-    assert json.loads(relinked[integration.RECEIPT_PATH])[
-        "cleanup_sha256"
-    ] == capture.sha256(relinked[integration.CLEANUP_PATH])
-    assert json.loads(relinked[integration.FINALIZATION_PATH])[
-        "receipt_sha256"
-    ] == capture.sha256(relinked[integration.RECEIPT_PATH])
-
-
-def test_v1_packages_remain_verifiable_while_v2_is_gated() -> None:
+def test_v1_packages_remain_verifiable_after_activation() -> None:
     verification = integration.verify_package(
         capture.CreateOnceStore(dict(PRE_A1_CAPTURE_BYTES)),
         capture.CreateOnceStore(dict(PRE_A1_EVIDENCE_BYTES)),
@@ -1549,3 +1411,269 @@ def test_v1_packages_remain_verifiable_while_v2_is_gated() -> None:
         authority(),
     )
     assert verification.verified and verification.code == "VERIFIED"
+
+
+def test_unadmitted_baseline_fails_before_any_side_effect() -> None:
+    current = coordinator(workspace_baseline={"notes.md": b"not the authorized one\n"})
+    with pytest.raises(integration.IntegrationError) as caught:
+        current.run()
+    assert caught.value.code == "WORKSPACE_BASELINE_NOT_ADMITTED"
+    assert not current.capture_store.files
+    assert not current.evidence_store.files
+
+
+def test_unadmitted_baseline_is_not_a_capture_failed_observation() -> None:
+    """Admission failure and unreadable workspace are different facts."""
+
+    unreadable = coordinator(workspace_state="CAPTURE_FAILED")
+    result = unreadable.run()
+    assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
+    assert (
+        parsed(unreadable.evidence_store, integration.WORKSPACE_OBSERVATION_PATH)[
+            "state"
+        ]
+        == "CAPTURE_FAILED"
+    )
+
+
+def test_workspace_verdict_is_derived_from_the_admitted_baseline() -> None:
+    unchanged = coordinator(workspace_state="UNCHANGED")
+    result = unchanged.run()
+    assert (
+        parsed(unchanged.evidence_store, integration.WORKSPACE_OBSERVATION_PATH)["state"]
+        == "UNCHANGED"
+    )
+    assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
+
+    changed = coordinator(workspace_state="CHANGED")
+    assert changed.run().profile == "RUNNER_CAPTURE_FINALIZED"
+
+
+def test_no_callable_can_supply_the_workspace_observation() -> None:
+    """There is no observation-callback seam left to substitute."""
+
+    fields = integration.RunnerIntegrationCoordinator.__dataclass_fields__
+    assert "observe_workspace" not in fields
+    assert not hasattr(bridge_module(), "make_observe_workspace")
+
+
+def bridge_module():
+    import gate3_final_message_runner_bridge as bridge
+
+    return bridge
+
+
+# --- A3: oracle provenance -------------------------------------------------
+
+
+def test_oracle_module_imports_no_production_module() -> None:
+    """The expectations must not become a round-trip of the code under test."""
+
+    import ast
+
+    source = pathlib.Path(oracle.__file__).read_text(encoding="utf-8")
+    imported: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imported.add(node.module or "")
+    assert not any(name.startswith("gate3_") for name in imported), imported
+
+
+def test_oracle_contract_literals_match_the_shipped_frozen_bytes() -> None:
+    assert oracle.ORACLE_V1_CONTRACT_BYTES == integration.V1_CONTRACT_BYTES
+    assert oracle.ORACLE_V2_CONTRACT_BYTES == integration.V2_CONTRACT_BYTES
+
+
+def test_oracle_capture_chain_matches_a_fresh_complete_run() -> None:
+    current, _ = run_complete()
+    assert dict(current.capture_store.files) == oracle.ORACLE_V2_CAPTURE_BYTES
+    assert dict(current.evidence_store.files) == oracle.ORACLE_V2_EVIDENCE_BYTES
+
+
+@pytest.mark.parametrize(
+    ("path", "old", "new"),
+    [
+        ("runner-observation-seal.json", b'"RUNNER_CAPTURE_FINALIZED"', b'"RUNNER_CAPTURE_NEGATIVE"'),
+        ("runner-integration-authority.json", b'"SYNTHETIC"', b'"PRODUCTION"'),
+    ],
+)
+def test_oracle_chain_is_mutation_sensitive(path: str, old: bytes, new: bytes) -> None:
+    payload = oracle.ORACLE_V2_EVIDENCE_BYTES[path]
+    assert old in payload
+    mutated = dict(oracle.ORACLE_V2_EVIDENCE_BYTES)
+    mutated[path] = payload.replace(old, new)
+    verification = integration.verify_package(
+        capture.CreateOnceStore(dict(oracle.ORACLE_V2_CAPTURE_BYTES)),
+        capture.CreateOnceStore(mutated),
+        bindings(),
+        authority_v2(),
+    )
+    assert not verification.verified
+
+
+# --- A3: claim ladder, baseline TOCTOU and hostile mapping closure ---------
+
+
+class MutatingBaseline(dict):
+    """A caller-held baseline that rewrites itself after admission reads it."""
+
+    def __init__(self, *args, replacement=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.replacement = replacement
+        self.reads = 0
+
+    def items(self):
+        self.reads += 1
+        return super().items()
+
+    def rewrite(self) -> None:
+        self.clear()
+        self.update(self.replacement)
+
+
+class HostileMapping(Mapping):
+    """A mapping whose iteration raises with private content in the message."""
+
+    def items(self):
+        raise RuntimeError("PRIVATE_WORKSPACE_EXCEPTION_CANARY")
+
+    def __iter__(self):
+        raise RuntimeError("PRIVATE_WORKSPACE_EXCEPTION_CANARY")
+
+    def __len__(self) -> int:
+        return 1
+
+    def __getitem__(self, key):
+        raise RuntimeError("PRIVATE_WORKSPACE_EXCEPTION_CANARY")
+
+
+def test_public_v2_package_reports_only_a_declared_baseline_digest() -> None:
+    current, _ = run_complete()
+    verification = integration.verify_package(
+        current.capture_store, current.evidence_store, bindings(), authority_v2()
+    )
+    assert verification.verified
+    assert verification.evidence_class == "SYNTHETIC"
+    assert verification.baseline_claim == integration.BASELINE_DIGEST_DECLARED
+
+
+def test_supplied_private_map_lifts_the_baseline_claim_one_rung() -> None:
+    current, _ = run_complete()
+    verification = integration.verify_package(
+        current.capture_store,
+        current.evidence_store,
+        bindings(),
+        authority_v2(),
+        workspace_baseline=dict(SYNTHETIC_BASELINE),
+    )
+    assert verification.verified
+    assert (
+        verification.baseline_claim
+        == integration.SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST
+    )
+
+
+def test_supplied_private_map_that_does_not_match_fails_closed() -> None:
+    current, _ = run_complete()
+    verification = integration.verify_package(
+        current.capture_store,
+        current.evidence_store,
+        bindings(),
+        authority_v2(),
+        workspace_baseline={"notes.md": b"a different baseline\n"},
+    )
+    assert not verification.verified
+    assert verification.code == "SUPPLIED_BASELINE_MAP_MISMATCH"
+
+
+def test_legacy_v1_packages_are_classified_and_carry_no_baseline_claim() -> None:
+    verification = integration.verify_package(
+        capture.CreateOnceStore(dict(PRE_A1_CAPTURE_BYTES)),
+        capture.CreateOnceStore(dict(PRE_A1_EVIDENCE_BYTES)),
+        bindings(),
+        authority(),
+    )
+    assert verification.verified
+    assert verification.evidence_class == integration.LEGACY_V1_EVIDENCE_CLASS
+    assert verification.baseline_claim is None
+
+
+def test_no_claim_asserts_that_a_run_performed_the_comparison() -> None:
+    """The ladder tops out below execution-event proof, by construction."""
+
+    assert integration.SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST.endswith(
+        "MATCHES_DECLARED_DIGEST"
+    )
+    ladder = {
+        integration.BASELINE_DIGEST_DECLARED,
+        integration.SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST,
+    }
+    assert not any("COMPARED" in token or "EXECUTED" in token for token in ladder)
+
+
+def test_baseline_mutated_after_admission_cannot_change_the_verdict() -> None:
+    """The comparison uses the admitted snapshot, not the caller's mapping."""
+
+    replacement = {**SYNTHETIC_BASELINE, "notes.md": b"edited\n"}
+    hostile = MutatingBaseline(SYNTHETIC_BASELINE, replacement=replacement)
+
+    def invoke_and_rewrite():
+        hostile.rewrite()
+        return contained()
+
+    current = coordinator(
+        workspace_baseline=hostile,
+        invoke=invoke_and_rewrite,
+        read_workspace=lambda: dict(replacement),
+    )
+    result = current.run()
+
+    assert dict(hostile) == replacement
+    assert (
+        parsed(current.evidence_store, integration.WORKSPACE_OBSERVATION_PATH)["state"]
+        == "CHANGED"
+    )
+    assert result.profile == "RUNNER_CAPTURE_FINALIZED"
+
+
+def test_admitted_snapshot_is_a_copy_not_a_reference() -> None:
+    baseline = {name: bytearray(payload) for name, payload in SYNTHETIC_BASELINE.items()}
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.baseline_snapshot(baseline)
+    assert caught.value.code == "WORKSPACE_BASELINE_INVALID"
+
+    snapshot = integration.baseline_snapshot(dict(SYNTHETIC_BASELINE))
+    snapshot["notes.md"] = b"tampered\n"
+    assert SYNTHETIC_BASELINE["notes.md"] == b"baseline\n"
+
+
+def test_hostile_baseline_mapping_never_leaks_its_exception() -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.workspace_baseline_digest(HostileMapping())
+    assert caught.value.code == "WORKSPACE_BASELINE_INVALID"
+    rendered = str(caught.value) + repr(caught.value) + repr(caught.value.__cause__)
+    assert "CANARY" not in rendered
+    assert caught.value.__cause__ is None
+
+
+def test_hostile_observed_workspace_is_closed_to_capture_failed() -> None:
+    current = coordinator(read_workspace=HostileMapping)
+    result = current.run()
+    assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
+    assert (
+        parsed(current.evidence_store, integration.WORKSPACE_OBSERVATION_PATH)["state"]
+        == "CAPTURE_FAILED"
+    )
+    assert b"CANARY" not in b"".join(current.evidence_store.files.values())
+
+
+def test_hostile_baseline_at_admission_never_reaches_public_state() -> None:
+    current = coordinator(workspace_baseline=HostileMapping())
+    with pytest.raises(integration.IntegrationError) as caught:
+        current.run()
+    assert caught.value.code == "WORKSPACE_BASELINE_INVALID"
+    assert "CANARY" not in str(caught.value)
+    assert not current.capture_store.files
+    assert not current.evidence_store.files
