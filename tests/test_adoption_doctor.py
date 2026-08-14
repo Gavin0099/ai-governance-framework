@@ -364,3 +364,140 @@ def test_human_output_contains_report_only_claim_boundary(tmp_path: Path) -> Non
 
     assert "report_only       = true" in rendered
     assert "does not install, update, delete, fetch, stage, rewrite, or enforce anything" in rendered
+
+
+def _write_multi_gitmodules(repo: Path, entries: list[tuple[str, str]]) -> None:
+    """entries = [(name, path), ...] written in the given order."""
+    _write(
+        repo / ".gitmodules",
+        "".join(
+            f'[submodule "{name}"]\n\tpath = {path}\n'
+            f"\turl = https://example.invalid/{name}.git\n"
+            for name, path in entries
+        ),
+    )
+
+
+def test_framework_submodule_is_found_when_declared_after_an_unrelated_one(tmp_path: Path) -> None:
+    """Declaration order carries no meaning, and three call sites relied on it.
+
+    A consumer declaring `Host/DMF` before `ai-governance-framework` had its
+    topology classified from the unrelated directory and its pin computed from it
+    too, so the repo reported `framework_topology=unknown` while F-7 was
+    concurrently updating it through the `submodule_consumer` path.
+    """
+    repo = _make_repo(tmp_path / "consumer")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated submodule\n")
+    _make_git_framework(repo / "ai-governance-framework")
+    _write_multi_gitmodules(repo, [("Host/DMF", "Host/DMF"), ("agf", "ai-governance-framework")])
+
+    report = inspect_adoption(repo)
+
+    assert report.adoption_class.value == "submodule_consumer"
+    assert report.framework_submodule.value == "initialized"
+    assert "ai-governance-framework" in " ".join(report.adoption_class.reasons)
+    assert "Host/DMF" not in " ".join(report.submodule_pin.reasons)
+
+
+def test_declaration_order_does_not_change_the_verdict(tmp_path: Path) -> None:
+    verdicts = []
+    for index, order in enumerate(
+        [
+            [("Host/DMF", "Host/DMF"), ("agf", "ai-governance-framework")],
+            [("agf", "ai-governance-framework"), ("Host/DMF", "Host/DMF")],
+        ]
+    ):
+        repo = _make_repo(tmp_path / f"order{index}")
+        _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+        _make_git_framework(repo / "ai-governance-framework")
+        _write_multi_gitmodules(repo, order)
+        report = inspect_adoption(repo)
+        verdicts.append((report.adoption_class.value, report.framework_submodule.value))
+
+    assert verdicts[0] == verdicts[1] == ("submodule_consumer", "initialized")
+
+
+def test_topology_and_pin_share_one_resolution(tmp_path: Path) -> None:
+    """The pin used to be computed from a separately re-selected submodule."""
+    repo = _make_repo(tmp_path / "shared")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    framework = _make_git_framework(repo / "ai-governance-framework")
+    _write_multi_gitmodules(repo, [("Host/DMF", "Host/DMF"), ("agf", "ai-governance-framework")])
+
+    resolution = adoption_doctor._resolve_framework_submodule(repo)
+    report = inspect_adoption(repo)
+
+    assert resolution.path == "ai-governance-framework"
+    assert report.submodule_pin.checked is True
+    # `Host/DMF` is a plain directory, not a git repository, so a pin computed
+    # from it could not reach a remote-tracking verdict at all. Reaching one is
+    # evidence the pin inspected the framework git root.
+    assert not (repo / "Host" / "DMF" / ".git").exists()
+    assert "remote-tracking" in " ".join(report.submodule_pin.reasons)
+    assert (framework / ".git").is_dir()
+
+
+def test_unrelated_submodules_only_is_not_mistaken_for_a_framework(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "unrelated")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    _write(repo / "vendor" / "lib" / "readme.md", "also unrelated\n")
+    _write_multi_gitmodules(repo, [("Host/DMF", "Host/DMF"), ("vendorlib", "vendor/lib")])
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "not_applicable"
+    assert report.adoption_class.value != "submodule_consumer"
+
+
+def test_declared_but_missing_framework_is_reported_against_the_framework_path(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "missing")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    _write_multi_gitmodules(repo, [("Host/DMF", "Host/DMF"), ("agf", "ai-governance-framework")])
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "declared_missing"
+    reasons = " ".join(report.framework_submodule.reasons)
+    assert "ai-governance-framework" in reasons
+    assert "Host/DMF" not in reasons
+
+
+def test_uninitialized_framework_is_reported_against_the_framework_path(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "uninit")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    (repo / "ai-governance-framework").mkdir()
+    _write_multi_gitmodules(repo, [("Host/DMF", "Host/DMF"), ("agf", "ai-governance-framework")])
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "partial_or_uninitialized"
+    assert "ai-governance-framework" in " ".join(report.framework_submodule.reasons)
+
+
+def test_two_framework_candidates_fail_closed(tmp_path: Path) -> None:
+    """Picking one would reinstate exactly the defect this replaced."""
+    repo = _make_repo(tmp_path / "ambiguous")
+    _make_git_framework(repo / "ai-governance-framework")
+    _make_git_framework(repo / "vendor" / "ai-governance-framework")
+    _write_multi_gitmodules(
+        repo,
+        [("a", "ai-governance-framework"), ("b", "vendor/ai-governance-framework")],
+    )
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "ambiguous"
+    assert report.adoption_class.value == "unknown"
+    assert report.submodule_pin.value == "unknown"
+    assert "more than one" in " ".join(report.framework_submodule.reasons)
+
+
+def test_single_submodule_behaviour_is_unchanged(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "single")
+    _make_git_framework(repo / "ai-governance-framework")
+    _write_gitmodules(repo, "ai-governance-framework")
+
+    report = inspect_adoption(repo)
+
+    assert report.adoption_class.value == "submodule_consumer"
+    assert report.framework_submodule.value == "initialized"
