@@ -568,14 +568,17 @@ def _classify_pin(
     selected_framework_root: Path | None,
     resolution: SubmoduleResolution,
 ) -> PinStatus:
+    if resolution.status == "ambiguous":
+        # Checked before the hook root, not after. A hook root pointing at one of
+        # several framework candidates would otherwise let the pin choose a
+        # subject while the topology refuses to — `framework_submodule=ambiguous`
+        # beside `submodule_pin=current_vs_local_tracking`, which is the
+        # cross-surface disagreement this resolution exists to remove.
+        return PinStatus("unknown", checked=True, reasons=resolution.reasons)
+
     hook_root = _read_hook_framework_root(repo_root)
     if hook_root is not None and _looks_like_framework_root(hook_root) and _is_git_worktree_root(hook_root):
         return _classify_git_root_pin(hook_root, _pin_subject(repo_root, hook_root))
-
-    if resolution.status == "ambiguous":
-        # The pin subject is the whole question here; guessing it would report a
-        # confident pin for the wrong repository.
-        return PinStatus("unknown", checked=True, reasons=resolution.reasons)
 
     # Same resolution the topology used, so the pin cannot describe a different
     # directory than the one classified.

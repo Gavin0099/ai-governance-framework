@@ -501,3 +501,41 @@ def test_single_submodule_behaviour_is_unchanged(tmp_path: Path) -> None:
 
     assert report.adoption_class.value == "submodule_consumer"
     assert report.framework_submodule.value == "initialized"
+
+
+def test_ambiguity_is_not_resolved_by_a_hook_root(tmp_path: Path) -> None:
+    """A hook root must not let the pin choose what the topology refused to.
+
+    `_classify_pin` consulted the hook root first, so with two framework
+    candidates and a hook root naming one of them the report could carry
+    `framework_submodule=ambiguous` beside a confident
+    `submodule_pin=current_vs_local_tracking` — the topology declining to choose
+    while the pin chose anyway, which is the cross-surface disagreement the
+    single resolution exists to remove.
+    """
+    repo = _make_repo(tmp_path / "ambiguous-hooked")
+    # The hooked candidate is given a remote deliberately. Without one,
+    # _classify_git_root_pin returns "unknown" of its own accord and the
+    # assertion below would hold whether or not the hook root was consulted —
+    # the test would pass for the wrong reason.
+    first, _ = _make_git_framework_with_remote(
+        repo / "ai-governance-framework", tmp_path / "framework.git", behind=False
+    )
+    _make_git_framework(repo / "vendor" / "ai-governance-framework")
+    _write_multi_gitmodules(
+        repo,
+        [("a", "ai-governance-framework"), ("b", "vendor/ai-governance-framework")],
+    )
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", f"{first}\n")
+    hook_root = adoption_doctor._read_hook_framework_root(repo)
+    assert hook_root is not None
+    assert adoption_doctor._looks_like_framework_root(hook_root)
+    assert adoption_doctor._is_git_worktree_root(hook_root)
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "ambiguous"
+    assert report.adoption_class.value == "unknown"
+    # Consulting the hook root here would yield a confident pin instead.
+    assert report.submodule_pin.value == "unknown"
+    assert "more than one" in " ".join(report.submodule_pin.reasons)
