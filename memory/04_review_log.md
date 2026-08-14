@@ -3905,3 +3905,165 @@ Stop on any new blocking and do not start Gate 2.
 ### Next Recommendation
 Ask the owner to re-sign the exact approved manifest hash. Any candidate-byte
 change requires another independent review.
+
+## 2026-08-13 — Gate 3 runner-integration design provenance and bridge candidate reviews
+
+Three independent reviews in one session: one on a provenance repair, two on
+successive revisions of a design candidate.
+
+### Review 1 — P0 design-provenance repair (`APPROVED`)
+
+- Finding that triggered the slice: PR #61 merged the runner/capture integration
+  tranche while its PLAN entry stated that the reviewed design authority
+  "remains an uncommitted candidate" at SHA-256 `d0d1609b…`. The bytes existed
+  only in one local worktree; `git log --all` had no record of the file. A
+  merged milestone therefore could not be re-reviewed against its own stated
+  design authority.
+- Secondary finding: the per-file `-text` convention for digest-pinned
+  governance docs lapsed after `gate3-route-v2-ab-design-candidate-20260808.md`.
+  Three already-pinned Gate 3 candidates were exposed to fresh-checkout digest
+  drift under `core.autocrlf=true`.
+- Resolution: commits `dc76c293` (candidate committed unchanged, plus four
+  `-text` rules) and `100c6c34` (PLAN reworded as retrospective preservation).
+- Verdict `APPROVED`; delivered as PR #62.
+
+### Review 2 — bridge candidate `ed7807d6…` (`CHANGES_REQUESTED`, 5 blocking)
+
+1. Eight open questions were presented to the owner as two; six affected
+   authority or privacy and could not be deferred to exact-digest review.
+2. The digest was described as a pin target although any decision would
+   invalidate it; it was only a pre-decision baseline.
+3. Runtime binding of the bridge source was claimed via outer-authority Git blob
+   pinning. `RUNTIME_SUBJECTS` is closed, `_check_runtime` requires exact set
+   equality, and `RuntimeAuthority` has no `bridge_source` field, so no runtime
+   binding was expressible.
+4. Moving private preparation inside `invoke()` lands `auth.json` under a state
+   machine that forbids ordinary cleanup until a durable seal exists. Credential
+   residue recovery was left as "external recovery only" with no locator,
+   authorization or profile linkage.
+5. Dataclass `repr` exposure and `__call__`/bridge path exclusivity were
+   controlled only by convention.
+
+### Review 3 — bridge candidate `71a6943d…` (`CHANGES_REQUESTED`, 1 blocking + 1 warning)
+
+- Blocking: the revision fixed the runtime-binding overclaim but reintroduced the
+  same class of error on the workspace baseline, describing it as bound by outer
+  authority when `RuntimeAuthority` again has no field able to express it. The
+  workspace axis is an evidence-profile discriminator, so an unbound baseline can
+  move an execution between `RUNNER_CAPTURE_FINALIZED` and
+  `RUNNER_CAPTURE_NEGATIVE`.
+- Warning: the evidence plan simultaneously forbade importing a live path and
+  permitted an identity-only import of `gate3_route_v2_codex`.
+- Author-reported remediation, pending independent exact-digest review: the
+  baseline is stated as an unsolved problem, the first tranche uses a retained
+  synthetic fixture, no evidence-profile derivation is claimed for that axis, and
+  a baseline authority becomes the fifth production-wiring precondition. Import
+  wording separates construct/invoke from identity-only import. None of this is
+  reviewer-confirmed; the revision at `6c3552e2…` has not been reviewed.
+
+### Evidence
+
+- committed blob SHA-256 `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`,
+  matching the value PLAN already pinned.
+- `git diff --check 0e8f3b79..100c6c34`: PASS. (Recorded as explicit commit
+  identities rather than `origin/main..HEAD`, which stops naming the reviewed
+  range once the branch merges or moves.)
+- `git check-attr text` on all four pinned Gate 3 candidates: `unset`.
+- Candidate digest chain: `ed7807d6…` → `71a6943d…` → `6c3552e2…`.
+
+### Not Claimed
+
+- No implementation, credentials, preflight, subprocess or live execution.
+- No approval of the bridge candidate; `6c3552e2…` is unreviewed and uncommitted.
+- Committing the design bytes after the fact does not establish that the design
+  was repository-available before implementation commit `854fef93`.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged.
+
+### Next Recommendation
+
+Independent exact-digest review of `6c3552e2…`. Do not begin the mapping-only
+offline tranche before that review returns, and do not treat design approval as
+credential, preflight or live authority.
+
+## 2026-08-13 — Gate 3 bridge design candidate accepted (`5e0279c9…`)
+
+### Findings And Resolution
+- Two further review rounds followed the record above. Round 3 on `6c3552e2…`
+  returned `CHANGES_REQUESTED` with one blocking and one warning: the
+  `Authorization Boundary` said "four preconditions" after a fifth had been
+  added, so the workspace-baseline authority could be read as outside the
+  production blocking set; and the base line named only the pre-merge design
+  baseline while the candidate commit sits on a later main.
+- Both were corrected with a two-line change. A limited diff confirmed no other
+  byte differed (4 insertions, 2 deletions).
+- Round 4 on `5e0279c9…` returned `APPROVED` with zero open findings.
+
+### Evidence
+- accepted candidate SHA-256
+  `5e0279c9115f9f4eb47f3e2fd713091c58e8028be9bc6760ca5f462a21e7a015`,
+  design commit `013f227a`, blob identical on the remote branch.
+- committed blob CR=0, LF=651.
+- `git diff --check origin/main..013f227a`: PASS.
+- scope: `.gitattributes` and the candidate file only.
+- the four source files named by the candidate are byte-identical between
+  `0e8f3b79` and `cc304a90`, verified by blob comparison rather than assumed.
+- PR #64 checks: 11 success, 1 skipped, 0 pending, 0 failed.
+
+### Not Claimed
+- No GitHub review record exists for PR #64 (`reviews=0`, empty
+  `reviewDecision`). Acceptance is the owner's, not an external reviewer's.
+- Design acceptance is not implementation, credential, preflight or live
+  authority.
+- The five production-wiring preconditions remain unsolved; two of them reopen
+  the integration contract digest pinned by the runner/capture milestone.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+Merge the accepted design with its PLAN and memory reconciliation in the same
+pull request, then treat the mapping-only offline tranche as a separately
+authorized slice.
+
+## 2026-08-14 — Gate 3 mapping-only runner bridge tranche accepted
+
+### Findings And Resolution
+- Round 1 on implementation `9ec1ba63…` / test `556a839f…` returned `APPROVED`,
+  but the author then self-reported a defect the review had not caught:
+  `test_no_credential_bytes_are_written` asserted `list(tmp_path.iterdir()) == []`
+  against a pytest-created directory that no code path ever targeted. The
+  assertion passes unconditionally, so the test name promised credential-write
+  detection that the mechanism could not deliver. The verdict was corrected to
+  `APPROVED with 1 WARNING`.
+- Resolution: the `tmp_path` fixture and its assertion were removed, the test was
+  renamed `test_mapping_tranche_uses_in_memory_fake_preparation`, the assertions
+  narrowed to `prepare.calls == 1` and `vars(prepare) == {"calls": 1}`, and the
+  docstring states explicitly that this is not credential-write detection.
+  Removing the fixture also eliminated an unrelated pytest temp-directory ACL
+  sensitivity seen on one rerun.
+- Round 2 on test `b85eca62…` returned `APPROVED` with zero open findings.
+
+### Evidence
+- implementation SHA-256
+  `9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33`, unchanged
+  across both rounds; test SHA-256
+  `b85eca62c3edf6c6d2112b3abf91b805264b1b648d774109d85eca9a30420993`.
+- identical staged, committed and remote blobs, verified at each step.
+- focused tests 23/23; five adjacent Gate 3 offline suites 520/520.
+- `git diff --check origin/main..b399cb7f`: PASS; scope is the two new files.
+- PR #65 checks: 11 success, 1 skipped, 0 pending, 0 failed.
+
+### Not Claimed
+- No runtime authority over the bridge source; it is not a `RUNTIME_SUBJECTS`
+  member and does not participate in the TOCTOU chain.
+- No public workspace evidence: the baseline is a caller-supplied synthetic
+  fixture, so `CHANGED`/`UNCHANGED` derived from it is test-local.
+- No credential-write detection, no real runner wiring, no credentials,
+  preflight, subprocess, network or live execution.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+Treat the recurring lesson as method, not incident: three of the defects in this
+work stream were claims asserted top-down that the underlying mechanism could not
+express — twice in design against merged dataclass fields, once in a test name
+against its own assertion. Check the mechanism first, then write the claim.
+Production wiring stays blocked on the five preconditions; group A is the next
+design slice and reopens a pinned contract digest.

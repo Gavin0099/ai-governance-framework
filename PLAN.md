@@ -2,12 +2,12 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-07-30
+> **最後更新**: 2026-08-14
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
 > **Risk tier**: L2
-> **Planning window**: 2026-03 through 2026-07
+> **Planning window**: 2026-03 through 2026-08
 > **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
@@ -91,6 +91,73 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-08-14:
+
+Theme:
+
+- Restore the canonical planning surface to current repository truth.
+- Finish existing review, disposition, publication and consumer-transfer work
+  before adding governance surface.
+- Keep reviewer-facing narrative drift observation-only.
+
+Ordered next work:
+
+- Owner adjudicates the 14 `undetermined` entries in the maintenance queue
+  ledger. Each already carries a recommended disposition; what is undetermined
+  is whether a script can confirm the surface exists, not what to do with it.
+  The owner decides whether to accept each disposition, name the canonical
+  target where the recommendation is `merge`, and authorise any change.
+- Publish the three reviewed weekly-report corrections: PR #26 narrowed to
+  structural session-binding rejections only, all G4 maturity percentages
+  removed, and the consumer-surface claim narrowed from "consumer repos" to the
+  single submodule consumer that exercised the path.
+- Run CFU transfer verification against a deliberately selected framework
+  checkpoint, in a clean isolated worktree via F-7. The selected checkpoint is
+  not "latest" and must not be described as such; CFU's own worktree carries
+  unrelated modifications and must not be updated in place.
+
+Observation only:
+
+- The pre-push freshness gate checks the wrong subject. `scripts/hooks/pre-push`
+  runs the smoke as `cd "$FRAMEWORK_ROOT"`, and `pre_task_check` reads
+  `project_root / "PLAN.md"` from the working tree. Neither the pushing
+  worktree nor the pushed commit is passed in, so a PASS means "the primary
+  checkout's uncommitted PLAN.md was fresh at the moment the hook ran" — not
+  that the PLAN being pushed is fresh. Editing that one file satisfies the
+  gate. Same wrong-subject shape as a provenance field naming a revision that
+  did not produce the report. Recorded, not fixed here.
+- Reviewer-facing body drift has now occurred three times: PR #57, PR #60, and
+  this PR's original description. In each case the branch content was corrected
+  while the pull request description continued to publish withdrawn claims, and
+  every instance was caught by external review, none by CI. This is a
+  manual-copy failure, and the honest response is to stop retyping numbers that
+  already exist in an artifact. The third occurrence admits an owner decision
+  only; it does not authorise a gate, generator or new surface. Any
+  implementation still requires separate owner approval and must first
+  disposition PR #28.
+- This file is 1875 lines with 183 checked and 15 unchecked boxes, and roughly
+  two thirds of the unchecked ones are standing constraints written as tasks
+  ("Do not claim...", "Keep ... separate", "Wait for a real consumer"). A
+  constraint cannot be ticked, so the unchecked count never reaches zero and
+  carries no signal, while every refresh must re-read all of them to find the
+  few that are actionable. The line counts and the constraint/task split are
+  checkable facts; that this cost is what delayed the refresh is an owner
+  observation, not something a script or census established. Separating
+  standing constraints from current intent, and completed history from both,
+  is a candidate slice — not started, and not authorised here.
+- Any lifecycle restructuring must first disposition PR #28, which already
+  carries a fleet census, a lifecycle contract spec, heading decision tables
+  and a rollover proposal with open items. Reuse, supersede or explicitly
+  reject those inputs; do not create a second, parallel PLAN lifecycle
+  contract beside it.
+
+Anti-goals:
+
+- No Graphiti work without a reproducible retrieval failure.
+- No plugin-framework expansion without a capability-extraction case.
+- No Gate 3 expansion while Gate 2 process integrity remains NOT_ESTABLISHED.
+- No `.tmp_*` worktree cleanup in this slice.
 
 Current refresh - 2026-07-30:
 
@@ -1574,21 +1641,181 @@ independent consumer evidence, and does not establish framework-level G4.
 Judge engineering-method / external-tool value only in the separately governed
 Gate 3 analysis; do not begin bulk tool replacement from this result.
 
-- [ ] **Gate 3 paired-screening preregistration candidate revised
-  2026-07-29; re-review/signature pending.** Commit `c5be84db` binds the
-  preregistered mapping before producer execution, requires two distinct scorer
-  contexts, rejects zero or unavailable core-cost data as promotion evidence,
-  and verifies each admitted outcome against retained input bytes, a clean
-  output commit, portable Git bundle, exact diff, event log and test receipts.
-  The experiment-local common-harness contract is now part of the exact
-  candidate set. Focused tests passed 33/33; canonical precommit passed runtime
-  smoke plus 190/190; `core.autocrlf=true` index checkout preserved all seven
-  candidate paths byte-for-byte. Exact candidate-manifest SHA-256:
-  `51ac12190156eb0465d8e39a562eec0d31145bf41da5ddf8d5f1c6781a5a6801`.
-  This is not independently approved, owner-signed or canonical. Gate 3 remains
-  blocked on independent review of these revised bytes, explicit owner
-  signature, later promotion, natural-bug/resource admission and separate start
-  authority.
+- [x] **Gate 3 NON_SUCCESS pair-final manifest promoted 2026-08-11.** The
+  offline integrity fix is bound to source commit `204965c9`; exact candidate
+  manifest SHA-256
+  `db86a97b36a2e80e43e9e0765f07f20cb00e07aa813cbf54bea2b587f3c02baa`
+  received an independent read-only approval with zero blocking findings. Owner
+  promotion commit `8da68734` pins contract-manifest SHA-256
+  `fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440`.
+  Candidate reconstruction passed, focused Gate 3 tests passed 51/51, and the
+  canonical precommit passed runtime smoke plus 197/197. Fresh credential-free
+  zero-session preflight receipt SHA-256
+  `6bd5a72e0f2b6b4ed508fafff3645a4eff4808614c132ee854e9a67bc00af586`
+  passed byte-exact reconstruction review in commit `84849892`. A separate
+  independent read-only review authorized one exact non-counted live pair at
+  HEAD `7d035c1d`, using the bundled-Python command contract `faa5344d…` only.
+  The one authorized pair ran once on 2026-08-11 and terminated `NON_SUCCESS`:
+  both arms exited zero but produced no final message and left the calibrated
+  workspace unchanged. Public pair-final SHA-256 is
+  `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
+  the public bytes in evidence commit `53fc93f7` were internally coherent, but
+  independent review found that its exact Git tree omitted three contract-
+  required empty runtime directories. Repair commit `230679cf` adds a checkout
+  materializer that restores only those empty directories before delegating to
+  the unchanged frozen verifier. Exact `git archive 53fc93f7` reconstruction,
+  58/58 focused tests and a separate independent read-only review all passed;
+  the live evidence, promoted contract and owner pin were not changed. Public
+  evidence confirms task-execution failure in both arms because `result.txt`
+  stayed at the `PENDING\n` baseline. The nearer cause of the absent final
+  message remains unresolved between CLI final-output production and model
+  completion because raw NDJSON event types were not published. Retry,
+  replacement, counted execution, other interpreters, and any treatment or
+  Skill-effect conclusion remain unauthorized.
+
+- [x] **Gate 3 final-message diagnostic offline tranche completed
+  2026-08-12.** Implementation commit `7c1c42e0` adds only the pure in-memory
+  synthetic classifier and its focused tests. The exact module SHA-256 is
+  `4cb72ccc7b901be65d28c17fb3d7563e7ea82b541bea82bf06f4d89357e55e71`;
+  the exact test SHA-256 is
+  `ed32358e23b69f2751775ddafb9cc8c12bca0897a6c6274ab2b59b39f3d320f2`.
+  Focused offline validation passed 62/62, and an independent byte-exact
+  read-only review returned `APPROVED` with no open findings. This tranche
+  does not integrate a lifecycle observer or evidence publication, does not
+  use credentials or authorize preflight/live, does not reuse the consumed
+  pair, and does not change its `NON_SUCCESS` result or establish Gate 3 or
+  treatment effectiveness.
+
+- [x] **Gate 3 final-message diagnostic integration design accepted
+  2026-08-12.** Design commit `23bbe0c3` records the independently approved
+  lifecycle-observer, pre-cleanup seal/cleanup/receipt, recovery-state,
+  public-schema, verifier, privacy, crash and TOCTOU candidate at exact
+  SHA-256
+  `5d6c735c1bcb030de2a6a1facb3cac19bb97b1942482e594910c12188bc18bb2`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The canonical precommit completed with runtime smoke passing and
+  197/197 focused tests. This checkpoint accepts design bytes only: no
+  lifecycle integration is implemented, no credentials or preflight/live were
+  used or authorized, the consumed pair is not reused/retried/replaced, and no
+  Gate 3 success or treatment/Skill effectiveness is established.
+
+- [x] **Gate 3 final-message diagnostic offline integration completed
+  2026-08-13.** Implementation commit `e3b70173` adds the synthetic retained-
+  fixture lifecycle observer, create-once store, pre-cleanup seal/cleanup/
+  receipt chain, route and external recovery profiles, privacy verifier, and
+  crash/TOCTOU fail-closed behavior. The exact implementation SHA-256 is
+  `a9d17a16ee6f21a1ed3d7a113a23a827e9812e70ff313516ae306d364a857367`;
+  the exact test SHA-256 is
+  `1213541126ebf49a3a4804a431442a5ce053e21b6946c3b4d836bcd4ccc10e1e`.
+  Independent exact-byte read-only review returned `APPROVED` with zero open
+  findings, and focused offline validation passed 185/185. This milestone is
+  synthetic and offline only: no credentials, preflight, live execution, old-
+  pair reuse, retry, or replacement occurred or is authorized; the consumed
+  pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
+  conclusion is established.
+
+- [x] **Gate 3 actual-capture adapter design accepted 2026-08-13.** Design
+  commit `420a7f42` records the independently approved private-stdout parser
+  ACL, privacy-safe lifecycle projection, create-once capture evidence links,
+  crash/TOCTOU fail-closed plan, and minimal offline implementation tranche at
+  exact SHA-256
+  `6d52ecda73c542e300c1612a712beb38c4ce7b44a66e5335965d254052905a34`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The public claim ceiling is limited to internally linked adapter
+  reports and `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; it does not
+  prove correspondence to private stdout, executable provenance, lifecycle
+  truth, model completion, or final-answer production. This checkpoint accepts
+  design bytes only: implementation, credentials, preflight, live execution,
+  old-pair reuse, retry, and replacement remain unauthorized; the consumed pair
+  remains `NON_SUCCESS`, and Gate 3 success or treatment/Skill effectiveness is
+  not established.
+
+- [x] **Gate 3 actual-capture adapter minimal offline tranche completed
+  2026-08-13.** Implementation commit `25a9da65` adds only the pure private
+  NDJSON parser ACL, privacy-safe lifecycle projector, closed public capture
+  artifacts, create-once synthetic publisher/verifier behavior, and focused
+  offline tests. Exact implementation SHA-256 is
+  `67d098138d2442f1c68aae462d350a7a461e191d831b8bea8799d3498ee1d99d`;
+  exact test SHA-256 is
+  `8e85f607cdb5493b2a53ccf6aa801152e2a99f0e7c81cf77a561c3d5bf56f1a5`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings, and the three focused offline suites passed 448/448. This tranche
+  does not wire `CodexExecRunner`, prove correspondence between private stdout
+  and public markers, use credentials, run preflight/live, or reuse, retry, or
+  replace the consumed pair. The public positive claim remains
+  `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
+
+- [x] **Gate 3 runner/capture integration minimal offline tranche completed
+  2026-08-13.** Implementation commit `854fef93` adds only the injected
+  contained-process runner seam, authorization-consumed launch ordinal, single
+  stdout handoff, private runtime TOCTOU checks, mutually exclusive evidence
+  profiles, seal-before-cleanup chain, create-once cleanup continuation, and
+  focused synthetic regressions. Exact implementation SHA-256 is
+  `c2bc090b1a53dac44610dfa37a4eb3db9d62a6e52f27308be63eb6b585b9befa`;
+  exact test SHA-256 is
+  `71fe98ec433d33a53339c0ccedbd40d9287a0ec5f091911daeff0e6ff2f95bf6`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings; four adjacent Gate 3 offline suites passed 497/497. The reviewed
+  design basis is preserved retrospectively in commit `dc76c293` at exact
+  SHA-256 `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`;
+  this does not establish that the design was repository-available or committed
+  authority before implementation commit `854fef93`.
+  This tranche uses injected synthetic results only: it does not wire or launch
+  the real runner, prove private-stdout correspondence or execution provenance,
+  use credentials, run preflight/live, or reuse, retry, or replace the consumed
+  pair. The public claim ceiling remains
+  `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
+
+- [x] **Gate 3 real-runner contained-result bridge design accepted 2026-08-13.**
+  Design commit `013f227a` records the `_ContainedResult` to
+  `InjectedContainedResult` mapping, the single stdout handoff, stderr exclusion,
+  non-interference with `CodexExecRunner.__call__` and `TrustedLiveRunner`, the
+  launch-authority/TOCTOU/capture ordering, the fail-closed disposition mapping,
+  and a mapping-only offline tranche, at exact SHA-256
+  `5e0279c9115f9f4eb47f3e2fd713091c58e8028be9bc6760ca5f462a21e7a015`.
+  Exact-digest read-only review returned `APPROVED` with zero open findings after
+  three earlier revisions were rejected; the superseded digests `ed7807d6…`,
+  `71a6943d…` and `6c3552e2…` are not approval targets. No GitHub review record
+  exists for the pull request; this acceptance is the owner's.
+  The accepted design explicitly does not solve five production-wiring
+  preconditions: bridge-source runtime binding, pre-seal credential-residue
+  recovery, a structural non-`repr` boundary, machine-enforced exclusivity
+  between the runner call path and the bridge, and a workspace-baseline
+  authority. Two of those reopen the integration contract digest pinned by the
+  runner/capture integration milestone.
+  This checkpoint accepts design bytes only. Implementation, credentials,
+  preflight, live execution, old-pair reuse, retry and replacement remain
+  unauthorized at this checkpoint; the consumed pair remains `NON_SUCCESS`, and
+  Gate 3 or treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 mapping-only runner bridge tranche completed 2026-08-14.**
+  Implementation commit `b399cb7f` adds only a new bridge module and its focused
+  test file. Exact implementation SHA-256 is
+  `9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33`; exact test
+  SHA-256 is
+  `b85eca62c3edf6c6d2112b3abf91b805264b1b648d774109d85eca9a30420993`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings after one warning on test-claim scope was closed; focused tests
+  passed 23/23 and five adjacent Gate 3 offline suites passed 520/520.
+  The tranche maps `_ContainedResult` to `InjectedContainedResult`, drops
+  `returncode` on the timeout path because a non-`EXITED` disposition requires a
+  null exit code, sets `stderr` empty rather than forwarding it, treats
+  incomplete process-tree termination as a closed error rather than a
+  `TERMINATED` row, and refuses to claim `START_FAILED` from an unattributable
+  failure, accepting a consumed launch ordinal instead.
+  Claim ceiling: mapping characterization only. The bridge source is not a
+  `RUNTIME_SUBJECTS` member and claims no runtime authority; the workspace
+  baseline is a caller-supplied synthetic fixture, so its `CHANGED`/`UNCHANGED`
+  verdict is not public evidence about a real workspace; and the preparation
+  test asserts only that an in-memory fake ran, which is not credential-write
+  detection. Both the contained call and private preparation are injected fakes.
+  This tranche does not wire or launch the real runner, use credentials, run
+  preflight or live, or reuse, retry or replace the consumed pair. Production
+  wiring remains blocked on the five preconditions named in the accepted design;
+  the consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
+  effectiveness is not established.
 
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic

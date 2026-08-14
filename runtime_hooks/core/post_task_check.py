@@ -684,6 +684,55 @@ def _merge_domain_validator_results(
             errors.append(f"domain-validator:{item['name']}: {error}")
 
 
+_CONTRACT_AUTHORITY_FIELDS = (
+    ("RISK", "risk"),
+    ("OVERSIGHT", "oversight"),
+    ("MEMORY_MODE", "memory_mode"),
+)
+
+
+def _resolve_contract_authority(
+    fields: dict,
+    *,
+    caller_risk: str,
+    caller_oversight: str,
+    caller_memory_mode: str | None,
+) -> tuple[str, str, str, list[str]]:
+    """Resolve risk, oversight and memory mode with the contract as authority.
+
+    The declared value wins. A caller argument that disagrees with a declared
+    value is an error, not a silent override: the two used to diverge unnoticed,
+    which let a task claim one posture and be gated under another. A caller value
+    is still used when the contract does not declare the field, so callers that
+    supply the only available value keep working.
+    """
+    errors: list[str] = []
+    resolved: dict[str, str] = {}
+    callers = {
+        "risk": caller_risk,
+        "oversight": caller_oversight,
+        "memory_mode": caller_memory_mode,
+    }
+
+    for field_name, arg_name in _CONTRACT_AUTHORITY_FIELDS:
+        declared = fields.get(field_name, "").strip()
+        supplied = (callers[arg_name] or "").strip()
+        if declared and supplied and declared != supplied:
+            errors.append(
+                f"{field_name} mismatch: contract declares '{declared}' but the caller passed "
+                f"'{supplied}'. The contract is authoritative; reconcile them rather than "
+                f"running under an undeclared posture"
+            )
+        resolved[arg_name] = declared or supplied
+
+    return (
+        resolved["risk"],
+        resolved["oversight"],
+        resolved["memory_mode"] or "candidate",
+        errors,
+    )
+
+
 def run_post_task_check(
     response_text: str,
     risk: str,
@@ -716,7 +765,21 @@ def run_post_task_check(
     assumption_check = evaluate_assumption_check(response_text, require_action_decision=True)
     assumption_advisories: list[dict] = []
     fields = validation.fields
-    resolved_memory_mode = memory_mode or fields.get("MEMORY_MODE", "").strip() or "candidate"
+    # The contract block is the authority for risk, oversight and memory mode.
+    #
+    # These used to have two independent sources: the validator read the contract
+    # fields, while the gates below used the caller's arguments. A task could
+    # declare RISK=high / OVERSIGHT=human-approval and still be gated as
+    # low / auto, with nothing detecting the contradiction. A declaration that
+    # does not govern is exactly the unevidenced claim this framework exists to
+    # reject, so a disagreement is fail-closed rather than silently resolved.
+    risk, oversight, resolved_memory_mode, authority_errors = _resolve_contract_authority(
+        fields,
+        caller_risk=risk,
+        caller_oversight=oversight,
+        caller_memory_mode=memory_mode,
+    )
+    errors.extend(authority_errors)
     resolved_rules = parse_rule_list(fields.get("RULES", ""))
     snapshot_result = None
     effective_checks = dict(checks or {})

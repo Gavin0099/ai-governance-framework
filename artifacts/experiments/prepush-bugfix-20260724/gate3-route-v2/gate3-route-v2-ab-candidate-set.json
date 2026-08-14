@@ -1,0 +1,84 @@
+{
+  "authorization": "pending_independent_review_and_owner_signature",
+  "files": [
+    {
+      "bytes": 6622,
+      "path": ".gitattributes",
+      "sha256": "ffcf044b1206dc59915c0b86b5c1a9fd82c22c1223160da171f58d34db02a4e1"
+    },
+    {
+      "bytes": 2229,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-preflight-bc163263-20260810.json",
+      "sha256": "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957"
+    },
+    {
+      "bytes": 4900,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-contract-manifest-candidate.json",
+      "sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440"
+    },
+    {
+      "bytes": 1373,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md",
+      "sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+    },
+    {
+      "bytes": 91037,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2.py",
+      "sha256": "53f2ba2d436562ea0589b1c4639e340c35939ae321cb5dd17197e29627ff2d10"
+    },
+    {
+      "bytes": 51018,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab.py",
+      "sha256": "3f6697550376d4838054a722e91c1d9b70216c4a0604494c0fef8642d8ad4d7d"
+    },
+    {
+      "bytes": 17016,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_live.py",
+      "sha256": "48d549aafb9f2f1499365d3c47609e6096b153642686fe82e4ed7e4e3733612b"
+    },
+    {
+      "bytes": 43903,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_codex.py",
+      "sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+    },
+    {
+      "bytes": 37765,
+      "path": "docs/governance/gate3-route-v2-ab-design-candidate-20260808.md",
+      "sha256": "048bae6f4153a4698b6b3688e67197e2225807c7f3f8d2160b239523767e0622"
+    },
+    {
+      "bytes": 23424,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_route_v2_ab_live.py",
+      "sha256": "92a0b5e0da59fb0f2a3e8a0d93bf21287e7bd75c3c18360e640be0bdb39724c8"
+    },
+    {
+      "bytes": 7251,
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_ab_candidate.py",
+      "sha256": "8c0444001bbf8be1bcc3057d891687a3ba57029efa623a970d7fc6b13fd2702d"
+    }
+  ],
+  "frozen_execution": {
+    "context_tokens": [
+      "ARM_A_CONTEXT",
+      "ARM_B_CONTEXT"
+    ],
+    "model_id": "gpt-5.2",
+    "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+    "run_ids": [
+      "gate3-route-v2-ab-live-v2-20260809-arm-a",
+      "gate3-route-v2-ab-live-v2-20260809-arm-b"
+    ]
+  },
+  "not_claimed": [
+    "independent approval",
+    "owner signature",
+    "canonical promotion",
+    "live A/B authorization",
+    "live A/B execution",
+    "Gate 3 counted execution",
+    "Skill effectiveness"
+  ],
+  "qualification_preflight_sha256": "0083a3c1b5489e8a3d2e384a243810a46c38f217a56437cb7d28697b83719957",
+  "schema": "gate3-route-v2-ab.candidate-set.v1",
+  "source_base_commit": "204965c94bd843d599986d9f9d0fd552ea053dff"
+}

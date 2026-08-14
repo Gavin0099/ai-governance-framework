@@ -32,6 +32,16 @@
 3. Reopen framework implementation only if that replay exposes a distinct,
    reproducible failure.
 
+## Latest Review (2026-08-13)
+
+- Gate 3 mapping-only bridge tranche completed at implementation `9ec1ba63…`
+  and test `b85eca62…` (commit `b399cb7f`), under design authority `5e0279c9…`
+  (commit `013f227a`). Mapping characterization only: no runtime authority, no
+  workspace public evidence, no credential-write detection, real runner still
+  unwired. Credentials, preflight and live remain unauthorized and the five
+  production-wiring preconditions are unsolved. Full record in
+  `memory/04_review_log.md`.
+
 ## Claim Ceiling
 
 - Cannot claim that a real consumer was updated or fully adopted.

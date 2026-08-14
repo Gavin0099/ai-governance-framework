@@ -1,0 +1,1027 @@
+{
+  "schema": "surface-maintenance-queue-revalidation/ledger/v1",
+  "validated_against": "0a639e3a",
+  "queue_source": "docs/governance/governance-surface-maintenance-queue.v0.1.json",
+  "queue_generated_at": "2026-07-07",
+  "queue_amended_at": "2026-07-09",
+  "method": "Path-like names resolved directly. Bare names resolved as governance_tools/<name>.py, then under governance/ with and without an .md suffix, then at the repo root. Compound and prose names resolve to none of these and were judged by hand; those judgements are recorded per entry with method=manual.",
+  "claim_ceiling": "Existence only, at one revision. Does not establish that a present surface still works, is reached at runtime, or that its disposition is still correct. Entries with status=undetermined were not judged and are covered by no finding.",
+  "total": 101,
+  "status_counts": {
+    "present": 82,
+    "undetermined": 14,
+    "absent_as_intended": 5
+  },
+  "entries": [
+    {
+      "defense": "F-7",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/f7_full_update.py",
+      "method": "manual",
+      "status": "present",
+      "evidence": "compound/conceptual name; workflow implemented by this module"
+    },
+    {
+      "defense": "governance_maturity_summary",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/governance_maturity_summary.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "memory_workflow",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/memory_workflow.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "adopt_governance",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/adopt_governance.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "pre-push",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "scripts/hooks/pre-push",
+      "method": "manual",
+      "status": "present",
+      "evidence": "bare hook name, not a governance_tools module"
+    },
+    {
+      "defense": "adoption_doctor",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/adoption_doctor.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "test_signal_quality_audit",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/test_signal_quality_audit.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "external_governance_submodule_updater",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/external_governance_submodule_updater.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "f7_full_update",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/f7_full_update.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "memory_authority_guard",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/memory_authority_guard.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "memory_record",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/memory_record.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "MEMORY_PROTOCOL",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance/MEMORY_PROTOCOL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "authority_loader",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/authority_loader.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "onboard_latest_governance",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/onboard_latest_governance.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "claim_enforcement_checker",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/claim_enforcement_checker.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "decision-change ledger",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "REVIEW_CRITERIA",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance/REVIEW_CRITERIA.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_drift_checker",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/governance_drift_checker.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "session_closeout_entry",
+      "recommended_action": "keep_observe",
+      "decision_effect": "noisy_downgraded_in_window",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/session_closeout_entry.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "manual_update_advisory",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/manual_update_advisory.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "architecture_drift_checker",
+      "recommended_action": "keep_observe",
+      "decision_effect": "decision_relevant_unacted",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/architecture_drift_checker.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "ci_memory_workflow_check",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/ci_memory_workflow_check.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "public_api_diff_checker",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/public_api_diff_checker.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "design-note classification",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "session_end_hook",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/session_end_hook.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "manage_agent_closeout",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/manage_agent_closeout.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_auditor",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/governance_auditor.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "deferred_debt_report",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/deferred_debt_report.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "authority_metadata_consistency",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/authority_metadata_consistency.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "pre-commit hook",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "memory_janitor",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/memory_janitor.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "red-team",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "docs/governance/self-governance-blocking-surface-red-team-round2-2026-07-04.md",
+      "method": "manual",
+      "status": "present",
+      "evidence": "a documented process, not a file-backed tool"
+    },
+    {
+      "defense": "claim_semantic_attestation_writer",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/claim_semantic_attestation_writer.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "TESTING.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance/TESTING.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "runtime_surface_manifest",
+      "recommended_action": "keep",
+      "decision_effect": "decision_changing",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/runtime_surface_manifest.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "escalation_authority_path_guard",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/escalation_authority_path_guard.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "state_reconciliation_validator",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/state_reconciliation_validator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "canonical_closeout_fail_closed_regression",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/canonical_closeout_fail_closed_regression.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "mutation_proof_runner",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/mutation_proof_runner.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "required_freshness_probe",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": "governance_tools/required_freshness_probe.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "closeout receipt",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "governance_tools/ab_baseline_validator.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/ab_baseline_validator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/ab_cost_backfill_apply.py",
+      "recommended_action": "retire_candidate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "",
+      "method": "mechanical",
+      "status": "absent_as_intended",
+      "evidence": "retire_candidate disposition executed"
+    },
+    {
+      "defense": "governance_tools/ab_cost_hygiene.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/ab_cost_hygiene.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/ab_cost_parity_audit.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/ab_cost_parity_audit.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/ab_smoke_artifact_validator.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/ab_smoke_artifact_validator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/agents_rule_candidates_inspector.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/agents_rule_candidates_inspector.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/canonical_closeout_fail_closed_regression.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/canonical_closeout_fail_closed_regression.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/classification_session_summary.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/classification_session_summary.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/clean_pilot_admissibility.py",
+      "recommended_action": "retire_candidate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "",
+      "method": "mechanical",
+      "status": "absent_as_intended",
+      "evidence": "retire_candidate disposition executed"
+    },
+    {
+      "defense": "governance_tools/e1b_consumer_audit.py",
+      "recommended_action": "investigate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/e1b_consumer_audit.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/enumd_ingestion_contract.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/enumd_ingestion_contract.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/escalation_authority_path_guard.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/escalation_authority_path_guard.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/execution_surface_coverage_smoke.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/execution_surface_coverage_smoke.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/external_observation_adapter.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/external_observation_adapter.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/gap_disposition_reader.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/gap_disposition_reader.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/gate_c_dual_report.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/gate_c_dual_report.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/gate_c_report.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/gate_c_report.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/governed_prompt.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/governed_prompt.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/governed_prompt_bridge.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/governed_prompt_bridge.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/host_agent_memory_sync_signal.py",
+      "recommended_action": "retire_candidate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "",
+      "method": "mechanical",
+      "status": "absent_as_intended",
+      "evidence": "retire_candidate disposition executed"
+    },
+    {
+      "defense": "governance_tools/linear_integrator.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/linear_integrator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/manual_receipt_writer.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/manual_receipt_writer.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/mutation_proof_runner.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/mutation_proof_runner.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/notion_integrator.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/notion_integrator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/phase3_gate_adoption_audit.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/phase3_gate_adoption_audit.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/production_learning_contract.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/production_learning_contract.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/promotion_gate_receipt_smoke.py",
+      "recommended_action": "retire_candidate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "",
+      "method": "mechanical",
+      "status": "absent_as_intended",
+      "evidence": "retire_candidate disposition executed"
+    },
+    {
+      "defense": "governance_tools/r49x4_metric_ranking.py",
+      "recommended_action": "retire_candidate",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "",
+      "method": "mechanical",
+      "status": "absent_as_intended",
+      "evidence": "retire_candidate disposition executed"
+    },
+    {
+      "defense": "governance_tools/readiness_audit.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/readiness_audit.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/required_freshness_probe.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/required_freshness_probe.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/retrieval_authority_observer.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/retrieval_authority_observer.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/round_a_evaluator.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/round_a_evaluator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/run_filtered_tests.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/run_filtered_tests.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/run_first_import_validation.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/run_first_import_validation.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/runtime_enforcement_smoke.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/runtime_enforcement_smoke.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/runtime_surface_manifest_smoke.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/runtime_surface_manifest_smoke.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/state_reconciliation_validator.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/state_reconciliation_validator.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/upgrade_closeout.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/upgrade_closeout.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/upgrade_starter_pack.py",
+      "recommended_action": "keep",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/upgrade_starter_pack.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "governance_tools/workflow_entry_observer.py",
+      "recommended_action": "keep_observe",
+      "decision_effect": null,
+      "resolution_type": "path",
+      "resolved_locator": "governance_tools/workflow_entry_observer.py",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": "manual_update / destructive_manual_update vocabulary surfaces",
+      "recommended_action": "merge",
+      "decision_effect": "duplicate",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "human_readable_adoption_summary carriers",
+      "recommended_action": "merge",
+      "decision_effect": "duplicate",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "memory_workflow doc surfaces",
+      "recommended_action": "investigate",
+      "decision_effect": "duplicate",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "cache-aware design-note cluster (11 docs)",
+      "recommended_action": "merge",
+      "decision_effect": "duplicate",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "release/reviewer/trust reader+snapshot+summary tool triplets (14 tools)",
+      "recommended_action": "investigate",
+      "decision_effect": "duplicate",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "memory historical warning counts (unbound_memory / test_evidence_provenance_not_found)",
+      "recommended_action": "downgrade",
+      "decision_effect": "noisy",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "test_signal_quality_audit lexical signals (framework self-scan)",
+      "recommended_action": "downgrade",
+      "decision_effect": "noisy",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "phase_d_closeout_writer (human-only close gate)",
+      "recommended_action": "keep_rare_critical",
+      "decision_effect": "unknown",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "escalation_authority_writer / escalation_authority_path_guard",
+      "recommended_action": "keep_rare_critical",
+      "decision_effect": "unknown",
+      "resolution_type": "conceptual",
+      "resolved_locator": "governance_tools/escalation_authority_writer.py + governance_tools/escalation_authority_path_guard.py",
+      "method": "manual",
+      "status": "present",
+      "evidence": "compound name naming two files; both exist"
+    },
+    {
+      "defense": "push / destructive-operation authorization discipline",
+      "recommended_action": "keep_rare_critical",
+      "decision_effect": "decision_changing",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": "memory_freshness_guard (fail-closed)",
+      "recommended_action": "keep_rare_critical",
+      "decision_effect": "unknown",
+      "resolution_type": "conceptual",
+      "resolved_locator": "",
+      "method": "none",
+      "status": "undetermined",
+      "evidence": "no locator a script can resolve; needs human judgement"
+    },
+    {
+      "defense": ".agents/skills/codex-review-fast/SKILL.md",
+      "recommended_action": "merge",
+      "decision_effect": "negative",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/codex-review-fast/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/create-pr/SKILL.md",
+      "recommended_action": "merge",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/create-pr/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/domain-contract-authoring/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/domain-contract-authoring/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/external-onboarding/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/external-onboarding/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/precommit/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/precommit/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/reviewer-handoff/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/reviewer-handoff/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/runtime-smoke/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/runtime-smoke/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/tech-spec/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/tech-spec/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    },
+    {
+      "defense": ".agents/skills/wrap-up/SKILL.md",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "resolution_type": "tool_name",
+      "resolved_locator": ".agents/skills/wrap-up/SKILL.md",
+      "method": "mechanical",
+      "status": "present",
+      "evidence": "file exists at resolved locator"
+    }
+  ]
+}

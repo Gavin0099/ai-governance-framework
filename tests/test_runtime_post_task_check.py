@@ -53,9 +53,64 @@ def test_post_task_check_fails_without_contract():
 
 
 def test_post_task_check_fails_high_risk_auto_oversight():
-    result = run_post_task_check(_contract(OVERSIGHT="auto"), risk="high", oversight="auto")
+    # The contract has to declare the posture it is gated under. This fixture
+    # used to declare RISK=medium and pass risk="high", which only worked while
+    # the caller argument drove the gate.
+    result = run_post_task_check(
+        _contract(RISK="high", OVERSIGHT="auto"), risk="high", oversight="auto"
+    )
     assert result["ok"] is False
     assert any("High-risk" in error for error in result["errors"])
+
+
+def test_declared_risk_gates_even_when_caller_disagrees():
+    """The gate follows the contract, not the caller."""
+    result = run_post_task_check(
+        _contract(RISK="high", OVERSIGHT="auto"), risk="low", oversight="auto"
+    )
+
+    assert result["ok"] is False
+    assert any("High-risk" in error for error in result["errors"])
+    assert any("RISK mismatch" in error for error in result["errors"])
+
+
+def test_contract_and_caller_mismatch_is_fail_closed():
+    """Reproduces the defect: this combination used to pass silently."""
+    result = run_post_task_check(
+        _contract(RISK="high", OVERSIGHT="human-approval"), risk="low", oversight="auto"
+    )
+
+    assert result["ok"] is False
+    assert any("RISK mismatch" in error for error in result["errors"])
+    assert any("OVERSIGHT mismatch" in error for error in result["errors"])
+
+
+def test_caller_value_is_used_when_contract_omits_the_field():
+    """Callers supplying the only available value keep working."""
+    body = "\n".join(
+        f"{k} = {v}"
+        for k, v in {
+            "LANG": "C++", "LEVEL": "L2", "SCOPE": "feature", "PLAN": "PLAN.md",
+            "LOADED": "SYSTEM_PROMPT",
+            "CONTEXT": "repo -> runtime-governance; NOT: platform rewrite",
+            "PRESSURE": "SAFE (20/200)", "RULES": "common,python",
+        }.items()
+    )
+    result = run_post_task_check(
+        f"[Governance Contract]\n{body}\n", risk="high", oversight="auto"
+    )
+
+    assert not any("mismatch" in error for error in result["errors"])
+    assert any("High-risk" in error for error in result["errors"])
+
+
+def test_declared_durable_memory_gates_on_declared_oversight():
+    result = run_post_task_check(
+        _contract(MEMORY_MODE="durable", OVERSIGHT="auto"), risk="low", oversight="auto"
+    )
+
+    assert result["ok"] is False
+    assert any("Durable memory requires oversight" in error for error in result["errors"])
 
 
 def test_post_task_check_can_create_candidate_snapshot(local_memory_root):

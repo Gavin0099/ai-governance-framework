@@ -250,8 +250,14 @@ def test_hook_templates_use_independent_surface_event_names() -> None:
         ).read_text(encoding="utf-8")
     )
 
+    # VS Code loads both files and normalizes the Copilot config's lowerCamelCase
+    # names, so `sessionStart` is already VS Code's only start handler. The VS
+    # Code config must therefore declare `Stop` alone — adding `SessionStart`
+    # would register a second handler for the same boundary.
     assert set(vscode["hooks"]) == {"Stop"}
     assert set(copilot["hooks"]) == {"sessionStart", "sessionEnd"}
+    normalized_copilot = {name[0].upper() + name[1:] for name in copilot["hooks"]}
+    assert not set(vscode["hooks"]) & normalized_copilot
     for payload in (vscode, copilot):
         for entries in payload["hooks"].values():
             assert "ai-governance-lifecycle.py" in entries[0]["command"]

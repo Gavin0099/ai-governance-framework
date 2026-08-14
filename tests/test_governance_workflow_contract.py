@@ -21,13 +21,14 @@ def _section(text: str, start: str, end: str) -> str:
     return text[start_index:end_index]
 
 
-def test_governance_workflow_triggers_on_memory_changes() -> None:
+def test_governance_workflow_keeps_memory_push_filter_and_runs_for_all_main_prs() -> None:
     text = _workflow_text()
     push_section = _section(text, "  push:", "  pull_request:")
     pull_request_section = _section(text, "  pull_request:", "  workflow_dispatch:")
 
     assert "- 'memory/**'" in push_section
-    assert "- 'memory/**'" in pull_request_section
+    assert "branches: [main]" in pull_request_section
+    assert "paths:" not in pull_request_section
 
 
 def test_full_test_suite_is_an_independent_job_with_report_only_census() -> None:
@@ -80,7 +81,9 @@ def test_governance_workflow_triggers_on_canonical_governance_surfaces() -> None
     for path in expected_paths:
         expected = f"- '{path}'"
         assert expected in push_section
-        assert expected in pull_request_section
+
+    assert "branches: [main]" in pull_request_section
+    assert "paths:" not in pull_request_section
 
 
 def test_required_phase_gate_executes_canonical_drift_checker() -> None:

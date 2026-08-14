@@ -1,0 +1,63 @@
+{
+  "authorization": "gate3_route_v2_single_session_non_scoring_only",
+  "checks": {
+    "cleanup": "PASS",
+    "exec_help": "PASS",
+    "root_help": "PASS",
+    "version": "PASS"
+  },
+  "compatibility": {
+    "required_flag_presence": {
+      "--dangerously-bypass-approvals-and-sandbox": true,
+      "--ephemeral": true,
+      "--json": true,
+      "--model": true,
+      "--output-last-message": true,
+      "--output-schema": true
+    },
+    "root_help_nonempty": true,
+    "version_match": true
+  },
+  "environment_policy_sha256": "ff2b11727a12e1bb3218a09d60d30c4dfa74e74443c2033ce7035860f5bc54a4",
+  "environment_projection_sha256": "571a5c88368f93a1584fc3a097b43e2ddd845deb71fe3130e6b80042e5c4372f",
+  "execution_identity": {
+    "cli_version": "codex-cli 0.146.0",
+    "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
+    "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
+    "kind": "codex_exec",
+    "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8"
+  },
+  "probe_outputs": {
+    "exec_help": {
+      "returncode": 0,
+      "stderr_len": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 3681,
+      "stdout_sha256": "9f86f0115238ddde2514587e5f95b0ab0aa6b89495e5912878d49ad26038aa19"
+    },
+    "root_help": {
+      "returncode": 0,
+      "stderr_len": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 5546,
+      "stdout_sha256": "0d9ece4cbe36e1325b24e65969827f074554bc716502049f045c5370e0e6aa47"
+    },
+    "version": {
+      "returncode": 0,
+      "stderr_len": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 18,
+      "stdout_sha256": "446dce03fa8317c76f51ca91da1f075e192a75cf86c889c594034ef9ec2fcc52"
+    }
+  },
+  "required_flags": [
+    "--dangerously-bypass-approvals-and-sandbox",
+    "--ephemeral",
+    "--json",
+    "--model",
+    "--output-last-message",
+    "--output-schema"
+  ],
+  "run_id": "gate3-route-v2-ab-preflight-20260809",
+  "schema": "gate3-route-v2.preflight.v2"
+}

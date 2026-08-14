@@ -1,0 +1,14 @@
+{
+  "arm_a_acl": "PASS",
+  "arm_a_only_auth_inventory": "PASS",
+  "arm_b_acl": "PASS",
+  "arm_b_only_auth_inventory": "PASS",
+  "contract_manifest_sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440",
+  "credential_policy_sha256": "8f83e58cecee2bfa8bb71295cd54c9fe455881063a3b728920e897d7b82eda18",
+  "credential_seed_equal": "PASS",
+  "normalization_policy_sha256": "74afa4f41ac882b58c44f0e64ce53c4500336dc4bc3669fd51abf8f5164831e4",
+  "pair_id": "gate3-route-v2-ab-live-v2-20260809",
+  "private_roots_distinct": "PASS",
+  "schema": "gate3-route-v2-ab.pair-preflight-attestation.v1",
+  "validator_sha256": "3f6697550376d4838054a722e91c1d9b70216c4a0604494c0fef8642d8ad4d7d"
+}

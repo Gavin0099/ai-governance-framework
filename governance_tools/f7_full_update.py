@@ -91,11 +91,16 @@ class F7Result:
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
     ai_governance_update_result: dict[str, Any] = field(default_factory=dict)
+    tool_provenance: dict[str, Any] = field(default_factory=dict)
     update_receipt: dict[str, Any] = field(
         default_factory=lambda: skipped_update_receipt("not an apply path")
     )
 
     def __post_init__(self) -> None:
+        # Set here rather than at each return so no result path can be added
+        # later that reports a target without disclosing what produced it.
+        if not self.tool_provenance:
+            self.tool_provenance = _tool_provenance()
         if not self.final_report_requirement:
             self.final_report_requirement = _build_final_report_requirement(
                 self.stages.get("governance_maturity_summary")
@@ -293,7 +298,7 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
     inserts: list[str] = []
-    if "governance:key=memory_workflow" not in before and "memory_workflow" not in before:
+    if not _memory_workflow_router_present_in_text(before):
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
             "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
@@ -373,6 +378,58 @@ def _is_legacy_f7_json_validation_line(line: str) -> bool:
         and "--format json" in stripped
         and "from the framework environment" in stripped
     )
+
+
+_TOOL_PROVENANCE: dict[str, Any] | None = None
+
+
+def _tool_provenance() -> dict[str, Any]:
+    """Which checkout produced this report, sampled before anything mutates.
+
+    Captured once per process and cached. The timing is the whole point: when
+    this tool is invoked from a consumer's nested framework checkout — the
+    documented form, `cd <consumer>/ai-governance-framework && python -m
+    governance_tools.f7_full_update --repo ../` — `tool_root` *is* the checkout
+    the updater fast-forwards. Sampling after that merge reads the new HEAD
+    while the code still running in memory came from the old one, so the report
+    would name a revision that did not produce it. That is the precise
+    misstatement this field exists to prevent.
+
+    `run_f7_full_update` primes this before any mutation. A bare `F7Result`
+    built outside that entry point falls back to sampling at construction,
+    which is correct as long as nothing has moved HEAD in between.
+
+    Every head in this report describes the repo being updated. None of them
+    describes the code doing the updating, and the two are routinely different
+    checkouts — `framework_root` is the consumer's nested copy, while the tool
+    runs from wherever the module was imported.
+
+    On 2026-08-13 that gap cost a wrong conclusion: a run from a checkout four
+    commits behind reported a target of `20c97b94` throughout, and the report
+    gave no way to see that the code producing it predated the fix under test.
+
+    Disclosure only. Nothing here gates or blocks: there is no general notion of
+    a "required" revision to compare against, and inventing one would be a
+    different decision than recording what ran.
+    """
+    global _TOOL_PROVENANCE
+    if _TOOL_PROVENANCE is not None:
+        return dict(_TOOL_PROVENANCE)
+    tool_root = Path(__file__).resolve().parent.parent
+    code, stdout, _stderr = _git(tool_root, ["rev-parse", "HEAD"])
+    revision = stdout.strip() if code == 0 else ""
+    dirty_code, dirty_out, _ = _git(tool_root, ["status", "--porcelain"])
+    _TOOL_PROVENANCE = {
+        "executing_root": str(tool_root),
+        "executing_revision": revision or "unknown",
+        "executing_worktree_dirty": bool(dirty_out.strip()) if dirty_code == 0 else None,
+        "sampled": "before_any_mutation",
+        "claim_boundary": (
+            "identifies the checkout that produced this report, sampled before any "
+            "mutation; it is not compared against any required revision"
+        ),
+    }
+    return dict(_TOOL_PROVENANCE)
 
 
 def _framework_head_commit(framework_root: Path) -> str:
@@ -551,12 +608,35 @@ def _f7_remediation_plan(repo_root: Path) -> dict[str, Any]:
     }
 
 
+MEMORY_WORKFLOW_MARKER = "<!-- governance:key=memory_workflow -->"
+
+
+def _memory_workflow_router_present_in_text(text: str) -> bool:
+    """One question — is the router here — with one answer for writer and report.
+
+    These had drifted apart. The stage report called the router present on
+    content; the writer keyed only on the managed marker. A router installed by
+    hand, or by a framework version predating the marker, satisfies the report
+    and not the writer, so every apply appended another copy while reporting the
+    stage `verified`. Routing them through one predicate is what keeps a future
+    tightening of the content test from re-opening the same gap on one side.
+
+    The earlier guard was `"memory_workflow" not in text` — the bare word, with
+    no `memory/**` — which matched any passing mention and made the block
+    unreachable for repos that merely referred to the tool.
+    """
+    if MEMORY_WORKFLOW_MARKER in text:
+        return True
+    return "memory_workflow" in text and "memory/**" in text
+
+
 def _agents_memory_workflow_router_present(repo_root: Path) -> bool:
     agents_path = repo_root / "AGENTS.md"
     if not agents_path.is_file():
         return False
-    text = agents_path.read_text(encoding="utf-8", errors="replace")
-    return "memory_workflow" in text and "memory/**" in text
+    return _memory_workflow_router_present_in_text(
+        agents_path.read_text(encoding="utf-8", errors="replace")
+    )
 
 
 def _resolve_hook_dir(repo_root: Path) -> Path:
@@ -627,6 +707,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         "response_envelope_surface": NOT_VERIFIED,
     }
 
+    hook_backups: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -634,9 +715,22 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         errors.extend(lock_errors)
 
         hook_result = install_governance_hooks(repo_root, framework_root)
-        stages["hook_validator_enforcement"] = "updated" if hook_result.changed_files else ("verified" if hook_result.ok else BLOCKED)
+        # Failure is decided before progress: a partial install writes some hooks
+        # and still fails, and reporting that as `updated` next to an overall
+        # `blocked` status would be contradictory evidence.
+        stages["hook_validator_enforcement"] = (
+            BLOCKED
+            if not hook_result.ok
+            else "updated"
+            if hook_result.changed_files
+            else "verified"
+        )
         changed.extend(hook_result.changed_files)
         errors.extend(hook_result.errors)
+        # Backups are the only record of content this install replaced. Dropping
+        # them here would leave a consumer unable to tell from the F-7 report that
+        # any of their own instruction content was moved aside.
+        hook_backups.extend(hook_result.backups)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
@@ -657,6 +751,11 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     governance_surface_status = _uncommitted_governance_surfaces(repo_root)
     remediation_plan = _f7_remediation_plan(repo_root)
     warnings = list(after.warnings)
+    for backup in hook_backups:
+        warnings.append(
+            f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
+            "review it before discarding — repository-specific instructions may live there"
+        )
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
@@ -725,7 +824,13 @@ def run_f7_full_update(
     framework_root: Path,
     apply: bool = False,
     submodule_path: str = "ai-governance-framework",
+    target_ref: str | None = None,
+    fetch_remote: str = "origin",
+    fetch_ref: str = "main",
 ) -> F7Result:
+    # First statement, deliberately. Once the updater fast-forwards, the tool's
+    # own checkout may no longer be the one whose code is running.
+    _tool_provenance()
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     role = classify_repo(repo_root, submodule_path=submodule_path)
@@ -766,21 +871,58 @@ def run_f7_full_update(
         result = update_governance_submodule(
             repo=repo_root,
             submodule_path=submodule_path,
+            target_ref=target_ref,
+            fetch_remote=fetch_remote,
+            fetch_ref=fetch_ref,
             dry_run=not apply,
             stage=False,
             commit=False,
         )
         stages = dict(result.full_update_stage_report)
+
+        # A submodule consumer used to stop at the pointer, lock and receipt.
+        # install_governance_hooks was only reachable from the external-contract
+        # backend, so the instruction surfaces every agent reads at session start
+        # were never deployed to this repo role — the consumer had to run the
+        # installer by hand, or go without. F-7 claims to refresh repo-local
+        # governance instructions; for half its consumers it did not.
+        surface_changed: list[str] = []
+        surface_backups: list[str] = []
+        updater_blocked = apply and not (result.ok and not result.errors)
+        if updater_blocked:
+            # Fail-closed has to mean closed. The updater refuses to touch a repo
+            # whose governance surfaces carry uncommitted changes it did not
+            # make; installing anyway writes precisely those surfaces, so the run
+            # reports `blocked` after having already changed files on disk.
+            stages["hook_validator_enforcement"] = BLOCKED
+        elif apply:
+            hook_result = install_governance_hooks(repo_root, repo_root / submodule_path)
+            stages["hook_validator_enforcement"] = (
+                BLOCKED
+                if not hook_result.ok
+                else "updated"
+                if hook_result.changed_files
+                else "verified"
+            )
+            surface_changed.extend(hook_result.changed_files)
+            surface_backups.extend(hook_result.backups)
+            result.errors.extend(hook_result.errors)
+
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
         final_status = _status_with_lock_consistency(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
         )
-        changed_files = list(result.staged_files)
+        changed_files = list(result.staged_files) + surface_changed
         if result.update_receipt.get("status") == "written":
             changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
+        warnings = [
+            f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
+            "review it before discarding — repository-specific instructions may live there"
+            for backup in surface_backups
+        ]
         return F7Result(
-            ok=result.ok,
+            ok=result.ok and not result.errors,
             mode=result.mode,
             repo_root=str(repo_root),
             repo_role=role,
@@ -788,6 +930,7 @@ def run_f7_full_update(
             stages=stages,
             changed_files=sorted(set(changed_files)),
             errors=result.errors,
+            warnings=warnings,
             details={"submodule_backend": asdict(result)},
             update_receipt=result.update_receipt,
         )
@@ -815,6 +958,14 @@ def format_human(result: F7Result) -> str:
         f"repo_role={result.repo_role}",
         f"f7_final_status={result.f7_final_status}",
         f"repo_root={result.repo_root}",
+        f"produced_by_revision={result.tool_provenance.get('executing_revision', 'unknown')}",
+        f"produced_by_root={result.tool_provenance.get('executing_root', 'unknown')}",
+        f"produced_by_worktree_dirty={result.tool_provenance.get('executing_worktree_dirty')}",
+        f"produced_by_sampled={result.tool_provenance.get('sampled', '-')}",
+        # The reason this block is printed at all is that a human will not open
+        # the JSON. That applies to the limit on what it means as much as to the
+        # value itself.
+        f"produced_by_claim_boundary={result.tool_provenance.get('claim_boundary', '-')}",
         "[human_readable_update_summary]",
         (
             "F-7 full update workflow means the complete AI Governance update flow: "
@@ -861,6 +1012,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--framework-root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--submodule-path", default="ai-governance-framework")
+    # A consumer whose authoritative framework remote is not `origin` had no way
+    # to say so: the target always resolved to origin/main. A repo with a stale
+    # personal-account mirror on origin and the real upstream on another remote
+    # would fail ff-only against a months-old commit, with no flag to correct it.
+    parser.add_argument(
+        "--fetch-remote",
+        default="origin",
+        help="Remote holding the authoritative framework ref (default: origin).",
+    )
+    parser.add_argument(
+        "--fetch-ref",
+        default="main",
+        help="Branch on --fetch-remote to update toward (default: main).",
+    )
+    parser.add_argument(
+        "--target-ref",
+        help="Explicit target commit or ref; overrides --fetch-remote/--fetch-ref resolution.",
+    )
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
@@ -870,6 +1039,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         framework_root=args.framework_root,
         apply=args.apply,
         submodule_path=args.submodule_path,
+        target_ref=args.target_ref,
+        fetch_remote=args.fetch_remote,
+        fetch_ref=args.fetch_ref,
     )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))

@@ -27,8 +27,19 @@ VALID_RISK_LEVELS = {"low", "medium", "high"}
 VALID_OVERSIGHT_LEVELS = {"auto", "review-required", "human-approval"}
 VALID_MEMORY_MODES = {"stateless", "candidate", "durable"}
 
-REQUIRED_LOADED = {"SYSTEM_PROMPT", "HUMAN-OVERSIGHT"}
-DISPLAY_FIELDS = [
+# SYSTEM_PROMPT.md §2.8 is canonical and can_override:false: LOADED must name
+# documents actually loaded, must include SYSTEM_PROMPT, and must NOT list
+# HUMAN-OVERSIGHT.md unless a human explicitly provided it. Requiring
+# HUMAN-OVERSIGHT here made the two rules impossible to satisfy together for an
+# agent that was never handed it, so the requirement is dropped rather than
+# weakening the authority boundary to match the tool.
+REQUIRED_LOADED = {"SYSTEM_PROMPT"}
+
+# Two contracts, two authorities. SYSTEM_PROMPT.md §2.8 defines the display
+# fields a human sees at task start; governance/RUNTIME_CONTRACT.md defines the
+# fields runtime_hooks/ gates on. They were one list for five months only because
+# 8994a5e1 removed the runtime fields from the codex without migrating the tool.
+DISPLAY_CONTRACT_FIELDS = [
     "LANG",
     "LEVEL",
     "SCOPE",
@@ -36,13 +47,16 @@ DISPLAY_FIELDS = [
     "LOADED",
     "CONTEXT",
     "PRESSURE",
+    "AGENT_ID",
+    "SESSION",
+]
+RUNTIME_CONTRACT_FIELDS = [
     "RULES",
     "RISK",
     "OVERSIGHT",
     "MEMORY_MODE",
-    "AGENT_ID",
-    "SESSION",
 ]
+DISPLAY_FIELDS = DISPLAY_CONTRACT_FIELDS + RUNTIME_CONTRACT_FIELDS
 
 
 @dataclass
@@ -87,6 +101,125 @@ def _validate_choice(fields: dict, key: str, valid_values: set[str], errors: lis
         errors.append(f"{key} invalid: '{value}'. Allowed: {sorted(valid_values)}")
 
 
+PRESSURE_LINE_LIMIT = 200
+# Two accepted shapes, per §2.8:
+#   SAFE (45/200)
+#   WARNING (87/200 lines; 9642 chars)
+#
+# The second exists because §7.4 escalates on lines *or* characters. An agent
+# that reports WARNING at 87 lines is right only if the character count crossed
+# 8000, and with the short form that reasoning is invisible. Rejecting the richer
+# form punished the output that best evidenced its own level.
+_PRESSURE_PATTERN = re.compile(
+    r"^(?P<level>[A-Za-z]+)\s*\(\s*(?P<count>\d+)\s*/\s*(?P<limit>\d+)"
+    r"(?:\s*lines\s*;\s*(?P<chars>\d+)\s*chars)?\s*\)$"
+)
+
+
+def _validate_pressure(fields: dict, errors: list[str]) -> None:
+    """Require a real line count, not something shaped like one.
+
+    §2.8 already says PRESSURE must carry a label and a line count, and that a
+    malformed contract block is a governance failure. The previous check only
+    read the label and downgraded a missing count to a warning, so an unfilled
+    template (`SAFE (<line count>/200)`), a placeholder
+    (`SAFE (pending exact line count/200)`), a non-number, a negative value and a
+    wrong denominator all validated as compliant. A number that cannot be read
+    is not evidence of memory pressure, and this field is one of the inputs a
+    reviewer uses to judge whether cleanup was due.
+
+    This enforces the existing rule; it does not change the thresholds in §7.4.
+    """
+    pressure = fields.get("PRESSURE", "").strip()
+    if not pressure:
+        errors.append("PRESSURE field is required")
+        return
+
+    match = _PRESSURE_PATTERN.match(pressure)
+    if match is None:
+        errors.append(
+            f"PRESSURE invalid: '{pressure}'. Expected "
+            f"<{'|'.join(sorted(VALID_PRESSURE_LEVELS))}> (<line count>/{PRESSURE_LINE_LIMIT}) "
+            f"with an actual integer line count, e.g. 'SAFE (45/{PRESSURE_LINE_LIMIT})'"
+        )
+        return
+
+    level_name = match.group("level")
+    if level_name not in VALID_PRESSURE_LEVELS:
+        errors.append(
+            f"PRESSURE invalid: '{level_name}'. Allowed: {sorted(VALID_PRESSURE_LEVELS)}"
+        )
+
+    limit = int(match.group("limit"))
+    if limit != PRESSURE_LINE_LIMIT:
+        errors.append(
+            f"PRESSURE denominator invalid: '{limit}'. Expected {PRESSURE_LINE_LIMIT}"
+        )
+
+
+def normalize_loaded_identifier(raw: str) -> str:
+    """Reduce a LOADED entry to its canonical document identifier.
+
+    SYSTEM_PROMPT.md §2.8: take the last path segment, treating `\\` as `/`, and
+    allow `.md` alone to be omitted. Matching is case-sensitive.
+
+    An agent that writes the full path it actually read carries more auditable
+    information than a bare token, and used to fail this check for it — the rule
+    named `SYSTEM_PROMPT` without saying whether that was a token or a path.
+    Only `.md` is optional, and only the final segment is compared, so
+    `SYSTEM_PROMPT.txt` and `MY_SYSTEM_PROMPT.md` remain different documents.
+    """
+    segment = raw.strip().replace("\\", "/").rsplit("/", 1)[-1]
+    if segment.endswith(".md"):
+        segment = segment[: -len(".md")]
+    return segment
+
+
+def parse_lang_list(raw: str) -> list[str]:
+    """Split a LANG field into its declared languages, preserving order."""
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _validate_lang(fields: dict, errors: list[str]) -> None:
+    """Validate LANG as a comma-separated list of canonical language values.
+
+    SYSTEM_PROMPT.md §2.8 allows a cross-language task to declare more than one
+    language. The separator is a comma, matching LOADED: `/` cannot serve as one
+    because it is already part of the `I/O` SCOPE value, so `C/C++` is a single
+    unrecognised token rather than two languages.
+    """
+    raw = fields.get("LANG", "").strip()
+    if not raw:
+        errors.append("LANG field is required")
+        return
+
+    langs = parse_lang_list(raw)
+    if not langs:
+        errors.append("LANG must name at least one language")
+        return
+
+    invalid = [item for item in langs if item not in VALID_LANG]
+    if invalid:
+        hint = ""
+        if any("/" in item for item in invalid):
+            suggestion = ", ".join(
+                part.strip()
+                for item in invalid
+                for part in item.split("/")
+                if part.strip() in VALID_LANG
+            )
+            if suggestion:
+                hint = f" Use a comma-separated list instead, e.g. '{suggestion}'."
+        errors.append(
+            f"LANG invalid: {invalid}. Allowed: {sorted(VALID_LANG)}.{hint}"
+        )
+        return
+
+    duplicates = sorted({item for item in langs if langs.count(item) > 1})
+    if duplicates:
+        errors.append(f"LANG lists duplicate language(s): {duplicates}")
+
+
 def _validate_rules(fields: dict, errors: list[str], available: set[str] | None = None) -> None:
     rules_raw = fields.get("RULES", "").strip()
     if not rules_raw:
@@ -106,7 +239,56 @@ def _validate_rules(fields: dict, errors: list[str], available: set[str] | None 
         )
 
 
-def validate_contract(text: str, available_rules: set[str] | None = None) -> ValidationResult:
+def _validate_runtime_fields(
+    fields: dict,
+    errors: list[str],
+    available_rules: set[str] | None = None,
+) -> None:
+    """Validate the runtime contract fields defined by governance/RUNTIME_CONTRACT.md."""
+    _validate_rules(fields, errors, available=available_rules)
+    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
+    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
+    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+
+
+def validate_display_contract(text: str) -> ValidationResult:
+    """Validate only the SYSTEM_PROMPT.md §2.8 display fields.
+
+    A display pass says nothing about whether a task may execute. Do not report
+    it as runtime compliance — see governance/RUNTIME_CONTRACT.md.
+    """
+    return validate_contract(text, include_runtime=False)
+
+
+def validate_runtime_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+) -> ValidationResult:
+    """Validate only the governance/RUNTIME_CONTRACT.md fields."""
+    block = extract_contract_block(text)
+    if block is None:
+        return ValidationResult(
+            compliant=False,
+            contract_found=False,
+            fields={},
+            errors=["[Governance Contract] block not found"],
+        )
+    fields = parse_contract_fields(block)
+    errors: list[str] = []
+    _validate_runtime_fields(fields, errors, available_rules=available_rules)
+    return ValidationResult(
+        compliant=not errors,
+        contract_found=True,
+        fields=fields,
+        errors=errors,
+    )
+
+
+def validate_contract(
+    text: str,
+    available_rules: set[str] | None = None,
+    include_runtime: bool = True,
+) -> ValidationResult:
     block = extract_contract_block(text)
     if block is None:
         return ValidationResult(
@@ -120,11 +302,7 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     errors: list[str] = []
     warnings: list[str] = []
 
-    lang = fields.get("LANG", "").strip()
-    if not lang:
-        errors.append("LANG field is required")
-    elif lang not in VALID_LANG:
-        errors.append(f"LANG invalid: '{lang}'. Allowed: {sorted(VALID_LANG)}")
+    _validate_lang(fields, errors)
 
     level = fields.get("LEVEL", "").strip()
     if not level:
@@ -132,11 +310,20 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     elif level not in VALID_LEVEL:
         errors.append(f"LEVEL invalid: '{level}'. Allowed: {sorted(VALID_LEVEL)}")
 
+    # SCOPE is single-valued per SYSTEM_PROMPT.md §2.8: it drives review, testing
+    # and governance routing, and a list would need precedence rules that do not
+    # exist. LANG has no such consequence, which is why only LANG takes a list.
     scope = fields.get("SCOPE", "").strip()
     if not scope:
         errors.append("SCOPE field is required")
     elif scope not in VALID_SCOPE:
-        errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
+        if "," in scope:
+            errors.append(
+                f"SCOPE invalid: '{scope}'. SCOPE is single-valued; split the task or pick the "
+                f"dominant scope. Allowed: {sorted(VALID_SCOPE)}"
+            )
+        else:
+            errors.append(f"SCOPE invalid: '{scope}'. Allowed: {sorted(VALID_SCOPE)}")
 
     if not fields.get("PLAN", "").strip():
         warnings.append("PLAN missing; recommended to bind responses to PLAN.md")
@@ -145,7 +332,9 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
     if not loaded_raw:
         errors.append("LOADED field is required")
     else:
-        loaded_docs = {doc.strip() for doc in loaded_raw.split(",") if doc.strip()}
+        loaded_docs = {
+            normalize_loaded_identifier(doc) for doc in loaded_raw.split(",") if doc.strip()
+        }
         missing_required = REQUIRED_LOADED - loaded_docs
         if missing_required:
             errors.append(f"LOADED missing required documents: {sorted(missing_required)}")
@@ -159,22 +348,10 @@ def validate_contract(text: str, available_rules: set[str] | None = None) -> Val
         if "NOT:" not in context:
             errors.append("CONTEXT must include a 'NOT:' exclusion clause")
 
-    pressure = fields.get("PRESSURE", "").strip()
-    if not pressure:
-        errors.append("PRESSURE field is required")
-    else:
-        level_name = pressure.split("(")[0].strip()
-        if level_name not in VALID_PRESSURE_LEVELS:
-            errors.append(
-                f"PRESSURE invalid: '{level_name}'. Allowed: {sorted(VALID_PRESSURE_LEVELS)}"
-            )
-        if "(" not in pressure or "/" not in pressure:
-            warnings.append("PRESSURE should include line-count context, e.g. SAFE (45/200)")
+    _validate_pressure(fields, errors)
 
-    _validate_rules(fields, errors, available=available_rules)
-    _validate_choice(fields, "RISK", VALID_RISK_LEVELS, errors)
-    _validate_choice(fields, "OVERSIGHT", VALID_OVERSIGHT_LEVELS, errors)
-    _validate_choice(fields, "MEMORY_MODE", VALID_MEMORY_MODES, errors)
+    if include_runtime:
+        _validate_runtime_fields(fields, errors, available_rules=available_rules)
 
     agent_id = fields.get("AGENT_ID", "").strip()
     session = fields.get("SESSION", "").strip()

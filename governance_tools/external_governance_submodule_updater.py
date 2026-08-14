@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
+from governance_tools.hook_installer import _framework_root_config_value
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     summary_to_dict as governance_maturity_summary_to_dict,
@@ -976,6 +977,14 @@ def _find_agents_update_end(text: str, start: int) -> int | None:
     return start + custom_risk_heading.start()
 
 
+MEMORY_WORKFLOW_MARKER = "<!-- governance:key=memory_workflow -->"
+_ROUTER_HEADING = "## AI Governance Memory Workflow Router"
+
+
+def _normalize_router_block(block: str) -> str:
+    return re.sub(r"\s+", " ", block).strip()
+
+
 def _memory_workflow_router_section() -> str:
     return (
         "## AI Governance Memory Workflow Router\n\n"
@@ -992,6 +1001,56 @@ def _memory_workflow_router_section() -> str:
     )
 
 
+def _collapse_duplicate_memory_workflow_routers(text: str) -> tuple[str, bool]:
+    """Keep exactly one router, and report when that cannot be decided safely.
+
+    `_refresh_repo_local_instructions` replaces everything from the update-intent
+    heading to the next `##` heading with the baseline section — and that section
+    carries a router of its own. When a consumer's existing router *is* the next
+    `##` heading, the injected copy lands immediately before the surviving one and
+    the file ends with two. The guard below then finds a marker and correctly does
+    nothing, so the pair persisted and grew by one on every apply.
+
+    Blocks are compared to each other, not to `_memory_workflow_router_section()`.
+    The copy in `baselines/repo-min/AGENTS.md` puts its blank line after the
+    marker and the generated one puts it before, so nothing in a real consumer
+    file ever equals that string — an earlier version of this function compared
+    against it and silently collapsed nothing.
+
+    Copies that differ only in whitespace are collapsed. One that differs in
+    content may hold a consumer edit, so it is left in place and reported.
+
+    Returns the text and whether unresolved duplicate markers remain.
+    """
+    lines = text.splitlines(keepends=True)
+    spans: list[tuple[int, int]] = []
+    for index, line in enumerate(lines):
+        if line.strip() != _ROUTER_HEADING:
+            continue
+        # The block is its own heading, marker and bullets — not everything up to
+        # the next `##`. The last router in a file is followed by the agent
+        # contract block, which carries no `##` heading, so a heading-to-heading
+        # span swallowed it and no two copies ever compared equal.
+        end = index + 1
+        while end < len(lines):
+            stripped = lines[end].strip()
+            if stripped and stripped != MEMORY_WORKFLOW_MARKER and not stripped.startswith("- "):
+                break
+            end += 1
+        spans.append((index, end))
+
+    if len(spans) > 1:
+        kept = _normalize_router_block("".join(lines[spans[0][0] : spans[0][1]]))
+        dropped: set[int] = set()
+        for start, end in spans[1:]:
+            if _normalize_router_block("".join(lines[start:end])) == kept:
+                dropped.update(range(start, end))
+        if dropped:
+            text = "".join(line for i, line in enumerate(lines) if i not in dropped)
+            text = re.sub(r"\n{3,}", "\n\n", text)
+    return text, text.count(MEMORY_WORKFLOW_MARKER) > 1
+
+
 def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
     agents = repo / "AGENTS.md"
     if not agents.exists():
@@ -1001,14 +1060,22 @@ def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
             "errors": [f"missing AGENTS.md: {agents}"],
         }
     current = _read_text(agents)
-    if "governance:key=memory_workflow" in current and "memory_workflow" in current:
-        return {"status": "verified", "changed_files": [], "errors": []}
-    updated = current.rstrip() + "\n\n" + _memory_workflow_router_section()
+    updated, duplicate_markers = _collapse_duplicate_memory_workflow_routers(current)
+    if MEMORY_WORKFLOW_MARKER not in updated:
+        updated = updated.rstrip() + "\n\n" + _memory_workflow_router_section()
     changed = _write_text_if_changed(agents, updated)
+    errors: list[str] = []
+    if duplicate_markers:
+        # Two router blocks that are not byte-identical are not ours to merge:
+        # one of them may carry a consumer edit. Say so rather than pick.
+        errors.append(
+            "AGENTS.md carries more than one memory workflow router and they are not "
+            "identical; review them by hand before claiming the surface is current"
+        )
     return {
-        "status": "updated" if changed else "verified",
+        "status": "blocked" if errors else "updated" if changed else "verified",
         "changed_files": ["AGENTS.md"] if changed else [],
-        "errors": [],
+        "errors": errors,
     }
 
 
@@ -1019,6 +1086,7 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
     target_agents = repo / "AGENTS.md"
     changed: list[str] = []
     errors: list[str] = []
+    agents_before = _read_text(target_agents) if target_agents.exists() else None
 
     if not source_base.exists():
         errors.append("missing source baselines/repo-min/AGENTS.base.md")
@@ -1062,6 +1130,14 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
         if changed_file not in changed:
             changed.append(changed_file)
     errors.extend(router_report["errors"])
+
+    # The section refresh writes a copy of the router, and the step above removes
+    # it again. Both writes are real, and the net effect on the file is nothing —
+    # so reporting AGENTS.md as changed would claim an update that did not happen.
+    if "AGENTS.md" in changed:
+        agents_after = _read_text(target_agents) if target_agents.exists() else None
+        if agents_after == agents_before:
+            changed.remove("AGENTS.md")
 
     if errors:
         status = "blocked"
@@ -1176,19 +1252,43 @@ def _preexisting_unmanaged_hook_overlaps(
         if not stat.S_ISREG(config_stat.st_mode):
             overlapping.append(".git/hooks/ai-governance-framework-root")
             return sorted(overlapping)
-        expected = f"{submodule_repo}\n"
         try:
-            config_matches = (
-                config.read_text(encoding="utf-8", errors="replace") == expected
-            )
+            config_text = config.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             raise SubmoduleUpdateError(
                 f"cannot inspect pre-existing hook config {config}: {exc}"
             ) from exc
-        if not config_matches:
+        if not _framework_root_config_matches(config_text, submodule_repo):
             overlapping.append(".git/hooks/ai-governance-framework-root")
 
     return sorted(overlapping)
+
+
+def _framework_root_config_matches(text: str, submodule_repo: Path) -> bool:
+    """Compare the recorded framework root as a path, not as a string.
+
+    Two writers produce this file. The hook installer writes `Path.as_posix()` on
+    Windows; this module wrote `str(Path)`, which is backslashes there. The two
+    forms never compare equal, so once the installer had touched the file this
+    guard read it as consumer-edited content and refused to proceed — and hand-
+    correcting it did not help, because the next run wrote the other form back.
+
+    The question the guard is asking is whether this file still points at our
+    submodule. That survives a change of separator, so ask it about paths.
+    """
+    recorded = text.strip()
+    if not recorded:
+        return False
+    try:
+        candidate = Path(recorded)
+    except (OSError, ValueError):
+        return False
+    if candidate == submodule_repo:
+        return True
+    try:
+        return candidate.resolve() == submodule_repo.resolve()
+    except (OSError, ValueError, RuntimeError):
+        return False
 
 
 def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
@@ -1220,7 +1320,7 @@ def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
             changed.append(str(target))
 
     config = hook_dir / "ai-governance-framework-root"
-    if _write_text_if_changed(config, f"{submodule_repo}\n"):
+    if _write_text_if_changed(config, f"{_framework_root_config_value(submodule_repo)}\n"):
         changed.append(str(config))
 
     if errors:

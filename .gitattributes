@@ -1,6 +1,7 @@
 /.gitattributes -text
 /scripts/run-runtime-governance.sh text eol=lf
 /scripts/lib/python.sh text eol=lf
+/scripts/install-hooks.sh text eol=lf
 /scripts/hooks/* text eol=lf
 /docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md -text
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-smoke-20260726/** -text -whitespace
@@ -55,6 +56,14 @@
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_formal_runner.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_gate2_terminal_outcome.py -text
 /docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md -text
+/docs/governance/gate3-route-v2-ab-design-candidate-20260808.md -text
+/docs/governance/gate3-final-message-diagnostic-design-candidate-20260811.md -text
+/docs/governance/gate3-final-message-diagnostic-integration-design-candidate-20260812.md -text
+/docs/governance/gate3-final-message-actual-capture-adapter-design-candidate-20260813.md -text
+/docs/governance/gate3-final-message-actual-capture-runner-integration-design-candidate-20260813.md -text
+/docs/governance/gate3-real-runner-contained-result-bridge-design-candidate-20260813.md -text
+/docs/governance/gate3-runner-integration-contract-v2-design-candidate-20260814.md -text
+/artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json -text
