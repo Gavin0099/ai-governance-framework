@@ -97,10 +97,58 @@ V1_CONTRACT_BYTES = (
     b'"stdout_handoff_count":1}\n'
 )
 
-CONTRACT_BYTES_BY_VERSION = {CONTRACT_V1: V1_CONTRACT_BYTES}
-RUNTIME_SUBJECTS_BY_VERSION = {CONTRACT_V1: V1_RUNTIME_SUBJECTS}
+CONTRACT_V2 = "gate3-route-v2.runner-integration-contract.v2"
+INTEGRATION_AUTHORITY_SCHEMA_V2 = "gate3-route-v2.runner-integration-authority.v2"
 
+# v2 adds one runtime subject: the bridge source.  The Git blob identity of the
+# bridge is a separate, authority-only field; the two answer different questions
+# and are deliberately not merged.
+V2_RUNTIME_SUBJECTS = frozenset(V1_RUNTIME_SUBJECTS | {"bridge_source"})
+
+# v2 admits SYNTHETIC evidence only.  PRODUCTION is a reserved token that this
+# version rejects: `invoke` is an injected callable, so a declared class would be
+# caller intent rather than execution provenance.  Opening it needs a durable
+# production-admission authority, a real runner path, and machine-enforced path
+# exclusivity, none of which exist.
+EVIDENCE_CLASS_SYNTHETIC = "SYNTHETIC"
+EVIDENCE_CLASS_PRODUCTION = "PRODUCTION"
+V2_EVIDENCE_CLASSES = ("SYNTHETIC",)
+
+V2_CONTRACT_BYTES = (
+    b'{"checkpoints":["before_authorization","before_invocation","befo'
+    b're_private_parse","before_seal"],"cleanup_protocol":"CREATE_ONCE'
+    b'_AUTHORIZATION_THEN_RESULT_NO_RETRY","evidence_classes":["SYNTHE'
+    b'TIC"],"launch_ordinal":1,"observation_protocol":"CREATE_ONCE_CHA'
+    b'IN_AUTHORIZATION_BEFORE_LAUNCH","profiles":["RUNNER_CAPTURE_FINA'
+    b'LIZED","RUNNER_CAPTURE_NEGATIVE","RUNNER_CAPTURE_RESULT_UNKNOWN"'
+    b',"RUNNER_SEAL_UNAVAILABLE"],"replacement":false,"retry":false,"r'
+    b'untime_subjects":["adapter_contract","adapter_source","bridge_so'
+    b'urce","integration_source","projector_contract","public_schemas"'
+    b',"raw_contract","runner_source"],"schema":"gate3-route-v2.runner'
+    b'-integration-contract.v2","stdout_handoff_count":1}\n'
+)
+
+CONTRACT_BYTES_BY_VERSION = {
+    CONTRACT_V1: V1_CONTRACT_BYTES,
+    CONTRACT_V2: V2_CONTRACT_BYTES,
+}
+RUNTIME_SUBJECTS_BY_VERSION = {
+    CONTRACT_V1: V1_RUNTIME_SUBJECTS,
+    CONTRACT_V2: V2_RUNTIME_SUBJECTS,
+}
+
+# The coordinator still emits v1.  Switching emission is A3, together with the
+# observer ownership migration; a v2 authority model without the coordinator
+# enforcement behind it must not be presented as an active contract.
 RUNNER_INTEGRATION_CONTRACT_BYTES = V1_CONTRACT_BYTES
+
+# Versions a verifier will accept.  v2 is identifiable but **not verifiable**
+# until A3 lands: the coordinator does not emit it, baseline admission is not
+# enforced, and observer ownership has not migrated.  Without this gate a caller
+# could hand-build a coherently relinked v2 package and have it verified, which
+# would make the v2 contract active in evidence terms while none of its
+# enforcement exists.  A3 adds CONTRACT_V2 here and removes this note.
+VERIFIABLE_CONTRACT_VERSIONS = frozenset({CONTRACT_V1})
 
 
 class IntegrationError(ValueError):
@@ -203,6 +251,72 @@ class RuntimeAuthority:
 
 
 @dataclass(frozen=True)
+class RuntimeAuthorityV2:
+    """v2 authority: adds bridge identity, bridge runtime subject, baseline.
+
+    Separate from `RuntimeAuthority` on purpose.  v1 keeps its own class, its own
+    validator and its own `public_value()` key set, so nothing here can alter
+    what an already-produced v1 package means.
+    """
+
+    action_sha256: str
+    arm: str
+    git_commit: str
+    runner_blob: str
+    integration_blob: str
+    bridge_blob: str
+    integration_contract_sha256: str
+    capture_bindings_sha256: str
+    workspace_baseline_sha256: str
+    evidence_class: str
+    runtime_sha256: Mapping[str, str]
+
+    def validate(self) -> None:
+        validate_authority_for_version(self, CONTRACT_V2)
+
+    def public_value(self) -> dict[str, object]:
+        self.validate()
+        return {
+            "action_sha256": self.action_sha256,
+            "arm": self.arm,
+            "bridge_blob": self.bridge_blob,
+            "capture_ordinal": 1,
+            "capture_bindings_sha256": self.capture_bindings_sha256,
+            "evidence_class": self.evidence_class,
+            "git_commit": self.git_commit,
+            "integration_blob": self.integration_blob,
+            "integration_contract_sha256": self.integration_contract_sha256,
+            "launch_ordinal": 1,
+            "replacement": False,
+            "retry": False,
+            "runner_blob": self.runner_blob,
+            "runtime_sha256": dict(sorted(self.runtime_sha256.items())),
+            "schema": INTEGRATION_AUTHORITY_SCHEMA_V2,
+            "workspace_baseline_sha256": self.workspace_baseline_sha256,
+        }
+
+
+def workspace_baseline_digest(baseline: Mapping[str, bytes]) -> str:
+    """Digest over the canonical `{artifact_id: content_digest}` map.
+
+    The map itself stays private; only this digest is public.  This is not
+    zero-knowledge: an adversary who already knows a candidate artifact set can
+    confirm it by recomputation.  No confirmation-resistance is claimed.
+    """
+
+    if not isinstance(baseline, Mapping) or not all(
+        type(name) is str and name and type(payload) is bytes
+        for name, payload in baseline.items()
+    ):
+        raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+    return capture.sha256(
+        capture.canonical_bytes(
+            {name: capture.sha256(payload) for name, payload in baseline.items()}
+        )
+    )
+
+
+@dataclass(frozen=True)
 class InjectedContainedResult:
     returncode: int | None
     stdout: bytes
@@ -271,7 +385,53 @@ def _validate_v1_authority(authority: "RuntimeAuthority") -> None:
         raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
 
 
-AUTHORITY_VALIDATOR_BY_VERSION = {CONTRACT_V1: _validate_v1_authority}
+def _validate_v2_authority(authority: "RuntimeAuthorityV2") -> None:
+    """v2 authority validator, owned by v2 alone."""
+
+    if not isinstance(authority, RuntimeAuthorityV2):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if (
+        not _is_sha256(authority.action_sha256)
+        or not _is_sha256(authority.integration_contract_sha256)
+        or not _is_sha256(authority.capture_bindings_sha256)
+        or not _is_sha256(authority.workspace_baseline_sha256)
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.arm not in {"A", "B"}:
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if not all(
+        isinstance(item, str)
+        and len(item) in {40, 64}
+        and all(character in "0123456789abcdef" for character in item)
+        for item in (
+            authority.git_commit,
+            authority.runner_blob,
+            authority.integration_blob,
+            authority.bridge_blob,
+        )
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.evidence_class == EVIDENCE_CLASS_PRODUCTION:
+        raise IntegrationError("EVIDENCE_CLASS_PRODUCTION_NOT_ADMITTED")
+    if authority.evidence_class not in V2_EVIDENCE_CLASSES:
+        raise IntegrationError("EVIDENCE_CLASS_INVALID")
+    if set(authority.runtime_sha256) != set(V2_RUNTIME_SUBJECTS) or not all(
+        isinstance(name, str) and name and _is_sha256(digest)
+        for name, digest in authority.runtime_sha256.items()
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+
+
+def _validate_v1_authority_typed(authority: object) -> None:
+    if not isinstance(authority, RuntimeAuthority):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    _validate_v1_authority(authority)
+
+
+AUTHORITY_VALIDATOR_BY_VERSION = {
+    CONTRACT_V1: _validate_v1_authority_typed,
+    CONTRACT_V2: _validate_v2_authority,
+}
 
 
 def validate_authority_for_version(
@@ -871,6 +1031,8 @@ def verify_package(
         # the version is known would reject every package whose version is not
         # the one the live class happens to encode.
         version = _identify_retained_contract_version(evidence_store)
+        if version not in VERIFIABLE_CONTRACT_VERSIONS:
+            raise IntegrationError("CONTRACT_VERSION_NOT_ACTIVE")
         validate_authority_for_version(authority, version)
         if (
             bindings.action_sha256 != authority.action_sha256

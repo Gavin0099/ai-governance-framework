@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
@@ -1215,3 +1216,336 @@ def test_coordinator_still_emits_exactly_the_frozen_v1_contract() -> None:
     payload = current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
     assert payload == integration.V1_CONTRACT_BYTES
     assert capture.sha256(payload) == PINNED_V1_CONTRACT_SHA256
+
+
+# --- A2: v2 contract literal, authority model and validator dispatch -------
+
+PINNED_V2_CONTRACT_SHA256 = (
+    "0c0fe789ff3046677b97aeb93e90cd1fc4d2dbde63f5c3557d1f4aa5c11e7bb2"
+)
+EXPECTED_V2_CONTRACT_BYTES = (
+    b'{"checkpoints":["before_authorization","before_invocation",'
+    b'"before_private_parse","before_seal"],'
+    b'"cleanup_protocol":"CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",'
+    b'"evidence_classes":["SYNTHETIC"],'
+    b'"launch_ordinal":1,'
+    b'"observation_protocol":"CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",'
+    b'"profiles":["RUNNER_CAPTURE_FINALIZED","RUNNER_CAPTURE_NEGATIVE",'
+    b'"RUNNER_CAPTURE_RESULT_UNKNOWN","RUNNER_SEAL_UNAVAILABLE"],'
+    b'"replacement":false,"retry":false,"runtime_subjects":['
+    b'"adapter_contract","adapter_source","bridge_source","integration_source",'
+    b'"projector_contract","public_schemas","raw_contract","runner_source"],'
+    b'"schema":"gate3-route-v2.runner-integration-contract.v2",'
+    b'"stdout_handoff_count":1}\n'
+)
+SYNTHETIC_BASELINE = {"notes.md": b"baseline\n", "src/app.py": b"print(1)\n"}
+
+
+def authority_v2(**overrides: object) -> integration.RuntimeAuthorityV2:
+    current = bindings()
+    values: dict[str, object] = {
+        "action_sha256": current.action_sha256,
+        "arm": current.arm,
+        "git_commit": "e7410b3469d4e3112904b4f822180e51d5c1a3ea",
+        "runner_blob": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",
+        "integration_blob": "d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd",
+        "bridge_blob": "9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33",
+        "integration_contract_sha256": capture.sha256(integration.V2_CONTRACT_BYTES),
+        "capture_bindings_sha256": capture.sha256(
+            capture.canonical_bytes(current.authorization())
+        ),
+        "workspace_baseline_sha256": integration.workspace_baseline_digest(
+            SYNTHETIC_BASELINE
+        ),
+        "evidence_class": "SYNTHETIC",
+        "runtime_sha256": {
+            **{name: capture.sha256(payload) for name, payload in RUNTIME_BYTES.items()},
+            "bridge_source": capture.sha256(b"synthetic bridge source\n"),
+        },
+    }
+    values.update(overrides)
+    return integration.RuntimeAuthorityV2(**values)  # type: ignore[arg-type]
+
+
+def test_v2_contract_literal_matches_independent_expected_bytes() -> None:
+    assert integration.V2_CONTRACT_BYTES == EXPECTED_V2_CONTRACT_BYTES
+    assert capture.sha256(integration.V2_CONTRACT_BYTES) == PINNED_V2_CONTRACT_SHA256
+    assert integration.V2_CONTRACT_BYTES != integration.V1_CONTRACT_BYTES
+
+
+def test_v2_runtime_inventory_adds_exactly_bridge_source() -> None:
+    added = set(integration.V2_RUNTIME_SUBJECTS) - set(integration.V1_RUNTIME_SUBJECTS)
+    assert added == {"bridge_source"}
+    assert len(integration.V2_RUNTIME_SUBJECTS) == 8
+
+
+def test_version_identification_covers_both_frozen_contracts() -> None:
+    assert (
+        integration.identify_contract_version(integration.V1_CONTRACT_BYTES)
+        == integration.CONTRACT_V1
+    )
+    assert (
+        integration.identify_contract_version(integration.V2_CONTRACT_BYTES)
+        == integration.CONTRACT_V2
+    )
+    hybrid = integration.V2_CONTRACT_BYTES.replace(b"contract.v2", b"contract.v1")
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.identify_contract_version(hybrid)
+    assert caught.value.code == "CONTRACT_VERSION_UNKNOWN"
+
+
+def test_v2_authority_validates_and_publishes_its_own_key_set() -> None:
+    value = authority_v2().public_value()
+    assert value["schema"] == integration.INTEGRATION_AUTHORITY_SCHEMA_V2
+    assert set(value) == {
+        "action_sha256",
+        "arm",
+        "bridge_blob",
+        "capture_ordinal",
+        "capture_bindings_sha256",
+        "evidence_class",
+        "git_commit",
+        "integration_blob",
+        "integration_contract_sha256",
+        "launch_ordinal",
+        "replacement",
+        "retry",
+        "runner_blob",
+        "runtime_sha256",
+        "schema",
+        "workspace_baseline_sha256",
+    }
+    assert value["evidence_class"] == "SYNTHETIC"
+
+
+def test_v2_rejects_production_evidence_class_distinctly() -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        authority_v2(evidence_class="PRODUCTION").validate()
+    assert caught.value.code == "EVIDENCE_CLASS_PRODUCTION_NOT_ADMITTED"
+
+
+@pytest.mark.parametrize("bad", ["", "synthetic", "LEGACY_V1_SYNTHETIC", "UNKNOWN"])
+def test_v2_rejects_any_other_evidence_class(bad: str) -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        authority_v2(evidence_class=bad).validate()
+    assert caught.value.code == "EVIDENCE_CLASS_INVALID"
+
+
+def test_v2_requires_the_eight_subject_runtime_inventory() -> None:
+    seven = {name: capture.sha256(payload) for name, payload in RUNTIME_BYTES.items()}
+    with pytest.raises(integration.IntegrationError) as caught:
+        authority_v2(runtime_sha256=seven).validate()
+    assert caught.value.code == "INTEGRATION_AUTHORITY_INVALID"
+
+
+@pytest.mark.parametrize("field", ["bridge_blob", "workspace_baseline_sha256"])
+def test_v2_rejects_malformed_new_bindings(field: str) -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        authority_v2(**{field: "not-a-digest"}).validate()
+    assert caught.value.code == "INTEGRATION_AUTHORITY_INVALID"
+
+
+def test_validator_dispatch_is_version_typed_in_both_directions() -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.validate_authority_for_version(
+            authority_v2(), integration.CONTRACT_V1
+        )
+    assert caught.value.code == "INTEGRATION_AUTHORITY_INVALID"
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.validate_authority_for_version(authority(), integration.CONTRACT_V2)
+    assert caught.value.code == "INTEGRATION_AUTHORITY_INVALID"
+
+
+def test_v1_semantics_are_untouched_by_the_v2_model() -> None:
+    assert capture.sha256(integration.V1_CONTRACT_BYTES) == PINNED_V1_CONTRACT_SHA256
+    assert set(integration.V1_RUNTIME_SUBJECTS) == {
+        "adapter_contract",
+        "adapter_source",
+        "integration_source",
+        "projector_contract",
+        "public_schemas",
+        "raw_contract",
+        "runner_source",
+    }
+    assert "evidence_class" not in authority().public_value()
+    assert (
+        authority().public_value()["schema"] == integration.INTEGRATION_AUTHORITY_SCHEMA
+    )
+
+
+def test_workspace_baseline_digest_is_canonical_and_shape_checked() -> None:
+    digest = integration.workspace_baseline_digest(SYNTHETIC_BASELINE)
+    assert digest == integration.workspace_baseline_digest(
+        dict(reversed(list(SYNTHETIC_BASELINE.items())))
+    )
+    assert digest != integration.workspace_baseline_digest(
+        {**SYNTHETIC_BASELINE, "notes.md": b"edited\n"}
+    )
+    for bad in ({"notes.md": "text"}, {b"notes.md": b"x"}, {"": b"x"}, ["notes.md"]):
+        with pytest.raises(integration.IntegrationError) as caught:
+            integration.workspace_baseline_digest(bad)  # type: ignore[arg-type]
+        assert caught.value.code == "WORKSPACE_BASELINE_INVALID"
+
+
+def test_baseline_digest_does_not_expose_artifact_identities() -> None:
+    digest = integration.workspace_baseline_digest(SYNTHETIC_BASELINE)
+    for artifact_id, payload in SYNTHETIC_BASELINE.items():
+        assert artifact_id not in digest
+        assert payload.decode() not in digest
+
+
+def test_coordinator_still_emits_v1_and_does_not_activate_v2() -> None:
+    """A2 adds the model only; emission switching is A3."""
+
+    assert (
+        integration.RUNNER_INTEGRATION_CONTRACT_BYTES is integration.V1_CONTRACT_BYTES
+    )
+    current, _ = run_complete()
+    payload = current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
+    assert integration.identify_contract_version(payload) == integration.CONTRACT_V1
+    authority_artifact = parsed(
+        current.evidence_store, integration.INTEGRATION_AUTHORITY_PATH
+    )
+    assert authority_artifact["schema"] == integration.INTEGRATION_AUTHORITY_SCHEMA
+    assert "evidence_class" not in authority_artifact
+    assert "workspace_baseline_sha256" not in authority_artifact
+
+
+# --- A2: v2 is identifiable but not yet verifiable -------------------------
+
+
+def relink_as_v2(
+    evidence: dict[str, bytes], capture_files: dict[str, bytes]
+) -> dict[str, bytes]:
+    """Rebuild a coherent v2 package with every ordinary digest link recomputed.
+
+    This is the hostile case: nothing is left stale, so the package fails only on
+    the version gate itself rather than on a broken link.
+    """
+
+    relinked = dict(evidence)
+    relinked[integration.INTEGRATION_CONTRACT_PATH] = integration.V2_CONTRACT_BYTES
+    authority_payload = capture.canonical_bytes(authority_v2().public_value())
+    relinked[integration.INTEGRATION_AUTHORITY_PATH] = authority_payload
+
+    seal = json.loads(relinked[integration.SEAL_PATH])
+    seal["authority_sha256"] = capture.sha256(authority_payload)
+    seal["integration_contract_sha256"] = capture.sha256(integration.V2_CONTRACT_BYTES)
+    seal["capture_artifact_sha256"] = {
+        path: capture.sha256(payload)
+        for path, payload in sorted(capture_files.items())
+    }
+    seal_payload = capture.canonical_bytes(seal)
+    relinked[integration.SEAL_PATH] = seal_payload
+    seal_sha = capture.sha256(seal_payload)
+    profile = str(seal["profile"])
+
+    cleanup_authorization = capture.canonical_bytes(
+        {
+            "attempt_ordinal": 1,
+            "profile": profile,
+            "retry": False,
+            "schema": integration.CLEANUP_AUTHORIZATION_SCHEMA,
+            "seal_sha256": seal_sha,
+        }
+    )
+    relinked[integration.CLEANUP_AUTHORIZATION_PATH] = cleanup_authorization
+    cleanup_payload = capture.canonical_bytes(
+        {
+            "result": "PASS",
+            "schema": integration.CLEANUP_SCHEMA,
+            "seal_sha256": seal_sha,
+        }
+    )
+    relinked[integration.CLEANUP_PATH] = cleanup_payload
+    receipt_payload = capture.canonical_bytes(
+        {
+            "cleanup_sha256": capture.sha256(cleanup_payload),
+            "disposition": "DIAGNOSTIC_RECEIPT",
+            "profile": profile,
+            "schema": integration.RECEIPT_SCHEMA,
+            "seal_sha256": seal_sha,
+        }
+    )
+    relinked[integration.RECEIPT_PATH] = receipt_payload
+    relinked[integration.FINALIZATION_PATH] = capture.canonical_bytes(
+        {
+            "disposition": "FINALIZED_DIAGNOSTIC",
+            "profile": profile,
+            "receipt_sha256": capture.sha256(receipt_payload),
+            "schema": integration.FINALIZATION_SCHEMA,
+        }
+    )
+    return relinked
+
+
+def test_v2_is_identifiable_but_not_verifiable_before_activation() -> None:
+    assert integration.CONTRACT_V2 in integration.CONTRACT_BYTES_BY_VERSION
+    assert integration.CONTRACT_V2 not in integration.VERIFIABLE_CONTRACT_VERSIONS
+    assert integration.VERIFIABLE_CONTRACT_VERSIONS == frozenset(
+        {integration.CONTRACT_V1}
+    )
+
+
+def test_coherently_relinked_v2_package_is_rejected_as_not_active() -> None:
+    """Every ordinary digest link is recomputed, so only the gate can reject it."""
+
+    current, result = run_complete()
+    assert result.profile == "RUNNER_CAPTURE_FINALIZED"
+    capture_files = dict(current.capture_store.files)
+    relinked = relink_as_v2(dict(current.evidence_store.files), capture_files)
+
+    assert (
+        integration.identify_contract_version(
+            relinked[integration.INTEGRATION_CONTRACT_PATH]
+        )
+        == integration.CONTRACT_V2
+    )
+
+    verification = integration.verify_package(
+        capture.CreateOnceStore(capture_files),
+        capture.CreateOnceStore(relinked),
+        bindings(),
+        authority_v2(),
+    )
+    assert not verification.verified
+    assert verification.code == "CONTRACT_VERSION_NOT_ACTIVE"
+
+
+def test_relinked_package_would_otherwise_be_internally_coherent() -> None:
+    """Guard the guard: the rejection is the gate, not an accidental stale link."""
+
+    current, _ = run_complete()
+    capture_files = dict(current.capture_store.files)
+    relinked = relink_as_v2(dict(current.evidence_store.files), capture_files)
+
+    seal = json.loads(relinked[integration.SEAL_PATH])
+    seal_sha = capture.sha256(relinked[integration.SEAL_PATH])
+    assert seal["authority_sha256"] == capture.sha256(
+        relinked[integration.INTEGRATION_AUTHORITY_PATH]
+    )
+    assert seal["integration_contract_sha256"] == capture.sha256(
+        relinked[integration.INTEGRATION_CONTRACT_PATH]
+    )
+    for path in (
+        integration.CLEANUP_AUTHORIZATION_PATH,
+        integration.CLEANUP_PATH,
+        integration.RECEIPT_PATH,
+    ):
+        assert json.loads(relinked[path])["seal_sha256"] == seal_sha
+    assert json.loads(relinked[integration.RECEIPT_PATH])[
+        "cleanup_sha256"
+    ] == capture.sha256(relinked[integration.CLEANUP_PATH])
+    assert json.loads(relinked[integration.FINALIZATION_PATH])[
+        "receipt_sha256"
+    ] == capture.sha256(relinked[integration.RECEIPT_PATH])
+
+
+def test_v1_packages_remain_verifiable_while_v2_is_gated() -> None:
+    verification = integration.verify_package(
+        capture.CreateOnceStore(dict(PRE_A1_CAPTURE_BYTES)),
+        capture.CreateOnceStore(dict(PRE_A1_EVIDENCE_BYTES)),
+        bindings(),
+        authority(),
+    )
+    assert verification.verified and verification.code == "VERIFIED"
