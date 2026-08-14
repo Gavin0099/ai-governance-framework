@@ -59,20 +59,48 @@ RUNTIME_SUBJECTS = {
     "projector_contract",
     "public_schemas",
 }
-RUNNER_INTEGRATION_CONTRACT_BYTES = capture.canonical_bytes(
+
+CONTRACT_V1 = "gate3-route-v2.runner-integration-contract.v1"
+
+# Frozen v1 runtime inventory.  This is a literal copy, not an alias of
+# RUNTIME_SUBJECTS: v1 semantics must not follow later edits to the live set.
+V1_RUNTIME_SUBJECTS = frozenset(
     {
-        "checkpoints": list(CHECKPOINTS),
-        "cleanup_protocol": "CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",
-        "observation_protocol": "CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",
-        "launch_ordinal": 1,
-        "profiles": sorted(PROFILES),
-        "replacement": False,
-        "retry": False,
-        "runtime_subjects": sorted(RUNTIME_SUBJECTS),
-        "schema": "gate3-route-v2.runner-integration-contract.v1",
-        "stdout_handoff_count": 1,
+        "adapter_contract",
+        "adapter_source",
+        "integration_source",
+        "projector_contract",
+        "public_schemas",
+        "raw_contract",
+        "runner_source",
     }
 )
+
+# Frozen v1 contract bytes.  Previously these were recomputed at import from
+# CHECKPOINTS, PROFILES and RUNTIME_SUBJECTS, which meant that editing any of
+# those silently changed which bytes the shipped verifier would accept as v1,
+# while the recorded pin still read as authoritative.  Freezing the literal
+# preserves backward verification of every package already produced; it does not
+# make the pinned digest any more immutable than a digest already is.
+V1_CONTRACT_BYTES = (
+    b'{"checkpoints":["before_authorization","before_invocation",'
+    b'"before_private_parse","before_seal"],'
+    b'"cleanup_protocol":"CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",'
+    b'"launch_ordinal":1,'
+    b'"observation_protocol":"CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",'
+    b'"profiles":["RUNNER_CAPTURE_FINALIZED","RUNNER_CAPTURE_NEGATIVE",'
+    b'"RUNNER_CAPTURE_RESULT_UNKNOWN","RUNNER_SEAL_UNAVAILABLE"],'
+    b'"replacement":false,"retry":false,"runtime_subjects":['
+    b'"adapter_contract","adapter_source","integration_source",'
+    b'"projector_contract","public_schemas","raw_contract","runner_source"],'
+    b'"schema":"gate3-route-v2.runner-integration-contract.v1",'
+    b'"stdout_handoff_count":1}\n'
+)
+
+CONTRACT_BYTES_BY_VERSION = {CONTRACT_V1: V1_CONTRACT_BYTES}
+RUNTIME_SUBJECTS_BY_VERSION = {CONTRACT_V1: V1_RUNTIME_SUBJECTS}
+
+RUNNER_INTEGRATION_CONTRACT_BYTES = V1_CONTRACT_BYTES
 
 
 class IntegrationError(ValueError):
@@ -89,6 +117,31 @@ class SyntheticIntegrationCrash(RuntimeError):
 
 class ContainedStartFailed(RuntimeError):
     """Typed injected boundary proving that process creation did not succeed."""
+
+
+def identify_contract_version(payload: bytes) -> str:
+    """Identify the contract version from exact canonical bytes.
+
+    Total and fail-closed: a payload matching no frozen registry entry is
+    rejected.  There is no fallback and no "assume latest".  Version
+    identification must happen before any authority validation, because each
+    version owns its own authority schema and runtime inventory.
+    """
+
+    if type(payload) is not bytes:
+        raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+    for version, frozen in CONTRACT_BYTES_BY_VERSION.items():
+        if payload == frozen:
+            return version
+    raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+
+
+def _identify_retained_contract_version(
+    evidence_store: capture.CreateOnceStore,
+) -> str:
+    if INTEGRATION_CONTRACT_PATH not in evidence_store.files:
+        raise IntegrationError("CONTRACT_ARTIFACT_MISSING")
+    return identify_contract_version(evidence_store.read(INTEGRATION_CONTRACT_PATH))
 
 
 def _is_sha256(value: object) -> bool:
@@ -128,26 +181,7 @@ class RuntimeAuthority:
     runtime_sha256: Mapping[str, str]
 
     def validate(self) -> None:
-        if (
-            not _is_sha256(self.action_sha256)
-            or not _is_sha256(self.integration_contract_sha256)
-            or not _is_sha256(self.capture_bindings_sha256)
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if self.arm not in {"A", "B"}:
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if not all(
-            isinstance(item, str)
-            and len(item) in {40, 64}
-            and all(character in "0123456789abcdef" for character in item)
-            for item in (self.git_commit, self.runner_blob, self.integration_blob)
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if set(self.runtime_sha256) != RUNTIME_SUBJECTS or not all(
-            isinstance(name, str) and name and _is_sha256(digest)
-            for name, digest in self.runtime_sha256.items()
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+        validate_authority_for_version(self, CONTRACT_V1)
 
     def public_value(self) -> dict[str, object]:
         self.validate()
@@ -204,6 +238,51 @@ class Verification:
     claim: str | None = None
 
 
+def _validate_v1_authority(authority: "RuntimeAuthority") -> None:
+    """Frozen v1 authority validator.
+
+    Kept as a version-owned function so that a later version's schema work
+    cannot alter v1 semantics by editing a shared code path.
+    """
+
+    if (
+        not _is_sha256(authority.action_sha256)
+        or not _is_sha256(authority.integration_contract_sha256)
+        or not _is_sha256(authority.capture_bindings_sha256)
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.arm not in {"A", "B"}:
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if not all(
+        isinstance(item, str)
+        and len(item) in {40, 64}
+        and all(character in "0123456789abcdef" for character in item)
+        for item in (
+            authority.git_commit,
+            authority.runner_blob,
+            authority.integration_blob,
+        )
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if set(authority.runtime_sha256) != set(V1_RUNTIME_SUBJECTS) or not all(
+        isinstance(name, str) and name and _is_sha256(digest)
+        for name, digest in authority.runtime_sha256.items()
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+
+
+AUTHORITY_VALIDATOR_BY_VERSION = {CONTRACT_V1: _validate_v1_authority}
+
+
+def validate_authority_for_version(
+    authority: "RuntimeAuthority", version: str
+) -> None:
+    validator = AUTHORITY_VALIDATOR_BY_VERSION.get(version)
+    if validator is None:
+        raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+    validator(authority)
+
+
 def derive_profile(
     capture_status: str, final_state: str, workspace_state: str
 ) -> str:
@@ -257,11 +336,17 @@ def _validate_authority_artifact(
 
 
 def _validate_contract_artifact(
-    evidence_store: capture.CreateOnceStore, authority: RuntimeAuthority
+    evidence_store: capture.CreateOnceStore,
+    authority: RuntimeAuthority,
+    version: str | None = None,
 ) -> None:
     payload = evidence_store.read(INTEGRATION_CONTRACT_PATH)
+    expected = CONTRACT_BYTES_BY_VERSION.get(
+        version if version is not None else identify_contract_version(payload)
+    )
     if (
-        payload != RUNNER_INTEGRATION_CONTRACT_BYTES
+        expected is None
+        or payload != expected
         or capture.sha256(payload) != authority.integration_contract_sha256
     ):
         raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
@@ -781,7 +866,12 @@ def verify_package(
     authority: RuntimeAuthority,
 ) -> Verification:
     try:
-        authority.validate()
+        # Contract-first: the retained contract bytes decide which authority
+        # schema and runtime inventory apply.  Validating the authority before
+        # the version is known would reject every package whose version is not
+        # the one the live class happens to encode.
+        version = _identify_retained_contract_version(evidence_store)
+        validate_authority_for_version(authority, version)
         if (
             bindings.action_sha256 != authority.action_sha256
             or bindings.arm != authority.arm
@@ -800,7 +890,7 @@ def verify_package(
             }:
                 raise IntegrationError("PROFILE_INVENTORY_INVALID")
             _validate_authority_artifact(evidence_store, authority)
-            _validate_contract_artifact(evidence_store, authority)
+            _validate_contract_artifact(evidence_store, authority, version)
             observation_stage = _parse_canonical(
                 evidence_store.read(OBSERVATION_STAGE_PATH)
             )
@@ -841,7 +931,7 @@ def verify_package(
             if current_paths not in allowed_prefixes:
                 raise IntegrationError("PROFILE_INVENTORY_INVALID")
             _validate_authority_artifact(evidence_store, authority)
-            _validate_contract_artifact(evidence_store, authority)
+            _validate_contract_artifact(evidence_store, authority, version)
             observation_stage = _parse_canonical(
                 evidence_store.read(OBSERVATION_STAGE_PATH)
             )
@@ -929,7 +1019,7 @@ def verify_package(
             raise IntegrationError("PROFILE_INVENTORY_INVALID")
 
         _validate_authority_artifact(evidence_store, authority)
-        _validate_contract_artifact(evidence_store, authority)
+        _validate_contract_artifact(evidence_store, authority, version)
         _validate_observation_stage(capture_store, evidence_store)
         final_observation = _validate_observation(
             evidence_store, FINAL_OBSERVATION_PATH, FINAL_OBSERVATION_SCHEMA, FINAL_STATES

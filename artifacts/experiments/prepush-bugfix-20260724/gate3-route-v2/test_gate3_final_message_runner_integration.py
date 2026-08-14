@@ -873,3 +873,345 @@ def test_public_claim_never_exceeds_capture_attestation_chain() -> None:
     assert checked.claim == capture.PUBLIC_CLAIM
     assert "FINAL_ANSWER" not in checked.claim
     assert "MODEL_COMPLETION" not in checked.claim
+
+
+# --- A1: frozen v1 contract and contract-first version detection -----------
+
+PINNED_V1_CONTRACT_SHA256 = (
+    "efac9147b39cc5290fc60c7e3516bebc774c4c22c8b026658755e127614ccc91"
+)
+
+
+# Pre-A1 v1 package, captured verbatim from the integration module at
+# origin/main SHA-256 c2bc090b1a53dac44610dfa37a4eb3db9d62a6e52f27308be63eb6b585b9befa
+# — the exact implementation digest the runner/capture milestone pins. These
+# literals are the backward-compatibility oracle: no coordinator runs to produce
+# them, so verifying them exercises "an existing v1 package still verifies",
+# not "this producer round-trips through this verifier".
+PRE_A1_CAPTURE_BYTES = {
+    "capture-authorization.json": (
+        b'{"action_sha256":"000e728a3555becf524dc2f9ef0d0b6338ccd024d5aebdc3d8'
+        b'9ee74a0170feb2","adapter_contract_sha256":"be06661ba87ecdb3255524aed'
+        b'f6df775f27b96b9a57c8a1c005150a0755c1206","adapter_source_sha256":"67'
+        b'd098138d2442f1c68aae462d350a7a461e191d831b8bea8799d3498ee1d99d","arm'
+        b'":"A","capture_ordinal":1,"command_contract_sha256":"acf0a0e666cf976'
+        b'901a50f8e28d37f136c88852535559e2ae2bfde7e166d26da","executable_sha25'
+        b'6":"8c9f2714c265887feeebfd9039ca9cf1fea46da886cf6b632cf55da4f8e0a331'
+        b'","lifecycle_projector_sha256":"e60f346e182e8c146e3aaadda2aa3c659abf'
+        b'22a03ae641b1c45769a81b0e3965","public_schema_sha256":{"authorization'
+        b'":"9657d0a48f23b4497347bb279d8a8e7561163ec925c3bbd2b6fbb78b78c3c05b"'
+        b',"capture_result":"eb6c092660e95c4e51806b1f964335b176cb9e40220e2d5d7'
+        b'8eb0c111c55c2ea","process_result":"ea99de4bcadfe412d2e6796234836fa6c'
+        b'23208b255da3fe6a7750c1e805e17bb","projection":"7492ca749c71175269920'
+        b'015efda288f6646eec5216e9fa09ca5d872737e2784"},"raw_envelope_contract'
+        b'_sha256":"6d04e7371b740435ad5aa2e10986e003d7157e7c0aef68de5f476f76af'
+        b'bc57eb","replacement":false,"retry":false,"schema":"gate3-route-v2.c'
+        b'apture-authorization.v1"}\n'
+    ),
+    "capture-result.json": (
+        b'{"authorization_sha256":"77f62cdbd95ed6ab1314ed760c61c0b4e6fd6d9b676'
+        b'dc7e1d20b9bc0a23b5edf","failure_code":"NONE","process_result_sha256"'
+        b':"e762121801d1561ce157df9de85c06060854e988176314e9875c663703f8a050",'
+        b'"projection_sha256":"2f5675e7b589a5af94fe253d8a3a9301d807391e73c4449'
+        b'641d7de2cd46d5396","schema":"gate3-route-v2.capture-result.v1","stat'
+        b'us":"COMPLETE"}\n'
+    ),
+    "lifecycle-projection.json": (
+        b'{"action_sha256":"000e728a3555becf524dc2f9ef0d0b6338ccd024d5aebdc3d8'
+        b'9ee74a0170feb2","adapter_contract_sha256":"be06661ba87ecdb3255524aed'
+        b'f6df775f27b96b9a57c8a1c005150a0755c1206","command_contract_sha256":"'
+        b'acf0a0e666cf976901a50f8e28d37f136c88852535559e2ae2bfde7e166d26da","e'
+        b'ntries":[{"item_marker":"none","marker":"thread_started","ordinal":0'
+        b'},{"item_marker":"none","marker":"turn_started","ordinal":1},{"item_'
+        b'marker":"agent_message","marker":"item_completed","ordinal":2},{"ite'
+        b'm_marker":"none","marker":"turn_completed","ordinal":3}],"projector_'
+        b'sha256":"e60f346e182e8c146e3aaadda2aa3c659abf22a03ae641b1c45769a81b0'
+        b'e3965","raw_retention":"NONE","schema":"gate3-route-v2.actual-lifecy'
+        b'cle-projection.v1"}\n'
+    ),
+    "process-result.json": (
+        b'{"exit_code":0,"process_disposition":"EXITED","schema":"gate3-route-'
+        b'v2.content-free-process-result.v1","stdout_eof":true,"stdout_read_fa'
+        b'iled":false,"stdout_reader_complete":true}\n'
+    ),
+}
+PRE_A1_EVIDENCE_BYTES = {
+    "final-output-observation.json": (
+        b'{"schema":"gate3-route-v2.final-output-observation.v1","state":"CAPT'
+        b'URED"}\n'
+    ),
+    "runner-cleanup-authorization.json": (
+        b'{"attempt_ordinal":1,"profile":"RUNNER_CAPTURE_FINALIZED","retry":fa'
+        b'lse,"schema":"gate3-route-v2.runner-cleanup-authorization.v1","seal_'
+        b'sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01173d3f'
+        b'fe0d4"}\n'
+    ),
+    "runner-cleanup-result.json": (
+        b'{"result":"PASS","schema":"gate3-route-v2.runner-cleanup-result.v1",'
+        b'"seal_sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01'
+        b'173d3ffe0d4"}\n'
+    ),
+    "runner-finalization.json": (
+        b'{"disposition":"FINALIZED_DIAGNOSTIC","profile":"RUNNER_CAPTURE_FINA'
+        b'LIZED","receipt_sha256":"fb834f85882e754388bb33018d9ae9a6fe4105cb06a'
+        b'5fbbaccfb145371f5a0d3","schema":"gate3-route-v2.runner-finalization.'
+        b'v1"}\n'
+    ),
+    "runner-integration-authority.json": (
+        b'{"action_sha256":"000e728a3555becf524dc2f9ef0d0b6338ccd024d5aebdc3d8'
+        b'9ee74a0170feb2","arm":"A","capture_bindings_sha256":"77f62cdbd95ed6a'
+        b'b1314ed760c61c0b4e6fd6d9b676dc7e1d20b9bc0a23b5edf","capture_ordinal"'
+        b':1,"git_commit":"e7410b3469d4e3112904b4f822180e51d5c1a3ea","integrat'
+        b'ion_blob":"d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e111'
+        b'26a19fd","integration_contract_sha256":"efac9147b39cc5290fc60c7e3516'
+        b'bebc774c4c22c8b026658755e127614ccc91","launch_ordinal":1,"replacemen'
+        b't":false,"retry":false,"runner_blob":"d308331cc59cfce50604488a2ab912'
+        b'1727338fd7886c61a7f2e6fa6b5b2af7e8","runtime_sha256":{"adapter_contr'
+        b'act":"be06661ba87ecdb3255524aedf6df775f27b96b9a57c8a1c005150a0755c12'
+        b'06","adapter_source":"67d098138d2442f1c68aae462d350a7a461e191d831b8b'
+        b'ea8799d3498ee1d99d","integration_source":"4785aa2413b1bcc4cd1cc5112c'
+        b'9520e53691fb14c07ab9cc0636f39f0af2510b","projector_contract":"e60f34'
+        b'6e182e8c146e3aaadda2aa3c659abf22a03ae641b1c45769a81b0e3965","public_'
+        b'schemas":"eb47a6ce92326ab68a05f177c169cf99b93b971a0e39a77a96a797f497'
+        b'f1b26d","raw_contract":"6d04e7371b740435ad5aa2e10986e003d7157e7c0aef'
+        b'68de5f476f76afbc57eb","runner_source":"e9be4d2adae79c99a314d1b79f153'
+        b'39b41b2dacdeed1424e23724ed136c481ff"},"schema":"gate3-route-v2.runne'
+        b'r-integration-authority.v1"}\n'
+    ),
+    "runner-integration-contract.json": (
+        b'{"checkpoints":["before_authorization","before_invocation","before_p'
+        b'rivate_parse","before_seal"],"cleanup_protocol":"CREATE_ONCE_AUTHORI'
+        b'ZATION_THEN_RESULT_NO_RETRY","launch_ordinal":1,"observation_protoco'
+        b'l":"CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH","profiles":["RUNN'
+        b'ER_CAPTURE_FINALIZED","RUNNER_CAPTURE_NEGATIVE","RUNNER_CAPTURE_RESU'
+        b'LT_UNKNOWN","RUNNER_SEAL_UNAVAILABLE"],"replacement":false,"retry":f'
+        b'alse,"runtime_subjects":["adapter_contract","adapter_source","integr'
+        b'ation_source","projector_contract","public_schemas","raw_contract","'
+        b'runner_source"],"schema":"gate3-route-v2.runner-integration-contract'
+        b'.v1","stdout_handoff_count":1}\n'
+    ),
+    "runner-observation-seal.json": (
+        b'{"authority_sha256":"1235b265f88d1015e458eb864beef810355ea4e559d78f0'
+        b'91d04c25fe64ece18","capture_artifact_sha256":{"capture-authorization'
+        b'.json":"77f62cdbd95ed6ab1314ed760c61c0b4e6fd6d9b676dc7e1d20b9bc0a23b'
+        b'5edf","capture-result.json":"d0f3610664cc28d1f528514e4377afe976b0240'
+        b'7659f7c0fce67903ea21757d9","lifecycle-projection.json":"2f5675e7b589'
+        b'a5af94fe253d8a3a9301d807391e73c4449641d7de2cd46d5396","process-resul'
+        b't.json":"e762121801d1561ce157df9de85c06060854e988176314e9875c663703f'
+        b'8a050"},"capture_status":"COMPLETE","final_observation_sha256":"f052'
+        b'c4cdd94713533a6a7c3ff5d74968190224ca176f5867864acf026216d1b4","integ'
+        b'ration_contract_sha256":"efac9147b39cc5290fc60c7e3516bebc774c4c22c8b'
+        b'026658755e127614ccc91","observation_stage_sha256":"4b4bb2de911528221'
+        b'9fbef7c721413a35382c35a1cafec8fe0e521a0b551be07","profile":"RUNNER_C'
+        b'APTURE_FINALIZED","schema":"gate3-route-v2.runner-observation-seal.v'
+        b'1","workspace_observation_sha256":"b1dd83d698aece172fbc8b6507161926c'
+        b'4535d6964dd81ae9b2d4722853f4ccf"}\n'
+    ),
+    "runner-observation-stage.json": (
+        b'{"capture_authorization_sha256":"77f62cdbd95ed6ab1314ed760c61c0b4e6f'
+        b'd6d9b676dc7e1d20b9bc0a23b5edf","schema":"gate3-route-v2.observation-'
+        b'stage.v1","stage":"OBSERVATION_CHAIN_AUTHORIZED"}\n'
+    ),
+    "runner-receipt.json": (
+        b'{"cleanup_sha256":"93a83580706b3023662a0fdcd0ab5c25e777615736d2d8827'
+        b'aedee5796297be3","disposition":"DIAGNOSTIC_RECEIPT","profile":"RUNNE'
+        b'R_CAPTURE_FINALIZED","schema":"gate3-route-v2.runner-receipt.v1","se'
+        b'al_sha256":"a401a6ed35bb713985367ec55fa9c1166eb03a957480c24ecfa01173'
+        b'd3ffe0d4"}\n'
+    ),
+    "workspace-observation.json": (
+        b'{"schema":"gate3-route-v2.workspace-observation.v1","state":"CHANGED'
+        b'"}\n'
+    ),
+}
+
+
+def test_frozen_v1_literal_matches_the_pinned_digest() -> None:
+    assert integration.V1_CONTRACT_BYTES == EXPECTED_INTEGRATION_CONTRACT_BYTES
+    assert capture.sha256(integration.V1_CONTRACT_BYTES) == PINNED_V1_CONTRACT_SHA256
+    assert integration.RUNNER_INTEGRATION_CONTRACT_BYTES is integration.V1_CONTRACT_BYTES
+
+
+def test_frozen_v1_bytes_do_not_follow_live_constants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Editing the live inventory must not redefine what v1 means."""
+
+    monkeypatch.setattr(
+        integration, "RUNTIME_SUBJECTS", integration.RUNTIME_SUBJECTS | {"bridge_source"}
+    )
+    monkeypatch.setattr(
+        integration, "PROFILES", integration.PROFILES | {"RUNNER_SOMETHING_NEW"}
+    )
+    assert capture.sha256(integration.V1_CONTRACT_BYTES) == PINNED_V1_CONTRACT_SHA256
+    assert set(integration.V1_RUNTIME_SUBJECTS) == {
+        "adapter_contract",
+        "adapter_source",
+        "integration_source",
+        "projector_contract",
+        "public_schemas",
+        "raw_contract",
+        "runner_source",
+    }
+
+
+def test_v1_runtime_inventory_is_a_copy_not_an_alias() -> None:
+    assert integration.V1_RUNTIME_SUBJECTS is not integration.RUNTIME_SUBJECTS
+    assert set(integration.V1_RUNTIME_SUBJECTS) == integration.RUNTIME_SUBJECTS
+    assert len(integration.V1_RUNTIME_SUBJECTS) == 7
+
+
+def test_version_identification_is_total_and_fail_closed() -> None:
+    assert (
+        integration.identify_contract_version(integration.V1_CONTRACT_BYTES)
+        == integration.CONTRACT_V1
+    )
+    mutated = integration.V1_CONTRACT_BYTES.replace(b'"retry":false', b'"retry":true')
+    for payload in (b"", b"{}\n", mutated, integration.V1_CONTRACT_BYTES[:-1], "str"):
+        with pytest.raises(integration.IntegrationError) as caught:
+            integration.identify_contract_version(payload)
+        assert caught.value.code == "CONTRACT_VERSION_UNKNOWN"
+
+
+def test_version_is_identified_before_authority_validation() -> None:
+    """An unknown contract must fail on version, not on authority shape."""
+
+    current, _ = run_complete()
+    broken = capture.CreateOnceStore(dict(current.evidence_store.files))
+    broken.files[integration.INTEGRATION_CONTRACT_PATH] = b'{"schema":"unknown"}\n'
+    invalid_authority = integration.RuntimeAuthority(
+        action_sha256="not-a-digest",
+        arm="Z",
+        git_commit="zz",
+        runner_blob="zz",
+        integration_blob="zz",
+        integration_contract_sha256="nope",
+        capture_bindings_sha256="nope",
+        runtime_sha256={},
+    )
+    result = integration.verify_package(
+        current.capture_store, broken, bindings(), invalid_authority
+    )
+    assert not result.verified
+    assert result.code == "CONTRACT_VERSION_UNKNOWN"
+
+
+def test_missing_contract_artifact_fails_closed() -> None:
+    current, _ = run_complete()
+    stripped = capture.CreateOnceStore(
+        {
+            path: payload
+            for path, payload in current.evidence_store.files.items()
+            if path != integration.INTEGRATION_CONTRACT_PATH
+        }
+    )
+    result = integration.verify_package(
+        current.capture_store, stripped, bindings(), authority()
+    )
+    assert not result.verified
+    assert result.code == "CONTRACT_ARTIFACT_MISSING"
+
+
+def test_pre_a1_v1_package_verifies_without_running_any_coordinator() -> None:
+    """An existing v1 package, produced before A1, still verifies unmodified.
+
+    The stores are built straight from frozen literals captured from the
+    pre-A1 module.  No coordinator runs here: a test that produced its own
+    package would only show that this producer round-trips through this
+    verifier, which is not the backward-compatibility property.
+    """
+
+    capture_store = capture.CreateOnceStore(dict(PRE_A1_CAPTURE_BYTES))
+    evidence_store = capture.CreateOnceStore(dict(PRE_A1_EVIDENCE_BYTES))
+
+    assert (
+        evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
+        == integration.V1_CONTRACT_BYTES
+    )
+    assert (
+        integration.identify_contract_version(
+            evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
+        )
+        == integration.CONTRACT_V1
+    )
+
+    result = integration.verify_package(
+        capture_store, evidence_store, bindings(), authority()
+    )
+    assert result.verified and result.code == "VERIFIED"
+    assert result.profile == "RUNNER_CAPTURE_FINALIZED"
+    assert result.claim == integration.PUBLIC_CLAIM
+
+
+def test_pre_a1_fixture_is_independent_of_the_current_producer() -> None:
+    """The fixture is a captured artifact, not this run's output."""
+
+    current, _ = run_complete()
+    assert set(current.capture_store.files) == set(PRE_A1_CAPTURE_BYTES)
+    assert set(current.evidence_store.files) == set(PRE_A1_EVIDENCE_BYTES)
+    assert (
+        PRE_A1_EVIDENCE_BYTES[integration.SEAL_PATH]
+        == EXPECTED_PUBLIC_CHAIN_BYTES["runner-observation-seal.json"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutated_path", "old", "new"),
+    [
+        ("capture-result.json", b'"COMPLETE"', b'"INCOMPLETE"'),
+        ("process-result.json", b'"EXITED"', b'"TIMED_OUT"'),
+        ("lifecycle-projection.json", b'"NONE"', b'"SOME"'),
+    ],
+)
+def test_mutated_pre_a1_capture_artifact_fails_closed(
+    mutated_path: str, old: bytes, new: bytes
+) -> None:
+    mutated = dict(PRE_A1_CAPTURE_BYTES)
+    assert old in mutated[mutated_path], "mutation token must exist in the fixture"
+    mutated[mutated_path] = mutated[mutated_path].replace(old, new)
+    result = integration.verify_package(
+        capture.CreateOnceStore(mutated),
+        capture.CreateOnceStore(dict(PRE_A1_EVIDENCE_BYTES)),
+        bindings(),
+        authority(),
+    )
+    assert not result.verified
+
+
+@pytest.mark.parametrize(
+    "profile_crash",
+    ["after_authorization_before_invoke", "after_capture_before_observations"],
+)
+def test_retained_partial_v1_packages_still_identify_and_verify(
+    profile_crash: str,
+) -> None:
+    current = coordinator(crash_at=profile_crash)
+    with pytest.raises(integration.SyntheticIntegrationCrash):
+        current.run()
+    retained = capture.CreateOnceStore(dict(current.evidence_store.files))
+    assert (
+        integration.identify_contract_version(
+            retained.read(integration.INTEGRATION_CONTRACT_PATH)
+        )
+        == integration.CONTRACT_V1
+    )
+    result = integration.verify_package(
+        capture.CreateOnceStore(dict(current.capture_store.files)),
+        retained,
+        bindings(),
+        authority(),
+    )
+    assert result.verified
+
+
+def test_authority_validator_dispatch_rejects_unknown_versions() -> None:
+    with pytest.raises(integration.IntegrationError) as caught:
+        integration.validate_authority_for_version(authority(), "no-such-version")
+    assert caught.value.code == "CONTRACT_VERSION_UNKNOWN"
+
+
+def test_coordinator_still_emits_exactly_the_frozen_v1_contract() -> None:
+    current, _ = run_complete()
+    payload = current.evidence_store.read(integration.INTEGRATION_CONTRACT_PATH)
+    assert payload == integration.V1_CONTRACT_BYTES
+    assert capture.sha256(payload) == PINNED_V1_CONTRACT_SHA256
