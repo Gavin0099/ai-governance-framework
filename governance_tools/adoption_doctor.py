@@ -127,19 +127,40 @@ def _read_hook_framework_root(repo_root: Path) -> Path | None:
     return _resolve(Path(raw))
 
 
-def _parse_gitmodules(repo_root: Path) -> list[str]:
+def _parse_gitmodules_entries(repo_root: Path) -> list[tuple[str, str]]:
+    """Declared submodules as (path, url).
+
+    The url matters: a consumer may mount the framework at any path, and when the
+    checkout is missing there is no content to inspect. The url is then the only
+    remaining evidence of what the path was meant to be.
+    """
     gitmodules = repo_root / ".gitmodules"
     if not gitmodules.is_file():
         return []
-    paths: list[str] = []
-    for line in gitmodules.read_text(encoding="utf-8", errors="replace").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("path") and "=" in stripped:
-            _, value = stripped.split("=", 1)
-            candidate = value.strip()
-            if candidate:
-                paths.append(candidate)
-    return paths
+    entries: list[tuple[str, str]] = []
+    current_path: str | None = None
+    current_url: str = ""
+    for raw_line in gitmodules.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if line.startswith("[submodule "):
+            if current_path:
+                entries.append((current_path, current_url))
+            current_path, current_url = None, ""
+            continue
+        if "=" not in line:
+            continue
+        key, value = [part.strip() for part in line.split("=", 1)]
+        if key == "path" and value:
+            current_path = value
+        elif key == "url":
+            current_url = value
+    if current_path:
+        entries.append((current_path, current_url))
+    return entries
+
+
+def _parse_gitmodules(repo_root: Path) -> list[str]:
+    return [path for path, _url in _parse_gitmodules_entries(repo_root)]
 
 
 def _framework_candidates(repo_root: Path, explicit_framework_root: Path | None) -> list[tuple[str, Path]]:
@@ -185,15 +206,156 @@ def _select_framework_candidate(
     return fallback[0], fallback[1], external_seen, reasons
 
 
-def _first_submodule_path(repo_root: Path) -> str | None:
-    paths = _parse_gitmodules(repo_root)
-    return paths[0] if paths else None
+_FRAMEWORK_SUBMODULE_NAMES = frozenset(
+    rel.rsplit("/", 1)[-1] for rel in COMMON_FRAMEWORK_PATHS
+)
 
 
-def _classify_submodule(repo_root: Path) -> ClassifiedValue:
-    submodule_path = _first_submodule_path(repo_root)
+@dataclass(frozen=True)
+class SubmoduleResolution:
+    """Which declared submodule is the framework, decided once.
+
+    Previously three call sites each took `.gitmodules` entry [0]. A consumer
+    that declares an unrelated submodule first — CFU declares `Host/DMF` before
+    `ai-governance-framework` — had its topology classified from the wrong
+    directory, and its framework pin computed from it too. The repo reported
+    `framework_topology=unknown` while F-7 was concurrently updating it through
+    the `submodule_consumer` path.
+
+    Declaration order carries no meaning, so it is not consulted. Identity comes
+    from the explicit framework root when one is given, then from content, then
+    from the canonical names. When more than one candidate survives, this fails
+    closed rather than picking one.
+    """
+
+    path: str | None
+    status: str  # "resolved" | "ambiguous" | "no_framework_declared" | "none_declared"
+    reasons: list[str] = field(default_factory=list)
+    candidates: tuple[str, ...] = ()
+
+
+def _is_framework_submodule_name(rel: str) -> bool:
+    normalized = rel.replace("\\", "/").strip("/")
+    return normalized in COMMON_FRAMEWORK_PATHS or normalized.rsplit("/", 1)[-1] in _FRAMEWORK_SUBMODULE_NAMES
+
+
+def _declares_framework(path: str, url: str) -> bool:
+    """Declarative identity, from path or url.
+
+    Matches `manual_update_advisory._is_framework_submodule`. A consumer may
+    mount the framework anywhere — `vendor/governance` with the framework's url
+    is still the framework — and this is the only signal that survives a missing
+    checkout, where there is nothing to inspect.
+    """
+    return "ai-governance-framework" in f"{path} {url}".lower()
+
+
+def _resolve_framework_submodule(
+    repo_root: Path,
+    explicit_framework_root: Path | None = None,
+) -> SubmoduleResolution:
+    entries = _parse_gitmodules_entries(repo_root)
+    declared = [path for path, _url in entries]
+    if not declared:
+        return SubmoduleResolution(None, "none_declared", [".gitmodules does not declare a submodule"])
+
+    # An explicitly supplied framework root settles it, when it names one of the
+    # declared submodules.
+    if explicit_framework_root is not None:
+        target = str(_resolve(explicit_framework_root)).lower()
+        for rel in declared:
+            if str(_resolve(repo_root / rel)).lower() == target:
+                return SubmoduleResolution(
+                    rel,
+                    "resolved",
+                    [f"explicit framework root matches declared submodule {rel}"],
+                    tuple(declared),
+                )
+
+    by_content = [rel for rel in declared if _looks_like_framework_root(repo_root / rel)]
+
+    # Declaration first, because it is the stronger signal and the only one that
+    # survives a missing checkout. `_looks_like_framework_root` accepts a bare
+    # `runtime_hooks/` directory, so an unrelated submodule can collide with a
+    # real framework on content alone; asking content first turned that into a
+    # spurious `ambiguous` without ever consulting identity.
+    by_declaration = [rel for rel, url in entries if _declares_framework(rel, url)]
+    if len(by_declaration) == 1:
+        return SubmoduleResolution(
+            by_declaration[0],
+            "resolved",
+            [f"declared submodule {by_declaration[0]} is identified as the framework by path or url"],
+            tuple(declared),
+        )
+    if len(by_declaration) > 1:
+        # Several declare themselves the framework; prefer the one that is
+        # actually checked out, and fail closed when that does not separate them.
+        checked_out = [rel for rel in by_declaration if rel in by_content]
+        if len(checked_out) == 1:
+            return SubmoduleResolution(
+                checked_out[0],
+                "resolved",
+                [
+                    f"{len(by_declaration)} declared submodules identify as the framework; "
+                    f"only {checked_out[0]} is checked out"
+                ],
+                tuple(by_declaration),
+            )
+        return SubmoduleResolution(
+            None,
+            "ambiguous",
+            [f"more than one declared submodule identifies as the framework: {', '.join(by_declaration)}"],
+            tuple(by_declaration),
+        )
+
+    # No declarative identity: fall back to content, for a framework mounted at
+    # an unrecognised path with an unrecognised url.
+    if len(by_content) == 1:
+        return SubmoduleResolution(
+            by_content[0],
+            "resolved",
+            [f"declared submodule {by_content[0]} contains framework files"],
+            tuple(declared),
+        )
+    if len(by_content) > 1:
+        return SubmoduleResolution(
+            None,
+            "ambiguous",
+            [f"more than one declared submodule looks like a framework root: {', '.join(by_content)}"],
+            tuple(by_content),
+        )
+
+    by_name = [rel for rel in declared if _is_framework_submodule_name(rel)]
+    if len(by_name) == 1:
+        return SubmoduleResolution(
+            by_name[0],
+            "resolved",
+            [f"declared submodule {by_name[0]} matches a known framework path name"],
+            tuple(declared),
+        )
+    if len(by_name) > 1:
+        return SubmoduleResolution(
+            None,
+            "ambiguous",
+            [f"more than one declared submodule matches a framework path name: {', '.join(by_name)}"],
+            tuple(by_name),
+        )
+
+    return SubmoduleResolution(
+        None,
+        "no_framework_declared",
+        [f".gitmodules declares {len(declared)} submodule(s), none of which is a framework: {', '.join(declared)}"],
+        tuple(declared),
+    )
+
+
+def _classify_submodule(repo_root: Path, resolution: SubmoduleResolution) -> ClassifiedValue:
+    if resolution.status == "ambiguous":
+        # Fail closed: picking one would reinstate the defect this replaced.
+        return ClassifiedValue("ambiguous", confidence="high", reasons=resolution.reasons)
+    submodule_path = resolution.path
     if not submodule_path:
-        return ClassifiedValue("not_applicable", confidence="high", reasons=[".gitmodules does not declare a framework path"])
+        return ClassifiedValue("not_applicable", confidence="high", reasons=resolution.reasons)
 
     abs_path = repo_root / submodule_path
     if not abs_path.exists():
@@ -221,10 +383,18 @@ def _classify_adoption(
     framework_root: Path | None,
     external_seen: bool,
     reasons: list[str],
+    submodule: ClassifiedValue,
 ) -> ClassifiedValue:
-    submodule = _classify_submodule(repo_root)
+    # Passed in rather than recomputed: this used to call _classify_submodule a
+    # second time, so the topology shown and the topology used could diverge.
     if submodule.value == "initialized":
         return ClassifiedValue("submodule_consumer", confidence="high", reasons=submodule.reasons)
+    if submodule.value == "ambiguous":
+        return ClassifiedValue(
+            "unknown",
+            confidence="medium",
+            reasons=submodule.reasons + ["framework submodule could not be uniquely identified"],
+        )
     if submodule.value in {"declared_missing", "partial_or_uninitialized"}:
         return ClassifiedValue(
             "unknown",
@@ -463,12 +633,23 @@ def _classify_pin(
     repo_root: Path,
     framework_submodule: ClassifiedValue,
     selected_framework_root: Path | None,
+    resolution: SubmoduleResolution,
 ) -> PinStatus:
+    if resolution.status == "ambiguous":
+        # Checked before the hook root, not after. A hook root pointing at one of
+        # several framework candidates would otherwise let the pin choose a
+        # subject while the topology refuses to — `framework_submodule=ambiguous`
+        # beside `submodule_pin=current_vs_local_tracking`, which is the
+        # cross-surface disagreement this resolution exists to remove.
+        return PinStatus("unknown", checked=True, reasons=resolution.reasons)
+
     hook_root = _read_hook_framework_root(repo_root)
     if hook_root is not None and _looks_like_framework_root(hook_root) and _is_git_worktree_root(hook_root):
         return _classify_git_root_pin(hook_root, _pin_subject(repo_root, hook_root))
 
-    submodule_path = _first_submodule_path(repo_root)
+    # Same resolution the topology used, so the pin cannot describe a different
+    # directory than the one classified.
+    submodule_path = resolution.path
     if submodule_path:
         submodule_root = repo_root / submodule_path
         if framework_submodule.value != "initialized":
@@ -556,13 +737,15 @@ def inspect_adoption(repo_root: Path, framework_root: Path | None = None) -> Ado
         repo_root,
         explicit_framework_root,
     )
-    submodule = _classify_submodule(repo_root)
+    submodule_resolution = _resolve_framework_submodule(repo_root, explicit_framework_root)
+    submodule = _classify_submodule(repo_root, submodule_resolution)
     adoption_class = _classify_adoption(
         repo_root,
         framework_source,
         selected_framework_root,
         external_seen,
         framework_reasons,
+        submodule,
     )
     runtime_capable = ClassifiedValue(
         "not_checked",
@@ -579,7 +762,7 @@ def inspect_adoption(repo_root: Path, framework_root: Path | None = None) -> Ado
         runtime_capable=runtime_capable,
         root_level_leftover_runtime_hooks=_classify_root_runtime_hooks(repo_root, selected_framework_root),
         framework_submodule=submodule,
-        submodule_pin=_classify_pin(repo_root, submodule, selected_framework_root),
+        submodule_pin=_classify_pin(repo_root, submodule, selected_framework_root, submodule_resolution),
         external_framework_dependency=_classify_external_dependency(repo_root, selected_framework_root),
         hook_config_framework_root=_classify_hook_config_framework_root(repo_root),
     )
