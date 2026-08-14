@@ -321,3 +321,42 @@ no signal in `git status` at all.
 **Related.** This is the same failure family as the `memory_record` commit-anchor
 lesson: the writer infers context from ambient state, so ambient state must be
 controlled explicitly rather than assumed.
+
+## One stale PLAN.md date fails four CI checks (2026-08-14)
+
+**Pattern.** `PLAN.md` carries an explicit `> **最後更新**: <date>` field. Once it
+is more than 14 days old, `governance_tools.plan_freshness` reports `CRITICAL`.
+
+**Blast radius.** That single fact failed four checks on PR #65:
+
+- `PLAN.md Freshness` — directly;
+- `Runtime Governance Enforcement`, `Full Test Suite` and
+  `Phase Gate Verification` — indirectly, because the runtime enforcement smoke
+  reports `ok=False` when plan freshness is `CRITICAL`, which then propagates
+  into `session_start_ok` and `dispatch_ok`.
+
+The downstream failures surface as ordinary assertion errors
+(`assert result["ok"] is True`), so they read like four independent product
+defects.
+
+**Diagnosis rule.** When several governance checks fail together and at least
+one of them is `PLAN.md Freshness`, look for the shared freshness root cause
+first. Confirm with `python -m governance_tools.plan_freshness` and
+`python -m governance_tools.runtime_enforcement_smoke --format human` before
+investigating any individual failing assertion.
+
+**Confirmation.** The clean paired comparison is `5544f26a` → `70aa833e` on the
+same branch: `5544f26a` failed the four checks, `70aa833e` changed exactly one
+line — the `最後更新` field, `2026-07-30` → `2026-08-14`, one insertion and one
+deletion in `PLAN.md` — and every check recovered. Locally, freshness went to
+`0d / FRESH` and the runtime enforcement smoke to `ok=True`.
+
+Do not use `b399cb7f` → `5544f26a` as the comparison. That step added the
+reconciliation content and crossed the date threshold at the same time, so it
+does not isolate the cause. The direct evidence is the failure output itself,
+which names `PLAN.md freshness is CRITICAL` in the smoke's failure list.
+
+**Not a policy claim.** This entry records the observed pattern only. It does not
+argue that the fail-closed behaviour is miscalibrated: a defence firing is not
+evidence that it is wrong. Any improvement should target error aggregation and
+root-cause hinting, not enforcement strength.
