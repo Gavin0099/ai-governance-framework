@@ -1790,6 +1790,45 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   unauthorized at this checkpoint; the consumed pair remains `NON_SUCCESS`, and
   Gate 3 or treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 Group A runner integration contract v2 completed 2026-08-14.**
+  Delivered as three reviewed commits on one branch, because A1 and A2 are
+  transitional states that must not be recorded as mainline milestones: `38991f35`
+  freezes the v1 contract as a literal and identifies contract version from exact
+  bytes before any authority validation; `7c0ee75e` adds the v2 contract literal,
+  `RuntimeAuthorityV2`, `bridge_blob`, `bridge_source`, `workspace_baseline_sha256`
+  and per-version validator dispatch while leaving v2 unverifiable; `3ca52b49`
+  activates v2, moves workspace observation from the bridge to the coordinator and
+  implements the claim ladder. Exact SHA-256 values are
+  `2e087618749c8e9f2025523d8fb4374c0f631113253cb7bbfd9ed0e308345542`
+  (integration), `9ea1d51c1a7d56f2d3e9c52e770c1a4aefa82360177297cf6bcf66583e2ddf75`
+  (integration tests), `72c2bd1aeca986c80b170280bdf100dd6ca5950b418eb04086210b091912191a`
+  (bridge), `39604c36ce39808a81f81bf45e1c5bbfcf9b86d256829b54811fe57d2182de7c`
+  (bridge tests), `626339e3003b3cdf381206feb643b5a79ebc1ed766614eb100200a93fee88917`
+  (oracle) and `714424848e16e96f42367a1c7ec024266fd1b705cede7b8dbf8d0181647e498b`
+  (oracle worksheet), under design authority
+  `a720624920ee402a6e490077f806229879929bbc9ba37bb84fd95eb551979e74`.
+  Each step passed independent exact-digest review; five focused Gate 3 offline
+  suites pass 570/570.
+  Backward compatibility is evidenced by a frozen pre-A1 package captured from the
+  module at `c2bc090b…`, the digest this plan already pins, verified without
+  running any coordinator.
+  Claim ceiling: v2 admits `evidence_class = SYNTHETIC` and rejects `PRODUCTION`,
+  because `invoke` is an injected callable and a declared class would be caller
+  intent rather than execution provenance. Public v2 bytes reach only
+  `BASELINE_DIGEST_DECLARED`; a matching private map supplied out of band reaches
+  `SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST`. **No arrangement of inputs
+  establishes that a run performed the baseline comparison**, and no artifact,
+  claim token, plan entry or memory record may say so. The oracle fixture is
+  runtime-independent of the production modules and its values were independently
+  re-derived; serializer reuse is not detectable and is not claimed to be.
+  Group A closes two of the five production-wiring preconditions — bridge-source
+  runtime binding and workspace-baseline authority. The remaining three are a
+  pre-seal credential-residue recovery contract, a structural non-`repr` boundary
+  and machine-enforced path exclusivity. This tranche does not wire or launch the
+  real runner, use credentials, run preflight or live, or reuse, retry or replace
+  the consumed pair; the consumed pair remains `NON_SUCCESS`, and Gate 3 or
+  treatment/Skill effectiveness is not established.
+
 - [x] **Gate 3 mapping-only runner bridge tranche completed 2026-08-14.**
   Implementation commit `b399cb7f` adds only a new bridge module and its focused
   test file. Exact implementation SHA-256 is

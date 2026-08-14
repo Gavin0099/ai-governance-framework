@@ -27,6 +27,7 @@ RUNTIME_BYTES = {
     "raw_contract": capture.RAW_ENVELOPE_CONTRACT_BYTES,
     "projector_contract": capture.PROJECTOR_CONTRACT_BYTES,
     "public_schemas": capture.canonical_bytes(capture.public_schema_sha256()),
+    "bridge_source": b"synthetic bridge source\n",
 }
 SYNTHETIC_BASELINE = {"notes.md": b"baseline\n", "src/app.py": b"print(1)\n"}
 
@@ -72,20 +73,23 @@ def bindings() -> capture.CaptureBindings:
     return capture.synthetic_bindings()
 
 
-def authority() -> integration.RuntimeAuthority:
+def authority() -> integration.RuntimeAuthorityV2:
     current = bindings()
-    return integration.RuntimeAuthority(
+    return integration.RuntimeAuthorityV2(
         action_sha256=current.action_sha256,
         arm=current.arm,
         git_commit="e7410b3469d4e3112904b4f822180e51d5c1a3ea",
         runner_blob="d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",
         integration_blob="d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd",
-        integration_contract_sha256=capture.sha256(
-            integration.RUNNER_INTEGRATION_CONTRACT_BYTES
-        ),
+        bridge_blob="9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33",
+        integration_contract_sha256=capture.sha256(integration.V2_CONTRACT_BYTES),
         capture_bindings_sha256=capture.sha256(
             capture.canonical_bytes(current.authorization())
         ),
+        workspace_baseline_sha256=integration.workspace_baseline_digest(
+            SYNTHETIC_BASELINE
+        ),
+        evidence_class="SYNTHETIC",
         runtime_sha256={
             name: capture.sha256(payload) for name, payload in RUNTIME_BYTES.items()
         },
@@ -115,7 +119,7 @@ def coordinator(
     evidence_store: capture.CreateOnceStore | None = None,
     invoke=None,
     observe_final=None,
-    observe_workspace=None,
+    read_workspace=None,
 ) -> integration.RunnerIntegrationCoordinator:
     return integration.RunnerIntegrationCoordinator(
         capture_store=capture_store or capture.CreateOnceStore(),
@@ -127,7 +131,9 @@ def coordinator(
             prepare=FakePreparation(), run_contained=contained
         ),
         observe_final=observe_final or (lambda: bridge.FINAL_CAPTURED),
-        observe_workspace=observe_workspace or (lambda: bridge.WORKSPACE_CHANGED),
+        workspace_baseline=dict(SYNTHETIC_BASELINE),
+        read_workspace=read_workspace
+        or (lambda: {**SYNTHETIC_BASELINE, "notes.md": b"edited\n"}),
         cleanup=lambda: "PASS",
     )
 
@@ -312,57 +318,33 @@ def test_final_observation_tokens_are_closed() -> None:
     assert bridge.make_observe_final(lambda: "text")() == bridge.FINAL_READ_FAILED
 
 
-def test_workspace_observation_tokens_are_closed() -> None:
-    def raising() -> dict[str, bytes]:
-        raise OSError("unreadable")
-
-    unchanged = bridge.make_observe_workspace(
-        lambda: dict(SYNTHETIC_BASELINE), SYNTHETIC_BASELINE
-    )
-    changed = bridge.make_observe_workspace(
-        lambda: {**SYNTHETIC_BASELINE, "notes.md": b"edited\n"}, SYNTHETIC_BASELINE
-    )
-    failed = bridge.make_observe_workspace(raising, SYNTHETIC_BASELINE)
-    assert unchanged() == bridge.WORKSPACE_UNCHANGED
-    assert changed() == bridge.WORKSPACE_CHANGED
-    assert failed() == bridge.WORKSPACE_CAPTURE_FAILED
 
 
-def test_workspace_baseline_shape_is_validated() -> None:
-    with pytest.raises(bridge.BridgeError) as caught:
-        bridge.make_observe_workspace(lambda: {}, {"notes.md": "not bytes"})
-    assert caught.value.code == "WORKSPACE_BASELINE_INVALID"
+def test_final_observation_cannot_reach_stdout() -> None:
+    """The final-output axis takes no argument and closes over no stdout.
 
-
-def test_observations_cannot_reach_stdout() -> None:
-    """The observation axes take no argument and close over no stdout."""
+    The workspace axis is no longer the bridge's to own: the contract v2
+    coordinator receives the private baseline and performs that comparison
+    itself, so there is no workspace callback here to check.
+    """
 
     raw = bytes(RAW_COMPLETE)
     injected = bridge.map_contained_result(contained(raw=raw))
     observe_final = bridge.make_observe_final(lambda: b"{}")
-    observe_workspace = bridge.make_observe_workspace(
-        lambda: dict(SYNTHETIC_BASELINE), SYNTHETIC_BASELINE
-    )
 
-    for observe in (observe_final, observe_workspace):
-        assert observe.__code__.co_argcount == 0
-        for cell in observe.__closure__ or ():
-            assert cell.cell_contents is not raw
-            assert cell.cell_contents is not injected
-
+    assert observe_final.__code__.co_argcount == 0
+    for cell in observe_final.__closure__ or ():
+        assert cell.cell_contents is not raw
+        assert cell.cell_contents is not injected
     assert observe_final() == bridge.FINAL_CAPTURED
-    assert observe_workspace() == bridge.WORKSPACE_UNCHANGED
 
 
-def test_complete_capture_with_unchanged_workspace_is_negative() -> None:
-    current = coordinator(
-        observe_workspace=bridge.make_observe_workspace(
-            lambda: dict(SYNTHETIC_BASELINE), SYNTHETIC_BASELINE
-        )
-    )
-    result = current.run()
-    assert result.capture_status == "COMPLETE"
-    assert result.profile == "RUNNER_CAPTURE_NEGATIVE"
+def test_bridge_no_longer_owns_workspace_observation() -> None:
+    assert not hasattr(bridge, "make_observe_workspace")
+    assert not [name for name in dir(bridge) if "WORKSPACE" in name]
+    fields = set(integration.RunnerIntegrationCoordinator.__dataclass_fields__)
+    assert "observe_workspace" not in fields
+    assert {"workspace_baseline", "read_workspace"} <= fields
 
 
 # --- boundaries the tranche must not cross --------------------------------

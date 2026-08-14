@@ -34,13 +34,14 @@
 
 ## Latest Review (2026-08-13)
 
-- Gate 3 mapping-only bridge tranche completed at implementation `9ec1ba63…`
-  and test `b85eca62…` (commit `b399cb7f`), under design authority `5e0279c9…`
-  (commit `013f227a`). Mapping characterization only: no runtime authority, no
-  workspace public evidence, no credential-write detection, real runner still
-  unwired. Credentials, preflight and live remain unauthorized and the five
-  production-wiring preconditions are unsolved. Full record in
-  `memory/04_review_log.md`.
+- Gate 3 Group A contract v2 completed across `38991f35`, `7c0ee75e` and
+  `3ca52b49`, under design authority `a7206249…`. v2 is producible and
+  verifiable, v1 stays verifiable; workspace observation now belongs to the
+  coordinator. Public v2 evidence reaches only `BASELINE_DIGEST_DECLARED`, and
+  nothing claims a run performed the comparison. Two of five production-wiring
+  preconditions are closed; credential-residue recovery, structural non-`repr`
+  and path exclusivity remain, and credentials, preflight and live are still
+  unauthorized. Full record in `memory/04_review_log.md`.
 
 ## Claim Ceiling
 
