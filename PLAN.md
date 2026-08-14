@@ -127,12 +127,15 @@ Observation only:
   that the PLAN being pushed is fresh. Editing that one file satisfies the
   gate. Same wrong-subject shape as a provenance field naming a revision that
   did not produce the report. Recorded, not fixed here.
-- Reviewer-facing body drift on PR #57 and PR #60: the branch content was
-  corrected while the pull request description continued to publish withdrawn
-  claims. Both instances were caught by external review, neither by CI. This is
-  a manual-copy failure, and the honest response is to stop retyping numbers
-  that already exist in an artifact — not to add a gate. No gate, generator or
-  new surface without a further occurrence or a separate owner decision.
+- Reviewer-facing body drift has now occurred three times: PR #57, PR #60, and
+  this PR's original description. In each case the branch content was corrected
+  while the pull request description continued to publish withdrawn claims, and
+  every instance was caught by external review, none by CI. This is a
+  manual-copy failure, and the honest response is to stop retyping numbers that
+  already exist in an artifact. The third occurrence admits an owner decision
+  only; it does not authorise a gate, generator or new surface. Any
+  implementation still requires separate owner approval and must first
+  disposition PR #28.
 - This file is 1875 lines with 183 checked and 15 unchecked boxes, and roughly
   two thirds of the unchecked ones are standing constraints written as tasks
   ("Do not claim...", "Keep ... separate", "Wait for a real consumer"). A
