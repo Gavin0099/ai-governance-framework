@@ -4067,3 +4067,88 @@ express — twice in design against merged dataclass fields, once in a test name
 against its own assertion. Check the mechanism first, then write the claim.
 Production wiring stays blocked on the five preconditions; group A is the next
 design slice and reopens a pinned contract digest.
+
+## 2026-08-14 — Gate 3 Group A runner integration contract v2
+
+Design accepted at `a720624920ee402a6e490077f806229879929bbc9ba37bb84fd95eb551979e74`
+after five rounds; implementation delivered as three separately reviewed commits
+on one branch.
+
+### Findings And Resolution
+
+**Design, five rounds.** Every round found one defect in a different place: a
+guarantee asserted over a seam that cannot enforce it.
+
+1. `evidence_class = PRODUCTION` is caller intent, not execution provenance,
+   because `invoke` is an injected callable. Resolved by admitting `SYNTHETIC`
+   only and reserving `PRODUCTION` behind three named preconditions.
+2. Dispatching on version inside contract validation is too late, because
+   `verify_package` validates the authority first. Resolved by contract-first
+   identification from exact canonical bytes.
+3. An admission builder does not constrain a coordinator field that accepts any
+   callable. Resolved by removing the callback seam entirely; a token-guarded
+   capability was rejected as an overstated guarantee, since a private module
+   token is an API structural constraint rather than a boundary against a
+   hostile in-process caller.
+4. An import guard does not constrain what an author ran before pasting a
+   literal, and mutation tests measure verifier sensitivity, not literal
+   provenance. The "serializer reuse is detectable" claim was withdrawn.
+5. Stale affected-surface text still described the superseded admission-builder
+   design. Resolved in place.
+
+**A1, one round.** The retained-package test produced its own package with the
+modified coordinator, which shows only that a producer round-trips through its
+own verifier. Resolved with a frozen pre-A1 fixture captured from the module at
+`c2bc090b…`, verified without running any coordinator.
+
+**A2, one round.** The module comment said a v2 model without coordinator
+enforcement must not be presented as an active contract, but `verify_package`
+would verify a hand-built v2 package. Resolved with
+`VERIFIABLE_CONTRACT_VERSIONS` and a regression that relinks every downstream
+digest, plus a second test proving that package is internally coherent so the
+rejection is demonstrably the gate.
+
+**A3, one round, three blocking.**
+
+- The baseline was read twice from a caller-held mapping, so a mutation between
+  admission and comparison left the authority binding something other than what
+  was compared. Resolved with an immutable-by-value private snapshot taken
+  before any side effect.
+- The claim ladder existed only in the design. Resolved by reporting
+  `evidence_class` and `baseline_claim` on every profile.
+- Hostile mappings leaked their own exception text from `items()` calls outside
+  the failure boundary, on both the baseline and observed paths. Resolved by
+  closing both to `WORKSPACE_BASELINE_INVALID` (cause dropped) and
+  `CAPTURE_FAILED`.
+
+### Evidence
+
+- commits `38991f35`, `7c0ee75e`, `3ca52b49`; six exact digests recorded in the
+  corresponding PLAN entry, stable across review.
+- five focused Gate 3 offline suites: 570/570.
+- `git diff --check`: PASS at every step.
+- pre-A1 fixture verified from literal bytes with no coordinator run.
+- hostile probe by the reviewer: adding v2 to the verifiable set in memory made
+  the same relinked package verify, confirming the A2 rejection came from the
+  version gate rather than a stale link.
+
+### Not Claimed
+
+- No claim that any run performed the baseline comparison. Public v2 bytes reach
+  `BASELINE_DIGEST_DECLARED`; a supplied matching private map reaches
+  `SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST`. The third rung is a
+  conditional statement about reviewed source, not about execution.
+- No production evidence class; `PRODUCTION` is rejected by the v2 validator.
+- The oracle fixture is runtime-independent of the production modules and its
+  values were independently re-derived. Serializer reuse is not detectable and
+  is not claimed to be.
+- No real runner wiring, credentials, preflight, subprocess or live execution.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Three production-wiring preconditions remain: a pre-seal credential-residue
+recovery contract, a structural non-`repr` boundary, and machine-enforced path
+exclusivity. Group C is the credential-residue design; group B splits into two
+tranches because the two mechanisms have different modification surfaces and
+failure models. None may be interleaved before the one in progress closes.
