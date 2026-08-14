@@ -4022,3 +4022,48 @@ credential, preflight or live authority.
 Merge the accepted design with its PLAN and memory reconciliation in the same
 pull request, then treat the mapping-only offline tranche as a separately
 authorized slice.
+
+## 2026-08-14 — Gate 3 mapping-only runner bridge tranche accepted
+
+### Findings And Resolution
+- Round 1 on implementation `9ec1ba63…` / test `556a839f…` returned `APPROVED`,
+  but the author then self-reported a defect the review had not caught:
+  `test_no_credential_bytes_are_written` asserted `list(tmp_path.iterdir()) == []`
+  against a pytest-created directory that no code path ever targeted. The
+  assertion passes unconditionally, so the test name promised credential-write
+  detection that the mechanism could not deliver. The verdict was corrected to
+  `APPROVED with 1 WARNING`.
+- Resolution: the `tmp_path` fixture and its assertion were removed, the test was
+  renamed `test_mapping_tranche_uses_in_memory_fake_preparation`, the assertions
+  narrowed to `prepare.calls == 1` and `vars(prepare) == {"calls": 1}`, and the
+  docstring states explicitly that this is not credential-write detection.
+  Removing the fixture also eliminated an unrelated pytest temp-directory ACL
+  sensitivity seen on one rerun.
+- Round 2 on test `b85eca62…` returned `APPROVED` with zero open findings.
+
+### Evidence
+- implementation SHA-256
+  `9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33`, unchanged
+  across both rounds; test SHA-256
+  `b85eca62c3edf6c6d2112b3abf91b805264b1b648d774109d85eca9a30420993`.
+- identical staged, committed and remote blobs, verified at each step.
+- focused tests 23/23; five adjacent Gate 3 offline suites 520/520.
+- `git diff --check origin/main..b399cb7f`: PASS; scope is the two new files.
+- PR #65 checks: 11 success, 1 skipped, 0 pending, 0 failed.
+
+### Not Claimed
+- No runtime authority over the bridge source; it is not a `RUNTIME_SUBJECTS`
+  member and does not participate in the TOCTOU chain.
+- No public workspace evidence: the baseline is a caller-supplied synthetic
+  fixture, so `CHANGED`/`UNCHANGED` derived from it is test-local.
+- No credential-write detection, no real runner wiring, no credentials,
+  preflight, subprocess, network or live execution.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+Treat the recurring lesson as method, not incident: three of the defects in this
+work stream were claims asserted top-down that the underlying mechanism could not
+express — twice in design against merged dataclass fields, once in a test name
+against its own assertion. Check the mechanism first, then write the claim.
+Production wiring stays blocked on the five preconditions; group A is the next
+design slice and reopens a pinned contract digest.
