@@ -2,12 +2,12 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-07-30
+> **最後更新**: 2026-08-14
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
 > **Risk tier**: L2
-> **Planning window**: 2026-03 through 2026-07
+> **Planning window**: 2026-03 through 2026-08
 > **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
@@ -91,6 +91,56 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-08-14:
+
+Theme:
+
+- Restore the canonical planning surface to current repository truth.
+- Finish existing review, disposition, publication and consumer-transfer work
+  before adding governance surface.
+- Keep reviewer-facing narrative drift observation-only.
+
+Ordered next work:
+
+- Owner adjudicates the 14 `undetermined` entries in the maintenance queue
+  ledger. Each already carries a recommended disposition; what is undetermined
+  is whether a script can confirm the surface exists, not what to do with it.
+  The owner decides whether to accept each disposition, name the canonical
+  target where the recommendation is `merge`, and authorise any change.
+- Publish the three reviewed weekly-report corrections: PR #26 narrowed to
+  structural session-binding rejections only, all G4 maturity percentages
+  removed, and the consumer-surface claim narrowed from "consumer repos" to the
+  single submodule consumer that exercised the path.
+- Run CFU transfer verification against a deliberately selected framework
+  checkpoint, in a clean isolated worktree via F-7. The selected checkpoint is
+  not "latest" and must not be described as such; CFU's own worktree carries
+  unrelated modifications and must not be updated in place.
+
+Observation only:
+
+- Reviewer-facing body drift on PR #57 and PR #60: the branch content was
+  corrected while the pull request description continued to publish withdrawn
+  claims. Both instances were caught by external review, neither by CI. This is
+  a manual-copy failure, and the honest response is to stop retyping numbers
+  that already exist in an artifact — not to add a gate. No gate, generator or
+  new surface without a further occurrence or a separate owner decision.
+- This file is 1875 lines with 183 checked and 15 unchecked boxes, and roughly
+  two thirds of the unchecked ones are standing constraints written as tasks
+  ("Do not claim...", "Keep ... separate", "Wait for a real consumer"). A
+  constraint cannot be ticked, so the unchecked count never reaches zero and
+  carries no signal, while every refresh must re-read all of them to find the
+  few that are actionable. That cost is why this header sat 15 days past a
+  7-day threshold. Separating standing constraints from current intent, and
+  completed history from both, is a candidate slice — not started, and not
+  authorised here.
+
+Anti-goals:
+
+- No Graphiti work without a reproducible retrieval failure.
+- No plugin-framework expansion without a capability-extraction case.
+- No Gate 3 expansion while Gate 2 process integrity remains NOT_ESTABLISHED.
+- No `.tmp_*` worktree cleanup in this slice.
 
 Current refresh - 2026-07-30:
 
