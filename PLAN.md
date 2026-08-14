@@ -1773,6 +1773,33 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   unauthorized at this checkpoint; the consumed pair remains `NON_SUCCESS`, and
   Gate 3 or treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 mapping-only runner bridge tranche completed 2026-08-14.**
+  Implementation commit `b399cb7f` adds only a new bridge module and its focused
+  test file. Exact implementation SHA-256 is
+  `9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33`; exact test
+  SHA-256 is
+  `b85eca62c3edf6c6d2112b3abf91b805264b1b648d774109d85eca9a30420993`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings after one warning on test-claim scope was closed; focused tests
+  passed 23/23 and five adjacent Gate 3 offline suites passed 520/520.
+  The tranche maps `_ContainedResult` to `InjectedContainedResult`, drops
+  `returncode` on the timeout path because a non-`EXITED` disposition requires a
+  null exit code, sets `stderr` empty rather than forwarding it, treats
+  incomplete process-tree termination as a closed error rather than a
+  `TERMINATED` row, and refuses to claim `START_FAILED` from an unattributable
+  failure, accepting a consumed launch ordinal instead.
+  Claim ceiling: mapping characterization only. The bridge source is not a
+  `RUNTIME_SUBJECTS` member and claims no runtime authority; the workspace
+  baseline is a caller-supplied synthetic fixture, so its `CHANGED`/`UNCHANGED`
+  verdict is not public evidence about a real workspace; and the preparation
+  test asserts only that an in-memory fake ran, which is not credential-write
+  detection. Both the contained call and private preparation are injected fakes.
+  This tranche does not wire or launch the real runner, use credentials, run
+  preflight or live, or reuse, retry or replace the consumed pair. Production
+  wiring remains blocked on the five preconditions named in the accepted design;
+  the consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
+  effectiveness is not established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
