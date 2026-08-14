@@ -354,10 +354,41 @@ This is a proposed later tranche, not current implementation authority.
 - one new small module holding the shared base, or the base placed in an
   existing module if that avoids a new import edge
 
-**Changing `gate3_route_v2_codex.py` alters its module digest**, which
-invalidates measured preflights bound to it. That cost is already sunk: a fresh
-zero-session preflight is required before any live step regardless. It is named
-here so the implementation does not discover it late.
+**Changing `gate3_route_v2.py` or `gate3_route_v2_codex.py` alters their module
+digests. This costs more than this document originally said, and the correction
+is recorded here rather than left in a later note.**
+
+The original text named only invalidated measured preflights, and called that
+cost already sunk because a fresh zero-session preflight is required before any
+live step regardless. That much still holds.
+
+What it missed, found by implementing it: those two paths are also the promoted
+historical candidate source snapshot for the consumed `NON_SUCCESS` pair.
+`gate3_route_v2_ab_candidate.py` compares the worktree bytes against
+`git show 204965c9…:<path>` and rebuilds the retained manifests from the
+currently imported modules, so editing either file breaks the exact
+reconstruction of owner-promoted evidence.
+
+Measured by running the directory suite with the B-1 edits present and again
+with them stashed: **six regressions** are caused by the edits —
+`test_candidate_runtime_inputs_match_source_commit`,
+`test_candidate_contract_mutation_is_rejected`,
+`test_exact_git_tree_materializes_and_reconstructs_non_success`, and
+`test_materialized_runtime_residue_still_fails_closed` in three parametrized
+cases. A seventh failure,
+`test_exact_candidate_reconstructs_and_validates`, fails in **both** runs: it is
+pre-existing, caused by untracked evidence paths already in the directory, and
+is not evidence of this conflict.
+
+Underneath is an architectural conflict — historical evidence and active source
+sharing one path — which reverting B-1 would not fix. But the omission here is
+this document's: **not a defect in the rendering mechanism, which review left
+intact, but an affected-surface omission in the approved design.** The design
+understated its impact, and that is a design completeness defect, recorded as
+such. It is addressed by a separate historical-materialization design, and
+**B-1 implementation is blocked until that lands.** Neither the retained
+manifests nor the owner pin may be re-derived to accommodate this work: the old
+pair ran the bytes at `204965c9…`, and no artifact may imply otherwise.
 
 The capture adapter, its schemas, the oracle module and worksheet, manifests,
 owner pins, promotion state, `PLAN.md`, memory and all evidence paths remain
