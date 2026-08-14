@@ -539,3 +539,104 @@ def test_ambiguity_is_not_resolved_by_a_hook_root(tmp_path: Path) -> None:
     # Consulting the hook root here would yield a confident pin instead.
     assert report.submodule_pin.value == "unknown"
     assert "more than one" in " ".join(report.submodule_pin.reasons)
+
+
+def _write_gitmodules_entries(repo: Path, entries: list[tuple[str, str, str]]) -> None:
+    """entries = [(name, path, url), ...]"""
+    _write(
+        repo / ".gitmodules",
+        "".join(f'[submodule "{name}"]\n\tpath = {path}\n\turl = {url}\n' for name, path, url in entries),
+    )
+
+
+_FRAMEWORK_URL = "https://example.invalid/ai-governance-framework.git"
+_UNRELATED_URL = "https://example.invalid/host-dmf.git"
+
+
+def test_custom_path_framework_missing_is_still_reported_as_declared_missing(tmp_path: Path) -> None:
+    """A consumer may mount the framework anywhere.
+
+    Identification by canonical path name alone lost these repos entirely: with
+    no checkout there is no content to inspect and the path is not canonical, so
+    the framework fell through to "no framework declared" and the
+    declared_missing warning disappeared. The url is the surviving evidence.
+    """
+    repo = _make_repo(tmp_path / "custom-missing")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    _write_gitmodules_entries(
+        repo,
+        [
+            ("Host/DMF", "Host/DMF", _UNRELATED_URL),
+            ("governance", "vendor/governance", _FRAMEWORK_URL),
+        ],
+    )
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "declared_missing"
+    reasons = " ".join(report.framework_submodule.reasons)
+    assert "vendor/governance" in reasons
+    assert "Host/DMF" not in reasons
+
+
+def test_custom_path_framework_incomplete_is_reported_as_uninitialized(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "custom-partial")
+    _write(repo / "Host" / "DMF" / "readme.md", "unrelated\n")
+    _write(repo / "vendor" / "governance" / "README.md", "partial checkout\n")
+    _write_gitmodules_entries(
+        repo,
+        [
+            ("Host/DMF", "Host/DMF", _UNRELATED_URL),
+            ("governance", "vendor/governance", _FRAMEWORK_URL),
+        ],
+    )
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "partial_or_uninitialized"
+    assert "vendor/governance" in " ".join(report.framework_submodule.reasons)
+
+
+def test_unrelated_submodule_with_runtime_hooks_does_not_force_ambiguous(tmp_path: Path) -> None:
+    """`_looks_like_framework_root` accepts a bare `runtime_hooks/` directory.
+
+    Consulting content before identity turned that weak match into a spurious
+    `ambiguous`, so a correctly adopted consumer lost its topology because an
+    unrelated submodule happened to carry a directory of that name.
+    """
+    repo = _make_repo(tmp_path / "weak-collision")
+    _write(repo / "Host" / "DMF" / "runtime_hooks" / "core.py", "# unrelated\n")
+    assert adoption_doctor._looks_like_framework_root(repo / "Host" / "DMF")
+    _make_git_framework(repo / "ai-governance-framework")
+    _write_gitmodules_entries(
+        repo,
+        [
+            ("Host/DMF", "Host/DMF", _UNRELATED_URL),
+            ("agf", "ai-governance-framework", _FRAMEWORK_URL),
+        ],
+    )
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "initialized"
+    assert report.adoption_class.value == "submodule_consumer"
+    assert "ai-governance-framework" in " ".join(report.adoption_class.reasons)
+
+
+def test_two_declared_frameworks_both_checked_out_still_fail_closed(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "two-real")
+    _make_git_framework(repo / "ai-governance-framework")
+    _make_git_framework(repo / "vendor" / "ai-governance-framework")
+    _write_gitmodules_entries(
+        repo,
+        [
+            ("a", "ai-governance-framework", _FRAMEWORK_URL),
+            ("b", "vendor/ai-governance-framework", _FRAMEWORK_URL),
+        ],
+    )
+
+    report = inspect_adoption(repo)
+
+    assert report.framework_submodule.value == "ambiguous"
+    assert report.adoption_class.value == "unknown"
+    assert report.submodule_pin.value == "unknown"

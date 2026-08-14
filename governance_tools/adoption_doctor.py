@@ -127,19 +127,40 @@ def _read_hook_framework_root(repo_root: Path) -> Path | None:
     return _resolve(Path(raw))
 
 
-def _parse_gitmodules(repo_root: Path) -> list[str]:
+def _parse_gitmodules_entries(repo_root: Path) -> list[tuple[str, str]]:
+    """Declared submodules as (path, url).
+
+    The url matters: a consumer may mount the framework at any path, and when the
+    checkout is missing there is no content to inspect. The url is then the only
+    remaining evidence of what the path was meant to be.
+    """
     gitmodules = repo_root / ".gitmodules"
     if not gitmodules.is_file():
         return []
-    paths: list[str] = []
-    for line in gitmodules.read_text(encoding="utf-8", errors="replace").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("path") and "=" in stripped:
-            _, value = stripped.split("=", 1)
-            candidate = value.strip()
-            if candidate:
-                paths.append(candidate)
-    return paths
+    entries: list[tuple[str, str]] = []
+    current_path: str | None = None
+    current_url: str = ""
+    for raw_line in gitmodules.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if line.startswith("[submodule "):
+            if current_path:
+                entries.append((current_path, current_url))
+            current_path, current_url = None, ""
+            continue
+        if "=" not in line:
+            continue
+        key, value = [part.strip() for part in line.split("=", 1)]
+        if key == "path" and value:
+            current_path = value
+        elif key == "url":
+            current_url = value
+    if current_path:
+        entries.append((current_path, current_url))
+    return entries
+
+
+def _parse_gitmodules(repo_root: Path) -> list[str]:
+    return [path for path, _url in _parse_gitmodules_entries(repo_root)]
 
 
 def _framework_candidates(repo_root: Path, explicit_framework_root: Path | None) -> list[tuple[str, Path]]:
@@ -218,11 +239,23 @@ def _is_framework_submodule_name(rel: str) -> bool:
     return normalized in COMMON_FRAMEWORK_PATHS or normalized.rsplit("/", 1)[-1] in _FRAMEWORK_SUBMODULE_NAMES
 
 
+def _declares_framework(path: str, url: str) -> bool:
+    """Declarative identity, from path or url.
+
+    Matches `manual_update_advisory._is_framework_submodule`. A consumer may
+    mount the framework anywhere — `vendor/governance` with the framework's url
+    is still the framework — and this is the only signal that survives a missing
+    checkout, where there is nothing to inspect.
+    """
+    return "ai-governance-framework" in f"{path} {url}".lower()
+
+
 def _resolve_framework_submodule(
     repo_root: Path,
     explicit_framework_root: Path | None = None,
 ) -> SubmoduleResolution:
-    declared = _parse_gitmodules(repo_root)
+    entries = _parse_gitmodules_entries(repo_root)
+    declared = [path for path, _url in entries]
     if not declared:
         return SubmoduleResolution(None, "none_declared", [".gitmodules does not declare a submodule"])
 
@@ -239,8 +272,44 @@ def _resolve_framework_submodule(
                     tuple(declared),
                 )
 
-    # Content, so an initialized framework is recognised wherever it is declared.
     by_content = [rel for rel in declared if _looks_like_framework_root(repo_root / rel)]
+
+    # Declaration first, because it is the stronger signal and the only one that
+    # survives a missing checkout. `_looks_like_framework_root` accepts a bare
+    # `runtime_hooks/` directory, so an unrelated submodule can collide with a
+    # real framework on content alone; asking content first turned that into a
+    # spurious `ambiguous` without ever consulting identity.
+    by_declaration = [rel for rel, url in entries if _declares_framework(rel, url)]
+    if len(by_declaration) == 1:
+        return SubmoduleResolution(
+            by_declaration[0],
+            "resolved",
+            [f"declared submodule {by_declaration[0]} is identified as the framework by path or url"],
+            tuple(declared),
+        )
+    if len(by_declaration) > 1:
+        # Several declare themselves the framework; prefer the one that is
+        # actually checked out, and fail closed when that does not separate them.
+        checked_out = [rel for rel in by_declaration if rel in by_content]
+        if len(checked_out) == 1:
+            return SubmoduleResolution(
+                checked_out[0],
+                "resolved",
+                [
+                    f"{len(by_declaration)} declared submodules identify as the framework; "
+                    f"only {checked_out[0]} is checked out"
+                ],
+                tuple(by_declaration),
+            )
+        return SubmoduleResolution(
+            None,
+            "ambiguous",
+            [f"more than one declared submodule identifies as the framework: {', '.join(by_declaration)}"],
+            tuple(by_declaration),
+        )
+
+    # No declarative identity: fall back to content, for a framework mounted at
+    # an unrecognised path with an unrecognised url.
     if len(by_content) == 1:
         return SubmoduleResolution(
             by_content[0],
@@ -256,8 +325,6 @@ def _resolve_framework_submodule(
             tuple(by_content),
         )
 
-    # Name, so a declared-but-missing or uninitialized framework is still
-    # reported against the framework path rather than an unrelated submodule.
     by_name = [rel for rel in declared if _is_framework_submodule_name(rel)]
     if len(by_name) == 1:
         return SubmoduleResolution(
