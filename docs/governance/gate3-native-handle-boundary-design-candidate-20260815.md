@@ -7,7 +7,32 @@ Date: 2026-08-15
 
 Base: `feat/gate3-historical-materialization@896bc64c006da4e40a6d5a7d8b32d462467d08f2`
 
-Revision: 12 — resolves the three findings raised against revision 11
+Revision: 15 — fixes anonymity recognition, which revision 14 inferred from
+nesting rather than from the declarator, so a named nested union was rejected as
+an unmapped placeholder; and replaces two tests that asserted the right words
+instead of the right behaviour — the archive is now proven unopened on a digest
+mismatch, a digest-valid archive missing a closed entry is proven refused, and a
+directory input is refused by the public entry point rather than by source
+introspection.
+
+Revision 14 — made the expected-layout artifact's provenance **verified
+rather than declared**: the extractor now takes the `.nupkg`, checks its digest
+before opening it, and reads a closed nine-entry inventory, where revision 13
+accepted any header directory and stamped the official constants onto it. Also
+closes the nested schema revision 13 left open — exact key sets for both ABI
+tables, the exact header inventory, path components, and an exact
+`package_source_url` grammar — and makes an unregistered anonymous placeholder
+fail closed rather than pass through.
+
+Revision 13 — closed the expected-layout artifact's extended `provenance`
+schema, which revision 12 fixed at five keys while the extractor built against
+it emits fourteen; fixes the canonical mapping for anonymous aggregate members,
+without which the gate would reject `IO_STATUS_BLOCK` on a name rather than a
+layout; requires the header paths to be canonical package entries plus the
+package identity, so a committed artifact names its official source chain; and
+requires the extractor to carry focused tests of its own.
+
+Revision 12 — resolved the three findings raised against revision 11
 (`fb76b082…`), all of them internal-consistency failures rather than new
 questions: a paragraph left over from before owner ruling 8 still described the
 §4.1 exception as unsought, four places still stated the diagnostic
@@ -842,6 +867,7 @@ declarations against themselves and pass whatever they happen to be.
 | Element | Rule |
 | --- | --- |
 | artifact | `artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-native-expected-layout.json` |
+| extractor | `artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_native_expected_layout_extract.py`, with focused tests beside it |
 | authority | two digest-bearing constants in the **hashed backend**: `EXPECTED_LAYOUT_PATH` and `EXPECTED_LAYOUT_SHA256` |
 | load order | read raw bytes → **verify the digest against `EXPECTED_LAYOUT_SHA256`** → only then parse, with a duplicate-key-rejecting parser. Never parse first |
 | contents | per type: `sizeof`, `alignment`, and every field's `offset` and `size`; plus provenance — SDK version, the header paths extracted from, the extraction method, and the extractor's own digest |
@@ -857,8 +883,105 @@ read the same anchored bytes and reach different verdicts.
 | --- | --- |
 | schema token | `gate3.native-expected-layout.v1`, present as the top-level `schema` key; any other value is refused |
 | top-level keys | exactly `schema`, `provenance`, `types` — no more, no fewer |
-| `provenance` keys | exactly `sdk_version`, `header_paths`, `extraction_method`, `extractor_path`, `extractor_sha256` |
+| `provenance` keys | exactly the fourteen below — no more, no fewer |
 | `extractor_path` | `artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_native_expected_layout_extract.py`, fixed here rather than left to a digest alone — a digest identifies bytes but does not say where to find or re-run them |
+
+### `provenance` — the closed fourteen
+
+Revision 12 named five keys. The extractor built against it emits more, and the
+extra fields are not noise: they are the inputs a reviewer must see to judge the
+oracle — the package it came from, the per-header digests, and the two type
+tables that are the only values *not* derived from the headers. Widening is
+therefore right, but "allow six more keys" is not a schema. Each is closed
+below, on the same terms as everything else: exact key inventory, exact value
+types, ranges, ordering, and unknown/duplicate keys refused at every level.
+
+| Key | Type and constraint |
+| --- | --- |
+| `package_id` | exactly `Microsoft.Windows.SDK.CPP` |
+| `package_version` | non-empty ASCII matching `[0-9]+(\.[0-9]+){1,3}` |
+| `package_sha256` | 64 lowercase hex characters — the `.nupkg` digest |
+| `package_source_url` | exactly `https://api.nuget.org/v3-flatcontainer/{lowercased package_id}/{package_version}/{lowercased package_id}.{package_version}.nupkg`. Not a prefix check: the whole string is derived from `package_id` and `package_version` and compared byte for byte, so a URL pointing somewhere else cannot satisfy it |
+| `sdk_version` | the SDK **include-directory** version, distinct from `package_version`, matching `[0-9]+(\.[0-9]+){1,3}` |
+| `extraction_method` | closed set: `headers-parsed`, `headers-preprocessed`, `vendor-published` |
+| `measurement_class` | closed set: `computed-not-compiled`, `compiled`. Replaces revision 12's free-text `not_a_compiled_measurement`, which could not be checked |
+| `extractor_path` | the fixed path above |
+| `extractor_sha256` | 64 lowercase hex |
+| `abi` | exactly the admitted token, `64/win64/WinDLL` |
+| `pack` | integer, exactly `8`, matching `MAX_PACK` |
+| `header_digests` | list of objects with **exactly** `path`, `bytes`, `sha256` and no other key; **sorted by `path` bytewise ascending**; paths unique; the path set must equal the closed nine-entry inventory below, neither more nor fewer; each `path` a canonical package entry beginning `c/Include/`, using `/` only, never absolute, never containing `\`, with **no component equal to `.`, `..` or empty**; `bytes` an integer in `1..16777216`; `sha256` 64 lowercase hex |
+| `fundamental_type_table` | object whose key set is **exactly** the eighteen fundamental spellings; each value a two-element array `[size, alignment]` of integers; `size` in `1..65535`; `alignment` a power of two in `1..16`; keys sorted bytewise |
+| `preprocessor_dependent_type_table` | object whose key set is **exactly** the ten preprocessor-dependent spellings; same value constraints and ordering |
+
+Both tables are the ABI inputs the headers do not settle, so "some mapping of
+strings to pairs" is not enough — an entry silently added or dropped changes
+what the oracle computes. Their key sets are fixed, and a test holds them as
+fixtures written independently of the extractor's constants.
+
+**The closed header inventory** — exactly these nine entries, and the
+`header_digests` path set must equal it:
+
+```text
+c/Include/10.0.26100.0/shared/basetsd.h
+c/Include/10.0.26100.0/shared/minwindef.h
+c/Include/10.0.26100.0/shared/ntdef.h
+c/Include/10.0.26100.0/shared/windef.h
+c/Include/10.0.26100.0/um/WinBase.h
+c/Include/10.0.26100.0/um/fileapi.h
+c/Include/10.0.26100.0/um/minwinbase.h
+c/Include/10.0.26100.0/um/winnt.h
+c/Include/10.0.26100.0/um/winternl.h
+```
+
+### Provenance is verified, not declared
+
+Recording a package id, version and digest proves nothing if the extractor will
+accept any directory of headers and stamp those constants onto the result. The
+extractor therefore **takes the `.nupkg` itself**:
+
+1. read the whole file and compute its SHA-256;
+2. compare against the pinned `package_sha256` — **before the archive is
+   opened**, so a substituted package is never even read;
+3. open the archive and read exactly the nine closed entries above, by path;
+4. refuse on a missing package, a digest mismatch, or any missing entry, each
+   as `HANDLE_BOUNDARY_UNAVAILABLE`.
+
+Nothing in the archive is executed; only those nine entries are extracted. A
+directory-based input is not offered, because it would reintroduce exactly the
+gap this closes.
+
+**`header_paths` is removed.** Revision 12 carried both it and `header_digests`,
+which duplicated the same list in two places and invited them to drift.
+`header_digests` alone now carries the paths.
+
+**Every numeric above is checked with `type(value) is int`**, per the rule
+already stated, so a JSON boolean cannot pass as `1` or `0`.
+
+### Anonymous aggregate members
+
+The SDK spells the anonymous union inside `IO_STATUS_BLOCK` with a placeholder
+macro name; the `ctypes` declaration under test names the same member `u`. The
+gate compares field-name sequences exactly, so without a fixed mapping the two
+would disagree on a member they both lay out identically — a false failure that
+would look like an ABI defect.
+
+**Canonical mapping, normative:** the SDK's `DUMMYUNIONNAME` maps to `u`. The
+mapping is a closed table in the extractor, applied when the artifact is
+written, and locked by a test; the emitted artifact must contain no occurrence
+of `DUMMYUNIONNAME` anywhere.
+
+Two properties the mapping must have, both testable:
+
+- **anonymity is decided by the declarator, not by nesting.** A nested
+  aggregate is anonymous when it has no declarator, or when its declarator is a
+  placeholder matching `DUMMY(UNION|STRUCT)NAME\d*` — the SDK writes
+  `union { ... } DUMMYUNIONNAME;` and this extractor does not preprocess, so it
+  sees that token literally. `union { ... } named;` is an ordinary named member
+  and survives untouched. An earlier revision marked *every* nested aggregate
+  anonymous, so a named one was rejected as an unmapped placeholder;
+- **an unregistered placeholder is a closed failure**, not a pass-through. A
+  lookup that falls back to the original name would quietly make an unknown
+  spelling the expected one, which is the opposite of a gate.
 | `types` | an object keyed by type name; keys must equal the eleven declared types **exactly** — a missing or extra type is refused |
 | each type | exactly `kind`, `size`, `alignment`, `fields`; `kind` is `structure` or `union` |
 | each field | exactly `name`, `offset`, `size`, in declaration order, and the field-name sequence must equal that type's declared `_fields_` order exactly |
@@ -1149,6 +1272,33 @@ This is a proposed later tranche, not current implementation authority.
     hashed before the artifact is used, with a mismatched extractor and a
     missing extractor each yielding `HANDLE_BOUNDARY_UNAVAILABLE`, and the
     extractor proven never to be imported or executed by the check;
+19q. the extractor has focused tests of its own, since it is a parser that
+    produces authority and four real parsing defects were found while building
+    it. They lock: the preprocessor-dependent typedef branches; a function
+    parameter not being read as a declarator; directive lines not swallowing a
+    following typedef; equivalent spellings distinguished from a real metric
+    conflict; SAL annotations not read as function pointers; the anonymous-member
+    canonical mapping; deterministic canonical header paths; independently
+    written expected fixtures for all eleven types; and fail-closed behaviour on
+    a missing header, an absent definition, an unknown typedef, an unknown
+    constant and an empty aggregate;
+19r. the fixtures are proven to have teeth by mutation: a changed offset, a
+    reverted anonymous-member name and a non-canonical header path each fail;
+19s. the extractor is proven to refuse a package whose digest does not match
+    the pin, a package that does not exist, and a **digest-valid** archive
+    missing one of the nine closed entries; the digest-mismatch case
+    additionally proves `ZipFile` is never called, since an error-message
+    assertion alone would still pass if the open were moved above the digest
+    comparison; and a directory handed to the public `build()` is proven
+    refused, rather than the ordering being checked by reading the source;
+19t. parsed through `parse_fields`, a named nested union keeps its name, a
+    placeholder declarator is recognised as anonymous and maps, and an
+    unregistered placeholder spelling raises; the declarator-based recognition
+    rule is asserted directly for the empty, placeholder and named cases;
+19u. the package digest, source URL, SDK version, the nine entry paths, the
+    per-header digests and both ABI input tables are asserted against fixtures
+    written independently of the extractor's constants, so editing a constant
+    and the artifact together still fails;
 19m. the expected-layout artifact is rejected, each separately, for: a wrong
     schema token, a missing or extra top-level key, a missing or extra
     `provenance` key, a missing or extra type, a type whose field-name sequence
@@ -1196,8 +1346,8 @@ This is a proposed later tranche, not current implementation authority.
 
 - one native boundary module and its test;
 - one admission registry **data artifact** and one owner admission pin artifact;
-- the SDK expected-layout artifact, the extractor that produces it, and their
-  tests;
+- the SDK expected-layout artifact, the extractor that produces it, and its
+  focused tests;
 - `gate3_historical_materialize.py` and `test_gate3_historical_materialize.py`;
 - `docs/adr/` and this slice's ADR;
 - an accepted amendment to `0cf5eaed…`.

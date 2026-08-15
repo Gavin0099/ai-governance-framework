@@ -1,0 +1,463 @@
+{
+  "provenance": {
+    "abi": "64/win64/WinDLL",
+    "extraction_method": "headers-parsed",
+    "extractor_path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_native_expected_layout_extract.py",
+    "extractor_sha256": "877e7fee5f7b382e3e3fe1331b1112cd1e2b24f4e1d3c09f6f570aecef6e64c0",
+    "fundamental_type_table": {
+      "POINTER": [
+        8,
+        8
+      ],
+      "__int64": [
+        8,
+        8
+      ],
+      "char": [
+        1,
+        1
+      ],
+      "double": [
+        8,
+        8
+      ],
+      "float": [
+        4,
+        4
+      ],
+      "int": [
+        4,
+        4
+      ],
+      "long": [
+        4,
+        4
+      ],
+      "long long": [
+        8,
+        8
+      ],
+      "short": [
+        2,
+        2
+      ],
+      "signed char": [
+        1,
+        1
+      ],
+      "unsigned __int64": [
+        8,
+        8
+      ],
+      "unsigned char": [
+        1,
+        1
+      ],
+      "unsigned int": [
+        4,
+        4
+      ],
+      "unsigned long": [
+        4,
+        4
+      ],
+      "unsigned long long": [
+        8,
+        8
+      ],
+      "unsigned short": [
+        2,
+        2
+      ],
+      "void": [
+        1,
+        1
+      ],
+      "wchar_t": [
+        2,
+        2
+      ]
+    },
+    "header_digests": [
+      {
+        "bytes": 11448,
+        "path": "c/Include/10.0.26100.0/shared/basetsd.h",
+        "sha256": "d35b73f885d7ef7dfd27fce3762c190c1c952a21e10a3945bcb3d1860c673b12"
+      },
+      {
+        "bytes": 6876,
+        "path": "c/Include/10.0.26100.0/shared/minwindef.h",
+        "sha256": "a9cf08be8407a196104124d5ade2308e204e47d3252bcd2ad20d0f2137843d62"
+      },
+      {
+        "bytes": 119564,
+        "path": "c/Include/10.0.26100.0/shared/ntdef.h",
+        "sha256": "2b6ffe6140fa9dbb23a5bba88c7b177cf88d255c98ca8639ff456e2ae377a93c"
+      },
+      {
+        "bytes": 7362,
+        "path": "c/Include/10.0.26100.0/shared/windef.h",
+        "sha256": "040535b19a60264e5fe6971f7cb13cbf24be17abeeaa8acd21e44f5d7dfe8d22"
+      },
+      {
+        "bytes": 271704,
+        "path": "c/Include/10.0.26100.0/um/WinBase.h",
+        "sha256": "ec538199f5ebe8cec2dfd4f1ba48316ef776c82d37277aed3a677965e494f192"
+      },
+      {
+        "bytes": 40460,
+        "path": "c/Include/10.0.26100.0/um/fileapi.h",
+        "sha256": "f8927178c75de487c0e57f044a215e455522bf6eaa0b660421be09cd06ae05a1"
+      },
+      {
+        "bytes": 13973,
+        "path": "c/Include/10.0.26100.0/um/minwinbase.h",
+        "sha256": "7d1408f4b8eeba96ae45892209132258cde80cab6dab192b4cceea591972c78b"
+      },
+      {
+        "bytes": 876258,
+        "path": "c/Include/10.0.26100.0/um/winnt.h",
+        "sha256": "bc603675b330e624fd6f3de9ed3497ed6101e4c56e12cf819a9ef7c41f1c78d8"
+      },
+      {
+        "bytes": 30360,
+        "path": "c/Include/10.0.26100.0/um/winternl.h",
+        "sha256": "a43424486349c38f697c009512dfe4eb8fca733d7665afab42f50752170b9785"
+      }
+    ],
+    "measurement_class": "computed-not-compiled",
+    "pack": 8,
+    "package_id": "Microsoft.Windows.SDK.CPP",
+    "package_sha256": "f8787b2f6678164ae789bdca6247e696c2a0f529a39ceb969d6ef3d69a987131",
+    "package_source_url": "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.cpp/10.0.26100.8249/microsoft.windows.sdk.cpp.10.0.26100.8249.nupkg",
+    "package_version": "10.0.26100.8249",
+    "preprocessor_dependent_type_table": {
+      "DWORDLONG": [
+        8,
+        8
+      ],
+      "DWORD_PTR": [
+        8,
+        8
+      ],
+      "INT_PTR": [
+        8,
+        8
+      ],
+      "LONGLONG": [
+        8,
+        8
+      ],
+      "LONG_PTR": [
+        8,
+        8
+      ],
+      "SIZE_T": [
+        8,
+        8
+      ],
+      "SSIZE_T": [
+        8,
+        8
+      ],
+      "UINT_PTR": [
+        8,
+        8
+      ],
+      "ULONGLONG": [
+        8,
+        8
+      ],
+      "ULONG_PTR": [
+        8,
+        8
+      ]
+    },
+    "sdk_version": "10.0.26100.0"
+  },
+  "schema": "gate3.native-expected-layout.v1",
+  "types": {
+    "EXCEPTION_RECORD": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "ExceptionCode",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "ExceptionFlags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "ExceptionRecord",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "ExceptionAddress",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "NumberParameters",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "ExceptionInformation",
+          "offset": 32,
+          "size": 120
+        }
+      ],
+      "kind": "structure",
+      "size": 152
+    },
+    "FILE_ATTRIBUTE_TAG_INFO": {
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "FileAttributes",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "ReparseTag",
+          "offset": 4,
+          "size": 4
+        }
+      ],
+      "kind": "structure",
+      "size": 8
+    },
+    "FILE_BASIC_INFO": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "CreationTime",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "LastAccessTime",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "LastWriteTime",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "ChangeTime",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "FileAttributes",
+          "offset": 32,
+          "size": 4
+        }
+      ],
+      "kind": "structure",
+      "size": 40
+    },
+    "FILE_DISPOSITION_INFO": {
+      "alignment": 1,
+      "fields": [
+        {
+          "name": "DeleteFile",
+          "offset": 0,
+          "size": 1
+        }
+      ],
+      "kind": "structure",
+      "size": 1
+    },
+    "FILE_DISPOSITION_INFO_EX": {
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "Flags",
+          "offset": 0,
+          "size": 4
+        }
+      ],
+      "kind": "structure",
+      "size": 4
+    },
+    "FILE_ID_INFO": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "VolumeSerialNumber",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "FileId",
+          "offset": 8,
+          "size": 16
+        }
+      ],
+      "kind": "structure",
+      "size": 24
+    },
+    "IO_STATUS_BLOCK": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "u",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "Information",
+          "offset": 8,
+          "size": 8
+        }
+      ],
+      "kind": "structure",
+      "size": 16
+    },
+    "IO_STATUS_BLOCK_UNION": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "Status",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "Pointer",
+          "offset": 0,
+          "size": 8
+        }
+      ],
+      "kind": "union",
+      "size": 8
+    },
+    "OBJECT_ATTRIBUTES": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "Length",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "RootDirectory",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "ObjectName",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "Attributes",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "SecurityDescriptor",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "SecurityQualityOfService",
+          "offset": 40,
+          "size": 8
+        }
+      ],
+      "kind": "structure",
+      "size": 48
+    },
+    "OSVERSIONINFOEXW": {
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "dwOSVersionInfoSize",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "dwMajorVersion",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "dwMinorVersion",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "dwBuildNumber",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "dwPlatformId",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "szCSDVersion",
+          "offset": 20,
+          "size": 256
+        },
+        {
+          "name": "wServicePackMajor",
+          "offset": 276,
+          "size": 2
+        },
+        {
+          "name": "wServicePackMinor",
+          "offset": 278,
+          "size": 2
+        },
+        {
+          "name": "wSuiteMask",
+          "offset": 280,
+          "size": 2
+        },
+        {
+          "name": "wProductType",
+          "offset": 282,
+          "size": 1
+        },
+        {
+          "name": "wReserved",
+          "offset": 283,
+          "size": 1
+        }
+      ],
+      "kind": "structure",
+      "size": 284
+    },
+    "UNICODE_STRING": {
+      "alignment": 8,
+      "fields": [
+        {
+          "name": "Length",
+          "offset": 0,
+          "size": 2
+        },
+        {
+          "name": "MaximumLength",
+          "offset": 2,
+          "size": 2
+        },
+        {
+          "name": "Buffer",
+          "offset": 8,
+          "size": 8
+        }
+      ],
+      "kind": "structure",
+      "size": 16
+    }
+  }
+}
