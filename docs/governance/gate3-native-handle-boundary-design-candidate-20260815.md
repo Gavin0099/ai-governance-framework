@@ -7,7 +7,15 @@ Date: 2026-08-15
 
 Base: `feat/gate3-historical-materialization@896bc64c006da4e40a6d5a7d8b32d462467d08f2`
 
-Revision: 15 — fixes anonymity recognition, which revision 14 inferred from
+Revision: 16 — closes three schema gaps a hostile probe found open in the first
+implementation of this contract: package and SDK identity were type-checked but
+not value-checked, so a forged artifact could name any package and derive a
+matching URL; the closed inventories were checked for shape and size but not
+membership; and the JSON tail rule was unenforceable as written. Also deletes
+the residual `header_paths` row, which revisions 13 to 15 kept requiring several
+paragraphs after declaring it removed.
+
+Revision 15 — fixed anonymity recognition, which revision 14 inferred from
 nesting rather than from the declarator, so a named nested union was rejected as
 an unmapped placeholder; and replaces two tests that asserted the right words
 instead of the right behaviour — the archive is now proven unopened on a digest
@@ -933,6 +941,39 @@ c/Include/10.0.26100.0/um/winnt.h
 c/Include/10.0.26100.0/um/winternl.h
 ```
 
+### The JSON tail rule, settled
+
+Revisions 13 to 15 said "no trailing bytes after the top-level object". Three
+things disagreed: the document forbade a trailing byte, the committed artifact
+ends with LF like every other digest-pinned file in this tree, and `json.loads`
+accepts arbitrary trailing whitespace and would have accepted all three.
+
+**Settled: exactly one final LF, and no other trailing byte.** Not "no trailing
+bytes", because that would make the committed artifact non-compliant and put
+this repository's LF convention at odds with its own schema; and not "any
+trailing whitespace", because that is not a rule.
+
+It is enforced on the raw bytes, since the parser cannot express it: the payload
+must end with one LF, the byte before it must not be whitespace, and the decoder
+must report that it consumed the entire remaining text — so a second document
+appended after the first is refused rather than ignored.
+
+### Identity fields are checked, not merely typed
+
+A review found the first implementation accepting an empty `package_id`, a
+non-ASCII `package_version` and an `sdk_version` of `banana`, then deriving a
+`package_source_url` that agreed with those values. A self-consistent forgery is
+exactly what a provenance check exists to stop. Normative:
+
+- `package_id` must equal `Microsoft.Windows.SDK.CPP` exactly;
+- `package_version` and `sdk_version` must be non-empty ASCII matching
+  `[0-9]+(\.[0-9]+){1,3}`;
+- every string field is non-empty ASCII;
+- `header_digests` paths must equal the closed nine-entry inventory **exactly**,
+  not merely satisfy the path grammar;
+- both ABI tables must match their **key sets** exactly, not merely their sizes;
+- field names within a type must be unique.
+
 ### Provenance is verified, not declared
 
 Recording a package id, version and digest proves nothing if the extractor will
@@ -953,6 +994,11 @@ gap this closes.
 **`header_paths` is removed.** Revision 12 carried both it and `header_digests`,
 which duplicated the same list in two places and invited them to drift.
 `header_digests` alone now carries the paths.
+
+Revisions 13 to 15 said that and then left a normative row still requiring
+`header_paths`, so the document demanded a key it had just deleted. The row is
+gone as of revision 16; the fourteen-key set above is the whole contract, and an
+implementation must not be left choosing which half of a document to believe.
 
 **Every numeric above is checked with `type(value) is int`**, per the rule
 already stated, so a JSON boolean cannot pass as `1` or `0`.
@@ -988,10 +1034,9 @@ Two properties the mapping must have, both testable:
 | value types | `size`, `alignment` and `offset` are checked with `type(value) is int` — **not** `isinstance`, because Python's `bool` is an `int` subclass and `true`/`false` would otherwise pass as `1`/`0`. Equivalently, the JSON node kind must be *number*, never *boolean*. `alignment` is a power of two in `1..16`; `size` and `offset` are in `0..65535`; strings are non-empty ASCII |
 | unknown keys | **refused** at every level, never ignored |
 | duplicate keys | **refused** by the parser, as with the pin and the registry |
-| JSON encoding | UTF-8 without BOM; the top level is an object; no trailing bytes after it; `NaN`, `Infinity` and `-Infinity` are refused; every numeric is a JSON integer with no fractional part, no exponent, no leading `+`, and no leading zero other than `0` itself |
+| JSON encoding | UTF-8 without BOM; the top level is an object; **exactly one final LF and no other trailing byte** — see below; `NaN`, `Infinity` and `-Infinity` are refused; every numeric is a JSON integer with no fractional part, no exponent, no leading `+`, and no leading zero other than `0` itself |
 | artifact size | refused above 1 MiB, so a malformed or hostile artifact cannot make the gate parse unboundedly |
 | `sdk_version` | non-empty ASCII matching `[0-9]+(\.[0-9]+){1,3}` |
-| `header_paths` | a non-empty list of non-empty ASCII strings, each unique, in the order the extractor read them |
 | `extraction_method` | one of the closed set `headers-preprocessed`, `headers-parsed`, `vendor-published` |
 | `extractor_sha256` | exactly 64 lowercase hex characters |
 | `fields` | a non-empty list; the field-name sequence equals that type's declared `_fields_` order exactly, and no name repeats |
@@ -1264,7 +1309,7 @@ This is a proposed later tranche, not current implementation authority.
     `Infinity`, a fractional or exponent numeric, a leading-zero integer, a
     **boolean supplied where an integer is required** — proving the
     `type(value) is int` check rather than `isinstance` — an oversized artifact,
-    a malformed `sdk_version`, an empty or duplicated `header_paths` entry, an
+    a malformed `sdk_version`, an empty or duplicated header-digest entry, an
     `extraction_method` outside the closed set, a malformed `extractor_sha256`,
     an empty `fields` list, a repeated field name, and a types map that is not a
     bijection with the declared types;
