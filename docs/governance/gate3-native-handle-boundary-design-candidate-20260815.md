@@ -7,7 +7,15 @@ Date: 2026-08-15
 
 Base: `feat/gate3-historical-materialization@896bc64c006da4e40a6d5a7d8b32d462467d08f2`
 
-Revision: 16 — closes three schema gaps a hostile probe found open in the first
+Revision: 17 — design-only amendment to the per-role access masks. Revision 16
+required a reparse-tag check on every pinned ancestor while granting an access
+mask that cannot perform one; a measurement on the volume root showed
+`FileAttributeTagInfo` failing with `ERROR_ACCESS_DENIED` under that mask. All
+three roles now request `FILE_READ_ATTRIBUTES`, because all three are queried.
+Nothing else changes: no `DELETE` on a borrowed ancestor, `FILE_SHARE_DELETE`
+still omitted, and no creation, deletion or absence probe authorized.
+
+Revision 16 — closed three schema gaps a hostile probe found open in the first
 implementation of this contract: package and SDK identity were type-checked but
 not value-checked, so a forged artifact could name any package and derive a
 matching URL; the closed inventories were checked for shape and size but not
@@ -376,7 +384,7 @@ appears with another attribute.
 
 | Argument | Role 1: pinned ancestor | Role 2: directory we create | Role 3: file we create |
 | --- | --- | --- | --- |
-| `DesiredAccess` | `FILE_LIST_DIRECTORY \| SYNCHRONIZE` | `FILE_LIST_DIRECTORY \| SYNCHRONIZE \| DELETE \| FILE_WRITE_ATTRIBUTES` | `FILE_WRITE_DATA \| FILE_WRITE_ATTRIBUTES \| DELETE \| SYNCHRONIZE` |
+| `DesiredAccess` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE \| DELETE \| FILE_WRITE_ATTRIBUTES` | `FILE_WRITE_DATA \| FILE_READ_ATTRIBUTES \| FILE_WRITE_ATTRIBUTES \| DELETE \| SYNCHRONIZE` |
 | `RootDirectory` | previous chain handle (`NULL` at the volume root) | parent anchor | parent anchor |
 | `Attributes` | `OBJ_CASE_INSENSITIVE` | `OBJ_CASE_INSENSITIVE` | `OBJ_CASE_INSENSITIVE` |
 | `SecurityDescriptor` / `SecurityQoS` | `NULL` / `NULL` | `NULL` / `NULL` | `NULL` / `NULL` |
@@ -392,7 +400,51 @@ intentional: the attribute governs subsequent opens, the creating handle keeps
 its granted access. `FILE_SHARE_DELETE` is omitted everywhere except the absence
 probe. `DELETE` is requested only on objects this code creates.
 
-`FILE_WRITE_ATTRIBUTES` on the **directory** role is new in this revision and
+### Metadata queries require `FILE_READ_ATTRIBUTES` on every queried handle
+
+Normative: **any handle this design passes to
+`GetFileInformationByHandleEx(FileAttributeTagInfo)` or
+`GetFileInformationByHandleEx(FileIdInfo)` must request `FILE_READ_ATTRIBUTES`
+explicitly.**
+
+Revision 16 did not, and the contradiction was not theoretical. Measured on the
+volume root with revision 16's role-1 mask:
+
+```text
+FILE_LIST_DIRECTORY | SYNCHRONIZE                        -> FileAttributeTagInfo fails, ERROR_ACCESS_DENIED (5)
+FILE_LIST_DIRECTORY | SYNCHRONIZE | FILE_READ_ATTRIBUTES -> FileAttributeTagInfo succeeds
+```
+
+So the design required a reparse-tag check on every pinned ancestor while
+granting an access mask that cannot perform it. Two clauses of the same document
+could not both hold.
+
+**All three roles are amended, not only role 1.** The audit the ruling asked
+for:
+
+| Role | Queried? | Why |
+| --- | --- | --- |
+| 1 — pinned ancestor | yes | every component is reparse-checked when opened and identity-checked on `revalidate` |
+| 2 — directory we create | yes | created directories become anchors, and `revalidate` compares a held anchor's identity against capture |
+| 3 — file we create | yes | a created file is a held `Leaf`, and the state table refuses when "the identity of a held anchor **or leaf** differs from capture" |
+
+No role is exempt, so no role gets the "this role never queries" treatment the
+ruling allows; there is correspondingly nothing for the evidence plan to prove
+unreachable.
+
+**`FILE_WRITE_ATTRIBUTES` is not a reason any of them can read.** The two are
+independent rights — `FILE_READ_ATTRIBUTES` is `0x0080` and
+`FILE_WRITE_ATTRIBUTES` is `0x0100` — and role 3 holding the write right said
+nothing about its ability to query. Role 3 keeps `FILE_WRITE_ATTRIBUTES` for the
+read-only clear on the deletion fallback, and now also carries the read right
+for the query.
+
+What this amendment deliberately does **not** change: no `DELETE` is added to a
+borrowed ancestor, `FILE_SHARE_DELETE` stays omitted everywhere except the
+absence probe, and nothing here authorizes creation, deletion or the absence
+probe.
+
+`FILE_WRITE_ATTRIBUTES` on the **directory** role is new in revision 16 and
 closes an inconsistency: revision 6 specified a deletion fallback that clears the
 read-only attribute through `FileBasicInfo`, which needs that access, while the
 directory role did not request it — the fallback could not have executed. The
@@ -1329,6 +1381,16 @@ This is a proposed later tranche, not current implementation authority.
     constant and an empty aggregate;
 19r. the fixtures are proven to have teeth by mutation: a changed offset, a
     reverted anonymous-member name and a non-canonical header path each fail;
+19v. every handle the implementation passes to
+    `GetFileInformationByHandleEx` is proven to have requested
+    `FILE_READ_ATTRIBUTES`, asserted against the role masks rather than by
+    observing that the call happened to succeed;
+19w. a handle opened *without* `FILE_READ_ATTRIBUTES` is proven to fail the
+    reparse-tag query with `ERROR_ACCESS_DENIED`, so the amendment is shown to
+    be load-bearing rather than decorative;
+19x. no borrowed ancestor requests `DELETE`, and `FILE_SHARE_DELETE` appears in
+    no role but the absence probe — asserted against the mask constants, so a
+    later widening cannot pass unnoticed;
 19s. the extractor is proven to refuse a package whose digest does not match
     the pin, a package that does not exist, and a **digest-valid** archive
     missing one of the nine closed entries; the digest-mismatch case
