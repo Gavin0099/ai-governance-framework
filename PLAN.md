@@ -1856,6 +1856,96 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   the consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
   effectiveness is not established.
 
+- [x] **Gate 3 historical materialization M1 completed 2026-08-15.**
+  Implementation commit `896bc64c` adds only the bootstrap authority chain
+  module and its focused test file. M1 establishes which authority a historical
+  reconstruction may derive from; it materializes nothing and reads no
+  credentials. M2 (read-only materialization of `SOURCE_COMMIT`) is written but
+  remains `CHANGES_REQUESTED` and is uncommitted, gated behind an interim
+  fail-closed refusal, so no materialization path is reachable.
+
+- [x] **Gate 3 native handle-boundary design, ADR-0001 and ABI
+  characterization accepted 2026-08-15.** Design commit `1c78de39` records why
+  the Windows standard library cannot bind a directory ancestor: this CPython
+  reports `os.supports_dir_fd == []` and offers no `O_NOFOLLOW`, no
+  `O_DIRECTORY` and no directory file descriptor, so an ancestor replaced by a
+  junction between check and use cannot be excluded by stdlib means. ADR-0001
+  exact SHA-256 is
+  `ec6d9acaca40b90502d099938680a3d0789bf3f37eaa4f7119310ca2e332dc58`; it
+  records the `ARCHITECTURE.md` §6.2 conflict check, decisions D1-D9, eight
+  owner rulings verbatim, and a four-row deviation register including the
+  slice-specific `NATIVE-INTEROP.md` §4.1 exception. The owner ruling for that
+  exception is recorded in ADR-0001 and is not generalized to other native
+  slices.
+
+- [x] **Gate 3 native ABI expected-layout oracle completed 2026-08-15.**
+  Commit `c4c7e14e` adds an extractor that derives the expected structure
+  layout from pinned Windows SDK headers rather than from the running
+  interpreter, so the measurement it checks is not also its own oracle. Exact
+  extractor SHA-256 is
+  `877e7fee5f7b382e3e3fe1331b1112cd1e2b24f4e1d3c09f6f570aecef6e64c0`; exact
+  artifact SHA-256 is
+  `503e29ffd7c7ab3d5f05612288b73f14378d7cace9484f31cbdf256503fe616b`. The
+  package digest is verified before the archive is opened, a closed nine-entry
+  header inventory and a closed fourteen-key provenance schema are enforced,
+  and the artifact declares `measurement_class = computed-not-compiled` because
+  no compiler ran. Coverage differs by stage and must not be collapsed: the
+  SDK artifact derives eleven layouts; the earlier characterization measured
+  nine of them, so `EXCEPTION_RECORD` and `OSVERSIONINFOEXW` are values the
+  oracle supplied rather than values it confirmed; and it is the N1 layout gate
+  that later checked all eleven ctypes declarations against the artifact. The
+  nine measured types agreed with the artifact.
+
+- [x] **Gate 3 native boundary tranches N1, N2, N3a and N3b completed
+  2026-08-15/16.** Commits `62c3488b` (N1 ctypes declarations plus the
+  expected-layout gate, and N2 the System32 loader and signature binding that
+  calls no bound export),
+  `ce43bb56` (fail-fast exit for post-bind faults) and `8b04c2d8` (runtime
+  facts behind that exit). Exact implementation SHA-256 at `8b04c2d8` is
+  `dbe848ed7510e95deac3c6a488b99649636a2d5270388a3b67480db34dc1fa21`; exact
+  test SHA-256 is
+  `41e37af239f6f6e54e2ba2ad9fb3a9422ddf0b314446fcf1881f98bc4dd62fe4`. Each
+  tranche passed independent exact-digest review. `SUPPORTED_MACHINES` admits
+  `AMD64` only, because ARM64 was never verified and admitting it would have
+  been an unverified claim. No handle is opened by any committed tranche.
+
+- [x] **Gate 3 native handle-boundary design revision 17 accepted 2026-08-16.**
+  Design-only commit `0d95023d`, exact SHA-256
+  `83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`
+  (91,393 bytes, diff `+65 / -3`). Revision 16 required a reparse-tag check on
+  every pinned ancestor while granting an access mask that cannot perform one;
+  measured on the volume root, `GetFileInformationByHandleEx` with
+  `FileAttributeTagInfo` failed with `ERROR_ACCESS_DENIED` under
+  `FILE_LIST_DIRECTORY | SYNCHRONIZE`. All three roles now request
+  `FILE_READ_ATTRIBUTES`, because an audit found none exempt.
+  `FILE_WRITE_ATTRIBUTES` is explicitly rejected as a justification for
+  reading: the two are independent rights.
+
+Current blocking relationships for this work item:
+
+- N3c-1 (pin the ancestor chain) is implemented in the worktree but is
+  `PAUSED / CHANGES_REQUESTED`: uncommitted and paused, locally executed only
+  for the bounded submitter-reported access-mask probe that opened a
+  volume-root handle and observed `ERROR_ACCESS_DENIED`; no committed tranche
+  opens a handle. Exact paused SHA-256 is
+  `065f4fa76b37b8c2097850068926b2477164b2efefeb30cdf535368c19a1283a`. It still
+  carries revision 16's role-1 mask and two reviewer-named defects, and needs
+  new owner authorization before it resumes.
+- N3c-2, which would create and delete real filesystem objects and run the
+  absence probe, is not authorized.
+- M2, M3 and M4 remain blocked behind M2's `CHANGES_REQUESTED` verdict.
+- Credentials, preflight and live remain unauthorized.
+
+Claim ceiling: this work item has produced design authority, an independent
+ABI oracle, and declaration, loader, fail-fast and runtime-fact tranches. No
+committed tranche opens a directory handle, creates or deletes a filesystem
+object, or performs the absence probe. `handle_boundary_available()` and
+`ACTIVE` are both `False`, so the boundary is not reachable from any production
+path. Accepted design bytes are not an implementation, exact-digest review
+approval is not runtime evidence, and none of this reuses, retries or replaces
+the consumed A/B pair. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
+treatment/Skill effectiveness is not established.
+
 - [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
   2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
   A/B output commits and a complete seven-event chain through
