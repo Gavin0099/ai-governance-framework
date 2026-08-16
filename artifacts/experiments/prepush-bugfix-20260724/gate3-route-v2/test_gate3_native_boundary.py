@@ -27,6 +27,21 @@ import gate3_native_boundary as boundary
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 ARTIFACT = REPO_ROOT / boundary.EXPECTED_LAYOUT_PATH
 
+# The real `RaiseFailFastException` address, read once at import through the
+# approved loader and before any spy exists. A test must not open its own
+# `WinDLL` to obtain it: that would bypass the platform probe, the fixed entry
+# point and the System32-only search — the controls the owner attached to the
+# §3.3 deviation, which bind test scaffolding too. Only the address is read;
+# the export is never called here.
+_REAL_FAIL_FAST_ADDRESS = ctypes.cast(
+    boundary.load_bindings().kernel32.RaiseFailFastException, ctypes.c_void_p
+).value
+
+# Callbacks must outlive the instances they are bound to. A ctypes callback
+# collected while still bound leaves a dangling function pointer, and the
+# module-scoped bindings survive every individual test.
+_SPY_KEEPALIVE: list = []
+
 
 @pytest.fixture(scope="module")
 def document():
@@ -702,11 +717,15 @@ def test_the_system32_search_flag_is_used():
     assert "winmode=LOAD_LIBRARY_SEARCH_SYSTEM32" in source
 
 
-def test_runtime_facts_are_deferred_not_quietly_dropped():
-    """They need a fail-fast boundary first; absence must be visible."""
+def test_the_runtime_facts_arrived_only_after_the_fail_fast_boundary():
+    """N2 deferred these; N3a built the exit; N3b added them behind it.
+
+    The one still deferred is the filesystem, and its absence must stay visible
+    rather than being quietly filled from a path.
+    """
 
     for name in ("runtime_facts", "os_build", "library_paths"):
-        assert not hasattr(boundary, name), name
+        assert hasattr(boundary, name), name
     doc = boundary.__doc__ or ""
     assert "Still deferred" in doc
     assert "GetVolumeInformationByHandleW" in doc
@@ -955,31 +974,29 @@ def test_the_claim_ceiling_is_stated_and_conditional():
     assert "ruling 8" in doc
 
 
-def test_the_parent_never_reaches_the_real_fail_fast():
-    """The invariant is not "never name `fail_fast`" — it is never to reach the
-    real `RaiseFailFastException` in this process.
+def test_the_real_fail_fast_is_unreachable_in_this_process(
+    bindings, fail_fast_calls
+):
+    """Proven by surviving the call, not by introspecting the fixture.
 
-    Some tests do call `fail_fast` here, but only after `_spy_on_fail_fast` has
-    replaced the bound export with a recording callback, so nothing terminates.
-    Any test function that calls one without the other would take the suite
-    down with it.
+    This line invokes the bound export directly. If the guard were not in
+    place — or were opt-in and this test had forgotten to opt in — the process
+    would die here rather than fail.
+
+    An earlier version asked each test to install the spy itself and policed
+    that with an AST scan over direct `fail_fast` calls. It missed the case
+    that actually happened: a test stubbed a bound export badly, the stub
+    raised, `_guarded` routed the unexplained exception to fail-fast, and the
+    run died at `0xE3A70001`. Opt-in is not a safety property.
     """
 
-    import ast
-
-    tree = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
-    for function in ast.walk(tree):
-        if not isinstance(function, ast.FunctionDef):
-            continue
-        names = {
-            getattr(node.func, "attr", None) or getattr(node.func, "id", None)
-            for node in ast.walk(function)
-            if isinstance(node, ast.Call)
-        }
-        if "fail_fast" in names:
-            assert "_spy_on_fail_fast" in names, (
-                f"{function.name} calls fail_fast without installing the spy"
-            )
+    bindings.kernel32.RaiseFailFastException(
+        None, None, boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+    )
+    assert len(fail_fast_calls) == 1, "the guard recorded the call"
+    had_record, record, _context, flags = fail_fast_calls[0]
+    assert not had_record and record is None
+    assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
 
 
 @pytest.mark.parametrize(
@@ -1089,12 +1106,49 @@ def test_the_exception_address_is_exactly_the_bound_thunk(bindings):
     assert record.ExceptionAddress == expected
 
 
-def _spy_on_fail_fast(bindings, monkeypatch):
+@pytest.fixture(autouse=True)
+def fail_fast_calls(bindings, monkeypatch):
+    """Make the real `RaiseFailFastException` unreachable in this process.
+
+    Autouse, and installed at the *factory* rather than on one instance. An
+    earlier version patched only the module-scoped `bindings`, so any test
+    calling `boundary.load_bindings()` again got a fresh object still pointing
+    at the real export — the address probe showed `FRESH_IS_REAL True`. The
+    accident that killed a pytest run was therefore still reproducible.
+
+    Patching the factory means every instance a test can obtain is spied,
+    however it was obtained. Real termination is still exercised in disposable
+    children, which is the only place it belongs.
+    """
+
+    calls: list = []
+
+    # Patched at `_Bindings.__init__`, the lowest construction layer. Patching
+    # `load_bindings` alone left a direct `_Bindings()` unspied, so an instance
+    # pointing at the real export was still obtainable and the accident that
+    # killed a pytest run stayed reproducible.
+    real_init = boundary._Bindings.__init__
+
+    def guarded_init(instance):
+        real_init(instance)
+        _install_fail_fast_spy(instance, calls, _SPY_KEEPALIVE)
+
+    monkeypatch.setattr(boundary._Bindings, "__init__", guarded_init)
+
+    # The module-scoped instance was constructed before this fixture existed.
+    _install_fail_fast_spy(bindings, calls, _SPY_KEEPALIVE)
+    return calls
+
+
+def _install_fail_fast_spy(bindings, calls, keepalive):
     """Replace the bound export with a real ctypes callback that records.
 
     A callback, not a Python function: `build_fail_fast_record` takes the
     address of whatever is bound there, and a plain callable has none. Nothing
     terminates, so this runs safely in the parent.
+
+    `keepalive` holds the callback: a ctypes callback that is garbage collected
+    while still bound leaves a dangling function pointer.
     """
 
     prototype = ctypes.WINFUNCTYPE(
@@ -1103,7 +1157,6 @@ def _spy_on_fail_fast(bindings, monkeypatch):
         ctypes.c_void_p,
         ctypes.c_ulong,
     )
-    calls = []
 
     def spy(record_pointer, context_record, flags):
         # Copy the record *now*. In production `fail_fast` never returns, so
@@ -1119,16 +1172,16 @@ def _spy_on_fail_fast(bindings, monkeypatch):
         calls.append((bool(record_pointer), snapshot, context_record, flags))
 
     callback = prototype(spy)
-    monkeypatch.setattr(bindings.kernel32, "RaiseFailFastException", callback)
+    keepalive.append(callback)
+    bindings.kernel32.RaiseFailFastException = callback
     return calls, callback
 
 
-def test_the_record_path_passes_the_exact_three_arguments(bindings, monkeypatch):
-    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
+def test_the_record_path_passes_the_exact_three_arguments(bindings, monkeypatch, fail_fast_calls):
     boundary.fail_fast(bindings, "REMOVE", "CLOSE_FAILED")
 
-    assert len(calls) == 1
-    had_record, record, context_record, flags = calls[0]
+    assert len(fail_fast_calls) == 1
+    had_record, record, context_record, flags = fail_fast_calls[0]
     assert had_record, "pExceptionRecord must be the record"
     assert context_record is None, "pContextRecord must be NULL"
     assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS == 1
@@ -1140,25 +1193,23 @@ def test_the_record_path_passes_the_exact_three_arguments(bindings, monkeypatch)
     assert record.ExceptionInformation[1] == boundary.FAIL_FAST_CODES["CLOSE_FAILED"]
 
 
-def test_the_fallback_path_passes_a_null_record(bindings, monkeypatch):
-    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
+def test_the_fallback_path_passes_a_null_record(bindings, monkeypatch, fail_fast_calls):
     boundary.fail_fast(bindings, "NOT_A_STAGE", "CLOSE_FAILED")
 
-    assert len(calls) == 1
-    had_record, record, context_record, flags = calls[0]
+    assert len(fail_fast_calls) == 1
+    had_record, record, context_record, flags = fail_fast_calls[0]
     assert not had_record, "fallback must pass NULL, carrying no payload"
     assert record is None
     assert context_record is None
     assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
 
 
-def test_the_flags_argument_is_never_zero(bindings, monkeypatch):
+def test_the_flags_argument_is_never_zero(bindings, monkeypatch, fail_fast_calls):
     """dwFlags == 0 would leave ExceptionAddress unset by the OS."""
 
-    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
     boundary.fail_fast(bindings, "CHAIN", "HANDLE_BOUNDARY_UNAVAILABLE")
     boundary.fail_fast(bindings, "BAD_STAGE", "HANDLE_BOUNDARY_UNAVAILABLE")
-    assert [flags for *_, flags in calls] == [1, 1]
+    assert [flags for *_, flags in fail_fast_calls] == [1, 1]
 
 
 def test_no_child_loads_a_library_outside_the_approved_path():
@@ -1182,5 +1233,316 @@ def test_no_child_loads_a_library_outside_the_approved_path():
 
 
 def test_n3a_did_not_move_availability():
+    assert boundary.handle_boundary_available() is False
+    assert boundary.ACTIVE is False
+
+
+# ===========================================================================
+# Tranche N3b — runtime facts, behind the fail-fast boundary
+# ===========================================================================
+#
+# The first tranche that calls bound exports. Every test that could reach a
+# real fail-fast installs the spy first, so nothing terminates this process.
+
+
+def test_the_os_build_comes_from_rtlgetversion(bindings):
+    build = boundary.os_build(bindings)
+    assert type(build) is int and build > 0
+    assert build == sys.getwindowsversion().build
+
+
+def test_the_version_struct_size_is_set_before_the_call(bindings, monkeypatch):
+    """`RtlGetVersion` is undefined if `dwOSVersionInfoSize` is not set."""
+
+    seen = []
+
+    def recording(pointer):
+        # `byref()` yields a CArgObject, which has `_obj` and no `.contents`.
+        # Reading `.contents` here raised AttributeError, `_guarded` correctly
+        # treated it as unexplained, and the real fail-fast took the suite down.
+        info = pointer._obj
+        seen.append(info.dwOSVersionInfoSize)
+        info.dwBuildNumber = 12345
+        return 0
+
+    monkeypatch.setattr(bindings.ntdll, "RtlGetVersion", recording)
+    assert boundary.os_build(bindings) == 12345
+    assert seen == [ctypes.sizeof(boundary.OSVERSIONINFOEXW)]
+
+
+def test_a_negative_ntstatus_is_a_documented_failure_not_a_panic(
+    bindings, monkeypatch, fail_fast_calls
+):
+    """A negative NTSTATUS is a value the boundary read, so it is explained.
+
+    It is also truthy, which is why success is tested as `>= 0`.
+    """
+
+    mapped = []
+    monkeypatch.setattr(bindings.ntdll, "RtlGetVersion", lambda p: -1073741823)
+    monkeypatch.setattr(
+        bindings.ntdll,
+        "RtlNtStatusToDosError",
+        lambda status: mapped.append(status) or 87,
+    )
+    with pytest.raises(boundary.NativeError) as caught:
+        boundary.os_build(bindings)
+    assert caught.value.code == "ROOT_IDENTITY_UNAVAILABLE"
+    assert mapped == [-1073741823], "NTSTATUS must go through RtlNtStatusToDosError"
+    assert fail_fast_calls == [], "a documented failure must not terminate"
+
+
+def test_library_paths_resolve_from_the_system_directory(bindings):
+    paths = boundary.library_paths(bindings)
+    assert set(paths) == {"kernel32.dll", "ntdll.dll"}
+    for value in paths.values():
+        assert value.lower().startswith("c:\\windows\\system32\\"), value
+
+
+def test_a_truncated_module_path_is_refused(bindings, monkeypatch, fail_fast_calls):
+    """Returning exactly the buffer size means truncated, not fitted.
+
+    A truncated path names a different file, and accepting it as loader
+    provenance would evidence the wrong one.
+    """
+
+    monkeypatch.setattr(
+        bindings.kernel32,
+        "GetModuleFileNameW",
+        lambda handle, buffer, capacity: capacity,
+    )
+    with pytest.raises(boundary.NativeError) as caught:
+        boundary.library_paths(bindings)
+    assert caught.value.code == "ROOT_IDENTITY_UNAVAILABLE"
+    assert fail_fast_calls == []
+
+
+def test_a_zero_length_module_path_is_refused(bindings, monkeypatch, fail_fast_calls):
+    """A zero return is documented as "call GetLastError", so it must be read.
+
+    Read immediately, before anything else can overwrite the thread-local
+    value — which is why the assertion below is on the order of events, not
+    merely on the resulting code.
+    """
+
+    read = []
+    monkeypatch.setattr(
+        bindings.kernel32, "GetModuleFileNameW", lambda handle, buffer, capacity: 0
+    )
+    monkeypatch.setattr(
+        boundary.ctypes, "get_last_error", lambda: read.append("read") or 126
+    )
+    with pytest.raises(boundary.NativeError) as caught:
+        boundary.library_paths(bindings)
+    assert caught.value.code == "ROOT_IDENTITY_UNAVAILABLE"
+    assert read == ["read"], "the last error must be read on a zero return"
+    assert fail_fast_calls == []
+
+
+def test_a_path_one_short_of_the_buffer_is_accepted(bindings, monkeypatch):
+    """The boundary is `>= capacity`, so `capacity - 1` must still pass."""
+
+    def almost_full(handle, buffer, capacity):
+        buffer.value = "C:" + chr(92) + "x" * 16
+        return capacity - 1
+
+    monkeypatch.setattr(bindings.kernel32, "GetModuleFileNameW", almost_full)
+    paths = boundary.library_paths(bindings)
+    assert set(paths) == {"kernel32.dll", "ntdll.dll"}
+
+
+# --- the fail-fast exit is actually wired in -------------------------------
+
+
+@pytest.mark.parametrize(
+    ("function", "target_library", "target_export"),
+    [
+        ("os_build", "ntdll", "RtlGetVersion"),
+        ("library_paths", "kernel32", "GetModuleFileNameW"),
+    ],
+)
+def test_an_escaping_exception_reaches_fail_fast(
+    bindings, monkeypatch, fail_fast_calls, function, target_library, target_export
+):
+    """An OSError out of a ctypes call cannot be told from an ABI fault.
+
+    The spy stops the process from dying, so what is observed here is that the
+    fail-fast path was taken with the right ordinals.
+    """
+
+
+    def exploding(*args, **kwargs):
+        raise OSError("exception: access violation reading 0x0")
+
+    monkeypatch.setattr(
+        getattr(bindings, target_library), target_export, exploding
+    )
+    with pytest.raises(OSError):
+        getattr(boundary, function)(bindings)
+
+    assert len(fail_fast_calls) == 1
+    had_record, record, _context, flags = fail_fast_calls[0]
+    assert had_record
+    assert record.ExceptionInformation[0] == boundary.FAIL_FAST_STAGES["IDENTITY"]
+    assert (
+        record.ExceptionInformation[1]
+        == boundary.FAIL_FAST_CODES["UNEXPECTED_EXCEPTION"]
+    )
+    assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+
+
+@pytest.mark.parametrize(
+    "control_flow", [KeyboardInterrupt, SystemExit, GeneratorExit]
+)
+def test_control_flow_does_not_trigger_fail_fast(
+    bindings, monkeypatch, fail_fast_calls, control_flow
+):
+    """A keystroke is not an ABI fault, and must not terminate the boundary."""
+
+
+    def failing(*args, **kwargs):
+        raise control_flow()
+
+    monkeypatch.setattr(bindings.ntdll, "RtlGetVersion", failing)
+    with pytest.raises(control_flow):
+        boundary.os_build(bindings)
+    assert fail_fast_calls == [], "control flow must propagate, not fail fast"
+
+
+def test_no_bound_export_is_invoked_outside_the_guard():
+    """Structural: a direct call would bypass the fail-fast exit entirely."""
+
+    import ast, inspect
+
+    exports = {name for _, name in boundary._Bindings.BOUND}
+    for function in (boundary.os_build, boundary.library_paths):
+        tree = ast.parse(inspect.getsource(function))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            attribute = node.func
+            if isinstance(attribute, ast.Attribute) and attribute.attr in exports:
+                pytest.fail(
+                    f"{function.__name__} calls {attribute.attr} directly"
+                )
+
+
+# --- the facts themselves ---------------------------------------------------
+
+
+def test_runtime_facts_come_from_four_sources(bindings):
+    facts = boundary.runtime_facts(bindings)
+    assert facts["arch"] == "AMD64"
+    assert facts["pointer_bits"] == 64
+    assert facts["abi"] == boundary.ADMITTED_ABI == "64/win64/WinDLL"
+    assert facts["os_build_source"] == "RtlGetVersion"
+    assert facts["os_build"] == sys.getwindowsversion().build
+
+
+def test_the_filesystem_fact_is_absent_rather_than_substituted(bindings):
+    """The design reads it from a held base handle; N3b opens no handle.
+
+    Reporting it from a path instead would be a different fact under the same
+    name, which is the failure this absence exists to avoid.
+    """
+
+    facts = boundary.runtime_facts(bindings)
+    assert facts["filesystem"] is None
+    assert "held base handle" in facts["filesystem_reason"]
+
+
+def test_runtime_facts_refuse_on_an_unadmitted_platform(bindings, monkeypatch):
+    monkeypatch.setattr(boundary, "platform_supported", lambda: False)
+    with pytest.raises(boundary.NativeError) as caught:
+        boundary.runtime_facts(bindings)
+    assert caught.value.code == "HANDLE_BOUNDARY_UNAVAILABLE"
+
+
+def test_no_handle_or_filesystem_object_is_touched(bindings, tmp_path):
+    before = sorted(tmp_path.rglob("*"))
+    boundary.runtime_facts(bindings)
+    boundary.library_paths(bindings)
+    assert sorted(tmp_path.rglob("*")) == before
+
+
+def test_the_volume_export_is_still_never_called(bindings, monkeypatch):
+    """`GetVolumeInformationByHandleW` is bound and stays uncalled in N3b."""
+
+    called = []
+    monkeypatch.setattr(
+        bindings.kernel32,
+        "GetVolumeInformationByHandleW",
+        lambda *args: called.append(args),
+    )
+    boundary.runtime_facts(bindings)
+    boundary.library_paths(bindings)
+    assert called == []
+
+
+@pytest.mark.parametrize("attempt", [1, 2, 3])
+def test_a_freshly_loaded_bindings_is_also_spied(bindings, attempt):
+    """The earlier guard covered one instance; a fresh load escaped it.
+
+    The address probe showed a new `load_bindings()` still pointing at the real
+    export, so the accident that killed a pytest run stayed reproducible.
+    """
+
+    real = _REAL_FAIL_FAST_ADDRESS
+    assert real
+
+    def address_of(instance):
+        return ctypes.cast(
+            instance.kernel32.RaiseFailFastException, ctypes.c_void_p
+        ).value
+
+    fresh = boundary.load_bindings()
+    assert address_of(fresh) != real, "a fresh instance still pointed at the real export"
+    assert address_of(bindings) != real
+
+    # Each instance gets its own callback, so the addresses differ from each
+    # other too; what matters is that neither is the real one. Proven by
+    # surviving the call.
+    fresh.kernel32.RaiseFailFastException(
+        None, None, boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+    )
+
+
+def test_a_directly_constructed_bindings_is_also_spied(bindings):
+    """`load_bindings()` is not the only way to get one.
+
+    Patching the factory left `_Bindings()` untouched, so the guard was not at
+    the construction boundary it claimed to be at.
+    """
+
+    direct = boundary._Bindings()
+    address = ctypes.cast(
+        direct.kernel32.RaiseFailFastException, ctypes.c_void_p
+    ).value
+    assert address != _REAL_FAIL_FAST_ADDRESS
+
+    # Proven by surviving the call.
+    direct.kernel32.RaiseFailFastException(
+        None, None, boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+    )
+
+
+def test_the_tests_open_no_library_outside_the_approved_loader():
+    """Scaffolding is bound by the same compensating controls."""
+
+    import ast
+
+    tree = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    loaders = {"WinDLL", "CDLL", "OleDLL", "PyDLL", "windll", "cdll", "oledll"}
+    for node in ast.walk(tree):
+        name = None
+        if isinstance(node, ast.Attribute):
+            name = node.attr
+        elif isinstance(node, ast.Name):
+            name = node.id
+        assert name not in loaders, f"{name} opens a library outside the loader"
+
+
+def test_n3b_did_not_move_availability(bindings):
+    boundary.runtime_facts(bindings)
     assert boundary.handle_boundary_available() is False
     assert boundary.ACTIVE is False

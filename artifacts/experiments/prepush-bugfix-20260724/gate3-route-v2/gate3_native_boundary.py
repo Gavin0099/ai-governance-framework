@@ -37,14 +37,35 @@ belongs to the tranche that builds the fail-fast boundary first, not to this
 one.
 
 **N3a** builds that fail-fast boundary, so a later tranche has somewhere for an
-unexplained fault to go. It is the exit, not a user of it: nothing in this
-module calls a bound export through it yet.
+unexplained fault to go. It is the exit, not a user of it.
 
-Still deferred, and deliberately absent: `RtlGetVersion` for the OS build,
-`GetModuleFileNameW` for load-path evidence — which must also reject
-`written == len(buffer)`, since that value means the path was truncated — and
-`GetVolumeInformationByHandleW` for the filesystem, which needs a held handle
-that does not exist yet.
+**N3b** is the first tranche that calls bound exports, and every call goes
+through that exit. It reads the OS build with `RtlGetVersion` and the load
+paths with `GetModuleFileNameW`, and assembles the runtime facts obtainable
+without a handle.
+
+The distinction that governs every call here: a **documented failure** is a
+value the boundary read itself — a negative `NTSTATUS`, a zero return with
+`GetLastError`, a truncation — and becomes an ordinary closed `NativeError`. An
+**exception escaping the ctypes call** is not explained by any value, cannot be
+told apart from an ABI fault, and terminates.
+
+A documented failure must also collect the evidence the design requires before
+it is reported: an `NTSTATUS` goes through `RtlNtStatusToDosError`, and a Win32
+zero return has `ctypes.get_last_error()` read immediately, before any other
+call can overwrite it. The status mapping is itself a post-bind ctypes call and
+goes through the same guard.
+
+The closed codes here are the design's own. An earlier draft introduced
+`RUNTIME_FACTS_UNAVAILABLE`, which appears nowhere in the approved mapping —
+an implementation does not get to add a fourth semantic. These failures occur
+during the identity stage, so they report `ROOT_IDENTITY_UNAVAILABLE`, which is
+the approved code for an unknown status there.
+
+Still deferred: `GetVolumeInformationByHandleW` for the filesystem, which reads
+from a held base handle that does not exist yet. It is absent from the facts
+rather than substituted from a path, because a fact from a different source is
+a different fact wearing the same name.
 
 `handle_boundary_available()` returns False, as it has since the interim gate
 landed. Nothing in this module changes that: an admission registry does not
@@ -954,6 +975,124 @@ def fail_fast(bindings: _Bindings, stage: str, code: str) -> None:
             raise_fail_fast(
                 ctypes.byref(record), None, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
             )
+
+
+# ===========================================================================
+# Tranche N3b — runtime facts, behind the fail-fast boundary
+# ===========================================================================
+
+
+def _guarded(bindings: _Bindings, stage: str, call, *args):
+    """Invoke a bound export with the fail-fast exit attached.
+
+    `Exception`, not `BaseException`: an SEH fault surfaces through ctypes as an
+    `OSError`, which this catches, while `KeyboardInterrupt`, `SystemExit` and
+    `GeneratorExit` are the interpreter's control flow and propagate untouched.
+    Terminating on a Ctrl-C would make the boundary uninterruptible and would
+    report a keystroke as an ABI fault.
+
+    Nothing is translated. The characterization established no reliable way to
+    tell an SEH fault from a recoverable error, so an exception arriving here is
+    unexplained by construction and the only honest response is to stop.
+    """
+
+    try:
+        return call(*args)
+    except Exception:
+        fail_fast(bindings, stage, "UNEXPECTED_EXCEPTION")
+        raise  # unreachable in production; reachable only if fail_fast is spied
+
+
+def os_build(bindings: _Bindings) -> int:
+    """The OS build, from `RtlGetVersion`.
+
+    `GetVersionEx`-family reporting is manifest-shimmed and can under-report;
+    `RtlGetVersion` is not. The design names it as the admission record's build
+    source, so it is the one that must be read.
+    """
+
+    info = OSVERSIONINFOEXW()
+    # Required before the call; the result is undefined without it.
+    info.dwOSVersionInfoSize = ctypes.sizeof(OSVERSIONINFOEXW)
+    status = _guarded(
+        bindings, "IDENTITY", bindings.ntdll.RtlGetVersion, ctypes.byref(info)
+    )
+    # NTSTATUS success is `>= 0`. A negative status is truthy, so a truthiness
+    # test here would read every failure as success.
+    if status < 0:
+        # The design requires an NTSTATUS to be mapped through
+        # RtlNtStatusToDosError before the mapping table is consulted. That
+        # mapping is itself a post-bind ctypes call, so it goes through the
+        # guard like any other.
+        _guarded(
+            bindings,
+            "IDENTITY",
+            bindings.ntdll.RtlNtStatusToDosError,
+            status,
+        )
+        raise NativeError("ROOT_IDENTITY_UNAVAILABLE")
+    return int(info.dwBuildNumber)
+
+
+def library_paths(bindings: _Bindings) -> dict[str, str]:
+    """Where the loader actually found each library — evidence, not assumption.
+
+    `GetModuleFileNameW` returning exactly the buffer size means the path was
+    **truncated**, not that it fitted. A truncated path is a different path, and
+    accepting one as loader provenance would evidence the wrong file.
+    """
+
+    capacity = 32768  # the NT path maximum; a short buffer would truncate
+    result: dict[str, str] = {}
+    for name, library in (
+        ("kernel32.dll", bindings.kernel32),
+        ("ntdll.dll", bindings.ntdll),
+    ):
+        buffer = ctypes.create_unicode_buffer(capacity)
+        written = _guarded(
+            bindings,
+            "IDENTITY",
+            bindings.kernel32.GetModuleFileNameW,
+            library._handle,
+            buffer,
+            capacity,
+        )
+        if written == 0:
+            # Read immediately, before any other call can overwrite it. This
+            # reads thread-local state rather than invoking an export, so it
+            # needs no guard of its own.
+            ctypes.get_last_error()
+            raise NativeError("ROOT_IDENTITY_UNAVAILABLE")
+        if written >= capacity:
+            # Documented truncation: the value equals the buffer size only when
+            # the path did not fit. The disposition is complete from the return
+            # value alone, so this path does not read the last error — current
+            # Windows does set ERROR_INSUFFICIENT_BUFFER here, and an earlier
+            # comment claiming otherwise was wrong.
+            raise NativeError("ROOT_IDENTITY_UNAVAILABLE")
+        result[name] = buffer.value
+    return result
+
+
+def runtime_facts(bindings: _Bindings) -> dict[str, object]:
+    """The facts obtainable without a handle, each from its own source.
+
+    Four sources, not one. An earlier draft attributed all of them to a held
+    base handle, which is true only of the filesystem — and the filesystem is
+    exactly the one this tranche cannot read.
+    """
+
+    if not platform_supported():
+        raise NativeError("HANDLE_BOUNDARY_UNAVAILABLE")
+    return {
+        "arch": platform.machine().upper(),
+        "pointer_bits": ctypes.sizeof(c_void_p) * 8,
+        "abi": ADMITTED_ABI,
+        "os_build": os_build(bindings),
+        "os_build_source": "RtlGetVersion",
+        "filesystem": None,
+        "filesystem_reason": "requires a held base handle; not this tranche",
+    }
 
 
 def handle_boundary_available() -> bool:
