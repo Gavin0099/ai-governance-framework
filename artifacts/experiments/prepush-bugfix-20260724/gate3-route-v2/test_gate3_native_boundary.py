@@ -708,7 +708,7 @@ def test_runtime_facts_are_deferred_not_quietly_dropped():
     for name in ("runtime_facts", "os_build", "library_paths"):
         assert not hasattr(boundary, name), name
     doc = boundary.__doc__ or ""
-    assert "Deferred to that tranche" in doc
+    assert "Still deferred" in doc
     assert "GetVolumeInformationByHandleW" in doc
 
 
@@ -721,5 +721,466 @@ def test_native_errors_carry_no_path_handle_or_status():
 
 
 def test_n2_did_not_move_availability(bindings):
+    assert boundary.handle_boundary_available() is False
+    assert boundary.ACTIVE is False
+
+
+# ===========================================================================
+# Tranche N3a — the fail-fast boundary
+# ===========================================================================
+#
+# `fail_fast` terminates the process, so it is never called in this pytest
+# parent. Every test that exercises termination runs it in a disposable child
+# and inspects the exit code. A test that called it here would take the whole
+# suite down with it.
+
+STATUS_FAIL_FAST_EXCEPTION = 0xC0000602
+"""What the OS reports when `RaiseFailFastException` is given no record."""
+
+# Measured, not assumed: supplying a record makes the process exit with that
+# record's own ExceptionCode, while the parameterless fallback exits with
+# STATUS_FAIL_FAST_EXCEPTION. The two paths are therefore distinguishable from
+# outside the process, which is worth stating precisely rather than treating
+# both as "terminated somehow".
+RECORD_PATH_EXIT = 0xE3A70001
+
+# Every child loads through `boundary.load_bindings()` and reuses the kernel32
+# it returns. An earlier version called `ctypes.WinDLL("kernel32.dll")`
+# directly, which bypassed LOAD_LIBRARY_SEARCH_SYSTEM32, the single approved
+# load path, and signature declaration — test scaffolding is not exempt from
+# the compensating controls the owner attached to the §3.3 deviation.
+CHILD_PROLOGUE = (
+    "import ctypes, sys\n"
+    "sys.path.insert(0, r'{directory}')\n"
+    "import gate3_native_boundary as boundary\n"
+    "bindings = boundary.load_bindings()\n"
+    # Suppress the Windows Error Reporting dialog so an unhandled fault cannot
+    # block this child forever. Declared before it is called, like every other
+    # binding.
+    "bindings.kernel32.SetErrorMode.argtypes = [ctypes.c_ulong]\n"
+    "bindings.kernel32.SetErrorMode.restype = ctypes.c_ulong\n"
+    "bindings.kernel32.SetErrorMode(0x0001 | 0x0002)\n"
+)
+
+CHILD = CHILD_PROLOGUE + (
+    "boundary.fail_fast(bindings, {stage!r}, {code!r})\n"
+    "print('RETURNED', flush=True)\n"
+)
+
+
+def _run_child(stage, code):
+    import subprocess
+
+    source = CHILD.format(
+        directory=str(pathlib.Path(boundary.__file__).resolve().parent),
+        stage=stage,
+        code=code,
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", source], capture_output=True, text=True, timeout=120
+    )
+    return completed
+
+
+def test_frozen_stage_ordinals():
+    assert boundary.FAIL_FAST_STAGES == {
+        "CHAIN": 1,
+        "CREATE_DIRECTORY": 2,
+        "CREATE_FILE": 3,
+        "WRITE": 4,
+        "IDENTITY": 5,
+        "REVALIDATE": 6,
+        "REMOVE": 7,
+        "PROBE": 8,
+        "ABSENCE_PROBE": 9,
+        "CLOSE": 10,
+    }
+
+
+def test_frozen_code_ordinals():
+    assert boundary.FAIL_FAST_CODES == {
+        "UNEXPECTED_EXCEPTION": 1,
+        "MATERIALIZE_PATH_EXISTS": 2,
+        "MATERIALIZE_WRITE_FAILED": 3,
+        "PATH_IS_REPARSE_POINT": 4,
+        "PATH_INVALID": 5,
+        "ROOT_IDENTITY_UNAVAILABLE": 6,
+        "ROOT_IDENTITY_CHANGED": 7,
+        "CLEANUP_INCOMPLETE": 8,
+        "CLOSE_FAILED": 9,
+        "HANDLE_BOUNDARY_UNAVAILABLE": 10,
+    }
+
+
+def test_ordinals_are_unique_and_contiguous():
+    for table in (boundary.FAIL_FAST_STAGES, boundary.FAIL_FAST_CODES):
+        values = sorted(table.values())
+        assert values == list(range(1, len(table) + 1))
+
+
+def test_every_record_field_is_set_as_specified(bindings):
+    """Built in-process. Building a record calls nothing and terminates nothing."""
+
+    record = boundary.build_fail_fast_record(
+        bindings, "ABSENCE_PROBE", "CLEANUP_INCOMPLETE"
+    )
+    assert record.ExceptionCode == 0xE3A70001
+    assert record.ExceptionFlags == boundary.EXCEPTION_NONCONTINUABLE == 1
+    assert record.ExceptionRecord is None
+    assert record.ExceptionAddress, "ExceptionAddress must never be NULL"
+    assert record.NumberParameters == 2
+    assert record.ExceptionInformation[0] == 9
+    assert record.ExceptionInformation[1] == 8
+    assert all(
+        record.ExceptionInformation[i] == 0
+        for i in range(2, boundary.EXCEPTION_MAXIMUM_PARAMETERS)
+    )
+
+
+def test_the_exception_code_carries_the_customer_bit():
+    """Bit 29 set, so it cannot collide with a Microsoft-defined status."""
+
+    code = boundary.FAIL_FAST_EXCEPTION_CODE
+    assert code >> 30 == 0b11, "severity must be error"
+    assert code & (1 << 29), "customer bit must be set"
+    assert not code & (1 << 28), "bit 28 is reserved and must be clear"
+
+
+@pytest.mark.parametrize(
+    ("stage", "code"),
+    [("NOT_A_STAGE", "CLEANUP_INCOMPLETE"), ("CLOSE", "NOT_A_CODE")],
+)
+def test_an_unknown_ordinal_refuses_to_invent_one(bindings, stage, code):
+    with pytest.raises(KeyError):
+        boundary.build_fail_fast_record(bindings, stage, code)
+
+
+def test_the_payload_cannot_hold_anything_but_ordinals(bindings):
+    """The content boundary is structural, not a rule to remember."""
+
+    record = boundary.build_fail_fast_record(bindings, "WRITE", "PATH_INVALID")
+    field_types = dict(boundary.EXCEPTION_RECORD._fields_)
+    assert field_types["ExceptionInformation"]._type_ is boundary.ULONG_PTR
+    for index in range(boundary.EXCEPTION_MAXIMUM_PARAMETERS):
+        assert type(record.ExceptionInformation[index]) is int
+
+
+# --- real termination, disposable children only ----------------------------
+
+
+def test_fail_fast_terminates_the_process_with_a_record():
+    completed = _run_child("WRITE", "MATERIALIZE_WRITE_FAILED")
+    assert completed.returncode & 0xFFFFFFFF == RECORD_PATH_EXIT
+    assert "RETURNED" not in completed.stdout, "fail_fast must never return"
+
+
+def test_the_two_paths_are_distinguishable_from_outside_the_process():
+    """The exit code says which one ran, which is the only externally visible
+    difference between carrying the payload and not carrying it."""
+
+    with_record = _run_child("WRITE", "MATERIALIZE_WRITE_FAILED")
+    without_record = _run_child("NOT_A_STAGE", "MATERIALIZE_WRITE_FAILED")
+    assert with_record.returncode & 0xFFFFFFFF == RECORD_PATH_EXIT
+    assert without_record.returncode & 0xFFFFFFFF == STATUS_FAIL_FAST_EXCEPTION
+    assert with_record.returncode != without_record.returncode
+
+
+def test_fail_fast_still_terminates_when_the_record_cannot_be_built():
+    """The fallback path: parameterless call, no payload, still fatal."""
+
+    completed = _run_child("NOT_A_STAGE", "MATERIALIZE_WRITE_FAILED")
+    assert completed.returncode & 0xFFFFFFFF == STATUS_FAIL_FAST_EXCEPTION
+    assert "RETURNED" not in completed.stdout
+
+
+def test_termination_is_not_recoverable_from_python():
+    """A child wrapping the call in try/except still dies."""
+
+    import subprocess
+
+    source = (
+        CHILD_PROLOGUE
+        + "try:\n"
+        "    boundary.fail_fast(bindings, 'CLOSE', 'CLOSE_FAILED')\n"
+        "except BaseException as error:\n"
+        "    print('CAUGHT', type(error).__name__, flush=True)\n"
+        "print('SURVIVED', flush=True)\n"
+    ).format(directory=str(pathlib.Path(boundary.__file__).resolve().parent))
+    completed = subprocess.run(
+        [sys.executable, "-c", source], capture_output=True, text=True, timeout=120
+    )
+    assert completed.returncode & 0xFFFFFFFF == RECORD_PATH_EXIT
+    assert "CAUGHT" not in completed.stdout
+    assert "SURVIVED" not in completed.stdout
+
+
+# --- what the boundary does not do -----------------------------------------
+
+
+def test_fail_fast_performs_no_io_and_has_no_sink():
+    """No writer, no buffer, no reader.
+
+    That is the whole claim, and revision 16 withdrew the broader one: the OS
+    termination path, an attached debugger or Windows Error Reporting may still
+    stall after `RaiseFailFastException` is called. What holds here is only
+    that there is no independent pre-fail-fast diagnostic I/O or sink.
+    """
+
+    import ast, inspect
+
+    tree = ast.parse(inspect.getsource(boundary.fail_fast))
+    forbidden = {"open", "print", "write", "OutputDebugStringW", "flush"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            assert node.attr not in forbidden, node.attr
+        elif isinstance(node, ast.Name):
+            assert node.id not in forbidden, node.id
+
+
+def test_fail_fast_yields_nothing_a_caller_could_branch_on():
+    import ast, inspect
+
+    tree = ast.parse(inspect.getsource(boundary.fail_fast))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Return):
+            assert node.value is None, "must not return a value"
+
+
+def test_the_claim_ceiling_is_stated_and_conditional():
+    doc = boundary.fail_fast.__doc__ or ""
+    assert "if" in doc and "construction fails" in doc
+    assert "carries no payload" in doc
+    assert "not claimed" in doc
+    assert "independent durable diagnostic record" in doc
+    assert "ruling 8" in doc
+
+
+def test_the_parent_never_reaches_the_real_fail_fast():
+    """The invariant is not "never name `fail_fast`" — it is never to reach the
+    real `RaiseFailFastException` in this process.
+
+    Some tests do call `fail_fast` here, but only after `_spy_on_fail_fast` has
+    replaced the bound export with a recording callback, so nothing terminates.
+    Any test function that calls one without the other would take the suite
+    down with it.
+    """
+
+    import ast
+
+    tree = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    for function in ast.walk(tree):
+        if not isinstance(function, ast.FunctionDef):
+            continue
+        names = {
+            getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+            for node in ast.walk(function)
+            if isinstance(node, ast.Call)
+        }
+        if "fail_fast" in names:
+            assert "_spy_on_fail_fast" in names, (
+                f"{function.name} calls fail_fast without installing the spy"
+            )
+
+
+@pytest.mark.parametrize(
+    "table_name", ["FAIL_FAST_STAGES", "FAIL_FAST_CODES"]
+)
+def test_the_ordinal_tables_cannot_be_mutated_at_runtime(table_name):
+    """A source-only rule does not stop a caller writing a new ordinal.
+
+    Plain dicts allowed exactly that, so the same stage could have produced
+    different ordinals at different times.
+    """
+
+    table = getattr(boundary, table_name)
+    key = next(iter(table))
+    with pytest.raises(TypeError):
+        table[key] = 99
+    with pytest.raises(TypeError):
+        table["INVENTED"] = 42
+    assert not hasattr(table, "update")
+    assert not hasattr(table, "clear")
+
+
+@pytest.mark.parametrize(
+    "leaked_name", ["_FAIL_FAST_STAGES", "_FAIL_FAST_CODES"]
+)
+def test_the_backing_dict_is_not_bound_to_a_module_name(leaked_name):
+    """A proxy over a dict something else still names is not immutable.
+
+    An earlier revision kept the originals as underscore-prefixed module
+    attributes, and writing through one changed the public proxy immediately.
+    """
+
+    assert not hasattr(boundary, leaked_name)
+
+
+def test_no_module_attribute_exposes_a_mutable_ordinal_table():
+    """Checked by value, so renaming the leak would not hide it."""
+
+    frozen = [dict(boundary.FAIL_FAST_STAGES), dict(boundary.FAIL_FAST_CODES)]
+    for name, value in vars(boundary).items():
+        if isinstance(value, dict) and value in frozen:
+            pytest.fail(f"{name} exposes a mutable ordinal table")
+
+
+# The hostile mutation below writes into every reachable dict, which reaches
+# `builtins`, `DECLARED_TYPES` and the module's `__annotations__`. Run in this
+# process it left `WRITE` behind in all three, so every later test ran in a
+# contaminated interpreter and 117 green results proved less than they looked.
+# It runs in a disposable child instead.
+MUTATION_CHILD = (
+    "import sys\n"
+    "sys.path.insert(0, r'{directory}')\n"
+    "import gate3_native_boundary as boundary\n"
+    "leaked = [n for n in dir(boundary) if n in ('_FAIL_FAST_STAGES', '_FAIL_FAST_CODES')]\n"
+    "for value in list(vars(boundary).values()):\n"
+    "    if isinstance(value, dict):\n"
+    "        try:\n"
+    "            value['WRITE'] = 99\n"
+    "            value['PATH_INVALID'] = 77\n"
+    "        except TypeError:\n"
+    "            pass\n"
+    "print(leaked,\n"
+    "      boundary.FAIL_FAST_STAGES['WRITE'],\n"
+    "      boundary.FAIL_FAST_CODES['PATH_INVALID'], flush=True)\n"
+)
+
+
+def test_writing_through_any_reachable_dict_cannot_change_an_ordinal():
+    """The property that matters, stated as an outcome rather than a shape.
+
+    Run in a child: the mutation is deliberately indiscriminate, so it must not
+    be allowed to leave anything behind in the process running the suite.
+    """
+
+    import subprocess
+
+    source = MUTATION_CHILD.format(
+        directory=str(pathlib.Path(boundary.__file__).resolve().parent)
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", source], capture_output=True, text=True, timeout=120
+    )
+    assert completed.returncode == 0, completed.stderr[-400:]
+    assert completed.stdout.strip() == "[] 4 5"
+
+
+def test_the_mutation_probe_left_nothing_behind_in_this_process():
+    """The contamination the child exists to avoid, asserted directly."""
+
+    import builtins
+
+    assert not hasattr(builtins, "WRITE")
+    assert "WRITE" not in boundary.DECLARED_TYPES
+    assert "WRITE" not in getattr(boundary, "__annotations__", {})
+    assert boundary.FAIL_FAST_STAGES["WRITE"] == 4
+    assert boundary.FAIL_FAST_CODES["PATH_INVALID"] == 5
+
+
+def test_the_exception_address_is_exactly_the_bound_thunk(bindings):
+    """Truthy is not enough: it must be that function's address."""
+
+    record = boundary.build_fail_fast_record(bindings, "PROBE", "PATH_INVALID")
+    expected = ctypes.cast(
+        bindings.kernel32.RaiseFailFastException, boundary.PVOID
+    ).value
+    assert expected
+    assert record.ExceptionAddress == expected
+
+
+def _spy_on_fail_fast(bindings, monkeypatch):
+    """Replace the bound export with a real ctypes callback that records.
+
+    A callback, not a Python function: `build_fail_fast_record` takes the
+    address of whatever is bound there, and a plain callable has none. Nothing
+    terminates, so this runs safely in the parent.
+    """
+
+    prototype = ctypes.WINFUNCTYPE(
+        None,
+        ctypes.POINTER(boundary.EXCEPTION_RECORD),
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+    )
+    calls = []
+
+    def spy(record_pointer, context_record, flags):
+        # Copy the record *now*. In production `fail_fast` never returns, so
+        # the record outlives every reader; here it does return, its local goes
+        # out of scope, and reading `.contents` afterwards is a use-after-free
+        # that produced convincing garbage until this snapshot was added.
+        snapshot = None
+        if record_pointer:
+            snapshot = boundary.EXCEPTION_RECORD()
+            ctypes.memmove(
+                ctypes.byref(snapshot), record_pointer, ctypes.sizeof(snapshot)
+            )
+        calls.append((bool(record_pointer), snapshot, context_record, flags))
+
+    callback = prototype(spy)
+    monkeypatch.setattr(bindings.kernel32, "RaiseFailFastException", callback)
+    return calls, callback
+
+
+def test_the_record_path_passes_the_exact_three_arguments(bindings, monkeypatch):
+    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
+    boundary.fail_fast(bindings, "REMOVE", "CLOSE_FAILED")
+
+    assert len(calls) == 1
+    had_record, record, context_record, flags = calls[0]
+    assert had_record, "pExceptionRecord must be the record"
+    assert context_record is None, "pContextRecord must be NULL"
+    assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS == 1
+
+    assert record.ExceptionCode == boundary.FAIL_FAST_EXCEPTION_CODE
+    assert record.ExceptionFlags == boundary.EXCEPTION_NONCONTINUABLE
+    assert record.NumberParameters == 2
+    assert record.ExceptionInformation[0] == boundary.FAIL_FAST_STAGES["REMOVE"]
+    assert record.ExceptionInformation[1] == boundary.FAIL_FAST_CODES["CLOSE_FAILED"]
+
+
+def test_the_fallback_path_passes_a_null_record(bindings, monkeypatch):
+    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
+    boundary.fail_fast(bindings, "NOT_A_STAGE", "CLOSE_FAILED")
+
+    assert len(calls) == 1
+    had_record, record, context_record, flags = calls[0]
+    assert not had_record, "fallback must pass NULL, carrying no payload"
+    assert record is None
+    assert context_record is None
+    assert flags == boundary.FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+
+
+def test_the_flags_argument_is_never_zero(bindings, monkeypatch):
+    """dwFlags == 0 would leave ExceptionAddress unset by the OS."""
+
+    calls, _ = _spy_on_fail_fast(bindings, monkeypatch)
+    boundary.fail_fast(bindings, "CHAIN", "HANDLE_BOUNDARY_UNAVAILABLE")
+    boundary.fail_fast(bindings, "BAD_STAGE", "HANDLE_BOUNDARY_UNAVAILABLE")
+    assert [flags for *_, flags in calls] == [1, 1]
+
+
+def test_no_child_loads_a_library_outside_the_approved_path():
+    """Scaffolding is not exempt from the compensating controls.
+
+    Checked against the child source itself rather than by searching this file
+    for a literal, which would match the assertion doing the searching.
+    """
+
+    import ast
+
+    prologue = CHILD_PROLOGUE.format(directory="X")
+    assert "boundary.load_bindings()" in prologue
+
+    loaders = {"WinDLL", "CDLL", "OleDLL", "PyDLL", "windll", "cdll", "oledll"}
+    for node in ast.walk(ast.parse(prologue)):
+        if isinstance(node, ast.Attribute):
+            assert node.attr not in loaders, node.attr
+        elif isinstance(node, ast.Name):
+            assert node.id not in loaders, node.id
+
+
+def test_n3a_did_not_move_availability():
     assert boundary.handle_boundary_available() is False
     assert boundary.ACTIVE is False

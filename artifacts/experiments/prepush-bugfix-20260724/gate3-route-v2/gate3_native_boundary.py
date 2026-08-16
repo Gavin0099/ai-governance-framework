@@ -36,8 +36,12 @@ walked an `OSError` straight out of both. Reading runtime facts therefore
 belongs to the tranche that builds the fail-fast boundary first, not to this
 one.
 
-Deferred to that tranche, and deliberately absent here: `RtlGetVersion` for the
-OS build, `GetModuleFileNameW` for load-path evidence — which must also reject
+**N3a** builds that fail-fast boundary, so a later tranche has somewhere for an
+unexplained fault to go. It is the exit, not a user of it: nothing in this
+module calls a bound export through it yet.
+
+Still deferred, and deliberately absent: `RtlGetVersion` for the OS build,
+`GetModuleFileNameW` for load-path evidence — which must also reject
 `written == len(buffer)`, since that value means the path was truncated — and
 `GetVolumeInformationByHandleW` for the filesystem, which needs a held handle
 that does not exist yet.
@@ -65,6 +69,7 @@ import pathlib
 import platform
 import re
 import sys
+from types import MappingProxyType
 from ctypes import (
     POINTER,
     Structure,
@@ -822,6 +827,133 @@ def load_bindings() -> _Bindings:
     """
 
     return _Bindings()
+
+
+# ===========================================================================
+# Tranche N3a — the fail-fast boundary
+# ===========================================================================
+#
+# Why this exists before anything calls a bound export. The characterization
+# measured a raised EXCEPTION_ACCESS_VIOLATION arriving as an ordinary
+# catchable OSError, and established no reliable way to tell an SEH fault from
+# a recoverable Win32 error. So an exception escaping a ctypes call after
+# binding is unexplained, and translating it would mean reporting a possible
+# ABI fault as something a caller may retry. It terminates instead.
+
+FAIL_FAST_EXCEPTION_CODE = 0xE3A70001
+"""Application-defined. Bits 31-30 are 0b11 (error severity) and bit 29 — the
+customer bit — is set, so the value cannot collide with a Microsoft-defined
+status. Bit 28 is 0, as reserved."""
+
+EXCEPTION_NONCONTINUABLE = 0x0001
+FAIL_FAST_GENERATE_EXCEPTION_ADDRESS = 0x0001
+EXCEPTION_MAXIMUM_PARAMETERS = 15
+
+# Frozen, and immutable at runtime rather than by convention. Assigned once and
+# never renumbered; a new entry appends at the next free value. Renumbering
+# would silently change the meaning of every record already captured in a dump.
+#
+# The mapping is built from a dict literal passed straight into the proxy, so
+# nothing else holds a reference to it. An earlier revision kept the backing
+# dicts bound as `_FAIL_FAST_STAGES` and `_FAIL_FAST_CODES`, and a probe wrote
+# through them into the public proxies — a leading underscore is a naming
+# convention, not an access boundary.
+FAIL_FAST_STAGES = MappingProxyType(
+    {
+        "CHAIN": 1,
+        "CREATE_DIRECTORY": 2,
+        "CREATE_FILE": 3,
+        "WRITE": 4,
+        "IDENTITY": 5,
+        "REVALIDATE": 6,
+        "REMOVE": 7,
+        "PROBE": 8,
+        "ABSENCE_PROBE": 9,
+        "CLOSE": 10,
+    }
+)
+FAIL_FAST_CODES = MappingProxyType(
+    {
+        "UNEXPECTED_EXCEPTION": 1,
+        "MATERIALIZE_PATH_EXISTS": 2,
+        "MATERIALIZE_WRITE_FAILED": 3,
+        "PATH_IS_REPARSE_POINT": 4,
+        "PATH_INVALID": 5,
+        "ROOT_IDENTITY_UNAVAILABLE": 6,
+        "ROOT_IDENTITY_CHANGED": 7,
+        "CLEANUP_INCOMPLETE": 8,
+        "CLOSE_FAILED": 9,
+        "HANDLE_BOUNDARY_UNAVAILABLE": 10,
+    }
+)
+
+
+def build_fail_fast_record(
+    bindings: _Bindings, stage: str, code: str
+) -> EXCEPTION_RECORD:
+    """The record carrying the diagnostic.
+
+    The payload is two integers from closed sets, so the content boundary is
+    structural rather than a rule: a path, handle, status or message cannot be
+    placed in this record at all.
+
+    Raises on an unknown stage or code, which is what puts the caller on the
+    fallback path — a diagnostic that invented an ordinal would be worse than
+    none.
+    """
+
+    record = EXCEPTION_RECORD()
+    record.ExceptionCode = FAIL_FAST_EXCEPTION_CODE
+    record.ExceptionFlags = EXCEPTION_NONCONTINUABLE
+    record.ExceptionRecord = None
+    # Non-NULL, always: supplying a record obliges the caller to specify
+    # ExceptionCode *and* ExceptionAddress, and a NULL there does not satisfy
+    # that however dwFlags is set. FAIL_FAST_GENERATE_EXCEPTION_ADDRESS asks
+    # the OS to substitute the caller's return address, which is the more
+    # useful value; this entry-point address is what remains if it does not.
+    record.ExceptionAddress = ctypes.cast(
+        bindings.kernel32.RaiseFailFastException, PVOID
+    )
+    record.NumberParameters = 2
+    for index in range(EXCEPTION_MAXIMUM_PARAMETERS):
+        record.ExceptionInformation[index] = 0
+    record.ExceptionInformation[0] = FAIL_FAST_STAGES[stage]
+    record.ExceptionInformation[1] = FAIL_FAST_CODES[code]
+    return record
+
+
+def fail_fast(bindings: _Bindings, stage: str, code: str) -> None:
+    """Terminate the process. Never returns.
+
+    Claim ceiling, per owner ruling 8's slice-specific `NATIVE-INTEROP.md` §4.1
+    exception: **if** the record is constructed, the two ordinals accompany the
+    fail-fast call as inputs to that call; **if** construction fails, the
+    parameterless fallback still terminates and carries no payload. Whether any
+    consumer preserves either outcome — a crash dump, WER, an attached debugger
+    — is outside this design and is not claimed. This slice does not produce an
+    independent durable diagnostic record.
+
+    There is no sink and no pre-fail-fast I/O, so nothing here can stall on a
+    reader. That is the whole property: it says nothing about whether the OS
+    termination path, a debugger or WER can stall afterwards.
+    """
+
+    record = None
+    try:
+        record = build_fail_fast_record(bindings, stage, code)
+    except Exception:
+        record = None
+    finally:
+        # From the `finally`, so a path that raises before the record exists
+        # still terminates. The fallback takes no argument derived from the
+        # failure, so it cannot itself fail on bad input.
+        raise_fail_fast = bindings.kernel32.RaiseFailFastException
+        if record is None:
+            raise_fail_fast(None, None, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS)
+        else:
+            raise_fail_fast(
+                ctypes.byref(record), None, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS
+            )
 
 
 def handle_boundary_available() -> bool:
