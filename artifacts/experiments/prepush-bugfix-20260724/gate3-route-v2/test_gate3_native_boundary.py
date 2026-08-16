@@ -1409,22 +1409,63 @@ def test_control_flow_does_not_trigger_fail_fast(
     assert fail_fast_calls == [], "control flow must propagate, not fail fast"
 
 
-def test_no_bound_export_is_invoked_outside_the_guard():
-    """Structural: a direct call would bypass the fail-fast exit entirely."""
+# `_guarded` is the guard, and `fail_fast` is the exit the guard jumps to;
+# neither can route through itself. Everything else in the module must.
+_UNGUARDED_BY_DESIGN = frozenset({"_guarded", "fail_fast"})
 
-    import ast, inspect
+
+def _unguarded_calls(source: str) -> list[str]:
+    """Names of bound exports called directly anywhere in `source`."""
+
+    import ast
 
     exports = {name for _, name in boundary._Bindings.BOUND}
-    for function in (boundary.os_build, boundary.library_paths):
-        tree = ast.parse(inspect.getsource(function))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
+    found: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        if node.name in _UNGUARDED_BY_DESIGN:
+            continue
+        for inner in ast.walk(node):
+            if not isinstance(inner, ast.Call):
                 continue
-            attribute = node.func
-            if isinstance(attribute, ast.Attribute) and attribute.attr in exports:
-                pytest.fail(
-                    f"{function.__name__} calls {attribute.attr} directly"
-                )
+            func = inner.func
+            if isinstance(func, ast.Attribute) and func.attr in exports:
+                found.append(f"{node.name} calls {func.attr} directly")
+    return found
+
+
+def test_no_bound_export_is_invoked_outside_the_guard():
+    """Structural: a direct call would bypass the fail-fast exit entirely.
+
+    Scoped to the whole module, not to a hand-written pair of functions. The
+    earlier version listed `os_build` and `library_paths` only, so when N3c-1
+    added two direct `CloseHandle` calls it kept passing — the check was
+    narrower than the invariant it was named after.
+    """
+
+    source = pathlib.Path(boundary.__file__).read_text(encoding="utf-8")
+    assert _unguarded_calls(source) == []
+
+
+def test_the_structural_check_would_catch_a_direct_call():
+    """The check is load-bearing, not decorative.
+
+    Written against a synthetic source rather than the real module, so proving
+    the detector works does not require reintroducing the defect.
+    """
+
+    offending = (
+        "def cleanup(bindings, handle):\n"
+        "    bindings.kernel32.CloseHandle(handle)\n"
+    )
+    assert _unguarded_calls(offending) == ["cleanup calls CloseHandle directly"]
+
+
+def test_the_unguarded_exemption_list_stays_minimal():
+    """Two names, and both are part of the guard itself."""
+
+    assert _UNGUARDED_BY_DESIGN == {"_guarded", "fail_fast"}
 
 
 # --- the facts themselves ---------------------------------------------------
@@ -1540,6 +1581,437 @@ def test_the_tests_open_no_library_outside_the_approved_loader():
         elif isinstance(node, ast.Name):
             name = node.id
         assert name not in loaders, f"{name} opens a library outside the loader"
+
+
+# --- N3c-1: the pinned ancestor chain ---------------------------------------
+
+
+def test_the_ancestor_mask_is_revision_17s(bindings):
+    """Design evidence 19v: asserted against the constants, not against luck.
+
+    Reading the mask off a call that happened to succeed would prove only that
+    this directory allowed it today.
+    """
+
+    assert boundary.ANCESTOR_ACCESS == (
+        boundary.FILE_LIST_DIRECTORY
+        | boundary.FILE_READ_ATTRIBUTES
+        | boundary.SYNCHRONIZE
+    )
+    assert boundary.FILE_READ_ATTRIBUTES == 0x0080
+    assert boundary.ANCESTOR_ACCESS & boundary.FILE_READ_ATTRIBUTES
+
+
+def test_a_borrowed_ancestor_asks_for_no_delete_and_no_share_delete():
+    """Design evidence 19x: the pin comes from withholding, not from DELETE.
+
+    Asserted against the constants so a later widening cannot slip through on
+    the strength of the tests still passing.
+    """
+
+    DELETE = 0x00010000
+    FILE_WRITE_ATTRIBUTES = 0x0100
+    assert not boundary.ANCESTOR_ACCESS & DELETE
+    assert not boundary.ANCESTOR_ACCESS & FILE_WRITE_ATTRIBUTES
+    assert not boundary.ANCESTOR_SHARE & boundary.FILE_SHARE_DELETE
+
+
+def test_a_handle_without_read_attributes_cannot_read_the_reparse_tag(
+    bindings, monkeypatch
+):
+    """Design evidence 19w: the amendment is load-bearing.
+
+    Opens one real directory twice — the repository's own volume root, read
+    only, creating and deleting nothing — under revision 16's mask and then
+    under revision 17's. If both worked, the amendment would be decoration.
+    """
+
+    volume_root, _ = boundary.split_base_path(str(REPO_ROOT))
+
+    monkeypatch.setattr(
+        boundary,
+        "ANCESTOR_ACCESS",
+        boundary.FILE_LIST_DIRECTORY | boundary.SYNCHRONIZE,
+    )
+    handle = boundary._open_directory(bindings, volume_root, None)
+    try:
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary._reparse_tag(bindings, handle)
+        assert excinfo.value.args[0] == "ROOT_IDENTITY_UNAVAILABLE"
+    finally:
+        assert boundary._close_handle(bindings, handle)
+
+    monkeypatch.undo()
+    handle = boundary._open_directory(bindings, volume_root, None)
+    try:
+        assert boundary._reparse_tag(bindings, handle) == 0
+    finally:
+        assert boundary._close_handle(bindings, handle)
+
+
+def test_the_chain_pins_every_component_and_revalidates(bindings):
+    """One real chain: volume root down to the repository, opened and held.
+
+    Read only. No directory or file is created, renamed or removed.
+    """
+
+    chain = boundary.open_chain(bindings, str(REPO_ROOT))
+    try:
+        _, components = boundary.split_base_path(str(REPO_ROOT))
+        assert len(chain.anchors) == len(components) + 1
+        assert all(len(anchor.identity) == 64 for anchor in chain.anchors)
+        assert len({anchor.identity for anchor in chain.anchors}) == len(
+            chain.anchors
+        )
+        for anchor in chain.anchors:
+            boundary.revalidate(bindings, anchor)  # unchanged, so it returns
+    finally:
+        boundary.close_chain(bindings, chain)
+    assert all(anchor.closed for anchor in chain.anchors)
+
+
+def test_a_closed_anchor_is_refused_rather_than_queried(bindings):
+    chain = boundary.open_chain(bindings, str(REPO_ROOT))
+    boundary.close_chain(bindings, chain)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.revalidate(bindings, chain.base)
+    assert excinfo.value.args[0] == "ROOT_IDENTITY_CHANGED"
+
+
+def test_closing_twice_is_a_no_op(bindings):
+    chain = boundary.open_chain(bindings, str(REPO_ROOT))
+    boundary.close_chain(bindings, chain)
+    boundary.close_chain(bindings, chain)  # must not double-close a handle
+
+
+# --- N3c-1: an unwind must not eat the error that caused it -----------------
+
+
+def test_a_failing_close_does_not_replace_the_anchor_error(
+    bindings, monkeypatch
+):
+    """The reparse rejection is the finding; CLOSE_FAILED is noise beside it."""
+
+    monkeypatch.setattr(boundary, "_open_directory", lambda *a: 0x1234)
+    monkeypatch.setattr(boundary, "_reparse_tag", lambda *a: 0xA000_0003)
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary._anchor(bindings, "child", None)
+
+    assert excinfo.value.args[0] == "PATH_IS_REPARSE_POINT"
+    assert any("CLOSE_FAILED" in note for note in excinfo.value.__notes__)
+
+
+def test_a_failing_close_does_not_replace_the_chain_error(
+    bindings, monkeypatch
+):
+    """A mid-chain failure survives a cleanup that also fails.
+
+    `open_chain` used to call `close_chain`, which raises; the `CLOSE_FAILED`
+    from unwinding arrived at the caller in place of the reason the chain was
+    being unwound at all.
+    """
+
+    opened: list[boundary.Anchor] = []
+
+    def fake_anchor(_bindings, name, _parent):
+        if len(opened) >= 1:
+            raise boundary.NativeError("PATH_IS_REPARSE_POINT")
+        anchor = boundary.Anchor(_bindings, 0x1234, "identity")
+        opened.append(anchor)
+        return anchor
+
+    monkeypatch.setattr(boundary, "_anchor", fake_anchor)
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.open_chain(bindings, str(REPO_ROOT))
+
+    assert excinfo.value.args[0] == "PATH_IS_REPARSE_POINT"
+    assert any("CLOSE_FAILED" in note for note in excinfo.value.__notes__)
+    assert opened[0].closed  # attempted, and not retried later
+
+
+def test_the_quiet_close_still_attempts_every_anchor(bindings, monkeypatch):
+    """Stopping at the first failure would leak the handles beneath it."""
+
+    attempts: list[int] = []
+
+    def failing_close(_bindings, handle):
+        attempts.append(handle)
+        return False
+
+    monkeypatch.setattr(boundary, "_close_handle", failing_close)
+    anchors = [
+        boundary.Anchor(bindings, handle, f"id{handle}") for handle in (1, 2, 3)
+    ]
+
+    failure = boundary._close_chain_quietly(anchors)
+
+    assert failure is not None and failure.args[0] == "CLOSE_FAILED"
+    assert attempts == [3, 2, 1]  # reverse acquisition order, none skipped
+
+
+def test_close_chain_still_raises_when_called_deliberately(
+    bindings, monkeypatch
+):
+    """The quiet variant is for unwinding only, not a general softening."""
+
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+    chain = boundary.PinnedChain(
+        [boundary.Anchor(bindings, 0x1234, "identity")]
+    )
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.close_chain(bindings, chain)
+    assert excinfo.value.args[0] == "CLOSE_FAILED"
+
+
+def _invoked_exports(source: str) -> set[str]:
+    """Every bound export this source can actually invoke.
+
+    Two shapes count, and the first version of this check only saw one:
+
+    * `bindings.kernel32.CloseHandle(handle)` — a direct call;
+    * `_guarded(bindings, "CLOSE", bindings.kernel32.CloseHandle, handle)` —
+      the export handed to the guard as a callable, which is the *normal* shape
+      in this module and contains no `CloseHandle(` text at all.
+
+    Searching for `ntdll.NtCreateFile(` therefore proved nothing: the compliant
+    way to call it would never match, so neither would a new violation.
+    """
+
+    import ast
+
+    exports = {name for _, name in boundary._Bindings.BOUND}
+    invoked: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in exports:
+            invoked.add(func.attr)
+        for argument in node.args:
+            if isinstance(argument, ast.Attribute) and argument.attr in exports:
+                invoked.add(argument.attr)
+    return invoked
+
+
+def test_the_invocation_detector_sees_a_guarded_call():
+    """Sensitivity check on synthetic source, so nothing is reintroduced here."""
+
+    guarded = (
+        "def create(bindings, attrs):\n"
+        "    return _guarded(bindings, 'CREATE_FILE',"
+        " bindings.ntdll.NtCreateFile, attrs)\n"
+    )
+    direct = (
+        "def create(bindings, attrs):\n"
+        "    return bindings.ntdll.NtCreateFile(attrs)\n"
+    )
+    assert _invoked_exports(guarded) == {"NtCreateFile"}
+    assert _invoked_exports(direct) == {"NtCreateFile"}
+
+
+def test_n3c1_creates_and_removes_nothing(bindings, tmp_path):
+    """The tranche opens directories. It has no creation or deletion path."""
+
+    before = sorted(tmp_path.iterdir())
+    with boundary.open_chain(bindings, str(REPO_ROOT)):
+        pass
+    assert sorted(tmp_path.iterdir()) == before
+
+    source = pathlib.Path(boundary.__file__).read_text(encoding="utf-8")
+    invoked = _invoked_exports(source)
+    bound = {name for _, name in boundary._Bindings.BOUND}
+    for never_called in (
+        "NtCreateFile",
+        "SetFileInformationByHandle",
+        "WriteFile",
+        "GetVolumeInformationByHandleW",
+    ):
+        assert never_called in bound  # bound, so absence is a choice
+        assert never_called not in invoked
+
+
+# --- N3c-1 rev2: ownership, sentinels, and the actual OS error --------------
+
+
+def test_the_chain_closes_itself_on_context_exit(bindings):
+    """Design: ownership is dropped by a context manager."""
+
+    with boundary.open_chain(bindings, str(REPO_ROOT)) as chain:
+        assert not any(anchor.closed for anchor in chain.anchors)
+    assert all(anchor.closed for anchor in chain.anchors)
+
+
+def test_the_context_manager_does_not_swallow_the_body_error(bindings):
+    """`__exit__` returns False, so an error inside the block still escapes."""
+
+    with pytest.raises(ZeroDivisionError):
+        with boundary.open_chain(bindings, str(REPO_ROOT)) as chain:
+            1 / 0
+    assert all(anchor.closed for anchor in chain.anchors)
+
+
+def test_an_anchor_is_its_own_context_manager(bindings):
+    with boundary.open_chain(bindings, str(REPO_ROOT)) as chain:
+        anchor = chain.anchors[0]
+        with anchor:
+            assert not anchor.closed
+        assert anchor.closed
+
+
+def test_the_finalizer_releases_a_chain_the_caller_forgot(bindings, monkeypatch):
+    """The safety net the design requires, observed rather than assumed."""
+
+    import gc
+
+    closed: list[int] = []
+    monkeypatch.setattr(
+        boundary,
+        "_close_handle",
+        lambda _bindings, handle: closed.append(handle) or True,
+    )
+
+    def leak():
+        chain = boundary.PinnedChain(
+            [boundary.Anchor(bindings, 0x4321, "identity")]
+        )
+        assert chain.base.closed is False
+
+    leak()
+    gc.collect()
+    assert closed == [0x4321]
+
+
+def test_the_finalizer_stays_silent_when_the_close_fails(bindings, monkeypatch):
+    """A finalizer that raised would print and be ignored anyway."""
+
+    import gc
+
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+    anchor = boundary.Anchor(bindings, 0x4321, "identity")
+    del anchor
+    gc.collect()  # must not raise CLOSE_FAILED out of __del__
+
+
+def test_a_success_status_with_an_invalid_handle_is_refused(
+    bindings, monkeypatch
+):
+    """`INVALID_HANDLE_VALUE` is truthy, so a NULL-only test let it through."""
+
+    assert boundary.INVALID_HANDLE_VALUE == 0xFFFF_FFFF_FFFF_FFFF
+
+    def fake_open(_handle_ref, *_args):
+        _handle_ref._obj.value = boundary.INVALID_HANDLE_VALUE
+        return 0  # STATUS_SUCCESS
+
+    monkeypatch.setattr(bindings.ntdll, "NtOpenFile", fake_open, raising=False)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary._open_directory(bindings, "\\??\\C:\\", None)
+    assert excinfo.value.args[0] == "HANDLE_BOUNDARY_UNAVAILABLE"
+
+
+def test_a_success_status_with_a_null_handle_is_also_refused(
+    bindings, monkeypatch
+):
+    def fake_open(_handle_ref, *_args):
+        _handle_ref._obj.value = None
+        return 0
+
+    monkeypatch.setattr(bindings.ntdll, "NtOpenFile", fake_open, raising=False)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary._open_directory(bindings, "\\??\\C:\\", None)
+    assert excinfo.value.args[0] == "HANDLE_BOUNDARY_UNAVAILABLE"
+
+
+def test_the_missing_read_right_fails_with_access_denied(bindings, monkeypatch):
+    """Design evidence 19w, stated as the OS states it.
+
+    Asserting only that the query failed would have been satisfied by any
+    failure at all; revision 17 rests on the failure being ERROR_ACCESS_DENIED.
+    """
+
+    ERROR_ACCESS_DENIED = 5
+    volume_root, _ = boundary.split_base_path(str(REPO_ROOT))
+
+    monkeypatch.setattr(
+        boundary,
+        "ANCESTOR_ACCESS",
+        boundary.FILE_LIST_DIRECTORY | boundary.SYNCHRONIZE,
+    )
+    handle = boundary._open_directory(bindings, volume_root, None)
+    try:
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary._reparse_tag(bindings, handle)
+        assert excinfo.value.args[0] == "ROOT_IDENTITY_UNAVAILABLE"
+        assert excinfo.value.__notes__ == [
+            f"FileAttributeTagInfo: last_error={ERROR_ACCESS_DENIED}"
+        ]
+    finally:
+        assert boundary._close_handle(bindings, handle)
+
+
+def test_a_failing_close_does_not_replace_a_body_error_on_a_chain(
+    bindings, monkeypatch
+):
+    """Both fail at once: the body error is the finding, the close is a note.
+
+    `__exit__` used to call `close()` unconditionally, so `CLOSE_FAILED` was
+    raised out of the `with` and the ValueError never reached the caller.
+    """
+
+    chain = boundary.PinnedChain(
+        [boundary.Anchor(bindings, 0x1234, "identity")]
+    )
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+
+    with pytest.raises(ValueError) as excinfo:
+        with chain:
+            raise ValueError("the body failed first")
+
+    assert excinfo.value.args[0] == "the body failed first"
+    assert any("CLOSE_FAILED" in note for note in excinfo.value.__notes__)
+    assert chain.base.closed  # attempted, and not retried afterwards
+
+
+def test_a_failing_close_does_not_replace_a_body_error_on_an_anchor(
+    bindings, monkeypatch
+):
+    anchor = boundary.Anchor(bindings, 0x1234, "identity")
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+
+    with pytest.raises(ValueError) as excinfo:
+        with anchor:
+            raise ValueError("the body failed first")
+
+    assert excinfo.value.args[0] == "the body failed first"
+    assert any("CLOSE_FAILED" in note for note in excinfo.value.__notes__)
+    assert anchor.closed
+
+
+@pytest.mark.parametrize("owner", ["anchor", "chain"])
+def test_a_clean_body_still_reports_a_failed_close(
+    bindings, monkeypatch, owner
+):
+    """No prior error means nothing to mask, so the failure must surface."""
+
+    anchor = boundary.Anchor(bindings, 0x1234, "identity")
+    subject = anchor if owner == "anchor" else boundary.PinnedChain([anchor])
+    monkeypatch.setattr(boundary, "_close_handle", lambda *a: False)
+
+    with pytest.raises(boundary.NativeError) as excinfo:
+        with subject:
+            pass
+    assert excinfo.value.args[0] == "CLOSE_FAILED"
+
+
+def test_n3c1_did_not_move_availability(bindings):
+    """Pinning a chain is not admission, and does not pretend to be."""
+
+    assert boundary.handle_boundary_available() is False
+    assert boundary.ACTIVE is False
 
 
 def test_n3b_did_not_move_availability(bindings):

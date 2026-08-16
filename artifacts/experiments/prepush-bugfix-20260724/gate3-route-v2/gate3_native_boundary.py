@@ -2,8 +2,8 @@
 
 Design authority:
 `docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md`
-revision 16, SHA-256
-72946b3f06ffe2b506fbdde0c0cd62984b6d02e289834de0a970d0ea96931ebb, with
+revision 17, SHA-256
+83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3, with
 `docs/adr/0001-gate3-native-directory-handle-boundary.md`.
 
 Two tranches so far.
@@ -62,10 +62,19 @@ an implementation does not get to add a fourth semantic. These failures occur
 during the identity stage, so they report `ROOT_IDENTITY_UNAVAILABLE`, which is
 the approved code for an unknown status there.
 
-Still deferred: `GetVolumeInformationByHandleW` for the filesystem, which reads
-from a held base handle that does not exist yet. It is absent from the facts
-rather than substituted from a path, because a fact from a different source is
-a different fact wearing the same name.
+**N3c-1** pins the ancestor chain: every component from the volume root down to
+`base` is opened and held for the tree's lifetime. It **opens** directories and
+**creates and deletes nothing** — `NtCreateFile`, handle-bound deletion and the
+absence probe belong to a later tranche and are still uncalled.
+
+Pinning is what stops a component being swapped mid-run. Each handle is opened
+with `FILE_SHARE_DELETE` omitted, so while it is held no other process can
+rename or delete that directory; and each open is **handle-relative** to the one
+above it, so no component is ever re-resolved by name.
+
+Still deferred: `GetVolumeInformationByHandleW` for the filesystem. It reads
+from a held base handle, which now exists, but wiring it in is N3c-2's business
+rather than something to slip in here.
 
 `handle_boundary_available()` returns False, as it has since the interim gate
 landed. Nothing in this module changes that: an admission registry does not
@@ -1093,6 +1102,459 @@ def runtime_facts(bindings: _Bindings) -> dict[str, object]:
         "filesystem": None,
         "filesystem_reason": "requires a held base handle; not this tranche",
     }
+
+
+# ===========================================================================
+# Tranche N3c-1 — pinning the ancestor chain
+# ===========================================================================
+#
+# Every constant below was read out of the pinned SDK headers rather than
+# recalled. The `FILE_INFO_BY_HANDLE_CLASS` ordinals in particular are position
+# dependent: the enum body is bracketed by `NTDDI_VERSION` blocks, so the values
+# are only these when every block is active. The admission record pins the SDK
+# and the OS build, which is what makes that assumption checkable.
+
+SYNCHRONIZE = 0x00100000
+FILE_LIST_DIRECTORY = 0x0001
+FILE_SHARE_READ = 0x00000001
+FILE_SHARE_WRITE = 0x00000002
+FILE_SHARE_DELETE = 0x00000004
+OBJ_CASE_INSENSITIVE = 0x00000040
+FILE_OPEN = 0x00000001
+FILE_DIRECTORY_FILE = 0x00000001
+FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020
+FILE_OPEN_REPARSE_POINT = 0x00200000
+
+FILE_READ_ATTRIBUTES = 0x0080
+
+# Not NULL. On 64-bit this is 0xFFFFFFFFFFFFFFFF, so a `if not handle.value`
+# test passes it straight through to the next metadata query. The design
+# requires both sentinels to be rejected, and one of them is truthy.
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+
+FILE_ATTRIBUTE_TAG_INFO_CLASS = 9
+FILE_ID_INFO_CLASS = 18
+
+# Role 1 from design revision 17: a borrowed ancestor. DELETE is *not*
+# requested — the pin comes from omitting FILE_SHARE_DELETE, not from asking for
+# delete access on a directory this code did not create.
+#
+# FILE_READ_ATTRIBUTES is not decoration. Revision 16 required a reparse-tag
+# check on every pinned ancestor while granting a mask that cannot perform one:
+# measured on the volume root, GetFileInformationByHandleEx with
+# FileAttributeTagInfo failed with ERROR_ACCESS_DENIED under
+# FILE_LIST_DIRECTORY | SYNCHRONIZE alone. It is an independent right from
+# FILE_WRITE_ATTRIBUTES (0x0100), so holding the write right would not have
+# granted the read.
+ANCESTOR_ACCESS = FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | SYNCHRONIZE
+ANCESTOR_SHARE = FILE_SHARE_READ | FILE_SHARE_WRITE
+ANCESTOR_OPTIONS = (
+    FILE_DIRECTORY_FILE | FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT
+)
+
+_DRIVE_ROOT = re.compile(r"^([A-Za-z]):[\\/]$")
+
+
+class Anchor:
+    """One held directory handle, with the identity it had when opened.
+
+    Opaque on purpose: the raw handle never leaves this module, so no caller can
+    keep one past `close` or hand one to something that resolves names.
+    """
+
+    __slots__ = ("_bindings", "_handle", "_identity", "_closed")
+
+    def __init__(self, bindings: "_Bindings", handle: int, identity: str) -> None:
+        self._bindings = bindings
+        self._handle = handle
+        self._identity = identity
+        self._closed = False
+
+    @property
+    def identity(self) -> str:
+        return self._identity
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
+
+    def close(self) -> None:
+        """Drop ownership. A failed close is not a released handle.
+
+        The stored handle is cleared unconditionally, including on failure,
+        because a handle that would not close must never be closed again — the
+        value may already have been recycled. What is *not* claimed is that it
+        was released; the OS reclaims it at process teardown.
+        """
+
+        if self._closed:
+            return  # a second close is a no-op, not an error
+        handle = self._handle
+        self._handle = 0
+        self._closed = True
+        if not _close_handle(self._bindings, handle):
+            ctypes.get_last_error()
+            raise NativeError("CLOSE_FAILED")
+
+    def __enter__(self) -> "Anchor":
+        return self
+
+    def __exit__(self, _exc_type, exc_value, _traceback) -> bool:
+        """Close, and never let the closing become the failure.
+
+        `return False` only runs if `close()` returned. Calling it
+        unconditionally meant that a body error plus a failing `CloseHandle`
+        propagated `CLOSE_FAILED` and lost the body error entirely — the same
+        masking already fixed in the `_anchor` and `open_chain` unwinds, left
+        behind here because this path exits through a different door.
+        """
+
+        if exc_value is None:
+            self.close()  # nothing to mask: the caller wants to be told
+            return False
+        failure = _close_chain_quietly([self])
+        if failure is not None:
+            _note_cleanup_failure(exc_value, failure.args[0])
+        return False  # never swallow the exception that is unwinding
+
+    def __del__(self) -> None:
+        """Leak backstop, not a reporting path.
+
+        A caller that forgets `close()` still releases the handle here. Errors
+        are swallowed because raising from a finalizer only prints and is
+        ignored, and because at interpreter shutdown the module globals this
+        needs may already be gone. Deterministic reporting is what the context
+        manager is for. An unexplained fault inside `CloseHandle` still reaches
+        fail-fast through `_guarded`: suppressing an ABI fault would be worse
+        than terminating.
+        """
+
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+class PinnedChain:
+    """The volume root down to `base`, every component held.
+
+    Pinning one directory is not enough: renaming an ancestor moves everything
+    under it. The chain terminates at the volume root, which cannot be renamed
+    or deleted.
+    """
+
+    __slots__ = ("anchors",)
+
+    def __init__(self, anchors: list[Anchor]) -> None:
+        self.anchors = anchors
+
+    @property
+    def base(self) -> Anchor:
+        return self.anchors[-1]
+
+    def close(self) -> None:
+        """Release every anchor, and report the first failure.
+
+        Every anchor is attempted before raising: stopping at the first failure
+        would leak the handles beneath it.
+        """
+
+        failure = _close_chain_quietly(self.anchors)
+        if failure is not None:
+            raise failure
+
+    def __enter__(self) -> "PinnedChain":
+        return self
+
+    def __exit__(self, _exc_type, exc_value, _traceback) -> bool:
+        """Same rule as `Anchor.__exit__`, over the whole chain."""
+
+        if exc_value is None:
+            self.close()
+            return False
+        failure = _close_chain_quietly(self.anchors)
+        if failure is not None:
+            _note_cleanup_failure(exc_value, failure.args[0])
+        return False
+
+    def __del__(self) -> None:
+        """Same backstop as `Anchor`, for a chain the caller never closed."""
+
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
+def _unicode_string(text: str):
+    """A UNICODE_STRING plus the buffer it points at.
+
+    Both are returned so the caller can keep them alive across the call. The
+    kernel reads the buffer during `NtOpenFile`; a temporary freed beforehand
+    is a use-after-free that usually looks like it worked.
+    """
+
+    buffer = ctypes.create_unicode_buffer(text)
+    encoded = len(text) * ctypes.sizeof(c_wchar)
+    name = UNICODE_STRING()
+    name.Length = encoded
+    name.MaximumLength = encoded + ctypes.sizeof(c_wchar)
+    name.Buffer = ctypes.cast(buffer, LPWSTR)
+    return name, buffer
+
+
+def _validate_component(component: str) -> str:
+    """A single path component of a *borrowed* ancestor.
+
+    Looser than the created-object grammar deliberately: a directory this code
+    did not create may legitimately contain spaces, and refusing
+    a path like Program Files would be refusing reality. What must still be
+    anything that changes how the name is parsed — a separator would smuggle in
+    extra components, and `..` would walk back out of the chain.
+    """
+
+    if type(component) is not str or not component:
+        raise NativeError("PATH_INVALID")
+    if "/" in component or "\\" in component or "\x00" in component:
+        raise NativeError("PATH_INVALID")
+    if component in (".", ".."):
+        raise NativeError("PATH_INVALID")
+    return component
+
+
+def split_base_path(base: str) -> tuple[str, list[str]]:
+    """Split an absolute drive path into its NT volume root and components.
+
+    UNC and device paths are out of scope by design and are refused rather than
+    partially handled.
+    """
+
+    if type(base) is not str or not base:
+        raise NativeError("PATH_INVALID")
+    normalised = base.replace("/", "\\")
+    if normalised.startswith("\\\\"):
+        raise NativeError("PATH_INVALID")  # UNC or device path
+    if len(normalised) < 3 or normalised[1] != ":" or normalised[2] != "\\":
+        raise NativeError("PATH_INVALID")
+    if not normalised[0].isascii() or not normalised[0].isalpha():
+        raise NativeError("PATH_INVALID")
+    drive = normalised[0].upper()
+    rest = [part for part in normalised[3:].split("\\") if part]
+    return f"\\??\\{drive}:\\", [_validate_component(part) for part in rest]
+
+
+def _open_directory(
+    bindings: _Bindings, name: str, parent: "Anchor | None"
+) -> int:
+    """Open one directory, relative to `parent` when there is one.
+
+    `FILE_OPEN_REPARSE_POINT` opens a reparse point as itself rather than
+    following it, so a junction becomes something to detect instead of
+    something to traverse.
+    """
+
+    handle = HANDLE()
+    unicode_name, buffer = _unicode_string(name)
+    attributes = OBJECT_ATTRIBUTES()
+    attributes.Length = ctypes.sizeof(OBJECT_ATTRIBUTES)
+    attributes.RootDirectory = None if parent is None else parent._handle
+    attributes.ObjectName = ctypes.pointer(unicode_name)
+    attributes.Attributes = OBJ_CASE_INSENSITIVE
+    attributes.SecurityDescriptor = None
+    attributes.SecurityQualityOfService = None
+    status_block = IO_STATUS_BLOCK()
+
+    status = _guarded(
+        bindings,
+        "CHAIN",
+        bindings.ntdll.NtOpenFile,
+        ctypes.byref(handle),
+        ANCESTOR_ACCESS,
+        ctypes.byref(attributes),
+        ctypes.byref(status_block),
+        ANCESTOR_SHARE,
+        ANCESTOR_OPTIONS,
+    )
+    # Keep the name alive until the call has returned.
+    del unicode_name, buffer, attributes
+
+    if status < 0:
+        _guarded(
+            bindings, "CHAIN", bindings.ntdll.RtlNtStatusToDosError, status
+        )
+        raise NativeError("HANDLE_BOUNDARY_UNAVAILABLE")
+    if not handle.value or handle.value == INVALID_HANDLE_VALUE:
+        # A success status with an unusable handle is not something to reason
+        # about; it is refused. Closing is not attempted either, because
+        # neither sentinel is a handle this process owns.
+        raise NativeError("HANDLE_BOUNDARY_UNAVAILABLE")
+    return handle.value
+
+
+def _query_failed(detail: str) -> NativeError:
+    """The closed error code, with the OS error attached as a note.
+
+    The last error was already being read immediately after the failing call —
+    and then discarded, which made the read pointless. Attaching it keeps the
+    error code closed while letting a caller distinguish `ERROR_ACCESS_DENIED`
+    from a genuinely unavailable object. It is a note, not a code: the closed
+    set that the fail-fast payload draws from is unaffected.
+    """
+
+    error = NativeError("ROOT_IDENTITY_UNAVAILABLE")
+    error.add_note(f"{detail}: last_error={ctypes.get_last_error()}")
+    return error
+
+
+def _reparse_tag(bindings: _Bindings, handle: int) -> int:
+    info = FILE_ATTRIBUTE_TAG_INFO()
+    ok = _guarded(
+        bindings,
+        "IDENTITY",
+        bindings.kernel32.GetFileInformationByHandleEx,
+        handle,
+        FILE_ATTRIBUTE_TAG_INFO_CLASS,
+        ctypes.byref(info),
+        ctypes.sizeof(info),
+    )
+    if not ok:
+        raise _query_failed("FileAttributeTagInfo")
+    return int(info.ReparseTag)
+
+
+def _identity_of(bindings: _Bindings, handle: int) -> str:
+    """A durable identity for the object behind the handle.
+
+    `FILE_ID_INFO` carries a 64-bit volume serial and a 128-bit file id. The
+    64-bit index from `GetFileInformationByHandle` is not unique on every
+    filesystem and is deliberately not used as a fallback.
+    """
+
+    info = FILE_ID_INFO()
+    ok = _guarded(
+        bindings,
+        "IDENTITY",
+        bindings.kernel32.GetFileInformationByHandleEx,
+        handle,
+        FILE_ID_INFO_CLASS,
+        ctypes.byref(info),
+        ctypes.sizeof(info),
+    )
+    if not ok:
+        raise _query_failed("FileIdInfo")
+    payload = bytes(info.FileId)
+    return hashlib.sha256(
+        f"{info.VolumeSerialNumber}:{payload.hex()}".encode("ascii")
+    ).hexdigest()
+
+
+def _close_handle(bindings: _Bindings, handle: int) -> bool:
+    """Close one raw handle through the guarded boundary.
+
+    `CloseHandle` is a bound export like any other, so an exception escaping it
+    after binding is unexplained and must reach fail-fast. Two earlier call
+    sites invoked it directly; being inside a cleanup path does not make a
+    bound call exempt, and the structural test that was supposed to catch this
+    only inspected a hand-written list of two functions.
+
+    Returns the call's own success flag. A zero here is an ordinary failed
+    close, not an unexplained fault, and is left for the caller to interpret.
+    """
+
+    return bool(
+        _guarded(bindings, "CLOSE", bindings.kernel32.CloseHandle, handle)
+    )
+
+
+def _note_cleanup_failure(error: BaseException, detail: str) -> None:
+    """Attach a cleanup failure to the error that caused the cleanup.
+
+    A failure while unwinding must not become the failure that is reported.
+    The original exception is what explains why the unwind is happening; a
+    `CLOSE_FAILED` raised over the top of it destroys that explanation and
+    sends the reader after the wrong fault.
+    """
+
+    error.add_note(f"cleanup after this error also failed: {detail}")
+
+
+def _anchor(bindings: _Bindings, name: str, parent: "Anchor | None") -> Anchor:
+    handle = _open_directory(bindings, name, parent)
+    try:
+        if _reparse_tag(bindings, handle) != 0:
+            raise NativeError("PATH_IS_REPARSE_POINT")
+        return Anchor(bindings, handle, _identity_of(bindings, handle))
+    except BaseException as error:
+        if not _close_handle(bindings, handle):
+            ctypes.get_last_error()
+            _note_cleanup_failure(error, "CLOSE_FAILED")
+        raise
+
+
+def open_chain(bindings: _Bindings, base: str) -> PinnedChain:
+    """Pin every component from the volume root down to `base`.
+
+    Each open is relative to the handle above it, so no component is resolved
+    by name twice, and every handle is held for the chain's lifetime.
+    """
+
+    if not platform_supported():
+        raise NativeError("HANDLE_BOUNDARY_UNAVAILABLE")
+
+    volume_root, components = split_base_path(base)
+    anchors: list[Anchor] = []
+    try:
+        anchors.append(_anchor(bindings, volume_root, None))
+        for component in components:
+            anchors.append(_anchor(bindings, component, anchors[-1]))
+    except BaseException as error:
+        # The quiet variant, deliberately: `close_chain` raises, and raising
+        # from here would replace the failure that is being unwound with a
+        # `CLOSE_FAILED` about a handle nobody asked about.
+        cleanup_failure = _close_chain_quietly(anchors)
+        if cleanup_failure is not None:
+            _note_cleanup_failure(error, cleanup_failure.args[0])
+        raise
+    return PinnedChain(anchors)
+
+
+def revalidate(bindings: _Bindings, anchor: Anchor) -> None:
+    """Confirm the held object is still the one that was opened."""
+
+    if anchor.closed:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+    if _reparse_tag(bindings, anchor._handle) != 0:
+        raise NativeError("PATH_IS_REPARSE_POINT")
+    if _identity_of(bindings, anchor._handle) != anchor.identity:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+
+
+def _close_chain_quietly(anchors: "list[Anchor]") -> "NativeError | None":
+    """Close in reverse acquisition order and *return* the first failure.
+
+    Returning rather than raising is what lets an unwinding caller keep its own
+    error. Every anchor is still attempted: stopping at the first failure would
+    leak the handles below it.
+    """
+
+    failure: NativeError | None = None
+    for anchor in reversed(anchors):
+        try:
+            anchor.close()
+        except NativeError as error:
+            failure = failure or error
+    return failure
+
+
+def close_chain(bindings: _Bindings, chain: PinnedChain) -> None:
+    """Release the borrowed chain in reverse acquisition order.
+
+    Kept as a function for callers that hold `bindings` rather than the chain;
+    the ownership lives on `PinnedChain` itself. Nothing here is deleted —
+    these are directories the run borrowed, not objects it created.
+    """
+
+    chain.close()
 
 
 def handle_boundary_available() -> bool:
