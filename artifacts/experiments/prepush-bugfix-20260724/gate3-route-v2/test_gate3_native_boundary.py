@@ -828,19 +828,37 @@ def test_frozen_stage_ordinals():
     }
 
 
+# The ten that existed before N3c-2. Held separately so the append test below
+# can prove each one is still on the value it was assigned, which is the whole
+# point of the no-renumbering rule: an ordinal already captured in a crash dump
+# must not come to mean something else.
+_CODES_BEFORE_N3C2 = {
+    "UNEXPECTED_EXCEPTION": 1,
+    "MATERIALIZE_PATH_EXISTS": 2,
+    "MATERIALIZE_WRITE_FAILED": 3,
+    "PATH_IS_REPARSE_POINT": 4,
+    "PATH_INVALID": 5,
+    "ROOT_IDENTITY_UNAVAILABLE": 6,
+    "ROOT_IDENTITY_CHANGED": 7,
+    "CLEANUP_INCOMPLETE": 8,
+    "CLOSE_FAILED": 9,
+    "HANDLE_BOUNDARY_UNAVAILABLE": 10,
+}
+
+
 def test_frozen_code_ordinals():
     assert boundary.FAIL_FAST_CODES == {
-        "UNEXPECTED_EXCEPTION": 1,
-        "MATERIALIZE_PATH_EXISTS": 2,
-        "MATERIALIZE_WRITE_FAILED": 3,
-        "PATH_IS_REPARSE_POINT": 4,
-        "PATH_INVALID": 5,
-        "ROOT_IDENTITY_UNAVAILABLE": 6,
-        "ROOT_IDENTITY_CHANGED": 7,
-        "CLEANUP_INCOMPLETE": 8,
-        "CLOSE_FAILED": 9,
-        "HANDLE_BOUNDARY_UNAVAILABLE": 10,
+        **_CODES_BEFORE_N3C2,
+        "BASE_NOT_FOUND": 11,
+        "BASE_NOT_ADMISSIBLE": 12,
     }
+
+
+@pytest.mark.parametrize("name,ordinal", sorted(_CODES_BEFORE_N3C2.items()))
+def test_n3c2_appended_without_renumbering(name: str, ordinal: int):
+    """Asserted one code at a time, so a failure names the one that moved."""
+
+    assert boundary.FAIL_FAST_CODES[name] == ordinal
 
 
 def test_ordinals_are_unique_and_contiguous():
@@ -1825,25 +1843,68 @@ def test_the_invocation_detector_sees_a_guarded_call():
     assert _invoked_exports(direct) == {"NtCreateFile"}
 
 
-def test_n3c1_creates_and_removes_nothing(bindings, tmp_path):
-    """The tranche opens directories. It has no creation or deletion path."""
+def test_pinning_a_chain_creates_and_removes_nothing(bindings, tmp_path):
+    """N3c-1's operations, still creating nothing now that N3c-2 exists.
+
+    The tranche-wide claim this replaced — that the module invokes no creation
+    export at all — was true of N3c-1 and is deliberately false of N3c-2. What
+    survives is the narrower statement: pinning a chain touches no object.
+    """
 
     before = sorted(tmp_path.iterdir())
     with boundary.open_chain(bindings, str(REPO_ROOT)):
         pass
     assert sorted(tmp_path.iterdir()) == before
 
+
+def test_the_volume_export_is_bound_and_still_never_invoked():
+    """The one export N3c-2 did not start using, asserted structurally.
+
+    `GetVolumeInformationByHandleW` is bound and reads from a held base handle
+    that now exists, so nothing technical stops it being called. It is absent
+    because it belongs to a later tranche, and the absence is a choice rather
+    than an accident.
+    """
+
     source = pathlib.Path(boundary.__file__).read_text(encoding="utf-8")
-    invoked = _invoked_exports(source)
     bound = {name for _, name in boundary._Bindings.BOUND}
-    for never_called in (
-        "NtCreateFile",
-        "SetFileInformationByHandle",
-        "WriteFile",
-        "GetVolumeInformationByHandleW",
-    ):
-        assert never_called in bound  # bound, so absence is a choice
-        assert never_called not in invoked
+    assert "GetVolumeInformationByHandleW" in bound
+    assert "GetVolumeInformationByHandleW" not in _invoked_exports(source)
+
+
+def test_creation_and_deletion_are_invoked_only_from_the_n3c2_surface():
+    """Which functions may touch the creation and deletion exports.
+
+    Naming the callers is the point: a create appearing in a helper nobody
+    reviewed for it is exactly the drift this check exists to catch.
+    """
+
+    import ast
+
+    source = pathlib.Path(boundary.__file__).read_text(encoding="utf-8")
+    restricted = {"NtCreateFile", "WriteFile", "SetFileInformationByHandle"}
+    # `remove` delegates to `_mark_deleted`, which is the single place the
+    # deletion classes are set — the rollback path uses it too, so there is one
+    # deletion implementation rather than two that can drift.
+    permitted = {"_create", "_write_all", "_mark_deleted"}
+
+    callers: dict[str, set[str]] = {}
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        for inner in ast.walk(node):
+            if not isinstance(inner, ast.Call):
+                continue
+            for argument in inner.args:
+                if (
+                    isinstance(argument, ast.Attribute)
+                    and argument.attr in restricted
+                ):
+                    callers.setdefault(argument.attr, set()).add(node.name)
+
+    assert set(callers) == restricted
+    for export, names in callers.items():
+        assert names <= permitted, f"{export} reached from {names - permitted}"
 
 
 # --- N3c-1 rev2: ownership, sentinels, and the actual OS error --------------
@@ -2017,6 +2078,991 @@ def test_a_clean_body_still_reports_a_failed_close(
         with subject:
             pass
     assert excinfo.value.args[0] == "CLOSE_FAILED"
+
+
+# --- N3c-2: creation, deletion and the absence probe ------------------------
+#
+# The real-Windows tests below create and delete objects. Every one of them
+# lives under a base the *test* creates and pytest removes; the boundary only
+# pins that base, and each test asserts it survives with the identity it was
+# pinned with. That split is the owner ruling made executable: a created object
+# must be deleted, a borrowed one must never be, and no object may carry both
+# obligations.
+
+
+class _RecordedCreate:
+    """Capture `NtCreateFile` arguments without creating anything.
+
+    Returns a failure status, so the call site refuses and no object exists. The
+    arguments are what the test is about: reading them off a successful call
+    would mean the check only works when the thing already works.
+    """
+
+    STATUS_ACCESS_DENIED = -1073741790  # 0xC0000022
+
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    def __call__(
+        self,
+        handle_ref,
+        access,
+        object_attributes,
+        status_block,
+        allocation,
+        attributes,
+        share,
+        disposition,
+        options,
+        ea_buffer,
+        ea_length,
+    ):
+        self.calls.append(
+            {
+                "access": access,
+                "attributes": attributes,
+                "share": share,
+                "disposition": disposition,
+                "options": options,
+                "allocation": allocation,
+                "ea_buffer": ea_buffer,
+                "ea_length": ea_length,
+            }
+        )
+        return self.STATUS_ACCESS_DENIED
+
+
+@pytest.fixture
+def recorded_create(bindings, monkeypatch):
+    recorder = _RecordedCreate()
+    monkeypatch.setattr(bindings.ntdll, "NtCreateFile", recorder, raising=False)
+    return recorder
+
+
+def _detached_anchor(bindings):
+    """An anchor over a handle nothing will ever use, for offline argument tests."""
+
+    return boundary.Anchor(bindings, 0x1234, "identity")
+
+
+# Copied from revision 17's per-role table, deliberately as literals. Comparing
+# the recorded arguments against the module's own constants would pass for any
+# self-consistent implementation, including one that changed both sides.
+_SPEC = {
+    "role2": {
+        "access": 0x0001 | 0x0080 | 0x00100000 | 0x00010000 | 0x0100,
+        "attributes": 0x00000080,  # FILE_ATTRIBUTE_NORMAL
+        "share": 0x00000001 | 0x00000002,
+        "disposition": 0x00000002,  # FILE_CREATE
+        "options": 0x00000001 | 0x00000020,
+    },
+    "role3": {
+        "access": 0x0002 | 0x0080 | 0x0100 | 0x00010000 | 0x00100000,
+        "attributes": 0x00000001,  # FILE_ATTRIBUTE_READONLY
+        "share": 0x00000001,
+        "disposition": 0x00000002,
+        "options": 0x00000040 | 0x00000020,
+    },
+}
+
+
+def test_role_2_arguments_are_exactly_the_design_table(bindings, recorded_create):
+    with pytest.raises(boundary.NativeError):
+        boundary.create_directory(bindings, _detached_anchor(bindings), "dir")
+
+    assert len(recorded_create.calls) == 1
+    call = recorded_create.calls[0]
+    for field, expected in _SPEC["role2"].items():
+        assert call[field] == expected, field
+    assert call["allocation"] is None
+    assert call["ea_buffer"] is None and call["ea_length"] == 0
+
+
+def test_role_3_arguments_are_exactly_the_design_table(bindings, recorded_create):
+    with pytest.raises(boundary.NativeError):
+        boundary.create_file(bindings, _detached_anchor(bindings), "f.bin", b"x")
+
+    assert len(recorded_create.calls) == 1
+    call = recorded_create.calls[0]
+    for field, expected in _SPEC["role3"].items():
+        assert call[field] == expected, field
+
+
+@pytest.mark.parametrize(
+    "constant,replacement",
+    [
+        ("FILE_ATTRIBUTE_READONLY", 0x00000080),  # the named mutation
+        ("CREATED_FILE_SHARE", 0x00000001 | 0x00000002),  # share widened
+        ("CREATED_FILE_ACCESS", 0x0002 | 0x00100000),  # DELETE dropped
+        # Mutate the derived constant, not its input: `CREATED_FILE_OPTIONS` is
+        # folded at import, so patching `FILE_NON_DIRECTORY_FILE` afterwards
+        # changes nothing that reaches the call.
+        ("CREATED_FILE_OPTIONS", 0x00000001 | 0x00000020),  # as a directory
+    ],
+)
+def test_the_role_3_argument_check_fails_under_mutation(
+    bindings, recorded_create, monkeypatch, constant, replacement
+):
+    """Design evidence 9, offline half: the check must actually fire.
+
+    Each mutation is applied to the production constant and the *real*
+    assertion is then re-run and required to fail. An earlier version asserted
+    that the recorded value differed from a literal, which is what a broken
+    implementation produces — so it passed precisely when it should not have.
+    """
+
+    monkeypatch.setattr(boundary, constant, replacement)
+    with pytest.raises(boundary.NativeError):
+        boundary.create_file(bindings, _detached_anchor(bindings), "f.bin", b"x")
+
+    call = recorded_create.calls[0]
+    with pytest.raises(AssertionError):
+        for field, expected in _SPEC["role3"].items():
+            assert call[field] == expected, field
+
+
+def test_no_created_role_shares_delete_and_no_borrowed_role_asks_for_delete():
+    """Design evidence 19x and 12, asserted against the constants."""
+
+    assert not boundary.ANCESTOR_ACCESS & boundary.DELETE
+    assert not boundary.ANCESTOR_SHARE & boundary.FILE_SHARE_DELETE
+    assert not boundary.CREATED_DIRECTORY_SHARE & boundary.FILE_SHARE_DELETE
+    assert not boundary.CREATED_FILE_SHARE & boundary.FILE_SHARE_DELETE
+    assert boundary.ABSENCE_SHARE & boundary.FILE_SHARE_DELETE
+    assert boundary.CREATED_DIRECTORY_ACCESS & boundary.DELETE
+    assert boundary.CREATED_FILE_ACCESS & boundary.DELETE
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "a/b",
+        "a\\b",
+        "..",
+        ".",
+        "name:stream",
+        "trailing.",
+        "trailing ",
+        "",
+        "x" * 256,
+        "nul",
+        "NUL.txt",
+        "com1",
+        "LPT9.log",
+        "star*",
+        "quote\"",
+    ],
+)
+def test_a_refused_name_never_reaches_a_native_call(bindings, monkeypatch, name):
+    """Design evidence 4, invalid-path anchor: refusal precedes any native call."""
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("a refused name reached a native call")
+
+    monkeypatch.setattr(bindings.ntdll, "NtCreateFile", forbidden, raising=False)
+    monkeypatch.setattr(bindings.ntdll, "NtOpenFile", forbidden, raising=False)
+
+    parent = _detached_anchor(bindings)
+    for operation in (
+        lambda: boundary.create_directory(bindings, parent, name),
+        lambda: boundary.create_file(bindings, parent, name, b""),
+        lambda: boundary.confirm_absent(bindings, parent, name),
+    ):
+        with pytest.raises(boundary.NativeError) as excinfo:
+            operation()
+        assert excinfo.value.args[0] == "PATH_INVALID"
+
+
+def test_a_missing_base_is_not_a_platform_failure(bindings, tmp_path):
+    """Design evidence 4, missing-base anchor.
+
+    The parent is controlled and pre-existing, so it can be enumerated; the
+    assertion is that the name under it is still absent afterwards.
+    """
+
+    absent = tmp_path / "no-such-base"
+    before = sorted(tmp_path.iterdir())
+
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.open_chain(bindings, str(absent))
+    assert excinfo.value.args[0] == "BASE_NOT_FOUND"
+
+    assert sorted(tmp_path.iterdir()) == before
+    assert not absent.exists()
+
+
+@pytest.mark.parametrize("base", ["relative/path", "\\\\server\\share", "CON:"])
+def test_an_unusable_base_path_is_refused_before_any_open(
+    bindings, monkeypatch, base
+):
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("an invalid base reached a native call")
+
+    monkeypatch.setattr(bindings.ntdll, "NtOpenFile", forbidden, raising=False)
+    monkeypatch.setattr(bindings.ntdll, "NtCreateFile", forbidden, raising=False)
+
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.open_chain(bindings, base)
+    assert excinfo.value.args[0] == "PATH_INVALID"
+
+
+def test_an_unopenable_base_reports_admissibility_not_absence(
+    bindings, monkeypatch, tmp_path
+):
+    """Design evidence 4, unopenable-base anchor: inventory plus no create."""
+
+    def denied(handle_ref, *_args):
+        return _RecordedCreate.STATUS_ACCESS_DENIED
+
+    def forbidden_create(*_args, **_kwargs):
+        pytest.fail("a refused base reached the create surface")
+
+    monkeypatch.setattr(bindings.ntdll, "NtOpenFile", denied, raising=False)
+    monkeypatch.setattr(
+        bindings.ntdll, "NtCreateFile", forbidden_create, raising=False
+    )
+
+    before = sorted(tmp_path.iterdir())
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.open_chain(bindings, str(tmp_path))
+    assert excinfo.value.args[0] == "BASE_NOT_ADMISSIBLE"
+    assert sorted(tmp_path.iterdir()) == before
+
+
+def test_a_write_reporting_no_progress_is_a_failure(bindings, monkeypatch):
+    """Looping on a zero-byte write would spin forever."""
+
+    def zero_progress(_handle, _buffer, _count, written_ref, _overlapped):
+        written_ref._obj.value = 0
+        return 1
+
+    monkeypatch.setattr(
+        bindings.kernel32, "WriteFile", zero_progress, raising=False
+    )
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary._write_all(bindings, 0x1234, b"payload")
+    assert excinfo.value.args[0] == "MATERIALIZE_WRITE_FAILED"
+
+
+# --- real Windows, under a test-owned base ----------------------------------
+
+
+@pytest.fixture
+def owned_base(bindings, tmp_path):
+    """A base the test creates, and the boundary may only borrow."""
+
+    base = tmp_path / "owned-base"
+    base.mkdir()
+    yield base
+
+
+def test_a_created_tree_is_written_removed_and_confirmed_absent(
+    bindings, owned_base
+):
+    payload = b"materialized bytes\n" * 4
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        base_identity = chain.base.identity
+
+        directory = boundary.create_directory(bindings, chain.base, "root-01")
+        try:
+            leaf = boundary.create_file(bindings, directory, "payload.bin", payload)
+            with pytest.raises(PermissionError):
+                # Held with FILE_WRITE_DATA and DELETE under a FILE_SHARE_READ
+                # mask, so an ordinary opener cannot get in. The bytes are
+                # therefore not observable here; that is checked separately by a
+                # fixture that owns its own cleanup.
+                (owned_base / "root-01" / "payload.bin").read_bytes()
+
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, directory, "payload.bin")
+        finally:
+            boundary.remove(bindings, directory)
+            directory.close()
+        boundary.confirm_absent(bindings, chain.base, "root-01")
+
+        boundary.revalidate(bindings, chain.base)
+        assert chain.base.identity == base_identity
+
+    assert owned_base.is_dir()  # borrowed, and still there
+    assert sorted(owned_base.iterdir()) == []
+
+
+def _create_control_leaf(bindings, parent, name):
+    """A file created exactly like role 3 but with the NORMAL attribute.
+
+    Built through `_create` so the control travels the same code path, and
+    wrapped in a `Leaf` so it is queried through the same surface. An earlier
+    version made the control with `pathlib` and read it with `stat()`, which
+    left the two sides incomparable: a `file_attributes` that always answered
+    "read-only" would have passed.
+    """
+
+    handle = boundary._create(
+        bindings,
+        parent,
+        name,
+        boundary.CREATED_FILE_ACCESS,
+        boundary.CREATED_FILE_SHARE,
+        boundary.FILE_ATTRIBUTE_NORMAL,
+        boundary.CREATED_FILE_OPTIONS,
+    )
+    return boundary.Leaf(bindings, handle, "control")
+
+
+def test_the_created_file_is_read_only_and_the_control_is_not(
+    bindings, owned_base
+):
+    """Design evidence 9, online half: what the kernel retained, with a control.
+
+    The offline half showed what was *requested*. This shows what survived.
+    Both files are created the same way and read through the same
+    `file_attributes` call, so the only difference between them is the
+    attribute — which is what makes the comparison mean anything.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "readonly.bin", b"x")
+        control = _create_control_leaf(bindings, chain.base, "control.bin")
+        try:
+            observed = boundary.file_attributes(bindings, leaf)
+            control_observed = boundary.file_attributes(bindings, control)
+            assert observed & boundary.FILE_ATTRIBUTE_READONLY
+            assert not control_observed & boundary.FILE_ATTRIBUTE_READONLY
+        finally:
+            for held, name in ((leaf, "readonly.bin"), (control, "control.bin")):
+                boundary.remove(bindings, held)
+                held.close()
+                boundary.confirm_absent(bindings, chain.base, name)
+
+
+def test_the_attribute_comparison_fails_if_the_query_returns_a_constant(
+    bindings, owned_base, monkeypatch
+):
+    """The control is load-bearing, shown by breaking the query.
+
+    With `file_attributes` answering the same word for everything, the two sides
+    become equal and the comparison above must fail.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "readonly.bin", b"x")
+        control = _create_control_leaf(bindings, chain.base, "control.bin")
+        try:
+            monkeypatch.setattr(
+                boundary,
+                "file_attributes",
+                lambda _bindings, _held: boundary.FILE_ATTRIBUTE_READONLY,
+            )
+            with pytest.raises(AssertionError):
+                assert boundary.file_attributes(bindings, leaf) & (
+                    boundary.FILE_ATTRIBUTE_READONLY
+                )
+                assert not boundary.file_attributes(bindings, control) & (
+                    boundary.FILE_ATTRIBUTE_READONLY
+                )
+        finally:
+            monkeypatch.undo()
+            for held, name in ((leaf, "readonly.bin"), (control, "control.bin")):
+                boundary.remove(bindings, held)
+                held.close()
+                boundary.confirm_absent(bindings, chain.base, name)
+
+
+def test_a_read_only_file_is_still_deletable_through_its_own_handle(
+    bindings, owned_base
+):
+    """`IGNORE_READONLY_ATTRIBUTE` is what makes born-read-only survivable."""
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "locked.bin", b"x")
+        assert boundary.file_attributes(bindings, leaf) & (
+            boundary.FILE_ATTRIBUTE_READONLY
+        )
+        boundary.remove(bindings, leaf)
+        leaf.close()
+        boundary.confirm_absent(bindings, chain.base, "locked.bin")
+    assert not (owned_base / "locked.bin").exists()
+
+
+def test_a_present_name_is_not_confirmed_absent(bindings, owned_base):
+    """Only `STATUS_OBJECT_NAME_NOT_FOUND` counts, and success does not."""
+
+    (owned_base / "present.bin").write_bytes(b"x")
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.confirm_absent(bindings, chain.base, "present.bin")
+        assert excinfo.value.args[0] == "CLEANUP_INCOMPLETE"
+    (owned_base / "present.bin").unlink()
+
+
+def test_an_occupied_name_is_refused_rather_than_opened(bindings, owned_base):
+    """`FILE_CREATE` is what `O_EXCL` was, without the path lookup."""
+
+    (owned_base / "taken.bin").write_bytes(b"pre-existing")
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.create_file(bindings, chain.base, "taken.bin", b"ours")
+        assert excinfo.value.args[0] == "MATERIALIZE_PATH_EXISTS"
+        with pytest.raises(boundary.NativeError):
+            boundary.create_directory(bindings, chain.base, "taken.bin")
+    assert (owned_base / "taken.bin").read_bytes() == b"pre-existing"
+    (owned_base / "taken.bin").unlink()
+
+
+def test_the_boundary_never_deletes_or_replaces_the_base(bindings, owned_base):
+    """The owner ruling, stated as a test.
+
+    A full create-and-cleanup cycle runs, and the base is the same object
+    afterwards — not merely a directory with the same name.
+    """
+
+    before = owned_base.stat().st_ino
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        pinned = chain.base.identity
+        directory = boundary.create_directory(bindings, chain.base, "cycle")
+        boundary.remove(bindings, directory)
+        directory.close()
+        boundary.confirm_absent(bindings, chain.base, "cycle")
+        boundary.revalidate(bindings, chain.base)
+        assert chain.base.identity == pinned
+    assert owned_base.is_dir()
+    assert owned_base.stat().st_ino == before
+
+
+def test_a_held_created_file_is_not_readable_by_an_ordinary_open(
+    bindings, owned_base
+):
+    """Role 3's share mask, observed rather than read off the constant.
+
+    `FILE_SHARE_READ` alone, against a handle holding `FILE_WRITE_DATA` and
+    `DELETE`, means no other opener gets in while the leaf is held. The control
+    is a plain file in the same directory, which opens without complaint.
+    """
+
+    control = owned_base / "control.bin"
+    control.write_bytes(b"readable")
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "held.bin", b"x")
+        try:
+            with pytest.raises(PermissionError):
+                (owned_base / "held.bin").read_bytes()
+            assert control.read_bytes() == b"readable"
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+        boundary.confirm_absent(bindings, chain.base, "held.bin")
+    control.unlink()
+
+
+def test_the_written_bytes_are_the_payload(bindings, owned_base):
+    """Characterization fixture, and deliberately not the role 3 lifecycle.
+
+    The production path holds the leaf until it removes it through that same
+    handle, and the share mask means the bytes are never observable while it is
+    held — so proving what was written requires stepping outside that path. This
+    fixture closes the leaf *without* marking it for deletion, reads the file
+    with ordinary Python, and unlinks it itself.
+
+    It therefore evidences the write, and nothing about ownership, deletion or
+    the cleanup contract. It must not be cited for those.
+    """
+
+    payload = bytes(range(256)) * 8 + b"tail"
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "written.bin", payload)
+        leaf.close()  # released, not removed — this is the deviation
+    written = owned_base / "written.bin"
+    try:
+        assert written.read_bytes() == payload
+    finally:
+        written.chmod(0o600)  # born read-only, so clear it before unlinking
+        written.unlink()
+
+
+def test_a_large_payload_crosses_the_write_chunk_boundary(bindings, owned_base):
+    """Same deviation as above, for the multi-chunk path.
+
+    The chunk size is patched down rather than writing a megabyte, so the loop,
+    the offset arithmetic and the short-write continuation are all exercised
+    without the test depending on how much memory it may allocate.
+    """
+
+    payload = bytes(range(256)) * 40  # 10,240 bytes
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        original = boundary.WRITE_CHUNK
+        try:
+            boundary.WRITE_CHUNK = 1000  # forces eleven passes, last one partial
+            leaf = boundary.create_file(bindings, chain.base, "big.bin", payload)
+        finally:
+            boundary.WRITE_CHUNK = original
+        leaf.close()
+    written = owned_base / "big.bin"
+    try:
+        assert written.read_bytes() == payload
+    finally:
+        written.chmod(0o600)
+        written.unlink()
+
+
+def _without_disposition_ex(bindings, monkeypatch):
+    """Make the preferred deletion class unavailable, and only that class.
+
+    Everything else still goes to the real export, so the fallback performs a
+    genuine deletion rather than a simulated one.
+    """
+
+    real = bindings.kernel32.SetFileInformationByHandle
+
+    def selective(handle, info_class, buffer, size):
+        if info_class == boundary.FILE_DISPOSITION_INFO_EX_CLASS:
+            return 0
+        return real(handle, info_class, buffer, size)
+
+    monkeypatch.setattr(
+        bindings.kernel32, "SetFileInformationByHandle", selective, raising=False
+    )
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+def test_deletion_completes_through_the_fallback(
+    bindings, owned_base, monkeypatch, kind
+):
+    """Design evidence 10: the fallback path, actually taken.
+
+    Without forcing it, a passing deletion test says nothing about the fallback
+    — every deletion would go through `FileDispositionInfoEx` and the older
+    path would never run.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        name = "fallback.bin" if kind == "file" else "fallback-dir"
+        if kind == "file":
+            held = boundary.create_file(bindings, chain.base, name, b"x")
+            assert boundary.file_attributes(bindings, held) & (
+                boundary.FILE_ATTRIBUTE_READONLY
+            )
+        else:
+            held = boundary.create_directory(bindings, chain.base, name)
+
+        _without_disposition_ex(bindings, monkeypatch)
+        boundary.remove(bindings, held)
+        held.close()
+        monkeypatch.undo()
+
+        boundary.confirm_absent(bindings, chain.base, name)
+    assert not (owned_base / name).exists()
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        0,  # opened successfully: it is still there
+        -1073741738,  # STATUS_DELETE_PENDING
+        -1073741757,  # STATUS_SHARING_VIOLATION
+        -1073741790,  # STATUS_ACCESS_DENIED
+    ],
+)
+def test_only_name_not_found_counts_as_absent(
+    bindings, owned_base, monkeypatch, status
+):
+    """Design evidence 11: the whole matrix, not just the two easy answers.
+
+    Delete-pending in particular reads like success to a careless check — the
+    object is on its way out — and is exactly the case where proceeding to the
+    parent would be wrong.
+    """
+
+    def injected(handle_ref, _access, _attrs, _iosb, _share, _options):
+        if status >= 0:
+            handle_ref._obj.value = 0x1234
+        return status
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        monkeypatch.setattr(
+            bindings.kernel32, "CloseHandle", lambda _handle: 1, raising=False
+        )
+        monkeypatch.setattr(
+            bindings.ntdll, "NtOpenFile", injected, raising=False
+        )
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.confirm_absent(bindings, chain.base, "anything.bin")
+        assert excinfo.value.args[0] == "CLEANUP_INCOMPLETE"
+        monkeypatch.undo()
+
+
+def test_a_short_write_is_continued_rather_than_truncating_the_payload(
+    bindings, owned_base, monkeypatch
+):
+    """Design evidence: short-write continuation, forced rather than hoped for.
+
+    A large payload alone only proves the loop runs more than once. This makes
+    every write report less than it was asked for, so the offset arithmetic and
+    the continuation both have to be right for the bytes to land.
+    """
+
+    payload = bytes(range(256)) * 12  # 3,072 bytes
+    real_write = bindings.kernel32.WriteFile
+    requests: list[int] = []
+
+    def short(handle, buffer, count, written_ref, overlapped):
+        requests.append(count)
+        partial = max(1, count // 3)
+        return real_write(handle, buffer, partial, written_ref, overlapped)
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        monkeypatch.setattr(
+            bindings.kernel32, "WriteFile", short, raising=False
+        )
+        leaf = boundary.create_file(bindings, chain.base, "short.bin", payload)
+        monkeypatch.undo()
+        leaf.close()  # released, not removed, so the bytes can be read back
+
+    assert len(requests) > 3  # genuinely many passes, none of them complete
+    assert sum(requests) > len(payload)  # each pass re-asked for the remainder
+    written = owned_base / "short.bin"
+    try:
+        assert written.read_bytes() == payload
+    finally:
+        written.chmod(0o600)
+        written.unlink()
+
+
+# --- rollback: a create that succeeded, then a later step that did not -------
+
+
+@pytest.mark.parametrize("failing", ["identity", "write"])
+def test_a_failure_after_create_leaves_no_object_behind(
+    bindings, owned_base, monkeypatch, failing
+):
+    """Design evidence 1: no residue, and the original error survives.
+
+    Before the rollback existed, a failure between `FILE_CREATE` and the
+    returned ownership object left the name on disk with nothing holding it —
+    the caller never got an object, so nothing would ever clean it up.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        before = sorted(owned_base.iterdir())
+
+        if failing == "identity":
+            monkeypatch.setattr(
+                boundary,
+                "_identity_of",
+                lambda *_a: (_ for _ in ()).throw(
+                    boundary.NativeError("ROOT_IDENTITY_UNAVAILABLE")
+                ),
+            )
+            expected = "ROOT_IDENTITY_UNAVAILABLE"
+        else:
+            monkeypatch.setattr(
+                boundary,
+                "_write_all",
+                lambda *_a: (_ for _ in ()).throw(
+                    boundary.NativeError("MATERIALIZE_WRITE_FAILED")
+                ),
+            )
+            expected = "MATERIALIZE_WRITE_FAILED"
+
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.create_file(bindings, chain.base, "doomed.bin", b"x")
+        assert excinfo.value.args[0] == expected
+
+        monkeypatch.undo()
+        assert sorted(owned_base.iterdir()) == before
+        boundary.confirm_absent(bindings, chain.base, "doomed.bin")
+
+
+def test_a_directory_whose_identity_fails_is_rolled_back(
+    bindings, owned_base, monkeypatch
+):
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        before = sorted(owned_base.iterdir())
+        monkeypatch.setattr(
+            boundary,
+            "_identity_of",
+            lambda *_a: (_ for _ in ()).throw(
+                boundary.NativeError("ROOT_IDENTITY_UNAVAILABLE")
+            ),
+        )
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.create_directory(bindings, chain.base, "doomed-dir")
+        assert excinfo.value.args[0] == "ROOT_IDENTITY_UNAVAILABLE"
+        monkeypatch.undo()
+        assert sorted(owned_base.iterdir()) == before
+        boundary.confirm_absent(bindings, chain.base, "doomed-dir")
+
+
+def test_a_close_failure_during_removal_reports_incomplete_cleanup(
+    bindings, monkeypatch
+):
+    """The design's mapping: during removal the finding is the removal.
+
+    `CLOSE_FAILED` is for releasing the borrowed chain after an otherwise
+    successful run. Reporting it here would name the wrong problem: the object
+    is delete-pending and may still be there.
+    """
+
+    held = boundary.Leaf(bindings, 0x1234, "identity")
+    monkeypatch.setattr(boundary, "_mark_deleted", lambda *_a: None)
+    monkeypatch.setattr(boundary, "_close_handle", lambda *_a: False)
+
+    boundary.remove(bindings, held)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        held.close()
+    assert excinfo.value.args[0] == "CLEANUP_INCOMPLETE"
+
+
+def test_a_close_failure_outside_removal_is_still_a_close_failure(
+    bindings, monkeypatch
+):
+    held = boundary.Anchor(bindings, 0x1234, "identity")
+    monkeypatch.setattr(boundary, "_close_handle", lambda *_a: False)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        held.close()
+    assert excinfo.value.args[0] == "CLOSE_FAILED"
+
+
+@pytest.mark.parametrize(
+    "status,expected",
+    [
+        (-1073741771, "MATERIALIZE_PATH_EXISTS"),  # STATUS_OBJECT_NAME_COLLISION
+        (-1073741790, "MATERIALIZE_WRITE_FAILED"),  # STATUS_ACCESS_DENIED
+        (-1073741757, "MATERIALIZE_WRITE_FAILED"),  # STATUS_SHARING_VIOLATION
+        (-1073741823, "MATERIALIZE_WRITE_FAILED"),  # STATUS_UNSUCCESSFUL
+    ],
+)
+def test_only_a_collision_is_reported_as_a_taken_name(
+    bindings, monkeypatch, status, expected
+):
+    """Every creation failure used to answer "the name is taken".
+
+    That tells a caller to pick another name when the parent was deleted
+    underneath them, the volume is full, or access was refused.
+    """
+
+    monkeypatch.setattr(
+        bindings.ntdll, "NtCreateFile", lambda *_a: status, raising=False
+    )
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.create_file(bindings, _detached_anchor(bindings), "x.bin", b"")
+    assert excinfo.value.args[0] == expected
+
+
+def test_removal_state_is_set_before_marking_not_after(bindings, monkeypatch):
+    """The ordering inside `remove`, pinned by making marking fail.
+
+    With `_mark_deleted` succeeding, an implementation that set `_removing`
+    *after* the mark behaves identically, so the existing test passes either
+    way. Making the mark raise separates them: the object may already be
+    delete-pending, and a close that then fails must report the removal, not
+    the handle.
+    """
+
+    held = boundary.Leaf(bindings, 0x1234, "identity")
+
+    def failing_mark(*_args):
+        raise boundary.NativeError("CLEANUP_INCOMPLETE")
+
+    monkeypatch.setattr(boundary, "_mark_deleted", failing_mark)
+    with pytest.raises(boundary.NativeError) as excinfo:
+        boundary.remove(bindings, held)
+    assert excinfo.value.args[0] == "CLEANUP_INCOMPLETE"
+    assert held._removing is True  # set before the call that raised
+
+    monkeypatch.setattr(boundary, "_close_handle", lambda *_a: False)
+    with pytest.raises(boundary.NativeError) as close_error:
+        held.close()
+    assert close_error.value.args[0] == "CLEANUP_INCOMPLETE"
+
+
+class _DispositionSpy:
+    """Record every information class set, and optionally refuse some of them."""
+
+    def __init__(self, real, refuse=()):
+        self.real = real
+        self.refuse = set(refuse)
+        self.classes: list[int] = []
+
+    def __call__(self, handle, info_class, buffer, size):
+        self.classes.append(info_class)
+        if info_class in self.refuse:
+            return 0
+        return self.real(handle, info_class, buffer, size)
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+def test_the_preferred_disposition_is_the_one_normally_used(
+    bindings, owned_base, monkeypatch, kind
+):
+    """rev17 evidence: preferred, and *only* preferred, on the ordinary path.
+
+    A deletion test that merely succeeds cannot tell the two paths apart, so a
+    silent fall-through to the older class would stay green. This asserts the
+    fallback classes were never touched.
+    """
+
+    real = bindings.kernel32.SetFileInformationByHandle
+    spy = _DispositionSpy(real)
+    monkeypatch.setattr(
+        bindings.kernel32, "SetFileInformationByHandle", spy, raising=False
+    )
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        name = "preferred.bin" if kind == "file" else "preferred-dir"
+        held = (
+            boundary.create_file(bindings, chain.base, name, b"x")
+            if kind == "file"
+            else boundary.create_directory(bindings, chain.base, name)
+        )
+        boundary.remove(bindings, held)
+        held.close()
+        monkeypatch.undo()
+        boundary.confirm_absent(bindings, chain.base, name)
+
+    assert spy.classes == [boundary.FILE_DISPOSITION_INFO_EX_CLASS]
+    assert boundary.FILE_DISPOSITION_INFO_CLASS not in spy.classes
+    assert boundary.FILE_BASIC_INFO_CLASS not in spy.classes
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+def test_the_fallback_sequence_is_exactly_clear_then_dispose(
+    bindings, owned_base, monkeypatch, kind
+):
+    """rev17 evidence: which classes the fallback uses, and in what order.
+
+    Clearing the attribute has to come first — the older disposition class has
+    no flag that ignores read-only, which is the whole reason the sequence has
+    two steps.
+    """
+
+    real = bindings.kernel32.SetFileInformationByHandle
+    spy = _DispositionSpy(real, refuse={boundary.FILE_DISPOSITION_INFO_EX_CLASS})
+    monkeypatch.setattr(
+        bindings.kernel32, "SetFileInformationByHandle", spy, raising=False
+    )
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        name = "fb.bin" if kind == "file" else "fb-dir"
+        held = (
+            boundary.create_file(bindings, chain.base, name, b"x")
+            if kind == "file"
+            else boundary.create_directory(bindings, chain.base, name)
+        )
+        boundary.remove(bindings, held)
+        held.close()
+        monkeypatch.undo()
+        boundary.confirm_absent(bindings, chain.base, name)
+
+    assert spy.classes == [
+        boundary.FILE_DISPOSITION_INFO_EX_CLASS,
+        boundary.FILE_BASIC_INFO_CLASS,
+        boundary.FILE_DISPOSITION_INFO_CLASS,
+    ]
+    assert not (owned_base / name).exists()
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+def test_both_dispositions_failing_leaves_the_object_and_reports_incomplete(
+    bindings, owned_base, monkeypatch, kind
+):
+    """rev17 evidence: the case where deletion simply does not happen.
+
+    Untested until now. The object must still be there afterwards — reporting
+    `CLEANUP_INCOMPLETE` while the name had in fact gone would be the more
+    dangerous failure, because a caller would stop looking.
+    """
+
+    real = bindings.kernel32.SetFileInformationByHandle
+    spy = _DispositionSpy(
+        real,
+        refuse={
+            boundary.FILE_DISPOSITION_INFO_EX_CLASS,
+            boundary.FILE_DISPOSITION_INFO_CLASS,
+        },
+    )
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        name = "stuck.bin" if kind == "file" else "stuck-dir"
+        held = (
+            boundary.create_file(bindings, chain.base, name, b"x")
+            if kind == "file"
+            else boundary.create_directory(bindings, chain.base, name)
+        )
+        monkeypatch.setattr(
+            bindings.kernel32, "SetFileInformationByHandle", spy, raising=False
+        )
+        with pytest.raises(boundary.NativeError) as excinfo:
+            boundary.remove(bindings, held)
+        assert excinfo.value.args[0] == "CLEANUP_INCOMPLETE"
+        monkeypatch.undo()
+
+        assert (owned_base / name).exists()  # still there, as reported
+        with pytest.raises(boundary.NativeError) as absent_error:
+            boundary.confirm_absent(bindings, chain.base, name)
+        assert absent_error.value.args[0] == "CLEANUP_INCOMPLETE"
+
+        # The test created it, so the test clears it before leaving.
+        held._removing = False
+        boundary.remove(bindings, held)
+        held.close()
+        boundary.confirm_absent(bindings, chain.base, name)
+
+    assert spy.classes == [
+        boundary.FILE_DISPOSITION_INFO_EX_CLASS,
+        boundary.FILE_BASIC_INFO_CLASS,
+        boundary.FILE_DISPOSITION_INFO_CLASS,
+    ]
+
+
+@pytest.mark.parametrize(
+    "kind,expected_stage",
+    [("file", "CREATE_FILE"), ("directory", "CREATE_DIRECTORY")],
+)
+def test_a_failed_create_reports_the_stage_it_was_in(
+    bindings, monkeypatch, kind, expected_stage
+):
+    """The stage carried into the diagnostic, per role.
+
+    It was hard-coded to `CREATE_FILE` before, and every test still passed: a
+    directory failure produced a file's stage ordinal, which is exactly the
+    field a crash dump would be read for.
+    """
+
+    stages: list[str] = []
+    real_guarded = boundary._guarded
+
+    def recording(bindings_, stage, call, *args):
+        stages.append(stage)
+        return real_guarded(bindings_, stage, call, *args)
+
+    monkeypatch.setattr(boundary, "_guarded", recording)
+    monkeypatch.setattr(
+        bindings.ntdll,
+        "NtCreateFile",
+        lambda *_a: -1073741790,  # STATUS_ACCESS_DENIED
+        raising=False,
+    )
+
+    parent = _detached_anchor(bindings)
+    with pytest.raises(boundary.NativeError):
+        if kind == "file":
+            boundary.create_file(bindings, parent, "x.bin", b"")
+        else:
+            boundary.create_directory(bindings, parent, "x-dir")
+
+    # Both the create and the status translation carry the same stage, and no
+    # other stage appears between them.
+    assert stages == [expected_stage, expected_stage]
+
+
+def test_n3c2_did_not_move_availability(bindings):
+    assert boundary.handle_boundary_available() is False
+    assert boundary.ACTIVE is False
 
 
 def test_n3c1_did_not_move_availability(bindings):

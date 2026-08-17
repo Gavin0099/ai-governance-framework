@@ -63,9 +63,13 @@ during the identity stage, so they report `ROOT_IDENTITY_UNAVAILABLE`, which is
 the approved code for an unknown status there.
 
 **N3c-1** pins the ancestor chain: every component from the volume root down to
-`base` is opened and held for the tree's lifetime. It **opens** directories and
-**creates and deletes nothing** — `NtCreateFile`, handle-bound deletion and the
-absence probe belong to a later tranche and are still uncalled.
+`base` is opened and held for the tree's lifetime. It opens directories and
+creates nothing.
+
+**N3c-2** adds creation, deletion and the absence probe, so `NtCreateFile`,
+`WriteFile` and `SetFileInformationByHandle` are now called — on objects this
+module creates, under a `base` it only borrows. `base` is never created, never
+deleted and never marked.
 
 Pinning is what stops a component being swapped mid-run. Each handle is opened
 with `FILE_SHARE_DELETE` omitted, so while it is held no other process can
@@ -73,8 +77,8 @@ rename or delete that directory; and each open is **handle-relative** to the one
 above it, so no component is ever re-resolved by name.
 
 Still deferred: `GetVolumeInformationByHandleW` for the filesystem. It reads
-from a held base handle, which now exists, but wiring it in is N3c-2's business
-rather than something to slip in here.
+from a held base handle, which exists, so nothing technical stops it — it is
+absent because it belongs to a later tranche, and the absence is a choice.
 
 `handle_boundary_available()` returns False, as it has since the interim gate
 landed. Nothing in this module changes that: an admission registry does not
@@ -104,6 +108,7 @@ from ctypes import (
     POINTER,
     Structure,
     Union,
+    c_char,
     c_int,
     c_long,
     c_longlong,
@@ -914,6 +919,12 @@ FAIL_FAST_CODES = MappingProxyType(
         "CLEANUP_INCOMPLETE": 8,
         "CLOSE_FAILED": 9,
         "HANDLE_BOUNDARY_UNAVAILABLE": 10,
+        # Appended for N3c-2, never renumbered. `HANDLE_BOUNDARY_UNAVAILABLE`
+        # says the boundary cannot be used on this platform at all — the same
+        # answer for every caller, unfixable by changing an argument. These two
+        # are properties of one call, which the caller can act on.
+        "BASE_NOT_FOUND": 11,
+        "BASE_NOT_ADMISSIBLE": 12,
     }
 )
 
@@ -1126,6 +1137,30 @@ FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020
 FILE_OPEN_REPARSE_POINT = 0x00200000
 
 FILE_READ_ATTRIBUTES = 0x0080
+FILE_WRITE_DATA = 0x0002
+FILE_WRITE_ATTRIBUTES = 0x0100
+DELETE = 0x00010000
+
+FILE_ATTRIBUTE_READONLY = 0x00000001
+FILE_ATTRIBUTE_NORMAL = 0x00000080
+
+FILE_CREATE = 0x00000002
+FILE_NON_DIRECTORY_FILE = 0x00000040
+
+FILE_DISPOSITION_DELETE = 0x00000001
+FILE_DISPOSITION_POSIX_SEMANTICS = 0x00000002
+FILE_DISPOSITION_IGNORE_READONLY_ATTRIBUTE = 0x00000010
+
+FILE_BASIC_INFO_CLASS = 0
+FILE_DISPOSITION_INFO_CLASS = 4
+FILE_DISPOSITION_INFO_EX_CLASS = 21
+
+# Signed, because NTSTATUS is signed here and success is `>= 0`.
+STATUS_OBJECT_NAME_NOT_FOUND = -1073741772  # 0xC0000034
+STATUS_OBJECT_NAME_COLLISION = -1073741771  # 0xC0000035
+STATUS_OBJECT_PATH_NOT_FOUND = -1073741766  # 0xC000003A
+STATUS_DELETE_PENDING = -1073741738  # 0xC0000056
+STATUS_SHARING_VIOLATION = -1073741757  # 0xC0000043
 
 # Not NULL. On 64-bit this is 0xFFFFFFFFFFFFFFFF, so a `if not handle.value`
 # test passes it straight through to the next metadata query. The design
@@ -1152,23 +1187,103 @@ ANCESTOR_OPTIONS = (
     FILE_DIRECTORY_FILE | FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT
 )
 
+# Role 2 from the design: a directory this code creates and must delete. DELETE
+# is requested precisely because the obligation here is the opposite of role 1's.
+CREATED_DIRECTORY_ACCESS = (
+    FILE_LIST_DIRECTORY
+    | FILE_READ_ATTRIBUTES
+    | SYNCHRONIZE
+    | DELETE
+    | FILE_WRITE_ATTRIBUTES
+)
+CREATED_DIRECTORY_SHARE = FILE_SHARE_READ | FILE_SHARE_WRITE
+CREATED_DIRECTORY_OPTIONS = FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+
+# Role 3: a file this code creates, writes once and must delete. Born read-only
+# — the attribute governs later opens while this handle keeps the write access
+# it was granted, so the bytes are never writable through their path.
+CREATED_FILE_ACCESS = (
+    FILE_WRITE_DATA
+    | FILE_READ_ATTRIBUTES
+    | FILE_WRITE_ATTRIBUTES
+    | DELETE
+    | SYNCHRONIZE
+)
+CREATED_FILE_SHARE = FILE_SHARE_READ
+CREATED_FILE_OPTIONS = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+
+# The absence probe, and the only place FILE_SHARE_DELETE appears: the probe
+# must not pin the name it is asking about.
+ABSENCE_ACCESS = FILE_READ_ATTRIBUTES | SYNCHRONIZE
+ABSENCE_SHARE = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+ABSENCE_OPTIONS = FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT
+
+# One megabyte, far inside DWORD. Chunking exists because the count argument is
+# a DWORD; the loop exists because a short write is legal and not an error.
+WRITE_CHUNK = 1 << 20
+
 _DRIVE_ROOT = re.compile(r"^([A-Za-z]):[\\/]$")
 
+_CREATED_NAME = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
+_DEVICE_NAMES = frozenset(
+    ["CON", "PRN", "AUX", "NUL"]
+    + [f"COM{digit}" for digit in range(1, 10)]
+    + [f"LPT{digit}" for digit in range(1, 10)]
+)
 
-class Anchor:
-    """One held directory handle, with the identity it had when opened.
+
+def _validate_created_name(name: str) -> str:
+    """The normative grammar for a name this code creates or probes.
+
+    Stricter than `_validate_component`, which governs *borrowed* ancestors and
+    has to tolerate whatever already exists on disk. Nothing here has to be
+    tolerated: this code chooses these names, so anything that could reopen a
+    path lookup under `RootDirectory` is refused outright.
+
+    Raises before any native call, so a bad name is an ordinary recoverable
+    result and never reaches the fail-fast path.
+    """
+
+    if type(name) is not str or not _CREATED_NAME.fullmatch(name):
+        # The character class already excludes separators, colons, wildcards
+        # and control characters; length is bounded by the same match.
+        raise NativeError("PATH_INVALID")
+    if name in (".", ".."):
+        raise NativeError("PATH_INVALID")
+    if name.endswith(".") or name.endswith(" "):
+        # Windows strips these silently, so the name asked for is not the name
+        # created — a difference this boundary must not paper over.
+        raise NativeError("PATH_INVALID")
+    stem = name.split(".", 1)[0].upper()
+    if stem in _DEVICE_NAMES:
+        # `nul.txt` is still the device.
+        raise NativeError("PATH_INVALID")
+    return name
+
+
+class _Held:
+    """One held kernel handle and the identity the object had when opened.
+
+    Anchor and Leaf share this rather than each carrying a copy: the ownership
+    rules here were got wrong three separate times during N3c-1, and two
+    independent implementations of them would drift.
 
     Opaque on purpose: the raw handle never leaves this module, so no caller can
     keep one past `close` or hand one to something that resolves names.
     """
 
-    __slots__ = ("_bindings", "_handle", "_identity", "_closed")
+    __slots__ = ("_bindings", "_handle", "_identity", "_closed", "_removing")
 
     def __init__(self, bindings: "_Bindings", handle: int, identity: str) -> None:
         self._bindings = bindings
         self._handle = handle
         self._identity = identity
         self._closed = False
+        # Set once the object is marked for deletion. It changes what a failed
+        # close *means*: releasing a borrowed handle that will not close is a
+        # leak, while failing to close a handle whose object is delete-pending
+        # means the removal did not complete.
+        self._removing = False
 
     @property
     def identity(self) -> str:
@@ -1190,11 +1305,15 @@ class Anchor:
         if self._closed:
             return  # a second close is a no-op, not an error
         handle = self._handle
+        removing = self._removing
         self._handle = 0
         self._closed = True
         if not _close_handle(self._bindings, handle):
             ctypes.get_last_error()
-            raise NativeError("CLOSE_FAILED")
+            # Per the design's mapping: during removal the finding is that the
+            # removal did not complete; releasing the borrowed chain after an
+            # otherwise successful run, it is a close failure.
+            raise NativeError("CLEANUP_INCOMPLETE" if removing else "CLOSE_FAILED")
 
     def __enter__(self) -> "Anchor":
         return self
@@ -1233,6 +1352,18 @@ class Anchor:
             self.close()
         except Exception:
             pass
+
+
+class Anchor(_Held):
+    """A directory handle this code holds.
+
+    Role 1 when it was borrowed and merely pinned, role 2 when this code
+    created it. The distinction is not in the object: it is in whether cleanup
+    is obliged to delete it, which the caller tracks by keeping created anchors
+    in a separate list.
+    """
+
+    __slots__ = ()
 
 
 class PinnedChain:
@@ -1284,6 +1415,16 @@ class PinnedChain:
             self.close()
         except Exception:
             pass
+
+
+class Leaf(_Held):
+    """A file this code created and still holds.
+
+    Role 3. Held until it is removed through this same handle — reopening the
+    name to delete it would be a second ownership path for one object.
+    """
+
+    __slots__ = ()
 
 
 def _unicode_string(text: str):
@@ -1382,7 +1523,18 @@ def _open_directory(
         _guarded(
             bindings, "CHAIN", bindings.ntdll.RtlNtStatusToDosError, status
         )
-        raise NativeError("HANDLE_BOUNDARY_UNAVAILABLE")
+        # Not `HANDLE_BOUNDARY_UNAVAILABLE`. That code means the boundary
+        # cannot be used on this platform at all — the same answer for every
+        # caller, unfixable by changing an argument. A component that is missing
+        # or unopenable is a property of this call, and the caller can act on
+        # it; collapsing the two sends them looking for a platform problem when
+        # the fault is the path they passed.
+        if status in (
+            STATUS_OBJECT_NAME_NOT_FOUND,
+            STATUS_OBJECT_PATH_NOT_FOUND,
+        ):
+            raise NativeError("BASE_NOT_FOUND")
+        raise NativeError("BASE_NOT_ADMISSIBLE")
     if not handle.value or handle.value == INVALID_HANDLE_VALUE:
         # A success status with an unusable handle is not something to reason
         # about; it is refused. Closing is not attempted either, because
@@ -1555,6 +1707,373 @@ def close_chain(bindings: _Bindings, chain: PinnedChain) -> None:
     """
 
     chain.close()
+
+
+# ===========================================================================
+# Tranche N3c-2 — creation, deletion and the absence probe
+# ===========================================================================
+#
+# Everything below acts on objects this code creates, under a `base` it only
+# borrowed. `base` is never created, never deleted and never marked; N3c-1's
+# `open_chain` is the only way it is touched.
+
+
+def _create(
+    bindings: _Bindings,
+    parent: Anchor,
+    name: str,
+    access: int,
+    share: int,
+    attributes: int,
+    options: int,
+) -> int:
+    """Create one object relative to `parent`, or refuse.
+
+    `FILE_CREATE` is what makes an occupied name a refusal rather than an open
+    of whatever is sitting there — the same guarantee `O_EXCL` gave the path
+    version, without the path.
+    """
+
+    _validate_created_name(name)
+    if parent.closed:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+
+    handle = HANDLE()
+    unicode_name, buffer = _unicode_string(name)
+    object_attributes = OBJECT_ATTRIBUTES()
+    object_attributes.Length = ctypes.sizeof(OBJECT_ATTRIBUTES)
+    object_attributes.RootDirectory = parent._handle
+    object_attributes.ObjectName = ctypes.pointer(unicode_name)
+    object_attributes.Attributes = OBJ_CASE_INSENSITIVE
+    object_attributes.SecurityDescriptor = None
+    object_attributes.SecurityQualityOfService = None
+    status_block = IO_STATUS_BLOCK()
+
+    stage = "CREATE_FILE" if options & FILE_NON_DIRECTORY_FILE else "CREATE_DIRECTORY"
+    status = _guarded(
+        bindings,
+        stage,
+        bindings.ntdll.NtCreateFile,
+        ctypes.byref(handle),
+        access,
+        ctypes.byref(object_attributes),
+        ctypes.byref(status_block),
+        None,
+        attributes,
+        share,
+        FILE_CREATE,
+        options,
+        None,
+        0,
+    )
+    # Keep the name alive until the call has returned.
+    del unicode_name, buffer, object_attributes
+
+    if status < 0:
+        _guarded(bindings, stage, bindings.ntdll.RtlNtStatusToDosError, status)
+        # Only a collision is a collision. Reporting every creation failure as
+        # `MATERIALIZE_PATH_EXISTS` would tell a caller a name is taken when the
+        # volume is full, the parent was deleted underneath us, or access was
+        # refused — three different problems with three different responses.
+        if status == STATUS_OBJECT_NAME_COLLISION:
+            raise NativeError("MATERIALIZE_PATH_EXISTS")
+        raise NativeError("MATERIALIZE_WRITE_FAILED")
+    if not handle.value or handle.value == INVALID_HANDLE_VALUE:
+        raise NativeError("MATERIALIZE_WRITE_FAILED")
+    return handle.value
+
+
+def create_directory(bindings: _Bindings, parent: Anchor, name: str) -> Anchor:
+    """Role 2: a directory this code creates and cleanup must delete."""
+
+    handle = _create(
+        bindings,
+        parent,
+        name,
+        CREATED_DIRECTORY_ACCESS,
+        CREATED_DIRECTORY_SHARE,
+        FILE_ATTRIBUTE_NORMAL,
+        CREATED_DIRECTORY_OPTIONS,
+    )
+    try:
+        return Anchor(bindings, handle, _identity_of(bindings, handle))
+    except BaseException as error:
+        _rollback_created(bindings, parent, name, handle, error)
+        raise
+
+
+def _write_all(bindings: _Bindings, handle: int, payload: bytes) -> None:
+    """Write every byte, or refuse.
+
+    The buffer is created once and held for the whole loop: a temporary freed
+    between chunks is a use-after-free that usually looks like it worked.
+    Offsets go through `byref(buffer, offset)` rather than pointer arithmetic.
+
+    A short write is legal and is continued, but a write reporting **zero**
+    bytes is not progress — looping on it would spin forever, so it is a
+    failure.
+    """
+
+    if type(payload) is not bytes:
+        raise NativeError("MATERIALIZE_WRITE_FAILED")
+    if not payload:
+        return
+
+    total = len(payload)
+    block = (c_char * total).from_buffer_copy(payload)
+    written_total = 0
+    while written_total < total:
+        chunk = min(WRITE_CHUNK, total - written_total)
+        written = DWORD(0)
+        ok = _guarded(
+            bindings,
+            "WRITE",
+            bindings.kernel32.WriteFile,
+            handle,
+            ctypes.byref(block, written_total),
+            chunk,
+            ctypes.byref(written),
+            None,
+        )
+        if not ok:
+            ctypes.get_last_error()
+            raise NativeError("MATERIALIZE_WRITE_FAILED")
+        if written.value == 0 or written.value > chunk:
+            # Zero is no progress; more than asked for is a contract violation.
+            raise NativeError("MATERIALIZE_WRITE_FAILED")
+        written_total += written.value
+    del block
+
+
+def create_file(
+    bindings: _Bindings, parent: Anchor, name: str, payload: bytes
+) -> Leaf:
+    """Role 3: create the file read-only, write it, and keep holding it.
+
+    `FILE_ATTRIBUTE_READONLY` at creation while this handle holds
+    `FILE_WRITE_DATA` is deliberate: the attribute governs *later* opens, this
+    handle keeps the access it was granted, so there is no interval in which the
+    bytes are writable through their path.
+
+    The handle is not released here. Revision 17 requires a created file to be
+    removed through the same handle that created it; reopening the name to
+    delete it would be a second ownership path for one object.
+    """
+
+    handle = _create(
+        bindings,
+        parent,
+        name,
+        CREATED_FILE_ACCESS,
+        CREATED_FILE_SHARE,
+        FILE_ATTRIBUTE_READONLY,
+        CREATED_FILE_OPTIONS,
+    )
+    try:
+        _write_all(bindings, handle, payload)
+        return Leaf(bindings, handle, _identity_of(bindings, handle))
+    except BaseException as error:
+        _rollback_created(bindings, parent, name, handle, error)
+        raise
+
+
+def file_attributes(bindings: _Bindings, held: "_Held") -> int:
+    """The attribute word the kernel actually retained for a held object.
+
+    Separate from `_reparse_tag` because the question is different: that one
+    asks what kind of object this is, this one asks what was kept of what was
+    requested. Role 3's born-read-only claim is checked here, against a control
+    object, because a request the filesystem ignored would still look correct
+    at the call boundary.
+    """
+
+    info = FILE_BASIC_INFO()
+    ok = _guarded(
+        bindings,
+        "IDENTITY",
+        bindings.kernel32.GetFileInformationByHandleEx,
+        held._handle,
+        FILE_BASIC_INFO_CLASS,
+        ctypes.byref(info),
+        ctypes.sizeof(info),
+    )
+    if not ok:
+        raise _query_failed("FileBasicInfo")
+    return int(info.FileAttributes)
+
+
+def _mark_deleted(bindings: _Bindings, handle: int) -> None:
+    """Mark one raw handle's object for deletion, preferred class then fallback.
+
+    Split out from `remove` so the post-create rollback path can use exactly the
+    same marking code. A rollback that deleted by some other means would be a
+    second deletion path, and the two would drift.
+    """
+
+    disposition = FILE_DISPOSITION_INFO_EX()
+    disposition.Flags = (
+        FILE_DISPOSITION_DELETE
+        | FILE_DISPOSITION_POSIX_SEMANTICS
+        | FILE_DISPOSITION_IGNORE_READONLY_ATTRIBUTE
+    )
+    ok = _guarded(
+        bindings,
+        "REMOVE",
+        bindings.kernel32.SetFileInformationByHandle,
+        handle,
+        FILE_DISPOSITION_INFO_EX_CLASS,
+        ctypes.byref(disposition),
+        ctypes.sizeof(disposition),
+    )
+    if ok:
+        return
+    ctypes.get_last_error()
+
+    basic = FILE_BASIC_INFO()
+    # Zero means "leave this timestamp alone"; only the attribute word changes.
+    basic.CreationTime = 0
+    basic.LastAccessTime = 0
+    basic.LastWriteTime = 0
+    basic.ChangeTime = 0
+    basic.FileAttributes = FILE_ATTRIBUTE_NORMAL
+    ok = _guarded(
+        bindings,
+        "REMOVE",
+        bindings.kernel32.SetFileInformationByHandle,
+        handle,
+        FILE_BASIC_INFO_CLASS,
+        ctypes.byref(basic),
+        ctypes.sizeof(basic),
+    )
+    if not ok:
+        ctypes.get_last_error()
+        raise NativeError("CLEANUP_INCOMPLETE")
+
+    legacy = FILE_DISPOSITION_INFO()
+    legacy.DeleteFile = 1
+    ok = _guarded(
+        bindings,
+        "REMOVE",
+        bindings.kernel32.SetFileInformationByHandle,
+        handle,
+        FILE_DISPOSITION_INFO_CLASS,
+        ctypes.byref(legacy),
+        ctypes.sizeof(legacy),
+    )
+    if not ok:
+        ctypes.get_last_error()
+        raise NativeError("CLEANUP_INCOMPLETE")
+
+
+def _rollback_created(
+    bindings: _Bindings,
+    parent: Anchor,
+    name: str,
+    handle: int,
+    error: BaseException,
+) -> None:
+    """Undo a create that succeeded before a later step failed.
+
+    Without this, a failure between `FILE_CREATE` and the returned ownership
+    object leaves the name on disk with nothing holding it: the caller never
+    received an object to clean up, so nothing ever would. The object is marked,
+    closed and confirmed gone, in that order — the same transaction cleanup
+    uses.
+
+    Every failure here is attached to `error` and none replaces it. The reason
+    the rollback is happening is what the caller needs to see.
+    """
+
+    try:
+        _mark_deleted(bindings, handle)
+    except NativeError as failure:
+        _note_cleanup_failure(error, f"rollback mark failed: {failure.args[0]}")
+        if not _close_handle(bindings, handle):
+            ctypes.get_last_error()
+            _note_cleanup_failure(error, "rollback close failed")
+        return
+
+    if not _close_handle(bindings, handle):
+        ctypes.get_last_error()
+        _note_cleanup_failure(error, "rollback close failed")
+        return
+
+    try:
+        confirm_absent(bindings, parent, name)
+    except NativeError as failure:
+        _note_cleanup_failure(error, f"rollback residue: {failure.args[0]}")
+
+
+def remove(bindings: _Bindings, held: "_Held") -> None:
+    """Mark the held object for deletion. Deletion completes when it closes.
+
+    Acts on the handle, never on a name, so nothing here can be redirected by
+    replacing a directory. `IGNORE_READONLY_ATTRIBUTE` is why role 3 can be born
+    read-only and still be removable; POSIX semantics is why the name is gone
+    when the last handle closes rather than lingering as delete-pending.
+
+    The fallback exists because `FileDispositionInfoEx` is not available on
+    every filesystem. It clears the read-only attribute first, because the older
+    disposition class has no flag that ignores it.
+    """
+
+    if held.closed:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+
+    # Set before the call, not after: if marking raises, this handle's object
+    # may still be delete-pending, and a later close must report that the
+    # removal did not complete rather than that a handle would not close.
+    held._removing = True
+    _mark_deleted(bindings, held._handle)
+
+
+def confirm_absent(bindings: _Bindings, parent: Anchor, name: str) -> None:
+    """Read-only: the name is gone under this parent, or cleanup is incomplete.
+
+    Only `STATUS_OBJECT_NAME_NOT_FOUND` counts as absent. A success, a
+    delete-pending, a sharing violation and an access denial are all *not*
+    absent — each means something is still there, or that we cannot tell, and
+    neither is a reason to proceed to the parent.
+
+    `FILE_SHARE_DELETE` appears here and nowhere else in this module, so the
+    probe does not pin the name it is asking about.
+    """
+
+    _validate_created_name(name)
+    if parent.closed:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+
+    handle = HANDLE()
+    unicode_name, buffer = _unicode_string(name)
+    object_attributes = OBJECT_ATTRIBUTES()
+    object_attributes.Length = ctypes.sizeof(OBJECT_ATTRIBUTES)
+    object_attributes.RootDirectory = parent._handle
+    object_attributes.ObjectName = ctypes.pointer(unicode_name)
+    object_attributes.Attributes = OBJ_CASE_INSENSITIVE
+    object_attributes.SecurityDescriptor = None
+    object_attributes.SecurityQualityOfService = None
+    status_block = IO_STATUS_BLOCK()
+
+    status = _guarded(
+        bindings,
+        "ABSENCE_PROBE",
+        bindings.ntdll.NtOpenFile,
+        ctypes.byref(handle),
+        ABSENCE_ACCESS,
+        ctypes.byref(object_attributes),
+        ctypes.byref(status_block),
+        ABSENCE_SHARE,
+        ABSENCE_OPTIONS,
+    )
+    del unicode_name, buffer, object_attributes
+
+    if status == STATUS_OBJECT_NAME_NOT_FOUND:
+        return
+    if status >= 0 and handle.value and handle.value != INVALID_HANDLE_VALUE:
+        # It opened, so it is still there. Close what we just opened before
+        # reporting, or the probe leaks the handle it proved exists.
+        _close_handle(bindings, handle.value)
+    raise NativeError("CLEANUP_INCOMPLETE")
 
 
 def handle_boundary_available() -> bool:
