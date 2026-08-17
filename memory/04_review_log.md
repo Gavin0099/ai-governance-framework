@@ -4152,3 +4152,109 @@ recovery contract, a structural non-`repr` boundary, and machine-enforced path
 exclusivity. Group C is the credential-residue design; group B splits into two
 tranches because the two mechanisms have different modification surfaces and
 failure models. None may be interleaved before the one in progress closes.
+
+## 2026-08-16 — Gate 3 native handle boundary N3c-1
+
+Design revision 17 accepted and committed design-only as `0d95023d`
+(`83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`).
+Implementation delivered as `1486fdb5` after three rounds of independent
+exact-digest review.
+
+### Findings And Resolution
+
+**Revision 17, one round.** Revision 16 required a reparse-tag check on every
+pinned ancestor while granting `FILE_LIST_DIRECTORY | SYNCHRONIZE`, a mask that
+cannot perform one — measured on the volume root,
+`GetFileInformationByHandleEx(FileAttributeTagInfo)` returned
+`ERROR_ACCESS_DENIED`. Two clauses of the same document could not both hold. The
+audit the ruling asked for found no role exempt from querying, so all three
+roles were amended rather than role 1 alone. `FILE_WRITE_ATTRIBUTES` was
+explicitly rejected as a justification for reading: `0x0080` and `0x0100` are
+independent rights.
+
+**Implementation, three rounds.** Three of the round-one and round-two
+findings were the same defect wearing different clothes — a test narrower than
+the invariant it was named after, passing while proving nothing. The rest were
+ordinary implementation defects: a missing ownership API, an accepted invalid
+handle, and the `__exit__` masking found in round three.
+
+- `test_no_bound_export_is_invoked_outside_the_guard` inspected a hand-written
+  list of two functions, so the two direct `CloseHandle` calls this tranche
+  added never registered. Widened to the whole module, exempting only
+  `_guarded` and `fail_fast`, with a synthetic case proving the detector fires.
+- The "creates nothing" check searched for `ntdll.NtCreateFile(`. The compliant
+  call shape — the export handed to `_guarded` as a callable — contains no such
+  text, so the check was blind to a violation and to compliance alike.
+  Replaced by an AST resolution covering both shapes, with a synthetic
+  sensitivity case.
+- Evidence 19w asserted only that the query failed, which any failure satisfies.
+  `ctypes.get_last_error()` was already being read and discarded; it is now
+  attached as a note and asserted by equality as `last_error=5`.
+- A `NULL`-only handle check let `INVALID_HANDLE_VALUE` through, because on
+  64-bit it is truthy.
+- Round three: both `__exit__` methods still masked the body error, because
+  `return False` only runs if `close()` returns. The same masking had already
+  been fixed in `_anchor` and `open_chain`; the exits were missed because they
+  leave through a different door. Fixed with the reverse case also tested, so
+  "does not mask" was not implemented as "always swallows".
+
+Ownership was brought to the design: context manager plus `__del__` safety net,
+`close()` clearing the handle unconditionally including on failure, second
+close a no-op.
+
+### Evidence
+
+- Implementation `c8f40027dbc2900e4b370e6a7fc6dcbc144897b418dbc972b50fd0470adbfca5`;
+  tests `9b27a2dd9a081e53372f9a1865ab6d93947812dcea4d42e4aa2926f833f96817`.
+  Both paths carry `text: unset`, so committed and remote blobs are
+  byte-identical to the reviewed worktree bytes.
+- Focused suite 169/169. Surrounding Gate 3 suites 1073 passing and 7 failing.
+  Those seven were reported at the time as pre-existing failures untouched by
+  this tranche. That attribution was wrong: they are caused by the uncommitted
+  B-1 worktree divergence, and at `HEAD` the two files concerned are
+  byte-identical to `SOURCE_COMMIT`. N3c-1 neither caused nor could have fixed
+  them, but calling them pre-existing obscured a live causal link. Corrected in
+  the 2026-08-16 canonical memory rather than by editing this line's original
+  claim, which is preserved above in the sentence it replaced.
+- Evidence 19w reproduced on a real directory under both masks: revision 16's
+  fails with `last_error=5`, revision 17's returns tag `0`.
+- Two adjacent slices landed the same day and were reviewed separately:
+  `97ad42e4` reconciled `2026-08-13` through `2026-08-16` memory with `PLAN.md`
+  and the active task, preserving 34 hook-generated records unrewritten and
+  adding three canonical corrections; `ec0c4046` replaced the stale CP-8 shared
+  closeout with a current-session one the parser can read.
+
+### Not Claimed
+
+- No claim that the boundary is reachable. `handle_boundary_available()` and
+  `ACTIVE` are both `False`, and nothing in production calls this.
+- No creation, deletion, rename or absence probe. `NtCreateFile`,
+  `SetFileInformationByHandle`, `WriteFile` and `GetVolumeInformationByHandleW`
+  stay bound and uncalled, asserted structurally rather than by convention.
+- No claim that session binding was repaired by `ec0c4046`. No envelope exists
+  for this `session_id`, so `session_end` still fails closed before evaluating
+  any field, and the empty `missing_fields` and `content_issues` in the
+  candidate mean *not computed*, not clean.
+- No claim of durable diagnostic capture from fail-fast, per owner ruling 8's
+  slice-specific `NATIVE-INTEROP.md` §4.1 exception.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+The order is `N3c-2 -> M2 -> M3 -> M4 -> B-1`. An earlier draft of this section
+recommended closing M2 first, on the reasoning that M2 is the consumer and its
+blockers decide the interface. The first half is true and the conclusion is
+not: every operation M2 fails closed on is a creation, a write, a deletion or
+an absence probe, so M2 cannot converge until N3c-2 exists. What M2 supplies
+first is its consumer contract, not its closure.
+
+N3c-2 needs a design-first slice of its own, because it is the first
+authorization to create and delete real filesystem objects and to run the
+absence probe — a wider safety boundary than opening and holding handles, and
+one that N3c-1's approval does not reach. B-1 comes last, behind M4, because
+its edits break the source pin the historical candidate is verified against and
+M4 is what makes that verification independent of live worktree bytes.
+
+Before N3c-2 is designed, two smaller things: the vacuous assertion at
+`test_gate3_native_boundary.py:539`, and an owner decision on whether `base`
+must pre-exist.

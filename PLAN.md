@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-14
+> **最後更新**: 2026-08-16
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -1909,6 +1909,43 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `AMD64` only, because ARM64 was never verified and admitting it would have
   been an unverified claim. No handle is opened by any committed tranche.
 
+- [x] **Gate 3 native boundary N3c-1 completed 2026-08-16.** Implementation
+  commit `1486fdb5` pins every component from the volume root down to `base`,
+  each open handle-relative to the one above it, so no component is ever
+  re-resolved by name. Exact implementation SHA-256 is
+  `c8f40027dbc2900e4b370e6a7fc6dcbc144897b418dbc972b50fd0470adbfca5`; exact
+  test SHA-256 is
+  `9b27a2dd9a081e53372f9a1865ab6d93947812dcea4d42e4aa2926f833f96817`. Focused
+  tests passed 169/169. Across the surrounding Gate 3 suites 1073 passed and 7
+  failed. Those seven were originally reported as pre-existing failures that
+  this tranche did not touch; that attribution was wrong and is corrected in the
+  entry below. They are caused by the uncommitted B-1 worktree divergence, not
+  by anything at `HEAD`, and N3c-1 neither caused nor could have fixed them.
+  Three rounds of independent exact-digest review preceded the commit.
+  The pin comes from omitting `FILE_SHARE_DELETE`, not from requesting `DELETE`
+  on a borrowed directory, and revision 17's role-1 mask is what makes the
+  required reparse-tag check possible at all.
+  Three review findings were failures of claim rather than of code, and each
+  test passed while proving nothing: the guard-bypass check inspected a
+  hand-written list of two functions and so missed two direct `CloseHandle`
+  calls; the "creates nothing" check searched for call text that the compliant
+  call shape never produces, leaving it blind to violation and compliance
+  alike; and evidence 19w asserted only that a query failed, which any failure
+  satisfies. All three were widened, and a fourth finding — `NULL`-only handle
+  validation letting the truthy `INVALID_HANDLE_VALUE` through — was closed.
+  Suppressing the original error took three passes to remove: `_anchor` and
+  `open_chain` first, then both `__exit__` methods, where `return False` only
+  ran if `close()` returned.
+  Claim ceiling: this tranche opens and holds directory handles and does
+  nothing else. It creates, renames and removes nothing;
+  `NtCreateFile`, `SetFileInformationByHandle`, `WriteFile` and
+  `GetVolumeInformationByHandleW` remain bound and uncalled, asserted
+  structurally. `handle_boundary_available()` and `ACTIVE` are both `False`, so
+  no production path reaches it. N3c-2 — creation, deletion and the absence
+  probe — is not authorized and does not follow from this approval. The
+  consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
+  effectiveness is not established.
+
 - [x] **Gate 3 native handle-boundary design revision 17 accepted 2026-08-16.**
   Design-only commit `0d95023d`, exact SHA-256
   `83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`
@@ -1923,23 +1960,35 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
 
 Current blocking relationships for this work item:
 
-- N3c-1 (pin the ancestor chain) is implemented in the worktree but is
-  `PAUSED / CHANGES_REQUESTED`: uncommitted and paused, locally executed only
-  for the bounded submitter-reported access-mask probe that opened a
-  volume-root handle and observed `ERROR_ACCESS_DENIED`; no committed tranche
-  opens a handle. Exact paused SHA-256 is
-  `065f4fa76b37b8c2097850068926b2477164b2efefeb30cdf535368c19a1283a`. It still
-  carries revision 16's role-1 mask and two reviewer-named defects, and needs
-  new owner authorization before it resumes.
+- N3c-1 (pin the ancestor chain) is complete and delivered in `1486fdb5`; see
+  the milestone entry above. It is the first tranche that opens a handle.
 - N3c-2, which would create and delete real filesystem objects and run the
   absence probe, is not authorized.
+- The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and
+  `test_gate3_route_v2_ab_checkout.py` are caused by the uncommitted B-1
+  worktree divergence. At `HEAD`, `gate3_route_v2.py` and
+  `gate3_route_v2_codex.py` are byte-identical to `SOURCE_COMMIT`
+  `204965c94bd843d599986d9f9d0fd552ea053dff`; only the worktree differs. The
+  historical candidate is verified by comparing live worktree bytes against
+  that commit, which holds only while the implementing source never moves.
+- B-1, the structural non-`repr` boundary, is therefore
+  `CHANGES_REQUESTED / PAUSED_BEHIND_M4` and preserved complete and unstaged as
+  five files. Its dependency is `N3c-2 -> M2 -> M3 -> M4 -> B-1`: M4 is what
+  lets a historical candidate be verified against materialized historical bytes
+  instead of against the live worktree. Splitting B-1 to land only the unpinned
+  consumer was considered and rejected by the owner, because it would narrow
+  the census from three consumers to one and leave the two actually under pin
+  unprotected.
+- No manifest is repinned, no pair evidence is rewritten, and the consumed
+  `NON_SUCCESS` pair does not regain usability through any of this.
 - M2, M3 and M4 remain blocked behind M2's `CHANGES_REQUESTED` verdict.
 - Credentials, preflight and live remain unauthorized.
 
 Claim ceiling: this work item has produced design authority, an independent
-ABI oracle, and declaration, loader, fail-fast and runtime-fact tranches. No
-committed tranche opens a directory handle, creates or deletes a filesystem
-object, or performs the absence probe. `handle_boundary_available()` and
+ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, and in
+N3c-1 a committed tranche that opens and holds directory handles. What no
+committed tranche does is create, rename or delete a filesystem object, or
+perform the absence probe. `handle_boundary_available()` and
 `ACTIVE` are both `False`, so the boundary is not reachable from any production
 path. Accepted design bytes are not an implementation, exact-digest review
 approval is not runtime evidence, and none of this reuses, retries or replaces
