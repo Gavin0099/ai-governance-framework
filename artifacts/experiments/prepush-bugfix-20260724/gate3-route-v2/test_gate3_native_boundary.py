@@ -536,12 +536,24 @@ def test_availability_is_still_false_and_this_tranche_did_not_move_it():
     assert boundary.ACTIVE is False
 
 
-def test_the_boundary_is_not_wired_into_materialization():
-    here = pathlib.Path(__file__).resolve().parent
-    for name in ("gate3_historical_materialize.py", "gate3_route_v2_ab_candidate.py"):
-        path = here / name
-        if path.exists():
-            assert "gate3_native_boundary" not in path.read_text(encoding="utf-8")
+def test_historical_candidate_does_not_reference_native_boundary():
+    """One committed file, read unconditionally.
+
+    The earlier version looped over two names behind `if path.exists()` and was
+    named for materialization coverage it did not have:
+    `gate3_historical_materialize.py` is untracked, so in a clean checkout that
+    half was skipped in silence while the name still claimed it. The candidate
+    half did run — the weakness was the claim, not the whole assertion.
+
+    No `exists()` guard here. A missing file is a failure, not a pass, and the
+    name now says only what is checked. M2's own wiring assertion belongs to the
+    M2 or M4 slice, once there is a committed file to assert against.
+    """
+
+    candidate = (
+        pathlib.Path(__file__).resolve().parent / "gate3_route_v2_ab_candidate.py"
+    )
+    assert "gate3_native_boundary" not in candidate.read_text(encoding="utf-8")
 
 
 def test_off_platform_refuses_rather_than_reporting_a_mismatch(monkeypatch):
