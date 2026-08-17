@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-16
+> **最後更新**: 2026-08-17
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -1942,9 +1942,66 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   `GetVolumeInformationByHandleW` remain bound and uncalled, asserted
   structurally. `handle_boundary_available()` and `ACTIVE` are both `False`, so
   no production path reaches it. N3c-2 — creation, deletion and the absence
-  probe — is not authorized and does not follow from this approval. The
-  consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
-  effectiveness is not established.
+  probe — was not authorized at that point and did not follow from this
+  approval; it was authorized separately, designed and delivered afterwards,
+  recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
+  treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 N3c-2 design accepted 2026-08-17.** Design-only commit
+  `520cc306`, exact SHA-256
+  `25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`
+  (20,180 bytes), subordinate to revision 17 and restating none of it. It
+  carries the owner ruling that `base` must pre-exist and stay a borrowed
+  ancestor, with the reasoning that generalizes: a created object owes a
+  deletion and a borrowed one owes never deleting, so an object made to carry
+  both obligations can discharge neither.
+  Four review rounds, closing defects of three different kinds. A safety-scope
+  defect: `_contained` was to be deleted as structurally unnecessary while
+  `verify` still resolved by path and still called it, and a digest comparison
+  does not cover for it — it says nothing when an external location happens to
+  hold exactly the expected bytes. A behavioural contradiction: cleanup control
+  flow required both "attempt every object" and "stop at the first failure"
+  within three lines. An unreachable specification: the observation point after
+  creation and before the first write does not exist, because `create_file`
+  takes the payload and returns a held leaf. And one evidence defect proper:
+  the born-read-only check was confounded by role 3's share mask, so it would
+  have passed against an implementation that never requested the attribute.
+  Claim ceiling: design bytes. Approval moved no availability flag and
+  authorized no filesystem operation.
+
+- [x] **Gate 3 native boundary N3c-2 completed 2026-08-17.** Implementation
+  commit `495fe52f` adds role 2 directory creation, role 3 file creation with
+  the payload written through the held handle, handle-bound deletion with its
+  fallback, and the absence probe. Exact implementation SHA-256 is
+  `9142f2c6480be610cc4c064c18fb2e1b599c1ba98d3bcaca8763acb9664cfab5`; exact test
+  SHA-256 is
+  `a044c35b9c994bbb81e1cc496b46b4953b46f5315a976bfe0104008ed8715e84`. Focused
+  tests passed 245/245. Canonical precommit was run against this exact diff
+  through Git Bash at `/usr/bin/bash` and returned exit 0 with 201 passed; it
+  covers `tests/` and not the experiment suites, which were run separately.
+  `BASE_NOT_FOUND` and `BASE_NOT_ADMISSIBLE` are appended at 11 and 12 with
+  every earlier ordinal asserted individually, so `HANDLE_BOUNDARY_UNAVAILABLE`
+  now means only that the boundary cannot be used on this platform rather than
+  also answering for a path the caller could fix.
+  Three review rounds, and the five blocking findings split two ways. Three
+  were production defects that no test had caught: a failure between
+  `FILE_CREATE` and the returned ownership object left the name on disk with
+  nothing holding it; a close during removal reported `CLOSE_FAILED` and so
+  named the wrong problem; and every creation failure was reported as a taken
+  name. Two were defects in the evidence itself: the read-only check would have
+  passed against an implementation that never requested the attribute, and its
+  sensitivity case asserted the recorded value differed from a literal — which
+  is precisely what a broken implementation produces. A later round added a
+  third of that kind, the removal-state ordering test that let the mark succeed
+  and so could not separate the two orderings, and a fourth, the disposition
+  matrix that never distinguished preferred from fallback and never covered
+  both failing.
+  Claim ceiling: this tranche creates and deletes real filesystem objects, all
+  of them under a `base` the caller supplies and this code never creates,
+  deletes or marks. `handle_boundary_available()` and `ACTIVE` are both `False`,
+  so no production path reaches it; M2 is not wired; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill effectiveness is not
+  established.
 
 - [x] **Gate 3 native handle-boundary design revision 17 accepted 2026-08-16.**
   Design-only commit `0d95023d`, exact SHA-256
@@ -1962,8 +2019,15 @@ Current blocking relationships for this work item:
 
 - N3c-1 (pin the ancestor chain) is complete and delivered in `1486fdb5`; see
   the milestone entry above. It is the first tranche that opens a handle.
-- N3c-2, which would create and delete real filesystem objects and run the
-  absence probe, is not authorized.
+- N3c-2 is complete and delivered in `495fe52f`, with its design in
+  `520cc306`. It is the first tranche that creates and deletes real filesystem
+  objects.
+- M2 is the next tranche. Its rewrite replaces eight path-based operations with
+  the handle-bound surface, requires `base` to pre-exist, and deletes
+  `_drop_name`, `_create_exclusively`, `stale_root`'s `lexists` and
+  `os.makedirs`. `_contained` stays, scoped to `verify`, because that read-back
+  is still path-based and the digest comparison does not cover reading outside
+  the root.
 - The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and
   `test_gate3_route_v2_ab_checkout.py` are caused by the uncommitted B-1
   worktree divergence. At `HEAD`, `gate3_route_v2.py` and

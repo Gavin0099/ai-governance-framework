@@ -4258,3 +4258,96 @@ M4 is what makes that verification independent of live worktree bytes.
 Before N3c-2 is designed, two smaller things: the vacuous assertion at
 `test_gate3_native_boundary.py:539`, and an owner decision on whether `base`
 must pre-exist.
+
+## 2026-08-17 — Gate 3 native boundary N3c-2
+
+Design accepted as `520cc306`
+(`25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`) after four
+rounds; implementation delivered as `495fe52f` after three.
+
+### Findings And Resolution
+
+**Design, four rounds.** Three different kinds of defect, and only one of them
+is about evidence.
+
+- *Safety scope.* `_contained` was listed for deletion on the argument that
+  containment becomes structural once every open is handle-relative. True of creation and cleanup,
+  and only of them: `verify` still resolves `root / relative` by path and still
+  calls it. The digest comparison does not cover for it — a digest rejects
+  differing bytes and says nothing when an external location holds exactly the
+  expected ones, by which time the unauthorized read has happened.
+- *Evidence.* Born-read-only was to be shown by a second open failing. Role 3's
+  `ShareAccess` is `FILE_SHARE_READ` alone, so that open fails on the share mask
+  whether or not the attribute was ever requested — the check would have passed
+  against an implementation that dropped the attribute entirely.
+- *Behavioural contradiction.* Cleanup control flow required both "every object
+  is attempted" and "stop at the first failure, do not attempt the parent"
+  within three lines. They are
+  different sequences: deletion attempts stop, handle release continues.
+- *Unreachable specification.* The replacement observation point — after
+  creation, before the first write — does not exist. `create_file` takes the payload and returns a held leaf, so
+  reaching between them would mean splitting the surface or adding a callback
+  into the phase that must have none.
+
+**Implementation, three rounds.** Three of the five blocking findings were
+production defects no test had caught; two were defects in the evidence itself,
+and a later round found two more of that second kind.
+
+- A failure between `FILE_CREATE` and the returned ownership object left the
+  name on disk with nothing holding it; the caller never received an object, so
+  nothing would ever clean it up. Rollback now marks, closes and confirms absent
+  through the same code cleanup uses.
+- A close during removal reported `CLOSE_FAILED`, which names the wrong problem:
+  the object is delete-pending and may still be there. The removal flag is set
+  before the mark, because a mark that raises can still have left it pending —
+  and the first test of that ordering could not tell the two implementations
+  apart, because it let the mark succeed.
+- Every creation failure was reported as a taken name, which tells a caller to
+  choose another when the volume is full or the parent vanished. Only
+  `STATUS_OBJECT_NAME_COLLISION` maps there now, and the stage carried into the
+  diagnostic is the role's own rather than always `CREATE_FILE`.
+- The read-only evidence was confounded, and its sensitivity check asserted that
+  the recorded value differed from a literal — which is what a broken
+  implementation produces, so it passed exactly when it should not have. The
+  expected values now come from literals copied from revision 17, and each
+  mutation re-runs the real assertion and requires it to fail.
+- The disposition matrix covered only "forced fallback succeeds". Preferred-only
+  is now asserted by recording which information classes are set, and
+  both-failing is asserted to leave the object present — reporting
+  `CLEANUP_INCOMPLETE` over a name that had in fact gone would send a caller
+  looking for nothing.
+
+One submitter assertion was wrong in a useful way: reading a created file back
+raised `PermissionError`, because role 3 holds `FILE_WRITE_DATA` and `DELETE`
+under a `FILE_SHARE_READ` mask. That is the design working. The sharing
+violation became its own assertion, and content verification moved to a fixture
+that owns its cleanup and is labelled as not being the role 3 lifecycle.
+
+### Evidence
+
+- Implementation `9142f2c6…`, tests `a044c35b…`; both paths carry `text: unset`,
+  so worktree, staged, committed and remote blobs are byte-identical.
+- Focused suite 245/245. Across the gate3-route-v2 suites 1158 pass and 7 fail,
+  those seven being the B-1 worktree pin failures recorded in `ed9d5d06`.
+- Canonical precommit run against the exact committed diff through Git Bash at
+  `/usr/bin/bash`: exit 0, 201 passed, `smoke_status=pass`,
+  `pytest_status=pass`. It covers `tests/` and not the experiment suites.
+- Real-Windows tests create and delete under a base the test creates; the
+  complete-cycle test compares `st_ino` before and after to show the base is the
+  same object rather than a directory with the same name.
+
+### Not Claimed
+
+- No claim that the boundary is reachable: `handle_boundary_available()` and
+  `ACTIVE` are both `False`, and M2 is not wired to any of it.
+- No claim that precommit covers the experiment suites; those were run
+  separately and are reported separately.
+- No claim about `520cc306`'s own precommit, which did not execute successfully
+  before that commit and is recorded as a known unverified item.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+M2's handle-bound rewrite, then M3 and M4, then B-1. M2 is where the boundary
+first acquires a consumer, so its rewrite is also the first test of whether the
+surface designed for it actually fits.

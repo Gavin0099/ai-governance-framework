@@ -5,7 +5,7 @@
 
 # Active Task
 
-> Refreshed 2026-08-16 against branch head `1486fdb5`, using the `PLAN.md` in
+> Refreshed 2026-08-17 against branch head `495fe52f`, using the `PLAN.md` in
 > this uncommitted reconciliation diff rather than the `PLAN.md` contained in
 > that commit. Source of truth: that reconciliation diff plus the exact-digest
 > reviews recorded in it. This is a point-in-time task summary, not a canonical
@@ -40,9 +40,14 @@
 | Memory reconciliation, 2026-08-13 to 2026-08-16 | `97ad42e4` |
 | Current-session closeout in parser-readable form | `ec0c4046` |
 | N3c-1 pinned ancestor chain | `1486fdb5` |
+| Failure-attribution correction | `ed9d5d06` |
+| Native-boundary test narrowed to a committed file | `4eafdb80` |
+| N3c-2 design | `520cc306` |
+| N3c-2 creation, deletion and absence probe | `495fe52f` |
 
-All eleven rows are pushed to
-`origin/feat/gate3-historical-materialization`, whose head is `1486fdb5`.
+All fifteen rows are pushed to
+`origin/feat/gate3-historical-materialization`, whose head is `495fe52f` and
+matches the local branch exactly — `0` ahead, `0` behind.
 
 ## Paused And Blocked
 
@@ -60,23 +65,15 @@ All eleven rows are pushed to
 
 ## Next Steps
 
-1. Submit the six-path revision 4 for exact review unstaged. The sixth path is
-   `memory/2026-08-17.md`: the canonical writer targets the current date, so the
-   correction landed in today's file rather than in `memory/2026-08-16.md`.
-2. Correct the vacuous assertion at `test_gate3_native_boundary.py:539` as its
-   own single-file slice.
-3. Obtain the owner decision on whether `base` must pre-exist. Current
-   recommendation: require it to pre-exist, so that pinning a borrowed ancestor
-   never has to create one. Not yet decided.
-4. N3c-2 design-first, then implementation and review. It would authorize
-   creating and deleting real filesystem objects and running the absence probe,
-   a wider safety boundary than opening and holding handles; N3c-1's approval
-   does not extend to it.
-5. M2, then M3, then M4. M2 cannot converge before N3c-2 exists: every
-   operation it fails closed on is a creation, a write, a deletion or an
-   absence probe.
-6. B-1 re-review and delivery, after M4 makes historical verification
-   independent of live worktree bytes.
+1. M2 handle-bound rewrite: replace the eight path-based operations with
+   `create_directory`, `create_file`, `remove` and `confirm_absent`; require
+   `base` to pre-exist and drop `os.makedirs`; delete `_drop_name`,
+   `_create_exclusively` and `stale_root`'s `lexists`. Keep `_contained`,
+   scoped to `verify`.
+2. M3, then M4. M4 is what lets a historical candidate be verified against
+   materialized historical bytes instead of against the live worktree.
+3. B-1 five-file re-review and delivery, once M4 removes the dependency its
+   edits currently break.
 
 ## Open Risks
 
