@@ -5,6 +5,62 @@ authority
 
 Date: 2026-08-15
 
+Revision: 8 — the isolation table's own `child` row still said the child "loads
+the materialized tree", two rows above the ones stating that repo-local modules
+are never found on a path. It reads equally as loading from the materialized
+filesystem, which revision 7 retired, or as loading buffers that came from it,
+which is what happens — and a row that supports both readings is not a
+specification. Rewritten to the second.
+
+Revision 7 — the DONE line and evidence item 5 still required the child to run
+with a fixed *materialized* `sys.path`, while the isolation table had already
+excluded the materialized root from the import roots and made the verified-byte
+loader the only source of repo-local modules. Taken literally the two could not
+both be implemented: a materialized root on `sys.path` is exactly the filesystem
+import surface the loader exists to remove. Both now say stdlib-only.
+
+Revision 6 — removes a superseded framing paragraph that revision 4 left in
+place beside the exact one. It described the stream as a header followed
+directly by records, which stopped being true when the candidate-set authority
+block was inserted between them, so the document carried two live wire formats
+in different orders. One survives.
+
+Revision 5 — the child's expected inventory pointed at the wrong authority.
+Revision 4 had it read the contract manifest from the repository at the active
+head, which both mixes two versions and contradicts this document's own
+authority chain: the executable inventory is derived only from the digest-pinned
+candidate-set bytes, and the active head must not be able to redecide what the
+history was. The candidate-set bytes now travel first on the same stream and are
+checked against a digest frozen in the child runner, so the authority is a
+literal in trusted code rather than anything the stream or the worktree
+supplies. The whole-stream bound is also withdrawn as an independent gate — it
+was unreachable, being larger than the sum of the bounds that constrain it — and
+recorded as a derived maximum instead.
+
+Revision 4 — the transport revision 3 introduced said "bounded" and "framed"
+without giving a single number or field width, so two implementations of it
+would not have produced the same bytes and neither could have been checked
+against the other. Every bound is now a value and every field has a width, an
+encoding and an order. The independent authority the child compares against is
+named, because a child checking the stream's digests against the stream's own
+payloads proves only that the stream agrees with itself. The claim that the
+child could not read the materialized files even if it tried is withdrawn: it
+has no inherited capability, which is a different and smaller statement.
+
+Revision 3 — the child no longer opens the materialized files, and the channel
+that replaces those opens is specified rather than left to the implementation.
+The parent reads each file back through the handle that created it, verifies the
+digest there, and passes the verified buffers over one framed transport defined
+below.
+
+Revision 2 justified this by saying the child *could not* open the files. That
+overstated the share mask: measured against a held role 3 handle, a native
+reader that shares read, write and delete does open it, while one sharing less
+is refused. The reason the child does not read is therefore not that it is
+impossible — it is that a second reader resolving the name again would be a
+second path to the bytes, and the whole point of reconstructing from a pinned
+tree is that exactly one capability decides what the child executes.
+
 Base: `main@3305b640d17ca253e632093d434ae029f920c3e3` (merge of PR #70)
 
 Scope: separating historical evidence reconstruction from the active runtime
@@ -105,7 +161,7 @@ is decided here.
 | Element | Rule |
 | --- | --- |
 | parent process | never imports a historical module, under any name |
-| child | loads the materialized tree, where no active Gate 3 module exists, so historical modules may use their original names safely |
+| child | receives verified byte buffers and loads repo-local modules only through the closed loader; that loader opens nothing in the materialized tree, whose root is absent from `sys.path`. This is a statement about the loader, not about everything the child process could be made to do — `__file__` may still name a materialized path, and historical code is outside the loader's guarantees. No active Gate 3 module exists in that interpreter, so historical modules may keep their original names safely |
 | interpreter flags | `-I -S -B`: isolated, no site processing, no bytecode |
 | import roots | cwd, user site, `site-packages`, `PYTHONPATH` and the active repo root are all excluded. Only the interpreter's own confirmed stdlib roots remain — the historical modules need `json`, `pathlib`, `ctypes` and others, so "only the materialized root" as an earlier revision put it was not executable as written |
 | repo-local modules | supplied **only** by the closed verified-byte loader below, never found on a path |
@@ -126,13 +182,21 @@ already happened.
 The child therefore loads through a **closed custom loader over verified byte
 buffers**:
 
-- the child reads each file once and verifies its exact digest;
-- it compiles and executes **that byte buffer**, not the path;
+- the **parent** reads each file once, through the handle that created it, and
+  verifies its exact digest there. The child receives the resulting buffers, and
+  its trusted loader opens no materialized path — a statement about that loader,
+  not about everything the child process could be made to do. This is not a
+  relaxation: a loader that opened the name would be
+  resolving a path the parent has deliberately stopped resolving, and would be
+  executing bytes selected by that path rather than by the capability the parent
+  verified;
+- the child compiles and executes **that byte buffer**, not the path;
 - absolute imports resolve only from the verified module-byte map, so
   `import gate3_route_v2 as route` inside a historical module cannot reach a
   file at all;
 - `__file__` may point at the materialized path for historical digest
-  computation, but **no code is selected by that path**;
+  computation, but **no code is selected by that path**, and the trusted loader
+  opens none of them;
 - the post-execution re-check judges whether the reconstruction result is
   acceptable. It no longer claims to prevent code substitution, because it
   cannot.
@@ -141,6 +205,122 @@ buffers**:
 is not revisited: it trades fidelity to what actually ran for a narrower blast
 radius, and keeping it alongside executable loading as an implementation-time
 choice would leave two reconstruction semantics.
+
+### The parent-to-child channel — normative
+
+The child executes what it is given, so how it is given decides what it
+executes. Leaving that to the implementation would put the reconstruction's
+integrity in whichever mechanism was convenient.
+
+**One transport.** A single bounded, length-framed stream on the child's
+standard input. Not an environment variable, not `argv`, not a pickle, not a
+temporary file, and with no fallback if the stream is unavailable — a fallback
+is a second channel, and a second channel is a second thing to verify.
+`pickle` is excluded by name because it executes during decode, which would put
+code selection back in the transport.
+
+**Framing, exactly.** All integers are unsigned, little-endian, fixed width.
+
+| Position | Field | Width | Value |
+| --- | --- | --- | --- |
+| header | magic | 8 bytes | `47 41 54 45 33 48 4d 00` (`GATE3HM\0`) |
+| header | version | 2 | `1` |
+| header | record count | 2 | how many records follow |
+| header | aggregate payload length | 8 | sum of every record's payload length |
+| authority | candidate-set length | 4 | bytes of the candidate-set document |
+| authority | candidate-set bytes | that many | verified against the frozen digest before anything else is read |
+| record | path length | 2 | bytes of UTF-8, not characters |
+| record | path | that many | repo-relative, `/`-separated, no BOM |
+| record | payload length | 4 | bytes |
+| record | digest | 32 | raw SHA-256, **not** hex |
+| record | payload | that many | the bytes themselves |
+
+The digest is 32 raw bytes rather than 64 ASCII: one encoding, no case
+question, and a length that cannot be confused with the other.
+
+**Order.** Records ascend by the bytewise comparison of their UTF-8 path bytes
+— not by code point, not by any locale collation, and not by the decoded
+string. Two runs reconstructing the same module set therefore produce
+byte-identical streams, which is what makes the stream itself comparable across
+runs.
+
+**Bounds, as values.** Every one is an exact byte count, because "4 MiB" is a
+unit and a limit has to be a number.
+
+| Bound | Value |
+| --- | --- |
+| records | 64 |
+| path bytes | 512 |
+| candidate-set bytes | 1,048,576 |
+| payload bytes, one file | 4,194,304 |
+| payload bytes, aggregate | 33,554,432 |
+| whole framed stream, **derived** | 34,638,232 |
+
+The last row is not a gate. An earlier revision set an independent whole-stream
+cap of 33 MiB, which no legal stream could ever reach: the header is 20 bytes,
+the candidate-set block at most 1,048,580, the per-record framing at most
+64 × 550 = 35,200, and the aggregate payload at most 33,554,432, so the largest
+stream satisfying every other bound is 34,638,232 bytes. A cap above that can
+never fire, and one below it would have been the real limit under another name.
+The derived figure is recorded so the arithmetic is checkable, and enforcement
+stays with the bounds that constrain it.
+
+The header's count and aggregate are checked against their limits **before any
+allocation sized from them**. A per-record length can only be checked once that
+record's header has been read, so the claim is not that everything is validated
+up front: it is that nothing is allocated from an unchecked number. A record
+whose declared payload would push the running total past the aggregate is
+refused at that record, before its bytes are read.
+
+**The child re-verifies, against an authority the stream cannot supply.**
+Receiving is not trusting, and a child comparing the framed digests to the
+framed payloads would only prove the stream agrees with itself.
+
+The authority is the candidate-set document, and the chain is:
+
+1. the child runner carries the candidate-set SHA-256
+   `db86a97b36a2e80e43e9e0765f07f20cb00e07aa813cbf54bea2b587f3c02baa` as a
+   **frozen literal in trusted code** — not on the wire, not in the worktree,
+   not derived from the active head;
+2. the stream's first block is the candidate-set bytes; the child hashes them
+   and refuses unless they equal that literal;
+3. the expected executable path inventory and per-file digests are derived from
+   **those verified bytes**, exactly as step 4 of the authority chain requires;
+4. every following record is checked against that inventory.
+
+The candidate-set bytes travel over the same transport as the payloads, and
+that is not a circularity: what makes them authoritative is the frozen digest
+in the child, which the stream cannot reach. Reading the manifest from the
+active head — which an earlier revision specified — would have let the present
+redecide what the history was, and that is the one thing this whole design
+exists to prevent.
+
+Before compiling anything the child checks:
+
+- the framing consumed the stream exactly, with no trailing byte;
+- the magic and version are the ones above;
+- every path passes the same grammar the parent applied;
+- the path set equals the inventory derived from the verified candidate-set
+  bytes — no duplicate, no extra, none missing — and the records are in the
+  required order;
+- every payload's SHA-256 equals both the digest framed with it **and** the
+  digest that derived inventory records for that path.
+
+Any mismatch fails closed and nothing is compiled. The parent verified the bytes
+against the filesystem through held handles; the child verifies them against an
+inventory rooted in a digest frozen in its own code. Neither check substitutes
+for the other, and the frozen digest is what makes the second one more than a
+restatement of the first.
+
+**Handles are not inherited.** No native handle from the boundary is passed to
+the child, so it holds no capability over the materialized tree and cannot
+write to or remove anything in it — the share mask denies those to any opener.
+It is *not* claimed that the child could not read a materialized file if it set
+out to: measurement shows a native reader that shares read, write and delete
+succeeds against a held role 3 handle. What the design establishes is narrower
+and is the part that matters: the trusted loader resolves no materialized path,
+so nothing the child executes is selected by one, and execution comes only from
+the verified wire buffers.
 
 ### Bootstrap validation happens before any historical code runs
 
@@ -180,11 +360,11 @@ circular** and is forbidden: it would verify the artifact against itself.
 Steps 1–4 execute no historical code. Only after all four:
 
 5. materialize `SOURCE_COMMIT` read-only;
-6. verify the exact path set, the bytes and each digest, rejecting any
-   additional repo-local module;
-7. start the child;
-8. after the child returns, re-check the materialized bytes — see the limit on
-   what that check can and cannot do, below.
+6. verify the exact path set, and read every file back through its creating
+   handle to verify each digest, rejecting any additional repo-local module;
+7. start the child, handing it the verified buffers;
+8. after the child returns, re-read through the same handles and re-check each
+   digest — see the limit on what that check can and cannot do, below.
 
 ### Temporary root: identity, sealing and crash semantics
 
@@ -195,7 +375,7 @@ Calling the tree "read-only" is not a mechanism. The contract:
 - every materialized path is containment-checked against that root; a symlink,
   junction or reparse point at any position fails closed;
 - the digests recorded during validation are re-checked after the child
-  returns. **This does not close the validation-to-use window** — the custom
+  returns, through the same held handles rather than by reopening the paths. **This does not close the validation-to-use window** — the custom
   loader executing one verified byte buffer is what prevents code-selection
   substitution. The re-check only decides whether the reconstruction result is
   acceptable;
@@ -270,8 +450,9 @@ It does not establish:
 `DONE = The historical verifier materializes SOURCE_COMMIT read-only and
 reconstructs the retained contract manifest and candidate set from those bytes
 and from historical modules executed only in a disposable child interpreter
-with a fixed materialized sys.path, sanitized environment, -B and a closed
-repo-local import inventory, with no comparison against worktree bytes and no
+with a fixed stdlib-only sys.path that does not include the materialized root,
+a sanitized environment, -B and a closed repo-local import inventory supplied
+solely by the verified-byte loader, with no comparison against worktree bytes and no
 fallback to the active modules; the owner pin is validated against contract manifest fd6c75eb…, the
 candidate set against db86a97b…, and the source commit named inside it against
 204965c9…, with the executable inventory derived only from those verified bytes,
@@ -297,8 +478,11 @@ This is a proposed later tranche, not current implementation authority.
    and the reconstructed manifest is unaffected;
 4. the parent imports no historical module: after reconstruction every active
    Gate 3 module in `sys.modules` is still the active one, byte-for-byte;
-5. the child runs with a fixed materialized `sys.path`, sanitized environment
-   and `-B`, and a repo-local import outside the closed inventory fails closed;
+5. the child runs with a fixed `sys.path` holding only the interpreter's
+   confirmed stdlib roots — the materialized root is asserted **absent** from
+   it, so no repo-local module can be found on disk at all — with a sanitized
+   environment and `-B`, and a repo-local import outside the closed inventory
+   fails closed;
 5a. a child failure produces a closed error and never falls back to the active
    modules;
 5b. bootstrap validation rejects a tampered pin, digest, schema or path set
@@ -329,6 +513,44 @@ This is a proposed later tranche, not current implementation authority.
     cannot establish;
 11. the expected candidate-set digest is the frozen literal, proven by mutating
     the candidate set and confirming the expectation does not move with it.
+
+### Evidence for the channel
+
+Framing is where a "verified" buffer stops being verified if nobody checks the
+frame, so each item names what would be false without it.
+
+t1. a truncated header, and a truncated record, are both refused before
+    anything is compiled;
+t2. an unknown magic and an unknown version are refused, separately, so a
+    future format cannot be mistaken for this one;
+t3. each enforced bound is exercised at the limit and one past it: record
+    count, path bytes, candidate-set bytes, per-file payload, aggregate
+    payload. The derived whole-stream figure is not among them — it has no
+    enforcement point, and a test written against it would either be
+    unreachable or be testing one of the others under a different name;
+t4. a header declaring an aggregate beyond the limit is refused **without**
+    allocating from it, asserted by the refusal preceding any read of records;
+t5. a duplicate path, an out-of-order pair, and a path failing the grammar are
+    each refused;
+t6. a payload whose digest does not match its framed digest is refused; so is
+    one whose framed digest does not match the manifest, with the payload and
+    framed digest mutually consistent — the case that a stream-only check would
+    accept;
+t7. a record whose declared length disagrees with the bytes that follow, and a
+    stream with trailing bytes after the last record, are both refused;
+t8. the authority chain, at each link: candidate-set bytes failing the frozen
+    digest are refused before any record is read; a stream carrying a coherent
+    extra module — correct framing, correct digest, absent from the derived
+    inventory — is refused; and a mutation replacing the frozen literal with a
+    value read from the stream must fail the suite, which is what shows the
+    literal is load-bearing rather than decorative;
+t9. structural: the child contains no path open of the materialized tree, no
+    `pickle`, and no second transport — asserted over its source, with a
+    synthetic case proving the check fires;
+t10. no boundary handle is inheritable by the child;
+t11. mutation: a child altered to compile bytes read from a materialized path
+    instead of from the wire must fail the suite, which is what makes the rest
+    of this list evidence rather than description.
 
 ## Affected Surfaces if Later Implemented
 

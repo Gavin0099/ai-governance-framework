@@ -65,14 +65,23 @@ matches the local branch exactly — `0` ahead, `0` behind.
 
 ## Next Steps
 
-1. M2 handle-bound rewrite: replace the eight path-based operations with
+1. Open the merge request for the delivered milestone: `main` has not moved
+   since `6f7413c8`, the branch is 15 commits ahead and 0 behind, and the work
+   is self-contained because `handle_boundary_available()` and `ACTIVE` are
+   both `False`. Later tranches go in later requests.
+2. M2 handle-bound rewrite: replace the eight path-based operations with
    `create_directory`, `create_file`, `remove` and `confirm_absent`; require
    `base` to pre-exist and drop `os.makedirs`; delete `_drop_name`,
    `_create_exclusively` and `stale_root`'s `lexists`. Keep `_contained`,
    scoped to `verify`.
-2. M3, then M4. M4 is what lets a historical candidate be verified against
-   materialized historical bytes instead of against the live worktree.
-3. B-1 five-file re-review and delivery, once M4 removes the dependency its
+   `read_all(leaf)` supplies the byte verification, and the claim ceiling stays
+   narrow: the directory enumeration is still path-based, so "all verification
+   is handle-bound" is not available to M2.
+3. M3, then M4. M3 receives verified buffers over the framed transport and
+   opens no materialized path; M4 is what lets a historical candidate be
+   verified against materialized historical bytes instead of against the live
+   worktree.
+4. B-1 five-file re-review and delivery, once M4 removes the dependency its
    edits currently break.
 
 ## Open Risks

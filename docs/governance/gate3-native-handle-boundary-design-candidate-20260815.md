@@ -7,7 +7,49 @@ Date: 2026-08-15
 
 Base: `feat/gate3-historical-materialization@896bc64c006da4e40a6d5a7d8b32d462467d08f2`
 
-Revision: 17 — design-only amendment to the per-role access masks. Revision 16
+Revision: 21 — the read state machine was closed against the outcomes a
+correct `ReadFile` produces, and open against one it should never produce: a
+call reporting more bytes than were asked for. A fake binding can return that,
+and revision 20 would have treated it as an ordinary short read and copied past
+the end of the buffer's intended region. Both the loop and the end-of-file
+probe now reject an over-report.
+
+Revision 20 — closes the read state machine revision 19 left ambiguous. That
+revision mapped a successful `ReadFile` returning zero bytes to
+`MATERIALIZED_BYTES_CHANGED` and "no progress" to `MATERIALIZE_READ_FAILED`,
+but for a synchronous `ReadFile` those are the same event described twice, so
+one of the two codes was unreachable and which one depended on how the
+implementer read the list. The states are now disjoint, and the rewind is
+specified as an actual call with an actual postcondition rather than as an
+intention.
+
+Revision 19 — completes the read surface revision 18 opened. That surface took
+`expected_length` from its caller while the tranche design required the length
+to be sealed at creation; the two cannot both hold, and the sealed one wins, so
+`read_all` now takes only the handle. Revision 19 also supplies what 18 left
+unstated and therefore unimplementable: the exports and rewind API the read
+uses, their signatures, a `READ` stage ordinal, and closed codes separating an
+API failure from a successful read whose bytes or length are wrong. The frozen
+code table additionally records `BASE_NOT_FOUND` and `BASE_NOT_ADMISSIBLE`,
+appended during the N3c-2 implementation and not yet reflected here. And the
+claim that a held created file admits no other opener is withdrawn: it is false,
+and the measurement is below.
+
+Revision 18 — design-only amendment adding a read right and a bounded read
+surface to role 3. Revision 17 left the materialized bytes unreadable by
+anyone, including this design's own consumers: role 3 holds the created file
+until it removes it, and its share mask denies every other opener, so `verify`
+could not re-read the bytes it had just written and M3's child could not open
+the materialized files at all. The share mask prevents modification; it is not
+an observation, and treating it as one would have removed exact-byte
+verification from M2 and left M3 with nothing to load. Role 3 therefore gains
+`FILE_READ_DATA` and the adapter gains `read_all(held, expected_length)`, which
+reads through the handle that created the file and never resolves a name.
+Nothing else changes: no `DELETE` on a borrowed ancestor, `FILE_SHARE_DELETE`
+still omitted outside the absence probe, and no new creation or deletion
+authority.
+
+Revision 17 — design-only amendment to the per-role access masks. Revision 16
 required a reparse-tag check on every pinned ancestor while granting an access
 mask that cannot perform one; a measurement on the volume root showed
 `FileAttributeTagInfo` failing with `ERROR_ACCESS_DENIED` under that mask. All
@@ -189,10 +231,83 @@ DirectoryBoundary
     create_file(anchor, name, bytes) -> Leaf     # returns a HELD handle
     remove(held)                     -> None     # acts on the held handle only
     confirm_absent(parent, name)     -> None     # read-only probe above
+    read_all(leaf)                   -> bytes    # through the HELD handle
     identity(held)                   -> str
     revalidate(held)                 -> None
     close(held)                      -> None
 ```
+
+`read_all` takes only the handle. The expected length is sealed into the `Leaf`
+when the file is created, so "how many bytes should be here" is not answered by
+whoever is asking. An earlier revision passed the length in as an argument,
+which would have let the expected answer be adjusted to fit the observation.
+
+**The share mask is not total exclusion, and an earlier revision said it was.**
+Measured against a held role 3 handle, a native `NtOpenFile` requesting
+`FILE_READ_DATA` is refused with `STATUS_SHARING_VIOLATION` when it shares only
+read, and again when it shares read and write — but it **succeeds** when it also
+shares delete. Share compatibility is checked in both directions, and an opener
+willing to tolerate our write and delete access satisfies it. What the mask
+excludes is every opener unwilling to tolerate those rights, which covers
+ordinary writers, deleters and the shape CPython's `open()` uses; it does not
+cover a deliberate reader.
+
+Reading through the creating handle is therefore chosen for three reasons, none
+of which is exclusivity:
+
+- it resolves no name, so nothing can be substituted between check and read;
+- it reads the object this code created, identified by capability rather than
+  by path;
+- it adds no second ownership or deletion authority for one object — the
+  alternative, closing the handle so the name can be reopened, is exactly the
+  second path this design refuses everywhere else.
+
+**The algorithm, in full**, because a partial one is not implementable:
+
+```text
+1. rewind, every call:
+     SetFilePointerEx(handle, 0, &position, FILE_BEGIN)
+     returns FALSE            -> MATERIALIZE_READ_FAILED
+     position != 0            -> MATERIALIZE_READ_FAILED
+2. read until the leaf's sealed length is reached, each call DWORD-bounded,
+   asking for `requested` bytes:
+     ReadFile == FALSE                      -> MATERIALIZE_READ_FAILED
+     ReadFile == TRUE, 0 < n <= requested   -> a short read; continue
+     ReadFile == TRUE, n == 0               -> MATERIALIZED_BYTES_CHANGED
+     ReadFile == TRUE, n > requested        -> MATERIALIZE_READ_FAILED
+3. one further read of exactly one byte:
+     ReadFile == FALSE                      -> MATERIALIZE_READ_FAILED
+     ReadFile == TRUE, n == 0               -> end of file, as recorded: success
+     ReadFile == TRUE, n == 1               -> MATERIALIZED_BYTES_CHANGED
+     ReadFile == TRUE, n > 1                -> MATERIALIZE_READ_FAILED
+```
+
+The four outcomes are disjoint and every one is mapped, which is the property a
+state machine has to have to be implementable. The over-report is not a
+hypothetical: the fake bindings this design requires for offline evidence can
+return any count, and a rule that accepted every `n > 0` as a short read would
+have advanced the offset past what was written and read outside the region the
+buffer was sized for. It is `MATERIALIZE_READ_FAILED` rather than
+`MATERIALIZED_BYTES_CHANGED` because a count larger than the request describes
+a broken call, not a changed file.
+An earlier revision listed "a call returning zero before the length is met" and
+"no progress" as separate rules with different codes; for a synchronous read
+those are one event, so one of the two codes could never be reached and which
+one it was depended on the order the reader took the rules in. There is no
+separate zero-progress guard here — unlike the write loop, where a zero-byte
+write is legal and looping on it is the hazard, a zero-byte read *is* end of
+file and needs no guard, only a code.
+
+`FILE_BEGIN = 0` joins the closed constants and the structural census with the
+rest. Checking the returned position rather than only the boolean is deliberate:
+a rewind that reported success while leaving the pointer elsewhere would produce
+a short read at step 2 and be reported as a changed file.
+
+Step 3 is a one-byte probe rather than a read to the end, so a file that grew
+cannot make this allocate without bound. Step 1 runs on every call, which is
+what makes two `read_all` calls return the same bytes; without it the first read
+after `create_file` would begin where writing stopped and return nothing — and
+an empty result is precisely the failure that would pass unnoticed.
 
 No operation mutates or removes by name. `base` must be absolute; symlinks and
 reparse points anywhere in it are refused, never resolved; UNC and device paths
@@ -384,7 +499,7 @@ appears with another attribute.
 
 | Argument | Role 1: pinned ancestor | Role 2: directory we create | Role 3: file we create |
 | --- | --- | --- | --- |
-| `DesiredAccess` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE \| DELETE \| FILE_WRITE_ATTRIBUTES` | `FILE_WRITE_DATA \| FILE_READ_ATTRIBUTES \| FILE_WRITE_ATTRIBUTES \| DELETE \| SYNCHRONIZE` |
+| `DesiredAccess` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE` | `FILE_LIST_DIRECTORY \| FILE_READ_ATTRIBUTES \| SYNCHRONIZE \| DELETE \| FILE_WRITE_ATTRIBUTES` | `FILE_READ_DATA \| FILE_WRITE_DATA \| FILE_READ_ATTRIBUTES \| FILE_WRITE_ATTRIBUTES \| DELETE \| SYNCHRONIZE` |
 | `RootDirectory` | previous chain handle (`NULL` at the volume root) | parent anchor | parent anchor |
 | `Attributes` | `OBJ_CASE_INSENSITIVE` | `OBJ_CASE_INSENSITIVE` | `OBJ_CASE_INSENSITIVE` |
 | `SecurityDescriptor` / `SecurityQoS` | `NULL` / `NULL` | `NULL` / `NULL` | `NULL` / `NULL` |
@@ -394,6 +509,13 @@ appears with another attribute.
 | `CreateDisposition` | `FILE_OPEN` | `FILE_CREATE` | `FILE_CREATE` |
 | `CreateOptions` | `FILE_DIRECTORY_FILE \| FILE_OPEN_REPARSE_POINT \| FILE_SYNCHRONOUS_IO_NONALERT` | `FILE_DIRECTORY_FILE \| FILE_SYNCHRONOUS_IO_NONALERT` | `FILE_NON_DIRECTORY_FILE \| FILE_SYNCHRONOUS_IO_NONALERT` |
 | `EaBuffer` / `EaLength` | `NULL` / `0` | `NULL` / `0` | `NULL` / `0` |
+
+`FILE_READ_DATA` on role 3 is new in revision 18 and is not decoration: it is
+the read access this design's own consumers use, and without it the materialized
+bytes can be neither verified nor loaded. It grants nothing to a *different*
+opener, because the share mask is unchanged — but that mask was never total
+exclusion, and revision 19 states what it does exclude instead of repeating that
+it excludes everything.
 
 Creating with `FILE_ATTRIBUTE_READONLY` while holding `FILE_WRITE_DATA` is
 intentional: the attribute governs subsequent opens, the creating handle keeps
@@ -543,7 +665,7 @@ where, or what happens if recording fails. Closed here:
 | --- | --- |
 | surface | **none — there is no sink.** The diagnostic is carried inside the fail-fast exception record itself |
 | mechanism | `RaiseFailFastException(&record, NULL, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS)` — the full field contract is below |
-| `<stage>` | one of the closed set `CHAIN`, `CREATE_DIRECTORY`, `CREATE_FILE`, `WRITE`, `IDENTITY`, `REVALIDATE`, `REMOVE`, `PROBE`, `ABSENCE_PROBE`, `CLOSE` |
+| `<stage>` | one of the closed set `CHAIN`, `CREATE_DIRECTORY`, `CREATE_FILE`, `WRITE`, `IDENTITY`, `REVALIDATE`, `REMOVE`, `PROBE`, `ABSENCE_PROBE`, `CLOSE`, `READ` |
 | `<code>` | one of the closed `MaterializationError` codes, or `UNEXPECTED_EXCEPTION` |
 | forbidden content | paths, handle values, buffer contents, `NTSTATUS` values, `GetLastError` values, exception messages, tracebacks — **nothing derived from the exception or the operands** |
 | construction failure | possible, and dispositioned: building the record is pure in-memory formatting of two integers, but a `ctypes` failure or a missing ordinal is still a failure. On that path the parameterless fallback terminates and **the payload is absent** |
@@ -594,6 +716,7 @@ change the meaning of every previously captured record.
 | `PROBE` | 8 |
 | `ABSENCE_PROBE` | 9 |
 | `CLOSE` | 10 |
+| `READ` | 11 |
 
 | Code | Ordinal |
 | --- | ---: |
@@ -607,6 +730,16 @@ change the meaning of every previously captured record.
 | `CLEANUP_INCOMPLETE` | 8 |
 | `CLOSE_FAILED` | 9 |
 | `HANDLE_BOUNDARY_UNAVAILABLE` | 10 |
+| `BASE_NOT_FOUND` | 11 |
+| `BASE_NOT_ADMISSIBLE` | 12 |
+| `MATERIALIZE_READ_FAILED` | 13 |
+| `MATERIALIZED_BYTES_CHANGED` | 14 |
+
+11 and 12 were appended during the N3c-2 implementation; recording them here is
+what makes the table and the code agree again. 13 and 14 are new in revision 19
+and are deliberately two codes: "the read call failed" and "the read succeeded
+and returned something other than what was written" send a reader to different
+places, and one code for both would report a changed file as a broken API.
 
 **Fallback, exactly.** If the record cannot be constructed — a `ctypes` failure
 while building the structure, or an ordinal lookup that finds no entry — the
@@ -781,6 +914,18 @@ ntdll.RtlGetVersion.argtypes = [POINTER(OSVERSIONINFOEXW)]
 kernel32.CloseHandle.restype  = BOOL ; argtypes = [HANDLE]
 kernel32.WriteFile.restype    = BOOL ; argtypes = [HANDLE, c_void_p, DWORD,
                                                    POINTER(DWORD), c_void_p]
+kernel32.ReadFile.restype     = BOOL ; argtypes = [HANDLE, c_void_p, DWORD,
+                                                   POINTER(DWORD), c_void_p]
+kernel32.SetFilePointerEx.restype  = BOOL
+kernel32.SetFilePointerEx.argtypes = [HANDLE, LARGE_INTEGER,
+                                      POINTER(LARGE_INTEGER), DWORD]
+# FILE_BEGIN = 0. The third argument is required, not optional: the returned
+# position is checked against zero, because a rewind that reports success
+# without moving the pointer would surface later as a short read and be
+# reported as a changed file.
+# Both are bound in N2 alongside the rest and called only through `_guarded`,
+# so the structural census that forbids a direct call covers them from the day
+# they exist rather than from the day someone remembers to add them.
 kernel32.GetFileInformationByHandleEx.restype = BOOL
 kernel32.GetFileInformationByHandleEx.argtypes = [HANDLE, c_int, c_void_p, DWORD]
 kernel32.SetFileInformationByHandle.restype  = BOOL

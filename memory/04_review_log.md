@@ -4351,3 +4351,82 @@ that owns its cleanup and is labelled as not being the role 3 lifecycle.
 M2's handle-bound rewrite, then M3 and M4, then B-1. M2 is where the boundary
 first acquires a consumer, so its rewrite is also the first test of whether the
 surface designed for it actually fits.
+
+## 2026-08-18 — Gate 3 held-handle read design amendment
+
+Three documents amended together and accepted after eight rounds: the native
+handle-boundary design to revision 21, the N3c-2 tranche design to revision 7,
+and the historical evidence materialization design to revision 8.
+
+### Findings And Resolution
+
+The amendment began because revision 17 had made the materialized bytes
+unreadable by anything at all. Role 3 holds each created file until it removes
+it, and its share mask keeps out the openers that matter, so `verify` could not
+re-read what it had just written and M3's child could not load the modules it
+was supposed to execute. The first proposal — treat the share mask as
+guaranteeing immutability and drop the byte check — was rejected, and rightly:
+a mask prevents modification, it does not observe bytes, and the same violation
+that stopped the parent reading would have stopped the child loading. Role 3
+therefore gains `FILE_READ_DATA` and the adapter gains `read_all(leaf)`.
+
+**The recurring finding across the eight rounds was not in the new mechanism.**
+It was old specification that did not retire when the thing it described
+changed. A `verify` still documented as path-based; a DONE line still requiring
+a materialized `sys.path` two rows below a table excluding it; a framing
+paragraph superseded by an exact one but left beside it; a `child` row that read
+equally as loading from the filesystem or from buffers. Each was correct when
+written. Every revision added a specification without asking which existing
+paragraph it had just falsified, so the documents ended up specifying two ways
+to do one thing — and a reader could implement either.
+
+**Two claims were withdrawn against measurement rather than argument.**
+
+- A held created file was said to admit no other opener. Measured: a native
+  `NtOpenFile` for `FILE_READ_DATA` is refused sharing only read, refused
+  sharing read and write, and **succeeds** sharing read, write and delete.
+  Share compatibility is bidirectional. The justification for reading through
+  the creating handle is now that it resolves no name and adds no second
+  ownership path — not exclusivity.
+- Byte immutability was attributed to the share mask alone while the creating
+  handle holds `FILE_WRITE_DATA` throughout. Three things close it together:
+  the mask, the opaque handle, and a call census proving no `WriteFile` exists
+  after creation. Remove any one and the claim fails.
+
+Other findings closed: `read_all`'s length is sealed at creation rather than
+passed in; the read state machine covers all four `ReadFile` outcomes including
+a count larger than the request; the rewind is a specified call with a checked
+postcondition; the wire format has magic, version, widths, endianness, a raw
+digest and a bytewise path ordering; every bound is an exact byte count; the
+whole-stream cap was withdrawn as unreachable and recorded as a derived
+maximum; and the child's expected inventory comes from a digest frozen in
+trusted code rather than from the active head or from the stream.
+
+### Evidence
+
+- boundary `f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df`;
+  N3c-2 `4000b95dc7487976bbcf3b700bc2f475a733fbdda33fe88437d2c630ac38638e`;
+  historical `efa07ce87bc829bfeb643bbac7a9dcd52ba80ae1d4f9a113eba45daa65a0514f`.
+- The share-compatibility measurement was taken against a real held role 3
+  handle under a test-owned base, and is what withdrew the exclusivity claim.
+- The derived stream maximum, 34,638,232 bytes, is the sum of the header, the
+  candidate-set block, the per-record framing and the aggregate payload; it is
+  recorded so the arithmetic is checkable and is explicitly not a gate.
+
+### Not Claimed
+
+- No implementation. `read_all` does not exist in code, and this amendment
+  moved no availability flag.
+- The directory enumeration in `verify` remains path-based; the adapter offers
+  no handle-bound enumeration, and M2 may not claim all verification is
+  handle-bound.
+- Nothing here is a statement about what the child process could be made to do,
+  only about what its trusted loader does.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Open the merge request for the delivered milestone before continuing. Fifteen
+commits is already a large review unit and every later tranche adds to it, while
+the current set is self-contained precisely because nothing production reaches
+it. Then M2, M3, M4 and B-1 in their own requests.

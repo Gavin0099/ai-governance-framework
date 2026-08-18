@@ -5,19 +5,46 @@ authority. No filesystem object was created, deleted or probed to write this.
 
 Date: 2026-08-17
 
+Revision: 7 — retires the section that still described `verify` as reading by
+path. That description was correct when written and stopped being correct when
+revision 21 gave role 3 a read right: byte verification now goes through the
+creating handle, so `_contained` no longer guards a path-based read, because
+there is no longer a path-based read to guard. Leaving both descriptions in the
+document meant it specified two ways to verify the same bytes.
+
+Revision 6 — points the read algorithm at revision 21, which is where the
+fourth `ReadFile` outcome lives. Revision 5 still credited revision 20, whose
+algorithm has only three, so an over-report would have fallen outside the
+algorithm this document defers to.
+
+Revision 5 — attributes byte immutability to the mechanism that actually
+provides it rather than to the share mask alone, and follows design revision 21
+in rejecting a `ReadFile` that reports more than it was asked for.
+
+Revision 4 — the subordinate authority pointer in the header still named
+revision 18 while the paragraph beneath it named 19, so the document deferred to
+the surface that had just been corrected. Both now name revision 20, which also
+closes the read state machine. Evidence `r5` is retightened to name the code it
+expects rather than only that the read fails.
+
+Revision 3 — the read surface's authority moves to design revision 19, which
+settles where the expected length comes from and defines the exports, stage and
+codes the read uses. Revision 2 also repeated the claim that role 3's share mask
+admits no other opener; that is false, and the corrected statement is below.
+Nothing else changes.
+
 Base: `feat/gate3-historical-materialization@4eafdb80f450e5d734c75568b734d79813dcc037`
 
 Design authority this document is subordinate to:
 `docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md`
-revision 17, SHA-256
-`83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`, with
+revision 21, with
 `docs/adr/0001-gate3-native-directory-handle-boundary.md`.
 
-Revision 17 remains the authority on the adapter surface, the per-role
+Revision 21 remains the authority on the adapter surface, the per-role
 `NtCreateFile` parameter table, access masks, the deletion and cleanup ordering,
 the absence-probe parameters, the created-object name grammar, the admission
 chain and the fail-fast contract. **This document does not restate them, and
-where anything here appears to conflict, revision 17 governs.** What this
+where anything here appears to conflict, revision 21 governs.** What this
 document adds is the tranche contract: what N3c-2 owns, what it refuses, how
 `base` is admitted, how M2's blocked operations map onto the surface, and what
 evidence would have to exist before any of it is believed.
@@ -148,6 +175,57 @@ their path. Deletion then needs `FileDispositionInfoEx` with
 and `DELETE`. This is one mechanism, not three independent choices, and changing
 any part of it breaks the other two.
 
+### Reading a created file back
+
+Role 3 carries `FILE_READ_DATA` from design revision 18, and `read_all(leaf)` is
+how this code reads a materialized byte back. Design revision 21 owns the
+algorithm — the rewind on every call with its checked postcondition, the sealed
+length, the one-byte end-of-file probe, and the mapping of all four `ReadFile`
+outcomes, including a count larger than the request, onto
+`MATERIALIZE_READ_FAILED` and `MATERIALIZED_BYTES_CHANGED` — and this section
+does not restate it.
+
+The share mask is not total exclusion. Measured against a held role 3 handle, a
+native reader sharing only read is refused, one sharing read and write is
+refused, and one sharing read, write and delete succeeds. What the mask excludes
+is any opener unwilling to tolerate our write and delete access — ordinary
+writers, deleters and CPython's `open()` — and not a deliberate reader. Reading
+through the creating handle is chosen because it resolves no name and adds no
+second ownership path, not because nothing else could get in.
+
+The contract, because "read the file" is not a specification:
+
+| Question | Answer |
+| --- | --- |
+| where it starts | the file pointer is set to zero before the first chunk, every call — a read that continued from wherever the last write left it would return nothing and look like an empty file |
+| who says how long | the `Leaf`, sealed at creation. `read_all` takes no length argument, so the expected answer cannot be adjusted by whoever is asking |
+| short reads | continued, exactly as writes are; a read returning fewer bytes than asked for is legal and is not the end of the file |
+| end of file | a read returning **zero** bytes is the only end-of-file signal, and it is expected exactly once, when the sealed length has already been read. Before that point the same event is a file shorter than recorded, not a failure of the call |
+| repeated calls | permitted and independent; each call rewinds, so two calls on one handle return the same bytes |
+| how much | `expected_length` exactly. Fewer bytes at end-of-file, or any byte beyond it, is `MATERIALIZED_BYTES_CHANGED` |
+| upper bound | `expected_length` is the bound. There is no "read until EOF" mode, so a file that grew cannot make this allocate without limit |
+| chunking | `DWORD`-bounded, like writes. There is no zero-progress guard: for a read, zero bytes *is* end of file, so the case needs a code rather than a guard — which is where the write loop and the read loop genuinely differ |
+
+The length is sealed into the `Leaf` at creation, so "how many bytes should be
+here" is answered by what this code wrote rather than by what is on disk now, or
+by what a caller would prefer.
+
+What this does **not** establish is that the bytes cannot change. They cannot,
+but the read is not what stops them and neither is the share mask on its own —
+the creating handle holds `FILE_WRITE_DATA` for the life of the object, so
+something in this process could write through it if a path to doing so existed.
+Three things together are what close it:
+
+- the **share mask** refuses any external opener unwilling to tolerate our write
+  and delete access, which is every writer and deleter;
+- the **opaque handle** never leaves the module, so no caller can obtain the raw
+  capability to write through;
+- the **call census** over the module's own source proves there is no second
+  `WriteFile` reachable after `create_file` returns.
+
+Remove any one and the claim fails, which is why evidence `r6` has to rest on
+all three rather than on the mask.
+
 ### What M2 must delete, not adapt
 
 These are path-based fallbacks that exist only because ancestors were not bound.
@@ -162,26 +240,23 @@ object, one of which resolves by name:
   that contributes nothing on Windows;
 - `stale_root`'s `os.path.lexists`;
 - `os.makedirs(base_dir, exist_ok=True)`;
-`_contained` is **not** on this list, and an earlier revision of this document
-was wrong to put it there. The argument that containment becomes structural once
-every open is handle-relative holds for creation and cleanup, and only for them.
-`verify` still resolves `root / relative` by path and still calls `_contained`
-before reading, so removing it while the read-back stays path-based would delete
-the only escape check on the one remaining path-based surface.
+`_contained` **is** on this list, and the reason it was kept off it for two
+revisions is worth recording. It existed to stop `verify` reading outside the
+root while `verify` resolved `root / relative` by path — a real risk that a
+digest comparison does not cover, because a digest says nothing when an external
+location happens to hold exactly the expected bytes and the unauthorized read
+has already happened by then. That argument was sound for as long as the
+read-back was path-based. Revision 21 gave role 3 a read right, byte
+verification now goes through the creating handle, and an escape check on a read
+that no longer resolves a name is guarding nothing.
 
-The digest comparison does not cover for it. A digest rejects bytes that differ;
-it says nothing when an external location happens to hold exactly the expected
-bytes, and by then the unauthorized read has already happened. `_contained`
-therefore stays, scoped to `verify`, and is removed from the creation and
-cleanup paths only.
-
-`verify`'s read-back walk is likewise **not** on the removal list. Revision 17's
-claim for it stands as far as it goes — it reads only, and a directory swapped
-mid-walk can at worst produce bytes from elsewhere, which the digest comparison
-rejects — but that claim is about *substituted* bytes, not about *reading
-outside the root*, which is what `_contained` covers. Making `verify` itself
-handle-bound would retire both, and is a separate slice with its own claim to
-re-establish; it is not authorized here and is not assumed.
+`verify` keeps one path-based operation: enumerating the tree to compare the
+observed path set against the record. That walk reads no bytes and refuses to
+descend through a reparse point, so the escape `_contained` guarded has no route
+left. What is **not** claimed is that the enumeration is handle-bound — it is
+not, and the adapter offers no directory enumeration to make it so. A path walk
+observing a set that a handle-based walk would not remains possible in
+principle; closing it is a later step and is not claimed here.
 
 ## Cleanup failure never masks a prior failure
 
@@ -260,6 +335,46 @@ would be false if the mechanism were absent.
    — the property, not the sequence of lines;
 8. a callback supplied anywhere reachable from phase 4 fails a structural check,
    so the callback-free property is enforced rather than documented.
+
+**The read surface:**
+
+r1. a file written and read back through the same held handle returns exactly
+    the bytes written, for a payload spanning several chunks;
+r2. two consecutive `read_all` calls on one handle return identical bytes,
+    which is the rewind observed rather than assumed;
+r3. a `read_all` immediately after `create_file` — that is, with the file
+    pointer left wherever writing put it — returns the payload rather than
+    nothing, which is the same rewind seen from the case that would silently
+    return an empty file;
+r4. a short read is continued: an injected reader returning a fraction of each
+    request still yields the whole payload, and the request sizes show more
+    passes than chunks;
+r4b. a rewind that reports success without moving the pointer is refused with
+    `MATERIALIZE_READ_FAILED`, so the returned position is shown to be checked
+    rather than the boolean alone;
+r5. a `ReadFile` that succeeds while returning zero bytes before the sealed
+    length is reached yields `MATERIALIZED_BYTES_CHANGED`, asserted by code and
+    not merely as "it failed" — the same event maps to a different code once
+    the sealed length has been read, and a test that only checked for failure
+    would pass with the two confused;
+r6. a file whose bytes were changed underneath is rejected as
+    `MATERIALIZED_BYTES_CHANGED`. Reaching that state needs a fixture owning
+    its own object, and the reason it cannot happen to a real one is asserted
+    as all three of its parts: an external writer is refused by the share mask,
+    the raw handle is unreachable from outside the module, and the call census
+    shows no `WriteFile` after creation. A test resting on the mask alone would
+    leave the other two unasserted;
+r6b. a `ReadFile` reporting more bytes than were requested is rejected as
+    `MATERIALIZE_READ_FAILED`, in the read loop and in the one-byte probe
+    separately — an over-report is a broken call, not a changed file;
+r7. `expected_length` comes from the record: a test that alters the recorded
+    length and leaves the file alone must fail closed, proving the length is
+    not re-derived from the object being checked;
+r8. the share behaviour, measured rather than asserted: a native reader sharing
+    only read is refused, one sharing read and write is refused, and one sharing
+    read, write and delete succeeds. The claim under test is the narrow one —
+    the mask excludes openers unwilling to tolerate our write and delete access
+    — and explicitly not that nothing can open the file.
 
 **Real Windows, and the part that cannot be faked:**
 

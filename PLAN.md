@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-17
+> **最後更新**: 2026-08-18
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -1947,6 +1947,35 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 held-handle read design amendment accepted 2026-08-18.**
+  Design-only, across three documents: the native handle-boundary design at
+  revision 21, the N3c-2 tranche design at revision 7, and the historical
+  evidence materialization design at revision 8. Exact SHA-256 values are
+  `f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df`,
+  `4000b95dc7487976bbcf3b700bc2f475a733fbdda33fe88437d2c630ac38638e` and
+  `efa07ce87bc829bfeb643bbac7a9dcd52ba80ae1d4f9a113eba45daa65a0514f`.
+  The amendment exists because revision 17 left the materialized bytes
+  unreadable by anything, including this design's own consumers: role 3 holds
+  each created file until it removes it, so `verify` could not re-read what it
+  had written and M3's child could not load it. Role 3 gains `FILE_READ_DATA`
+  and the adapter gains `read_all(leaf)`, whose expected length is sealed at
+  creation rather than supplied by whoever is asking.
+  Eight review rounds, and the recurring finding was not a defect in the new
+  mechanism but the old specification failing to retire beside it: a
+  path-based `verify`, a materialized `sys.path`, a superseded framing
+  paragraph and a child row that read two ways all survived the change that
+  invalidated them, so the documents specified two ways to do one thing.
+  Two claims were withdrawn against measurement. A held created file does
+  **not** admit no other opener — a native reader sharing read, write and
+  delete succeeds, while one sharing less is refused — so the reason for
+  reading through the creating handle is that it resolves no name and adds no
+  second ownership path, not exclusivity. And byte immutability rests on three
+  things together: the share mask, the opaque handle, and a call census showing
+  no `WriteFile` after creation.
+  Claim ceiling: design bytes. No implementation, no availability change, and
+  the directory enumeration in `verify` is still path-based — M2 may not claim
+  that all verification is handle-bound.
+
 - [x] **Gate 3 N3c-2 design accepted 2026-08-17.** Design-only commit
   `520cc306`, exact SHA-256
   `25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`
@@ -2049,10 +2078,15 @@ Current blocking relationships for this work item:
 - Credentials, preflight and live remain unauthorized.
 
 Claim ceiling: this work item has produced design authority, an independent
-ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, and in
-N3c-1 a committed tranche that opens and holds directory handles. What no
-committed tranche does is create, rename or delete a filesystem object, or
-perform the absence probe. `handle_boundary_available()` and
+ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, a
+committed tranche that opens and holds directory handles (N3c-1), and one that
+creates, writes, deletes and probes for absence (N3c-2). The sentence that
+stood here until 2026-08-18 — that no committed tranche creates or deletes a
+filesystem object — was true when written and was contradicted by `495fe52f`
+the same week. What remains true is narrower and is the part that matters:
+every object N3c-2 creates or deletes is one it created itself, under a `base`
+supplied by the caller that this code never creates, deletes or marks.
+`handle_boundary_available()` and
 `ACTIVE` are both `False`, so the boundary is not reachable from any production
 path. Accepted design bytes are not an implementation, exact-digest review
 approval is not runtime evidence, and none of this reuses, retries or replaces
