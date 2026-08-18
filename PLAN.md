@@ -1947,6 +1947,68 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 held-handle read implemented 2026-08-18.** Commit `6e7393e2`
+  adds `read_all(leaf)` to the boundary. Exact implementation SHA-256 is
+  `f705a215085a99d713fdb8da1f7b3eb81044507b0c02a2f45304cc919401c117`; exact
+  test SHA-256 is
+  `620ad4709c9726e7b5c3121deb77e7cf46ef579cdbb16ae4a0e3fbab4b75a9b7`. Focused
+  tests passed 267/267 and canonical precommit returned exit 0 against the
+  exact diff.
+  The read takes no length: it is sealed into the `Leaf` at creation, so "how
+  many bytes should be here" is not answerable by whoever is asking. All four
+  `ReadFile` outcomes are mapped, including a count larger than the request —
+  a broken call rather than a changed file, and refused rather than trusted,
+  because a fake binding can return it and treating it as a short read would
+  advance past what was written. Every read rewinds first and checks the
+  returned position, not only the boolean.
+  Two review rounds. The findings were a stale authority pointer and an export
+  count carried in prose rather than derived from `BOUND`; two untested failure
+  paths, a failed rewind and a failed end-of-file probe, both of whose
+  mutations survived; and an ABI assertion that only checked `argtypes` was
+  non-empty, which passes for a wrong order, a pointer where a value belongs,
+  or a wrong return type. The last now compares against an independent ctypes
+  oracle with five sensitivity cases proving it rejects a wrong declaration.
+  Claim ceiling: a read surface. It moved no availability flag, and the share
+  mask it reads under is not total exclusion — measured, a native reader
+  sharing read, write and delete does open a held role 3 file.
+
+- [x] **Gate 3 M2 completed 2026-08-18.** Commit `5a04ec79` rebuilds
+  historical materialization on the handle boundary. Exact implementation
+  SHA-256 is
+  `31f6a0f104847b049302766c7be3c58ee232ddc5c7789b6dcddec24b232157c7`; exact
+  test SHA-256 is
+  `f89bf78cc294bed31e746337e2a217d8c5b0b66b2bc567657eb4eb156ab5723e`. Focused
+  tests passed 68/68 and canonical precommit returned exit 0.
+  Every filesystem operation is handle-relative; the path-based versions are
+  deleted rather than kept as a fallback. `base` is borrowed and is never
+  created, deleted or marked. The phase order is the security property: blobs
+  are read and verified while no handle is open, and only then is the base
+  pinned. Cleanup is a per-object transaction — mark, close, confirm absent —
+  where deletion stops at the first object that will not confirm gone while
+  handle release continues through everything deletion did not reach.
+  Four review rounds, and two findings are worth carrying forward. A record
+  could be forged by recombining valid parts: two trees from the same commit
+  under different bases produced records with identical labels and
+  correctly-typed handles, and swapping one bundle into the other's record made
+  cleanup delete the tree the record did not describe. The fix was structural —
+  the tree became a façade over one authority object, so there is nothing left
+  to recombine. An intermediate fix, a seal indexing a global registry, was
+  itself wrong: the registry's strong references kept handles alive after the
+  tree they belonged to was collected. Separately, removing `verify`'s byte
+  read removed a second obligation nobody noticed it was carrying, and a
+  `verify` comparing path names alone accepted a map whose every digest was
+  wrong.
+  Claim ceiling: `materialize()` and `cleanup()` still refuse.
+  `handle_boundary_available()` forwards to the boundary, which reports `False`
+  while no admission record and no capability probe exist — this module does
+  not decide its own availability. **Verification is not entirely
+  handle-bound:** the enumeration comparing the observed file set against the
+  record is still a path walk, and the adapter offers no handle-bound directory
+  enumeration to replace it. That limit is in the module docstring, in
+  `verify`'s docstring, and in a test that fails if a later revision deletes the
+  caveat while leaving the walk. Nothing is wired to M2; M3 and M4 are not
+  started; the consumed pair remains `NON_SUCCESS`.
+
 - [x] **Gate 3 held-handle read design amendment accepted 2026-08-18.**
   Design-only, across three documents: the native handle-boundary design at
   revision 21, the N3c-2 tranche design at revision 7, and the historical
@@ -2051,12 +2113,17 @@ Current blocking relationships for this work item:
 - N3c-2 is complete and delivered in `495fe52f`, with its design in
   `520cc306`. It is the first tranche that creates and deletes real filesystem
   objects.
-- M2 is the next tranche. Its rewrite replaces eight path-based operations with
-  the handle-bound surface, requires `base` to pre-exist, and deletes
-  `_drop_name`, `_create_exclusively`, `stale_root`'s `lexists` and
-  `os.makedirs`. `_contained` stays, scoped to `verify`, because that read-back
-  is still path-based and the digest comparison does not cover reading outside
-  the root.
+- The held-handle read (N3c-3) is complete and delivered in `6e7393e2`. It is
+  what makes a materialized file readable at all: role 3 holds each file it
+  creates, and its share mask refuses every opener unwilling to tolerate our
+  write and delete access.
+- M2 is complete and delivered in `5a04ec79`. `_contained` went with it: it
+  guarded a path-based read that no longer exists, since `verify` now reads
+  through the creating handle.
+- M3 is the next tranche: the child loader over verified byte buffers, and the
+  framed transport that carries them. M4 follows, and is what lets a historical
+  candidate be verified against materialized historical bytes instead of
+  against the live worktree — which is what B-1 is waiting for.
 - The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and
   `test_gate3_route_v2_ab_checkout.py` are caused by the uncommitted B-1
   worktree divergence. At `HEAD`, `gate3_route_v2.py` and
@@ -2074,7 +2141,8 @@ Current blocking relationships for this work item:
   unprotected.
 - No manifest is repinned, no pair evidence is rewritten, and the consumed
   `NON_SUCCESS` pair does not regain usability through any of this.
-- M2, M3 and M4 remain blocked behind M2's `CHANGES_REQUESTED` verdict.
+- M3 and M4 are not started. Nothing is wired to M2, and no availability
+  flag moved: `handle_boundary_available()` and `ACTIVE` are both `False`.
 - Credentials, preflight and live remain unauthorized.
 
 Claim ceiling: this work item has produced design authority, an independent

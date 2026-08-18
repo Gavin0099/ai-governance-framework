@@ -4430,3 +4430,78 @@ Open the merge request for the delivered milestone before continuing. Fifteen
 commits is already a large review unit and every later tranche adds to it, while
 the current set is self-contained precisely because nothing production reaches
 it. Then M2, M3, M4 and B-1 in their own requests.
+
+## 2026-08-18 — Gate 3 held-handle read implementation and M2
+
+Two commits: `6e7393e2` adds `read_all` to the boundary, `5a04ec79` rebuilds M2
+on it. Six review rounds between them.
+
+### Findings And Resolution
+
+**The read, two rounds.** The module still named design revision 17 as its
+authority while implementing revision 21, and still said it bound eleven
+exports where there are now thirteen — the count now derives from `BOUND` rather
+than from prose that has to be remembered. Two failure paths had no tests, a
+failed rewind and a failed end-of-file probe, and both mutations survived:
+checking only the returned position, and dropping the probe's error check while
+the main loop stayed correct. The ABI assertion only checked that `argtypes` was
+non-empty, which passes for a wrong argument order, a pointer where a value
+belongs, or a wrong return type — the mistakes that truncate a handle on 64-bit.
+It now compares against an independent ctypes oracle, with five sensitivity
+cases proving it rejects a wrong declaration.
+
+**M2, four rounds.** Two findings generalize beyond this module.
+
+*A record can be forged out of valid parts.* Two trees built from the same
+commit under different bases produce records with identical labels, identical
+digests and correctly-typed handles. Swapping one bundle into the other's record
+passed every structural check, and cleanup deleted the tree the record did not
+describe. Adding more shape checks would not have helped, because every shape
+was right. The fix was to remove the recombination: the tree became a façade
+over one authority object, and there are no longer separate fields to mix. An
+intermediate fix — a seal indexing a global registry — was itself wrong, and
+wrong in a way worth remembering: the registry held the handles by strong
+reference, so a caller who lost the tree without cleaning up left every handle
+open with no way to reach them again.
+
+*Removing a check can remove a second one nobody noticed it carried.* `verify`'s
+byte loop asserted two things: that the bytes are what was written, and that the
+caller is asking about the inventory the tree was built from. Deleting the read
+took the second with it, and a `verify` comparing path names alone accepted a
+map whose every digest was wrong.
+
+Also closed: `verify` snapshotted a caller-supplied `Mapping` while every handle
+was open, which is a callback in the phase that must have none — the parameter
+is gone and `bindings` is keyword-only so a stale positional call fails at the
+signature rather than deep inside the boundary; `_record_of` ran only in
+cleanup, so a duplicated, foreign or spent authority was not checked before
+reading; and cleanup did not confirm each object absent before moving to its
+parent.
+
+### Evidence
+
+- read `f705a215…` / `620ad470…`, focused suite 267;
+  M2 `31f6a0f1…` / `f89bf78c…`, focused suite 68.
+- Canonical precommit run against each exact diff through Git Bash at
+  `/usr/bin/bash`: exit 0, 201 passing, both times.
+- Across the `gate3-route-v2` suites, 1,195 pass and 7 fail — the B-1 worktree
+  pin failures recorded in `ed9d5d06`, carried by no commit.
+
+### Not Claimed
+
+- M2 is not reachable. `materialize()` and `cleanup()` refuse, because
+  `handle_boundary_available()` forwards to the boundary and the boundary
+  reports `False` while no admission record and no capability probe exist.
+- Verification is not entirely handle-bound. The enumeration is still a path
+  walk, and the caveat is asserted by a test rather than left to memory.
+- The share mask is not total exclusion: measured, a native reader sharing
+  read, write and delete opens a held role 3 file. Reading through the creating
+  handle is chosen because it resolves no name and adds no second ownership
+  path.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+M3, then M4, then B-1. M3 is where the verified buffers meet a child that must
+not open a materialized path, and where the framed transport's bounds and
+frozen-digest authority stop being design and start being code.

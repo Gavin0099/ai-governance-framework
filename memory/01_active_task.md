@@ -5,9 +5,9 @@
 
 # Active Task
 
-> Refreshed 2026-08-17 against branch head `495fe52f`, using the `PLAN.md` in
+> Refreshed 2026-08-18 against branch head `ef554499`, using the `PLAN.md` in
 > this uncommitted reconciliation diff rather than the `PLAN.md` contained in
-> that commit. Source of truth: that reconciliation diff plus the exact-digest
+> the last commit. Source of truth: that reconciliation diff plus the exact-digest
 > reviews recorded in it. This is a point-in-time task summary, not a canonical
 > session-derived memory entry and not evidence that any claim below was
 > independently re-verified today.
@@ -44,10 +44,15 @@
 | Native-boundary test narrowed to a committed file | `4eafdb80` |
 | N3c-2 design | `520cc306` |
 | N3c-2 creation, deletion and absence probe | `495fe52f` |
+| Held-handle read design amendment | `b7235036` |
+| Held-handle read implementation | `6e7393e2` |
+| M2 handle-bound materialization | `5a04ec79` |
 
-All fifteen rows are pushed to
-`origin/feat/gate3-historical-materialization`, whose head is `495fe52f` and
-matches the local branch exactly — `0` ahead, `0` behind.
+All eighteen rows are pushed to `origin/feat/gate3-historical-materialization`.
+The branch head is `ef554499`, a merge of `origin/main` taken to clear PR #73's
+BEHIND state; it is a merge rather than a rebase, and `git diff 5a04ec79 HEAD`
+is empty, so it carries no content of its own. Remote and local match exactly.
+PR #72 is merged as `5d184ee6`; PR #73 is open and carries the last two rows.
 
 ## Paused And Blocked
 
@@ -58,29 +63,23 @@ matches the local branch exactly — `0` ahead, `0` behind.
   `gate3_final_message_runner_integration.py`. Its two construction-contract
   blockers are fixed; what blocks it is that changing the first two files
   breaks the source pin the historical candidate is verified against.
-- **M2** read-only materialization is `CHANGES_REQUESTED` behind an interim
-  fail-closed refusal; M3 and M4 are blocked behind it, and M2 itself cannot
-  converge until N3c-2 exists.
+- **M3 and M4** are not started. M2 no longer blocks them: it is delivered in
+  `5a04ec79`. What remains true of M2 is that nothing is wired to it —
+  `materialize()` and `cleanup()` refuse while `handle_boundary_available()`
+  and `ACTIVE` are `False` — and that its verification is not entirely
+  handle-bound, since the enumeration is still a path walk.
 - Group C candidate `20f202e1...` is on HOLD.
 
 ## Next Steps
 
-1. Open the merge request for the delivered milestone: `main` has not moved
-   since `6f7413c8`, the branch is 15 commits ahead and 0 behind, and the work
-   is self-contained because `handle_boundary_available()` and `ACTIVE` are
-   both `False`. Later tranches go in later requests.
-2. M2 handle-bound rewrite: replace the eight path-based operations with
-   `create_directory`, `create_file`, `remove` and `confirm_absent`; require
-   `base` to pre-exist and drop `os.makedirs`; delete `_drop_name`,
-   `_create_exclusively` and `stale_root`'s `lexists`. Keep `_contained`,
-   scoped to `verify`.
-   `read_all(leaf)` supplies the byte verification, and the claim ceiling stays
-   narrow: the directory enumeration is still path-based, so "all verification
-   is handle-bound" is not available to M2.
-3. M3, then M4. M3 receives verified buffers over the framed transport and
-   opens no materialized path; M4 is what lets a historical candidate be
-   verified against materialized historical bytes instead of against the live
-   worktree.
+1. Land this reconciliation on the branch before PR #73 merges, so the
+   governance record does not trail the merged code.
+2. M3: the closed child loader over verified byte buffers, and the framed
+   transport that carries them. The child opens no materialized path; its
+   expected inventory comes from a digest frozen in its own code, not from the
+   stream and not from the active head.
+3. M4: the historical candidate verified against materialized historical bytes
+   instead of against the live worktree.
 4. B-1 five-file re-review and delivery, once M4 removes the dependency its
    edits currently break.
 
