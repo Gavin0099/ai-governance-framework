@@ -2,8 +2,8 @@
 
 Design authority:
 `docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md`
-revision 17, SHA-256
-83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3, with
+revision 21, SHA-256
+f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df, with
 `docs/adr/0001-gate3-native-directory-handle-boundary.md`.
 
 Two tranches so far.
@@ -16,14 +16,16 @@ native call at all and runs offline.
 owner attached to the accepted `NATIVE-INTEROP.md` §3.3 deviation, and binds
 every signature the backend will need.
 
-The claim, stated exactly: **N2 loads two System32 libraries and binds eleven
-target exports, and calls none of those eleven.** Binding a signature is not
-calling it.
+The claim, stated exactly: **N2 loads two System32 libraries and binds the
+target exports, and calls none of them.** Binding a signature is not calling
+it. There were eleven when N2 landed; design revision 21 added `ReadFile` and
+`SetFilePointerEx` for the held-handle read, so there are thirteen — the count
+belongs in `BOUND` rather than in prose that has to be remembered.
 
 That is the whole property, and it stops there. Native code does run:
 `ctypes.WinDLL` enters the Windows loader. Stretching a narrow, testable fact
-about eleven exports into a statement about native execution generally would
-claim something this code does not have.
+about a fixed export list into a statement about native execution generally
+would claim something this code does not have.
 
 That boundary is narrower than the tranche originally proposed, and the
 narrowing was forced. The approved design says that once binding completes, any
@@ -807,6 +809,15 @@ class _Bindings:
         k32.CloseHandle.argtypes = [HANDLE]
         k32.WriteFile.restype = BOOL
         k32.WriteFile.argtypes = [HANDLE, PVOID, DWORD, POINTER(DWORD), PVOID]
+        k32.ReadFile.restype = BOOL
+        k32.ReadFile.argtypes = [HANDLE, PVOID, DWORD, POINTER(DWORD), PVOID]
+        k32.SetFilePointerEx.restype = BOOL
+        k32.SetFilePointerEx.argtypes = [
+            HANDLE,
+            LARGE_INTEGER,
+            POINTER(LARGE_INTEGER),
+            DWORD,
+        ]
         k32.GetFileInformationByHandleEx.restype = BOOL
         k32.GetFileInformationByHandleEx.argtypes = [HANDLE, c_int, PVOID, DWORD]
         k32.SetFileInformationByHandle.restype = BOOL
@@ -840,6 +851,8 @@ class _Bindings:
         ("ntdll", "RtlGetVersion"),
         ("kernel32", "CloseHandle"),
         ("kernel32", "WriteFile"),
+        ("kernel32", "ReadFile"),
+        ("kernel32", "SetFilePointerEx"),
         ("kernel32", "GetFileInformationByHandleEx"),
         ("kernel32", "SetFileInformationByHandle"),
         ("kernel32", "GetVolumeInformationByHandleW"),
@@ -847,9 +860,11 @@ class _Bindings:
         ("kernel32", "RaiseFailFastException"),
     )
 
-    # All eleven, and N2 calls none of them: nothing in this tranche sits
-    # behind a fail-fast boundary, so nothing here may cross one.  This says
-    # nothing about the loader itself, which does run native code.
+    # All of them, and N2 calls none: nothing in that tranche sits behind a
+    # fail-fast boundary, so nothing there may cross one.  Derived from BOUND
+    # rather than counted in a comment, so adding an export cannot leave a
+    # stale number behind.  This says nothing about the loader itself, which
+    # does run native code.
     NEVER_CALLED_IN_N2 = frozenset(name for _, name in BOUND)
 
 
@@ -905,6 +920,7 @@ FAIL_FAST_STAGES = MappingProxyType(
         "PROBE": 8,
         "ABSENCE_PROBE": 9,
         "CLOSE": 10,
+        "READ": 11,
     }
 )
 FAIL_FAST_CODES = MappingProxyType(
@@ -925,6 +941,12 @@ FAIL_FAST_CODES = MappingProxyType(
         # are properties of one call, which the caller can act on.
         "BASE_NOT_FOUND": 11,
         "BASE_NOT_ADMISSIBLE": 12,
+        # Two codes rather than one: "the read call failed" and "the read
+        # succeeded and returned something other than what was written" send a
+        # reader to different places, and one code for both would report a
+        # changed file as a broken API.
+        "MATERIALIZE_READ_FAILED": 13,
+        "MATERIALIZED_BYTES_CHANGED": 14,
     }
 )
 
@@ -1137,6 +1159,7 @@ FILE_SYNCHRONOUS_IO_NONALERT = 0x00000020
 FILE_OPEN_REPARSE_POINT = 0x00200000
 
 FILE_READ_ATTRIBUTES = 0x0080
+FILE_READ_DATA = 0x0001
 FILE_WRITE_DATA = 0x0002
 FILE_WRITE_ATTRIBUTES = 0x0100
 DELETE = 0x00010000
@@ -1150,6 +1173,8 @@ FILE_NON_DIRECTORY_FILE = 0x00000040
 FILE_DISPOSITION_DELETE = 0x00000001
 FILE_DISPOSITION_POSIX_SEMANTICS = 0x00000002
 FILE_DISPOSITION_IGNORE_READONLY_ATTRIBUTE = 0x00000010
+
+FILE_BEGIN = 0
 
 FILE_BASIC_INFO_CLASS = 0
 FILE_DISPOSITION_INFO_CLASS = 4
@@ -1203,7 +1228,8 @@ CREATED_DIRECTORY_OPTIONS = FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
 # — the attribute governs later opens while this handle keeps the write access
 # it was granted, so the bytes are never writable through their path.
 CREATED_FILE_ACCESS = (
-    FILE_WRITE_DATA
+    FILE_READ_DATA
+    | FILE_WRITE_DATA
     | FILE_READ_ATTRIBUTES
     | FILE_WRITE_ATTRIBUTES
     | DELETE
@@ -1221,6 +1247,10 @@ ABSENCE_OPTIONS = FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT
 # One megabyte, far inside DWORD. Chunking exists because the count argument is
 # a DWORD; the loop exists because a short write is legal and not an error.
 WRITE_CHUNK = 1 << 20
+
+# The same bound for reads, kept as its own name so the two can diverge without
+# one silently changing the other.
+READ_CHUNK = 1 << 20
 
 _DRIVE_ROOT = re.compile(r"^([A-Za-z]):[\\/]$")
 
@@ -1418,13 +1448,30 @@ class PinnedChain:
 
 
 class Leaf(_Held):
-    """A file this code created and still holds.
+    """A file this code created and still holds, with the length it was written at.
 
     Role 3. Held until it is removed through this same handle — reopening the
     name to delete it would be a second ownership path for one object.
+
+    `length` is sealed here at creation and is what `read_all` reads to. It is
+    deliberately not a parameter of the read: "how many bytes should be here"
+    must not be answerable by whoever is asking the question, or the expected
+    answer could be adjusted to fit the observation.
     """
 
-    __slots__ = ()
+    __slots__ = ("_length",)
+
+    def __init__(
+        self, bindings: "_Bindings", handle: int, identity: str, length: int
+    ) -> None:
+        super().__init__(bindings, handle, identity)
+        if type(length) is not int or length < 0:
+            raise NativeError("MATERIALIZE_WRITE_FAILED")
+        self._length = length
+
+    @property
+    def length(self) -> int:
+        return self._length
 
 
 def _unicode_string(text: str):
@@ -1871,10 +1918,120 @@ def create_file(
     )
     try:
         _write_all(bindings, handle, payload)
-        return Leaf(bindings, handle, _identity_of(bindings, handle))
+        return Leaf(bindings, handle, _identity_of(bindings, handle), len(payload))
     except BaseException as error:
         _rollback_created(bindings, parent, name, handle, error)
         raise
+
+
+def _rewind(bindings: _Bindings, handle: int) -> None:
+    """Set the file pointer to zero, and confirm it went there.
+
+    Every read starts with this. Without it the first read after `create_file`
+    would begin where writing stopped and return nothing — and an empty result
+    is exactly the failure that passes unnoticed.
+
+    The returned position is checked rather than only the boolean: a rewind
+    reporting success without moving the pointer would surface later as a short
+    read and be reported as a changed file, which sends the reader after the
+    wrong fault.
+    """
+
+    position = LARGE_INTEGER(0)
+    ok = _guarded(
+        bindings,
+        "READ",
+        bindings.kernel32.SetFilePointerEx,
+        handle,
+        LARGE_INTEGER(0),
+        ctypes.byref(position),
+        FILE_BEGIN,
+    )
+    if not ok or position.value != 0:
+        ctypes.get_last_error()
+        raise NativeError("MATERIALIZE_READ_FAILED")
+
+
+def read_all(bindings: _Bindings, leaf: Leaf) -> bytes:
+    """Read the whole file back through the handle that created it.
+
+    Takes no length: the leaf carries the one it was written at.
+
+    A path-based read is not the alternative this replaces. Role 3's share mask
+    refuses any opener unwilling to tolerate our write and delete access — every
+    ordinary reader, including CPython's `open()` — while an opener that shares
+    all three does get in. Reading through the creating handle is chosen because
+    it resolves no name and adds no second ownership path, not because nothing
+    else could read the file.
+
+    `ReadFile`'s outcomes are mapped exhaustively. A count larger than the one
+    requested is a broken call rather than a changed file, and is refused rather
+    than trusted: a fake binding can return it, and treating it as a short read
+    would advance past what was written.
+    """
+
+    if leaf.closed:
+        raise NativeError("ROOT_IDENTITY_CHANGED")
+
+    expected = leaf.length
+    _rewind(bindings, leaf._handle)
+
+    if expected == 0:
+        chunks: list[bytes] = []
+    else:
+        buffer = (c_char * expected)()
+        read_total = 0
+        while read_total < expected:
+            request = min(READ_CHUNK, expected - read_total)
+            got = DWORD(0)
+            ok = _guarded(
+                bindings,
+                "READ",
+                bindings.kernel32.ReadFile,
+                leaf._handle,
+                ctypes.byref(buffer, read_total),
+                request,
+                ctypes.byref(got),
+                None,
+            )
+            if not ok:
+                ctypes.get_last_error()
+                raise NativeError("MATERIALIZE_READ_FAILED")
+            if got.value > request:
+                # Not a short read. Nothing legitimate returns more than it was
+                # asked for, and continuing would write past `request`.
+                raise NativeError("MATERIALIZE_READ_FAILED")
+            if got.value == 0:
+                # End of file before the recorded length: the file is shorter
+                # than what was written.
+                raise NativeError("MATERIALIZED_BYTES_CHANGED")
+            read_total += got.value
+        chunks = [bytes(buffer)]
+
+    # One byte past the recorded length. A read to the end would let a file that
+    # grew decide how much this allocates; one byte answers the only question
+    # being asked.
+    probe = (c_char * 1)()
+    got = DWORD(0)
+    ok = _guarded(
+        bindings,
+        "READ",
+        bindings.kernel32.ReadFile,
+        leaf._handle,
+        ctypes.byref(probe),
+        1,
+        ctypes.byref(got),
+        None,
+    )
+    if not ok:
+        ctypes.get_last_error()
+        raise NativeError("MATERIALIZE_READ_FAILED")
+    if got.value > 1:
+        raise NativeError("MATERIALIZE_READ_FAILED")
+    if got.value == 1:
+        raise NativeError("MATERIALIZED_BYTES_CHANGED")
+
+    return chunks[0] if chunks else b""
 
 
 def file_attributes(bindings: _Bindings, held: "_Held") -> int:
