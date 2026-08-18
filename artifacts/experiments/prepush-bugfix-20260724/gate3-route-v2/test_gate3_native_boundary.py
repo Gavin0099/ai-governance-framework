@@ -5,8 +5,9 @@ one proving a wrong declaration fails. Everything else here guards the path
 that gets it there: the artifact must be the pinned one, verified before it is
 parsed, and validated before any value in it is trusted.
 
-N2 loads two System32 libraries and binds eleven target exports; a test
-asserts none of those exports is called. Loading a DLL does run native code in
+N2 loads two System32 libraries and binds the target exports; a test asserts
+none of them is called in that tranche. There were eleven at N2; the held-handle
+read added two more. Loading a DLL does run native code in
 the Windows loader, so that is not claimed here.
 """
 
@@ -609,7 +610,7 @@ def test_the_allowlist_has_no_exception():
 
 
 def test_no_bound_export_is_called_in_this_tranche():
-    """N2 binds eleven target exports and invokes none of them.
+    """N2 binds the target exports and invokes none of them.
 
     Binding is not calling, and nothing here sits behind a fail-fast boundary,
     so nothing here may cross one. This is deliberately *not* a claim that no
@@ -637,10 +638,134 @@ def test_every_bound_function_declares_its_signature(bindings):
     """An undeclared call marshals through the default int and truncates a
     handle on 64-bit, which is the exact corruption this boundary prevents."""
 
-    assert len(boundary._Bindings.BOUND) == 11
+    assert len(boundary._Bindings.BOUND) == 13
     for library_name, function_name in boundary._Bindings.BOUND:
         function = getattr(getattr(bindings, library_name), function_name)
         assert function.argtypes, f"{function_name} has no argtypes"
+
+
+# Written as ctypes primitives rather than as the module's own aliases:
+# comparing a declaration to the names it was written with passes for any
+# self-consistent declaration, including a wrong one.
+#
+# Note what this does *not* separate. On this platform `c_int is c_long` and
+# `c_ulong is c_uint`, so an int/long confusion is not a difference in the ABI
+# and there is nothing here to catch. What it does separate is everything that
+# changes the calling convention: argument order, a pointer where a value
+# belongs, a wrong width, and a wrong return type.
+_ABI = {
+    "BOOL": ctypes.c_long,
+    "HANDLE": ctypes.c_void_p,
+    "PVOID": ctypes.c_void_p,
+    "DWORD": ctypes.c_ulong,
+    "LARGE_INTEGER": ctypes.c_longlong,
+    "POINTER(DWORD)": ctypes.POINTER(ctypes.c_ulong),
+    "POINTER(LARGE_INTEGER)": ctypes.POINTER(ctypes.c_longlong),
+}
+
+_NEW_EXPORT_SIGNATURES = [
+    (
+        "kernel32",
+        "ReadFile",
+        "BOOL",
+        ["HANDLE", "PVOID", "DWORD", "POINTER(DWORD)", "PVOID"],
+    ),
+    (
+        "kernel32",
+        "SetFilePointerEx",
+        "BOOL",
+        ["HANDLE", "LARGE_INTEGER", "POINTER(LARGE_INTEGER)", "DWORD"],
+    ),
+]
+
+
+def _signature_mismatch(restype, declared_argtypes, wanted_restype, wanted_args):
+    """Return the first disagreement, or None. Shared so it can be shown to fire."""
+
+    if restype is not _ABI[wanted_restype]:
+        return f"restype {restype} != {wanted_restype}"
+    if len(declared_argtypes) != len(wanted_args):
+        return f"arity {len(declared_argtypes)} != {len(wanted_args)}"
+    for index, (declared, wanted) in enumerate(zip(declared_argtypes, wanted_args)):
+        if wanted.startswith("POINTER("):
+            if not hasattr(declared, "_type_"):
+                return f"arg {index} is not a pointer"
+            if declared._type_ is not _ABI[wanted]._type_:
+                return f"arg {index} points at the wrong type"
+        else:
+            if hasattr(declared, "_type_") and not issubclass(declared, ctypes._SimpleCData):
+                return f"arg {index} is a pointer where a value belongs"
+            if declared is not _ABI[wanted]:
+                return f"arg {index} {declared} != {wanted}"
+    return None
+
+
+@pytest.mark.parametrize(
+    "library,name,restype,argtypes", _NEW_EXPORT_SIGNATURES
+)
+def test_the_new_exports_declare_the_exact_signature(
+    bindings, library, name, restype, argtypes
+):
+    """Presence is not correctness, and this is an ABI surface.
+
+    `test_every_bound_function_declares_its_signature` only asserts that
+    `argtypes` is non-empty, so a wrong order, a value where a pointer belongs,
+    or a wrong `restype` would pass it — and those are the mistakes that
+    truncate a handle or corrupt a count on 64-bit, which is the corruption this
+    boundary exists to prevent.
+    """
+
+    function = getattr(getattr(bindings, library), name)
+    assert (
+        _signature_mismatch(function.restype, function.argtypes, restype, argtypes)
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation,description",
+    [
+        (
+            ["HANDLE", "POINTER(LARGE_INTEGER)", "LARGE_INTEGER", "DWORD"],
+            "the distance and the returned position swapped",
+        ),
+        (
+            ["HANDLE", "POINTER(LARGE_INTEGER)", "POINTER(LARGE_INTEGER)", "DWORD"],
+            "the distance passed by pointer instead of by value",
+        ),
+        (["HANDLE", "DWORD", "POINTER(LARGE_INTEGER)", "DWORD"], "a truncated offset"),
+        (["HANDLE", "LARGE_INTEGER", "POINTER(LARGE_INTEGER)"], "an argument dropped"),
+    ],
+)
+def test_the_signature_check_fires_on_a_wrong_declaration(mutation, description):
+    """The check is load-bearing, shown against the mutations that matter.
+
+    A check that has never been demonstrated to fail is an assumption. Each of
+    these is a plausible slip in a hand-written `argtypes`, and each must be
+    rejected.
+    """
+
+    declared = [
+        _ABI[name]
+        if not name.startswith("POINTER(")
+        else ctypes.POINTER(_ABI[name]._type_)
+        for name in mutation
+    ]
+    _library, _name, restype, correct = _NEW_EXPORT_SIGNATURES[1]
+    assert (
+        _signature_mismatch(_ABI[restype], declared, restype, correct) is not None
+    ), description
+
+
+def test_the_signature_check_fires_on_a_wrong_return_type():
+    _library, _name, _restype, correct = _NEW_EXPORT_SIGNATURES[1]
+    declared = [
+        _ABI[name]
+        if not name.startswith("POINTER(")
+        else ctypes.POINTER(_ABI[name]._type_)
+        for name in correct
+    ]
+    assert _signature_mismatch(None, declared, "BOOL", correct) is not None
 
 
 def test_the_platform_probe_runs_before_any_load(monkeypatch):
@@ -825,6 +950,7 @@ def test_frozen_stage_ordinals():
         "PROBE": 8,
         "ABSENCE_PROBE": 9,
         "CLOSE": 10,
+        "READ": 11,
     }
 
 
@@ -851,6 +977,8 @@ def test_frozen_code_ordinals():
         **_CODES_BEFORE_N3C2,
         "BASE_NOT_FOUND": 11,
         "BASE_NOT_ADMISSIBLE": 12,
+        "MATERIALIZE_READ_FAILED": 13,
+        "MATERIALIZED_BYTES_CHANGED": 14,
     }
 
 
@@ -2157,7 +2285,9 @@ _SPEC = {
         "options": 0x00000001 | 0x00000020,
     },
     "role3": {
-        "access": 0x0002 | 0x0080 | 0x0100 | 0x00010000 | 0x00100000,
+        # FILE_READ_DATA joins in design revision 21: without it the bytes this
+        # code wrote cannot be read back by anything, including itself.
+        "access": 0x0001 | 0x0002 | 0x0080 | 0x0100 | 0x00010000 | 0x00100000,
         "attributes": 0x00000001,  # FILE_ATTRIBUTE_READONLY
         "share": 0x00000001,
         "disposition": 0x00000002,
@@ -2408,7 +2538,7 @@ def _create_control_leaf(bindings, parent, name):
         boundary.FILE_ATTRIBUTE_NORMAL,
         boundary.CREATED_FILE_OPTIONS,
     )
-    return boundary.Leaf(bindings, handle, "control")
+    return boundary.Leaf(bindings, handle, "control", 1)
 
 
 def test_the_created_file_is_read_only_and_the_control_is_not(
@@ -2807,7 +2937,7 @@ def test_a_close_failure_during_removal_reports_incomplete_cleanup(
     is delete-pending and may still be there.
     """
 
-    held = boundary.Leaf(bindings, 0x1234, "identity")
+    held = boundary.Leaf(bindings, 0x1234, "identity", 0)
     monkeypatch.setattr(boundary, "_mark_deleted", lambda *_a: None)
     monkeypatch.setattr(boundary, "_close_handle", lambda *_a: False)
 
@@ -2863,7 +2993,7 @@ def test_removal_state_is_set_before_marking_not_after(bindings, monkeypatch):
     the handle.
     """
 
-    held = boundary.Leaf(bindings, 0x1234, "identity")
+    held = boundary.Leaf(bindings, 0x1234, "identity", 0)
 
     def failing_mark(*_args):
         raise boundary.NativeError("CLEANUP_INCOMPLETE")
@@ -3058,6 +3188,372 @@ def test_a_failed_create_reports_the_stage_it_was_in(
     # Both the create and the status translation carry the same stage, and no
     # other stage appears between them.
     assert stages == [expected_stage, expected_stage]
+
+
+# --- read_all: design revision 21's evidence r1-r8 ---------------------------
+
+
+def test_a_created_file_reads_back_as_written(bindings, owned_base):
+    """r1: several chunks, through the handle that created it."""
+
+    payload = bytes(range(256)) * 20  # 5,120 bytes
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "read.bin", payload)
+        try:
+            assert boundary.read_all(bindings, leaf) == payload
+            assert leaf.length == len(payload)
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "read.bin")
+
+
+def test_reading_twice_returns_the_same_bytes(bindings, owned_base):
+    """r2: the rewind observed, not assumed."""
+
+    payload = b"identical on both passes"
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "twice.bin", payload)
+        try:
+            assert boundary.read_all(bindings, leaf) == payload
+            assert boundary.read_all(bindings, leaf) == payload
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "twice.bin")
+
+
+def test_the_first_read_after_create_is_not_empty(bindings, owned_base):
+    """r3: the case a missing rewind would turn into a silent empty file.
+
+    Writing leaves the pointer at the end. Without the rewind this returns
+    nothing and looks like a file that was never written.
+    """
+
+    payload = b"written, then read immediately"
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "first.bin", payload)
+        try:
+            assert boundary.read_all(bindings, leaf) == payload
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "first.bin")
+
+
+def test_a_short_read_is_continued(bindings, owned_base, monkeypatch):
+    """r4: forced, not hoped for. Every call returns a fraction of the request."""
+
+    payload = bytes(range(256)) * 12
+    real_read = bindings.kernel32.ReadFile
+    requests: list[int] = []
+
+    def short(handle, buffer, count, got_ref, overlapped):
+        requests.append(count)
+        return real_read(handle, buffer, max(1, count // 3), got_ref, overlapped)
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "short.bin", payload)
+        try:
+            monkeypatch.setattr(bindings.kernel32, "ReadFile", short, raising=False)
+            assert boundary.read_all(bindings, leaf) == payload
+            monkeypatch.undo()
+            assert len(requests) > 3
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "short.bin")
+
+
+def test_a_rewind_that_does_not_move_the_pointer_is_refused(
+    bindings, owned_base, monkeypatch
+):
+    """r4b: the boolean alone is not the postcondition."""
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "rw.bin", b"payload")
+        try:
+            def lying(handle, distance, position_ref, method):
+                position_ref._obj.value = 99  # reports success, moved nowhere
+                return 1
+
+            monkeypatch.setattr(
+                bindings.kernel32, "SetFilePointerEx", lying, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZE_READ_FAILED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "rw.bin")
+
+
+def test_end_of_file_before_the_sealed_length_is_a_changed_file(
+    bindings, owned_base, monkeypatch
+):
+    """r5: zero bytes early is not a broken call, and the codes differ."""
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "eof.bin", b"12345678")
+        try:
+            def early_eof(_handle, _buffer, _count, got_ref, _overlapped):
+                got_ref._obj.value = 0
+                return 1
+
+            monkeypatch.setattr(
+                bindings.kernel32, "ReadFile", early_eof, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZED_BYTES_CHANGED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "eof.bin")
+
+
+def test_a_file_longer_than_recorded_is_a_changed_file(
+    bindings, owned_base, monkeypatch
+):
+    """r6: the one-byte probe, which is why there is no read-to-end."""
+
+    payload = b"exactly this much"
+    real_read = bindings.kernel32.ReadFile
+    calls = {"n": 0}
+
+    def extra_byte(handle, buffer, count, got_ref, overlapped):
+        calls["n"] += 1
+        if count == 1:
+            got_ref._obj.value = 1  # the file kept going
+            return 1
+        return real_read(handle, buffer, count, got_ref, overlapped)
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "long.bin", payload)
+        try:
+            monkeypatch.setattr(
+                bindings.kernel32, "ReadFile", extra_byte, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZED_BYTES_CHANGED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "long.bin")
+
+
+@pytest.mark.parametrize("stage", ["loop", "probe"])
+def test_a_read_reporting_more_than_requested_is_a_broken_call(
+    bindings, owned_base, monkeypatch, stage
+):
+    """r6b: an over-report is refused in both places, and is not a changed file.
+
+    A fake binding can return any count. Treating it as a short read would
+    advance past what was written.
+    """
+
+    payload = b"0123456789"
+    real_read = bindings.kernel32.ReadFile
+
+    def over(handle, buffer, count, got_ref, overlapped):
+        target = 1 if stage == "probe" else len(payload)
+        if count == target:
+            ok = real_read(handle, buffer, count, got_ref, overlapped)
+            got_ref._obj.value = count + 1
+            return ok if stage == "loop" else 1
+        return real_read(handle, buffer, count, got_ref, overlapped)
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "over.bin", payload)
+        try:
+            monkeypatch.setattr(bindings.kernel32, "ReadFile", over, raising=False)
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZE_READ_FAILED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "over.bin")
+
+
+def test_a_failing_read_call_is_not_a_changed_file(
+    bindings, owned_base, monkeypatch
+):
+    """The two codes are distinguished from the other direction as well."""
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "fail.bin", b"payload")
+        try:
+            monkeypatch.setattr(
+                bindings.kernel32, "ReadFile", lambda *_a: 0, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZE_READ_FAILED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "fail.bin")
+
+
+def test_the_length_comes_from_the_leaf_not_from_the_caller(
+    bindings, owned_base
+):
+    """r7: `read_all` takes no length, so the expected answer cannot be tuned.
+
+    Asserted structurally as well as by signature: a recorded length that
+    disagrees with the object must fail closed rather than adapt to it.
+    """
+
+    import inspect
+
+    assert list(inspect.signature(boundary.read_all).parameters) == [
+        "bindings",
+        "leaf",
+    ]
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "seal.bin", b"12345678")
+        try:
+            leaf._length = 4  # the record now disagrees with the file
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZED_BYTES_CHANGED"
+            leaf._length = 8
+            assert boundary.read_all(bindings, leaf) == b"12345678"
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "seal.bin")
+
+
+def test_the_share_behaviour_is_what_was_measured(bindings, owned_base):
+    """r8: three shapes, and the narrow claim they support.
+
+    The mask excludes openers unwilling to tolerate our write and delete
+    access. It does **not** exclude a deliberate reader that shares all three,
+    and the design no longer says it does.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "share.bin", b"x")
+        try:
+            results = []
+            for share in (
+                boundary.FILE_SHARE_READ,
+                boundary.FILE_SHARE_READ | boundary.FILE_SHARE_WRITE,
+                boundary.FILE_SHARE_READ
+                | boundary.FILE_SHARE_WRITE
+                | boundary.FILE_SHARE_DELETE,
+            ):
+                handle = boundary.HANDLE()
+                name, buffer = boundary._unicode_string("share.bin")
+                attributes = boundary.OBJECT_ATTRIBUTES()
+                attributes.Length = ctypes.sizeof(boundary.OBJECT_ATTRIBUTES)
+                attributes.RootDirectory = chain.base._handle
+                attributes.ObjectName = ctypes.pointer(name)
+                attributes.Attributes = boundary.OBJ_CASE_INSENSITIVE
+                status_block = boundary.IO_STATUS_BLOCK()
+                status = bindings.ntdll.NtOpenFile(
+                    ctypes.byref(handle),
+                    boundary.FILE_READ_DATA | boundary.SYNCHRONIZE,
+                    ctypes.byref(attributes),
+                    ctypes.byref(status_block),
+                    share,
+                    boundary.FILE_NON_DIRECTORY_FILE
+                    | boundary.FILE_SYNCHRONOUS_IO_NONALERT,
+                )
+                results.append(status >= 0)
+                if status >= 0:
+                    boundary._close_handle(bindings, handle.value)
+                del name, buffer, attributes
+
+            assert results == [False, False, True]
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "share.bin")
+
+
+def test_a_rewind_that_reports_failure_is_refused(bindings, owned_base, monkeypatch):
+    """The boolean half of the rewind postcondition.
+
+    The other rewind test covers a success that did not move the pointer. This
+    covers a reported failure with the pointer legitimately at zero — an
+    implementation checking only `position != 0` would sail past it.
+    """
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "rwfail.bin", b"payload")
+        try:
+            def refusing(_handle, _distance, position_ref, _method):
+                position_ref._obj.value = 0  # a plausible zero, and still a failure
+                return 0
+
+            monkeypatch.setattr(
+                bindings.kernel32, "SetFilePointerEx", refusing, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZE_READ_FAILED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "rwfail.bin")
+
+
+def test_a_failing_end_of_file_probe_is_refused(bindings, owned_base, monkeypatch):
+    """The probe has its own failure path, and its own test.
+
+    The existing read-failure test breaks the main loop, so deleting the
+    probe's `if not ok` would leave every test passing while an unreported
+    error decided whether the file was the right length.
+    """
+
+    payload = b"0123456789"
+    real_read = bindings.kernel32.ReadFile
+
+    def fail_probe_only(handle, buffer, count, got_ref, overlapped):
+        if count == 1:
+            return 0
+        return real_read(handle, buffer, count, got_ref, overlapped)
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "probefail.bin", payload)
+        try:
+            monkeypatch.setattr(
+                bindings.kernel32, "ReadFile", fail_probe_only, raising=False
+            )
+            with pytest.raises(boundary.NativeError) as excinfo:
+                boundary.read_all(bindings, leaf)
+            assert excinfo.value.args[0] == "MATERIALIZE_READ_FAILED"
+            monkeypatch.undo()
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "probefail.bin")
+
+
+def test_an_empty_payload_reads_back_as_empty(bindings, owned_base):
+    """Zero length is a real case, and the probe still has to run."""
+
+    with boundary.open_chain(bindings, str(owned_base)) as chain:
+        leaf = boundary.create_file(bindings, chain.base, "empty.bin", b"")
+        try:
+            assert leaf.length == 0
+            assert boundary.read_all(bindings, leaf) == b""
+        finally:
+            boundary.remove(bindings, leaf)
+            leaf.close()
+            boundary.confirm_absent(bindings, chain.base, "empty.bin")
 
 
 def test_n3c2_did_not_move_availability(bindings):
