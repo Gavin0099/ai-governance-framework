@@ -1,33 +1,13 @@
-TASK_INTENT: CP-8 — Copilot billing receipt contract versioning + snapshot protection (contract_version=0.2)
+TASK_INTENT: Gate 3 native directory-handle boundary: review and commit design revision 17, then reconcile memory/2026-08-13.md through memory/2026-08-16.md with PLAN.md and memory/01_active_task.md.
 
-WORK_COMPLETED:
-1. Receipt contract versioned as contract_version=0.2 (codeburn/phase2/copilot_billing_contract_receipt.py)
-   - CONTRACT_VERSION = "0.2" constant added as stable exportable identifier
-   - Invariant code vocabulary stabilised as 6 named constants:
-     INV_AGGREGATE_RENDERED_WITHOUT_AUTHORITY, INV_GROUPED_BY_MODEL_TOTAL_FORBIDDEN,
-     INV_GROUPED_BY_MODEL_SUPPRESSION_REASON_REQUIRED, INV_CONSUMER_GUARD_NOT_PASSED,
-     INV_CONTRACT_INVALID_RENDERED_AGGREGATE, CONTRACT_INVALID (state code)
-   - contract_version field emitted in every receipt payload
-   - safe_for_audit semantics fixed to contract: true only when no invariant violations and all layers OK
+WORK_COMPLETED: Committed design revision 17 as 0d95023d, covering only docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md, and pushed it to origin/feat/gate3-historical-materialization; all three access-mask roles now request FILE_READ_ATTRIBUTES because an audit found none exempt. Committed the six-path memory reconciliation as 97ad42e4, preserving 34 hook-generated records unrewritten and adding three canonical corrections through governance_tools/memory_record.py.
 
-2. CP-1~CP-8 contract test suite (tests/test_codeburn_copilot_contract_receipt.py)
-   - Covers: ingest input status separation, report aggregate guard, report contract stabilisation,
-     summary consumer contract-bound, consumer bypass import guard, machine-readable receipt surface,
-     receipt cross-layer invariant guard, receipt contract_version + invariant code vocabulary
+FILES_TOUCHED: docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md, PLAN.md, memory/01_active_task.md, memory/2026-08-13.md, memory/2026-08-14.md, memory/2026-08-15.md, memory/2026-08-16.md, artifacts/session-closeout.txt
 
-3. Golden snapshot protection (tests/test_codeburn_copilot_contract_receipt_snapshot.py)
-   - Snapshot locks receipt shape, invariant_codes vocabulary, and safe_for_audit semantics
-   - Prevents downstream consumers from silently consuming a drifted receipt shape
+CHECKS_RUN: python -m governance_tools.memory_workflow --check --repo . --run-guard => completion_claim_allowed=True, active_non_canonical_writer=0, current_diff_b0_blocker_count=0, repo_state_b0_blocker_count=0, test_evidence_provenance_not_found=472; git diff --check over all six reconciliation paths reported no error; committed blob digests were recomputed and matched the reviewed worktree digests modulo CRLF-to-LF normalization; no pytest run belongs to this session.
 
-FILES_TOUCHED: codeburn/phase2/copilot_billing_contract_receipt.py, tests/test_codeburn_copilot_contract_receipt.py, tests/test_codeburn_copilot_contract_receipt_snapshot.py
+OPEN_RISKS: This file being schema-valid does not repair session binding. At least one automatic session_end firing has occurred since a parser-readable closeout was written, and each observed firing failed closed before evaluating any field: no envelope exists under artifacts/runtime/sessions/ for session_id 99dc75d4-1093-43c3-b3df-3b8f1029ecf2, so the pre-binding check returns session_envelope_missing and _fail_closed_session_binding_classification in governance_tools/session_end_hook.py replaces every layer result, which is why the candidate reports empty missing_fields and content_issues rather than computed ones. The candidate and canonical closeout under artifacts/runtime/ are mutable and are rewritten by each firing; they currently reflect that fail-closed classification rather than the contents of this file. A fail-closed entry with record_identity 93f67b04 bound to 97ad42e4 is present in memory/2026-08-16.md, and canonical writer deduplication may prevent an identical entry from being appended again. Refreshing this shared file is a per-session obligation, not a permanent repair: the next session that does not write its own closeout will read this one and be equally stale, and each rewrite of this file can itself trigger another fail-closed firing.
 
-CHECKS_RUN: python -m pytest tests/test_codeburn_copilot_contract_receipt.py tests/test_codeburn_copilot_contract_receipt_snapshot.py -v => 37/37 passed
+NOT_DONE: N3c-1 remains PAUSED / CHANGES_REQUESTED, uncommitted, still carrying revision 16's role-1 access mask and two named defects. N3c-2 is unauthorized. M2 stays CHANGES_REQUESTED behind an interim fail-closed refusal, blocking M3 and M4. The session-envelope gap is untouched, and no change was made to session_end_hook.py, the closeout schema, or any enforcement path.
 
-CAUSAL_ISOLATION: safe_for_audit is an internal contract-consistency signal, not a source-data truth guarantee. CP-8 locks receipt shape and invariant vocabulary; it does not assert Copilot billing source data correctness, session-level attribution, or Codex calibration.
-
-OPEN_RISKS: downstream closeout/summary consumer may still bypass receipt unless explicitly tested (CP-9 scope). /wrap-up candidate flow has a session_id lifecycle gap — candidates written by /wrap-up cannot be picked up by session_end (separate architectural fix required, not CP-8 scope). CP-8 files are untracked at closeout time — commit pending.
-
-NOT_DONE: CP-9 receipt-only closeout consumer smoke (next). Session_id lifecycle binding for /wrap-up candidate flow (separate architectural fix). Copilot vs Codex cross-calibration (explicitly out of scope for CP-1~CP-8).
-
-COMMIT_SUMMARY:
-  (pending) — codeburn: CP-8 receipt contract_version=0.2 + invariant code vocabulary + snapshot protection
+RECOMMENDED_MEMORY_UPDATE: NONE. The 2026-08-13 to 2026-08-16 span is already recorded canonically in memory/2026-08-16.md by record_identity e46532a9, 8e8e51fd and 0e79b46e, all bound to 0d95023d and committed in 97ad42e4.
