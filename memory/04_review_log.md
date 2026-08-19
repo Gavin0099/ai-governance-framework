@@ -4505,3 +4505,96 @@ parent.
 M3, then M4, then B-1. M3 is where the verified buffers meet a child that must
 not open a materialized path, and where the framed transport's bounds and
 frozen-digest authority stop being design and start being code.
+
+## 2026-08-19 — Gate 3 M3 design and M3-a
+
+Merged to `main` as `5204cd18` (PR #75). Design `a51cd4be`, implementation
+`daf4ec5e`. Seven review rounds: five on the design, two on the implementation.
+The first draft of this section claimed five and five. The implementation had
+one `CHANGES_REQUESTED` and one `APPROVED`; `daf4ec5e`'s own commit message
+already said two rounds, so the record contradicted the commit it described.
+Counting review rounds by how much work happened rather than by how many
+verdicts were returned is how a number like that grows.
+
+### The finding that shaped the tranche
+
+A child started with `-I -S -B` has exactly four `sys.path` entries, all under
+the interpreter's own installation, with `site-packages` absent and the runner's
+own directory absent as well. That is the isolation the design asked for, and it
+means the child cannot import the transport decoder or
+`gate3_historical_bootstrap` either. One mechanism, no sides taken.
+
+It also falsified a clause in the parent design: "every path passes the same
+grammar the parent applied" could not be implemented, because the parent's check
+asks about root escape on join, the child never joins, and the module cannot be
+imported. The subordinate document was marked **blocked** rather than asserting
+a stricter grammar over its own authority, and the authority was amended to
+revision 10.
+
+### Findings And Resolution
+
+**Two specified evidence items were impossible.** An ordering case wanted a legal
+path whose code-point order and UTF-8 byte order differ; byte-wise ordering of
+well-formed UTF-8 preserves scalar order, measured across 3,275,520 scalar pairs
+and 200,000 random string pairs with zero disagreements. A round-trip case wanted
+bytes that decode strictly but do not re-encode to themselves; strict UTF-8 is
+canonical, measured across every 1-, 2- and 3-byte sequence with zero failures.
+Both were tests named after invariants they could not check. Both rationales were
+rewritten beside the tests, because fixing only the test leaves the document
+asserting a reason the test no longer has.
+
+**The declared aggregate was not enforced before the payload read.** A stream
+declaring zero, with a record declaring one byte and omitting it, returned
+`RECORD_TRUNCATED` — the decoder had already tried to read.
+
+**And its neighbour was redundant.** The record loop also compared the running
+total against the global bound. A mutation showed that comparison could be
+deleted with the suite still green: the header already refuses a declaration
+above the bound, so the declared comparison is always the tighter one. Two
+comparisons where one decides read as though both were load-bearing, so it was
+removed rather than kept.
+
+**The evidence harness spawned git** to read the pinned payloads, while the same
+file's docstring said nothing spawns a child. Payloads are synthetic now, the
+cost is stated in the docstring, and a test asserts the file imports no
+process-starting module.
+
+**The ordering test measured the wrong region.** It searched the whole stream and
+found the paths inside the candidate-set JSON rather than the records. The tests
+now carry a second, independent framing walker.
+
+Also closed: `path.encode("utf-8")` could raise `UnicodeEncodeError` out of the
+encoder for a lone surrogate, escaping the closed error contract; and the grammar
+tests accepted either of two codes, which passes an implementation reporting a
+NUL as a length overrun.
+
+### Evidence
+
+- implementation `4c477109…` / tests `189588b4…`, focused suite 96/96.
+- Eighteen injected defects, each caught, **none surviving** — including both
+  aggregate comparisons, both digest comparisons, the authority ordering, the
+  encoder's sort key and the closed error mapping.
+- Canonical precommit against the exact state: exit 0, 201 passing.
+- CI on PR #75: twelve checks passed, none failed, `mergeState=CLEAN` confirmed
+  before the merge.
+
+### Not Claimed
+
+- M3-a is unreachable. `ACTIVE = False`, no production caller, no spawn, nothing
+  compiled, no historical module imported.
+- The trusted computing base is named rather than assumed. The runner is
+  executed by path and nothing verifies those bytes first, so "defends against a
+  corrupted parent" covers transport and data state and **not** the spawn
+  target. Runner identity and its TOCTOU window are accepted trust assumptions,
+  not deferred work.
+- The child's re-derivation is not independent verification in the strong sense:
+  both copies come from one author and one design.
+- The round trip is evidence about framing and verification, not about the four
+  historical modules — the payloads are synthetic. The authority evidence does
+  run against the real retained candidate-set bytes.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+M3-b, design first. It is the first tranche that executes historical code, and
+the design must not restate the runner's trust root as solved.

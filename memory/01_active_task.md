@@ -5,7 +5,7 @@
 
 # Active Task
 
-> Refreshed 2026-08-18 against branch head `ef554499`, using the `PLAN.md` in
+> Refreshed 2026-08-19 against branch head `5204cd18`, using the `PLAN.md` in
 > this uncommitted reconciliation diff rather than the `PLAN.md` contained in
 > the last commit. Source of truth: that reconciliation diff plus the exact-digest
 > reviews recorded in it. This is a point-in-time task summary, not a canonical
@@ -47,12 +47,21 @@
 | Held-handle read design amendment | `b7235036` |
 | Held-handle read implementation | `6e7393e2` |
 | M2 handle-bound materialization | `5a04ec79` |
+| M3 design, and the revision 10 authority amendment | `a51cd4be` |
+| M3-a framed transport | `daf4ec5e` |
 
-All eighteen rows are pushed to `origin/feat/gate3-historical-materialization`.
-The branch head is `ef554499`, a merge of `origin/main` taken to clear PR #73's
-BEHIND state; it is a merge rather than a rebase, and `git diff 5a04ec79 HEAD`
-is empty, so it carries no content of its own. Remote and local match exactly.
-PR #72 is merged as `5d184ee6`; PR #73 is open and carries the last two rows.
+All twenty rows are merged to `main`. The branch head is `5204cd18`, which is
+`origin/main` itself: PR #75 merged the last two rows plus the milestone
+reconciliation that preceded them, and the branch was then fast-forwarded onto
+the result. `HEAD` equals `origin/main` and nothing is behind it. The feature
+upstream is one commit further back, at `f2901eef`: the fast-forward moved the
+local branch onto the merge commit and that has not been pushed to the feature
+ref, so `HEAD` is ahead 1 / behind 0 against it.
+
+Merge history for this work item: PR #72 as `5d184ee6`, PR #73 as `d7d5485c`,
+PR #75 as `5204cd18`. PR #74 was another agent's work on
+`docs/governance/trust-boundary-taxonomy.md` and reached this branch only as a
+merge taken to clear BEHIND.
 
 ## Paused And Blocked
 
@@ -63,21 +72,25 @@ PR #72 is merged as `5d184ee6`; PR #73 is open and carries the last two rows.
   `gate3_final_message_runner_integration.py`. Its two construction-contract
   blockers are fixed; what blocks it is that changing the first two files
   breaks the source pin the historical candidate is verified against.
-- **M3 and M4** are not started. M2 no longer blocks them: it is delivered in
-  `5a04ec79`. What remains true of M2 is that nothing is wired to it —
-  `materialize()` and `cleanup()` refuse while `handle_boundary_available()`
-  and `ACTIVE` are `False` — and that its verification is not entirely
-  handle-bound, since the enumeration is still a path walk.
+- **M3-b and M4** are not started. M3-b is the first tranche that executes
+  historical code, and it needs its own design slice before any of it is
+  written.
+- Nothing is wired to M2 or to M3-a. `materialize()` and `cleanup()` refuse
+  while `handle_boundary_available()` is `False`; the transport's `ACTIVE` is
+  `False` and it has no caller. M2's verification is still not entirely
+  handle-bound, because the enumeration remains a path walk.
 - Group C candidate `20f202e1...` is on HOLD.
 
 ## Next Steps
 
-1. Land this reconciliation on the branch before PR #73 merges, so the
-   governance record does not trail the merged code.
-2. M3: the closed child loader over verified byte buffers, and the framed
-   transport that carries them. The child opens no materialized path; its
-   expected inventory comes from a digest frozen in its own code, not from the
-   stream and not from the active head.
+1. Land this reconciliation before M3-b begins, so the record is not trailing
+   the merged code at the moment historical execution starts.
+2. M3-b, design first: the `-I -S -B` spawn, the closed loader over verified
+   byte buffers, and the return channel. The child opens no materialized path
+   through that loader; its expected inventory comes from a digest frozen in
+   its own code, not from the stream and not from the active head. The runner's
+   trust root is an accepted assumption of M3 and must not be quietly restated
+   as solved.
 3. M4: the historical candidate verified against materialized historical bytes
    instead of against the live worktree.
 4. B-1 five-file re-review and delivery, once M4 removes the dependency its

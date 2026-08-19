@@ -1947,6 +1947,64 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 M3 design and M3-a delivered 2026-08-19.** Merged to `main` as
+  `5204cd18` (PR #75), carrying design commit `a51cd4be` and implementation
+  commit `daf4ec5e`. Exact implementation SHA-256 is
+  `4c47710923f951c474e4c332850e9aa31b6ee9015886b3efaa617a96fe6cdd86`; exact
+  test SHA-256 is
+  `189588b4da91bd626ca993f05533e9e2cd31cdd66faf8d4b0913cfc3b4918b89`. Focused
+  tests passed 96/96, eighteen injected defects were each caught with none
+  surviving, canonical precommit returned exit 0, and all twelve CI checks
+  passed before the merge.
+  One measurement decided the shape of everything else. A child started with
+  `-I -S -B` has exactly four `sys.path` entries, all under the interpreter's
+  own installation, with `site-packages` absent and **the runner's own
+  directory absent too**. The isolation that stops historical modules resolving
+  by path stops the trusted ones resolving by path in the same way, because it
+  is one mechanism and it does not take sides — so the child can import neither
+  the transport decoder nor `gate3_historical_bootstrap`. The transport is
+  therefore one self-contained stdlib-only file that the parent imports for its
+  encoder and the child will later execute as `__main__`, which is what makes
+  the encoder and the decoder *share* the wire grammar instead of agreeing
+  about it.
+  That measurement also falsified a clause in this work item's own authority.
+  Revision 8 required the child to apply "the same grammar the parent applied";
+  the parent's check asks whether a path can escape a materialized root when
+  joined to it, the child never joins a path, and it cannot import the module
+  the check lives in. Rather than assert a stricter grammar in the subordinate
+  document, the design was marked blocked and the authority was amended:
+  revision 10 specifies a wire grammar defined once and applied by both sides,
+  accepting a subset of what the containment check accepts, with that direction
+  bound by a test over a named corpus and the reverse inclusion recorded as
+  false with named witnesses.
+  Seven review rounds: five on the design, two on the implementation. An
+  earlier draft of this entry said five and five; the implementation went
+  through one `CHANGES_REQUESTED` and one `APPROVED`, which is two, and
+  `daf4ec5e`'s own message says so. Two findings generalize. **A specified evidence item can be impossible**: an ordering case
+  asked for a legal path whose code-point order and UTF-8 byte order differ,
+  and a round-trip case asked for bytes that decode strictly but do not
+  re-encode to themselves. Neither exists — measured, 3,275,520 scalar pairs
+  with zero order disagreements, and every 1-, 2- and 3-byte sequence with zero
+  round-trip failures. Both were tests named after invariants they could not
+  check, and the rationale in the document was rewritten beside each test,
+  because fixing only the test would leave the design asserting a reason the
+  test no longer had. **A redundant check reads as though it were
+  load-bearing**: the record loop compared the running total against both the
+  global bound and the header's declaration, and a mutation showed the global
+  comparison could be deleted with the suite still green, since the header
+  already refuses a declaration above the bound. It was removed rather than
+  kept.
+  Claim ceiling: `ACTIVE = False`, no production caller, no spawn, nothing
+  compiled and no historical module imported. The trusted computing base is
+  named rather than assumed — the runner is executed by path and nothing
+  verifies those bytes first, so "defends against a corrupted parent" covers
+  the parent's transport and data state and explicitly **not** the spawn
+  target, and runner identity and its TOCTOU window are accepted trust
+  assumptions rather than deferred work. The child's re-derivation is not
+  independent verification in the strong sense: both copies come from one
+  author and one design. M3-b and M4 are not started; the consumed pair remains
+  `NON_SUCCESS`.
+
 - [x] **Gate 3 held-handle read implemented 2026-08-18.** Commit `6e7393e2`
   adds `read_all(leaf)` to the boundary. Exact implementation SHA-256 is
   `f705a215085a99d713fdb8da1f7b3eb81044507b0c02a2f45304cc919401c117`; exact
@@ -2120,10 +2178,16 @@ Current blocking relationships for this work item:
 - M2 is complete and delivered in `5a04ec79`. `_contained` went with it: it
   guarded a path-based read that no longer exists, since `verify` now reads
   through the creating handle.
-- M3 is the next tranche: the child loader over verified byte buffers, and the
-  framed transport that carries them. M4 follows, and is what lets a historical
-  candidate be verified against materialized historical bytes instead of
-  against the live worktree — which is what B-1 is waiting for.
+- M3-a is complete and delivered in `daf4ec5e`, with its design in `a51cd4be`
+  and the authority amendment those two required in the same commit. It is the
+  framed transport and the child's own derivation of the expected inventory.
+- M3-b is the next tranche: the `-I -S -B` spawn, the closed loader over
+  verified byte buffers, and the return channel. **It is the first tranche that
+  executes historical code**, so it does not begin without its own design slice
+  and its own authorization.
+- M4 follows, and is what lets a historical candidate be verified against
+  materialized historical bytes instead of against the live worktree — which is
+  what B-1 is waiting for.
 - The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and
   `test_gate3_route_v2_ab_checkout.py` are caused by the uncommitted B-1
   worktree divergence. At `HEAD`, `gate3_route_v2.py` and
