@@ -8,7 +8,25 @@ about the historical modules below comes from reading their bytes at
 
 Date: 2026-08-19
 
-Revision: 5 — retires the scratch rules revision 4 replaced but left standing,
+Revision: 6 — puts `f26` and `f27` where the work actually is.
+
+Revision 5 excluded `f26`, `f27` and `f28` from M3-b-1 together, on the ground
+that they belong to the parent-side result object and therefore to `BLOCKED-2`.
+That is true of `f28` and false of the other two. `f26` is the frame's label
+set — completeness, grammar, ordering, duplicates — and `f27` is the frame's own
+internal consistency, a digest label against the bytes it travels with. Both are
+decisions the decoder has to make before it can return anything at all, so an
+M3-b-1 that omitted them would return a frame it had not finished checking.
+
+The distinction the exclusion was reaching for is real and is now stated
+directly: **the verified frame is not the reconstruction result.** `decode_result`
+returns four verified values; what a passing reconstruction *means* — including
+the two `"not asserted"` markers recording checks that were retired — is the
+result object, and that stays behind `BLOCKED-2`.
+
+`f28` is unchanged and still excluded.
+
+Revision 5 — retires the scratch rules revision 4 replaced but left standing,
 and corrects two evidence items.
 
 Revision 4 wrote the new two-branch scratch rule and left three older statements
@@ -526,8 +544,19 @@ labels and they are all required:
   rule above. A marker the child could set would be a marker the child could
   clear.
 
-- The two digest labels are recomputed by the parent from the two byte labels
-  and compared. A child agreeing with itself proves nothing; the comparison
+- The two digest labels are recomputed by the reader from the two byte labels
+  and compared. This is the frame checking itself, not the reconstruction being
+  verified: it establishes that the frame does not claim a digest for bytes it
+  did not carry, and nothing more. The comparison that matters — against the
+  retained artifacts — happens after the frame is accepted, in the result
+  object.
+
+**Where the boundary falls.** `decode_result` returns four verified values and
+stops. Everything about what those values *mean* — whether the reconstruction
+matches the retained artifacts, and the two `"not asserted"` markers recording
+the checks `BLOCKED-2` retires — belongs to the result object, which does not
+exist yet. The frame is finished when it is internally consistent; the result is
+finished when it says something about history. A child agreeing with itself proves nothing; the comparison
   that matters is against the retained artifacts, and that happens in the
   parent after the frame is accepted.
 
@@ -909,6 +938,8 @@ of their own.
 | Class | Items | What it starts |
 | --- | --- | --- |
 | in-process | `f5`–`f13`, `f18`, `f20`, `f26`–`f29` | nothing |
+| — of those, owned by M3-b-1 | `f5`–`f13`, `f18`, `f26`, `f27` | the frame and the loader |
+| — of those, waiting on `BLOCKED-2` | `f28`, and `f29`'s citation of it | the result object |
 | process-control integration | `f14`–`f17`, `f21`, `f21b`, `f22`–`f25` | real processes, all fixtures — a child that sleeps, a child that spawns a grandchild, a child created suspended |
 | full fixture transport run | `f19` | one end-to-end child, the only item exercising spawn, loader and return channel together |
 
@@ -946,9 +977,9 @@ executes historical code; that begins in M3-b-3.
 | f23b | hostile-name mutations, not only removal failure: a pre-existing directory at the name is refused rather than adopted; a junction planted at the name fails closed; and a directory replaced between creation and removal is refused by identity rather than deleted. A path-based `mkdir`/`rmtree` implementation fails all three |
 | f24 | the materialization `base` is neither the cwd nor written to: its identity and its immediate directory inventory are equal before and after a fixture run, and the child's observed cwd is not `base`. Asserted on the materialization base only — the scratch base is a different pinned ancestor and a different observation, and revision 4's "byte-identical" was not an observable a directory has |
 | f25 | no failure object contains `stderr` bytes: a fixture child writing a recognizable marker to `stderr` produces a failure carrying its length and digest and not the marker |
-| f26 | the return label set: each of the four required labels missing in turn gives `RESULT_INCOMPLETE`, an extra label gives `RESULT_INCOMPLETE`, a duplicate gives `RESULT_DUPLICATE_LABEL`, a descending pair gives `RESULT_LABEL_ORDER_INVALID`, and a label failing the grammar gives `RESULT_LABEL_INVALID` |
-| f27 | the parent recomputes both digests from the returned bytes: a frame whose digest label disagrees with its byte label gives `RESULT_DIGEST_MISMATCH` |
-| f28 | the retirement is visible rather than silent: a test asserts the reconstruction path calls neither `_verify_source_commit_inputs` nor `_verify_byte_preservation_attributes`; that the parent-side result object carries an explicit "not asserted" marker for both, constructed in the parent; and that a frame attempting to supply either marker as a label is refused by the completeness rule. An implementation that quietly omits them, one that quietly reintroduces a worktree comparison, and one that lets the child set the markers all fail |
+| f26 | **M3-b-1.** The return label set: each of the four required labels missing in turn gives `RESULT_INCOMPLETE`, an extra label gives `RESULT_INCOMPLETE`, a duplicate gives `RESULT_DUPLICATE_LABEL`, a descending pair gives `RESULT_LABEL_ORDER_INVALID`, and a label failing the grammar gives `RESULT_LABEL_INVALID`. This is the frame deciding whether it is a frame, which the decoder cannot defer |
+| f27 | **M3-b-1.** The reader recomputes both digests from the returned bytes: a frame whose digest label disagrees with its byte label gives `RESULT_DIGEST_MISMATCH`. Internal consistency of the frame, not verification of the reconstruction |
+| f28 | **Waits on `BLOCKED-2`**, because the object it inspects does not exist until then. The retirement is visible rather than silent: a test asserts the reconstruction path calls neither `_verify_source_commit_inputs` nor `_verify_byte_preservation_attributes`; that the parent-side result object carries an explicit "not asserted" marker for both, constructed in the parent; and that a frame attempting to supply either marker as a label is refused by the completeness rule. An implementation that quietly omits them, one that quietly reintroduces a worktree comparison, and one that lets the child set the markers all fail |
 | f29 | the property those checks asserted is asserted elsewhere and fails when broken: a materialized file whose bytes differ from the candidate-set digest is refused by M2's own verification before any child starts. This is M2's evidence, cited rather than duplicated, and `f28` is what stops the citation becoming a substitute for having it |
 
 Mutation sensitivity is required for `f5`, `f8`, `f9`, `f13`, `f14`, `f17`,
@@ -972,12 +1003,23 @@ decoder, and their failure codes. Everything in `f5`–`f13` and `f18` is
 reachable without starting a process, using fixture modules rather than
 historical ones. `ACTIVE` stays `False`.
 
+**What M3-b-1 owns.** The frame, completely. That includes its label set —
+completeness, grammar, ordering, duplicates — and the recomputation of its two
+digest labels against the bytes they travel with, so `f26` and `f27` are
+M3-b-1's. Revision 5 excluded them alongside `f28`, which was wrong: a decoder
+that returned a frame without deciding whether the label set was the frozen
+four, or whether a digest label matched its own bytes, would be returning
+something it had not finished checking.
+
 **What M3-b-1 must not build.** The parent-side result object and its two
-`"not asserted"` markers belong to `BLOCKED-2`, which is not authorized. M3-b-1
-delivers the frame encoder and decoder and stops there; building the result
-object early would be implementing a verification contract that has not been
-agreed, and `f26`, `f27` and `f28` therefore sit outside this tranche. The frame
-is not the result, and M3-b-1 owns only the frame.
+`"not asserted"` markers belong to `BLOCKED-2`, which is not authorized. `f28`
+therefore sits outside this tranche, and so does `f29`'s citation of it.
+Building the result object early would be implementing a verification contract
+that has not been agreed.
+
+The line between them is one sentence: **`decode_result` returns verified frame
+values; the result object says what a reconstruction means.** M3-b-1 owns the
+first and none of the second.
 
 **M3-b-2 — the spawn and teardown.** The parent-side process control, the
 environment and argument construction, the scratch directory's lifecycle, the
