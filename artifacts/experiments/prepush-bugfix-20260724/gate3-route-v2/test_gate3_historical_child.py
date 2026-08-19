@@ -11,7 +11,7 @@ printed at the top of the file; the payloads are now synthetic and no
 subprocess is started.
 
 What that costs, stated rather than glossed: the round trip is evidence about
-the framing and the verification, not about the four historical modules.  What
+the framing and the verification, not about the five historical modules.  What
 it does not cost is the authority evidence — `e6`, `e7` and `e11` still run
 against the **real retained candidate-set bytes** read from disk, so the frozen
 digest, the derivation and its agreement with `gate3_historical_bootstrap` are
@@ -357,6 +357,8 @@ REAL_EXPECTED_ORDER = [
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_ab.py",
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    b"gate3_route_v2_ab_candidate.py",
+    b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_ab_live.py",
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_codex.py",
@@ -366,7 +368,7 @@ REAL_EXPECTED_ORDER = [
 def test_e3_record_order_matches_an_expected_raw_byte_sequence() -> None:
     """Read out of the record region by the independent walker.
 
-    The real allowlist paths, because the order those four go in is the claim
+    The real allowlist paths, because the order those five go in is the claim
     that matters.  `encode_stream` enforces bounds and grammar and does not
     consult the inventory, so this needs no authority fixture and no payload
     bytes beyond a marker.

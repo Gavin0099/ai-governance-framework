@@ -64,6 +64,8 @@ RUNTIME_MODULE_ALLOWLIST = (
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2_ab.py",
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_ab_candidate.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2_ab_live.py",
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2_codex.py",
