@@ -127,19 +127,17 @@ Claim ceiling:
 ### awesome-agentic-ai-zh
 
 - Source: https://github.com/WenyuChiou/awesome-agentic-ai-zh
-- Registration basis: upstream commit
+- Reference snapshot: upstream commit
   `c051fa08a4ef1d04cf1ac63428fbbed44d515008` observed on 2026-08-18.
-- Role: Agent capability and engineering-pattern discovery only.
-- Consult when:
-  - designing agent runtime or harness behavior;
-  - evaluating tools, memory, subagents, retry, sandbox, human-in-the-loop,
-    observability, eval, browser-use, or computer-use capabilities;
-  - looking for candidate failure scenarios and focused tests.
-- Required handling:
-  1. Record the exact upstream commit and section consulted.
-  2. Map the capability to an existing boundary class in this taxonomy.
-  3. Separate implementation patterns from governance authority.
-  4. Require an observed failure before proposing a new governance surface.
+- Role: optional, non-normative capability and engineering-pattern reference.
+- It may be consulted only within an already-authorized task or when an
+  observed failure creates a concrete need for candidate implementation
+  patterns or focused test scenarios.
+- If consulted, keep its use traceable by recording the exact upstream commit
+  and section, mapping the candidate capability to an existing boundary class,
+  and separating implementation patterns from governance authority.
+- Listing this source does not create a new required workflow, consultation
+  gate, boundary class, or governance surface.
 - Not authority for:
   - governance requirements;
   - evidence admissibility;
