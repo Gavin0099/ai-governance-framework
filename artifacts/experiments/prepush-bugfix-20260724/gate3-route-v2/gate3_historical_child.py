@@ -845,18 +845,37 @@ def loaded_outside_loader(finder: BufferFinder, loaded: Mapping = None) -> tuple
 
     loaded = {} if loaded is None else loaded
     escaped = []
-    for name, module in list(sys.modules.items()):
-        if not _is_under(finder.root, getattr(module, "__file__", None)):
-            continue
+
+    # Pass one: every module we loaded is audited unconditionally.
+    #
+    # An earlier revision gated the whole audit on the module's *current*
+    # `__file__` being under the root, which a module can rewrite from its own
+    # top-level body. Setting `__file__` to somewhere outside skipped the gate
+    # and every check behind it, so the one module the audit exists for was the
+    # one able to opt out of it. Position is not what makes a module in scope;
+    # having loaded it is.
+    for name, module in loaded.items():
         spec = getattr(module, "__spec__", None)
         if (
-            name not in loaded
-            or module is not loaded[name]
+            sys.modules.get(name) is not module
             or name not in finder.names
             or getattr(module, "__file__", None) != finder.origin_of(name)
             or spec is None
             or getattr(spec, "loader", None) is not finder.loader_for(name)
         ):
+            escaped.append(name)
+
+    # Pass two: anything else claiming a place under the materialized root,
+    # by either its `__file__` or its spec's origin.
+    for name, module in list(sys.modules.items()):
+        if name in loaded:
+            continue
+        spec = getattr(module, "__spec__", None)
+        claims = (
+            getattr(module, "__file__", None),
+            getattr(spec, "origin", None) if spec is not None else None,
+        )
+        if any(_is_under(finder.root, claim) for claim in claims):
             escaped.append(name)
     return tuple(sorted(escaped))
 

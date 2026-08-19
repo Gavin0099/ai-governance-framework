@@ -1679,3 +1679,39 @@ def test_a_foreign_buffer_loader_is_not_ours(isolated_modules) -> None:
         )
     finally:
         sys.modules.pop("fx_alpha", None)
+
+
+def test_a_module_cannot_hide_by_rewriting_its_own_file(isolated_modules) -> None:
+    """The audit must not be gated on what the audited module says about itself.
+
+    A loaded module's top-level body can assign `__file__`, and an audit that
+    first asked whether `__file__` was under the root let that assignment skip
+    the root gate and every check behind it — object identity, expected origin
+    and exact loader all went unrun. The module the audit exists for was the one
+    able to opt out of it.
+
+    The spec's origin is rewritten too, so this cannot pass by the second pass
+    happening to catch it on position: the expected-module audit has to be the
+    thing that fires.
+    """
+
+    escaping = (
+        b"__file__ = 'C:/outside/hide.py'\n"
+        b"__spec__.origin = 'C:/outside/hide.py'\n"
+    )
+    with refuses("LOADER_BYPASSED"):
+        child.load_buffers({"pkg/fx_hide.py": escaping}, FIXTURE_ROOT)
+    assert "fx_hide" not in sys.modules
+
+
+def test_a_module_cannot_hide_by_swapping_its_own_spec(isolated_modules) -> None:
+    """The same escape by a different door: replace the spec rather than edit it."""
+
+    escaping = (
+        b"import importlib.machinery\n"
+        b"__spec__ = importlib.machinery.ModuleSpec("
+        b"'fx_swap', object(), origin='C:/outside/hide.py')\n"
+    )
+    with refuses("LOADER_BYPASSED"):
+        child.load_buffers({"pkg/fx_swap.py": escaping}, FIXTURE_ROOT)
+    assert "fx_swap" not in sys.modules
