@@ -1947,6 +1947,76 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** On branch
+  `feat/gate3-historical-materialization` at head `80b2a74c`, **not merged to
+  `main`**: design `8a8dbc2c` with its revision 6 in `70d62fd1`, implementation
+  `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
+  `ff0099e57f8ad5e999d9ef664a7918460b81e7b95083abf111747e8c955a4ef8`; exact
+  implementation SHA-256 is
+  `0f82201b05086d5fc4e01168c1fdadd7970cc29727cad2770ad8d9e8ff9566c6`; exact
+  test SHA-256 is
+  `cb13f458c200aaa4cbe50105c87404f17149e4ab1519fec0784556451bd99ea1`. Focused
+  tests pass 137/137, the mutation battery is 36 declared, 36 valid, zero
+  survivors, and canonical precommit returned exit 0 with 201 passing against
+  the exact state.
+  The design's main output is arguably not its mechanism but the three places
+  where it found it could not proceed on its own authority, each recorded as a
+  blocker rather than absorbed. **BLOCKED-1**: the reconstruction entrypoint is
+  not in the runtime allowlist, and the literal amendment widening executable
+  authority by one module is written out to be reviewed as that. **BLOCKED-2**:
+  two of the current verifier's checks are retired rather than moved — against
+  the materialized tree they compare a git blob to bytes materialized from that
+  blob, which the M1/M2 chain already asserts more strongly, and retiring a
+  check changes what verification means. **BLOCKED-3**: the process-control
+  surface is a second native boundary, and naming its Win32 calls is not
+  specifying it; `NATIVE-INTEROP` requires layouts, ownership, unwind and error
+  translation first, for a surface with eight calls, three kinds of handle and
+  at least six ways to fail.
+  M3-b-1 is therefore only the machinery the other two tranches sit on, built
+  where nothing executes it: the closed loader over the verified buffer map and
+  the `GATE3HR\0` return frame, in-process, no spawn, no native call, no
+  historical import. The loader is a `MetaPathFinder` returning `None` for every
+  name outside its inventory, so the standard library resolves normally; a
+  stdlib allowlist is deliberately absent, because it would have to be
+  maintained against a standard library older than the code importing from it.
+  The return frame is deliberately not the inbound format, carries four
+  required labels and no paths, and both its digest labels are recomputed
+  rather than trusted.
+  The findings that generalize, all from hostile probes against a green suite.
+  **Metadata a module can grant itself is not authority**: loader ownership
+  accepted any loader the finder had made, and a module can read its own
+  `__loader__` and put it on another module's spec. **Position is not what puts
+  a module in scope; having loaded it is** — the audit gated its whole check on
+  the module's current `__file__` being under the materialized root, so a
+  module body that reassigned `__file__` skipped the object-identity,
+  expected-origin and exact-loader checks together, and the one module the
+  audit exists for was the one able to leave its scope. **A specified evidence
+  item can be impossible**, the same shape M3-a already produced. **A redundant
+  check reads as load-bearing**, deletable with the suite green. **A
+  specification that does not retire beside the thing replacing it specifies
+  neither.** **A setting can read as a guarantee and provide nothing**:
+  `PYTHONHASHSEED=0` is ignored under `-I`, measured, and the determinism claim
+  it supported was withdrawn rather than re-explained. Six of the defects here
+  survived a green suite before their tests existed, which is why the mutation
+  harness now fails closed on an anchor that misses or matches twice.
+  Revision 6 corrected the design against its own implementation rather than
+  the reverse: revision 5 had excluded f26 and f27 to BLOCKED-2 with f28, but
+  the frame's label set and its internal digest consistency are decisions the
+  decoder must make before returning anything. The implementation had them
+  because they cannot be left out, and the authority was wrong.
+  Claim ceiling: nothing here executes, spawns, compiles or imports anything
+  historical. `ACTIVE` stays `False`, no availability predicate moved, nothing
+  calls in, and canonical precommit passing proves the repository gate still
+  passes with these files present and proves nothing about whether the loader is
+  right. Deliberately absent: the parent-side result object and its two "not
+  asserted" markers (BLOCKED-2), the spawn and process control (BLOCKED-3 and
+  M3-b-2), and how the child receives the materialized root — which argv, the
+  environment and the inbound frame all have no field for, recorded in the code
+  as an open dependency rather than defaulted to something convenient. The
+  runner's trust root and its TOCTOU window remain accepted assumptions of M3.
+  M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and BLOCKED-2; M4 is not
+  started; the consumed pair remains `NON_SUCCESS`.
+
 - [x] **Gate 3 M3 design and M3-a delivered 2026-08-19.** Merged to `main` as
   `5204cd18` (PR #75), carrying design commit `a51cd4be` and implementation
   commit `daf4ec5e`. Exact implementation SHA-256 is
@@ -2181,10 +2251,24 @@ Current blocking relationships for this work item:
 - M3-a is complete and delivered in `daf4ec5e`, with its design in `a51cd4be`
   and the authority amendment those two required in the same commit. It is the
   framed transport and the child's own derivation of the expected inventory.
-- M3-b is the next tranche: the `-I -S -B` spawn, the closed loader over
-  verified byte buffers, and the return channel. **It is the first tranche that
-  executes historical code**, so it does not begin without its own design slice
-  and its own authorization.
+- M3-b has its design in `8a8dbc2c`, revised in `70d62fd1`, and its first
+  tranche delivered in `cfa2c1ec` with the audit fix `80b2a74c`. M3-b-1 is the
+  closed loader over the verified buffer map and the `GATE3HR ` return frame,
+  built in-process where nothing executes it: no spawn, no native call, no
+  historical import, `ACTIVE` still `False` and no caller. **It is still true
+  that no committed tranche executes historical code.**
+- M3-b-2, the `-I -S -B` spawn and process control, waits on **BLOCKED-3**: the
+  process-control surface is a second native boundary and `NATIVE-INTEROP`
+  requires its layouts, ownership, unwind and error translation first.
+- M3-b-3, the reconstruction call, waits on **BLOCKED-1** — the reconstruction
+  entrypoint is not in the runtime allowlist and the amendment widening
+  executable authority by one module is written but not accepted — and on
+  **BLOCKED-2**, the retirement of two verifier checks, which is an amendment
+  rather than a plumbing decision.
+- How the child receives the materialized root is an unresolved dependency, not
+  a default: argv, the environment and the inbound frame have no field for it,
+  and that is recorded in the code rather than filled in with something
+  convenient.
 - M4 follows, and is what lets a historical candidate be verified against
   materialized historical bytes instead of against the live worktree — which is
   what B-1 is waiting for.
@@ -2205,8 +2289,9 @@ Current blocking relationships for this work item:
   unprotected.
 - No manifest is repinned, no pair evidence is rewritten, and the consumed
   `NON_SUCCESS` pair does not regain usability through any of this.
-- M3 and M4 are not started. Nothing is wired to M2, and no availability
-  flag moved: `handle_boundary_available()` and `ACTIVE` are both `False`.
+- M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
+  wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
+  `handle_boundary_available()` and `ACTIVE` are both `False`.
 - Credentials, preflight and live remain unauthorized.
 
 Claim ceiling: this work item has produced design authority, an independent

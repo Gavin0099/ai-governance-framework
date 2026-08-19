@@ -5,12 +5,12 @@
 
 # Active Task
 
-> Refreshed 2026-08-19 against branch head `5204cd18`, using the `PLAN.md` in
+> Refreshed 2026-08-19 against branch head `80b2a74c`, using the `PLAN.md` in
 > this uncommitted reconciliation diff rather than the `PLAN.md` contained in
-> the last commit. Source of truth: that reconciliation diff plus the exact-digest
-> reviews recorded in it. This is a point-in-time task summary, not a canonical
-> session-derived memory entry and not evidence that any claim below was
-> independently re-verified today.
+> the last commit. Source of truth: that reconciliation diff, the five commit
+> messages it reconciles, and the exact-digest reviews recorded in them. This is
+> a point-in-time task summary, not a canonical session-derived memory entry and
+> not evidence that any claim below was independently re-verified today.
 
 ## Current Focus
 
@@ -49,14 +49,17 @@
 | M2 handle-bound materialization | `5a04ec79` |
 | M3 design, and the revision 10 authority amendment | `a51cd4be` |
 | M3-a framed transport | `daf4ec5e` |
+| Milestone reconciliation through M3-a | `62da7b6f` |
+| M3-b design, and its three refused amendments | `8a8dbc2c` |
+| M3-b design revision 6, f26/f27 returned to the frame | `70d62fd1` |
+| M3-b-1 closed loader and return frame | `cfa2c1ec` |
+| M3-b-1 module-audit opt-out fix | `80b2a74c` |
 
-All twenty rows are merged to `main`. The branch head is `5204cd18`, which is
-`origin/main` itself: PR #75 merged the last two rows plus the milestone
-reconciliation that preceded them, and the branch was then fast-forwarded onto
-the result. `HEAD` equals `origin/main` and nothing is behind it. The feature
-upstream is one commit further back, at `f2901eef`: the fast-forward moved the
-local branch onto the merge commit and that has not been pushed to the feature
-ref, so `HEAD` is ahead 1 / behind 0 against it.
+The first twenty rows are merged to `main` as `5204cd18`. **The last five rows
+are not.** They sit on `feat/gate3-historical-materialization` at head
+`80b2a74c`, pushed to the feature ref — local and upstream are `0/0` — with no
+pull request opened for them and `origin/main` unchanged. Anything a reader
+takes from `main` alone therefore stops at M3-a.
 
 Merge history for this work item: PR #72 as `5d184ee6`, PR #73 as `d7d5485c`,
 PR #75 as `5204cd18`. PR #74 was another agent's work on
@@ -72,28 +75,51 @@ merge taken to clear BEHIND.
   `gate3_final_message_runner_integration.py`. Its two construction-contract
   blockers are fixed; what blocks it is that changing the first two files
   breaks the source pin the historical candidate is verified against.
-- **M3-b and M4** are not started. M3-b is the first tranche that executes
-  historical code, and it needs its own design slice before any of it is
-  written.
-- Nothing is wired to M2 or to M3-a. `materialize()` and `cleanup()` refuse
-  while `handle_boundary_available()` is `False`; the transport's `ACTIVE` is
-  `False` and it has no caller. M2's verification is still not entirely
-  handle-bound, because the enumeration remains a path walk.
+- **M3-b is designed and partly delivered; M4 is not started.** M3-b-1 is the
+  closed loader and the return frame, built in-process where nothing executes
+  it. Its two successors are each blocked on a named amendment:
+  - **BLOCKED-1** — the reconstruction entrypoint is not in the runtime
+    allowlist. The literal amendment is written; it widens executable authority
+    by one module and must be reviewed as that. Blocks M3-b-3.
+  - **BLOCKED-2** — two of the current verifier's checks are retired rather
+    than moved. Against the materialized tree they compare a git blob to bytes
+    materialized from that blob, which the M1/M2 chain asserts more strongly.
+    Retiring a check changes what verification means. Blocks M3-b-3, and owns
+    the parent-side result object with its two "not asserted" markers.
+  - **BLOCKED-3** — the process-control surface is a second native boundary.
+    `NATIVE-INTEROP` requires layouts, ownership, unwind and error translation
+    first, for eight calls, three kinds of handle and at least six ways to
+    fail. Blocks M3-b-2.
+- **How the child receives the materialized root is unresolved.** argv, the
+  environment and the inbound frame have no field for it. It is recorded in the
+  code as an open dependency rather than defaulted.
+- Nothing is wired to M2, to M3-a, or to M3-b-1. `materialize()` and
+  `cleanup()` refuse while `handle_boundary_available()` is `False`; `ACTIVE` is
+  `False` and nothing calls in. No committed tranche executes historical code.
+  M2's verification is still not entirely handle-bound, because the enumeration
+  remains a path walk.
 - Group C candidate `20f202e1...` is on HOLD.
 
 ## Next Steps
 
-1. Land this reconciliation before M3-b begins, so the record is not trailing
-   the merged code at the moment historical execution starts.
-2. M3-b, design first: the `-I -S -B` spawn, the closed loader over verified
-   byte buffers, and the return channel. The child opens no materialized path
-   through that loader; its expected inventory comes from a digest frozen in
-   its own code, not from the stream and not from the active head. The runner's
-   trust root is an accepted assumption of M3 and must not be quietly restated
-   as solved.
-3. M4: the historical candidate verified against materialized historical bytes
+1. Land this reconciliation, so the record is not trailing the branch at the
+   moment the blocked amendments are taken up.
+2. **BLOCKED-1** — submit the written allowlist amendment for review as what it
+   is: a widening of executable authority by one module.
+3. **BLOCKED-2** — decide the retirement of the two verifier checks as an
+   amendment, not as plumbing, and define the parent-side result object and its
+   two "not asserted" markers with it.
+4. **BLOCKED-3** — specify the process-control native boundary to
+   `NATIVE-INTEROP`: layouts, ownership, unwind and error translation for eight
+   calls, three kinds of handle and at least six ways to fail. One layout oracle
+   and one unwind rule were already rejected as insufficient for this surface.
+5. Then M3-b-2 (spawn, behind BLOCKED-3) and M3-b-3 (reconstruction, behind
+   BLOCKED-1 and BLOCKED-2). The runner's trust root is an accepted assumption
+   of M3 and must not be quietly restated as solved; how the child receives the
+   materialized root is still unanswered and must not be defaulted.
+6. M4: the historical candidate verified against materialized historical bytes
    instead of against the live worktree.
-4. B-1 five-file re-review and delivery, once M4 removes the dependency its
+7. B-1 five-file re-review and delivery, once M4 removes the dependency its
    edits currently break.
 
 ## Open Risks
@@ -124,7 +150,13 @@ merge taken to clear BEHIND.
   does is create, rename or delete a filesystem object, or run the absence
   probe.
 - Cannot treat accepted design bytes as an implementation, or exact-digest
-  review approval as runtime evidence.
+  review approval as runtime evidence. M3-b-1 passing 137/137 focused tests and
+  a 36/36 zero-survivor mutation battery is evidence about the loader in
+  isolation; canonical precommit at exit 0 proves the repository gate still
+  passes with these files present and proves nothing about whether the loader is
+  right.
+- Cannot claim any committed tranche executes, spawns, compiles or imports
+  historical code. M3-b-1 does none of those.
 - Cannot claim that a real consumer was updated or fully adopted.
 - Cannot claim that report-only behavior is enforcement.
 - Cannot claim the workspace is clean; it is NOT CLEAN by design here.

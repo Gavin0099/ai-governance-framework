@@ -4598,3 +4598,138 @@ NUL as a length overrun.
 
 M3-b, design first. It is the first tranche that executes historical code, and
 the design must not restate the runner's trust root as solved.
+
+## 2026-08-19 — Gate 3 M3-b design and M3-b-1
+
+On `feat/gate3-historical-materialization`, **not merged to `main`**. Design
+`8a8dbc2c`, its revision 6 `70d62fd1`, implementation `cfa2c1ec`, audit fix
+`80b2a74c`. Five review rounds on the design, three on the implementation, plus
+a pre-push audit that produced the fix commit after the suite was already green.
+
+### The finding that shaped the tranche
+
+The design's main output is arguably not its mechanism but three places where it
+found it could not proceed on its own authority, and named them instead of
+absorbing them.
+
+**BLOCKED-1.** The reconstruction entrypoint is not in the runtime allowlist:
+the functions that rebuild the retained artifacts live in a module the child
+never receives. The literal amendment is written out. It widens executable
+authority by one module and has to be reviewed as that.
+
+**BLOCKED-2.** Two of the current verifier's checks are retired rather than
+moved. An earlier revision said they move to the parent, which is not a
+resolution. Against the live worktree they compare the present to the pinned
+commit — the exact coupling B-1 is blocked on. Against the materialized tree
+they compare a git blob to bytes materialized from that blob, which the M1/M2
+chain already asserts more strongly. Retiring a check changes what verification
+means, so it is an amendment, not a plumbing decision.
+
+**BLOCKED-3.** The process-control surface is a second native boundary. Naming
+its Win32 calls is not specifying it. `NATIVE-INTEROP` requires layouts,
+ownership, unwind and error translation first, and an earlier revision offered
+one layout oracle and one unwind rule for a surface with eight calls, three
+kinds of handle and at least six ways to fail.
+
+### Findings And Resolution
+
+**Metadata a module can grant itself is not authority.** Loader ownership
+accepted any loader the finder had made. A module can read its own `__loader__`
+and put it on another module's spec. Acceptance now requires four things the
+parent recorded itself: the name is one we loaded, the object is the one we
+created, `__file__` equals the origin we assigned it, and the loader is the one
+we made for that name.
+
+**Position is not what puts a module in scope; having loaded it is.**
+`loaded_outside_loader` gated its whole check on the module's current `__file__`
+being under the materialized root — and a module's top-level body can assign
+`__file__`. A module that set it elsewhere skipped the gate and everything
+behind it: object identity, expected origin and exact loader all went unrun. The
+one module the audit exists for was the one able to leave its scope. The check
+is two passes now: every module we loaded is audited unconditionally, then
+everything else in `sys.modules` is scanned for a claim on a position under the
+root, by `__file__` or by spec origin. Two hostile tests, because there are two
+doors — a body that rewrites both `__file__` and its spec's origin, and one that
+replaces the spec object outright. The first rewrites both deliberately, so it
+cannot pass by the second pass catching it on position; the unconditional audit
+has to be what fires.
+
+**A private module registry is not private.** `load_buffers` took a modules
+mapping so tests could pass a dict. The `import` statement consults
+`sys.modules` regardless, so a private registry produced a second module object
+for every circular import and leaked it into the global table anyway. The
+parameter is gone.
+
+**The loader had no materialized-root authority.** `__file__` and origin were
+repo-relative, so historical code resolving `Path(__file__)` would land in the
+scratch directory, and the bypass check compared against the four origins it
+knew rather than against the root — a foreign module loaded from any other file
+under that root was invisible to it. Relatedly, root was any non-empty string
+and containment was a raw case-sensitive `startswith`, which on Windows treats a
+case variant of the same directory as different and accepts a sibling whose name
+merely begins with the root.
+
+**Cleanup replaced the error that caused it.** A module body that removed the
+finder and then raised surfaced as `LOADER_INSTALL_FAILED`, hiding
+`MODULE_EXEC_FAILED` — the rule M2's teardown already carries. And the cleanup
+removed only the first finder occurrence, so a body that appended it again left
+a live finder answering imports after a successful return.
+
+**A setting can read as a guarantee and provide nothing.** `PYTHONHASHSEED=0` is
+ignored under `-I`. Measured, and the determinism claim it supported was
+withdrawn rather than re-explained.
+
+**A specified evidence item can be impossible** — two were, the same shape M3-a
+produced. **A redundant check reads as load-bearing** — the record loop's
+global-bound comparison was deletable with the suite green, because the header
+already refuses the declaration above it. **A specification that does not retire
+beside the thing replacing it says both and therefore specifies neither** —
+revision 4 wrote a new two-branch scratch rule and left three older statements
+requiring unconditional removal. **An action can be specified that leaves a real
+resource behind** — closing the handles of a suspended process does not
+terminate it, and a non-empty scratch directory cannot be removed through a
+handle nobody holds.
+
+**Revision 6 corrected the design against its own implementation.** Revision 5
+excluded f26, f27 and f28 to BLOCKED-2 together. That is true of f28 and false
+of the other two: f26 is the frame's label set and f27 is its internal digest
+consistency, both decisions the decoder must make before it can return anything.
+An M3-b-1 that omitted them would return a frame it had not finished checking.
+The implementation had them because they cannot be left out; the authority said
+they belonged to somebody else, and the authority was wrong. The distinction it
+was reaching for is now stated directly: the verified frame is not the
+reconstruction result.
+
+### Evidence
+
+- Design `ff0099e5…`, implementation `0f82201b…`, tests `cb13f458…`.
+- Focused suite 137/137. Mutation battery 36 declared, 36 valid, **zero
+  survivors**; deleting the expected-module audit and re-adding the `__file__`
+  gate are both caught.
+- A third mutation had gone stale against the refactor and was caught by the
+  harness's own fail-closed anchor check rather than reported as covered. Six of
+  the defects above survived a green suite before their tests existed, which is
+  why the harness now fails closed on an anchor that misses or matches twice.
+- Canonical precommit against the exact state: exit 0, 201 passing.
+- No CI evidence: no pull request has been opened for these commits.
+
+### Not Claimed
+
+- Nothing here executes, spawns, compiles or imports historical code. `ACTIVE`
+  is `False`, no availability predicate moved, nothing calls in.
+- Canonical precommit passing proves the repository gate still passes with these
+  files present. It proves nothing about whether the loader is right.
+- The runner's trust root and its TOCTOU window remain accepted assumptions of
+  M3, not solved problems.
+- How the child receives the materialized root is unresolved. argv, the
+  environment and the inbound frame have no field for it, and it is recorded in
+  the code as an open dependency rather than defaulted to something convenient.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Take the three blockers in order and separately: BLOCKED-1's allowlist amendment
+for review, BLOCKED-2's retirement decided as an amendment together with the
+parent-side result object, and BLOCKED-3 specified to `NATIVE-INTEROP` before
+any process-control code is written. M3-b-2 and M3-b-3 do not begin ahead of
+them.
