@@ -122,6 +122,29 @@ Claim ceiling:
 | Subagents | Delegated execution surface | delegation surface requiring boundary description | subagent means OS isolation |
 | Checkpoint/rollback | Reviewer aid | improves recovery and reconstruction | rollback proves safety |
 
+## External Capability Discovery Sources
+
+### awesome-agentic-ai-zh
+
+- Source: https://github.com/WenyuChiou/awesome-agentic-ai-zh
+- Reference snapshot: upstream commit
+  `c051fa08a4ef1d04cf1ac63428fbbed44d515008` observed on 2026-08-18.
+- Role: optional, non-normative capability and engineering-pattern reference.
+- It may be consulted only within an already-authorized task or when an
+  observed failure creates a concrete need for candidate implementation
+  patterns or focused test scenarios.
+- If consulted, keep its use traceable by recording the exact upstream commit
+  and section, mapping the candidate capability to an existing boundary class,
+  and separating implementation patterns from governance authority.
+- Listing this source does not create a new required workflow, consultation
+  gate, boundary class, or governance surface.
+- Not authority for:
+  - governance requirements;
+  - evidence admissibility;
+  - runtime containment;
+  - qualification or G4 claims;
+  - automatic framework expansion.
+
 ## Response Envelope Implications
 
 When reporting work involving an agent runtime surface:
