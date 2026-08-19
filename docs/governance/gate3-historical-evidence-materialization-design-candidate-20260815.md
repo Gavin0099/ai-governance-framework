@@ -5,7 +5,27 @@ authority
 
 Date: 2026-08-15
 
-Revision: 8 — the isolation table's own `child` row still said the child "loads
+Revision: 10 — revision 9's changelog stated the measurement backwards. It said
+the interpreter's stdlib roots were on `sys.path` with "the runner's own
+directory included", where what was measured is that the runner's own directory
+is *excluded*. The sentence is corrected below. Nothing else changes, and the
+normative bullet revision 9 introduced is untouched; revision 9 never landed, so
+this correction reaches no reader who saw the wrong sentence as authority.
+
+Revision 9 — the child's path check said "the same grammar the parent
+applied", which cannot be implemented as written. The parent's check is
+`gate3_historical_materialize._checked_relative`, whose question is whether a
+path can escape the materialized root when joined to it; the child never joins a
+path to anything, and cannot import that module at all, because a child started
+with `-I -S -B` has only the interpreter's own stdlib roots on `sys.path`, with
+even the runner's own directory excluded. Requiring the same check therefore
+required either an import that is impossible or a second implementation that
+"same" then forbade. Replaced with a wire grammar defined once and applied by both sides,
+and with the relationship between the two checks stated instead of assumed.
+Nothing else changes: the framing table, the bounds, the authority chain, the
+loader and the transport are untouched.
+
+Revision 8 — the isolation table's own `child` row still said the child "loads
 the materialized tree", two rows above the ones stating that repo-local modules
 are never found on a path. It reads equally as loading from the materialized
 filesystem, which revision 7 retired, or as loading buffers that came from it,
@@ -299,7 +319,13 @@ Before compiling anything the child checks:
 
 - the framing consumed the stream exactly, with no trailing byte;
 - the magic and version are the ones above;
-- every path passes the same grammar the parent applied;
+- every path passes the wire grammar, which is defined once in the trusted
+  child module and applied identically by the parent when it encodes and by
+  the child when it decodes. It is not the parent's filesystem-containment
+  check: that one answers whether a path can escape a materialized root when
+  joined to it, which the child never does. The wire grammar accepts a subset
+  of what the containment check accepts, and a test asserts that direction
+  over a named corpus;
 - the path set equals the inventory derived from the verified candidate-set
   bytes — no duplicate, no extra, none missing — and the records are in the
   required order;
