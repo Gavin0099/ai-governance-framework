@@ -5,7 +5,19 @@ authority
 
 Date: 2026-08-15
 
-Revision: 10 — revision 9's changelog stated the measurement backwards. It said
+Revision: 11 — the BLOCKED-2 amendment of the M3-b design, made under human
+authorization. Step 9 is appended to *Bootstrap validation happens before any
+historical code runs*: `_verify_source_commit_inputs` and
+`_verify_byte_preservation_attributes` are retired from the reconstruction path
+rather than relocated onto it. This changes what a passing verification means,
+which is why it is an amendment to this document and not a decision inside the
+subordinate one. It reaches no implementation: no code changes here, and the
+result object that carries the two "not asserted" markers belongs to M3-b-3,
+which is not written. Nothing else in this document changes — the authority
+chain, the framing table, the bounds, the loader and the transport are
+untouched.
+
+Revision 10 — revision 9's changelog stated the measurement backwards. It said
 the interpreter's stdlib roots were on `sys.path` with "the runner's own
 directory included", where what was measured is that the runner's own directory
 is *excluded*. The sentence is corrected below. Nothing else changes, and the
@@ -391,6 +403,38 @@ Steps 1–4 execute no historical code. Only after all four:
 7. start the child, handing it the verified buffers;
 8. after the child returns, re-read through the same handles and re-check each
    digest — see the limit on what that check can and cannot do, below.
+9. The historical verifier's `_verify_source_commit_inputs` and
+   `_verify_byte_preservation_attributes` are **not** part of the reconstruction
+   path and are not reimplemented on it. Both require a git repository, which a
+   materialized tree is not; run against the live worktree they compare the
+   present to the pinned commit, which is the coupling this design exists to
+   remove. The property they assert is asserted by steps 2, 4 and 6: the
+   expected inventory and digests are derived from candidate-set bytes checked
+   against a frozen literal, and every materialized file is verified against
+   that inventory through the handle that created it, with no name resolved
+   between the write and the read. A reconstruction that passes therefore makes
+   no claim about the live worktree, and none is wanted.
+
+**What step 9 costs, stated rather than absorbed.** It is a retirement, not a
+relocation, and it narrows what a passing reconstruction means. Three readings
+were followed to their ends before it was written:
+
+| Semantics | Result |
+| --- | --- |
+| the parent compares the **live worktree** to `git show SOURCE_COMMIT:path` | the original function unchanged. It fails today for the B-1 divergence, and it is the exact coupling M4 exists to remove; adopting it here would rebuild the defect this work stream is unwinding |
+| the parent compares the **materialized files** to the same git blobs | a tautology. M2 materialized those bytes *from* those blobs and verified each digest through a held handle on the way |
+| the checks are **superseded** by the M1/M2 authority chain | correct, and the reason this is an amendment rather than a plumbing decision |
+
+The `.gitattributes` check is retired on the same ground and by the same
+argument: it asks a question about how a git repository would render bytes, and
+the reconstruction never renders them — it receives the exact bytes the digest
+chain already fixed.
+
+What must not be claimed downstream is that the reconstruction performs these
+two checks, or performs an equivalent of them. It does neither. It relies on an
+earlier link having done so, and the parent-side result object carries an
+explicit "not asserted" marker for each, constructed in the parent, so the
+retirement is visible in the result rather than silent in the code.
 
 ### Temporary root: identity, sealing and crash semantics
 

@@ -8,7 +8,22 @@ about the historical modules below comes from reading their bytes at
 
 Date: 2026-08-19
 
-Revision: 6 — puts `f26` and `f27` where the work actually is.
+Revision: 7 — `BLOCKED-1` and `BLOCKED-2` are resolved by amendment, under human
+authorization, and this document is updated so that it does not go on saying
+they are open.
+
+`BLOCKED-1` is amended in code: `RUNTIME_MODULE_ALLOWLIST` is five modules in
+both frozen copies, and the widening carries an independent literal pin in the
+bootstrap tests so a sixth cannot arrive with a green suite. `BLOCKED-2` is
+amended in its own authority document — the historical evidence materialization
+design, now revision 11 — where step 9 appends the retirement.
+
+What this revision does **not** do is unblock the tranches wholesale. `M3-b-3`
+now has a defined callee and a defined verification contract, so its remaining
+prerequisite is that it be written and reviewed. `M3-b-2` is untouched:
+`BLOCKED-3` is a design slice, not an amendment, and it is still open.
+
+Revision 6 — puts `f26` and `f27` where the work actually is.
 
 Revision 5 excluded `f26`, `f27` and `f28` from M3-b-1 together, on the ground
 that they belong to the parent-side result object and therefore to `BLOCKED-2`.
@@ -724,6 +739,18 @@ without qualification.
 **Until an amendment is authorized, state 5 has no defined callee and M3-b
 cannot be implemented.** No amendment is made in this document.
 
+> **Resolved by revision 7.** Option (a) was authorized by the human and applied
+> in commit `fa10dda8`, in both frozen copies of the allowlist. The paragraph
+> above is kept as written because it is the reasoning the amendment was granted
+> on, not because the blocker is still open. State 5 now has a defined callee.
+>
+> One thing the amendment found out about itself, recorded here because it is
+> the reusable part: **nothing failed when the fifth entry was added.** Every
+> allowlist test compared the module against itself, and the test binding the
+> child's copy to the bootstrap's stays true when both copies grow together, so
+> executable authority could widen with a green suite. The amendment therefore
+> also added a literal pin outside the module.
+
 ## The split entrypoint: what runs in the child, and what cannot
 
 Revision 1 recorded this as `BLOCKED-2` and proposed to resolve it by amending
@@ -883,6 +910,20 @@ historical code runs*, appended after step 8:
 **No amendment is made here.** Until it is authorized, M3-b-3 has no defined
 verification contract, and M3-b-1 and M3-b-2 — which touch neither check —
 are unaffected.
+
+> **Resolved by revision 7.** The human authorized it, and the amendment was
+> made where it belongs: the historical evidence materialization design is now
+> revision 11, and the text above is appended there as step 9. M3-b-3 therefore
+> has a defined verification contract.
+>
+> What is *not* resolved by that is `f28` and the parent-side result object. The
+> amendment states that the two checks are retired and that the retirement must
+> be visible in the result; it does not write the object that carries the two
+> `"not asserted"` markers. That object is built in M3-b-3, and the evidence item
+> asserting it — that the reconstruction path calls neither function, that both
+> markers are constructed in the parent, and that a frame trying to supply
+> either marker as a label is refused by the completeness rule — is written when
+> the tranche is.
 
 ---
 
