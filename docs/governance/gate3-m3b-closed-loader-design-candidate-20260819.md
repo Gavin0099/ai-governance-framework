@@ -20,8 +20,12 @@ design, now revision 11 — where step 9 appends the retirement.
 
 What this revision does **not** do is unblock the tranches wholesale. `M3-b-3`
 now has a defined callee and a defined verification contract, so its remaining
-prerequisite is that it be written and reviewed. `M3-b-2` is untouched:
-`BLOCKED-3` is a design slice, not an amendment, and it is still open.
+prerequisite is that it be written and reviewed. `M3-b-2` is not unblocked:
+`BLOCKED-3` is a design slice, not an amendment, so no authorization closes it.
+The slice is now written — see the note under `BLOCKED-3` — and it closes three
+of its four specification obligations while leaving the layouts open, because
+the oracle needs an SDK package this environment does not have and writing the
+offsets from memory would defeat the requirement it appeared to satisfy.
 
 Revision 6 — puts `f26` and `f27` where the work actually is.
 
@@ -877,6 +881,29 @@ What a process-control design slice must close before M3-b-2 begins:
 Whether that slice extends `gate3_native_boundary` or stands beside it is its
 own question. **M3-b-2 does not begin until it exists**, and M3-b-1 — which
 starts no process — is unaffected.
+
+> **Written, not closed — revision 7.** The slice is
+> `docs/governance/gate3-m3b2-process-control-boundary-design-candidate-20260819.md`.
+> It closes ownership, the unwind matrix and error translation, and specifies
+> the sensitivity evidence. It does **not** close the layouts: the oracle
+> extractor reads a digest-pinned SDK package that is not present in this
+> environment, and no Windows SDK include directory is installed either — both
+> checked rather than assumed. Rather than write sizes and offsets from
+> recollection, which would put a third authority beside the declarations and
+> the oracle and make an assumption indistinguishable from a measurement, the
+> slice names the four steps that produce the artifact and stops.
+>
+> Two things the slice found by following the requirement to its end. **The
+> surface is larger than the count above**: restricting what the child inherits
+> needs `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`, which adds `STARTUPINFOEXW`, an
+> attribute list and three more calls — fourteen calls and four owned resources,
+> and the attribute list is the one whose leak is silent. And **the obvious
+> shortcut does not work**: `bInheritHandles = FALSE` with the standard handles
+> set in `STARTUPINFOW` produces a child with no usable stdin, because those
+> fields are only honoured when inheritance is on.
+>
+> `BLOCKED-3` therefore stays open. It closes when the slice is accepted **and**
+> the oracle artifact covering the seven types exists.
 
 ---
 
