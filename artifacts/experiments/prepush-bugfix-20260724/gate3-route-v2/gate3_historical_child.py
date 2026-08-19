@@ -32,7 +32,11 @@ from __future__ import annotations
 
 import collections.abc
 import hashlib
+import importlib.machinery
+import os.path
 import json
+import sys
+import types
 from typing import Mapping
 
 
@@ -66,8 +70,8 @@ RUNTIME_MODULE_ALLOWLIST = (
 )
 
 ACTIVE = False
-"""M3-a is not wired into anything.  M3-b starts the child; M4 switches the
-production path."""
+"""Not wired into anything.  M3-b-2 starts the child; M4 switches the production
+path."""
 
 
 # --- the wire ---------------------------------------------------------------
@@ -461,3 +465,473 @@ def decode_stream(stream: bytes) -> dict:
     if cursor.remaining:
         raise TransportError("TRAILING_BYTES")
     return payloads
+
+
+# ===========================================================================
+# M3-b-1: the closed loader and the return frame
+#
+# Authority: `docs/governance/gate3-m3b-closed-loader-design-candidate-20260819.md`
+# revision 5.  This tranche is in-process only.  It starts no process, makes no
+# native call, imports no historical module and builds no parent-side result
+# object — the result object and its "not asserted" markers belong to that
+# document's `BLOCKED-2`, which is not authorized.
+#
+# What runs here is the machinery M3-b-2 and M3-b-3 both sit on top of.
+# ===========================================================================
+
+
+# --- the return frame -------------------------------------------------------
+
+RESULT_MAGIC = b"\x47\x41\x54\x45\x33\x48\x52\x00"
+"""`GATE3HR\0`.  Deliberately not the inbound magic.
+
+Two channels carrying different things through one decoder is how a confused
+deputy is built; the formats are separate so a frame cannot be replayed into the
+wrong reader.
+"""
+
+RESULT_VERSION = 1
+RESULT_HEADER_BYTES = 12
+"""magic 8 + version 2 + entry count 2."""
+
+MAX_RESULT_ENTRIES = 16
+MAX_RESULT_LABEL_BYTES = 64
+MAX_RESULT_VALUE_BYTES = 1_048_576
+MAX_RESULT_AGGREGATE_BYTES = 4_194_304
+
+DERIVED_MAX_RESULT_BYTES = 4_195_436
+"""Not a gate.  `12 + 16 * (2 + 64 + 4) + 4,194,304`, recomputed by a test."""
+
+_RESULT_ENTRY_FRAMING_BYTES = 70
+
+RESULT_LABELS = (
+    "candidate_set",
+    "candidate_set_sha256",
+    "contract_manifest",
+    "contract_manifest_sha256",
+)
+"""Exactly these, all required.
+
+A partial result is not a result: a frame carrying a manifest but not its digest
+would leave the reader choosing which of two things to believe.
+"""
+
+_RESULT_DIGEST_OF = {
+    "candidate_set_sha256": "candidate_set",
+    "contract_manifest_sha256": "contract_manifest",
+}
+
+
+def _result_label(raw: bytes) -> str:
+    """The label grammar: `[a-z][a-z0-9_]*`, one to sixty-four bytes.
+
+    Carries the same byte-round-trip postcondition as the wire path grammar and
+    for the same reason — see `_wire_path`.  Unreachable by any legal input;
+    evidenced by mutating the decode.
+    """
+
+    if type(raw) is not bytes:
+        raise TransportError("RESULT_LABEL_INVALID")
+    if len(raw) > MAX_RESULT_LABEL_BYTES:
+        raise TransportError("RESULT_LABEL_LENGTH_EXCEEDED")
+    if not raw:
+        raise TransportError("RESULT_LABEL_INVALID")
+    try:
+        text = _decode_utf8(raw)
+    except UnicodeDecodeError:
+        raise TransportError("RESULT_LABEL_INVALID") from None
+    if text.encode("utf-8") != raw:
+        raise TransportError("RESULT_LABEL_NOT_ROUND_TRIP")
+    if not ("a" <= text[0] <= "z"):
+        raise TransportError("RESULT_LABEL_INVALID")
+    for character in text[1:]:
+        if not ("a" <= character <= "z" or "0" <= character <= "9" or character == "_"):
+            raise TransportError("RESULT_LABEL_INVALID")
+    return text
+
+
+def encode_result(values: Mapping) -> bytes:
+    """Build the return frame.  Bounds enforced here as well as in the decoder.
+
+    Same rationale as `encode_stream`: a producer that can emit an illegal frame
+    has a bug whose first symptom would otherwise appear in another process.
+    """
+
+    if not isinstance(values, collections.abc.Mapping):
+        raise TransportError("RESULT_INVALID")
+    if len(values) > MAX_RESULT_ENTRIES:
+        raise TransportError("RESULT_ENTRY_COUNT_EXCEEDED")
+    if set(values) != set(RESULT_LABELS):
+        raise TransportError("RESULT_INCOMPLETE")
+
+    entries = []
+    aggregate = 0
+    for label, value in values.items():
+        if type(label) is not str or type(value) is not bytes:
+            raise TransportError("RESULT_INVALID")
+        raw_label = label.encode("utf-8")
+        _result_label(raw_label)
+        if len(value) > MAX_RESULT_VALUE_BYTES:
+            raise TransportError("RESULT_VALUE_EXCEEDED")
+        aggregate += len(value)
+        entries.append((raw_label, value))
+    if aggregate > MAX_RESULT_AGGREGATE_BYTES:
+        raise TransportError("RESULT_AGGREGATE_EXCEEDED")
+
+    entries.sort(key=lambda entry: entry[0])
+    parts = [
+        RESULT_MAGIC,
+        RESULT_VERSION.to_bytes(2, "little"),
+        len(entries).to_bytes(2, "little"),
+    ]
+    for raw_label, value in entries:
+        parts.append(len(raw_label).to_bytes(2, "little"))
+        parts.append(raw_label)
+        parts.append(len(value).to_bytes(4, "little"))
+        parts.append(value)
+    return b"".join(parts)
+
+
+def decode_result(stream: bytes) -> dict:
+    """Verify a return frame and return its values.
+
+    The digest labels are recomputed here rather than trusted.  A producer
+    agreeing with itself proves nothing; what the recomputation buys is that a
+    frame cannot claim a digest for bytes it did not carry.
+    """
+
+    if type(stream) is not bytes:
+        raise TransportError("RESULT_INVALID")
+
+    cursor = _Cursor(stream)
+    if cursor.take(len(RESULT_MAGIC), "RESULT_TRUNCATED") != RESULT_MAGIC:
+        raise TransportError("RESULT_MAGIC_MISMATCH")
+    if cursor.take_int(2, "RESULT_TRUNCATED") != RESULT_VERSION:
+        raise TransportError("RESULT_VERSION_UNSUPPORTED")
+    declared_count = cursor.take_int(2, "RESULT_TRUNCATED")
+    if declared_count > MAX_RESULT_ENTRIES:
+        raise TransportError("RESULT_ENTRY_COUNT_EXCEEDED")
+
+    values: dict = {}
+    previous_raw_label = b""
+    aggregate = 0
+    for index in range(declared_count):
+        label_length = cursor.take_int(2, "RESULT_TRUNCATED")
+        if label_length > MAX_RESULT_LABEL_BYTES:
+            raise TransportError("RESULT_LABEL_LENGTH_EXCEEDED")
+        raw_label = cursor.take(label_length, "RESULT_TRUNCATED")
+        label = _result_label(raw_label)
+        if index and raw_label == previous_raw_label:
+            raise TransportError("RESULT_DUPLICATE_LABEL")
+        if index and raw_label < previous_raw_label:
+            raise TransportError("RESULT_LABEL_ORDER_INVALID")
+        previous_raw_label = raw_label
+
+        value_length = cursor.take_int(4, "RESULT_TRUNCATED")
+        if value_length > MAX_RESULT_VALUE_BYTES:
+            raise TransportError("RESULT_VALUE_EXCEEDED")
+        if aggregate + value_length > MAX_RESULT_AGGREGATE_BYTES:
+            raise TransportError("RESULT_AGGREGATE_EXCEEDED")
+        aggregate += value_length
+        values[label] = cursor.take(value_length, "RESULT_TRUNCATED")
+
+    if set(values) != set(RESULT_LABELS):
+        raise TransportError("RESULT_INCOMPLETE")
+    for digest_label, byte_label in _RESULT_DIGEST_OF.items():
+        if values[digest_label] != _sha256(values[byte_label]).encode("ascii"):
+            raise TransportError("RESULT_DIGEST_MISMATCH")
+    if cursor.remaining:
+        raise TransportError("RESULT_TRAILING_BYTES")
+    return values
+
+
+# --- the closed loader ------------------------------------------------------
+
+
+def module_name_for(relative: str) -> str:
+    """The top-level module name a repo-relative path answers.
+
+    Derived from the final component with `.py` removed.  Not from package
+    structure: the historical modules import each other by bare absolute name,
+    so every module the loader serves is top-level.
+    """
+
+    _wire_path(relative.encode("utf-8"))
+    tail = relative.rsplit("/", 1)[-1]
+    if not tail.endswith(".py"):
+        raise TransportError("MODULE_NAME_INVALID")
+    stem = tail[:-3]
+    if not stem.isidentifier() or stem != stem.strip():
+        raise TransportError("MODULE_NAME_INVALID")
+    return stem
+
+
+class BufferFinder:
+    """A `MetaPathFinder` over verified buffers, answering names and nothing else.
+
+    Returns `None` for every name outside its map, so the ordinary finders
+    behind it resolve the standard library normally.  A whitelist of stdlib
+    names is deliberately not used: it would have to be maintained against a
+    standard library older than the code importing from it, and being wrong
+    would fail closed somewhere with no useful diagnosis.
+    """
+
+    __slots__ = ("_modules", "_origins", "_root", "_loaders")
+
+    def __init__(self, buffers: Mapping, root: str) -> None:
+        # `root` is the materialized root, supplied by whoever knows it. The
+        # loader will not invent it: `__file__` has to be the path the
+        # historical code resolves its own data inputs from, and a repo-relative
+        # string would resolve against the child's working directory, which is
+        # the scratch directory and holds nothing.
+        #
+        # How the child *receives* this root is not decided here and is not
+        # decidable here — argv, environment and the inbound frame all carry no
+        # field for it. That is an open item for M3-b-2 and may need a bounded
+        # amendment; this tranche makes the dependency explicit by requiring the
+        # argument rather than defaulting it to something convenient.
+        root = _checked_root(root)
+        modules: dict = {}
+        origins: dict = {}
+        for relative, payload in buffers.items():
+            if type(payload) is not bytes:
+                raise TransportError("MODULE_SOURCE_INVALID")
+            name = module_name_for(relative)
+            if name in modules:
+                raise TransportError("MODULE_NAME_DUPLICATE")
+            modules[name] = payload
+            origins[name] = _under_root(root, relative)
+        self._modules = modules
+        self._origins = origins
+        self._root = root
+        self._loaders: dict = {}
+
+    @property
+    def root(self) -> str:
+        return self._root
+
+    def loader_for(self, name: str):
+        """The one loader this finder made for this name, or `None`.
+
+        Per name rather than "any of ours": a loader is authority for the module
+        it was created for, and accepting it for a different name would let one
+        legitimate object vouch for something it never loaded.
+        """
+
+        return self._loaders.get(name)
+
+    @property
+    def names(self) -> tuple:
+        return tuple(sorted(self._modules))
+
+    def origin_of(self, name: str) -> str:
+        return self._origins[name]
+
+    def source_of(self, name: str) -> bytes:
+        return self._modules[name]
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname not in self._modules:
+            return None
+        loader = self._loaders.get(fullname)
+        if loader is None:
+            loader = BufferLoader(self)
+            self._loaders[fullname] = loader
+        spec = importlib.machinery.ModuleSpec(
+            fullname, loader, origin=self._origins[fullname]
+        )
+        spec.has_location = True
+        # No packages: `submodule_search_locations` stays `None`, so no
+        # submodule search can occur under any of these names.
+        return spec
+
+
+class BufferLoader:
+    """Compiles and executes one verified buffer.  It resolves no path."""
+
+    __slots__ = ("_finder",)
+
+    def __init__(self, finder: BufferFinder) -> None:
+        self._finder = finder
+
+    def create_module(self, spec):
+        return None
+
+    def exec_module(self, module) -> None:
+        name = module.__spec__.name
+        module.__file__ = self._finder.origin_of(name)
+        module.__package__ = ""
+        module.__cached__ = None
+        source = self._finder.source_of(name)
+        try:
+            code = compile(
+                source, module.__file__, "exec", dont_inherit=True
+            )
+        except SyntaxError:
+            raise TransportError("MODULE_COMPILE_FAILED") from None
+        try:
+            exec(code, module.__dict__)
+        except TransportError:
+            raise
+        except BaseException:
+            # The module name is already in the frozen inventory; a traceback
+            # would carry source, which no closed code may do.
+            raise TransportError("MODULE_EXEC_FAILED") from None
+
+
+def _checked_root(root) -> str:
+    """The materialized root must be absolute and normalized before it is used.
+
+    A relative root makes containment meaningless: it resolves against the
+    child's working directory, which is the scratch directory, so a path under
+    it is under the wrong tree. Normalizing here rather than at every comparison
+    means the stored root is the one thing every check agrees on.
+    """
+
+    if type(root) is not str or not root:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    if not os.path.isabs(root):
+        raise TransportError("MATERIALIZED_ROOT_NOT_ABSOLUTE")
+    normalized = os.path.normpath(root)
+    if normalized in ("", os.path.sep) or normalized != os.path.normpath(normalized):
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    return normalized
+
+
+def _under_root(root: str, relative: str) -> str:
+    return os.path.normpath(os.path.join(root, relative.replace("/", os.path.sep)))
+
+
+def _is_under(root: str, candidate) -> bool:
+    """Containment with the platform's own path semantics.
+
+    A bare `startswith` on raw strings is wrong twice on Windows: it treats a
+    case variant of the same directory as a different one, and it treats a
+    separator difference as a different path. `normcase` folds both, and
+    `commonpath` refuses the sibling-prefix case that `startswith` accepts —
+    `C:/root-of-something-else` starts with `C:/root` and is not under it.
+    """
+
+    if type(candidate) is not str or not candidate:
+        return False
+    try:
+        resolved = os.path.normcase(os.path.normpath(candidate))
+        base = os.path.normcase(root)
+        if resolved == base:
+            return False
+        return os.path.commonpath([resolved, base]) == base
+    except ValueError:
+        # Different drives, or a mix of absolute and relative: not under it.
+        return False
+
+
+def loaded_outside_loader(finder: BufferFinder, loaded: Mapping = None) -> tuple:
+    """Modules under the materialized root that are not the ones we loaded.
+
+    Root-scoped rather than origin-scoped: a module loaded from some *other*
+    file under the materialized root is the case an origin comparison cannot
+    see. Being in the map is not what makes a module ours; being under the root
+    is what makes it our business.
+
+    **Loader metadata is not evidence.** An earlier revision accepted any module
+    whose `spec.loader` was one of ours, and a module can read its own
+    `__loader__` and hand it to another module's spec — a probe copied it and
+    the escape went unseen. A module is accepted only when all four hold: its
+    name is one we loaded, `sys.modules[name]` is the object we created, its
+    `__file__` is the origin we assigned that name, and its spec's loader is the
+    loader we made for that name. Every one of those is something we recorded;
+    none is something the module can grant itself.
+    """
+
+    loaded = {} if loaded is None else loaded
+    escaped = []
+    for name, module in list(sys.modules.items()):
+        if not _is_under(finder.root, getattr(module, "__file__", None)):
+            continue
+        spec = getattr(module, "__spec__", None)
+        if (
+            name not in loaded
+            or module is not loaded[name]
+            or name not in finder.names
+            or getattr(module, "__file__", None) != finder.origin_of(name)
+            or spec is None
+            or getattr(spec, "loader", None) is not finder.loader_for(name)
+        ):
+            escaped.append(name)
+    return tuple(sorted(escaped))
+
+
+def load_buffers(buffers: Mapping, root: str) -> dict:
+    """Install the finder, load every buffer, check for bypass, uninstall.
+
+    Registration goes into `sys.modules` and nowhere else. An earlier revision
+    took a `modules` mapping so tests could pass a private dict; that is not a
+    substitution the import system honours — `import` consults `sys.modules`
+    regardless — so a private registry produced a *second* module object for
+    every circular import and leaked it into the global table anyway. The
+    parameter is gone; tests snapshot and restore the real one.
+
+    The finder is removed before returning on every path, including failure.
+    Leaving it installed would mean a later import in this interpreter could be
+    answered by a map nobody expects to still be live.
+    """
+
+    modules = sys.modules
+    finder = BufferFinder(buffers, root)
+    for name in finder.names:
+        if name in modules:
+            raise TransportError("MODULE_NAME_OCCUPIED")
+
+    sys.meta_path.insert(0, finder)
+    loaded: dict = {}
+    try:
+        for name in finder.names:
+            module = types.ModuleType(name)
+            spec = finder.find_spec(name)
+            module.__spec__ = spec
+            module.__loader__ = spec.loader
+            # In `sys.modules` before `exec_module`, as the import protocol
+            # requires, so the circular absolute imports between these modules
+            # resolve to the same objects.
+            modules[name] = module
+            loaded[name] = module
+        for name in finder.names:
+            spec = loaded[name].__spec__
+            spec.loader.exec_module(loaded[name])
+        escaped = loaded_outside_loader(finder, loaded)
+        if escaped:
+            raise TransportError("LOADER_BYPASSED")
+    except BaseException as error:
+        for name in loaded:
+            modules.pop(name, None)
+        _remove_finder(finder, error)
+        raise
+    _remove_finder(finder, None)
+    return loaded
+
+
+def _remove_finder(finder: BufferFinder, error) -> None:
+    """Uninstall, without letting the uninstall replace what went wrong.
+
+    A module body that removes the finder and then raises used to surface as
+    `LOADER_INSTALL_FAILED`: the cleanup failure took the place of the execution
+    failure that caused it. Same rule M2's teardown already carries — a failure
+    while unwinding is attached to the error that caused the unwind and never
+    replaces it.
+    """
+
+    removed = 0
+    while finder in sys.meta_path:
+        sys.meta_path.remove(finder)
+        removed += 1
+    if removed == 1:
+        return
+    # Zero means a module body removed it; more than one means a module body
+    # appended it again, and an earlier revision removed only the first, leaving
+    # a live finder behind on the success path. Both are the same defect: the
+    # meta path is not what it was left as.
+    note = "finder occurrences on sys.meta_path at cleanup: " + str(removed)
+    if error is None:
+        raise TransportError("LOADER_INSTALL_FAILED") from None
+    if hasattr(error, "add_note"):
+        error.add_note(note)
