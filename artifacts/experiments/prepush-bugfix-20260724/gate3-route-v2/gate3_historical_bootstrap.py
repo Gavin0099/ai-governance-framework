@@ -45,15 +45,25 @@ OWNER_PIN_PATH = (
 OWNER_PROMOTION_COMMIT = "8da68734"
 PROMOTION_STATE = "SIGNED_AND_PROMOTED"
 
-# Only these four are historical *runtime modules*.  The candidate set retains
+# Only these five are historical *runtime modules*.  The candidate set retains
 # eleven files, including `.gitattributes`, JSON manifests, Markdown and a test
 # module; handing that whole list to a later loader would expand executable
 # authority far beyond what reconstruction needs.
+#
+# The fifth, `gate3_route_v2_ab_candidate.py`, was added by the BLOCKED-1
+# amendment of the M3-b design.  It is the module whose execution *is* the
+# reconstruction: `build_contract_manifest()` and `build_candidate_set()` live
+# in it, and loading it from the pinned commit rather than calling the present
+# one is the difference between reconstructing history and re-running the
+# present.  This widens executable authority by one module and is recorded here
+# as that, not as a list that happened to grow.
 RUNTIME_MODULE_ALLOWLIST = (
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2.py",
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2_ab.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_ab_candidate.py",
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_route_v2_ab_live.py",
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"

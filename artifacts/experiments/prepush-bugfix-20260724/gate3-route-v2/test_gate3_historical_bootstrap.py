@@ -55,7 +55,7 @@ def test_chain_validates_the_retained_artifacts() -> None:
     assert result["source_commit"] == bootstrap.SOURCE_COMMIT
     assert result["promotion_state"] == "SIGNED_AND_PROMOTED"
     assert len(result["retained_inventory"]) == 11
-    assert len(result["runtime_module_inventory"]) == 4
+    assert len(result["runtime_module_inventory"]) == 5
 
 
 def test_contract_manifest_digest_is_checked() -> None:
@@ -341,12 +341,49 @@ def test_inventory_is_derived_only_from_verified_bytes() -> None:
 # --- executable authority is the allowlist, not the retained set ------------
 
 
+AMENDED_ALLOWLIST = (
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_ab.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_ab_candidate.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_ab_live.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    "gate3_route_v2_codex.py",
+)
+
+
+def test_the_allowlist_is_pinned_to_a_literal_outside_the_module() -> None:
+    """Executable authority cannot widen without this line changing too.
+
+    Every other allowlist test compares the module against itself: they assert
+    that the runtime inventory equals `bootstrap.RUNTIME_MODULE_ALLOWLIST`, and
+    a sixth entry added to that tuple satisfies all of them.  So does the
+    equality test binding the child's copy, because a widening that edits both
+    copies keeps them equal.  Nothing failed when BLOCKED-1's amendment added a
+    fifth, which is how a widening of executable authority can land with a
+    green suite.
+
+    This literal is the independent pin.  It is not derived from the module,
+    the candidate set or the child, so growing the allowlist requires an edit
+    here as well — and this file is what a reviewer reads to see how many
+    modules may execute.
+    """
+
+    assert bootstrap.RUNTIME_MODULE_ALLOWLIST == AMENDED_ALLOWLIST
+    assert len(AMENDED_ALLOWLIST) == 5
+    assert len(set(AMENDED_ALLOWLIST)) == 5
+    assert AMENDED_ALLOWLIST == tuple(sorted(AMENDED_ALLOWLIST))
+
+
 def test_runtime_modules_are_the_allowlist_not_every_retained_file() -> None:
     value = bootstrap.verify_candidate_set(retained_candidate())
     retained = bootstrap.retained_inventory(value)
     runtime = bootstrap.runtime_module_inventory(value)
 
-    assert len(retained) == 11 and len(runtime) == 4
+    assert len(retained) == 11 and len(runtime) == 5
     assert set(runtime) == set(bootstrap.RUNTIME_MODULE_ALLOWLIST)
     assert all(path.endswith(".py") for path in runtime)
     excluded = set(retained) - set(runtime)

@@ -11,7 +11,7 @@ printed at the top of the file; the payloads are now synthetic and no
 subprocess is started.
 
 What that costs, stated rather than glossed: the round trip is evidence about
-the framing and the verification, not about the four historical modules.  What
+the framing and the verification, not about the five historical modules.  What
 it does not cost is the authority evidence — `e6`, `e7` and `e11` still run
 against the **real retained candidate-set bytes** read from disk, so the frozen
 digest, the derivation and its agreement with `gate3_historical_bootstrap` are
@@ -26,8 +26,11 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os.path
+import importlib.machinery
 import json
 import sys
+import types
 import unicodedata
 from pathlib import Path
 
@@ -239,7 +242,7 @@ def test_the_module_is_not_active() -> None:
 
 
 def test_the_module_defines_no_main_entrypoint() -> None:
-    """M3-b owns the `__main__` role; M3-a must not have started it."""
+    """M3-b-2 owns the `__main__` role; it must not have started here."""
 
     source = Path(child.__file__).read_text(encoding="utf-8")
     for node in ast.walk(ast.parse(source)):
@@ -248,8 +251,45 @@ def test_the_module_defines_no_main_entrypoint() -> None:
                 sub.id for sub in ast.walk(node.test) if isinstance(sub, ast.Name)
             }
             assert "__name__" not in names
-    for banned in ("subprocess", "compile(", "exec(", "importlib"):
+
+
+def test_the_module_starts_no_process_and_makes_no_native_call() -> None:
+    """The M3-b-1 boundary, narrowed from what M3-a's version banned.
+
+    That version also banned `compile(`, `exec(` and `importlib`. The closed
+    loader needs all three: it compiles and executes a verified buffer, and
+    `ModuleSpec` lives in `importlib.machinery`. Keeping the old list would have
+    meant either a test that fails on the tranche it was written for, or a
+    loader that resolves names some other way. What actually has to stay out is
+    process control and native calls, so that is what is banned — and the
+    dangerous import forms are banned by name rather than by substring.
+    """
+
+    source = Path(child.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for banned in ("subprocess", "ctypes", "multiprocessing", "os.system"):
         assert banned not in source
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            target = node.func
+            if isinstance(target, ast.Name):
+                assert target.id != "__import__"
+            if isinstance(target, ast.Attribute):
+                assert target.attr not in ("import_module", "system", "popen")
+
+
+def test_compile_and_exec_appear_only_in_the_loader() -> None:
+    """They are the loader's job and nothing else's."""
+
+    tree = ast.parse(Path(child.__file__).read_text(encoding="utf-8"))
+    holders = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for inner in ast.walk(node):
+                if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name):
+                    if inner.func.id in ("compile", "exec"):
+                        holders.add(node.name)
+    assert holders == {"exec_module"}
 
 
 def test_this_evidence_file_starts_no_process() -> None:
@@ -267,8 +307,16 @@ def test_this_evidence_file_starts_no_process() -> None:
             imported.update(alias.name.split(".")[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             imported.add((node.module or "").split(".")[0])
-    for banned in ("subprocess", "os", "multiprocessing", "asyncio"):
+    for banned in ("subprocess", "multiprocessing", "asyncio"):
         assert banned not in imported
+    # `os` is not banned wholesale: `os.path` is what containment is computed
+    # with, and banning the package would mean either no path semantics or path
+    # semantics written by hand. What must stay out is the part of `os` that
+    # starts processes, and that is banned by name.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            assert not node.attr.startswith("spawn")
+            assert node.attr not in ("system", "popen", "execv", "execve", "fork")
 
 
 def test_the_derived_stream_maximum_is_recomputed_from_the_bounds() -> None:
@@ -309,6 +357,8 @@ REAL_EXPECTED_ORDER = [
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_ab.py",
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
+    b"gate3_route_v2_ab_candidate.py",
+    b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_ab_live.py",
     b"artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     b"gate3_route_v2_codex.py",
@@ -318,7 +368,7 @@ REAL_EXPECTED_ORDER = [
 def test_e3_record_order_matches_an_expected_raw_byte_sequence() -> None:
     """Read out of the record region by the independent walker.
 
-    The real allowlist paths, because the order those four go in is the claim
+    The real allowlist paths, because the order those five go in is the claim
     that matters.  `encode_stream` enforces bounds and grammar and does not
     consult the inventory, so this needs no authority fixture and no payload
     bytes beyond a marker.
@@ -996,3 +1046,674 @@ def test_a_transport_error_never_renders_content() -> None:
     error = child.TransportError("PATH_INVALID")
     assert str(error) == "PATH_INVALID"
     assert error.code == "PATH_INVALID"
+
+
+# ===========================================================================
+# M3-b-1: the closed loader and the return frame
+#
+# Evidence plan: `gate3-m3b-closed-loader-design-candidate-20260819.md`
+# revision 5, items f5-f13 and f18. Everything here is in-process: nothing
+# starts a process, makes a native call, or loads a historical module. The
+# modules loaded below are fixtures written in this file.
+#
+# f26-f28 are deliberately absent. They belong to the parent-side result object,
+# which belongs to `BLOCKED-2`, which is not authorized. The frame is not the
+# result, and this tranche owns only the frame.
+# ===========================================================================
+
+
+FIXTURE_BUFFERS = {
+    # Mirrors the historical shape: absolute `import`, partner attributes read
+    # at call time. Reading a partner attribute at module top level is a
+    # circular import ordinary Python cannot satisfy either, so a fixture doing
+    # that would be testing CPython rather than this loader.
+    "pkg/fx_alpha.py": (
+        b"import fx_beta\nVALUE = 1\ndef paired():\n    return fx_beta.NAME\n"
+    ),
+    "pkg/fx_beta.py": (
+        b"import fx_alpha\nNAME = 'beta'\ndef back():\n    return fx_alpha\n"
+    ),
+}
+FIXTURE_NAMES = ("fx_alpha", "fx_beta")
+FIXTURE_ROOT = os.path.normpath(os.path.abspath("C:/materialized/gate3-historical-fixture"))
+
+
+@pytest.fixture
+def isolated_modules():
+    """`sys.modules` itself, snapshotted and restored.
+
+    A private dict cannot stand in for it. The `import` statement consults
+    `sys.modules`, so a loader registering anywhere else would have its
+    pre-registration ignored and every circular import would build a second
+    module object — which is exactly the defect `f7` exists to catch, and an
+    earlier draft of this fixture hid it. Registering in the real table and
+    restoring it afterwards is the only version that tests what happens.
+    """
+
+    before = dict(sys.modules)
+    try:
+        yield sys.modules
+    finally:
+        for name in set(sys.modules) - set(before):
+            del sys.modules[name]
+        sys.modules.update(before)
+
+
+def result_values(manifest=b"# manifest\n", candidate=b"# candidate\n"):
+    return {
+        "candidate_set": candidate,
+        "candidate_set_sha256": hashlib.sha256(candidate).hexdigest().encode("ascii"),
+        "contract_manifest": manifest,
+        "contract_manifest_sha256": hashlib.sha256(manifest).hexdigest().encode(
+            "ascii"
+        ),
+    }
+
+
+def result_entry(raw_label, value, *, label_length=None, value_length=None):
+    return b"".join(
+        [
+            (len(raw_label) if label_length is None else label_length).to_bytes(
+                2, "little"
+            ),
+            raw_label,
+            (len(value) if value_length is None else value_length).to_bytes(
+                4, "little"
+            ),
+            value,
+        ]
+    )
+
+
+def build_result(*, magic=None, version=1, count=None, entries=None, trailing=b""):
+    if entries is None:
+        entries = [
+            result_entry(label.encode("utf-8"), value)
+            for label, value in sorted(result_values().items())
+        ]
+    return b"".join(
+        [
+            child.RESULT_MAGIC if magic is None else magic,
+            version.to_bytes(2, "little"),
+            (len(entries) if count is None else count).to_bytes(2, "little"),
+            b"".join(entries),
+            trailing,
+        ]
+    )
+
+
+# --- f5, f6, f7, f8: the loader ---------------------------------------------
+
+
+def test_f5_the_loader_answers_the_inventory_and_defers_everything_else(
+    isolated_modules,
+) -> None:
+    """Derived from the inventory, never from a count.
+
+    A loader with four names baked in fails the first assertion here, which is
+    the whole reason this fixture inventory has two.
+    """
+
+    finder = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    assert finder.names == FIXTURE_NAMES
+    for name in FIXTURE_NAMES:
+        assert finder.find_spec(name) is not None
+    for outside in ("json", "pathlib", "hashlib", "gate3_route_v2", "not_a_module"):
+        assert finder.find_spec(outside) is None
+
+
+def test_f6_module_identity(isolated_modules) -> None:
+    loaded = child.load_buffers(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    for name in FIXTURE_NAMES:
+        module = loaded[name]
+        assert module.__package__ == ""
+        assert module.__cached__ is None
+        assert module.__file__ == os.path.join(FIXTURE_ROOT, "pkg", name + ".py")
+        spec = module.__spec__
+        assert isinstance(spec.loader, child.BufferLoader)
+        assert spec.origin == module.__file__
+        assert spec.submodule_search_locations is None
+        assert spec.has_location is True
+
+
+def test_f7_circular_absolute_imports_resolve_to_the_same_objects(
+    isolated_modules,
+) -> None:
+    """Identity, not equality: two copies of a module would compare equal on
+    the attributes these fixtures expose and still be two modules."""
+
+    loaded = child.load_buffers(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    assert loaded["fx_alpha"].paired() == "beta"
+    assert loaded["fx_beta"].back() is loaded["fx_alpha"]
+    assert sys.modules["fx_alpha"] is loaded["fx_alpha"]
+
+
+def test_f8_loader_bypassed_fires_on_a_foreign_loader(isolated_modules) -> None:
+    finder = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    assert child.loaded_outside_loader(finder) == ()
+
+    intruder = types.ModuleType("fx_alpha")
+    intruder.__file__ = os.path.join(FIXTURE_ROOT, "pkg", "fx_alpha.py")
+    intruder.__spec__ = importlib.machinery.ModuleSpec(
+        "fx_alpha", object(), origin=os.path.join(FIXTURE_ROOT, "pkg", "fx_alpha.py")
+    )
+    isolated_modules["fx_alpha"] = intruder
+    assert child.loaded_outside_loader(finder) == ("fx_alpha",)
+
+
+def test_f8_load_buffers_itself_raises_when_the_check_finds_an_escape(
+    isolated_modules,
+) -> None:
+    """The check has to fire from inside `load_buffers`, not only when called.
+
+    A mutation that deleted the call inside `load_buffers` survived the whole
+    suite, because the only test exercising the check called it directly. A
+    guard nothing routes through is a guard in name.
+
+    The escape is planted the way it could really happen: a loaded module's own
+    body puts a foreign module into `sys.modules` under a path the finder never
+    knew about but which lies **inside the materialized root**. An
+    origin-scoped check — comparing against the paths in the map — cannot see
+    this at all, which is why the rule is root-scoped.
+    """
+
+    planting = (
+        "import sys, types, importlib.machinery\n"
+        "m = types.ModuleType('fx_intruder')\n"
+        "m.__file__ = "
+        + repr(os.path.join(FIXTURE_ROOT, "pkg", "not_in_map.py"))
+        + "\n"
+        "m.__spec__ = importlib.machinery.ModuleSpec("
+        "'fx_intruder', object(), origin=m.__file__)\n"
+        "sys.modules['fx_intruder'] = m\n"
+    ).encode("utf-8")
+    buffers = dict(FIXTURE_BUFFERS)
+    buffers["pkg/fx_planter.py"] = planting
+    try:
+        with refuses("LOADER_BYPASSED"):
+            child.load_buffers(buffers, FIXTURE_ROOT)
+    finally:
+        sys.modules.pop("fx_intruder", None)
+    for name in ("fx_alpha", "fx_beta", "fx_planter"):
+        assert name not in isolated_modules
+
+
+def test_f8_load_buffers_refuses_an_occupied_name(isolated_modules) -> None:
+    isolated_modules["fx_alpha"] = types.ModuleType("fx_alpha")
+    with refuses("MODULE_NAME_OCCUPIED"):
+        child.load_buffers(FIXTURE_BUFFERS, FIXTURE_ROOT)
+
+
+def test_f8_a_module_name_must_come_from_a_python_file() -> None:
+    for bad in ("pkg/notes.md", "pkg/.py", "pkg/9lives.py", "pkg/has-dash.py"):
+        with refuses("MODULE_NAME_INVALID"):
+            child.module_name_for(bad)
+    assert child.module_name_for("a/b/ok_name.py") == "ok_name"
+
+
+# --- f9, f10: ordering and no retry -----------------------------------------
+
+
+def test_f9_the_finder_is_installed_and_removed_around_the_load(
+    isolated_modules,
+) -> None:
+    """Observed on `sys.meta_path` itself, not inferred from the source."""
+
+    before = list(sys.meta_path)
+    seen = []
+    real = child.BufferLoader.exec_module
+
+    def spy(self, module):
+        seen.append(
+            any(isinstance(entry, child.BufferFinder) for entry in sys.meta_path)
+        )
+        return real(self, module)
+
+    child.BufferLoader.exec_module = spy
+    try:
+        child.load_buffers(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    finally:
+        child.BufferLoader.exec_module = real
+    assert seen == [True, True]
+    assert list(sys.meta_path) == before
+
+
+def test_f9_the_finder_is_removed_even_when_a_module_raises(
+    isolated_modules,
+) -> None:
+    before = list(sys.meta_path)
+    with refuses("MODULE_EXEC_FAILED"):
+        child.load_buffers({"pkg/fx_boom.py": b"raise RuntimeError('x')\n"}, FIXTURE_ROOT)
+    assert list(sys.meta_path) == before
+    assert "fx_boom" not in isolated_modules
+
+
+def test_f10_a_failing_module_body_is_executed_exactly_once(
+    isolated_modules,
+) -> None:
+    """No retry anywhere: a retry would be a second execution after a failure
+    nobody has diagnosed."""
+
+    source = b"import sys\nsys.modules['fx_counter_probe'].count += 1\nraise ValueError\n"
+    probe = types.ModuleType("fx_counter_probe")
+    probe.count = 0
+    sys.modules["fx_counter_probe"] = probe
+    try:
+        with refuses("MODULE_EXEC_FAILED"):
+            child.load_buffers({"pkg/fx_once.py": source}, FIXTURE_ROOT)
+    finally:
+        sys.modules.pop("fx_counter_probe", None)
+    assert probe.count == 1
+
+
+def test_f10_a_syntax_error_is_a_compile_failure_not_an_exec_failure(
+    isolated_modules,
+) -> None:
+    with refuses("MODULE_COMPILE_FAILED"):
+        child.load_buffers({"pkg/fx_bad.py": b"def (\n"}, FIXTURE_ROOT)
+
+
+# --- f11, f12, f13: the return frame ----------------------------------------
+
+
+def test_f11_the_return_frame_round_trips() -> None:
+    values = result_values()
+    assert child.decode_result(child.encode_result(values)) == values
+
+
+def test_f11_encoding_is_deterministic_and_order_insensitive() -> None:
+    values = result_values()
+    reversed_values = dict(reversed(list(values.items())))
+    assert child.encode_result(values) == child.encode_result(reversed_values)
+
+
+def test_f11_the_derived_result_maximum_is_recomputed_from_the_bounds() -> None:
+    assert child.DERIVED_MAX_RESULT_BYTES == (
+        child.RESULT_HEADER_BYTES
+        + child.MAX_RESULT_ENTRIES * child._RESULT_ENTRY_FRAMING_BYTES
+        + child.MAX_RESULT_AGGREGATE_BYTES
+    )
+    assert child._RESULT_ENTRY_FRAMING_BYTES == 2 + child.MAX_RESULT_LABEL_BYTES + 4
+
+
+def test_f11_the_return_magic_is_not_the_inbound_magic() -> None:
+    """One decoder for two channels is how a confused deputy is built."""
+
+    assert child.RESULT_MAGIC != child.MAGIC
+    with refuses("RESULT_MAGIC_MISMATCH"):
+        child.decode_result(build_result(magic=child.MAGIC))
+
+
+FRAMING_FIELDS = {
+    "magic": (lambda: build_result(magic=b"GATE3HR\x01"), "RESULT_MAGIC_MISMATCH"),
+    "version": (lambda: build_result(version=2), "RESULT_VERSION_UNSUPPORTED"),
+    "entry count": (
+        lambda: build_result(count=child.MAX_RESULT_ENTRIES + 1),
+        "RESULT_ENTRY_COUNT_EXCEEDED",
+    ),
+    "label length": (
+        lambda: build_result(
+            entries=[
+                result_entry(
+                    b"candidate_set", b"x", label_length=child.MAX_RESULT_LABEL_BYTES + 1
+                )
+            ],
+            count=1,
+        ),
+        "RESULT_LABEL_LENGTH_EXCEEDED",
+    ),
+    "value length": (
+        lambda: build_result(
+            entries=[
+                result_entry(
+                    b"candidate_set", b"x", value_length=child.MAX_RESULT_VALUE_BYTES + 1
+                )
+            ],
+            count=1,
+        ),
+        "RESULT_VALUE_EXCEEDED",
+    ),
+}
+
+
+@pytest.mark.parametrize("field", sorted(FRAMING_FIELDS))
+def test_f11_each_framing_field_has_its_own_code(field) -> None:
+    build, code = FRAMING_FIELDS[field]
+    with refuses(code):
+        child.decode_result(build())
+
+
+def test_f12_each_return_bound_crossed_by_exactly_one() -> None:
+    with refuses("RESULT_ENTRY_COUNT_EXCEEDED"):
+        child.decode_result(build_result(count=child.MAX_RESULT_ENTRIES + 1))
+    with refuses("RESULT_LABEL_LENGTH_EXCEEDED"):
+        child._result_label(b"a" * (child.MAX_RESULT_LABEL_BYTES + 1))
+    assert child._result_label(b"a" * child.MAX_RESULT_LABEL_BYTES)
+    with refuses("RESULT_VALUE_EXCEEDED"):
+        child.encode_result(
+            dict(
+                result_values(),
+                candidate_set=b"\x00" * (child.MAX_RESULT_VALUE_BYTES + 1),
+            )
+        )
+
+
+def test_f13_trailing_truncated_and_malformed_have_distinct_codes() -> None:
+    frame = child.encode_result(result_values())
+    with refuses("RESULT_TRAILING_BYTES"):
+        child.decode_result(frame + b"\x00")
+    with refuses("RESULT_TRUNCATED"):
+        child.decode_result(frame[:-1])
+    with refuses("RESULT_TRUNCATED"):
+        child.decode_result(child.RESULT_MAGIC + b"\x01")
+
+
+def test_f13_the_label_set_must_be_exactly_the_frozen_four() -> None:
+    values = result_values()
+    for label in child.RESULT_LABELS:
+        short = {k: v for k, v in values.items() if k != label}
+        entries = [
+            result_entry(k.encode("utf-8"), v) for k, v in sorted(short.items())
+        ]
+        with refuses("RESULT_INCOMPLETE"):
+            child.decode_result(build_result(entries=entries))
+    extra = sorted(list(values.items()) + [("zz_extra", b"x")])
+    with refuses("RESULT_INCOMPLETE"):
+        child.decode_result(
+            build_result(
+                entries=[result_entry(k.encode("utf-8"), v) for k, v in extra]
+            )
+        )
+
+
+def test_f13_duplicate_and_disordered_labels_have_distinct_codes() -> None:
+    entry = result_entry(b"candidate_set", b"x")
+    with refuses("RESULT_DUPLICATE_LABEL"):
+        child.decode_result(build_result(entries=[entry, entry]))
+    values = result_values()
+    descending = sorted(values.items(), reverse=True)
+    with refuses("RESULT_LABEL_ORDER_INVALID"):
+        child.decode_result(
+            build_result(
+                entries=[result_entry(k.encode("utf-8"), v) for k, v in descending]
+            )
+        )
+
+
+def test_f13_a_label_failing_the_grammar_is_refused() -> None:
+    for bad in (b"Candidate", b"9lives", b"has-dash", b"has space", b"", b"\xff"):
+        with pytest.raises(child.TransportError) as caught:
+            child._result_label(bad)
+        assert caught.value.code == "RESULT_LABEL_INVALID"
+
+
+def test_f13_a_digest_label_disagreeing_with_its_bytes_is_refused() -> None:
+    values = dict(result_values(), candidate_set_sha256=b"0" * 64)
+    entries = [result_entry(k.encode("utf-8"), v) for k, v in sorted(values.items())]
+    with refuses("RESULT_DIGEST_MISMATCH"):
+        child.decode_result(build_result(entries=entries))
+
+
+def test_f13_the_label_round_trip_postcondition_is_a_sensitivity_case(
+    monkeypatch,
+) -> None:
+    """Unreachable by any legal input, for the reason `e16` records."""
+
+    monkeypatch.setattr(
+        child, "_decode_utf8", lambda raw: raw.decode("utf-8", errors="replace")
+    )
+    with refuses("RESULT_LABEL_NOT_ROUND_TRIP"):
+        child._result_label(b"a\xff")
+
+
+# --- f18 --------------------------------------------------------------------
+
+
+def test_f18_no_failure_carries_source_text_or_a_traceback(isolated_modules) -> None:
+    """The module name is already in the frozen inventory; source is not."""
+
+    marker = "s3cret_source_marker"
+    source = ("raise RuntimeError('" + marker + "')\n").encode("utf-8")
+    with pytest.raises(child.TransportError) as caught:
+        child.load_buffers({"pkg/fx_leak.py": source}, FIXTURE_ROOT)
+    rendered = str(caught.value) + repr(caught.value.args)
+    assert caught.value.code == "MODULE_EXEC_FAILED"
+    assert marker not in rendered
+    assert "Traceback" not in rendered
+    assert caught.value.__cause__ is None
+
+
+def test_f18_a_compile_failure_carries_no_source_either(isolated_modules) -> None:
+    marker = b"unbalanced_marker_here"
+    with pytest.raises(child.TransportError) as caught:
+        child.load_buffers({"pkg/fx_bad2.py": b"def " + marker + b"(\n"}, FIXTURE_ROOT)
+    assert caught.value.code == "MODULE_COMPILE_FAILED"
+    assert marker.decode() not in str(caught.value) + repr(caught.value.args)
+
+
+# --- the tranche boundary ---------------------------------------------------
+
+
+def test_m3b1_builds_no_parent_result_object() -> None:
+    """`BLOCKED-2` is not authorized, so the result object does not exist yet.
+
+    The frame is not the result. A `not asserted` marker appearing anywhere in
+    this module would be an unauthorized verification contract arriving early.
+    """
+
+    tree = ast.parse(Path(child.__file__).read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            assert "not asserted" not in node.value
+        name = (
+            getattr(node, "id", None)
+            or getattr(node, "attr", None)
+            or getattr(node, "name", None)
+            or ""
+        )
+        assert "asserted" not in str(name)
+    assert not hasattr(child, "ReconstructionResult")
+    assert set(child.RESULT_LABELS) == {
+        "candidate_set",
+        "candidate_set_sha256",
+        "contract_manifest",
+        "contract_manifest_sha256",
+    }
+
+
+# --- the hostile shapes the first revision had no tests for -----------------
+#
+# Every one of these was found by a mutation surviving a green suite: the fix
+# was in the module and nothing routed through it. A guard nothing exercises is
+# a guard in name.
+
+
+def test_the_materialized_root_must_be_absolute() -> None:
+    """A relative root resolves against the child's working directory.
+
+    That directory is the scratch directory and holds nothing, so containment
+    computed from a relative root is containment in the wrong tree.
+    """
+
+    for bad in ("./pkg", "pkg", "", "relative/path"):
+        with pytest.raises(child.TransportError) as caught:
+            child.BufferFinder(FIXTURE_BUFFERS, bad)
+        assert caught.value.code in (
+            "MATERIALIZED_ROOT_NOT_ABSOLUTE",
+            "MATERIALIZED_ROOT_INVALID",
+        )
+
+
+def test_containment_uses_platform_path_semantics() -> None:
+    """`startswith` on raw strings is wrong twice on Windows.
+
+    A case variant of the same directory is the same directory, and a sibling
+    whose name merely begins with the root is not inside it.
+    """
+
+    root = os.path.normpath(os.path.abspath("C:/materialized/probe"))
+    assert child._is_under(root, os.path.join(root, "pkg", "x.py"))
+
+    case_insensitive = os.path.normcase("A") == os.path.normcase("a")
+    variant = os.path.join(root.upper(), "pkg", "x.py")
+    assert child._is_under(root, variant) is case_insensitive
+
+    # A sibling whose name merely begins with the root is not inside it, which
+    # a raw `startswith` accepts.
+    sibling = os.path.join(
+        os.path.normpath(os.path.abspath("C:/materialized/probe-other")), "x.py"
+    )
+    assert not child._is_under(root, sibling)
+
+    # The root is not under itself, and neither is a non-path.
+    assert not child._is_under(root, root)
+    assert not child._is_under(root, None)
+    assert not child._is_under(root, "")
+
+
+def test_a_copied_loader_does_not_make_a_module_ours(isolated_modules) -> None:
+    """Loader metadata is something a module can hand out.
+
+    A historical module can read its own `__loader__` and put it on another
+    module's spec. An ownership test that accepted any loader we made — or any
+    object of the right class — treats that gift as authority. Every check that
+    survives here is one we recorded ourselves.
+    """
+
+    finder = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    borrowed = finder.find_spec("fx_alpha").loader
+    impostor = types.ModuleType("fx_copy")
+    impostor.__file__ = os.path.join(FIXTURE_ROOT, "pkg", "fx_alpha.py")
+    impostor.__spec__ = importlib.machinery.ModuleSpec(
+        "fx_copy", borrowed, origin=impostor.__file__
+    )
+    sys.modules["fx_copy"] = impostor
+    try:
+        assert child.loaded_outside_loader(finder, {}) == ("fx_copy",)
+    finally:
+        sys.modules.pop("fx_copy", None)
+
+
+def test_a_loader_from_another_finder_is_not_ours() -> None:
+    other = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    mine = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    assert mine.loader_for("fx_alpha") is None  # created lazily, at find_spec
+    other.find_spec("fx_alpha")
+    mine.find_spec("fx_alpha")
+    assert mine.loader_for("fx_alpha") is not other.loader_for("fx_alpha")
+    assert mine.loader_for("fx_alpha") is mine.loader_for("fx_alpha")
+    assert mine.loader_for("fx_beta") is None
+
+
+def test_a_cleanup_failure_never_replaces_the_error_that_caused_it(
+    isolated_modules,
+) -> None:
+    """A module body that removes the finder and then raises.
+
+    The execution failure is what happened; the missing finder is a consequence
+    of it. Reporting the consequence would hide the cause, and this is the same
+    rule M2's teardown already carries.
+    """
+
+    source = (
+        b"import sys\n"
+        b"for entry in list(sys.meta_path):\n"
+        b"    if type(entry).__name__ == 'BufferFinder':\n"
+        b"        sys.meta_path.remove(entry)\n"
+        b"raise RuntimeError('cause')\n"
+    )
+    with pytest.raises(child.TransportError) as caught:
+        child.load_buffers({"pkg/fx_selfremove.py": source}, FIXTURE_ROOT)
+    assert caught.value.code == "MODULE_EXEC_FAILED"
+    notes = getattr(caught.value, "__notes__", [])
+    assert any("sys.meta_path" in note for note in notes)
+
+
+def test_a_duplicated_finder_leaves_no_residue(isolated_modules) -> None:
+    """A module body that appends the finder a second time.
+
+    Removing only the first occurrence left a live finder answering imports
+    after the call returned, on the success path, with nothing raised.
+    """
+
+    source = (
+        b"import sys\n"
+        b"for entry in list(sys.meta_path):\n"
+        b"    if type(entry).__name__ == 'BufferFinder':\n"
+        b"        sys.meta_path.append(entry)\n"
+        b"        break\n"
+    )
+    before = [entry for entry in sys.meta_path]
+    with pytest.raises(child.TransportError) as caught:
+        child.load_buffers({"pkg/fx_dup.py": source}, FIXTURE_ROOT)
+    assert caught.value.code == "LOADER_INSTALL_FAILED"
+    assert not any(isinstance(entry, child.BufferFinder) for entry in sys.meta_path)
+    assert list(sys.meta_path) == before
+
+
+def test_a_foreign_buffer_loader_is_not_ours(isolated_modules) -> None:
+    """Isolates the loader-identity clause from every other clause.
+
+    The module here is one we loaded, is the object we created, and carries the
+    origin we assigned it. Only its spec's loader differs — a `BufferLoader`,
+    just not the one this finder made for this name. An ownership test written
+    as `isinstance(..., BufferLoader)` accepts it; the four-part check does not,
+    and this is the test that tells those two apart.
+    """
+
+    finder = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+    spec = finder.find_spec("fx_alpha")
+    module = types.ModuleType("fx_alpha")
+    module.__file__ = finder.origin_of("fx_alpha")
+    module.__spec__ = spec
+    sys.modules["fx_alpha"] = module
+    try:
+        assert child.loaded_outside_loader(finder, {"fx_alpha": module}) == ()
+        stranger = child.BufferFinder(FIXTURE_BUFFERS, FIXTURE_ROOT)
+        module.__spec__ = importlib.machinery.ModuleSpec(
+            "fx_alpha",
+            stranger.find_spec("fx_alpha").loader,
+            origin=module.__file__,
+        )
+        assert isinstance(module.__spec__.loader, child.BufferLoader)
+        assert child.loaded_outside_loader(finder, {"fx_alpha": module}) == (
+            "fx_alpha",
+        )
+    finally:
+        sys.modules.pop("fx_alpha", None)
+
+
+def test_a_module_cannot_hide_by_rewriting_its_own_file(isolated_modules) -> None:
+    """The audit must not be gated on what the audited module says about itself.
+
+    A loaded module's top-level body can assign `__file__`, and an audit that
+    first asked whether `__file__` was under the root let that assignment skip
+    the root gate and every check behind it — object identity, expected origin
+    and exact loader all went unrun. The module the audit exists for was the one
+    able to opt out of it.
+
+    The spec's origin is rewritten too, so this cannot pass by the second pass
+    happening to catch it on position: the expected-module audit has to be the
+    thing that fires.
+    """
+
+    escaping = (
+        b"__file__ = 'C:/outside/hide.py'\n"
+        b"__spec__.origin = 'C:/outside/hide.py'\n"
+    )
+    with refuses("LOADER_BYPASSED"):
+        child.load_buffers({"pkg/fx_hide.py": escaping}, FIXTURE_ROOT)
+    assert "fx_hide" not in sys.modules
+
+
+def test_a_module_cannot_hide_by_swapping_its_own_spec(isolated_modules) -> None:
+    """The same escape by a different door: replace the spec rather than edit it."""
+
+    escaping = (
+        b"import importlib.machinery\n"
+        b"__spec__ = importlib.machinery.ModuleSpec("
+        b"'fx_swap', object(), origin='C:/outside/hide.py')\n"
+    )
+    with refuses("LOADER_BYPASSED"):
+        child.load_buffers({"pkg/fx_swap.py": escaping}, FIXTURE_ROOT)
+    assert "fx_swap" not in sys.modules
