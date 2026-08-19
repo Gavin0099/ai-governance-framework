@@ -1947,6 +1947,69 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
+- [x] **Gate 3 M3-b blockers taken 2026-08-19.** On
+  `feat/gate3-historical-materialization`, **not merged to `main`**: BLOCKED-1
+  `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`, after the record
+  reconciliation `09597ace`. Two are amendments made under explicit human
+  authorization; the third is not an amendment and is **not closed**.
+  **BLOCKED-1 — executable authority widens by one module.**
+  `RUNTIME_MODULE_ALLOWLIST` is five in both frozen copies, adding
+  `gate3_route_v2_ab_candidate.py`: the module whose execution *is* the
+  reconstruction, since `build_contract_manifest()` and `build_candidate_set()`
+  live in it. Loading it from the pinned commit rather than calling the present
+  one is the difference between reconstructing history and re-running the
+  present. Checked before amending rather than assumed: it is in the retained
+  eleven-file set at `8c044400…`, 7251 bytes, so the amendment is
+  implementable and not merely authorized.
+  The finding the amendment produced about itself is the part worth keeping.
+  **Nothing failed when the fifth entry was added.** Every allowlist test
+  compared the module against itself — the runtime inventory equals
+  `RUNTIME_MODULE_ALLOWLIST`, and the child's copy equals the bootstrap's, which
+  stays true when both copies grow together. Executable authority could widen
+  with a green suite. A literal pin outside the module now fixes the five paths,
+  the count, their uniqueness and the sorted order the wire depends on, so a
+  sixth requires an edit a reviewer reads. Focused tests 178/178. The
+  36-mutation battery from `cfa2c1ec` was **not** re-run: that harness was
+  session-local and is not in the repository, so this carries no mutation
+  evidence.
+  **BLOCKED-2 — two checks are retired, and that is a contract change.** The
+  amendment is made in its own authority document, the historical evidence
+  materialization design, now revision 11, as step 9:
+  `_verify_source_commit_inputs` and `_verify_byte_preservation_attributes` are
+  not part of the reconstruction path and are not reimplemented on it. Three
+  readings were followed to their ends first — the parent comparing the live
+  worktree is the original function unchanged and fails today for the B-1
+  divergence; the parent comparing materialized files to the same git blobs is a
+  tautology, since M2 materialized those bytes from those blobs through a held
+  handle; supersession by the M1/M2 chain is the correct one. What must not be
+  claimed downstream is that the reconstruction performs these checks or an
+  equivalent; it performs neither and relies on an earlier link. The parent-side
+  result object carrying the two "not asserted" markers is **not** written —
+  that is M3-b-3.
+  **BLOCKED-3 — the slice is written and the blocker stays open.** No
+  authorization closes it, because it asks for a design, not an amendment. The
+  slice closes ownership per resource, the unwind matrix and error translation —
+  twelve closed codes replacing three, with timeout distinct from wait failure —
+  and specifies the sensitivity evidence. It does **not** close the layouts. The
+  oracle extractor reads a digest-pinned SDK package that is not in this
+  environment and no Windows SDK include directory is installed either, both
+  checked; writing sizes and offsets from recollection would put a third
+  authority beside the declarations and the oracle and make an assumption
+  indistinguishable from a measurement, which is what "measured rather than
+  assumed" exists to forbid. Two findings came out of following the requirement
+  to its end: the surface is **fourteen calls and four owned resources**, not
+  eight and three, because bounding what the child inherits needs
+  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` and its attribute list — the one resource
+  whose leak is silent; and the obvious shortcut, `bInheritHandles = FALSE` with
+  handles set in `STARTUPINFOW`, produces a child with no usable stdin.
+  Claim ceiling: BLOCKED-1 authorizes a fifth module to be loaded and loads
+  nothing. BLOCKED-2 changes what a passing verification means and touches no
+  code. BLOCKED-3 binds no symbol, starts no process and creates no job.
+  `ACTIVE` stays `False`, no availability predicate moved, nothing calls in, and
+  no committed tranche executes historical code. Canonical precommit returned
+  exit 0 with 201 passing against each of the three states. The consumed pair
+  remains `NON_SUCCESS`.
+
 - [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** On branch
   `feat/gate3-historical-materialization` at head `80b2a74c`, **not merged to
   `main`**: design `8a8dbc2c` with its revision 6 in `70d62fd1`, implementation
@@ -2257,14 +2320,17 @@ Current blocking relationships for this work item:
   built in-process where nothing executes it: no spawn, no native call, no
   historical import, `ACTIVE` still `False` and no caller. **It is still true
   that no committed tranche executes historical code.**
-- M3-b-2, the `-I -S -B` spawn and process control, waits on **BLOCKED-3**: the
-  process-control surface is a second native boundary and `NATIVE-INTEROP`
-  requires its layouts, ownership, unwind and error translation first.
-- M3-b-3, the reconstruction call, waits on **BLOCKED-1** — the reconstruction
-  entrypoint is not in the runtime allowlist and the amendment widening
-  executable authority by one module is written but not accepted — and on
-  **BLOCKED-2**, the retirement of two verifier checks, which is an amendment
-  rather than a plumbing decision.
+- M3-b-2, the `-I -S -B` spawn and process control, still waits on
+  **BLOCKED-3**, which is written but **not closed**. Its design slice supplies
+  ownership, the unwind matrix and error translation; the layouts are open
+  because the oracle needs a digest-pinned SDK package absent from this
+  environment, and they will not be written from recollection. BLOCKED-3 closes
+  when the slice is accepted **and** that artifact exists.
+- M3-b-3, the reconstruction call, is **unblocked as authority**: BLOCKED-1
+  (`fa10dda8`) gave it a defined callee and BLOCKED-2 (`4ea55d3e`) a defined
+  verification contract. What remains is that it be written and reviewed — and
+  it owns the parent-side result object with the two "not asserted" markers,
+  which the BLOCKED-2 amendment requires and does not build.
 - How the child receives the materialized root is an unresolved dependency, not
   a default: argv, the environment and the inbound frame have no field for it,
   and that is recorded in the code rather than filled in with something

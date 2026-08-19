@@ -4733,3 +4733,139 @@ for review, BLOCKED-2's retirement decided as an amendment together with the
 parent-side result object, and BLOCKED-3 specified to `NATIVE-INTEROP` before
 any process-control code is written. M3-b-2 and M3-b-3 do not begin ahead of
 them.
+
+## 2026-08-19 — Gate 3 M3-b blockers: two amendments and one slice
+
+On `feat/gate3-historical-materialization`, **not merged to `main`** and not
+pushed. BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`, after
+the record reconciliation `09597ace`. The two amendments were made under
+explicit human authorization, each in its own commit, so that each can be
+reviewed as an amendment rather than as a line inside a tranche.
+
+### The finding that generalizes
+
+**Nothing failed when executable authority widened.** Adding a fifth module to
+`RUNTIME_MODULE_ALLOWLIST` broke no test. Every allowlist assertion compared the
+module against itself — the runtime inventory equals
+`RUNTIME_MODULE_ALLOWLIST` — and the one test that looked like an independent
+binding, the child's copy against the bootstrap's, stays true when both copies
+grow together. The suite could not distinguish four modules from five, or from
+eleven.
+
+This is the same shape as the M3-b-1 defect it followed: metadata a module can
+grant itself is not authority, and here, a list that certifies itself is not a
+limit. The fix is the same kind of thing — an authority the subject does not
+control. `test_the_allowlist_is_pinned_to_a_literal_outside_the_module` holds
+the five paths as a literal in the test file, not derived from the module, the
+candidate set or the child, and pins the count, uniqueness and the bytewise
+sorted order the wire format depends on.
+
+### BLOCKED-1 — resolved by amendment
+
+Option (a) of three. `gate3_route_v2_ab_candidate.py` joins the allowlist in
+both frozen copies: it holds `build_contract_manifest()` and
+`build_candidate_set()`, so it is the module whose execution *is* the
+reconstruction, and loading it from the pinned commit rather than calling the
+present one is the difference between reconstructing history and re-running the
+present. Option (b), re-implementing the composition in the trusted runner, was
+already rejected because the copy would become the thing that decides what
+history was; option (c), the parent importing a historical module, is what the
+isolation table forbids outright.
+
+Checked before amending rather than assumed: the module is in the retained
+eleven-file candidate set at `8c044400…`, 7251 bytes. Had it not been,
+`runtime_module_inventory` would raise `RUNTIME_MODULE_MISSING` and the
+amendment would have been unimplementable rather than merely unauthorized.
+
+The new entry sits in bytewise-sorted position, third of five. Not cosmetic:
+`encode_stream` emits records in sorted path order and `e3` asserts the exact
+byte sequence, so the tuple order and the wire order are one claim.
+
+### BLOCKED-2 — resolved by amendment, in the other document
+
+The amendment belongs to the historical evidence materialization design, now
+revision 11, not to the M3-b design that proposed it. Step 9 states that
+`_verify_source_commit_inputs` and `_verify_byte_preservation_attributes` are
+not part of the reconstruction path and are not reimplemented on it.
+
+The three readings were written into the amendment rather than left in the
+proposing document: the parent comparing the live worktree is the original
+function unchanged and fails today for the B-1 divergence; the parent comparing
+materialized files to the same git blobs is a tautology, because M2 materialized
+those bytes from those blobs and verified each digest through a held handle on
+the way; supersession by the M1/M2 chain is the correct reading, and is a change
+to the verification contract rather than a relocation.
+
+What the amendment does **not** do is build the parent-side result object with
+its two "not asserted" markers. It requires that the retirement be visible in
+the result; constructing that object is M3-b-3's, and `f28` stays unwritten.
+
+### BLOCKED-3 — written, and deliberately not closed
+
+No authorization closes this one, because it asks for a design slice rather than
+an amendment. The slice closes ownership per resource, the unwind matrix and
+error translation, and specifies the sensitivity evidence.
+
+**It does not close the layouts, and the reason is the finding.** The oracle
+extractor reads official SDK headers out of a digest-pinned `.nupkg`; that
+package is not in this environment and no Windows SDK include directory is
+installed either — both checked, not assumed. A table of sizes and offsets
+written from recollection would sit in the document indistinguishable from a
+measured one, and an implementation gated against it would be gated against
+somebody's memory. The blocker's own words are *measured rather than assumed*,
+so writing them would have satisfied the sentence and defeated it. The slice
+names the four steps that produce the artifact and stops.
+
+Two things found by following the requirement to its end:
+
+- **the surface is larger than the blocker said.** Eight calls and three kinds
+  of handle becomes fourteen calls and four owned resources, because bounding
+  what the child inherits requires `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`, and
+  with it `STARTUPINFOEXW`, an attribute list and three more calls. The
+  attribute list is not a handle, is not closed with `CloseHandle`, and is the
+  only resource on the surface whose leak is silent;
+- **the obvious shortcut does not work.** `bInheritHandles = FALSE` with the
+  standard handles set in `STARTUPINFOW` produces a child with no usable stdin,
+  because those fields are honoured only when inheritance is on.
+
+Also settled: why a job object exists at all — closing the handles of a
+suspended process leaves a suspended orphan holding the materialized root open,
+which is then unremovable; the assignment window between `CreateProcessW` and
+`AssignProcessToJobObject`, narrowed by `CREATE_SUSPENDED` and explicitly not
+eliminated, with the stronger `PROC_THREAD_ATTRIBUTE_JOB_LIST` option named and
+not taken; and `ResumeThread`'s failure value of `(DWORD)-1`, where a truthiness
+check calls every success a failure. Twelve closed error codes replace three,
+with timeout separated from wait failure because a timeout is a fact about the
+child and a wait failure is a fact about the parent.
+
+### Evidence
+
+- BLOCKED-1: bootstrap `78e241e7…`, child `f929563c…`, bootstrap tests
+  `57d1adfa…`, child tests `d764b812…`. Focused tests 178/178, one more than
+  before, which is the new pin.
+- BLOCKED-2: materialization design `5ed6fe76…`, M3-b design `c419260d…`.
+- BLOCKED-3: slice `10af6bfa…`, M3-b design `a815c26b…`.
+- Canonical precommit against each of the three states: exit 0, 201 passing.
+- **No mutation evidence.** The 36-mutation battery behind `cfa2c1ec` was
+  session-local and is not in the repository, so it could not be re-run against
+  the widened allowlist.
+- No CI evidence: no pull request has been opened for any of these commits.
+
+### Not Claimed
+
+- BLOCKED-1 authorizes a fifth module to be loaded. It loads nothing.
+- BLOCKED-2 changes what a passing verification means and touches no code. The
+  reconstruction does not perform the retired checks, and does not perform an
+  equivalent of them; it relies on an earlier link having done so.
+- BLOCKED-3 binds no symbol, starts no process, creates no job, and its layouts
+  are unmeasured.
+- `ACTIVE` is `False`, no availability predicate moved, nothing calls in, and no
+  committed tranche executes historical code.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Review the two amendments as amendments. Then take BLOCKED-3's remaining half —
+the pinned package, the seven added types, the regenerated oracle — because
+until that artifact exists, M3-b-2 has no layouts to be gated against and does
+not begin. M3-b-3 is the tranche that is actually unblocked.

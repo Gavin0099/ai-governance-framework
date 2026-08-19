@@ -54,12 +54,16 @@
 | M3-b design revision 6, f26/f27 returned to the frame | `70d62fd1` |
 | M3-b-1 closed loader and return frame | `cfa2c1ec` |
 | M3-b-1 module-audit opt-out fix | `80b2a74c` |
+| Milestone reconciliation through M3-b-1 | `09597ace` |
+| BLOCKED-1 amendment, allowlist widened to five | `fa10dda8` |
+| BLOCKED-2 amendment, two verifier checks retired | `4ea55d3e` |
+| BLOCKED-3 process-control design slice | `95838ac0` |
 
-The first twenty rows are merged to `main` as `5204cd18`. **The last five rows
-are not.** They sit on `feat/gate3-historical-materialization` at head
-`80b2a74c`, pushed to the feature ref — local and upstream are `0/0` — with no
-pull request opened for them and `origin/main` unchanged. Anything a reader
-takes from `main` alone therefore stops at M3-a.
+The first twenty rows are merged to `main` as `5204cd18`. **The last nine rows
+are not**, and the last four are not pushed anywhere. They sit on
+`feat/gate3-historical-materialization` at head `95838ac0`, with no pull request
+opened and `origin/main` unchanged. Anything a reader takes from `main` alone
+stops at M3-a.
 
 Merge history for this work item: PR #72 as `5d184ee6`, PR #73 as `d7d5485c`,
 PR #75 as `5204cd18`. PR #74 was another agent's work on
@@ -77,19 +81,25 @@ merge taken to clear BEHIND.
   breaks the source pin the historical candidate is verified against.
 - **M3-b is designed and partly delivered; M4 is not started.** M3-b-1 is the
   closed loader and the return frame, built in-process where nothing executes
-  it. Its two successors are each blocked on a named amendment:
-  - **BLOCKED-1** — the reconstruction entrypoint is not in the runtime
-    allowlist. The literal amendment is written; it widens executable authority
-    by one module and must be reviewed as that. Blocks M3-b-3.
-  - **BLOCKED-2** — two of the current verifier's checks are retired rather
-    than moved. Against the materialized tree they compare a git blob to bytes
-    materialized from that blob, which the M1/M2 chain asserts more strongly.
-    Retiring a check changes what verification means. Blocks M3-b-3, and owns
-    the parent-side result object with its two "not asserted" markers.
-  - **BLOCKED-3** — the process-control surface is a second native boundary.
-    `NATIVE-INTEROP` requires layouts, ownership, unwind and error translation
-    first, for eight calls, three kinds of handle and at least six ways to
-    fail. Blocks M3-b-2.
+  it. The three blockers were taken on 2026-08-19 under explicit human
+  authorization, with these results:
+  - **BLOCKED-1 — resolved by amendment** (`fa10dda8`). The allowlist is five
+    modules in both frozen copies. The amendment found that **nothing failed
+    when the fifth was added**: every allowlist test compared the module against
+    itself, so executable authority could widen with a green suite. A literal
+    pin outside the module now fixes the paths, count, uniqueness and sorted
+    order.
+  - **BLOCKED-2 — resolved by amendment** (`4ea55d3e`), in the materialization
+    design, now revision 11, as step 9. The two verifier checks are retired, not
+    relocated. The parent-side result object carrying the two "not asserted"
+    markers is **not** built; it belongs to M3-b-3.
+  - **BLOCKED-3 — slice written, blocker still open** (`95838ac0`). No
+    authorization closes it. Ownership, the unwind matrix and error translation
+    are closed; the **layouts are not**, because the oracle needs a
+    digest-pinned SDK package absent here and they will not be written from
+    recollection. The slice also found the surface is fourteen calls and four
+    owned resources, not eight and three. It closes when accepted **and** the
+    oracle artifact exists.
 - **How the child receives the materialized root is unresolved.** argv, the
   environment and the inbound frame have no field for it. It is recorded in the
   code as an open dependency rather than defaulted.
@@ -102,21 +112,20 @@ merge taken to clear BEHIND.
 
 ## Next Steps
 
-1. Land this reconciliation, so the record is not trailing the branch at the
-   moment the blocked amendments are taken up.
-2. **BLOCKED-1** — submit the written allowlist amendment for review as what it
-   is: a widening of executable authority by one module.
-3. **BLOCKED-2** — decide the retirement of the two verifier checks as an
-   amendment, not as plumbing, and define the parent-side result object and its
-   two "not asserted" markers with it.
-4. **BLOCKED-3** — specify the process-control native boundary to
-   `NATIVE-INTEROP`: layouts, ownership, unwind and error translation for eight
-   calls, three kinds of handle and at least six ways to fail. One layout oracle
-   and one unwind rule were already rejected as insufficient for this surface.
-5. Then M3-b-2 (spawn, behind BLOCKED-3) and M3-b-3 (reconstruction, behind
-   BLOCKED-1 and BLOCKED-2). The runner's trust root is an accepted assumption
-   of M3 and must not be quietly restated as solved; how the child receives the
-   materialized root is still unanswered and must not be defaulted.
+1. Review the three blocker commits at exact digests. Two are amendments and
+   have to be read as amendments, not as diffs.
+2. **BLOCKED-3's remaining half.** Obtain the pinned SDK package at
+   `f8787b2f…`, extend `gate3_native_expected_layout_extract.py` by the seven
+   process-control types, regenerate `gate3-native-expected-layout.json`, and
+   commit it with its extractor digest. Only then may the `ctypes` structures be
+   declared. Until this exists, M3-b-2 does not begin.
+3. **M3-b-3**, which now has both a callee and a verification contract. It owns
+   the parent-side result object and the two "not asserted" markers, and the
+   evidence that the reconstruction path calls neither retired function.
+4. **M3-b-2**, after step 2 lands and the slice is accepted.
+5. Answer how the child receives the materialized root before either tranche
+   needs it, rather than defaulting it. The runner's trust root stays an
+   accepted assumption of M3 and must not be restated as solved.
 6. M4: the historical candidate verified against materialized historical bytes
    instead of against the live worktree.
 7. B-1 five-file re-review and delivery, once M4 removes the dependency its
