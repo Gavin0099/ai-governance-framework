@@ -4067,3 +4067,441 @@ express — twice in design against merged dataclass fields, once in a test name
 against its own assertion. Check the mechanism first, then write the claim.
 Production wiring stays blocked on the five preconditions; group A is the next
 design slice and reopens a pinned contract digest.
+
+## 2026-08-14 — Gate 3 Group A runner integration contract v2
+
+Design accepted at `a720624920ee402a6e490077f806229879929bbc9ba37bb84fd95eb551979e74`
+after five rounds; implementation delivered as three separately reviewed commits
+on one branch.
+
+### Findings And Resolution
+
+**Design, five rounds.** Every round found one defect in a different place: a
+guarantee asserted over a seam that cannot enforce it.
+
+1. `evidence_class = PRODUCTION` is caller intent, not execution provenance,
+   because `invoke` is an injected callable. Resolved by admitting `SYNTHETIC`
+   only and reserving `PRODUCTION` behind three named preconditions.
+2. Dispatching on version inside contract validation is too late, because
+   `verify_package` validates the authority first. Resolved by contract-first
+   identification from exact canonical bytes.
+3. An admission builder does not constrain a coordinator field that accepts any
+   callable. Resolved by removing the callback seam entirely; a token-guarded
+   capability was rejected as an overstated guarantee, since a private module
+   token is an API structural constraint rather than a boundary against a
+   hostile in-process caller.
+4. An import guard does not constrain what an author ran before pasting a
+   literal, and mutation tests measure verifier sensitivity, not literal
+   provenance. The "serializer reuse is detectable" claim was withdrawn.
+5. Stale affected-surface text still described the superseded admission-builder
+   design. Resolved in place.
+
+**A1, one round.** The retained-package test produced its own package with the
+modified coordinator, which shows only that a producer round-trips through its
+own verifier. Resolved with a frozen pre-A1 fixture captured from the module at
+`c2bc090b…`, verified without running any coordinator.
+
+**A2, one round.** The module comment said a v2 model without coordinator
+enforcement must not be presented as an active contract, but `verify_package`
+would verify a hand-built v2 package. Resolved with
+`VERIFIABLE_CONTRACT_VERSIONS` and a regression that relinks every downstream
+digest, plus a second test proving that package is internally coherent so the
+rejection is demonstrably the gate.
+
+**A3, one round, three blocking.**
+
+- The baseline was read twice from a caller-held mapping, so a mutation between
+  admission and comparison left the authority binding something other than what
+  was compared. Resolved with an immutable-by-value private snapshot taken
+  before any side effect.
+- The claim ladder existed only in the design. Resolved by reporting
+  `evidence_class` and `baseline_claim` on every profile.
+- Hostile mappings leaked their own exception text from `items()` calls outside
+  the failure boundary, on both the baseline and observed paths. Resolved by
+  closing both to `WORKSPACE_BASELINE_INVALID` (cause dropped) and
+  `CAPTURE_FAILED`.
+
+### Evidence
+
+- commits `38991f35`, `7c0ee75e`, `3ca52b49`; six exact digests recorded in the
+  corresponding PLAN entry, stable across review.
+- five focused Gate 3 offline suites: 570/570.
+- `git diff --check`: PASS at every step.
+- pre-A1 fixture verified from literal bytes with no coordinator run.
+- hostile probe by the reviewer: adding v2 to the verifiable set in memory made
+  the same relinked package verify, confirming the A2 rejection came from the
+  version gate rather than a stale link.
+
+### Not Claimed
+
+- No claim that any run performed the baseline comparison. Public v2 bytes reach
+  `BASELINE_DIGEST_DECLARED`; a supplied matching private map reaches
+  `SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST`. The third rung is a
+  conditional statement about reviewed source, not about execution.
+- No production evidence class; `PRODUCTION` is rejected by the v2 validator.
+- The oracle fixture is runtime-independent of the production modules and its
+  values were independently re-derived. Serializer reuse is not detectable and
+  is not claimed to be.
+- No real runner wiring, credentials, preflight, subprocess or live execution.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Three production-wiring preconditions remain: a pre-seal credential-residue
+recovery contract, a structural non-`repr` boundary, and machine-enforced path
+exclusivity. Group C is the credential-residue design; group B splits into two
+tranches because the two mechanisms have different modification surfaces and
+failure models. None may be interleaved before the one in progress closes.
+
+## 2026-08-16 — Gate 3 native handle boundary N3c-1
+
+Design revision 17 accepted and committed design-only as `0d95023d`
+(`83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`).
+Implementation delivered as `1486fdb5` after three rounds of independent
+exact-digest review.
+
+### Findings And Resolution
+
+**Revision 17, one round.** Revision 16 required a reparse-tag check on every
+pinned ancestor while granting `FILE_LIST_DIRECTORY | SYNCHRONIZE`, a mask that
+cannot perform one — measured on the volume root,
+`GetFileInformationByHandleEx(FileAttributeTagInfo)` returned
+`ERROR_ACCESS_DENIED`. Two clauses of the same document could not both hold. The
+audit the ruling asked for found no role exempt from querying, so all three
+roles were amended rather than role 1 alone. `FILE_WRITE_ATTRIBUTES` was
+explicitly rejected as a justification for reading: `0x0080` and `0x0100` are
+independent rights.
+
+**Implementation, three rounds.** Three of the round-one and round-two
+findings were the same defect wearing different clothes — a test narrower than
+the invariant it was named after, passing while proving nothing. The rest were
+ordinary implementation defects: a missing ownership API, an accepted invalid
+handle, and the `__exit__` masking found in round three.
+
+- `test_no_bound_export_is_invoked_outside_the_guard` inspected a hand-written
+  list of two functions, so the two direct `CloseHandle` calls this tranche
+  added never registered. Widened to the whole module, exempting only
+  `_guarded` and `fail_fast`, with a synthetic case proving the detector fires.
+- The "creates nothing" check searched for `ntdll.NtCreateFile(`. The compliant
+  call shape — the export handed to `_guarded` as a callable — contains no such
+  text, so the check was blind to a violation and to compliance alike.
+  Replaced by an AST resolution covering both shapes, with a synthetic
+  sensitivity case.
+- Evidence 19w asserted only that the query failed, which any failure satisfies.
+  `ctypes.get_last_error()` was already being read and discarded; it is now
+  attached as a note and asserted by equality as `last_error=5`.
+- A `NULL`-only handle check let `INVALID_HANDLE_VALUE` through, because on
+  64-bit it is truthy.
+- Round three: both `__exit__` methods still masked the body error, because
+  `return False` only runs if `close()` returns. The same masking had already
+  been fixed in `_anchor` and `open_chain`; the exits were missed because they
+  leave through a different door. Fixed with the reverse case also tested, so
+  "does not mask" was not implemented as "always swallows".
+
+Ownership was brought to the design: context manager plus `__del__` safety net,
+`close()` clearing the handle unconditionally including on failure, second
+close a no-op.
+
+### Evidence
+
+- Implementation `c8f40027dbc2900e4b370e6a7fc6dcbc144897b418dbc972b50fd0470adbfca5`;
+  tests `9b27a2dd9a081e53372f9a1865ab6d93947812dcea4d42e4aa2926f833f96817`.
+  Both paths carry `text: unset`, so committed and remote blobs are
+  byte-identical to the reviewed worktree bytes.
+- Focused suite 169/169. Surrounding Gate 3 suites 1073 passing and 7 failing.
+  Those seven were reported at the time as pre-existing failures untouched by
+  this tranche. That attribution was wrong: they are caused by the uncommitted
+  B-1 worktree divergence, and at `HEAD` the two files concerned are
+  byte-identical to `SOURCE_COMMIT`. N3c-1 neither caused nor could have fixed
+  them, but calling them pre-existing obscured a live causal link. Corrected in
+  the 2026-08-16 canonical memory rather than by editing this line's original
+  claim, which is preserved above in the sentence it replaced.
+- Evidence 19w reproduced on a real directory under both masks: revision 16's
+  fails with `last_error=5`, revision 17's returns tag `0`.
+- Two adjacent slices landed the same day and were reviewed separately:
+  `97ad42e4` reconciled `2026-08-13` through `2026-08-16` memory with `PLAN.md`
+  and the active task, preserving 34 hook-generated records unrewritten and
+  adding three canonical corrections; `ec0c4046` replaced the stale CP-8 shared
+  closeout with a current-session one the parser can read.
+
+### Not Claimed
+
+- No claim that the boundary is reachable. `handle_boundary_available()` and
+  `ACTIVE` are both `False`, and nothing in production calls this.
+- No creation, deletion, rename or absence probe. `NtCreateFile`,
+  `SetFileInformationByHandle`, `WriteFile` and `GetVolumeInformationByHandleW`
+  stay bound and uncalled, asserted structurally rather than by convention.
+- No claim that session binding was repaired by `ec0c4046`. No envelope exists
+  for this `session_id`, so `session_end` still fails closed before evaluating
+  any field, and the empty `missing_fields` and `content_issues` in the
+  candidate mean *not computed*, not clean.
+- No claim of durable diagnostic capture from fail-fast, per owner ruling 8's
+  slice-specific `NATIVE-INTEROP.md` §4.1 exception.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+The order is `N3c-2 -> M2 -> M3 -> M4 -> B-1`. An earlier draft of this section
+recommended closing M2 first, on the reasoning that M2 is the consumer and its
+blockers decide the interface. The first half is true and the conclusion is
+not: every operation M2 fails closed on is a creation, a write, a deletion or
+an absence probe, so M2 cannot converge until N3c-2 exists. What M2 supplies
+first is its consumer contract, not its closure.
+
+N3c-2 needs a design-first slice of its own, because it is the first
+authorization to create and delete real filesystem objects and to run the
+absence probe — a wider safety boundary than opening and holding handles, and
+one that N3c-1's approval does not reach. B-1 comes last, behind M4, because
+its edits break the source pin the historical candidate is verified against and
+M4 is what makes that verification independent of live worktree bytes.
+
+Before N3c-2 is designed, two smaller things: the vacuous assertion at
+`test_gate3_native_boundary.py:539`, and an owner decision on whether `base`
+must pre-exist.
+
+## 2026-08-17 — Gate 3 native boundary N3c-2
+
+Design accepted as `520cc306`
+(`25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`) after four
+rounds; implementation delivered as `495fe52f` after three.
+
+### Findings And Resolution
+
+**Design, four rounds.** Three different kinds of defect, and only one of them
+is about evidence.
+
+- *Safety scope.* `_contained` was listed for deletion on the argument that
+  containment becomes structural once every open is handle-relative. True of creation and cleanup,
+  and only of them: `verify` still resolves `root / relative` by path and still
+  calls it. The digest comparison does not cover for it — a digest rejects
+  differing bytes and says nothing when an external location holds exactly the
+  expected ones, by which time the unauthorized read has happened.
+- *Evidence.* Born-read-only was to be shown by a second open failing. Role 3's
+  `ShareAccess` is `FILE_SHARE_READ` alone, so that open fails on the share mask
+  whether or not the attribute was ever requested — the check would have passed
+  against an implementation that dropped the attribute entirely.
+- *Behavioural contradiction.* Cleanup control flow required both "every object
+  is attempted" and "stop at the first failure, do not attempt the parent"
+  within three lines. They are
+  different sequences: deletion attempts stop, handle release continues.
+- *Unreachable specification.* The replacement observation point — after
+  creation, before the first write — does not exist. `create_file` takes the payload and returns a held leaf, so
+  reaching between them would mean splitting the surface or adding a callback
+  into the phase that must have none.
+
+**Implementation, three rounds.** Three of the five blocking findings were
+production defects no test had caught; two were defects in the evidence itself,
+and a later round found two more of that second kind.
+
+- A failure between `FILE_CREATE` and the returned ownership object left the
+  name on disk with nothing holding it; the caller never received an object, so
+  nothing would ever clean it up. Rollback now marks, closes and confirms absent
+  through the same code cleanup uses.
+- A close during removal reported `CLOSE_FAILED`, which names the wrong problem:
+  the object is delete-pending and may still be there. The removal flag is set
+  before the mark, because a mark that raises can still have left it pending —
+  and the first test of that ordering could not tell the two implementations
+  apart, because it let the mark succeed.
+- Every creation failure was reported as a taken name, which tells a caller to
+  choose another when the volume is full or the parent vanished. Only
+  `STATUS_OBJECT_NAME_COLLISION` maps there now, and the stage carried into the
+  diagnostic is the role's own rather than always `CREATE_FILE`.
+- The read-only evidence was confounded, and its sensitivity check asserted that
+  the recorded value differed from a literal — which is what a broken
+  implementation produces, so it passed exactly when it should not have. The
+  expected values now come from literals copied from revision 17, and each
+  mutation re-runs the real assertion and requires it to fail.
+- The disposition matrix covered only "forced fallback succeeds". Preferred-only
+  is now asserted by recording which information classes are set, and
+  both-failing is asserted to leave the object present — reporting
+  `CLEANUP_INCOMPLETE` over a name that had in fact gone would send a caller
+  looking for nothing.
+
+One submitter assertion was wrong in a useful way: reading a created file back
+raised `PermissionError`, because role 3 holds `FILE_WRITE_DATA` and `DELETE`
+under a `FILE_SHARE_READ` mask. That is the design working. The sharing
+violation became its own assertion, and content verification moved to a fixture
+that owns its cleanup and is labelled as not being the role 3 lifecycle.
+
+### Evidence
+
+- Implementation `9142f2c6…`, tests `a044c35b…`; both paths carry `text: unset`,
+  so worktree, staged, committed and remote blobs are byte-identical.
+- Focused suite 245/245. Across the gate3-route-v2 suites 1158 pass and 7 fail,
+  those seven being the B-1 worktree pin failures recorded in `ed9d5d06`.
+- Canonical precommit run against the exact committed diff through Git Bash at
+  `/usr/bin/bash`: exit 0, 201 passed, `smoke_status=pass`,
+  `pytest_status=pass`. It covers `tests/` and not the experiment suites.
+- Real-Windows tests create and delete under a base the test creates; the
+  complete-cycle test compares `st_ino` before and after to show the base is the
+  same object rather than a directory with the same name.
+
+### Not Claimed
+
+- No claim that the boundary is reachable: `handle_boundary_available()` and
+  `ACTIVE` are both `False`, and M2 is not wired to any of it.
+- No claim that precommit covers the experiment suites; those were run
+  separately and are reported separately.
+- No claim about `520cc306`'s own precommit, which did not execute successfully
+  before that commit and is recorded as a known unverified item.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+M2's handle-bound rewrite, then M3 and M4, then B-1. M2 is where the boundary
+first acquires a consumer, so its rewrite is also the first test of whether the
+surface designed for it actually fits.
+
+## 2026-08-18 — Gate 3 held-handle read design amendment
+
+Three documents amended together and accepted after eight rounds: the native
+handle-boundary design to revision 21, the N3c-2 tranche design to revision 7,
+and the historical evidence materialization design to revision 8.
+
+### Findings And Resolution
+
+The amendment began because revision 17 had made the materialized bytes
+unreadable by anything at all. Role 3 holds each created file until it removes
+it, and its share mask keeps out the openers that matter, so `verify` could not
+re-read what it had just written and M3's child could not load the modules it
+was supposed to execute. The first proposal — treat the share mask as
+guaranteeing immutability and drop the byte check — was rejected, and rightly:
+a mask prevents modification, it does not observe bytes, and the same violation
+that stopped the parent reading would have stopped the child loading. Role 3
+therefore gains `FILE_READ_DATA` and the adapter gains `read_all(leaf)`.
+
+**The recurring finding across the eight rounds was not in the new mechanism.**
+It was old specification that did not retire when the thing it described
+changed. A `verify` still documented as path-based; a DONE line still requiring
+a materialized `sys.path` two rows below a table excluding it; a framing
+paragraph superseded by an exact one but left beside it; a `child` row that read
+equally as loading from the filesystem or from buffers. Each was correct when
+written. Every revision added a specification without asking which existing
+paragraph it had just falsified, so the documents ended up specifying two ways
+to do one thing — and a reader could implement either.
+
+**Two claims were withdrawn against measurement rather than argument.**
+
+- A held created file was said to admit no other opener. Measured: a native
+  `NtOpenFile` for `FILE_READ_DATA` is refused sharing only read, refused
+  sharing read and write, and **succeeds** sharing read, write and delete.
+  Share compatibility is bidirectional. The justification for reading through
+  the creating handle is now that it resolves no name and adds no second
+  ownership path — not exclusivity.
+- Byte immutability was attributed to the share mask alone while the creating
+  handle holds `FILE_WRITE_DATA` throughout. Three things close it together:
+  the mask, the opaque handle, and a call census proving no `WriteFile` exists
+  after creation. Remove any one and the claim fails.
+
+Other findings closed: `read_all`'s length is sealed at creation rather than
+passed in; the read state machine covers all four `ReadFile` outcomes including
+a count larger than the request; the rewind is a specified call with a checked
+postcondition; the wire format has magic, version, widths, endianness, a raw
+digest and a bytewise path ordering; every bound is an exact byte count; the
+whole-stream cap was withdrawn as unreachable and recorded as a derived
+maximum; and the child's expected inventory comes from a digest frozen in
+trusted code rather than from the active head or from the stream.
+
+### Evidence
+
+- boundary `f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df`;
+  N3c-2 `4000b95dc7487976bbcf3b700bc2f475a733fbdda33fe88437d2c630ac38638e`;
+  historical `efa07ce87bc829bfeb643bbac7a9dcd52ba80ae1d4f9a113eba45daa65a0514f`.
+- The share-compatibility measurement was taken against a real held role 3
+  handle under a test-owned base, and is what withdrew the exclusivity claim.
+- The derived stream maximum, 34,638,232 bytes, is the sum of the header, the
+  candidate-set block, the per-record framing and the aggregate payload; it is
+  recorded so the arithmetic is checkable and is explicitly not a gate.
+
+### Not Claimed
+
+- No implementation. `read_all` does not exist in code, and this amendment
+  moved no availability flag.
+- The directory enumeration in `verify` remains path-based; the adapter offers
+  no handle-bound enumeration, and M2 may not claim all verification is
+  handle-bound.
+- Nothing here is a statement about what the child process could be made to do,
+  only about what its trusted loader does.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+Open the merge request for the delivered milestone before continuing. Fifteen
+commits is already a large review unit and every later tranche adds to it, while
+the current set is self-contained precisely because nothing production reaches
+it. Then M2, M3, M4 and B-1 in their own requests.
+
+## 2026-08-18 — Gate 3 held-handle read implementation and M2
+
+Two commits: `6e7393e2` adds `read_all` to the boundary, `5a04ec79` rebuilds M2
+on it. Six review rounds between them.
+
+### Findings And Resolution
+
+**The read, two rounds.** The module still named design revision 17 as its
+authority while implementing revision 21, and still said it bound eleven
+exports where there are now thirteen — the count now derives from `BOUND` rather
+than from prose that has to be remembered. Two failure paths had no tests, a
+failed rewind and a failed end-of-file probe, and both mutations survived:
+checking only the returned position, and dropping the probe's error check while
+the main loop stayed correct. The ABI assertion only checked that `argtypes` was
+non-empty, which passes for a wrong argument order, a pointer where a value
+belongs, or a wrong return type — the mistakes that truncate a handle on 64-bit.
+It now compares against an independent ctypes oracle, with five sensitivity
+cases proving it rejects a wrong declaration.
+
+**M2, four rounds.** Two findings generalize beyond this module.
+
+*A record can be forged out of valid parts.* Two trees built from the same
+commit under different bases produce records with identical labels, identical
+digests and correctly-typed handles. Swapping one bundle into the other's record
+passed every structural check, and cleanup deleted the tree the record did not
+describe. Adding more shape checks would not have helped, because every shape
+was right. The fix was to remove the recombination: the tree became a façade
+over one authority object, and there are no longer separate fields to mix. An
+intermediate fix — a seal indexing a global registry — was itself wrong, and
+wrong in a way worth remembering: the registry held the handles by strong
+reference, so a caller who lost the tree without cleaning up left every handle
+open with no way to reach them again.
+
+*Removing a check can remove a second one nobody noticed it carried.* `verify`'s
+byte loop asserted two things: that the bytes are what was written, and that the
+caller is asking about the inventory the tree was built from. Deleting the read
+took the second with it, and a `verify` comparing path names alone accepted a
+map whose every digest was wrong.
+
+Also closed: `verify` snapshotted a caller-supplied `Mapping` while every handle
+was open, which is a callback in the phase that must have none — the parameter
+is gone and `bindings` is keyword-only so a stale positional call fails at the
+signature rather than deep inside the boundary; `_record_of` ran only in
+cleanup, so a duplicated, foreign or spent authority was not checked before
+reading; and cleanup did not confirm each object absent before moving to its
+parent.
+
+### Evidence
+
+- read `f705a215…` / `620ad470…`, focused suite 267;
+  M2 `31f6a0f1…` / `f89bf78c…`, focused suite 68.
+- Canonical precommit run against each exact diff through Git Bash at
+  `/usr/bin/bash`: exit 0, 201 passing, both times.
+- Across the `gate3-route-v2` suites, 1,195 pass and 7 fail — the B-1 worktree
+  pin failures recorded in `ed9d5d06`, carried by no commit.
+
+### Not Claimed
+
+- M2 is not reachable. `materialize()` and `cleanup()` refuse, because
+  `handle_boundary_available()` forwards to the boundary and the boundary
+  reports `False` while no admission record and no capability probe exist.
+- Verification is not entirely handle-bound. The enumeration is still a path
+  walk, and the caveat is asserted by a test rather than left to memory.
+- The share mask is not total exclusion: measured, a native reader sharing
+  read, write and delete opens a held role 3 file. Reading through the creating
+  handle is chosen because it resolves no name and adds no second ownership
+  path.
+- Gate 3 remains `NON_SUCCESS`; the consumed pair is unchanged and unusable.
+
+### Next Recommendation
+
+M3, then M4, then B-1. M3 is where the verified buffers meet a child that must
+not open a materialized path, and where the framed transport's bounds and
+frozen-digest authority stop being design and start being code.

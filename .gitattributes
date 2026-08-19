@@ -63,9 +63,14 @@
 /docs/governance/gate3-final-message-actual-capture-runner-integration-design-candidate-20260813.md -text
 /docs/governance/gate3-real-runner-contained-result-bridge-design-candidate-20260813.md -text
 /docs/governance/gate3-runner-integration-contract-v2-design-candidate-20260814.md -text
+/docs/governance/gate3-path-exclusivity-design-candidate-20260814.md -text
+/docs/governance/gate3-private-rendering-boundary-design-candidate-20260814.md -text
+/docs/governance/gate3-historical-evidence-materialization-design-candidate-20260815.md -text
 /artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py -text
+/docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md -text
+/docs/adr/0001-gate3-native-directory-handle-boundary.md -text
