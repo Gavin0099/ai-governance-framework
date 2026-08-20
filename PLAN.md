@@ -1951,7 +1951,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   (PR #76): BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`,
   after the record reconciliation `09597ace`. Two are amendments made under
   explicit human authorization. The third is not an amendment: **merging did not
-  close BLOCKED-3**, which is in `main` and still OPEN.
+  close BLOCKED-3**, which was in `main` and still OPEN at that checkpoint; it
+  was later closed after acceptance of `95838ac0` and measured layouts in
+  `fe44deb4`.
   **BLOCKED-1 — executable authority widens by one module.**
   `RUNTIME_MODULE_ALLOWLIST` is five in both frozen copies, adding
   `gate3_route_v2_ab_candidate.py`: the module whose execution *is* the
@@ -1986,7 +1988,8 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   equivalent; it performs neither and relies on an earlier link. The parent-side
   result object carrying the two "not asserted" markers is **not** written —
   that is M3-b-3.
-  **BLOCKED-3 — the slice is written and the blocker stays open.** No
+  **BLOCKED-3 — at this checkpoint the slice is written and the blocker stays
+  open.** No
   authorization closes it, because it asks for a design, not an amendment. The
   slice closes ownership per resource, the unwind matrix and error translation —
   twelve closed codes replacing three, with timeout distinct from wait failure —
@@ -2076,8 +2079,8 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   environment and the inbound frame all have no field for, recorded in the code
   as an open dependency rather than defaulted to something convenient. The
   runner's trust root and its TOCTOU window remain accepted assumptions of M3.
-  M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and BLOCKED-2; M4 is not
-  started; the consumed pair remains `NON_SUCCESS`.
+  At this checkpoint M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and
+  BLOCKED-2; M4 is not started; the consumed pair remains `NON_SUCCESS`.
 
 - [x] **Gate 3 M3 design and M3-a delivered 2026-08-19.** Merged to `main` as
   `5204cd18` (PR #75), carrying design commit `a51cd4be` and implementation
@@ -2319,15 +2322,14 @@ Current blocking relationships for this work item:
   built in-process where nothing executes it: no spawn, no native call, no
   historical import, `ACTIVE` still `False` and no caller. **It is still true
   that no committed tranche executes historical code.**
-- M3-b-2, the `-I -S -B` spawn and process control, still waits on
-  **BLOCKED-3**, which is in `main` and **not closed**. Merging the explicitly
-  incomplete slice did not close BLOCKED-3, and no authorization closes it
-  either, because it is a slice rather than an amendment. It supplies ownership,
-  the unwind matrix and error translation; the layouts are open. The committed
-  oracle covers eleven types and none of the process-control ones, the rows are
-  missing, and the pinned SDK package needed to generate them is unavailable in
-  this environment; they will not be written from recollection. BLOCKED-3 closes
-  when the slice is accepted **and** those measured rows exist.
+- **BLOCKED-3 is CLOSED.** The process-control design slice in `95838ac0` was
+  accepted after `fe44deb4` committed the digest-pinned SDK provenance, seven
+  measured process-control layouts, their pure `ctypes` declarations and the
+  independent fixtures. Exact-digest fresh-context review approved the tranche;
+  386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
+  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. M3-b-2 is now the
+  next implementation tranche, after its materialized-root transport dependency
+  is resolved and the tranche is explicitly authorized.
 - M3-b-3, the reconstruction call, is **unblocked as authority**, and that
   authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
   BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it

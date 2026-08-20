@@ -28,11 +28,12 @@
 
 ## Where The Work Is
 
-**Everything through M3-b-1 is merged to `main`.** PR #76 merged as `f802dba4`,
-carrying the tranches below; M1 through M3-a merged earlier. Nothing on the
-feature branch is unmerged.
+PR #76 merged as `f802dba4`, carrying the entries through the BLOCKED-3 design
+slice below; M1 through M3-a merged earlier. Later branch work remains in the
+same inventory without encoding a branch head or ahead count. For current merge
+state, `git log --oneline origin/main..HEAD` is authoritative.
 
-| Merged in PR #76 | Commit |
+| Tranche | Commit |
 | --- | --- |
 | M3-b design, and its three refused amendments | `8a8dbc2c` |
 | M3-b design revision 6 | `70d62fd1` |
@@ -41,11 +42,14 @@ feature branch is unmerged.
 | **BLOCKED-1 amendment**, allowlist widened to five | `fa10dda8` |
 | **BLOCKED-2 amendment**, two verifier checks retired | `4ea55d3e` |
 | BLOCKED-3 process-control design slice | `95838ac0` |
+| Post-merge record reconciliation | `dc71c3f9` |
+| BLOCKED-3 measured layouts and pure declarations | `fe44deb4` |
 
 Two of those change executable authority or the meaning of passing verification,
 and both are now in `main`: the allowlist is five modules, and two verifier
-checks are retired from the reconstruction path. **BLOCKED-3 is now in `main`
-and still OPEN.** CI had no failures before merge: twelve passed, two skipped.
+checks are retired from the reconstruction path. **BLOCKED-3 is CLOSED** after
+acceptance of the design slice and measured-layout commit `fe44deb4`. CI had no
+failures before the PR #76 merge: twelve passed, two skipped.
 
 Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
 `f802dba4`; #74 was another agent's work, merged only to clear BEHIND.
@@ -66,15 +70,12 @@ Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
   so it is still third. It owns the parent-side result object and the two
   "not asserted" markers, which the BLOCKED-2 amendment requires and does not
   build.
-- **BLOCKED-3 is written and still OPEN** (`95838ac0`). Merging the explicitly
-  incomplete slice did not close BLOCKED-3: it asked for a design slice, not an
-  amendment, so no authorization closes it. Ownership, the unwind matrix and
-  error translation are closed; **the layouts are not.** The committed oracle
-  exists and covers eleven types, none of them process-control; the rows are
-  missing and the pinned SDK package needed to generate them is unavailable
-  here. Offsets will not be written from recollection. It closes when the slice
-  is accepted **and** those measured rows exist. M3-b-2 does not begin before
-  then.
+- **BLOCKED-3 is CLOSED** (`95838ac0`, `fe44deb4`). The design slice is accepted;
+  the pinned package digest was verified and the oracle now covers eighteen
+  types, including seven measured process-control layouts with matching pure
+  declarations and independent fixtures. Fresh-context exact-digest review
+  approved the commit; 386 scoped tests and the canonical 201-test gate passed.
+  No symbol is bound or called, `ACTIVE` remains `False`, and M3-b-2 has not begun.
 - **How the child receives the materialized root is unresolved.** argv, the
   environment and the inbound frame have no field for it. Recorded in the code
   as an open dependency rather than defaulted.
@@ -86,18 +87,13 @@ Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
 
 ## Next Steps
 
-1. **BLOCKED-3's remaining half.** Obtain the pinned SDK package `f8787b2f…`,
-   extend `gate3_native_expected_layout_extract.py` by the seven process-control
-   types, regenerate `gate3-native-expected-layout.json`, commit it with its
-   extractor digest. Only then may the `ctypes` structures be declared.
-2. **M3-b-2**, after step 1 lands and the slice is accepted.
-3. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
+1. Define and authorize the bounded **M3-b-2** implementation slice after
+   resolving how the child receives the materialized root.
+2. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
    sequence not.
-4. Answer how the child receives the materialized root before either needs it.
-   The runner's trust root stays an accepted assumption of M3.
-5. M4: the historical candidate verified against materialized historical bytes
+3. M4: the historical candidate verified against materialized historical bytes
    instead of the live worktree.
-6. B-1 re-review and delivery, once M4 removes the dependency its edits break.
+4. B-1 re-review and delivery, once M4 removes the dependency its edits break.
 
 ## Open Risks
 

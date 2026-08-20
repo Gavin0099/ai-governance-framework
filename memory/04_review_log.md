@@ -4942,3 +4942,137 @@ runs history"* — so M3-b-3's states 4 and 5 run inside the child M3-b-2 create
 The order is BLOCKED-3's oracle rows, then M3-b-2, then M3-b-3, and it does not
 admit reordering. Found by an independent review of the reconciliation diff, not
 by the author of either entry.
+
+## 2026-08-20 — BLOCKED-3 process-control layout/declaration exact review
+
+### Review Inputs Checked
+
+- `governance/REVIEW_CRITERIA.md`, `governance/AGENT.md`,
+  `governance/TESTING.md`, `governance/ARCHITECTURE.md`, and
+  `governance/NATIVE-INTEROP.md`.
+- `docs/governance/gate3-m3b2-process-control-boundary-design-candidate-20260819.md`.
+- Relevant prior-review and anti-pattern entries in `memory/04_review_log.md`
+  and `memory/03_knowledge_base.md`.
+- Exact four-file worktree diff at SHA-256 values `07491524...`, `fa3f4215...`,
+  `562bf482...`, and `4ca79bd0...`; unrelated B-1 and runtime dirty files were
+  not inspected.
+
+### Decision Summary
+
+**Verdict: `CHANGES_REQUESTED`. Risk: High.** The measured layouts, pins, pure
+declarations, and independent fixtures agree, but one new comment gives the
+future process-creation tranche the wrong `STARTUPINFOEXW.StartupInfo.cb` value.
+
+### Governance Audit
+
+- Architecture: pass within this slice. Seven declarations remain inside the
+  native adapter; no symbol is bound, no call is made, and no availability or
+  `ACTIVE` state moves.
+- Native safety: layout checks pass; `_pack_ = 8` remains explicit. One blocking
+  operational instruction is wrong and must be corrected before acceptance.
+- Test integrity: the extractor fixture remains separate from the artifact and
+  locks the added header bytes/digest and all eighteen layouts. Two explanatory
+  arithmetic/count descriptions are inaccurate or stale.
+- Thread safety: N/A; no thread is created or resumed in this slice.
+- Baseline: stable for the scoped boundary and adjacent consumer suites; no full
+  repository regression was run by this reviewer.
+
+### Technical Findings
+
+1. **BLOCKING — `STARTUPINFOEXW.StartupInfo.cb` guidance is reversed.**
+   - Location: `artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_native_boundary.py:496`.
+   - Status: open.
+   - Evidence: the new comment says to use `sizeof(STARTUPINFOW)` rather than
+     `sizeof(STARTUPINFOEXW)`. Microsoft documents the opposite: the embedded
+     `STARTUPINFO.cb` must be set to `sizeof(STARTUPINFOEX)` when using the
+     extended structure.
+   - Rule: `REVIEW_CRITERIA.md` §3.2 and `ARCHITECTURE.md` §1.1-1.2.
+   - Required disposition: correct the comment before this declaration becomes
+     authority for M3-b-2; the later implementation must use the extended size.
+
+2. **WARNING — independent-evidence explanations contain stale counts and wrong arithmetic.**
+   - Locations: `gate3_native_boundary.py:194,416`,
+     `gate3_native_expected_layout_extract.py:12,155,194,254`, and
+     `test_gate3_native_expected_layout_extract.py:11,225` under the same
+     Gate 3 experiment directory.
+   - Status: open.
+   - Evidence: the closed inventory now has ten headers and eighteen target
+     types, not nine/eleven. The basic-limit fields sum to 56 bytes and require
+     two four-byte padding gaps, not 52 bytes or four padding locations. The
+     recorded offsets and final size 64 are correct.
+   - Rule: `TESTING.md` §3.2 and `REVIEW_CRITERIA.md` §3.3.
+   - Required disposition: update the prose only; do not change the measured
+     offsets, type-set gate, or artifact.
+
+### Validation
+
+- `D:\ai-governance-framework\.venv\Scripts\python.exe -B -m pytest -p no:cacheprovider --basetemp <workspace-temp> artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_native_boundary.py artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_native_expected_layout_extract.py -q` — **318 passed**.
+- The same runner against `test_gate3_historical_materialize.py` — **68 passed**.
+- `git diff --check -- <four scoped files>` — clean.
+- Reviewer-created pytest temp directories were removed after each run.
+
+### Knowledge Base Alignment
+
+- Anti-patterns checked: 2 — self-validating expected values; digests detached
+  from the bytes they claim to bind.
+- Regression notes checked: 1 — live worktree bytes must not be mistaken for a
+  clean pinned baseline.
+- Result: no recurrence in executable logic. The fixture remains independent
+  and both digest pins match the current scoped bytes. No new durable
+  anti-pattern was identified.
+
+### Not Claimed / Next Recommendation
+
+- The reviewer did not rerun extraction from the external `.nupkg`, full
+  regression, canonical precommit, commit, push, or CI.
+- `BLOCKED-3` remains open; `ACTIVE` and the availability predicate remain
+  false, and M3-b-2 has not begun.
+- Correct the two findings, recompute both pinned digests affected by the source
+  edits, rerun the 318-case focused suite and 68-case adjacent suite, then
+  resubmit the exact four-file digests for review.
+
+### 2026-08-20 Resolution — committed as `fe44deb4`
+
+The first review's inverted `STARTUPINFOEXW.cb` guidance and stale
+count/padding prose were corrected, then a fresh-context Claude review found
+three more prose defects in the same boundary file: one remaining
+"nine-entry" count, the same rejected overbroad `STARTUPINFOW.cb` statement in
+an earlier comment, and an incomplete standard-handle condition that omitted
+`STARTF_USESTDHANDLES`. The second `cb` occurrence is treated as blocking under
+the first review's standard; all three were corrected before commit.
+
+The corrected comments now distinguish standalone `STARTUPINFOW` from embedded
+`STARTUPINFOEXW`, require `STARTF_USESTDHANDLES` together with inheritable
+handles and `bInheritHandles = TRUE`, and carry no remembered inventory count.
+Microsoft's `STARTUPINFOW` and `STARTUPINFOEXW` documentation was the external
+behavior source. No measured layout, extractor output, artifact value, type-set
+gate, binding, call, or activation state changed in this remediation.
+
+Validation at the committed bytes: the two focused native-layout files plus
+the adjacent materializer suite reported 386 passed; canonical
+`scripts/run-runtime-governance.sh --mode enforce` reported shared smoke pass
+and 201 passed. The implementation commit is `fe44deb4` with four files,
+617 insertions and 15 deletions. No push, CI, BLOCKED-3 closure, or M3-b-2 start
+is claimed.
+
+### 2026-08-20 Final Acceptance — BLOCKED-3 CLOSED
+
+A fresh-context Claude reviewer verified that `fe44deb4` contains exactly the
+four intended files at the delivered blob digests and returned `APPROVED`.
+Independent layout derivation, artifact values, the deliberately separate test
+fixture and `ctypes` all agree for the seven process-control types; the existing
+eleven layouts remain byte-identical. The type-set equality gate remains 18/18,
+all seven structures retain `_pack_ = 8`, and no bind, call or activation was
+introduced. The author independently reproduced the canonical 201-test gate in
+addition to the 386 scoped tests.
+
+The human accepted the process-control design slice and `fe44deb4`. Both closure
+conditions are therefore satisfied: the slice is accepted and the measured rows
+exist. **BLOCKED-3 is CLOSED.** This supersedes only the earlier OPEN-status and
+next-step statements; it does not rewrite their historical review context.
+M3-b-2 is now the next implementation tranche, but has not begun and requires a
+separately authorized bounded slice after the materialized-root transport is
+resolved. No push or CI result is claimed. The branch is named
+`feat/gate3-historical-materialization`, while `governance.yml` accepts push
+events only for `main` and `feature/**`; pushing this checkpoint therefore adds
+remote durability but does not produce CI evidence.
