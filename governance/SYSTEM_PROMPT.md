@@ -401,6 +401,9 @@ SCOPE = ...
 
 根據 `memory/01_active_task.md` line count 與 char count（同 `memory_janitor` 實作：行數或字元數任一達標即判級）：
 
+- `line count` = Python UTF-8 text mode 讀入後的 `len(content.splitlines())`，包含空白行；檔尾換行不額外產生一個虛構空白行。
+- `char count` = 同一份 text mode `content` 的 `len(content)`，即換行正規化後的 Unicode code point 數（包含換行字元），不是 UTF-8 byte 數。
+
 | Level | Condition | Action |
 |---|---:|---|
 | SAFE | 0-179 lines and <8000 chars | 正常繼續 |
