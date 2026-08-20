@@ -76,9 +76,9 @@ Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
   declarations and independent fixtures. Fresh-context exact-digest review
   approved the commit; 386 scoped tests and the canonical 201-test gate passed.
   No symbol is bound or called, `ACTIVE` remains `False`, and M3-b-2 has not begun.
-- **How the child receives the materialized root is unresolved.** argv, the
-  environment and the inbound frame have no field for it. Recorded in the code
-  as an open dependency rather than defaulted.
+- **Materialized-root transport is resolved as design, not implemented.** The
+  accepted `GATE3HL\0` v1 envelope carries one unchanged M3-a frame and root.
+  The full absolute base remains parent-trusted; M3-b-2 is unstarted.
 - Nothing is wired to M2, M3-a or M3-b-1. `materialize()` and `cleanup()` refuse
   while `handle_boundary_available()` is `False`; `ACTIVE` is `False` and nothing
   calls in. M2's verification is still not entirely handle-bound: the
@@ -87,8 +87,8 @@ Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
 
 ## Next Steps
 
-1. Define and authorize the bounded **M3-b-2** implementation slice after
-   resolving how the child receives the materialized root.
+1. Define and authorize bounded **M3-b-2** against the accepted launch-envelope
+   design; do not include M3-b-3.
 2. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
    sequence not.
 3. M4: the historical candidate verified against materialized historical bytes

@@ -2327,19 +2327,21 @@ Current blocking relationships for this work item:
   measured process-control layouts, their pure `ctypes` declarations and the
   independent fixtures. Exact-digest fresh-context review approved the tranche;
   386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
-  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. M3-b-2 is now the
-  next implementation tranche, after its materialized-root transport dependency
-  is resolved and the tranche is explicitly authorized.
+  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. Its
+  materialized-root transport design is resolved by the accepted 2026-08-20
+  `GATE3HL\0` version-1 envelope decision; implementation remains separately
+  unauthorized.
 - M3-b-3, the reconstruction call, is **unblocked as authority**, and that
   authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
   BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
   be written and reviewed — and it owns the parent-side result object with the
   two "not asserted" markers, which the BLOCKED-2 amendment requires and does
   not build.
-- How the child receives the materialized root is an unresolved dependency, not
-  a default: argv, the environment and the inbound frame have no field for it,
-  and that is recorded in the code rather than filled in with something
-  convenient.
+- How the child receives the materialized root is resolved as design, not
+  implementation: the parent binds one live `MaterializedTree` authority to one
+  stdin launch envelope containing the unchanged M3-a frame and root. The child
+  validates syntax and the deterministic leaf; the full absolute base remains
+  parent-trusted. No Python implementation exists and M3-b-2 has not begun.
 - M4 follows, and is what lets a historical candidate be verified against
   materialized historical bytes instead of against the live worktree — which is
   what B-1 is waiting for.

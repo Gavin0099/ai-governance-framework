@@ -416,13 +416,16 @@ what it carries is length, truncation and an equality fingerprint.
 
 ## 2. Stream-in, and where authority sits
 
-The parent writes the M3-a frame to the child's stdin and closes it. The child
-reads stdin to end-of-file into one buffer, bounded by
-`DERIVED_MAX_STREAM_BYTES + 1`; one byte past the derived maximum is enough to
+The parent writes one `GATE3HL\0` version-1 launch envelope containing exactly
+one byte-identical M3-a frame to the child's stdin and closes it. The child reads
+stdin to end-of-file into one buffer, bounded by
+`MAX_LAUNCH_STREAM_BYTES + 1`; one byte past the outer maximum is enough to
 distinguish "at the maximum" from "beyond it" without reading an unbounded
-stream.
+stream. The accepted envelope is specified in
+`gate3-m3b2-materialized-root-transport-design-candidate-20260820.md`.
 
-The child then calls `decode_stream` **before it does anything else that could
+The child parses the outer envelope and calls `decode_stream` on its inner M3-a
+frame **before it does anything else that could
 be observed** — before the loader is constructed, before any historical name
 exists, before `sys.meta_path` is touched. `decode_stream` already checks the
 candidate-set block against the frozen digest before parsing any record, and

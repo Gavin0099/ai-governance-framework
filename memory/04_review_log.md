@@ -5076,3 +5076,35 @@ resolved. No push or CI result is claimed. The branch is named
 `feat/gate3-historical-materialization`, while `governance.yml` accepts push
 events only for `main` and `feature/**`; pushing this checkpoint therefore adds
 remote durability but does not produce CI evidence.
+
+### 2026-08-20 Materialized-Root Transport — ACCEPTED
+
+The owner accepted normative rev2 of
+`gate3-m3b2-materialized-root-transport-design-candidate-20260820.md` at exact
+SHA-256 `3c3955c0edfe4a370e99b46b272f6bce7a49e2acd2d1a90e39a36affaca0b065`
+after fresh-context review returned `APPROVED` with zero findings. The review
+independently reproduced the deterministic root leaf, checked extended Windows
+path forms against `ntpath.normpath`, and verified the inner and outer bounds.
+
+Rev2 resolved both prior review findings: it names
+`MAX_LAUNCH_STREAM_BYTES = 34,703,786` separately from the existing inner
+`DERIVED_MAX_STREAM_BYTES = 34,638,232`, and explains why the UTF-8 byte and
+UTF-16 code-unit root limits are independently reachable. Acceptance amends
+only M3's one-transport sentence and M3-b's stdin sentence: one `GATE3HL\0` v1
+envelope now contains exactly one byte-identical M3-a frame plus the root.
+
+The child validates envelope framing, root syntax and the deterministic leaf;
+it does not independently verify the absolute base. The parent remains trusted
+to bind that base to the live `MaterializedTree` authority. Acceptance resolves
+the design dependency only. It does not authorize Python implementation,
+M3-b-2 execution, push, PR or CI claims; `ACTIVE=False` and Gate 3 remains
+`NON_SUCCESS`.
+
+Provenance correction: normative rev2 was untracked when reviewed and was
+overwritten by the acceptance edit before any commit preserved it. Therefore
+`3c3955c0...` is an exact-digest record of the bytes the reviewer observed, not
+a git-retrievable object, and the claimed post-review delta cannot be proven by
+repository diff. The acceptance edit changed both the status block and the
+“Acceptance and Authorization Boundary” section; describing it as metadata-only
+was incorrect. The commit containing this correction is the first durable
+boundary from which future accepted-design edits can be diffed.
