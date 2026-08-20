@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-18
+> **最後更新**: 2026-08-20
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -1947,11 +1947,11 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
-- [x] **Gate 3 M3-b blockers taken 2026-08-19.** On
-  `feat/gate3-historical-materialization`, **not merged to `main`**: BLOCKED-1
-  `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`, after the record
-  reconciliation `09597ace`. Two are amendments made under explicit human
-  authorization; the third is not an amendment and is **not closed**.
+- [x] **Gate 3 M3-b blockers taken 2026-08-19.** Merged to `main` as `f802dba4`
+  (PR #76): BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`,
+  after the record reconciliation `09597ace`. Two are amendments made under
+  explicit human authorization. The third is not an amendment: **merging did not
+  close BLOCKED-3**, which is in `main` and still OPEN.
   **BLOCKED-1 — executable authority widens by one module.**
   `RUNTIME_MODULE_ALLOWLIST` is five in both frozen copies, adding
   `gate3_route_v2_ab_candidate.py`: the module whose execution *is* the
@@ -2010,10 +2010,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   exit 0 with 201 passing against each of the three states. The consumed pair
   remains `NON_SUCCESS`.
 
-- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** On branch
-  `feat/gate3-historical-materialization` at head `80b2a74c`, **not merged to
-  `main`**: design `8a8dbc2c` with its revision 6 in `70d62fd1`, implementation
-  `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
+- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** Merged to `main` as
+  `f802dba4` (PR #76): design `8a8dbc2c` with its revision 6 in `70d62fd1`,
+  implementation `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
   `ff0099e57f8ad5e999d9ef664a7918460b81e7b95083abf111747e8c955a4ef8`; exact
   implementation SHA-256 is
   `0f82201b05086d5fc4e01168c1fdadd7970cc29727cad2770ad8d9e8ff9566c6`; exact
@@ -2321,16 +2320,20 @@ Current blocking relationships for this work item:
   historical import, `ACTIVE` still `False` and no caller. **It is still true
   that no committed tranche executes historical code.**
 - M3-b-2, the `-I -S -B` spawn and process control, still waits on
-  **BLOCKED-3**, which is written but **not closed**. Its design slice supplies
-  ownership, the unwind matrix and error translation; the layouts are open
-  because the oracle needs a digest-pinned SDK package absent from this
-  environment, and they will not be written from recollection. BLOCKED-3 closes
-  when the slice is accepted **and** that artifact exists.
-- M3-b-3, the reconstruction call, is **unblocked as authority**: BLOCKED-1
-  (`fa10dda8`) gave it a defined callee and BLOCKED-2 (`4ea55d3e`) a defined
-  verification contract. What remains is that it be written and reviewed — and
-  it owns the parent-side result object with the two "not asserted" markers,
-  which the BLOCKED-2 amendment requires and does not build.
+  **BLOCKED-3**, which is in `main` and **not closed**. Merging the explicitly
+  incomplete slice did not close BLOCKED-3, and no authorization closes it
+  either, because it is a slice rather than an amendment. It supplies ownership,
+  the unwind matrix and error translation; the layouts are open. The committed
+  oracle covers eleven types and none of the process-control ones, the rows are
+  missing, and the pinned SDK package needed to generate them is unavailable in
+  this environment; they will not be written from recollection. BLOCKED-3 closes
+  when the slice is accepted **and** those measured rows exist.
+- M3-b-3, the reconstruction call, is **unblocked as authority**, and that
+  authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
+  BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
+  be written and reviewed — and it owns the parent-side result object with the
+  two "not asserted" markers, which the BLOCKED-2 amendment requires and does
+  not build.
 - How the child receives the materialized root is an unresolved dependency, not
   a default: argv, the environment and the inbound frame have no field for it,
   and that is recorded in the code rather than filled in with something

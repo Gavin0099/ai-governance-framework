@@ -5,18 +5,15 @@
 
 # Active Task
 
-> Refreshed 2026-08-19 on `feat/gate3-historical-materialization`. A
-> point-in-time summary, not canonical memory, and not evidence that anything
-> below was re-verified today.
+> Refreshed 2026-08-19, after PR #76 merged. A point-in-time summary, not
+> canonical memory, and not evidence that anything below was re-verified today.
 >
 > **No branch head and no commit count are written here.** Both go stale on the
 > next commit — including the one correcting them, which is how two revisions of
 > this file were wrong on landing. `origin/main..HEAD` is the authority.
 >
-> **Cleaned up 2026-08-19 to return this file to `SAFE`** from 171 lines and
-> 9575 characters. The checkpoint table and per-tranche narrative are preserved
-> in `memory/04_review_log.md`, `PLAN.md` and the commit messages. Nothing
-> append-only was rewritten. Corrected claims are marked below.
+> Full history is in `memory/04_review_log.md`, `PLAN.md` and the commit
+> messages. Corrected claims are marked below.
 
 ## Current Focus
 
@@ -31,31 +28,27 @@
 
 ## Where The Work Is
 
-Twenty tranches are merged to `main` as `5204cd18` — M1 through M3-a, including
-the native boundary N1/N2/N3a/N3b/N3c-1/N3c-2, the held-handle read, and M2.
-`PLAN.md` carries them as milestone entries and `memory/04_review_log.md` carries
-their reviews; neither is repeated here.
+**Everything through M3-b-1 is merged to `main`.** PR #76 merged as `f802dba4`,
+carrying the tranches below; M1 through M3-a merged earlier. Nothing on the
+feature branch is unmerged.
 
-**The feature branch is pushed and nothing on it is merged.** `origin/main` is
-unchanged at `5204cd18`, no pull request is open, and a reader taking state from
-`main` alone stops at M3-a. The unmerged range is `origin/main..HEAD`; its size
-is whatever Git says when the pull request is opened.
-
-The substantive tranches in that range — **not** the whole of it, since record
-and cleanup commits sit alongside them unlisted:
-
-| Tranche | Commit |
+| Merged in PR #76 | Commit |
 | --- | --- |
 | M3-b design, and its three refused amendments | `8a8dbc2c` |
 | M3-b design revision 6 | `70d62fd1` |
 | M3-b-1 closed loader and return frame | `cfa2c1ec` |
 | M3-b-1 module-audit opt-out fix | `80b2a74c` |
-| BLOCKED-1 amendment, allowlist widened to five | `fa10dda8` |
-| BLOCKED-2 amendment, two verifier checks retired | `4ea55d3e` |
+| **BLOCKED-1 amendment**, allowlist widened to five | `fa10dda8` |
+| **BLOCKED-2 amendment**, two verifier checks retired | `4ea55d3e` |
 | BLOCKED-3 process-control design slice | `95838ac0` |
 
-Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`; #74 was
-another agent's work, merged only to clear BEHIND.
+Two of those change executable authority or the meaning of passing verification,
+and both are now in `main`: the allowlist is five modules, and two verifier
+checks are retired from the reconstruction path. **BLOCKED-3 is now in `main`
+and still OPEN.** CI had no failures before merge: twelve passed, two skipped.
+
+Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
+`f802dba4`; #74 was another agent's work, merged only to clear BEHIND.
 
 ## Paused And Blocked
 
@@ -67,16 +60,21 @@ another agent's work, merged only to clear BEHIND.
   are fixed; what blocks it is that changing the first two breaks the source pin
   the historical candidate is verified against.
 - **BLOCKED-1 and BLOCKED-2 are resolved by amendment** (`fa10dda8`,
-  `4ea55d3e`), under explicit human authorization. M3-b-3 therefore has a defined
-  callee and a defined verification contract, and needs only to be written and
-  reviewed. It owns the parent-side result object and the two "not asserted"
-  markers, which the BLOCKED-2 amendment requires and does not build.
-- **BLOCKED-3 is written and still open** (`95838ac0`). No authorization closes
-  it — it asked for a design slice, not an amendment. Ownership, the unwind
-  matrix and error translation are closed; **the layouts are not**, because the
-  oracle needs a digest-pinned SDK package absent here and the offsets will not
-  be written from recollection. It closes when the slice is accepted **and** that
-  artifact exists. M3-b-2 does not begin before then.
+  `4ea55d3e`), under explicit human authorization, and both are now in `main`.
+  M3-b-3 therefore has a defined callee and a defined verification contract.
+  That is **authority, not sequence**: it runs inside the child M3-b-2 creates,
+  so it is still third. It owns the parent-side result object and the two
+  "not asserted" markers, which the BLOCKED-2 amendment requires and does not
+  build.
+- **BLOCKED-3 is written and still OPEN** (`95838ac0`). Merging the explicitly
+  incomplete slice did not close BLOCKED-3: it asked for a design slice, not an
+  amendment, so no authorization closes it. Ownership, the unwind matrix and
+  error translation are closed; **the layouts are not.** The committed oracle
+  exists and covers eleven types, none of them process-control; the rows are
+  missing and the pinned SDK package needed to generate them is unavailable
+  here. Offsets will not be written from recollection. It closes when the slice
+  is accepted **and** those measured rows exist. M3-b-2 does not begin before
+  then.
 - **How the child receives the materialized root is unresolved.** argv, the
   environment and the inbound frame have no field for it. Recorded in the code
   as an open dependency rather than defaulted.
@@ -88,19 +86,18 @@ another agent's work, merged only to clear BEHIND.
 
 ## Next Steps
 
-1. Review the three blocker commits at exact digests. Two are amendments and must
-   be read as amendments, not as diffs.
-2. **BLOCKED-3's remaining half.** Obtain the pinned SDK package `f8787b2f…`,
+1. **BLOCKED-3's remaining half.** Obtain the pinned SDK package `f8787b2f…`,
    extend `gate3_native_expected_layout_extract.py` by the seven process-control
    types, regenerate `gate3-native-expected-layout.json`, commit it with its
    extractor digest. Only then may the `ctypes` structures be declared.
-3. **M3-b-3**, the tranche actually unblocked.
-4. **M3-b-2**, after step 2 lands and the slice is accepted.
-5. Answer how the child receives the materialized root before either needs it.
+2. **M3-b-2**, after step 1 lands and the slice is accepted.
+3. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
+   sequence not.
+4. Answer how the child receives the materialized root before either needs it.
    The runner's trust root stays an accepted assumption of M3.
-6. M4: the historical candidate verified against materialized historical bytes
+5. M4: the historical candidate verified against materialized historical bytes
    instead of the live worktree.
-7. B-1 re-review and delivery, once M4 removes the dependency its edits break.
+6. B-1 re-review and delivery, once M4 removes the dependency its edits break.
 
 ## Open Risks
 

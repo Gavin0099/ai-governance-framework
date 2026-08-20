@@ -4869,3 +4869,76 @@ Review the two amendments as amendments. Then take BLOCKED-3's remaining half �
 the pinned package, the seven added types, the regenerated oracle — because
 until that artifact exists, M3-b-2 has no layouts to be gated against and does
 not begin. M3-b-3 is the tranche that is actually unblocked.
+
+## 2026-08-19 — PR #76 merged: M3-b design, M3-b-1, and two authority amendments
+
+Merged to `main` as `f802dba4`. Twelve non-merge commits, `62da7b6f` through
+`8cde1a79`, base `5204cd18`. This is a delivery record, not a new review. The
+two entries above cover the M3-b implementation and blocker reviews; the record
+and cleanup decisions remain in their commit messages and canonical memory.
+
+### What crossed into `main`
+
+Two of the twelve change executable authority or the meaning of passing
+verification, and both are now mainline rather than proposed:
+
+- **`fa10dda8`** — `RUNTIME_MODULE_ALLOWLIST` is five modules. Executable
+  authority is wider than it was, by `gate3_route_v2_ab_candidate.py`, and the
+  literal pin outside the module is what makes a sixth require a visible edit.
+- **`4ea55d3e`** — `_verify_source_commit_inputs` and
+  `_verify_byte_preservation_attributes` are retired from the reconstruction
+  path. What a passing verification means is narrower than it was.
+
+The remaining five substantive commits are three design documents, the M3-b-1
+implementation and its audit fix. Five of the twelve are record or cleanup.
+
+### What merging did not do
+
+**BLOCKED-3 is in `main` and still OPEN.** Merging the explicitly incomplete
+slice did not close BLOCKED-3, and no authorization closes it either, because it
+asked for a slice rather than an amendment. The committed layout oracle covers
+eleven types and none of the process-control ones; those rows are missing and the
+pinned SDK package needed to generate them is unavailable in this environment.
+M3-b-2 does not begin until they exist.
+
+Nothing else moved. `ACTIVE` is `False`, `handle_boundary_available()` is
+`False`, no production path reaches any of it, and no committed tranche executes,
+spawns, compiles or imports historical code. M4 is not started and B-1 remains
+`PAUSED_BEHIND_M4`.
+
+### Evidence
+
+- CI on PR #76: **fourteen checks, twelve pass, two skipped, none failing** —
+  including Full Test Suite (2m27s) and Phase Gate Verification (1m57s), which
+  were the last two to finish. `mergeStateStatus = CLEAN` and `mergeable =
+  MERGEABLE` were confirmed before the merge, not after.
+- This is the first CI signal for the M3-b work in this twelve-commit range.
+  PR #75 had already supplied CI for M3 and M3-a.
+- The local feature branch was fast-forwarded onto `f802dba4`; it was not
+  rebased and was not deleted, because M3-b-2, M3-b-3 and B-1 all still need it.
+- Supersedes "No CI evidence: no pull request has been opened for these commits"
+  in the two entries above; PR #76 supplied it.
+
+### Not Claimed
+
+- CI passing is evidence that the repository gate and the full suite accept this
+  state. It is not evidence that the loader is right, that the two amendments
+  were the correct decisions, or that the process-control design is sound; those
+  rest on exact-digest review.
+- Gate 3 remains `NON_SUCCESS`. The consumed A/B pair is unchanged and unusable.
+- No historical execution, no process-control integration, no production wiring.
+
+### Next Recommendation
+
+BLOCKED-3's remaining half: the pinned package, the seven added types, the
+regenerated oracle. It is the only thing standing between the merged design and
+M3-b-2, and it is a bounded errand rather than a design question.
+
+**Superseding the recommendation in the entry above**, which said M3-b-3 is the
+tranche that is actually unblocked: that is true of authority and false of
+sequence, and the two were conflated. The design is explicit — *"M3-b-1 has no
+process and no execution; M3-b-2 has a process but runs fixtures; only M3-b-3
+runs history"* — so M3-b-3's states 4 and 5 run inside the child M3-b-2 creates.
+The order is BLOCKED-3's oracle rows, then M3-b-2, then M3-b-3, and it does not
+admit reordering. Found by an independent review of the reconciliation diff, not
+by the author of either entry.
