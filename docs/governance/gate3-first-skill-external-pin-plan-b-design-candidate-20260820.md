@@ -36,6 +36,14 @@ rather than represented by a mechanism that proves less than its name.  It
 requires a separate provider-feasibility decision and is not part of this
 ordering design.
 
+Route B does not establish study-population or reporting completeness.  Several
+comparison units can each have a valid ordering pin while a coordinator presents
+only a favourable subset.  Nor does a verifier know that every proof bundle was
+supplied: it can validate a bundle it receives, but the external membership
+proof does not enumerate coordinator-retained bundles that were omitted.  The
+maximum claim is therefore per-presented-unit ordering, not unbiased unit
+selection, complete evidence discovery or a population-level effect estimate.
+
 Therefore Route B is sufficient for the specific ordering defect inherited
 from Gate 2, and insufficient to make the comparison unit independently trusted
 in every respect.  Historical Gate 2 remains `NOT_ESTABLISHED`; this design
@@ -90,6 +98,15 @@ whose append-only surface can be verified without coordinator authority.
   prose and seven-event runtime sequence remain a blocking mismatch; an
   implementation may not choose either ordinal by convention.
 
+- Each `submit_scorer(...)` call appends one submission path and digest.  Event
+  5 directly binds the primary scorer source; event 6 directly binds the second
+  scorer source and transitively binds event 5 through
+  `previous_event_sha256`.
+- The current `verify_chain(...)` `mapping_released` branch verifies mapping,
+  randomization and scorer-event digests only.  It does not resolve, reconstruct
+  or verify an external pin.  The current runtime is therefore not compliant
+  with this candidate merely because a producer-side release gate is proposed.
+
 - The 2026-07-29 rehearsal proves local mechanics only.  It has no qualifying
   external pin and remains synthetic and non-counted.
 - No external transparency/timestamp provider, provider profile, trust root or
@@ -107,7 +124,10 @@ Define a service-neutral contract under which a future implementation can:
 5. retrieve the entry and complete inclusion proof through a public read path
    requiring no coordinator-held secret;
 6. verify the retained proof offline against pinned trust material; and
-7. only then permit event 7 to publish the mapping and nonce.
+7. only then permit event 7 to publish the mapping and nonce; and
+8. require every later `verify_chain(...)` call that accepts event 7 to
+   independently reconstruct and verify the same request and proof bundle,
+   regardless of how the event file was created.
 
 The output is a durable proof bundle that another actor can verify without the
 submission credential and, after initial capture, without the provider API.
@@ -272,11 +292,14 @@ evidence of third-party retrievability.
 ## Producer and release-gate sequence
 
 1. Verify the frozen protocol-contract bytes and exact events 1–6.
-2. Require event 6 to bind both scorer submission source files and require those
-   files to match their retained digests.
+2. Require event 5 to bind the primary scorer source and event 6 to bind the
+   second scorer source.  Require both files to match their retained digests and
+   event 6's previous-event digest to bind the exact event-5 bytes.
 3. Construct the canonical pin request from the verified chain.
-4. Submit its digest once.  A retry may only poll or retrieve the same provider
-   entry; it may not create a second logical pin under a different request.
+4. Submit its digest.  After a stable locator or pending handle is returned,
+   later calls may only finalize or retrieve that same operation.  If the
+   submission outcome is ambiguous before such a handle exists, fail closed
+   under `EXTERNAL_PIN_SUBMISSION_FAILED`; do not issue a blind second submit.
 5. Wait until the provider profile's integrated/final state.  Pending is not
    success.
 6. Retrieve the entry and complete proof through the public read path without a
@@ -289,11 +312,36 @@ evidence of third-party retrievability.
 10. Only then may `release_mapping(...)` validate the mapping/nonce commitment
     and append event 7.
 
-Event 7 must bind the proof-bundle manifest digest, pin-request digest, provider
-profile digest, stable entry locator and checkpoint/anchor digest.  The mapping
-artifact must not be published to the scorer-visible or public evidence surface
-before this gate succeeds.  This is a canonical-release guarantee only; it does
-not prove the coordinator lacked or never disclosed the mapping out of band.
+Event 7 must bind a proof-bundle path beneath the evidence root, its manifest
+digest, pin-request digest, provider-profile digest, stable entry locator and
+checkpoint/anchor digest.  The mapping artifact must not be published to the
+scorer-visible or public evidence surface before this gate succeeds.  This is a
+canonical-release guarantee only; it does not prove the coordinator lacked or
+never disclosed the mapping out of band.
+
+### Verification-side obligation
+
+The `verify_chain(...)` `mapping_released` branch is the authority for accepting
+event 7.  It must not trust pin-shaped fields merely because they are present or
+because `release_mapping(...)` normally writes them.  For every event-7
+verification it must:
+
+1. verify events 1–6 and retain their exact bytes;
+2. reconstruct the canonical pin request and compare its bytes and digest with
+   both event 7 and the bundle manifest;
+3. resolve the proof-bundle path beneath the evidence root and verify the exact
+   manifest digest recorded in event 7;
+4. independently load the admitted provider profile and verify its digest;
+5. re-run offline inclusion/checkpoint/witness or consensus verification over
+   the retained provider bytes; and
+6. compare the verifier-derived locator and checkpoint/anchor digest with event
+   7 before accepting `mapping_released`.
+
+A caller boolean, a serialized `verified_pin`, or fields copied into a handmade
+event file are not authority.  Missing bundle fields or bytes fail with
+`MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`; present but mismatched or invalid
+material fails under the corresponding closed external-pin code.  Thus a
+handwritten event 7 cannot become valid by bypassing `release_mapping(...)`.
 
 ## Time and ordering semantics
 
@@ -326,9 +374,8 @@ path, credential or submitted value in exceptions.  At minimum:
 | `EXTERNAL_PIN_PROOF_INVALID` | inclusion, checkpoint, witness, consensus or signature verification fails |
 | `EXTERNAL_PIN_CHECKPOINT_STALE` | checkpoint violates the admitted freshness/finality policy |
 | `EXTERNAL_PIN_BUNDLE_INCOMPLETE` | any required raw component is absent |
-| `EXTERNAL_PIN_ALREADY_USED` | request/locator conflicts with another comparison unit |
 | `EXTERNAL_PIN_LATE` | mapping release or mapping publication already exists |
-| `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` | release is attempted without a verified bundle |
+| `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` | event-7 construction or verification lacks the required bundle |
 
 Absence, timeout, DNS/TLS failure, rate limit, stale checkpoint, API drift,
 unknown key state, malformed proof, mismatched bytes and ambiguous provider
@@ -365,9 +412,11 @@ limited initially to:
 - one experiment-local provider adapter/profile module;
 - one independent offline proof verifier;
 - focused fixtures and mutation tests; and
-- the smallest release-gate change in
+- the smallest producer and verifier changes in
   `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/
-  gate3_evidence_chain.py` plus its focused tests.
+  gate3_evidence_chain.py`: `release_mapping(...)` must construct event 7 only
+  after proof, and `verify_chain(...)` must independently reject any event 7
+  whose request or proof cannot be reconstructed.  Focused tests cover both.
 
 No shared `governance_tools`, runtime hook, CI workflow, schema registry,
 production route, M3/M4 module or credential-bearing live runner belongs to the
@@ -413,6 +462,9 @@ live submission are separate authority-bearing surfaces.
 - A valid pin proves ordering for the retained chain only.  It cannot reveal a
   discarded or covert chain that was never submitted, and it must never be
   cited as attempt-count or selection-bias evidence.
+- A verifier sees only supplied evidence roots and bundles.  Validating every
+  supplied unit does not prove that the coordinator disclosed every eligible,
+  authorized, attempted or successfully pinned unit.
 
 ## Evidence plan
 
@@ -422,31 +474,41 @@ Before any live provider call, focused offline tests must demonstrate:
    fixture;
 2. `chain_contract_sha256` comes from exact admitted protocol-contract bytes,
    whose event order must equal pinned `EVENT_SEQUENCE`;
-3. the scoring-head ordinal is derived from pinned `EVENT_SEQUENCE`, current
+3. the second-scorer ordinal is derived from pinned `EVENT_SEQUENCE`, current
    value 6, while the six-item conceptual prose is never used as an ordinal;
 4. domain, contract, comparison, head, commitment and profile mutations each
    change the submitted digest and fail verification;
 5. any provider-profile/request field that introduces a backward dependency in
    the documented derivation is rejected;
-6. event 5, truncated event 6, changed scorer source and rebuilt local chain
-   fail before submission;
-7. event 7 cannot be appended without a verifier-minted `verified_pin`;
-8. a raw receipt ID, caller boolean, timestamp string, screenshot, cached
-   response and local digest file are rejected;
-9. valid inclusion/checkpoint/witness or consensus fixtures verify offline;
-10. entry, inclusion path, checkpoint, trust root and profile mutations fail;
-11. public retrieval requiring submission credentials fails;
-12. unavailable, pending, timed-out, stale, rate-limited and malformed responses
+6. event 5, truncated event 6 and either changed scorer source fail before
+   submission; event 6 directly binds only the second source and transitively
+   binds the primary source through event 5;
+7. after a pin exists, rebuilding or changing the local chain reconstructs a
+   different request and fails event-7 verification; no test claims a coherent
+   pre-pin rebuild is detectable;
+8. event 7 cannot be accepted without verifier-reconstructed request bytes and
+   successful offline proof verification;
+9. a handwritten event 7 with plausible pin-shaped fields but no bundle fails
+   with `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`;
+10. a handwritten event 7 carrying a complete valid bundle from another chain
+    or comparison unit fails request reconstruction;
+11. a raw receipt ID, caller boolean, serialized `verified_pin`, timestamp
+    string, screenshot, cached response and local digest file are rejected;
+12. valid inclusion/checkpoint/witness or consensus fixtures verify offline;
+13. request, bundle path, bundle digest, entry, inclusion path, checkpoint,
+    locator, trust root and profile mutations fail in `verify_chain(...)`;
+14. public retrieval requiring submission credentials fails;
+15. unavailable, pending, timed-out, stale, rate-limited and malformed responses
     all refuse mapping release;
-13. a second logical submission for the same request is refused;
-14. mapping publication before proof returns `EXTERNAL_PIN_LATE` and cannot be
+16. mapping publication before proof returns `EXTERNAL_PIN_LATE` and cannot be
     repaired retrospectively;
-15. retained proof still verifies with the network disabled;
-16. missing long-term proof material degrades to
+17. retained proof still verifies with the network disabled;
+18. missing long-term proof material degrades to
     `EXTERNAL_PIN_NOT_VERIFIABLE`, never success; and
-17. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
-    count, absence of discarded/covert runs, `Gate3_pass` and Skill-effect
-    conclusions derived from the pin.
+19. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
+    count, complete unit selection, complete bundle discovery, absence of
+    discarded/covert runs, population-level effect, `Gate3_pass` and
+    Skill-effect conclusions derived from the pin.
 
 An independent fixture verifier must be written from the admitted provider
 profile rather than sharing parser/normalization code with the producer.
@@ -489,6 +551,10 @@ may not claim that:
 - the ordering property has been established for any comparison unit;
 - attempt count is bounded, all attempts were observed, or no discarded,
   covert or unregistered run occurred;
+- the reported units are the complete eligible, authorized, attempted or
+  successfully pinned study population;
+- every existing proof bundle was supplied to the verifier, or selective
+  disclosure did not occur;
 - scorer blindness or scorer independence has been established;
 - historical Gate 2 has been repaired;
 - a Gate 3 rehearsal or counted run is authorized;
