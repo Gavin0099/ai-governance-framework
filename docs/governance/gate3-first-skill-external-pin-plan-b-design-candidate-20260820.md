@@ -1,6 +1,7 @@
 # Gate 3 first-Skill external-pin Plan B design candidate
 
-Status: **CANDIDATE — ROUTE B CONFIRMED, DESIGN NOT YET ACCEPTED.**
+Status: **CANDIDATE — CONDITIONAL-TRUST MODEL DECIDED, REVISION 5 NOT YET
+REVIEWED OR ACCEPTED.**
 
 The owner confirmed Route B on 2026-08-20: do not use a second natural person
 as the external-pin authority.  Use an externally operated, independently
@@ -8,13 +9,36 @@ verifiable append-only transparency or timestamp surface instead.  No provider
 is selected by this document, and no submission, account creation, integration,
 rehearsal or counted run is authorized.
 
+Revision 5 uses a conditional-trust model.  The external operator's actual
+independence is a run-admission premise accepted before the run; it is not a
+conclusion derived from the retained proof.  The design can prevent the
+coordinator from selecting a provider after seeing the run by binding the
+accepted provider profile into the frozen protocol contract, but no account,
+signature, proof bundle or repository artifact can prove that the operator is
+not secretly controlled by or colluding with the coordinator.
+
 ## Claim boundary — first page, before mechanism
 
 Route B can establish one proposition:
 
-> The exact retained primary and second scorer submissions were already bound
-> into the comparison unit's digest-chain head before the canonical mapping
-> release gate emitted the mapping-release event.
+> If the operator selected before the run is actually independent of the
+> coordinator, the exact retained primary and second scorer submissions were
+> already bound into the comparison unit's externally pinned digest-chain head
+> before the canonical mapping-release gate emitted the mapping-release event.
+
+Operator independence is borne by the pre-run admission decision and is not
+established by this design's evidence.  If the admitted operator is actually
+controlled by the coordinator, the ordering claim fails and the retained
+evidence cannot reveal that hidden control relationship.  A profile digest
+pinned before the run proves pre-commitment to that profile, not independence.
+
+The requirement that public retrieval use no coordinator credential is also a
+capture-time adapter and operator-qualification premise.  Retained request and
+response bytes can show what the adapter supplied and what the service
+returned, but an offline verifier cannot prove that a transport, cache or
+operator used no undisclosed credential.  Offline verification establishes
+bundle consistency with the admitted public-retrieval policy, not anonymous
+retrieval as an independently observed historical fact.
 
 Route B does **not** establish scorer blindness.  The coordinator creates the
 mapping commitment and retains the nonce until release, so the coordinator
@@ -69,8 +93,12 @@ whose append-only surface can be verified without coordinator authority.
   retained evidence cannot independently prove scorer submission before mapping
   release.
 - `docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md`
-  requires the final pre-release chain head to reach a separately controlled
-  append-only surface.
+  requires the **final head digest**, after event 7 exists, to be copied into a
+  reviewer/owner receipt or another separately controlled append-only surface.
+  Route B adds a distinct pre-release obligation: event 6 must be externally
+  pinned before event 7 may be appended.  Event 6 is not redefined as the final
+  head, and satisfying the pre-release pin does not discharge the amendment's
+  final-head receipt requirement.
 - `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/
   gate3_evidence_chain.py` already implements the local chain and release
   function.  Its exact `EVENT_SEQUENCE` contains **seven events**, not six:
@@ -108,7 +136,11 @@ whose append-only surface can be verified without coordinator authority.
   with this candidate merely because a producer-side release gate is proposed.
 
 - The 2026-07-29 rehearsal proves local mechanics only.  It has no qualifying
-  external pin and remains synthetic and non-counted.
+  external pin and remains synthetic and non-counted.  Its exact retained
+  protocol-contract bytes predate Route B and its seven-event chain includes
+  `0007-mapping-released.json`; a future Route B verifier must continue to
+  validate that legacy chain under its historical contract semantics rather
+  than applying the new external-pin obligation merely because event 7 exists.
 - No external transparency/timestamp provider, provider profile, trust root or
   verification adapter is currently selected or admitted.
 
@@ -125,9 +157,13 @@ Define a service-neutral contract under which a future implementation can:
    requiring no coordinator-held secret;
 6. verify the retained proof offline against pinned trust material; and
 7. only then permit event 7 to publish the mapping and nonce; and
-8. require every later `verify_chain(...)` call that accepts event 7 to
+8. require every later `verify_chain(...)` call under the new Route B protocol
+   contract that accepts event 7 to
    independently reconstruct and verify the same request and proof bundle,
-   regardless of how the event file was created.
+   regardless of how the event file was created; and
+9. copy the exact event-7 final-head digest into the reviewer/owner receipt or
+   another separately controlled append-only surface before the comparison
+   unit may be classified as retained and countable.
 
 The output is a durable proof bundle that another actor can verify without the
 submission credential and, after initial capture, without the provider API.
@@ -179,6 +215,12 @@ the retained checkpoint independently verifiable.  A second account, process,
 agent or service instance ultimately controlled by the coordinator is
 inadmissible.
 
+This is an admission rule, not a proof result.  The owner must select and
+accept the operator and profile before the protocol contract is frozen.  The
+retained evidence can later show which profile was selected and whether its
+protocol proof verifies; it cannot establish the truth of the organizational
+independence premise.
+
 ### Verifier
 
 The verifier trusts only the admitted provider profile, retained trust material,
@@ -205,10 +247,42 @@ reviewed and owner-accepted.  It must pin:
   credential; and
 - privacy statement for submitted digest and retained locator metadata.
 
+The accepted profile's digest must be stored in the new Route B protocol
+contract before any event for the run is written.  The profile must bind the
+digests of its trust-root and verification-policy bytes.  Because every event
+binds the exact protocol-contract digest, this makes provider selection a
+pre-run commitment.  The verifier obtains the expected profile digest from
+those independently selected frozen contract bytes; the profile and trust-root
+copies inside the proof bundle are retained inputs that must match that
+authority, not a source from which the expected value may be invented.
+
 An API that returns only a server-generated timestamp or receipt identifier is
 not sufficient.  A surface whose history can be edited by the coordinator, or
 whose proof can be verified only by asking the same live API to say `valid`, is
 not sufficient.
+
+## Protocol version and legacy compatibility
+
+The existing exact `gate3-protocol-contract-v1.json` bytes are a historical
+authority for the retained 2026-07-29 rehearsal and must not be overwritten to
+introduce Route B.  The earlier proposal to add the provider-profile digest to
+that existing file is superseded by this compatibility requirement.  Route B
+must mint a new versioned protocol contract whose closed external-pin section
+contains at least the request schema, admitted `provider_profile_sha256`,
+profile-bound trust-material digests and the literal activation policy
+`required_for_mapping_release`.
+
+Each verifier invocation receives one exact contract path, loads its bytes and
+requires every event's `contract_sha256` to match.  External-pin semantics are
+activated only when that loaded, recognized contract version declares them;
+the presence of `mapping_released` alone is not an activation signal.  Unknown
+contract versions fail closed.  The legacy v1 verifier path continues to
+validate the retained rehearsal as a local-chain-only, synthetic, non-counted
+artifact and must not upgrade its claim.
+
+The implementation tranche may add the smallest explicit version dispatch
+needed for these two admitted contracts.  It may not rewrite v1 in place,
+silently migrate existing event files or infer semantics from optional fields.
 
 ## Canonical pin request
 
@@ -220,21 +294,23 @@ and one trailing LF.  Its closed schema is
 | --- | --- |
 | `schema` | literal schema name |
 | `domain` | literal `gate3-first-skill-ordering-head-v1` |
-| `chain_contract_sha256` | digest of exact `gate3-protocol-contract-v1.json` bytes loaded by `load_contract(...)` |
+| `chain_contract_sha256` | digest of the exact admitted versioned protocol-contract bytes loaded by `load_contract(...)` |
 | `comparison_unit_sha256` | digest of the canonical comparison identity, not its raw label |
 | `head_event` | literal `second_scorer_submitted` |
 | `head_ordinal` | derived from pinned `EVENT_SEQUENCE`; current value `6` |
 | `head_event_sha256` | digest of exact event-6 bytes |
 | `mapping_commitment_sha256` | commitment copied from verified event 1 |
-| `provider_profile_sha256` | digest of the admitted provider profile |
+| `provider_profile_sha256` | digest copied from the frozen Route B protocol contract, never selected from the bundle |
 
 `chain_contract_sha256` is not a digest of the Python tuple or the amendment's
 conceptual list.  It is the digest returned by `load_contract(...)` for the
-exact admitted `candidate/gate3-protocol-contract-v1.json` bytes.  That JSON
+exact admitted versioned contract bytes.  The Route B contract
 must contain an `evidence_chain.event_order` exactly equal to the pinned runtime
 `EVENT_SEQUENCE`; disagreement fails before request construction.  The JSON
 file is the byte authority for `chain_contract_sha256`, while the pinned runtime
 tuple is the ordinal authority.  Neither silently substitutes for the other.
+The request's `provider_profile_sha256` must equal the value already present in
+those frozen contract bytes.
 
 `comparison_unit_sha256` is the SHA-256 of canonical
 `gate3-comparison-unit-identity.v1` JSON containing exactly `schema`, `task_id`,
@@ -287,7 +363,11 @@ digests and roles; it does not normalize or reserialize them.
 
 The public retrieval must be possible using the stable entry locator and public
 profile alone.  A successful read using cached submission credentials is not
-evidence of third-party retrievability.
+evidence of third-party retrievability.  The adapter must retain the exact
+public retrieval request and response and must be exercised without receiving
+a coordinator credential.  This is sensitivity evidence for the adapter
+boundary, not proof that no hidden credential existed below that boundary; the
+claim limitation stated on the first page remains controlling.
 
 ## Producer and release-gate sequence
 
@@ -296,10 +376,15 @@ evidence of third-party retrievability.
    second scorer source.  Require both files to match their retained digests and
    event 6's previous-event digest to bind the exact event-5 bytes.
 3. Construct the canonical pin request from the verified chain.
-4. Submit its digest.  After a stable locator or pending handle is returned,
-   later calls may only finalize or retrieve that same operation.  If the
-   submission outcome is ambiguous before such a handle exists, fail closed
-   under `EXTERNAL_PIN_SUBMISSION_FAILED`; do not issue a blind second submit.
+4. Before the first network call, freeze a create-once submission-attempt
+   record binding the request digest, provider-profile digest and any
+   provider-defined idempotency key.  Submit its digest exactly once.  A later
+   call may only finalize or retrieve the recorded stable operation, or replay
+   the exact provider-defined idempotent operation when the admitted profile
+   proves that such replay cannot create another logical entry.  It must never
+   start a new append.  An ambiguous outcome without a resumable stable handle
+   or admitted idempotent replay fails closed; a later submission attempt
+   returns `EXTERNAL_PIN_ALREADY_USED`.
 5. Wait until the provider profile's integrated/final state.  Pending is not
    success.
 6. Retrieve the entry and complete proof through the public read path without a
@@ -311,6 +396,10 @@ evidence of third-party retrievability.
    pin request.
 10. Only then may `release_mapping(...)` validate the mapping/nonce commitment
     and append event 7.
+11. Compute the SHA-256 of the exact event-7 bytes and copy that final head
+    digest into the reviewer/owner receipt or another separately controlled
+    append-only surface.  Until that copy is retained and verifiable, the
+    mapping is released but the comparison unit is not retained or countable.
 
 Event 7 must bind a proof-bundle path beneath the evidence root, its manifest
 digest, pin-request digest, provider-profile digest, stable entry locator and
@@ -322,9 +411,10 @@ never disclosed the mapping out of band.
 ### Verification-side obligation
 
 The `verify_chain(...)` `mapping_released` branch is the authority for accepting
-event 7.  It must not trust pin-shaped fields merely because they are present or
-because `release_mapping(...)` normally writes them.  For every event-7
-verification it must:
+event 7 under the new Route B contract.  It must not trust pin-shaped fields
+merely because they are present or because `release_mapping(...)` normally
+writes them.  For every event-7 verification activated by that contract it
+must:
 
 1. verify events 1–6 and retain their exact bytes;
 2. reconstruct the canonical pin request and compare its bytes and digest with
@@ -342,6 +432,19 @@ event file are not authority.  Missing bundle fields or bytes fail with
 `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`; present but mismatched or invalid
 material fails under the corresponding closed external-pin code.  Thus a
 handwritten event 7 cannot become valid by bypassing `release_mapping(...)`.
+
+This obligation is contract-versioned.  A legacy contract that does not
+declare Route B is verified under its admitted historical semantics and is not
+failed with `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`.  Conversely, a Route B
+event 7 cannot downgrade itself by omitting external-pin fields or presenting a
+legacy contract digest.
+
+Final-head receipt verification is a distinct countability check because its
+subject is the event-7 digest and therefore cannot be embedded in event 7
+without a cycle.  The countability check must verify the retained
+reviewer/owner receipt or separately controlled append record against the exact
+event-7 bytes.  A valid event-6 pin without that final-head record preserves
+the release-order evidence but leaves the unit uncountable.
 
 ## Time and ordering semantics
 
@@ -366,6 +469,7 @@ path, credential or submitted value in exceptions.  At minimum:
 | --- | --- |
 | `EXTERNAL_PIN_PROFILE_INVALID` | profile absent, changed, unknown or unsupported |
 | `EXTERNAL_PIN_REQUEST_MISMATCH` | reconstructed request or submitted digest differs |
+| `EXTERNAL_PIN_ALREADY_USED` | a create-once submission-attempt record already exists and no admitted resume/idempotent operation applies |
 | `EXTERNAL_PIN_SUBMISSION_FAILED` | submission fails before a stable locator exists |
 | `EXTERNAL_PIN_NOT_FINAL` | timeout, pending or provider finality unknown |
 | `EXTERNAL_PIN_UNAVAILABLE` | entry or proof cannot be retrieved before release |
@@ -376,11 +480,16 @@ path, credential or submitted value in exceptions.  At minimum:
 | `EXTERNAL_PIN_BUNDLE_INCOMPLETE` | any required raw component is absent |
 | `EXTERNAL_PIN_LATE` | mapping release or mapping publication already exists |
 | `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` | event-7 construction or verification lacks the required bundle |
+| `FINAL_HEAD_RECEIPT_REQUIRED` | Route B event 7 exists but its exact final-head digest is absent or invalid on the admitted receipt/surface |
 
 Absence, timeout, DNS/TLS failure, rate limit, stale checkpoint, API drift,
 unknown key state, malformed proof, mismatched bytes and ambiguous provider
 status all refuse release.  There is no temporary release, offline override,
 manual `PASS`, retrospective pin or “release now, attach proof later” path.
+The final-head receipt is necessarily written after event 7 and is not a
+retrospective substitute for the event-6 pre-release pin.  Failure to retain it
+does not erase the released mapping; it prevents the comparison unit from
+becoming countable.
 
 ## Long-term verification and service disappearance
 
@@ -411,12 +520,15 @@ limited initially to:
 
 - one experiment-local provider adapter/profile module;
 - one independent offline proof verifier;
+- one new versioned Route B protocol contract while retaining the exact legacy
+  v1 contract bytes;
 - focused fixtures and mutation tests; and
 - the smallest producer and verifier changes in
   `artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/
   gate3_evidence_chain.py`: `release_mapping(...)` must construct event 7 only
   after proof, and `verify_chain(...)` must independently reject any event 7
-  whose request or proof cannot be reconstructed.  Focused tests cover both.
+  activated by the Route B contract whose request or proof cannot be
+  reconstructed.  Focused tests cover both.
 
 No shared `governance_tools`, runtime hook, CI workflow, schema registry,
 production route, M3/M4 module or credential-bearing live runner belongs to the
@@ -440,6 +552,11 @@ timestamp, digest, URL or provider response as equivalent authority.
 Network operations remain outside the deterministic chain verifier.  Retained
 proof verification is offline and deterministic; provider qualification and
 live submission are separate authority-bearing surfaces.
+
+The reviewer/owner final-head receipt is downstream of event 7 and outside the
+pin-request derivation.  It cannot feed any value back into event 7.  The
+countability audit consumes it as a separate append-only record and compares it
+to a freshly computed digest of the exact event-7 bytes.
 
 ## Failure paths and risks
 
@@ -465,6 +582,16 @@ live submission are separate authority-bearing surfaces.
 - A verifier sees only supplied evidence roots and bundles.  Validating every
   supplied unit does not prove that the coordinator disclosed every eligible,
   authorized, attempted or successfully pinned unit.
+- The admitted operator can be secretly controlled by or colluding with the
+  coordinator.  The pre-run contract makes the selection visible and fixed but
+  cannot reveal that hidden relationship; if the independence premise is
+  false, the ordering claim is invalid.
+- A capture can appear credential-free at the adapter API while a lower
+  transport layer, cache or operator uses an undisclosed credential.  Offline
+  proof verification does not detect that condition.
+- Event 7 can be validly released after its event-6 pin while final-head receipt
+  retention fails.  That chain is released but uncountable; the design does
+  not pretend the event can be rolled back.
 
 ## Evidence plan
 
@@ -473,7 +600,9 @@ Before any live provider call, focused offline tests must demonstrate:
 1. canonical request bytes and independent reconstruction from an event-6
    fixture;
 2. `chain_contract_sha256` comes from exact admitted protocol-contract bytes,
-   whose event order must equal pinned `EVENT_SEQUENCE`;
+   whose event order must equal pinned `EVENT_SEQUENCE`; the Route B contract
+   contains the expected provider-profile digest before event 1, while the
+   legacy v1 bytes remain unchanged;
 3. the second-scorer ordinal is derived from pinned `EVENT_SEQUENCE`, current
    value 6, while the six-item conceptual prose is never used as an ordinal;
 4. domain, contract, comparison, head, commitment and profile mutations each
@@ -497,18 +626,32 @@ Before any live provider call, focused offline tests must demonstrate:
 12. valid inclusion/checkpoint/witness or consensus fixtures verify offline;
 13. request, bundle path, bundle digest, entry, inclusion path, checkpoint,
     locator, trust root and profile mutations fail in `verify_chain(...)`;
-14. public retrieval requiring submission credentials fails;
+14. public retrieval requiring submission credentials fails at the adapter
+    boundary, while the test and claim text explicitly do not represent this
+    as proof against hidden transport/cache credentials;
 15. unavailable, pending, timed-out, stale, rate-limited and malformed responses
     all refuse mapping release;
 16. mapping publication before proof returns `EXTERNAL_PIN_LATE` and cannot be
     repaired retrospectively;
 17. retained proof still verifies with the network disabled;
 18. missing long-term proof material degrades to
-    `EXTERNAL_PIN_NOT_VERIFIABLE`, never success; and
-19. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
+    `EXTERNAL_PIN_NOT_VERIFIABLE`, never success;
+19. a second logical submission after the create-once attempt record returns
+    `EXTERNAL_PIN_ALREADY_USED`; exact admitted resume/idempotent replay cannot
+    create a second logical entry, and removal of that guard makes the
+    sensitivity test fail;
+20. the retained 2026-07-29 rehearsal verifies under its exact legacy v1
+    contract and remains synthetic/non-counted, while the same event-7 shape
+    under the Route B contract fails without its external bundle;
+21. the exact event-7 digest matches the separately retained final-head receipt;
+    missing or altered receipt bytes return `FINAL_HEAD_RECEIPT_REQUIRED` and
+    leave the unit uncountable; and
+22. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
     count, complete unit selection, complete bundle discovery, absence of
     discarded/covert runs, population-level effect, `Gate3_pass` and
-    Skill-effect conclusions derived from the pin.
+    Skill-effect conclusions derived from the pin, and reject any statement
+    that the proof establishes operator independence or credential-free
+    historical capture.
 
 An independent fixture verifier must be written from the admitted provider
 profile rather than sharing parser/normalization code with the producer.
@@ -556,11 +699,14 @@ may not claim that:
 - every existing proof bundle was supplied to the verifier, or selective
   disclosure did not occur;
 - scorer blindness or scorer independence has been established;
+- operator independence has been established by the retained evidence;
+- credential-free historical retrieval has been established by offline proof;
 - historical Gate 2 has been repaired;
 - a Gate 3 rehearsal or counted run is authorized;
 - Gate 3 has started or the Bug Fix Skill is effective.
 
 Acceptance of this design would authorize only the decision boundary, including
-the narrow ordinal interpretation.  Provider selection, implementation,
-network use, rehearsal and counted execution each require separate owner
-authorization.
+the conditional-trust premise, the narrow ordinal interpretation, the distinct
+event-6 pin and event-7 final-head obligations, and versioned legacy
+compatibility.  Provider selection, implementation, network use, rehearsal and
+counted execution each require separate owner authorization.
