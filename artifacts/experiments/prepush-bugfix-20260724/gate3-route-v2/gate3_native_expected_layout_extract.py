@@ -9,8 +9,9 @@ and pass whatever they happen to be.
 
 What it does:
 
-- reads the eleven struct/union definitions this slice depends on out of the
-  official SDK headers, by name;
+- reads the struct/union definitions this slice depends on out of the official
+  SDK headers, by name.  Which definitions, and which headers, is `TARGETS` and
+  `HEADER_ENTRIES` below rather than a count here that has to be remembered;
 - resolves each field's type through the typedef chains **found in those same
   headers** until it reaches a fundamental C type;
 - applies the documented MSVC x64 layout rules to compute size, alignment and
@@ -80,6 +81,7 @@ HEADER_ENTRIES = {
     "minwindef.h": "c/Include/10.0.26100.0/shared/minwindef.h",
     "windef.h": "c/Include/10.0.26100.0/shared/windef.h",
     "basetsd.h": "c/Include/10.0.26100.0/shared/basetsd.h",
+    "processthreadsapi.h": "c/Include/10.0.26100.0/um/processthreadsapi.h",
 }
 
 # The SDK spells its anonymous aggregate members with a placeholder macro name.
@@ -151,8 +153,10 @@ PREPROCESSOR_DEPENDENT = {
 
 MAX_PACK = 8  # MSVC default for these headers
 
-# The eleven types this slice depends on, and the header each is defined in.
-# (Eleven: the anonymous union inside IO_STATUS_BLOCK is laid out separately.)
+# The types this slice depends on, and the header each is defined in.
+# The anonymous union inside IO_STATUS_BLOCK is laid out separately, so it has
+# its own row; the seven process-control types were added by the BLOCKED-3
+# slice.  Nothing here states how many there are — `len(TARGETS)` does.
 TARGETS = [
     ("UNICODE_STRING", "_UNICODE_STRING", "winternl.h"),
     ("OBJECT_ATTRIBUTES", "_OBJECT_ATTRIBUTES", "winternl.h"),
@@ -165,9 +169,32 @@ TARGETS = [
     ("FILE_BASIC_INFO", "_FILE_BASIC_INFO", "WinBase.h"),
     ("EXCEPTION_RECORD", "_EXCEPTION_RECORD", "winnt.h"),
     ("OSVERSIONINFOEXW", "_OSVERSIONINFOEXW", "winnt.h"),
+    # The process-control surface M3-b-2 needs, added by the BLOCKED-3 slice.
+    # Which header defines each was measured against this package rather than
+    # recalled: `STARTUPINFOW` and `PROCESS_INFORMATION` are in
+    # `processthreadsapi.h`, not `WinBase.h` where an older SDK put them.
+    ("STARTUPINFOW", "_STARTUPINFOW", "processthreadsapi.h"),
+    ("PROCESS_INFORMATION", "_PROCESS_INFORMATION", "processthreadsapi.h"),
+    ("STARTUPINFOEXW", "_STARTUPINFOEXW", "WinBase.h"),
+    ("IO_COUNTERS", "_IO_COUNTERS", "winnt.h"),
+    (
+        "JOBOBJECT_BASIC_LIMIT_INFORMATION",
+        "_JOBOBJECT_BASIC_LIMIT_INFORMATION",
+        "winnt.h",
+    ),
+    (
+        "JOBOBJECT_BASIC_ACCOUNTING_INFORMATION",
+        "_JOBOBJECT_BASIC_ACCOUNTING_INFORMATION",
+        "winnt.h",
+    ),
+    (
+        "JOBOBJECT_EXTENDED_LIMIT_INFORMATION",
+        "_JOBOBJECT_EXTENDED_LIMIT_INFORMATION",
+        "winnt.h",
+    ),
 ]
 
-# Headers carrying the eleven definitions, plus the ones their field types are
+# Headers carrying those definitions, plus the ones their field types are
 # typedef'd in.  Resolution stays inside the SDK; nothing is assumed about a
 # type that these headers do not define.
 HEADER_FILES = (
@@ -180,6 +207,7 @@ HEADER_FILES = (
     "minwindef.h",
     "windef.h",
     "basetsd.h",
+    "processthreadsapi.h",
 )
 
 
@@ -226,7 +254,8 @@ def read_package(nupkg: pathlib.Path) -> dict[str, bytes]:
 
     The digest is checked over the whole file **before** the archive is opened,
     so a substituted package cannot have its contents read at all.  Nothing in
-    the archive is executed; only the nine header entries are extracted.
+    the archive is executed; only the entries named in `HEADER_ENTRIES` are
+    extracted.
     """
 
     if not nupkg.is_file():
