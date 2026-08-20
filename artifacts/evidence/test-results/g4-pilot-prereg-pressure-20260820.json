@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest -q tests/test_copilot_instructions_projection.py tests/test_contract_validator.py tests/test_memory_janitor.py --basetemp .pytest-g4-receipt-basetemp",
+  "exit_code": 0,
+  "started_at": "2026-08-20T10:13:39Z",
+  "finished_at": "2026-08-20T10:13:41Z",
+  "runner": "codex-windows-python",
+  "linked_commit": "53b5e1b30b4407f53bf8fc942f09724cbd82367b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/g4-pilot-prereg-pressure-20260820.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
