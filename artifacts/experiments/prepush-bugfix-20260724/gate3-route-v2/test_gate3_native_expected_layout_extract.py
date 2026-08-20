@@ -8,8 +8,8 @@ branch, a function parameter read as a declarator, preprocessor lines swallowing
 the typedefs that followed them, and equivalent spellings reported as a
 conflict — and each has a test here that fails if the fix is removed.
 
-The artifact is locked by **independently written fixtures**. The eleven
-expected layouts below were typed from the C declarations, not copied from the
+The artifact is locked by **independently written fixtures**. The expected
+layouts below were typed from the C declarations, not copied from the
 extractor's output, so a change in the extractor that moves a number has to
 disagree with them. This is the part that matters: the artifact is the oracle
 the native layout gate will trust, and an oracle nothing checks is just an
@@ -81,6 +81,11 @@ HEADER_FIXTURES = [
         "c/Include/10.0.26100.0/um/minwinbase.h",
         13973,
         "7d1408f4b8eeba96ae45892209132258cde80cab6dab192b4cceea591972c78b",
+    ),
+    (
+        "c/Include/10.0.26100.0/um/processthreadsapi.h",
+        37180,
+        "436ae4cbb017d1cdb381aaf2119a3f89b04bae257fd4c881ef251daa02533540",
     ),
     (
         "c/Include/10.0.26100.0/um/winnt.h",
@@ -197,6 +202,108 @@ EXPECTED: dict[str, tuple[int, int, list[tuple[str, int, int]]]] = {
             ("wProductType", 282, 1),
             ("wReserved", 283, 1),
         ],
+    ),
+    # --- process control -----------------------------------------------
+    # Derived the same way as everything above: by applying the MSVC x64
+    # rules to the C declarations, not by reading extractor output.
+    "IO_COUNTERS": (
+        48,
+        8,
+        [
+            ("ReadOperationCount", 0, 8),
+            ("WriteOperationCount", 8, 8),
+            ("OtherOperationCount", 16, 8),
+            ("ReadTransferCount", 24, 8),
+            ("WriteTransferCount", 32, 8),
+            ("OtherTransferCount", 40, 8),
+        ],
+    ),
+    "JOBOBJECT_BASIC_LIMIT_INFORMATION": (
+        64,
+        8,
+        # Two 4-byte gaps, after LimitFlags and after ActiveProcessLimit, so
+        # the size is 64 where the fields sum to 56.
+        [
+            ("PerProcessUserTimeLimit", 0, 8),
+            ("PerJobUserTimeLimit", 8, 8),
+            ("LimitFlags", 16, 4),
+            ("MinimumWorkingSetSize", 24, 8),
+            ("MaximumWorkingSetSize", 32, 8),
+            ("ActiveProcessLimit", 40, 4),
+            ("Affinity", 48, 8),
+            ("PriorityClass", 56, 4),
+            ("SchedulingClass", 60, 4),
+        ],
+    ),
+    "JOBOBJECT_EXTENDED_LIMIT_INFORMATION": (
+        144,
+        8,
+        # 64 for the embedded basic structure, then 48 for IO_COUNTERS, which
+        # is where an error of eight would put every trailing limit into the
+        # wrong field.
+        [
+            ("BasicLimitInformation", 0, 64),
+            ("IoInfo", 64, 48),
+            ("ProcessMemoryLimit", 112, 8),
+            ("JobMemoryLimit", 120, 8),
+            ("PeakProcessMemoryUsed", 128, 8),
+            ("PeakJobMemoryUsed", 136, 8),
+        ],
+    ),
+    "JOBOBJECT_BASIC_ACCOUNTING_INFORMATION": (
+        48,
+        8,
+        [
+            ("TotalUserTime", 0, 8),
+            ("TotalKernelTime", 8, 8),
+            ("ThisPeriodTotalUserTime", 16, 8),
+            ("ThisPeriodTotalKernelTime", 24, 8),
+            ("TotalPageFaultCount", 32, 4),
+            ("TotalProcesses", 36, 4),
+            ("ActiveProcesses", 40, 4),
+            ("TotalTerminatedProcesses", 44, 4),
+        ],
+    ),
+    "PROCESS_INFORMATION": (
+        24,
+        8,
+        [
+            ("hProcess", 0, 8),
+            ("hThread", 8, 8),
+            ("dwProcessId", 16, 4),
+            ("dwThreadId", 20, 4),
+        ],
+    ),
+    "STARTUPINFOW": (
+        104,
+        8,
+        # Padded after cb, and again after the two WORDs, where lpReserved2
+        # realigns to 72.
+        [
+            ("cb", 0, 4),
+            ("lpReserved", 8, 8),
+            ("lpDesktop", 16, 8),
+            ("lpTitle", 24, 8),
+            ("dwX", 32, 4),
+            ("dwY", 36, 4),
+            ("dwXSize", 40, 4),
+            ("dwYSize", 44, 4),
+            ("dwXCountChars", 48, 4),
+            ("dwYCountChars", 52, 4),
+            ("dwFillAttribute", 56, 4),
+            ("dwFlags", 60, 4),
+            ("wShowWindow", 64, 2),
+            ("cbReserved2", 66, 2),
+            ("lpReserved2", 72, 8),
+            ("hStdInput", 80, 8),
+            ("hStdOutput", 88, 8),
+            ("hStdError", 96, 8),
+        ],
+    ),
+    "STARTUPINFOEXW": (
+        112,
+        8,
+        [("StartupInfo", 0, 104), ("lpAttributeList", 104, 8)],
     ),
 }
 

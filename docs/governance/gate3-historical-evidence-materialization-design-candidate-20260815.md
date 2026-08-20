@@ -244,12 +244,18 @@ The child executes what it is given, so how it is given decides what it
 executes. Leaving that to the implementation would put the reconstruction's
 integrity in whichever mechanism was convenient.
 
-**One transport.** A single bounded, length-framed stream on the child's
-standard input. Not an environment variable, not `argv`, not a pickle, not a
-temporary file, and with no fallback if the stream is unavailable — a fallback
-is a second channel, and a second channel is a second thing to verify.
+**One transport, amended 2026-08-20.** A single bounded, length-framed stream on
+the child's standard input. For process launch that stream is one `GATE3HL\0`
+version-1 launch envelope containing exactly one byte-identical `GATE3HM\0`
+version-1 frame followed by the materialized-root field; the framing table below
+remains the inner M3-a frame. Not an environment variable, not `argv`, not a
+pickle, not a temporary file, and with no fallback if the stream is unavailable
+— a fallback is a second channel, and a second channel is a second thing to verify.
 `pickle` is excluded by name because it executes during decode, which would put
 code selection back in the transport.
+
+The accepted outer envelope and its bounded absolute-base claim are specified in
+`gate3-m3b2-materialized-root-transport-design-candidate-20260820.md`.
 
 **Framing, exactly.** All integers are unsigned, little-endian, fixed width.
 

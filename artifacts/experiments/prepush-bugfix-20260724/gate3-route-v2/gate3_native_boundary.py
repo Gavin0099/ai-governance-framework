@@ -8,9 +8,11 @@ f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df, with
 
 Two tranches so far.
 
-**N1** declares the eleven `ctypes` types the Windows backend will use and gates
-them against the independently derived expected-layout artifact. It makes no
-native call at all and runs offline.
+**N1** declares the `ctypes` types the Windows backend will use and gates them
+against the independently derived expected-layout artifact. It makes no native
+call at all and runs offline. The count lives in `DECLARED_TYPES`, not in this
+sentence — the BLOCKED-3 slice added seven process-control structures to it,
+which are declarations only and bind nothing.
 
 **N2** loads `ntdll` and `kernel32` under the four compensating controls the
 owner attached to the accepted `NATIVE-INTEROP.md` §3.3 deviation, and binds
@@ -138,14 +140,14 @@ EXPECTED_LAYOUT_PATH = (
     "gate3-native-expected-layout.json"
 )
 EXPECTED_LAYOUT_SHA256 = (
-    "503e29ffd7c7ab3d5f05612288b73f14378d7cace9484f31cbdf256503fe616b"
+    "8cc30855db35526374c284504aa5ad6c0d42b096ea77d3cfe31f41f309372bfc"
 )
 EXTRACTOR_PATH = (
     "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/"
     "gate3_native_expected_layout_extract.py"
 )
 EXTRACTOR_SHA256 = (
-    "877e7fee5f7b382e3e3fe1331b1112cd1e2b24f4e1d3c09f6f570aecef6e64c0"
+    "287763fec90bbc67d2a551f764a420758f0138d2559324f21326eddd8efe1418"
 )
 
 EXPECTED_LAYOUT_SCHEMA = "gate3.native-expected-layout.v1"
@@ -191,7 +193,7 @@ VERSION_PATTERN = re.compile(r"[0-9]+(\.[0-9]+){1,3}")
 
 ADMITTED_PACKAGE_ID = "Microsoft.Windows.SDK.CPP"
 
-# The closed nine-entry header inventory.  "Some path shaped like a header" is
+# The closed header inventory.  "Some path shaped like a header" is
 # not an inventory: without this, an artifact could name any file it liked and
 # still satisfy the path grammar.
 HEADER_INVENTORY = (
@@ -202,6 +204,7 @@ HEADER_INVENTORY = (
     "c/Include/10.0.26100.0/um/WinBase.h",
     "c/Include/10.0.26100.0/um/fileapi.h",
     "c/Include/10.0.26100.0/um/minwinbase.h",
+    "c/Include/10.0.26100.0/um/processthreadsapi.h",
     "c/Include/10.0.26100.0/um/winnt.h",
     "c/Include/10.0.26100.0/um/winternl.h",
 )
@@ -265,7 +268,9 @@ DWORD = c_ulong
 USHORT = c_ushort
 BOOL = c_int
 ULONG_PTR = c_size_t
+SIZE_T = c_size_t  # same width as ULONG_PTR; kept distinct to match the headers
 LARGE_INTEGER = c_longlong
+ULONGLONG = c_ulonglong
 LPWSTR = c_wchar_p
 PVOID = c_void_p
 
@@ -371,6 +376,139 @@ class OSVERSIONINFOEXW(Structure):
     # RtlGetVersion is called. That call belongs to a later tranche.
 
 
+# --- process-control structures ---------------------------------------------
+#
+# The seven the M3-b-2 design slice requires. **Declarations only**: nothing
+# below is bound to an export, nothing is called, and no process, thread or job
+# is created by this module. They exist so the layout gate has something to
+# check the regenerated oracle against; the surface that uses them is a separate
+# tranche with its own authorization.
+#
+# Which header defines each was measured against the pinned package rather than
+# recalled — `STARTUPINFOW` and `PROCESS_INFORMATION` live in
+# `processthreadsapi.h`, not in `WinBase.h` where an older SDK put them.
+
+
+class IO_COUNTERS(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("ReadOperationCount", ULONGLONG),
+        ("WriteOperationCount", ULONGLONG),
+        ("OtherOperationCount", ULONGLONG),
+        ("ReadTransferCount", ULONGLONG),
+        ("WriteTransferCount", ULONGLONG),
+        ("OtherTransferCount", ULONGLONG),
+    ]
+
+
+class JOBOBJECT_BASIC_LIMIT_INFORMATION(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("PerProcessUserTimeLimit", LARGE_INTEGER),
+        ("PerJobUserTimeLimit", LARGE_INTEGER),
+        ("LimitFlags", DWORD),
+        ("MinimumWorkingSetSize", SIZE_T),
+        ("MaximumWorkingSetSize", SIZE_T),
+        ("ActiveProcessLimit", DWORD),
+        ("Affinity", ULONG_PTR),
+        ("PriorityClass", DWORD),
+        ("SchedulingClass", DWORD),
+    ]
+    # Two 4-byte gaps, after LimitFlags and after ActiveProcessLimit, so the
+    # size is 64 where the fields themselves sum to 56.
+
+
+class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", IO_COUNTERS),
+        ("ProcessMemoryLimit", SIZE_T),
+        ("JobMemoryLimit", SIZE_T),
+        ("PeakProcessMemoryUsed", SIZE_T),
+        ("PeakJobMemoryUsed", SIZE_T),
+    ]
+    # The trailing members' offsets depend on the embedded basic structure's
+    # padded size *and* on IO_COUNTERS' alignment. An error of eight here does
+    # not crash: it writes a limit into the wrong field, and a limit silently
+    # not applied is the failure this gate exists to catch.
+
+
+class JOBOBJECT_BASIC_ACCOUNTING_INFORMATION(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("TotalUserTime", LARGE_INTEGER),
+        ("TotalKernelTime", LARGE_INTEGER),
+        ("ThisPeriodTotalUserTime", LARGE_INTEGER),
+        ("ThisPeriodTotalKernelTime", LARGE_INTEGER),
+        ("TotalPageFaultCount", DWORD),
+        ("TotalProcesses", DWORD),
+        ("ActiveProcesses", DWORD),
+        ("TotalTerminatedProcesses", DWORD),
+    ]
+
+
+class PROCESS_INFORMATION(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("hProcess", HANDLE),
+        ("hThread", HANDLE),
+        ("dwProcessId", DWORD),
+        ("dwThreadId", DWORD),
+    ]
+    # Both handles are owned by the caller the moment the creating call
+    # succeeds, and they have different lifetimes. Nothing here closes them.
+
+
+class STARTUPINFOW(Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("cb", DWORD),
+        ("lpReserved", LPWSTR),
+        ("lpDesktop", LPWSTR),
+        ("lpTitle", LPWSTR),
+        ("dwX", DWORD),
+        ("dwY", DWORD),
+        ("dwXSize", DWORD),
+        ("dwYSize", DWORD),
+        ("dwXCountChars", DWORD),
+        ("dwYCountChars", DWORD),
+        ("dwFillAttribute", DWORD),
+        ("dwFlags", DWORD),
+        ("wShowWindow", USHORT),
+        ("cbReserved2", USHORT),
+        ("lpReserved2", POINTER(c_ubyte)),
+        ("hStdInput", HANDLE),
+        ("hStdOutput", HANDLE),
+        ("hStdError", HANDLE),
+    ]
+    # For standalone use, `cb` takes sizeof(STARTUPINFOW). When this structure
+    # is embedded in STARTUPINFOEXW under EXTENDED_STARTUPINFO_PRESENT, it takes
+    # sizeof(STARTUPINFOEXW) instead, as documented below. `lpReserved2` is
+    # LPBYTE, not a string, despite sitting among LPWSTR members. The three
+    # standard handles are used only when `dwFlags` includes
+    # STARTF_USESTDHANDLES; inheritance additionally requires inheritable
+    # handles and `bInheritHandles = TRUE`.
+
+
+class STARTUPINFOEXW(Structure):
+    _pack_ = 8
+    _fields_ = [("StartupInfo", STARTUPINFOW), ("lpAttributeList", PVOID)]
+    # `lpAttributeList` points at an opaque caller-owned heap buffer, not a
+    # kernel object. It is released by its own deletion call and **not** by
+    # CloseHandle, which would be a category error; it is the one resource on
+    # this surface whose leak is silent.
+    #
+    # **`StartupInfo.cb` takes sizeof(STARTUPINFOEXW), not
+    # sizeof(STARTUPINFOW).** An earlier revision of this comment said the
+    # reverse. The embedded member's own size is the intuitive answer and it is
+    # the wrong one: `cb` tells the creating call how many bytes it was handed,
+    # and under EXTENDED_STARTUPINFO_PRESENT that is the extended structure.
+    # No test here catches this — the layout is 112 bytes either way — so it is
+    # written down because the tranche that uses it will read this and not the
+    # documentation.
+
+
 DECLARED_TYPES: dict[str, type] = {
     "UNICODE_STRING": UNICODE_STRING,
     "OBJECT_ATTRIBUTES": OBJECT_ATTRIBUTES,
@@ -383,6 +521,15 @@ DECLARED_TYPES: dict[str, type] = {
     "FILE_BASIC_INFO": FILE_BASIC_INFO,
     "EXCEPTION_RECORD": EXCEPTION_RECORD,
     "OSVERSIONINFOEXW": OSVERSIONINFOEXW,
+    "IO_COUNTERS": IO_COUNTERS,
+    "JOBOBJECT_BASIC_LIMIT_INFORMATION": JOBOBJECT_BASIC_LIMIT_INFORMATION,
+    "JOBOBJECT_EXTENDED_LIMIT_INFORMATION": JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+    "JOBOBJECT_BASIC_ACCOUNTING_INFORMATION": (
+        JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+    ),
+    "PROCESS_INFORMATION": PROCESS_INFORMATION,
+    "STARTUPINFOW": STARTUPINFOW,
+    "STARTUPINFOEXW": STARTUPINFOEXW,
 }
 
 

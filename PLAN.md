@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-18
+> **最後更新**: 2026-08-20
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -1947,11 +1947,13 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
   treatment/Skill effectiveness is not established.
 
-- [x] **Gate 3 M3-b blockers taken 2026-08-19.** On
-  `feat/gate3-historical-materialization`, **not merged to `main`**: BLOCKED-1
-  `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`, after the record
-  reconciliation `09597ace`. Two are amendments made under explicit human
-  authorization; the third is not an amendment and is **not closed**.
+- [x] **Gate 3 M3-b blockers taken 2026-08-19.** Merged to `main` as `f802dba4`
+  (PR #76): BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`,
+  after the record reconciliation `09597ace`. Two are amendments made under
+  explicit human authorization. The third is not an amendment: **merging did not
+  close BLOCKED-3**, which was in `main` and still OPEN at that checkpoint; it
+  was later closed after acceptance of `95838ac0` and measured layouts in
+  `fe44deb4`.
   **BLOCKED-1 — executable authority widens by one module.**
   `RUNTIME_MODULE_ALLOWLIST` is five in both frozen copies, adding
   `gate3_route_v2_ab_candidate.py`: the module whose execution *is* the
@@ -1986,7 +1988,8 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   equivalent; it performs neither and relies on an earlier link. The parent-side
   result object carrying the two "not asserted" markers is **not** written —
   that is M3-b-3.
-  **BLOCKED-3 — the slice is written and the blocker stays open.** No
+  **BLOCKED-3 — at this checkpoint the slice is written and the blocker stays
+  open.** No
   authorization closes it, because it asks for a design, not an amendment. The
   slice closes ownership per resource, the unwind matrix and error translation —
   twelve closed codes replacing three, with timeout distinct from wait failure —
@@ -2010,10 +2013,9 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   exit 0 with 201 passing against each of the three states. The consumed pair
   remains `NON_SUCCESS`.
 
-- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** On branch
-  `feat/gate3-historical-materialization` at head `80b2a74c`, **not merged to
-  `main`**: design `8a8dbc2c` with its revision 6 in `70d62fd1`, implementation
-  `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
+- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** Merged to `main` as
+  `f802dba4` (PR #76): design `8a8dbc2c` with its revision 6 in `70d62fd1`,
+  implementation `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
   `ff0099e57f8ad5e999d9ef664a7918460b81e7b95083abf111747e8c955a4ef8`; exact
   implementation SHA-256 is
   `0f82201b05086d5fc4e01168c1fdadd7970cc29727cad2770ad8d9e8ff9566c6`; exact
@@ -2077,8 +2079,8 @@ Gate 3 analysis; do not begin bulk tool replacement from this result.
   environment and the inbound frame all have no field for, recorded in the code
   as an open dependency rather than defaulted to something convenient. The
   runner's trust root and its TOCTOU window remain accepted assumptions of M3.
-  M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and BLOCKED-2; M4 is not
-  started; the consumed pair remains `NON_SUCCESS`.
+  At this checkpoint M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and
+  BLOCKED-2; M4 is not started; the consumed pair remains `NON_SUCCESS`.
 
 - [x] **Gate 3 M3 design and M3-a delivered 2026-08-19.** Merged to `main` as
   `5204cd18` (PR #75), carrying design commit `a51cd4be` and implementation
@@ -2320,21 +2322,26 @@ Current blocking relationships for this work item:
   built in-process where nothing executes it: no spawn, no native call, no
   historical import, `ACTIVE` still `False` and no caller. **It is still true
   that no committed tranche executes historical code.**
-- M3-b-2, the `-I -S -B` spawn and process control, still waits on
-  **BLOCKED-3**, which is written but **not closed**. Its design slice supplies
-  ownership, the unwind matrix and error translation; the layouts are open
-  because the oracle needs a digest-pinned SDK package absent from this
-  environment, and they will not be written from recollection. BLOCKED-3 closes
-  when the slice is accepted **and** that artifact exists.
-- M3-b-3, the reconstruction call, is **unblocked as authority**: BLOCKED-1
-  (`fa10dda8`) gave it a defined callee and BLOCKED-2 (`4ea55d3e`) a defined
-  verification contract. What remains is that it be written and reviewed — and
-  it owns the parent-side result object with the two "not asserted" markers,
-  which the BLOCKED-2 amendment requires and does not build.
-- How the child receives the materialized root is an unresolved dependency, not
-  a default: argv, the environment and the inbound frame have no field for it,
-  and that is recorded in the code rather than filled in with something
-  convenient.
+- **BLOCKED-3 is CLOSED.** The process-control design slice in `95838ac0` was
+  accepted after `fe44deb4` committed the digest-pinned SDK provenance, seven
+  measured process-control layouts, their pure `ctypes` declarations and the
+  independent fixtures. Exact-digest fresh-context review approved the tranche;
+  386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
+  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. Its
+  materialized-root transport design is resolved by the accepted 2026-08-20
+  `GATE3HL\0` version-1 envelope decision; implementation remains separately
+  unauthorized.
+- M3-b-3, the reconstruction call, is **unblocked as authority**, and that
+  authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
+  BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
+  be written and reviewed — and it owns the parent-side result object with the
+  two "not asserted" markers, which the BLOCKED-2 amendment requires and does
+  not build.
+- How the child receives the materialized root is resolved as design, not
+  implementation: the parent binds one live `MaterializedTree` authority to one
+  stdin launch envelope containing the unchanged M3-a frame and root. The child
+  validates syntax and the deterministic leaf; the full absolute base remains
+  parent-trusted. No Python implementation exists and M3-b-2 has not begun.
 - M4 follows, and is what lets a historical candidate be verified against
   materialized historical bytes instead of against the live worktree — which is
   what B-1 is waiting for.
