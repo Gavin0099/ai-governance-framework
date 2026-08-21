@@ -258,9 +258,9 @@ def test_ci_accepts_product_commit_then_memory_closeout_commit(tmp_path: Path) -
     assert "mixed_scope_memory_binding=1" not in result.warnings
     assert result.mixed_scope_memory_binding_count == 0
     assert result.mixed_scope_findings == []
-    assert "closeout_companion_not_observed=1" not in result.warnings
-    assert result.closeout_companion_not_observed_count == 0
-    assert result.closeout_companion_findings == []
+    assert "terminal_closeout_not_observed=1" not in result.warnings
+    assert result.terminal_closeout_not_observed_count == 0
+    assert result.terminal_closeout_findings == []
 
 
 def test_ci_reports_product_range_without_new_closeout_companion(
@@ -284,20 +284,26 @@ def test_ci_reports_product_range_without_new_closeout_companion(
 
     assert result.clean is True
     assert result.blockers == []
-    assert "closeout_companion_not_observed=1" in result.warnings
-    assert result.closeout_companion_not_observed_count == 1
-    assert result.closeout_companion_findings == [
+    assert "terminal_closeout_not_observed=1" in result.warnings
+    assert result.terminal_closeout_not_observed_count == 1
+    assert result.terminal_closeout_findings == [
         {
-            "code": "closeout_companion_not_observed",
+            "code": "terminal_closeout_not_observed",
             "enforcement": "report_only",
             "scope_ref": f"{base}..{product_commit}",
             "non_closeout_commits": [product_commit],
             "non_closeout_paths": ["governance_tools/product_change.py"],
+            "latest_non_closeout_commit": product_commit,
+            "latest_non_closeout_paths": ["governance_tools/product_change.py"],
             "observed_bound_commits": [],
+            "post_target_bound_commits": [],
+            "closeout_requirement": "delivery_state_unknown",
+            "decision_relevant": True,
+            "delivery_stage": "unknown",
             "reason": (
-                "the inspected commit range changes non-closeout paths, but no "
-                "added canonical memory entry binds a non-closeout commit in "
-                "that range"
+                "the inspected commit range has terminal PR-owned non-closeout "
+                "work, but no later added canonical memory entry binds that "
+                "latest work commit"
             ),
         }
     ]
@@ -313,9 +319,9 @@ def test_changed_file_list_without_refs_does_not_infer_closeout_gap(
 
     assert result.clean is True
     assert result.blockers == []
-    assert "closeout_companion_not_observed=1" not in result.warnings
-    assert result.closeout_companion_not_observed_count == 0
-    assert result.closeout_companion_findings == []
+    assert "terminal_closeout_not_observed=1" not in result.warnings
+    assert result.terminal_closeout_not_observed_count == 0
+    assert result.terminal_closeout_findings == []
 
 
 def test_ci_does_not_accept_closeout_entry_bound_outside_range(
@@ -342,11 +348,148 @@ def test_ci_does_not_accept_closeout_entry_bound_outside_range(
 
     assert result.clean is True
     assert result.blockers == []
-    assert "closeout_companion_not_observed=1" in result.warnings
-    assert result.closeout_companion_not_observed_count == 1
-    assert result.closeout_companion_findings[0]["non_closeout_commits"] == [
+    assert "terminal_closeout_not_observed=1" in result.warnings
+    assert result.terminal_closeout_not_observed_count == 1
+    assert result.terminal_closeout_findings[0]["non_closeout_commits"] == [
         product_commit
     ]
-    assert result.closeout_companion_findings[0]["observed_bound_commits"] == [
+    assert result.terminal_closeout_findings[0]["observed_bound_commits"] == [
         seed
     ]
+
+
+def test_ci_reports_product_change_after_existing_closeout(tmp_path: Path) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    first_product_commit = _commit_all(tmp_path, "first product change")
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(first_product_commit),
+    )
+    _commit_all(tmp_path, "memory closeout for first change")
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 2\n")
+    latest_product_commit = _commit_all(tmp_path, "review follow-up product change")
+
+    result = check(
+        tmp_path,
+        changed_files=[
+            "governance_tools/product_change.py",
+            "memory/2026-07-27.md",
+        ],
+        base_ref=seed,
+        head_ref=latest_product_commit,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert result.terminal_closeout_not_observed_count == 1
+    finding = result.terminal_closeout_findings[0]
+    assert finding["latest_non_closeout_commit"] == latest_product_commit
+    assert finding["observed_bound_commits"] == [first_product_commit]
+    assert finding["post_target_bound_commits"] == []
+
+
+def test_ci_accepts_closeout_followed_by_upstream_only_merge(tmp_path: Path) -> None:
+    seed = _init_git_repo(tmp_path)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "switch", "-c", "feature"],
+        check=True,
+        capture_output=True,
+    )
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change")
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(product_commit),
+    )
+    _commit_all(tmp_path, "memory closeout")
+
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "switch", "-c", "updated-main", seed],
+        check=True,
+        capture_output=True,
+    )
+    _write(tmp_path / "docs" / "upstream-only.md", "upstream\n")
+    updated_main = _commit_all(tmp_path, "upstream docs")
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "switch", "feature"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(tmp_path),
+            "merge",
+            "--no-ff",
+            "updated-main",
+            "-m",
+            "merge updated main",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    merge_head = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    result = check(
+        tmp_path,
+        changed_files=[
+            "governance_tools/product_change.py",
+            "memory/2026-07-27.md",
+        ],
+        base_ref=updated_main,
+        head_ref=merge_head,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert result.terminal_closeout_not_observed_count == 0
+    assert result.terminal_closeout_findings == []
+
+
+def test_draft_gap_is_observed_without_delivery_warning(tmp_path: Path) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "draft product change")
+
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+        base_ref=seed,
+        head_ref=product_commit,
+        delivery_stage="draft",
+    )
+
+    assert result.clean is True
+    assert "terminal_closeout_not_observed=1" not in result.warnings
+    assert result.terminal_closeout_not_observed_count == 1
+    finding = result.terminal_closeout_findings[0]
+    assert finding["closeout_requirement"] == "checkpoint_recommended"
+    assert finding["decision_relevant"] is False
+
+
+def test_ready_gap_is_decision_relevant_report_only_warning(tmp_path: Path) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "ready product change")
+
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+        base_ref=seed,
+        head_ref=product_commit,
+        delivery_stage="ready",
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "terminal_closeout_not_observed=1" in result.warnings
+    finding = result.terminal_closeout_findings[0]
+    assert finding["closeout_requirement"] == "terminal_closeout_required"
+    assert finding["decision_relevant"] is True

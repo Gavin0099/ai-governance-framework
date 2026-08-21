@@ -54,9 +54,15 @@ that date.
 
 **New report-only signal**:
 
-- `closeout_companion_not_observed` reports when a resolvable base/head commit
-  range changes non-closeout paths and no canonical memory entry added in that
-  range binds a non-closeout commit in the same range.
+- `terminal_closeout_not_observed` reports when a resolvable base/head commit
+  range has PR-owned non-closeout work and no later canonical memory entry binds
+  the latest such work commit.
+- The check follows the PR branch's first-parent history. For merge commits,
+  upstream-only paths are excluded; paths differing from every parent remain
+  visible as new integration work.
+- Delivery stage is explicit: Draft PR gaps are checkpoint recommendations,
+  ready-for-review gaps are required terminal-closeout observations, and
+  post-merge results are audit-only rather than remediation.
 - The signal is not inferred from a changed-file list without base/head refs.
 - The signal remains warning-only and does not change `clean`, hook, CI,
   pre-push, or blocking-policy outcomes.
@@ -287,7 +293,7 @@ sessions or unusual workflows.
 | `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
 | `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing provenance path under a declared evidence root (see below) |
-| `closeout_companion_not_observed` | warning | no | A resolvable current commit range changes non-closeout paths but contains no added canonical entry bound to a non-closeout commit in that range |
+| `terminal_closeout_not_observed` | delivery-stage-aware observation | no | No later added canonical entry binds the latest PR-owned non-closeout work commit before a delivery decision |
 | `session_like_non_session_memory_type` | warning in raw guard; blocker in policy-backed gates | raw guard: no; `memory_workflow` / CI with policy file: yes | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
 | `authority_override_used` | warning | no | A policy-backed blocker was downgraded by an `authority_override` entry field |
 | `non_daily_session_shaped_memory_entry` | warning | no | Non-daily `memory/*.md` file contains a block that looks like a daily session-derived memory entry |
@@ -325,13 +331,21 @@ Current semantics:
   identity from `reason`; renaming it would invalidate every existing baseline.
   `run_guard` reports the roots in effect under `evidence_root_policy` so a
   reader can tell which case applies.
-- `closeout_companion_not_observed` is a CI commit-range observation, not a raw
+- `terminal_closeout_not_observed` is a CI commit-range observation, not a raw
   memory-authority-guard violation. It requires resolvable base/head refs and is
   absent when only a changed-file list is available. An existing same-day daily
-  file does not satisfy the observation unless the inspected range adds a
-  canonical entry bound to a non-closeout commit in that range. The signal is
-  report-only and does not assert that memory is universally required for every
-  commit.
+  file or an earlier closeout does not satisfy the observation after later
+  PR-owned non-closeout work. The satisfying canonical entry must bind the
+  latest such work commit and be added by a later commit.
+- Draft PR work may temporarily carry this finding as
+  `checkpoint_recommended` without a delivery warning. When the PR is marked
+  ready for review, the same gap is `terminal_closeout_required` and is surfaced
+  as a report-only warning for reviewer decision. A main-branch result is
+  `audit_only_not_remediation`: it may reveal a missed pre-merge closeout but
+  cannot retroactively satisfy that requirement.
+- This models one terminal closeout per delivered work-item state, not one
+  memory record per commit. The signal remains report-only and does not assert
+  that memory is universally required during each intermediate review edit.
 - `authority_override_used` is report-only in all current paths. It makes
   blocker downgrades visible in guard output; `memory_workflow` and CI surface
   it when the override occurs in the current memory diff. It is audit
@@ -413,8 +427,10 @@ Current behavior summary:
   codes such as `session_like_non_session_memory_type`;
 - managed pre-commit may surface the same memory workflow verdict as advisory
   text; CI remains the authoritative gate surface;
-- CI may report `closeout_companion_not_observed` from a resolvable base/head
-  range without changing its clean/block decision;
+- CI may report `terminal_closeout_not_observed` from a resolvable base/head
+  range without changing its clean/block decision; Draft findings remain
+  checkpoint observations, while ready-for-review findings are
+  decision-relevant warnings;
 - receipt presence proves workflow status was observed, not that memory
   completion was semantically correct.
 

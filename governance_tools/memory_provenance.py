@@ -31,7 +31,7 @@ UNBOUND_COMMIT_TOKENS = frozenset(
     {"", "UNCOMMITTED", "WORKTREE", "PENDING", "LOCAL-UNCOMMITTED"}
 )
 MIXED_SCOPE_CODE = "mixed_scope_memory_binding"
-CLOSEOUT_COMPANION_NOT_OBSERVED_CODE = "closeout_companion_not_observed"
+TERMINAL_CLOSEOUT_NOT_OBSERVED_CODE = "terminal_closeout_not_observed"
 CANONICAL_WRITER = "governance_tools.memory_record"
 
 _FIELD_RE = re.compile(r"^\s{0,4}(?P<key>[a-z_]+):\s*(?P<value>.*)$")
@@ -313,6 +313,35 @@ def _commit_changed_paths(project_root: Path, commit: str) -> list[str]:
     return [_normalize_path(line) for line in stdout.splitlines() if line.strip()]
 
 
+def _commit_pr_owned_changed_paths(project_root: Path, commit: str) -> list[str]:
+    """Return paths attributable to a PR first-parent commit.
+
+    For a merge commit, paths copied only from an updated base branch differ
+    from the first parent but not from the other parent. Treat only paths that
+    differ from every parent as new integration work owned by the PR range.
+    """
+    code, stdout, _stderr = _run_git(
+        project_root, ["rev-list", "--parents", "-n", "1", commit]
+    )
+    if code != 0 or not stdout:
+        return []
+    parents = stdout.split()[1:]
+    if len(parents) <= 1:
+        return _commit_changed_paths(project_root, commit)
+
+    changed_against_each_parent: list[set[str]] = []
+    for parent in parents:
+        code, paths, _stderr = _run_git(
+            project_root, ["diff", "--name-only", parent, commit]
+        )
+        if code != 0:
+            return []
+        changed_against_each_parent.append(
+            {_normalize_path(line) for line in paths.splitlines() if line.strip()}
+        )
+    return sorted(set.intersection(*changed_against_each_parent))
+
+
 def _commit_memory_patch(
     project_root: Path, commit: str, memory_paths: Sequence[str]
 ) -> str:
@@ -357,7 +386,7 @@ def detect_commit_range_mixed_scope_memory_bindings(
     return findings
 
 
-def detect_commit_range_closeout_companion_gap(
+def detect_commit_range_terminal_closeout_gap(
     project_root: Path,
     *,
     base_ref: str,
@@ -372,7 +401,8 @@ def detect_commit_range_closeout_companion_gap(
     if not is_git_worktree(project_root):
         return []
     code, stdout, _stderr = _run_git(
-        project_root, ["rev-list", "--reverse", f"{base_ref}..{head_ref}"]
+        project_root,
+        ["rev-list", "--first-parent", "--reverse", f"{base_ref}..{head_ref}"],
     )
     if code != 0:
         return []
@@ -382,17 +412,18 @@ def detect_commit_range_closeout_companion_gap(
         return []
 
     changed_by_commit: dict[str, list[str]] = {}
+    entries_by_commit: dict[str, list[dict[str, str]]] = {}
     entries: list[dict[str, str]] = []
     for commit in range_commits:
-        changed_paths = _commit_changed_paths(project_root, commit)
+        changed_paths = _commit_pr_owned_changed_paths(project_root, commit)
         changed_by_commit[commit] = changed_paths
         memory_paths = [path for path in changed_paths if _is_memory_path(path)]
         if memory_paths:
-            entries.extend(
-                _added_canonical_entries(
-                    _commit_memory_patch(project_root, commit, memory_paths)
-                )
+            commit_entries = _added_canonical_entries(
+                _commit_memory_patch(project_root, commit, memory_paths)
             )
+            entries_by_commit[commit] = commit_entries
+            entries.extend(commit_entries)
 
     plan_updated = any(
         entry.get("plan_reconciliation") == "updated" for entry in entries
@@ -434,18 +465,35 @@ def detect_commit_range_closeout_companion_gap(
         if git_commit_exists(project_root, commit_hash)
     ]
 
-    non_closeout_commits = sorted(non_closeout_paths_by_commit)
+    non_closeout_commits = [
+        commit for commit in range_commits if commit in non_closeout_paths_by_commit
+    ]
+    latest_non_closeout_commit = non_closeout_commits[-1]
+    latest_non_closeout_index = range_commits.index(latest_non_closeout_commit)
+    post_target_bound_commits = sorted(
+        {
+            entry.get("commit_hash") or entry.get("commit") or ""
+            for commit in range_commits[latest_non_closeout_index + 1 :]
+            for entry in entries_by_commit.get(commit, [])
+            if entry.get("memory_binding") == "bound"
+        }
+    )
+    post_target_bound_commits = [
+        commit_hash
+        for commit_hash in post_target_bound_commits
+        if git_commit_exists(project_root, commit_hash)
+    ]
     companion_observed = any(
-        bound.startswith(commit) or commit.startswith(bound)
-        for bound in observed_bound_commits
-        for commit in non_closeout_commits
+        bound.startswith(latest_non_closeout_commit)
+        or latest_non_closeout_commit.startswith(bound)
+        for bound in post_target_bound_commits
     )
     if companion_observed:
         return []
 
     return [
         {
-            "code": CLOSEOUT_COMPANION_NOT_OBSERVED_CODE,
+            "code": TERMINAL_CLOSEOUT_NOT_OBSERVED_CODE,
             "enforcement": "report_only",
             "scope_ref": f"{base_ref}..{head_ref}",
             "non_closeout_commits": non_closeout_commits,
@@ -456,11 +504,16 @@ def detect_commit_range_closeout_companion_gap(
                     for path in paths
                 }
             ),
+            "latest_non_closeout_commit": latest_non_closeout_commit,
+            "latest_non_closeout_paths": non_closeout_paths_by_commit[
+                latest_non_closeout_commit
+            ],
             "observed_bound_commits": observed_bound_commits,
+            "post_target_bound_commits": post_target_bound_commits,
             "reason": (
-                "the inspected commit range changes non-closeout paths, but no "
-                "added canonical memory entry binds a non-closeout commit in "
-                "that range"
+                "the inspected commit range has terminal PR-owned non-closeout "
+                "work, but no later added canonical memory entry binds that "
+                "latest work commit"
             ),
         }
     ]

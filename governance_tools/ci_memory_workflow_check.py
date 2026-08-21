@@ -2,9 +2,9 @@
 """CI-only selective memory workflow check.
 
 This check blocks current-diff memory writer violations and policy-backed memory
-authority blockers. It also reports commit-range closeout companion omissions
-without blocking. Historical warning-only debt remains warning-only and local
-hooks remain advisory.
+authority blockers. It also observes whether the latest PR-owned substantive
+state has a later canonical memory closeout, with delivery-stage-aware reporting.
+Historical warning-only debt remains warning-only and local hooks remain advisory.
 """
 
 from __future__ import annotations
@@ -26,22 +26,24 @@ from governance_tools.memory_policy_attestation import (
     policy_disable_attestation_warnings,
 )
 from governance_tools.memory_provenance import (
-    CLOSEOUT_COMPANION_NOT_OBSERVED_CODE,
     MIXED_SCOPE_CODE,
-    detect_commit_range_closeout_companion_gap,
+    TERMINAL_CLOSEOUT_NOT_OBSERVED_CODE,
     detect_commit_range_mixed_scope_memory_bindings,
+    detect_commit_range_terminal_closeout_gap,
     detect_staged_mixed_scope_memory_bindings,
 )
 
 
 _B0_CODE = "session_like_non_session_memory_type"
 _BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
+_DELIVERY_STAGES = ("draft", "ready", "development", "post_merge", "unknown")
 
 
 @dataclass
 class CiMemoryWorkflowCheckResult:
     repo_root: str
     mode: str
+    delivery_stage: str
     changed_files: list[str]
     changed_memory_files: list[str]
     active_non_canonical_writer_count: int
@@ -52,8 +54,8 @@ class CiMemoryWorkflowCheckResult:
     warnings: list[str] = field(default_factory=list)
     mixed_scope_memory_binding_count: int = 0
     mixed_scope_findings: list[dict] = field(default_factory=list)
-    closeout_companion_not_observed_count: int = 0
-    closeout_companion_findings: list[dict] = field(default_factory=list)
+    terminal_closeout_not_observed_count: int = 0
+    terminal_closeout_findings: list[dict] = field(default_factory=list)
     clean: bool = True
 
 
@@ -95,6 +97,32 @@ def _violation_memory_path(violation: dict) -> str | None:
     return f"memory/{filename}"
 
 
+def _delivery_context(delivery_stage: str) -> dict[str, str | bool]:
+    contexts: dict[str, dict[str, str | bool]] = {
+        "draft": {
+            "closeout_requirement": "checkpoint_recommended",
+            "decision_relevant": False,
+        },
+        "ready": {
+            "closeout_requirement": "terminal_closeout_required",
+            "decision_relevant": True,
+        },
+        "development": {
+            "closeout_requirement": "not_required_until_delivery_decision",
+            "decision_relevant": False,
+        },
+        "post_merge": {
+            "closeout_requirement": "audit_only_not_remediation",
+            "decision_relevant": True,
+        },
+        "unknown": {
+            "closeout_requirement": "delivery_state_unknown",
+            "decision_relevant": True,
+        },
+    }
+    return contexts[delivery_stage]
+
+
 def check(
     project_root: Path,
     *,
@@ -102,7 +130,10 @@ def check(
     active_from: str = "2026-06-02",
     base_ref: str | None = None,
     head_ref: str = "HEAD",
+    delivery_stage: str = "unknown",
 ) -> CiMemoryWorkflowCheckResult:
+    if delivery_stage not in _DELIVERY_STAGES:
+        raise ValueError(f"unsupported delivery_stage: {delivery_stage}")
     repo_root = project_root.resolve()
     normalized_changed = sorted({_normalize(item) for item in changed_files if _normalize(item)})
     changed_memory_files = [item for item in normalized_changed if _is_memory_file(item)]
@@ -150,14 +181,19 @@ def check(
             base_ref=base_ref,
             head_ref=head_ref,
         )
-        closeout_companion_findings = detect_commit_range_closeout_companion_gap(
+        terminal_closeout_findings = detect_commit_range_terminal_closeout_gap(
             repo_root,
             base_ref=base_ref,
             head_ref=head_ref,
         )
     else:
         mixed_scope_findings = detect_staged_mixed_scope_memory_bindings(repo_root)
-        closeout_companion_findings = []
+        terminal_closeout_findings = []
+
+    delivery_context = _delivery_context(delivery_stage)
+    for finding in terminal_closeout_findings:
+        finding.update(delivery_context)
+        finding["delivery_stage"] = delivery_stage
 
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
@@ -184,10 +220,10 @@ def check(
         )
     if mixed_scope_findings:
         warnings.append(f"{MIXED_SCOPE_CODE}={len(mixed_scope_findings)}")
-    if closeout_companion_findings:
+    if terminal_closeout_findings and bool(delivery_context["decision_relevant"]):
         warnings.append(
-            f"{CLOSEOUT_COMPANION_NOT_OBSERVED_CODE}="
-            f"{len(closeout_companion_findings)}"
+            f"{TERMINAL_CLOSEOUT_NOT_OBSERVED_CODE}="
+            f"{len(terminal_closeout_findings)}"
         )
 
     if policy["error"]:
@@ -223,6 +259,7 @@ def check(
     return CiMemoryWorkflowCheckResult(
         repo_root=str(repo_root),
         mode="ci_selective_current_diff",
+        delivery_stage=delivery_stage,
         changed_files=normalized_changed,
         changed_memory_files=changed_memory_files,
         active_non_canonical_writer_count=len(active),
@@ -233,8 +270,8 @@ def check(
         warnings=warnings,
         mixed_scope_memory_binding_count=len(mixed_scope_findings),
         mixed_scope_findings=mixed_scope_findings,
-        closeout_companion_not_observed_count=len(closeout_companion_findings),
-        closeout_companion_findings=closeout_companion_findings,
+        terminal_closeout_not_observed_count=len(terminal_closeout_findings),
+        terminal_closeout_findings=terminal_closeout_findings,
         clean=not blockers,
     )
 
@@ -243,6 +280,7 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
     lines = [
         "[ci_memory_workflow_check]",
         f"mode={result.mode}",
+        f"delivery_stage={result.delivery_stage}",
         f"repo_root={result.repo_root}",
         f"changed_files={len(result.changed_files)}",
         f"changed_memory_files={len(result.changed_memory_files)}",
@@ -252,8 +290,8 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         f"repo_state_b0_blocker_count={result.repo_state_b0_blocker_count}",
         f"current_diff_b0_blocker_count={result.current_diff_b0_blocker_count}",
         f"mixed_scope_memory_binding_count={result.mixed_scope_memory_binding_count}",
-        "closeout_companion_not_observed_count="
-        f"{result.closeout_companion_not_observed_count}",
+        "terminal_closeout_not_observed_count="
+        f"{result.terminal_closeout_not_observed_count}",
         f"clean={result.clean}",
     ]
     if result.changed_memory_files:
@@ -266,9 +304,9 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         lines.append("[mixed_scope_findings]")
         for finding in result.mixed_scope_findings:
             lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
-    if result.closeout_companion_findings:
-        lines.append("[closeout_companion_findings]")
-        for finding in result.closeout_companion_findings:
+    if result.terminal_closeout_findings:
+        lines.append("[terminal_closeout_findings]")
+        for finding in result.terminal_closeout_findings:
             lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
     if result.blockers:
         lines.append("[blockers]")
@@ -286,6 +324,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--head-ref", default="HEAD")
     parser.add_argument("--changed-file", action="append", default=None)
     parser.add_argument("--active-from", default="2026-06-02")
+    parser.add_argument(
+        "--delivery-stage", choices=_DELIVERY_STAGES, default="unknown"
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
 
@@ -303,6 +344,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         active_from=args.active_from,
         base_ref=args.base_ref if args.changed_file is None else None,
         head_ref=args.head_ref,
+        delivery_stage=args.delivery_stage,
     )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
