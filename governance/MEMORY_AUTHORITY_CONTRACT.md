@@ -1,17 +1,20 @@
 # Memory Authority Contract
 
-> Version: 1.1.0
+<!-- mrcsp_activation_id: mrcsp-m1-authority-reader-v1 -->
+
+> Version: 1.2.0
 > Written: 2026-04-30
-> Amended: 2026-07-04
+> Amended: 2026-08-21
 > Status: ACTIVE - warning mode with active-window completion blocker candidate
-> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.1.0 canonical-writer alignment
+> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.1.0 canonical-writer alignment and v1.2.0 surface-authority terminology
 
 ---
 
 ## Purpose
 
-This contract defines what makes a memory entry a **binding authority** versus an
-unverifiable claim. Presence in `repo/memory/` is **necessary but not sufficient**.
+This contract defines what makes a memory entry **traceably bound evidence**
+rather than an unverifiable claim. Presence in `repo/memory/` is **necessary but
+not sufficient** for cross-agent use and does not create normative authority.
 
 A memory entry that lacks a traceable anchor can be contradicted without audit
 trail, silently drift from reality, or be cited in governance decisions without
@@ -96,6 +99,39 @@ callers do not collapse report-only success into authority-clean semantics.
 - no hook, CI, pre-push, closeout, or gate-policy behavior change;
 - no historical memory debt cleanup;
 - no semantic truth verification.
+
+### 0.3 v1.2.0 - Surface Authority Terminology
+
+**Name of change**: separate canonical record properties from question-specific
+memory authority.
+
+**Rationale**: `canonical` has been used for storage location, writer format,
+and normative authority. That ambiguity can cause a reader to treat event
+history or an unreviewed structured-memory section as authoritative current
+state. MRCSP M-1 introduces `canonical_record`, `authority_class`,
+`projection_status`, and `review_status`, with detailed resolution rules in
+`governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md`.
+
+**Evidence**:
+
+- `governance/MEMORY_PROTOCOL.md` already states that canonical recording does
+  not establish truth, human review, acceptance, commit, push, or normative
+  authority by itself.
+- Consumer observations supplied for MRCSP show stale projections and
+  superseded reviews remaining retrievable beside later state.
+- `memory_pipeline.memory_layout` already models `02`, `03`, and `04` as logical
+  surfaces with repository-specific aliases.
+
+**Non-claims for this amendment**:
+
+- no runtime reader, reconciliation, detector, projection, schema, or fixture;
+- no semantic truth, freshness, or contradiction verification;
+- no auto-write, promotion, hook, CI, gate, or blocking change;
+- no historical memory rewrite or authority migration;
+- no dependency on unmerged PR #88 terminal-closeout behavior;
+- no branch or pull-request bytes are active authority before an authorized
+  review and merge of the complete M-1 document set;
+- no M0 fixture work is authorized by M-1 activation.
 
 ---
 
@@ -190,6 +226,18 @@ without human review.
 > Canonical writer format = consistent session-derived evidence envelope.
 > Binding = traceability signal supplied by commit/session fields.
 > Truth = still requires evidence, review, and current-state verification.
+
+For this contract, `canonical_record` means canonical storage and writer-format
+requirements were met. The record's `authority_class`, `projection_status`, and
+`review_status` remain separate. Question-specific resolution is defined by
+`governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` and must preserve unresolved
+conflicts for reviewer decision.
+
+The MRCSP authority model activates atomically only when an authorized review
+approves and merges the aligned `AUTHORITY.md`, `MEMORY_PROTOCOL.md`,
+`MEMORY_AUTHORITY_CONTRACT.md`, and
+`MEMORY_SURFACE_AUTHORITY_CONTRACT.md` changes. A branch or partial document
+update is candidate evidence only. Activation does not authorize M0.
 
 Presence alone does NOT grant authority.
 
