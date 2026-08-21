@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_ci_memory_workflow_check.py tests/test_memory_workflow.py tests/test_memory_binding_generation_constraint.py tests/test_memory_record.py tests/test_self_governance_memory_truth_provenance_mutation_contract.py tests/test_evidence_receipt_writer.py tests/test_governance_workflow_contract.py tests/test_hook_memory_policy.py -q --basetemp C:\\Users\\reiko\\.codex\\visualizations\\2026\\08\\21\\01a02348-2f87-7e83-a651-76bfacee4196\\pytest-pr88-terminal-receipt",
+  "exit_code": 0,
+  "started_at": "2026-08-21T09:28:25Z",
+  "finished_at": "2026-08-21T09:29:00Z",
+  "runner": "codex",
+  "linked_commit": "a099868a96998a81544b9f1bc6e9210d707e9d43",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-memory-terminal-closeout-pr88-20260821.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
