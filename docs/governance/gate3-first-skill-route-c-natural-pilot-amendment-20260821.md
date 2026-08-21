@@ -78,6 +78,11 @@ observation under this amendment.
 surface under a separately authorized change.  It does not mean Skill
 promotion, Gate 3 completion or countability.
 
+`SECOND_OBSERVATION` means only that the reviewer judges a further case would
+be informative.  It does not authorize one.  A second observation is a new
+proposal requiring fresh authority, consistent with the expiry amendment
+above.
+
 The canonical claim block is:
 
 <!-- route-c-claim-block:begin -->
