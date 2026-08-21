@@ -31,6 +31,11 @@ default_load: on-demand
 > and expressible limitations use one compact `注意：` line. Required machine
 > fields and evidence semantics are unchanged; progress updates are governed by
 > `AGENTS.md`.
+> 2026-08-21 v0.7 clarification: adds task-adaptive Engineering Explanation
+> semantics after repeated owner feedback that organized summaries could remain
+> unclear or become clear by overstating evidence. The clarification is
+> advisory and adds no validator, hook, CI, gate, schema, contract-version
+> migration, or default enforcement.
 
 ## Purpose
 
@@ -323,6 +328,60 @@ Risk entries should disclose:
 
 Do not replace `risk` with confidence scores, effort estimates, or broad impact
 analysis.
+
+## Engineering Explanation (Evidence-Preserving Interpretation)
+
+An owner-facing explanation must do more than reorder the source report. It
+must tell the owner what is true now, what the evidence means for the requested
+outcome, what remains uncertain, which decision has or has not been made, and
+what next action is authorized or still needs approval.
+
+Before writing the explanation, separate the source into five classes:
+
+| Class | Meaning | Required treatment |
+|---|---|---|
+| Observed fact | Directly supported by a command, artifact, source, or owner decision | State plainly; preserve the exact limiting evidence when decision-relevant. |
+| Supported interpretation | Meaning reasonably derived from observed facts | Explain the reasoning; do not call it directly measured. |
+| Hypothesis | Plausible cause or future expectation not yet confirmed | Label it as possible and state the missing check. |
+| Authority state | What the owner or governing source approved, rejected, paused, or left undecided | Do not promote a proposal, recommendation, or question into a decision. |
+| Next action | The narrow candidate next step and its current authority state | Say whether it is authorized now or still needs owner approval; naming it never grants permission. |
+
+Choose the smallest explanation shape that matches the question:
+
+- **Progress or status:** say what is usable, what is complete, what is blocked
+  or unapproved, and what happens next. Do not invent a completion percentage
+  from milestone names.
+- **Diagnosis:** reconstruct the event order and actors. State what each
+  decisive event means. Keep confirmed cause, likely cause, and hypothesis
+  separate; timing alone does not prove causation.
+- **Review or audit:** lead with what remains trustworthy, what central claim
+  does not hold, and how that changes the decision. Reviewer recommendations do
+  not become owner rulings.
+- **Metrics or portfolio analysis:** explain the operational meaning and the
+  measurement boundary. Do not convert commit share into time or cost,
+  repository count into independent-user count, or path touch into decision
+  effect.
+
+The main responding agent owns the final owner-facing explanation. Subagent
+findings may stay technical, but they must preserve facts, evidence,
+uncertainty, and authority well enough that the main agent does not invent
+missing meaning.
+
+Before sending, check:
+
+1. Did the answer explain the result, or only reorganize the source?
+2. Did it add causation, certainty, measured effect, or authority not present in
+   the evidence?
+3. Did it turn a recommendation into a decision or an unapproved follow-up into
+   a promised action?
+4. Did simplification remove an exact value, condition, provenance, risk, or
+   `not_claimed` boundary?
+5. Can the owner state the current result, decisive reason, and next action
+   without decoding the technical ledger?
+
+A clear answer that changes fidelity or authority is a failed explanation.
+These rules are advisory reviewer-facing behavior. Human comprehension remains
+the acceptance signal; no semantic scoring or automatic enforcement is implied.
 
 ## Evidence Term Glossing (Plain-Language Requirement)
 
