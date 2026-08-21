@@ -247,8 +247,10 @@ attempt. A changed input requires a new attempt identity and a new record.
 
 ## Evidence plan
 
-For each candidate, retain one pre-run manifest and two terminal receipts. The
-manifest must record:
+For each candidate, retain one pre-run manifest and either two terminal role
+receipts or, when a fail-closed disposition stops the pair before the second
+role runs, one receipt for the executed role plus a terminal attempt record
+that binds the reason the other role was not run. The manifest must record:
 
 - candidate ID and attempt ID;
 - baseline, fixed, and oracle source commits;
@@ -261,10 +263,13 @@ manifest must record:
 - explicit environment-variable allowlist and timeouts; and
 - the expected defect-specific baseline failure.
 
-Each receipt must bind to the manifest digest, tree role (`baseline` or
-`fixed`), exact stdout/stderr artifact digests, exit status, test counts, and
-one closed disposition from the table above. Reviewer admission requires a
-defect-specific baseline failure and a fixed pass from the same manifest.
+Each executed-role receipt must bind to the manifest digest, tree role
+(`baseline` or `fixed`), exact stdout/stderr artifact digests, exit status,
+test counts, and one closed disposition from the table above. An early-stop
+terminal attempt record must bind to the manifest digest, the completed role
+receipt digest, both role statuses, the fail-closed disposition, and the reason
+the unexecuted role was not run. Reviewer admission requires a defect-specific
+baseline failure and a fixed pass from the same manifest.
 
 ## Implementation tranche recommendation
 
@@ -278,7 +283,8 @@ should:
 3. verify tree inputs, oracle bytes, and lock bytes before network access;
 4. overlay only the frozen oracle into both trees;
 5. run the paired install and focused commands with identical bounded inputs;
-6. retain the manifest and both receipts; and
+6. retain the manifest and the complete terminal evidence set defined above;
+   and
 7. stop for review.
 
 C2 and C3 are deferred options, not commitments. No subsequent candidate
