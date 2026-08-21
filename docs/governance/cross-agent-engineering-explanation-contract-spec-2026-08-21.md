@@ -217,8 +217,9 @@ The main responding agent performs this advisory self-review:
 6. Did a metaphor add facts that were not present in the evidence?
 7. Did I remove a limitation, condition, exact value, or `not_claimed` boundary
    to make the answer simpler?
-8. Can the owner state the current result, decisive reason, and next action
-   after reading the explanation without decoding the evidence section?
+8. Can the owner state the current result, the decisive reason or evidentiary
+   relationship, what it means for the original goal, and any relevant next
+   action or authority state without decoding the evidence section?
 
 These checks guide agent behavior. This specification does not make them a
 machine gate.

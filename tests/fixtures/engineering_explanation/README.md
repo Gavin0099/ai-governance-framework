@@ -105,8 +105,8 @@ Gate 3 要看的是真實工作中自然出現的案例，而現在剛好沒有�
 
 ### Must-pass explanation
 
-**這組數字顯示不同 repository 的純治理 commit 比例差很多，可以用來找出哪些 repo 需要
-分開觀察，但不能直接換算成治理花掉多少成本。**
+**這組數字只顯示不同 repository 的純治理 commit 分布差異很大，因此不能直接拿同一個
+比例去推論成本或治理效果。**
 
 實際量到的是「只修改治理檔案的 commit 比例」約從 2–5% 到 28–45%。Commit 數量
 不是工時、金錢或浪費，也沒有證明風險造成了這個差異。另外，checkout 數包含複本，
@@ -167,6 +167,11 @@ reset。**
   committed, or pushed.
 - Thirty-four fail-closed records are real canonical records caused by one
   stale closeout; their task attribution is wrong.
+- In this record set, fail-closed means the system conservatively refused to
+  continue because the stale closeout did not satisfy the safe completion
+  condition; the records are not false alarms.
+- Task attribution means which work item a record is counted under. These
+  records were counted under the wrong work item.
 - Gate 3 remains inactive.
 - The local reconciliation preserves those records, adds a corrective
   explanation, and updates `PLAN.md` and `memory/01_active_task.md`.
@@ -183,10 +188,14 @@ reset。**
 結果，沒有證明暫停背後的技術原因。N3b 已發布、N3c 尚未完成，加上這次的本機紀錄
 修正，都沒有讓 Gate 3 進入啟用狀態。
 
-本機六個路徑保留了 34 筆真實的 fail-closed 歷史，並補上更正說明，指出它們的 task
-attribution 錯誤，同時更新 `PLAN.md` 與 `memory/01_active_task.md`。這些紀錄修正仍未
-staged、committed 或 pushed，必須先通過審查。Closeout refresh 與 parser defect
-是另外兩個尚未授權的工作。
+本機六個路徑保留了 34 筆真實的 fail-closed 歷史。這裡的 fail-closed 是指前一次
+closeout 狀態過期，沒有滿足安全完成條件，因此系統採取保守作法、拒絕繼續執行所留下
+的紀錄；它們不是假警報。錯的是 task attribution，也就是這些紀錄被算到了錯誤的工作
+項目。
+
+這次本機修正沒有重寫那 34 筆歷史，而是補上更正說明，並更新 `PLAN.md` 與
+`memory/01_active_task.md`。這些修改仍未 staged、committed 或 pushed，必須先通過
+審查。Closeout refresh 與 parser defect 是另外兩個尚未授權的工作。
 
 **簡單說，已發布的程式碼沒有被推翻；目前停在實作 review 與紀錄修正，Gate 3 仍未
 啟用，也不能把後續工作算成已開始或已完成。**
