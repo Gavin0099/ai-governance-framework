@@ -1,0 +1,100 @@
+{
+  "schema": "c1-stryker-sidecar-probe-terminal.v2",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-02",
+  "terminal": "SIDECAR_RESOLUTION_FAILED",
+  "completed_at_utc": "2026-08-21T10:58:17.9688751Z",
+  "bindings": {
+    "framework_commit": "31cd8cda3c279cf7809d2dfc78d903a3d681d8e9",
+    "remote_branch": "codex/c1-stryker-sidecar-attempt-02",
+    "source_baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "source_baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "reused_design_commit": "f7831551e2988e590734288de66fff2db1c5369c",
+    "image": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "manifest_sha256": "6ac9a579efcaaeb861f2d7b8df098b8b816fbf7f1eda4e2835d8b81aab00d6db",
+    "manifest_bytes": 11121
+  },
+  "materialization_only_delta": true,
+  "steps": {
+    "remote_binding": {
+      "file": "git",
+      "arguments": [
+        "-C",
+        "C:\\Users\\daish\\.codex\\visualizations\\2026\\08\\20\\01a01f9a-76de-7b00-8170-409653fa352d\\c1-stryker-sidecar-attempt02",
+        "ls-remote",
+        "origin",
+        "refs/heads/codex/c1-stryker-sidecar-attempt-02"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 2.703,
+      "stdout": "remote-binding.stdout.txt",
+      "stderr": "remote-binding.stderr.txt"
+    },
+    "docker_version": {
+      "file": "C:/Users/daish/AppData/Local/Programs/DockerDesktop/resources/bin/docker.exe",
+      "arguments": [
+        "version",
+        "--format",
+        "{{json .}}"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.081,
+      "stdout": "docker-version.json",
+      "stderr": "docker-version.stderr.txt"
+    }
+  },
+  "functional_failure": "SIDECAR_RESOLUTION_FAILED:HARNESS_INPUT_BINDING:.gitattributes",
+  "classification": {
+    "leakage_blocked": false,
+    "consumer_graph_changed": false,
+    "cost_blocked": false,
+    "resolution_failed": true,
+    "selected_terminal": "SIDECAR_RESOLUTION_FAILED"
+  },
+  "resources": {
+    "total_wall_seconds": 4.982,
+    "ceiling_seconds": 900,
+    "docker_phase_count": 0,
+    "any_oom_killed": false
+  },
+  "repair_in_place": false,
+  "retry_authorized": false,
+  "artifacts": [
+    {
+      "path": "docker-version.json",
+      "sha256": "5b1088302dea60226c3910129431b16943007be10349ad76068e86e8988b1199",
+      "bytes": 1145
+    },
+    {
+      "path": "docker-version.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "non-leakage-scan.json",
+      "sha256": "1ce5fc77d0f43f48fd5c232e43c88b5f85c7ca7ce17393af0c3cd70672b1d342",
+      "bytes": 206
+    },
+    {
+      "path": "remote-binding.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "remote-binding.stdout.txt",
+      "sha256": "c4e9220ea3fdac1ac7d8a259422e346b1f1756477f9b8202b3c42f4bb973a2fc",
+      "bytes": 88
+    }
+  ],
+  "claim_ceiling": "This terminal establishes only the result of one exact C1 Stryker sidecar attempt-02 whose sole intended design delta from attempt-01 is the frozen exact-input materialization harness. It cannot establish validator effect, Skill effect, general sidecar reuse, Gate 1 readiness, preregistration, freeze, or any A/B/C/D result.",
+  "not_claimed": [
+    "validator effect",
+    "Skill effect",
+    "general sidecar reuse",
+    "Gate 1 readiness",
+    "preregistration",
+    "Gate 1 freeze",
+    "A/B/C/D result"
+  ]
+}
