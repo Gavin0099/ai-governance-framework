@@ -1,0 +1,4 @@
+*.ps1 text eol=lf
+*.json text eol=lf
+evidence/*.json -text -diff
+evidence/*.txt -text -diff
