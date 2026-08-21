@@ -34,9 +34,10 @@ or Codex workspace.
 
 1. `governance/RESPONSE_ENVELOPE_CONTRACT.md`, section `Engineering Explanation
    (Evidence-Preserving Interpretation)`, defines the explanation semantics.
-   Its `Evidence Term Glossing (Plain-Language Requirement)` and owner-summary
-   sections preserve raw evidence while requiring a result / reason / next-step
-   preface.
+   Its `Evidence Term Glossing (Plain-Language Requirement)` and
+   completion-report summary sections preserve raw evidence while requiring a
+   result / reason / next-step preface for completion and partial-completion
+   reports.
 2. `governance/RESPONSE_ENVELOPE_CONTRACT.md`, section `Opt-In Plain-Summary
    Check (v0.5)`, defines the structural check and explicitly states that it
    cannot prove human comprehension and is not enabled by a hook, CI job, gate,

@@ -1,7 +1,8 @@
 # Engineering Explanation Human-Review Fixtures
 
-Status: candidate examples pending owner review; not a semantic validator or
-scoring corpus.
+Status: owner-accepted human-review examples; not a semantic validator or
+scoring corpus. Owner acceptance was recorded on 2026-08-21 against PR #82 head
+`bde11863`; the example bodies below are unchanged from that accepted revision.
 
 Each case fixes a source boundary, one acceptable explanation, and prohibited
 interpretations. Assume the reviewer understands engineering but did not

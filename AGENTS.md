@@ -118,8 +118,9 @@ Before acting, load the detailed protocol only when its trigger applies:
    New session-derived memory must use `governance_tools.memory_record`.
    Direct markdown append is prohibited.
 
-2. Final report / closeout:
-   read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+2. Owner-facing engineering explanation / final report / closeout:
+   when reporting status, diagnosis, review, completion, or when the owner asks
+   for a plain explanation, read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
    Use result-first reporting and preserve `not_claimed` in the complete
    machine envelope. In compact human output, omit the visible Cannot claim
    section only when no decision-relevant item exists or a compact `注意：`
