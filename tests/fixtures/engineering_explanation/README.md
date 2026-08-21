@@ -34,37 +34,38 @@ if it:
   or
 - lists evidence first and leaves the reader to infer the conclusion.
 
-## Case 1 — Accepted Design, Dormant Pilot
+## Case 1 — Ratified, Dormant Natural-Case Pilot
 
 ### Source boundary
 
-- The owner accepted the Route C recording design.
-- No natural consumer bug exists.
-- The pilot remains dormant and Gate 3 remains `NON_SUCCESS`.
-- Gate 3 requires a naturally occurring consumer case; manufacturing a bug does
-  not create admissible evidence.
-- The next authorized slice only reconciles `PLAN.md` and memory.
+- The canonical Engineering Skill G4 pilot is `RATIFIED, DORMANT`.
+- No qualifying natural consumer bug-fix task currently exists.
+- The pilot may start only from a natural task; manufacturing or seeding a bug
+  does not create an admissible case.
+- The approval covers the observation direction, not new Pattern Packs,
+  manifests, schemas, validators, or gates.
+- The pilot expires on 2026-09-11. With no natural case by then, it records
+  `EXPIRED_NO_CASE` and returns to review; it does not extend itself.
 
 ### Must-pass explanation
 
-**這次還沒有開始 Gate 3 實驗。現在完成的只是先把「未來真的遇到一個自然發生的
-bug 時，要怎麼留下實驗紀錄」這套方法定下來。**
+**這個 G4 pilot 的觀察方向已經核准，但實際觀察尚未開始。它要看的是真實 consumer
+工作中自然出現的 bug-fix，而目前沒有符合條件的案例。**
 
-Gate 3 要看的是真實工作中自然出現的案例，而現在剛好沒有這種 bug，所以不能為了
-跑實驗自己製造一個案例。這也是為什麼 Route C 目前只能等待，還沒有任何新證據能
-算進 Gate 3。
+因為規則禁止為了啟動 pilot 自己製造或預先植入 bug，所以「沒有案例」代表必須繼續
+等待，不能拿模擬案例補數量。現有核准只涵蓋觀察方向，也沒有授權新增 Pattern Pack、
+manifest、schema、validator 或 gate。
 
-現在唯一核准的工作，是把這項決定寫回 `PLAN.md` 和 memory，讓之後的 Agent 知道
-「設計已核准，但實驗尚未開始」。其他本機修改不是這次工作的一部分，也不能一起
-提交。
+期限是 2026-09-11；如果到期仍沒有自然案例，結果會記成 `EXPIRED_NO_CASE`，意思是
+「期限內沒有案例」，然後回到 review，而不是自動延長或自行啟動。
 
-**簡單說，實驗方法準備好了，但還沒有合格的真實案例可以開始測。**
+**簡單說，觀察計畫已經核准並在等待，但還沒有合格的真實 bug-fix 可以開始記錄。**
 
 ### Must-fail behavior
 
-- Repeat `Route C accepted but dormant` without explaining its operational
-  meaning.
-- Activate the pilot, manufacture a case, or combine unrelated dirty work.
+- Repeat `RATIFIED, DORMANT` without explaining that no observation has begun.
+- Activate the pilot, manufacture a case, extend the expiry automatically, or
+  create unapproved governance tooling.
 
 ## Case 2 — Valid Counts, Unsupported Effectiveness Claim
 
@@ -155,6 +156,10 @@ reset。**
 
 ## Case 5 — Code Progress Versus Record Repair
 
+Snapshot boundary: this is a fixed historical scenario captured before the
+later delivery of N3c-1 and N3c-2. It is not a report of the repository's
+current stage status.
+
 ### Source boundary
 
 - The original goal is to extend Gate 3 historical materialization through
@@ -179,26 +184,27 @@ reset。**
 
 ### Must-pass explanation
 
-**這份狀態要分開看兩件事：Gate 3 的歷史資料重建功能做到哪個階段，以及專案紀錄
-修正到哪裡。兩者不能合併成一個完成度。**
+**在這個歷史快照中，要分開看兩件事：Gate 3 的歷史資料重建功能當時做到哪個階段，
+以及專案紀錄當時修正到哪裡。兩者不能合併成一個完成度。這不是目前的 repository
+狀態。**
 
-原本的功能目標被拆成依序進行的 N3 階段。N3b 是目前最新完成並已發布的實作；
-下一階段 N3c-1 收到 changes requested，因此暫停，N3c-2 則尚未獲准開始。因此目前
-只能把功能進度確認到 N3b，不能把 N3c 算成已完成。這些狀態只說明 review 與授權
-結果，沒有證明暫停背後的技術原因。N3b 已發布、N3c 尚未完成，加上這次的本機紀錄
-修正，都沒有讓 Gate 3 進入啟用狀態。
+原本的功能目標被拆成依序進行的 N3 階段。在該快照當時，N3b 是最新完成並已發布的
+實作；當時的下一階段 N3c-1 收到 changes requested，因此暫停，N3c-2 尚未獲准開始。
+所以該快照只能把功能進度確認到 N3b，不能把 N3c 算成已完成。這些狀態只說明當時的
+review 與授權結果，沒有證明暫停背後的技術原因。N3b 已發布、N3c 當時尚未完成，加上
+該次本機紀錄修正，都沒有讓 Gate 3 進入啟用狀態。
 
-本機六個路徑保留了 34 筆真實的 fail-closed 歷史。這裡的 fail-closed 是指前一次
+該快照中的本機六個路徑保留了 34 筆真實的 fail-closed 歷史。這裡的 fail-closed 是指前一次
 closeout 狀態過期，沒有滿足安全完成條件，因此系統採取保守作法、拒絕繼續執行所留下
 的紀錄；它們不是假警報。錯的是 task attribution，也就是這些紀錄被算到了錯誤的工作
 項目。
 
-這次本機修正沒有重寫那 34 筆歷史，而是補上更正說明，並更新 `PLAN.md` 與
-`memory/01_active_task.md`。這些修改仍未 staged、committed 或 pushed，必須先通過
-審查。Closeout refresh 與 parser defect 是另外兩個尚未授權的工作。
+該次本機修正沒有重寫那 34 筆歷史，而是補上更正說明，並更新 `PLAN.md` 與
+`memory/01_active_task.md`。在該快照當時，這些修改尚未 staged、committed 或 pushed，
+必須先通過審查。Closeout refresh 與 parser defect 是另外兩個當時尚未授權的工作。
 
-**簡單說，已發布的程式碼沒有被推翻；目前停在實作 review 與紀錄修正，Gate 3 仍未
-啟用，也不能把後續工作算成已開始或已完成。**
+**簡單說，在那個歷史快照中，已發布的程式碼沒有被推翻；工作當時停在實作 review
+與紀錄修正，Gate 3 尚未啟用，也不能把後續工作算成已開始或已完成。**
 
 ### Must-fail behavior
 
