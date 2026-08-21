@@ -112,6 +112,14 @@ def test_candidate_discloses_material_expiry_change() -> None:
     assert "There is no automatic extension" in text
 
 
+def test_second_observation_is_a_recommendation_not_authority() -> None:
+    text = _amendment_text()
+    normalized = " ".join(text.split())
+    assert "`SECOND_OBSERVATION` means only" in normalized
+    assert "It does not authorize one" in normalized
+    assert "A second observation is a new proposal requiring fresh authority" in normalized
+
+
 def test_candidate_keeps_helper_test_local() -> None:
     text = _amendment_text()
     assert "intentionally test-local" in text
