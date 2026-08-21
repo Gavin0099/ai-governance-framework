@@ -1,0 +1,21 @@
+{
+  "all_changed_paths": [
+    "src/__tests__/validator-probe-fixture.test.ts",
+    "src/validator-probe-fixture.ts",
+    "vitest.sidecar-probe.config.mjs"
+  ],
+  "baseline_role": "baseline",
+  "candidate_role": "consumer",
+  "diff_sha256": "c82f28e9154b13960924c736e49a5e3f5364556fe65bf04bccb132306aef7d96",
+  "excluded_changed_paths": [
+    "src/__tests__/validator-probe-fixture.test.ts",
+    "vitest.sidecar-probe.config.mjs"
+  ],
+  "included_files": [
+    "src/validator-probe-fixture.ts"
+  ],
+  "mutate_ranges": [
+    "src/validator-probe-fixture.ts:1-4"
+  ],
+  "schema": "c1-stryker-diff-ranges.v1"
+}

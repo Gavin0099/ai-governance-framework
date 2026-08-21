@@ -1,0 +1,698 @@
+{
+  "schema": "c1-stryker-sidecar-probe-terminal.v3",
+  "probe_id": "c1-stryker-sidecar-raw-object-20260822-04",
+  "terminal": "SIDECAR_RESOLUTION_FAILED",
+  "completed_at_utc": "2026-08-21T18:08:52Z",
+  "bindings": {
+    "framework_commit": "818d2fa6da8420573145e901217b42acffd513a8",
+    "remote_branch": "codex/c1-stryker-sidecar-attempt-04",
+    "source_baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "source_baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "source_gitlink": {
+      "path": "ai-governance-framework",
+      "mode": "160000",
+      "type": "commit",
+      "oid": "74b70252fdf6eaac23e427470a88c246c3be888e",
+      "materialized": false
+    },
+    "reused_design_commit": "f7831551e2988e590734288de66fff2db1c5369c",
+    "image": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "manifest_sha256": "d45db1f39531fc981d554aadcef748d533e2dcabcf61ff94df43a9b2d48b2f85",
+    "manifest_bytes": 17285
+  },
+  "raw_object_materialization": {
+    "working_tree_conversion_used": false,
+    "consumer_and_framework_inputs_covered": true,
+    "unsupported_modes_fail_closed": true,
+    "gitlink_dereferenced": false,
+    "tcb_conditioned": true
+  },
+  "steps": {
+    "materialized_root_contract_self_test": {
+      "command": [
+        "C:\\Users\\daish\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\framework-input\\artifacts\\experiments\\prepush-bugfix-20260724\\gate1-validator-probe\\c1-stryker-sidecar-attempt-04\\test_materialized_root_contract.py",
+        "--output",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence\\materialized-root-contract-self-test.json"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.094,
+      "stdout": "materialized-root-contract-self-test.stdout.txt",
+      "stderr": "materialized-root-contract-self-test.stderr.txt"
+    },
+    "git_version": {
+      "command": [
+        "C:\\Program Files\\Git\\cmd\\git.exe",
+        "--version"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.016,
+      "stdout": "git-version.stdout.txt",
+      "stderr": "git-version.stderr.txt"
+    },
+    "python_version": {
+      "command": [
+        "C:\\Users\\daish\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "--version"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.016,
+      "stdout": "python-version.stdout.txt",
+      "stderr": "python-version.stderr.txt"
+    },
+    "docker_version": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "version",
+        "--format",
+        "{{json .}}"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.078,
+      "stdout": "docker-version.json",
+      "stderr": "docker-version.stderr.txt"
+    },
+    "remote_binding": {
+      "command": [
+        "C:\\Program Files\\Git\\cmd\\git.exe",
+        "-C",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\ai-governance-c1-attempt04",
+        "ls-remote",
+        "origin",
+        "refs/heads/codex/c1-stryker-sidecar-attempt-04"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 2.562,
+      "stdout": "remote-binding.stdout.txt",
+      "stderr": "remote-binding.stderr.txt"
+    },
+    "raw_materializer_self_test": {
+      "command": [
+        "C:\\Users\\daish\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\framework-input\\artifacts\\experiments\\prepush-bugfix-20260724\\gate1-validator-probe\\c1-stryker-sidecar-attempt-04\\test_raw_git_materialize.py",
+        "--git",
+        "C:\\Program Files\\Git\\cmd\\git.exe",
+        "--output",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence\\raw-materializer-self-test.json"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.938,
+      "stdout": "raw-materializer-self-test.stdout.txt",
+      "stderr": "raw-materializer-self-test.stderr.txt"
+    },
+    "mutation_range": {
+      "command": [
+        "C:\\Users\\daish\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input\\diff_to_mutation_ranges.py",
+        "--baseline-root",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\baseline",
+        "--candidate-root",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer",
+        "--output",
+        "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence\\mutation-ranges.json"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "wall_seconds": 0.547,
+      "stdout": "range-adapter.stdout.txt",
+      "stderr": "range-adapter.stderr.txt"
+    },
+    "tool_npm_ci": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-tool-npm-ci-b2f2bc37bf",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "bridge",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/tool",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "npm",
+        "ci"
+      ],
+      "container_name": "c1-sidecar-a04-tool-npm-ci-b2f2bc37bf",
+      "exit_code": 0,
+      "timed_out": false,
+      "oom_killed": false,
+      "wall_seconds": 59.219,
+      "stdout": "tool-npm-ci.stdout.txt",
+      "stderr": "tool-npm-ci.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    },
+    "consumer_npm_ci": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-consumer-npm-ci-20c2adf162",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "bridge",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/consumer",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "npm",
+        "ci"
+      ],
+      "container_name": "c1-sidecar-a04-consumer-npm-ci-20c2adf162",
+      "exit_code": 0,
+      "timed_out": false,
+      "oom_killed": false,
+      "wall_seconds": 261.484,
+      "stdout": "consumer-npm-ci.stdout.txt",
+      "stderr": "consumer-npm-ci.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    },
+    "consumer_graph_before": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-consumer-graph-before-f4059efcb8",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/consumer",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "node",
+        "/probe-input/dependency-graph-fingerprint.mjs"
+      ],
+      "container_name": "c1-sidecar-a04-consumer-graph-before-f4059efcb8",
+      "exit_code": 0,
+      "timed_out": false,
+      "oom_killed": false,
+      "wall_seconds": 2.266,
+      "stdout": "consumer-graph-before.stdout.txt",
+      "stderr": "consumer-graph-before.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    },
+    "resolution_probe": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-resolution-probe-73734e59cc",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/consumer",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "node",
+        "/probe-input/resolution-probe.mjs"
+      ],
+      "container_name": "c1-sidecar-a04-resolution-probe-73734e59cc",
+      "exit_code": 0,
+      "timed_out": false,
+      "oom_killed": false,
+      "wall_seconds": 9.015,
+      "stdout": "resolution-probe.stdout.txt",
+      "stderr": "resolution-probe.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    },
+    "timeout_sentinel": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-timeout-sentinel-313c7381f3",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/consumer",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "node",
+        "-e",
+        "setTimeout(() => {}, 10000)"
+      ],
+      "container_name": "c1-sidecar-a04-timeout-sentinel-313c7381f3",
+      "exit_code": 137,
+      "timed_out": true,
+      "oom_killed": false,
+      "wall_seconds": 2.469,
+      "stdout": "timeout-sentinel.stdout.txt",
+      "stderr": "timeout-sentinel.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    },
+    "stryker_dry_run": {
+      "command": [
+        "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+        "run",
+        "--name",
+        "c1-sidecar-a04-stryker-dry-run-896ef65ce6",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--cpus",
+        "2",
+        "--memory",
+        "2g",
+        "--pids-limit",
+        "512",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\consumer,target=/consumer",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\tool,target=/tool",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\probe-input,target=/probe-input,readonly",
+        "--mount",
+        "type=bind,source=C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\evidence,target=/evidence",
+        "--workdir",
+        "/consumer",
+        "--env",
+        "C1_SIDECAR_MUTATE_RANGES_JSON=[\"src/validator-probe-fixture.ts:1-4\"]",
+        "--env",
+        "C1_SIDECAR_DRY_RUN_ONLY=1",
+        "--env",
+        "C1_SIDECAR_RUNTIME_EVIDENCE_DIR=/evidence",
+        "--env",
+        "C1_SIDECAR_RUNTIME_PHASE=dry-run",
+        "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+        "node",
+        "/tool/node_modules/@stryker-mutator/core/bin/stryker.js",
+        "run",
+        "/probe-input/stryker.sidecar.config.mjs"
+      ],
+      "container_name": "c1-sidecar-a04-stryker-dry-run-896ef65ce6",
+      "exit_code": 1,
+      "timed_out": false,
+      "oom_killed": false,
+      "wall_seconds": 56.672,
+      "stdout": "stryker-dry-run.stdout.txt",
+      "stderr": "stryker-dry-run.stderr.txt",
+      "state_inspect_exit_code": 0,
+      "mount_inspect_exit_code": 0
+    }
+  },
+  "functional_failure": "RuntimeError:SIDECAR_RESOLUTION_FAILED:STRYKER_DRY_RUN:exit=1:timeout=False",
+  "classification": {
+    "leakage_blocked": false,
+    "consumer_graph_changed": false,
+    "cost_blocked": false,
+    "resolution_failed": true,
+    "selected_terminal": "SIDECAR_RESOLUTION_FAILED"
+  },
+  "resources": {
+    "total_wall_seconds": 423.039,
+    "ceiling_seconds": 900,
+    "docker_phase_count": 6,
+    "any_oom_killed": false
+  },
+  "repair_in_place": false,
+  "retry_authorized": false,
+  "artifacts": [
+    {
+      "path": "attempt04-bootstrap-raw-object-inventory.json",
+      "sha256": "1eeb43f4c79a0c1e05aba1e5f555d6834bdb183080f74e13aa80ca173226c290",
+      "bytes": 3378
+    },
+    {
+      "path": "baseline-raw-object-inventory.json",
+      "sha256": "fb83761b9ffe13a5b95a36759a7f0e4195b2e06e84b8df648208787c76fcd17a",
+      "bytes": 627622
+    },
+    {
+      "path": "consumer-graph-before.container-mounts.json",
+      "sha256": "e9e3a7104523b03ece39bcd256894bca2819284adbde615b7bc8cfca81e22261",
+      "bytes": 717
+    },
+    {
+      "path": "consumer-graph-before.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "consumer-graph-before.container-state.json",
+      "sha256": "7118ae86d3649553187a067eeeaca257f4acf30bc71fba8b56f892fd1cad4f6d",
+      "bytes": 224
+    },
+    {
+      "path": "consumer-graph-before.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "consumer-graph-before.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "consumer-graph-before.stdout.txt",
+      "sha256": "72e65f0cb739447b53dfcd63d22dae630ef1927e52a7acc80d6765a1f58010ed",
+      "bytes": 595
+    },
+    {
+      "path": "consumer-npm-ci.container-mounts.json",
+      "sha256": "8c550ef6d5e6e2036d740f4bc5b4da5a46c4da5face4b40fe038ea910fcf7a20",
+      "bytes": 717
+    },
+    {
+      "path": "consumer-npm-ci.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "consumer-npm-ci.container-state.json",
+      "sha256": "1806bebb36f1c012bf8cac10b96665af601b7ab95a645d55ffe43f491dd01403",
+      "bytes": 224
+    },
+    {
+      "path": "consumer-npm-ci.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "consumer-npm-ci.stderr.txt",
+      "sha256": "a7fcbdc341e92e9a7ebd07112af3d1f26a08637379d92ef80b2115d5f8acbc04",
+      "bytes": 577
+    },
+    {
+      "path": "consumer-npm-ci.stdout.txt",
+      "sha256": "40a8efd44c95e3f7e467639588cca299ea0016f404f5ec56dcb5fbe11dd50c30",
+      "bytes": 406
+    },
+    {
+      "path": "consumer-raw-object-inventory.json",
+      "sha256": "92e39738ab4f2a56ecc2a3f0d297b8477473b4735123888c3def6d2edf06ea35",
+      "bytes": 627622
+    },
+    {
+      "path": "docker-version.json",
+      "sha256": "5b1088302dea60226c3910129431b16943007be10349ad76068e86e8988b1199",
+      "bytes": 1145
+    },
+    {
+      "path": "docker-version.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "git-version.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "git-version.stdout.txt",
+      "sha256": "9d9d8a49f3de42d6e7b569bf28bd8db3ea3384c44386d6f2de4655e4ca41ff26",
+      "bytes": 29
+    },
+    {
+      "path": "materialized-root-contract-self-test.json",
+      "sha256": "917e4825487b71c3ead8ba377486303c0557a30e94a12d47bb831deea03325e5",
+      "bytes": 536
+    },
+    {
+      "path": "materialized-root-contract-self-test.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "materialized-root-contract-self-test.stdout.txt",
+      "sha256": "4cfa726126079cbc556e97c8c933132e1d5fcd69c19c84eac122542672915e28",
+      "bytes": 501
+    },
+    {
+      "path": "mutation-ranges.json",
+      "sha256": "44b3b24c5998d16d19f288ef7f60bf485664f2a5a35fc4fc2c2f31172aaf802b",
+      "bytes": 608
+    },
+    {
+      "path": "non-leakage-scan.json",
+      "sha256": "c6b3adca59dc1779a841aff603cc85ba26fa7f8815ab1890a18943c18206f26a",
+      "bytes": 200
+    },
+    {
+      "path": "python-version.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "python-version.stdout.txt",
+      "sha256": "2dc0d5541cf70196cb92df8ad4223b66b7c62eb932b290936086e003b1e6f76e",
+      "bytes": 16
+    },
+    {
+      "path": "range-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "range-adapter.stdout.txt",
+      "sha256": "4c2141c1545a73f8b2d3e45f663e1001df623dd5c8135f8114172476425ad178",
+      "bytes": 131
+    },
+    {
+      "path": "raw-materializer-self-test.json",
+      "sha256": "5109f8669edb0557008a46f7e10b3372c54f4e6948434418e5daf74aef5a2c5d",
+      "bytes": 787
+    },
+    {
+      "path": "raw-materializer-self-test.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "raw-materializer-self-test.stdout.txt",
+      "sha256": "84fb450b25a296cf61fc95d074fc29c9564508c3ff6fbe6e19c9244f2cc267e9",
+      "bytes": 724
+    },
+    {
+      "path": "remote-binding.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "remote-binding.stdout.txt",
+      "sha256": "10b304d4a7b422f87a6ffd9a6d1c2da29d87f539ec9cd92a85157ddaa6779fee",
+      "bytes": 88
+    },
+    {
+      "path": "resolution-probe.container-mounts.json",
+      "sha256": "8c550ef6d5e6e2036d740f4bc5b4da5a46c4da5face4b40fe038ea910fcf7a20",
+      "bytes": 717
+    },
+    {
+      "path": "resolution-probe.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "resolution-probe.container-state.json",
+      "sha256": "1bb2dd0b15b49fbbf15a631a5f14038cbf8764fee6de7243ec9be4f5a1143eda",
+      "bytes": 224
+    },
+    {
+      "path": "resolution-probe.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "resolution-probe.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "resolution-probe.stdout.txt",
+      "sha256": "dba3785b7aa042f35aa43e02cd7b980a69fc021dcad89783d6c82bf96af5b82b",
+      "bytes": 1221
+    },
+    {
+      "path": "reused-input-raw-object-inventory.json",
+      "sha256": "a617b4490a0b52b1f74fba70cc09e8cd4d4ff512310d1d87eaa1721df7eb7704",
+      "bytes": 4489
+    },
+    {
+      "path": "stryker-dry-run.container-mounts.json",
+      "sha256": "8c550ef6d5e6e2036d740f4bc5b4da5a46c4da5face4b40fe038ea910fcf7a20",
+      "bytes": 717
+    },
+    {
+      "path": "stryker-dry-run.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "stryker-dry-run.container-state.json",
+      "sha256": "68fb774b4975df8296b4e643807943d2bb69869d4001e3c81f8b72f17d8e7f96",
+      "bytes": 224
+    },
+    {
+      "path": "stryker-dry-run.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "stryker-dry-run.stderr.txt",
+      "sha256": "9fcab5d94d0fe03f2cb2e2ac13a22372fcda80a9e5066a77c1c83d0b53629567",
+      "bytes": 2099
+    },
+    {
+      "path": "stryker-dry-run.stdout.txt",
+      "sha256": "d8060a455e0e3916c23bfc04699fcec3c02065348459d295d0c08e4a16281a96",
+      "bytes": 2582
+    },
+    {
+      "path": "timeout-sentinel.container-mounts.json",
+      "sha256": "8c550ef6d5e6e2036d740f4bc5b4da5a46c4da5face4b40fe038ea910fcf7a20",
+      "bytes": 717
+    },
+    {
+      "path": "timeout-sentinel.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "timeout-sentinel.container-state.json",
+      "sha256": "f8f01630a1517bb5f0199b711c9d9120df9fda6121b52447c90906cb0b7450ac",
+      "bytes": 226
+    },
+    {
+      "path": "timeout-sentinel.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "timeout-sentinel.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "timeout-sentinel.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "tool-npm-ci.container-mounts.json",
+      "sha256": "e9e3a7104523b03ece39bcd256894bca2819284adbde615b7bc8cfca81e22261",
+      "bytes": 717
+    },
+    {
+      "path": "tool-npm-ci.container-mounts.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "tool-npm-ci.container-state.json",
+      "sha256": "5c4352fe407973eaf7e3593ff9cff829cc7357a3382a1609a364ec772105f280",
+      "bytes": 224
+    },
+    {
+      "path": "tool-npm-ci.container-state.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "tool-npm-ci.stderr.txt",
+      "sha256": "ea1459f5efae90125f581fb4ad7a08d389754aa1861589940e246843f777cae8",
+      "bytes": 208
+    },
+    {
+      "path": "tool-npm-ci.stdout.txt",
+      "sha256": "3f8f58323a1c8558c13e7d57f1d219ba7b05c2a925714c65ab39576cfe769c60",
+      "bytes": 317
+    }
+  ],
+  "claim_ceiling": "Conditional on the declared TCB, this attempt may establish only whether the materialized projection equals the committed bytes of the specified Git objects and whether this exact C1/Stryker sidecar boundary passes its frozen technical checks. It cannot establish correctness of Git, Python, or the bootstrap launcher; validator effect; Skill effect; general reuse; Gate 1 readiness; preregistration; freeze; or an A/B/C/D result.",
+  "not_claimed": [
+    "Git/Python/bootstrap correctness",
+    "validator effect",
+    "Skill effect",
+    "general raw-object materializer reuse",
+    "general sidecar reuse",
+    "Gate 1 readiness",
+    "preregistration",
+    "Gate 1 freeze",
+    "A/B/C/D result"
+  ]
+}

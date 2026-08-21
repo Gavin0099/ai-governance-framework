@@ -1,0 +1,103 @@
+{
+  "schema": "raw-git-object-materialization.v1",
+  "repository": "C:\\Users\\daish\\AppData\\Local\\Temp\\ai-governance-c1-attempt04",
+  "commit": "f7831551e2988e590734288de66fff2db1c5369c",
+  "destination": "C:\\Users\\daish\\AppData\\Local\\Temp\\c1-sidecar-attempt-04-818d2fa6\\input-source",
+  "object_semantics": "git ls-tree + git cat-file blob",
+  "working_tree_conversion_used": false,
+  "entry_count": 10,
+  "materialized_blob_count": 10,
+  "recorded_gitlink_count": 0,
+  "inventory": [
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "9ebd8edb8894c81ae3bd3feb437733a51a9af33f",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/dependency-graph-fingerprint.mjs",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "a78845998a90f1286f53d4199fa0ba43946e5dd0f7f89bfbc12af26cb00302fe",
+      "bytes": 1849
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "3ed325416d8174f0336351101ea9006be72855e0",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/plugin-entry-binding.json",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "e2792c940e39ac0b0acef954da10cb5040fc0e73ceba4504c60c9f07230f3a79",
+      "bytes": 979
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "839dabf5676b89aa91b50e56eb51035a01589079",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/resolution-probe.mjs",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "53c18253be487406e44f317c8daaf2e2601714fb093fb2cd21293fb71fdecfa2",
+      "bytes": 4268
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "04e1209ce2de034fc73b7fcd37beee436700059d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/stryker.sidecar.config.mjs",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "ef751d9f09ce352c2d6f9f4280ab14cc6a00a6d06274eed41ada515dbccbf45e",
+      "bytes": 1878
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "1cdbd6d4e92eb131f046fa60f670797085f9749c",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package-lock.json",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c",
+      "bytes": 126501
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "e177730aa5cd3480dcf805c7f981b0e5bc65b4fa",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package.json",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "b897175c96811370e4df32c1cbc76a63b45c854b70b04a94af68f238c3345434",
+      "bytes": 299
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "6af5efbdc6f7b49a8bd36548a74aa7d5294d1663",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/vitest.sidecar-probe.config.mjs",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "4eb51b10ac2bfc9eb548065482896ec14fe1e79481801a81d874fcde9343b566",
+      "bytes": 1863
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "0931bfcf2996f9cebd12255b81870c59b8f13d25",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/diff_to_mutation_ranges.py",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "c0b9a2698dae56525d5bcf1c9a6afce7a66aed7699ee847b65646a123aeb10ad",
+      "bytes": 6614
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "3240b7aa91e8fb5f4cc4802475da89ca80d9b2cd",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "3089b6c474f3217a4feec332c62b2eca5cc19d4308c11093294546356c313f2f",
+      "bytes": 368
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "e323ba211a5d47d58023b921b41a815f428da4df",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/validator-probe-fixture.ts",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "5cb65c2a697934e921a45ef51a760dbd0f0d81e5229190dd38cd2539a4f9374e",
+      "bytes": 169
+    }
+  ]
+}
