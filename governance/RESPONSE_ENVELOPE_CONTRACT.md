@@ -31,6 +31,11 @@ default_load: on-demand
 > and expressible limitations use one compact `注意：` line. Required machine
 > fields and evidence semantics are unchanged; progress updates are governed by
 > `AGENTS.md`.
+> 2026-08-21 v0.7 clarification: adds task-adaptive Engineering Explanation
+> semantics after repeated owner feedback that organized summaries could remain
+> unclear or become clear by overstating evidence. The clarification is
+> advisory and adds no validator, hook, CI, gate, schema, contract-version
+> migration, or default enforcement.
 
 ## Purpose
 
@@ -324,6 +329,96 @@ Risk entries should disclose:
 Do not replace `risk` with confidence scores, effort estimates, or broad impact
 analysis.
 
+## Engineering Explanation (Evidence-Preserving Interpretation)
+
+An owner-facing explanation must do more than reorder or translate the source
+report. Explanation is context reconstruction: it restores the minimum context
+that a technically capable reader did not observe while the agent was working.
+Assume that reader understands software engineering but has not followed this
+session.
+
+The explanation must establish, without requiring the reader to open `PLAN.md`
+or decode project vocabulary:
+
+1. **Context:** what problem or goal was being worked on;
+2. **Event:** what actually happened;
+3. **Meaning:** why those facts support the stated result, including the event
+   sequence or evidentiary relationship without inventing causation; and
+4. **Consequence:** what this changes, or does not change, for the original
+   goal.
+
+Then state any decision-relevant unknown, authority boundary, or candidate next
+action. Include a next action only when the question or current state calls for
+one; naming an action never grants permission. Preserve the decisive technical
+evidence after the explanation.
+
+Before writing the explanation, separate the source into five classes:
+
+| Class | Meaning | Required treatment |
+|---|---|---|
+| Observed fact | Directly supported by a command, artifact, source, or owner decision | State plainly; preserve the exact limiting evidence when decision-relevant. |
+| Supported interpretation | Meaning reasonably derived from observed facts | Explain the reasoning; do not call it directly measured. |
+| Hypothesis | Plausible cause or future expectation not yet confirmed | Label it as possible and state the missing check. |
+| Authority state | What the owner or governing source approved, rejected, paused, or left undecided | Do not promote a proposal, recommendation, or question into a decision. |
+| Next action | When action is relevant, the narrow candidate next step and its current authority state | Say whether it is authorized now or still needs owner approval; naming it never grants permission. |
+
+Choose the smallest explanation shape that matches the question:
+
+- **Progress or status:** say what is usable, what is complete, what is blocked
+  or unapproved, and what happens next. Do not invent a completion percentage
+  from milestone names.
+- **Diagnosis:** reconstruct the event order and actors. State what each
+  decisive event means. Keep confirmed cause, likely cause, and hypothesis
+  separate; timing alone does not prove causation.
+- **Review or audit:** lead with what remains trustworthy, what central claim
+  does not hold, and how that changes the decision. Reviewer recommendations do
+  not become owner rulings.
+- **Metrics or portfolio analysis:** explain the operational meaning and the
+  measurement boundary. Do not convert commit share into time or cost,
+  repository count into independent-user count, or path touch into decision
+  effect.
+- **Concept or purpose:** explain the problem being solved, how the mechanism
+  addresses it, how it differs from nearby mechanisms, and what success would
+  mean. Do not append an artificial next action when the owner only asked what
+  something means.
+
+Do not use a project code, status token, evidence field, or protocol term as the
+explanation itself. On first use, explain what each decision-relevant term does
+in this task. A glossary-style translation without the relationship between
+events is still not an explanation.
+
+The main responding agent owns the final owner-facing explanation. Subagent
+findings may stay technical, but they must preserve facts, evidence,
+uncertainty, and authority well enough that the main agent does not invent
+missing meaning.
+
+Before sending, first verify that a cold reader can answer:
+
+1. What problem was being worked on?
+2. What actually happened?
+3. Why do the facts support this result?
+4. What does the result mean for the original goal?
+5. What remains unknown, and what action or authority state matters now?
+
+Then check:
+
+1. Did the answer explain the result, or only reorganize the source?
+2. Did it add causation, certainty, measured effect, or authority not present in
+   the evidence?
+3. Did it turn a recommendation into a decision or an unapproved follow-up into
+   a promised action?
+4. Did simplification remove an exact value, condition, provenance, risk, or
+   `not_claimed` boundary?
+5. Did the answer make the reader look up `PLAN.md`, an artifact, or an
+   unexplained project or protocol term to build the minimum mental model?
+
+A factually correct answer is still a failed explanation when it merely
+translates tokens, restates status, or leaves the reader to infer why the facts
+matter. A clear answer that changes fidelity or authority is also a failed
+explanation.
+These rules are advisory reviewer-facing behavior. Human comprehension remains
+the acceptance signal; no semantic scoring or automatic enforcement is implied.
+
 ## Evidence Term Glossing (Plain-Language Requirement)
 
 When a report surfaces machine or governance field tokens — for example
@@ -349,13 +444,14 @@ Rules:
   the session language, consistent with the Result-First Final Report Format
   rule.
 
-Owner-facing summary structure (refined 2026-07-22 after a third observed
+Completion-report summary structure (refined 2026-07-22 after a third observed
 comprehension failure: the report preserved its claim boundary but still made
 the owner decode technical state before learning what to do):
 
-- The first three non-empty lines must be, in the session language and in this
-  order: `Result: ...`, `Reason: ...`, `Next step: ...` (or translated labels
-  such as `結果：...`, `原因：...`, `下一步：...`).
+- For completion and partial-completion reports, the first three non-empty lines
+  must be, in the session language and in this order: `Result: ...`,
+  `Reason: ...`, `Next step: ...` (or translated labels such as `結果：...`,
+  `原因：...`, `下一步：...`).
 - Put no heading, table, preamble, work-item code, commit hash, command, raw
   governance field, or fixed-vocabulary verdict before those three lines.
 - Each line must stand alone as a plain sentence. Do not make the reader follow
@@ -377,9 +473,11 @@ the owner decode technical state before learning what to do):
 - Method self-commentary (process praise, cadence narration) goes last or is
   omitted; it must never displace the decision questions.
 
-Acceptance is the owner's actual reading judgment: after the first three lines,
-the owner can state the result, why it is trustworthy, and what happens next
-without decoding the technical section. The opt-in
+For diagnosis, review, or concept questions, use the task-adaptive Engineering
+Explanation shape instead of forcing an irrelevant next step. Acceptance is the
+owner's actual reading judgment: a technically capable cold reader can build
+the correct minimum mental model without decoding the technical section or
+asking a second model to translate it. The opt-in
 `response_envelope_validator.py --check-plain-summary` remains only a
 sentence/ordering proxy for structured envelopes; it does not verify the
 rendered first-three-line placement or human comprehension.
