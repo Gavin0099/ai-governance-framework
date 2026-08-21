@@ -1,0 +1,21 @@
+
+added 737 packages in 5m
+
+> meiandraybook@0.1.0 test
+> vitest run src/lib/integration/__tests__/bulk_import_integrity.test.ts
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/work[39m
+
+ [31m❯[39m src/lib/integration/__tests__/bulk_import_integrity.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 17[2mms[22m[39m
+     [32m✓[39m prepares a new master mutation and audit without writing[32m 3[2mms[22m[39m
+     [32m✓[39m captures the existing row version for finalize-time stale-write detection[32m 1[2mms[22m[39m
+     [32m✓[39m uses an exact title/publisher/series soft match when stronger keys are absent[32m 0[2mms[22m[39m
+[31m     [31m×[31m does not soft-match distinct strong identities to the same existing book[39m[32m 8[2mms[22m[39m
+     [32m✓[39m fails closed before staging when an identity lookup fails[32m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 06:57:17
+[2m   Duration [22m 18.79s[2m (transform 185ms, setup 0ms, import 389ms, tests 17ms, environment 15.96s)[22m
+
