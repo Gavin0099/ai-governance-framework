@@ -1,0 +1,68 @@
+{
+  "schema": "raw-git-object-materialization.v1",
+  "repository": "C:\\Users\\daish\\.codex\\visualizations\\2026\\08\\20\\01a01f9a-76de-7b00-8170-409653fa352d\\c1-stryker-sidecar-attempt03",
+  "commit": "bb383cb83cdc872bd45e560b10f61b041040d2d7",
+  "destination": "C:\\Users\\daish\\AppData\\Local\\Temp\\ai-governance-c1-sidecar-a03-bb383cb8-20260822\\framework-input",
+  "object_semantics": "git ls-tree + git cat-file blob",
+  "working_tree_conversion_used": false,
+  "entry_count": 6,
+  "materialized_blob_count": 6,
+  "recorded_gitlink_count": 0,
+  "inventory": [
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "c2774d8b6021407d0a4056e18ec4f3f87b178587",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/.gitattributes",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "9c9e360d84180617788a3976254a03308fc83f38606e21fa284792c21f770c0f",
+      "bytes": 130
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "4f33251c2535bc7175b13647e9e222aafc21d23b",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/bootstrap-attempt-03.ps1",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "8fd796e4b4dcad5daa70be955e4f99f17a04f1b9474b7dec674c6ee6561aaed2",
+      "bytes": 5082
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "8a8596bc1de83ca3519807191ab6def893a97544",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/raw_git_materialize.py",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "06c2c6dcf26efdb9b30248a93da3a1f314835aa7ca5b9e1b44a7562cdf5e6591",
+      "bytes": 10421
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "4ed206c3191e958ead08bdb831c1aaa68b555317",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/run_sidecar_probe.py",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "bb2b491b7581fc3443703782b88c03de5d81bac39ae3d8fab08db349c7548f11",
+      "bytes": 27542
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "2b37eeb57345a949ffa9f5e57b96df087875e4f6",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/test_raw_git_materialize.py",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "c4f9f1185e36e0d1b084e7fc9864f8e898678405b081bcb8b8823c4f041b517a",
+      "bytes": 7045
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "aeb10e323a22a6402ee998c3e51481ee0c4a6330",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/validator-sidecar-probe-manifest.json",
+      "disposition": "MATERIALIZED_RAW_BLOB",
+      "sha256": "baf38c6d9aeb7e26de8b9223a361216de5d0728797723abe305f397b96a09c3c",
+      "bytes": 14902
+    }
+  ],
+  "status": "PASS"
+}
