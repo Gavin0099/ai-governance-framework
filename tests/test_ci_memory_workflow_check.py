@@ -258,3 +258,95 @@ def test_ci_accepts_product_commit_then_memory_closeout_commit(tmp_path: Path) -
     assert "mixed_scope_memory_binding=1" not in result.warnings
     assert result.mixed_scope_memory_binding_count == 0
     assert result.mixed_scope_findings == []
+    assert "closeout_companion_not_observed=1" not in result.warnings
+    assert result.closeout_companion_not_observed_count == 0
+    assert result.closeout_companion_findings == []
+
+
+def test_ci_reports_product_range_without_new_closeout_companion(
+    tmp_path: Path,
+) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(seed),
+    )
+    base = _commit_all(tmp_path, "existing daily memory")
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change without closeout")
+
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+        base_ref=base,
+        head_ref=product_commit,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" in result.warnings
+    assert result.closeout_companion_not_observed_count == 1
+    assert result.closeout_companion_findings == [
+        {
+            "code": "closeout_companion_not_observed",
+            "enforcement": "report_only",
+            "scope_ref": f"{base}..{product_commit}",
+            "non_closeout_commits": [product_commit],
+            "non_closeout_paths": ["governance_tools/product_change.py"],
+            "observed_bound_commits": [],
+            "reason": (
+                "the inspected commit range changes non-closeout paths, but no "
+                "added canonical memory entry binds a non-closeout commit in "
+                "that range"
+            ),
+        }
+    ]
+
+
+def test_changed_file_list_without_refs_does_not_infer_closeout_gap(
+    tmp_path: Path,
+) -> None:
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" not in result.warnings
+    assert result.closeout_companion_not_observed_count == 0
+    assert result.closeout_companion_findings == []
+
+
+def test_ci_does_not_accept_closeout_entry_bound_outside_range(
+    tmp_path: Path,
+) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change")
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(seed),
+    )
+    closeout_commit = _commit_all(tmp_path, "misbound memory closeout")
+
+    result = check(
+        tmp_path,
+        changed_files=[
+            "governance_tools/product_change.py",
+            "memory/2026-07-27.md",
+        ],
+        base_ref=seed,
+        head_ref=closeout_commit,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" in result.warnings
+    assert result.closeout_companion_not_observed_count == 1
+    assert result.closeout_companion_findings[0]["non_closeout_commits"] == [
+        product_commit
+    ]
+    assert result.closeout_companion_findings[0]["observed_bound_commits"] == [
+        seed
+    ]

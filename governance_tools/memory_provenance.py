@@ -31,6 +31,7 @@ UNBOUND_COMMIT_TOKENS = frozenset(
     {"", "UNCOMMITTED", "WORKTREE", "PENDING", "LOCAL-UNCOMMITTED"}
 )
 MIXED_SCOPE_CODE = "mixed_scope_memory_binding"
+CLOSEOUT_COMPANION_NOT_OBSERVED_CODE = "closeout_companion_not_observed"
 CANONICAL_WRITER = "governance_tools.memory_record"
 
 _FIELD_RE = re.compile(r"^\s{0,4}(?P<key>[a-z_]+):\s*(?P<value>.*)$")
@@ -354,3 +355,112 @@ def detect_commit_range_mixed_scope_memory_bindings(
         if finding:
             findings.append(finding)
     return findings
+
+
+def detect_commit_range_closeout_companion_gap(
+    project_root: Path,
+    *,
+    base_ref: str,
+    head_ref: str = "HEAD",
+) -> list[dict]:
+    """Report when a commit range changes product scope without bound memory.
+
+    This is deliberately range-only and report-only. A changed-file list alone
+    cannot establish commit ancestry or prove that a canonical entry binds the
+    implementation work, so callers without reliable refs must not infer a gap.
+    """
+    if not is_git_worktree(project_root):
+        return []
+    code, stdout, _stderr = _run_git(
+        project_root, ["rev-list", "--reverse", f"{base_ref}..{head_ref}"]
+    )
+    if code != 0:
+        return []
+
+    range_commits = [line.strip() for line in stdout.splitlines() if line.strip()]
+    if not range_commits:
+        return []
+
+    changed_by_commit: dict[str, list[str]] = {}
+    entries: list[dict[str, str]] = []
+    for commit in range_commits:
+        changed_paths = _commit_changed_paths(project_root, commit)
+        changed_by_commit[commit] = changed_paths
+        memory_paths = [path for path in changed_paths if _is_memory_path(path)]
+        if memory_paths:
+            entries.extend(
+                _added_canonical_entries(
+                    _commit_memory_patch(project_root, commit, memory_paths)
+                )
+            )
+
+    plan_updated = any(
+        entry.get("plan_reconciliation") == "updated" for entry in entries
+    )
+    policy = load_evidence_root_policy(project_root)
+    cited_artifacts = _entry_artifact_refs(entries, policy)
+    companion_patterns = _companion_patterns(policy)
+
+    non_closeout_paths_by_commit: dict[str, list[str]] = {}
+    for commit, changed_paths in changed_by_commit.items():
+        non_closeout_paths = sorted(
+            {
+                _normalize_path(path)
+                for path in changed_paths
+                if not _is_closeout_companion_path(
+                    path,
+                    plan_updated=plan_updated,
+                    cited_artifacts=cited_artifacts,
+                    companion_patterns=companion_patterns,
+                )
+            }
+        )
+        if non_closeout_paths:
+            non_closeout_paths_by_commit[commit] = non_closeout_paths
+
+    if not non_closeout_paths_by_commit:
+        return []
+
+    observed_bound_commits = sorted(
+        {
+            entry.get("commit_hash") or entry.get("commit") or ""
+            for entry in entries
+            if entry.get("memory_binding") == "bound"
+        }
+    )
+    observed_bound_commits = [
+        commit_hash
+        for commit_hash in observed_bound_commits
+        if git_commit_exists(project_root, commit_hash)
+    ]
+
+    non_closeout_commits = sorted(non_closeout_paths_by_commit)
+    companion_observed = any(
+        bound.startswith(commit) or commit.startswith(bound)
+        for bound in observed_bound_commits
+        for commit in non_closeout_commits
+    )
+    if companion_observed:
+        return []
+
+    return [
+        {
+            "code": CLOSEOUT_COMPANION_NOT_OBSERVED_CODE,
+            "enforcement": "report_only",
+            "scope_ref": f"{base_ref}..{head_ref}",
+            "non_closeout_commits": non_closeout_commits,
+            "non_closeout_paths": sorted(
+                {
+                    path
+                    for paths in non_closeout_paths_by_commit.values()
+                    for path in paths
+                }
+            ),
+            "observed_bound_commits": observed_bound_commits,
+            "reason": (
+                "the inspected commit range changes non-closeout paths, but no "
+                "added canonical memory entry binds a non-closeout commit in "
+                "that range"
+            ),
+        }
+    ]

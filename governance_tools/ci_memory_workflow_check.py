@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""CI-only selective memory workflow blocker.
+"""CI-only selective memory workflow check.
 
 This check blocks current-diff memory writer violations and policy-backed memory
-authority blockers. Historical warning-only debt remains warning-only and local
+authority blockers. It also reports commit-range closeout companion omissions
+without blocking. Historical warning-only debt remains warning-only and local
 hooks remain advisory.
 """
 
@@ -25,7 +26,9 @@ from governance_tools.memory_policy_attestation import (
     policy_disable_attestation_warnings,
 )
 from governance_tools.memory_provenance import (
+    CLOSEOUT_COMPANION_NOT_OBSERVED_CODE,
     MIXED_SCOPE_CODE,
+    detect_commit_range_closeout_companion_gap,
     detect_commit_range_mixed_scope_memory_bindings,
     detect_staged_mixed_scope_memory_bindings,
 )
@@ -49,6 +52,8 @@ class CiMemoryWorkflowCheckResult:
     warnings: list[str] = field(default_factory=list)
     mixed_scope_memory_binding_count: int = 0
     mixed_scope_findings: list[dict] = field(default_factory=list)
+    closeout_companion_not_observed_count: int = 0
+    closeout_companion_findings: list[dict] = field(default_factory=list)
     clean: bool = True
 
 
@@ -145,8 +150,14 @@ def check(
             base_ref=base_ref,
             head_ref=head_ref,
         )
+        closeout_companion_findings = detect_commit_range_closeout_companion_gap(
+            repo_root,
+            base_ref=base_ref,
+            head_ref=head_ref,
+        )
     else:
         mixed_scope_findings = detect_staged_mixed_scope_memory_bindings(repo_root)
+        closeout_companion_findings = []
 
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
@@ -173,6 +184,11 @@ def check(
         )
     if mixed_scope_findings:
         warnings.append(f"{MIXED_SCOPE_CODE}={len(mixed_scope_findings)}")
+    if closeout_companion_findings:
+        warnings.append(
+            f"{CLOSEOUT_COMPANION_NOT_OBSERVED_CODE}="
+            f"{len(closeout_companion_findings)}"
+        )
 
     if policy["error"]:
         warnings.append(policy["error"])
@@ -217,6 +233,8 @@ def check(
         warnings=warnings,
         mixed_scope_memory_binding_count=len(mixed_scope_findings),
         mixed_scope_findings=mixed_scope_findings,
+        closeout_companion_not_observed_count=len(closeout_companion_findings),
+        closeout_companion_findings=closeout_companion_findings,
         clean=not blockers,
     )
 
@@ -234,6 +252,8 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         f"repo_state_b0_blocker_count={result.repo_state_b0_blocker_count}",
         f"current_diff_b0_blocker_count={result.current_diff_b0_blocker_count}",
         f"mixed_scope_memory_binding_count={result.mixed_scope_memory_binding_count}",
+        "closeout_companion_not_observed_count="
+        f"{result.closeout_companion_not_observed_count}",
         f"clean={result.clean}",
     ]
     if result.changed_memory_files:
@@ -246,6 +266,10 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         lines.append("[mixed_scope_findings]")
         for finding in result.mixed_scope_findings:
             lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
+    if result.closeout_companion_findings:
+        lines.append("[closeout_companion_findings]")
+        for finding in result.closeout_companion_findings:
+            lines.append(json.dumps(finding, ensure_ascii=False, sort_keys=True))
     if result.blockers:
         lines.append("[blockers]")
         for blocker in result.blockers:
@@ -255,7 +279,7 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="CI-only blocker for current-diff memory workflow violations."
+        description="CI-only checker for current-diff memory workflow signals."
     )
     parser.add_argument("--project-root", default=".", type=Path)
     parser.add_argument("--base-ref", default=None)
