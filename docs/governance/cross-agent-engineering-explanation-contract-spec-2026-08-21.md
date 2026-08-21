@@ -62,15 +62,19 @@ or Codex workspace.
 
 ## Target Outcome
 
-Define one cross-agent engineering explanation behavior that lets an owner
-understand, without first decoding the technical ledger:
+Define one cross-agent engineering context-reconstruction behavior for a
+technically capable reader who did not observe the agent's working session. The
+reader must be able to understand, without opening `PLAN.md`, decoding project
+tokens, or asking a second model to translate:
 
-1. what is true now;
-2. what the evidence means for the requested outcome;
-3. what remains inference, hypothesis, or unknown;
-4. which decision has or has not been made; and
-5. what single next action is a candidate, and whether it is authorized or
-   requires owner approval.
+1. what problem or goal was being worked on;
+2. what actually happened;
+3. why the event sequence or evidence supports the stated result, without
+   inventing causation;
+4. what the result changes, or does not change, for the original goal;
+5. what remains inference, hypothesis, or unknown; and
+6. when action is relevant, what candidate action exists and whether it is
+   authorized or requires owner approval.
 
 The explanation must preserve the source claim ceiling. A clearer answer that
 is less accurate, more certain, or broader in authority is a failed answer.
@@ -116,12 +120,31 @@ the source material into five classes:
 | Supported interpretation | Meaning reasonably derived from observed facts | Explain the reasoning and do not present it as directly measured. |
 | Hypothesis | Plausible cause or future expectation not yet confirmed | Label it as a possibility and state the missing check. |
 | Authority state | What the owner or governing source has approved, rejected, paused, or left undecided | Do not promote a proposal, recommendation, or question into a decision. |
-| Next action | The narrow candidate next step and its current authority state | Say whether it is authorized now or still needs owner approval; naming it never grants permission. |
+| Next action | When action is relevant, the narrow candidate next step and its current authority state | Say whether it is authorized now or still needs owner approval; naming it never grants permission. |
+
+Classification protects correctness, but classification alone is not an
+explanation. The agent must reconstruct four relationships before presenting
+the evidence:
+
+1. **Context** — the original problem or goal.
+2. **Event** — the decisive occurrence or sequence.
+3. **Meaning** — why the event sequence or evidentiary relationship supports
+   this result without inventing causation.
+4. **Consequence** — what the result changes or leaves unchanged for the goal.
+
+Decision-relevant unknowns, authority state, and next action follow only when
+they are relevant. The technical ledger remains available after this mental
+model has been established.
 
 The final explanation must:
 
 - answer the user's real question before listing the technical ledger;
-- add the missing premise or causal sequence needed to understand the result;
+- add the missing context, event sequence, or evidentiary relationship needed
+  to understand the result;
+- assume a senior engineer who has not followed the session; do not use project
+  codes, status tokens, evidence fields, or protocol terms as the explanation;
+- decode each decision-relevant domain term on first use and explain how the
+  events relate, rather than translating tokens one by one;
 - state what each decisive item of evidence proves and, when relevant, what it
   cannot prove;
 - preserve exact commands, paths, identifiers, hashes, numbers, error messages,
@@ -130,13 +153,20 @@ The final explanation must:
   runtime availability;
 - avoid praise, ceremony, and process narration that does not help the owner
   decide; and
-- stop after the narrow next action instead of appending speculative work.
+- when action is relevant, stop after the narrow candidate action and its
+  authority state instead of appending speculative work.
 
 ## Task-Adaptive Explanation Shapes
 
 One rigid template would recreate the current failure by assembling fields
 without explaining them. The agent selects the smallest shape that matches the
 question.
+
+### Concept or purpose
+
+Explain the problem, how the mechanism addresses it, how it differs from nearby
+mechanisms, and what success would mean. Do not force a next action into a
+question that only asks what something means.
 
 ### Progress or status
 
@@ -278,6 +308,7 @@ This specification does not claim:
 | Clear but stronger than evidence | The owner understands a false conclusion | Reject any explanation that changes fact, inference, hypothesis, or claim ceiling. |
 | Unauthorized continuation | Explanation silently becomes approval | Preserve authority state and name the exact reply or approval still required. |
 | Template compliance without comprehension | Required headings exist but the answer still needs translation | Use direct owner replay as the acceptance signal; keep structural checks advisory. |
+| Correct but opaque | Every sentence is accurate, but project codes or protocol tokens substitute for a mental model | Require context, event, meaning, and consequence; reject answers that need `PLAN.md`, artifact lookup, or a second model. |
 | Provider drift | Claude, Codex, Gemini, and Copilot receive different rules | Keep one canonical contract and thin, reviewable projections. |
 | Verbosity rebound | Additional explanation produces a second technical report | Use the smallest task-adaptive shape and move non-decisive evidence after the answer. |
 | Metaphor distortion | A helpful analogy invents causation or certainty | State where the analogy stops; omit it when it changes the engineering meaning. |
@@ -298,10 +329,21 @@ paraphrased case facts, not private transcripts or unrelated repository data.
 | Protocol diagnosis | Reconstruct event order and actors while separating confirmed and possible causes | Call timing correlation a confirmed cause or tell the owner to ignore an interfering actor |
 | Progress and memory reconciliation | Separate code progress, record repair, Git state, and later slices | Invent a completion percentage, call real fail-closed evidence false, or authorize deferred work |
 
-Each candidate answer receives three separate human verdicts:
+Each candidate answer receives three separate human verdicts. For
+**Comprehension**, a technically capable reviewer who did not observe the
+working session must be able to answer all five questions:
 
-1. **Comprehension** — the owner can state what is true now, why it matters, and
-   what happens next.
+1. What problem was being worked on?
+2. What actually happened?
+3. Why do the facts support this result?
+4. What does the result mean for the original goal?
+5. What remains unknown, and what action or authority state matters now?
+
+The verdicts are:
+
+1. **Comprehension** — all five questions can be answered from the explanation
+   alone, without opening `PLAN.md`, decoding unexplained terms, or asking a
+   second model to translate.
 2. **Fidelity** — facts, exact values, uncertainty, and `not_claimed` boundaries
    match the source.
 3. **Authority** — the answer does not create a decision, permission, commit,
@@ -336,12 +378,13 @@ Recommend one documentation-only, self-hosted tranche:
 The first implementation tranche is done when:
 
 - the canonical contract explains the difference between summarizing and
-  explaining;
+  context reconstruction;
 - the five fact classes and task-adaptive shapes are reviewable;
 - the protected consumer baseline carries a minimal non-conflicting projection;
 - the five case classes have reviewed must-pass and must-fail examples;
-- the owner confirms that the must-pass explanations are understandable without
-  weakening evidence or authorization boundaries; and
+- the owner confirms that a cold reader can build the correct minimum mental
+  model from the must-pass explanations without weakening evidence or
+  authorization boundaries; and
 - no runtime hook, schema, gate, provider adapter, updater behavior, consumer
   repository, commit, or push is changed by that tranche.
 

@@ -91,13 +91,24 @@ the minimum fallback when that canonical contract is not loaded.
 
 - Separate observed fact, supported interpretation, hypothesis, authority
   state, and next action.
+- Assume the reader is a senior engineer who understands software engineering
+  but has not followed this session. Reconstruct the minimum missing context:
+  the original problem, what happened, why the facts support this result, and
+  what the result changes or does not change for the goal. Use the event
+  sequence or evidentiary relationship; do not invent causation.
+- Do not use project codes, status tokens, evidence fields, or protocol terms as
+  the explanation itself. Explain each decision-relevant term on first use and
+  connect the events; translation without relationships is not explanation.
 - Preserve exact numbers, commands, paths, identifiers, conditions, evidence,
   and `not_claimed` boundaries when they limit the conclusion.
 - Do not turn correlation into causation, a proxy into measured effect, a
   recommendation into an owner decision, or an unapproved follow-up into a
   promised action.
 - Use the task's natural shape: timeline for diagnosis; completed / blocked /
-  next for progress; trustworthy / unsupported / decision impact for review.
+  next for progress; trustworthy / unsupported / decision impact for review;
+  problem / mechanism / difference / success meaning for concept questions.
+- Include a next action only when it is relevant. Naming a candidate action does
+  not authorize it.
 - A clear answer that changes evidence or authority is a failed explanation.
 
 This is an owner-facing reporting rule, not a semantic gate. Human

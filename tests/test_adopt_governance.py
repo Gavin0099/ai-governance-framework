@@ -148,6 +148,7 @@ def test_adopt_copies_agents_base(tmp_path):
     agents_base = (repo / "AGENTS.base.md").read_text(encoding="utf-8")
     assert "governance-baseline: protected" in agents_base
     assert "## Engineering Explanation" in agents_base
+    assert "has not followed this session" in agents_base
 
 
 def test_adopt_creates_contract_from_template_when_missing(tmp_path):
