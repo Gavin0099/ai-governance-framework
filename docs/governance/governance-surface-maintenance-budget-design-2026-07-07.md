@@ -13,6 +13,17 @@ exists because a governance system can fail by growing faster than it can be
 maintained: more rules, validators, memories, playbooks, and warnings can
 increase apparent coverage while reducing actual decision quality.
 
+Governance maintenance decisions must first preserve non-negotiable safety,
+authority, privacy, evidence-admissibility, and rare-critical protections.
+Among options satisfying those constraints, prefer the option with the lowest
+observed governance and maintenance cost that is not judged to worsen the
+available natural work-item outcome evidence.
+
+When no controlled comparator exists, any same-or-better outcome assessment is
+reviewer counterfactual judgment, not a measured effect; cost is uncontrolled
+observed cost. This principle guides design selection and does not merge
+work-item observations with defense decision-effect records.
+
 This is a design artifact only. It does not delete, merge, retire, downgrade,
 or enforce any defense.
 

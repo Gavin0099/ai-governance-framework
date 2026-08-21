@@ -360,3 +360,87 @@ which names `PLAN.md freshness is CRITICAL` in the smoke's failure list.
 argue that the fail-closed behaviour is miscalibrated: a defence firing is not
 evidence that it is wrong. Any improvement should target error aggregation and
 root-cause hinting, not enforcement strength.
+
+## A test can be narrower than the invariant it is named after (2026-08-16)
+
+**Pattern.** Three separate findings in one review cycle were the same defect:
+a test whose name stated a general invariant, whose body checked a special case,
+and which passed either way.
+
+- `test_no_bound_export_is_invoked_outside_the_guard` walked a hand-written
+  tuple of two functions. A third function calling a bound export directly was
+  invisible to it, which is exactly what happened.
+- A "creates nothing" assertion searched the source for `ntdll.NtCreateFile(`.
+  In that module the compliant call shape passes the export to `_guarded` as a
+  callable, so that text never appears — for compliant code *or* for a
+  violation. The check could not fail.
+- An access-mask test asserted that a query failed. The claim being evidenced
+  was that it failed with `ERROR_ACCESS_DENIED`; any failure satisfied the
+  assertion.
+
+**Why it survives review.** A green test reads as evidence for its own name. The
+name is prose, the body is the actual predicate, and nothing forces them to
+agree. Coverage tools do not help: these tests execute the code they mention.
+
+**Detection rule.** For any test whose name asserts a universal — *no*, *every*,
+*always*, *never* — ask what its body enumerates. If it enumerates a list, the
+list is the real scope. Then write the sensitivity case: construct the
+violation, in synthetic source if reintroducing it would be unsafe, and assert
+the check reports it. A detector that has never been shown to fire is an
+assumption.
+
+**Confirmation.** All three were found by an independent reviewer against a diff
+whose focused suite was passing 156/156 at the time. Widening them changed no
+production behaviour and no test failed as a result — which is itself the point:
+they had never been testing what they claimed.
+
+**Related, same cycle.** Removing error masking took three passes: `_anchor`,
+then `open_chain`, then both `__exit__` methods, where `return False` only runs
+if `close()` returns. After fixing the first two sites the question "what other
+exits does this object have" was not asked. When a defect class is found in one
+place, enumerate the places it can occur before declaring it fixed.
+
+## Worktree-preexisting is not baseline-preexisting (2026-08-16)
+
+**Pattern.** A test suite showed the same seven failures at the start of a
+session and at every checkpoint through it. They were reported as pre-existing
+failures, unrelated to the work in hand, in a commit message, in `PLAN.md`, and
+in three canonical memory entries. They were not. They were caused by an
+unrelated slice that was already dirty in the worktree before the session
+began.
+
+**Why the reasoning failed.** "It was failing before I started" answers a
+question about *this session*, not about the repository. A failure that predates
+your first command can still be caused by uncommitted work sitting next to
+yours. Stability across checkpoints looks like independence and is not: the
+cause was constant because the dirty file was constant.
+
+**Detection rule.** Before calling any failure pre-existing, compare three
+things, not one: the bytes at `HEAD`, the bytes the failing assertion pins
+against, and the bytes in the worktree. If `HEAD` matches the pin and the
+worktree does not, the failure belongs to whatever changed the worktree.
+
+```
+git show HEAD:<path> | sha256sum
+git show <pin-commit>:<path> | sha256sum
+sha256sum <path>
+```
+
+**Confirmation.** Here `HEAD` and `SOURCE_COMMIT`
+`204965c94bd843d599986d9f9d0fd552ea053dff` produced identical digests for
+`gate3_route_v2.py` and `gate3_route_v2_codex.py`, while the worktree differed
+in both. The verifier compares live worktree bytes against the pin, so at clean
+`HEAD` these two pin mismatches are absent. No clean-checkout suite run was
+performed, so nothing here claims the suite is all green there — the digest
+comparison locates the cause, and locating a cause is not observing an outcome.
+
+**Second-order lesson.** The pin itself is the deeper finding. Verifying a
+historical candidate against live worktree bytes holds only while the
+implementing source never moves, so the first slice to touch those files breaks
+it — and every later one will too. That is what the historical materialization
+chain exists to fix; until it lands, any slice touching pinned sources is
+blocked on it rather than on its own quality.
+
+**Not a licence.** None of this makes repinning a manifest or rewriting pair
+evidence acceptable. The consumed pair stays `NON_SUCCESS` and unusable; the
+correct response to a broken pin is to defer the slice, not to move the pin.

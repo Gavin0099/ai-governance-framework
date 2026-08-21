@@ -8,7 +8,7 @@ only a closed, internally linked attestation chain.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Mapping
 
 import gate3_final_message_actual_capture as capture
@@ -59,20 +59,102 @@ RUNTIME_SUBJECTS = {
     "projector_contract",
     "public_schemas",
 }
-RUNNER_INTEGRATION_CONTRACT_BYTES = capture.canonical_bytes(
+
+CONTRACT_V1 = "gate3-route-v2.runner-integration-contract.v1"
+
+# Frozen v1 runtime inventory.  This is a literal copy, not an alias of
+# RUNTIME_SUBJECTS: v1 semantics must not follow later edits to the live set.
+V1_RUNTIME_SUBJECTS = frozenset(
     {
-        "checkpoints": list(CHECKPOINTS),
-        "cleanup_protocol": "CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",
-        "observation_protocol": "CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",
-        "launch_ordinal": 1,
-        "profiles": sorted(PROFILES),
-        "replacement": False,
-        "retry": False,
-        "runtime_subjects": sorted(RUNTIME_SUBJECTS),
-        "schema": "gate3-route-v2.runner-integration-contract.v1",
-        "stdout_handoff_count": 1,
+        "adapter_contract",
+        "adapter_source",
+        "integration_source",
+        "projector_contract",
+        "public_schemas",
+        "raw_contract",
+        "runner_source",
     }
 )
+
+# Frozen v1 contract bytes.  Previously these were recomputed at import from
+# CHECKPOINTS, PROFILES and RUNTIME_SUBJECTS, which meant that editing any of
+# those silently changed which bytes the shipped verifier would accept as v1,
+# while the recorded pin still read as authoritative.  Freezing the literal
+# preserves backward verification of every package already produced; it does not
+# make the pinned digest any more immutable than a digest already is.
+V1_CONTRACT_BYTES = (
+    b'{"checkpoints":["before_authorization","before_invocation",'
+    b'"before_private_parse","before_seal"],'
+    b'"cleanup_protocol":"CREATE_ONCE_AUTHORIZATION_THEN_RESULT_NO_RETRY",'
+    b'"launch_ordinal":1,'
+    b'"observation_protocol":"CREATE_ONCE_CHAIN_AUTHORIZATION_BEFORE_LAUNCH",'
+    b'"profiles":["RUNNER_CAPTURE_FINALIZED","RUNNER_CAPTURE_NEGATIVE",'
+    b'"RUNNER_CAPTURE_RESULT_UNKNOWN","RUNNER_SEAL_UNAVAILABLE"],'
+    b'"replacement":false,"retry":false,"runtime_subjects":['
+    b'"adapter_contract","adapter_source","integration_source",'
+    b'"projector_contract","public_schemas","raw_contract","runner_source"],'
+    b'"schema":"gate3-route-v2.runner-integration-contract.v1",'
+    b'"stdout_handoff_count":1}\n'
+)
+
+CONTRACT_V2 = "gate3-route-v2.runner-integration-contract.v2"
+INTEGRATION_AUTHORITY_SCHEMA_V2 = "gate3-route-v2.runner-integration-authority.v2"
+
+# v2 adds one runtime subject: the bridge source.  The Git blob identity of the
+# bridge is a separate, authority-only field; the two answer different questions
+# and are deliberately not merged.
+V2_RUNTIME_SUBJECTS = frozenset(V1_RUNTIME_SUBJECTS | {"bridge_source"})
+
+# v2 admits SYNTHETIC evidence only.  PRODUCTION is a reserved token that this
+# version rejects: `invoke` is an injected callable, so a declared class would be
+# caller intent rather than execution provenance.  Opening it needs a durable
+# production-admission authority, a real runner path, and machine-enforced path
+# exclusivity, none of which exist.
+LEGACY_V1_EVIDENCE_CLASS = "LEGACY_V1_SYNTHETIC"
+
+# Baseline claim ladder.  Public bytes alone can only establish that a digest
+# was declared; supplying the private map adds that the map hashes to it.  No
+# arrangement of inputs establishes that a run performed the comparison — that
+# is a property of the code path, not of any artifact.
+BASELINE_DIGEST_DECLARED = "BASELINE_DIGEST_DECLARED"
+SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST = (
+    "SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST"
+)
+
+EVIDENCE_CLASS_SYNTHETIC = "SYNTHETIC"
+EVIDENCE_CLASS_PRODUCTION = "PRODUCTION"
+V2_EVIDENCE_CLASSES = ("SYNTHETIC",)
+
+V2_CONTRACT_BYTES = (
+    b'{"checkpoints":["before_authorization","before_invocation","befo'
+    b're_private_parse","before_seal"],"cleanup_protocol":"CREATE_ONCE'
+    b'_AUTHORIZATION_THEN_RESULT_NO_RETRY","evidence_classes":["SYNTHE'
+    b'TIC"],"launch_ordinal":1,"observation_protocol":"CREATE_ONCE_CHA'
+    b'IN_AUTHORIZATION_BEFORE_LAUNCH","profiles":["RUNNER_CAPTURE_FINA'
+    b'LIZED","RUNNER_CAPTURE_NEGATIVE","RUNNER_CAPTURE_RESULT_UNKNOWN"'
+    b',"RUNNER_SEAL_UNAVAILABLE"],"replacement":false,"retry":false,"r'
+    b'untime_subjects":["adapter_contract","adapter_source","bridge_so'
+    b'urce","integration_source","projector_contract","public_schemas"'
+    b',"raw_contract","runner_source"],"schema":"gate3-route-v2.runner'
+    b'-integration-contract.v2","stdout_handoff_count":1}\n'
+)
+
+CONTRACT_BYTES_BY_VERSION = {
+    CONTRACT_V1: V1_CONTRACT_BYTES,
+    CONTRACT_V2: V2_CONTRACT_BYTES,
+}
+RUNTIME_SUBJECTS_BY_VERSION = {
+    CONTRACT_V1: V1_RUNTIME_SUBJECTS,
+    CONTRACT_V2: V2_RUNTIME_SUBJECTS,
+}
+
+# The coordinator emits v2 only.  v1 remains verifiable so that every package
+# already produced keeps its meaning, but there is no flag, parameter or
+# environment variable that makes the coordinator emit v1 again.
+RUNNER_INTEGRATION_CONTRACT_BYTES = V2_CONTRACT_BYTES
+
+# Versions a verifier will accept.  Both are verifiable; only v2 is producible.
+VERIFIABLE_CONTRACT_VERSIONS = frozenset({CONTRACT_V1, CONTRACT_V2})
 
 
 class IntegrationError(ValueError):
@@ -89,6 +171,31 @@ class SyntheticIntegrationCrash(RuntimeError):
 
 class ContainedStartFailed(RuntimeError):
     """Typed injected boundary proving that process creation did not succeed."""
+
+
+def identify_contract_version(payload: bytes) -> str:
+    """Identify the contract version from exact canonical bytes.
+
+    Total and fail-closed: a payload matching no frozen registry entry is
+    rejected.  There is no fallback and no "assume latest".  Version
+    identification must happen before any authority validation, because each
+    version owns its own authority schema and runtime inventory.
+    """
+
+    if type(payload) is not bytes:
+        raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+    for version, frozen in CONTRACT_BYTES_BY_VERSION.items():
+        if payload == frozen:
+            return version
+    raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+
+
+def _identify_retained_contract_version(
+    evidence_store: capture.CreateOnceStore,
+) -> str:
+    if INTEGRATION_CONTRACT_PATH not in evidence_store.files:
+        raise IntegrationError("CONTRACT_ARTIFACT_MISSING")
+    return identify_contract_version(evidence_store.read(INTEGRATION_CONTRACT_PATH))
 
 
 def _is_sha256(value: object) -> bool:
@@ -128,26 +235,7 @@ class RuntimeAuthority:
     runtime_sha256: Mapping[str, str]
 
     def validate(self) -> None:
-        if (
-            not _is_sha256(self.action_sha256)
-            or not _is_sha256(self.integration_contract_sha256)
-            or not _is_sha256(self.capture_bindings_sha256)
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if self.arm not in {"A", "B"}:
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if not all(
-            isinstance(item, str)
-            and len(item) in {40, 64}
-            and all(character in "0123456789abcdef" for character in item)
-            for item in (self.git_commit, self.runner_blob, self.integration_blob)
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
-        if set(self.runtime_sha256) != RUNTIME_SUBJECTS or not all(
-            isinstance(name, str) and name and _is_sha256(digest)
-            for name, digest in self.runtime_sha256.items()
-        ):
-            raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+        validate_authority_for_version(self, CONTRACT_V1)
 
     def public_value(self) -> dict[str, object]:
         self.validate()
@@ -166,6 +254,95 @@ class RuntimeAuthority:
             "runtime_sha256": dict(sorted(self.runtime_sha256.items())),
             "schema": INTEGRATION_AUTHORITY_SCHEMA,
         }
+
+
+@dataclass(frozen=True)
+class RuntimeAuthorityV2:
+    """v2 authority: adds bridge identity, bridge runtime subject, baseline.
+
+    Separate from `RuntimeAuthority` on purpose.  v1 keeps its own class, its own
+    validator and its own `public_value()` key set, so nothing here can alter
+    what an already-produced v1 package means.
+    """
+
+    action_sha256: str
+    arm: str
+    git_commit: str
+    runner_blob: str
+    integration_blob: str
+    bridge_blob: str
+    integration_contract_sha256: str
+    capture_bindings_sha256: str
+    workspace_baseline_sha256: str
+    evidence_class: str
+    runtime_sha256: Mapping[str, str]
+
+    def validate(self) -> None:
+        validate_authority_for_version(self, CONTRACT_V2)
+
+    def public_value(self) -> dict[str, object]:
+        self.validate()
+        return {
+            "action_sha256": self.action_sha256,
+            "arm": self.arm,
+            "bridge_blob": self.bridge_blob,
+            "capture_ordinal": 1,
+            "capture_bindings_sha256": self.capture_bindings_sha256,
+            "evidence_class": self.evidence_class,
+            "git_commit": self.git_commit,
+            "integration_blob": self.integration_blob,
+            "integration_contract_sha256": self.integration_contract_sha256,
+            "launch_ordinal": 1,
+            "replacement": False,
+            "retry": False,
+            "runner_blob": self.runner_blob,
+            "runtime_sha256": dict(sorted(self.runtime_sha256.items())),
+            "schema": INTEGRATION_AUTHORITY_SCHEMA_V2,
+            "workspace_baseline_sha256": self.workspace_baseline_sha256,
+        }
+
+
+def baseline_snapshot(baseline: Mapping[str, bytes]) -> dict[str, bytes]:
+    """Copy a caller-held baseline into a private, immutable-by-value snapshot.
+
+    Reading a caller mapping twice is a TOCTOU seam: the digest would bind what
+    was present at admission while the later comparison would read whatever the
+    caller holds by then.  Everything downstream must use this snapshot.
+
+    Iteration is inside the failure boundary because a hostile mapping can raise
+    from ``items()``; the raised message must never reach a caller.
+    """
+
+    try:
+        if not isinstance(baseline, Mapping):
+            raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+        snapshot = {name: payload for name, payload in baseline.items()}
+    except IntegrationError:
+        raise
+    except Exception:
+        raise IntegrationError("WORKSPACE_BASELINE_INVALID") from None
+    if not all(
+        type(name) is str and name and type(payload) is bytes
+        for name, payload in snapshot.items()
+    ):
+        raise IntegrationError("WORKSPACE_BASELINE_INVALID")
+    return {name: bytes(payload) for name, payload in snapshot.items()}
+
+
+def workspace_baseline_digest(baseline: Mapping[str, bytes]) -> str:
+    """Digest over the canonical `{artifact_id: content_digest}` map.
+
+    The map itself stays private; only this digest is public.  This is not
+    zero-knowledge: an adversary who already knows a candidate artifact set can
+    confirm it by recomputation.  No confirmation-resistance is claimed.
+    """
+
+    snapshot = baseline_snapshot(baseline)
+    return capture.sha256(
+        capture.canonical_bytes(
+            {name: capture.sha256(payload) for name, payload in snapshot.items()}
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -202,6 +379,99 @@ class Verification:
     code: str
     profile: str | None = None
     claim: str | None = None
+    evidence_class: str | None = None
+    baseline_claim: str | None = None
+
+
+def _validate_v1_authority(authority: "RuntimeAuthority") -> None:
+    """Frozen v1 authority validator.
+
+    Kept as a version-owned function so that a later version's schema work
+    cannot alter v1 semantics by editing a shared code path.
+    """
+
+    if (
+        not _is_sha256(authority.action_sha256)
+        or not _is_sha256(authority.integration_contract_sha256)
+        or not _is_sha256(authority.capture_bindings_sha256)
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.arm not in {"A", "B"}:
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if not all(
+        isinstance(item, str)
+        and len(item) in {40, 64}
+        and all(character in "0123456789abcdef" for character in item)
+        for item in (
+            authority.git_commit,
+            authority.runner_blob,
+            authority.integration_blob,
+        )
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if set(authority.runtime_sha256) != set(V1_RUNTIME_SUBJECTS) or not all(
+        isinstance(name, str) and name and _is_sha256(digest)
+        for name, digest in authority.runtime_sha256.items()
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+
+
+def _validate_v2_authority(authority: "RuntimeAuthorityV2") -> None:
+    """v2 authority validator, owned by v2 alone."""
+
+    if not isinstance(authority, RuntimeAuthorityV2):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if (
+        not _is_sha256(authority.action_sha256)
+        or not _is_sha256(authority.integration_contract_sha256)
+        or not _is_sha256(authority.capture_bindings_sha256)
+        or not _is_sha256(authority.workspace_baseline_sha256)
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.arm not in {"A", "B"}:
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if not all(
+        isinstance(item, str)
+        and len(item) in {40, 64}
+        and all(character in "0123456789abcdef" for character in item)
+        for item in (
+            authority.git_commit,
+            authority.runner_blob,
+            authority.integration_blob,
+            authority.bridge_blob,
+        )
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    if authority.evidence_class == EVIDENCE_CLASS_PRODUCTION:
+        raise IntegrationError("EVIDENCE_CLASS_PRODUCTION_NOT_ADMITTED")
+    if authority.evidence_class not in V2_EVIDENCE_CLASSES:
+        raise IntegrationError("EVIDENCE_CLASS_INVALID")
+    if set(authority.runtime_sha256) != set(V2_RUNTIME_SUBJECTS) or not all(
+        isinstance(name, str) and name and _is_sha256(digest)
+        for name, digest in authority.runtime_sha256.items()
+    ):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+
+
+def _validate_v1_authority_typed(authority: object) -> None:
+    if not isinstance(authority, RuntimeAuthority):
+        raise IntegrationError("INTEGRATION_AUTHORITY_INVALID")
+    _validate_v1_authority(authority)
+
+
+AUTHORITY_VALIDATOR_BY_VERSION = {
+    CONTRACT_V1: _validate_v1_authority_typed,
+    CONTRACT_V2: _validate_v2_authority,
+}
+
+
+def validate_authority_for_version(
+    authority: "RuntimeAuthority", version: str
+) -> None:
+    validator = AUTHORITY_VALIDATOR_BY_VERSION.get(version)
+    if validator is None:
+        raise IntegrationError("CONTRACT_VERSION_UNKNOWN")
+    validator(authority)
 
 
 def derive_profile(
@@ -257,11 +527,17 @@ def _validate_authority_artifact(
 
 
 def _validate_contract_artifact(
-    evidence_store: capture.CreateOnceStore, authority: RuntimeAuthority
+    evidence_store: capture.CreateOnceStore,
+    authority: RuntimeAuthority,
+    version: str | None = None,
 ) -> None:
     payload = evidence_store.read(INTEGRATION_CONTRACT_PATH)
+    expected = CONTRACT_BYTES_BY_VERSION.get(
+        version if version is not None else identify_contract_version(payload)
+    )
     if (
-        payload != RUNNER_INTEGRATION_CONTRACT_BYTES
+        expected is None
+        or payload != expected
         or capture.sha256(payload) != authority.integration_contract_sha256
     ):
         raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
@@ -406,13 +682,41 @@ class RunnerIntegrationCoordinator:
     capture_store: capture.CreateOnceStore
     evidence_store: capture.CreateOnceStore
     bindings: capture.CaptureBindings
-    authority: RuntimeAuthority
+    authority: RuntimeAuthorityV2
     runtime_readers: Mapping[str, Callable[[], bytes]]
     invoke: Callable[[], InjectedContainedResult]
     observe_final: Callable[[], str]
-    observe_workspace: Callable[[], str]
+    workspace_baseline: Mapping[str, bytes]
+    read_workspace: Callable[[], Mapping[str, bytes]]
     cleanup: Callable[[], str]
     crash_at: str | None = None
+    _admitted_baseline: dict[str, bytes] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
+    def _observe_workspace(self) -> str:
+        """Derive the workspace axis here, not through a caller-supplied callback.
+
+        A callback field would accept any zero-argument callable, so an admission
+        helper elsewhere could always be bypassed.  Owning the comparison removes
+        the substitution surface: there is no callable to replace.
+        """
+
+        if self._admitted_baseline is None:
+            return "CAPTURE_FAILED"
+        try:
+            observed = self.read_workspace()
+            if not isinstance(observed, Mapping):
+                return "CAPTURE_FAILED"
+            sampled = {name: payload for name, payload in observed.items()}
+        except Exception:
+            return "CAPTURE_FAILED"
+        if not all(
+            type(name) is str and type(payload) is bytes
+            for name, payload in sampled.items()
+        ):
+            return "CAPTURE_FAILED"
+        return "UNCHANGED" if sampled == self._admitted_baseline else "CHANGED"
 
     def _crash(self, point: str) -> None:
         if self.crash_at == point:
@@ -435,15 +739,15 @@ class RunnerIntegrationCoordinator:
 
     def _publish_authority(self) -> str:
         if self.authority.integration_contract_sha256 != capture.sha256(
-            RUNNER_INTEGRATION_CONTRACT_BYTES
+            V2_CONTRACT_BYTES
         ):
             raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
         contract_digest = self.evidence_store.publish(
-            INTEGRATION_CONTRACT_PATH, RUNNER_INTEGRATION_CONTRACT_BYTES
+            INTEGRATION_CONTRACT_PATH, V2_CONTRACT_BYTES
         )
         if (
             self.evidence_store.read(INTEGRATION_CONTRACT_PATH)
-            != RUNNER_INTEGRATION_CONTRACT_BYTES
+            != V2_CONTRACT_BYTES
             or contract_digest != self.authority.integration_contract_sha256
         ):
             raise IntegrationError("INTEGRATION_CONTRACT_MISMATCH")
@@ -642,6 +946,18 @@ class RunnerIntegrationCoordinator:
         ):
             raise IntegrationError("INTEGRATION_AUTHORITY_MISMATCH")
         _validate_runtime_binding(self.authority, self.bindings)
+        # Baseline admission, before any side effect.  A supplied baseline that
+        # does not hash to the authorized digest is a closed admission failure,
+        # not a CAPTURE_FAILED observation: the two mean different things.
+        admitted = baseline_snapshot(self.workspace_baseline)
+        if (
+            workspace_baseline_digest(admitted)
+            != self.authority.workspace_baseline_sha256
+        ):
+            raise IntegrationError("WORKSPACE_BASELINE_NOT_ADMITTED")
+        # Everything after this point reads the snapshot, never the caller's
+        # mapping, so a post-admission mutation cannot change what was compared.
+        self._admitted_baseline = admitted
         if self.capture_store.files or self.evidence_store.files:
             raise IntegrationError("INTEGRATION_ALREADY_STARTED")
 
@@ -701,10 +1017,7 @@ class RunnerIntegrationCoordinator:
             final_state = self.observe_final()
         except Exception:
             final_state = "READ_FAILED"
-        try:
-            workspace_state = self.observe_workspace()
-        except Exception:
-            workspace_state = "CAPTURE_FAILED"
+        workspace_state = self._observe_workspace()
         if type(final_state) is not str or final_state not in FINAL_STATES:
             final_state = "READ_FAILED"
         if type(workspace_state) is not str or workspace_state not in WORKSPACE_STATES:
@@ -779,9 +1092,37 @@ def verify_package(
     evidence_store: capture.CreateOnceStore,
     bindings: capture.CaptureBindings,
     authority: RuntimeAuthority,
+    workspace_baseline: Mapping[str, bytes] | None = None,
 ) -> Verification:
+    """Verify a retained package and report its claim ladder rung.
+
+    `workspace_baseline` is the private map, supplied out of band.  Without it a
+    v2 baseline binding can only be reported as declared.
+    """
+
+    evidence_class: str | None = None
+    baseline_claim: str | None = None
     try:
-        authority.validate()
+        # Contract-first: the retained contract bytes decide which authority
+        # schema and runtime inventory apply.  Validating the authority before
+        # the version is known would reject every package whose version is not
+        # the one the live class happens to encode.
+        version = _identify_retained_contract_version(evidence_store)
+        if version not in VERIFIABLE_CONTRACT_VERSIONS:
+            raise IntegrationError("CONTRACT_VERSION_NOT_ACTIVE")
+        validate_authority_for_version(authority, version)
+        if version == CONTRACT_V1:
+            evidence_class = LEGACY_V1_EVIDENCE_CLASS
+        else:
+            evidence_class = authority.evidence_class
+            baseline_claim = BASELINE_DIGEST_DECLARED
+            if workspace_baseline is not None:
+                if (
+                    workspace_baseline_digest(workspace_baseline)
+                    != authority.workspace_baseline_sha256
+                ):
+                    raise IntegrationError("SUPPLIED_BASELINE_MAP_MISMATCH")
+                baseline_claim = SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST
         if (
             bindings.action_sha256 != authority.action_sha256
             or bindings.arm != authority.arm
@@ -800,7 +1141,7 @@ def verify_package(
             }:
                 raise IntegrationError("PROFILE_INVENTORY_INVALID")
             _validate_authority_artifact(evidence_store, authority)
-            _validate_contract_artifact(evidence_store, authority)
+            _validate_contract_artifact(evidence_store, authority, version)
             observation_stage = _parse_canonical(
                 evidence_store.read(OBSERVATION_STAGE_PATH)
             )
@@ -812,7 +1153,7 @@ def verify_package(
                 "stage": "OBSERVATION_CHAIN_AUTHORIZED",
             }:
                 raise IntegrationError("OBSERVATION_STAGE_INVALID")
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
         if profile == "RUNNER_SEAL_UNAVAILABLE":
             capture_verification = capture.verify_public(capture_store, bindings)
             if not capture_verification.verified:
@@ -841,7 +1182,7 @@ def verify_package(
             if current_paths not in allowed_prefixes:
                 raise IntegrationError("PROFILE_INVENTORY_INVALID")
             _validate_authority_artifact(evidence_store, authority)
-            _validate_contract_artifact(evidence_store, authority)
+            _validate_contract_artifact(evidence_store, authority, version)
             observation_stage = _parse_canonical(
                 evidence_store.read(OBSERVATION_STAGE_PATH)
             )
@@ -867,7 +1208,7 @@ def verify_package(
                     WORKSPACE_OBSERVATION_SCHEMA,
                     WORKSPACE_STATES,
                 )
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
         if profile not in {"RUNNER_CAPTURE_FINALIZED", "RUNNER_CAPTURE_NEGATIVE"}:
             raise IntegrationError("PROFILE_INVALID")
 
@@ -884,7 +1225,7 @@ def verify_package(
                 capture_store, evidence_store, bindings, authority
             ) != profile:
                 raise IntegrationError("PROFILE_INVALID")
-            return Verification(True, "VERIFIED", profile, None)
+            return Verification(True, "VERIFIED", profile, None, evidence_class, baseline_claim)
 
         cleanup_unknown_paths = sealed_prefix | {CLEANUP_AUTHORIZATION_PATH}
         if set(evidence_store.files) == cleanup_unknown_paths:
@@ -908,7 +1249,9 @@ def verify_package(
                 "seal_sha256": capture.sha256(evidence_store.read(SEAL_PATH)),
             }:
                 raise IntegrationError("CLEANUP_AUTHORIZATION_INVALID")
-            return Verification(True, "CLEANUP_RESULT_UNKNOWN", profile, None)
+            return Verification(
+                True, "CLEANUP_RESULT_UNKNOWN", profile, None, evidence_class, baseline_claim
+            )
 
         capture_verification = capture.verify_public(capture_store, bindings)
         if not capture_verification.verified:
@@ -929,7 +1272,7 @@ def verify_package(
             raise IntegrationError("PROFILE_INVENTORY_INVALID")
 
         _validate_authority_artifact(evidence_store, authority)
-        _validate_contract_artifact(evidence_store, authority)
+        _validate_contract_artifact(evidence_store, authority, version)
         _validate_observation_stage(capture_store, evidence_store)
         final_observation = _validate_observation(
             evidence_store, FINAL_OBSERVATION_PATH, FINAL_OBSERVATION_SCHEMA, FINAL_STATES
@@ -1048,7 +1391,9 @@ def verify_package(
             )
         ):
             raise IntegrationError("FINALIZATION_LINK_INVALID")
-        return Verification(True, "VERIFIED", expected_profile, PUBLIC_CLAIM)
+        return Verification(
+            True, "VERIFIED", expected_profile, PUBLIC_CLAIM, evidence_class, baseline_claim
+        )
     except (IntegrationError, capture.CaptureError) as exc:
         return Verification(False, getattr(exc, "code", "PUBLIC_ARTIFACT_INVALID"))
     except Exception:
