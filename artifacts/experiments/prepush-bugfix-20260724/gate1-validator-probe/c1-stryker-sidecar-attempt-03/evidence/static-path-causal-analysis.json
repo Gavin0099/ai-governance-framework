@@ -1,0 +1,69 @@
+{
+  "schema": "c1-stryker-sidecar-attempt-03-static-causal-analysis.v1",
+  "status": "STATIC_ONLY_ON_FROZEN_SOURCE_AND_EXISTING_ATTEMPT_ARTIFACTS",
+  "attempt_id": "c1-stryker-sidecar-raw-object-20260822-03",
+  "analysis_date": "2026-08-22",
+  "dynamic_confirmation": {
+    "performed": false,
+    "reason": "Repair, retry, and attempt-04 are not authorized. This analysis does not execute the probe or alter the disposable run root."
+  },
+  "frozen_bindings": {
+    "framework_commit": "bb383cb83cdc872bd45e560b10f61b041040d2d7",
+    "manifest_sha256": "baf38c6d9aeb7e26de8b9223a361216de5d0728797723abe305f397b96a09c3c",
+    "manifest_bytes": 14902,
+    "runner_sha256": "bb2b491b7581fc3443703782b88c03de5d81bac39ae3d8fab08db349c7548f11",
+    "runner_bytes": 27542
+  },
+  "original_evidence_bindings": [
+    {
+      "path": "attempt03-bootstrap-raw-object-inventory.json",
+      "sha256": "fd560d5fbe8f6135823cbba1a837fcacb85e9853a7dbb7903a79ec2245b26997",
+      "bytes": 3034
+    },
+    {
+      "path": "non-leakage-scan.json",
+      "sha256": "8125b490df533f16b40c18ff24bdce4b8631f57142eba9060e7c557df6cba753",
+      "bytes": 199
+    },
+    {
+      "path": "probe-terminal.json",
+      "sha256": "44361d0d227876455d4bf650ac1d13f9145a0da14e22e47ec5151df2f865644e",
+      "bytes": 1169
+    }
+  ],
+  "raw_object_materialization": {
+    "result": "PASSED_FOR_ATTEMPT03_BOOTSTRAP_INPUTS",
+    "entry_count": 6,
+    "materialized_blob_count": 6,
+    "recorded_gitlink_count": 0,
+    "working_tree_conversion_used": false,
+    "all_inventory_bindings_match_frozen_manifest": true
+  },
+  "first_failure": {
+    "terminal": "SIDECAR_RESOLUTION_FAILED",
+    "specific_class": "HARNESS_MATERIALIZED_ROOT_PATH_CONTRACT",
+    "exception": "FileNotFoundError",
+    "missing_path": "<run-root>/framework-input/validator-sidecar-probe-manifest.json",
+    "actual_path": "<run-root>/framework-input/artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/validator-sidecar-probe-manifest.json"
+  },
+  "causal_chain": [
+    "The frozen manifest selected full repository-relative paths for all six attempt-03 bootstrap blobs.",
+    "raw_git_materialize.py correctly preserved those paths below framework-input; the bootstrap inventory proves every blob digest and byte length.",
+    "bootstrap-attempt-03.ps1 correctly invoked the materialized runner at its full repository-relative path.",
+    "run_sidecar_probe.py set framework_input to the framework-input root but looked for validator-sidecar-probe-manifest.json directly at that root.",
+    "The manifest read failed before TCB version checks, remote binding, consumer projection, self-test, Docker, npm, Vitest, Stryker, mutation, graph comparison, mount inspection, or cost measurement."
+  ],
+  "frozen_source_locations": {
+    "runner_framework_input_root_line": 115,
+    "runner_manifest_lookup_line": 276,
+    "bootstrap_materialization_destination_line": 59,
+    "bootstrap_materialized_runner_invocation_line": 71
+  },
+  "sidecar_status": "NOT_REACHED_OR_TESTED",
+  "consumer_projection_status": "NOT_REACHED_OR_TESTED",
+  "docker_status": "NOT_REACHED; no attempt-03 container was created",
+  "disposition_preserved": true,
+  "repair_in_place": false,
+  "retry_authorized": false,
+  "claim_ceiling": "This static analysis identifies a path-contract defect in the frozen attempt-03 harness and confirms that bootstrap raw-object materialization itself produced the six committed blobs without working-tree conversion. It does not dynamically confirm a correction, establish consumer projection fidelity, test the sidecar, prove the TCB, establish validator or Skill effect, authorize Gate 1, or authorize another attempt."
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "c1-stryker-sidecar-probe-terminal.v3",
+  "probe_id": "c1-stryker-sidecar-raw-object-20260822-03",
+  "terminal": "SIDECAR_RESOLUTION_FAILED",
+  "completed_at_utc": "2026-08-21T17:02:21.7375356Z",
+  "bindings": {
+    "framework_commit": "bb383cb83cdc872bd45e560b10f61b041040d2d7",
+    "remote_branch": "codex/c1-stryker-sidecar-attempt-03",
+    "manifest_sha256": "baf38c6d9aeb7e26de8b9223a361216de5d0728797723abe305f397b96a09c3c",
+    "manifest_bytes": 14902
+  },
+  "bootstrap_failure": "SIDECAR_RESOLUTION_FAILED:MATERIALIZED_RUNNER_EXIT:1",
+  "repair_in_place": false,
+  "retry_authorized": false,
+  "claim_ceiling": "Conditional on the declared TCB, this terminal records only an attempt-03 bootstrap/materialization failure. It does not establish the sidecar boundary, Git/Python/bootstrap correctness, validator or Skill effect, Gate 1 readiness, preregistration, freeze, or an A/B/C/D result.",
+  "not_claimed": [
+    "sidecar boundary result",
+    "Git/Python/bootstrap correctness",
+    "validator effect",
+    "Skill effect",
+    "Gate 1 readiness",
+    "preregistration",
+    "Gate 1 freeze",
+    "A/B/C/D result"
+  ]
+}

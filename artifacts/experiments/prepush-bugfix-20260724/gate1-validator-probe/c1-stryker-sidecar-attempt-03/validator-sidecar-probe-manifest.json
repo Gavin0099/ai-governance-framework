@@ -1,0 +1,274 @@
+{
+  "schema": "c1-stryker-sidecar-probe-manifest.v3",
+  "status": "PRE_RUN_INPUTS_DEFINED_NOT_EXECUTED",
+  "probe_id": "c1-stryker-sidecar-raw-object-20260822-03",
+  "created_date": "2026-08-22",
+  "framework_base_commit": "8aecd5a6100709d6c8c4e59b8cc946d012250b42",
+  "reused_design_commit": "f7831551e2988e590734288de66fff2db1c5369c",
+  "attempt_02_terminal": {
+    "merge_commit": "8aecd5a6100709d6c8c4e59b8cc946d012250b42",
+    "pre_run_commit": "31cd8cda3c279cf7809d2dfc78d903a3d681d8e9",
+    "evidence_commit": "32f62c9c2afa7c2d39a70331609bd0c117e4ec0c",
+    "terminal": "SIDECAR_RESOLUTION_FAILED",
+    "terminal_sha256": "9000483a3e4ccd9343e18a4191cb5e6b4c0818b2201ad331017845870e1fc748",
+    "failure_class": "HARNESS_INPUT_BINDING:.gitattributes"
+  },
+  "spec": {
+    "problem": "Attempt-02 proved that git archive applies working-tree conversion and therefore cannot serve as a raw committed-byte materializer. Both framework inputs and the consumer baseline used that invalid primitive.",
+    "current_repository_truth": [
+      "PR #93 preserves attempt-02 pre-run inputs and immutable failed evidence on main at 8aecd5a6100709d6c8c4e59b8cc946d012250b42",
+      "attempt-02 stopped before Docker with zero Docker phases and did not test the Stryker sidecar",
+      "the C1 baseline tree contains 1869 mode-100644 blobs and one mode-160000 gitlink at ai-governance-framework",
+      "the attempt-01 sidecar package graph, plugin binding, probes, configs, adapter, and fixtures remain reusable by exact blob binding"
+    ],
+    "target_outcome": "Run one disposable attempt-03 whose framework inputs and consumer baseline projection are materialized directly from Git objects, then preserve one allowed fail-closed terminal.",
+    "scope": [
+      "materialize selected framework inputs and the C1 consumer baseline with git ls-tree plus git cat-file blob",
+      "bind each materialized entry by path, mode, type, OID, SHA-256, and byte length",
+      "record the one authorized 160000 gitlink without dereferencing or creating a destination path",
+      "fail closed on every unsupported Git mode/type and unauthorized gitlink",
+      "prove the EOL-conversion failure family with a synthetic attribute-controlled fixture",
+      "execute one disposable sidecar probe from a pushed pre-run commit"
+    ],
+    "non_goals": [
+      "modify attempt-01 or attempt-02",
+      "repair in place or retry attempt-03",
+      "claim correctness of Git, Python, or the bootstrap launcher",
+      "extract a reusable framework materialization layer",
+      "preregister, approve, or freeze Gate 1",
+      "create or execute A/B/C/D"
+    ],
+    "affected_surfaces": [
+      "new c1-stryker-sidecar-attempt-03 manifest, raw-object materializer, synthetic self-test, bootstrap, runner, and post-run evidence only"
+    ],
+    "boundary_and_api_considerations": [
+      "the host bootstrap invocation, pinned git.exe, pinned Python, and digest-verified bootstrap/materializer files form the declared TCB",
+      "consumer repository is read-only and used only as a Git object database",
+      "consumer worktree is never mounted into Docker",
+      "the consumer baseline is an exact superproject blob projection, not a dereferenced full tree",
+      "network is allowed only for npm ci in disposable /tool and /consumer roles and disabled for validation phases"
+    ],
+    "claim_ceiling": "Conditional on the declared TCB, attempt-03 may establish only whether materialized projections equal the committed bytes of the specified Git objects and whether this exact C1/Stryker sidecar boundary passes its frozen technical checks.",
+    "failure_paths": [
+      "TCB or bootstrap digest mismatch",
+      "raw-object inventory, mode, type, OID, byte, or path mismatch",
+      "unexpected or materialized gitlink",
+      "unsupported Git mode/type",
+      "remote/pre-run binding mismatch",
+      "dependency installation, module resolution, dry-run, or mutation failure",
+      "consumer graph change, mount/output leakage, timeout, OOM, or cost ceiling breach"
+    ],
+    "evidence_plan": [
+      "synthetic raw-object self-test with an EOL attribute fixture that proves git archive differs while cat-file materialization remains exact",
+      "attempt-03 bootstrap raw-object inventory",
+      "consumer baseline and working-copy raw-object inventories",
+      "selected framework input raw-object inventory",
+      "range, npm, resolution, timeout, dry-run, mutation, graph, mount, leakage, and resource evidence",
+      "terminal receipt binding every created evidence artifact by SHA-256 and bytes"
+    ],
+    "implementation_tranche": "one pre-run commit and push, one disposable execution, one evidence commit and push, then hard stop"
+  },
+  "authority": {
+    "owner_authority": "2026-08-22 explicit approval of the bounded attempt-03 DONE with raw consumer and framework materialization, fail-closed modes, EOL-family self-test, and declared TCB",
+    "repair_in_place": false,
+    "retry_authorized": false,
+    "reusable_layer_authorized": false,
+    "preregistration_authorized": false,
+    "gate1_freeze_authorized": false,
+    "arms_authorized": false
+  },
+  "source": {
+    "repository_path_read_only_object_database": "D:/meiandraybook",
+    "remote_url": "https://github.com/Gavin0099/meiandraybook.git",
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "projection_policy": {
+      "100644_blob": "git cat-file blob, write raw bytes, verify SHA-256 and length",
+      "160000_commit": "only the exact allowlisted gitlink is recorded; no cat-file, dereference, directory, or file",
+      "all_other_modes_or_types": "fail closed"
+    },
+    "allowed_gitlinks": [
+      {
+        "path": "ai-governance-framework",
+        "mode": "160000",
+        "type": "commit",
+        "oid": "74b70252fdf6eaac23e427470a88c246c3be888e",
+        "materialized": false
+      }
+    ],
+    "expected_blob_count": 1869,
+    "expected_gitlink_count": 1,
+    "consumer_worktree_mounted": false,
+    "consumer_worktree_mutation_allowed": false,
+    "historical_fix_mounted_or_applied": false
+  },
+  "tcb": {
+    "claim": "The probe is conditional on these executables and the digest-verified bootstrap invocation; it does not prove them correct.",
+    "git": {
+      "path": "C:/Program Files/Git/cmd/git.exe",
+      "version": "git version 2.52.0.windows.1",
+      "sha256": "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5",
+      "bytes": 46480
+    },
+    "python": {
+      "path": "C:/Users/daish/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "version": "Python 3.12.13",
+      "sha256": "d8e3f0adf246db00358c0c4ed349cf714898178f9558fb0e944f79f5c07f8eaa",
+      "bytes": 91648
+    }
+  },
+  "execution_environment": {
+    "docker": {
+      "path": "C:/Users/daish/AppData/Local/Programs/DockerDesktop/resources/bin/docker.exe",
+      "sha256": "00ffff945b67c65aae98dd980621a80ee135ed4e0931b33ca03687caee019713",
+      "bytes": 43247024,
+      "client_version": "29.7.2",
+      "server_version": "29.7.2",
+      "server_platform": "Docker Desktop 4.87.0 (236836)"
+    },
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "expected_node": "v22.23.2",
+    "expected_npm": "10.9.8",
+    "entry_process_working_directory": "/consumer",
+    "limits": {
+      "cpus": 2,
+      "memory": "2g",
+      "pids_limit": 512,
+      "tool_npm_ci_timeout_seconds": 300,
+      "consumer_npm_ci_timeout_seconds": 600,
+      "dry_run_timeout_seconds": 300,
+      "mutation_timeout_seconds": 300,
+      "total_wall_seconds_cost_ceiling": 900
+    }
+  },
+  "bootstrap_bindings": [
+    {
+      "path": "bootstrap-attempt-03.ps1",
+      "sha256": "8fd796e4b4dcad5daa70be955e4f99f17a04f1b9474b7dec674c6ee6561aaed2",
+      "bytes": 5082
+    },
+    {
+      "path": "raw_git_materialize.py",
+      "sha256": "06c2c6dcf26efdb9b30248a93da3a1f314835aa7ca5b9e1b44a7562cdf5e6591",
+      "bytes": 10421
+    },
+    {
+      "path": "test_raw_git_materialize.py",
+      "sha256": "c4f9f1185e36e0d1b084e7fc9864f8e898678405b081bcb8b8823c4f041b517a",
+      "bytes": 7045
+    },
+    {
+      "path": "run_sidecar_probe.py",
+      "sha256": "bb2b491b7581fc3443703782b88c03de5d81bac39ae3d8fab08db349c7548f11",
+      "bytes": 27542
+    }
+  ],
+  "attempt03_raw_paths": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/.gitattributes",
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/bootstrap-attempt-03.ps1",
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/raw_git_materialize.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/run_sidecar_probe.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/test_raw_git_materialize.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/validator-sidecar-probe-manifest.json"
+  ],
+  "attempt03_raw_bindings": [
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/.gitattributes",
+      "sha256": "9c9e360d84180617788a3976254a03308fc83f38606e21fa284792c21f770c0f",
+      "bytes": 130
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/bootstrap-attempt-03.ps1",
+      "sha256": "8fd796e4b4dcad5daa70be955e4f99f17a04f1b9474b7dec674c6ee6561aaed2",
+      "bytes": 5082
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/raw_git_materialize.py",
+      "sha256": "06c2c6dcf26efdb9b30248a93da3a1f314835aa7ca5b9e1b44a7562cdf5e6591",
+      "bytes": 10421
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/run_sidecar_probe.py",
+      "sha256": "bb2b491b7581fc3443703782b88c03de5d81bac39ae3d8fab08db349c7548f11",
+      "bytes": 27542
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar-attempt-03/test_raw_git_materialize.py",
+      "sha256": "c4f9f1185e36e0d1b084e7fc9864f8e898678405b081bcb8b8823c4f041b517a",
+      "bytes": 7045
+    }
+  ],
+  "reused_input_bindings": [
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package.json",
+      "materialized_path": "tool/package.json",
+      "sha256": "b897175c96811370e4df32c1cbc76a63b45c854b70b04a94af68f238c3345434",
+      "bytes": 299
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package-lock.json",
+      "materialized_path": "tool/package-lock.json",
+      "sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c",
+      "bytes": 126501
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/plugin-entry-binding.json",
+      "materialized_path": "plugin-entry-binding.json",
+      "sha256": "e2792c940e39ac0b0acef954da10cb5040fc0e73ceba4504c60c9f07230f3a79",
+      "bytes": 979
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/resolution-probe.mjs",
+      "materialized_path": "resolution-probe.mjs",
+      "sha256": "53c18253be487406e44f317c8daaf2e2601714fb093fb2cd21293fb71fdecfa2",
+      "bytes": 4268
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/dependency-graph-fingerprint.mjs",
+      "materialized_path": "dependency-graph-fingerprint.mjs",
+      "sha256": "a78845998a90f1286f53d4199fa0ba43946e5dd0f7f89bfbc12af26cb00302fe",
+      "bytes": 1849
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/stryker.sidecar.config.mjs",
+      "materialized_path": "stryker.sidecar.config.mjs",
+      "sha256": "ef751d9f09ce352c2d6f9f4280ab14cc6a00a6d06274eed41ada515dbccbf45e",
+      "bytes": 1878
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/vitest.sidecar-probe.config.mjs",
+      "materialized_path": "vitest.sidecar-probe.config.mjs",
+      "sha256": "4eb51b10ac2bfc9eb548065482896ec14fe1e79481801a81d874fcde9343b566",
+      "bytes": 1863
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/diff_to_mutation_ranges.py",
+      "materialized_path": "diff_to_mutation_ranges.py",
+      "sha256": "c0b9a2698dae56525d5bcf1c9a6afce7a66aed7699ee847b65646a123aeb10ad",
+      "bytes": 6614
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/validator-probe-fixture.ts",
+      "materialized_path": "probe-fixture/src/validator-probe-fixture.ts",
+      "sha256": "5cb65c2a697934e921a45ef51a760dbd0f0d81e5229190dd38cd2539a4f9374e",
+      "bytes": 169
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "materialized_path": "probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "sha256": "3089b6c474f3217a4feec332c62b2eca5cc19d4308c11093294546356c313f2f",
+      "bytes": 368
+    }
+  ],
+  "consumer_graph_contract": {
+    "allowed_dependency_command": "npm ci only",
+    "forbidden_commands": ["npm install", "npm update", "npm audit fix", "npx with package download"],
+    "before_after_equal_fields": ["package_json_sha256", "package_lock_sha256", "node_modules_package_lock_sha256", "npm_ls_exit_code", "npm_ls_canonical_sha256", "npm_ls_stderr_sha256"]
+  },
+  "classification": {
+    "allowed_terminals": ["SIDECAR_BOUNDARY_PASSED", "CONSUMER_GRAPH_CHANGED", "SIDECAR_RESOLUTION_FAILED", "SIDECAR_LEAKAGE_BLOCKED", "SIDECAR_COST_BLOCKED"],
+    "precedence": ["SIDECAR_LEAKAGE_BLOCKED", "CONSUMER_GRAPH_CHANGED", "SIDECAR_COST_BLOCKED", "SIDECAR_RESOLUTION_FAILED", "SIDECAR_BOUNDARY_PASSED"]
+  },
+  "claim_ceiling": "Conditional on the declared TCB, this probe may establish only whether materialized projections equal the committed bytes of the specified Git objects and whether this exact C1/Stryker sidecar boundary passes frozen technical checks. It cannot establish Git/Python/bootstrap correctness, validator effect, Skill effect, general reuse, Gate 1 readiness, preregistration, freeze, or any arm result."
+}
