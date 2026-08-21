@@ -1,0 +1,53 @@
+{
+  "schema": "c1-validator-probe-non-leakage-scan.v1",
+  "scanned_surfaces": [
+    {
+      "surface": "range-adapter.stdout.txt",
+      "sha256": "f2ed564b87ec45d029764042fa0496e0137f8cd9a64ad52a90c1c8deadf5c1d6",
+      "bytes": 186,
+      "denied_matches": []
+    },
+    {
+      "surface": "range-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "denied_matches": []
+    },
+    {
+      "surface": "mutation-ranges.json",
+      "sha256": "15dc0281e6a0049127dda1a430ae00c6663ac9c23073355cbaa694c5739e3dbb",
+      "bytes": 531,
+      "denied_matches": []
+    },
+    {
+      "surface": "timeout-sentinel.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "denied_matches": []
+    },
+    {
+      "surface": "timeout-sentinel.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "denied_matches": []
+    },
+    {
+      "surface": "install.stdout.txt",
+      "sha256": "54477fb89425c3d333b7003ca5bb2dd7806de44bf2fe2124dc6294793978850c",
+      "bytes": 475,
+      "denied_matches": []
+    },
+    {
+      "surface": "install.stderr.txt",
+      "sha256": "5d55186cbdb6840b6a0d0c10fae990df1484da9bf653d453046a4eb1abdcdc14",
+      "bytes": 1531,
+      "denied_matches": []
+    }
+  ],
+  "dry_run_surfaces": "NOT_CREATED_DUE_TO_INSTALL_FAILURE",
+  "mutation_run_surfaces": "NOT_CREATED_DUE_TO_INSTALL_FAILURE",
+  "denied_match_count": 0,
+  "denied_matches": [],
+  "scan_passed": true,
+  "scope_limit": "Only raw surfaces actually created in this probe were scanned; no general non-leakage claim is made."
+}

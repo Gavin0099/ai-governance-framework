@@ -1,0 +1,19 @@
+{
+  "exit_code": 124,
+  "expected_exit_code": 124,
+  "matches": true,
+  "wall_seconds": 1.475,
+  "container_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 124,
+    "Error": "",
+    "StartedAt": "2026-08-21T09:16:21.555443506Z",
+    "FinishedAt": "2026-08-21T09:16:22.704644709Z"
+  }
+}
