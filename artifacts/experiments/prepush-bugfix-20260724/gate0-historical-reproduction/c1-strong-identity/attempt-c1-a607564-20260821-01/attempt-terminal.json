@@ -1,0 +1,45 @@
+{
+  "schema": "gate0-historical-reproduction-attempt-terminal.v1",
+  "attempt_id": "c1-a607564-20260821-01",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "terminal": true,
+  "disposition": "ORACLE_DOES_NOT_DISCRIMINATE",
+  "manifest": {
+    "commit": "7f30a782842ea14534828d2259a62f5b90f3f2b4",
+    "sha256": "eff2f9483214f96fe9cb064db0c7f18803d366e8052088406e467863958b06ed",
+    "bytes": 4879
+  },
+  "baseline_receipt": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-01/baseline-receipt.json",
+    "sha256": "6a529dde37efd5c431fb47826df1d1f0e5009b1ccaca70a14d6d64179c71b354",
+    "bytes": 3522
+  },
+  "role_status": {
+    "baseline": "TERMINAL",
+    "fixed": "NOT_RUN_DUE_TO_BASELINE_DISCRIMINATION_FAILURE"
+  },
+  "reason": "The exact frozen focused file selected all five tests on the exact baseline and all five passed. The expected strong-identity regression therefore did not distinguish the baseline from the fixed behavior.",
+  "retry_policy": {
+    "repair_in_place": false,
+    "same_attempt_retry_authorized": false,
+    "new_attempt_requires": [
+      "a redesigned independently justified oracle",
+      "a new pre-run manifest",
+      "fresh authority",
+      "a distinct attempt_id"
+    ]
+  },
+  "candidate_status": "NOT_VERIFIED",
+  "gate0_status": "NOT_ADMITTED",
+  "not_claimed": [
+    "successful defect reproduction",
+    "fixed-role verification",
+    "Gate 0 admission",
+    "Gate 1 preregistration",
+    "Route C activation",
+    "A/B execution",
+    "counted Gate 3 evidence",
+    "Skill effectiveness",
+    "promotion evidence"
+  ]
+}
