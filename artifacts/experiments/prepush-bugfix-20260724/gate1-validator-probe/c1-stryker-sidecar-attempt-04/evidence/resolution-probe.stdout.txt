@@ -1,0 +1,30 @@
+{
+  "schema": "c1-stryker-sidecar-resolution.v1",
+  "entry_cwd": "/consumer",
+  "core": {
+    "version": "10.0.0",
+    "package_path": "/tool/node_modules/@stryker-mutator/core/package.json",
+    "realpath": "/tool/node_modules/@stryker-mutator/core/package.json"
+  },
+  "plugin": {
+    "version": "10.0.0",
+    "package_path": "/tool/node_modules/@stryker-mutator/vitest-runner/package.json",
+    "entry_path": "/tool/node_modules/@stryker-mutator/vitest-runner/dist/src/index.js",
+    "entry_sha256": "094dfe20dc1e057ee6fb40deecd1693ca85ad8aa0aa905407fe7158fff5a1998",
+    "realpath": "/tool/node_modules/@stryker-mutator/vitest-runner/dist/src/index.js",
+    "exports_stryker_plugins": true
+  },
+  "tool_vitest": {
+    "version": "4.0.18",
+    "package_path": "/tool/node_modules/vitest/package.json",
+    "realpath": "/tool/node_modules/vitest/package.json"
+  },
+  "consumer_vitest": {
+    "version": "4.0.18",
+    "package_path": "/consumer/node_modules/vitest/package.json",
+    "package_realpath": "/consumer/node_modules/vitest/package.json",
+    "node_path": "/consumer/node_modules/vitest/dist/node.js",
+    "node_realpath": "/consumer/node_modules/vitest/dist/node.js",
+    "exports_create_vitest": true
+  }
+}

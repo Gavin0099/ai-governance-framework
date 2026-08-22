@@ -1,0 +1,10 @@
+{
+  "schema": "c1-stryker-sidecar-consumer-graph.v1",
+  "consumer_root": "/consumer",
+  "package_json_sha256": "57405167432a2367a9b35677c398a57315f5df4bf82ad79b3d31ec312002a98d",
+  "package_lock_sha256": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+  "node_modules_package_lock_sha256": "d7e602186d3ca67c7d823ea3a9de93c5933deb9df6563863c589595c865d689c",
+  "npm_ls_exit_code": 0,
+  "npm_ls_canonical_sha256": "aeb98f35b17f14c2d41f64b934ea8ea140ab9da30ae611891057ebdb33b99039",
+  "npm_ls_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
