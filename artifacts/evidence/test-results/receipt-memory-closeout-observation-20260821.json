@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_ci_memory_workflow_check.py tests/test_memory_workflow.py tests/test_memory_binding_generation_constraint.py tests/test_memory_record.py tests/test_self_governance_memory_truth_provenance_mutation_contract.py tests/test_evidence_receipt_writer.py tests/test_governance_workflow_contract.py tests/test_hook_memory_policy.py -q --basetemp C:/Users/reiko/AppData/Local/Temp/codex-memory-pr-receipt-tests-20260821",
+  "exit_code": 0,
+  "started_at": "2026-08-21T08:20:32Z",
+  "finished_at": "2026-08-21T08:20:58Z",
+  "runner": "codex",
+  "linked_commit": "c8fb950b0a8f1aea20b5a9bc593c41dd6610eaae",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-memory-closeout-observation-20260821.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

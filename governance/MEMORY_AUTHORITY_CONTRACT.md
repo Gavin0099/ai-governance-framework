@@ -1,10 +1,10 @@
 # Memory Authority Contract
 
-> Version: 1.1.0
+> Version: 1.2.0
 > Written: 2026-04-30
-> Amended: 2026-07-04
+> Amended: 2026-08-21
 > Status: ACTIVE - warning mode with active-window completion blocker candidate
-> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.1.0 canonical-writer alignment
+> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.2.0 local-binding and closeout-observation alignment
 
 ---
 
@@ -25,7 +25,58 @@ be non-canonical, unbound, stale, or only observation-grade evidence.
 
 ## 0. Amendment Record
 
-### 0.1 v1.1.0 - Canonical Writer And Workflow Alignment
+### 0.1 v1.2.0 - Local Commit Binding And Closeout Observation Alignment
+
+**Name of change**: local commit-object binding documentation correction and
+report-only commit-range closeout companion observation.
+
+**Rationale**: The canonical writer and reader already require a supplied hash
+to resolve to a commit object in the local repository, while v1.1.0 still
+described `bound` as a hash-shape classification. Separately, the existing
+`missing_canonical_memory` heuristic observes only whether a daily file exists
+for a commit date. It cannot distinguish a new implementation range that lacks
+an added canonical closeout entry when an older daily file already exists for
+that date.
+
+**Evidence**:
+
+- `governance_tools/memory_provenance.py` resolves bindings with Git
+  commit-object lookup and rejects hash-shaped text as proof.
+- `governance_tools/memory_record.py` rejects an explicit commit that does not
+  resolve to a local Git commit object before writing memory.
+- `governance_tools/ci_memory_workflow_check.py` receives reliable base/head
+  refs in CI and can inspect only the commits and added canonical entries in
+  that range.
+- Focused regression fixtures cover an implementation range where a daily
+  memory file already exists but no newly added canonical entry binds the
+  implementation commit, plus the expected two-commit implementation/closeout
+  sequence.
+
+**New report-only signal**:
+
+- `terminal_closeout_not_observed` reports when a resolvable base/head commit
+  range has PR-owned non-closeout work and no later canonical memory entry binds
+  the latest such work commit.
+- The check follows the PR branch's first-parent history. For merge commits,
+  upstream-only paths are excluded; paths differing from every parent remain
+  visible as new integration work.
+- Delivery stage is explicit: Draft PR gaps are checkpoint recommendations,
+  ready-for-review gaps are required terminal-closeout observations, and
+  post-merge results are audit-only rather than remediation.
+- The signal is not inferred from a changed-file list without base/head refs.
+- The signal remains warning-only and does not change `clean`, hook, CI,
+  pre-push, or blocking-policy outcomes.
+
+**Non-claims for this amendment**:
+
+- no proof that every changed range requires canonical memory;
+- no proof that observed memory prose is true or complete;
+- no merge prevention or closeout enforcement;
+- no blocking-policy change;
+- no historical memory normalization or debt reclassification;
+- no consumer adoption or fleet rollout claim.
+
+### 0.2 v1.1.0 - Canonical Writer And Workflow Alignment
 
 **Name of change**: canonical writer, memory binding, and workflow dispatcher
 alignment.
@@ -47,8 +98,8 @@ old-format memory entries as acceptable new records.
   `commit`, `commit_hash`, `session_id`, `memory_binding`, `test_evidence`,
   `next_step`, and `plan_reconciliation`.
 - `governance_tools/memory_record.py` sets `memory_binding: bound` only when the
-  supplied commit string matches a hash-like regex; other values are written as
-  `memory_binding: unbound`.
+  supplied commit resolves to a commit object in the local Git repository;
+  hash-shaped text alone remains `memory_binding: unbound`.
 - `governance_tools/memory_authority_guard.py` detects `non_canonical_writer`,
   old-format entries after the canonical-writer cutoff, and active-window
   non-canonical writer violations.
@@ -71,7 +122,7 @@ old-format memory entries as acceptable new records.
 - no backfill of old memory records;
 - no semantic correctness guarantee for memory content.
 
-### 0.2 Report-Only `ok` Semantics
+### 0.3 Report-Only `ok` Semantics
 
 **Name of change**: report-only guard output interpretation hardening.
 
@@ -150,9 +201,10 @@ themselves.
 
 - `writer: governance_tools.memory_record` proves canonical writer format, not
   semantic correctness.
-- `memory_binding: bound` means the current writer classified the `commit` value
-  as hash-like. It does not prove the commit exists on a remote, was reviewed,
-  was pushed, or that the memory statement is true.
+- `memory_binding: bound` means the current writer resolved the `commit` value
+  to a commit object in the local Git repository. It does not prove the commit
+  exists on a remote, was reviewed, was pushed, or that the memory statement is
+  true.
 - `memory_binding: unbound` is not automatically invalid. Runtime observations
   and other non-source records may be valid observation evidence when explicitly
   labeled and claim-bounded.
@@ -241,6 +293,7 @@ sessions or unusual workflows.
 | `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
 | `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing provenance path under a declared evidence root (see below) |
+| `terminal_closeout_not_observed` | delivery-stage-aware observation | no | No later added canonical entry binds the latest PR-owned non-closeout work commit before a delivery decision |
 | `session_like_non_session_memory_type` | warning in raw guard; blocker in policy-backed gates | raw guard: no; `memory_workflow` / CI with policy file: yes | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
 | `authority_override_used` | warning | no | A policy-backed blocker was downgraded by an `authority_override` entry field |
 | `non_daily_session_shaped_memory_entry` | warning | no | Non-daily `memory/*.md` file contains a block that looks like a daily session-derived memory entry |
@@ -278,6 +331,21 @@ Current semantics:
   identity from `reason`; renaming it would invalidate every existing baseline.
   `run_guard` reports the roots in effect under `evidence_root_policy` so a
   reader can tell which case applies.
+- `terminal_closeout_not_observed` is a CI commit-range observation, not a raw
+  memory-authority-guard violation. It requires resolvable base/head refs and is
+  absent when only a changed-file list is available. An existing same-day daily
+  file or an earlier closeout does not satisfy the observation after later
+  PR-owned non-closeout work. The satisfying canonical entry must bind the
+  latest such work commit and be added by a later commit.
+- Draft PR work may temporarily carry this finding as
+  `checkpoint_recommended` without a delivery warning. When the PR is marked
+  ready for review, the same gap is `terminal_closeout_required` and is surfaced
+  as a report-only warning for reviewer decision. A main-branch result is
+  `audit_only_not_remediation`: it may reveal a missed pre-merge closeout but
+  cannot retroactively satisfy that requirement.
+- This models one terminal closeout per delivered work-item state, not one
+  memory record per commit. The signal remains report-only and does not assert
+  that memory is universally required during each intermediate review edit.
 - `authority_override_used` is report-only in all current paths. It makes
   blocker downgrades visible in guard output; `memory_workflow` and CI surface
   it when the override occurs in the current memory diff. It is audit
@@ -359,6 +427,10 @@ Current behavior summary:
   codes such as `session_like_non_session_memory_type`;
 - managed pre-commit may surface the same memory workflow verdict as advisory
   text; CI remains the authoritative gate surface;
+- CI may report `terminal_closeout_not_observed` from a resolvable base/head
+  range without changing its clean/block decision; Draft findings remain
+  checkpoint observations, while ready-for-review findings are
+  decision-relevant warnings;
 - receipt presence proves workflow status was observed, not that memory
   completion was semantically correct.
 
@@ -377,3 +449,4 @@ This contract does not claim:
 - memory entries prove semantic correctness;
 - memory entries prove remote push, human acceptance, or review unless that
   evidence is separately recorded and verified.
+- closeout companion omission is blocked from merge.
