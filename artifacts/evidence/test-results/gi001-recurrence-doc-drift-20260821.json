@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.doc_drift_checker --project-root . --format json",
+  "exit_code": 0,
+  "started_at": "2026-08-21T01:50:19Z",
+  "finished_at": "2026-08-21T01:50:19Z",
+  "runner": "codex-windows-python",
+  "linked_commit": "688b3a69d60748f8d79103fb9a1abdbc014607ce",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/gi001-recurrence-doc-drift-20260821.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

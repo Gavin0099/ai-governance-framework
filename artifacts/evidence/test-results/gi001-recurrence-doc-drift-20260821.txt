@@ -1,0 +1,90 @@
+{
+  "ok": true,
+  "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence",
+  "plan_path": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\PLAN.md",
+  "readme_paths": [
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\codeburn\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\examples\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\governance_tools\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\memory\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\memory_pipeline\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\runtime_hooks\\README.md"
+  ],
+  "surface": {
+    "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence",
+    "app_route_count": 0,
+    "api_route_count": 0,
+    "migration_count": 0,
+    "app_routes": [],
+    "api_routes": [],
+    "migrations": []
+  },
+  "plan_phases": [
+    2
+  ],
+  "readme_phases": {
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\codeburn\\README.md": [
+      1,
+      2,
+      3
+    ],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\examples\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\governance_tools\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\memory\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\memory_pipeline\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\gi001-cross-repo-recurrence\\runtime_hooks\\README.md": []
+  },
+  "checks": [
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "feature-doc-coverage:routes",
+      "ok": true,
+      "detail": "0 route keywords are not mentioned in PLAN/README"
+    },
+    {
+      "name": "feature-doc-coverage:migrations",
+      "ok": true,
+      "detail": "0 migration keywords are not mentioned in PLAN/README"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "undocumented_routes": [],
+  "undocumented_migrations": []
+}
