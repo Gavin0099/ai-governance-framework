@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_surface_authority_contract.py tests/test_authority_document_paths.py tests/test_authority_metadata_consistency.py tests/test_authority_loader.py tests/test_memory_binding_generation_constraint.py -q --basetemp C:\\Users\\reiko\\.codex\\visualizations\\2026\\08\\21\\01a02348-2f87-7e83-a651-76bfacee4196\\pytest-mrcsp-receipt",
+  "exit_code": 0,
+  "started_at": "2026-08-21T10:34:49Z",
+  "finished_at": "2026-08-21T10:34:54Z",
+  "runner": "codex",
+  "linked_commit": "7e8de690e62c94f08adad403e93c4c0166b6bb8d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-mrcsp-m1-authority-contract-20260821.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

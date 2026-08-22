@@ -33,6 +33,8 @@ def _authority_documents() -> list[str]:
 def _is_repo_local_file_reference(document: str) -> bool:
     if "*" in document:
         return False
+    if document == "memory/YYYY-MM-DD.md":
+        return False
     if document.startswith(("governance/", "docs/", "memory/", ".github/", "AGENTS.md")):
         return True
     return False
