@@ -28,6 +28,8 @@ def test_governance_workflow_keeps_memory_push_filter_and_runs_for_all_main_prs(
 
     assert "- 'memory/**'" in push_section
     assert "branches: [main]" in pull_request_section
+    assert "ready_for_review" in pull_request_section
+    assert "converted_to_draft" in pull_request_section
     assert "paths:" not in pull_request_section
 
 
@@ -64,6 +66,10 @@ def test_governance_workflow_runs_selective_memory_blocker() -> None:
     assert "python -m governance_tools.ci_memory_workflow_check" in job_section
     assert '--base-ref "$BASE_REF"' in job_section
     assert '--head-ref "$HEAD_REF"' in job_section
+    assert '--delivery-stage "$DELIVERY_STAGE"' in job_section
+    assert 'DELIVERY_STAGE="draft"' in job_section
+    assert 'DELIVERY_STAGE="ready"' in job_section
+    assert 'DELIVERY_STAGE="post_merge"' in job_section
 
 
 def test_runtime_enforcement_fails_closed_on_inventory_enumeration_and_guard_failures() -> None:

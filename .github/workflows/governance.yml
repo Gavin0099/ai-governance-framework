@@ -22,6 +22,7 @@ on:
       - 'triage/**'
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
 
 concurrency:
@@ -87,17 +88,29 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_REF="${{ github.event.pull_request.base.sha }}"
             HEAD_REF="${{ github.event.pull_request.head.sha }}"
+            if [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+              DELIVERY_STAGE="draft"
+            else
+              DELIVERY_STAGE="ready"
+            fi
           elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
             BASE_REF="${{ github.event.before }}"
             HEAD_REF="${{ github.sha }}"
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              DELIVERY_STAGE="post_merge"
+            else
+              DELIVERY_STAGE="development"
+            fi
           else
             BASE_REF="HEAD~1"
             HEAD_REF="HEAD"
+            DELIVERY_STAGE="unknown"
           fi
           python -m governance_tools.ci_memory_workflow_check \
             --project-root . \
             --base-ref "$BASE_REF" \
             --head-ref "$HEAD_REF" \
+            --delivery-stage "$DELIVERY_STAGE" \
             --format human
 
   plan-freshness:
