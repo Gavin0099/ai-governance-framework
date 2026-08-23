@@ -4901,3 +4901,14 @@ not begin. M3-b-3 is the tranche that is actually unblocked.
 - Validation boundary: NOT CLAIMED: the no-forgery statement is a post-hoc inspection of the three projections that predated this correction; it is not an original write-time guarantee or an immutable memory anchor
 - Next action: Submit the complete PR #95 projection set for exact-scope review, then stage only those projection blocks under separate authorization; exclude M3-b-2A and active-task changes.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:ac60d1482eb32d3d4ec3a1582db89948f5f57fc73c76ee166ef5e3bc81459b25 -->
+### Canonical memory checkpoint — 2026-08-23-10
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `ac60d1482eb32d3d4ec3a1582db89948f5f57fc73c76ee166ef5e3bc81459b25`
+- Commit binding: `ff639cc7ca7b1191e4cc4a3a1ec4cd0671aba4a9` (bound)
+- Record: Provenance and closure correction for PR #95 anchor findings 3, 4, 7, 8, and 9. This record binds the durable writer lineage to ff639cc7ca7b1191e4cc4a3a1ec4cd0671aba4a9. That commit and historical commit 08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae contain the same Git blob objects for both transplanted files: governance_tools/memory_record.py = 79cdf21203204bc63495f12fb83a2f94f5a9cf9a and tests/test_memory_record.py = 142bc7d9a9c1dfb5dadc4e9dbab64ffbaf0eb922. The three earlier review-log projections, record identities 921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4, 70f02f4a56d19a0bf6a15ad35da20ca5031ff99db70457bf82f26d430f7771ae, and 8f7d0de32e6f87b1524253630d9c615830dcefddce224d0fd419f643190858ca, were committed by 1efcd74dbcf385677b02a4117ca6a6a4ec95a92e. Their pending-commit language is retained unchanged as historical write-time state. The closure condition for findings 3, 4, 7, 8, and 9 is creation of a commit containing this correction record; when that containing commit exists, those findings are RESOLVED by the durable record plus the ff639cc7 blob-equivalence binding. This does not rewrite the earlier records or make 08990fd3 an ancestor of PR #96.
+- Validation boundary: NOT CLAIMED: this append does not claim CI success, PR merge, GitHub Support removal, visibility restoration, Gate 3 progress, or attempt-05; scoped validation and the containing commit are separate steps required by the authorized DONE.
+- Next action: Keep PR #96 Draft until independent review and CI become available; resolve the separate GitHub billing or spending-limit blocker without changing this record, repository visibility, or PR #78 history.
+- PLAN reconciliation: `not_applicable`
