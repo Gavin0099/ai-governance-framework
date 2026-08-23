@@ -8,7 +8,8 @@ provide one or more identities for the repository being checked.
 Exit codes used by the CLI:
   0 — no externally identified bulk tree inventory was found
   1 — an externally identified bulk tree inventory was found
-  2 — the result is unknown (for example, bulk entries lack source identity)
+  2 — a JSON input could not be decoded or parsed
+  3 — a bulk tree inventory lacks reliable repository identity
 """
 
 from __future__ import annotations
@@ -25,7 +26,8 @@ from urllib.parse import urlparse
 
 STATUS_PASS = "PASS"
 STATUS_BLOCKED = "BLOCKED"
-STATUS_UNKNOWN = "UNKNOWN"
+STATUS_UNREADABLE = "UNREADABLE"
+STATUS_UNATTRIBUTED_BULK_INVENTORY = "UNATTRIBUTED_BULK_INVENTORY"
 DEFAULT_ENTRY_THRESHOLD = 100
 
 _PATH_KEYS = ("path", "repo_path", "relative_path")
@@ -222,7 +224,7 @@ def _aggregate_findings(
             status = STATUS_BLOCKED
             reason = "bulk_tree_inventory_explicitly_identifies_external_repository"
         elif not identity_set:
-            status = STATUS_UNKNOWN
+            status = STATUS_UNATTRIBUTED_BULK_INVENTORY
             reason = "bulk_tree_inventory_has_no_reliable_repository_identity"
         else:
             status = STATUS_PASS
@@ -256,10 +258,11 @@ def assess_document(
 ) -> GuardResult:
     """Classify one decoded JSON document.
 
-    ``UNKNOWN`` is deliberately distinct from ``PASS``.  A bulk path/OID
-    collection without reliable repository identity cannot support a safety
-    claim, but this first slice does not decide how a future hook or CI job
-    should enforce that state.
+    ``UNATTRIBUTED_BULK_INVENTORY`` is deliberately distinct from ``PASS``.
+    A bulk path/OID collection without reliable repository identity cannot
+    support a safety claim.  Decoding and parsing failures are classified by
+    :func:`assess_path` as ``UNREADABLE`` instead of being conflated with this
+    document-level result.
     """
 
     if entry_threshold < 1:
@@ -291,12 +294,12 @@ def assess_document(
             findings=findings,
             reason="external_bulk_tree_inventory_detected",
         )
-    if any(item.status == STATUS_UNKNOWN for item in findings):
+    if any(item.status == STATUS_UNATTRIBUTED_BULK_INVENTORY for item in findings):
         return GuardResult(
-            status=STATUS_UNKNOWN,
+            status=STATUS_UNATTRIBUTED_BULK_INVENTORY,
             threshold=entry_threshold,
             findings=findings,
-            reason="bulk_tree_inventory_source_identity_unknown",
+            reason="unattributed_bulk_tree_inventory_detected",
         )
     return GuardResult(
         status=STATUS_PASS,
@@ -323,7 +326,7 @@ def assess_path(
         document = json.loads(raw.decode(encoding))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return GuardResult(
-            status=STATUS_UNKNOWN,
+            status=STATUS_UNREADABLE,
             threshold=entry_threshold,
             findings=(),
             reason=f"json_unreadable:{type(exc).__name__}",
@@ -398,7 +401,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if any(result.status == STATUS_BLOCKED for _, result in results):
         return 1
-    if any(result.status == STATUS_UNKNOWN for _, result in results):
+    if any(result.status == STATUS_UNATTRIBUTED_BULK_INVENTORY for _, result in results):
+        return 3
+    if any(result.status == STATUS_UNREADABLE for _, result in results):
         return 2
     return 0
 

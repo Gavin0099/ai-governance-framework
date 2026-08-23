@@ -9,7 +9,8 @@ import pytest
 from governance_tools.external_tree_inventory_guard import (
     STATUS_BLOCKED,
     STATUS_PASS,
-    STATUS_UNKNOWN,
+    STATUS_UNATTRIBUTED_BULK_INVENTORY,
+    STATUS_UNREADABLE,
     assess_document,
     assess_path,
     main,
@@ -123,14 +124,14 @@ def test_split_external_inventory_is_blocked_by_document_aggregate() -> None:
     assert result.findings[0].collection_entry_counts[-1].json_path == "$.groups[19]"
 
 
-def test_bulk_inventory_without_repository_identity_is_unknown() -> None:
+def test_bulk_inventory_without_repository_identity_is_unattributed() -> None:
     result = assess_document(
         {"entries": _entries(120)},
         expected_repository_identities=[EXPECTED_REPOSITORY],
     )
 
-    assert result.status == STATUS_UNKNOWN
-    assert result.reason == "bulk_tree_inventory_source_identity_unknown"
+    assert result.status == STATUS_UNATTRIBUTED_BULK_INVENTORY
+    assert result.reason == "unattributed_bulk_tree_inventory_detected"
     assert result.findings[0].reason == "bulk_tree_inventory_has_no_reliable_repository_identity"
 
 
@@ -147,7 +148,7 @@ def test_duplicate_path_oid_pairs_do_not_satisfy_distinct_entry_threshold() -> N
     assert result.findings == ()
 
 
-def test_cli_returns_unknown_for_unreadable_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_returns_unreadable_for_unreadable_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     candidate = tmp_path / "candidate.json"
     candidate.write_text("{not-json", encoding="utf-8")
 
@@ -155,8 +156,45 @@ def test_cli_returns_unknown_for_unreadable_json(tmp_path: Path, capsys: pytest.
     output = json.loads(capsys.readouterr().out)
 
     assert exit_code == 2
-    assert output[0]["status"] == STATUS_UNKNOWN
+    assert output[0]["status"] == STATUS_UNREADABLE
     assert output[0]["reason"] == "json_unreadable:JSONDecodeError"
+
+
+def test_cli_returns_exit_3_for_unattributed_bulk_inventory(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    candidate = tmp_path / "unattributed-inventory.json"
+    candidate.write_text(json.dumps({"entries": _entries(120)}), encoding="utf-8")
+
+    exit_code = main([str(candidate), "--repository-id", EXPECTED_REPOSITORY, "--format", "json"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 3
+    assert output[0]["status"] == STATUS_UNATTRIBUTED_BULK_INVENTORY
+    assert output[0]["reason"] == "unattributed_bulk_tree_inventory_detected"
+
+
+def test_cli_multi_file_exit_priority(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    unreadable = tmp_path / "unreadable.json"
+    unattributed = tmp_path / "unattributed.json"
+    blocked = tmp_path / "blocked.json"
+    unreadable.write_text("{not-json", encoding="utf-8")
+    unattributed.write_text(json.dumps({"entries": _entries(120)}), encoding="utf-8")
+    blocked.write_text(
+        json.dumps({"repository": "outside/private-consumer", "entries": _entries(120)}),
+        encoding="utf-8",
+    )
+
+    common_args = ["--repository-id", EXPECTED_REPOSITORY, "--format", "json"]
+    assert main([str(unreadable), str(unattributed), str(blocked), *common_args]) == 1
+    capsys.readouterr()
+    assert main([str(unreadable), str(unattributed), *common_args]) == 3
+    capsys.readouterr()
+    assert main([str(unreadable), *common_args]) == 2
 
 
 def test_utf8_bom_external_bulk_inventory_is_blocked(tmp_path: Path) -> None:
