@@ -335,6 +335,31 @@ jobs:
       - name: Install documented dependencies
         run: pip install -r requirements.txt
 
+      - name: Enforce external tree inventory disclosure guard
+        shell: bash
+        run: |
+          mapfile -d '' json_files < <(git ls-files -z -- '*.json')
+          report_path="$RUNNER_TEMP/external-tree-inventory-guard.txt"
+
+          if [ "${#json_files[@]}" -eq 0 ]; then
+            echo "::notice::External tree inventory guard passed: no tracked JSON files."
+            exit 0
+          fi
+
+          set +e
+          python -m governance_tools.external_tree_inventory_guard \
+            --repository-id Gavin0099/ai-governance-framework \
+            "${json_files[@]}" > "$report_path"
+          guard_status=$?
+          set -e
+
+          if [ "$guard_status" -ne 0 ]; then
+            cat "$report_path"
+            exit "$guard_status"
+          fi
+
+          echo "::notice::External tree inventory guard passed for ${#json_files[@]} tracked JSON files."
+
       - name: Run runtime governance enforcement
         run: bash scripts/run-runtime-governance.sh --mode ci
 

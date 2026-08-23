@@ -66,6 +66,34 @@ def test_governance_workflow_runs_selective_memory_blocker() -> None:
     assert '--head-ref "$HEAD_REF"' in job_section
 
 
+def test_runtime_enforcement_fails_closed_on_external_tree_inventories() -> None:
+    text = _workflow_text()
+    job_section = _section(
+        text,
+        "  runtime-enforcement:",
+        "  bash32-runtime-compatibility:",
+    )
+    guard_step = _section(
+        job_section,
+        "      - name: Enforce external tree inventory disclosure guard",
+        "      - name: Run runtime governance enforcement",
+    )
+
+    assert "git ls-files -z -- '*.json'" in guard_step
+    assert "python -m governance_tools.external_tree_inventory_guard" in guard_step
+    assert "--repository-id Gavin0099/ai-governance-framework" in guard_step
+    assert '"${json_files[@]}"' in guard_step
+    assert 'guard_status=$?' in guard_step
+    assert '[ "$guard_status" -ne 0 ]' in guard_step
+    assert 'cat "$report_path"' in guard_step
+    assert 'exit "$guard_status"' in guard_step
+    assert "continue-on-error" not in guard_step
+    assert "External tree inventory guard passed for" in guard_step
+    assert job_section.index("external_tree_inventory_guard") < job_section.index(
+        "bash scripts/run-runtime-governance.sh --mode ci"
+    )
+
+
 def test_governance_workflow_triggers_on_canonical_governance_surfaces() -> None:
     text = _workflow_text()
     push_section = _section(text, "  push:", "  pull_request:")
