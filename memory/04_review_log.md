@@ -4869,3 +4869,35 @@ Review the two amendments as amendments. Then take BLOCKED-3's remaining half �
 the pinned package, the seven added types, the regenerated oracle — because
 until that artifact exists, M3-b-2 has no layouts to be gated against and does
 not begin. M3-b-3 is the tranche that is actually unblocked.
+<!-- memory_record_projection:review-log:921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4 -->
+### Canonical memory checkpoint — 2026-08-23-01
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4`
+- Commit binding: `a7f7c8019a4f7583f4f157335eafdb3c9ab55ad1` (bound)
+- Record: PR #95 attempt-04 failed-evidence review recorded the disclosure finding and temporary PRIVATE containment. Bindings: pre-run commit 818d2fa6da8420573145e901217b42acffd513a8; evidence commit a7f7c8019a4f7583f4f157335eafdb3c9ab55ad1; terminal SHA-256 d90805c2bb28200e284e72243731a2a8e4f449b5463b1f52b1b5bdf8de9f8356 / 25817 bytes; refs/pull/95/head at a7f7c8019a4f7583f4f157335eafdb3c9ab55ad1 and refs/pull/95/merge at adc9e8abd7cda7eff95874a5155fb74ce112d936. The severe exposure is only the 1870-entry full-tree inventory introduced by a7f7c801; of the seven files in 818d2fa6, only validator-sidecar-probe-manifest.json carries private metadata. A separate, milder username/local-absolute-path and private-internal-subpath exposure predates PR #95 on main and is not remediated by purging PR #95. The repository is temporarily PRIVATE; GitHub Support sensitive-data removal has not been submitted. Finding 3 is PARTIALLY_RESOLVED_PENDING_COMMIT; this uncommitted memory projection is not an immutable anchor.
+- Validation boundary: NOT CLAIMED: no new experiment or external mutation was performed; this record preserves the independently reviewed PR #95 bindings and containment state without claiming an immutable memory anchor
+- Next action: Keep the repository PRIVATE; submit the scoped GitHub Support removal request separately; commit this memory checkpoint only under separate authorization before treating finding 3 as fully resolved.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:70f02f4a56d19a0bf6a15ad35da20ca5031ff99db70457bf82f26d430f7771ae -->
+### Canonical memory checkpoint — 2026-08-23-05
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `70f02f4a56d19a0bf6a15ad35da20ca5031ff99db70457bf82f26d430f7771ae`
+- Commit binding: `08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae` (bound)
+- Record: Correction to the PR #95 checkpoint record identity 921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4: that checkpoint was enabled by the canonical writer expansion committed as 08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae, which added the fixed review-log and active-task-summary projection surfaces; the earlier record did not disclose this tool change. The earlier record commit binding a7f7c8019a4f7583f4f157335eafdb3c9ab55ad1 is within the pending GitHub Support sensitive-data-removal scope and may cease to resolve if that removal rewrites or purges the object. This correction does not replace the earlier PR #95 evidence facts or establish an immutable memory anchor. Findings 3 and 4 are PARTIALLY_RESOLVED_PENDING_COMMIT until this correction is committed.
+- Validation boundary: NOT CLAIMED: this is an uncommitted corrective memory projection; it does not prove GitHub Support removal, immutable anchoring, or any new experiment result
+- Next action: Review and commit the corrective review-log projection under a separate exact-scope checkpoint; keep the repository PRIVATE and handle the Support request separately.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:8f7d0de32e6f87b1524253630d9c615830dcefddce224d0fd419f643190858ca -->
+### Canonical memory checkpoint — 2026-08-23-07
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `8f7d0de32e6f87b1524253630d9c615830dcefddce224d0fd419f643190858ca`
+- Commit binding: `08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae` (bound)
+- Record: Second provenance correction for PR #95: checkpoint record identity 921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4 was produced by a pre-remediation, never-committed working-tree version of the projection surfaces. Commit 08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae later preserved both the projection expansion and its remediation. When the earlier record was written, finding 1 was present: active-task summaries could contain reserved marker syntax and deduplication used an unanchored substring check. A post-hoc full-file inspection confirmed that the three projections existing before this correction were legitimate and that no forged marker was present; that observation does not retroactively grant the earlier record the protections implemented by 08990fd3. This appends to, and does not rewrite, record identities 921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4 or 70f02f4a56d19a0bf6a15ad35da20ca5031ff99db70457bf82f26d430f7771ae. Finding 7 and findings 3 and 4 remain PARTIALLY_RESOLVED_PENDING_COMMIT until the PR #95 projection set is committed.
+- Validation boundary: NOT CLAIMED: the no-forgery statement is a post-hoc inspection of the three projections that predated this correction; it is not an original write-time guarantee or an immutable memory anchor
+- Next action: Submit the complete PR #95 projection set for exact-scope review, then stage only those projection blocks under separate authorization; exclude M3-b-2A and active-task changes.
+- PLAN reconciliation: `not_applicable`
