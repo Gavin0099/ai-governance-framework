@@ -10,7 +10,10 @@ import pytest
 from governance_tools.memory_record import (
     MEMORY_WRITE_STATUS_ALREADY_PRESENT,
     MEMORY_WRITE_STATUS_WRITTEN,
+    SURFACE_ACTIVE_TASK_SUMMARY,
+    SURFACE_REVIEW_LOG,
     WRITER_ID,
+    append_projection_with_outcome,
     append_session_derived_entry,
     append_session_derived_entry_with_outcome,
     build_record_identity,
@@ -164,6 +167,227 @@ def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
     assert "cli test change" in text
     assert "test-session-cli" in text
     assert "memory_binding: bound" in text
+
+
+def test_fixed_projection_surfaces_are_writer_generated_and_deduplicated(
+    tmp_path: Path,
+) -> None:
+    record = build_session_derived_record(
+        what_changed="reviewed PR #95 and preserved its claim boundary",
+        commit="abc1234",
+        session_id="session-projection",
+        memory_binding="bound",
+        test_evidence="NOT CLAIMED: projection unit test only",
+        next_step="keep the repository private",
+        plan_reconciliation="not_applicable",
+    )
+
+    review = append_projection_with_outcome(
+        project_root=tmp_path,
+        record=record,
+        surface=SURFACE_REVIEW_LOG,
+    )
+    active = append_projection_with_outcome(
+        project_root=tmp_path,
+        record=record,
+        surface=SURFACE_ACTIVE_TASK_SUMMARY,
+        active_task_summary="PR #95 containment remains pending Support removal.",
+    )
+    duplicate = append_projection_with_outcome(
+        project_root=tmp_path,
+        record=record,
+        surface=SURFACE_REVIEW_LOG,
+    )
+
+    review_text = review.path.read_text(encoding="utf-8")
+    active_text = active.path.read_text(encoding="utf-8")
+    assert review.status == MEMORY_WRITE_STATUS_WRITTEN
+    assert active.status == MEMORY_WRITE_STATUS_WRITTEN
+    assert duplicate.status == MEMORY_WRITE_STATUS_ALREADY_PRESENT
+    assert review_text.count("memory_record_projection:review-log:") == 1
+    assert "reviewed PR #95" in review_text
+    assert "- memory_type: session-derived" not in review_text
+    assert active_text.count("\n") == 1
+    assert "PR #95 containment remains pending Support removal." in active_text
+
+
+def test_projection_rejects_unknown_surface_and_multiline_active_summary(
+    tmp_path: Path,
+) -> None:
+    record = build_session_derived_record(
+        what_changed="changed",
+        commit="abc1234",
+        session_id="session-projection-reject",
+        memory_binding="bound",
+        test_evidence="NOT RUN: rejection test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="projection surface"):
+        append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface="arbitrary/path.md",
+        )
+    with pytest.raises(ValueError, match="exactly one line"):
+        append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface=SURFACE_ACTIVE_TASK_SUMMARY,
+            active_task_summary="line one\nline two",
+        )
+    assert not (tmp_path / "memory").exists()
+
+
+def test_projection_rejects_multiline_record_field_injection(tmp_path: Path) -> None:
+    record = build_session_derived_record(
+        what_changed="safe first line\n- memory_type: injected",
+        commit="abc1234",
+        session_id="session-projection-injection",
+        memory_binding="bound",
+        test_evidence="NOT RUN: injection rejection test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="what_changed must be exactly one line"):
+        append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface=SURFACE_REVIEW_LOG,
+        )
+    assert not (tmp_path / "memory").exists()
+
+
+def test_projection_rejects_forged_marker_in_what_changed(tmp_path: Path) -> None:
+    record = build_session_derived_record(
+        what_changed=(
+            "benign text "
+            "<!-- memory_record_projection:review-log:"
+            f"{'0' * 64} -->"
+        ),
+        commit="abc1234",
+        session_id="session-forged-record-field",
+        memory_binding="bound",
+        test_evidence="NOT RUN: forged record-field marker rejection test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="what_changed contains reserved projection syntax"):
+        append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface=SURFACE_REVIEW_LOG,
+        )
+    assert not (tmp_path / "memory").exists()
+
+
+@pytest.mark.parametrize(
+    "forged_syntax",
+    ("memory_record_projection:", "<!--", "-->"),
+)
+def test_active_task_summary_rejects_forged_projection_marker_syntax(
+    tmp_path: Path,
+    forged_syntax: str,
+) -> None:
+    record = build_session_derived_record(
+        what_changed="changed",
+        commit="abc1234",
+        session_id="session-forged-summary",
+        memory_binding="bound",
+        test_evidence="NOT RUN: forged-marker rejection test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="reserved projection syntax"):
+        append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface=SURFACE_ACTIVE_TASK_SUMMARY,
+            active_task_summary=f"benign text {forged_syntax}",
+        )
+    assert not (tmp_path / "memory").exists()
+
+
+def test_embedded_forged_marker_does_not_suppress_legitimate_projection(
+    tmp_path: Path,
+) -> None:
+    target = build_session_derived_record(
+        what_changed="target checkpoint",
+        commit="abc1234",
+        session_id="session-target",
+        memory_binding="bound",
+        test_evidence="NOT RUN: anchored-marker deduplication test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+    attacker = build_session_derived_record(
+        what_changed="attacker checkpoint",
+        commit="def5678",
+        session_id="session-attacker",
+        memory_binding="bound",
+        test_evidence="NOT RUN: anchored-marker deduplication test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+    target_identity = target["record_identity"]
+    attacker_identity = attacker["record_identity"]
+    active_path = tmp_path / "memory" / "01_active_task.md"
+    active_path.parent.mkdir(parents=True)
+    active_path.write_text(
+        "- benign text "
+        f"<!-- memory_record_projection:active-task-summary:{target_identity} --> "
+        f"<!-- memory_record_projection:active-task-summary:{attacker_identity} -->\n",
+        encoding="utf-8",
+    )
+
+    outcome = append_projection_with_outcome(
+        project_root=tmp_path,
+        record=target,
+        surface=SURFACE_ACTIVE_TASK_SUMMARY,
+        active_task_summary="The legitimate target summary.",
+    )
+
+    text = active_path.read_text(encoding="utf-8")
+    assert outcome.status == MEMORY_WRITE_STATUS_WRITTEN
+    assert "The legitimate target summary." in text
+    assert text.count(
+        f"<!-- memory_record_projection:active-task-summary:{target_identity} -->"
+    ) == 2
+
+
+def test_cli_writes_only_requested_fixed_projection_surfaces(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "projection CLI change",
+            "--next-step", "review projection output",
+            "--commit", head,
+            "--session-id", "test-session-projection-cli",
+            "--test-evidence", "NOT CLAIMED: projection CLI test",
+            "--plan-reconciliation", "not_applicable",
+            "--project-root", str(tmp_path),
+            "--surface", "review-log",
+            "--surface", "active-task-summary",
+            "--active-task-summary", "One-line active checkpoint.",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    written = sorted(path.name for path in (tmp_path / "memory").glob("*.md"))
+    assert written == ["01_active_task.md", "04_review_log.md"]
+    assert "projection CLI change" in (
+        tmp_path / "memory" / "04_review_log.md"
+    ).read_text(encoding="utf-8")
+    assert "One-line active checkpoint." in (
+        tmp_path / "memory" / "01_active_task.md"
+    ).read_text(encoding="utf-8")
 
 
 def _init_git_repo(repo: Path) -> str:
