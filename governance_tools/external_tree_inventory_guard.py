@@ -14,6 +14,7 @@ Exit codes used by the CLI:
 from __future__ import annotations
 
 import argparse
+import codecs
 import json
 import sys
 from dataclasses import asdict, dataclass
@@ -312,7 +313,14 @@ def assess_path(
     entry_threshold: int = DEFAULT_ENTRY_THRESHOLD,
 ) -> GuardResult:
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        raw = path.read_bytes()
+        if raw.startswith(codecs.BOM_UTF8):
+            encoding = "utf-8-sig"
+        elif raw.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+            encoding = "utf-16"
+        else:
+            encoding = "utf-8"
+        document = json.loads(raw.decode(encoding))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return GuardResult(
             status=STATUS_UNKNOWN,

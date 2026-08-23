@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 import json
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from governance_tools.external_tree_inventory_guard import (
     STATUS_PASS,
     STATUS_UNKNOWN,
     assess_document,
+    assess_path,
     main,
 )
 
@@ -155,6 +157,53 @@ def test_cli_returns_unknown_for_unreadable_json(tmp_path: Path, capsys: pytest.
     assert exit_code == 2
     assert output[0]["status"] == STATUS_UNKNOWN
     assert output[0]["reason"] == "json_unreadable:JSONDecodeError"
+
+
+def test_utf8_bom_external_bulk_inventory_is_blocked(tmp_path: Path) -> None:
+    candidate = tmp_path / "bom-inventory.json"
+    payload = {
+        "repository": "outside/private-consumer",
+        "entries": _entries(120),
+    }
+    candidate.write_bytes(json.dumps(payload).encode("utf-8-sig"))
+
+    result = assess_path(
+        candidate,
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+    )
+
+    assert result.status == STATUS_BLOCKED
+    assert result.reason == "external_bulk_tree_inventory_detected"
+    assert result.findings[0].distinct_entry_count == 120
+
+
+@pytest.mark.parametrize(
+    ("bom", "encoding"),
+    (
+        (codecs.BOM_UTF16_LE, "utf-16-le"),
+        (codecs.BOM_UTF16_BE, "utf-16-be"),
+    ),
+)
+def test_utf16_bom_external_bulk_inventory_is_blocked(
+    tmp_path: Path,
+    bom: bytes,
+    encoding: str,
+) -> None:
+    candidate = tmp_path / f"bom-inventory-{encoding}.json"
+    payload = {
+        "repository": "outside/private-consumer",
+        "entries": _entries(120),
+    }
+    candidate.write_bytes(bom + json.dumps(payload).encode(encoding))
+
+    result = assess_path(
+        candidate,
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+    )
+
+    assert result.status == STATUS_BLOCKED
+    assert result.reason == "external_bulk_tree_inventory_detected"
+    assert result.findings[0].distinct_entry_count == 120
 
 
 def test_entry_threshold_must_be_positive() -> None:
