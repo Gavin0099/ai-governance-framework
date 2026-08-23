@@ -335,6 +335,43 @@ jobs:
       - name: Install documented dependencies
         run: pip install -r requirements.txt
 
+      - name: Enforce external tree inventory disclosure guard
+        shell: bash
+        run: |
+          json_list_path="$RUNNER_TEMP/external-tree-inventory-files.zlist"
+          report_path="$RUNNER_TEMP/external-tree-inventory-guard.txt"
+
+          if ! git ls-files -z -- '*.json' > "$json_list_path"; then
+            echo "::error::External tree inventory guard could not enumerate tracked JSON files."
+            exit 1
+          fi
+
+          json_files=()
+          json_file_count=0
+          while IFS= read -r -d '' json_file; do
+            json_files+=("$json_file")
+            json_file_count=$((json_file_count + 1))
+          done < "$json_list_path"
+
+          if [ "$json_file_count" -eq 0 ]; then
+            echo "::error::External tree inventory guard found no tracked JSON files; enumeration is invalid for this repository."
+            exit 1
+          fi
+
+          set +e
+          python -m governance_tools.external_tree_inventory_guard \
+            --repository-id Gavin0099/ai-governance-framework \
+            "${json_files[@]}" > "$report_path"
+          guard_status=$?
+          set -e
+
+          if [ "$guard_status" -ne 0 ]; then
+            cat "$report_path"
+            exit "$guard_status"
+          fi
+
+          echo "::notice::External tree inventory guard passed for $json_file_count tracked JSON files."
+
       - name: Run runtime governance enforcement
         run: bash scripts/run-runtime-governance.sh --mode ci
 
