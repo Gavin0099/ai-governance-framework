@@ -42,12 +42,26 @@ _REPOSITORY_ID_KEYS = {
 
 
 @dataclass(frozen=True)
+class CollectionEntryCount:
+    json_path: str
+    distinct_entry_count: int
+
+
+@dataclass(frozen=True)
 class CollectionFinding:
     json_path: str
     distinct_entry_count: int
     source_repository_identities: tuple[str, ...]
     status: str
     reason: str
+    collection_entry_counts: tuple[CollectionEntryCount, ...]
+
+
+@dataclass(frozen=True)
+class _CollectionObservation:
+    json_path: str
+    entries: frozenset[tuple[str, str]]
+    source_repository_identities: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -123,7 +137,7 @@ def _string_field(item: dict[str, Any], keys: Iterable[str]) -> str | None:
     return None
 
 
-def _bulk_entry_count(node: list[Any]) -> int:
+def _bulk_entries(node: list[Any]) -> frozenset[tuple[str, str]]:
     distinct_entries: set[tuple[str, str]] = set()
     for item in node:
         if not isinstance(item, dict):
@@ -132,7 +146,7 @@ def _bulk_entry_count(node: list[Any]) -> int:
         oid = _string_field(item, _OID_KEYS)
         if path is not None and oid is not None:
             distinct_entries.add((path, oid))
-    return len(distinct_entries)
+    return frozenset(distinct_entries)
 
 
 def _json_path(parent: str, key: str | int) -> str:
@@ -141,67 +155,96 @@ def _json_path(parent: str, key: str | int) -> str:
     return f"{parent}.{key}" if parent != "$" else f"$.{key}"
 
 
-def _walk_collections(
+def _collect_observations(
     node: Any,
     *,
-    expected_identities: set[str],
-    threshold: int,
     inherited_identities: set[str],
     path: str,
-) -> list[CollectionFinding]:
-    findings: list[CollectionFinding] = []
+) -> list[_CollectionObservation]:
+    observations: list[_CollectionObservation] = []
 
     if isinstance(node, dict):
         current_identities = inherited_identities | _direct_repository_identities(node)
         for key, value in node.items():
-            findings.extend(
-                _walk_collections(
+            observations.extend(
+                _collect_observations(
                     value,
-                    expected_identities=expected_identities,
-                    threshold=threshold,
                     inherited_identities=current_identities,
                     path=_json_path(path, key),
                 )
             )
-        return findings
+        return observations
 
     if not isinstance(node, list):
-        return findings
+        return observations
 
-    distinct_count = _bulk_entry_count(node)
-    if distinct_count >= threshold:
-        identities = tuple(sorted(inherited_identities))
-        external = sorted(inherited_identities - expected_identities)
+    entries = _bulk_entries(node)
+    if entries:
+        observations.append(
+            _CollectionObservation(
+                json_path=path,
+                entries=entries,
+                source_repository_identities=tuple(sorted(inherited_identities)),
+            )
+        )
+
+    for index, value in enumerate(node):
+        observations.extend(
+            _collect_observations(
+                value,
+                inherited_identities=inherited_identities,
+                path=_json_path(path, index),
+            )
+        )
+    return observations
+
+
+def _aggregate_findings(
+    observations: Sequence[_CollectionObservation],
+    *,
+    expected_identities: set[str],
+    threshold: int,
+) -> tuple[CollectionFinding, ...]:
+    grouped: dict[tuple[str, ...], list[_CollectionObservation]] = {}
+    for observation in observations:
+        grouped.setdefault(observation.source_repository_identities, []).append(observation)
+
+    findings: list[CollectionFinding] = []
+    for identities, group in sorted(grouped.items()):
+        document_entries = set().union(*(observation.entries for observation in group))
+        if len(document_entries) < threshold:
+            continue
+
+        identity_set = set(identities)
+        external = sorted(identity_set - expected_identities)
         if external:
             status = STATUS_BLOCKED
             reason = "bulk_tree_inventory_explicitly_identifies_external_repository"
-        elif not inherited_identities:
+        elif not identity_set:
             status = STATUS_UNKNOWN
             reason = "bulk_tree_inventory_has_no_reliable_repository_identity"
         else:
             status = STATUS_PASS
             reason = "bulk_tree_inventory_identifies_expected_repository"
+
+        collection_counts = tuple(
+            CollectionEntryCount(
+                json_path=observation.json_path,
+                distinct_entry_count=len(observation.entries),
+            )
+            for observation in group
+        )
         findings.append(
             CollectionFinding(
-                json_path=path,
-                distinct_entry_count=distinct_count,
+                json_path=(collection_counts[0].json_path if len(collection_counts) == 1 else "$"),
+                distinct_entry_count=len(document_entries),
                 source_repository_identities=identities,
                 status=status,
                 reason=reason,
+                collection_entry_counts=collection_counts,
             )
         )
-
-    for index, value in enumerate(node):
-        findings.extend(
-            _walk_collections(
-                value,
-                expected_identities=expected_identities,
-                threshold=threshold,
-                inherited_identities=inherited_identities,
-                path=_json_path(path, index),
-            )
-        )
-    return findings
+    return tuple(findings)
 
 
 def assess_document(
@@ -229,14 +272,15 @@ def assess_document(
     if not expected:
         raise ValueError("at least one non-empty expected repository identity is required")
 
-    findings = tuple(
-        _walk_collections(
-            document,
-            expected_identities=expected,
-            threshold=entry_threshold,
-            inherited_identities=set(),
-            path="$",
-        )
+    observations = _collect_observations(
+        document,
+        inherited_identities=set(),
+        path="$",
+    )
+    findings = _aggregate_findings(
+        observations,
+        expected_identities=expected,
+        threshold=entry_threshold,
     )
 
     if any(item.status == STATUS_BLOCKED for item in findings):
@@ -297,6 +341,11 @@ def _format_human(path: Path, result: GuardResult) -> str:
             f"path={finding.json_path} entries={finding.distinct_entry_count} "
             f"repositories={identities} status={finding.status} reason={finding.reason}"
         )
+        for collection in finding.collection_entry_counts:
+            lines.append(
+                "collection: "
+                f"path={collection.json_path} entries={collection.distinct_entry_count}"
+            )
     return "\n".join(lines)
 
 

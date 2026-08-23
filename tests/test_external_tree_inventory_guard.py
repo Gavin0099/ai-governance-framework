@@ -97,6 +97,28 @@ def test_nested_reordered_external_inventory_is_still_blocked() -> None:
     assert result.status == STATUS_BLOCKED
     assert result.findings[0].json_path == "$.wrapper.nested.inventory"
     assert result.findings[0].source_repository_identities == ("outside/private-consumer",)
+    assert result.findings[0].collection_entry_counts[0].distinct_entry_count == 120
+
+
+def test_split_external_inventory_is_blocked_by_document_aggregate() -> None:
+    entries = _entries(20 * 94)
+    payload = {
+        "repository": "outside/private-consumer",
+        "groups": [entries[index : index + 94] for index in range(0, len(entries), 94)],
+    }
+
+    result = assess_document(
+        payload,
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+    )
+
+    assert result.status == STATUS_BLOCKED
+    assert result.findings[0].json_path == "$"
+    assert result.findings[0].distinct_entry_count == 20 * 94
+    assert len(result.findings[0].collection_entry_counts) == 20
+    assert {item.distinct_entry_count for item in result.findings[0].collection_entry_counts} == {94}
+    assert result.findings[0].collection_entry_counts[0].json_path == "$.groups[0]"
+    assert result.findings[0].collection_entry_counts[-1].json_path == "$.groups[19]"
 
 
 def test_bulk_inventory_without_repository_identity_is_unknown() -> None:
