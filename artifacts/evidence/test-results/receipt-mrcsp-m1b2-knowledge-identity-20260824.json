@@ -1,0 +1,19 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_reconciliation.py tests/test_memory_reconciliation_fixture_admissibility.py tests/test_memory_surface_authority_contract.py tests/test_authority_document_paths.py tests/test_authority_metadata_consistency.py tests/test_authority_loader.py -q -p no:cacheprovider --basetemp artifacts/evidence/test-results/.tmp-mrcsp-m1b2-pytest --junitxml artifacts/evidence/test-results/receipt-mrcsp-m1b2-knowledge-identity-20260824.xml",
+  "exit_code": 0,
+  "started_at": "2026-08-24T09:41:26Z",
+  "finished_at": "2026-08-24T09:41:27Z",
+  "runner": "codex",
+  "linked_commit": "daee52c4736594051b3c8ae94b881b338aaa4b87",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-mrcsp-m1b2-knowledge-identity-20260824.xml"
+  ],
+  "cannot_claim": [
+    "semantic identity, parser correctness, repository-wide uniqueness, or consumer replay",
+    "normalization, missing logical surface, freshness, contradiction, supersession, or remediation",
+    "receipt authenticity: every field is fabricatable by a direct writer",
+    "runtime, schema, hook, CI, gate, blocker, enforcement, push, PR, merge readiness, or activation"
+  ]
+}
