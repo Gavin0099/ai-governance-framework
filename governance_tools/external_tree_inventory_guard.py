@@ -33,6 +33,7 @@ STATUS_UNREADABLE = "UNREADABLE"
 STATUS_UNATTRIBUTED_BULK_INVENTORY = "UNATTRIBUTED_BULK_INVENTORY"
 DEFAULT_ENTRY_THRESHOLD = 100
 IDENTITY_CONFIG_SCHEMA = "external-tree-inventory-guard-identities.v1"
+IDENTITY_CONFIG_REL = Path("governance/external-tree-inventory-guard.json")
 REPOSITORY_ROOT_TOKEN = "@repository-root"
 SCANNER_ERROR_EXIT = 4
 _OID_PATTERN = re.compile(r"^[0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?$")
@@ -119,6 +120,10 @@ def _normalize_repository_identity(value: str) -> str:
     if not text:
         return ""
 
+    scp_like = re.fullmatch(r"[^@/\\s]+@[^:/\\s]+:(?P<path>.+)", text)
+    if scp_like is not None:
+        text = scp_like.group("path")
+
     parsed = urlparse(text)
     if parsed.scheme and parsed.netloc:
         text = parsed.path
@@ -147,8 +152,8 @@ def decode_json_bytes(raw: bytes) -> Any:
         raise ValueError(f"json_unreadable:{type(exc).__name__}") from exc
 
 
-def load_repository_identities(config_path: Path, *, repository_root: Path) -> tuple[str, ...]:
-    """Load the one shared identity authority used by CI and pre-push."""
+def load_repository_identity_values(config_path: Path) -> tuple[str, ...]:
+    """Load and validate the literal identities without resolving repo-local tokens."""
 
     try:
         document = decode_json_bytes(config_path.read_bytes())
@@ -177,13 +182,22 @@ def load_repository_identities(config_path: Path, *, repository_root: Path) -> t
             raise IdentityConfigError(
                 f"repository identity config contains a non-string or empty identity: {config_path}"
             )
-        resolved = str(repository_root.resolve()) if value == REPOSITORY_ROOT_TOKEN else value
-        if not _normalize_repository_identity(resolved):
+        if not _normalize_repository_identity(value):
             raise IdentityConfigError(
                 f"repository identity config contains an unusable identity: {config_path}"
             )
-        identities.append(resolved)
+        identities.append(value.strip())
     return tuple(identities)
+
+
+def load_repository_identities(config_path: Path, *, repository_root: Path) -> tuple[str, ...]:
+    """Load the one shared identity authority used by CI and pre-push."""
+
+    configured = load_repository_identity_values(config_path)
+    return tuple(
+        str(repository_root.resolve()) if value == REPOSITORY_ROOT_TOKEN else value
+        for value in configured
+    )
 
 
 def _repository_identities(value: Any) -> set[str]:

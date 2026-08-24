@@ -25,6 +25,12 @@ from governance_tools.copilot_instructions_projection import (
     extract_projection_region,
     section_digest,
 )
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    REPOSITORY_ROOT_TOKEN,
+    IdentityConfigError,
+    load_repository_identity_values,
+)
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -322,6 +328,27 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
         errors.append(f"missing AI Governance pre-commit hook: {pre_commit}")
     if not checks["pre_push_installed"]:
         errors.append(f"missing AI Governance pre-push hook: {pre_push}")
+
+    identity_config = repo_root / IDENTITY_CONFIG_REL
+    checks["external_tree_identity_config_present"] = identity_config.is_file()
+    checks["external_tree_identity_config_valid"] = False
+    checks["external_tree_identity_config_has_repository_root"] = False
+    if not identity_config.is_file():
+        errors.append(f"missing external-tree repository identity config: {identity_config}")
+    else:
+        try:
+            identity_values = load_repository_identity_values(identity_config)
+        except IdentityConfigError as exc:
+            errors.append(str(exc))
+        else:
+            checks["external_tree_identity_config_valid"] = True
+            has_repository_root = REPOSITORY_ROOT_TOKEN in identity_values
+            checks["external_tree_identity_config_has_repository_root"] = has_repository_root
+            if not has_repository_root:
+                errors.append(
+                    "external-tree repository identity config must contain @repository-root: "
+                    f"{identity_config}"
+                )
 
     # copilot-instructions check (warning only — not a blocking requirement)
     copilot_instructions = repo_root / ".github" / "copilot-instructions.md"

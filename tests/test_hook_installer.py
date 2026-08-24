@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from governance_tools.copilot_instructions_projection import extract_projection_region
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    IDENTITY_CONFIG_SCHEMA,
+    REPOSITORY_ROOT_TOKEN,
+)
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.hook_installer import (
     COPILOT_BLOCK_BEGIN,
@@ -13,10 +20,18 @@ from governance_tools.hook_installer import (
     LEGACY_COPILOT_TEMPLATE_DIGESTS,
     _content_digest,
     install_copilot_instructions,
-    install_governance_hooks,
+    install_external_tree_identity_config,
+    install_governance_hooks as _install_governance_hooks,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+TEST_REPOSITORY_ID = "example.test/governance-consumer"
+_WINDOWS_GIT_BASH = Path("C:/Program Files/Git/bin/bash.exe")
+BASH_COMMAND = (
+    str(_WINDOWS_GIT_BASH)
+    if os.name == "nt" and _WINDOWS_GIT_BASH.is_file()
+    else (shutil.which("bash") or "bash")
+)
 
 MANAGED_TEMPLATE = (
     f"{COPILOT_BLOCK_BEGIN}\n"
@@ -30,6 +45,17 @@ MANAGED_TEMPLATE = (
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def install_governance_hooks(
+    repo_root: Path,
+    framework_root: Path,
+    **kwargs: object,
+):
+    """Keep legacy fixtures explicit now that identity-free install fails closed."""
+
+    kwargs.setdefault("repository_identities", (TEST_REPOSITORY_ID,))
+    return _install_governance_hooks(repo_root, framework_root, **kwargs)
 
 
 def _make_framework(root: Path) -> None:
@@ -54,6 +80,28 @@ def _make_framework(root: Path) -> None:
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
         '{"version":1,"hooks":{"sessionStart":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto"}],"sessionEnd":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+    )
+
+
+def _make_push_framework(root: Path) -> None:
+    """Minimal framework whose real pre-push guard can run in a consumer fixture."""
+
+    _write(root / "scripts" / "hooks" / "pre-commit", "#!/bin/bash\n# AI Governance Framework\n")
+    (root / "scripts" / "hooks").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(
+        REPO_ROOT / "scripts" / "hooks" / "pre-push",
+        root / "scripts" / "hooks" / "pre-push",
+    )
+    python_executable = Path(sys.executable).as_posix()
+    _write(
+        root / "scripts" / "lib" / "python.sh",
+        f"set_python_cmd() {{ PYTHON_CMD=('{python_executable}'); return 0; }}\n",
+    )
+    _write(root / "scripts" / "run-runtime-governance.sh", "#!/bin/bash\nexit 0\n")
+    (root / "governance_tools").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(
+        REPO_ROOT / "governance_tools" / "external_tree_inventory_guard.py",
+        root / "governance_tools" / "external_tree_inventory_guard.py",
     )
 
 
@@ -149,10 +197,201 @@ def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Pa
     assert (repo / ".git" / "hooks" / "pre-commit").exists()
     assert (repo / ".git" / "hooks" / "pre-push").exists()
     assert (repo / ".git" / "hooks" / "ai-governance-framework-root").exists()
+    assert (repo / IDENTITY_CONFIG_REL).is_file()
     assert not (repo / ".github" / "copilot-instructions.md").exists()
     assert not (repo / ".github" / "hooks").exists()
     assert all(".github" not in changed for changed in result.changed_files)
     assert all(".github" not in installed for installed in result.installed_files)
+
+
+def test_identity_config_uses_exact_origin_and_repository_root(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    _run(["git", "init"], cwd=repo)
+    origin = "git@github.com:example/consumer.git"
+    _run(["git", "remote", "add", "origin", origin], cwd=repo)
+
+    result = install_external_tree_identity_config(repo, framework)
+
+    assert result.ok is True, result.errors
+    document = json.loads((repo / IDENTITY_CONFIG_REL).read_text(encoding="utf-8"))
+    assert document == {
+        "schema": IDENTITY_CONFIG_SCHEMA,
+        "repository_identities": [origin, REPOSITORY_ROOT_TOKEN],
+    }
+
+
+def test_identity_config_requires_explicit_identity_or_origin(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    _run(["git", "init"], cwd=repo)
+
+    result = install_external_tree_identity_config(repo, framework)
+
+    assert result.ok is False
+    assert any("configure origin or pass --repository-id" in error for error in result.errors)
+    assert not (repo / IDENTITY_CONFIG_REL).exists()
+
+
+def test_identity_config_preserves_valid_aliases_and_adds_repository_root(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    _run(["git", "init"], cwd=repo)
+    config = repo / IDENTITY_CONFIG_REL
+    _write(
+        config,
+        json.dumps(
+            {
+                "schema": IDENTITY_CONFIG_SCHEMA,
+                "repository_identities": ["git@gitlab.com:example/consumer.git", "legacy/alias"],
+            }
+        ),
+    )
+    result = install_external_tree_identity_config(
+        repo,
+        framework,
+        repository_identities=("https://gitlab.com/example/consumer.git",),
+    )
+
+    assert result.ok is True, result.errors
+    values = json.loads(config.read_text(encoding="utf-8"))["repository_identities"]
+    assert values == [
+        "git@gitlab.com:example/consumer.git",
+        "legacy/alias",
+        "https://gitlab.com/example/consumer.git",
+        REPOSITORY_ROOT_TOKEN,
+    ]
+
+
+def test_invalid_identity_config_is_not_overwritten_or_partially_installed(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _make_framework(framework)
+    config = repo / IDENTITY_CONFIG_REL
+    invalid = b'{"schema":"wrong","repository_identities":["example/consumer"]}\n'
+    config.parent.mkdir(parents=True)
+    config.write_bytes(invalid)
+
+    result = _install_governance_hooks(
+        repo,
+        framework,
+        include_copilot=False,
+        repository_identities=(TEST_REPOSITORY_ID,),
+    )
+
+    assert result.ok is False
+    assert config.read_bytes() == invalid
+    assert not (repo / ".git" / "hooks" / "pre-push").exists()
+
+
+def test_external_consumer_install_allows_clean_push_and_blocks_external_inventory(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "consumer"
+    bare = tmp_path / "remote.git"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    bare.mkdir()
+    _run(["git", "init", "--bare"], cwd=bare)
+    _run(["git", "init"], cwd=repo)
+    _run(["git", "config", "user.email", "test@example.com"], cwd=repo)
+    _run(["git", "config", "user.name", "Test User"], cwd=repo)
+    _run(["git", "remote", "add", "origin", bare.as_posix()], cwd=repo)
+    _make_push_framework(framework)
+
+    installed = _install_governance_hooks(repo, framework, include_copilot=False)
+    assert installed.ok is True, installed.errors
+    _write(repo / "README.md", "clean consumer\n")
+    _run(["git", "add", "README.md", IDENTITY_CONFIG_REL.as_posix()], cwd=repo)
+    _run(["git", "commit", "--no-verify", "-m", "initial clean consumer"], cwd=repo)
+    clean_commit = _run(["git", "rev-parse", "HEAD"], cwd=repo)
+
+    clean_push = subprocess.run(
+        ["git", "push", "origin", "HEAD:refs/heads/main"],
+        cwd=repo,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert clean_push.returncode == 0, clean_push.stdout
+
+    inventory = {
+        "repository": "example/private-consumer",
+        "inventory": [
+            {"path": f"private/{index}.txt", "oid": f"{index:040x}"}
+            for index in range(120)
+        ],
+    }
+    _write(repo / "external-inventory.json", json.dumps(inventory))
+    _run(["git", "add", "external-inventory.json"], cwd=repo)
+    _run(["git", "commit", "--no-verify", "-m", "add external inventory"], cwd=repo)
+
+    blocked_push = subprocess.run(
+        ["git", "push", "origin", "HEAD:refs/heads/main"],
+        cwd=repo,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert blocked_push.returncode != 0, blocked_push.stdout
+    assert "status: BLOCKED" in blocked_push.stdout
+    assert "already present in your unpushed history" in blocked_push.stdout
+    assert "deleting the file in a later commit does not remove" in blocked_push.stdout
+    assert "amend, rebase, or filter" in blocked_push.stdout
+    assert "run git fetch" not in blocked_push.stdout
+    assert _run(["git", "rev-parse", "refs/heads/main"], cwd=bare) == clean_commit
+
+
+def test_external_consumer_hook_missing_remote_old_object_recommends_fetch(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "consumer"
+    bare = tmp_path / "remote.git"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    bare.mkdir()
+    _run(["git", "init", "--bare"], cwd=bare)
+    _run(["git", "init"], cwd=repo)
+    _run(["git", "config", "user.email", "test@example.com"], cwd=repo)
+    _run(["git", "config", "user.name", "Test User"], cwd=repo)
+    _run(["git", "remote", "add", "origin", bare.as_posix()], cwd=repo)
+    _make_push_framework(framework)
+    installed = _install_governance_hooks(repo, framework, include_copilot=False)
+    assert installed.ok is True, installed.errors
+    _write(repo / "README.md", "clean consumer\n")
+    _run(["git", "add", "README.md", IDENTITY_CONFIG_REL.as_posix()], cwd=repo)
+    _run(["git", "commit", "--no-verify", "-m", "initial clean consumer"], cwd=repo)
+    local_oid = _run(["git", "rev-parse", "HEAD"], cwd=repo)
+    missing_remote_oid = "f" * 40
+    hook_input = (
+        f"refs/heads/main {local_oid} refs/heads/main {missing_remote_oid}\n"
+    )
+
+    completed = subprocess.run(
+        [BASH_COMMAND, (repo / ".git" / "hooks" / "pre-push").as_posix(), "origin", bare.as_posix()],
+        cwd=repo,
+        input=hook_input,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+    assert completed.returncode != 0, completed.stdout
+    assert "run git fetch and retry" in completed.stdout
+    assert "already present in your unpushed history" not in completed.stdout
 
 
 def test_install_governance_hooks_uses_common_hook_dir_for_linked_worktree(tmp_path: Path) -> None:
@@ -484,7 +723,7 @@ def test_shell_installer_fails_loudly_when_copilot_merge_is_refused() -> None:
     relative_target = repo.relative_to(REPO_ROOT).as_posix()
 
     completed = subprocess.run(
-        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        [BASH_COMMAND, "scripts/install-hooks.sh", "--target", relative_target, "--repository-id", TEST_REPOSITORY_ID, "--no-verify"],
         cwd=REPO_ROOT,
         text=True,
         encoding="utf-8",
@@ -508,7 +747,7 @@ def test_shell_installer_preserves_consumer_instructions_end_to_end() -> None:
     relative_target = repo.relative_to(REPO_ROOT).as_posix()
 
     completed = subprocess.run(
-        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        [BASH_COMMAND, "scripts/install-hooks.sh", "--target", relative_target, "--repository-id", TEST_REPOSITORY_ID, "--no-verify"],
         cwd=REPO_ROOT,
         text=True,
         encoding="utf-8",
@@ -537,12 +776,17 @@ def test_shell_installer_deploys_copilot_lifecycle_surface() -> None:
     relative_target = repo.relative_to(REPO_ROOT).as_posix()
 
     completed = subprocess.run(
-        ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"],
+        [BASH_COMMAND, "scripts/install-hooks.sh", "--target", relative_target, "--repository-id", TEST_REPOSITORY_ID, "--no-verify"],
         cwd=REPO_ROOT, text=True, encoding="utf-8", errors="replace",
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
     )
 
     assert completed.returncode == 0, completed.stdout
+    identity_document = json.loads((repo / IDENTITY_CONFIG_REL).read_text(encoding="utf-8"))
+    assert identity_document == {
+        "schema": IDENTITY_CONFIG_SCHEMA,
+        "repository_identities": [TEST_REPOSITORY_ID, REPOSITORY_ROOT_TOKEN],
+    }
     hooks = repo / ".github" / "hooks"
     for name in (
         "ai-governance-lifecycle.py",
@@ -704,7 +948,15 @@ def test_shell_installer_backs_up_edited_lifecycle_file_end_to_end() -> None:
     repo = _shell_fixture_repo("lifecycle_edit")
     _run(["git", "init"], cwd=repo)
     relative_target = repo.relative_to(REPO_ROOT).as_posix()
-    shell = ["bash", "scripts/install-hooks.sh", "--target", relative_target, "--no-verify"]
+    shell = [
+        BASH_COMMAND,
+        "scripts/install-hooks.sh",
+        "--target",
+        relative_target,
+        "--repository-id",
+        TEST_REPOSITORY_ID,
+        "--no-verify",
+    ]
 
     first = subprocess.run(
         shell, cwd=REPO_ROOT, text=True, encoding="utf-8", errors="replace",

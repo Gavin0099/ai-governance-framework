@@ -97,14 +97,31 @@ if [ ! -f "$EXTERNAL_TREE_GUARD" ]; then
 fi
 
 echo "[governance] scanning pre-push newly-reachable JSON object closure"
-if ! "${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" \
+set +e
+"${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" \
     --pre-push-updates \
     --repo-root "$TARGET_REPO_ROOT" \
     --identity-config "$EXTERNAL_TREE_IDENTITY_CONFIG" \
-    --format human; then
+    --format human
+EXTERNAL_TREE_GUARD_STATUS=$?
+set -e
+if [ "$EXTERNAL_TREE_GUARD_STATUS" -ne 0 ]; then
     governance_error "pre-push external tree inventory guard blocked the push"
-    echo "  inspect the diagnostic above; fetch missing remote objects before retrying" >&2
-    echo "  bypass once: git push --no-verify" >&2
+    case "$EXTERNAL_TREE_GUARD_STATUS" in
+        1|2|3)
+            echo "  the reported blob is already present in your unpushed history" >&2
+            echo "  deleting the file in a later commit does not remove that blob" >&2
+            echo "  amend, rebase, or filter the introducing history, then retry" >&2
+            ;;
+        4)
+            echo "  scanner setup/object resolution failed; inspect the diagnostic above" >&2
+            echo "  if the remote old object is missing locally, run git fetch and retry" >&2
+            ;;
+        *)
+            echo "  inspect the diagnostic above and repair the scanner failure before retrying" >&2
+            ;;
+    esac
+    echo "  emergency bypass only (disables all pre-push governance): git push --no-verify" >&2
     exit 1
 fi
 
