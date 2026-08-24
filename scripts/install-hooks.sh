@@ -23,6 +23,8 @@ VERIFY_AFTER_INSTALL=true
 # Any managed surface that could not be installed sets this. A partial install
 # must not report success — the caller has to be able to tell from the exit code.
 INSTALL_FAILED=false
+REPOSITORY_IDS=()
+REPOSITORY_ID_COUNT=0
 
 # ── 參數解析 ──────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -39,8 +41,13 @@ while [[ $# -gt 0 ]]; do
             VERIFY_AFTER_INSTALL=false
             shift
             ;;
+        --repository-id)
+            REPOSITORY_IDS+=("$2")
+            REPOSITORY_ID_COUNT=$((REPOSITORY_ID_COUNT + 1))
+            shift 2
+            ;;
         *)
-            echo "用法: bash scripts/install-hooks.sh [--target /path/to/repo] [--dry-run] [--no-verify]"
+            echo "用法: bash scripts/install-hooks.sh [--target /path/to/repo] [--repository-id owner/repo] [--dry-run] [--no-verify]"
             exit 1
             ;;
     esac
@@ -69,6 +76,40 @@ else
     echo "🔎 安裝後驗證: 停用 (--no-verify)"
 fi
 echo ""
+
+# ── 建立 consumer repository identity authority ────────────────────────────
+# Keep identity merge/validation in the Python installer. The shell entrypoint
+# supplies only explicit CLI values; otherwise Python reads the exact origin URL.
+if [ "$DRY_RUN" = true ]; then
+    echo "  [dry-run] 建立/合併 external-tree repository identity config"
+else
+    if [ ! -f "$PYTHON_LIB" ]; then
+        echo "  ❌ 找不到 Python helper，無法建立 repository identity config: $PYTHON_LIB"
+        exit 1
+    fi
+    . "$PYTHON_LIB"
+    if ! set_python_cmd; then
+        echo "  ❌ 找不到 Python，無法建立 repository identity config"
+        print_python_resolution_help "install-hooks"
+        exit 1
+    fi
+    IDENTITY_ARGS=(
+        --repo "$(realpath "$TARGET_REPO")"
+        --framework-root "$FRAMEWORK_ROOT"
+        --identity-config-only
+    )
+    if [ "$REPOSITORY_ID_COUNT" -gt 0 ]; then
+        for repository_id in "${REPOSITORY_IDS[@]}"; do
+            IDENTITY_ARGS+=(--repository-id "$repository_id")
+        done
+    fi
+    if ! PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer "${IDENTITY_ARGS[@]}"; then
+        echo "  ❌ repository identity config 建立失敗；hooks 尚未修改"
+        exit 1
+    fi
+    echo "  ✅ repository identity config 已建立/驗證"
+    echo "  ℹ️  請檢視並提交 governance/external-tree-inventory-guard.json"
+fi
 
 # ── 安裝每個 hook ─────────────────────────────────────────────────────────
 INSTALLED=0

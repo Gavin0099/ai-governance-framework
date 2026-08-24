@@ -1,0 +1,266 @@
+{
+  "schema": "c1-stryker-sidecar-probe-manifest.v1",
+  "status": "PRE_RUN_INPUTS_DEFINED_NOT_EXECUTED",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-01",
+  "created_date": "2026-08-21",
+  "framework_base_commit": "955d12dbee88cd5489b48122784bfb114401a8c1",
+  "authority": {
+    "owner_authority": "2026-08-21 explicit DONE for one fresh C1 Stryker sidecar materialization boundary probe",
+    "scope": [
+      "materialize a Stryker tool graph outside the consumer dependency graph",
+      "resolve and bind the actual plugin entry before execution",
+      "prove tool, plugin, and active consumer Vitest resolution domains",
+      "prove the consumer dependency graph is unchanged by execution",
+      "run a public-fixture Stryker dry run and mutation run",
+      "audit mounts, raw-output leakage, timeout, OOM, and observed cost"
+    ],
+    "not_authorized": [
+      "repair in place or a second probe attempt",
+      "Gate 1 preregistration, approval, or freeze",
+      "A, B, C, or D arm creation or execution",
+      "producer, scorer, model, hidden-oracle, or historical-fix execution",
+      "consumer worktree checkout, pull, edit, install, mount, or branch change",
+      "C2, C3, Route C, or reusable-validator architecture claims",
+      "validator-effect or Skill-effect claims"
+    ]
+  },
+  "prior_probe": {
+    "merge_commit": "955d12dbee88cd5489b48122784bfb114401a8c1",
+    "terminal": "VALIDATOR_PROBE_FAILED",
+    "terminal_sha256": "acdba9d8ea6e1953453fec7c1e266c30463272eeedcef4ffb13b5acd2a630977",
+    "finding": "Installing verified local validator tarballs inside the historical consumer tree triggered root dependency reconciliation before Stryker or Vitest executed."
+  },
+  "source": {
+    "repository_path_read_only_for_archive_only": "D:/meiandraybook",
+    "remote_url": "https://github.com/Gavin0099/meiandraybook.git",
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "consumer_vitest_manifest_range": "^4.0.18",
+    "consumer_vitest_lock_version": "4.0.18",
+    "materialization": "git archive of the exact baseline into disposable sibling baseline and consumer roles",
+    "consumer_worktree_mounted": false,
+    "consumer_worktree_mutation_allowed": false,
+    "historical_fix_mounted_or_applied": false
+  },
+  "execution_environment": {
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "expected_node": "v22.23.2",
+    "expected_npm": "10.9.8",
+    "entry_process_working_directory": "/consumer",
+    "worker_cwd_note": "Stryker workers may chdir into a sandbox below /consumer. symlinkNodeModules must make the runtime Vitest realpath resolve back under /consumer/node_modules.",
+    "network": "enabled only for npm ci in the disposable /tool and /consumer roles; disabled for resolution, fingerprint, dry-run, mutation, mount audit, and leakage scan",
+    "limits": {
+      "cpus": 2,
+      "memory": "2g",
+      "pids_limit": 512,
+      "tool_npm_ci_timeout_seconds": 300,
+      "consumer_npm_ci_timeout_seconds": 600,
+      "dry_run_timeout_seconds": 300,
+      "mutation_timeout_seconds": 300,
+      "total_wall_seconds_cost_ceiling": 900
+    }
+  },
+  "tool_graph": {
+    "package_lock_sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c",
+    "package_lock_bytes": 126501,
+    "packages": [
+      {
+        "name": "@stryker-mutator/core",
+        "version": "10.0.0",
+        "resolved": "https://registry.npmjs.org/@stryker-mutator/core/-/core-10.0.0.tgz",
+        "integrity": "sha512-ZvMsRyaXQQ5e6Thcid9pkuODv6Fn9E3nrBQJUap+hcJuGJ4unm26afo3m6YKSjn8kinyxJ/3TXf0cTWRDaTxVw=="
+      },
+      {
+        "name": "@stryker-mutator/vitest-runner",
+        "version": "10.0.0",
+        "resolved": "https://registry.npmjs.org/@stryker-mutator/vitest-runner/-/vitest-runner-10.0.0.tgz",
+        "integrity": "sha512-SHK2/vfvRUpiz7jXPnQMBnr6zLdm69DK03Mo5mPhaZWcRSygrKUqYsPqWsXsK+5ySHzlMTfCyFK5NQ/X9sJFFw=="
+      },
+      {
+        "name": "vitest",
+        "version": "4.0.18",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.18.tgz",
+        "integrity": "sha512-hOQuK7h0FGKgBAas7v0mSAsnvrIgAvWmRFjmzpJ7SwFHH3g1k2u37JtYwOwmEKhK6ZO3v9ggDBBm0La1LCK4uQ==",
+        "reason": "The runner has a static vitest/node import before its project-local override. The tool copy satisfies that import; machine evidence must still prove the active runtime realpath is under /consumer/node_modules."
+      }
+    ]
+  },
+  "input_authoring_disclosure": {
+    "probe_execution_started": false,
+    "vitest_4_1_10_package_lock_only": "npm 10.9.8 internal edgesOut null failure in a disposable tool-authoring root",
+    "vitest_4_1_10_normal_install": "the same npm internal failure in a fresh disposable tool-authoring root",
+    "isolated_diagnostics": "core 10.0.0 passed; runner 10.0.0 passed; Vitest 4.1.10 failed; Vitest 4.0.18 passed",
+    "selected_tool_vitest": "4.0.18, matching the frozen consumer version and successfully materialized before pre-run freeze",
+    "claim_limit": "These are input-authoring observations, not a sidecar probe result."
+  },
+  "plugin_binding": {
+    "core_cli_path": "/tool/node_modules/@stryker-mutator/core/bin/stryker.js",
+    "core_cli_sha256": "68ff1362368a0cf3d26c4b76955667dff7bf08baffc68d2ffd9bdd0cf6dbbd89",
+    "plugin_entry_path": "/tool/node_modules/@stryker-mutator/vitest-runner/dist/src/index.js",
+    "plugin_entry_sha256": "094dfe20dc1e057ee6fb40deecd1693ca85ad8aa0aa905407fe7158fff5a1998",
+    "plugin_export_verified": true,
+    "binding_surface": "plugin-entry-binding.json"
+  },
+  "committed_inputs": [
+    {
+      "path": "tool/package.json",
+      "sha256": "b897175c96811370e4df32c1cbc76a63b45c854b70b04a94af68f238c3345434",
+      "bytes": 299
+    },
+    {
+      "path": "tool/package-lock.json",
+      "sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c",
+      "bytes": 126501
+    },
+    {
+      "path": "plugin-entry-binding.json",
+      "sha256": "e2792c940e39ac0b0acef954da10cb5040fc0e73ceba4504c60c9f07230f3a79",
+      "bytes": 979
+    },
+    {
+      "path": "resolution-probe.mjs",
+      "sha256": "53c18253be487406e44f317c8daaf2e2601714fb093fb2cd21293fb71fdecfa2",
+      "bytes": 4268
+    },
+    {
+      "path": "dependency-graph-fingerprint.mjs",
+      "sha256": "a78845998a90f1286f53d4199fa0ba43946e5dd0f7f89bfbc12af26cb00302fe",
+      "bytes": 1849
+    },
+    {
+      "path": "stryker.sidecar.config.mjs",
+      "sha256": "ef751d9f09ce352c2d6f9f4280ab14cc6a00a6d06274eed41ada515dbccbf45e",
+      "bytes": 1878
+    },
+    {
+      "path": "vitest.sidecar-probe.config.mjs",
+      "sha256": "4eb51b10ac2bfc9eb548065482896ec14fe1e79481801a81d874fcde9343b566",
+      "bytes": 1863
+    }
+  ],
+  "reused_committed_inputs": [
+    {
+      "path": "../c1-stryker/diff_to_mutation_ranges.py",
+      "sha256": "c0b9a2698dae56525d5bcf1c9a6afce7a66aed7699ee847b65646a123aeb10ad",
+      "bytes": 6614
+    },
+    {
+      "path": "../c1-stryker/probe-fixture/src/validator-probe-fixture.ts",
+      "sha256": "5cb65c2a697934e921a45ef51a760dbd0f0d81e5229190dd38cd2539a4f9374e",
+      "bytes": 169
+    },
+    {
+      "path": "../c1-stryker/probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "sha256": "3089b6c474f3217a4feec332c62b2eca5cc19d4308c11093294546356c313f2f",
+      "bytes": 368
+    }
+  ],
+  "materialization_contract": {
+    "input_bytes_source": "extract every input from the pushed pre-run Git commit, never from checkout working bytes",
+    "roles": ["baseline", "consumer", "tool", "probe-input", "evidence"],
+    "consumer_overlay": [
+      "public production fixture",
+      "public fixture test",
+      "vitest.sidecar-probe.config.mjs"
+    ],
+    "expected_mutate_ranges": ["src/validator-probe-fixture.ts:1-4"],
+    "expected_excluded_changed_paths": [
+      "src/__tests__/validator-probe-fixture.test.ts",
+      "vitest.sidecar-probe.config.mjs"
+    ],
+    "docker_mount_allowlist": ["/consumer", "/tool", "/probe-input", "/evidence"],
+    "consumer_host_worktree_mount_forbidden": true
+  },
+  "consumer_graph_contract": {
+    "allowed_dependency_command": "npm ci only, before the network-none execution phase",
+    "forbidden_commands": ["npm install", "npm update", "npm audit fix", "npx with package download"],
+    "before_after_equal_fields": [
+      "package_json_sha256",
+      "package_lock_sha256",
+      "node_modules_package_lock_sha256",
+      "npm_ls_exit_code",
+      "npm_ls_canonical_sha256",
+      "npm_ls_stderr_sha256"
+    ],
+    "mismatch_terminal": "CONSUMER_GRAPH_CHANGED"
+  },
+  "resolution_contract": {
+    "entry_process_cwd": "/consumer",
+    "core_realpath_prefix": "/tool/node_modules/",
+    "plugin_realpath_prefix": "/tool/node_modules/",
+    "consumer_vitest_version": "4.0.18",
+    "active_vitest_realpath_prefix": "/consumer/node_modules/",
+    "runtime_evidence": "The dedicated public Vitest config writes a resolution record outside the consumer tree whenever the active Vitest loads it. Every dry-run and mutation record must satisfy the active Vitest prefix and version.",
+    "failure_terminal": "SIDECAR_RESOLUTION_FAILED"
+  },
+  "procedure": {
+    "pre_run_requirements": [
+      "the commit containing this manifest and every input is pushed before any disposable probe role is created",
+      "remote branch head equals the local pre-run commit",
+      "every declared input is extracted from that Git commit and matches its SHA-256 and byte length",
+      "the exact consumer baseline commit and tree exist"
+    ],
+    "network_phase": [
+      "npm ci in /tool from the committed sidecar package and lock",
+      "npm ci in /consumer from the frozen historical package and lock",
+      "no other package command and no package command after network is disabled"
+    ],
+    "network_none_phase": [
+      "derive and require the exact public-fixture changed-line mutation range",
+      "capture the pre-execution consumer dependency-graph fingerprint",
+      "run the exact resolution probe from /consumer",
+      "run and validate a timeout sentinel",
+      "run one Stryker dry run from /consumer using the core CLI and plugin under /tool",
+      "run one public-fixture mutation run with the same config and inputs",
+      "capture the post-execution graph fingerprint and compare every contract field",
+      "inspect Docker mounts and resource states",
+      "scan every created raw output and report for denied information"
+    ],
+    "repair_in_place": false
+  },
+  "non_leakage": {
+    "forbidden_inputs": [
+      "hidden scorer oracle",
+      "historical fix tree or diff",
+      "Gate 0 attempt artifacts",
+      "method-sensitivity or proposal analysis",
+      "coordinator root-cause analysis"
+    ],
+    "case_insensitive_denied_literals": [
+      "a607564",
+      "softmap",
+      "softmissbooks",
+      "master-existing",
+      "mixed-batch",
+      "attempt-c1",
+      "oracle_does_not_discriminate",
+      "gate3-c1-method-sensitivity",
+      "gate1-c1-bugfix-skill-proposal"
+    ],
+    "scan_surfaces": [
+      "range adapter stdout, stderr, and JSON",
+      "resolution probe stdout and stderr",
+      "dependency fingerprints",
+      "Stryker dry-run stdout and stderr",
+      "Stryker mutation stdout, stderr, and JSON report",
+      "Vitest runtime-resolution records"
+    ],
+    "any_denied_match_terminal": "SIDECAR_LEAKAGE_BLOCKED"
+  },
+  "classification": {
+    "SIDECAR_BOUNDARY_PASSED": "all requested resolution, graph, dry-run, mutation, leakage, timeout, resource, and cost checks pass",
+    "CONSUMER_GRAPH_CHANGED": "any consumer dependency-graph invariant changes after npm ci and before terminal evidence",
+    "SIDECAR_RESOLUTION_FAILED": "tool graph, plugin binding, cwd, consumer Vitest resolution, range, dry-run, mutation, timeout classification, or other functional execution requirement fails",
+    "SIDECAR_LEAKAGE_BLOCKED": "any forbidden input is mounted or any scanned raw surface contains a denied literal",
+    "SIDECAR_COST_BLOCKED": "functional execution succeeds but exceeds the total wall-time ceiling or a declared resource limit",
+    "precedence": [
+      "SIDECAR_LEAKAGE_BLOCKED",
+      "CONSUMER_GRAPH_CHANGED",
+      "SIDECAR_COST_BLOCKED",
+      "SIDECAR_RESOLUTION_FAILED",
+      "SIDECAR_BOUNDARY_PASSED"
+    ]
+  },
+  "claim_ceiling": "This probe may establish only whether this exact C1/Stryker sidecar boundary can load the pinned tool/plugin, use the frozen consumer Vitest and dependency graph, mutate the public fixture, avoid denied information on scanned exact surfaces, and fit the observed bounded environment. It cannot establish C1 mutation quality, D-C benefit, validator effect, Skill effect, general sidecar reuse, Gate 1 readiness, preregistration, freeze, or any arm result."
+}

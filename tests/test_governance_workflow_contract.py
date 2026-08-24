@@ -66,6 +66,57 @@ def test_governance_workflow_runs_selective_memory_blocker() -> None:
     assert '--head-ref "$HEAD_REF"' in job_section
 
 
+def test_runtime_enforcement_fails_closed_on_inventory_enumeration_and_guard_failures() -> None:
+    text = _workflow_text()
+    job_section = _section(
+        text,
+        "  runtime-enforcement:",
+        "  bash32-runtime-compatibility:",
+    )
+    guard_step = _section(
+        job_section,
+        "      - name: Enforce external tree inventory disclosure guard",
+        "      - name: Run runtime governance enforcement",
+    )
+
+    assert 'json_list_path="$RUNNER_TEMP/external-tree-inventory-files.zlist"' in guard_step
+    assert "if ! git ls-files -z -- '*.json' > \"$json_list_path\"; then" in guard_step
+    assert "could not enumerate tracked JSON files" in guard_step
+    assert "mapfile" not in guard_step
+    assert "while IFS= read -r -d '' json_file; do" in guard_step
+    assert 'done < "$json_list_path"' in guard_step
+    assert 'json_file_count=$((json_file_count + 1))' in guard_step
+    assert '[ "$json_file_count" -eq 0 ]' in guard_step
+    assert "found no tracked JSON files; enumeration is invalid" in guard_step
+    assert "passed: no tracked JSON files" not in guard_step
+    assert "python -m governance_tools.external_tree_inventory_guard" in guard_step
+    assert "--repo-root ." in guard_step
+    assert "--identity-config governance/external-tree-inventory-guard.json" in guard_step
+    assert "--repository-id Gavin0099/ai-governance-framework" not in guard_step
+    assert '"${json_files[@]}"' in guard_step
+    assert 'guard_status=$?' in guard_step
+    assert '[ "$guard_status" -ne 0 ]' in guard_step
+    assert 'cat "$report_path"' in guard_step
+    assert 'exit "$guard_status"' in guard_step
+    assert "continue-on-error" not in guard_step
+    assert "External tree inventory guard passed for $json_file_count" in guard_step
+    assert job_section.index("external_tree_inventory_guard") < job_section.index(
+        "bash scripts/run-runtime-governance.sh --mode ci"
+    )
+
+
+def test_bash32_job_selects_pre_push_object_guard_behaviour() -> None:
+    text = _workflow_text()
+    job_section = _section(
+        text,
+        "  bash32-runtime-compatibility:",
+        "  interception-ledger-check:",
+    )
+
+    assert "Run pre-push prerequisite regressions under Bash 3.2" in job_section
+    assert "pre_push_object_guard" in job_section
+
+
 def test_governance_workflow_triggers_on_canonical_governance_surfaces() -> None:
     text = _workflow_text()
     push_section = _section(text, "  push:", "  pull_request:")

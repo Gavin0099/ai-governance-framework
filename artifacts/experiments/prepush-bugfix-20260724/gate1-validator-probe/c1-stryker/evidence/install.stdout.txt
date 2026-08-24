@@ -1,0 +1,20 @@
+
+added 737 packages, and audited 738 packages in 5m
+
+218 packages are looking for funding
+  run `npm fund` for details
+
+23 vulnerabilities (3 low, 16 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible, run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+/packages/core-10.0.0.tgz: OK
+/packages/vitest-runner-10.0.0.tgz: OK

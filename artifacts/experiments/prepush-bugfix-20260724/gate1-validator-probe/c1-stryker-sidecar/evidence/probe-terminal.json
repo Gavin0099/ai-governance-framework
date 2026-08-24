@@ -1,0 +1,120 @@
+{
+  "schema": "c1-stryker-sidecar-probe-terminal.v1",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-01",
+  "terminal": "SIDECAR_RESOLUTION_FAILED",
+  "completed_at_utc": "2026-08-21T10:09:25.0859480Z",
+  "authority": "Owner-authorized single fresh C1 Stryker sidecar materialization boundary probe",
+  "bindings": {
+    "pre_run_commit": "f7831551e2988e590734288de66fff2db1c5369c",
+    "pushed_ref": "origin/codex/c1-stryker-sidecar-probe",
+    "manifest_sha256": "2222593ca3bd7960b92734eb3a96c6c0ce06c8e7a2c0d0778b9df4a42cc0a11f",
+    "manifest_bytes": 12886,
+    "source_baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "source_baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a"
+  },
+  "checks": {
+    "pre_run_remote_binding": "PASS",
+    "exact_git_archives": "PASS",
+    "exact_input_role_copy": {
+      "status": "FAIL",
+      "error_code": "POWERSHELL_LITERAL_WILDCARD_NOT_EXPANDED",
+      "root_cause": "The orchestration used Copy-Item -LiteralPath with a wildcard, so sidecar inputs were not copied into probe-input."
+    },
+    "diff_to_mutation_range": {
+      "status": "FAIL_EXPECTED_EXCLUSION_SET",
+      "mutate_ranges": [
+        "src/validator-probe-fixture.ts:1-4"
+      ],
+      "observed_excluded_paths": [
+        "src/__tests__/validator-probe-fixture.test.ts"
+      ],
+      "missing_expected_excluded_path": "vitest.sidecar-probe.config.mjs",
+      "relationship": "DOWNSTREAM_CONSEQUENCE_OF_INPUT_COPY_FAILURE"
+    },
+    "tool_npm_ci": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "consumer_npm_ci": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "consumer_dependency_graph": "NOT_MEASURED",
+    "resolution_probe": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "timeout_sentinel": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "stryker_dry_run": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "mutation_run": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "runtime_vitest_resolution": "NOT_RUN_DUE_TO_MATERIALIZATION_FAILURE",
+    "docker_mounts": {
+      "status": "NO_CONTAINER_CREATED",
+      "consumer_worktree_mounted": false,
+      "hidden_input_mounted": false
+    },
+    "raw_output_non_leakage": {
+      "status": "PASS_FOR_CREATED_SURFACES",
+      "denied_match_count": 0,
+      "uncreated_surfaces_not_claimed": true
+    },
+    "runtime_resources": {
+      "status": "OBSERVED_MATERIALIZATION_ONLY",
+      "materialization_wall_seconds": 3.317,
+      "docker_cpu_memory_pid_limits": "NOT_INVOKED",
+      "total_cost_claim": "NOT_EVALUATED_FUNCTIONALLY"
+    }
+  },
+  "classification": {
+    "precedence_applied": [
+      "SIDECAR_LEAKAGE_BLOCKED",
+      "CONSUMER_GRAPH_CHANGED",
+      "SIDECAR_COST_BLOCKED",
+      "SIDECAR_RESOLUTION_FAILED",
+      "SIDECAR_BOUNDARY_PASSED"
+    ],
+    "leakage_blocked": false,
+    "consumer_graph_changed": "NOT_MEASURED",
+    "cost_blocked": "NOT_EVALUATED_BECAUSE_FUNCTIONAL_EXECUTION_DID_NOT_START",
+    "resolution_failed": true,
+    "selected_terminal": "SIDECAR_RESOLUTION_FAILED"
+  },
+  "fail_closed_reasons": [
+    "Exact sidecar inputs were not copied into their disposable role because the orchestration treated a wildcard literally.",
+    "The frozen range exclusion set therefore did not match.",
+    "No corrected copy command, Docker container, npm command, resolution probe, dry run, or mutation run was executed."
+  ],
+  "repair_in_place": false,
+  "retry_authorized": false,
+  "artifacts": [
+    {
+      "path": "materialization-failure.json",
+      "sha256": "a2303a0fb0496d2f9d040f2fd2d62895b29bcd73b7bee04fb68147878646a9be",
+      "bytes": 1780
+    },
+    {
+      "path": "non-leakage-scan.json",
+      "sha256": "fdf03bf5c3e74cfce9c1f30e4f03eb6ccef408f3eb82db6556d72c319d4b2b02",
+      "bytes": 1159
+    },
+    {
+      "path": "mutation-ranges.json",
+      "sha256": "7a55249eed585eefc24eb0e41a9b8accde9e79577c8d51216a8051087b750ca0",
+      "bytes": 530
+    },
+    {
+      "path": "range-adapter.stdout.txt",
+      "sha256": "a26f14895b84c47cd29fa74878361cf6733403b6720251e681edbcb9b6a858d6",
+      "bytes": 186
+    },
+    {
+      "path": "range-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "claim_ceiling": "This terminal establishes only that the single remote-bound sidecar probe failed during disposable input materialization before Docker, dependency, resolution, Vitest, or mutation execution. It preserves a zero-hit scan for the three created raw range surfaces. It does not establish sidecar feasibility, consumer graph stability, active Vitest resolution, Stryker compatibility, general non-leakage, cost fitness, Gate 1 readiness, validator effect, Skill effect, preregistration, freeze, or any arm result.",
+  "not_claimed": [
+    "sidecar boundary passed",
+    "consumer graph unchanged",
+    "core/plugin/active Vitest resolution",
+    "Stryker dry-run or mutation result",
+    "general non-leakage",
+    "cost fitness",
+    "Gate 1 readiness",
+    "validator or Skill effect",
+    "preregistration or freeze",
+    "A/B/C/D result"
+  ]
+}

@@ -1,61 +1,139 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # pre-push hook - AI Governance Framework
 # Enforces runtime governance checks. Memory policy is owned by the canonical
 # CI gate and its advisory pre-commit mirror, not by pre-push.
 
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"
-FRAMEWORK_ROOT="${AI_GOVERNANCE_FRAMEWORK_ROOT:-}"
-HOOK_CONFIG="$HOOK_DIR/ai-governance-framework-root"
-if [ -z "$FRAMEWORK_ROOT" ] && [ -f "$HOOK_CONFIG" ]; then
-    FRAMEWORK_ROOT="$(cat "$HOOK_CONFIG")"
-fi
-if [ -z "$FRAMEWORK_ROOT" ]; then
-    FRAMEWORK_ROOT="$TARGET_REPO_ROOT"
+governance_error() {
+    echo "[governance] error: $*" >&2
+}
+
+if ! command -v git >/dev/null 2>&1; then
+    governance_error "git is required by the pre-push hook"
+    exit 1
 fi
 
-case "$FRAMEWORK_ROOT" in
-    [A-Za-z]:*)
-        DRIVE="${FRAMEWORK_ROOT:0:1}"
-        DRIVE_PATH="${FRAMEWORK_ROOT:2}"
-        DRIVE_PATH="${DRIVE_PATH//\\//}"
-        DRIVE_LOWER="$(printf '%s' "$DRIVE" | tr '[:upper:]' '[:lower:]')"
-        if [ -d "/mnt/$DRIVE_LOWER/$DRIVE_PATH" ]; then
-            FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"
-        elif [ -d "/$DRIVE_LOWER/$DRIVE_PATH" ]; then
-            FRAMEWORK_ROOT="/$DRIVE_LOWER/$DRIVE_PATH"
-        fi
-        ;;
-esac
-    FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"
+HOOK_PATH="${BASH_SOURCE[0]}"
+HOOK_PARENT="${HOOK_PATH%/*}"
+if [ "$HOOK_PARENT" = "$HOOK_PATH" ]; then
+    HOOK_PARENT="."
+fi
+if ! HOOK_DIR="$(cd -- "$HOOK_PARENT" && pwd -P)"; then
+    governance_error "cannot resolve hook directory from: $HOOK_PATH"
+    exit 1
+fi
+
+if ! TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+    if ! TARGET_REPO_ROOT="$(git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null)"; then
+        governance_error "cannot resolve target repository root"
+        exit 1
+    fi
+fi
+
+FRAMEWORK_ROOT="${AI_GOVERNANCE_FRAMEWORK_ROOT:-}"
+HOOK_CONFIG="$HOOK_DIR/ai-governance-framework-root"
+if [ -z "$FRAMEWORK_ROOT" ]; then
+    if [ ! -f "$HOOK_CONFIG" ]; then
+        governance_error "framework root config is missing: $HOOK_CONFIG"
+        exit 1
+    fi
+    FRAMEWORK_ROOT=""
+    IFS= read -r FRAMEWORK_ROOT < "$HOOK_CONFIG" || true
+fi
+
+FRAMEWORK_ROOT="${FRAMEWORK_ROOT%$'\r'}"
+FRAMEWORK_ROOT="${FRAMEWORK_ROOT//\\//}"
+if [ -z "$FRAMEWORK_ROOT" ]; then
+    governance_error "framework root is not configured"
+    exit 1
+fi
+if [ ! -d "$FRAMEWORK_ROOT" ]; then
+    governance_error "framework root does not exist: $FRAMEWORK_ROOT"
+    exit 1
+fi
+
+# WSL drive-path mapping is intentionally unsupported. The installer writes a
+# path native to the shell environment that owns the hook. Git for Windows Bash
+# accepts slash-normalized drive paths such as D:/repo directly.
+FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"
 
 PYTHON_LIB="$FRAMEWORK_ROOT/scripts/lib/python.sh"
 if [ ! -f "$PYTHON_LIB" ]; then
-    echo "[governance] warning: missing framework Python helper: $PYTHON_LIB"
-    exit 0
+    governance_error "missing framework Python helper: $PYTHON_LIB"
+    exit 1
 fi
 . "$PYTHON_LIB"
+
+if ! type set_python_cmd >/dev/null 2>&1; then
+    governance_error "framework Python helper does not define set_python_cmd"
+    exit 1
+fi
+
+PYTHON_CMD=()
+if ! set_python_cmd; then
+    governance_error "Python is required by the pre-push hook"
+    exit 1
+fi
+if [ -z "${PYTHON_CMD[*]-}" ]; then
+    governance_error "framework Python helper did not select a Python command"
+    exit 1
+fi
 
 TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
 VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
+EXTERNAL_TREE_GUARD="$FRAMEWORK_ROOT/governance_tools/external_tree_inventory_guard.py"
+EXTERNAL_TREE_IDENTITY_CONFIG="$TARGET_REPO_ROOT/governance/external-tree-inventory-guard.json"
 
-if ! set_python_cmd; then
-    echo "[governance] warning: Python not available; some advisory checks are skipped"
+if [ ! -f "$RUNTIME_SCRIPT" ]; then
+    governance_error "missing runtime governance script: $RUNTIME_SCRIPT"
+    exit 1
+fi
+if [ ! -f "$EXTERNAL_TREE_GUARD" ]; then
+    governance_error "missing external tree inventory guard: $EXTERNAL_TREE_GUARD"
+    exit 1
+fi
+
+echo "[governance] scanning pre-push newly-reachable JSON object closure"
+set +e
+"${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" \
+    --pre-push-updates \
+    --repo-root "$TARGET_REPO_ROOT" \
+    --identity-config "$EXTERNAL_TREE_IDENTITY_CONFIG" \
+    --format human
+EXTERNAL_TREE_GUARD_STATUS=$?
+set -e
+if [ "$EXTERNAL_TREE_GUARD_STATUS" -ne 0 ]; then
+    governance_error "pre-push external tree inventory guard blocked the push"
+    case "$EXTERNAL_TREE_GUARD_STATUS" in
+        1|2|3)
+            echo "  the reported blob is already present in your unpushed history" >&2
+            echo "  deleting the file in a later commit does not remove that blob" >&2
+            echo "  amend, rebase, or filter the introducing history, then retry" >&2
+            ;;
+        4)
+            echo "  scanner setup/object resolution failed; inspect the diagnostic above" >&2
+            echo "  if the remote old object is missing locally, run git fetch and retry" >&2
+            ;;
+        *)
+            echo "  inspect the diagnostic above and repair the scanner failure before retrying" >&2
+            ;;
+    esac
+    echo "  emergency bypass only (disables all pre-push governance): git push --no-verify" >&2
+    exit 1
 fi
 
 # Snapshot validation remains advisory-only.
 FAIL_COUNT=0
-if [ -f "$TOOL" ] && [ -d "$SNAPSHOT_DIR" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+if [ -f "$TOOL" ] && [ -d "$SNAPSHOT_DIR" ]; then
     for snapshot in "$SNAPSHOT_DIR"/*.txt; do
         [ -f "$snapshot" ] || continue
         RESULT=$("${PYTHON_CMD[@]}" "$TOOL" --file "$snapshot" --format json 2>/dev/null) || true
         STATUS=$(echo "$RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('valid', True))" 2>/dev/null || echo "true")
         if [ "$STATUS" = "False" ]; then
-            echo "[governance] warning: invalid AI contract snapshot: $(basename "$snapshot")"
+            echo "[governance] warning: invalid AI contract snapshot: ${snapshot##*/}"
             FAIL_COUNT=$((FAIL_COUNT + 1))
         fi
     done
@@ -68,27 +146,26 @@ if [ "$FAIL_COUNT" -gt 0 ]; then
     echo ""
 fi
 
-if [ -f "$RUNTIME_SCRIPT" ]; then
-    echo "[governance] running runtime-governance enforcement before push"
-    echo "[governance] runtime-governance smoke context: framework_self_smoke_advisory"
-    echo "[governance]   framework_root=$FRAMEWORK_ROOT"
-    echo "[governance]   target_repo_root=$TARGET_REPO_ROOT"
-    echo "[governance]   smoke_project_root=$FRAMEWORK_ROOT"
-    echo "[governance]   checked_plan_path=$FRAMEWORK_ROOT/PLAN.md"
-    if ! (cd "$FRAMEWORK_ROOT" && bash "$RUNTIME_SCRIPT" --mode smoke); then
-        echo ""
-        echo "[governance] runtime-governance enforcement failed"
-        echo "  fix the runtime governance failures before push"
-        echo "  bypass once: git push --no-verify"
-        echo ""
-        exit 1
-    fi
+echo "[governance] running runtime-governance enforcement before push"
+echo "[governance] runtime-governance smoke context: framework_self_smoke_advisory"
+echo "[governance]   framework_root=$FRAMEWORK_ROOT"
+echo "[governance]   target_repo_root=$TARGET_REPO_ROOT"
+echo "[governance]   smoke_project_root=$FRAMEWORK_ROOT"
+echo "[governance]   checked_plan_path=$FRAMEWORK_ROOT/PLAN.md"
+if ! (cd "$FRAMEWORK_ROOT" && /bin/bash "$RUNTIME_SCRIPT" --mode smoke); then
+    echo ""
+    echo "[governance] runtime-governance enforcement failed"
+    echo "  fix the runtime governance failures before push"
+    echo "  bypass once: git push --no-verify"
+    echo ""
+    exit 1
 fi
 
-if [ -f "$VERSION_BUMP_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+if [ -f "$VERSION_BUMP_GUARD" ]; then
     echo "[governance] version bump recommendation (advisory)"
     # Detect remote default branch via symbolic ref; fall back to origin/main.
-    _VBG_BASE="$(git -C "$TARGET_REPO_ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')"
+    _VBG_BASE="$(git -C "$TARGET_REPO_ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
+    _VBG_BASE="${_VBG_BASE#refs/remotes/}"
     [ -z "$_VBG_BASE" ] && _VBG_BASE="origin/main"
     (
         cd "$TARGET_REPO_ROOT"

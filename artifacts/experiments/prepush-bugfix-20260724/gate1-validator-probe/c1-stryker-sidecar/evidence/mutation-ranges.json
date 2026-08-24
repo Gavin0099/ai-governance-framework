@@ -1,0 +1,19 @@
+{
+  "all_changed_paths": [
+    "src/__tests__/validator-probe-fixture.test.ts",
+    "src/validator-probe-fixture.ts"
+  ],
+  "baseline_role": "baseline",
+  "candidate_role": "consumer",
+  "diff_sha256": "678700cfd6287a84d462de216858d462fbc0a2c9cfd66516b06cfa86a0ef49e2",
+  "excluded_changed_paths": [
+    "src/__tests__/validator-probe-fixture.test.ts"
+  ],
+  "included_files": [
+    "src/validator-probe-fixture.ts"
+  ],
+  "mutate_ranges": [
+    "src/validator-probe-fixture.ts:1-4"
+  ],
+  "schema": "c1-stryker-diff-ranges.v1"
+}

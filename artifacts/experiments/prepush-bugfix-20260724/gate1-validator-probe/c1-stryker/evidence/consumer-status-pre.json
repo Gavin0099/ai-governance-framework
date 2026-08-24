@@ -1,0 +1,9 @@
+{
+  "schema": "c1-validator-probe-consumer-status.v1",
+  "phase": "pre_run",
+  "repository": "D:/meiandraybook",
+  "head": "d3bf324f4057ed862fe110223145d5dba7d3c966",
+  "branch": "codex/supabase-transactional-import",
+  "status_porcelain_v2_z_sha256": "6530eda2ef040a2eafccb0fcdecf4c66c05c760a6fe8182ff4ef3a2b030c4491",
+  "status_porcelain_v2_z_bytes": 3177085
+}
