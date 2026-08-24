@@ -7,8 +7,10 @@ from pathlib import Path
 import pytest
 
 from governance_tools.memory_reconciliation import (
+    KnowledgeIdentityObservation,
     MemoryRecordBytes,
     detect_exact_byte_duplicate,
+    detect_knowledge_identity_collision,
     detect_memory_encoding_integrity,
     render_report_json,
 )
@@ -27,6 +29,11 @@ ENCODING_CONTRACT = (
     REPO_ROOT
     / "governance"
     / "MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md"
+)
+IDENTITY_CONTRACT = (
+    REPO_ROOT
+    / "governance"
+    / "MEMORY_RECONCILIATION_KNOWLEDGE_IDENTITY_CONTRACT.md"
 )
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 
@@ -50,6 +57,19 @@ def _encoding_contract() -> dict[str, object]:
         r"<!-- mrcsp-m1b-encoding-integrity:begin -->\s*"
         r"```json\s*(.*?)\s*```\s*"
         r"<!-- mrcsp-m1b-encoding-integrity:end -->",
+        text,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    return json.loads(match.group(1))
+
+
+def _identity_contract() -> dict[str, object]:
+    text = IDENTITY_CONTRACT.read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- mrcsp-m1b-knowledge-identity:begin -->\s*"
+        r"```json\s*(.*?)\s*```\s*"
+        r"<!-- mrcsp-m1b-knowledge-identity:end -->",
         text,
         flags=re.DOTALL,
     )
@@ -130,6 +150,249 @@ def test_encoding_contract_matches_owner_authorized_done() -> None:
         "anomalous_input_finding_count": 1,
         "clean_input_finding_count": 0,
         "serialization": "utf8_sorted_compact_json_with_trailing_lf",
+    }
+
+
+def test_identity_contract_is_registered_canonical_on_demand_authority() -> None:
+    assert parse_frontmatter(IDENTITY_CONTRACT) == {
+        "audience": "agent-on-demand",
+        "authority": "canonical",
+        "can_override": False,
+        "overridden_by": "AGENT.md",
+        "default_load": "on-demand",
+    }
+    authority = AUTHORITY.read_text(encoding="utf-8")
+    assert (
+        "| `governance/MEMORY_RECONCILIATION_KNOWLEDGE_IDENTITY_CONTRACT.md` "
+        "| agent-on-demand | canonical | false | AGENT.md | on-demand |"
+    ) in authority
+
+
+def test_identity_contract_matches_owner_authorized_done() -> None:
+    assert _identity_contract() == {
+        "contract_version": "mrcsp-knowledge-identity-collision.v0.1",
+        "input_count": 2,
+        "input_requirement": (
+            "distinct_caller_admitted_knowledge_identity_observations"
+        ),
+        "comparison": "case_sensitive_exact_knowledge_id",
+        "qualified_identity_namespace": "knowledge",
+        "finding_code": "knowledge_identity_collision",
+        "finding_severity": "warning",
+        "mode": "report_only",
+        "equal_identity_finding_count": 1,
+        "different_identity_finding_count": 0,
+        "serialization": "utf8_sorted_compact_json_with_trailing_lf",
+    }
+
+
+def _identity_observation(
+    record_id: str,
+    knowledge_id: str,
+    surface: str = "03_knowledge_base",
+) -> KnowledgeIdentityObservation:
+    return KnowledgeIdentityObservation(
+        record_id=record_id,
+        surface=surface,
+        knowledge_id=knowledge_id,
+    )
+
+
+def test_same_exact_knowledge_identity_produces_one_report_only_finding() -> None:
+    observations = (
+        _identity_observation("record-b", "T-012"),
+        _identity_observation("record-a", "T-012", "03_decisions"),
+    )
+
+    report = detect_knowledge_identity_collision(observations)
+
+    assert report == {
+        "detector": "knowledge_identity_collision",
+        "findings": [
+            {
+                "code": "knowledge_identity_collision",
+                "knowledge_id": "T-012",
+                "mode": "report_only",
+                "namespace": "knowledge",
+                "occurrences": 2,
+                "qualified_identity": "knowledge:T-012",
+                "record_ids": ["record-a", "record-b"],
+                "severity": "warning",
+                "surfaces": ["03_decisions", "03_knowledge_base"],
+            }
+        ],
+        "mode": "report_only",
+        "report_version": "mrcsp-knowledge-identity-collision.v0.1",
+    }
+
+
+@pytest.mark.parametrize("different_id", ["T-013", "t-012"])
+def test_different_or_case_changed_identity_produces_zero_findings(
+    different_id: str,
+) -> None:
+    observations = (
+        _identity_observation("record-a", "T-012"),
+        _identity_observation("record-b", different_id),
+    )
+
+    assert detect_knowledge_identity_collision(observations)["findings"] == []
+
+
+def test_identity_report_is_order_independent_and_byte_stable() -> None:
+    first = _identity_observation("record-a", "T-012")
+    second = _identity_observation("record-b", "T-012", "03_decisions")
+
+    forward = render_report_json(
+        detect_knowledge_identity_collision((first, second))
+    )
+    reverse = render_report_json(
+        detect_knowledge_identity_collision((second, first))
+    )
+    repeated = render_report_json(
+        detect_knowledge_identity_collision((first, second))
+    )
+
+    assert forward == reverse == repeated
+    assert forward.endswith(b"\n")
+    assert b" " not in forward
+
+
+@pytest.mark.parametrize(
+    "observations, message",
+    [
+        (None, "KnowledgeIdentityObservation"),
+        ((), "exactly two observations"),
+        ((_identity_observation("record-a", "T-012"),), "exactly two observations"),
+        (("bad", "input"), "KnowledgeIdentityObservation"),
+        (
+            (_identity_observation("record-a", "T-012"), object()),
+            "KnowledgeIdentityObservation",
+        ),
+    ],
+)
+def test_identity_detector_rejects_invalid_collection_count_or_elements(
+    observations: object,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        detect_knowledge_identity_collision(observations)  # type: ignore[arg-type]
+
+
+def test_identity_detector_rejects_same_record_identity() -> None:
+    observations = (
+        _identity_observation("record-a", "T-012"),
+        _identity_observation("record-a", "T-012", "03_decisions"),
+    )
+
+    with pytest.raises(ValueError, match="distinct records"):
+        detect_knowledge_identity_collision(observations)
+
+
+@pytest.mark.parametrize(
+    "record_id, surface, knowledge_id, message",
+    [
+        ("", "03_knowledge_base", "T-012", "record_id"),
+        ("record-a", "", "T-012", "surface"),
+        ("record-a", "03_knowledge_base", "", "knowledge_id"),
+        ("record-a", "03_knowledge_base", " T-012", "surrounding whitespace"),
+        ("record-a", "03_knowledge_base", 12, "knowledge_id"),
+    ],
+)
+def test_identity_detector_revalidates_forged_observation_invariants(
+    record_id: object,
+    surface: object,
+    knowledge_id: object,
+    message: str,
+) -> None:
+    forged = object.__new__(KnowledgeIdentityObservation)
+    object.__setattr__(forged, "record_id", record_id)
+    object.__setattr__(forged, "surface", surface)
+    object.__setattr__(forged, "knowledge_id", knowledge_id)
+
+    with pytest.raises(ValueError, match=message):
+        detect_knowledge_identity_collision(
+            (forged, _identity_observation("record-b", "T-012"))
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        (
+            {
+                "record_id": "",
+                "surface": "03_knowledge_base",
+                "knowledge_id": "T-012",
+            },
+            "record_id",
+        ),
+        (
+            {
+                "record_id": "record-a",
+                "surface": "",
+                "knowledge_id": "T-012",
+            },
+            "surface",
+        ),
+        (
+            {
+                "record_id": "record-a",
+                "surface": "03_knowledge_base",
+                "knowledge_id": " ",
+            },
+            "knowledge_id",
+        ),
+        (
+            {
+                "record_id": "record-a",
+                "surface": "03_knowledge_base",
+                "knowledge_id": "T-012 ",
+            },
+            "surrounding whitespace",
+        ),
+    ],
+)
+def test_identity_observation_constructor_fails_closed(
+    kwargs: dict[str, object],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        KnowledgeIdentityObservation(**kwargs)  # type: ignore[arg-type]
+
+
+def test_identity_detector_snapshots_each_observation_field_once() -> None:
+    class ChangingObservation(KnowledgeIdentityObservation):
+        def __getattribute__(self, name: str) -> object:
+            if name in {"record_id", "surface", "knowledge_id"}:
+                try:
+                    counts = object.__getattribute__(self, "access_counts")
+                except AttributeError:
+                    return super().__getattribute__(name)
+                counts[name] += 1
+                if name == "knowledge_id" and counts[name] > 1:
+                    return "T-999"
+            return super().__getattribute__(name)
+
+    changing = ChangingObservation(
+        record_id="record-a",
+        surface="03_knowledge_base",
+        knowledge_id="T-012",
+    )
+    object.__setattr__(
+        changing,
+        "access_counts",
+        {"record_id": 0, "surface": 0, "knowledge_id": 0},
+    )
+
+    report = detect_knowledge_identity_collision(
+        (changing, _identity_observation("record-b", "T-012"))
+    )
+
+    assert report["findings"][0]["qualified_identity"] == "knowledge:T-012"
+    assert changing.access_counts == {
+        "record_id": 1,
+        "surface": 1,
+        "knowledge_id": 1,
     }
 
 

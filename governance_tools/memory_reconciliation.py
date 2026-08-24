@@ -1,8 +1,7 @@
 """Deterministic report-only detectors for memory reconciliation candidates.
 
-M1a is intentionally limited to exact raw-byte equality between two records
-that the caller has already admitted. It does not read, write, or reconcile
-memory surfaces.
+Each detector consumes values that the caller has already admitted. This
+module does not discover, read, write, or reconcile memory surfaces.
 """
 
 from __future__ import annotations
@@ -20,6 +19,9 @@ FINDING_CODE = "duplicate_memory_entry"
 ENCODING_REPORT_VERSION = "mrcsp-encoding-integrity.v0.1"
 ENCODING_DETECTOR_NAME = "memory_encoding_integrity"
 ENCODING_FINDING_CODE = "memory_encoding_integrity_anomaly"
+IDENTITY_REPORT_VERSION = "mrcsp-knowledge-identity-collision.v0.1"
+IDENTITY_DETECTOR_NAME = "knowledge_identity_collision"
+IDENTITY_FINDING_CODE = "knowledge_identity_collision"
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,25 @@ class MemoryRecordBytes:
             raise ValueError("surface must be a non-empty string")
         if not isinstance(self.content, bytes) or not self.content:
             raise ValueError("content must be non-empty bytes")
+
+
+@dataclass(frozen=True)
+class KnowledgeIdentityObservation:
+    """One caller-admitted knowledge identity attached to a distinct record."""
+
+    record_id: str
+    surface: str
+    knowledge_id: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.record_id, str) or not self.record_id.strip():
+            raise ValueError("record_id must be a non-empty string")
+        if not isinstance(self.surface, str) or not self.surface.strip():
+            raise ValueError("surface must be a non-empty string")
+        if not isinstance(self.knowledge_id, str) or not self.knowledge_id.strip():
+            raise ValueError("knowledge_id must be a non-empty string")
+        if self.knowledge_id != self.knowledge_id.strip():
+            raise ValueError("knowledge_id must not contain surrounding whitespace")
 
 
 def detect_exact_byte_duplicate(
@@ -128,8 +149,74 @@ def detect_memory_encoding_integrity(record: MemoryRecordBytes) -> dict[str, Any
     }
 
 
+def detect_knowledge_identity_collision(
+    observations: Sequence[KnowledgeIdentityObservation],
+) -> dict[str, Any]:
+    """Return a report-only exact knowledge-identity collision report."""
+
+    if not isinstance(observations, Sequence) or isinstance(
+        observations, (str, bytes, bytearray)
+    ):
+        raise ValueError(
+            "observations must be a sequence of KnowledgeIdentityObservation"
+        )
+    if len(observations) != 2:
+        raise ValueError(
+            "identity collision detection requires exactly two observations"
+        )
+    if not all(
+        isinstance(item, KnowledgeIdentityObservation) for item in observations
+    ):
+        raise ValueError(
+            "observations must contain only KnowledgeIdentityObservation values"
+        )
+
+    snapshots: list[tuple[str, str, str]] = []
+    for observation in observations:
+        record_id = observation.record_id
+        surface = observation.surface
+        knowledge_id = observation.knowledge_id
+        if not isinstance(record_id, str) or not record_id.strip():
+            raise ValueError("record_id must be a non-empty string")
+        if not isinstance(surface, str) or not surface.strip():
+            raise ValueError("surface must be a non-empty string")
+        if not isinstance(knowledge_id, str) or not knowledge_id.strip():
+            raise ValueError("knowledge_id must be a non-empty string")
+        if knowledge_id != knowledge_id.strip():
+            raise ValueError("knowledge_id must not contain surrounding whitespace")
+        snapshots.append((record_id, surface, knowledge_id))
+
+    ordered = sorted(snapshots, key=lambda item: (item[0], item[1], item[2]))
+    if ordered[0][0] == ordered[1][0]:
+        raise ValueError("record_id values must identify distinct records")
+
+    findings: list[dict[str, Any]] = []
+    if ordered[0][2] == ordered[1][2]:
+        knowledge_id = ordered[0][2]
+        findings.append(
+            {
+                "code": IDENTITY_FINDING_CODE,
+                "knowledge_id": knowledge_id,
+                "mode": "report_only",
+                "namespace": "knowledge",
+                "occurrences": 2,
+                "qualified_identity": f"knowledge:{knowledge_id}",
+                "record_ids": [item[0] for item in ordered],
+                "severity": "warning",
+                "surfaces": [item[1] for item in ordered],
+            }
+        )
+
+    return {
+        "detector": IDENTITY_DETECTOR_NAME,
+        "findings": findings,
+        "mode": "report_only",
+        "report_version": IDENTITY_REPORT_VERSION,
+    }
+
+
 def render_report_json(report: dict[str, Any]) -> bytes:
-    """Serialize a detector report to the M1a byte-stable JSON form."""
+    """Serialize a detector report to the shared byte-stable JSON form."""
 
     return (
         json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
