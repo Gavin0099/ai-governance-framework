@@ -17,6 +17,9 @@ from typing import Any
 REPORT_VERSION = "mrcsp-exact-byte-detector.v0.1"
 DETECTOR_NAME = "exact_byte_duplicate"
 FINDING_CODE = "duplicate_memory_entry"
+ENCODING_REPORT_VERSION = "mrcsp-encoding-integrity.v0.1"
+ENCODING_DETECTOR_NAME = "memory_encoding_integrity"
+ENCODING_FINDING_CODE = "memory_encoding_integrity_anomaly"
 
 
 @dataclass(frozen=True)
@@ -75,6 +78,44 @@ def detect_exact_byte_duplicate(
         "findings": findings,
         "mode": "report_only",
         "report_version": REPORT_VERSION,
+    }
+
+
+def detect_memory_encoding_integrity(record: MemoryRecordBytes) -> dict[str, Any]:
+    """Return a report-only strict UTF-8 integrity report for one record."""
+
+    if not isinstance(record, MemoryRecordBytes):
+        raise ValueError("record must be a MemoryRecordBytes value")
+
+    reason: str | None = None
+    try:
+        decoded = record.content.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        reason = "invalid_utf8"
+    else:
+        if "\ufffd" in decoded:
+            reason = "replacement_character_present"
+
+    findings: list[dict[str, Any]] = []
+    if reason is not None:
+        findings.append(
+            {
+                "code": ENCODING_FINDING_CODE,
+                "digest": hashlib.sha256(record.content).hexdigest(),
+                "digest_algorithm": "sha256",
+                "mode": "report_only",
+                "reason": reason,
+                "record_id": record.record_id,
+                "severity": "warning",
+                "surface": record.surface,
+            }
+        )
+
+    return {
+        "detector": ENCODING_DETECTOR_NAME,
+        "findings": findings,
+        "mode": "report_only",
+        "report_version": ENCODING_REPORT_VERSION,
     }
 
 

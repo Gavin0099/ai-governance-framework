@@ -9,6 +9,7 @@ import pytest
 from governance_tools.memory_reconciliation import (
     MemoryRecordBytes,
     detect_exact_byte_duplicate,
+    detect_memory_encoding_integrity,
     render_report_json,
 )
 from governance_tools.authority_loader import parse_frontmatter
@@ -22,6 +23,11 @@ CONTRACT = (
     / "governance"
     / "MEMORY_RECONCILIATION_EXACT_BYTE_DETECTOR_CONTRACT.md"
 )
+ENCODING_CONTRACT = (
+    REPO_ROOT
+    / "governance"
+    / "MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md"
+)
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 
 
@@ -31,6 +37,19 @@ def _detector_contract() -> dict[str, object]:
         r"<!-- mrcsp-m1a-exact-byte-detector:begin -->\s*"
         r"```json\s*(.*?)\s*```\s*"
         r"<!-- mrcsp-m1a-exact-byte-detector:end -->",
+        text,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    return json.loads(match.group(1))
+
+
+def _encoding_contract() -> dict[str, object]:
+    text = ENCODING_CONTRACT.read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- mrcsp-m1b-encoding-integrity:begin -->\s*"
+        r"```json\s*(.*?)\s*```\s*"
+        r"<!-- mrcsp-m1b-encoding-integrity:end -->",
         text,
         flags=re.DOTALL,
     )
@@ -81,6 +100,106 @@ def test_normative_contract_matches_owner_authorized_done() -> None:
         "different_bytes_finding_count": 0,
         "serialization": "utf8_sorted_compact_json_with_trailing_lf",
     }
+
+
+def test_encoding_contract_is_registered_canonical_on_demand_authority() -> None:
+    assert parse_frontmatter(ENCODING_CONTRACT) == {
+        "audience": "agent-on-demand",
+        "authority": "canonical",
+        "can_override": False,
+        "overridden_by": "AGENT.md",
+        "default_load": "on-demand",
+    }
+    authority = AUTHORITY.read_text(encoding="utf-8")
+    assert (
+        "| `governance/MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md` "
+        "| agent-on-demand | canonical | false | AGENT.md | on-demand |"
+    ) in authority
+
+
+def test_encoding_contract_matches_owner_authorized_done() -> None:
+    assert _encoding_contract() == {
+        "contract_version": "mrcsp-encoding-integrity.v0.1",
+        "input_count": 1,
+        "input_requirement": "one_caller_admitted_memory_record_bytes",
+        "decoding": "utf8_strict",
+        "finding_code": "memory_encoding_integrity_anomaly",
+        "finding_reasons": ["invalid_utf8", "replacement_character_present"],
+        "finding_severity": "warning",
+        "mode": "report_only",
+        "anomalous_input_finding_count": 1,
+        "clean_input_finding_count": 0,
+        "serialization": "utf8_sorted_compact_json_with_trailing_lf",
+    }
+
+
+def _encoding_record(content: bytes) -> MemoryRecordBytes:
+    return MemoryRecordBytes(
+        record_id="encoding-record",
+        surface="03_knowledge_base",
+        content=content,
+    )
+
+
+def test_invalid_utf8_produces_exactly_one_report_only_finding() -> None:
+    content = b"valid-prefix\xffinvalid-suffix"
+    report = detect_memory_encoding_integrity(_encoding_record(content))
+
+    assert report["mode"] == "report_only"
+    assert report["findings"] == [
+        {
+            "code": "memory_encoding_integrity_anomaly",
+            "digest": "45a3eef617adc0cf658e2d63493ea9198cdad142f7e71d9795b2fc9bc70b7864",
+            "digest_algorithm": "sha256",
+            "mode": "report_only",
+            "reason": "invalid_utf8",
+            "record_id": "encoding-record",
+            "severity": "warning",
+            "surface": "03_knowledge_base",
+        }
+    ]
+
+
+@pytest.mark.parametrize("replacement_count", [1, 3])
+def test_literal_replacement_characters_produce_exactly_one_finding(
+    replacement_count: int,
+) -> None:
+    content = ("prefix" + "\ufffd" * replacement_count + "suffix").encode("utf-8")
+    report = detect_memory_encoding_integrity(_encoding_record(content))
+
+    assert len(report["findings"]) == 1
+    assert report["findings"][0]["reason"] == "replacement_character_present"
+    assert report["findings"][0]["mode"] == "report_only"
+    assert report["findings"][0]["severity"] == "warning"
+
+
+def test_clean_valid_utf8_produces_zero_encoding_findings() -> None:
+    report = detect_memory_encoding_integrity(
+        _encoding_record("乾淨的 UTF-8 memory".encode("utf-8"))
+    )
+
+    assert report["findings"] == []
+
+
+def test_encoding_report_is_byte_stable_for_identical_input() -> None:
+    record = _encoding_record(b"invalid\xff")
+
+    first = render_report_json(detect_memory_encoding_integrity(record))
+    second = render_report_json(detect_memory_encoding_integrity(record))
+
+    assert first == second
+    assert first.endswith(b"\n")
+
+
+@pytest.mark.parametrize("record", [None, b"bytes", object()])
+def test_encoding_detector_rejects_non_record_input(record: object) -> None:
+    with pytest.raises(ValueError, match="MemoryRecordBytes"):
+        detect_memory_encoding_integrity(record)  # type: ignore[arg-type]
+
+
+def test_encoding_detector_empty_content_fails_closed() -> None:
+    with pytest.raises(ValueError, match="content"):
+        _encoding_record(b"")
 
 
 def test_admitted_exact_byte_pair_produces_exactly_one_report_only_finding() -> None:
