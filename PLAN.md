@@ -92,9 +92,26 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-1 candidate):
+Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-2 candidate):
 
-- [>] Add one deterministic report-only encoding-integrity detector for one
+- [>] Add one deterministic report-only namespaced knowledge-identity collision
+  detector over exactly two caller-admitted `KnowledgeIdentityObservation`
+  values.
+- DONE: two distinct record identities with the same exact case-sensitive
+  `knowledge_id` produce exactly one `knowledge_identity_collision` finding;
+  different identifiers produce zero findings; input order does not change the
+  result; repeated input produces byte-stable JSON; invalid input fails closed
+  with `ValueError`.
+- Claim ceiling: exact caller-supplied knowledge-identifier equality only. No
+  Markdown parsing, normalization, semantic identity, missing logical surface,
+  reader, projection, supersession, schema, runtime, hook, CI, gate, blocker,
+  enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+
+Current refresh - 2026-08-24 (MRCSP M1b-1 active):
+
+- [x] Add one deterministic report-only encoding-integrity detector for one
   caller-admitted `MemoryRecordBytes` value.
 - DONE: invalid UTF-8 produces exactly one
   `memory_encoding_integrity_anomaly` finding; valid UTF-8 containing U+FFFD
@@ -107,6 +124,8 @@ Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-1 candidate):
   blocker, enforcement, or M2 behavior is authorized.
 - Activation requires exact-head owner merge attestation, independent technical
   review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #105 at merge commit
+  `13577288ec63e4a86bbd490fc02666be20469831`.
 
 Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correction):
 
