@@ -73,5 +73,7 @@
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py -text
+/artifacts/evidence/test-results/m3b2a-in-process-20260820.json -text -whitespace
+/artifacts/evidence/test-results/m3b2a-in-process-20260820.txt -text -whitespace
 /docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md -text
 /docs/adr/0001-gate3-native-directory-handle-boundary.md -text

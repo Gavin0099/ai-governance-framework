@@ -7,11 +7,11 @@ revision 10, which is where the framing table, the bounds and the authority
 chain are specified.  This module implements them; it restates none of them as
 new policy.
 
-**One file, two roles.**  The parent imports `encode_stream`.  The child will
-later execute this same file by absolute path under `-I -S -B`, as `__main__`.
-That second role is M3-b and is not implemented here: this module defines no
-`__main__` behaviour, spawns nothing, compiles nothing and imports no historical
-module.
+**One file, two roles.**  The parent imports the M3-a and launch-envelope
+encoders.  A later child tranche will execute this same file by absolute path
+under `-I -S -B`, as `__main__`.  That second role is not implemented here:
+this module defines no `__main__` behaviour, spawns nothing, compiles nothing
+and imports no historical module.
 
 The two roles are why this file imports only the standard library.  A child
 started with `-I -S -B` has nothing but the interpreter's own stdlib roots on
@@ -33,8 +33,9 @@ from __future__ import annotations
 import collections.abc
 import hashlib
 import importlib.machinery
-import os.path
 import json
+import ntpath
+import os.path
 import sys
 import types
 from typing import Mapping
@@ -104,6 +105,14 @@ that changing a bound without changing this constant fails.
 
 _RECORD_FRAMING_BYTES = 550
 """path length 2 + path 512 + payload length 4 + digest 32, at maximum."""
+
+LAUNCH_MAGIC = b"\x47\x41\x54\x45\x33\x48\x4c\x00"
+LAUNCH_VERSION = 1
+LAUNCH_HEADER_BYTES = 18
+MAX_MATERIALIZED_ROOT_BYTES = 65_536
+MAX_MATERIALIZED_ROOT_UTF16_UNITS = 32_766
+MAX_LAUNCH_STREAM_BYTES = 34_703_786
+"""The whole launch envelope's derived maximum, not an independent gate."""
 
 
 class TransportError(ValueError):
@@ -237,6 +246,86 @@ def _retained_inventory(candidate_set: Mapping) -> dict:
             raise TransportError("FILE_INVENTORY_DUPLICATE")
         inventory[path] = digest
     return inventory
+
+
+def _materialized_root_name(candidate_set_bytes: bytes) -> str:
+    """Derive M2's deterministic leaf from already verified candidate bytes."""
+
+    try:
+        candidate_set = _parse_candidate_set(candidate_set_bytes)
+        commit = candidate_set.get("source_base_commit")
+        if (
+            type(commit) is not str
+            or len(commit) != 40
+            or not all(character in "0123456789abcdef" for character in commit)
+        ):
+            raise TransportError("MATERIALIZED_ROOT_NAME_DERIVATION_FAILED")
+        inventory = _retained_inventory(candidate_set)
+        joined = "\n".join(
+            f"{path}:{digest}" for path, digest in sorted(inventory.items())
+        )
+        material = (commit + "\n" + joined).encode("ascii")
+    except TransportError as error:
+        if error.code == "MATERIALIZED_ROOT_NAME_DERIVATION_FAILED":
+            raise
+        raise TransportError("MATERIALIZED_ROOT_NAME_DERIVATION_FAILED") from None
+    except UnicodeEncodeError:
+        raise TransportError("MATERIALIZED_ROOT_NAME_DERIVATION_FAILED") from None
+    return "gate3-historical-" + hashlib.sha256(material).hexdigest()[:32]
+
+
+def _validate_materialized_root(text: str, raw: bytes, expected_leaf=None) -> str:
+    """Apply the accepted positive Windows-path grammar without resolving it."""
+
+    if not text or "\x00" in text or "\ufeff" in text or "/" in text:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    try:
+        units = len(text.encode("utf-16-le")) // 2
+    except UnicodeEncodeError:
+        raise TransportError("MATERIALIZED_ROOT_INVALID") from None
+    if (
+        len(raw) > MAX_MATERIALIZED_ROOT_BYTES
+        or units > MAX_MATERIALIZED_ROOT_UTF16_UNITS
+    ):
+        raise TransportError("MATERIALIZED_ROOT_LENGTH_EXCEEDED")
+
+    drive, tail = ntpath.splitdrive(text)
+    if drive and tail in ("", "\\"):
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    if not drive or not tail.startswith("\\") or not ntpath.isabs(text):
+        raise TransportError("MATERIALIZED_ROOT_NOT_ABSOLUTE")
+    if ntpath.normpath(text) != text:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    leaf = ntpath.basename(text)
+    if not leaf:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    if expected_leaf is not None and leaf != expected_leaf:
+        raise TransportError("MATERIALIZED_ROOT_NAME_MISMATCH")
+    return text
+
+
+def _encode_materialized_root(root: str) -> bytes:
+    if type(root) is not str:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    try:
+        raw = root.encode("utf-8")
+    except UnicodeEncodeError:
+        raise TransportError("MATERIALIZED_ROOT_INVALID") from None
+    if not raw:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    _validate_materialized_root(root, raw)
+    return raw
+
+
+def _decode_materialized_root(raw: bytes, candidate_set_bytes: bytes) -> str:
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise TransportError("MATERIALIZED_ROOT_INVALID") from None
+    if text.encode("utf-8") != raw:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    expected_leaf = _materialized_root_name(candidate_set_bytes)
+    return _validate_materialized_root(text, raw, expected_leaf)
 
 
 def derive_inventory(candidate_set_bytes: bytes) -> dict:
@@ -377,8 +466,8 @@ class _Cursor:
         return int.from_bytes(self.take(width, code), "little")
 
 
-def decode_stream(stream: bytes) -> dict:
-    """Verify a framed stream and return its payloads.
+def _decode_verified_stream(stream: bytes) -> tuple[bytes, dict]:
+    """Verify a framed stream and retain its authority bytes privately.
 
     The order is the security property.  The candidate-set block is checked
     against the frozen digest and the inventory derived from it **before any
@@ -386,9 +475,9 @@ def decode_stream(stream: bytes) -> dict:
     refused before it can describe any of them.  Nothing is allocated from a
     number that has not been checked against its bound.
 
-    Returns the payload bytes keyed by path.  Nothing is compiled, imported or
-    executed here; selecting what runs is M3-b's problem and this function
-    hands it verified buffers, not decisions.
+    Returns the verified candidate-set bytes beside the payload map for the
+    private launch decoder.  The public M3-a decoder still exposes only the
+    payload map.  Nothing is compiled, imported or executed here.
     """
 
     if type(stream) is not bytes:
@@ -466,7 +555,62 @@ def decode_stream(stream: bytes) -> dict:
         raise TransportError("INVENTORY_SET_MISMATCH")
     if cursor.remaining:
         raise TransportError("TRAILING_BYTES")
-    return payloads
+    return candidate_set_bytes, payloads
+
+
+def decode_stream(stream: bytes) -> dict:
+    """Verify a framed stream and return only its payload map."""
+
+    return _decode_verified_stream(stream)[1]
+
+
+def encode_launch_stream(inner_frame: bytes, root: str) -> bytes:
+    """Wrap one unchanged M3-a frame and one syntax-checked root."""
+
+    if type(inner_frame) is not bytes:
+        raise TransportError("LAUNCH_STREAM_INVALID")
+    if not inner_frame or len(inner_frame) > DERIVED_MAX_STREAM_BYTES:
+        raise TransportError("LAUNCH_INNER_LENGTH_INVALID")
+    raw_root = _encode_materialized_root(root)
+    return b"".join(
+        (
+            LAUNCH_MAGIC,
+            LAUNCH_VERSION.to_bytes(2, "little"),
+            len(inner_frame).to_bytes(4, "little"),
+            len(raw_root).to_bytes(4, "little"),
+            inner_frame,
+            raw_root,
+        )
+    )
+
+
+def decode_launch_stream(stream: bytes) -> tuple[dict, str]:
+    """Verify outer framing, then M3-a authority, then root semantics."""
+
+    if type(stream) is not bytes:
+        raise TransportError("LAUNCH_STREAM_INVALID")
+    cursor = _Cursor(stream)
+    if cursor.take(len(LAUNCH_MAGIC), "LAUNCH_STREAM_TRUNCATED") != LAUNCH_MAGIC:
+        raise TransportError("LAUNCH_MAGIC_MISMATCH")
+    if cursor.take_int(2, "LAUNCH_STREAM_TRUNCATED") != LAUNCH_VERSION:
+        raise TransportError("LAUNCH_VERSION_UNSUPPORTED")
+
+    inner_length = cursor.take_int(4, "LAUNCH_STREAM_TRUNCATED")
+    root_length = cursor.take_int(4, "LAUNCH_STREAM_TRUNCATED")
+    if not inner_length or inner_length > DERIVED_MAX_STREAM_BYTES:
+        raise TransportError("LAUNCH_INNER_LENGTH_INVALID")
+    if not root_length:
+        raise TransportError("MATERIALIZED_ROOT_INVALID")
+    if root_length > MAX_MATERIALIZED_ROOT_BYTES:
+        raise TransportError("MATERIALIZED_ROOT_LENGTH_EXCEEDED")
+    inner_frame = cursor.take(inner_length, "LAUNCH_STREAM_TRUNCATED")
+    raw_root = cursor.take(root_length, "LAUNCH_STREAM_TRUNCATED")
+    if cursor.remaining:
+        raise TransportError("LAUNCH_TRAILING_BYTES")
+
+    candidate_set_bytes, payloads = _decode_verified_stream(inner_frame)
+    root = _decode_materialized_root(raw_root, candidate_set_bytes)
+    return payloads, root
 
 
 # ===========================================================================
