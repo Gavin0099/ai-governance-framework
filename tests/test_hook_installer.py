@@ -179,18 +179,33 @@ def test_install_governance_hooks_uses_common_hook_dir_for_linked_worktree(tmp_p
 
 
 def test_managed_hooks_resolve_target_root_from_invocation_worktree_first() -> None:
-    for hook_name in ("pre-commit", "pre-push"):
-        text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
-        assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"' in text
+    pre_commit = (REPO_ROOT / "scripts" / "hooks" / "pre-commit").read_text(
+        encoding="utf-8"
+    )
+    pre_push = (REPO_ROOT / "scripts" / "hooks" / "pre-push").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"' in pre_commit
+    assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"' in pre_push
+    assert 'git -C "$HOOK_DIR" rev-parse --show-toplevel' in pre_push
+    assert 'governance_error "cannot resolve target repository root"' in pre_push
 
 
 def test_managed_hooks_normalize_windows_framework_paths() -> None:
-    for hook_name in ("pre-commit", "pre-push"):
-        text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
-        assert 'case "$FRAMEWORK_ROOT" in' in text
-        assert 'DRIVE_PATH="${FRAMEWORK_ROOT:2}"' in text
-        assert 'FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"' in text
-        assert 'FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"' in text
+    pre_commit = (REPO_ROOT / "scripts" / "hooks" / "pre-commit").read_text(
+        encoding="utf-8"
+    )
+    pre_push = (REPO_ROOT / "scripts" / "hooks" / "pre-push").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'case "$FRAMEWORK_ROOT" in' in pre_commit
+    assert 'DRIVE_PATH="${FRAMEWORK_ROOT:2}"' in pre_commit
+    assert 'FRAMEWORK_ROOT="/mnt/$DRIVE_LOWER/$DRIVE_PATH"' in pre_commit
+    assert 'FRAMEWORK_ROOT="${FRAMEWORK_ROOT//\\\\//}"' in pre_push
+    assert "WSL drive-path mapping is intentionally unsupported" in pre_push
+    assert 'FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"' in pre_push
 
 
 def _managed_framework(root: Path) -> Path:
