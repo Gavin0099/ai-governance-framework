@@ -1,0 +1,19 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_solo_owner_merge_authority_contract.py tests/test_authority_document_paths.py tests/test_authority_metadata_consistency.py tests/test_authority_loader.py -q --basetemp .tmp_pytest_solo_owner_merge_receipt -p no:cacheprovider --junitxml artifacts/evidence/test-results/receipt-solo-owner-merge-authority-20260824.xml",
+  "exit_code": 0,
+  "started_at": "2026-08-24T08:01:03Z",
+  "finished_at": "2026-08-24T08:01:04Z",
+  "runner": "codex",
+  "linked_commit": "22c81a6262589a5a58027b9c01aef13b1936314b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-solo-owner-merge-authority-20260824.xml"
+  ],
+  "cannot_claim": [
+    "GitHub branch-protection, ruleset, CI, runtime, hook, gate, blocker, or enforcement behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer",
+    "owner merge attestation for a future pull request",
+    "push, pull-request publication, merge readiness, or merge"
+  ]
+}
