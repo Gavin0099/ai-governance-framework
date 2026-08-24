@@ -92,17 +92,33 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
+
+- [>] Implement one deterministic report-only exact-byte duplicate detector
+  over exactly two independently identified, caller-admitted memory record byte
+  payloads.
+- DONE: equal raw bytes produce exactly one `duplicate_memory_entry` warning;
+  a one-byte mutation produces zero findings; identical logical input produces
+  byte-stable JSON.
+- Claim ceiling: raw-byte SHA-256 equality only. No fixture admission,
+  normalization, semantic reconciliation, reader, projection, writer, public
+  schema, runtime, hook, CI, gate, blocker, enforcement, historical scan, or
+  memory mutation is authorized.
+- Completion requires focused validation, canonical precommit, durable evidence,
+  canonical memory, independent review, and a Draft PR. The candidate is not
+  active before approved merge.
+
 Current refresh - 2026-08-24 (owner-authorized MRCSP M0 candidate):
 
-- [>] Define the M0 fixture-admissibility contract and one synthetic redacted
+- [x] Define the M0 fixture-admissibility contract and one synthetic redacted
   exact-byte-duplicate test fixture with provenance, a complete redaction
   boundary, pinned SHA-256, and fail-closed tests for byte mismatch, missing
   provenance, missing digest, and incomplete redaction.
 - Claim ceiling: contract and one test-only fixture only. No reader, M1a,
   writer/runtime, public schema, hook, CI, gate, enforcement, reconciliation,
   consumer replay, or historical normalization is authorized.
-- Completion requires focused validation, independent review, and a Draft PR.
-  The candidate is not active before approved merge.
+- Completed through independently reviewed merge `82e504f7` (PR #101). The M0
+  fixture remains test-only and does not itself prove detector correctness.
 
 Current refresh - 2026-08-14:
 
