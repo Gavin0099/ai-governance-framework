@@ -19,6 +19,11 @@ from governance_tools.hook_install_validator import (
     format_human,
     validate_hook_install,
 )
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    IDENTITY_CONFIG_SCHEMA,
+    REPOSITORY_ROOT_TOKEN,
+)
 
 
 FIXTURE_ROOT = Path("tests/_tmp_hook_install_validator")
@@ -54,12 +59,30 @@ def _reset_fixture(name: str) -> Path:
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
+    _write_identity_config(path / "target")
     return path
 
 
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _write_identity_config(
+    repo_root: Path,
+    identities: tuple[str, ...] = ("example.test/governance-consumer", REPOSITORY_ROOT_TOKEN),
+) -> None:
+    _write(
+        repo_root / IDENTITY_CONFIG_REL,
+        json.dumps(
+            {
+                "schema": IDENTITY_CONFIG_SCHEMA,
+                "repository_identities": list(identities),
+            },
+            indent=2,
+        )
+        + "\n",
+    )
 
 
 def _run(command: list[str], cwd: Path | None = None) -> None:
@@ -97,6 +120,7 @@ def test_validate_hook_install_reports_missing_framework_config() -> None:
 
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    (repo_root / IDENTITY_CONFIG_REL).unlink()
 
     result = validate_hook_install(repo_root)
 
@@ -104,6 +128,68 @@ def test_validate_hook_install_reports_missing_framework_config() -> None:
     assert result.framework_root == str(repo_root.resolve())
     assert result.checks["framework_root_config_present"] is False
     assert any("ai-governance-framework-root" in warning for warning in result.warnings)
+
+
+def test_validate_hook_install_rejects_missing_identity_config() -> None:
+    root = _reset_fixture("missing_identity_config")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+    (repo_root / IDENTITY_CONFIG_REL).unlink()
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is False
+    assert result.checks["external_tree_identity_config_present"] is False
+    assert any("external-tree repository identity config" in error for error in result.errors)
+
+
+def test_validate_hook_install_rejects_invalid_identity_config() -> None:
+    root = _reset_fixture("invalid_identity_config")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+    _write(repo_root / IDENTITY_CONFIG_REL, '{"schema":"wrong","repository_identities":[]}\n')
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is False
+    assert result.checks["external_tree_identity_config_valid"] is False
+
+
+def test_validate_hook_install_requires_repository_root_identity() -> None:
+    root = _reset_fixture("identity_config_missing_repository_root")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+    _write_identity_config(repo_root, ("example/consumer",))
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is False
+    assert result.checks["external_tree_identity_config_valid"] is True
+    assert result.checks["external_tree_identity_config_has_repository_root"] is False
 
 
 def test_validate_hook_install_accepts_explicit_framework_root_without_config() -> None:
@@ -186,6 +272,7 @@ def test_validate_hook_install_accepts_self_hosted_framework_repo() -> None:
 
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write_identity_config(repo_root)
     _write(repo_root / "scripts/lib/python.sh", "")
     _write(repo_root / "scripts/run-runtime-governance.sh", "")
     _write(repo_root / "governance_tools/plan_freshness.py", "")
@@ -598,6 +685,7 @@ def test_validate_hook_install_resolves_common_hooks_for_linked_worktree(tmp_pat
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write_identity_config(linked_worktree)
     _write(framework_root / "scripts/lib/python.sh", "")
     _write(framework_root / "scripts/run-runtime-governance.sh", "")
     _write(framework_root / "governance_tools/plan_freshness.py", "")
