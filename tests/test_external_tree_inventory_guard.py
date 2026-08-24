@@ -347,6 +347,25 @@ def test_shared_identity_config_resolves_repository_root_token(tmp_path: Path) -
 
 
 @pytest.mark.parametrize(
+    "remote_identity",
+    (
+        "git@github.com:example/framework.git",
+        "git@gitlab.com:example/framework.git",
+    ),
+)
+def test_scp_like_remote_identity_matches_owner_repository(
+    remote_identity: str,
+) -> None:
+    result = assess_document(
+        {"repository": "example/framework", "entries": _entries(120)},
+        expected_repository_identities=[remote_identity],
+    )
+
+    assert result.status == STATUS_PASS
+    assert result.reason == "only_expected_repository_bulk_inventories_detected"
+
+
+@pytest.mark.parametrize(
     "document",
     [
         {},

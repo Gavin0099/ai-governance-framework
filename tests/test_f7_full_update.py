@@ -45,6 +45,7 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "init", "-b", "main")
     _git(repo, "config", "user.email", "test@example.invalid")
     _git(repo, "config", "user.name", "Test User")
+    _git(repo, "remote", "add", "origin", "https://example.invalid/test/fixture.git")
 
 
 def _make_framework(root: Path) -> None:
