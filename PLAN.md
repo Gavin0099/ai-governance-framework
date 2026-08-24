@@ -92,6 +92,18 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-08-24 (owner-authorized MRCSP M0 candidate):
+
+- [>] Define the M0 fixture-admissibility contract and one synthetic redacted
+  exact-byte-duplicate test fixture with provenance, a complete redaction
+  boundary, pinned SHA-256, and fail-closed tests for byte mismatch, missing
+  provenance, missing digest, and incomplete redaction.
+- Claim ceiling: contract and one test-only fixture only. No reader, M1a,
+  writer/runtime, public schema, hook, CI, gate, enforcement, reconciliation,
+  consumer replay, or historical normalization is authorized.
+- Completion requires focused validation, independent review, and a Draft PR.
+  The candidate is not active before approved merge.
+
 Current refresh - 2026-08-14:
 
 Theme:
