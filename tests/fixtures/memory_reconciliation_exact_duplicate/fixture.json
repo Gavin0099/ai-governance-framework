@@ -1,0 +1,36 @@
+{
+  "fixture_contract_version": "mrcsp-fixture-admissibility.v0.1",
+  "fixture_id": "mrcsp-m0-redacted-exact-duplicate-001",
+  "fixture_usage": "test_only",
+  "source_path": "source_record.md",
+  "candidate_path": "candidate_record.md",
+  "expected_relation": "exact_byte_duplicate",
+  "provenance": {
+    "kind": "synthetic_redacted_reconstruction",
+    "basis": [
+      "owner-authorized M0 fixture-admissibility slice on 2026-08-24",
+      "governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md#next-implementation-tranche-recommendation"
+    ],
+    "created_by": "codex_fixture_author",
+    "created_at": "2026-08-24"
+  },
+  "redaction": {
+    "status": "complete",
+    "boundaries": [
+      "repository_identity",
+      "person_identity",
+      "session_identity",
+      "commit_identity",
+      "artifact_locator",
+      "source_timestamp",
+      "unneeded_free_text"
+    ],
+    "original_identifiers_included": false,
+    "placeholder_policy": "non_reversible_structural_placeholders_only"
+  },
+  "digest": {
+    "algorithm": "sha256",
+    "value": "03b3ddb05dac25dc137041b0ebfa5d5f49dced98a57401e7d12d10e289ac111a"
+  },
+  "claim_ceiling": "one synthetic redacted test-only exact-byte-duplicate pair; no semantic, authority, freshness, reconciliation, privacy-certification, or runtime claim"
+}
