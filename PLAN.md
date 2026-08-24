@@ -2407,21 +2407,23 @@ Current blocking relationships for this work item:
   measured process-control layouts, their pure `ctypes` declarations and the
   independent fixtures. Exact-digest fresh-context review approved the tranche;
   386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
-  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. Its
-  materialized-root transport design is resolved by the accepted 2026-08-20
-  `GATE3HL\0` version-1 envelope decision; implementation remains separately
-  unauthorized.
+  called and `ACTIVE` remains `False`. The bounded M3-b-2A materialized-root
+  transport was merged by PR #108: implementation commit `ff9cdb77`, merge
+  commit `a59b0aef`. It adds the in-process `GATE3HL\0` version-1 codec,
+  verified-inner refactor, live-tree authority helper and sole parent adapter.
+  M3-b-2B still owns native process/job/scratch/pipe integration and has not
+  begun.
 - M3-b-3, the reconstruction call, is **unblocked as authority**, and that
   authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
   BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
   be written and reviewed — and it owns the parent-side result object with the
   two "not asserted" markers, which the BLOCKED-2 amendment requires and does
   not build.
-- How the child receives the materialized root is resolved as design, not
-  implementation: the parent binds one live `MaterializedTree` authority to one
-  stdin launch envelope containing the unchanged M3-a frame and root. The child
-  validates syntax and the deterministic leaf; the full absolute base remains
-  parent-trusted. No Python implementation exists and M3-b-2 has not begun.
+- M3-b-2A binds one live `MaterializedTree` authority to one launch envelope
+  containing the unchanged M3-a frame and root. The child validates syntax and
+  the deterministic leaf; the full absolute base remains parent-trusted. It has
+  no `__main__`, process, native call, historical import or active caller.
+  Focused 251, adjacent 292 and canonical precommit 201 passed before merge.
 - M4 follows, and is what lets a historical candidate be verified against
   materialized historical bytes instead of against the live worktree — which is
   what B-1 is waiting for.
@@ -2442,9 +2444,10 @@ Current blocking relationships for this work item:
   unprotected.
 - No manifest is repinned, no pair evidence is rewritten, and the consumed
   `NON_SUCCESS` pair does not regain usability through any of this.
-- M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
-  wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
-  `handle_boundary_available()` and `ACTIVE` are both `False`.
+- M4 is not started, and M3 is delivered only as M3-a, M3-b-1 and bounded
+  M3-b-2A. Nothing is wired to M2 or to M3-a, nothing calls M3-b-1 or M3-b-2A,
+  and no availability flag moved: `handle_boundary_available()` and `ACTIVE`
+  are both `False`.
 - Credentials, preflight and live remain unauthorized.
 
 Claim ceiling: this work item has produced design authority, an independent

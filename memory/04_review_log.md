@@ -5173,3 +5173,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: NOT CLAIMED: this correction preserves the owner's explicit visibility authority and the owner-provided GitHub Support closure response; it does not establish repository sanitization, independently enumerate every mild-exposure occurrence, or prove absence of prior clones or copies.
 - Next action: Submit the exact visibility correction projection with checkpoint 12bbe5f6 for review and commit; later re-review PUBLIC visibility when Gate 3 cross-repository work completes or public access is no longer required.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
+### Canonical memory checkpoint — 2026-08-24-23
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac`
+- Commit binding: `a59b0aef93753630f9949233d03be555bad165c5` (bound)
+- Record: M3-b-2A is durably merged by PR #108: implementation checkpoint ff9cdb77db9133fa734bae461b71319f97d23292 is in merge commit a59b0aef93753630f9949233d03be555bad165c5. PLAN now records M3-b-2A as delivered while M3-b-2B remains not started; no B-1 or other primary dirty work is included.
+- Validation boundary: PR #108 updated-head checks: 11 SUCCESS and 1 expected SKIPPED; PLAN freshness: FRESH (2026-08-24, 0 days, no errors or warnings).
+- Next action: Review and push this isolated M3-b-2A status checkpoint; do not start M3-b-2B without fresh authority.
+- PLAN reconciliation: `updated`
