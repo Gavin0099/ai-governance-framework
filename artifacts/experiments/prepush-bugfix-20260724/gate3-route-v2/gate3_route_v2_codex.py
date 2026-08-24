@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 import gate3_route_v2 as route
+import gate3_private_rendering as private_rendering
 
 
 PINNED_CLI_VERSION = "codex-cli 0.146.0"
@@ -247,11 +248,11 @@ def _probe_publication_parents(paths: Mapping[str, Path]) -> None:
             probe.unlink(missing_ok=True)
 
 
-@dataclass(frozen=True)
-class _ContainedResult:
+@dataclass(frozen=True, repr=False, eq=False)
+class _ContainedResult(private_rendering.PrivateRendering):
     returncode: int
-    stdout: bytes
-    stderr: bytes
+    stdout: bytes = private_rendering.private_field()
+    stderr: bytes = private_rendering.private_field()
     timed_out: bool
     tree_terminated: bool
 
@@ -719,17 +720,19 @@ def _measure_ab_preflight(**kwargs: Any) -> tuple[bytes, Path]:
     )
 
 
-@dataclass(frozen=True)
-class CodexExecRunner:
+@dataclass(frozen=True, repr=False, eq=False)
+class CodexExecRunner(private_rendering.PrivateRendering):
     run_id: str
     executable_snapshot: Path
     private_root: Path
-    auth_payload: bytes
-    measured_preflight: bytes
+    auth_payload: bytes = private_rendering.private_field()
+    measured_preflight: bytes = private_rendering.private_field()
     model_id: str | None = None
-    prompt: bytes = PROMPT
+    prompt: bytes = private_rendering.private_field(default=PROMPT)
     output_schema: Mapping[str, Any] = field(default_factory=lambda: OUTPUT_SCHEMA)
-    baseline_workspace: Mapping[str, bytes] = field(default_factory=lambda: BASELINE_WORKSPACE)
+    baseline_workspace: Mapping[str, bytes] = private_rendering.private_field(
+        default_factory=lambda: BASELINE_WORKSPACE
+    )
     observed_artifact_ids: Sequence[str] = tuple(EXPECTED_WORKSPACE)
     timeout_seconds: int = 300
     _prepared: bool = field(default=False, init=False, repr=False, compare=False)
