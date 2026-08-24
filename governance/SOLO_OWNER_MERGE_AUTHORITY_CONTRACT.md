@@ -13,11 +13,11 @@ TECHNICAL REVIEW, AND GREEN REQUIRED CHECKS
 
 ## Observed Failure And Applicability
 
-PRs #101 and #103 used reviewer-facing language that required a GitHub
-`APPROVED` review even though the repository's configured protection required
-zero approving reviews. Both PRs could therefore be merged without satisfying
-the stated prose gate. A PR body must not invent a merge authority requirement
-that is absent from the canonical governance model.
+PR #103's final reviewer-facing body required a human GitHub `APPROVED` review,
+but its GitHub review list was empty when the PR was merged. The stated prose
+gate and the recorded merge evidence therefore disagreed. A PR body must not
+invent a merge authority requirement that is absent from the canonical
+governance model.
 
 This contract applies when the repository owner explicitly operates the
 repository under a solo-owner authority model. It replaces a mandatory GitHub
@@ -226,10 +226,10 @@ This contract defines decision authority and reporting semantics only. It does
 not change GitHub branch protection, rulesets, required checks, reviewer
 permissions, CI, runtime, hooks, schemas, gates, blockers, or enforcement.
 
-It does not make PRs #101 or #103 retroactively compliant with the prose gates
-their PR bodies stated. Their fixed-head technical evidence remains evidence;
-the missing pre-merge GitHub approval remains a historical process discrepancy.
-This contract governs future solo-owner merge decisions after activation.
+It does not make PR #103 retroactively compliant with the prose gate its final
+PR body stated. Its fixed-head technical evidence remains evidence; the missing
+pre-merge GitHub approval remains a historical process discrepancy. This
+contract governs future solo-owner merge decisions after activation.
 
 M1b and every reader, writer, reconciliation, mutation, or enforcement tranche
 remain outside this correction and require separate owner authorization.

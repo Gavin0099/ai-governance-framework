@@ -104,9 +104,9 @@ Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correc
 - Claim ceiling: merge authority and reviewer-facing reporting semantics only.
   No GitHub setting, branch protection, ruleset, CI, runtime, hook, schema,
   gate, blocker, enforcement, or M1b work is authorized.
-- Observed failure: PRs #101 and #103 could merge with zero GitHub approving
-  reviews even though their PR prose declared one mandatory. This correction
-  is prospective and does not retroactively make those prose gates satisfied.
+- Observed failure: PR #103's final body required a human GitHub `APPROVED`
+  review, but its GitHub review list was empty when the PR was merged. This
+  correction is prospective and does not retroactively satisfy that prose gate.
 
 Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
 

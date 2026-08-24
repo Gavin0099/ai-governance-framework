@@ -145,4 +145,4 @@ def test_contract_does_not_claim_github_or_runtime_enforcement() -> None:
     text = CONTRACT.read_text(encoding="utf-8")
     assert "A GitHub `APPROVED` review is\n> optional additional evidence" in text
     assert re.search(r"does\s+not change GitHub branch protection", text)
-    assert "does not make PRs #101 or #103 retroactively compliant" in text
+    assert "does not make PR #103 retroactively compliant" in text
