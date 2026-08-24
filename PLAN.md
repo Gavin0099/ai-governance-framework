@@ -92,9 +92,25 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correction):
+
+- [>] Replace the unsupported claim that a solo-owner repository requires a
+  GitHub `APPROVED` review with a canonical conjunctive merge decision:
+  exact-head owner merge attestation, exact-head independent technical review,
+  green required checks, and preservation of the reviewed head.
+- DONE: contract cases and mutation tests prove that all four predicates are
+  required, while GitHub `APPROVED` is optional additional evidence and cannot
+  substitute for a missing predicate.
+- Claim ceiling: merge authority and reviewer-facing reporting semantics only.
+  No GitHub setting, branch protection, ruleset, CI, runtime, hook, schema,
+  gate, blocker, enforcement, or M1b work is authorized.
+- Observed failure: PR #103's final body required a human GitHub `APPROVED`
+  review, but its GitHub review list was empty when the PR was merged. This
+  correction is prospective and does not retroactively satisfy that prose gate.
+
 Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
 
-- [>] Implement one deterministic report-only exact-byte duplicate detector
+- [x] Implement one deterministic report-only exact-byte duplicate detector
   over exactly two independently identified, caller-admitted memory record byte
   payloads.
 - DONE: equal raw bytes produce exactly one `duplicate_memory_entry` warning;
@@ -104,9 +120,10 @@ Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
   normalization, semantic reconciliation, reader, projection, writer, public
   schema, runtime, hook, CI, gate, blocker, enforcement, historical scan, or
   memory mutation is authorized.
-- Completion requires focused validation, canonical precommit, durable evidence,
-  canonical memory, independent review, and a Draft PR. The candidate is not
-  active before approved merge.
+- Completed through independently reviewed merge `3d859c95` (PR #103). The
+  detector is active at its report-only claim ceiling. PR #103's separate prose
+  requirement for a GitHub approving review was not satisfied; that process
+  discrepancy triggered the solo-owner authority correction above.
 
 Current refresh - 2026-08-24 (owner-authorized MRCSP M0 candidate):
 
