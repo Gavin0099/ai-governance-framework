@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import codecs
+import json
 import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -59,7 +62,7 @@ def _make_consumer(
     tmp_path: Path,
     *,
     runtime_exit: int = 0,
-    python_helper: str = "set_python_cmd() { PYTHON_CMD=(python); return 0; }\n",
+    python_helper: str | None = None,
 ) -> tuple[Path, Path]:
     repo = tmp_path / "consumer"
     framework = tmp_path / "framework"
@@ -77,6 +80,11 @@ def _make_consumer(
             framework / "scripts" / "hooks" / hook_name,
             source.read_text(encoding="utf-8"),
         )
+    if python_helper is None:
+        python_executable = Path(sys.executable).as_posix()
+        python_helper = (
+            f'set_python_cmd() {{ PYTHON_CMD=("{python_executable}"); return 0; }}\n'
+        )
     _write(
         framework / "scripts" / "lib" / "python.sh",
         python_helper,
@@ -87,6 +95,23 @@ def _make_consumer(
         "echo SYNTHETIC_PRE_PUSH_RUNTIME_REACHED\n"
         f"exit {runtime_exit}\n",
     )
+    _write(
+        framework / "governance_tools" / "external_tree_inventory_guard.py",
+        (REPO_ROOT / "governance_tools" / "external_tree_inventory_guard.py").read_text(
+            encoding="utf-8"
+        ),
+    )
+    _write(
+        repo / "governance" / "external-tree-inventory-guard.json",
+        json.dumps(
+            {
+                "schema": "external-tree-inventory-guard-identities.v1",
+                "repository_identities": ["example/consumer", "@repository-root"],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
 
     result = install_governance_hooks(
         repo,
@@ -95,6 +120,16 @@ def _make_consumer(
     )
     assert result.ok is True
     return repo, framework
+
+
+def _inventory_bytes() -> bytes:
+    entries = [
+        {"path": f"private/file-{index:04d}.txt", "oid": f"{index:040x}"}
+        for index in range(120)
+    ]
+    return json.dumps(
+        {"repository": "outside/private-consumer", "entries": entries}
+    ).encode("utf-8")
 
 
 def _run_pre_push(
@@ -291,6 +326,114 @@ def test_external_consumer_runtime_failure_blocks_actual_push_without_fail_open(
     assert "/c//" not in completed.stdout.lower()
     assert "/d//" not in completed.stdout.lower()
     assert _bare_remote_refs(remote) == ""
+
+
+def test_pre_push_object_guard_blocks_actual_push_before_remote_receives_commit(
+    tmp_path: Path,
+) -> None:
+    repo, _framework = _make_consumer(tmp_path)
+    remote = _make_bare_remote(tmp_path)
+    hook = repo / ".git" / "hooks" / "pre-push"
+    hook.chmod(hook.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    (repo / "leak.json").write_bytes(_inventory_bytes())
+    _run_git(repo, "add", "leak.json")
+    _run_git(repo, "commit", "--no-verify", "-m", "leak")
+
+    env = os.environ.copy()
+    env.pop("AI_GOVERNANCE_FRAMEWORK_ROOT", None)
+    completed = _run_actual_push(repo, remote, env=env)
+
+    assert completed.returncode != 0, completed.stdout
+    assert "external_bulk_tree_inventory_detected" in completed.stdout
+    assert "pre-push external tree inventory guard blocked the push" in completed.stdout
+    assert _bare_remote_refs(remote) == ""
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected_status"),
+    [
+        (codecs.BOM_UTF8 + _inventory_bytes(), "BLOCKED"),
+        (
+            codecs.BOM_UTF16_LE + _inventory_bytes().decode("utf-8").encode("utf-16-le"),
+            "BLOCKED",
+        ),
+        (
+            codecs.BOM_UTF16_BE + _inventory_bytes().decode("utf-8").encode("utf-16-be"),
+            "BLOCKED",
+        ),
+        (
+            codecs.BOM_UTF32_LE + _inventory_bytes().decode("utf-8").encode("utf-32-le"),
+            "UNREADABLE",
+        ),
+    ],
+    ids=["utf8-bom", "utf16-le", "utf16-be", "utf32-unreadable"],
+)
+def test_pre_push_object_guard_blocks_encoded_inventory_blob(
+    tmp_path: Path,
+    raw: bytes,
+    expected_status: str,
+) -> None:
+    repo, _framework = _make_consumer(tmp_path)
+    old = _run_git(repo, "rev-parse", "HEAD")
+    (repo / "encoded.json").write_bytes(raw)
+    _run_git(repo, "add", "encoded.json")
+    _run_git(repo, "commit", "--no-verify", "-m", "encoded")
+    new = _run_git(repo, "rev-parse", "HEAD")
+
+    completed = _run_pre_push(
+        repo,
+        f"refs/heads/main {new} refs/heads/main {old}\n",
+    )
+
+    assert completed.returncode != 0, completed.stdout
+    assert f"status: {expected_status}" in completed.stdout
+
+
+@pytest.mark.parametrize("case", ["missing", "invalid", "empty"])
+def test_pre_push_object_guard_identity_config_failures_block(
+    tmp_path: Path,
+    case: str,
+) -> None:
+    repo, _framework = _make_consumer(tmp_path)
+    config = repo / "governance" / "external-tree-inventory-guard.json"
+    if case == "missing":
+        config.unlink()
+    elif case == "invalid":
+        _write(config, "{not-json")
+    else:
+        _write(
+            config,
+            json.dumps(
+                {
+                    "schema": "external-tree-inventory-guard-identities.v1",
+                    "repository_identities": [],
+                }
+            ),
+        )
+    head = _run_git(repo, "rev-parse", "HEAD")
+
+    completed = _run_pre_push(
+        repo,
+        f"refs/heads/main {head} refs/heads/main {ZERO_OID}\n",
+    )
+
+    assert completed.returncode != 0, completed.stdout
+    assert "repository identity config" in completed.stdout
+
+
+def test_pre_push_object_guard_missing_remote_old_requests_fetch(
+    tmp_path: Path,
+) -> None:
+    repo, _framework = _make_consumer(tmp_path)
+    head = _run_git(repo, "rev-parse", "HEAD")
+
+    completed = _run_pre_push(
+        repo,
+        f"refs/heads/main {head} refs/heads/main {'f' * 40}\n",
+    )
+
+    assert completed.returncode != 0, completed.stdout
+    assert "run git fetch before pushing" in completed.stdout
 
 
 @pytest.mark.parametrize(
