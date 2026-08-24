@@ -12,6 +12,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping
+import gate3_private_rendering as private_rendering
 
 
 AUTHORIZATION = "gate3_route_v2_synthetic_non_scoring_only"
@@ -72,12 +73,12 @@ class SyntheticCrash(BaseException):
     """Test-only process interruption that intentionally bypasses closeout."""
 
 
-@dataclass(frozen=True)
-class SyntheticResult:
+@dataclass(frozen=True, repr=False, eq=False)
+class SyntheticResult(private_rendering.PrivateRendering):
     exit_code: int
-    stdout: bytes | None
-    final_message: bytes | None
-    workspace: Mapping[str, bytes] | None
+    stdout: bytes | None = private_rendering.private_field()
+    final_message: bytes | None = private_rendering.private_field()
+    workspace: Mapping[str, bytes] | None = private_rendering.private_field()
     exit_classification: str | None = None
     stdout_capture: str | None = None
     final_capture: str | None = None
