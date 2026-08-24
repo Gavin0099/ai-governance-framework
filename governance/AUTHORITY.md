@@ -52,6 +52,7 @@ question into one property. Memory surfaces use the question-specific roles in
 | `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_RECONCILIATION_FIXTURE_ADMISSIBILITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_RECONCILIATION_EXACT_BYTE_DETECTOR_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
+| `governance/MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/F7_FULL_UPDATE.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
@@ -132,6 +133,7 @@ canonical > reference > derived
 | `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` | question-specific memory reader contract | memory surface roles, ambiguity handling, and current-state projection claim ceiling | active only through approved merge of the complete M-1 document set; no runtime reader or semantic verification |
 | `governance/MEMORY_RECONCILIATION_FIXTURE_ADMISSIBILITY_CONTRACT.md` | canonical MRCSP fixture admission contract | one synthetic redacted exact-byte-duplicate test fixture, its provenance, redaction boundary, digest, and required rejection cases | no reader, detector, runtime, public schema, CI, gate, or enforcement behavior |
 | `governance/MEMORY_RECONCILIATION_EXACT_BYTE_DETECTOR_CONTRACT.md` | canonical MRCSP M1a detector contract | deterministic raw-byte SHA-256 duplicate reporting for two caller-admitted records | report-only; no admission, semantic reconciliation, reader, projection, schema, runtime, hook, CI, gate, blocker, or enforcement behavior |
+| `governance/MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md` | canonical MRCSP M1b-1 detector contract | deterministic strict UTF-8 and literal U+FFFD anomaly reporting for one caller-admitted record | report-only; no mojibake heuristic, repair, identity collision, missing surface, reader, schema, runtime, hook, CI, gate, blocker, or enforcement behavior |
 | `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | canonical solo-owner merge decision contract | exact-head owner attestation, independent technical review, green required checks, and reviewed-head preservation | reporting and authority semantics only; no GitHub settings, CI, runtime, hook, gate, blocker, or enforcement behavior |
 | `docs/e1-mutation-catalog.md` | mutation contract catalog / mutation surface inventory | documents mutation-capable surfaces and their allowed claim level | catalog presence is not enforcement by itself |
 | `governance_tools.memory_workflow` | implementation surface for governed memory workflow | dispatch, write-path assessment, guard summary, and receipt status reporting | implementation behavior must not exceed documented contract |
