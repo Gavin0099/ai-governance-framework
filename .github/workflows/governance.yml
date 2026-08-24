@@ -360,7 +360,8 @@ jobs:
 
           set +e
           python -m governance_tools.external_tree_inventory_guard \
-            --repository-id Gavin0099/ai-governance-framework \
+            --repo-root . \
+            --identity-config governance/external-tree-inventory-guard.json \
             "${json_files[@]}" > "$report_path"
           guard_status=$?
           set -e
@@ -412,7 +413,7 @@ jobs:
           BASH: /bin/bash
         run: >-
           python -m pytest -q tests/test_hook_memory_policy.py
-          -k 'pre_push_prerequisite or external_consumer_runtime_failure'
+          -k 'pre_push_prerequisite or external_consumer_runtime_failure or pre_push_object_guard'
 
   interception-ledger-check:
     name: Interception Ledger Check

@@ -84,9 +84,27 @@ TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
 VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
+EXTERNAL_TREE_GUARD="$FRAMEWORK_ROOT/governance_tools/external_tree_inventory_guard.py"
+EXTERNAL_TREE_IDENTITY_CONFIG="$TARGET_REPO_ROOT/governance/external-tree-inventory-guard.json"
 
 if [ ! -f "$RUNTIME_SCRIPT" ]; then
     governance_error "missing runtime governance script: $RUNTIME_SCRIPT"
+    exit 1
+fi
+if [ ! -f "$EXTERNAL_TREE_GUARD" ]; then
+    governance_error "missing external tree inventory guard: $EXTERNAL_TREE_GUARD"
+    exit 1
+fi
+
+echo "[governance] scanning pre-push newly-reachable JSON object closure"
+if ! "${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" \
+    --pre-push-updates \
+    --repo-root "$TARGET_REPO_ROOT" \
+    --identity-config "$EXTERNAL_TREE_IDENTITY_CONFIG" \
+    --format human; then
+    governance_error "pre-push external tree inventory guard blocked the push"
+    echo "  inspect the diagnostic above; fetch missing remote objects before retrying" >&2
+    echo "  bypass once: git push --no-verify" >&2
     exit 1
 fi
 

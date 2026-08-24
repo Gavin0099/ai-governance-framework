@@ -90,7 +90,9 @@ def test_runtime_enforcement_fails_closed_on_inventory_enumeration_and_guard_fai
     assert "found no tracked JSON files; enumeration is invalid" in guard_step
     assert "passed: no tracked JSON files" not in guard_step
     assert "python -m governance_tools.external_tree_inventory_guard" in guard_step
-    assert "--repository-id Gavin0099/ai-governance-framework" in guard_step
+    assert "--repo-root ." in guard_step
+    assert "--identity-config governance/external-tree-inventory-guard.json" in guard_step
+    assert "--repository-id Gavin0099/ai-governance-framework" not in guard_step
     assert '"${json_files[@]}"' in guard_step
     assert 'guard_status=$?' in guard_step
     assert '[ "$guard_status" -ne 0 ]' in guard_step
@@ -101,6 +103,18 @@ def test_runtime_enforcement_fails_closed_on_inventory_enumeration_and_guard_fai
     assert job_section.index("external_tree_inventory_guard") < job_section.index(
         "bash scripts/run-runtime-governance.sh --mode ci"
     )
+
+
+def test_bash32_job_selects_pre_push_object_guard_behaviour() -> None:
+    text = _workflow_text()
+    job_section = _section(
+        text,
+        "  bash32-runtime-compatibility:",
+        "  interception-ledger-check:",
+    )
+
+    assert "Run pre-push prerequisite regressions under Bash 3.2" in job_section
+    assert "pre_push_object_guard" in job_section
 
 
 def test_governance_workflow_triggers_on_canonical_governance_surfaces() -> None:
