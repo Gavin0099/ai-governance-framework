@@ -465,6 +465,108 @@ def test_identity_detector_uses_only_the_first_sequence_traversal() -> None:
     assert deceptive.iteration_count == 1
 
 
+class _RaisingIterationSequence(Sequence[object]):
+    def __len__(self) -> int:
+        return 2
+
+    def __getitem__(self, index: int) -> object:
+        return _identity_observation(f"record-{index}", "T-012")
+
+    def __iter__(self) -> Iterator[object]:
+        raise RuntimeError("iteration failed")
+
+
+class _RaisingGetitemSequence(Sequence[object]):
+    def __len__(self) -> int:
+        return 2
+
+    def __getitem__(self, index: int) -> object:
+        if index == 0:
+            return _identity_observation("record-a", "T-012")
+        raise KeyError("getitem failed")
+
+
+class _NonIteratorSequence(Sequence[object]):
+    def __len__(self) -> int:
+        return 2
+
+    def __getitem__(self, index: int) -> object:
+        return _identity_observation(f"record-{index}", "T-012")
+
+    def __iter__(self) -> Iterator[object]:
+        return []  # type: ignore[return-value]
+
+
+@pytest.mark.parametrize(
+    "observations",
+    [
+        _RaisingIterationSequence(),
+        _RaisingGetitemSequence(),
+        _NonIteratorSequence(),
+    ],
+)
+def test_identity_detector_converts_materialization_errors_to_value_error(
+    observations: Sequence[object],
+) -> None:
+    with pytest.raises(ValueError, match="safely materializable"):
+        detect_knowledge_identity_collision(observations)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("missing_field", ["record_id", "surface", "knowledge_id"])
+def test_identity_detector_rejects_forged_missing_fields(missing_field: str) -> None:
+    forged = object.__new__(KnowledgeIdentityObservation)
+    values = {
+        "record_id": "record-a",
+        "surface": "03_knowledge_base",
+        "knowledge_id": "T-012",
+    }
+    for field_name, value in values.items():
+        if field_name != missing_field:
+            object.__setattr__(forged, field_name, value)
+
+    with pytest.raises(ValueError, match="safely readable"):
+        detect_knowledge_identity_collision(
+            (forged, _identity_observation("record-b", "T-012"))
+        )
+
+
+def test_identity_detector_converts_dynamic_field_error_to_value_error() -> None:
+    class RaisingObservation(KnowledgeIdentityObservation):
+        def __getattribute__(self, name: str) -> object:
+            state = object.__getattribute__(self, "__dict__")
+            if name == "knowledge_id" and state.get("raise_on_access", False):
+                raise RuntimeError("field access failed")
+            return super().__getattribute__(name)
+
+    raising = RaisingObservation(
+        record_id="record-a",
+        surface="03_knowledge_base",
+        knowledge_id="T-012",
+    )
+    object.__setattr__(raising, "raise_on_access", True)
+
+    with pytest.raises(ValueError, match="safely readable"):
+        detect_knowledge_identity_collision(
+            (raising, _identity_observation("record-b", "T-012"))
+        )
+
+
+def test_identity_detector_rejects_hostile_string_subclass() -> None:
+    class HostileString(str):
+        def strip(self, chars: str | None = None) -> str:
+            raise RuntimeError("strip must not run")
+
+    forged = object.__new__(KnowledgeIdentityObservation)
+    object.__setattr__(forged, "record_id", "record-a")
+    object.__setattr__(forged, "surface", "03_knowledge_base")
+    object.__setattr__(forged, "knowledge_id", HostileString("T-012"))
+
+    with pytest.raises(ValueError, match="knowledge_id"):
+        detect_knowledge_identity_collision(
+            (forged, _identity_observation("record-b", "T-012"))
+        )
+
+
 def _encoding_record(content: bytes) -> MemoryRecordBytes:
     return MemoryRecordBytes(
         record_id="encoding-record",

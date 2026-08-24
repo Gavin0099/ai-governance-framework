@@ -56,10 +56,13 @@ caller has already admitted and does not claim consumer replay.
 The detector must:
 
 - accept exactly two caller-admitted `KnowledgeIdentityObservation` values;
-- materialize the supplied sequence exactly once, then validate and use only
-  that immutable local collection;
-- require distinct, non-empty record identifiers, non-empty surface names, and
-  non-empty knowledge identifiers without surrounding whitespace;
+- traverse the supplied sequence exactly once, materialize at most three items
+  into an immutable local collection, and validate and use only that collection;
+- convert ordinary iteration, materialization, attribute-access, and field
+  validation exceptions into `ValueError` without catching `BaseException`;
+- require plain built-in string fields, distinct non-empty record identifiers,
+  non-empty surface names, and non-empty knowledge identifiers without
+  surrounding whitespace;
 - compare the supplied knowledge identifiers with exact case-sensitive string
   equality and without normalization or semantic parsing;
 - emit exactly one `knowledge_identity_collision` finding when the identifiers

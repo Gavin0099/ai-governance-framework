@@ -10,6 +10,7 @@ import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from itertools import islice
 from typing import Any
 
 
@@ -50,11 +51,11 @@ class KnowledgeIdentityObservation:
     knowledge_id: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.record_id, str) or not self.record_id.strip():
+        if type(self.record_id) is not str or not self.record_id.strip():
             raise ValueError("record_id must be a non-empty string")
-        if not isinstance(self.surface, str) or not self.surface.strip():
+        if type(self.surface) is not str or not self.surface.strip():
             raise ValueError("surface must be a non-empty string")
-        if not isinstance(self.knowledge_id, str) or not self.knowledge_id.strip():
+        if type(self.knowledge_id) is not str or not self.knowledge_id.strip():
             raise ValueError("knowledge_id must be a non-empty string")
         if self.knowledge_id != self.knowledge_id.strip():
             raise ValueError("knowledge_id must not contain surrounding whitespace")
@@ -160,7 +161,10 @@ def detect_knowledge_identity_collision(
         raise ValueError(
             "observations must be a sequence of KnowledgeIdentityObservation"
         )
-    materialized = tuple(observations)
+    try:
+        materialized = tuple(islice(iter(observations), 3))
+    except Exception as exc:
+        raise ValueError("observations must be safely materializable") from exc
     if len(materialized) != 2:
         raise ValueError(
             "identity collision detection requires exactly two observations"
@@ -174,16 +178,26 @@ def detect_knowledge_identity_collision(
 
     snapshots: list[tuple[str, str, str]] = []
     for observation in materialized:
-        record_id = observation.record_id
-        surface = observation.surface
-        knowledge_id = observation.knowledge_id
-        if not isinstance(record_id, str) or not record_id.strip():
+        try:
+            record_id = observation.record_id
+            surface = observation.surface
+            knowledge_id = observation.knowledge_id
+            record_id_stripped = (
+                record_id.strip() if type(record_id) is str else None
+            )
+            surface_stripped = surface.strip() if type(surface) is str else None
+            knowledge_id_stripped = (
+                knowledge_id.strip() if type(knowledge_id) is str else None
+            )
+        except Exception as exc:
+            raise ValueError("observation fields must be safely readable") from exc
+        if type(record_id) is not str or not record_id_stripped:
             raise ValueError("record_id must be a non-empty string")
-        if not isinstance(surface, str) or not surface.strip():
+        if type(surface) is not str or not surface_stripped:
             raise ValueError("surface must be a non-empty string")
-        if not isinstance(knowledge_id, str) or not knowledge_id.strip():
+        if type(knowledge_id) is not str or not knowledge_id_stripped:
             raise ValueError("knowledge_id must be a non-empty string")
-        if knowledge_id != knowledge_id.strip():
+        if knowledge_id != knowledge_id_stripped:
             raise ValueError("knowledge_id must not contain surrounding whitespace")
         snapshots.append((record_id, surface, knowledge_id))
 
