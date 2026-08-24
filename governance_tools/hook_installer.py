@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -118,6 +119,19 @@ def _write_bytes_if_changed(path: Path, payload: bytes) -> bool:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
+    return True
+
+
+def _ensure_managed_hook_executable(path: Path) -> bool:
+    """Make an installed hook executable on POSIX without changing Windows ACLs."""
+
+    if os.name == "nt":
+        return False
+    current_mode = path.stat().st_mode
+    executable_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    if executable_mode == current_mode:
+        return False
+    path.chmod(executable_mode)
     return True
 
 
@@ -749,7 +763,9 @@ def install_governance_hooks(
             errors.append(f"missing source hook: {source}")
             continue
         _backup_unmanaged(target, FRAMEWORK_MARKER, backups)
-        if _write_bytes_if_changed(target, _shell_hook_payload(source)):
+        payload_changed = _write_bytes_if_changed(target, _shell_hook_payload(source))
+        mode_changed = _ensure_managed_hook_executable(target)
+        if payload_changed or mode_changed:
             changed.append(str(target))
         installed.append(str(target))
 

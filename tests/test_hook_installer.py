@@ -305,6 +305,9 @@ def test_external_consumer_install_allows_clean_push_and_blocks_external_invento
 
     installed = _install_governance_hooks(repo, framework, include_copilot=False)
     assert installed.ok is True, installed.errors
+    if os.name != "nt":
+        for hook_name in ("pre-commit", "pre-push"):
+            assert (repo / ".git" / "hooks" / hook_name).stat().st_mode & 0o111 == 0o111
     _write(repo / "README.md", "clean consumer\n")
     _run(["git", "add", "README.md", IDENTITY_CONFIG_REL.as_posix()], cwd=repo)
     _run(["git", "commit", "--no-verify", "-m", "initial clean consumer"], cwd=repo)
