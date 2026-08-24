@@ -86,10 +86,19 @@ def detect_memory_encoding_integrity(record: MemoryRecordBytes) -> dict[str, Any
 
     if not isinstance(record, MemoryRecordBytes):
         raise ValueError("record must be a MemoryRecordBytes value")
+    record_id = record.record_id
+    surface = record.surface
+    content = record.content
+    if not isinstance(record_id, str) or not record_id.strip():
+        raise ValueError("record_id must be a non-empty string")
+    if not isinstance(surface, str) or not surface.strip():
+        raise ValueError("surface must be a non-empty string")
+    if not isinstance(content, bytes) or not content:
+        raise ValueError("content must be non-empty bytes")
 
     reason: str | None = None
     try:
-        decoded = record.content.decode("utf-8", errors="strict")
+        decoded = content.decode("utf-8", errors="strict")
     except UnicodeDecodeError:
         reason = "invalid_utf8"
     else:
@@ -101,13 +110,13 @@ def detect_memory_encoding_integrity(record: MemoryRecordBytes) -> dict[str, Any
         findings.append(
             {
                 "code": ENCODING_FINDING_CODE,
-                "digest": hashlib.sha256(record.content).hexdigest(),
+                "digest": hashlib.sha256(content).hexdigest(),
                 "digest_algorithm": "sha256",
                 "mode": "report_only",
                 "reason": reason,
-                "record_id": record.record_id,
+                "record_id": record_id,
                 "severity": "warning",
-                "surface": record.surface,
+                "surface": surface,
             }
         )
 

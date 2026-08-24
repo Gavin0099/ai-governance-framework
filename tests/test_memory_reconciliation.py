@@ -202,6 +202,30 @@ def test_encoding_detector_empty_content_fails_closed() -> None:
         _encoding_record(b"")
 
 
+@pytest.mark.parametrize(
+    "record_id, surface, content, message",
+    [
+        ("", "03_knowledge_base", b"content", "record_id"),
+        ("forged-record", "", b"content", "surface"),
+        ("forged-record", "03_knowledge_base", b"", "content"),
+        ("forged-record", "03_knowledge_base", "not-bytes", "content"),
+    ],
+)
+def test_encoding_detector_revalidates_forged_record_invariants(
+    record_id: str,
+    surface: str,
+    content: object,
+    message: str,
+) -> None:
+    forged = object.__new__(MemoryRecordBytes)
+    object.__setattr__(forged, "record_id", record_id)
+    object.__setattr__(forged, "surface", surface)
+    object.__setattr__(forged, "content", content)
+
+    with pytest.raises(ValueError, match=message):
+        detect_memory_encoding_integrity(forged)
+
+
 def test_admitted_exact_byte_pair_produces_exactly_one_report_only_finding() -> None:
     report = detect_exact_byte_duplicate(_fixture_records())
 
