@@ -136,3 +136,7 @@ Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
 - Cannot claim a real consumer was updated or adopted, or that report-only
   behavior is enforcement.
 - Cannot claim the workspace is clean; it is NOT CLEAN by design here.
+
+- Support #4691271 cleanup reported complete; Finding 33 temporarily unblocked by an exact untracked identity config pending guard-stack integration. <!-- memory_record_projection:active-task-summary:12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601 -->
+
+- Repo PUBLIC by owner authority for consumer access; severe PR #95 exposure cleared, known mild exposure remains pending Gate 3 or public-need re-review. <!-- memory_record_projection:active-task-summary:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->

@@ -5140,3 +5140,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: NOT CLAIMED: the no-forgery statement is a post-hoc inspection of the three projections that predated this correction; it is not an original write-time guarantee or an immutable memory anchor
 - Next action: Submit the complete PR #95 projection set for exact-scope review, then stage only those projection blocks under separate authorization; exclude M3-b-2A and active-task changes.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601 -->
+### Canonical memory checkpoint — 2026-08-24-16
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601`
+- Commit binding: `5819e4e844bd83f624bbc08a5c23cb2169e4d9bc` (bound)
+- Record: GitHub Support ticket #4691271 closure and Finding 33 temporary compatibility checkpoint: the owner-provided GitHub Support reply dated 2026-08-24 07:25 UTC states that internal pull-request references to the sensitive commits were deleted and cached views were cleared. Finding 33 is PARTIALLY_RESOLVED_TEMP_CONFIG: the primary feat/gate3-historical-materialization worktree now carries an untracked exact copy of origin/main governance/external-tree-inventory-guard.json (Git blob 173da336e69b3c0425a40a80e3b176f3a1ff4855, 224 bytes), including @repository-root, so the shared installed pre-push hook can read its per-checkout identity configuration. This is a temporary compatibility file, not branch integration or tracked remediation. Removal condition: after feat/gate3-historical-materialization incorporates the PR #97-#102 guard stack or an equivalent main integration that supplies the tracked config, remove the temporary untracked copy.
+- Validation boundary: PASS: exact config raw blob OID equals origin/main at 173da336e69b3c0425a40a80e3b176f3a1ff4855 and byte length is 224; @repository-root is present. PASS: direct invocation of D:/ai-governance-framework/.git/hooks/pre-push from the primary worktree with its actual local/upstream ref tuple exited 0, reported external-tree guard passed updates=1 json_blobs=0, and completed runtime-governance enforcement. NOT RUN: no real git push or remote mutation was performed. Support cleanup status is based on the owner-provided GitHub Support response; this record does not prove absence of prior clones or copies.
+- Next action: Integrate the PR #97-#102 guard stack or equivalent current main into feat/gate3-historical-materialization under separate authority, then remove the temporary untracked identity config and re-run the actual-worktree hook simulation.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->
+### Canonical memory checkpoint — 2026-08-24-17
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8`
+- Commit binding: `5819e4e844bd83f624bbc08a5c23cb2169e4d9bc` (bound)
+- Record: Visibility authority correction for canonical checkpoint 12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601: repository PUBLIC visibility is an explicit owner-authorized decision, made so other consumer repositories can access the framework after the known risk was surfaced. GitHub Support reports that the severe 1870-entry full-tree exposure from PR #95 was removed from internal pull-request references and cached views. The separate milder exposure class remains on main: Windows username/local absolute paths and private-repository references or internal subpaths. PUBLIC does not mean sanitized. Status is OWNER_ACCEPTED_TEMPORARY_PUBLIC_WITH_KNOWN_MILD_EXPOSURE. This record does not claim that no clone, fork, cache, or other copy existed or remains. Re-review condition: reassess visibility when Gate 3 cross-repository work is complete or when the public-access need disappears, whichever occurs first.
+- Validation boundary: NOT CLAIMED: this correction preserves the owner's explicit visibility authority and the owner-provided GitHub Support closure response; it does not establish repository sanitization, independently enumerate every mild-exposure occurrence, or prove absence of prior clones or copies.
+- Next action: Submit the exact visibility correction projection with checkpoint 12bbe5f6 for review and commit; later re-review PUBLIC visibility when Gate 3 cross-repository work completes or public access is no longer required.
+- PLAN reconciliation: `not_applicable`
