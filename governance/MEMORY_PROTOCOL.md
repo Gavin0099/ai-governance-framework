@@ -6,6 +6,8 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
+<!-- mrcsp_activation_id: mrcsp-m1-authority-reader-v1 -->
+
 # Memory Protocol
 
 Status: extracted from AGENTS.md
@@ -27,12 +29,39 @@ You wake up fresh each session. These files are continuity:
 Capture decisions, durable context, and lessons. Skip secrets unless the user
 explicitly asks to keep them.
 
+### Storage, Writer, And Authority Are Separate
+
+The following terms must not be collapsed:
+
+- `canonical storage` names the required repository location;
+- `canonical writer` names the required record-production path and format;
+- `canonical_record` means the record satisfies those storage and writer
+  requirements;
+- `authority_class` identifies which class of question a source is qualified to
+  answer;
+- `projection_status` identifies `current`, `historical`, `superseded`, or
+  `candidate` interpretation;
+- `review_status` identifies `reviewed`, `unreviewed`, or `disputed` state.
+
+A `canonical_record` is event/provenance evidence. It is not automatically an
+authoritative current-state projection. Detailed surface roles and
+question-specific reader rules are defined in
+`governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md`.
+
+The MRCSP M-1 authority model activates only through an authorized review and
+merge that contains the matching `AUTHORITY.md`, `MEMORY_PROTOCOL.md`,
+`MEMORY_AUTHORITY_CONTRACT.md`, and
+`MEMORY_SURFACE_AUTHORITY_CONTRACT.md` changes. No single file activates it.
+M-1 activation does not authorize M0: fixture admissibility and fixture creation
+require a separate owner-authorized tranche.
+
 ## Cross-Agent Memory Channel
 
 - Shared memory for all agents in this workspace must live under this repo's
   `memory/` directory.
-- `memory/00_long_term.md` is the canonical long-term cross-agent memory file
-  for main sessions.
+- `memory/00_long_term.md` is the canonical storage path for long-term
+  cross-agent memory in main sessions. File placement does not make every
+  section normative authority; section-level promotion and review still apply.
 - External/private tool memory paths are not cross-agent authority and must not
   be cited as repo governance state.
 - If important context exists only in an external/private memory file, copy a
@@ -253,6 +282,26 @@ canonical corrective memory entry over rewriting historical entries.
 
 Memory entries are state evidence of prior work, not authorization for current
 action.
+
+Reader resolution is question-specific. There is no global memory precedence
+such as `03 > daily > PLAN`:
+
+- event-history questions use daily records and their cited evidence;
+- current authorization comes from current human instruction or an approved
+  change, never from memory or PLAN alone;
+- approved work ordering uses PLAN within the currently authorized scope;
+- current progress and operations use `01` / `02` projections only when their
+  status is current, their review is authority-qualified, their anchors cover
+  the latest qualified evidence and substantive state transition, and no later
+  qualified change remains unreconciled;
+- reusable knowledge requires a promoted, reviewed, non-superseded `03`
+  section;
+- current review verdict uses the latest valid, authority-qualified,
+  non-superseded review while preserving older reviews as history.
+
+If qualified sources conflict or do not establish one current answer, do not
+guess. Surface `reviewer_required`, `disputed`, `insufficient_authority`, or
+`unassessable` as appropriate.
 
 A retrieved `memory.next_step` is a candidate continuation signal only. It does
 not grant permission to modify files, commit, push, close issues, upgrade
