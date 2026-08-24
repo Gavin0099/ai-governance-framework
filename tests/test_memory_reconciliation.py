@@ -146,6 +146,19 @@ def test_detector_rejects_wrong_record_count(
         detect_exact_byte_duplicate(records)
 
 
+@pytest.mark.parametrize(
+    "records",
+    [
+        None,
+        ("not-a-record", "also-not-a-record"),
+        (_fixture_records()[0], object()),
+    ],
+)
+def test_detector_rejects_invalid_collection_or_element_types(records: object) -> None:
+    with pytest.raises(ValueError, match="MemoryRecordBytes"):
+        detect_exact_byte_duplicate(records)  # type: ignore[arg-type]
+
+
 def test_detector_rejects_same_record_identity() -> None:
     source, candidate = _fixture_records()
     same_identity = MemoryRecordBytes(

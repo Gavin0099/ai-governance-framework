@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 
 REPORT_VERSION = "mrcsp-exact-byte-detector.v0.1"
@@ -40,8 +41,14 @@ def detect_exact_byte_duplicate(
 ) -> dict[str, Any]:
     """Return a report-only exact-byte duplicate report for two records."""
 
+    if not isinstance(records, Sequence) or isinstance(
+        records, (str, bytes, bytearray)
+    ):
+        raise ValueError("records must be a sequence of MemoryRecordBytes")
     if len(records) != 2:
         raise ValueError("exact-byte detection requires exactly two records")
+    if not all(isinstance(item, MemoryRecordBytes) for item in records):
+        raise ValueError("records must contain only MemoryRecordBytes")
 
     ordered = sorted(records, key=lambda item: (item.record_id, item.surface))
     if ordered[0].record_id == ordered[1].record_id:
