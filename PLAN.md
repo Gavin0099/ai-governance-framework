@@ -92,6 +92,22 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-1 candidate):
+
+- [>] Add one deterministic report-only encoding-integrity detector for one
+  caller-admitted `MemoryRecordBytes` value.
+- DONE: invalid UTF-8 produces exactly one
+  `memory_encoding_integrity_anomaly` finding; valid UTF-8 containing U+FFFD
+  produces exactly one finding; clean valid UTF-8 produces zero findings;
+  repeated input produces byte-stable JSON; non-record and empty-content input
+  fail closed with `ValueError`.
+- Claim ceiling: strict UTF-8 decode failure and literal U+FFFD presence only.
+  No heuristic mojibake detection, repair, identity collision, missing logical
+  surface, reader, projection, supersession, schema, runtime, hook, CI, gate,
+  blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+
 Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correction):
 
 - [>] Replace the unsupported claim that a solo-owner repository requires a
