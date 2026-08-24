@@ -56,6 +56,8 @@ caller has already admitted and does not claim consumer replay.
 The detector must:
 
 - accept exactly two caller-admitted `KnowledgeIdentityObservation` values;
+- materialize the supplied sequence exactly once, then validate and use only
+  that immutable local collection;
 - require distinct, non-empty record identifiers, non-empty surface names, and
   non-empty knowledge identifiers without surrounding whitespace;
 - compare the supplied knowledge identifiers with exact case-sensitive string

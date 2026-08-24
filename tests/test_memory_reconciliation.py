@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 import pytest
@@ -394,6 +395,74 @@ def test_identity_detector_snapshots_each_observation_field_once() -> None:
         "surface": 1,
         "knowledge_id": 1,
     }
+
+
+class _DeceptiveObservationSequence(Sequence[object]):
+    def __init__(self, traversals: list[list[object]], reported_length: int = 2) -> None:
+        self._traversals = traversals
+        self._reported_length = reported_length
+        self.iteration_count = 0
+
+    def __len__(self) -> int:
+        return self._reported_length
+
+    def __getitem__(self, index: int) -> object:
+        return self._traversals[0][index]
+
+    def __iter__(self) -> Iterator[object]:
+        traversal_index = min(self.iteration_count, len(self._traversals) - 1)
+        self.iteration_count += 1
+        return iter(self._traversals[traversal_index])
+
+
+def test_identity_detector_rejects_len_iteration_count_disagreement() -> None:
+    deceptive = _DeceptiveObservationSequence(
+        [
+            [
+                _identity_observation("record-a", "T-012"),
+                _identity_observation("record-b", "T-012"),
+                _identity_observation("record-c", "T-012"),
+            ]
+        ],
+        reported_length=2,
+    )
+
+    with pytest.raises(ValueError, match="exactly two observations"):
+        detect_knowledge_identity_collision(deceptive)
+
+    assert deceptive.iteration_count == 1
+
+
+def test_identity_detector_rejects_invalid_materialized_element() -> None:
+    deceptive = _DeceptiveObservationSequence(
+        [[_identity_observation("record-a", "T-012"), "bad"]]
+    )
+
+    with pytest.raises(ValueError, match="KnowledgeIdentityObservation"):
+        detect_knowledge_identity_collision(deceptive)
+
+    assert deceptive.iteration_count == 1
+
+
+def test_identity_detector_uses_only_the_first_sequence_traversal() -> None:
+    deceptive = _DeceptiveObservationSequence(
+        [
+            [
+                _identity_observation("record-a", "T-012"),
+                _identity_observation("record-b", "T-012"),
+            ],
+            [
+                _identity_observation("record-a", "T-012"),
+                _identity_observation("record-b", "T-999"),
+            ],
+        ]
+    )
+
+    report = detect_knowledge_identity_collision(deceptive)
+
+    assert len(report["findings"]) == 1
+    assert report["findings"][0]["qualified_identity"] == "knowledge:T-012"
+    assert deceptive.iteration_count == 1
 
 
 def _encoding_record(content: bytes) -> MemoryRecordBytes:

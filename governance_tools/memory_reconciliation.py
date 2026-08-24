@@ -160,19 +160,20 @@ def detect_knowledge_identity_collision(
         raise ValueError(
             "observations must be a sequence of KnowledgeIdentityObservation"
         )
-    if len(observations) != 2:
+    materialized = tuple(observations)
+    if len(materialized) != 2:
         raise ValueError(
             "identity collision detection requires exactly two observations"
         )
     if not all(
-        isinstance(item, KnowledgeIdentityObservation) for item in observations
+        isinstance(item, KnowledgeIdentityObservation) for item in materialized
     ):
         raise ValueError(
             "observations must contain only KnowledgeIdentityObservation values"
         )
 
     snapshots: list[tuple[str, str, str]] = []
-    for observation in observations:
+    for observation in materialized:
         record_id = observation.record_id
         surface = observation.surface
         knowledge_id = observation.knowledge_id
