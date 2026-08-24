@@ -51,6 +51,15 @@ _NO_VALIDATION_EVIDENCE_PREFIXES = ("NOT RUN:", "NOT CLAIMED:")
 MEMORY_WRITE_STATUS_WRITTEN = "written"
 MEMORY_WRITE_STATUS_ALREADY_PRESENT = "already_present"
 
+SURFACE_DAILY = "daily"
+SURFACE_REVIEW_LOG = "review-log"
+SURFACE_ACTIVE_TASK_SUMMARY = "active-task-summary"
+SURFACE_CHOICES = (
+    SURFACE_DAILY,
+    SURFACE_REVIEW_LOG,
+    SURFACE_ACTIVE_TASK_SUMMARY,
+)
+
 _RECORD_IDENTITY_FIELDS = (
     "record_format_version",
     "memory_type",
@@ -186,6 +195,155 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
         f"  next_step: {record['next_step']}\n"
         f"  plan_reconciliation: {record.get('plan_reconciliation', PLAN_RECONCILIATION_NOT_DECLARED)}\n"
         f"  record_identity: {record.get('record_identity') or build_record_identity(record)}\n"
+    )
+
+
+def _validate_single_line(value: str | None, *, field_name: str) -> str:
+    candidate = (value or "").strip()
+    if not candidate:
+        raise ValueError(f"{field_name} must be non-empty")
+    if "\n" in candidate or "\r" in candidate:
+        raise ValueError(f"{field_name} must be exactly one line")
+    return candidate
+
+
+def _validate_projection_field(value: str | None, *, field_name: str) -> str:
+    candidate = _validate_single_line(
+        value,
+        field_name=field_name,
+    )
+    forbidden_tokens = ("memory_record_projection:", "<!--", "-->")
+    for token in forbidden_tokens:
+        if token in candidate:
+            raise ValueError(
+                f"{field_name} contains reserved projection syntax: {token}"
+            )
+    return candidate
+
+
+def _validate_active_task_summary(value: str | None) -> str:
+    return _validate_projection_field(
+        value,
+        field_name="active_task_summary",
+    )
+
+
+def render_review_log_projection(record: dict[str, str]) -> str:
+    """Render a non-session-shaped review-log projection of a canonical record."""
+    identity = record.get("record_identity") or build_record_identity(record)
+    return (
+        f"<!-- memory_record_projection:{SURFACE_REVIEW_LOG}:{identity} -->\n"
+        f"### Canonical memory checkpoint — {record['session_id']}\n\n"
+        f"- Writer: `{record['writer']}`\n"
+        f"- Record identity: `{identity}`\n"
+        f"- Commit binding: `{record['commit_hash']}` ({record['memory_binding']})\n"
+        f"- Record: {record['what_changed']}\n"
+        f"- Validation boundary: {record['test_evidence']}\n"
+        f"- Next action: {record['next_step']}\n"
+        f"- PLAN reconciliation: `{record['plan_reconciliation']}`\n"
+    )
+
+
+def render_active_task_projection(record: dict[str, str], *, summary: str) -> str:
+    """Render the deliberately one-line active-task projection."""
+    normalized_summary = _validate_active_task_summary(summary)
+    identity = record.get("record_identity") or build_record_identity(record)
+    return (
+        f"- {normalized_summary} "
+        f"<!-- memory_record_projection:{SURFACE_ACTIVE_TASK_SUMMARY}:{identity} -->\n"
+    )
+
+
+def _projection_marker_line_present(
+    *,
+    existing: str,
+    surface: str,
+    identity: str,
+) -> bool:
+    marker = f"<!-- memory_record_projection:{surface}:{identity} -->"
+    for line in existing.splitlines():
+        if surface == SURFACE_REVIEW_LOG and line == marker:
+            return True
+        if (
+            surface == SURFACE_ACTIVE_TASK_SUMMARY
+            and line.startswith("- ")
+            and line.endswith(f" {marker}")
+            and line.count("<!--") == 1
+            and line.count("-->") == 1
+        ):
+            return True
+    return False
+
+
+def append_projection_with_outcome(
+    *,
+    project_root: Path,
+    record: dict[str, str],
+    surface: str,
+    active_task_summary: str | None = None,
+) -> MemoryWriteOutcome:
+    """Append to one of the two fixed non-daily memory projection surfaces."""
+    normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
+    if evidence_error is not None:
+        raise ValueError(evidence_error)
+    record = dict(record)
+    record["test_evidence"] = normalized_test_evidence
+    identity = build_record_identity(record)
+    record["record_identity"] = identity
+    for field_name in (
+        "writer",
+        "what_changed",
+        "commit_hash",
+        "session_id",
+        "memory_binding",
+        "test_evidence",
+        "next_step",
+        "plan_reconciliation",
+    ):
+        record[field_name] = _validate_projection_field(
+            str(record.get(field_name, "")),
+            field_name=field_name,
+        )
+
+    if surface == SURFACE_REVIEW_LOG:
+        path = project_root / "memory" / "04_review_log.md"
+        rendered = render_review_log_projection(record)
+    elif surface == SURFACE_ACTIVE_TASK_SUMMARY:
+        path = project_root / "memory" / "01_active_task.md"
+        rendered = render_active_task_projection(
+            record,
+            summary=active_task_summary or "",
+        )
+    else:
+        raise ValueError(
+            "projection surface must be 'review-log' or 'active-task-summary'"
+        )
+
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    if _projection_marker_line_present(
+        existing=existing,
+        surface=surface,
+        identity=identity,
+    ):
+        return MemoryWriteOutcome(
+            path=path,
+            status=MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+            record_identity=identity,
+            writer=WRITER_ID,
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as fh:
+        if existing and not existing.endswith(("\n", "\r")):
+            fh.write("\n")
+        if existing:
+            fh.write("\n")
+        fh.write(rendered)
+    return MemoryWriteOutcome(
+        path=path,
+        status=MEMORY_WRITE_STATUS_WRITTEN,
+        record_identity=identity,
+        writer=WRITER_ID,
     )
 
 
@@ -348,6 +506,22 @@ def main() -> int:
     )
     parser.add_argument("--project-root", default=".", help="Repository root (default: .)")
     parser.add_argument(
+        "--surface",
+        action="append",
+        choices=SURFACE_CHOICES,
+        help=(
+            "Fixed memory surface to write. Repeat for multiple surfaces. "
+            "Defaults to daily; arbitrary paths are not accepted."
+        ),
+    )
+    parser.add_argument(
+        "--active-task-summary",
+        default=None,
+        help=(
+            "Required one-line summary when --surface active-task-summary is used."
+        ),
+    )
+    parser.add_argument(
         "--plan-reconciliation",
         required=True,
         help=(
@@ -357,6 +531,20 @@ def main() -> int:
         ),
     )
     args = parser.parse_args()
+
+    surfaces = list(dict.fromkeys(args.surface or [SURFACE_DAILY]))
+    if SURFACE_ACTIVE_TASK_SUMMARY in surfaces:
+        try:
+            _validate_active_task_summary(args.active_task_summary)
+        except ValueError as exc:
+            print(f"[memory_record] error: {exc}")
+            return 2
+    elif args.active_task_summary is not None:
+        print(
+            "[memory_record] error: --active-task-summary requires "
+            "--surface active-task-summary"
+        )
+        return 2
 
     plan_reconciliation, plan_error = validate_plan_reconciliation(args.plan_reconciliation)
     if plan_error is not None:
@@ -424,8 +612,34 @@ def main() -> int:
         next_step=args.next_step,
         plan_reconciliation=plan_reconciliation,
     )
-    path = append_session_derived_entry(project_root=project_root, record=record)
-    print(f"[memory_record] Written: {path}")
+    outcomes: list[MemoryWriteOutcome] = []
+    for surface in surfaces:
+        if surface == SURFACE_DAILY:
+            outcomes.append(
+                append_session_derived_entry_with_outcome(
+                    project_root=project_root,
+                    record=record,
+                )
+            )
+        else:
+            outcomes.append(
+                append_projection_with_outcome(
+                    project_root=project_root,
+                    record=record,
+                    surface=surface,
+                    active_task_summary=args.active_task_summary,
+                )
+            )
+    for outcome in outcomes:
+        status_label = (
+            "Written"
+            if outcome.status == MEMORY_WRITE_STATUS_WRITTEN
+            else "Already present"
+        )
+        print(
+            f"[memory_record] {status_label}: {outcome.path} "
+            f"(surface identity={outcome.record_identity})"
+        )
     print(render_session_derived_entry(record))
     return 0
 

@@ -1,0 +1,26 @@
+{
+  "schema": "c1-stryker-sidecar-plugin-binding.v1",
+  "tool_root": "/tool",
+  "core": {
+    "version": "10.0.0",
+    "package_path": "/tool/node_modules/@stryker-mutator/core/package.json",
+    "cli_path": "/tool/node_modules/@stryker-mutator/core/bin/stryker.js",
+    "cli_sha256": "68ff1362368a0cf3d26c4b76955667dff7bf08baffc68d2ffd9bdd0cf6dbbd89"
+  },
+  "plugin": {
+    "version": "10.0.0",
+    "package_path": "/tool/node_modules/@stryker-mutator/vitest-runner/package.json",
+    "entry_path": "/tool/node_modules/@stryker-mutator/vitest-runner/dist/src/index.js",
+    "entry_sha256": "094dfe20dc1e057ee6fb40deecd1693ca85ad8aa0aa905407fe7158fff5a1998",
+    "exports_stryker_plugins": true,
+    "plugin_count": 1
+  },
+  "tool_vitest": {
+    "version": "4.0.18",
+    "package_path": "/tool/node_modules/vitest/package.json"
+  },
+  "package_lock": {
+    "path": "/tool/package-lock.json",
+    "sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c"
+  }
+}
