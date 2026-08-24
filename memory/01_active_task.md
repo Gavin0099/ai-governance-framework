@@ -5,18 +5,15 @@
 
 # Active Task
 
-> Refreshed 2026-08-19 on `feat/gate3-historical-materialization`. A
-> point-in-time summary, not canonical memory, and not evidence that anything
-> below was re-verified today.
+> Refreshed 2026-08-19, after PR #76 merged. A point-in-time summary, not
+> canonical memory, and not evidence that anything below was re-verified today.
 >
 > **No branch head and no commit count are written here.** Both go stale on the
 > next commit — including the one correcting them, which is how two revisions of
 > this file were wrong on landing. `origin/main..HEAD` is the authority.
 >
-> **Cleaned up 2026-08-19 to return this file to `SAFE`** from 171 lines and
-> 9575 characters. The checkpoint table and per-tranche narrative are preserved
-> in `memory/04_review_log.md`, `PLAN.md` and the commit messages. Nothing
-> append-only was rewritten. Corrected claims are marked below.
+> Full history is in `memory/04_review_log.md`, `PLAN.md` and the commit
+> messages. Corrected claims are marked below.
 
 ## Current Focus
 
@@ -31,18 +28,10 @@
 
 ## Where The Work Is
 
-Twenty tranches are merged to `main` as `5204cd18` — M1 through M3-a, including
-the native boundary N1/N2/N3a/N3b/N3c-1/N3c-2, the held-handle read, and M2.
-`PLAN.md` carries them as milestone entries and `memory/04_review_log.md` carries
-their reviews; neither is repeated here.
-
-**The feature branch is pushed and nothing on it is merged.** `origin/main` is
-unchanged at `5204cd18`, no pull request is open, and a reader taking state from
-`main` alone stops at M3-a. The unmerged range is `origin/main..HEAD`; its size
-is whatever Git says when the pull request is opened.
-
-The substantive tranches in that range — **not** the whole of it, since record
-and cleanup commits sit alongside them unlisted:
+PR #76 merged as `f802dba4`, carrying the entries through the BLOCKED-3 design
+slice below; M1 through M3-a merged earlier. Later branch work remains in the
+same inventory without encoding a branch head or ahead count. For current merge
+state, `git log --oneline origin/main..HEAD` is authoritative.
 
 | Tranche | Commit |
 | --- | --- |
@@ -50,12 +39,20 @@ and cleanup commits sit alongside them unlisted:
 | M3-b design revision 6 | `70d62fd1` |
 | M3-b-1 closed loader and return frame | `cfa2c1ec` |
 | M3-b-1 module-audit opt-out fix | `80b2a74c` |
-| BLOCKED-1 amendment, allowlist widened to five | `fa10dda8` |
-| BLOCKED-2 amendment, two verifier checks retired | `4ea55d3e` |
+| **BLOCKED-1 amendment**, allowlist widened to five | `fa10dda8` |
+| **BLOCKED-2 amendment**, two verifier checks retired | `4ea55d3e` |
 | BLOCKED-3 process-control design slice | `95838ac0` |
+| Post-merge record reconciliation | `dc71c3f9` |
+| BLOCKED-3 measured layouts and pure declarations | `fe44deb4` |
 
-Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`; #74 was
-another agent's work, merged only to clear BEHIND.
+Two of those change executable authority or the meaning of passing verification,
+and both are now in `main`: the allowlist is five modules, and two verifier
+checks are retired from the reconstruction path. **BLOCKED-3 is CLOSED** after
+acceptance of the design slice and measured-layout commit `fe44deb4`. CI had no
+failures before the PR #76 merge: twelve passed, two skipped.
+
+Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
+`f802dba4`; #74 was another agent's work, merged only to clear BEHIND.
 
 ## Paused And Blocked
 
@@ -67,19 +64,21 @@ another agent's work, merged only to clear BEHIND.
   are fixed; what blocks it is that changing the first two breaks the source pin
   the historical candidate is verified against.
 - **BLOCKED-1 and BLOCKED-2 are resolved by amendment** (`fa10dda8`,
-  `4ea55d3e`), under explicit human authorization. M3-b-3 therefore has a defined
-  callee and a defined verification contract, and needs only to be written and
-  reviewed. It owns the parent-side result object and the two "not asserted"
-  markers, which the BLOCKED-2 amendment requires and does not build.
-- **BLOCKED-3 is written and still open** (`95838ac0`). No authorization closes
-  it — it asked for a design slice, not an amendment. Ownership, the unwind
-  matrix and error translation are closed; **the layouts are not**, because the
-  oracle needs a digest-pinned SDK package absent here and the offsets will not
-  be written from recollection. It closes when the slice is accepted **and** that
-  artifact exists. M3-b-2 does not begin before then.
-- **How the child receives the materialized root is unresolved.** argv, the
-  environment and the inbound frame have no field for it. Recorded in the code
-  as an open dependency rather than defaulted.
+  `4ea55d3e`), under explicit human authorization, and both are now in `main`.
+  M3-b-3 therefore has a defined callee and a defined verification contract.
+  That is **authority, not sequence**: it runs inside the child M3-b-2 creates,
+  so it is still third. It owns the parent-side result object and the two
+  "not asserted" markers, which the BLOCKED-2 amendment requires and does not
+  build.
+- **BLOCKED-3 is CLOSED** (`95838ac0`, `fe44deb4`). The design slice is accepted;
+  the pinned package digest was verified and the oracle now covers eighteen
+  types, including seven measured process-control layouts with matching pure
+  declarations and independent fixtures. Fresh-context exact-digest review
+  approved the commit; 386 scoped tests and the canonical 201-test gate passed.
+  No symbol is bound or called, `ACTIVE` remains `False`, and M3-b-2 has not begun.
+- **Materialized-root transport is resolved as design, not implemented.** The
+  accepted `GATE3HL\0` v1 envelope carries one unchanged M3-a frame and root.
+  The full absolute base remains parent-trusted; M3-b-2 is unstarted.
 - Nothing is wired to M2, M3-a or M3-b-1. `materialize()` and `cleanup()` refuse
   while `handle_boundary_available()` is `False`; `ACTIVE` is `False` and nothing
   calls in. M2's verification is still not entirely handle-bound: the
@@ -88,19 +87,13 @@ another agent's work, merged only to clear BEHIND.
 
 ## Next Steps
 
-1. Review the three blocker commits at exact digests. Two are amendments and must
-   be read as amendments, not as diffs.
-2. **BLOCKED-3's remaining half.** Obtain the pinned SDK package `f8787b2f…`,
-   extend `gate3_native_expected_layout_extract.py` by the seven process-control
-   types, regenerate `gate3-native-expected-layout.json`, commit it with its
-   extractor digest. Only then may the `ctypes` structures be declared.
-3. **M3-b-3**, the tranche actually unblocked.
-4. **M3-b-2**, after step 2 lands and the slice is accepted.
-5. Answer how the child receives the materialized root before either needs it.
-   The runner's trust root stays an accepted assumption of M3.
-6. M4: the historical candidate verified against materialized historical bytes
+1. Define and authorize bounded **M3-b-2** against the accepted launch-envelope
+   design; do not include M3-b-3.
+2. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
+   sequence not.
+3. M4: the historical candidate verified against materialized historical bytes
    instead of the live worktree.
-7. B-1 re-review and delivery, once M4 removes the dependency its edits break.
+4. B-1 re-review and delivery, once M4 removes the dependency its edits break.
 
 ## Open Risks
 
@@ -143,3 +136,7 @@ another agent's work, merged only to clear BEHIND.
 - Cannot claim a real consumer was updated or adopted, or that report-only
   behavior is enforcement.
 - Cannot claim the workspace is clean; it is NOT CLEAN by design here.
+
+- Support #4691271 cleanup reported complete; Finding 33 temporarily unblocked by an exact untracked identity config pending guard-stack integration. <!-- memory_record_projection:active-task-summary:12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601 -->
+
+- Repo PUBLIC by owner authority for consumer access; severe PR #95 exposure cleared, known mild exposure remains pending Gate 3 or public-need re-review. <!-- memory_record_projection:active-task-summary:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->
