@@ -1,8 +1,10 @@
 # Governance Authority Table
 
+<!-- mrcsp_activation_id: mrcsp-m1-authority-reader-v1 -->
+
 > machine-readable: true
-> version: 1.0.0
-> updated: 2026-07-03
+> version: 1.1.0
+> updated: 2026-08-21
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -16,6 +18,11 @@
 - `canonical`：最高權威來源。若與其他來源衝突，以它為準；其他只能是 derived 或補充層。
 - `reference`：輔助性權威來源。可提供解釋與判準，但不能覆蓋 canonical。
 - `derived`：由 canonical / reference 推導出的工作性輸出，可快取、摘要、投影，但不能反向覆蓋上游真相。
+
+These labels classify governance-document precedence. They do not collapse
+canonical storage, canonical writer format, and authority for a particular
+question into one property. Memory surfaces use the question-specific roles in
+`MEMORY_SURFACE_AUTHORITY_CONTRACT.md`.
 
 ## Audience Types
 
@@ -42,6 +49,7 @@
 | `governance/RUNTIME_CONTRACT.md` | agent-runtime | canonical | false | ~ | on-demand |
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
+| `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/F7_FULL_UPDATE.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
@@ -58,10 +66,12 @@
 | `domain adapter summary` | agent-runtime | derived | false | domain contract | always |
 | `docs/e1-mutation-catalog.md` | agent-on-demand | reference | false | PLAN.md | on-demand |
 | `governance_tools.memory_workflow` | agent-runtime | derived | false | MEMORY_PROTOCOL.md | on-demand |
-| `memory/01_active_task.md` | agent-runtime | canonical | false | ~ | incremental |
-| `memory/02_workflow.md` | agent-runtime | canonical | false | ~ | incremental |
-| `memory/03_knowledge_base.md` | agent-runtime | canonical | false | ~ | incremental |
-| `memory/04_review_log.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/YYYY-MM-DD.md` | agent-runtime | reference | false | MEMORY_PROTOCOL.md | incremental |
+| `memory/00_long_term.md` | agent-runtime | reference | false | MEMORY_PROTOCOL.md | on-demand |
+| `memory/01_active_task.md` | agent-runtime | derived | false | MEMORY_PROTOCOL.md | incremental |
+| `memory/02_workflow.md` | agent-runtime | derived | false | MEMORY_PROTOCOL.md | incremental |
+| `memory/03_knowledge_base.md` | agent-runtime | reference | false | MEMORY_PROTOCOL.md | incremental |
+| `memory/04_review_log.md` | agent-runtime | reference | false | MEMORY_PROTOCOL.md | incremental |
 | `memory/reviewer_handoff_*` | agent-on-demand | derived | false | 03_knowledge_base.md | on-demand |
 | `memory/framework_artifact_*` | agent-on-demand | derived | false | ~ | on-demand |
 | `external repo aliases` | agent-on-demand | reference | false | ~ | on-demand |
@@ -87,17 +97,23 @@ canonical > reference > derived
 7. Phase D completion claims: `PHASE_D_CLOSE_AUTHORITY.md` takes precedence over README,
    PLAN.md, implementation presence, version tags, commit history, and all generated
    summaries. No agent-produced signal may override this contract.
+8. The global document ordering above does not resolve conflicts between memory
+   surfaces that answer different question classes. Use
+   `MEMORY_SURFACE_AUTHORITY_CONTRACT.md`; unresolved qualified-source conflicts
+   require reviewer resolution.
 
 ---
 
 ## Memory Source Authority
 
-| memory source | authority | promotion policy |
-|---------------|-----------|-----------------|
-| `01_active_task.md` | canonical | 可直接 promote |
-| `02_workflow.md` | canonical | 可直接 promote |
-| `03_knowledge_base.md` | canonical | 可直接 promote |
-| `04_review_log.md` | canonical | 可直接 promote |
+| memory source | authority role | promotion policy |
+|---------------|----------------|------------------|
+| `memory/YYYY-MM-DD.md` | event / provenance history | not directly promotable as current state |
+| `memory/00_long_term.md` | section-qualified durable context | requires valid promotion authority |
+| `01_active_task.md` | reviewed current-state projection | traceable source anchors and review required |
+| `02_workflow.md` and declared aliases | current operational / architecture projection | traceable source anchors and review required |
+| `03_knowledge_base.md` and declared aliases | section-qualified reusable knowledge | only promoted, reviewed, non-superseded sections qualify |
+| `04_review_log.md` and declared aliases | append-only review history | current verdict requires valid authority-qualified non-superseded review |
 | reviewer handoff summary | derived | cache only，不得 promote 成 truth |
 | framework artifact cache | derived | cache only，不得 promote 成 truth |
 | external repo aliases | reference | 可視情況 promote，但仍需對照 canonical |
@@ -110,6 +126,7 @@ canonical > reference > derived
 | surface | authority role | scope | limitation |
 |---------|----------------|-------|------------|
 | `governance/MEMORY_PROTOCOL.md` | canonical memory write protocol | governed memory write path, canonical writer usage, memory workflow dispatch, and memory completion claim boundaries | does not itself guarantee structured memory freshness |
+| `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` | question-specific memory reader contract | memory surface roles, ambiguity handling, and current-state projection claim ceiling | active only through approved merge of the complete M-1 document set; no runtime reader or semantic verification |
 | `docs/e1-mutation-catalog.md` | mutation contract catalog / mutation surface inventory | documents mutation-capable surfaces and their allowed claim level | catalog presence is not enforcement by itself |
 | `governance_tools.memory_workflow` | implementation surface for governed memory workflow | dispatch, write-path assessment, guard summary, and receipt status reporting | implementation behavior must not exceed documented contract |
 
