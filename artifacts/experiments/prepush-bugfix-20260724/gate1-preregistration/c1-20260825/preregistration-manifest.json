@@ -1,0 +1,213 @@
+{
+  "schema": "c1-gate1-preregistration-freeze.v1",
+  "status": "PREREGISTRATION_FROZEN_NOT_ARM_AUTHORIZED",
+  "framework_base": {
+    "origin_main_commit": "01de9a620fc2e07cc5936ee0c8482fc08e482942"
+  },
+  "owner_authority": {
+    "decision": "D1_D7_ADOPTED",
+    "decision_packet": {
+      "location": "repo_external_owner_review_surface",
+      "bytes": 16000,
+      "lines": 370,
+      "sha256": "67bebde3773361c6b7c3094b7a655dc568d0426b476c7c116c11ff8b47b94cc1"
+    },
+    "execution_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_freeze_commit"
+  },
+  "task": {
+    "id": "C1",
+    "family": "natural_bugfix_strong_identity",
+    "producer_packet": {
+      "path": "common-task.md",
+      "bytes": 1269,
+      "sha256": "a0975a81825e1c4e5f457c5b111624fe65c65f833232797fa3f20024235dded4"
+    },
+    "design_source": {
+      "path": "docs/governance/gate1-c1-bugfix-skill-proposal-candidate-20260821.md",
+      "git_blob_oid": "0f72e4cdb284f98bb3901eafa5108593878f2c8b",
+      "bytes": 15216,
+      "sha256": "50f536c7372a33ceaf99797e1c230862a8110e3c9cfb2b4f4b6669013880c810"
+    },
+    "maximum_program_contribution": "one_task_level_comparison",
+    "can_promote_skill_alone": false
+  },
+  "consumer_git_bindings": {
+    "repository_name_retained": false,
+    "local_checkout_path_retained": false,
+    "baseline": {
+      "commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+      "tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a"
+    },
+    "historical_known_fix_quarantine": {
+      "commit": "a60756436095fb3b14aecbc9094dd88a8ab9ef16",
+      "tree": "8d611a09b559d6fa42f7b7b75dc713f1186592a3",
+      "relationship": "direct_child_of_baseline",
+      "producer_visible": false,
+      "counted_sample": false,
+      "purpose": "gate0_and_validator_qualification_only"
+    }
+  },
+  "oracle": {
+    "producer_visible": false,
+    "scorer_only": true,
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/frozen-oracle/bulk_import_integrity.test.ts",
+    "binding_surface": "origin_main_git_object_bytes",
+    "git_blob_oid": "90a30fadf89e3d38607b4c40b2ab651daaae5ff2",
+    "bytes": 8411,
+    "sha256": "702e0a78ec4d7e62abf57fd643bc068da559621428310fed2f22547b29ab9dad",
+    "checkout_line_ending_normalization_is_not_authoritative": true,
+    "admission_source": {
+      "path": "docs/status/gate3-c1-gate0-admission-2026-08-21.md",
+      "git_blob_oid": "96410b0b93f8f44834f88fc385423f9ff00878de",
+      "bytes": 4556,
+      "sha256": "8efa24f310ba7febf9a49f9cd91b5f8386cd99b48eefdae42c5431c411aa8bc7"
+    },
+    "sensitivity_source": {
+      "path": "docs/status/gate3-c1-method-sensitivity-assessment-2026-08-21.md",
+      "git_blob_oid": "d061ccaaed30bfb422a7cd5e690977658dc9bf62",
+      "bytes": 6825,
+      "sha256": "c113fbd8da81c6c75bb95049be0cac48be27e85c339626aace63c547e4f0fd70"
+    }
+  },
+  "treatments": {
+    "common_inputs": ["common_task", "baseline", "permissions", "budget", "harness", "model"],
+    "arms": {
+      "A": ["common_task", "baseline", "permissions", "budget", "harness", "model"],
+      "B": ["common_task", "baseline", "permissions", "budget", "harness", "model", "skill"],
+      "C": ["common_task", "baseline", "permissions", "budget", "harness", "model", "skill", "governance"],
+      "D": ["common_task", "baseline", "permissions", "budget", "harness", "model", "skill", "governance", "validator_feedback"]
+    },
+    "skill": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md",
+      "git_blob_oid": "a37320e37f587fc45f9fd5797d91bb9f2762ac71",
+      "bytes": 1373,
+      "sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+    },
+    "governance": {
+      "path": "governance-treatment.md",
+      "bytes": 1141,
+      "sha256": "54d86d4e4bdcd5e3a3dbeb3f794e14eceb9b3e6fa6fd9b2d53c8cc117fe49062"
+    },
+    "validator_feedback": {
+      "path": "arm-d-feedback-policy.json",
+      "bytes": 1909,
+      "sha256": "adb8370c6799b61bc760a1a4747df8f5fc4d44b4bb4d0341f979cf684996ae8c"
+    },
+    "promotion_comparison": "B_vs_A_only",
+    "diagnostic_comparisons": ["B_vs_C", "C_vs_D"]
+  },
+  "common_envelope": {
+    "permissions": {
+      "path": "producer-permissions.json",
+      "bytes": 1047,
+      "sha256": "8e9cf5e397042776c839989e203c7bc12b507865e5c51e06748ceee39480bb67"
+    },
+    "budget": {
+      "path": "producer-budget.json",
+      "bytes": 720,
+      "sha256": "9e94bc88038cba5a723232d5cf6a48b6f1aad7e6df5faa0e840ba9b0295742fc"
+    },
+    "model_harness": {
+      "path": "model-harness.json",
+      "bytes": 1299,
+      "sha256": "c61f8eac543b701d955feeda65e2a5385b77050d61b988d55afb53e205d3377b"
+    }
+  },
+  "rubric": {
+    "path": "scorer-rubric.json",
+    "bytes": 2190,
+    "sha256": "cb356248afbfb988dba77d2a1090a0ea40ebc56da52869622c48272092af7b64",
+    "protocol_source": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json",
+      "git_blob_oid": "42024c1ea5fec2d983bcfa1bf4c1bef5d28aface",
+      "bytes": 5524,
+      "sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248"
+    }
+  },
+  "randomization_and_evidence_chain": {
+    "path": "randomization-evidence-policy.json",
+    "bytes": 1502,
+    "sha256": "61add52efe602ed02f00286924de390d8792b013f4841a3435293addebf553d8",
+    "external_pin_must_be_created_per_comparison_before_mapping_release": true
+  },
+  "attempt06_quarantine": {
+    "role": "validator_qualification_only",
+    "freeze_commit": "fbdb83e7945ec512ffe80335d7c57f6bdc9b6d10",
+    "executor_sha256": "6e3c6e02f65d65210efe5924160b9a9677c081f7edf9a96952a038317a658860",
+    "terminal": {
+      "bytes": 2171,
+      "sha256": "eb2eab0cc333246afaf9c87a9941d06ac28692603bac8725578437ed5a05335e",
+      "status": "ATTEMPT_06_BOUNDARY_PASSED"
+    },
+    "allowed_reuse": [
+      "runtime_and_package_pins",
+      "reviewed_executor_boundary",
+      "redaction_policy",
+      "cleanup_policy",
+      "fail_closed_terminal_semantics"
+    ],
+    "forbidden_uses": [
+      "producer_input",
+      "effectiveness_threshold",
+      "task_winner",
+      "mutation_score_target",
+      "sample_count",
+      "arm_output"
+    ]
+  },
+  "decision_rules": {
+    "qualifying_success_fields": [
+      "completed_under_cap",
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "no_new_scoped_regression",
+      "critical_residuals_zero"
+    ],
+    "initial_pairs_per_task": 2,
+    "maximum_pairs_per_task": 3,
+    "third_pair_trigger": "any_initial_non_completion_or_tied_qualifying_success_count",
+    "fourth_pair_allowed": false,
+    "minimum_natural_bug_tasks": 3,
+    "minimum_consumer_repositories": 2,
+    "b_task_wins_minimum": 2,
+    "minimum_valid_cost_pairs": 2,
+    "median_b_over_a_wall_clock_ratio_maximum": 1.2,
+    "median_b_over_a_tool_call_ratio_maximum": 1.2,
+    "program_terminals": ["POSITIVE", "NEGATIVE", "INSUFFICIENT", "INVALID"]
+  },
+  "frozen_files": [
+    {"path": ".gitattributes", "bytes": 105, "sha256": "59aa8f3477f56d92c7669818fd758e8afbd6b1f09c8b0e2237f40ce8ff35dfde"},
+    {"path": "arm-d-feedback-policy.json", "bytes": 1909, "sha256": "adb8370c6799b61bc760a1a4747df8f5fc4d44b4bb4d0341f979cf684996ae8c"},
+    {"path": "common-task.md", "bytes": 1269, "sha256": "a0975a81825e1c4e5f457c5b111624fe65c65f833232797fa3f20024235dded4"},
+    {"path": "gate1_preregistration.py", "bytes": 9412, "sha256": "4fcddf6a7ac77e0dd73e232537f30fbdd80b7a898fdec68c0c1735091bd19cd8"},
+    {"path": "governance-treatment.md", "bytes": 1141, "sha256": "54d86d4e4bdcd5e3a3dbeb3f794e14eceb9b3e6fa6fd9b2d53c8cc117fe49062"},
+    {"path": "model-harness.json", "bytes": 1299, "sha256": "c61f8eac543b701d955feeda65e2a5385b77050d61b988d55afb53e205d3377b"},
+    {"path": "producer-budget.json", "bytes": 720, "sha256": "9e94bc88038cba5a723232d5cf6a48b6f1aad7e6df5faa0e840ba9b0295742fc"},
+    {"path": "producer-permissions.json", "bytes": 1047, "sha256": "8e9cf5e397042776c839989e203c7bc12b507865e5c51e06748ceee39480bb67"},
+    {"path": "randomization-evidence-policy.json", "bytes": 1502, "sha256": "61add52efe602ed02f00286924de390d8792b013f4841a3435293addebf553d8"},
+    {"path": "README.md", "bytes": 996, "sha256": "d3e0d56f2050870652112805bb6763fa8fc2bbff03d902f7549979e568dd00f1"},
+    {"path": "scorer-rubric.json", "bytes": 2190, "sha256": "cb356248afbfb988dba77d2a1090a0ea40ebc56da52869622c48272092af7b64"},
+    {"path": "test_gate1_preregistration.py", "bytes": 9363, "sha256": "27404df5c00eb4c4f898f830586c78ef3a9db655605d831bb7afb03a56242dcb"}
+  ],
+  "authoring_boundary": {
+    "producer_created": false,
+    "arm_created": false,
+    "arm_executed": false,
+    "scorer_executed": false,
+    "mapping_released": false,
+    "private_consumer_bytes_copied": false
+  },
+  "claim_ceiling": {
+    "proves": "owner_adopted_D1_D7_are_frozen_as_reviewable_machine_checkable_bytes",
+    "does_not_prove": [
+      "Gate_1_readiness",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "producer_independence",
+      "arm_execution"
+    ]
+  }
+}

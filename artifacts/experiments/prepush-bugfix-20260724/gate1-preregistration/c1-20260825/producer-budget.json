@@ -1,0 +1,27 @@
+{
+  "schema": "c1-gate1-budget.v1",
+  "status": "frozen_not_executed",
+  "producer": {
+    "wall_clock_seconds_maximum": 1800,
+    "tool_calls_maximum": 60,
+    "retries": 0,
+    "owner_interventions_maximum": 0
+  },
+  "arm_d_treatment_validator": {
+    "wall_clock_seconds_maximum": 900,
+    "deliveries": 1,
+    "retries": 0,
+    "config_changes": 0
+  },
+  "uniform_post_hoc_validator": {
+    "wall_clock_seconds_maximum_per_output": 900,
+    "retries": 0
+  },
+  "scorer": {
+    "wall_clock_seconds_maximum_per_scorer": 600,
+    "tool_calls_maximum_per_scorer": 20,
+    "retries": 0
+  },
+  "budget_exhaustion": "non_completed_run_or_invalid_when_integrity_is_lost",
+  "no_budget_extension_after_randomization": true
+}

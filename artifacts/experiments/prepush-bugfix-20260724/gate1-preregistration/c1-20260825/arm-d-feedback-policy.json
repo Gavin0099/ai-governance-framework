@@ -1,0 +1,78 @@
+{
+  "schema": "c1-arm-d-stryker-feedback-policy.v1",
+  "status": "frozen_not_executed",
+  "treatment_visibility": {
+    "arms_allowed": ["D"],
+    "arms_denied": ["A", "B", "C"],
+    "delivery_count": 1,
+    "adaptive_retry_allowed": false,
+    "config_change_after_output": false
+  },
+  "transient_feedback": {
+    "source": "producer_output_tree_only",
+    "maximum_entries": 32,
+    "maximum_characters_per_entry": 240,
+    "allowed_fields": [
+      "mutant_id",
+      "mutator",
+      "relative_path",
+      "line",
+      "column",
+      "bounded_description"
+    ],
+    "forbidden_fields": [
+      "source_excerpt",
+      "replacement_text",
+      "test_name",
+      "hidden_oracle_case",
+      "absolute_path",
+      "repository_identity",
+      "complete_tree_inventory"
+    ],
+    "persistence": "owned_private_scratch_only",
+    "remove_before_output_seal": true
+  },
+  "retained_evidence": {
+    "aggregate_only": true,
+    "allowed_fields": [
+      "mutant_count",
+      "operator_counts",
+      "status_counts",
+      "surviving_mutant_count",
+      "target_rule_sha256",
+      "raw_report_sha256",
+      "phase_status",
+      "duration_ms",
+      "cleanup_confirmed"
+    ],
+    "forbidden_fields": [
+      "files",
+      "location",
+      "mutants",
+      "replacement",
+      "source",
+      "tests",
+      "stdout",
+      "stderr",
+      "path_oid_inventory"
+    ],
+    "raw_output_retained": false,
+    "bulk_path_listing_retained": false
+  },
+  "post_hoc": {
+    "same_pins_and_target_rule_for_all_arms": true,
+    "producer_feedback": false,
+    "mutation_score_kpi": false,
+    "cross_arm_ranking_requires_identical_mutant_population": true
+  },
+  "fail_closed_on": [
+    "feedback_visibility_violation",
+    "hidden_oracle_disclosure",
+    "output_policy_violation",
+    "partial_or_inconsistent_output",
+    "target_rule_mismatch",
+    "inventory_violation",
+    "cleanup_failure"
+  ]
+}
+

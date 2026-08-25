@@ -1,0 +1,39 @@
+{
+  "schema": "c1-gate1-producer-permissions.v1",
+  "status": "frozen_not_executed",
+  "common_to_arms": ["A", "B", "C", "D"],
+  "task_environment": {
+    "network": false,
+    "remote_push": false,
+    "external_messages": false,
+    "materialization": "owned_disposable_scratch_from_frozen_baseline_git_objects",
+    "write_scope": "owned_disposable_scratch_only"
+  },
+  "model_channel": {
+    "allowed": true,
+    "purpose": "single_frozen_producer_session",
+    "must_match_model_build": true
+  },
+  "allowed_inputs": [
+    "frozen_baseline",
+    "common_task",
+    "common_harness",
+    "arm_specific_declared_treatment"
+  ],
+  "forbidden_inputs": [
+    "later_consumer_history",
+    "historical_known_fix",
+    "hidden_oracle",
+    "scorer_material",
+    "another_arm_output",
+    "attempt_06_mutation_outcome",
+    "private_external_tree_inventory"
+  ],
+  "fail_closed_on": [
+    "identity_mismatch",
+    "unexpected_input",
+    "network_access_from_task_environment",
+    "write_outside_owned_scratch",
+    "dirty_or_reused_scratch"
+  ]
+}
