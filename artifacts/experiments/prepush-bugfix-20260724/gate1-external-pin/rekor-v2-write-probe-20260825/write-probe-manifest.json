@@ -1,0 +1,109 @@
+{
+  "schema": "ai-governance.rekor-v2-write-probe-freeze/1",
+  "status": "WRITE_PROBE_PRE_RUN_FROZEN_NOT_EXECUTED",
+  "base_commit": "26552169e422038f2d642c2141e2a51e7a6b121d",
+  "provider_binding": {
+    "verifier_commit": "5a2b4696b570929ee4992544873196ed41085aa2",
+    "profile_path": "governance/rekor-v2-provider-profile.json",
+    "profile_blob_oid": "93c582a5f3200ea1ca9deda99d18c2f72094e958",
+    "profile_bytes": 2048,
+    "profile_sha256": "caa3876354cef1d3971d6a81907d0a6f1f6d6d3e3ad9339f92f159b55ec48a3c",
+    "bootstrap_blob_oid": "ea8f3d2b88b7294f7c270f8239fd50fc8c586646",
+    "verifier_blob_oid": "cf484ac06b075579a55b424ed8487d0786e76530"
+  },
+  "official_client_contract": {
+    "repository": "sigstore/rekor-tiles",
+    "commit": "69e7f80810e3468a3a656094c5308560d1fd224f",
+    "path": "CLIENTS.md",
+    "url": "https://raw.githubusercontent.com/sigstore/rekor-tiles/69e7f80810e3468a3a656094c5308560d1fd224f/CLIENTS.md",
+    "bytes": 24643,
+    "sha256": "9384f0fd99d34674573edd67a40b9d1b01f296f3e8a8e73f02a53549ff3b5b75"
+  },
+  "http": {
+    "method": "POST",
+    "url": "https://log2025-1.rekor.sigstore.dev/api/v2/log/entries",
+    "timeout_seconds": 60,
+    "success_status": 200,
+    "maximum_attempts": 1,
+    "retries_allowed": false,
+    "credentials_allowed": false,
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": "ai-governance-framework-rekor-write-probe/1"
+    }
+  },
+  "tuf_refresh": {
+    "required_before_post": true,
+    "metadata_base_url": "https://tuf-repo-cdn.sigstore.dev",
+    "targets_base_url": "https://tuf-repo-cdn.sigstore.dev/targets",
+    "timeout_seconds": 30,
+    "formal_verifier": "governance_tools.rekor_provider.verify_tuf_snapshot"
+  },
+  "synthetic_subject": {
+    "purpose": "public non-counted write-path qualification only",
+    "encoding": "utf-8",
+    "bytes": 83,
+    "base64": "YWktZ292ZXJuYW5jZS1mcmFtZXdvcms6cmVrb3ItdjItd3JpdGUtcGF0aC1xdWFsaWZpY2F0aW9uOm5vbi1jb3VudGVkOjIwMjYtMDgtMjU6djE=",
+    "sha256": "0910fe66211ec950470332ae7095d72fcaf3348414730616178b9c098c17ace3",
+    "contains_private_consumer_bytes": false
+  },
+  "request": {
+    "kind": "hashedrekord",
+    "version": "0.0.2",
+    "field": "hashedRekordRequestV002",
+    "digest_algorithm": "SHA2_256",
+    "signature_algorithm": "PKIX_ECDSA_P256_SHA_256",
+    "ephemeral_private_key_retained": false
+  },
+  "response": {
+    "proof_required": true,
+    "checkpoint_signature_required": true,
+    "request_body_binding_required": true,
+    "verifier": "governance_tools.rekor_provider.verify_proof_bearing_receipt",
+    "raw_response_retained": false,
+    "normalized_proof_receipt_retained": true,
+    "normalized_proof_receipt_is_bounded": true
+  },
+  "frozen_files": {
+    ".gitattributes": {
+      "bytes": 64,
+      "sha256": "b8605e489c88d2179fd0d2aed54c0f005163ec24350d7c874dec5c399989e829"
+    },
+    "README.md": {
+      "bytes": 4100,
+      "sha256": "823d063b5d39554f6d0223f9024f01bab4e37c331a5ccc0b049aeecc5dcedd31"
+    },
+    "rekor_write_probe.py": {
+      "bytes": 26889,
+      "sha256": "7ec7ba5e29a331530c9a97094668201580f4ce1cd3a6adf410a9428dbdde2be5"
+    },
+    "test_rekor_write_probe.py": {
+      "bytes": 12370,
+      "sha256": "7a078eab67d664cc25d15db9e7ee64be1bc9b25e6701342dde423c420ef5c492"
+    },
+    "write-probe-output-policy.json": {
+      "bytes": 1052,
+      "sha256": "14ad87940372f79d5ea25aeef9287528045047354ba01aa7c71da6c00c91bc26"
+    }
+  },
+  "execution_authority": {
+    "authorized": false,
+    "required_next_authority": "explicit owner authorization bound to the reviewed freeze commit",
+    "authorization_argument": "--owner-authorized-freeze-commit"
+  },
+  "public_side_effect": {
+    "performed": false,
+    "irreversible_if_authorized": true,
+    "non_counted": true,
+    "retry_forbidden_after_dispatch": true
+  },
+  "claim_ceiling": [
+    "pre-run freeze only",
+    "no public append performed",
+    "write path not qualified",
+    "not admission or runtime connected",
+    "not Gate 1 evidence",
+    "D5 remains unresolved"
+  ]
+}
