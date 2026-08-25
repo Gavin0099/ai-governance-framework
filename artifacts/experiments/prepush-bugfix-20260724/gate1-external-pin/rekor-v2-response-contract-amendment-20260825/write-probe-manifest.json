@@ -1,0 +1,150 @@
+{
+  "schema": "ai-governance.rekor-v2-write-probe-freeze/3",
+  "status": "WRITE_PROBE_RESPONSE_CONTRACT_AMENDMENT_FROZEN_NOT_EXECUTED",
+  "base_commit": "ed939a92d9493d119904bcc43f358404671d0d63",
+  "prior_attempt_binding": {
+    "freeze_commit": "4d68eaf50f7255f4fc3e9b2331d84ee415013ffb",
+    "terminal_status": "WRITE_PROBE_PROVIDER_REJECTED",
+    "terminal_bytes": 901,
+    "terminal_sha256": "2ca13d0e5149d8b23e879d6e7e8686da2d4f68edd792780032051b6d1b6a8039",
+    "http_status_code": 201,
+    "post_attempt_count": 1,
+    "public_append_attempted": true,
+    "public_append_may_have_occurred": true,
+    "immutable": true,
+    "repair_or_retry_forbidden": true
+  },
+  "response_contract_authority": {
+    "repository": "sigstore/rekor-tiles",
+    "commit": "69e7f80810e3468a3a656094c5308560d1fd224f",
+    "authoritative_surfaces": {
+      "server": {
+        "path": "internal/server/service.go",
+        "blob_oid": "86975f1f6dbc83e4bade3a6d2db8b38397eedd14",
+        "bytes": 6208,
+        "success_status": 201,
+        "role": "provider response authority"
+      },
+      "official_client": {
+        "path": "pkg/client/write/write.go",
+        "blob_oid": "bcb67dc20b96d761e5f8dd769d195b6e4a76b475",
+        "bytes": 3748,
+        "success_status": 201,
+        "role": "provider response authority"
+      }
+    },
+    "conflicting_generated_surface": {
+      "path": "docs/openapi/rekor/v2/rekor_service.swagger.json",
+      "blob_oid": "52f314e070057ef1201d6dcc8aa2329804f126e8",
+      "bytes": 27163,
+      "declared_success_status": 200,
+      "role": "conflicting generated surface; not authoritative for this provider/version"
+    },
+    "upstream_change": {
+      "pull_request": 112,
+      "url": "https://github.com/sigstore/rekor-tiles/pull/112",
+      "title": "Fix upload success status code",
+      "merged": true,
+      "merge_commit": "60937e829197c97b7ef813a386bea37ce18d51c5",
+      "implementation_commit": "8ce17a17b7b93890b60d4a9643060113969a4fea",
+      "decision": "successful entry creation returns HTTP 201 Created"
+    }
+  },
+  "provider_binding": {
+    "verifier_commit": "5a2b4696b570929ee4992544873196ed41085aa2",
+    "profile_path": "governance/rekor-v2-provider-profile.json",
+    "profile_blob_oid": "93c582a5f3200ea1ca9deda99d18c2f72094e958",
+    "profile_bytes": 2048,
+    "profile_sha256": "caa3876354cef1d3971d6a81907d0a6f1f6d6d3e3ad9339f92f159b55ec48a3c",
+    "bootstrap_blob_oid": "ea8f3d2b88b7294f7c270f8239fd50fc8c586646",
+    "verifier_blob_oid": "cf484ac06b075579a55b424ed8487d0786e76530",
+    "required_target_names": [
+      "trusted_root.json",
+      "signing_config_rekor_v2.v0.2.json"
+    ]
+  },
+  "http": {
+    "method": "POST",
+    "url": "https://log2025-1.rekor.sigstore.dev/api/v2/log/entries",
+    "timeout_seconds": 60,
+    "candidate_success_statuses": [200, 201],
+    "maximum_attempts": 1,
+    "retries_allowed": false,
+    "credentials_allowed": false,
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": "ai-governance-framework-rekor-write-probe/1"
+    }
+  },
+  "tuf_refresh": {
+    "required_before_post": true,
+    "metadata_base_url": "https://tuf-repo-cdn.sigstore.dev",
+    "targets_base_url": "https://tuf-repo-cdn.sigstore.dev/targets",
+    "timeout_seconds": 30,
+    "formal_verifier": "governance_tools.rekor_provider.verify_tuf_snapshot",
+    "client": {
+      "implementation": "tuf.ngclient.Updater",
+      "package": "tuf",
+      "version": "7.0.0",
+      "prefix_targets_with_hash": true,
+      "windows_root_alias": "atomic-copy"
+    },
+    "manual_target_url_construction_allowed": false
+  },
+  "synthetic_subject": {
+    "purpose": "public non-counted write-path qualification only",
+    "encoding": "utf-8",
+    "bytes": 83,
+    "base64": "YWktZ292ZXJuYW5jZS1mcmFtZXdvcms6cmVrb3ItdjItd3JpdGUtcGF0aC1xdWFsaWZpY2F0aW9uOm5vbi1jb3VudGVkOjIwMjYtMDgtMjU6djE=",
+    "sha256": "0910fe66211ec950470332ae7095d72fcaf3348414730616178b9c098c17ace3",
+    "contains_private_consumer_bytes": false
+  },
+  "request": {
+    "kind": "hashedrekord",
+    "version": "0.0.2",
+    "field": "hashedRekordRequestV002",
+    "digest_algorithm": "SHA2_256",
+    "signature_algorithm": "PKIX_ECDSA_P256_SHA_256",
+    "ephemeral_private_key_retained": false
+  },
+  "response": {
+    "maximum_bytes": 1048576,
+    "parse_before_status_decision": true,
+    "strict_field_allowlist": true,
+    "checkpoint_signature_required": true,
+    "inclusion_proof_required": true,
+    "request_body_binding_required": true,
+    "verifier": "governance_tools.rekor_provider.verify_proof_bearing_receipt",
+    "raw_response_retained": false,
+    "normalized_proof_receipt_retained": false,
+    "locator_digests_only": true
+  },
+  "frozen_files": {
+    ".gitattributes": {"bytes": 64, "sha256": "b8605e489c88d2179fd0d2aed54c0f005163ec24350d7c874dec5c399989e829"},
+    "README.md": {"bytes": 1722, "sha256": "ebbfdac6e441d76ef28edcfe5f83cf36d61a38840f04daa16ace6a6b8931c7e3"},
+    "rekor_write_probe.py": {"bytes": 35495, "sha256": "ca90075af48d828b19e205a381e313731ffc9aed7c1e23bb31c00523848cf325"},
+    "test_rekor_write_probe.py": {"bytes": 22811, "sha256": "7650658adbf20afa2e26ab9a29b56eaf1e08262bb6730cdee10cc7076f702723"},
+    "write-probe-output-policy.json": {"bytes": 1148, "sha256": "fcf21c0bc9e3906388bc40014d4b29e1cbabdf9dc31719ee552d3e02f765b776"}
+  },
+  "execution_authority": {
+    "authorized": false,
+    "required_next_authority": "explicit owner authorization bound to the reviewed freeze commit",
+    "authorization_argument": "--owner-authorized-freeze-commit"
+  },
+  "public_side_effect": {
+    "performed": false,
+    "irreversible_if_authorized": true,
+    "non_counted": true,
+    "retry_forbidden_after_dispatch": true
+  },
+  "claim_ceiling": [
+    "response-contract amendment freeze only",
+    "prior attempt and terminal remain immutable",
+    "no POST or retry performed",
+    "write path not qualified",
+    "not admission or runtime connected",
+    "not Gate 1 evidence",
+    "D5 remains unresolved"
+  ]
+}
