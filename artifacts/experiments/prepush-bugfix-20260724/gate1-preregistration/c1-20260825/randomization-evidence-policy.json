@@ -1,0 +1,43 @@
+{
+  "schema": "c1-gate1-randomization-evidence-policy.v1",
+  "status": "frozen_not_executed",
+  "randomization": {
+    "record_schema": "gate3-randomization-record.v1",
+    "anonymous_outcomes_per_comparison": 2,
+    "nonce_bits": 256,
+    "nonce_source": "cryptographically_secure_operating_system_rng",
+    "mapping_commitment": "sha256(canonical_utf8_json_with_lf({mapping,nonce,schema}))",
+    "fresh_record_per_comparison": true,
+    "reuse_forbidden": true
+  },
+  "event_order": [
+    "randomization_committed",
+    "first_outcome_sealed",
+    "second_outcome_sealed",
+    "blind_set_closed",
+    "primary_scorer_submitted",
+    "second_scorer_submitted",
+    "external_chain_head_pinned",
+    "mapping_released"
+  ],
+  "event_encoding": {
+    "json": "utf-8",
+    "canonical_keys": "sorted",
+    "separators": "compact",
+    "terminal_lf": true,
+    "previous_event_sha256_required": true,
+    "create_once": true
+  },
+  "external_pin": {
+    "surface": "separately_controlled_append_only_owner_or_reviewer_surface",
+    "must_precede_mapping_release": true,
+    "missing_or_non_independent": "INVALID"
+  },
+  "evidence_chain_implementation": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
+    "git_blob_oid": "0651b23d866becc74d6cbcebe9adb82e54d0316f",
+    "bytes": 74375,
+    "sha256": "1617c1d5515310f2aa43dbfefca68d95f5348c6eb6d9fbc0d18080df473b5cc6"
+  },
+  "failure_disposition": "INVALID_NO_REPAIR_OR_RERUN_UNDER_SAME_RANDOMIZATION"
+}
