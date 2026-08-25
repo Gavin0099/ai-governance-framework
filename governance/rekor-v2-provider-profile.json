@@ -1,0 +1,62 @@
+{
+  "schema": "ai-governance.rekor-provider-profile/1",
+  "provider": {
+    "base_url": "https://log2025-1.rekor.sigstore.dev",
+    "operator": "sigstore.dev",
+    "major_api_version": 2,
+    "entry_kind": "hashedrekord",
+    "entry_version": "0.0.2",
+    "valid_from": "2026-01-01T00:00:00Z"
+  },
+  "log_key": {
+    "key_id": "zxGZFVvd0FEmjR8WrFwMdcAJ9vtaY/QXf44Y1wUeP6A=",
+    "key_details": "PKIX_ED25519",
+    "raw_spki_der_base64": "MCowBQYDK2VwAyEAt8rlp1knGwjfbcXAYPYAkn0XiLz1x8O4t0YkEhie244=",
+    "valid_from": "2025-09-23T00:00:00Z",
+    "checkpoint_key_hint_hex": "cf119915"
+  },
+  "tuf": {
+    "client": "python-tuf",
+    "client_version": "7.0.0",
+    "metadata_base_url": "https://tuf-repo-cdn.sigstore.dev",
+    "targets_base_url": "https://tuf-repo-cdn.sigstore.dev/targets",
+    "bootstrap_root": {
+      "path": "governance/rekor-tuf-bootstrap-root-v15.json.b64",
+      "encoding": "base64",
+      "version": 15,
+      "bytes": 5630,
+      "sha256": "73747011d0857ada15479a16c4cae0f3ed03aac698b523b97e1de314ac9d9ca8"
+    },
+    "required_targets": {
+      "trusted_root.json": {
+        "bytes": 6787,
+        "sha256": "6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66"
+      },
+      "signing_config_rekor_v2.v0.2.json": {
+        "bytes": 1230,
+        "sha256": "0f5f38554e29e770d4d5d6f0e1b51fcbf84f61dc6934530a09b7a901eaad5bee"
+      }
+    }
+  },
+  "request": {
+    "artifact_hash_algorithm": "SHA2_256",
+    "signing_key_details": "PKIX_ECDSA_P256_SHA_256",
+    "signing_key_scope": "per-comparison-ephemeral"
+  },
+  "proof": {
+    "leaf_hash_algorithm": "RFC6962_SHA256",
+    "checkpoint_signature_algorithm": "Ed25519",
+    "integrated_time_is_authority": false,
+    "witness_signatures_are_authority": false
+  },
+  "retention": {
+    "aggregate_only": true,
+    "retain_bulk_path_listing": false,
+    "retain_raw_provider_output": false
+  },
+  "countability": {
+    "post_mapping_final_head": "UNRESOLVED_SEPARATE_COUNTABILITY_DECISION"
+  },
+  "runtime_connected": false,
+  "write_path_qualified": false
+}
