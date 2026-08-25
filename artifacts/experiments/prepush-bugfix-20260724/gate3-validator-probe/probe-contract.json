@@ -1,0 +1,53 @@
+{
+  "schema_version": "gate3-arm-d-validator-probe/1",
+  "runtime": {
+    "node_version": "v22.23.2",
+    "archive_name": "node-v22.23.2-win-x64.zip",
+    "archive_sha256": "1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97"
+  },
+  "packages": {
+    "@stryker-mutator/core": {
+      "version": "10.0.0",
+      "tarball": "https://registry.npmjs.org/@stryker-mutator/core/-/core-10.0.0.tgz",
+      "integrity": "sha512-ZvMsRyaXQQ5e6Thcid9pkuODv6Fn9E3nrBQJUap+hcJuGJ4unm26afo3m6YKSjn8kinyxJ/3TXf0cTWRDaTxVw=="
+    },
+    "@stryker-mutator/vitest-runner": {
+      "version": "10.0.0",
+      "tarball": "https://registry.npmjs.org/@stryker-mutator/vitest-runner/-/vitest-runner-10.0.0.tgz",
+      "integrity": "sha512-SHK2/vfvRUpiz7jXPnQMBnr6zLdm69DK03Mo5mPhaZWcRSygrKUqYsPqWsXsK+5ySHzlMTfCyFK5NQ/X9sJFFw=="
+    },
+    "vitest": {
+      "version": "4.0.18",
+      "tarball": "https://registry.npmjs.org/vitest/-/vitest-4.0.18.tgz",
+      "integrity": "sha512-hOQuK7h0FGKgBAas7v0mSAsnvrIgAvWmRFjmzpJ7SwFHH3g1k2u37JtYwOwmEKhK6ZO3v9ggDBBm0La1LCK4uQ=="
+    },
+    "typescript": {
+      "version": "5.9.3",
+      "tarball": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+      "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
+    }
+  },
+  "scope_policy": {
+    "production_roots": ["src/"],
+    "source_suffixes": [".ts"],
+    "rejected_path_segments": ["__tests__", "test", "tests", "generated", "dist", "node_modules"]
+  },
+  "leakage_policy": {
+    "forbidden_markers": [
+      "hidden-oracle",
+      "historical-fix",
+      "private-consumer",
+      "gate-0-attempt",
+      "isbn",
+      "publisher",
+      "soft-match"
+    ],
+    "maximum_diagnostic_characters": 240
+  },
+  "terminal_states": [
+    "VALIDATOR_PROBE_PASSED",
+    "VALIDATOR_PROBE_FAILED",
+    "ENVIRONMENT_OR_PACKAGE_PIN_UNAVAILABLE",
+    "LEAKAGE_REVIEW_REQUIRED"
+  ]
+}
