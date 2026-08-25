@@ -1,0 +1,40 @@
+{
+  "schema": "ai-governance.rekor-write-probe-output-policy/2",
+  "terminal_filename": "rekor-v2-write-probe-terminal.json",
+  "write_once": true,
+  "aggregate_only": true,
+  "maximum_diagnostic_characters": 240,
+  "maximum_response_bytes": 1048576,
+  "retain_raw_provider_output": false,
+  "retain_request_body": false,
+  "retain_normalized_proof_receipt": false,
+  "retain_signature": false,
+  "retain_public_key": false,
+  "retain_canonicalized_body": false,
+  "retain_checkpoint_envelope": false,
+  "retain_proof_hash_array": false,
+  "retain_bulk_path_listing": false,
+  "forbidden_fields": [
+    "authorization",
+    "canonicalizedBody",
+    "checkpointEnvelope",
+    "cookie",
+    "hashes",
+    "privateKey",
+    "proofHashes",
+    "publicKey",
+    "rawProviderOutput",
+    "requestBody",
+    "signature",
+    "signedArtifactBase64"
+  ],
+  "allowed_terminals": [
+    "WRITE_PROBE_PASSED",
+    "WRITE_PROBE_UNEXPECTED_STATUS_WITH_VERIFIED_LOCATOR",
+    "WRITE_PROBE_AUTHORITY_MISMATCH",
+    "WRITE_PROBE_PRECONDITION_FAILED",
+    "WRITE_PROBE_PROVIDER_REJECTED",
+    "WRITE_PROBE_RESPONSE_INVALID",
+    "WRITE_PROBE_RETENTION_FAILURE"
+  ]
+}
