@@ -1,0 +1,3 @@
+*.json -text -whitespace
+*.md text eol=lf
+*.py text eol=lf
