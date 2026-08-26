@@ -1,0 +1,161 @@
+{
+  "schema": "c1-gate1-d5-countability-amendment-freeze.v1",
+  "status": "D5_COUNTABILITY_AMENDMENT_FROZEN_NOT_RANDOMIZED",
+  "framework_base": {
+    "origin_main_commit": "90227e366413eeb36f2802ce21f0c202ef2d5bcd",
+    "admission_integration_commit": "9fc2536d1163c2ea7c687f70ecd29dd81477792c"
+  },
+  "owner_authority": {
+    "decision": "CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED",
+    "decision_packet": {
+      "location": "repo_external_review_surface",
+      "file": "c1-d5-final-head-countability-owner-decision-packet-2026-08-26.md",
+      "lines": 326,
+      "bytes": 14040,
+      "sha256": "d4fe3ba43ec9b2d1b74c3a14feb36dfad05ea945353e45b87dd979c89796cb6b",
+      "review_verdict": "APPROVED"
+    }
+  },
+  "original_preregistration": {
+    "freeze_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+    "manifest_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+    "manifest_git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+    "manifest_bytes": 9190,
+    "manifest_sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7",
+    "immutable": true
+  },
+  "countability_decision": {
+    "resolved_token": "CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED",
+    "decision_scope": "internal_skill_funding_only",
+    "policy_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-d5-countability-amendment-20260826/d5-countability-policy.json",
+    "event_7_external_pin": "REQUIRED_AND_PRESERVED",
+    "event_8_mapping_release": "LOCAL_CHAIN_AND_COMMITMENT_REQUIRED",
+    "event_8_external_final_head_anchor": "NOT_REQUIRED_FOR_CURRENT_C1",
+    "event_9_defined": false
+  },
+  "base_admission": {
+    "commit": "9fc2536d1163c2ea7c687f70ecd29dd81477792c",
+    "manifest_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm-execution-admission-manifest.json",
+    "manifest_sha256": "3a8447132a46b33f3a45c9d3bca3d6d3bbd8ea44ab059cf1a78f15e284283c2c",
+    "terminal_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/admission-terminal.json",
+    "terminal_sha256": "692aadbdf5e1daf1dc9c7a7e3ef7339c6339ad0d307b2be0dcaadd4960140ed1",
+    "required_status": "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED",
+    "historical_d5_marker": "UNRESOLVED_SEPARATE_COUNTABILITY_DECISION",
+    "immutable": true
+  },
+  "preserved_decisions": {
+    "d1_d7_thresholds": "UNCHANGED_BY_EXACT_PREREGISTRATION_BINDING",
+    "frozen_d5_uniform_post_hoc_validator": "UNCHANGED",
+    "attempt_06_quarantine": "UNCHANGED_BY_EXACT_PREREGISTRATION_BINDING",
+    "client_side_identity_amendment": "UNCHANGED_BY_EXACT_AMENDMENT_BINDING"
+  },
+  "bindings": [
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+      "sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/randomization-evidence-policy.json",
+      "sha256": "61add52efe602ed02f00286924de390d8792b013f4841a3435293addebf553d8",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/amendment-manifest.json",
+      "sha256": "cf53a99b64314b7b88483ff0f191aa6e3560ec7b850f410c0e558310ad5157cd",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm-execution-admission-manifest.json",
+      "sha256": "3a8447132a46b33f3a45c9d3bca3d6d3bbd8ea44ab059cf1a78f15e284283c2c",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/admission-terminal.json",
+      "sha256": "692aadbdf5e1daf1dc9c7a7e3ef7339c6339ad0d307b2be0dcaadd4960140ed1",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-external-pin-v2.json",
+      "sha256": "f390e29adbfcdabacfcec918ce93f206c309620e192bc2d29b7d22be63451d13",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
+      "sha256": "1beef6b1450dcc51a7b522c9d9bef6120f0eefbbcffd5980e1ccec091c6fa2e3",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-d5-countability-amendment-20260826/d5-countability-policy.json",
+      "sha256": "65040d128c7c39c21b64e5f38ed7d62d18dbc0e5af2287cda9466cf2bc33d1aa",
+      "source": "raw_file"
+    }
+  ],
+  "execution_authority": {
+    "randomization_authorized": false,
+    "arm_execution_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_d5_amendment_admission_commit"
+  },
+  "authoring_boundary": {
+    "private_consumer_bytes_read": false,
+    "private_consumer_bytes_copied": false,
+    "hosted_model_request_executed": false,
+    "rekor_post_performed": false,
+    "randomization_created": false,
+    "producer_executed": false,
+    "scorer_executed": false,
+    "arms_executed": false,
+    "mapping_released": false
+  },
+  "frozen_files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 92,
+      "sha256": "87a7f9cd8386f0f73a21fbd3615ca4f2e519870ed58224fc2dc082d5975e63da"
+    },
+    {
+      "path": "d5_countability_amendment.py",
+      "bytes": 12131,
+      "sha256": "0267d04221b6af594f6a0bad00af1cdf2630957e7ed19bbfb28a7d0f8e00f857"
+    },
+    {
+      "path": "d5-admission-terminal.json",
+      "bytes": 454,
+      "sha256": "511f13706053c1fdea4032ef23d2ae1be929556b88ea0d12e2ac90707dd3f7f6"
+    },
+    {
+      "path": "d5-countability-policy.json",
+      "bytes": 1855,
+      "sha256": "65040d128c7c39c21b64e5f38ed7d62d18dbc0e5af2287cda9466cf2bc33d1aa"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1323,
+      "sha256": "b2e74302291118fca8e86e9e77969b2abe32e495cd4d8baf92d997e93aefa462"
+    },
+    {
+      "path": "test_d5_countability_amendment.py",
+      "bytes": 8770,
+      "sha256": "a3750619ece165857f5a800723a34d9bfeb812bc1a5daa956bc3aab84caedaff"
+    }
+  ],
+  "claim_ceiling": {
+    "proves": [
+      "reviewable_d5_countability_amendment_bytes_exist",
+      "event_7_external_pin_requirement_is_machine_checked",
+      "event_8_local_chain_and_commitment_requirements_are_machine_checked",
+      "absence_of_a_final_head_receipt_alone_is_not_a_current_c1_failure",
+      "amended_admission_still_creates_no_randomization"
+    ],
+    "does_not_prove": [
+      "mapping_release_was_externally_anchored",
+      "final_chain_head_was_independently_witnessed",
+      "randomization_authority",
+      "arm_execution",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "governance_effectiveness",
+      "validator_feedback_effectiveness"
+    ]
+  }
+}
