@@ -7,7 +7,11 @@ pair-02.
 
 The executor validates the reviewed D5 admission, exact client-side invocation
 identity, a fresh 12-hour batch window, and complete A/B input bindings before
-it accesses randomness. An executable-launch failure has its own infrastructure
+it accesses randomness. It downloads the two exact npm distribution tarballs
+once, verifies SHA-1, SHA-256, sha512 integrity, package metadata, and the native
+`codex.exe` digest, then runs a zero-session preflight against that binary. The
+tarballs, executable, and preflight scratch must be removed before RNG access.
+An acquisition, launch, preflight, or cleanup failure has its own infrastructure
 terminal and consumes pair-02 without retry. It then stages a private mapping reveal, a public
 randomization record, exactly one evidence-chain event, and one terminal before
 publishing the attempt directory create-once.

@@ -56,64 +56,72 @@
   "framework_base": {
     "d5_admission_commit": "1ced27d08e0330ca5ebe21ed241f0074ec500958",
     "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf",
-    "superseded_freeze_commit": "ce775f55e7b4e1b4c70698f9733b3dbe7da19db5"
+    "superseded_freeze_commit": "e855940aa0910509d5b24f58ba05eebe6e754c9f"
   },
-  "frozen_files": [
-    {
-      "bytes": 105,
-      "path": ".gitattributes",
-      "sha256": "c2b7bcdf74cf2e1fb596ab7508930007c5a33868732c176d08f466b31c828e4b"
+  "distribution_qualification": {
+    "location": "repo_external_review_surface",
+    "file": "c1-codex-cli-0.148.0-alpha.9-distribution-qualification.md",
+    "lines": 82,
+    "bytes": 4241,
+    "sha256": "aea58b238b6f4fef8d1ea9f9a42087a3d3123fc45dd9ed53c21883230e923f59",
+    "terminal": "FORMAL_FREEZE_AMENDMENT_REQUIRED"
+  },
+  "npm_distribution": {
+    "download_attempts_each": 1,
+    "credentials_allowed": false,
+    "raw_tarballs_retained": false,
+    "cleanup_required_before_rng": true,
+    "main": {
+      "package": "@openai/codex@0.148.0-alpha.9",
+      "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.148.0-alpha.9.tgz",
+      "bytes": 4503,
+      "sha1": "10f80c5d6b94a3a583ea14e6f8ddaa113217f11f",
+      "sha256": "6b1b8445a6c4401373b4a506a4ca16436344bbaacc6487230e1a0c09f52049d1",
+      "integrity": "sha512-SemrHW/3t1LkZLZbBOuNyhAOngfC7+43ytL3Ic2qnw0I+5MIhpxg7IbamQVUr1oL1TUhssK/XQkw17ZUtYVkWg=="
     },
-    {
-      "bytes": 139,
-      "path": "arm-a-no-skill-treatment.json",
-      "sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8"
+    "windows_x64": {
+      "package": "@openai/codex@0.148.0-alpha.9-win32-x64",
+      "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.148.0-alpha.9-win32-x64.tgz",
+      "bytes": 132147990,
+      "sha1": "5b24e1a4b9cfd39e1d7f012e27a7514f918aa84a",
+      "sha256": "d9ccfc635364c7387e7078a540d646b0c3f118cf50f1bb99f8828796f29ee324",
+      "integrity": "sha512-2PKkm3xE6mM1bXeVaUoG0RdYowosfODxLy0Wta93hRcybV9m38H2RJ8UQEZJQYPu1dX092PhkAKZRMF9oYPFXA=="
     },
-    {
-      "bytes": 395,
-      "path": "batch-admission-schema.json",
-      "sha256": "1e3ebc1b0acb38f3e86491d5a07657e863b60bc759ec60c45374e350ce00de1a"
-    },
-    {
-      "bytes": 139,
-      "path": "no-governance-instruction.json",
-      "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"
-    },
-    {
-      "bytes": 32785,
-      "path": "randomization_prerun_executor.py",
-      "sha256": "4fe41fa9fbdecd0b04605633542cc8f25e3b8b2a3745cd583543497dd2537052"
-    },
-    {
-      "bytes": 1573,
-      "path": "README.md",
-      "sha256": "9b03d6d2a677a713a6c9cbc46855f7b407e70010a325eaeaf051e8c92f336264"
-    },
-    {
-      "bytes": 842,
-      "path": "terminal-policy.json",
-      "sha256": "f792b98e7078c1408467d23b800495263509ada18cabf99418392de106da7f4d"
-    },
-    {
-      "bytes": 18156,
-      "path": "test_randomization_prerun.py",
-      "sha256": "475c7edb87a7b19efb2c876c7e1b9e6f0a07289714cec6048bd91a3f5c6ef916"
-    },
-    {
-      "bytes": 2168,
-      "path": "treatment-input-bindings.json",
-      "sha256": "ea07c6f2b0e96baa6ccb979a2977400972f37dc857aa6b3632d90ac0b9f0a8fc"
-    },
-    {
-      "bytes": 1654,
-      "path": "uniform-posthoc-validator-bundle.json",
-      "sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449"
-    },
-    {
-      "bytes": 423,
-      "path": "uniform-posthoc-validator-config.json",
-      "sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"
+    "native": {
+      "member": "package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+      "bytes": 295151920,
+      "sha256": "88aa986d1405d41dcc9c2f777d7b028de07edc33b6468a8dd8db6a0cc62c315f"
     }
+  },
+  "exact_distribution_identity": {
+    "cli_version": "codex-cli 0.148.0-alpha.9",
+    "cli_version_stdout_bytes": 26,
+    "cli_version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
+    "cli_executable_bytes": 295151920,
+    "cli_executable_sha256": "88aa986d1405d41dcc9c2f777d7b028de07edc33b6468a8dd8db6a0cc62c315f",
+    "preflight_adapter_sha256": "f0581eb58f5a3b186982a18e274c1c3ba2ad0dffd19f59130ac437b67945ecaf",
+    "preflight_bytes": 2224,
+    "preflight_sha256": "c348e7aef08fe3addebeb7663501ed0058288e5f5cfb49bdda5476954336f8a3",
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "runner_sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be",
+    "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
+    "runner_accepted_preflight": true
+  },
+  "client_runtime_projection_sha256": "87c99bb72ca3a07488186f219edb1184b406eb305d23ccb92a6023f83093bce8",
+  "frozen_files": [
+    {"bytes": 105, "path": ".gitattributes", "sha256": "c2b7bcdf74cf2e1fb596ab7508930007c5a33868732c176d08f466b31c828e4b"},
+    {"bytes": 139, "path": "arm-a-no-skill-treatment.json", "sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8"},
+    {"bytes": 395, "path": "batch-admission-schema.json", "sha256": "1e3ebc1b0acb38f3e86491d5a07657e863b60bc759ec60c45374e350ce00de1a"},
+    {"bytes": 9342, "path": "codex_distribution.py", "sha256": "03161f5544a10e7852d85970b8e866f9eadb92068985f55454cddf849290a8e0"},
+    {"bytes": 5376, "path": "distribution_preflight_adapter.py", "sha256": "f0581eb58f5a3b186982a18e274c1c3ba2ad0dffd19f59130ac437b67945ecaf"},
+    {"bytes": 139, "path": "no-governance-instruction.json", "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"},
+    {"bytes": 36466, "path": "randomization_prerun_executor.py", "sha256": "c5adec31bddb8be209174d30d28a5243bc5bd7989e60fc8ba94a981ff476da83"},
+    {"bytes": 1892, "path": "README.md", "sha256": "bbccfee4753725c8a34f444fd38ca16490a504158f0607383b89c9cd74313948"},
+    {"bytes": 842, "path": "terminal-policy.json", "sha256": "039b9c1699d5c152a5ad1d0202b8387fb92cc778f3af0d347fc02e5578cc4688"},
+    {"bytes": 22681, "path": "test_randomization_prerun.py", "sha256": "3cb8fc146c62a60aa1bb7b90728bdc56a72987e31189bf8fce49749afa5d9ab4"},
+    {"bytes": 2168, "path": "treatment-input-bindings.json", "sha256": "ea07c6f2b0e96baa6ccb979a2977400972f37dc857aa6b3632d90ac0b9f0a8fc"},
+    {"bytes": 1654, "path": "uniform-posthoc-validator-bundle.json", "sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449"},
+    {"bytes": 423, "path": "uniform-posthoc-validator-config.json", "sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"}
   ],
   "publication": {
     "atomic_directory_rename": true,
@@ -136,7 +144,7 @@
     "source": "secrets.token_bytes",
     "total_calls": 4
   },
-  "schema": "c1-gate1-randomization-prerun-freeze.v2",
+  "schema": "c1-gate1-randomization-prerun-freeze.v3",
   "source_bindings": [
     {
       "bytes": 9190,
@@ -199,7 +207,7 @@
       "sha256": "1beef6b1450dcc51a7b522c9d9bef6120f0eefbbcffd5980e1ccec091c6fa2e3"
     }
   ],
-  "status": "RANDOMIZATION_INFRASTRUCTURE_CORRECTION_FROZEN_NOT_EXECUTED",
+  "status": "RANDOMIZATION_EXECUTABLE_BINDING_CORRECTION_FROZEN_NOT_EXECUTED",
   "window": {
     "admission_expiry_hours": 12,
     "admission_timestamp_created_only_during_authorized_execution": true,

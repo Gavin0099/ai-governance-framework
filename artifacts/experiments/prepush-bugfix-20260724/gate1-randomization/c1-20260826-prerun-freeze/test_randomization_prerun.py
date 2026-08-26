@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
+import hashlib
 import json
 import os
 import subprocess
@@ -19,11 +21,13 @@ def _load(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
 EXECUTOR = _load(HERE / "randomization_prerun_executor.py", "c1_randomization_prerun")
+DIST = _load(HERE / "codex_distribution.py", "c1_codex_distribution_test")
 CHAIN = _load(
     REPO_ROOT
     / "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
@@ -76,8 +80,14 @@ def _patch_static_preconditions(monkeypatch) -> None:
     monkeypatch.setattr(
         EXECUTOR,
         "validate_executable_launch",
-        lambda root: {"executable": Path(sys.executable), "version_stdout": b"test\n"},
+        lambda root: {
+            "executable": Path(sys.executable),
+            "scratch_root": Path("synthetic-scratch"),
+            "version_stdout": b"test\n",
+        },
     )
+    monkeypatch.setattr(EXECUTOR, "cleanup_executable_launch", lambda observation: None)
+    monkeypatch.setattr(EXECUTOR, "measure_client_identity", lambda root, launch: _runtime())
 
 
 def test_gitattributes_is_checkout_stable() -> None:
@@ -111,6 +121,68 @@ def test_source_bindings_include_the_superseded_freeze_lineage() -> None:
         "superseded_freeze_commit": EXECUTOR.SUPERSEDED_FREEZE_COMMIT,
     }
     EXECUTOR._validate_source_bindings(REPO_ROOT, manifest)
+
+
+def test_manifest_pins_the_qualified_two_layer_npm_distribution() -> None:
+    manifest = json.loads(
+        (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
+    )
+    npm = manifest["npm_distribution"]
+    assert npm["main"]["sha256"] == DIST.MAIN.sha256
+    assert npm["main"]["integrity"] == DIST.MAIN.integrity
+    assert npm["windows_x64"]["sha256"] == DIST.WINDOWS_X64.sha256
+    assert npm["windows_x64"]["integrity"] == DIST.WINDOWS_X64.integrity
+    assert npm["native"] == {
+        "member": DIST.NATIVE_MEMBER,
+        "bytes": DIST.NATIVE_BYTES,
+        "sha256": DIST.NATIVE_SHA256,
+    }
+    assert npm["download_attempts_each"] == 1
+    assert npm["raw_tarballs_retained"] is False
+    assert npm["cleanup_required_before_rng"] is True
+
+
+def test_archive_verifier_checks_sha1_sha256_and_sri(tmp_path: Path) -> None:
+    raw = b"synthetic npm archive"
+    archive = tmp_path / "package.tgz"
+    archive.write_bytes(raw)
+    binding = DIST.ArchiveBinding(
+        name="synthetic",
+        url="https://example.invalid/package.tgz",
+        size=len(raw),
+        sha1=hashlib.sha1(raw).hexdigest(),
+        sha256=hashlib.sha256(raw).hexdigest(),
+        integrity="sha512-" + base64.b64encode(hashlib.sha512(raw).digest()).decode("ascii"),
+        package_json_size=0,
+        package_json_sha256="0" * 64,
+    )
+    DIST._verify_archive(archive, binding)
+    archive.write_bytes(raw + b"x")
+    with pytest.raises(DIST.DistributionError, match="byte count"):
+        DIST._verify_archive(archive, binding)
+
+
+def test_failed_distribution_materialization_removes_scratch(tmp_path: Path) -> None:
+    scratch = tmp_path / "distribution"
+
+    def corrupt_download(url: str, destination: Path, maximum: int) -> None:
+        destination.write_bytes(b"corrupt")
+
+    with pytest.raises(DIST.DistributionError):
+        DIST.materialize_exact_distribution(scratch, downloader=corrupt_download)
+    assert not scratch.exists()
+
+
+def test_exact_identity_rebinds_native_preflight_and_command_contract() -> None:
+    manifest = json.loads(
+        (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
+    )
+    exact = manifest["exact_distribution_identity"]
+    assert exact["cli_executable_sha256"] == DIST.NATIVE_SHA256
+    assert exact["preflight_sha256"] == "c348e7aef08fe3addebeb7663501ed0058288e5f5cfb49bdda5476954336f8a3"
+    assert exact["command_contract_sha256"] == "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1"
+    assert exact["runner_accepted_preflight"] is True
+    assert manifest["client_runtime_projection_sha256"] == "87c99bb72ca3a07488186f219edb1184b406eb305d23ccb92a6023f83093bce8"
 
 
 def test_treatment_bindings_use_complete_digests_and_no_absent_literal() -> None:
@@ -221,7 +293,7 @@ def test_full_synthetic_execution_commits_only_event_one(tmp_path: Path, monkeyp
         repo_root=REPO_ROOT,
         final_root=final_root,
         owner_authorized_commit="f" * 40,
-        runtime_probe=lambda root: _runtime(),
+        runtime_probe=lambda root, launch: _runtime(),
         rng=rng,
         now=lambda: now,
     )
@@ -253,6 +325,33 @@ def test_full_synthetic_execution_commits_only_event_one(tmp_path: Path, monkeyp
     assert '"nonce_hex"' not in public_text
 
 
+def test_distribution_cleanup_completes_before_rng(tmp_path: Path, monkeypatch) -> None:
+    _patch_static_preconditions(monkeypatch)
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    cleaned = False
+    values = [bytes(range(6)), bytes(range(6, 12)), bytes(range(32)), b"\x00"]
+
+    def cleanup(observation) -> None:
+        nonlocal cleaned
+        cleaned = True
+
+    def rng(count: int) -> bytes:
+        assert cleaned
+        return values.pop(0)
+
+    monkeypatch.setattr(EXECUTOR, "cleanup_executable_launch", cleanup)
+    terminal = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=final_root,
+        owner_authorized_commit="f" * 40,
+        runtime_probe=lambda root, launch: _runtime(),
+        rng=rng,
+        now=lambda: datetime(2026, 8, 26, 2, 0, tzinfo=timezone.utc),
+    )
+    assert terminal["status"] == EXECUTOR.STATUS_COMMITTED
+    assert cleaned is True
+
+
 def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -271,7 +370,7 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
         repo_root=REPO_ROOT,
         final_root=final_root,
         owner_authorized_commit="0" * 40,
-        runtime_probe=lambda root: (_ for _ in ()).throw(AssertionError("runtime called")),
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(AssertionError("runtime called")),
         rng=rng,
     )
     assert terminal["status"] == EXECUTOR.STATUS_AUTHORITY
@@ -280,8 +379,21 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
     assert [path.name for path in final_root.iterdir()] == ["terminal.json"]
 
 
-def test_executable_permission_error_is_infrastructure_failure(monkeypatch) -> None:
-    monkeypatch.setattr(EXECUTOR.shutil, "which", lambda name: sys.executable)
+def test_executable_permission_error_is_infrastructure_failure(monkeypatch, tmp_path: Path) -> None:
+    class FakeDistribution:
+        CLI_VERSION_STDOUT = b"test\n"
+        NATIVE_BYTES = Path(sys.executable).stat().st_size
+        NATIVE_SHA256 = EXECUTOR.sha256_file(Path(sys.executable))
+
+        @staticmethod
+        def materialize_exact_distribution(root):
+            return {"executable": Path(sys.executable), "scratch_root": tmp_path}
+
+        @staticmethod
+        def cleanup_distribution(observation):
+            return None
+
+    monkeypatch.setattr(EXECUTOR, "_module", lambda path, name: FakeDistribution)
     monkeypatch.setattr(
         EXECUTOR.subprocess,
         "run",
@@ -305,7 +417,7 @@ def test_infrastructure_failure_consumes_pair_without_rng(
         launch_probe=lambda root: (_ for _ in ()).throw(
             EXECUTOR.InfrastructureError("executable launch denied")
         ),
-        runtime_probe=lambda root: (_ for _ in ()).throw(
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(
             AssertionError("runtime called")
         ),
         rng=rng,
@@ -314,7 +426,7 @@ def test_infrastructure_failure_consumes_pair_without_rng(
         repo_root=REPO_ROOT,
         final_root=final_root,
         owner_authorized_commit="f" * 40,
-        runtime_probe=lambda root: (_ for _ in ()).throw(
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(
             AssertionError("runtime called")
         ),
         rng=rng,
@@ -358,7 +470,7 @@ def test_wrong_output_root_fails_before_rng(tmp_path: Path, monkeypatch) -> None
         repo_root=REPO_ROOT,
         final_root=wrong_root,
         owner_authorized_commit="f" * 40,
-        runtime_probe=lambda root: (_ for _ in ()).throw(AssertionError("runtime called")),
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(AssertionError("runtime called")),
         rng=rng,
     )
     assert terminal["status"] == EXECUTOR.STATUS_OUTPUT_ROOT
@@ -389,7 +501,7 @@ def test_prior_pair_state_at_alternate_path_blocks_before_rng(
         repo_root=REPO_ROOT,
         final_root=final_root,
         owner_authorized_commit="f" * 40,
-        runtime_probe=lambda root: (_ for _ in ()).throw(AssertionError("runtime called")),
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(AssertionError("runtime called")),
         rng=rng,
     )
     assert terminal["status"] == EXECUTOR.STATUS_PRIOR_PAIR
