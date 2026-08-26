@@ -1,0 +1,25 @@
+{
+  "allowed_statuses_in_precedence_order": [
+    "RANDOMIZATION_AUTHORITY_MISMATCH",
+    "RANDOMIZATION_BINDING_MISMATCH",
+    "RANDOMIZATION_CLIENT_IDENTITY_MISMATCH",
+    "RANDOMIZATION_WINDOW_PRECONDITION_FAILED",
+    "RANDOMIZATION_TREATMENT_BINDING_INCOMPLETE",
+    "RANDOMIZATION_OUTPUT_ALREADY_EXISTS",
+    "RANDOMIZATION_COMMIT_STATE_AMBIGUOUS",
+    "RANDOMIZATION_COMMITTED"
+  ],
+  "bounded_diagnostic_characters": 240,
+  "create_once": true,
+  "forbidden_fields": [
+    "mapping",
+    "nonce",
+    "nonce_hex",
+    "rng_bytes",
+    "private_path",
+    "raw_environment_output",
+    "provider_response_model",
+    "server_model_id"
+  ],
+  "schema": "c1-gate1-randomization-terminal-policy.v1"
+}

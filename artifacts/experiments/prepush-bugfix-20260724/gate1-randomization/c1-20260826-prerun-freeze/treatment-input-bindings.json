@@ -1,0 +1,51 @@
+{
+  "comparison": {
+    "pair_id": "C1-skill-primary-pair-01",
+    "repeat_index": 1,
+    "study_kind": "skill_primary",
+    "task_id": "C1"
+  },
+  "schema": "c1-gate1-randomization-treatment-input-bindings.v1",
+  "source_artifacts": {
+    "arm_a_no_skill": {
+      "bytes": 139,
+      "path": "arm-a-no-skill-treatment.json",
+      "sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8"
+    },
+    "arm_b_skill": {
+      "bytes": 1373,
+      "git_blob_oid": "a37320e37f587fc45f9fd5797d91bb9f2762ac71",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md",
+      "sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+    },
+    "no_governance": {
+      "bytes": 139,
+      "path": "no-governance-instruction.json",
+      "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"
+    },
+    "uniform_validator_bundle": {
+      "bytes": 1654,
+      "path": "uniform-posthoc-validator-bundle.json",
+      "sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449"
+    },
+    "uniform_validator_config": {
+      "bytes": 423,
+      "path": "uniform-posthoc-validator-config.json",
+      "sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"
+    }
+  },
+  "treatment_inputs": {
+    "A": {
+      "governance_instruction_sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43",
+      "treatment_packet_sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8",
+      "validator_bundle_sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449",
+      "validator_config_sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"
+    },
+    "B": {
+      "governance_instruction_sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43",
+      "treatment_packet_sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14",
+      "validator_bundle_sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449",
+      "validator_config_sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"
+    }
+  }
+}

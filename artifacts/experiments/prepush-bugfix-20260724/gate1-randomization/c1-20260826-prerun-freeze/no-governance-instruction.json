@@ -1,0 +1,9 @@
+{
+  "arms": [
+    "A",
+    "B"
+  ],
+  "governance_treatment_present": false,
+  "schema": "c1-gate1-explicit-no-governance-treatment.v1"
+}
+

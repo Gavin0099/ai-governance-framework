@@ -1,0 +1,194 @@
+{
+  "authoring_boundary": {
+    "arm_executed": false,
+    "hosted_model_request_executed": false,
+    "mapping_released": false,
+    "producer_executed": false,
+    "randomization_created": false,
+    "rekor_post_executed": false,
+    "scorer_executed": false
+  },
+  "claim_ceiling": {
+    "does_not_prove": [
+      "Gate 1 readiness",
+      "Gate 3 effectiveness",
+      "Skill effectiveness",
+      "governance effectiveness",
+      "validator-feedback effectiveness",
+      "randomization execution"
+    ],
+    "proves_only": "reviewable event-1-only pre-run bytes are frozen"
+  },
+  "comparison": {
+    "pair_id": "C1-skill-primary-pair-01",
+    "repeat_index": 1,
+    "study_kind": "skill_primary",
+    "task_id": "C1"
+  },
+  "design_packet": {
+    "current_bytes": 18627,
+    "current_lines": 422,
+    "current_sha256": "5796fdb1e74974e0c56204d87e4b18d967101534dc13568af72a02d1ef34a7ae",
+    "location": "repo-external",
+    "original_reviewed_bytes": 18499,
+    "original_reviewed_lines": 419,
+    "original_reviewed_sha256": "04dd05343ca483cb61086dbb60c24fdd05466252da055e025e32977158e4dde0",
+    "review_status": "IMPLEMENTATION_CORRECTIONS_REQUIRE_REVIEW",
+    "reviewed_substance_preserved": true,
+    "unreviewed_corrections": [
+      "anonymous IDs use two six-byte draws encoded as OUT- plus twelve lowercase hexadecimal characters",
+      "the private release document uses gate3-mapping-release.v1 while its internal commitment payload uses gate3-mapping-reveal-commitment.v1"
+    ]
+  },
+  "execution_authority": {
+    "authorized": false,
+    "required": "explicit_owner_authorization_bound_to_reviewed_freeze_commit"
+  },
+  "framework_base": {
+    "d5_admission_commit": "1ced27d08e0330ca5ebe21ed241f0074ec500958",
+    "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
+  },
+  "frozen_files": [
+    {
+      "bytes": 105,
+      "path": ".gitattributes",
+      "sha256": "c2b7bcdf74cf2e1fb596ab7508930007c5a33868732c176d08f466b31c828e4b"
+    },
+    {
+      "bytes": 139,
+      "path": "arm-a-no-skill-treatment.json",
+      "sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8"
+    },
+    {
+      "bytes": 395,
+      "path": "batch-admission-schema.json",
+      "sha256": "1e3ebc1b0acb38f3e86491d5a07657e863b60bc759ec60c45374e350ce00de1a"
+    },
+    {
+      "bytes": 139,
+      "path": "no-governance-instruction.json",
+      "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"
+    },
+    {
+      "bytes": 26972,
+      "path": "randomization_prerun_executor.py",
+      "sha256": "d46f0f84d114a71fdd918411d044c73bcdb93e924b4eca34ad44b558928ec3e2"
+    },
+    {
+      "bytes": 858,
+      "path": "README.md",
+      "sha256": "1179aa0cadb19f451df3cf7d415f9328ecc6e1d833bc2bf3890233a5e6a7d7ca"
+    },
+    {
+      "bytes": 705,
+      "path": "terminal-policy.json",
+      "sha256": "e668fc5c836261112c3c4be219e26edb50a31753a3a77370543aaf4ae3fc26ea"
+    },
+    {
+      "bytes": 11624,
+      "path": "test_randomization_prerun.py",
+      "sha256": "4bcf0b82b86a76015746fdba8db0a5a9992bd086322afba148f1c52c8d63f28b"
+    },
+    {
+      "bytes": 2168,
+      "path": "treatment-input-bindings.json",
+      "sha256": "57aab0c78fe9d734bb47958e73a85c4e3079223bb85050072fb89c2f421259ea"
+    },
+    {
+      "bytes": 1654,
+      "path": "uniform-posthoc-validator-bundle.json",
+      "sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449"
+    },
+    {
+      "bytes": 423,
+      "path": "uniform-posthoc-validator-config.json",
+      "sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"
+    }
+  ],
+  "publication": {
+    "atomic_directory_rename": true,
+    "create_once": true,
+    "private_mapping_reveal_path": "control/mapping-reveal.json",
+    "public_event_path": "evidence/chain/0001-randomization-committed.json",
+    "public_randomization_record_path": "evidence/randomization-record.json",
+    "terminal_path": "terminal.json"
+  },
+  "randomness": {
+    "anonymous_id_draw_bytes_each": 6,
+    "anonymous_id_format": "OUT-[0-9a-f]{12}",
+    "duplicate_policy": "fail_closed_without_redraw",
+    "mapping_selector_draw_bytes": 1,
+    "nonce_draw_bytes": 32,
+    "source": "secrets.token_bytes",
+    "total_calls": 4
+  },
+  "schema": "c1-gate1-randomization-prerun-freeze.v1",
+  "source_bindings": [
+    {
+      "bytes": 9190,
+      "git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+      "sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7"
+    },
+    {
+      "bytes": 1502,
+      "git_blob_oid": "9909da4b75516b46bf63ee29a27f53255a2a37e4",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/randomization-evidence-policy.json",
+      "sha256": "61add52efe602ed02f00286924de390d8792b013f4841a3435293addebf553d8"
+    },
+    {
+      "bytes": 8421,
+      "git_blob_oid": "893f70faf13de7b4c512b77050e9b6d09704257e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/amendment-manifest.json",
+      "sha256": "cf53a99b64314b7b88483ff0f191aa6e3560ec7b850f410c0e558310ad5157cd"
+    },
+    {
+      "bytes": 12950,
+      "git_blob_oid": "75b47bb728c3aeb7a056bf615e82bda015f9d96d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/client_identity_receipt.py",
+      "sha256": "f85b03358ea190029fee04e812dc4b8fd832bd65080a30a671e6399ac9910f48"
+    },
+    {
+      "bytes": 5379,
+      "git_blob_oid": "c2442053d0c704f1c7ae175e21f8c495f874a1fe",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm-execution-admission-manifest.json",
+      "sha256": "3a8447132a46b33f3a45c9d3bca3d6d3bbd8ea44ab059cf1a78f15e284283c2c"
+    },
+    {
+      "bytes": 400,
+      "git_blob_oid": "6ee538066624db968767995327f383513eb17daf",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/admission-terminal.json",
+      "sha256": "692aadbdf5e1daf1dc9c7a7e3ef7339c6339ad0d307b2be0dcaadd4960140ed1"
+    },
+    {
+      "bytes": 7036,
+      "git_blob_oid": "f49d3b9922e50d46af3f31ad03da2a8732d2509c",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-d5-countability-amendment-20260826/amendment-manifest.json",
+      "sha256": "7c7f4ade1c2f8af74e6bb46093e48203eef8f04b920714fdc08e015cc43e8cbd"
+    },
+    {
+      "bytes": 454,
+      "git_blob_oid": "f21c021d30a3b9672150aa2c6767480edf2977f5",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-d5-countability-amendment-20260826/d5-admission-terminal.json",
+      "sha256": "511f13706053c1fdea4032ef23d2ae1be929556b88ea0d12e2ac90707dd3f7f6"
+    },
+    {
+      "bytes": 813,
+      "git_blob_oid": "a6be105b8b8d94d4966988b63ea0213ad4b3f521",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-external-pin-v2.json",
+      "sha256": "f390e29adbfcdabacfcec918ce93f206c309620e192bc2d29b7d22be63451d13"
+    },
+    {
+      "bytes": 84663,
+      "git_blob_oid": "913616d4441cfae93e9166cdb8c7c6fde3cd250e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
+      "sha256": "1beef6b1450dcc51a7b522c9d9bef6120f0eefbbcffd5980e1ccec091c6fa2e3"
+    }
+  ],
+  "status": "RANDOMIZATION_PRE_RUN_FROZEN_NOT_EXECUTED",
+  "window": {
+    "admission_expiry_hours": 12,
+    "admission_timestamp_created_only_during_authorized_execution": true,
+    "historical_admission_timestamp_fabrication_forbidden": true
+  }
+}
