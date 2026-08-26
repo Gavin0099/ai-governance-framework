@@ -2480,6 +2480,28 @@ treatment/Skill effectiveness is not established.
   This rehearsal is synthetic and non-counted; its scorer fixtures are not
   independent judgments and it does not approve, sign, promote or start Gate 3.
 
+- [x] **C1 Gate 1 preregistration and pre-randomization admission completed
+  2026-08-26.** The preregistration freeze is in merge commit `4f0eefb9`
+  (PR #113). Rekor provider verification and the proof-bearing write path are
+  in merge commits `26552169` through `5a0da107` (PRs #114-#117). The
+  client-side identity amendment is in `830577ef` (PR #118), and the integrated
+  admission gate is in `90227e36` (PR #119). The separate final-head
+  countability decision was frozen in reviewed commit `1ced27d0` and merged as
+  `3351584a` by PR #120. Its terminal is
+  `ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED`: event 7 remains a mandatory
+  proof-bearing external pin before event 8 mapping release; an additional
+  event-9-style external final-head receipt is not required for this internal
+  Skill-funding experiment. Randomization has not been created, A/B/C/D arms
+  have not executed, and both remain unauthorized pending separate explicit
+  owner authority bound to the reviewed D5 admission commit.
+
+Claim ceiling for this checkpoint: the experimental rules, validator path,
+external pin provider, client identity boundary and pre-randomization admission
+are available and reviewed. This does not establish Gate 3 readiness,
+treatment effect, governance effectiveness, validator-feedback effectiveness
+or Skill effectiveness, and it does not authorize randomization, producer or
+scorer execution, mapping release, or any A/B/C/D arm.
+
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
 - [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
