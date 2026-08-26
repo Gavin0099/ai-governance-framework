@@ -89,7 +89,9 @@ def _canonical(value: object) -> bytes:
     ).encode("utf-8")
 
 
-def _synthetic_receipt() -> tuple[RekorProviderProfile, dict[str, object]]:
+def _synthetic_receipt(
+    signed_artifact: bytes = b"gate1-external-pin-request-v1\x00synthetic-digest-only",
+) -> tuple[RekorProviderProfile, dict[str, object]]:
     frozen_profile, _ = load_frozen_profile(ROOT)
     log_private = ed25519.Ed25519PrivateKey.generate()
     log_public_der = log_private.public_key().public_bytes(
@@ -105,7 +107,6 @@ def _synthetic_receipt() -> tuple[RekorProviderProfile, dict[str, object]]:
         checkpoint_key_hint=log_id[:4],
     )
 
-    signed_artifact = b"gate1-external-pin-request-v1\x00synthetic-digest-only"
     subject_digest = hashlib.sha256(signed_artifact).digest()
     request_private = ec.generate_private_key(ec.SECP256R1())
     request_public_der = request_private.public_key().public_bytes(

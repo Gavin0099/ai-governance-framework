@@ -17,12 +17,21 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 EXPERIMENT = HERE.parent
 CONTRACT = EXPERIMENT / "candidate/gate3-protocol-contract-v1.json"
+EXTERNAL_PIN_CONTRACT = (
+    EXPERIMENT / "candidate/gate3-protocol-contract-external-pin-v2.json"
+)
 HARNESS_CONTRACT = EXPERIMENT / "candidate/gate3-harness-contract-v1.json"
 MODULE_PATH = HERE / "gate3_evidence_chain.py"
 SPEC = importlib.util.spec_from_file_location("gate3_evidence_chain", MODULE_PATH)
 assert SPEC and SPEC.loader
 chain = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(chain)
+REKOR_TEST_SPEC = importlib.util.spec_from_file_location(
+    "test_rekor_provider_helpers", ROOT / "tests/test_rekor_provider.py"
+)
+assert REKOR_TEST_SPEC and REKOR_TEST_SPEC.loader
+rekor_tests = importlib.util.module_from_spec(REKOR_TEST_SPEC)
+REKOR_TEST_SPEC.loader.exec_module(rekor_tests)
 
 
 def write_json(path: Path, value: object) -> None:
@@ -449,13 +458,13 @@ class Gate3EvidenceChainTests(unittest.TestCase):
             ]["sha256"],
         }
 
-    def seal_pair(self) -> None:
+    def seal_pair(self, contract: Path = CONTRACT) -> None:
         chain.commit_randomization(
-            self.chain_dir, CONTRACT, self.randomization_record
+            self.chain_dir, contract, self.randomization_record
         )
         chain.seal_outcome(
             self.chain_dir,
-            CONTRACT,
+            contract,
             self.packet_a,
             self.metrics_a,
             self.admission_a,
@@ -463,18 +472,35 @@ class Gate3EvidenceChainTests(unittest.TestCase):
         )
         chain.seal_outcome(
             self.chain_dir,
-            CONTRACT,
+            contract,
             self.packet_b,
             self.metrics_b,
             self.admission_b,
             self.repo_b,
         )
         chain.close_blind_set(
-            self.chain_dir, CONTRACT, "skill_primary"
+            self.chain_dir, contract, "skill_primary"
         )
 
-    def full_chain(self) -> tuple[Path, Path, Path]:
-        self.seal_pair()
+    def external_pin_receipt(self, chain_head_sha256: str) -> Path:
+        receipt = self.evidence_root / "external-pin-receipt.json"
+        self.synthetic_rekor_profile, value = rekor_tests._synthetic_receipt(
+            chain_head_sha256.encode("ascii")
+        )
+        write_json(receipt, value)
+        return receipt
+
+    def patched_rekor_profile(self):
+        return mock.patch.object(
+            chain.rekor_provider.RekorProviderProfile,
+            "from_bytes",
+            return_value=self.synthetic_rekor_profile,
+        )
+
+    def full_chain(
+        self, contract: Path = CONTRACT, *, external_pin: bool = False
+    ) -> tuple[Path, Path, Path]:
+        self.seal_pair(contract)
         primary = self.evidence_root / "primary.json"
         second = self.evidence_root / "second.json"
         mapping = self.evidence_root / "mapping.json"
@@ -494,12 +520,23 @@ class Gate3EvidenceChainTests(unittest.TestCase):
             },
         )
         chain.submit_scorer(
-            self.chain_dir, CONTRACT, "primary", primary
+            self.chain_dir, contract, "primary", primary
         )
         chain.submit_scorer(
-            self.chain_dir, CONTRACT, "second", second
+            self.chain_dir, contract, "second", second
         )
-        chain.release_mapping(self.chain_dir, CONTRACT, mapping)
+        if external_pin:
+            report = chain.verify_chain(self.chain_dir, contract)
+            receipt = self.external_pin_receipt(report["head_sha256"])
+            with self.patched_rekor_profile():
+                chain.pin_external_chain_head(
+                    self.chain_dir,
+                    contract,
+                    receipt,
+                )
+                chain.release_mapping(self.chain_dir, contract, mapping)
+        else:
+            chain.release_mapping(self.chain_dir, contract, mapping)
         return primary, second, mapping
 
     def test_completed_and_timeout_metrics_validate(self) -> None:
@@ -848,6 +885,94 @@ class Gate3EvidenceChainTests(unittest.TestCase):
         self.assertEqual(
             set(final["scorer_event_sha256"]), {"primary", "second"}
         )
+
+    def test_external_pin_contract_blocks_mapping_without_pin(self) -> None:
+        self.seal_pair(EXTERNAL_PIN_CONTRACT)
+        primary = self.evidence_root / "primary.json"
+        second = self.evidence_root / "second.json"
+        mapping = self.evidence_root / "mapping.json"
+        write_json(primary, self.score("primary"))
+        write_json(second, self.score("second"))
+        write_json(
+            mapping,
+            {
+                "mapping": self.mapping,
+                "nonce_hex": self.nonce_hex,
+                "randomization_record_sha256": self.randomization_sha256,
+                "schema": "gate3-mapping-release.v1",
+                "study_kind": "skill_primary",
+            },
+        )
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "primary", primary
+        )
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "second", second
+        )
+        with self.assertRaisesRegex(chain.EvidenceError, "required chain state"):
+            chain.release_mapping(
+                self.chain_dir, EXTERNAL_PIN_CONTRACT, mapping
+            )
+
+    def test_external_pin_receipt_is_bound_before_mapping(self) -> None:
+        self.full_chain(EXTERNAL_PIN_CONTRACT, external_pin=True)
+        with self.patched_rekor_profile():
+            result = chain.verify_chain(
+                self.chain_dir,
+                EXTERNAL_PIN_CONTRACT,
+                require_state="mapping_released",
+            )
+        self.assertEqual(result["event_count"], 8)
+        mapping_event = json.loads(
+            sorted(self.chain_dir.iterdir())[-1].read_text(encoding="utf-8")
+        )
+        self.assertRegex(mapping_event["external_pin_event_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_external_pin_receipt_tamper_fails_closed(self) -> None:
+        self.seal_pair(EXTERNAL_PIN_CONTRACT)
+        primary = self.evidence_root / "primary.json"
+        second = self.evidence_root / "second.json"
+        write_json(primary, self.score("primary"))
+        write_json(second, self.score("second"))
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "primary", primary
+        )
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "second", second
+        )
+        report = chain.verify_chain(self.chain_dir, EXTERNAL_PIN_CONTRACT)
+        receipt = self.external_pin_receipt(report["head_sha256"])
+        value = json.loads(receipt.read_text(encoding="utf-8"))
+        value["signedArtifactBase64"] = "eA=="
+        write_json(receipt, value)
+        with self.patched_rekor_profile():
+            with self.assertRaisesRegex(
+                chain.EvidenceError, "proof verification failed"
+            ):
+                chain.pin_external_chain_head(
+                    self.chain_dir, EXTERNAL_PIN_CONTRACT, receipt
+                )
+
+    def test_external_pin_subject_must_equal_chain_head(self) -> None:
+        self.seal_pair(EXTERNAL_PIN_CONTRACT)
+        primary = self.evidence_root / "primary.json"
+        second = self.evidence_root / "second.json"
+        write_json(primary, self.score("primary"))
+        write_json(second, self.score("second"))
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "primary", primary
+        )
+        chain.submit_scorer(
+            self.chain_dir, EXTERNAL_PIN_CONTRACT, "second", second
+        )
+        receipt = self.external_pin_receipt("0" * 64)
+        with self.patched_rekor_profile():
+            with self.assertRaisesRegex(
+                chain.EvidenceError, "subject is not the chain head"
+            ):
+                chain.pin_external_chain_head(
+                    self.chain_dir, EXTERNAL_PIN_CONTRACT, receipt
+                )
 
     def test_mapping_scorer_event_digest_tamper_fails(self) -> None:
         self.full_chain()

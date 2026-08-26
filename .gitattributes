@@ -70,9 +70,17 @@
 /artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-v1.json -text
+/artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-external-pin-v2.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-preregistration-amendment-v1-candidate-manifest.json -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/test_gate3_evidence_chain.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm-execution-admission-manifest.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_d_feedback_adapter.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_execution_admission.py -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/local-runtime-facts.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/admission-terminal.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/rekor-qualification-terminal.json -text
+/artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/test_arm_execution_admission.py -text
 /artifacts/evidence/test-results/m3b2a-in-process-20260820.json -text -whitespace
 /artifacts/evidence/test-results/m3b2a-in-process-20260820.txt -text -whitespace
 /docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md -text
