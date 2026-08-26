@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -52,7 +55,7 @@ def _treatments() -> dict[str, dict[str, str]]:
 
 
 def _patch_frozen_roots(monkeypatch, tmp_path: Path) -> tuple[Path, Path]:
-    evidence_root = tmp_path / "c1-skill-primary-pair-01"
+    evidence_root = tmp_path / "c1-skill-primary-pair-02"
     final_root = evidence_root / "repeat-01"
     monkeypatch.setattr(
         EXECUTOR,
@@ -70,6 +73,11 @@ def _patch_static_preconditions(monkeypatch) -> None:
         "validate_authority",
         lambda root, manifest, authority: "f" * 40,
     )
+    monkeypatch.setattr(
+        EXECUTOR,
+        "validate_executable_launch",
+        lambda root: {"executable": Path(sys.executable), "version_stdout": b"test\n"},
+    )
 
 
 def test_gitattributes_is_checkout_stable() -> None:
@@ -86,7 +94,7 @@ def test_manifest_freezes_one_repo_relative_evidence_and_attempt_root() -> None:
     )
     expected_evidence = REPO_ROOT / (
         "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/"
-        "c1-skill-primary-pair-01"
+        "c1-skill-primary-pair-02"
     )
     assert evidence_root == expected_evidence.resolve()
     assert final_root == (expected_evidence / "repeat-01").resolve()
@@ -272,6 +280,75 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
     assert [path.name for path in final_root.iterdir()] == ["terminal.json"]
 
 
+def test_executable_permission_error_is_infrastructure_failure(monkeypatch) -> None:
+    monkeypatch.setattr(EXECUTOR.shutil, "which", lambda name: sys.executable)
+    monkeypatch.setattr(
+        EXECUTOR.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(PermissionError("denied")),
+    )
+    with pytest.raises(EXECUTOR.InfrastructureError, match="launch failed"):
+        EXECUTOR.validate_executable_launch(REPO_ROOT)
+
+
+def test_infrastructure_failure_consumes_pair_without_rng(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _patch_static_preconditions(monkeypatch)
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    rng = DeterministicRng([])
+
+    first = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=final_root,
+        owner_authorized_commit="f" * 40,
+        launch_probe=lambda root: (_ for _ in ()).throw(
+            EXECUTOR.InfrastructureError("executable launch denied")
+        ),
+        runtime_probe=lambda root: (_ for _ in ()).throw(
+            AssertionError("runtime called")
+        ),
+        rng=rng,
+    )
+    second = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=final_root,
+        owner_authorized_commit="f" * 40,
+        runtime_probe=lambda root: (_ for _ in ()).throw(
+            AssertionError("runtime called")
+        ),
+        rng=rng,
+    )
+
+    assert first["status"] == EXECUTOR.STATUS_INFRASTRUCTURE
+    assert first["randomization_created"] is False
+    assert first["event_count"] == 0
+    assert second["status"] == EXECUTOR.STATUS_EXISTS
+    assert second["randomization_created"] is False
+    assert rng.calls == []
+    assert [path.name for path in final_root.iterdir()] == ["terminal.json"]
+
+
+def test_publication_staging_uses_parent_inheriting_directory(
+    tmp_path: Path,
+) -> None:
+    final_root = tmp_path / "evidence-root" / "repeat-01"
+    staging = EXECUTOR._create_publication_staging(final_root)
+    assert staging == final_root.parent / ".repeat-01.publication-staging"
+    assert staging.is_dir()
+    if os.name == "nt":
+        result = subprocess.run(
+            ["icacls", str(staging)],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        access_lines = [line for line in result.stdout.splitlines() if ":(" in line]
+        assert access_lines
+        assert all("(I)" in line for line in access_lines)
+
+
 def test_wrong_output_root_fails_before_rng(tmp_path: Path, monkeypatch) -> None:
     _patch_static_preconditions(monkeypatch)
     _, expected_root = _patch_frozen_roots(monkeypatch, tmp_path)
@@ -306,7 +383,7 @@ def test_prior_pair_state_at_alternate_path_blocks_before_rng(
     evidence_root, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
     prior = evidence_root / "alternate" / "evidence" / artifact_name
     prior.parent.mkdir(parents=True)
-    prior.write_text('{"pair_id":"C1-skill-primary-pair-01"}\n', encoding="utf-8")
+    prior.write_text('{"pair_id":"C1-skill-primary-pair-02"}\n', encoding="utf-8")
     rng = DeterministicRng([])
     terminal = EXECUTOR.execute_randomization(
         repo_root=REPO_ROOT,
@@ -362,6 +439,7 @@ def test_terminal_policy_lists_all_executor_terminals() -> None:
     expected = {
         EXECUTOR.STATUS_AUTHORITY,
         EXECUTOR.STATUS_BINDING,
+        EXECUTOR.STATUS_INFRASTRUCTURE,
         EXECUTOR.STATUS_IDENTITY,
         EXECUTOR.STATUS_WINDOW,
         EXECUTOR.STATUS_TREATMENT,

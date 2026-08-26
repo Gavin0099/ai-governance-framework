@@ -20,10 +20,19 @@
     "proves_only": "reviewable event-1-only pre-run bytes are frozen"
   },
   "comparison": {
-    "pair_id": "C1-skill-primary-pair-01",
+    "pair_id": "C1-skill-primary-pair-02",
     "repeat_index": 1,
     "study_kind": "skill_primary",
     "task_id": "C1"
+  },
+  "consumed_pair": {
+    "event_count": 0,
+    "pair_id": "C1-skill-primary-pair-01",
+    "randomization_created": false,
+    "terminal_bytes": 416,
+    "terminal_sha256": "bb2d2b87e2d77732811b7aa5af89a18e8451aaf96510d0ac17c0b9a1b3f646aa",
+    "terminal_status": "RANDOMIZATION_BINDING_MISMATCH",
+    "treatment": "CONSUMED_INFRASTRUCTURE_INVALID_NO_RETRY"
   },
   "design_packet": {
     "current_bytes": 18627,
@@ -47,7 +56,7 @@
   "framework_base": {
     "d5_admission_commit": "1ced27d08e0330ca5ebe21ed241f0074ec500958",
     "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf",
-    "superseded_freeze_commit": "a6e66ed6a1634f03eed86736ce9fccb0ea082d96"
+    "superseded_freeze_commit": "ce775f55e7b4e1b4c70698f9733b3dbe7da19db5"
   },
   "frozen_files": [
     {
@@ -71,29 +80,29 @@
       "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"
     },
     {
-      "bytes": 30729,
+      "bytes": 32785,
       "path": "randomization_prerun_executor.py",
-      "sha256": "33522c54a73e2a2793f65aa6f6297f3ef6563b53993885833ebd70df8732dc3d"
+      "sha256": "4fe41fa9fbdecd0b04605633542cc8f25e3b8b2a3745cd583543497dd2537052"
     },
     {
-      "bytes": 1215,
+      "bytes": 1573,
       "path": "README.md",
-      "sha256": "4bd91de5307a7a61ae08e696a3c74efb7a22431344331edf5d66a18fa30ec2bb"
+      "sha256": "9b03d6d2a677a713a6c9cbc46855f7b407e70010a325eaeaf051e8c92f336264"
     },
     {
-      "bytes": 786,
+      "bytes": 842,
       "path": "terminal-policy.json",
-      "sha256": "ff2515692d534cbd1cde3ffe8331db09ade4960818b63374a137bb62dc61c0ae"
+      "sha256": "f792b98e7078c1408467d23b800495263509ada18cabf99418392de106da7f4d"
     },
     {
-      "bytes": 15423,
+      "bytes": 18156,
       "path": "test_randomization_prerun.py",
-      "sha256": "996dac4565817f965e9e8369aee7f5359b78a85e51ef4745df4e3d6f23b7d49b"
+      "sha256": "475c7edb87a7b19efb2c876c7e1b9e6f0a07289714cec6048bd91a3f5c6ef916"
     },
     {
       "bytes": 2168,
       "path": "treatment-input-bindings.json",
-      "sha256": "57aab0c78fe9d734bb47958e73a85c4e3079223bb85050072fb89c2f421259ea"
+      "sha256": "ea07c6f2b0e96baa6ccb979a2977400972f37dc857aa6b3632d90ac0b9f0a8fc"
     },
     {
       "bytes": 1654,
@@ -109,8 +118,10 @@
   "publication": {
     "atomic_directory_rename": true,
     "create_once": true,
-    "evidence_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-01",
-    "final_attempt_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-01/repeat-01",
+    "evidence_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-02",
+    "final_attempt_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-02/repeat-01",
+    "human_readability": "parent_acl_inheritance_required",
+    "infrastructure_failure_consumes_pair": true,
     "private_mapping_reveal_path": "control/mapping-reveal.json",
     "public_event_path": "evidence/chain/0001-randomization-committed.json",
     "public_randomization_record_path": "evidence/randomization-record.json",
@@ -125,7 +136,7 @@
     "source": "secrets.token_bytes",
     "total_calls": 4
   },
-  "schema": "c1-gate1-randomization-prerun-freeze.v1",
+  "schema": "c1-gate1-randomization-prerun-freeze.v2",
   "source_bindings": [
     {
       "bytes": 9190,
@@ -188,7 +199,7 @@
       "sha256": "1beef6b1450dcc51a7b522c9d9bef6120f0eefbbcffd5980e1ccec091c6fa2e3"
     }
   ],
-  "status": "RANDOMIZATION_PRE_RUN_FROZEN_NOT_EXECUTED",
+  "status": "RANDOMIZATION_INFRASTRUCTURE_CORRECTION_FROZEN_NOT_EXECUTED",
   "window": {
     "admission_expiry_hours": 12,
     "admission_timestamp_created_only_during_authorized_execution": true,

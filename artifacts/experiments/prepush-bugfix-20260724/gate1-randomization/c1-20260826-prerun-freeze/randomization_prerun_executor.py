@@ -17,24 +17,25 @@ import secrets
 import shutil
 import subprocess
 import sys
-import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
 
-MANIFEST_SCHEMA = "c1-gate1-randomization-prerun-freeze.v1"
+MANIFEST_SCHEMA = "c1-gate1-randomization-prerun-freeze.v2"
 BATCH_SCHEMA = "c1-gate1-batch-admission.v1"
-TERMINAL_SCHEMA = "c1-gate1-randomization-terminal.v1"
+TERMINAL_SCHEMA = "c1-gate1-randomization-terminal.v2"
 SOURCE_MAIN_COMMIT = "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
 D5_ADMISSION_COMMIT = "1ced27d08e0330ca5ebe21ed241f0074ec500958"
-SUPERSEDED_FREEZE_COMMIT = "a6e66ed6a1634f03eed86736ce9fccb0ea082d96"
+SUPERSEDED_FREEZE_COMMIT = "ce775f55e7b4e1b4c70698f9733b3dbe7da19db5"
+PAIR_ID = "C1-skill-primary-pair-02"
 FREEZE_DIR = Path(__file__).resolve().parent
 MANIFEST_PATH = FREEZE_DIR / "randomization-prerun-manifest.json"
 TREATMENT_PATH = FREEZE_DIR / "treatment-input-bindings.json"
 
 STATUS_AUTHORITY = "RANDOMIZATION_AUTHORITY_MISMATCH"
 STATUS_BINDING = "RANDOMIZATION_BINDING_MISMATCH"
+STATUS_INFRASTRUCTURE = "RANDOMIZATION_INFRASTRUCTURE_PRECONDITION_FAILED"
 STATUS_IDENTITY = "RANDOMIZATION_CLIENT_IDENTITY_MISMATCH"
 STATUS_WINDOW = "RANDOMIZATION_WINDOW_PRECONDITION_FAILED"
 STATUS_TREATMENT = "RANDOMIZATION_TREATMENT_BINDING_INCOMPLETE"
@@ -71,6 +72,10 @@ class AuthorityError(RandomizationError):
 
 
 class BindingError(RandomizationError):
+    pass
+
+
+class InfrastructureError(RandomizationError):
     pass
 
 
@@ -265,6 +270,18 @@ def _validate_source_bindings(repo_root: Path, manifest: Mapping[str, Any]) -> N
     )
     if ancestor.returncode != 0:
         raise BindingError("D5 commit is not an ancestor of source main")
+    if manifest.get("consumed_pair") != {
+        "event_count": 0,
+        "pair_id": "C1-skill-primary-pair-01",
+        "randomization_created": False,
+        "terminal_bytes": 416,
+        "terminal_sha256": (
+            "bb2d2b87e2d77732811b7aa5af89a18e8451aaf96510d0ac17c0b9a1b3f646aa"
+        ),
+        "terminal_status": "RANDOMIZATION_BINDING_MISMATCH",
+        "treatment": "CONSUMED_INFRASTRUCTURE_INVALID_NO_RETRY",
+    }:
+        raise BindingError("consumed pair disposition differs")
     bindings = manifest.get("source_bindings")
     if not isinstance(bindings, list) or not bindings:
         raise BindingError("source bindings are absent")
@@ -325,6 +342,8 @@ def _frozen_publication_roots(
         "create_once",
         "evidence_root_repo_relative",
         "final_attempt_root_repo_relative",
+        "human_readability",
+        "infrastructure_failure_consumes_pair",
         "private_mapping_reveal_path",
         "public_event_path",
         "public_randomization_record_path",
@@ -332,6 +351,11 @@ def _frozen_publication_roots(
     }
     if not isinstance(publication, dict) or set(publication) != required:
         raise OutputRootError("frozen publication contract is invalid")
+    if (
+        publication.get("human_readability") != "parent_acl_inheritance_required"
+        or publication.get("infrastructure_failure_consumes_pair") is not True
+    ):
+        raise OutputRootError("frozen publication safety contract differs")
     evidence_text = publication.get("evidence_root_repo_relative")
     final_text = publication.get("final_attempt_root_repo_relative")
     if not isinstance(evidence_text, str) or not isinstance(final_text, str):
@@ -368,7 +392,7 @@ def _validate_no_prior_pair_state(evidence_root: Path) -> None:
         path.is_file() and path.name in blocking_names
         for path in evidence_root.rglob("*")
     ):
-        raise PriorPairError("frozen evidence root already contains pair-01 state")
+        raise PriorPairError(f"frozen evidence root already contains {PAIR_ID} state")
 
 
 def validate_treatment_bindings(repo_root: Path) -> dict[str, dict[str, str]]:
@@ -376,7 +400,7 @@ def validate_treatment_bindings(repo_root: Path) -> dict[str, dict[str, str]]:
     if document.get("schema") != "c1-gate1-randomization-treatment-input-bindings.v1":
         raise TreatmentError("treatment binding schema mismatch")
     expected_comparison = {
-        "pair_id": "C1-skill-primary-pair-01",
+        "pair_id": PAIR_ID,
         "repeat_index": 1,
         "study_kind": "skill_primary",
         "task_id": "C1",
@@ -426,6 +450,27 @@ def validate_treatment_bindings(repo_root: Path) -> dict[str, dict[str, str]]:
     return {arm: dict(value) for arm, value in inputs.items()}
 
 
+def validate_executable_launch(repo_root: Path) -> dict[str, object]:
+    executable_text = shutil.which("codex")
+    if not executable_text:
+        raise InfrastructureError("Codex executable is unavailable")
+    executable = Path(executable_text).resolve()
+    try:
+        version = subprocess.run(
+            [str(executable), "--version"],
+            cwd=repo_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise InfrastructureError("Codex executable launch failed") from exc
+    if version.returncode != 0 or version.stderr:
+        raise InfrastructureError("Codex version probe failed")
+    return {"executable": executable, "version_stdout": version.stdout}
+
+
 def measure_client_identity(repo_root: Path) -> dict[str, object]:
     identity_path = repo_root / (
         "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
@@ -434,20 +479,11 @@ def measure_client_identity(repo_root: Path) -> dict[str, object]:
     adapter_path = identity_path.with_name("external_preflight_adapter.py")
     identity = _module(identity_path, "c1_client_identity_runtime")
     adapter = _module(adapter_path, "c1_external_preflight_runtime")
-    executable_text = shutil.which("codex")
-    if not executable_text:
-        raise IdentityError("Codex executable is unavailable")
-    executable = Path(executable_text).resolve()
-    version = subprocess.run(
-        [str(executable), "--version"],
-        cwd=repo_root,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=30,
-    )
-    if version.returncode != 0 or version.stderr:
-        raise IdentityError("Codex version probe failed")
+    launch = validate_executable_launch(repo_root)
+    executable = launch.get("executable")
+    version_stdout = launch.get("version_stdout")
+    if not isinstance(executable, Path) or not isinstance(version_stdout, bytes):
+        raise InfrastructureError("Codex launch observation shape is invalid")
     projection = adapter.command_contract_projection()
     fields: dict[str, object] = {
         "model_requested_id": identity.EXPECTED_MODEL,
@@ -456,9 +492,9 @@ def measure_client_identity(repo_root: Path) -> dict[str, object]:
         "identity_evidence_level": identity.EVIDENCE_LEVEL,
         "server_executed_model_observed": False,
         "provider_attestation_available": False,
-        "cli_version": version.stdout.decode("utf-8", errors="strict").strip(),
-        "cli_version_stdout_bytes": len(version.stdout),
-        "cli_version_stdout_sha256": sha256_bytes(version.stdout),
+        "cli_version": version_stdout.decode("utf-8", errors="strict").strip(),
+        "cli_version_stdout_bytes": len(version_stdout),
+        "cli_version_stdout_sha256": sha256_bytes(version_stdout),
         "cli_executable_bytes": executable.stat().st_size,
         "cli_executable_sha256": sha256_file(executable),
         "runner_git_blob_oid": identity.EXPECTED_RUNNER_OID,
@@ -538,7 +574,7 @@ def build_randomization_documents(
     record = {
         "anonymous_ids": anonymous_ids,
         "mapping_commitment_sha256": commitment,
-        "pair_id": "C1-skill-primary-pair-01",
+        "pair_id": PAIR_ID,
         "repeat_index": 1,
         "schema": chain.RANDOMIZATION_SCHEMA,
         "study_kind": "skill_primary",
@@ -601,7 +637,7 @@ def _terminal(
         "diagnostic": diagnostic,
         "event_count": 1 if randomization_created else 0,
         "freeze_commit": freeze_commit,
-        "pair_id": "C1-skill-primary-pair-01",
+        "pair_id": PAIR_ID,
         "randomization_created": randomization_created,
         "schema": TERMINAL_SCHEMA,
         "source_main_commit": SOURCE_MAIN_COMMIT,
@@ -612,11 +648,18 @@ def _terminal(
     return value
 
 
-def _publish_terminal_only(final_root: Path, terminal: Mapping[str, object]) -> None:
+def _create_publication_staging(final_root: Path) -> Path:
     final_root.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(
-        tempfile.mkdtemp(prefix=f".{final_root.name}.", dir=final_root.parent)
-    )
+    staging = final_root.parent / f".{final_root.name}.publication-staging"
+    try:
+        staging.mkdir()
+    except FileExistsError as exc:
+        raise InfrastructureError("publication staging path already exists") from exc
+    return staging
+
+
+def _publish_terminal_only(final_root: Path, terminal: Mapping[str, object]) -> None:
+    staging = _create_publication_staging(final_root)
     try:
         _write_create_once(staging / "terminal.json", canonical_json_bytes(terminal))
         os.rename(staging, final_root)
@@ -641,12 +684,14 @@ def execute_randomization(
     repo_root: Path,
     final_root: Path,
     owner_authorized_commit: str,
+    launch_probe: Callable[[Path], dict[str, object]] | None = None,
     runtime_probe: Callable[[Path], dict[str, object]] = measure_client_identity,
     rng: Callable[[int], bytes] = secrets.token_bytes,
     now: Callable[[], datetime] = utc_now,
 ) -> dict[str, object]:
     repo_root = repo_root.resolve()
     supplied_final_root = final_root.resolve()
+    launch_probe = launch_probe or validate_executable_launch
 
     freeze_commit: str | None = None
     manifest: dict[str, Any] | None = None
@@ -685,6 +730,7 @@ def execute_randomization(
             )
         _validate_no_prior_pair_state(evidence_root)
         treatment_inputs = validate_treatment_bindings(repo_root)
+        launch_probe(repo_root)
         runtime = runtime_probe(repo_root)
         admission_time = now()
         batch = build_batch_admission(
@@ -694,10 +740,7 @@ def execute_randomization(
         record, reveal = build_randomization_documents(
             chain=chain, treatment_inputs=treatment_inputs, rng=rng
         )
-        final_root.parent.mkdir(parents=True, exist_ok=True)
-        staging = Path(
-            tempfile.mkdtemp(prefix=f".{final_root.name}.", dir=final_root.parent)
-        )
+        staging = _create_publication_staging(final_root)
         try:
             evidence = staging / "evidence"
             chain_dir = evidence / "chain"
@@ -757,6 +800,9 @@ def execute_randomization(
     except AuthorityError as exc:
         status = STATUS_AUTHORITY
         failure = exc
+    except InfrastructureError as exc:
+        status = STATUS_INFRASTRUCTURE
+        failure = exc
     except IdentityError as exc:
         status = STATUS_IDENTITY
         failure = exc
@@ -771,6 +817,9 @@ def execute_randomization(
         failure = exc
     except PriorPairError as exc:
         status = STATUS_PRIOR_PAIR
+        failure = exc
+    except OSError as exc:
+        status = STATUS_INFRASTRUCTURE
         failure = exc
     except BaseException as exc:
         status = STATUS_BINDING
