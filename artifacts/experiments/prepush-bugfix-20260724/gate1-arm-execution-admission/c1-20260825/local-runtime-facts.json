@@ -1,0 +1,20 @@
+{
+  "cli_executable_bytes": 295151920,
+  "cli_executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+  "cli_version": "codex-cli 0.148.0-alpha.9",
+  "cli_version_stdout_bytes": 26,
+  "cli_version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
+  "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
+  "identity_evidence_level": "CLIENT_SIDE_INVOCATION_ONLY",
+  "model_request_argument_sha256": "a25cb819505e39d0c1f50311a15610fe781c8653083415932f14a5bca9bbdb1c",
+  "model_request_source": "frozen_cli_argv",
+  "model_requested_id": "gpt-5.6-sol",
+  "preflight_adapter_sha256": "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f",
+  "provider_attestation_available": false,
+  "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+  "runner_bytes": 44296,
+  "runner_git_blob_oid": "d74dc12984ec8b4d997b6ed4cb39e02a49891bf0",
+  "runner_sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be",
+  "schema": "c1-client-side-runtime-facts.v1",
+  "server_executed_model_observed": false
+}

@@ -1,0 +1,22 @@
+{
+  "authorization": "arm_execution_admission_candidate_not_randomized",
+  "event_order": [
+    "randomization_committed",
+    "outcome_sealed",
+    "outcome_sealed",
+    "blind_set_closed",
+    "primary_scorer_submitted",
+    "second_scorer_submitted",
+    "external_chain_head_pinned",
+    "mapping_released"
+  ],
+  "external_pin_provider": {
+    "profile_path": "governance/rekor-v2-provider-profile.json",
+    "profile_sha256": "caa3876354cef1d3971d6a81907d0a6f1f6d6d3e3ad9339f92f159b55ec48a3c",
+    "proof_receipt_schema": "ai-governance.rekor-proof-bearing-receipt/1",
+    "signed_artifact": "ascii_chain_head_sha256"
+  },
+  "extends_path": "gate3-protocol-contract-v1.json",
+  "extends_sha256": "d6bee8fb88f1e65f327f8f75bf00ddc8f58469db507d01acc58c6d36e14bc248",
+  "schema": "gate3-protocol-contract.v2"
+}
