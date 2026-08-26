@@ -9,10 +9,15 @@ it accesses randomness. It then stages a private mapping reveal, a public
 randomization record, exactly one evidence-chain event, and one terminal before
 publishing the attempt directory create-once.
 
+The manifest freezes one repository-relative evidence root and one final attempt
+root. The executor rejects any caller-supplied path that differs and scans the
+entire frozen evidence root for prior pair-01 record, event, or terminal state
+before it accesses randomness. Create-once therefore applies to the comparison,
+not merely to a caller-selected path.
+
 The private mapping reveal is never a producer or scorer input. No hosted-model
 request, producer, scorer, arm, mapping release, or Rekor POST belongs to this
 freeze.
 
 Execution requires a later owner authorization whose SHA equals the actual
 reviewed freeze commit. The committed manifest remains unauthorized.
-

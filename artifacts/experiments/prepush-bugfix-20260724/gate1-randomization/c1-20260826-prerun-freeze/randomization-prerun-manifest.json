@@ -46,7 +46,8 @@
   },
   "framework_base": {
     "d5_admission_commit": "1ced27d08e0330ca5ebe21ed241f0074ec500958",
-    "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
+    "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf",
+    "superseded_freeze_commit": "a6e66ed6a1634f03eed86736ce9fccb0ea082d96"
   },
   "frozen_files": [
     {
@@ -70,24 +71,24 @@
       "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"
     },
     {
-      "bytes": 26972,
+      "bytes": 30729,
       "path": "randomization_prerun_executor.py",
-      "sha256": "d46f0f84d114a71fdd918411d044c73bcdb93e924b4eca34ad44b558928ec3e2"
+      "sha256": "33522c54a73e2a2793f65aa6f6297f3ef6563b53993885833ebd70df8732dc3d"
     },
     {
-      "bytes": 858,
+      "bytes": 1215,
       "path": "README.md",
-      "sha256": "1179aa0cadb19f451df3cf7d415f9328ecc6e1d833bc2bf3890233a5e6a7d7ca"
+      "sha256": "4bd91de5307a7a61ae08e696a3c74efb7a22431344331edf5d66a18fa30ec2bb"
     },
     {
-      "bytes": 705,
+      "bytes": 786,
       "path": "terminal-policy.json",
-      "sha256": "e668fc5c836261112c3c4be219e26edb50a31753a3a77370543aaf4ae3fc26ea"
+      "sha256": "ff2515692d534cbd1cde3ffe8331db09ade4960818b63374a137bb62dc61c0ae"
     },
     {
-      "bytes": 11624,
+      "bytes": 15423,
       "path": "test_randomization_prerun.py",
-      "sha256": "4bcf0b82b86a76015746fdba8db0a5a9992bd086322afba148f1c52c8d63f28b"
+      "sha256": "996dac4565817f965e9e8369aee7f5359b78a85e51ef4745df4e3d6f23b7d49b"
     },
     {
       "bytes": 2168,
@@ -108,6 +109,8 @@
   "publication": {
     "atomic_directory_rename": true,
     "create_once": true,
+    "evidence_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-01",
+    "final_attempt_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/c1-skill-primary-pair-01/repeat-01",
     "private_mapping_reveal_path": "control/mapping-reveal.json",
     "public_event_path": "evidence/chain/0001-randomization-committed.json",
     "public_randomization_record_path": "evidence/randomization-record.json",

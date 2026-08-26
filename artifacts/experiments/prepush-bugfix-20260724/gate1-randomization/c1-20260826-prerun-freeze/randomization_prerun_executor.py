@@ -28,6 +28,7 @@ BATCH_SCHEMA = "c1-gate1-batch-admission.v1"
 TERMINAL_SCHEMA = "c1-gate1-randomization-terminal.v1"
 SOURCE_MAIN_COMMIT = "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
 D5_ADMISSION_COMMIT = "1ced27d08e0330ca5ebe21ed241f0074ec500958"
+SUPERSEDED_FREEZE_COMMIT = "a6e66ed6a1634f03eed86736ce9fccb0ea082d96"
 FREEZE_DIR = Path(__file__).resolve().parent
 MANIFEST_PATH = FREEZE_DIR / "randomization-prerun-manifest.json"
 TREATMENT_PATH = FREEZE_DIR / "treatment-input-bindings.json"
@@ -37,6 +38,8 @@ STATUS_BINDING = "RANDOMIZATION_BINDING_MISMATCH"
 STATUS_IDENTITY = "RANDOMIZATION_CLIENT_IDENTITY_MISMATCH"
 STATUS_WINDOW = "RANDOMIZATION_WINDOW_PRECONDITION_FAILED"
 STATUS_TREATMENT = "RANDOMIZATION_TREATMENT_BINDING_INCOMPLETE"
+STATUS_OUTPUT_ROOT = "RANDOMIZATION_OUTPUT_ROOT_MISMATCH"
+STATUS_PRIOR_PAIR = "RANDOMIZATION_PRIOR_PAIR_EXISTS"
 STATUS_EXISTS = "RANDOMIZATION_OUTPUT_ALREADY_EXISTS"
 STATUS_AMBIGUOUS = "RANDOMIZATION_COMMIT_STATE_AMBIGUOUS"
 STATUS_COMMITTED = "RANDOMIZATION_COMMITTED"
@@ -80,6 +83,14 @@ class WindowError(RandomizationError):
 
 
 class TreatmentError(RandomizationError):
+    pass
+
+
+class OutputRootError(RandomizationError):
+    pass
+
+
+class PriorPairError(RandomizationError):
     pass
 
 
@@ -240,6 +251,7 @@ def _validate_source_bindings(repo_root: Path, manifest: Mapping[str, Any]) -> N
     if not isinstance(framework, dict) or framework != {
         "d5_admission_commit": D5_ADMISSION_COMMIT,
         "source_main_commit": SOURCE_MAIN_COMMIT,
+        "superseded_freeze_commit": SUPERSEDED_FREEZE_COMMIT,
     }:
         raise BindingError("framework commit bindings differ")
     if str(_git(repo_root, "rev-parse", f"{D5_ADMISSION_COMMIT}^")) == "":
@@ -283,9 +295,80 @@ def validate_authority(
     }:
         raise AuthorityError("committed execution authority must remain closed")
     parent = str(_git(repo_root, "rev-parse", "HEAD^"))
-    if parent != SOURCE_MAIN_COMMIT:
-        raise BindingError("freeze parent is not the reviewed source main")
+    if parent != SUPERSEDED_FREEZE_COMMIT:
+        raise BindingError("correction freeze parent is not the superseded freeze")
+    ancestor = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo_root),
+            "merge-base",
+            "--is-ancestor",
+            SOURCE_MAIN_COMMIT,
+            head,
+        ],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if ancestor.returncode != 0:
+        raise BindingError("reviewed source main is not an ancestor of the correction freeze")
     return head
+
+
+def _frozen_publication_roots(
+    repo_root: Path, manifest: Mapping[str, Any]
+) -> tuple[Path, Path]:
+    publication = manifest.get("publication")
+    required = {
+        "atomic_directory_rename",
+        "create_once",
+        "evidence_root_repo_relative",
+        "final_attempt_root_repo_relative",
+        "private_mapping_reveal_path",
+        "public_event_path",
+        "public_randomization_record_path",
+        "terminal_path",
+    }
+    if not isinstance(publication, dict) or set(publication) != required:
+        raise OutputRootError("frozen publication contract is invalid")
+    evidence_text = publication.get("evidence_root_repo_relative")
+    final_text = publication.get("final_attempt_root_repo_relative")
+    if not isinstance(evidence_text, str) or not isinstance(final_text, str):
+        raise OutputRootError("frozen publication roots are invalid")
+    if "\\" in evidence_text or "\\" in final_text:
+        raise OutputRootError("frozen publication roots must use repository separators")
+    evidence_relative = Path(evidence_text)
+    final_relative = Path(final_text)
+    if (
+        evidence_relative.is_absolute()
+        or final_relative.is_absolute()
+        or ".." in evidence_relative.parts
+        or ".." in final_relative.parts
+    ):
+        raise OutputRootError("frozen publication roots must be repository relative")
+    evidence_root = (repo_root / evidence_relative).resolve()
+    final_root = (repo_root / final_relative).resolve()
+    if final_root.parent != evidence_root:
+        raise OutputRootError("final attempt root is not directly under the evidence root")
+    return evidence_root, final_root
+
+
+def _validate_no_prior_pair_state(evidence_root: Path) -> None:
+    if not evidence_root.exists():
+        return
+    if not evidence_root.is_dir():
+        raise PriorPairError("frozen evidence root exists but is not a directory")
+    blocking_names = {
+        "0001-randomization-committed.json",
+        "randomization-record.json",
+        "terminal.json",
+    }
+    if any(
+        path.is_file() and path.name in blocking_names
+        for path in evidence_root.rglob("*")
+    ):
+        raise PriorPairError("frozen evidence root already contains pair-01 state")
 
 
 def validate_treatment_bindings(repo_root: Path) -> dict[str, dict[str, str]]:
@@ -518,6 +601,7 @@ def _terminal(
         "diagnostic": diagnostic,
         "event_count": 1 if randomization_created else 0,
         "freeze_commit": freeze_commit,
+        "pair_id": "C1-skill-primary-pair-01",
         "randomization_created": randomization_created,
         "schema": TERMINAL_SCHEMA,
         "source_main_commit": SOURCE_MAIN_COMMIT,
@@ -562,34 +646,44 @@ def execute_randomization(
     now: Callable[[], datetime] = utc_now,
 ) -> dict[str, object]:
     repo_root = repo_root.resolve()
-    final_root = final_root.resolve()
-    if final_root.exists():
-        existing = _existing_terminal(final_root)
-        if existing is not None:
-            return _terminal(
-                status=STATUS_EXISTS,
-                freeze_commit=str(_git(repo_root, "rev-parse", "HEAD")),
-                diagnostic="a create-once attempt terminal already exists",
-                randomization_created=bool(existing.get("randomization_created")),
-                extra={"existing_terminal_sha256": sha256_file(final_root / "terminal.json")},
-            )
-        return _terminal(
-            status=STATUS_AMBIGUOUS,
-            freeze_commit=str(_git(repo_root, "rev-parse", "HEAD")),
-            diagnostic="attempt path exists without a valid unique terminal",
-            randomization_created=False,
-        )
+    supplied_final_root = final_root.resolve()
 
     freeze_commit: str | None = None
     manifest: dict[str, Any] | None = None
     failure: BaseException | None = None
+    final_root_validated = False
     try:
         manifest = load_json(MANIFEST_PATH)
         _validate_frozen_files(manifest)
         _validate_source_bindings(repo_root, manifest)
+        evidence_root, final_root = _frozen_publication_roots(repo_root, manifest)
+        if supplied_final_root != final_root:
+            raise OutputRootError("supplied output root differs from the frozen root")
+        final_root_validated = True
         freeze_commit = validate_authority(
             repo_root, manifest, owner_authorized_commit
         )
+        if final_root.exists():
+            existing = _existing_terminal(final_root)
+            if existing is not None:
+                return _terminal(
+                    status=STATUS_EXISTS,
+                    freeze_commit=freeze_commit,
+                    diagnostic="a create-once attempt terminal already exists",
+                    randomization_created=bool(existing.get("randomization_created")),
+                    extra={
+                        "existing_terminal_sha256": sha256_file(
+                            final_root / "terminal.json"
+                        )
+                    },
+                )
+            return _terminal(
+                status=STATUS_AMBIGUOUS,
+                freeze_commit=freeze_commit,
+                diagnostic="attempt path exists without a valid unique terminal",
+                randomization_created=False,
+            )
+        _validate_no_prior_pair_state(evidence_root)
         treatment_inputs = validate_treatment_bindings(repo_root)
         runtime = runtime_probe(repo_root)
         admission_time = now()
@@ -672,6 +766,12 @@ def execute_randomization(
     except TreatmentError as exc:
         status = STATUS_TREATMENT
         failure = exc
+    except OutputRootError as exc:
+        status = STATUS_OUTPUT_ROOT
+        failure = exc
+    except PriorPairError as exc:
+        status = STATUS_PRIOR_PAIR
+        failure = exc
     except BaseException as exc:
         status = STATUS_BINDING
         failure = exc
@@ -685,7 +785,7 @@ def execute_randomization(
         diagnostic=_bounded_diagnostic(failure),
         randomization_created=False,
     )
-    if not final_root.exists():
+    if final_root_validated and not final_root.exists():
         _publish_terminal_only(final_root, terminal)
     return terminal
 

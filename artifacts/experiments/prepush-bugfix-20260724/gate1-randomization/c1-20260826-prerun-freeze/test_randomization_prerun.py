@@ -51,9 +51,58 @@ def _treatments() -> dict[str, dict[str, str]]:
     ]
 
 
+def _patch_frozen_roots(monkeypatch, tmp_path: Path) -> tuple[Path, Path]:
+    evidence_root = tmp_path / "c1-skill-primary-pair-01"
+    final_root = evidence_root / "repeat-01"
+    monkeypatch.setattr(
+        EXECUTOR,
+        "_frozen_publication_roots",
+        lambda repo_root, manifest: (evidence_root, final_root),
+    )
+    return evidence_root, final_root
+
+
+def _patch_static_preconditions(monkeypatch) -> None:
+    monkeypatch.setattr(EXECUTOR, "_validate_frozen_files", lambda manifest: None)
+    monkeypatch.setattr(EXECUTOR, "_validate_source_bindings", lambda root, manifest: None)
+    monkeypatch.setattr(
+        EXECUTOR,
+        "validate_authority",
+        lambda root, manifest, authority: "f" * 40,
+    )
+
+
 def test_gitattributes_is_checkout_stable() -> None:
     lines = (HERE / ".gitattributes").read_text(encoding="utf-8").splitlines()
     assert lines[0] == ".gitattributes -text -whitespace"
+
+
+def test_manifest_freezes_one_repo_relative_evidence_and_attempt_root() -> None:
+    manifest = json.loads(
+        (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
+    )
+    evidence_root, final_root = EXECUTOR._frozen_publication_roots(
+        REPO_ROOT, manifest
+    )
+    expected_evidence = REPO_ROOT / (
+        "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization/"
+        "c1-skill-primary-pair-01"
+    )
+    assert evidence_root == expected_evidence.resolve()
+    assert final_root == (expected_evidence / "repeat-01").resolve()
+    assert final_root.parent == evidence_root
+
+
+def test_source_bindings_include_the_superseded_freeze_lineage() -> None:
+    manifest = json.loads(
+        (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
+    )
+    assert manifest["framework_base"] == {
+        "d5_admission_commit": EXECUTOR.D5_ADMISSION_COMMIT,
+        "source_main_commit": EXECUTOR.SOURCE_MAIN_COMMIT,
+        "superseded_freeze_commit": EXECUTOR.SUPERSEDED_FREEZE_COMMIT,
+    }
+    EXECUTOR._validate_source_bindings(REPO_ROOT, manifest)
 
 
 def test_treatment_bindings_use_complete_digests_and_no_absent_literal() -> None:
@@ -154,18 +203,12 @@ def test_public_retention_rejects_private_or_provider_fields(field: str) -> None
 
 
 def test_full_synthetic_execution_commits_only_event_one(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(EXECUTOR, "_validate_frozen_files", lambda manifest: None)
-    monkeypatch.setattr(EXECUTOR, "_validate_source_bindings", lambda root, manifest: None)
-    monkeypatch.setattr(
-        EXECUTOR,
-        "validate_authority",
-        lambda root, manifest, authority: "f" * 40,
-    )
+    _patch_static_preconditions(monkeypatch)
     now = datetime(2026, 8, 26, 2, 0, tzinfo=timezone.utc)
     rng = DeterministicRng(
         [bytes(range(6)), bytes(range(6, 12)), bytes(range(32)), b"\x00"]
     )
-    final_root = tmp_path / "attempt"
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
     terminal = EXECUTOR.execute_randomization(
         repo_root=REPO_ROOT,
         final_root=final_root,
@@ -215,7 +258,7 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
         ),
     )
     rng = DeterministicRng([])
-    final_root = tmp_path / "attempt"
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
     terminal = EXECUTOR.execute_randomization(
         repo_root=REPO_ROOT,
         final_root=final_root,
@@ -229,9 +272,60 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
     assert [path.name for path in final_root.iterdir()] == ["terminal.json"]
 
 
-def test_existing_terminal_is_not_overwritten(tmp_path: Path) -> None:
-    final_root = tmp_path / "attempt"
-    final_root.mkdir()
+def test_wrong_output_root_fails_before_rng(tmp_path: Path, monkeypatch) -> None:
+    _patch_static_preconditions(monkeypatch)
+    _, expected_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    wrong_root = tmp_path / "alternate-attempt"
+    rng = DeterministicRng([])
+    terminal = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=wrong_root,
+        owner_authorized_commit="f" * 40,
+        runtime_probe=lambda root: (_ for _ in ()).throw(AssertionError("runtime called")),
+        rng=rng,
+    )
+    assert terminal["status"] == EXECUTOR.STATUS_OUTPUT_ROOT
+    assert terminal["randomization_created"] is False
+    assert rng.calls == []
+    assert not wrong_root.exists()
+    assert not expected_root.exists()
+
+
+@pytest.mark.parametrize(
+    "artifact_name",
+    [
+        "randomization-record.json",
+        "0001-randomization-committed.json",
+        "terminal.json",
+    ],
+)
+def test_prior_pair_state_at_alternate_path_blocks_before_rng(
+    artifact_name: str, tmp_path: Path, monkeypatch
+) -> None:
+    _patch_static_preconditions(monkeypatch)
+    evidence_root, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    prior = evidence_root / "alternate" / "evidence" / artifact_name
+    prior.parent.mkdir(parents=True)
+    prior.write_text('{"pair_id":"C1-skill-primary-pair-01"}\n', encoding="utf-8")
+    rng = DeterministicRng([])
+    terminal = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=final_root,
+        owner_authorized_commit="f" * 40,
+        runtime_probe=lambda root: (_ for _ in ()).throw(AssertionError("runtime called")),
+        rng=rng,
+    )
+    assert terminal["status"] == EXECUTOR.STATUS_PRIOR_PAIR
+    assert terminal["randomization_created"] is False
+    assert rng.calls == []
+    assert prior.is_file()
+    assert [path.name for path in final_root.iterdir()] == ["terminal.json"]
+
+
+def test_existing_terminal_is_not_overwritten(tmp_path: Path, monkeypatch) -> None:
+    _patch_static_preconditions(monkeypatch)
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    final_root.mkdir(parents=True)
     existing = EXECUTOR._terminal(
         status=EXECUTOR.STATUS_AUTHORITY,
         freeze_commit="f" * 40,
@@ -249,9 +343,10 @@ def test_existing_terminal_is_not_overwritten(tmp_path: Path) -> None:
     assert (final_root / "terminal.json").read_bytes() == original
 
 
-def test_ambiguous_existing_directory_fails_closed(tmp_path: Path) -> None:
-    final_root = tmp_path / "attempt"
-    final_root.mkdir()
+def test_ambiguous_existing_directory_fails_closed(tmp_path: Path, monkeypatch) -> None:
+    _patch_static_preconditions(monkeypatch)
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    final_root.mkdir(parents=True)
     (final_root / "unknown.json").write_text("{}\n", encoding="utf-8")
     result = EXECUTOR.execute_randomization(
         repo_root=REPO_ROOT,
@@ -270,6 +365,8 @@ def test_terminal_policy_lists_all_executor_terminals() -> None:
         EXECUTOR.STATUS_IDENTITY,
         EXECUTOR.STATUS_WINDOW,
         EXECUTOR.STATUS_TREATMENT,
+        EXECUTOR.STATUS_OUTPUT_ROOT,
+        EXECUTOR.STATUS_PRIOR_PAIR,
         EXECUTOR.STATUS_EXISTS,
         EXECUTOR.STATUS_AMBIGUOUS,
         EXECUTOR.STATUS_COMMITTED,
