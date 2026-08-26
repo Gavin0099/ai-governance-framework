@@ -1,0 +1,57 @@
+{
+  "schema": "c1-gate1-d5-countability-policy.v1",
+  "status": "CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED",
+  "decision_scope": "internal_skill_funding_only",
+  "resolved_token": "CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED",
+  "event_order": [
+    "randomization_committed",
+    "first_outcome_sealed",
+    "second_outcome_sealed",
+    "blind_set_closed",
+    "primary_scorer_submitted",
+    "second_scorer_submitted",
+    "external_chain_head_pinned",
+    "mapping_released"
+  ],
+  "event_7": {
+    "name": "external_chain_head_pinned",
+    "required": true,
+    "proof_bearing": true,
+    "qualified_provider": "rekor_v2",
+    "must_follow_both_scorer_submissions": true,
+    "must_precede_mapping_release": true,
+    "failure": "INVALID_AND_UNCOUNTABLE"
+  },
+  "event_8": {
+    "name": "mapping_released",
+    "local_chain_required": true,
+    "mapping_commitment_required": true,
+    "missing_or_altered": "INVALID_AND_UNCOUNTABLE",
+    "external_final_head_anchor_required": false
+  },
+  "final_head_receipt": {
+    "event_9_defined": false,
+    "required_for_current_c1": false,
+    "absence_alone": "NOT_A_FAILURE",
+    "presence_cannot_rescue_another_failure": true
+  },
+  "preserved_decisions": {
+    "frozen_d5_uniform_post_hoc_validator_unchanged": true,
+    "d1_d7_thresholds_unchanged": true,
+    "attempt_06_quarantine_unchanged": true,
+    "client_side_identity_amendment_unchanged": true
+  },
+  "claim_ceiling": {
+    "allowed": "current_c1_internal_skill_funding_countability_only",
+    "does_not_prove": [
+      "mapping_release_was_externally_anchored",
+      "final_chain_head_was_independently_witnessed",
+      "post_event_7_tamper_proofing",
+      "external_publication_sufficiency",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "governance_effectiveness",
+      "validator_feedback_effectiveness"
+    ]
+  }
+}
