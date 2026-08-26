@@ -5184,3 +5184,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PR #108 updated-head checks: 11 SUCCESS and 1 expected SKIPPED; PLAN freshness: FRESH (2026-08-24, 0 days, no errors or warnings).
 - Next action: Review and push this isolated M3-b-2A status checkpoint; do not start M3-b-2B without fresh authority.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->
+### Canonical memory checkpoint — 2026-08-26-20
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7`
+- Commit binding: `3351584aa7988504316f46decdbdc50f877ca697` (bound)
+- Record: PR #120 merged the reviewed C1 D5 countability amendment: reviewed commit 1ced27d08e0330ca5ebe21ed241f0074ec500958 is preserved in merge commit 3351584aa7988504316f46decdbdc50f877ca697. The final-head receipt decision is CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED for this internal Skill-funding experiment; event 7 external pin and event 8 local mapping release remain mandatory. The integrated terminal is ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED. PLAN now records that randomization and all A/B/C/D arms remain uncreated, unexecuted and unauthorized.
+- Validation boundary: PR #120 exact head 1ced27d08e0330ca5ebe21ed241f0074ec500958; GitHub checks 11 SUCCESS and 1 expected SKIPPED; merge commit 3351584aa7988504316f46decdbdc50f877ca697 preserves reviewed-head ancestry. Fresh core.autocrlf=true checkout focused pytest: 19 passed; canonical precommit before push: 201 passed.
+- Next action: Review this isolated status-reconciliation commit, then push it under separate authority; only after it is merged may the owner separately authorize create-once randomization bound to reviewed D5 admission commit 1ced27d08e0330ca5ebe21ed241f0074ec500958.
+- PLAN reconciliation: `updated`
