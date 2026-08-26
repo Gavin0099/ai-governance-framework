@@ -1,0 +1,220 @@
+{
+  "schema": "c1-gate1-client-identity-amendment-freeze.v1",
+  "status": "CLIENT_SIDE_IDENTITY_AMENDMENT_FROZEN_NOT_ARM_AUTHORIZED",
+  "framework_base": {
+    "origin_main_commit": "5a0da1077746b737b2e8fba5258152f172c20944"
+  },
+  "owner_authority": {
+    "decision": "CLIENT_SIDE_IDENTITY_EVIDENCE_ACCEPTED",
+    "model_build_decision_packet": {
+      "location": "repo_external_review_surface",
+      "file": "gate1-model-build-amendment-decision-packet-2026-08-26.md",
+      "bytes": 16465,
+      "sha256": "801b47a5dd081eb4732e2e69101f20fa155567379e19f48b0938f024a65870f6",
+      "review_verdict": "APPROVED"
+    },
+    "identity_evidence_decision_packet": {
+      "location": "repo_external_review_surface",
+      "file": "gate1-model-identity-evidence-amendment-decision-packet-2026-08-26.md",
+      "bytes": 12840,
+      "sha256": "cb447f5fa0c7082d23f06477fb19745fa99e9845d1035458157cb27fd032a544",
+      "review_verdict": "APPROVED"
+    },
+    "runtime_identity_capability_packet": {
+      "location": "repo_external_review_surface",
+      "file": "codex-runtime-model-identity-capability-packet-2026-08-26.md",
+      "bytes": 9266,
+      "sha256": "d80cf425517a2adefd30cecfd52166bf179987edb656aa49cae3df063810279d",
+      "review_verdict": "APPROVED"
+    },
+    "execution_authorized": false,
+    "randomization_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_amendment_freeze_commit"
+  },
+  "original_preregistration": {
+    "commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+    "manifest_git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+    "manifest_bytes": 9190,
+    "manifest_sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7",
+    "immutable": true
+  },
+  "client_identity": {
+    "identity_evidence_level": "CLIENT_SIDE_INVOCATION_ONLY",
+    "model_requested_id": "gpt-5.6-sol",
+    "model_request_source": "frozen_cli_argv",
+    "model_request_argument_sha256": "a25cb819505e39d0c1f50311a15610fe781c8653083415932f14a5bca9bbdb1c",
+    "server_executed_model_observed": false,
+    "provider_attestation_available": false,
+    "forbidden_provider_observation_fields": [
+      "model_observed_id",
+      "model_observation_source",
+      "model_observation_record_bytes",
+      "model_observation_record_sha256",
+      "provider_response_model",
+      "server_model_id"
+    ]
+  },
+  "exact_build": {
+    "cli": {
+      "version": "codex-cli 0.148.0-alpha.9",
+      "version_stdout_bytes_with_lf": 26,
+      "version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
+      "executable_bytes": 295151920,
+      "executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946"
+    },
+    "runner": {
+      "source_commit": "5a0da1077746b737b2e8fba5258152f172c20944",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_codex.py",
+      "git_blob_oid": "d74dc12984ec8b4d997b6ed4cb39e02a49891bf0",
+      "bytes": 44296,
+      "sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be",
+      "copied_into_amendment": false
+    },
+    "python": {
+      "path_retained": false,
+      "executable_bytes": 255320,
+      "executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84"
+    },
+    "external_preflight_adapter": {
+      "path": "external_preflight_adapter.py",
+      "bytes": 7751,
+      "sha256": "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f"
+    },
+    "command_contract": {
+      "command_argv_projection_sha256": "99528dc43f34c6d20201efb55f1ae6502d61862c5d48f4baaeb68004f19b13c2",
+      "windows_guard_source_sha256": "46300b7bb3644e124f11f5bfec17b6cd080cd43621c49b0fed6cd3e409263a2c",
+      "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1"
+    }
+  },
+  "receipt_policy": {
+    "schema": "c1-gate1-client-runtime-identity-receipt.v1",
+    "phases": ["PRE_DISPATCH", "POST_SEAL"],
+    "create_once": true,
+    "client_projection_exact_match_required": true,
+    "pre_dispatch_receipt_max_age_minutes": 5,
+    "post_seal_receipt_deadline_minutes": 5,
+    "admission_expiry_after_hours": 12,
+    "paired_outcomes_execution": "back_to_back_in_randomized_order",
+    "maximum_gap_after_first_outcome_seal_before_second_dispatch_minutes": 15,
+    "cross_window_continuation": "forbidden",
+    "mismatch_after_randomization_terminal": "INVALID",
+    "replacement_run_under_same_randomization": "forbidden"
+  },
+  "conclusion_claim_template": {
+    "path": "conclusion-claim-template.json",
+    "bytes": 751,
+    "sha256": "4016547c5505a631d635b70bf4c48b3dd96d6c5678d4cfb6bc4a43f60ebbde8b",
+    "required_in_every_terminal": true
+  },
+  "preserved_decisions": {
+    "decision_rules": {
+      "initial_pairs_per_task": 2,
+      "maximum_pairs_per_task": 3,
+      "fourth_pair_allowed": false,
+      "minimum_natural_bug_tasks": 3,
+      "minimum_consumer_repositories": 2,
+      "b_task_wins_minimum": 2,
+      "minimum_valid_cost_pairs": 2,
+      "median_b_over_a_wall_clock_ratio_maximum": 1.2,
+      "median_b_over_a_tool_call_ratio_maximum": 1.2
+    },
+    "qualifying_success_fields": [
+      "completed_under_cap",
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "no_new_scoped_regression",
+      "critical_residuals_zero"
+    ],
+    "third_pair_trigger": "any_initial_non_completion_or_tied_qualifying_success_count",
+    "program_terminals": ["POSITIVE", "NEGATIVE", "INSUFFICIENT", "INVALID"],
+    "promotion_comparison": "B_vs_A_only",
+    "diagnostic_comparisons": ["B_vs_C", "C_vs_D"],
+    "attempt06_quarantine": {
+      "role": "validator_qualification_only",
+      "freeze_commit": "fbdb83e7945ec512ffe80335d7c57f6bdc9b6d10",
+      "executor_sha256": "6e3c6e02f65d65210efe5924160b9a9677c081f7edf9a96952a038317a658860",
+      "terminal": {
+        "bytes": 2171,
+        "sha256": "eb2eab0cc333246afaf9c87a9941d06ac28692603bac8725578437ed5a05335e",
+        "status": "ATTEMPT_06_BOUNDARY_PASSED"
+      },
+      "allowed_reuse": [
+        "runtime_and_package_pins",
+        "reviewed_executor_boundary",
+        "redaction_policy",
+        "cleanup_policy",
+        "fail_closed_terminal_semantics"
+      ],
+      "forbidden_uses": [
+        "producer_input",
+        "effectiveness_threshold",
+        "task_winner",
+        "mutation_score_target",
+        "sample_count",
+        "arm_output"
+      ]
+    },
+    "d5_countability": "UNRESOLVED_SEPARATE_COUNTABILITY_DECISION"
+  },
+  "authoring_boundary": {
+    "hosted_model_request_executed": false,
+    "private_consumer_bytes_read": false,
+    "private_consumer_bytes_copied": false,
+    "admission_connected": false,
+    "randomization_created": false,
+    "arm_created": false,
+    "arm_executed": false,
+    "mapping_released": false
+  },
+  "frozen_files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 59,
+      "sha256": "2310c092b009440501e106871d4669b3aa5e03c0815d77f9ecb62b23915f7265"
+    },
+    {
+      "path": "client_identity_receipt.py",
+      "bytes": 12950,
+      "sha256": "f85b03358ea190029fee04e812dc4b8fd832bd65080a30a671e6399ac9910f48"
+    },
+    {
+      "path": "conclusion-claim-template.json",
+      "bytes": 751,
+      "sha256": "4016547c5505a631d635b70bf4c48b3dd96d6c5678d4cfb6bc4a43f60ebbde8b"
+    },
+    {
+      "path": "external_preflight_adapter.py",
+      "bytes": 7751,
+      "sha256": "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1016,
+      "sha256": "13feb255c43c37b513c89ab5c2973805825085947c838ca16cb56df91e5b6162"
+    },
+    {
+      "path": "test_client_identity_amendment.py",
+      "bytes": 10859,
+      "sha256": "e5c93fb142e5741c9fa1ad59cb430b12a27ab5de8602e779864c946ed2d40c98"
+    }
+  ],
+  "claim_ceiling": {
+    "proves": [
+      "reviewable_client_side_identity_amendment_bytes_exist",
+      "exact_client_runtime_projection_is_machine_checkable",
+      "future_conclusion_template_carries_the_identity_limitation"
+    ],
+    "does_not_prove": [
+      "server_executed_model_identity",
+      "immutable_hosted_deployment_identity",
+      "Gate_1_readiness",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "governance_effectiveness",
+      "validator_feedback_effectiveness",
+      "arm_execution"
+    ]
+  }
+}
