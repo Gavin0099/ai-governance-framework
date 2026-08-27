@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "error_class": {
+      "enum": [
+        "NONE", "INSUFFICIENT_PRIVILEGE", "IDENTITY_QUERY_FAILED",
+        "CMDLET_FAILURE", "STATE_MISMATCH"
+      ]
+    },
+    "identity": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "additionalProperties": false,
+          "properties": {
+            "account_class": {"enum": ["owner_candidate", "sandbox_account"]},
+            "administrator_role_enabled": {"type": "boolean"},
+            "sid_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+          },
+          "required": ["sid_sha256", "account_class", "administrator_role_enabled"],
+          "type": "object"
+        }
+      ]
+    },
+    "machine_state": {"type": ["object", "null"]},
+    "mode": {"enum": ["identity", "full"]},
+    "schema": {"const": "c1-machine-policy-observation.v2"},
+    "stage": {
+      "enum": [
+        "identity", "identity_complete", "sandbox_account",
+        "firewall_profiles", "firewall_rules", "firewall_rule_set",
+        "firewall_security_filter", "firewall_projection", "target_paths",
+        "complete"
+      ]
+    },
+    "status": {"enum": ["OBSERVATION_PASSED", "OBSERVATION_FAILED"]}
+  },
+  "required": [
+    "schema", "mode", "status", "stage", "error_class", "identity",
+    "machine_state"
+  ],
+  "type": "object"
+}
