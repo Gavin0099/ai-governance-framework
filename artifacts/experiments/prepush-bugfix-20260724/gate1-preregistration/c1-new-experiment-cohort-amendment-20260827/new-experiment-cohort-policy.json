@@ -1,0 +1,47 @@
+{
+  "schema": "gate1-new-experiment-cohort-policy.v1",
+  "governing_rule": "NEW_EXPERIMENT_COHORT",
+  "applies_to": "same_preregistration_family",
+  "statistical_unit": "outcome_bearing_ab_comparison",
+  "infrastructure_attempt_is_not_statistical_unit": true,
+  "eligibility": {
+    "producer_dispatches": 0,
+    "outcomes_sealed": 0,
+    "scorer_submissions": 0,
+    "outcome_bearing_units_observed": 0,
+    "mapping_released": false
+  },
+  "prior_attempt_disposition": {
+    "artifacts_immutable": true,
+    "infrastructure_attempts_consumed": 2,
+    "randomizations_committed": 1,
+    "statistical_units_counted": 0,
+    "window_expiry_alone_authorizes_reset": false
+  },
+  "anti_reset_abuse": {
+    "unfavorable_observed_result_may_be_relabelled_infrastructure_invalid": false,
+    "reset_after_any_outcome_bearing_unit": "FORBIDDEN",
+    "automatic_second_reset": false,
+    "second_reset_requires_new_owner_decision": true,
+    "second_reset_requires_observed_failure_analysis": true,
+    "decision_rules_may_be_reopened": false
+  },
+  "preservation": {
+    "d1_d7": "FIELD_BY_FIELD_EXACT",
+    "attempt_06_quarantine": "FIELD_BY_FIELD_EXACT",
+    "claim_ceiling": "FIELD_BY_FIELD_EXACT",
+    "original_manifest": "BYTE_EXACT_GIT_BLOB"
+  },
+  "new_cohort": {
+    "cohort_id": "C1-skill-primary-cohort-02",
+    "status": "FROZEN_NOT_RANDOMIZED",
+    "maximum_pairs": 3,
+    "initial_pairs": 2,
+    "pair_ids_created": 0,
+    "randomizations_created": 0
+  },
+  "rejected_rule": {
+    "token": "RANDOMIZATION_COUNTING",
+    "reason": "a randomization without an outcome cannot be scored as a statistical comparison"
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "schema": "c1-new-experiment-cohort-amendment-freeze.v1",
+  "status": "NEW_EXPERIMENT_COHORT_AMENDMENT_FROZEN_NOT_RANDOMIZED",
+  "framework_base": {
+    "origin_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
+  },
+  "owner_authority": {
+    "decision": "NEW_EXPERIMENT_COHORT",
+    "applies_to": "same_preregistration_family",
+    "decision_packet": {
+      "location": "repo_external_owner_review_surface",
+      "file": "c1-pair-budget-owner-decision-20260827.md",
+      "lines": 422,
+      "bytes": 17526,
+      "sha256": "572b0c91862abfc1006d6aff9d21f06729b6617058785a9942f8647bc78a97e9",
+      "review_verdict": "APPROVED"
+    },
+    "machine_policy_setup_authorized": false,
+    "randomization_authorized": false,
+    "arms_authorized": false
+  },
+  "original_preregistration": {
+    "freeze_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+    "manifest_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+    "manifest_git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+    "manifest_bytes": 9190,
+    "manifest_sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7",
+    "immutable": true
+  },
+  "preserved_decisions": {
+    "d1_d7_owner_packet_sha256": "67bebde3773361c6b7c3094b7a655dc568d0426b476c7c116c11ff8b47b94cc1",
+    "d1_d7_field_by_field": "UNCHANGED",
+    "attempt_06_quarantine_field_by_field": "UNCHANGED",
+    "claim_ceiling_field_by_field": "UNCHANGED",
+    "decision_rules_reopened": false,
+    "projection_path": "preserved-preregistration-projection.json"
+  },
+  "prior_execution_evidence": {
+    "inventory_path": "prior-evidence-inventory.json",
+    "source_execution_worktree_head": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+    "infrastructure_attempts_consumed": 2,
+    "randomizations_committed": 1,
+    "producer_dispatches": 0,
+    "outcomes_sealed": 0,
+    "scorer_submissions": 0,
+    "outcome_bearing_units_observed": 0,
+    "mapping_released": false,
+    "statistical_units_counted": 0,
+    "prior_artifacts_immutable": true,
+    "private_mapping_copied": false
+  },
+  "new_cohort": {
+    "record_path": "new-cohort-record.json",
+    "cohort_id": "C1-skill-primary-cohort-02",
+    "status": "FROZEN_NOT_RANDOMIZED",
+    "initial_pairs": 2,
+    "maximum_pairs": 3,
+    "remaining_authorized_units_before_randomization": 3,
+    "pair_ids_created": 0,
+    "randomizations_created": 0
+  },
+  "pair_budget_projection": {
+    "implementation": "new_experiment_cohort_amendment.py",
+    "governing_rule": "NEW_EXPERIMENT_COHORT",
+    "governing_rule_decision_commit_source": "EXACT_EXECUTING_FREEZE_COMMIT_AT_ADMISSION",
+    "governing_rule_decision_commit_resolved_in_freeze": false,
+    "resolution_reason": "self-referential commit SHA is forbidden",
+    "missing_exact_reviewed_commit_disposition": "STOP_BEFORE_RANDOMIZATION"
+  },
+  "source_bindings": [
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+      "source_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+      "git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+      "bytes": 9190,
+      "sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/scorer-rubric.json",
+      "source_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+      "git_blob_oid": "7a06496dce57422b59adac2d7f7e4df23a0792bd",
+      "bytes": 2190,
+      "sha256": "cb356248afbfb988dba77d2a1090a0ea40ebc56da52869622c48272092af7b64",
+      "source": "git_blob"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/randomization-evidence-policy.json",
+      "source_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+      "git_blob_oid": "9909da4b75516b46bf63ee29a27f53255a2a37e4",
+      "bytes": 1502,
+      "sha256": "61add52efe602ed02f00286924de390d8792b013f4841a3435293addebf553d8",
+      "source": "git_blob"
+    },
+    {
+      "path": "c1-skill-primary-pair-01/repeat-01/terminal.json",
+      "source_commit": "ce775f55e7b4e1b4c70698f9733b3dbe7da19db5",
+      "bytes": 416,
+      "sha256": "bb2d2b87e2d77732811b7aa5af89a18e8451aaf96510d0ac17c0b9a1b3f646aa",
+      "source": "repo_external_execution_evidence"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/batch-admission.json",
+      "source_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "bytes": 850,
+      "sha256": "cafec377a91048405aa23a14529f733176a41b1331362cb6076b4050af144d5b",
+      "source": "repo_external_execution_evidence"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/terminal.json",
+      "source_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "bytes": 1054,
+      "sha256": "94e1d8c23b4b58163d8682ee513577d079cd8841fbaf6103b57271e792203a1d",
+      "source": "repo_external_execution_evidence"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/control/mapping-reveal.json",
+      "source_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "bytes": 337,
+      "sha256": "ac928997812463abacd480e8d3bb42a94384cdcd6dcba5051d429ffc825fe243",
+      "source": "repo_external_private_control_binding_only",
+      "content_copied": false,
+      "content_inspected_for_treatment_assignment": false
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/evidence/randomization-record.json",
+      "source_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "bytes": 1216,
+      "sha256": "f87d1a6f7f082258361c2e67ca6156d9571b518a79a0a8bb29af2710b5a7d49d",
+      "source": "repo_external_execution_evidence"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/evidence/chain/0001-randomization-committed.json",
+      "source_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "bytes": 532,
+      "sha256": "4af72be90537daf9c558d2d719dbe9a1ed4c2cccf42b2c8a211520eeed2ac615",
+      "source": "repo_external_execution_evidence"
+    }
+  ],
+  "execution_authority": {
+    "machine_policy_setup_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_amendment_freeze_commit"
+  },
+  "authoring_boundary": {
+    "private_mapping_content_read": false,
+    "private_mapping_content_copied": false,
+    "private_consumer_bytes_read": false,
+    "private_consumer_bytes_copied": false,
+    "machine_policy_changed": false,
+    "hosted_model_request_executed": false,
+    "randomization_created": false,
+    "producer_executed": false,
+    "scorer_executed": false,
+    "arms_executed": false,
+    "mapping_released": false,
+    "rekor_post_performed": false
+  },
+  "frozen_files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 86,
+      "sha256": "51569c6d4dff5c0b7ffc85cc7c486409af8e31631dc32b3d05488b3b8fb15ee7"
+    },
+    {
+      "path": "amendment-terminal.json",
+      "bytes": 673,
+      "sha256": "14029bb8ca4de07216f1e121a3ebcd9b84e224653e0cd9716aae0109b42da628"
+    },
+    {
+      "path": "new_experiment_cohort_amendment.py",
+      "bytes": 13158,
+      "sha256": "ba1ede6bd84ca9bf5cbe447fa4cbc78ed115591f03c71d9190ce386413564732"
+    },
+    {
+      "path": "new-cohort-record.json",
+      "bytes": 1179,
+      "sha256": "6d6d1ac615df6afc3780e24bdf96d523b067aae656c2e0c212b1866c906b9348"
+    },
+    {
+      "path": "new-experiment-cohort-policy.json",
+      "bytes": 1625,
+      "sha256": "73e3056ee51b97f57af8643d58e18a4b38aee83622fa545fae26a4d462d7c72d"
+    },
+    {
+      "path": "preserved-preregistration-projection.json",
+      "bytes": 3005,
+      "sha256": "5c45ea1e3fb5aaeed4bad6be4df58b15f1ec312f7760291c2a814f484f079e11"
+    },
+    {
+      "path": "prior-evidence-inventory.json",
+      "bytes": 2994,
+      "sha256": "3d505702166dfebfd261e8ba41a00f99bf466c3bc364597937dee38ab344bf51"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1281,
+      "sha256": "966549bc44a5f1688b6f9f351bc37e539497d4ba5059baf4cfcd5c926501197a"
+    },
+    {
+      "path": "test_new_experiment_cohort_amendment.py",
+      "bytes": 10765,
+      "sha256": "b07c2a70dd50a104f8e31b733789cd3f5046a7990bd025d41ef323c9ed7b820a"
+    }
+  ],
+  "claim_ceiling": {
+    "proves": [
+      "reviewable_general_new_experiment_cohort_rule_bytes_exist",
+      "prior_pair_01_and_pair_02_artifacts_are_digest_bound",
+      "zero_outcome_reset_eligibility_is_machine_checked",
+      "d1_d7_attempt06_quarantine_and_claim_ceiling_are_field_exact",
+      "new_cohort_identity_exists_without_pair_or_randomization",
+      "pair_budget_projection_requires_exact_reviewed_executing_commit"
+    ],
+    "does_not_prove": [
+      "machine_policy_setup",
+      "network_containment",
+      "randomization_authority",
+      "producer_or_arm_execution",
+      "Gate_1_readiness",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "governance_effectiveness",
+      "validator_feedback_effectiveness"
+    ]
+  }
+}
