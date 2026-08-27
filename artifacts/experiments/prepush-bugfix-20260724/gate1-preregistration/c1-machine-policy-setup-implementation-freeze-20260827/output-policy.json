@@ -1,0 +1,13 @@
+{
+  "aggregate_and_digest_only": true,
+  "forbidden_fields": [
+    "raw_sid", "account_name", "firewall_rule_name", "firewall_inventory",
+    "security_descriptor", "raw_requirements_payload", "credential", "token",
+    "cookie", "authorization", "prompt", "response", "event_stream",
+    "unrelated_local_path"
+  ],
+  "raw_payload_retained": false,
+  "rollback_does_not_authorize_retry": true,
+  "schema": "c1-machine-policy-output-policy.v1"
+}
+
