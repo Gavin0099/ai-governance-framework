@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostic": {"maxLength": 240, "type": "string"},
+    "execution_identity": {"type": "object"},
+    "freeze_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "mutation": {"type": "object"},
+    "observed_at_utc": {"format": "date-time", "type": "string"},
+    "owner_authorized_setup_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "post_state": {"type": "object"},
+    "pre_state": {"type": "object"},
+    "rollback": {"type": "object"},
+    "schema": {"const": "c1-windows-sandbox-machine-policy-setup-evidence.v3"},
+    "setup_attempt_id": {"const": "C1-machine-policy-setup-04"},
+    "setup_executor_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "setup_plan_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "terminal_status": {"type": "string"}
+  },
+  "required": [
+    "schema", "setup_attempt_id", "freeze_commit", "setup_executor_commit",
+    "owner_authorized_setup_commit", "setup_plan_sha256", "observed_at_utc",
+    "execution_identity",
+    "pre_state", "mutation", "post_state", "rollback", "terminal_status",
+    "diagnostic"
+  ],
+  "type": "object"
+}

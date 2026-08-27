@@ -1,0 +1,37 @@
+{
+  "allowed_terminals_highest_precedence_first": [
+    "MACHINE_POLICY_LEAKAGE_REVIEW_REQUIRED",
+    "MACHINE_POLICY_ROLLBACK_STATE_AMBIGUOUS",
+    "MACHINE_POLICY_ROLLBACK_FAILED",
+    "MACHINE_POLICY_ROLLBACK_REVIEW_REQUIRED",
+    "MACHINE_POLICY_ROLLBACK_CHANNEL_UNAVAILABLE",
+    "MACHINE_POLICY_DRIFT_REVIEW_REQUIRED",
+    "MACHINE_POLICY_EXECUTOR_IDENTITY_UNAVAILABLE",
+    "MACHINE_POLICY_AUTHORITY_MISMATCH",
+    "MACHINE_POLICY_INSUFFICIENT_PRIVILEGE",
+    "MACHINE_POLICY_OBSERVER_LAUNCH_FAILED",
+    "MACHINE_POLICY_PRECONDITION_FAILED",
+    "MACHINE_POLICY_PUBLICATION_FAILED",
+    "MACHINE_POLICY_SETUP_APPLIED"
+  ],
+  "already_exact_is_success": false,
+  "identity_unavailable_requires": [
+    "executing_commit_verified_false",
+    "zero_commit_sentinel",
+    "machine_mutation_attempted_false",
+    "terminal_only_publication"
+  ],
+  "observer_authorization_denied_requires": [
+    "existing_observer_launch_failed_terminal",
+    "authorization_stage",
+    "authorization_manager_denied_error_class",
+    "machine_mutation_attempted_false"
+  ],
+  "schema": "c1-machine-policy-terminal-policy.v4",
+  "setup_applied_requires": [
+    "exact_target_verified",
+    "bounded_invariants_unchanged",
+    "independent_shell_held_open_until_terminal",
+    "elevated_owner_identity_bound"
+  ]
+}
