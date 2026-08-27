@@ -1,0 +1,15 @@
+{
+  "forbidden_fields": [
+    "model_observed_id",
+    "model_observation_source",
+    "model_observation_record_bytes",
+    "model_observation_record_sha256",
+    "provider_response_model",
+    "server_model_id"
+  ],
+  "identity_evidence_level": "CLIENT_SIDE_INVOCATION_ONLY",
+  "schema": "c1-gate1-batch-admission-schema.v1",
+  "server_executed_model_observed": false,
+  "window_hours": 12
+}
+
