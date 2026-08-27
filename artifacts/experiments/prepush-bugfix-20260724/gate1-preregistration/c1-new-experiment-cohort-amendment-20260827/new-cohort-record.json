@@ -1,0 +1,38 @@
+{
+  "schema": "c1-new-experiment-cohort-record.v1",
+  "cohort_id": "C1-skill-primary-cohort-02",
+  "preregistration_family": "C1-Gate1-D1-D7-7109f3c2",
+  "governing_rule": "NEW_EXPERIMENT_COHORT",
+  "status": "FROZEN_NOT_RANDOMIZED",
+  "prior_execution_set": {
+    "retrospective_label": "C1-skill-primary-legacy-execution-set-01",
+    "retrospective_label_is_prior_authority": false,
+    "prior_pair_ids": [
+      "C1-skill-primary-pair-01",
+      "C1-skill-primary-pair-02"
+    ],
+    "artifacts_preserved": true,
+    "statistical_units_counted": 0
+  },
+  "new_cohort_budget": {
+    "initial_pairs": 2,
+    "maximum_pairs": 3,
+    "fourth_pair_allowed": false,
+    "remaining_authorized_units_before_randomization": 3
+  },
+  "decision_commit_resolution": {
+    "source": "EXACT_EXECUTING_FREEZE_COMMIT_AT_ADMISSION",
+    "required": true,
+    "resolved_in_this_freeze": false,
+    "reason": "a Git commit cannot include its own SHA without self-reference"
+  },
+  "created_surfaces": {
+    "pair_id": false,
+    "randomization": false,
+    "mapping": false,
+    "nonce": false,
+    "producer_output": false,
+    "scorer_judgment": false,
+    "evidence_chain_event": false
+  }
+}

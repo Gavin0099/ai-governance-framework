@@ -1,0 +1,17 @@
+{
+  "schema": "c1-new-experiment-cohort-amendment-terminal.v1",
+  "status": "NEW_EXPERIMENT_COHORT_AMENDMENT_FROZEN_NOT_RANDOMIZED",
+  "governing_rule": "NEW_EXPERIMENT_COHORT",
+  "cohort_id": "C1-skill-primary-cohort-02",
+  "prior_infrastructure_attempts": 2,
+  "prior_randomizations_committed": 1,
+  "prior_outcome_bearing_units": 0,
+  "pair_budget_projection_status": "REQUIRES_EXACT_REVIEWED_EXECUTING_COMMIT_AT_ADMISSION",
+  "machine_policy_setup_authorized": false,
+  "randomization_authorized": false,
+  "producer_authorized": false,
+  "scorer_authorized": false,
+  "arms_authorized": false,
+  "mapping_release_authorized": false,
+  "rekor_post_authorized": false
+}

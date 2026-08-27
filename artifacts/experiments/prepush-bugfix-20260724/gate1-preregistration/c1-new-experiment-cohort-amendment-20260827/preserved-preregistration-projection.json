@@ -1,0 +1,85 @@
+{
+  "schema": "c1-preserved-preregistration-projection.v1",
+  "original_preregistration": {
+    "freeze_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+    "manifest_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+    "manifest_git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+    "manifest_bytes": 9190,
+    "manifest_sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7"
+  },
+  "owner_authority": {
+    "decision": "D1_D7_ADOPTED",
+    "decision_packet": {
+      "location": "repo_external_owner_review_surface",
+      "bytes": 16000,
+      "lines": 370,
+      "sha256": "67bebde3773361c6b7c3094b7a655dc568d0426b476c7c116c11ff8b47b94cc1"
+    },
+    "execution_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_freeze_commit"
+  },
+  "decision_rules": {
+    "qualifying_success_fields": [
+      "completed_under_cap",
+      "oracle_acceptance",
+      "regression_baseline_fail",
+      "regression_passes_after_fix",
+      "original_defect_caught",
+      "no_new_scoped_regression",
+      "critical_residuals_zero"
+    ],
+    "initial_pairs_per_task": 2,
+    "maximum_pairs_per_task": 3,
+    "third_pair_trigger": "any_initial_non_completion_or_tied_qualifying_success_count",
+    "fourth_pair_allowed": false,
+    "minimum_natural_bug_tasks": 3,
+    "minimum_consumer_repositories": 2,
+    "b_task_wins_minimum": 2,
+    "minimum_valid_cost_pairs": 2,
+    "median_b_over_a_wall_clock_ratio_maximum": 1.2,
+    "median_b_over_a_tool_call_ratio_maximum": 1.2,
+    "program_terminals": ["POSITIVE", "NEGATIVE", "INSUFFICIENT", "INVALID"]
+  },
+  "attempt06_quarantine": {
+    "role": "validator_qualification_only",
+    "freeze_commit": "fbdb83e7945ec512ffe80335d7c57f6bdc9b6d10",
+    "executor_sha256": "6e3c6e02f65d65210efe5924160b9a9677c081f7edf9a96952a038317a658860",
+    "terminal": {
+      "bytes": 2171,
+      "sha256": "eb2eab0cc333246afaf9c87a9941d06ac28692603bac8725578437ed5a05335e",
+      "status": "ATTEMPT_06_BOUNDARY_PASSED"
+    },
+    "allowed_reuse": [
+      "runtime_and_package_pins",
+      "reviewed_executor_boundary",
+      "redaction_policy",
+      "cleanup_policy",
+      "fail_closed_terminal_semantics"
+    ],
+    "forbidden_uses": [
+      "producer_input",
+      "effectiveness_threshold",
+      "task_winner",
+      "mutation_score_target",
+      "sample_count",
+      "arm_output"
+    ]
+  },
+  "claim_ceiling": {
+    "proves": "owner_adopted_D1_D7_are_frozen_as_reviewable_machine_checkable_bytes",
+    "does_not_prove": [
+      "Gate_1_readiness",
+      "Gate_3_effectiveness",
+      "Skill_effectiveness",
+      "producer_independence",
+      "arm_execution"
+    ]
+  },
+  "preservation_assertions": {
+    "owner_authority_field_by_field": true,
+    "decision_rules_field_by_field": true,
+    "attempt06_quarantine_field_by_field": true,
+    "claim_ceiling_field_by_field": true,
+    "decision_rules_reopened": false
+  }
+}
