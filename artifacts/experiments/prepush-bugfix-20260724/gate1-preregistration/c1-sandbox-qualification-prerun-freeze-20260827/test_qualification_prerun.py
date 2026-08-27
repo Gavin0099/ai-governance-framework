@@ -53,6 +53,21 @@ def test_manifest_is_unexecuted_and_consumers_are_deferred() -> None:
     assert value["authoring_boundary"]["randomization_created"] is False
 
 
+def test_reconciliation_review_is_bound_to_the_actual_post_commit_review() -> None:
+    review = manifest()["authority_reconciliation"]
+    assert review["review_verdict"] == "APPROVED"
+    assert review["review_timing"] == "POST_COMMIT_INDEPENDENT_REVIEW"
+    assert review["reviewed_freeze_commit"] == "24e4d661cd080e02fbb2bdf67fef0acf0174a535"
+    assert review["review_session"] == "2026-08-27-75"
+
+
+def test_claim_ceiling_separates_runner_and_machine_wide_policy() -> None:
+    ceiling = manifest()["claim_ceiling"]
+    assert ceiling["runner_enforced_and_policy_enforced_claims_must_not_be_conflated"] is True
+    assert "machine-wide rejection of the bypass flag" in ceiling["does_not_establish"]
+    assert "policy enforcement outside the exact qualified runner path" in ceiling["does_not_establish"]
+
+
 def test_runtime_and_machine_policy_are_exactly_frozen() -> None:
     value = manifest()
     assert value["runtime"]["cli_executable_sha256"] == EXECUTOR.EXPECTED_CLI_SHA256

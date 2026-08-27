@@ -15,7 +15,11 @@
     "sha256": "6b05db4b379156786a9868c642379e7cedf559a4f1f1324d6c894307e59981fd",
     "authority_terminal": "SANDBOXED_RUNNER_IS_AUTHORITATIVE",
     "legacy_compatibility_terminal": "NON_HOSTED_COMPATIBILITY_EVIDENCE_INSUFFICIENT",
-    "review_verdict": "APPROVED"
+    "review_verdict": "APPROVED",
+    "review_timing": "POST_COMMIT_INDEPENDENT_REVIEW",
+    "reviewed_freeze_commit": "24e4d661cd080e02fbb2bdf67fef0acf0174a535",
+    "review_session": "2026-08-27-75",
+    "review_scope": "authority packet substance and qualification freeze bindings"
   },
   "machine_policy": {
     "installed": true,
@@ -74,6 +78,22 @@
     "raw_auth_retained": false,
     "raw_provider_output_retained": false,
     "randomization_created": false
+  },
+  "claim_ceiling": {
+    "qualification_can_establish": [
+      "the exact sandboxed runner completed the bounded hosted transport",
+      "task-command network classes were denied through that exact runner tool path",
+      "the observed sandbox implementation was elevated",
+      "the exact managed-requirements bytes were present"
+    ],
+    "does_not_establish": [
+      "machine-wide rejection of the bypass flag",
+      "machine-wide prohibition of all unsandboxed Codex execution",
+      "policy enforcement outside the exact qualified runner path",
+      "server-executed model identity",
+      "consumer integration readiness before a separate amendment"
+    ],
+    "runner_enforced_and_policy_enforced_claims_must_not_be_conflated": true
   },
   "consumer_update_boundary": {
     "consumer_amendment_in_this_tranche": false,
@@ -189,6 +209,6 @@
     {"path": "qualification_prerun_executor.py", "bytes": 17998, "sha256": "9a1ca6b85ef874904ef1ab72dab239f8daf3580d6548966a86e4991e94946fc0"},
     {"path": "README.md", "bytes": 1241, "sha256": "280085b4801df7e13c2b48d1c92dc7207a4da96108d282aab487975fff6108a5"},
     {"path": "terminal-policy.json", "bytes": 858, "sha256": "697591940b868cc688fcf30a4412e14c2bc265dbd291ce8c7d15bf466e27897e"},
-    {"path": "test_qualification_prerun.py", "bytes": 8702, "sha256": "be020ebb9fa5730b1168fe18bdbaa4272d407e251338c5b089d15ea0e124bbac"}
+    {"path": "test_qualification_prerun.py", "bytes": 9513, "sha256": "4b4750efbd711c1dcd5aca124bec81d7ce14620d3258255fa87629801abe762e"}
   ]
 }
