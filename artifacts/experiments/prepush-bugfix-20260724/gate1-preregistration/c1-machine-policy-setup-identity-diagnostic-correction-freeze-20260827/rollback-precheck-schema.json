@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "administrator_role_enabled": {"const": true},
+    "diagnostic": {"maxLength": 160, "type": "string"},
+    "observed_at_utc": {"format": "date-time", "type": "string"},
+    "owner_account_class": {"const": "owner_administrator"},
+    "owner_sid_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "owner_shell_independent_from_codex": {"const": true},
+    "powershell_executable_sha256": {"const": "7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5"},
+    "rollback_script_outside_policy_and_scratch_roots": {"const": true},
+    "rollback_script_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "schema": {"const": "c1-machine-policy-independent-rollback-precheck.v2"},
+    "setup_freeze_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "shell_held_open_until_terminal": {"const": true},
+    "status": {"const": "INDEPENDENT_ELEVATED_ROLLBACK_CHANNEL_READY"},
+    "target_absent": {"const": true}
+  },
+  "required": [
+    "schema", "setup_freeze_commit", "rollback_script_sha256",
+    "powershell_executable_sha256", "owner_sid_sha256", "owner_account_class",
+    "owner_shell_independent_from_codex",
+    "administrator_role_enabled", "target_absent",
+    "rollback_script_outside_policy_and_scratch_roots",
+    "shell_held_open_until_terminal", "observed_at_utc", "status", "diagnostic"
+  ],
+  "type": "object"
+}
