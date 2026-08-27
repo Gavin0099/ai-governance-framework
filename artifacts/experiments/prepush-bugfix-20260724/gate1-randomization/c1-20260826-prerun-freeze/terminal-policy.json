@@ -24,5 +24,5 @@
     "provider_response_model",
     "server_model_id"
   ],
-  "schema": "c1-gate1-randomization-terminal-policy.v3"
+  "schema": "c1-gate1-randomization-terminal-policy.v4"
 }

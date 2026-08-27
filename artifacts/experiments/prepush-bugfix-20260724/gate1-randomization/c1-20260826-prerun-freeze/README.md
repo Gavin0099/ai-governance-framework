@@ -7,12 +7,14 @@ pair-02.
 
 The executor validates the reviewed D5 admission, exact client-side invocation
 identity, a fresh 12-hour batch window, and complete A/B input bindings before
-it accesses randomness. It downloads the two exact npm distribution tarballs
-once, verifies SHA-1, SHA-256, sha512 integrity, package metadata, and the native
-`codex.exe` digest, then runs a zero-session preflight against that binary. The
-tarballs, executable, and preflight scratch must be removed before RNG access.
-An acquisition, launch, preflight, or cleanup failure has its own infrastructure
-terminal and consumes pair-02 without retry. It then stages a private mapping reveal, a public
+it accesses randomness. It accepts only a repo-external, owner-staged executable
+whose complete bytes match the merged `f29…` identity contract; it performs no
+download or AppX extraction. It then runs the merged preflight adapter, merged
+identity validator, and full arm-execution admission checker. Preflight scratch
+must be removed before RNG access, while the staged input remains until the
+unique pair-02 terminal is durably readable. An artifact, launch, preflight,
+identity, admission, or cleanup failure consumes pair-02 without retry. It then
+stages a private mapping reveal, a public
 randomization record, exactly one evidence-chain event, and one terminal before
 publishing the attempt directory create-once.
 

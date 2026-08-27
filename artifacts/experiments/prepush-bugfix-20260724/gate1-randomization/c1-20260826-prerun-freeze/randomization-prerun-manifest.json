@@ -56,7 +56,7 @@
   "framework_base": {
     "d5_admission_commit": "1ced27d08e0330ca5ebe21ed241f0074ec500958",
     "source_main_commit": "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf",
-    "superseded_freeze_commit": "e855940aa0910509d5b24f58ba05eebe6e754c9f"
+    "superseded_freeze_commit": "50ed5709e32bedb3c6b3ebe63a82f5e121296cd9"
   },
   "distribution_qualification": {
     "location": "repo_external_review_surface",
@@ -71,6 +71,8 @@
     "credentials_allowed": false,
     "raw_tarballs_retained": false,
     "cleanup_required_before_rng": true,
+    "used_as_execution_input": false,
+    "role": "qualification_and_semantic-equivalence_provenance_only",
     "main": {
       "package": "@openai/codex@0.148.0-alpha.9",
       "tarball": "https://registry.npmjs.org/@openai/codex/-/codex-0.148.0-alpha.9.tgz",
@@ -98,27 +100,39 @@
     "cli_version_stdout_bytes": 26,
     "cli_version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
     "cli_executable_bytes": 295151920,
-    "cli_executable_sha256": "88aa986d1405d41dcc9c2f777d7b028de07edc33b6468a8dd8db6a0cc62c315f",
-    "preflight_adapter_sha256": "f0581eb58f5a3b186982a18e274c1c3ba2ad0dffd19f59130ac437b67945ecaf",
-    "preflight_bytes": 2224,
-    "preflight_sha256": "c348e7aef08fe3addebeb7663501ed0058288e5f5cfb49bdda5476954336f8a3",
+    "cli_executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+    "preflight_adapter_sha256": "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f",
     "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
     "runner_sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be",
     "command_contract_sha256": "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1",
-    "runner_accepted_preflight": true
+    "merged_identity_validator_required": true,
+    "full_admission_required_before_rng": true
   },
-  "client_runtime_projection_sha256": "87c99bb72ca3a07488186f219edb1184b406eb305d23ccb92a6023f83093bce8",
+  "client_runtime_projection_sha256": "a930901752a99e0daa60c46cf6b78ec9eb5704d3a425ff1a13bc9b888f26b816",
+  "staged_executable": {
+    "artifact_path_retained_in_repo": false,
+    "bytes": 295151920,
+    "cleanup_after_unique_pair_terminal": true,
+    "location": "repo_external_owned_staging",
+    "sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+    "version": "codex-cli 0.148.0-alpha.9"
+  },
+  "staged_artifact_receipt": {
+    "bytes": 1433,
+    "location": "repo_external",
+    "schema": "c1-pair02-staged-executable-receipt.v1",
+    "sha256": "e5dc9e6bfb217388a22fe81d841d21add1cd7f4075677196822ab06fd4662656"
+  },
   "frozen_files": [
     {"bytes": 105, "path": ".gitattributes", "sha256": "c2b7bcdf74cf2e1fb596ab7508930007c5a33868732c176d08f466b31c828e4b"},
     {"bytes": 139, "path": "arm-a-no-skill-treatment.json", "sha256": "4babaa4c28d21bf2ef4915cc342e6a9ff38b5c02d820653eaeecb5bc199176e8"},
     {"bytes": 395, "path": "batch-admission-schema.json", "sha256": "1e3ebc1b0acb38f3e86491d5a07657e863b60bc759ec60c45374e350ce00de1a"},
-    {"bytes": 9342, "path": "codex_distribution.py", "sha256": "03161f5544a10e7852d85970b8e866f9eadb92068985f55454cddf849290a8e0"},
-    {"bytes": 5376, "path": "distribution_preflight_adapter.py", "sha256": "f0581eb58f5a3b186982a18e274c1c3ba2ad0dffd19f59130ac437b67945ecaf"},
+    {"bytes": 2276, "path": "codex_distribution.py", "sha256": "adc8c8959322d0760b6efa45445e81688eb49cd22af7eb4d1a4517234766f870"},
     {"bytes": 139, "path": "no-governance-instruction.json", "sha256": "46fcb63717459d94d88fcdaf83cebc004138e75408a8a28d97e54e82ba150b43"},
-    {"bytes": 36466, "path": "randomization_prerun_executor.py", "sha256": "c5adec31bddb8be209174d30d28a5243bc5bd7989e60fc8ba94a981ff476da83"},
-    {"bytes": 1892, "path": "README.md", "sha256": "bbccfee4753725c8a34f444fd38ca16490a504158f0607383b89c9cd74313948"},
-    {"bytes": 842, "path": "terminal-policy.json", "sha256": "039b9c1699d5c152a5ad1d0202b8387fb92cc778f3af0d347fc02e5578cc4688"},
-    {"bytes": 22681, "path": "test_randomization_prerun.py", "sha256": "3cb8fc146c62a60aa1bb7b90728bdc56a72987e31189bf8fce49749afa5d9ab4"},
+    {"bytes": 36070, "path": "randomization_prerun_executor.py", "sha256": "e9a49cd750cbecde750d75a4e00ce97a52eb054a58baf064cc9878774288b0d1"},
+    {"bytes": 1994, "path": "README.md", "sha256": "506ed5a22a3f0bd493f20313fffcf5da79e6b427ae1b100fc1c276c704e63c27"},
+    {"bytes": 842, "path": "terminal-policy.json", "sha256": "28271b84a2d23e970e8ad0a5f37f59a35d7f746213d169566cfc1f88d508abb2"},
+    {"bytes": 25998, "path": "test_randomization_prerun.py", "sha256": "491fd9fb66ac38b6f86c465ddc91369d64bfc4674a453c54aa12241d4fd6a890"},
     {"bytes": 2168, "path": "treatment-input-bindings.json", "sha256": "ea07c6f2b0e96baa6ccb979a2977400972f37dc857aa6b3632d90ac0b9f0a8fc"},
     {"bytes": 1654, "path": "uniform-posthoc-validator-bundle.json", "sha256": "b54f549e71c946ef477c45d4c6edb24c7630d3ffcdc77dfe0982cb7401ec3449"},
     {"bytes": 423, "path": "uniform-posthoc-validator-config.json", "sha256": "3597751bf5912153f75bf689e8e97bb3da79983c98775995ac238ff2a5c2a909"}
@@ -144,7 +158,7 @@
     "source": "secrets.token_bytes",
     "total_calls": 4
   },
-  "schema": "c1-gate1-randomization-prerun-freeze.v3",
+  "schema": "c1-gate1-randomization-prerun-freeze.v4",
   "source_bindings": [
     {
       "bytes": 9190,
@@ -169,6 +183,12 @@
       "git_blob_oid": "75b47bb728c3aeb7a056bf615e82bda015f9d96d",
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/client_identity_receipt.py",
       "sha256": "f85b03358ea190029fee04e812dc4b8fd832bd65080a30a671e6399ac9910f48"
+    },
+    {
+      "bytes": 7751,
+      "git_blob_oid": "73491446530feda546df01d80e3ead7428e3f56b",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/external_preflight_adapter.py",
+      "sha256": "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f"
     },
     {
       "bytes": 5379,

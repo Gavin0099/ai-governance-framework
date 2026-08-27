@@ -23,12 +23,12 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 
-MANIFEST_SCHEMA = "c1-gate1-randomization-prerun-freeze.v3"
+MANIFEST_SCHEMA = "c1-gate1-randomization-prerun-freeze.v4"
 BATCH_SCHEMA = "c1-gate1-batch-admission.v1"
-TERMINAL_SCHEMA = "c1-gate1-randomization-terminal.v3"
+TERMINAL_SCHEMA = "c1-gate1-randomization-terminal.v4"
 SOURCE_MAIN_COMMIT = "6f6e6ba2adb8a3ab58e5b69d466bf2b2e1570bcf"
 D5_ADMISSION_COMMIT = "1ced27d08e0330ca5ebe21ed241f0074ec500958"
-SUPERSEDED_FREEZE_COMMIT = "e855940aa0910509d5b24f58ba05eebe6e754c9f"
+SUPERSEDED_FREEZE_COMMIT = "50ed5709e32bedb3c6b3ebe63a82f5e121296cd9"
 PAIR_ID = "C1-skill-primary-pair-02"
 FREEZE_DIR = Path(__file__).resolve().parent
 MANIFEST_PATH = FREEZE_DIR / "randomization-prerun-manifest.json"
@@ -451,50 +451,16 @@ def validate_treatment_bindings(repo_root: Path) -> dict[str, dict[str, str]]:
     return {arm: dict(value) for arm, value in inputs.items()}
 
 
-def _distribution_scratch() -> Path:
-    return Path(tempfile.gettempdir()) / "c1-pair02-codex-0.148.0-alpha.9"
-
-
-def validate_executable_launch(repo_root: Path) -> dict[str, object]:
+def validate_executable_launch(
+    repo_root: Path, staged_executable: Path
+) -> dict[str, object]:
     distribution = _module(FREEZE_DIR / "codex_distribution.py", "c1_codex_distribution")
     try:
-        observation = distribution.materialize_exact_distribution(_distribution_scratch())
-    except Exception as exc:
-        raise InfrastructureError("exact npm Codex distribution is unavailable") from exc
-    executable = observation.get("executable")
-    if not isinstance(executable, Path):
-        distribution.cleanup_distribution(observation)
-        raise InfrastructureError("exact npm Codex executable is unavailable")
-    try:
-        version = subprocess.run(
-            [str(executable), "--version"],
-            cwd=repo_root,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=30,
+        return distribution.validate_staged_executable(
+            staged_executable, cwd=repo_root
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        distribution.cleanup_distribution(observation)
-        raise InfrastructureError("Codex executable launch failed") from exc
-    if (
-        version.returncode != 0
-        or version.stderr
-        or version.stdout != distribution.CLI_VERSION_STDOUT
-        or executable.stat().st_size != distribution.NATIVE_BYTES
-        or sha256_file(executable) != distribution.NATIVE_SHA256
-    ):
-        distribution.cleanup_distribution(observation)
-        raise InfrastructureError("Codex version probe failed")
-    return {**observation, "version_stdout": version.stdout}
-
-
-def cleanup_executable_launch(observation: Mapping[str, object]) -> None:
-    distribution = _module(FREEZE_DIR / "codex_distribution.py", "c1_codex_distribution_cleanup")
-    try:
-        distribution.cleanup_distribution(dict(observation))
     except Exception as exc:
-        raise InfrastructureError("exact npm Codex distribution cleanup failed") from exc
+        raise InfrastructureError("exact staged Codex executable is unavailable") from exc
 
 
 def measure_client_identity(
@@ -504,87 +470,112 @@ def measure_client_identity(
         "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
         "c1-client-identity-amendment-20260826/client_identity_receipt.py"
     )
-    adapter_path = FREEZE_DIR / "distribution_preflight_adapter.py"
+    adapter_path = repo_root / (
+        "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
+        "c1-client-identity-amendment-20260826/external_preflight_adapter.py"
+    )
     identity = _module(identity_path, "c1_client_identity_runtime")
-    adapter = _module(adapter_path, "c1_distribution_preflight_runtime")
-    launch = launch or validate_executable_launch(repo_root)
+    adapter = _module(adapter_path, "c1_amendment_preflight_runtime")
+    if launch is None:
+        raise InfrastructureError("staged Codex launch observation is absent")
     executable = launch.get("executable")
     version_stdout = launch.get("version_stdout")
     if not isinstance(executable, Path) or not isinstance(version_stdout, bytes):
         raise InfrastructureError("Codex launch observation shape is invalid")
-    scratch_root = launch.get("scratch_root")
-    if not isinstance(scratch_root, Path):
-        raise InfrastructureError("Codex distribution scratch binding is absent")
-    preflight, snapshot = adapter.measure_preflight(
-        repo_root, executable, scratch_root / "preflight"
-    )
-    runner_identity = adapter.prove_runner_accepts(
-        repo_root, preflight, snapshot, scratch_root / "runner-private"
-    )
-    projection = adapter.command_contract_projection(repo_root)
-    fields: dict[str, object] = {
-        "model_requested_id": identity.EXPECTED_MODEL,
-        "model_request_source": identity.EXPECTED_MODEL_SOURCE,
-        "model_request_argument_sha256": identity.model_request_argument_sha256(),
-        "identity_evidence_level": identity.EVIDENCE_LEVEL,
-        "server_executed_model_observed": False,
-        "provider_attestation_available": False,
-        "cli_version": version_stdout.decode("utf-8", errors="strict").strip(),
-        "cli_version_stdout_bytes": len(version_stdout),
-        "cli_version_stdout_sha256": sha256_bytes(version_stdout),
-        "cli_executable_bytes": executable.stat().st_size,
-        "cli_executable_sha256": sha256_file(executable),
-        "runner_git_blob_oid": identity.EXPECTED_RUNNER_OID,
-        "runner_bytes": identity.EXPECTED_RUNNER_BYTES,
-        "runner_sha256": identity.EXPECTED_RUNNER_SHA256,
-        "preflight_adapter_sha256": sha256_file(adapter_path),
-        "preflight_bytes": len(preflight),
-        "preflight_sha256": sha256_bytes(preflight),
-        "python_executable_sha256": sha256_file(Path(sys.executable).resolve()),
-        "command_contract_sha256": projection["command_contract_sha256"],
-    }
-    invariant_fields = (
-        "model_requested_id", "model_request_source", "model_request_argument_sha256",
-        "identity_evidence_level", "server_executed_model_observed",
-        "provider_attestation_available", "cli_version", "cli_executable_sha256",
-        "runner_sha256", "preflight_adapter_sha256", "python_executable_sha256",
-        "command_contract_sha256",
-    )
-    invariant = {key: fields[key] for key in invariant_fields}
-    manifest = load_json(MANIFEST_PATH)
-    exact = manifest.get("exact_distribution_identity")
-    if not isinstance(exact, dict):
-        raise IdentityError("exact distribution identity is absent")
-    expected = {
-        "cli_version": fields["cli_version"],
-        "cli_version_stdout_bytes": fields["cli_version_stdout_bytes"],
-        "cli_version_stdout_sha256": fields["cli_version_stdout_sha256"],
-        "cli_executable_bytes": fields["cli_executable_bytes"],
-        "cli_executable_sha256": fields["cli_executable_sha256"],
-        "preflight_adapter_sha256": fields["preflight_adapter_sha256"],
-        "preflight_bytes": fields["preflight_bytes"],
-        "preflight_sha256": fields["preflight_sha256"],
-        "python_executable_sha256": fields["python_executable_sha256"],
-        "runner_sha256": fields["runner_sha256"],
-        "command_contract_sha256": fields["command_contract_sha256"],
-        "runner_accepted_preflight": runner_identity == {
+    scratch_root = Path(tempfile.gettempdir()) / "c1-pair02-f29-preflight"
+    if scratch_root.exists():
+        raise InfrastructureError("preflight scratch already exists")
+    try:
+        preflight, snapshot = adapter.measure_amended_preflight(
+            run_id="c1-pair02-f29-preflight",
+            executable=executable,
+            preflight_root=scratch_root,
+        )
+        runner_identity = adapter.prove_runner_accepts_preflight(
+            measured_preflight=preflight,
+            executable_snapshot=snapshot,
+            private_root=scratch_root / "runner-private",
+        )
+        projection = adapter.command_contract_projection()
+        fields: dict[str, object] = {
+            "schema": "c1-client-side-runtime-facts.v1",
+            "model_requested_id": identity.EXPECTED_MODEL,
+            "model_request_source": identity.EXPECTED_MODEL_SOURCE,
+            "model_request_argument_sha256": identity.model_request_argument_sha256(),
+            "identity_evidence_level": identity.EVIDENCE_LEVEL,
+            "server_executed_model_observed": False,
+            "provider_attestation_available": False,
+            "cli_version": version_stdout.decode("utf-8", errors="strict").strip(),
+            "cli_version_stdout_bytes": len(version_stdout),
+            "cli_version_stdout_sha256": sha256_bytes(version_stdout),
+            "cli_executable_bytes": executable.stat().st_size,
+            "cli_executable_sha256": sha256_file(executable),
+            "runner_git_blob_oid": identity.EXPECTED_RUNNER_OID,
+            "runner_bytes": identity.EXPECTED_RUNNER_BYTES,
+            "runner_sha256": identity.EXPECTED_RUNNER_SHA256,
+            "preflight_adapter_sha256": sha256_file(adapter_path),
+            "python_executable_sha256": sha256_file(Path(sys.executable).resolve()),
+            "command_contract_sha256": projection["command_contract_sha256"],
+        }
+        invariant = identity.invariant_projection(fields)
+        if runner_identity != {
             "cli_version": fields["cli_version"],
             "command_contract_sha256": fields["command_contract_sha256"],
             "executable_sha256": fields["cli_executable_sha256"],
             "kind": "codex_exec",
             "runner_sha256": fields["runner_sha256"],
+        }:
+            raise IdentityError("frozen runner rejected the exact preflight")
+        digest = identity.client_runtime_projection_sha256(fields)
+        manifest = load_json(MANIFEST_PATH)
+        if manifest.get("client_runtime_projection_sha256") != digest:
+            raise IdentityError("client runtime projection digest differs")
+        return {
+            **fields,
+            "client_runtime_projection_sha256": digest,
+            "invariant_projection": invariant,
+            "preflight_bytes": len(preflight),
+            "preflight_sha256": sha256_bytes(preflight),
+        }
+    finally:
+        if scratch_root.exists():
+            shutil.rmtree(scratch_root)
+
+
+def validate_full_admission(
+    repo_root: Path, runtime: Mapping[str, object], randomization_path: Path
+) -> dict[str, object]:
+    admission_dir = repo_root / (
+        "artifacts/experiments/prepush-bugfix-20260724/"
+        "gate1-arm-execution-admission/c1-20260825"
+    )
+    module = _module(
+        admission_dir / "arm_execution_admission.py",
+        "c1_arm_execution_admission_runtime",
+    )
+    manifest = load_json(admission_dir / "arm-execution-admission-manifest.json")
+    result = module.evaluate_admission(
+        repo_root=repo_root,
+        manifest=manifest,
+        runtime_facts={
+            key: value
+            for key, value in runtime.items()
+            if key not in {
+                "client_runtime_projection_sha256",
+                "invariant_projection",
+                "preflight_bytes",
+                "preflight_sha256",
+            }
         },
-    }
-    if exact != expected:
-        raise IdentityError("exact distribution identity differs")
-    digest = identity.sha256_hex(identity.canonical_json_bytes(invariant))
-    if manifest.get("client_runtime_projection_sha256") != digest:
-        raise IdentityError("client runtime projection digest differs")
-    return {
-        **fields,
-        "client_runtime_projection_sha256": digest,
-        "invariant_projection": invariant,
-    }
+        randomization_path=randomization_path,
+    )
+    if (
+        result.get("status") != module.PASSED
+        or result.get("reasons") != []
+        or result.get("randomization_created") is not False
+    ):
+        raise IdentityError("full arm execution admission did not pass")
+    return result
 
 
 def build_batch_admission(
@@ -755,15 +746,26 @@ def execute_randomization(
     repo_root: Path,
     final_root: Path,
     owner_authorized_commit: str,
+    staged_executable: Path | None = None,
     launch_probe: Callable[[Path], dict[str, object]] | None = None,
     runtime_probe: Callable[[Path, Mapping[str, object]], dict[str, object]] | None = None,
+    admission_probe: Callable[
+        [Path, Mapping[str, object], Path], dict[str, object]
+    ] | None = None,
     rng: Callable[[int], bytes] = secrets.token_bytes,
     now: Callable[[], datetime] = utc_now,
 ) -> dict[str, object]:
     repo_root = repo_root.resolve()
     supplied_final_root = final_root.resolve()
-    launch_probe = launch_probe or validate_executable_launch
+    if launch_probe is None:
+        if staged_executable is None:
+            launch_probe = lambda root: validate_executable_launch(root)  # type: ignore[call-arg]
+        else:
+            launch_probe = lambda root: validate_executable_launch(
+                root, staged_executable
+            )
     runtime_probe = runtime_probe or measure_client_identity
+    admission_probe = admission_probe or validate_full_admission
 
     freeze_commit: str | None = None
     manifest: dict[str, Any] | None = None
@@ -803,10 +805,12 @@ def execute_randomization(
         _validate_no_prior_pair_state(evidence_root)
         treatment_inputs = validate_treatment_bindings(repo_root)
         launch = launch_probe(repo_root)
-        try:
-            runtime = runtime_probe(repo_root, launch)
-        finally:
-            cleanup_executable_launch(launch)
+        runtime = runtime_probe(repo_root, launch)
+        admission_probe(
+            repo_root,
+            runtime,
+            final_root / "evidence" / "randomization-record.json",
+        )
         admission_time = now()
         batch = build_batch_admission(
             runtime=runtime, freeze_commit=freeze_commit, now=admission_time
@@ -920,6 +924,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--output-root", required=True)
+    parser.add_argument("--staged-executable", required=True)
     parser.add_argument("--owner-authorized-freeze-commit", required=True)
     return parser
 
@@ -929,6 +934,7 @@ def main(argv: list[str] | None = None) -> int:
     terminal = execute_randomization(
         repo_root=Path(args.repo_root),
         final_root=Path(args.output_root),
+        staged_executable=Path(args.staged_executable),
         owner_authorized_commit=args.owner_authorized_freeze_commit,
     )
     print(json.dumps(terminal, ensure_ascii=False, sort_keys=True))

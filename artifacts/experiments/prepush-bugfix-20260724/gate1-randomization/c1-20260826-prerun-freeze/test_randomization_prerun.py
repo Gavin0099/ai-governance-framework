@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
-import base64
-import hashlib
 import json
 import os
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -33,11 +32,42 @@ CHAIN = _load(
     / "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py",
     "c1_randomization_chain",
 )
+IDENTITY = _load(
+    REPO_ROOT
+    / (
+        "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
+        "c1-client-identity-amendment-20260826/client_identity_receipt.py"
+    ),
+    "c1_client_identity_receipt_test",
+)
 
 
 def _runtime() -> dict[str, object]:
     return {
         "client_runtime_projection_sha256": "1" * 64,
+    }
+
+
+def _accepted_runtime_facts() -> dict[str, object]:
+    return {
+        "schema": "c1-client-side-runtime-facts.v1",
+        "model_requested_id": IDENTITY.EXPECTED_MODEL,
+        "model_request_source": IDENTITY.EXPECTED_MODEL_SOURCE,
+        "model_request_argument_sha256": IDENTITY.model_request_argument_sha256(),
+        "identity_evidence_level": IDENTITY.EVIDENCE_LEVEL,
+        "server_executed_model_observed": False,
+        "provider_attestation_available": False,
+        "cli_version": IDENTITY.EXPECTED_CLI_VERSION,
+        "cli_version_stdout_bytes": IDENTITY.EXPECTED_CLI_VERSION_STDOUT_BYTES,
+        "cli_version_stdout_sha256": IDENTITY.EXPECTED_CLI_VERSION_STDOUT_SHA256,
+        "cli_executable_bytes": IDENTITY.EXPECTED_CLI_BYTES,
+        "cli_executable_sha256": IDENTITY.EXPECTED_CLI_SHA256,
+        "runner_git_blob_oid": IDENTITY.EXPECTED_RUNNER_OID,
+        "runner_bytes": IDENTITY.EXPECTED_RUNNER_BYTES,
+        "runner_sha256": IDENTITY.EXPECTED_RUNNER_SHA256,
+        "preflight_adapter_sha256": IDENTITY.EXPECTED_PREFLIGHT_ADAPTER_SHA256,
+        "python_executable_sha256": IDENTITY.EXPECTED_PYTHON_SHA256,
+        "command_contract_sha256": IDENTITY.EXPECTED_COMMAND_CONTRACT_SHA256,
     }
 
 
@@ -86,8 +116,14 @@ def _patch_static_preconditions(monkeypatch) -> None:
             "version_stdout": b"test\n",
         },
     )
-    monkeypatch.setattr(EXECUTOR, "cleanup_executable_launch", lambda observation: None)
     monkeypatch.setattr(EXECUTOR, "measure_client_identity", lambda root, launch: _runtime())
+    monkeypatch.setattr(
+        EXECUTOR,
+        "validate_full_admission",
+        lambda root, runtime, randomization_path: {
+            "status": "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED"
+        },
+    )
 
 
 def test_gitattributes_is_checkout_stable() -> None:
@@ -123,66 +159,95 @@ def test_source_bindings_include_the_superseded_freeze_lineage() -> None:
     EXECUTOR._validate_source_bindings(REPO_ROOT, manifest)
 
 
-def test_manifest_pins_the_qualified_two_layer_npm_distribution() -> None:
+def test_manifest_pins_the_exact_staged_f29_identity() -> None:
     manifest = json.loads(
         (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
     )
-    npm = manifest["npm_distribution"]
-    assert npm["main"]["sha256"] == DIST.MAIN.sha256
-    assert npm["main"]["integrity"] == DIST.MAIN.integrity
-    assert npm["windows_x64"]["sha256"] == DIST.WINDOWS_X64.sha256
-    assert npm["windows_x64"]["integrity"] == DIST.WINDOWS_X64.integrity
-    assert npm["native"] == {
-        "member": DIST.NATIVE_MEMBER,
+    staged = manifest["staged_executable"]
+    assert staged == {
+        "artifact_path_retained_in_repo": False,
         "bytes": DIST.NATIVE_BYTES,
+        "cleanup_after_unique_pair_terminal": True,
+        "location": "repo_external_owned_staging",
         "sha256": DIST.NATIVE_SHA256,
+        "version": DIST.CLI_VERSION,
     }
-    assert npm["download_attempts_each"] == 1
-    assert npm["raw_tarballs_retained"] is False
-    assert npm["cleanup_required_before_rng"] is True
 
 
-def test_archive_verifier_checks_sha1_sha256_and_sri(tmp_path: Path) -> None:
-    raw = b"synthetic npm archive"
-    archive = tmp_path / "package.tgz"
-    archive.write_bytes(raw)
-    binding = DIST.ArchiveBinding(
-        name="synthetic",
-        url="https://example.invalid/package.tgz",
-        size=len(raw),
-        sha1=hashlib.sha1(raw).hexdigest(),
-        sha256=hashlib.sha256(raw).hexdigest(),
-        integrity="sha512-" + base64.b64encode(hashlib.sha512(raw).digest()).decode("ascii"),
-        package_json_size=0,
-        package_json_sha256="0" * 64,
+def test_staged_executable_requires_whole_file_identity(
+    tmp_path: Path, monkeypatch
+) -> None:
+    raw = b"synthetic exact executable"
+    executable = tmp_path / "codex.exe"
+    executable.write_bytes(raw)
+    monkeypatch.setattr(DIST, "NATIVE_BYTES", len(raw))
+    monkeypatch.setattr(DIST, "NATIVE_SHA256", EXECUTOR.sha256_bytes(raw))
+    monkeypatch.setattr(
+        DIST.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0, stdout=DIST.CLI_VERSION_STDOUT, stderr=b""
+        ),
     )
-    DIST._verify_archive(archive, binding)
-    archive.write_bytes(raw + b"x")
+    observation = DIST.validate_staged_executable(executable, cwd=tmp_path)
+    assert observation["executable"] == executable.resolve()
+    executable.write_bytes(raw + b"x")
     with pytest.raises(DIST.DistributionError, match="byte count"):
-        DIST._verify_archive(archive, binding)
+        DIST.validate_staged_executable(executable, cwd=tmp_path)
 
 
-def test_failed_distribution_materialization_removes_scratch(tmp_path: Path) -> None:
-    scratch = tmp_path / "distribution"
-
-    def corrupt_download(url: str, destination: Path, maximum: int) -> None:
-        destination.write_bytes(b"corrupt")
-
-    with pytest.raises(DIST.DistributionError):
-        DIST.materialize_exact_distribution(scratch, downloader=corrupt_download)
-    assert not scratch.exists()
+def test_staged_executable_missing_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(DIST.DistributionError, match="absent"):
+        DIST.validate_staged_executable(tmp_path / "missing.exe", cwd=tmp_path)
 
 
-def test_exact_identity_rebinds_native_preflight_and_command_contract() -> None:
+def test_exact_identity_reuses_merged_adapter_and_validator() -> None:
     manifest = json.loads(
         (HERE / "randomization-prerun-manifest.json").read_text(encoding="utf-8")
     )
     exact = manifest["exact_distribution_identity"]
     assert exact["cli_executable_sha256"] == DIST.NATIVE_SHA256
-    assert exact["preflight_sha256"] == "c348e7aef08fe3addebeb7663501ed0058288e5f5cfb49bdda5476954336f8a3"
+    assert exact["preflight_adapter_sha256"] == (
+        "070c3445d85027115d42b07cd01afb5ef194a034367ebd047df62bb3d9c5c89f"
+    )
     assert exact["command_contract_sha256"] == "4aa350abd4eb3575fd0319d349091ed1180199423fd72719c7b5e22f6e2690e1"
-    assert exact["runner_accepted_preflight"] is True
-    assert manifest["client_runtime_projection_sha256"] == "87c99bb72ca3a07488186f219edb1184b406eb305d23ccb92a6023f83093bce8"
+    assert manifest["client_runtime_projection_sha256"] == (
+        "a930901752a99e0daa60c46cf6b78ec9eb5704d3a425ff1a13bc9b888f26b816"
+    )
+
+
+def test_distribution_module_has_no_download_surface() -> None:
+    source = (HERE / "codex_distribution.py").read_text(encoding="utf-8")
+    assert "urllib" not in source
+    assert "urlopen" not in source
+    assert "tarfile" not in source
+    assert "materialize_exact_distribution" not in source
+
+
+def test_merged_identity_and_full_admission_accept_f29(tmp_path: Path) -> None:
+    facts = _accepted_runtime_facts()
+    invariant = IDENTITY.invariant_projection(facts)
+    assert invariant["cli_executable_sha256"] == DIST.NATIVE_SHA256
+    result = EXECUTOR.validate_full_admission(
+        REPO_ROOT,
+        facts,
+        tmp_path / "absent-randomization-record.json",
+    )
+    assert result["status"] == "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED"
+    assert result["reasons"] == []
+
+
+def test_merged_identity_rejects_npm_native_digest_before_rng(tmp_path: Path) -> None:
+    facts = _accepted_runtime_facts()
+    facts["cli_executable_sha256"] = (
+        "88aa986d1405d41dcc9c2f777d7b028de07edc33b6468a8dd8db6a0cc62c315f"
+    )
+    with pytest.raises(EXECUTOR.IdentityError, match="admission did not pass"):
+        EXECUTOR.validate_full_admission(
+            REPO_ROOT,
+            facts,
+            tmp_path / "absent-randomization-record.json",
+        )
 
 
 def test_treatment_bindings_use_complete_digests_and_no_absent_literal() -> None:
@@ -325,21 +390,23 @@ def test_full_synthetic_execution_commits_only_event_one(tmp_path: Path, monkeyp
     assert '"nonce_hex"' not in public_text
 
 
-def test_distribution_cleanup_completes_before_rng(tmp_path: Path, monkeypatch) -> None:
+def test_full_admission_completes_before_rng(tmp_path: Path, monkeypatch) -> None:
     _patch_static_preconditions(monkeypatch)
     _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
-    cleaned = False
+    admitted = False
     values = [bytes(range(6)), bytes(range(6, 12)), bytes(range(32)), b"\x00"]
 
-    def cleanup(observation) -> None:
-        nonlocal cleaned
-        cleaned = True
+    def admission(root, runtime, randomization_path):
+        nonlocal admitted
+        assert randomization_path == final_root / "evidence/randomization-record.json"
+        admitted = True
+        return {"status": "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED"}
 
     def rng(count: int) -> bytes:
-        assert cleaned
+        assert admitted
         return values.pop(0)
 
-    monkeypatch.setattr(EXECUTOR, "cleanup_executable_launch", cleanup)
+    monkeypatch.setattr(EXECUTOR, "validate_full_admission", admission)
     terminal = EXECUTOR.execute_randomization(
         repo_root=REPO_ROOT,
         final_root=final_root,
@@ -349,7 +416,7 @@ def test_distribution_cleanup_completes_before_rng(tmp_path: Path, monkeypatch) 
         now=lambda: datetime(2026, 8, 26, 2, 0, tzinfo=timezone.utc),
     )
     assert terminal["status"] == EXECUTOR.STATUS_COMMITTED
-    assert cleaned is True
+    assert admitted is True
 
 
 def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
@@ -381,26 +448,41 @@ def test_authority_failure_happens_before_rng_and_leaves_one_terminal(
 
 def test_executable_permission_error_is_infrastructure_failure(monkeypatch, tmp_path: Path) -> None:
     class FakeDistribution:
-        CLI_VERSION_STDOUT = b"test\n"
-        NATIVE_BYTES = Path(sys.executable).stat().st_size
-        NATIVE_SHA256 = EXECUTOR.sha256_file(Path(sys.executable))
-
         @staticmethod
-        def materialize_exact_distribution(root):
-            return {"executable": Path(sys.executable), "scratch_root": tmp_path}
-
-        @staticmethod
-        def cleanup_distribution(observation):
-            return None
+        def validate_staged_executable(path, *, cwd):
+            raise PermissionError("denied")
 
     monkeypatch.setattr(EXECUTOR, "_module", lambda path, name: FakeDistribution)
+    with pytest.raises(EXECUTOR.InfrastructureError, match="unavailable"):
+        EXECUTOR.validate_executable_launch(REPO_ROOT, tmp_path / "codex.exe")
+
+
+def test_missing_staged_artifact_consumes_no_rng(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(EXECUTOR, "_validate_frozen_files", lambda manifest: None)
+    monkeypatch.setattr(EXECUTOR, "_validate_source_bindings", lambda root, manifest: None)
     monkeypatch.setattr(
-        EXECUTOR.subprocess,
-        "run",
-        lambda *args, **kwargs: (_ for _ in ()).throw(PermissionError("denied")),
+        EXECUTOR,
+        "validate_authority",
+        lambda root, manifest, authority: "f" * 40,
     )
-    with pytest.raises(EXECUTOR.InfrastructureError, match="launch failed"):
-        EXECUTOR.validate_executable_launch(REPO_ROOT)
+    monkeypatch.setattr(EXECUTOR, "validate_treatment_bindings", lambda root: _treatments())
+    _, final_root = _patch_frozen_roots(monkeypatch, tmp_path)
+    rng = DeterministicRng([])
+    terminal = EXECUTOR.execute_randomization(
+        repo_root=REPO_ROOT,
+        final_root=final_root,
+        staged_executable=tmp_path / "missing-codex.exe",
+        owner_authorized_commit="f" * 40,
+        runtime_probe=lambda root, launch: (_ for _ in ()).throw(
+            AssertionError("runtime called")
+        ),
+        rng=rng,
+    )
+    assert terminal["status"] == EXECUTOR.STATUS_INFRASTRUCTURE
+    assert terminal["randomization_created"] is False
+    assert rng.calls == []
 
 
 def test_infrastructure_failure_consumes_pair_without_rng(
