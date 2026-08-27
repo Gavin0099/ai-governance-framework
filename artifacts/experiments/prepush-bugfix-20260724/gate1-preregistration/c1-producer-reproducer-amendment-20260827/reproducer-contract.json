@@ -1,0 +1,90 @@
+{
+  "schema": "c1-gate1-producer-visible-reproducer.v1",
+  "status": "FROZEN_NOT_EXECUTED",
+  "task_id": "C1",
+  "baseline": {
+    "commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a"
+  },
+  "product_entrypoint": {
+    "kind": "public_http_route_handler",
+    "method": "POST",
+    "repo_relative_path": "src/app/api/admin/import-books/route.ts",
+    "git_blob_oid": "0c84326019374051992803957f7adfdeba5b9fd0",
+    "bytes": 14187,
+    "sha256": "0d54ee1ce2627cc8145075f67aac4ace83b5a9f306cf61c0be11585c14c5ec87"
+  },
+  "baseline_support_bindings": [
+    {
+      "repo_relative_path": "package.json",
+      "git_blob_oid": "a53ef83cc35febc8a39ba8765c0bef246d2bd487",
+      "bytes": 1849,
+      "sha256": "57405167432a2367a9b35677c398a57315f5df4bf82ad79b3d31ec312002a98d"
+    },
+    {
+      "repo_relative_path": "vitest.config.ts",
+      "git_blob_oid": "d26781e2d7709f3102f276fee7078b6aa13c43a4",
+      "bytes": 366,
+      "sha256": "0de11f8d7be3832fd791442ab9f48e6952361a309c06beee4a67ddd55a5cc83e"
+    }
+  ],
+  "materialization": {
+    "source_file": "producer-visible-bulk-import-reproducer.test.ts",
+    "source_bytes": 5867,
+    "source_sha256": "e1baa2beb02ebb4f9afd6c216b2c501cbf1ddd66dab4cb870c00316e65238fe6",
+    "destination_repo_relative_path": "src/__tests__/c1-gate1-black-box-reproducer.test.ts",
+    "byte_identical_required": true,
+    "owned_disposable_baseline_checkout_required": true
+  },
+  "command": {
+    "cwd": "owned_disposable_baseline_root",
+    "argv": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "src/__tests__/c1-gate1-black-box-reproducer.test.ts",
+      "--config",
+      "vitest.config.ts",
+      "--reporter",
+      "verbose"
+    ],
+    "shell": false,
+    "network_allowed": false,
+    "expected_exit_code": 0,
+    "expected_test_file_count": 1,
+    "stdout_prefix": "C1_REPRODUCER_OBSERVATION="
+  },
+  "observation": {
+    "schema": "c1-public-bulk-import-observation.v1",
+    "canonical_line_utf8_lf_bytes": 185,
+    "canonical_line_utf8_lf_sha256": "34f00c20577586a4751b1cebeb06ab67dbf46b0aa4993e455aaa41782ef117e3",
+    "meaning": "the pinned baseline linked both distinct synthetic inputs to the same catalog identity"
+  },
+  "producer_visibility": {
+    "visible": true,
+    "shared_arms": [
+      "A",
+      "B"
+    ],
+    "only_visible_files": [
+      "producer-visible-bulk-import-reproducer.test.ts"
+    ],
+    "visible_command_source": "command.argv",
+    "scorer_surface_visible": false
+  },
+  "forbidden_provenance": {
+    "scorer_only_oracle": true,
+    "historical_fix": true,
+    "candidate_commit_or_diff": true,
+    "hidden_scorer": true,
+    "private_repository_name_or_path": true
+  },
+  "not_claimed": [
+    "corrected_behavior",
+    "producer_readiness",
+    "arm_execution",
+    "skill_effectiveness",
+    "governance_effectiveness",
+    "validator_feedback_effectiveness"
+  ]
+}
