@@ -1,0 +1,194 @@
+{
+  "schema": "c1-sandbox-qualification-prerun-freeze.v1",
+  "status": "SANDBOX_QUALIFICATION_PRERUN_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "origin_main_commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+    "pr_126_merge_commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+    "sandboxed_runner_amendment_commit": "e6b9af5dfba43c9fb193397329d3636fbffd4617",
+    "machine_policy_setup_freeze_commit": "c62af5bbe13b584484cdec19fac155c478c6f811"
+  },
+  "authority_reconciliation": {
+    "location": "repo_external_review_surface",
+    "file": "c1-runner-compatibility-authority-reconciliation-packet-2026-08-27.md",
+    "lines": 368,
+    "bytes": 17062,
+    "sha256": "6b05db4b379156786a9868c642379e7cedf559a4f1f1324d6c894307e59981fd",
+    "authority_terminal": "SANDBOXED_RUNNER_IS_AUTHORITATIVE",
+    "legacy_compatibility_terminal": "NON_HOSTED_COMPATIBILITY_EVIDENCE_INSUFFICIENT",
+    "review_verdict": "APPROVED"
+  },
+  "machine_policy": {
+    "installed": true,
+    "live_path": "C:/ProgramData/OpenAI/Codex/requirements.toml",
+    "requirements_bytes": 58,
+    "requirements_sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440",
+    "receipt_bytes": 403,
+    "receipt_sha256": "23b297983d68898885f49131f912518f96d3d580244ed9484d0fef6395132ffd",
+    "attempt_04_terminal": {
+      "bytes": 725,
+      "sha256": "35bcdbc871c8160424b280d4995ff9a5024dfdb741c1920e9125c17695c73995",
+      "status": "MACHINE_POLICY_SETUP_APPLIED"
+    },
+    "attempt_04_setup_evidence": {
+      "bytes": 2439,
+      "sha256": "91788c9938f8f81febb93e7a16984c8e0f3bf54fa8670c3160b6e876a87b73a1"
+    }
+  },
+  "runtime": {
+    "cli_version": "codex-cli 0.148.0-alpha.9",
+    "cli_version_stdout_bytes": 26,
+    "cli_version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
+    "cli_executable_bytes": 295151920,
+    "cli_executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+    "installed_package": "OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0",
+    "installed_source_kind": "code_signed_desktop_appx",
+    "installed_signer_thumbprint": "E44013C9734FAF1DB598E7B57067CF7EDD223CBC",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "runner_sha256": "184718d005bbf94a746d66ef4743707402f0fcdf808f8c744d59d740fd6fd4ef",
+    "preflight_adapter_sha256": "db430f0171edd63269426415c06f576d2cab99dea9f6d11eed5c9c9bb8e97c63",
+    "command_contract_sha256": "5c1d0f466cf8dce241e810d0a22a5408efb3642343802809bd895363a560bf23"
+  },
+  "sandboxed_runner_source": {
+    "directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827",
+    "legacy_directory": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2",
+    "predecessor_runner_superseded_for_future_c1_arm_execution": true,
+    "consumer_bindings_updated_in_this_freeze": false
+  },
+  "derived_paths": {
+    "qualification_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-sandboxed-runner-qualification-01",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-sandboxed-runner-qualification-01.cli-staging",
+    "installed_cli_source": "C:/Program Files/WindowsApps/OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0/app/resources/codex.exe",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "live_machine_policy": "C:/ProgramData/OpenAI/Codex/requirements.toml"
+  },
+  "qualification_contract": {
+    "attempt_id": "C1-sandboxed-runner-qualification-01",
+    "task_neutral": true,
+    "non_counted": true,
+    "maximum_hosted_requests": 1,
+    "retry_allowed": false,
+    "probe_runs_through_exact_runner_tool_path": true,
+    "hosted_attempt_flag_set_immediately_before_launcher": true,
+    "pass_requires_private_and_cli_staging_cleanup": true,
+    "raw_auth_retained": false,
+    "raw_provider_output_retained": false,
+    "randomization_created": false
+  },
+  "consumer_update_boundary": {
+    "consumer_amendment_in_this_tranche": false,
+    "prerequisite_for_future_amendment": "reviewed SANDBOXED_RUNNER_QUALIFIED_NOT_RANDOMIZED terminal",
+    "future_amendment_must_update": [
+      "client identity runner binding",
+      "producer pre-run runner binding",
+      "admission projection",
+      "completeness gate projection"
+    ]
+  },
+  "execution_authority": {
+    "authorized": false,
+    "hosted_qualification_authorized": false,
+    "consumer_amendment_authorized": false,
+    "randomization_authorized": false
+  },
+  "authoring_boundary": {
+    "machine_policy_modified": false,
+    "hosted_request_executed": false,
+    "qualification_root_created": false,
+    "consumer_amendment_created": false,
+    "consumer_bytes_read": false,
+    "randomization_created": false,
+    "producer_executed": false,
+    "scorer_executed": false,
+    "arm_executed": false,
+    "mapping_released": false,
+    "rekor_posted": false
+  },
+  "source_bindings": [
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/amendment-manifest.json",
+      "git_blob_oid": "1057c12ecec166b734b559b508006fe2df860c31",
+      "bytes": 10582,
+      "sha256": "73b585be154f79b539e9b2d87a97fc3032a45a46768db5b1e17ef298d00aa9f0"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandboxed_runner.py",
+      "git_blob_oid": "37ea6f1680f6568ac9c36b1237e83feb78994d00",
+      "bytes": 9937,
+      "sha256": "184718d005bbf94a746d66ef4743707402f0fcdf808f8c744d59d740fd6fd4ef"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/preflight_adapter.py",
+      "git_blob_oid": "4a067b34224f48e98d5b7677653169729bd5ba0a",
+      "bytes": 2709,
+      "sha256": "db430f0171edd63269426415c06f576d2cab99dea9f6d11eed5c9c9bb8e97c63"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/qualification_contract.py",
+      "git_blob_oid": "b4e525f6322a5bf91ea87d496ee98deea439e6e2",
+      "bytes": 6643,
+      "sha256": "bbb15af31c1fee8a163a88e9e6fbb47a3db09bee498c64ca9e1cfc79d2090546"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/network_denial_probe.py",
+      "git_blob_oid": "08805873f2d371cd45f05ac99e0f6e94564d2b65",
+      "bytes": 3557,
+      "sha256": "61ba2dd087aa6e5981a7c9011b9e2f56808d7acccc5175878f589d7fa7f78d30"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandbox-config.toml",
+      "git_blob_oid": "9bf5f971ea6c96c3b600b97ffe54ea2edd8968b2",
+      "bytes": 142,
+      "sha256": "ed33eb56dae642e0a6695c9c1e4455210ffd6319ee7f119da6ee3e92bb9fd587"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandbox-requirements.toml",
+      "git_blob_oid": "c09376409c079ecf1dd04c8d9064e6eaf28b16c2",
+      "bytes": 58,
+      "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_codex.py",
+      "git_blob_oid": "d74dc12984ec8b4d997b6ed4cb39e02a49891bf0",
+      "bytes": 44296,
+      "sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2.py",
+      "git_blob_oid": "b13bb7648d72c597054822daf545f1880909acf7",
+      "bytes": 91255,
+      "sha256": "8b99b43edf65bd010a0917bf49c4d083129eaa2e51a1a248b0c67e7be0c723ba"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_private_rendering.py",
+      "git_blob_oid": "cc3d98a99a17db704b153f1a979c359b521b3c18",
+      "bytes": 5094,
+      "sha256": "01dfdda14d132342ff95163282412aeabd6806e6fdaa103d4e652abba7792441"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-observer-authorization-correction-freeze-20260827/setup-manifest.json",
+      "git_blob_oid": "1a7f4b1fb3a6765d08f0943ceef6a7c4735570bc",
+      "bytes": 12495,
+      "sha256": "6a8268953ee1a218b2190b29c62f44be305343879f06ea0ac95c8236f8408435"
+    }
+  ],
+  "frozen_files": [
+    {"path": ".gitattributes", "bytes": 198, "sha256": "84f01bcc600570e712d50653466c69f6d2b2816d4425f4e6c8895c22e6287e48"},
+    {"path": "machine-policy-receipt.json", "bytes": 403, "sha256": "23b297983d68898885f49131f912518f96d3d580244ed9484d0fef6395132ffd"},
+    {"path": "qualification_prerun_executor.py", "bytes": 17998, "sha256": "9a1ca6b85ef874904ef1ab72dab239f8daf3580d6548966a86e4991e94946fc0"},
+    {"path": "README.md", "bytes": 1241, "sha256": "280085b4801df7e13c2b48d1c92dc7207a4da96108d282aab487975fff6108a5"},
+    {"path": "terminal-policy.json", "bytes": 858, "sha256": "697591940b868cc688fcf30a4412e14c2bc265dbd291ce8c7d15bf466e27897e"},
+    {"path": "test_qualification_prerun.py", "bytes": 8702, "sha256": "be020ebb9fa5730b1168fe18bdbaa4272d407e251338c5b089d15ea0e124bbac"}
+  ]
+}

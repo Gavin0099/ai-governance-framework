@@ -1,0 +1,32 @@
+{
+  "schema": "c1-sandbox-qualification-prerun-terminal-policy.v1",
+  "create_once": true,
+  "only_retained_file": "qualification-terminal.json",
+  "success_status": "SANDBOXED_RUNNER_QUALIFIED_NOT_RANDOMIZED",
+  "success_requires": [
+    "hosted_transport_completed",
+    "task_command_network_denied",
+    "sandbox_implementation_elevated",
+    "managed_requirement_enforced",
+    "fallback_not_observed",
+    "private_root_cleanup_complete",
+    "cli_staging_cleanup_complete"
+  ],
+  "forbidden_fields": [
+    "authorization",
+    "cookie",
+    "credentials",
+    "environment",
+    "event_stream",
+    "firewall_rules",
+    "local_path",
+    "model_response",
+    "prompt",
+    "raw_output",
+    "resolved_addresses",
+    "username"
+  ],
+  "no_retry_after_any_terminal": true,
+  "consumer_amendment_authorized": false,
+  "randomization_created": false
+}
