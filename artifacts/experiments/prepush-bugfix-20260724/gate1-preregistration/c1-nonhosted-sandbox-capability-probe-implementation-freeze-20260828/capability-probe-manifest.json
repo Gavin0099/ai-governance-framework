@@ -1,0 +1,190 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-freeze.v1",
+  "status": "NONHOSTED_SANDBOX_CAPABILITY_PROBE_IMPLEMENTATION_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "origin_main_commit": "4f2c72893085aa964773ba3a0b6d1b3ff25f1701",
+    "qualification_01_consumed": true,
+    "qualification_02_consumed": true,
+    "qualification_03_created": false
+  },
+  "design_authority": {
+    "rev1_sha256": "2ffa7379bd5a306bed05afa51c6ee2a29ba4744d6212160ed05f23baafaa349e",
+    "rev2_sha256": "43690fea0dfd378ea4eca4064ec722416406bd60f2e7a810b78ecbe81b6babff",
+    "review_terminal": "APPROVED_FINDING_53_CLOSED",
+    "negative_control_unexpected_success_is_invalid": true,
+    "cleanup_precedes_positive_terminal": true
+  },
+  "binding_contract": {
+    "bootstrap_source": "OWNER_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "executor_source": "VERIFIED_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "direct_working_tree_bootstrap_allowed": false,
+    "direct_working_tree_executor_allowed": false,
+    "git_replace_objects_allowed": false,
+    "all_bindings_before_probe_roots": true,
+    "auth_payload_surface_exists": false,
+    "hosted_request_surface_exists": false
+  },
+  "runtime": {
+    "cli_version": "codex-cli 0.148.0-alpha.9",
+    "cli_executable_bytes": 295151920,
+    "cli_executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "requirements_bytes": 58,
+    "requirements_sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440",
+    "runner_environment_inherited_keys": [
+      "COMSPEC",
+      "PATHEXT",
+      "SYSTEMDRIVE",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "WINDIR"
+    ],
+    "runner_environment_added_keys": [
+      "CODEX_HOME",
+      "NO_COLOR"
+    ],
+    "path_included": false
+  },
+  "derived_paths": {
+    "output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-01",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-01.cli-staging",
+    "private_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-01.private",
+    "qualification_03_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-sandboxed-runner-qualification-03",
+    "installed_cli_source": "C:/Program Files/WindowsApps/OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0/app/resources/codex.exe",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "live_machine_policy": "C:/ProgramData/OpenAI/Codex/requirements.toml"
+  },
+  "command_projection": {
+    "fixed_prefix": [
+      "<staged-f29-codex.exe>",
+      "sandbox",
+      "-C",
+      "<frozen-disposable-workspace>",
+      "-c",
+      "sandbox_mode=\"workspace-write\"",
+      "-c",
+      "approval_policy=\"never\"",
+      "-c",
+      "windows.sandbox=\"elevated\"",
+      "-c",
+      "sandbox_workspace_write.network_access=false",
+      "--"
+    ],
+    "negative_executable": "python",
+    "positive_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "forbidden_subcommand": "windows",
+    "free_command_override_allowed": false
+  },
+  "probe_contract": {
+    "attempt_id": "C1-nonhosted-sandbox-capability-probe-01",
+    "maximum_executions": 1,
+    "retry_allowed": false,
+    "negative_control_first": true,
+    "positive_control_runs_only_after_expected_negative": true,
+    "marker_bytes": 40,
+    "marker_sha256": "39b3f16d64167a88f8a86e38ed17396e57fca5a77ec5ca70387499687e5c846f",
+    "hosted_requests": 0,
+    "auth_payloads": 0
+  },
+  "external_bindings": [
+    {
+      "label": "design_rev1",
+      "path": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-sandbox-capability-probe-design-freeze/c1-nonhosted-sandbox-capability-probe-design-packet-20260828-rev1.md",
+      "bytes": 20163,
+      "sha256": "2ffa7379bd5a306bed05afa51c6ee2a29ba4744d6212160ed05f23baafaa349e"
+    },
+    {
+      "label": "design_rev2",
+      "path": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-sandbox-capability-probe-design-freeze/c1-nonhosted-sandbox-capability-probe-design-packet-20260828-rev2.md",
+      "bytes": 7221,
+      "sha256": "43690fea0dfd378ea4eca4064ec722416406bd60f2e7a810b78ecbe81b6babff"
+    },
+    {
+      "label": "qualification_01_terminal",
+      "path": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/q1/artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-sandboxed-runner-qualification-01/qualification-terminal.json",
+      "bytes": 555,
+      "sha256": "a1392ed5d91bbebab036ba0ffc7266b368eecb973ccef512ca65d05bb4d3bdcf"
+    },
+    {
+      "label": "qualification_02_terminal",
+      "path": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/q2/artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-sandboxed-runner-qualification-02/qualification-terminal.json",
+      "bytes": 881,
+      "sha256": "0a2a1a378a01fd38cdcd87646f01e5900863952d8bcc99812e6221b9dc4da928"
+    }
+  ],
+  "source_bindings": [
+    {
+      "commit": "4f2c72893085aa964773ba3a0b6d1b3ff25f1701",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandboxed_runner.py",
+      "git_blob_oid": "37ea6f1680f6568ac9c36b1237e83feb78994d00",
+      "bytes": 9937,
+      "sha256": "184718d005bbf94a746d66ef4743707402f0fcdf808f8c744d59d740fd6fd4ef"
+    },
+    {
+      "commit": "4f2c72893085aa964773ba3a0b6d1b3ff25f1701",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-02-diagnostic-correction-freeze-20260828/binding-correction-manifest.json",
+      "git_blob_oid": "e4532adb70f7296b4f7df37680867a6f28b0e37d",
+      "bytes": 15804,
+      "sha256": "5edf497e0d744ef48358f6c60b24e2b44ee8ea98b0729a5f4ccd51785e18dc0f"
+    },
+    {
+      "commit": "4f2c72893085aa964773ba3a0b6d1b3ff25f1701",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-02-diagnostic-correction-freeze-20260828/terminal-policy.json",
+      "git_blob_oid": "ddee377d61cba2da79add2849c193e64077caf03",
+      "bytes": 2240,
+      "sha256": "273d7658c5f7cb9ab3985ff0421cfcea11366fc6bfa7a9dc8552ce5492768230"
+    }
+  ],
+  "frozen_executor_sha256": "21b0b193d2829a63c616e3bf7a2c56e8ebdfc2abc616fb0e6ecdf642bc9faffa",
+  "frozen_files": [
+    {"path": ".gitattributes", "git_blob_oid": "19abb2038a3e7bb669bd915ecac9397b2b59ba81", "bytes": 111, "sha256": "32dd69fee20da0d7c0b1072e480258a49abdcf85e45f2798b3ca830c6733a27f"},
+    {"path": "README.md", "git_blob_oid": "04d27d365d659cb448e4b6f0ba209e19beafa084", "bytes": 1089, "sha256": "d8db2cb19c1ab0a013a3e34bccdc0160287c44396ee8549edabf274be54ffe1d"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "f6da4251630a31762dca5631a81d6fc8f0ef1eb5", "bytes": 2302, "sha256": "b36aa07789d87248be47a2428863fd5cfcc5c999fbd6d772fefac5f6975952f0"},
+    {"path": "capability_probe_bootstrap.py", "git_blob_oid": "e1c7ed56e43d5ca5feb4c4cedc365d026532e031", "bytes": 5531, "sha256": "3cb6649324b7ecf34c5e4a361a9f2dd30f632ea99253c12e57953161c4ecf780"},
+    {"path": "capability_probe_executor.py", "git_blob_oid": "d29da0b5c501b24d5593de046c269b0b6529d925", "bytes": 19922, "sha256": "21b0b193d2829a63c616e3bf7a2c56e8ebdfc2abc616fb0e6ecdf642bc9faffa"},
+    {"path": "marker_probe.py", "git_blob_oid": "3c405681624a5f854227f2cfa1c0387690209e5a", "bytes": 467, "sha256": "e13907d29e621e0615a8db55128e3ebc9e923f902d155f7d301ae63a554f080c"},
+    {"path": "sandbox-config.toml", "git_blob_oid": "9bf5f971ea6c96c3b600b97ffe54ea2edd8968b2", "bytes": 142, "sha256": "ed33eb56dae642e0a6695c9c1e4455210ffd6319ee7f119da6ee3e92bb9fd587"},
+    {"path": "sandbox-requirements.toml", "git_blob_oid": "c09376409c079ecf1dd04c8d9064e6eaf28b16c2", "bytes": 58, "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"},
+    {"path": "terminal-policy.json", "git_blob_oid": "2ef8e869ea39f1252e4bbc843cb0eb7f6d89b04b", "bytes": 1080, "sha256": "213d70c59251a6c55f05a486be9ef4d95b21e203c1baff5fe648e139795c3967"},
+    {"path": "test_capability_probe.py", "git_blob_oid": "721d5cc5890cf1242696143d9b232ddb8e495f32", "bytes": 17902, "sha256": "a3b1ecc7c79a04c8ae9795782a8d959f1c5589e88ef550b6854a7530972dd2b7"}
+  ],
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "exact non-hosted helper implementation is frozen",
+      "negative-control unexpected success is invalid",
+      "cleanup precedes positive terminal publication"
+    ],
+    "does_not_establish": [
+      "capability probe result",
+      "absolute Python task-plane launchability",
+      "sandbox qualification",
+      "qualification-03 readiness",
+      "randomization or arm execution"
+    ]
+  },
+  "execution_authority": {
+    "capability_probe_authorized": false,
+    "hosted_request_authorized": false,
+    "qualification_03_authorized": false,
+    "consumer_amendment_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false
+  },
+  "authoring_boundary": {
+    "capability_probe_executed": false,
+    "output_root_created": false,
+    "cli_staging_root_created": false,
+    "private_root_created": false,
+    "machine_policy_modified": false,
+    "hosted_request_executed": false,
+    "qualification_03_created": false,
+    "randomization_created": false
+  }
+}
