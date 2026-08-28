@@ -5,7 +5,6 @@
     "CAPABILITY_PROBE_CLEANUP_FAILED",
     "CAPABILITY_PROBE_AMBIGUOUS",
     "CAPABILITY_PROBE_SURFACE_UNAVAILABLE",
-    "ABSOLUTE_PYTHON_TASK_PLANE_DENIED",
     "ABSOLUTE_PYTHON_TASK_PLANE_LAUNCHABLE"
   ],
   "positive_requires": [
@@ -19,6 +18,9 @@
     "cli_cleanup_complete"
   ],
   "negative_control_unexpected_success_is_invalid": true,
+  "denial_without_bounded_proof_is_ambiguous": true,
+  "attempt_output_root_is_atomic_claim": true,
+  "only_claim_owner_may_cleanup": true,
   "cleanup_precedes_positive_terminal": true,
   "retry_allowed": false,
   "hosted_request_allowed": false,

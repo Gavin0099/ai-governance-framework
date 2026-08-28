@@ -235,10 +235,18 @@ def _validate_runtime(paths: Mapping[str, Path], manifest: Mapping[str, object])
 
 def _assert_roots_absent(paths: Mapping[str, Path]) -> None:
     output = paths["output"]
-    publication = output.with_name(f".{output.name}.publication-staging")
-    for path in (output, publication, paths["cli"], paths["private"]):
+    for path in (output, paths["cli"], paths["private"]):
         if path.exists():
             raise ProbeError(f"create-once root already exists: {path.name}")
+
+
+def _claim_attempt(output: Path) -> None:
+    if not output.parent.is_dir():
+        raise ProbeError("frozen evidence root unavailable")
+    try:
+        output.mkdir()
+    except FileExistsError as exc:
+        raise ProbeError("attempt output already claimed") from exc
 
 
 def _raw_copy_exact(source: Path, target: Path, size: int, digest: str) -> None:
@@ -395,23 +403,24 @@ def _terminal(
 
 
 def _publish_terminal(output: Path, payload: bytes) -> Mapping[str, object]:
-    staging = output.with_name(f".{output.name}.publication-staging")
-    if output.exists() or staging.exists():
+    if not output.is_dir():
+        raise ProbeError("attempt output claim unavailable")
+    staging = output / ".terminal-staging"
+    terminal = output / "terminal.json"
+    if terminal.exists() or staging.exists() or any(output.iterdir()):
         raise ProbeError("terminal output already exists")
-    staging.mkdir(parents=True)
-    terminal = staging / "terminal.json"
     try:
-        with terminal.open("xb") as handle:
+        with staging.open("xb") as handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        if terminal.read_bytes() != payload:
+        if staging.read_bytes() != payload:
             raise ProbeError("terminal readback mismatch")
-        os.replace(staging, output)
-        return _json_object((output / "terminal.json").read_bytes(), "terminal")
+        os.replace(staging, terminal)
+        return _json_object(terminal.read_bytes(), "terminal")
     except BaseException:
         if staging.exists():
-            shutil.rmtree(staging)
+            staging.unlink()
         raise
 
 
@@ -445,6 +454,7 @@ def execute(
     cli_root = paths["cli"]
     private = paths["private"]
     output = paths["output"]
+    _claim_attempt(output)
     negative: LaunchResult | None = None
     positive: LaunchResult | None = None
     status = "CAPABILITY_PROBE_SURFACE_UNAVAILABLE"
@@ -492,7 +502,6 @@ def execute(
         )
         diagnostic = {
             "ABSOLUTE_PYTHON_TASK_PLANE_LAUNCHABLE": "absolute Python produced the exact marker",
-            "ABSOLUTE_PYTHON_TASK_PLANE_DENIED": "bounded denial evidence was observed",
             "CAPABILITY_PROBE_SURFACE_UNAVAILABLE": "sandbox helper did not complete",
             "CAPABILITY_PROBE_AMBIGUOUS": "control evidence was not uniquely interpretable",
         }[status]

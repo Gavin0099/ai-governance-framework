@@ -6,6 +6,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -133,7 +135,7 @@ def test_positive_nonzero_is_stage_derived_ambiguous() -> None:
 
 def test_terminal_retains_only_bounded_stream_evidence() -> None:
     payload = EXECUTOR._terminal(
-        status="ABSOLUTE_PYTHON_TASK_PLANE_DENIED",
+        status="CAPABILITY_PROBE_AMBIGUOUS",
         commit="1" * 40,
         negative=_result(1, stderr=b"negative secret"),
         positive=_result(1, stderr=b"positive secret"),
@@ -260,10 +262,76 @@ def test_cleanup_failure_overrides_launchable(
 def test_publication_is_create_once_and_readback_exact(tmp_path: Path) -> None:
     output = tmp_path / "attempt"
     payload = b'{"status":"TEST"}\n'
+    EXECUTOR._claim_attempt(output)
     assert EXECUTOR._publish_terminal(output, payload) == {"status": "TEST"}
     assert (output / "terminal.json").read_bytes() == payload
     with pytest.raises(EXECUTOR.ProbeError, match="already exists"):
         EXECUTOR._publish_terminal(output, payload)
+
+
+def test_attempt_claim_is_atomic(tmp_path: Path) -> None:
+    output = tmp_path / "attempt"
+    barrier = threading.Barrier(2)
+
+    def claim() -> bool:
+        barrier.wait()
+        try:
+            EXECUTOR._claim_attempt(output)
+            return True
+        except EXECUTOR.ProbeError:
+            return False
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: claim(), range(2)))
+    assert results.count(True) == 1
+    assert results.count(False) == 1
+
+
+def test_overlapping_loser_does_not_clean_or_publish(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "attempt"
+    cli_root = tmp_path / ".cli"
+    private = tmp_path / ".private"
+    output.mkdir()
+    cli_root.mkdir()
+    private.mkdir()
+    paths = {
+        "output": output,
+        "cli": cli_root,
+        "private": private,
+        "cli_source": tmp_path / "source.exe",
+        "python": tmp_path / "python.exe",
+        "policy": tmp_path / "policy",
+    }
+    monkeypatch.setenv("C1_CAPABILITY_EXECUTOR_SHA256", "e" * 64)
+    monkeypatch.setattr(EXECUTOR, "_git", lambda *args, **kwargs: "1" * 40)
+    monkeypatch.setattr(EXECUTOR, "_manifest", lambda *args: _synthetic_manifest())
+    monkeypatch.setattr(EXECUTOR, "_verified_frozen_blobs", lambda *args: _synthetic_frozen())
+    monkeypatch.setattr(EXECUTOR, "_validate_source_bindings", lambda *args: None)
+    monkeypatch.setattr(EXECUTOR, "_validate_external_bindings", lambda *args: None)
+    monkeypatch.setattr(EXECUTOR, "_paths", lambda *args: paths)
+    monkeypatch.setattr(EXECUTOR, "_validate_runtime", lambda *args: None)
+    monkeypatch.setattr(EXECUTOR, "_assert_roots_absent", lambda *args: None)
+    monkeypatch.setattr(
+        EXECUTOR,
+        "_remove_tree",
+        lambda path: (_ for _ in ()).throw(AssertionError("loser cleaned winner root")),
+    )
+    monkeypatch.setattr(
+        EXECUTOR,
+        "_publish_terminal",
+        lambda *args: (_ for _ in ()).throw(AssertionError("loser published terminal")),
+    )
+
+    with pytest.raises(EXECUTOR.ProbeError, match="already claimed"):
+        EXECUTOR.execute(
+            repo_root=tmp_path,
+            owner_authorized_freeze_commit="1" * 40,
+        )
+    assert output.is_dir()
+    assert cli_root.is_dir()
+    assert private.is_dir()
 
 
 def test_executor_direct_file_main_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -386,6 +454,7 @@ def test_binding_and_preflight_order_precedes_controls() -> None:
         "_validate_external_bindings(manifest)",
         "_validate_runtime(paths, manifest)",
         "_assert_roots_absent(paths)",
+        "_claim_attempt(output)",
         "cli_root.mkdir(parents=True)",
         "_preflight_cli(cli, workspace, env)",
         'launcher(_command(cli, workspace, "python", negative_path)',
@@ -398,6 +467,14 @@ def test_binding_and_preflight_order_precedes_controls() -> None:
 def test_all_authority_flags_are_false() -> None:
     authority = manifest()["execution_authority"]
     assert authority and all(value is False for value in authority.values())
+
+
+def test_terminal_policy_has_no_unreachable_denial_and_requires_atomic_claim() -> None:
+    policy = json.loads((BASE / "terminal-policy.json").read_text(encoding="utf-8"))
+    assert "ABSOLUTE_PYTHON_TASK_PLANE_DENIED" not in policy["terminal_precedence"]
+    assert policy["denial_without_bounded_proof_is_ambiguous"] is True
+    assert policy["attempt_output_root_is_atomic_claim"] is True
+    assert policy["only_claim_owner_may_cleanup"] is True
 
 
 def test_live_policy_binding_is_unchanged() -> None:

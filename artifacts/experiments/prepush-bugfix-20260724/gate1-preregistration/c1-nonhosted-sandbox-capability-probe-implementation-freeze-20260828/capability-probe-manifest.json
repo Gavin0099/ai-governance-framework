@@ -138,18 +138,18 @@
       "sha256": "273d7658c5f7cb9ab3985ff0421cfcea11366fc6bfa7a9dc8552ce5492768230"
     }
   ],
-  "frozen_executor_sha256": "21b0b193d2829a63c616e3bf7a2c56e8ebdfc2abc616fb0e6ecdf642bc9faffa",
+  "frozen_executor_sha256": "d20854c00ce60445194df3a594958c4e57a10db24698cd7045aa2272e4626de5",
   "frozen_files": [
     {"path": ".gitattributes", "git_blob_oid": "19abb2038a3e7bb669bd915ecac9397b2b59ba81", "bytes": 111, "sha256": "32dd69fee20da0d7c0b1072e480258a49abdcf85e45f2798b3ca830c6733a27f"},
     {"path": "README.md", "git_blob_oid": "04d27d365d659cb448e4b6f0ba209e19beafa084", "bytes": 1089, "sha256": "d8db2cb19c1ab0a013a3e34bccdc0160287c44396ee8549edabf274be54ffe1d"},
-    {"path": "TECH_SPEC.md", "git_blob_oid": "f6da4251630a31762dca5631a81d6fc8f0ef1eb5", "bytes": 2302, "sha256": "b36aa07789d87248be47a2428863fd5cfcc5c999fbd6d772fefac5f6975952f0"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "e3d7da99aa2849501d730dcd5bc6728c06934942", "bytes": 2865, "sha256": "40bc60270212a04ecfb4bb5444c4fd9022c7b0f9cff6ff08eb45ba94dcc7ee56"},
     {"path": "capability_probe_bootstrap.py", "git_blob_oid": "e1c7ed56e43d5ca5feb4c4cedc365d026532e031", "bytes": 5531, "sha256": "3cb6649324b7ecf34c5e4a361a9f2dd30f632ea99253c12e57953161c4ecf780"},
-    {"path": "capability_probe_executor.py", "git_blob_oid": "d29da0b5c501b24d5593de046c269b0b6529d925", "bytes": 19922, "sha256": "21b0b193d2829a63c616e3bf7a2c56e8ebdfc2abc616fb0e6ecdf642bc9faffa"},
+    {"path": "capability_probe_executor.py", "git_blob_oid": "22d42cb66a89adcfbb3db951fc73995d06e2d2f7", "bytes": 20080, "sha256": "d20854c00ce60445194df3a594958c4e57a10db24698cd7045aa2272e4626de5"},
     {"path": "marker_probe.py", "git_blob_oid": "3c405681624a5f854227f2cfa1c0387690209e5a", "bytes": 467, "sha256": "e13907d29e621e0615a8db55128e3ebc9e923f902d155f7d301ae63a554f080c"},
     {"path": "sandbox-config.toml", "git_blob_oid": "9bf5f971ea6c96c3b600b97ffe54ea2edd8968b2", "bytes": 142, "sha256": "ed33eb56dae642e0a6695c9c1e4455210ffd6319ee7f119da6ee3e92bb9fd587"},
     {"path": "sandbox-requirements.toml", "git_blob_oid": "c09376409c079ecf1dd04c8d9064e6eaf28b16c2", "bytes": 58, "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"},
-    {"path": "terminal-policy.json", "git_blob_oid": "2ef8e869ea39f1252e4bbc843cb0eb7f6d89b04b", "bytes": 1080, "sha256": "213d70c59251a6c55f05a486be9ef4d95b21e203c1baff5fe648e139795c3967"},
-    {"path": "test_capability_probe.py", "git_blob_oid": "721d5cc5890cf1242696143d9b232ddb8e495f32", "bytes": 17902, "sha256": "a3b1ecc7c79a04c8ae9795782a8d959f1c5589e88ef550b6854a7530972dd2b7"}
+    {"path": "terminal-policy.json", "git_blob_oid": "e4f0b3c8107dc4843fd3f7a4e01b73e7cfd33983", "bytes": 1179, "sha256": "cb53cb73335ff9a5e0a40adc5ed1c6ead6f0c340a37ebac046bade456ed94445"},
+    {"path": "test_capability_probe.py", "git_blob_oid": "e6b04f11f69551a8f2a18f35414d41ffd0402daf", "bytes": 20815, "sha256": "202202e279b6e25a83520c725ffc7e059e2ca6e6d0893d329f520d2aa8dc298c"}
   ],
   "claim_ceiling": {
     "freeze_can_establish": [

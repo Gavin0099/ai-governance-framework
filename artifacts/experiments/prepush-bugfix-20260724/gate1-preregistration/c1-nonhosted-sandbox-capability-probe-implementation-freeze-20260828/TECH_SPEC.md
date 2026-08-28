@@ -20,10 +20,14 @@ Windows sandbox task-command filesystem/exec plane.
 One later owner-authorized execution produces exactly one terminal:
 
 - `ABSOLUTE_PYTHON_TASK_PLANE_LAUNCHABLE`
-- `ABSOLUTE_PYTHON_TASK_PLANE_DENIED`
 - `CAPABILITY_PROBE_SURFACE_UNAVAILABLE`
 - `CAPABILITY_PROBE_AMBIGUOUS`
 - `CAPABILITY_PROBE_CLEANUP_FAILED`
+
+The implementation deliberately has no `ABSOLUTE_PYTHON_TASK_PLANE_DENIED`
+terminal. A nonzero absolute-control result without a separate bounded denial
+proof remains `CAPABILITY_PROBE_AMBIGUOUS`; raw stderr text or message
+substrings may not upgrade that evidence to denial.
 
 ## Boundaries
 
@@ -39,6 +43,11 @@ Only exact marker bytes, zero exit, empty stdout, and empty stderr are positive.
 Private roots and the staged CLI are deleted before a positive terminal is
 published. Cleanup failure overrides every other result.
 
+The final output directory is created atomically before any private or CLI root.
+That successful `mkdir` is the create-once attempt claim. An overlapping loser
+must stop before materialization and may not clean or publish anything owned by
+the winner.
+
 ## Non-goals
 
 No hosted request, sandbox qualification, qualification-03, consumer amendment,
@@ -49,6 +58,7 @@ Rekor POST, provider-model observation, or Skill-effectiveness claim.
 
 Focused tests cover dirty working-tree redirection, direct executor rejection,
 binding-before-root ordering, forbidden argv, missing `PATH`, negative-control
-unexpected success, positive denial, ambiguous marker/output, cleanup override,
+unexpected success, ambiguous nonzero positive evidence, atomic attempt ownership,
+loser cleanup isolation, ambiguous marker/output, cleanup override,
 create-once publication, and zero hosted/auth surfaces. Fresh checkout and the
 canonical precommit gate are required before the local freeze commit.
