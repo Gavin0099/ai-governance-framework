@@ -1,0 +1,125 @@
+{
+  "schema": "c1-probe02-parent-readiness-trusted-bootstrap-freeze.v1",
+  "status": "FROZEN_NOT_EXECUTED",
+  "framework_base": "2615e1da701ac35d4b2f47861ff1546f2c2cae33",
+  "correction_scope": {
+    "finding": "parent readiness imported working-tree code before binding verification",
+    "superseded_scope": "parent-readiness launch trust root only",
+    "predecessor_bytes_modified": false,
+    "readiness_semantics_modified": false,
+    "receipt_schema_modified": false,
+    "invocation_journal_modified": false
+  },
+  "binding_contract": {
+    "bootstrap_source": "OWNER_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "git_replace_objects_allowed": false,
+    "working_tree_code_trusted": false,
+    "ambient_sys_modules_trusted": false,
+    "ambient_sys_path_trusted": false,
+    "ambient_path_trusted": false,
+    "all_bindings_before_staging": true,
+    "all_bindings_before_sentinel_or_receipt": true,
+    "verified_sources_materialized_before_import": true,
+    "staging_cleanup_before_readiness_execution": true
+  },
+  "runtime": {
+    "git_executable": "C:/Program Files/Git/cmd/git.exe",
+    "git_executable_bytes": 46480,
+    "git_executable_sha256": "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "python_isolated_flag": "-I",
+    "bootstrap_stdin_flag": "-"
+  },
+  "staging_contract": {
+    "derivation": "repo.parent/.<repo.name>.c1-probe02-parent-readiness-bootstrap-staging",
+    "outside_gate1_execution_exact_child_boundary": true,
+    "must_be_absent_before_materialization": true,
+    "exclusive_create_required": true,
+    "exact_readback_required": true,
+    "cleanup_before_readiness_execution": true
+  },
+  "source_bindings": [
+    {
+      "label": "readiness_manifest",
+      "commit": "2615e1da701ac35d4b2f47861ff1546f2c2cae33",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828/capability-probe-02-manifest.json",
+      "git_blob_oid": "b242e640aa81dfc410d5dca88325af1a78050b18",
+      "bytes": 10585,
+      "sha256": "f8e4f90919a4cee4b72bf2c8e901b2d1c8c28ecff388344cac410f2b1f276457"
+    },
+    {
+      "label": "journal_manifest",
+      "commit": "2615e1da701ac35d4b2f47861ff1546f2c2cae33",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828/capability-probe-02-invocation-journal-manifest.json",
+      "git_blob_oid": "5c5cc7a7fb50bba3874206a449e250f8238a295a",
+      "bytes": 6362,
+      "sha256": "9148353bdedb5bf331c0e94877a699b2621f5a08680e10d5698ed060d81c165c"
+    },
+    {
+      "label": "parent_readiness_probe",
+      "commit": "2615e1da701ac35d4b2f47861ff1546f2c2cae33",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828/parent_readiness_probe.py",
+      "git_blob_oid": "63a599ac8e8638d8d5b555122a22ba3ed3df19c3",
+      "bytes": 2626,
+      "sha256": "5cc82875a99bba0abb67b3a728ab39287c1f7bd8f89ecb87e58ff940cc5fef44"
+    },
+    {
+      "label": "execution_readiness",
+      "commit": "2615e1da701ac35d4b2f47861ff1546f2c2cae33",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828/execution_readiness.py",
+      "git_blob_oid": "38e4255f6541017b5f53f2251d1eedb66b3e5c23",
+      "bytes": 13829,
+      "sha256": "daa1cc7d6fa9a532ea46a0bd51b076c5b4f16ef92af5325e26e0ac3fb2d626e6"
+    }
+  ],
+  "frozen_executor_sha256": "703d5057881fb0e9d4d2c0581a2449b8c1e4619b30fbd39d0ebd368a865e2ee2",
+  "frozen_files": [
+    {"path": ".gitattributes", "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46", "bytes": 8, "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"},
+    {"path": "README.md", "git_blob_oid": "c2a745dc123b91118ea873bbcf3668e8dcbf3b21", "bytes": 1225, "sha256": "8aca06920413f685d566aa7752ef17cabb1038d7561ca9260ef87f0e61004ef8"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "b7443d0a9003d32c86e53b48e016b69ea833b60c", "bytes": 3185, "sha256": "f17d40470006029de6983eff0d0e4b04ef6f4bcc0c7bf552c95aaf74fb1ecdb6"},
+    {"path": "parent_readiness_trusted_bootstrap.py", "git_blob_oid": "e7da298fd7ebd15516f78a12b348b1e58ecf0376", "bytes": 11275, "sha256": "703d5057881fb0e9d4d2c0581a2449b8c1e4619b30fbd39d0ebd368a865e2ee2"},
+    {"path": "test_parent_readiness_trusted_bootstrap.py", "git_blob_oid": "21e4f2cccd7461debe9c8076a1f4257e6cc3380a", "bytes": 12076, "sha256": "908ce8af56509a5c5353ce28ebc060a654f540034044fd5237697692190f1276"}
+  ],
+  "execution_authority": {
+    "parent_readiness_probe_authorized": false,
+    "capability_probe_02_authorized": false,
+    "hosted_request_authorized": false,
+    "qualification_03_authorized": false,
+    "consumer_amendment_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false
+  },
+  "authoring_boundary": {
+    "bootstrap_executed": false,
+    "staging_root_created": false,
+    "readiness_probe_executed": false,
+    "readiness_receipt_created": false,
+    "sentinel_created": false,
+    "capability_probe_executed": false,
+    "hosted_request_executed": false,
+    "qualification_03_created": false,
+    "randomization_created": false
+  },
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "reviewable stdin-only bootstrap bytes",
+      "synthetic Git-object and module-selection boundary behavior",
+      "synthetic cleanup-before-readiness ordering"
+    ],
+    "does_not_establish": [
+      "parent readiness PASS",
+      "filesystem readiness",
+      "capability-probe-02 authorization or result",
+      "sandbox qualification",
+      "execution convergence",
+      "randomization or arm execution"
+    ]
+  }
+}
