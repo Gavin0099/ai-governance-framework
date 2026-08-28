@@ -100,8 +100,12 @@ def test_direct_working_tree_execution_is_rejected(tmp_path: Path) -> None:
 
 def test_binding_failure_occurs_before_root_or_child(tmp_path: Path, monkeypatch) -> None:
     module = _load()
-    root = tmp_path / "must-not-exist"
+    claim_calls = []
     launched = False
+
+    def claim(root: Path) -> None:
+        claim_calls.append(root)
+        raise AssertionError("claim reached")
 
     def launch(*args, **kwargs):
         nonlocal launched
@@ -115,14 +119,36 @@ def test_binding_failure_occurs_before_root_or_child(tmp_path: Path, monkeypatch
         "_verify_runtime",
         lambda: (_ for _ in ()).throw(module.EvidencePublicationError("binding failed")),
     )
+    monkeypatch.setattr(module, "_claim_root", claim)
     with pytest.raises(module.EvidencePublicationError, match="binding failed"):
         module.execute(
             repo_root=tmp_path,
             owner_authorized_freeze_commit="a" * 40,
             launcher=launch,
         )
-    assert not root.exists()
+    assert claim_calls == []
     assert launched is False
+
+
+def test_atomic_publication_race_preserves_competitor_final(tmp_path: Path, monkeypatch) -> None:
+    module = _load()
+    root = tmp_path / "claimed-root"
+    root.mkdir()
+    final = root / "race.json"
+    staging = root / ".race.json.staging"
+    competitor = b"competitor-winner"
+    real_link = module.os.link
+
+    def racing_link(source, destination):
+        Path(destination).write_bytes(competitor)
+        return real_link(source, destination)
+
+    monkeypatch.setattr(module.os, "link", racing_link)
+    with pytest.raises(FileExistsError):
+        module._atomic_publish(root, final.name, b"publisher-loser")
+
+    assert final.read_bytes() == competitor
+    assert not staging.exists()
 
 
 def test_success_publishes_start_then_exact_receipt_without_review(tmp_path: Path) -> None:

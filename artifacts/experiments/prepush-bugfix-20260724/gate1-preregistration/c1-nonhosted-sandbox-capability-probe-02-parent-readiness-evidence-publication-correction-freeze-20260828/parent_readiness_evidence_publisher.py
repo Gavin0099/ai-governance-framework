@@ -334,7 +334,8 @@ def _atomic_publish(root: Path, name: str, payload: bytes) -> Mapping[str, objec
             os.fsync(handle.fileno())
         if staging.read_bytes() != payload:
             raise EvidencePublicationError(f"evidence staging readback mismatch: {name}")
-        os.replace(staging, final)
+        os.link(staging, final)
+        staging.unlink()
         if final.read_bytes() != payload:
             raise EvidencePublicationError(f"evidence final readback mismatch: {name}")
         return _json_object(payload, name)
