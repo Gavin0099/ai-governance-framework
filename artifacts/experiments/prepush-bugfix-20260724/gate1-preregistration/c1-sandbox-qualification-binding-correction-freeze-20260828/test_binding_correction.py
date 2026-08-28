@@ -192,8 +192,41 @@ def test_post_join_containment_rejects_windows_separator_traversal(
     tmp_path: Path, bound_path: str
 ) -> None:
     root = tmp_path / "verified-root"
-    with pytest.raises(EXECUTOR.ExecutorError, match="escapes verified root"):
+    with pytest.raises(EXECUTOR.ExecutorError, match="unsafe bound path"):
         EXECUTOR._contained_repo_path(root, bound_path, label="materialization")
+
+
+@pytest.mark.parametrize(
+    "bound_path",
+    [
+        "C:/Program Files/OpenAI/codex.exe",
+        "D:/ai-governance-framework/.venv/Scripts/python.exe",
+        "C:/ProgramData/OpenAI/Codex/requirements.toml",
+    ],
+)
+def test_windows_machine_paths_are_validated_with_windows_semantics(
+    bound_path: str,
+) -> None:
+    assert EXECUTOR._safe_windows_machine_path(
+        bound_path, label="machine path"
+    ) == Path(bound_path)
+
+
+@pytest.mark.parametrize(
+    "bound_path",
+    [
+        "relative/path",
+        "../escape",
+        "C:relative/path",
+        "C:/safe/../escape",
+        r"C:\safe\..\escape",
+    ],
+)
+def test_windows_machine_paths_reject_relative_and_traversal_forms(
+    bound_path: str,
+) -> None:
+    with pytest.raises(EXECUTOR.ExecutorError, match="derived machine path is unsafe"):
+        EXECUTOR._safe_windows_machine_path(bound_path, label="machine path")
 
 
 def test_runner_directory_escape_fails_before_module_import(

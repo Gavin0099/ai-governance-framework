@@ -127,9 +127,24 @@ def _safe_repo_path(raw: str, *, label: str) -> PurePosixPath:
         or not path.parts
         or ".." in path.parts
         or "." in path.parts
+        or ".." in windows_path.parts
+        or "." in windows_path.parts
     ):
         raise ExecutorError(f"unsafe bound path: {label}")
     return path
+
+
+def _safe_windows_machine_path(raw: str, *, label: str) -> Path:
+    windows_path = PureWindowsPath(raw)
+    if (
+        not windows_path.is_absolute()
+        or not windows_path.drive
+        or not windows_path.root
+        or ".." in windows_path.parts
+        or "." in windows_path.parts
+    ):
+        raise ExecutorError(f"derived machine path is unsafe: {label}")
+    return Path(raw)
 
 
 def _contained_repo_path(root: Path, raw: str, *, label: str) -> Path:
@@ -200,10 +215,7 @@ def _derived_paths(repo: Path, manifest: Mapping[str, object]) -> Mapping[str, P
     if result["qualification_output_root"].parent != result["cli_staging_root"].parent:
         raise ExecutorError("qualification and staging roots do not share a frozen parent")
     for key in ("installed_cli_source", "live_machine_policy", "python_executable"):
-        value = Path(str(paths[key]))
-        if not value.is_absolute() or ".." in value.parts:
-            raise ExecutorError(f"derived machine path is unsafe: {key}")
-        result[key] = value
+        result[key] = _safe_windows_machine_path(str(paths[key]), label=key)
     return result
 
 
