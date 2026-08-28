@@ -23,6 +23,7 @@ FREEZE_REPO_DIR = (
 )
 MANIFEST_REPO_PATH = f"{FREEZE_REPO_DIR}/invocation-journal-pinned-git-manifest.json"
 BOOTSTRAP_NAME = "invocation_journal_pinned_git_bootstrap.py"
+CORRECTED_CHILD_NAME = "capability_probe_02_pinned_git_bootstrap.py"
 EXPECTED_GIT_PATH = Path("C:/Program Files/Git/cmd/git.exe")
 EXPECTED_GIT_BYTES = 46480
 EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5"
@@ -45,6 +46,15 @@ FIXED_GIT_ENVIRONMENT = {
     "GIT_OPTIONAL_LOCKS": "0",
     "NO_COLOR": "1",
 }
+INHERITED_CHILD_ENVIRONMENT_KEYS = (
+    "COMSPEC",
+    "PATHEXT",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "WINDIR",
+)
 START_NAME = "start.json"
 OUTCOME_NAME = "outcome.json"
 HEX = set("0123456789abcdef")
@@ -133,6 +143,18 @@ def _pinned_git_environment() -> dict[str, str]:
         FIXED_GIT_ENVIRONMENT
     ):
         raise JournalError("Git environment allowlist mismatch")
+    return environment
+
+
+def _pinned_child_environment() -> dict[str, str]:
+    environment = {
+        key: value
+        for key in INHERITED_CHILD_ENVIRONMENT_KEYS
+        if (value := os.environ.get(key))
+    }
+    environment["NO_COLOR"] = "1"
+    if "PATH" in environment or any(key.startswith("GIT_") for key in environment):
+        raise JournalError("child environment allowlist mismatch")
     return environment
 
 
@@ -635,7 +657,7 @@ def execute(
         raise JournalError("owner authority does not match repository HEAD")
     manifest = _manifest(repo, git_runner, commit)
     frozen = _verify_inventory(repo, git_runner, commit, manifest)
-    sources = _verify_sources(repo, git_runner, manifest)
+    _verify_sources(repo, git_runner, manifest)
     if _sha256(frozen[BOOTSTRAP_NAME]) != manifest.get("frozen_executor_sha256"):
         raise JournalError("journal bootstrap authority mismatch")
     paths = _paths(repo, manifest)
@@ -650,8 +672,8 @@ def execute(
     ):
         raise JournalError("manifest runtime binding mismatch")
     _verify_prejournal_state(repo, git_runner, commit, manifest, paths)
-    child = sources.get("probe02_child_bootstrap")
-    if child is None:
+    child = frozen.get(CORRECTED_CHILD_NAME)
+    if child is None or _sha256(child) != manifest.get("frozen_child_bootstrap_sha256"):
         raise JournalError("child bootstrap unavailable")
     python = paths["python"]
     timeout = float(manifest["runtime"]["child_timeout_seconds"])
@@ -666,7 +688,7 @@ def execute(
         "--owner-authorized-readiness-review-sha256",
         owner_authorized_readiness_review_sha256,
     ]
-    environment = dict(os.environ)
+    environment = _pinned_child_environment()
     return run_journaled_child(
         journal_root=paths["journal"],
         child_output_root=paths["output"],

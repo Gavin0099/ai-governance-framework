@@ -22,8 +22,15 @@ resolution.
    selectors—are not inherited; system/global config and system attributes are
    disabled by fixed values.
 6. Manifest, frozen inventory, source bindings, HEAD, and anchor OIDs all use
-   that adapter.  No independent ambient-Git path remains.
-7. Only after all bindings and pre-journal state checks pass may the journal
+   that adapter.
+7. The outer journal obtains the corrected child bootstrap only from the
+   owner-authorized commit's frozen inventory. The child and its corrected
+   driver repeat the exact-Git verification and use equivalent allowlisted Git
+   environments. The child-launch and driver-launch environments exclude
+   ambient `PATH` and arbitrary `GIT_*`; the downstream readiness and capability
+   engine Git entrypoints are explicitly routed through the corrected driver's
+   pinned adapter.
+8. Only after all bindings and pre-journal state checks pass may the journal
    root and `start.json` be created and the child be launched.
 
 ## Preserved semantics
@@ -46,11 +53,16 @@ must remain absent. A second execute-path test sets `GIT_DIR` and
 the target checkout. Additional tests reject malformed adapter prefixes,
 unexpected Git commands, altered subprocess parameters, and ambient Git
 selectors.
+The cross-layer test then publishes a synthetic start record and launches the
+corrected child with hostile ambient `PATH`, `GIT_DIR`, and `GIT_WORK_TREE`.
+The child must use the target checkout and pinned Git, return a bounded nonzero
+before capability execution, and leave the fake-Git marker absent.
 
 ## Claim ceiling
 
 This freeze can establish reviewable pinned-Git implementation bytes and
-synthetic/adversarial evidence that ambient `PATH` cannot select Git in the
-outer journal verification path.  It does not authorize or establish Probe-02,
+synthetic/adversarial evidence that ambient `PATH` or repository-selecting
+`GIT_*` cannot select Git or repository identity across the outer-to-child
+verification path.  It does not authorize or establish Probe-02,
 readiness, sandbox capability, hosted transport, qualification, randomization,
 or arm results.

@@ -27,7 +27,23 @@ def load_module():
     return module
 
 
+def load_named_module(name: str, filename: str):
+    path = BASE / filename
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 BOOTSTRAP = load_module()
+CHILD = load_named_module(
+    "c1_probe02_corrected_child_test", "capability_probe_02_pinned_git_bootstrap.py"
+)
+DRIVER = load_named_module(
+    "c1_probe02_corrected_driver_test", "capability_probe_02_pinned_git_driver.py"
+)
 
 
 def sha256(payload: bytes) -> str:
@@ -94,6 +110,25 @@ def test_git_environment_is_allowlisted_and_drops_repository_selectors(
     }
 
 
+def test_outer_child_and_nested_git_environments_drop_ambient_selectors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATH", "C:/hostile")
+    monkeypatch.setenv("GIT_DIR", "C:/decoy/.git")
+    monkeypatch.setenv("GIT_WORK_TREE", "C:/decoy")
+    monkeypatch.setenv("GIT_OBJECT_DIRECTORY", "C:/decoy/objects")
+    outer_child = BOOTSTRAP._pinned_child_environment()
+    child_git = CHILD._pinned_git_environment()
+    child_driver = CHILD._pinned_child_environment("a" * 64)
+    driver_git = DRIVER._pinned_git_environment()
+    for environment in (outer_child, child_git, child_driver, driver_git):
+        assert "PATH" not in environment
+        assert "GIT_DIR" not in environment
+        assert "GIT_WORK_TREE" not in environment
+        assert "GIT_OBJECT_DIRECTORY" not in environment
+    assert child_driver["C1_CAPABILITY_EXECUTOR_SHA256"] == "a" * 64
+
+
 def test_execute_ignores_malicious_path_before_any_formal_root(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -157,6 +192,76 @@ def test_all_git_verification_is_adapter_threaded() -> None:
     assert "_git(repo, git_runner" in source
     assert "_blob(repo, git_runner" in source
     assert 'subprocess.run(\n        [\n            "git"' not in source
+
+    child_source = (BASE / "capability_probe_02_pinned_git_bootstrap.py").read_text(
+        encoding="utf-8"
+    )
+    driver_source = (BASE / "capability_probe_02_pinned_git_driver.py").read_text(
+        encoding="utf-8"
+    )
+    for corrected_source in (child_source, driver_source):
+        assert "[str(EXPECTED_GIT_PATH), *argv[1:]]" in corrected_source
+        assert "env=_pinned_git_environment()" in corrected_source
+        assert 'subprocess.run(\n        [\n            "git"' not in corrected_source
+    assert "engine._git = pinned_engine_git" in driver_source
+    assert "git_runner=git_runner" in driver_source
+
+
+def test_outer_journal_launches_corrected_child_with_pinned_git_after_start(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fake = tmp_path / "fake-git"
+    fake.mkdir()
+    marker = fake / "fake-git-launched.txt"
+    (fake / "git.cmd").write_text(
+        f'@echo launched>"{marker}"\r\n@exit /b 0\r\n', encoding="utf-8"
+    )
+    monkeypatch.setenv("PATH", f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "decoy" / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path / "decoy"))
+    environment = BOOTSTRAP._pinned_child_environment()
+    journal = tmp_path / "journal-parent" / "attempt"
+    journal.parent.mkdir()
+    output = tmp_path / "child-output"
+    child = (BASE / BOOTSTRAP.CORRECTED_CHILD_NAME).read_bytes()
+    result = BOOTSTRAP.run_journaled_child(
+        journal_root=journal,
+        child_output_root=output,
+        commit="0" * 40,
+        execution_packet_sha256="1" * 64,
+        readiness_review_sha256="2" * 64,
+        bootstrap_sha256="3" * 64,
+        child_argv=[
+            str(BOOTSTRAP.EXPECTED_PYTHON_PATH), "-I", "-",
+            "--repo-root", str(REPO),
+            "--owner-authorized-freeze-commit", "0" * 40,
+            "--owner-authorized-readiness-review-sha256", "2" * 64,
+        ],
+        child_payload=child,
+        cwd=REPO,
+        environment=environment,
+        timeout=30.0,
+        clock=lambda: "2026-08-29T00:00:00Z",
+    )
+    assert result["status"] == "INVOCATION_CHILD_NONZERO"
+    assert (journal / BOOTSTRAP.START_NAME).is_file()
+    assert (journal / BOOTSTRAP.OUTCOME_NAME).is_file()
+    assert not marker.exists()
+    assert not output.exists()
+    for path in formal_paths(load_manifest()):
+        assert not path.exists()
+
+
+def test_outer_inventory_selects_corrected_child_not_superseded_source() -> None:
+    source = (BASE / "invocation_journal_pinned_git_bootstrap.py").read_text(
+        encoding="utf-8"
+    )
+    assert "child = frozen.get(CORRECTED_CHILD_NAME)" in source
+    assert 'sources.get("probe02_child_bootstrap")' not in source
+    manifest = load_manifest()
+    labels = {entry["label"] for entry in manifest["source_bindings"]}
+    assert "superseded_probe02_child_bootstrap" in labels
+    assert "probe02_child_bootstrap" not in labels
 
 
 def test_source_bindings_match_execution_commit() -> None:
