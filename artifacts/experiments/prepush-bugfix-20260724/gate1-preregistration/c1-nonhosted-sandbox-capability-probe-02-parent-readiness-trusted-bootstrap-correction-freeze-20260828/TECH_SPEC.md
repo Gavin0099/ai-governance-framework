@@ -47,7 +47,8 @@ then permits the existing readiness wrapper to run.
 
 The bootstrap is infrastructure. It must not change readiness domain meaning.
 Git and Python are pinned by path, bytes, and digest. The bootstrap replaces
-the imported wrappers' Git adapter with its own pinned absolute adapter.
+the readiness anchor verifier's `git_runner` argument with a subprocess-
+compatible pinned absolute adapter and validates its complete argv contract.
 Working-tree and ambient module paths remain explicitly untrusted.
 
 ## Claim ceiling

@@ -102,6 +102,117 @@ def test_git_uses_pinned_binary_and_disables_replace_objects(monkeypatch: pytest
     assert "C:/malicious-path" not in argv
 
 
+def test_probe_execute_routes_anchor_check_around_malicious_path_git(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit = "d" * 40
+    _prepare_execute(monkeypatch, commit)
+    monkeypatch.setattr(BOOTSTRAP, "_verify_sources", lambda repo, manifest: source_payloads())
+    staging = tmp_path / "stage"
+    staging.mkdir()
+    malicious_git_called = {"value": False}
+    pinned_argv: list[str] = []
+
+    def captured_default(argv: list[str], **kwargs: object) -> object:
+        del argv, kwargs
+        malicious_git_called["value"] = True
+        raise AssertionError("PATH-selected Git executed")
+
+    class Readiness:
+        @staticmethod
+        def verify_anchor_git_binding(
+            repo: Path,
+            value: str,
+            manifest: dict,
+            git_runner=captured_default,
+        ) -> None:
+            del manifest
+            completed = git_runner(
+                [
+                    "git",
+                    "--no-replace-objects",
+                    "-c",
+                    f"safe.directory={repo.resolve()}",
+                    "-C",
+                    str(repo.resolve()),
+                    "rev-parse",
+                    f"{value}:tracked-anchor",
+                ],
+                input=b"",
+                capture_output=True,
+                check=False,
+                timeout=15.0,
+            )
+            assert completed.returncode == 0
+
+    class Probe:
+        _git = None
+
+        @staticmethod
+        def execute(*, repo_root: Path, execution_commit: str) -> dict:
+            Readiness.verify_anchor_git_binding(repo_root, execution_commit, {})
+            return {"status": "PARENT_READINESS_PASSED"}
+
+    def exact_run(argv: list[str], **kwargs: object) -> object:
+        del kwargs
+        pinned_argv.extend(argv)
+        return types.SimpleNamespace(returncode=0, stderr=b"", stdout=b"bound-oid\n")
+
+    fake_git = tmp_path / "malicious-bin" / "git.exe"
+    fake_git.parent.mkdir()
+    fake_git.write_bytes(b"must-not-execute")
+    monkeypatch.setenv("PATH", str(fake_git.parent))
+    monkeypatch.setattr(BOOTSTRAP.subprocess, "run", exact_run)
+    monkeypatch.setattr(
+        BOOTSTRAP,
+        "_materialize_and_import",
+        lambda repo, sources: (Probe(), Readiness, staging),
+    )
+
+    receipt = BOOTSTRAP.execute(repo_root=tmp_path, owner_authorized_freeze_commit=commit)
+    assert receipt == {"status": "PARENT_READINESS_PASSED"}
+    assert malicious_git_called["value"] is False
+    assert pinned_argv[0] == str(BOOTSTRAP.EXPECTED_GIT_PATH)
+    assert pinned_argv[1] == "--no-replace-objects"
+    assert fake_git.read_bytes() == b"must-not-execute"
+    assert not staging.exists()
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (lambda argv: ["git", *argv[2:]], "argv contract mismatch"),
+        (lambda argv: [*argv[:-1], "e" * 40 + ":tracked-anchor"], "argv contract mismatch"),
+    ],
+)
+def test_pinned_readiness_git_runner_rejects_argv_drift(
+    tmp_path: Path,
+    mutation,
+    message: str,
+) -> None:
+    commit = "d" * 40
+    repo = tmp_path.resolve()
+    runner = BOOTSTRAP._pinned_readiness_git_runner(repo, commit)
+    argv = [
+        "git",
+        "--no-replace-objects",
+        "-c",
+        f"safe.directory={repo}",
+        "-C",
+        str(repo),
+        "rev-parse",
+        f"{commit}:tracked-anchor",
+    ]
+    with pytest.raises(BOOTSTRAP.BootstrapError, match=message):
+        runner(
+            mutation(argv),
+            input=b"",
+            capture_output=True,
+            check=False,
+            timeout=15.0,
+        )
+
+
 def test_dirty_worktree_sources_cannot_replace_bound_blobs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -214,7 +325,9 @@ def test_cleanup_completes_before_readiness_execution(
             called["readiness"] = True
             return {"status": "PARENT_READINESS_PASSED"}
 
-    readiness = types.SimpleNamespace(_git=None)
+    readiness = types.SimpleNamespace(
+        verify_anchor_git_binding=lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         BOOTSTRAP,
         "_materialize_and_import",
@@ -247,7 +360,11 @@ def test_cleanup_failure_prevents_readiness_and_receipt(
     monkeypatch.setattr(
         BOOTSTRAP,
         "_materialize_and_import",
-        lambda repo, sources: (Probe(), types.SimpleNamespace(_git=None), staging),
+        lambda repo, sources: (
+            Probe(),
+            types.SimpleNamespace(verify_anchor_git_binding=lambda *args, **kwargs: None),
+            staging,
+        ),
     )
     monkeypatch.setattr(
         BOOTSTRAP,
@@ -322,6 +439,10 @@ def test_authority_and_authoring_boundary_are_all_false() -> None:
     assert manifest["status"] == "FROZEN_NOT_EXECUTED"
     assert set(manifest["execution_authority"].values()) == {False}
     assert set(manifest["authoring_boundary"].values()) == {False}
+    binding = manifest["binding_contract"]
+    assert binding["readiness_git_module_attribute_substitution_allowed"] is False
+    assert binding["readiness_anchor_verifier_receives_pinned_git_runner"] is True
+    assert binding["readiness_git_argv_validated_before_launch"] is True
 
 
 def test_parser_exposes_no_source_or_runtime_override() -> None:

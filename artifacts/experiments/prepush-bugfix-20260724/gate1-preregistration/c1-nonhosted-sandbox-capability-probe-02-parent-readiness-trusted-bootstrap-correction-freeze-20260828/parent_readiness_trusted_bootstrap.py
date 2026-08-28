@@ -88,6 +88,62 @@ def _git(repo: Path, *args: str, binary: bool = False) -> bytes | str:
     return completed.stdout if binary else completed.stdout.decode("utf-8").strip()
 
 
+def _pinned_readiness_git_runner(repo: Path, commit: str):
+    resolved_repo = repo.resolve()
+    expected_prefix = [
+        "git",
+        "--no-replace-objects",
+        "-c",
+        f"safe.directory={resolved_repo}",
+        "-C",
+        str(resolved_repo),
+        "rev-parse",
+    ]
+
+    def run(
+        argv: list[str],
+        *,
+        input: bytes,
+        capture_output: bool,
+        check: bool,
+        timeout: float,
+    ) -> subprocess.CompletedProcess[bytes]:
+        if (
+            not isinstance(argv, list)
+            or len(argv) != 8
+            or argv[:7] != expected_prefix
+            or not isinstance(argv[7], str)
+            or not argv[7].startswith(f"{commit}:")
+            or argv[7] == f"{commit}:"
+        ):
+            raise BootstrapError("readiness Git argv contract mismatch")
+        if input != b"" or capture_output is not True or check is not False or timeout != 15.0:
+            raise BootstrapError("readiness Git subprocess contract mismatch")
+        return subprocess.run(
+            [str(EXPECTED_GIT_PATH), *argv[1:]],
+            input=input,
+            capture_output=capture_output,
+            check=check,
+            timeout=timeout,
+        )
+
+    return run
+
+
+def _bind_readiness_git_adapter(readiness: ModuleType, repo: Path, commit: str) -> None:
+    verifier = readiness.verify_anchor_git_binding
+    pinned_runner = _pinned_readiness_git_runner(repo, commit)
+
+    def verify_anchor_git_binding(
+        bound_repo: Path, bound_commit: str, manifest: Mapping[str, object]
+    ) -> None:
+        if bound_repo.resolve() != repo.resolve() or bound_commit != commit:
+            raise BootstrapError("readiness Git authority mismatch")
+        verifier(bound_repo, bound_commit, manifest, git_runner=pinned_runner)
+
+    readiness.verify_anchor_git_binding = verify_anchor_git_binding
+
+
 def _blob(repo: Path, commit: str, path: str) -> tuple[str, bytes]:
     oid = str(_git(repo, "rev-parse", f"{commit}:{path}"))
     payload = _git(repo, "cat-file", "blob", oid, binary=True)
@@ -267,7 +323,7 @@ def execute(*, repo_root: Path, owner_authorized_freeze_commit: str) -> Mapping[
     try:
         probe, readiness, staging = _materialize_and_import(repo, sources)
         probe._git = _git
-        readiness._git = _git
+        _bind_readiness_git_adapter(readiness, repo, owner_authorized_freeze_commit)
         _remove_staging(staging)
         staging = None
         receipt = probe.execute(

@@ -15,7 +15,8 @@ exact-child boundary, imported by absolute path with module-cache replacement,
 and removed before the readiness implementation can run. The imported wrapper
 uses the bootstrap's pinned `git --no-replace-objects` adapter, so ambient
 `PATH`, `sys.path`, working-tree files, and Git replace objects are not trust
-sources.
+sources. The adapter is injected into `verify_anchor_git_binding()` through its
+`git_runner` parameter; assigning an unrelated module attribute is forbidden.
 
 This freeze authorizes no execution, creates no staging or evidence root, and
 does not authorize Probe-02, hosted requests, Qualification-03, randomization,
