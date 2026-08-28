@@ -70,7 +70,7 @@
     {"path": "invocation-journal-policy.json", "git_blob_oid": "6fa09ca2bb0713d8ac24d19579a3cd6285f6f12a", "bytes": 1063, "sha256": "b064b542ef0e150bba971c78635352ccfa468c07ae5c8bfa0250bd0e18222168"},
     {"path": "probe02-silent-failure-audit-binding.json", "git_blob_oid": "3f87d69065712de0cf43ebfc4a22556da2e9ad32", "bytes": 498, "sha256": "943ea6068eec214097e38af9db166a5a477d972f553e61cd414d2ca9b92a5914"},
     {"path": "invocation_journal_bootstrap.py", "git_blob_oid": "02c165aa2811bf6f1932553711d590b581d0cc7c", "bytes": 20427, "sha256": "599ae7cff32081dccd66306068a3829f61f40c407ae6d5f2ece7801a41481df1"},
-    {"path": "test_invocation_journal.py", "git_blob_oid": "1f0ed4042c24ac0a94eeec1ba1acbc9b50c1b4ad", "bytes": 14754, "sha256": "ff776f53ac6b62d48b80ecef1b24f249045537f954689373ed940d600d1b7b4e"}
+    {"path": "test_invocation_journal.py", "git_blob_oid": "59c06303780668ace3c4fce4732a57a16be26c58", "bytes": 14804, "sha256": "ba51fdb369fae011e101cd2219327e788d16e676fee7fab912827bf031ffca97"}
   ],
   "execution_authority": {
     "invocation_journal_execution_authorized": false,

@@ -325,7 +325,8 @@ def test_frozen_inventory_matches_files_and_git_blob_oids() -> None:
         assert sha256(payload) == entry["sha256"]
         oid = subprocess.check_output(["git", "hash-object", str(path)], cwd=REPO, text=True).strip()
         assert oid == entry["git_blob_oid"]
-    assert {item.name for item in BASE.iterdir()} == expected
+    actual = {item.name for item in BASE.iterdir() if item.name != "__pycache__"}
+    assert actual == expected
     bootstrap = (BASE / "invocation_journal_bootstrap.py").read_bytes()
     assert sha256(bootstrap) == manifest["frozen_executor_sha256"]
 
