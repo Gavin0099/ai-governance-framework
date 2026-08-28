@@ -13,6 +13,10 @@ visible. It binds the exact execution-authorization packet, readiness review,
 execution commit and journal bootstrap digest. Once visible, it remains bounded evidence even if the child crashes,
 returns nonzero, produces no terminal, or the journal outcome publisher fails.
 
+The journal is rooted below the separately tracked `gate1-invocation-journal`
+parent, outside the `gate1-execution` exact-child readiness boundary. Publishing
+`start.json` therefore cannot invalidate the child's live readiness recheck.
+
 This freeze does not authorize the parent-readiness probe, Probe-02, a hosted
 request, qualification-03, randomization, producer, scorer or arms. It creates
 no journal or attempt root while authored.

@@ -209,6 +209,9 @@ def _paths(repo: Path, manifest: Mapping[str, object]) -> Mapping[str, Path]:
         raise JournalError("runtime binding unavailable")
     return {
         "journal": _contained(repo, str(raw["journal_root"]), "journal_root"),
+        "journal_anchor": _contained(
+            repo, str(raw["journal_parent_anchor"]), "journal_parent_anchor"
+        ),
         "output": _contained(repo, str(raw["attempt_output_root"]), "attempt_output_root"),
         "cli": _contained(repo, str(raw["cli_staging_root"]), "cli_staging_root"),
         "private": _contained(repo, str(raw["private_root"]), "private_root"),
@@ -222,8 +225,9 @@ def _verify_prejournal_state(
 ) -> None:
     runtime = manifest["runtime"]
     parent_binding = manifest.get("parent_binding")
+    journal_parent_binding = manifest.get("journal_parent_binding")
     assert isinstance(runtime, dict)
-    if not isinstance(parent_binding, dict):
+    if not isinstance(parent_binding, dict) or not isinstance(journal_parent_binding, dict):
         raise JournalError("parent binding unavailable")
     python = paths["python"]
     if (
@@ -232,19 +236,31 @@ def _verify_prejournal_state(
         or _sha256_file(python) != runtime.get("python_executable_sha256")
     ):
         raise JournalError("Python binding mismatch")
-    anchor = paths["anchor"]
-    if (
-        not anchor.is_file()
-        or anchor.stat().st_size != parent_binding.get("anchor_bytes")
-        or _sha256_file(anchor) != parent_binding.get("anchor_sha256")
+    derived = manifest["derived_paths"]
+    assert isinstance(derived, dict)
+    for label, anchor_key, relative_key, binding in (
+        ("execution", "anchor", "parent_anchor", parent_binding),
+        ("journal", "journal_anchor", "journal_parent_anchor", journal_parent_binding),
     ):
-        raise JournalError("parent anchor binding mismatch")
-    anchor_rel = str(manifest["derived_paths"]["parent_anchor"])
-    oid = str(_git(repo, "rev-parse", f"{commit}:{anchor_rel}"))
-    if oid != parent_binding.get("anchor_git_blob_oid"):
-        raise JournalError("parent anchor Git OID mismatch")
-    if not paths["journal"].parent.is_dir():
-        raise JournalError("journal parent unavailable")
+        anchor = paths[anchor_key]
+        if (
+            not anchor.is_file()
+            or anchor.stat().st_size != binding.get("anchor_bytes")
+            or _sha256_file(anchor) != binding.get("anchor_sha256")
+        ):
+            raise JournalError(f"{label} parent anchor binding mismatch")
+        anchor_rel = str(derived[relative_key])
+        oid = str(_git(repo, "rev-parse", f"{commit}:{anchor_rel}"))
+        if oid != binding.get("anchor_git_blob_oid"):
+            raise JournalError(f"{label} parent anchor Git OID mismatch")
+    if paths["output"].parent != paths["anchor"].parent:
+        raise JournalError("attempt parent differs from its bound anchor")
+    if paths["journal"].parent != paths["journal_anchor"].parent:
+        raise JournalError("journal parent differs from its bound anchor")
+    if sorted(item.name for item in paths["journal"].parent.iterdir()) != [
+        paths["journal_anchor"].name
+    ]:
+        raise JournalError("journal parent contains unexpected children")
     for key in ("journal", "output", "cli", "private"):
         if paths[key].exists():
             raise JournalError(f"create-once root already exists: {key}")

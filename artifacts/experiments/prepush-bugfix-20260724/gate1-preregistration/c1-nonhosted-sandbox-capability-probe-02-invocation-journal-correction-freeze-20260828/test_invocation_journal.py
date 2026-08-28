@@ -16,6 +16,7 @@ import pytest
 BASE = Path(__file__).resolve().parent
 REPO = Path.cwd().resolve()
 MANIFEST = BASE / "capability-probe-02-invocation-journal-manifest.json"
+READINESS_DIR = BASE.parent / "c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828"
 COMMIT = "1" * 40
 EXECUTION_PACKET_SHA256 = "2" * 64
 READINESS_REVIEW_SHA256 = "3" * 64
@@ -33,6 +34,19 @@ def load_module():
 
 
 JOURNAL = load_module()
+
+
+def load_readiness_module():
+    path = READINESS_DIR / "execution_readiness.py"
+    spec = importlib.util.spec_from_file_location("c1_probe02_readiness_integration_test", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+READINESS = load_readiness_module()
 
 
 def sha256(payload: bytes) -> str:
@@ -70,6 +84,29 @@ def invoke(
     )
 
 
+def synthetic_readiness_manifest(root: Path) -> dict:
+    parent = root / "gate1-execution"
+    anchor = parent / ".gitattributes"
+    parent.mkdir(parents=True)
+    anchor.write_bytes(b"* -text\n")
+    return {
+        "required_parent_roots": [
+            {
+                "repo_relative_path": "gate1-execution",
+                "required_type": "directory",
+                "anchor_repo_relative_path": "gate1-execution/.gitattributes",
+                "anchor_git_blob_oid": "a" * 40,
+                "anchor_bytes": anchor.stat().st_size,
+                "anchor_sha256": sha256(anchor.read_bytes()),
+                "expected_child_names": [".gitattributes"],
+                "resolved_containment_required": True,
+                "reparse_or_symlink_forbidden": True,
+                "write_capability_evidence_required": True,
+            }
+        ]
+    }
+
+
 def test_authority_is_consumed_before_child_launch(tmp_path: Path) -> None:
     observed: dict[str, object] = {}
 
@@ -88,6 +125,59 @@ def test_authority_is_consumed_before_child_launch(tmp_path: Path) -> None:
     assert observed["child_launch_attempted"] is False
     assert outcome["status"] == "INVOCATION_CHILD_NONZERO"
     assert outcome["child_launch_attempted"] is True
+
+
+def test_start_receipt_does_not_invalidate_child_live_readiness(tmp_path: Path) -> None:
+    readiness_manifest = synthetic_readiness_manifest(tmp_path)
+    journal_parent = tmp_path / "gate1-invocation-journal"
+    journal_parent.mkdir()
+    journal_root = journal_parent / "probe-02"
+    observed: dict[str, object] = {}
+
+    def launcher(argv, payload, cwd, environment, timeout):
+        assert (journal_root / JOURNAL.START_NAME).is_file()
+        observed.update(READINESS.inspect_parent(tmp_path, readiness_manifest)["projection"])
+        return success_result()
+
+    outcome = JOURNAL.run_journaled_child(
+        journal_root=journal_root,
+        child_output_root=tmp_path / "gate1-execution" / "attempt",
+        commit=COMMIT,
+        execution_packet_sha256=EXECUTION_PACKET_SHA256,
+        readiness_review_sha256=READINESS_REVIEW_SHA256,
+        bootstrap_sha256=BOOTSTRAP_SHA256,
+        child_argv=["python", "-I", "-"],
+        child_payload=b"verified child bytes",
+        cwd=tmp_path,
+        environment={"NO_COLOR": "1"},
+        timeout=1.0,
+        launcher=launcher,
+        publisher=JOURNAL._atomic_publish,
+        clock=lambda: "2026-08-28T00:00:00Z",
+    )
+    assert observed["children"] == [".gitattributes"]
+    assert outcome["status"] == "INVOCATION_CHILD_ZERO_WITHOUT_TERMINAL"
+
+
+def test_manifest_journal_parent_is_tracked_and_outside_readiness_boundary() -> None:
+    value = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    derived = value["derived_paths"]
+    journal = Path(derived["journal_root"])
+    journal_anchor = Path(derived["journal_parent_anchor"])
+    attempt = Path(derived["attempt_output_root"])
+    assert journal.parent == journal_anchor.parent
+    assert journal.parent != attempt.parent
+    assert journal.parent.name == "gate1-invocation-journal"
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "--error-unmatch", journal_anchor.as_posix()],
+        cwd=REPO,
+        text=True,
+    ).strip()
+    assert tracked == journal_anchor.as_posix()
+    anchor = REPO.joinpath(*journal_anchor.parts)
+    binding = value["journal_parent_binding"]
+    assert anchor.stat().st_size == binding["anchor_bytes"]
+    assert sha256(anchor.read_bytes()) == binding["anchor_sha256"]
 
 
 def test_child_nonzero_produces_bounded_outcome_without_raw_output(tmp_path: Path) -> None:

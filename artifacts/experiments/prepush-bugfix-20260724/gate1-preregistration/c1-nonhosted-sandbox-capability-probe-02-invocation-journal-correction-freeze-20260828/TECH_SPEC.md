@@ -27,11 +27,17 @@ packet, readiness review, commit and journal bootstrap. The visible start receip
 authority-consumption boundary. It survives child crash, nonzero exit, absent
 child terminal and journal outcome-publication failure.
 
+The journal root is below a separately Git-materialized
+`gate1-invocation-journal` parent. It is not a child of `gate1-execution`, whose
+live readiness projection intentionally permits only its tracked anchor before
+the formal attempt claim.
+
 ## Scope
 
-- One new frozen directory.
+- One new frozen directory and one tracked journal-parent anchor.
 - One streamed outer bootstrap and its exact manifest.
 - Start/outcome journal schemas and state inspection.
+- Exact reviewed-readiness sentinel validation.
 - Synthetic ordering, crash, nonzero, publication-denial and concurrency tests.
 
 ## Non-goals
@@ -39,14 +45,15 @@ child terminal and journal outcome-publication failure.
 - No readiness execution or receipt.
 - No Probe-02 or sandbox helper launch.
 - No hosted request, auth payload, qualification-03, randomization or arms.
-- No modification of the existing Probe-01 or Probe-02 freezes.
+- No modification of the existing Probe-01 freeze or Probe-02 probe engine.
 - No claim that arbitrary power loss or storage loss is preventable.
 
 ## Affected surfaces
 
-Only the new directory is affected. The child pipeline is source-bound to the
-reviewed Probe-02 bootstrap bytes at `2e42cc6a`. Existing terminal policy and
-executor files remain byte-identical.
+The journal directory, its tracked parent anchor, and the reviewed-readiness
+validator/tests are affected. The child pipeline remains source-bound to the
+reviewed Probe-02 bootstrap bytes at `2e42cc6a`; the Probe-02 probe engine and
+terminal policy remain byte-identical.
 
 ## Boundary and API considerations
 

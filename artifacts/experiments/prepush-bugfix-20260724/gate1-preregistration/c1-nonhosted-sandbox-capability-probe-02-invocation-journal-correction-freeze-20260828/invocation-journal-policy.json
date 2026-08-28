@@ -7,6 +7,8 @@
   "authority_not_consumed_before_start": true,
   "child_launch_before_start_forbidden": true,
   "journal_root_independent_from_attempt_root": true,
+  "journal_parent_outside_readiness_exact_child_boundary": true,
+  "journal_parent_git_materialized_by_exact_anchor": true,
   "maximum_journal_owners": 1,
   "retry_allowed": false,
   "concurrent_loser_launch_allowed": false,

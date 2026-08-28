@@ -250,6 +250,13 @@ def validate_reviewed_readiness(
     binding = manifest.get("readiness_evidence")
     if not isinstance(binding, dict):
         raise ReadinessError("readiness evidence binding unavailable")
+    expected_sentinel_bytes = binding.get("sentinel_bytes")
+    expected_sentinel_sha256 = binding.get("sentinel_sha256")
+    if (
+        expected_sentinel_bytes != len(SENTINEL_BYTES)
+        or expected_sentinel_sha256 != sha256(SENTINEL_BYTES)
+    ):
+        raise ReadinessError("readiness sentinel binding mismatch")
     receipt_path = Path(str(binding.get("receipt_path")))
     review_path = Path(str(binding.get("review_packet_path")))
     if not receipt_path.is_absolute() or not review_path.is_absolute():
@@ -291,6 +298,11 @@ def validate_reviewed_readiness(
         or receipt.get("execution_commit") != commit
         or receipt.get("identity") != current_identity
         or receipt.get("parent_projection_sha256") != live["projection_sha256"]
+        or receipt.get("sentinel_bytes") != expected_sentinel_bytes
+        or receipt.get("sentinel_sha256") != expected_sentinel_sha256
+        or receipt.get("sentinel_create_exclusive") is not True
+        or receipt.get("sentinel_fsync_completed") is not True
+        or receipt.get("sentinel_readback_exact") is not True
         or receipt.get("cleanup_complete") is not True
         or receipt.get("formal_attempt_claim_created") is not False
         or receipt.get("hosted_requests") != 0

@@ -206,6 +206,8 @@ def test_reviewed_readiness_requires_exact_digest_identity_and_live_projection(t
         "review_packet_path": str(review_path),
         "receipt_max_bytes": 8192,
         "review_packet_max_bytes": 4096,
+        "sentinel_bytes": len(READINESS.SENTINEL_BYTES),
+        "sentinel_sha256": READINESS.sha256(READINESS.SENTINEL_BYTES),
     }
     accepted = READINESS.validate_reviewed_readiness(
         repo=tmp_path,
@@ -245,6 +247,8 @@ def test_reviewed_readiness_rejects_identity_drift(tmp_path: Path) -> None:
         "review_packet_path": str(review_path),
         "receipt_max_bytes": 8192,
         "review_packet_max_bytes": 4096,
+        "sentinel_bytes": len(READINESS.SENTINEL_BYTES),
+        "sentinel_sha256": READINESS.sha256(READINESS.SENTINEL_BYTES),
     }
     with pytest.raises(READINESS.ReadinessError, match="does not match"):
         READINESS.validate_reviewed_readiness(
@@ -253,6 +257,107 @@ def test_reviewed_readiness_rejects_identity_drift(tmp_path: Path) -> None:
             manifest=value,
             owner_authorized_review_sha256=READINESS.sha256(review_payload),
             identity={"sid_sha256": "7" * 64, "account_class": "other"},
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "mode"),
+    [
+        ("sentinel_create_exclusive", "missing"),
+        ("sentinel_create_exclusive", "false"),
+        ("sentinel_fsync_completed", "missing"),
+        ("sentinel_fsync_completed", "false"),
+        ("sentinel_readback_exact", "missing"),
+        ("sentinel_readback_exact", "false"),
+        ("sentinel_bytes", "missing"),
+        ("sentinel_bytes", "wrong"),
+        ("sentinel_sha256", "missing"),
+        ("sentinel_sha256", "wrong"),
+    ],
+)
+def test_reviewed_readiness_rejects_incomplete_write_evidence(
+    tmp_path: Path, field: str, mode: str
+) -> None:
+    value = synthetic_manifest(tmp_path)
+    identity = {"sid_sha256": "8" * 64, "account_class": "fixture"}
+    receipt = dict(
+        READINESS.run_readiness_probe(
+            repo=tmp_path, commit="9" * 40, manifest=value, identity=identity
+        )
+    )
+    if mode == "missing":
+        receipt.pop(field)
+    elif mode == "false":
+        receipt[field] = False
+    elif field == "sentinel_bytes":
+        receipt[field] = len(READINESS.SENTINEL_BYTES) + 1
+    else:
+        receipt[field] = "0" * 64
+    receipt_payload = READINESS.canonical_json(receipt)
+    receipt_path = tmp_path / f"receipt-{field}-{mode}.json"
+    receipt_path.write_bytes(receipt_payload)
+    review_payload = READINESS.canonical_json(
+        {
+            "schema": READINESS.REVIEW_SCHEMA,
+            "review_verdict": "APPROVED",
+            "review_session": "fixture-review",
+            "reviewed_receipt_sha256": READINESS.sha256(receipt_payload),
+        }
+    )
+    review_path = tmp_path / f"review-{field}-{mode}.json"
+    review_path.write_bytes(review_payload)
+    value["readiness_evidence"] = {
+        "receipt_path": str(receipt_path),
+        "review_packet_path": str(review_path),
+        "receipt_max_bytes": 8192,
+        "review_packet_max_bytes": 4096,
+        "sentinel_bytes": len(READINESS.SENTINEL_BYTES),
+        "sentinel_sha256": READINESS.sha256(READINESS.SENTINEL_BYTES),
+    }
+    with pytest.raises(READINESS.ReadinessError, match="does not match"):
+        READINESS.validate_reviewed_readiness(
+            repo=tmp_path,
+            commit="9" * 40,
+            manifest=value,
+            owner_authorized_review_sha256=READINESS.sha256(review_payload),
+            identity=identity,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("sentinel_bytes", None),
+        ("sentinel_bytes", 37),
+        ("sentinel_sha256", None),
+        ("sentinel_sha256", "0" * 64),
+    ],
+)
+def test_reviewed_readiness_rejects_manifest_sentinel_binding_drift(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    manifest_value = synthetic_manifest(tmp_path)
+    receipt_path = tmp_path / "receipt.json"
+    review_path = tmp_path / "review.json"
+    manifest_value["readiness_evidence"] = {
+        "receipt_path": str(receipt_path),
+        "review_packet_path": str(review_path),
+        "receipt_max_bytes": 8192,
+        "review_packet_max_bytes": 4096,
+        "sentinel_bytes": len(READINESS.SENTINEL_BYTES),
+        "sentinel_sha256": READINESS.sha256(READINESS.SENTINEL_BYTES),
+    }
+    if value is None:
+        manifest_value["readiness_evidence"].pop(field)
+    else:
+        manifest_value["readiness_evidence"][field] = value
+    with pytest.raises(READINESS.ReadinessError, match="sentinel binding mismatch"):
+        READINESS.validate_reviewed_readiness(
+            repo=tmp_path,
+            commit="a" * 40,
+            manifest=manifest_value,
+            owner_authorized_review_sha256="b" * 64,
+            identity={"sid_sha256": "c" * 64, "account_class": "fixture"},
         )
 
 

@@ -26,13 +26,19 @@
     "child_timeout_seconds": 180
   },
   "derived_paths": {
-    "journal_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-02-invocation-journal",
+    "journal_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/c1-nonhosted-sandbox-capability-probe-02",
+    "journal_parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/.gitattributes",
     "attempt_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-02",
     "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.cli-staging",
     "private_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.private",
     "parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.gitattributes"
   },
   "parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_parent_binding": {
     "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
     "anchor_bytes": 8,
     "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
@@ -62,15 +68,15 @@
       "sha256": "0edca0a097ef4d381ec6152aaa8142d87dc15ca297f1a28beed79bcd5d2f6ef2"
     }
   ],
-  "frozen_executor_sha256": "599ae7cff32081dccd66306068a3829f61f40c407ae6d5f2ece7801a41481df1",
+  "frozen_executor_sha256": "5442a6da9cb1d2e55161c5ca2a8dc6b96805987a402065817c2cdd3f1563b549",
   "frozen_files": [
     {"path": ".gitattributes", "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46", "bytes": 8, "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"},
-    {"path": "README.md", "git_blob_oid": "52bf5faaf731123e3166845510c83944aaa579ce", "bytes": 1077, "sha256": "a3927f659d40ff5838d1317a47a94118c9f35fcb615d4ce9d0e3ce79200d63d6"},
-    {"path": "TECH_SPEC.md", "git_blob_oid": "94c19223fdad053c619e8ac9d4b8a9dd809a188a", "bytes": 3674, "sha256": "8e033158b71649fee8a0fe8a8e2e58ba302b8b3d42df7288e29ba0c6a5ea236d"},
-    {"path": "invocation-journal-policy.json", "git_blob_oid": "6fa09ca2bb0713d8ac24d19579a3cd6285f6f12a", "bytes": 1063, "sha256": "b064b542ef0e150bba971c78635352ccfa468c07ae5c8bfa0250bd0e18222168"},
+    {"path": "README.md", "git_blob_oid": "54054d53bf081ed113278d9d060a6ea9ef3c0d3b", "bytes": 1314, "sha256": "cc78afd5cfcbb9a71676cdd475d5f037d7f4369ce1713f072b86f9333ad8b8c2"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "ef4397c6a197fa4b8d199150121cbefe9c52b8f7", "bytes": 4093, "sha256": "d37c2c3cbe3118de3cbdfcc3d2df3541e8366296d1f92c055db43309e99cb5a7"},
+    {"path": "invocation-journal-policy.json", "git_blob_oid": "6c3ba2a5266efdadcb2a31c77eeca8e9bdf0ef09", "bytes": 1187, "sha256": "ece38c5876411eb40cc59942f73607d40dc47bc6d96a17a3b584e8716b50cef5"},
     {"path": "probe02-silent-failure-audit-binding.json", "git_blob_oid": "3f87d69065712de0cf43ebfc4a22556da2e9ad32", "bytes": 498, "sha256": "943ea6068eec214097e38af9db166a5a477d972f553e61cd414d2ca9b92a5914"},
-    {"path": "invocation_journal_bootstrap.py", "git_blob_oid": "02c165aa2811bf6f1932553711d590b581d0cc7c", "bytes": 20427, "sha256": "599ae7cff32081dccd66306068a3829f61f40c407ae6d5f2ece7801a41481df1"},
-    {"path": "test_invocation_journal.py", "git_blob_oid": "59c06303780668ace3c4fce4732a57a16be26c58", "bytes": 14804, "sha256": "ba51fdb369fae011e101cd2219327e788d16e676fee7fab912827bf031ffca97"}
+    {"path": "invocation_journal_bootstrap.py", "git_blob_oid": "88fc30c981486082f1c45c62b8b974974bc39c48", "bytes": 21348, "sha256": "5442a6da9cb1d2e55161c5ca2a8dc6b96805987a402065817c2cdd3f1563b549"},
+    {"path": "test_invocation_journal.py", "git_blob_oid": "7da5a5da4965d3e83cab86f3780bd797189b7732", "bytes": 18452, "sha256": "a980be2984d2e50baad7dbf21206de6cc89e7e30b50fa5d2f652ecad7602e874"}
   ],
   "execution_authority": {
     "invocation_journal_execution_authorized": false,

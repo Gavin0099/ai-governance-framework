@@ -65,7 +65,9 @@
     "review_verdict_required": "APPROVED",
     "owner_authorized_review_sha256_required": true,
     "receipt_identity_must_match_execution_identity": true,
-    "receipt_parent_projection_must_match_live_state": true
+    "receipt_parent_projection_must_match_live_state": true,
+    "sentinel_bytes": 36,
+    "sentinel_sha256": "1108781d07bdb8f71f13ae519d5a7cc62eb6a71beaca1e6deca32dc8e60765f2"
   },
   "probe_contract": {
     "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
@@ -129,11 +131,11 @@
     {"path": "capability_probe_02_bootstrap.py", "git_blob_oid": "5a95747d0c690c968de54515e0177446be56f3b2", "bytes": 6676, "sha256": "0edca0a097ef4d381ec6152aaa8142d87dc15ca297f1a28beed79bcd5d2f6ef2"},
     {"path": "capability_probe_02_driver.py", "git_blob_oid": "17e1efb7571f5b94fb3cec2ebf863e68e2a431d5", "bytes": 12667, "sha256": "b88f6fe870cbb66c6ec223704f2cb10241537a4b633e3f4e44edae3fbee64057"},
     {"path": "execution-convergence-policy.json", "git_blob_oid": "da8b742f4ce33ec175e19e684cde2e8fd48e468b", "bytes": 1494, "sha256": "95063f368bfe46152c06e3bd68144fb7e63ddf5ef35b2eac1ad4a45cd5f9d43d"},
-    {"path": "execution_readiness.py", "git_blob_oid": "4e974e76ceccbda996f6a71a64f8bb9d73284f42", "bytes": 13179, "sha256": "dd4fe442707a78d26bf1345557c0f6bc4fdf43a045c12ea243423cdb4acf4470"},
+    {"path": "execution_readiness.py", "git_blob_oid": "38e4255f6541017b5f53f2251d1eedb66b3e5c23", "bytes": 13829, "sha256": "daa1cc7d6fa9a532ea46a0bd51b076c5b4f16ef92af5325e26e0ac3fb2d626e6"},
     {"path": "parent_readiness_probe.py", "git_blob_oid": "63a599ac8e8638d8d5b555122a22ba3ed3df19c3", "bytes": 2626, "sha256": "5cc82875a99bba0abb67b3a728ab39287c1f7bd8f89ecb87e58ff940cc5fef44"},
     {"path": "probe01-stop-binding.json", "git_blob_oid": "8deb8d12bc31c0809c96e72e85b5a2bf21a68ab9", "bytes": 952, "sha256": "5c3030e6b8721f35e7408dc752e7e532554fb0eaf7ae0aaf72a0655e9aed20a6"},
     {"path": "terminal-policy.json", "git_blob_oid": "be3d1645cb0d1267395c0a09cce023e79670e495", "bytes": 1205, "sha256": "10d55811da1ab818dcd2a3a313ea8f1a3850bea4a7bed6b60a7213924a610baf"},
-    {"path": "test_capability_probe_02.py", "git_blob_oid": "fb54db451e67c9eb2545c22cc5abb02b05f650d7", "bytes": 17200, "sha256": "13ffb4766a52c9c4396e1d9261514001b6ef55c0e28ed180982ec3a6a8e970f2"}
+    {"path": "test_capability_probe_02.py", "git_blob_oid": "6ed0d31cadfedbaf8d1ac76fe54228f791c24536", "bytes": 21129, "sha256": "0f00f4ad427d90e0da729b46da13310bda1818ab93ca64a3ea38725d6835602a"}
   ],
   "execution_authority": {
     "parent_readiness_probe_authorized": false,
