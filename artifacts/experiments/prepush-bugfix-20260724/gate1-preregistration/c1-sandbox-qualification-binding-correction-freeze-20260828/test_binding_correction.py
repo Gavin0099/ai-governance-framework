@@ -81,6 +81,67 @@ def test_authorized_manifest_is_loaded_only_from_commit_blob(
 @pytest.mark.parametrize(
     "bound_path",
     [
+        "/etc/passwd",
+        "../../escape",
+        "a/../../b",
+        "C:/Windows/System32",
+        "C:Windows/System32",
+        r"\\server\share\payload.py",
+        r"\Windows\System32",
+    ],
+)
+def test_bound_paths_reject_posix_and_windows_escape_forms(bound_path: str) -> None:
+    with pytest.raises(EXECUTOR.ExecutorError, match="unsafe bound path"):
+        EXECUTOR._safe_repo_path(bound_path, label="adversarial path")
+
+
+def test_drive_qualified_materialization_fails_before_root_creation(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "verified-root"
+    with pytest.raises(EXECUTOR.ExecutorError, match="unsafe bound path"):
+        EXECUTOR._materialize_sources(
+            root, {"C:/Windows/System32/poison.py": b"TOKEN='poison'\n"}
+        )
+    assert not root.exists()
+
+
+@pytest.mark.parametrize("bound_path", [r"..\..\escape", r"safe\..\..\escape"])
+def test_post_join_containment_rejects_windows_separator_traversal(
+    tmp_path: Path, bound_path: str
+) -> None:
+    root = tmp_path / "verified-root"
+    with pytest.raises(EXECUTOR.ExecutorError, match="escapes verified root"):
+        EXECUTOR._contained_repo_path(root, bound_path, label="materialization")
+
+
+def test_runner_directory_escape_fails_before_module_import(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    imported = False
+
+    def module_tripwire(*args, **kwargs):
+        nonlocal imported
+        imported = True
+        raise AssertionError("module import was reached")
+
+    monkeypatch.setattr(EXECUTOR, "_module_from_file", module_tripwire)
+    with pytest.raises(EXECUTOR.ExecutorError, match="unsafe bound path"):
+        EXECUTOR._load_bound_surfaces(
+            tmp_path,
+            {
+                "sandboxed_runner_source": {
+                    "directory": "C:/Windows/System32",
+                    "legacy_directory": "legacy",
+                }
+            },
+        )
+    assert imported is False
+
+
+@pytest.mark.parametrize(
+    "bound_path",
+    [
         "surface/sandboxed_runner.py",
         "surface/gate3_route_v2_codex.py",
     ],

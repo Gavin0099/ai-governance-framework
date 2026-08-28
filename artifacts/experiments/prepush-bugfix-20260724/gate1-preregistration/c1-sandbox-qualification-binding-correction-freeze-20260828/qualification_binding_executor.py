@@ -8,7 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from types import ModuleType
 from typing import Mapping, Sequence
 
@@ -111,9 +111,27 @@ def _authorized_manifest(repo: Path, commit: str) -> Mapping[str, object]:
 
 def _safe_repo_path(raw: str, *, label: str) -> PurePosixPath:
     path = PurePosixPath(raw)
-    if path.is_absolute() or not path.parts or ".." in path.parts or "." in path.parts:
+    windows_path = PureWindowsPath(raw)
+    if (
+        path.is_absolute()
+        or windows_path.drive
+        or windows_path.root
+        or not path.parts
+        or ".." in path.parts
+        or "." in path.parts
+    ):
         raise ExecutorError(f"unsafe bound path: {label}")
     return path
+
+
+def _contained_repo_path(root: Path, raw: str, *, label: str) -> Path:
+    anchor = root.resolve()
+    candidate = anchor.joinpath(*_safe_repo_path(raw, label=label).parts).resolve()
+    try:
+        candidate.relative_to(anchor)
+    except ValueError as exc:
+        raise ExecutorError(f"bound path escapes verified root: {label}") from exc
+    return candidate
 
 
 def _validate_frozen_files(base: Path, manifest: Mapping[str, object]) -> None:
@@ -131,7 +149,7 @@ def _validate_frozen_files(base: Path, manifest: Mapping[str, object]) -> None:
     for entry in frozen:
         if not isinstance(entry, dict):
             raise ExecutorError("frozen file binding is malformed")
-        path = base / _safe_repo_path(str(entry["path"]), label="frozen file")
+        path = _contained_repo_path(base, str(entry["path"]), label="frozen file")
         payload = path.read_bytes()
         if len(payload) != entry.get("bytes") or _sha256(payload) != entry.get("sha256"):
             raise ExecutorError(f"frozen file binding mismatch: {entry.get('path')}")
@@ -166,10 +184,7 @@ def _derived_paths(repo: Path, manifest: Mapping[str, object]) -> Mapping[str, P
         raise ExecutorError("derived path policy is unavailable")
     result: dict[str, Path] = {}
     for key in ("qualification_output_root", "cli_staging_root"):
-        raw = Path(str(paths[key]))
-        if raw.is_absolute() or ".." in raw.parts:
-            raise ExecutorError(f"derived repo path is unsafe: {key}")
-        result[key] = (repo / raw).resolve()
+        result[key] = _contained_repo_path(repo, str(paths[key]), label=key)
     if result["qualification_output_root"].parent != result["cli_staging_root"].parent:
         raise ExecutorError("qualification and staging roots do not share a frozen parent")
     for key in ("installed_cli_source", "live_machine_policy", "python_executable"):
@@ -182,7 +197,7 @@ def _derived_paths(repo: Path, manifest: Mapping[str, object]) -> Mapping[str, P
 
 def _materialize_sources(root: Path, blobs: Mapping[str, bytes]) -> None:
     for raw_path, payload in blobs.items():
-        target = root.joinpath(*_safe_repo_path(raw_path, label="materialization").parts)
+        target = _contained_repo_path(root, raw_path, label="materialization")
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("xb") as handle:
             handle.write(payload)
@@ -222,11 +237,11 @@ def _load_bound_surfaces(root: Path, manifest: Mapping[str, object]):
     source = manifest.get("sandboxed_runner_source")
     if not isinstance(source, dict):
         raise ExecutorError("sandboxed runner source is unavailable")
-    runner_base = root.joinpath(
-        *_safe_repo_path(str(source["directory"]), label="runner directory").parts
+    runner_base = _contained_repo_path(
+        root, str(source["directory"]), label="runner directory"
     )
-    legacy_base = root.joinpath(
-        *_safe_repo_path(str(source["legacy_directory"]), label="legacy directory").parts
+    legacy_base = _contained_repo_path(
+        root, str(source["legacy_directory"]), label="legacy directory"
     )
     module_paths = {
         "sandboxed_runner": runner_base / MODULE_FILENAMES["sandboxed_runner"],
