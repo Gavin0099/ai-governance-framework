@@ -1,0 +1,215 @@
+{
+  "schema": "c1-sandbox-qualification-binding-correction-freeze.v1",
+  "status": "SANDBOX_QUALIFICATION_BINDING_CORRECTION_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "origin_main_commit": "0ead587a44938d780a97570d0b9a4ac1067a6a07",
+    "pr_127_merge_commit": "0ead587a44938d780a97570d0b9a4ac1067a6a07",
+    "reviewed_pr_head": "b6e8eb166dca2b3100ead420c5767f576221a023",
+    "superseded_qualification_freeze_commit": "f821088e6fce3869c756e4a1dfe234402636e1f8"
+  },
+  "observed_failures": [
+    {
+      "finding": "P1_WORKTREE_EXECUTABLE_SOURCE_NOT_BOUND",
+      "github_review_comment_id": 3873331468,
+      "disposition": "CLOSED_BY_GIT_OBJECT_MATERIALIZATION"
+    },
+    {
+      "finding": "P1_WORKTREE_MANIFEST_NOT_BOUND",
+      "github_review_comment_id": 3873331472,
+      "disposition": "CLOSED_BY_AUTHORIZED_COMMIT_BLOB_BOOTSTRAP"
+    }
+  ],
+  "binding_contract": {
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "executable_source": "VERIFIED_GIT_BLOBS_MATERIALIZED_AFTER_ALL_BINDINGS",
+    "working_tree_manifest_read": false,
+    "working_tree_executable_import": false,
+    "importlib_import_module_allowed": false,
+    "sys_path_mutation_allowed": false,
+    "module_cache_entries_temporarily_replaced_and_restored": true,
+    "auth_read_before_binding_complete": false,
+    "root_creation_before_binding_complete": false,
+    "hosted_request_before_binding_complete": false
+  },
+  "machine_policy": {
+    "installed": true,
+    "live_path": "C:/ProgramData/OpenAI/Codex/requirements.toml",
+    "requirements_bytes": 58,
+    "requirements_sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440",
+    "receipt_bytes": 403,
+    "receipt_sha256": "23b297983d68898885f49131f912518f96d3d580244ed9484d0fef6395132ffd"
+  },
+  "runtime": {
+    "cli_version": "codex-cli 0.148.0-alpha.9",
+    "cli_version_stdout_sha256": "867f4045c33a719c57ed0fc3751a5d9de8dbdb78494a64f43a73ca5c76ef71c5",
+    "cli_executable_bytes": 295151920,
+    "cli_executable_sha256": "f29f609375f3731d8db507a95124862a84e306982e30ba4300ddce5638bc6946",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "runner_sha256": "184718d005bbf94a746d66ef4743707402f0fcdf808f8c744d59d740fd6fd4ef",
+    "preflight_adapter_sha256": "db430f0171edd63269426415c06f576d2cab99dea9f6d11eed5c9c9bb8e97c63"
+  },
+  "sandboxed_runner_source": {
+    "directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827",
+    "legacy_directory": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2",
+    "predecessor_runner_superseded_for_future_c1_arm_execution": true,
+    "consumer_bindings_updated_in_this_freeze": false
+  },
+  "derived_paths": {
+    "qualification_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-sandboxed-runner-qualification-01",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-sandboxed-runner-qualification-01.cli-staging",
+    "installed_cli_source": "C:/Program Files/WindowsApps/OpenAI.Codex_26.810.7004.0_x64__2p2nqsd0c76g0/app/resources/codex.exe",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "live_machine_policy": "C:/ProgramData/OpenAI/Codex/requirements.toml"
+  },
+  "qualification_contract": {
+    "attempt_id": "C1-sandboxed-runner-qualification-01",
+    "attempt_previously_executed": false,
+    "task_neutral": true,
+    "non_counted": true,
+    "maximum_hosted_requests": 1,
+    "retry_allowed": false,
+    "randomization_created": false
+  },
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "authorized commit controls the manifest blob",
+      "verified Git blobs control imported executable dependencies",
+      "binding validation precedes auth read, root creation, imports, and hosted request"
+    ],
+    "does_not_establish": [
+      "sandbox qualification",
+      "hosted transport completion",
+      "task-command network denial",
+      "machine-wide rejection of the bypass flag",
+      "consumer integration readiness",
+      "randomization or arm execution"
+    ]
+  },
+  "execution_authority": {
+    "authorized": false,
+    "hosted_qualification_authorized": false,
+    "consumer_amendment_authorized": false,
+    "randomization_authorized": false
+  },
+  "authoring_boundary": {
+    "machine_policy_modified": false,
+    "hosted_request_executed": false,
+    "qualification_root_created": false,
+    "consumer_amendment_created": false,
+    "randomization_created": false,
+    "producer_executed": false,
+    "scorer_executed": false,
+    "arm_executed": false,
+    "mapping_released": false,
+    "rekor_posted": false
+  },
+  "source_bindings": [
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/amendment-manifest.json",
+      "git_blob_oid": "1057c12ecec166b734b559b508006fe2df860c31",
+      "bytes": 10582,
+      "sha256": "73b585be154f79b539e9b2d87a97fc3032a45a46768db5b1e17ef298d00aa9f0"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandboxed_runner.py",
+      "git_blob_oid": "37ea6f1680f6568ac9c36b1237e83feb78994d00",
+      "bytes": 9937,
+      "sha256": "184718d005bbf94a746d66ef4743707402f0fcdf808f8c744d59d740fd6fd4ef"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/preflight_adapter.py",
+      "git_blob_oid": "4a067b34224f48e98d5b7677653169729bd5ba0a",
+      "bytes": 2709,
+      "sha256": "db430f0171edd63269426415c06f576d2cab99dea9f6d11eed5c9c9bb8e97c63"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/qualification_contract.py",
+      "git_blob_oid": "b4e525f6322a5bf91ea87d496ee98deea439e6e2",
+      "bytes": 6643,
+      "sha256": "bbb15af31c1fee8a163a88e9e6fbb47a3db09bee498c64ca9e1cfc79d2090546"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/network_denial_probe.py",
+      "git_blob_oid": "08805873f2d371cd45f05ac99e0f6e94564d2b65",
+      "bytes": 3557,
+      "sha256": "61ba2dd087aa6e5981a7c9011b9e2f56808d7acccc5175878f589d7fa7f78d30"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandbox-config.toml",
+      "git_blob_oid": "9bf5f971ea6c96c3b600b97ffe54ea2edd8968b2",
+      "bytes": 142,
+      "sha256": "ed33eb56dae642e0a6695c9c1e4455210ffd6319ee7f119da6ee3e92bb9fd587"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandbox-requirements.toml",
+      "git_blob_oid": "c09376409c079ecf1dd04c8d9064e6eaf28b16c2",
+      "bytes": 58,
+      "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2_codex.py",
+      "git_blob_oid": "d74dc12984ec8b4d997b6ed4cb39e02a49891bf0",
+      "bytes": 44296,
+      "sha256": "55403b05196c44e73c71b041c18888ad66629843c23ab9d5c3f6430690e737be"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_route_v2.py",
+      "git_blob_oid": "b13bb7648d72c597054822daf545f1880909acf7",
+      "bytes": 91255,
+      "sha256": "8b99b43edf65bd010a0917bf49c4d083129eaa2e51a1a248b0c67e7be0c723ba"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_private_rendering.py",
+      "git_blob_oid": "cc3d98a99a17db704b153f1a979c359b521b3c18",
+      "bytes": 5094,
+      "sha256": "01dfdda14d132342ff95163282412aeabd6806e6fdaa103d4e652abba7792441"
+    },
+    {
+      "commit": "f97e925eb132daa506bf3e3f8c3cad1b901873ea",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-observer-authorization-correction-freeze-20260827/setup-manifest.json",
+      "git_blob_oid": "1a7f4b1fb3a6765d08f0943ceef6a7c4735570bc",
+      "bytes": 12495,
+      "sha256": "6a8268953ee1a218b2190b29c62f44be305343879f06ea0ac95c8236f8408435"
+    },
+    {
+      "commit": "b6e8eb166dca2b3100ead420c5767f576221a023",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-prerun-freeze-20260827/qualification-prerun-manifest.json",
+      "git_blob_oid": "a539c79e95fd4f01516fdba505cf7ba565042200",
+      "bytes": 11065,
+      "sha256": "51311e34434128f903dbc24ae7c3aa8ede32c3572f50a5babf577cda9f473712"
+    },
+    {
+      "commit": "b6e8eb166dca2b3100ead420c5767f576221a023",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-prerun-freeze-20260827/qualification_prerun_executor.py",
+      "git_blob_oid": "4f733b78f377447fccf648b1192394dfb04a7115",
+      "bytes": 17998,
+      "sha256": "9a1ca6b85ef874904ef1ab72dab239f8daf3580d6548966a86e4991e94946fc0"
+    },
+    {
+      "commit": "b6e8eb166dca2b3100ead420c5767f576221a023",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-prerun-freeze-20260827/machine-policy-receipt.json",
+      "git_blob_oid": "303b9f3039568ed79ab3b87e1799e2f6efe4ec73",
+      "bytes": 403,
+      "sha256": "23b297983d68898885f49131f912518f96d3d580244ed9484d0fef6395132ffd"
+    }
+  ],
+  "frozen_files": [
+    {"path": ".gitattributes", "bytes": 87, "sha256": "57e32af6a32ef09d1bd6503ea92a51a072d3c42e998eca0d739576ad91ac206c"},
+    {"path": "qualification_binding_executor.py", "bytes": 23536, "sha256": "493b17915b4fbd86890042ee2d13ba3cd3214633e0c5c175eeaf65e268d81109"},
+    {"path": "README.md", "bytes": 1256, "sha256": "125ac56dffecd9f326de8960f340fdebb461f6e9d1355c2e3342fd4061d8b4ce"},
+    {"path": "TECH_SPEC.md", "bytes": 2992, "sha256": "f79837ca51bfbe7eac0482ffd8cd48b505ec0f81399106690fbd4d0bbf2de5b1"},
+    {"path": "terminal-policy.json", "bytes": 983, "sha256": "2b29329d24ebe094512aa6685faaa4f96b37639fecc044a0e8ce8694a4c2311b"},
+    {"path": "test_binding_correction.py", "bytes": 11413, "sha256": "5afe0575e88aad05699fa6d6c2c592b9d91d0f97e7b13e9a30167880fe0aedaf"}
+  ]
+}
