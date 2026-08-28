@@ -70,7 +70,15 @@ def _sha256_file(path: Path) -> str:
 
 def _git(repo: Path, *args: str, binary: bool = False) -> bytes | str:
     completed = subprocess.run(
-        ["git", "-c", f"safe.directory={repo}", "-C", str(repo), *args],
+        [
+            "git",
+            "--no-replace-objects",
+            "-c",
+            f"safe.directory={repo}",
+            "-C",
+            str(repo),
+            *args,
+        ],
         check=True,
         capture_output=True,
     )
@@ -342,15 +350,30 @@ def _local_terminal(**values: object) -> bytes:
 
 
 def _publish_terminal(final_root: Path, payload: bytes) -> Mapping[str, object]:
-    if final_root.exists():
+    retained = _json_object(payload, label="terminal payload")
+    staging_root = final_root.with_name(f".{final_root.name}.publication-staging")
+    if final_root.exists() or staging_root.exists():
         raise ExecutorError("qualification output already exists")
-    final_root.mkdir(parents=True)
-    target = final_root / "qualification-terminal.json"
-    with target.open("xb") as handle:
-        handle.write(payload)
-        handle.flush()
-        os.fsync(handle.fileno())
-    return json.loads(payload)
+    target = staging_root / "qualification-terminal.json"
+    try:
+        staging_root.mkdir(parents=True)
+        with target.open("xb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if target.read_bytes() != payload:
+            raise ExecutorError("qualification terminal readback mismatch")
+        os.replace(staging_root, final_root)
+    except BaseException:
+        if staging_root.exists():
+            try:
+                shutil.rmtree(staging_root)
+            except OSError as cleanup_exc:
+                raise ExecutorError(
+                    "qualification terminal staging cleanup failed"
+                ) from cleanup_exc
+        raise
+    return retained
 
 
 def execute_qualification(

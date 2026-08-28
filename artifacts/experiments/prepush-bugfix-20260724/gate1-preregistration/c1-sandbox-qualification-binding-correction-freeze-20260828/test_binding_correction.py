@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -76,6 +77,79 @@ def test_authorized_manifest_is_loaded_only_from_commit_blob(
     value = EXECUTOR._authorized_manifest(tmp_path, "1" * 40)
     assert value["derived_paths"]["qualification_output_root"] == "trusted/root"
     assert calls == [("1" * 40, EXECUTOR.MANIFEST_REPO_PATH)]
+
+
+def test_git_object_lookups_ignore_replacement_refs(tmp_path: Path) -> None:
+    repo = tmp_path / "replace-repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    manifest_path = repo / "manifest.json"
+    manifest_path.write_text('{"source":"original"}\n', encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "manifest.json"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=probe",
+            "-c",
+            "user.email=probe@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "original",
+        ],
+        check=True,
+    )
+    original_commit = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    original_blob = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD:manifest.json"], text=True
+    ).strip()
+
+    manifest_path.write_text('{"source":"replacement"}\n', encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "manifest.json"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=probe",
+            "-c",
+            "user.email=probe@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "replacement",
+        ],
+        check=True,
+    )
+    replacement_commit = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    replacement_blob = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD:manifest.json"], text=True
+    ).strip()
+    subprocess.run(
+        ["git", "-C", str(repo), "update-ref", "refs/heads/main", original_commit],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "replace", original_commit, replacement_commit],
+        check=True,
+    )
+
+    assert subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip() == original_commit
+    assert subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD:manifest.json"], text=True
+    ).strip() == replacement_blob
+    oid, payload = EXECUTOR._commit_blob(repo, original_commit, "manifest.json")
+    assert oid == original_blob
+    assert payload == b'{"source":"original"}\n'
 
 
 @pytest.mark.parametrize(
@@ -328,6 +402,83 @@ def test_binding_order_precedes_roots_import_auth_and_hosted_launch() -> None:
     ]
     positions = [body.index(token) for token in ordered]
     assert positions == sorted(positions)
+
+
+def _terminal_payload() -> bytes:
+    return b'{"status":"TEST_TERMINAL"}\n'
+
+
+def test_terminal_publication_recovers_after_transient_fsync_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    final_root = tmp_path / "qualification-attempt-01"
+    staging_root = tmp_path / ".qualification-attempt-01.publication-staging"
+    real_fsync = EXECUTOR.os.fsync
+    calls = 0
+
+    def fail_once(fd: int) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("forced transient fsync failure")
+        real_fsync(fd)
+
+    monkeypatch.setattr(EXECUTOR.os, "fsync", fail_once)
+    with pytest.raises(OSError, match="forced transient fsync failure"):
+        EXECUTOR._publish_terminal(final_root, _terminal_payload())
+    assert not final_root.exists()
+    assert not staging_root.exists()
+
+    retained = EXECUTOR._publish_terminal(final_root, _terminal_payload())
+    assert retained == {"status": "TEST_TERMINAL"}
+    assert (final_root / "qualification-terminal.json").read_bytes() == _terminal_payload()
+    assert not staging_root.exists()
+
+
+def test_terminal_readback_mismatch_leaves_no_visible_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    final_root = tmp_path / "qualification-attempt-01"
+    staging_root = tmp_path / ".qualification-attempt-01.publication-staging"
+    real_read_bytes = Path.read_bytes
+
+    def corrupt_staging_readback(path: Path) -> bytes:
+        if path.parent == staging_root:
+            return b'{"status":"CORRUPTED"}\n'
+        return real_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", corrupt_staging_readback)
+    with pytest.raises(EXECUTOR.ExecutorError, match="readback mismatch"):
+        EXECUTOR._publish_terminal(final_root, _terminal_payload())
+    assert not final_root.exists()
+    assert not staging_root.exists()
+
+
+def test_terminal_rename_failure_leaves_no_visible_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    final_root = tmp_path / "qualification-attempt-01"
+    staging_root = tmp_path / ".qualification-attempt-01.publication-staging"
+
+    def fail_rename(source: Path, target: Path) -> None:
+        raise OSError("forced atomic rename failure")
+
+    monkeypatch.setattr(EXECUTOR.os, "replace", fail_rename)
+    with pytest.raises(OSError, match="forced atomic rename failure"):
+        EXECUTOR._publish_terminal(final_root, _terminal_payload())
+    assert not final_root.exists()
+    assert not staging_root.exists()
+
+
+@pytest.mark.parametrize("existing", ["final", "staging"])
+def test_terminal_publication_rejects_any_existing_create_once_root(
+    tmp_path: Path, existing: str
+) -> None:
+    final_root = tmp_path / "qualification-attempt-01"
+    staging_root = tmp_path / ".qualification-attempt-01.publication-staging"
+    (final_root if existing == "final" else staging_root).mkdir()
+    with pytest.raises(EXECUTOR.ExecutorError, match="output already exists"):
+        EXECUTOR._publish_terminal(final_root, _terminal_payload())
 
 
 def test_loader_never_uses_import_module_or_mutates_sys_path() -> None:
