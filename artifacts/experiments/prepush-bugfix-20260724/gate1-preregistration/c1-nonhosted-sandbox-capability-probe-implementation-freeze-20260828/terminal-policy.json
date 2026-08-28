@@ -1,0 +1,38 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-terminal-policy.v1",
+  "attempt_id": "C1-nonhosted-sandbox-capability-probe-01",
+  "terminal_precedence": [
+    "CAPABILITY_PROBE_CLEANUP_FAILED",
+    "CAPABILITY_PROBE_AMBIGUOUS",
+    "CAPABILITY_PROBE_SURFACE_UNAVAILABLE",
+    "ABSOLUTE_PYTHON_TASK_PLANE_LAUNCHABLE"
+  ],
+  "positive_requires": [
+    "negative_control_nonzero",
+    "negative_marker_absent",
+    "positive_control_zero",
+    "positive_marker_exact",
+    "positive_stdout_empty",
+    "positive_stderr_empty",
+    "private_cleanup_complete",
+    "cli_cleanup_complete"
+  ],
+  "negative_control_unexpected_success_is_invalid": true,
+  "denial_without_bounded_proof_is_ambiguous": true,
+  "attempt_output_root_is_atomic_claim": true,
+  "only_claim_owner_may_cleanup": true,
+  "cleanup_precedes_positive_terminal": true,
+  "retry_allowed": false,
+  "hosted_request_allowed": false,
+  "auth_payload_allowed": false,
+  "qualification_03_authorized": false,
+  "randomization_created": false,
+  "forbidden_terminal_fields": [
+    "raw_stdout",
+    "raw_stderr",
+    "auth_payload",
+    "model_observed_id",
+    "provider_response_model",
+    "server_model_id"
+  ]
+}
