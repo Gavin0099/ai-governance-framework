@@ -329,6 +329,24 @@ def test_manifest_authority_and_policy_remain_false() -> None:
     assert policy["hosted_requests"] == 0
 
 
+def test_authority_consumption_semantics_are_frozen() -> None:
+    policy = json.loads(POLICY_PATH.read_bytes())
+    assert policy["authority_consumed_when"] == "START_RECEIPT_VISIBLE_AND_READBACK_EXACT"
+    assert policy["authority_not_consumed_before_start"] is True
+    assert (
+        policy["pre_start_binding_failure_disposition"]
+        == "NOT_CONSUMED_REINVOCATION_PERMITTED_UNDER_SAME_AUTHORITY"
+    )
+    assert policy["pre_start_reinvocation_is_retry"] is False
+    assert policy["pre_start_reinvocation_requires"] == [
+        "evidence_root_absent",
+        "child_not_launched",
+        "start_receipt_and_terminal_absent",
+    ]
+    assert policy["existing_root_disposition"] == "STOP_EXISTING_OWNER_REVIEW_REQUIRED"
+    assert policy["retry_authorized"] is False
+
+
 def test_predecessor_sources_match_exact_git_blobs_and_contract() -> None:
     module = _load()
     manifest = json.loads(MANIFEST_PATH.read_bytes())
