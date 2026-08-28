@@ -131,9 +131,9 @@
     {"path": "execution-convergence-policy.json", "git_blob_oid": "da8b742f4ce33ec175e19e684cde2e8fd48e468b", "bytes": 1494, "sha256": "95063f368bfe46152c06e3bd68144fb7e63ddf5ef35b2eac1ad4a45cd5f9d43d"},
     {"path": "execution_readiness.py", "git_blob_oid": "4e974e76ceccbda996f6a71a64f8bb9d73284f42", "bytes": 13179, "sha256": "dd4fe442707a78d26bf1345557c0f6bc4fdf43a045c12ea243423cdb4acf4470"},
     {"path": "parent_readiness_probe.py", "git_blob_oid": "63a599ac8e8638d8d5b555122a22ba3ed3df19c3", "bytes": 2626, "sha256": "5cc82875a99bba0abb67b3a728ab39287c1f7bd8f89ecb87e58ff940cc5fef44"},
-    {"path": "probe01-stop-binding.json", "git_blob_oid": "acb224c969c43321986601f9728500120134b14c", "bytes": 952, "sha256": "bbeaaf9abd8337f1a2067f3d779404af5a5726d364dd384249839d205ca3064a"},
+    {"path": "probe01-stop-binding.json", "git_blob_oid": "8deb8d12bc31c0809c96e72e85b5a2bf21a68ab9", "bytes": 952, "sha256": "5c3030e6b8721f35e7408dc752e7e532554fb0eaf7ae0aaf72a0655e9aed20a6"},
     {"path": "terminal-policy.json", "git_blob_oid": "be3d1645cb0d1267395c0a09cce023e79670e495", "bytes": 1205, "sha256": "10d55811da1ab818dcd2a3a313ea8f1a3850bea4a7bed6b60a7213924a610baf"},
-    {"path": "test_capability_probe_02.py", "git_blob_oid": "44a1f44c6d3f321b602128ec9365bb661a04d784", "bytes": 17129, "sha256": "8a32f1fd6cfb0413215b11521c898c2814320ae11d1e246939c2463b413d6ad5"}
+    {"path": "test_capability_probe_02.py", "git_blob_oid": "fb54db451e67c9eb2545c22cc5abb02b05f650d7", "bytes": 17200, "sha256": "13ffb4766a52c9c4396e1d9261514001b6ef55c0e28ed180982ec3a6a8e970f2"}
   ],
   "execution_authority": {
     "parent_readiness_probe_authorized": false,

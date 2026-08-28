@@ -70,6 +70,7 @@ def test_probe01_stop_is_bound_and_nonretryable() -> None:
     value = json.loads((BASE / "probe01-stop-binding.json").read_text(encoding="utf-8"))
     assert value["execution_commit"] == "9b6d0826c23fae4ccc5a0398cf6f24ddf2a145ac"
     assert value["execution_authorization_packet"]["sha256"] == "b6f4c0e008e12af56319d63d2a2b2292198ef3609d6cbfffb3320866c73f1543"
+    assert value["independent_stop_review_session"] == "2026-08-28-64"
     assert value["invocation_count"] == 1
     assert value["output_claim_created"] is False
     assert value["terminal_created"] is False
