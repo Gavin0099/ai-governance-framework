@@ -29,6 +29,22 @@ EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f4
 EXPECTED_PYTHON_PATH = Path("D:/ai-governance-framework/.venv/Scripts/python.exe")
 EXPECTED_PYTHON_BYTES = 255320
 EXPECTED_PYTHON_SHA256 = "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84"
+INHERITED_GIT_ENVIRONMENT_KEYS = (
+    "COMSPEC",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "WINDIR",
+)
+FIXED_GIT_ENVIRONMENT = {
+    "GIT_ATTR_NOSYSTEM": "1",
+    "GIT_CONFIG_COUNT": "0",
+    "GIT_CONFIG_GLOBAL": "NUL",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_OPTIONAL_LOCKS": "0",
+    "NO_COLOR": "1",
+}
 START_NAME = "start.json"
 OUTCOME_NAME = "outcome.json"
 HEX = set("0123456789abcdef")
@@ -106,6 +122,20 @@ def _verify_runtime() -> None:
         raise JournalError("executing Python identity mismatch")
 
 
+def _pinned_git_environment() -> dict[str, str]:
+    environment = {
+        key: value
+        for key in INHERITED_GIT_ENVIRONMENT_KEYS
+        if (value := os.environ.get(key))
+    }
+    environment.update(FIXED_GIT_ENVIRONMENT)
+    if set(environment) != set(INHERITED_GIT_ENVIRONMENT_KEYS).intersection(os.environ) | set(
+        FIXED_GIT_ENVIRONMENT
+    ):
+        raise JournalError("Git environment allowlist mismatch")
+    return environment
+
+
 def _pinned_git_runner(repo: Path) -> GitRunner:
     resolved_repo = repo.resolve()
     expected_prefix = [
@@ -140,6 +170,7 @@ def _pinned_git_runner(repo: Path) -> GitRunner:
         return subprocess.run(
             [str(EXPECTED_GIT_PATH), *argv[1:]],
             input=input,
+            env=_pinned_git_environment(),
             capture_output=capture_output,
             check=check,
             timeout=timeout,

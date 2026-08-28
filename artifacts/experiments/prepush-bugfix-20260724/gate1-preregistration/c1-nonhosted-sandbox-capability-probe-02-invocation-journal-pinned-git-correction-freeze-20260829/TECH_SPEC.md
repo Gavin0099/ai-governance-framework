@@ -17,9 +17,13 @@ resolution.
    `ls-tree --name-only` command shapes.
 4. The adapter executes the exact pinned Git path and retains
    `--no-replace-objects`.
-5. Manifest, frozen inventory, source bindings, HEAD, and anchor OIDs all use
+5. The Git child receives an explicit environment allowlist. Ambient `GIT_*`
+   variables—including repository, worktree, object-store, index, and config
+   selectors—are not inherited; system/global config and system attributes are
+   disabled by fixed values.
+6. Manifest, frozen inventory, source bindings, HEAD, and anchor OIDs all use
    that adapter.  No independent ambient-Git path remains.
-6. Only after all bindings and pre-journal state checks pass may the journal
+7. Only after all bindings and pre-journal state checks pass may the journal
    root and `start.json` be created and the child be launched.
 
 ## Preserved semantics
@@ -37,8 +41,11 @@ resolution.
 The focused tests place a fake Git command first on `PATH` and execute the real
 `execute()` entry.  The pinned Git must report the real HEAD mismatch, the fake
 Git marker must remain absent, and the journal/start/attempt/CLI/private roots
-must remain absent.  Additional tests reject malformed adapter prefixes,
-unexpected Git commands, and altered subprocess parameters.
+must remain absent. A second execute-path test sets `GIT_DIR` and
+`GIT_WORK_TREE` to an authorized decoy repository; the adapter must still read
+the target checkout. Additional tests reject malformed adapter prefixes,
+unexpected Git commands, altered subprocess parameters, and ambient Git
+selectors.
 
 ## Claim ceiling
 

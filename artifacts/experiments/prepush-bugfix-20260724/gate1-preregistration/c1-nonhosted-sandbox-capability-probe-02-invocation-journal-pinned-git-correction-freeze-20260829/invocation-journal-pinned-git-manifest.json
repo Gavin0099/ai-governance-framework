@@ -12,6 +12,9 @@
     "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
     "git_source": "EXACT_PATH_BYTES_AND_SHA256",
     "ambient_path_trusted": false,
+    "ambient_git_prefixed_variables_inherited": false,
+    "git_environment_source": "EXPLICIT_ALLOWLIST_PLUS_FIXED_VALUES",
+    "repository_object_index_and_config_selectors_inherited": false,
     "git_replace_objects_allowed": false,
     "all_git_operations_use_pinned_adapter": true,
     "all_bindings_before_journal_claim": true,
@@ -78,14 +81,14 @@
       "sha256": "0edca0a097ef4d381ec6152aaa8142d87dc15ca297f1a28beed79bcd5d2f6ef2"
     }
   ],
-  "frozen_executor_sha256": "6175996b8e2d492fcfe3ee2ed09b75c09c103e58c6644711a0232423c51f91f7",
+  "frozen_executor_sha256": "c65280071c7c91f01e8536dd350d23aeb9e393d52bea093a30cfa1bae0f4f478",
   "frozen_files": [
     {"path": ".gitattributes", "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46", "bytes": 8, "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"},
     {"path": "README.md", "git_blob_oid": "3dd719c5ff2f88921cedc1ac70fad2b2fea685c4", "bytes": 766, "sha256": "0ea0d8e327b976351099e9e73bce12a64746e05f67d47fd46316dd8f2f7eb500"},
-    {"path": "TECH_SPEC.md", "git_blob_oid": "2ef20601daaa4778b0d3ea1d0c06fa96eedeb810", "bytes": 2196, "sha256": "e1cf17625aa64c34ef7c6ec245e81a9fd36390bf15f0ca2025afb86fa0137332"},
-    {"path": "pinned-git-policy.json", "git_blob_oid": "1558eedfc59f9088ff51d3ae0d52bfbdae8ee81c", "bytes": 669, "sha256": "008f8620d830fcf679334722276c468b941a1f3706ca3bc283f8be0f0ec17ce5"},
-    {"path": "invocation_journal_pinned_git_bootstrap.py", "git_blob_oid": "6e16fbaa10d853d9227dc83f7ab221322d7a5d68", "bytes": 24810, "sha256": "6175996b8e2d492fcfe3ee2ed09b75c09c103e58c6644711a0232423c51f91f7"},
-    {"path": "test_invocation_journal_pinned_git.py", "git_blob_oid": "ad4d1c7f34a1a5a205306c7a251bbd7b6a5e35bd", "bytes": 6296, "sha256": "59d4566ef59f2d92a1fb9e60e2f5dec1b21a2c151e4fb6b10b2d6842f7286cb7"}
+    {"path": "TECH_SPEC.md", "git_blob_oid": "b318efaa16d3c78b66afcf610beb88be5defef31", "bytes": 2630, "sha256": "71b1a1638eb2d900586997dad3bb41998ec00a48b975f17ee0816e11434b872f"},
+    {"path": "pinned-git-policy.json", "git_blob_oid": "008e7fc5d9391b9c64f7da7d88f8a81fc155985d", "bytes": 1260, "sha256": "a4421fd50849e46fe45b6d711bc279076b14dc015bd61c296d2ff1e8ebdbcb00"},
+    {"path": "invocation_journal_pinned_git_bootstrap.py", "git_blob_oid": "844f997acba45b4f99817224ac4967b11ec0487b", "bytes": 25636, "sha256": "c65280071c7c91f01e8536dd350d23aeb9e393d52bea093a30cfa1bae0f4f478"},
+    {"path": "test_invocation_journal_pinned_git.py", "git_blob_oid": "ef079c186b6a846d032230752fb28d27661e24f5", "bytes": 8861, "sha256": "e5a26511cbd4737a29cf2f63a4e28e8f64af6a221736deaa7ae698bf32ea3825"}
   ],
   "execution_authority": {
     "invocation_journal_execution_authorized": false,

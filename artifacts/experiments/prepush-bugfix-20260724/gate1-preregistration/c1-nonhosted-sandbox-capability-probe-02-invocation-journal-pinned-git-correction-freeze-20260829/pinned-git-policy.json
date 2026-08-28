@@ -9,6 +9,18 @@
   "git_replace_objects_allowed": false,
   "adapter_validates_expected_argv": true,
   "all_git_blob_inventory_and_source_binding_operations_use_adapter": true,
+  "inherited_git_environment_keys": ["COMSPEC", "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "TMP", "WINDIR"],
+  "ambient_git_prefixed_variables_inherited": false,
+  "repository_selecting_git_variables_forbidden": ["GIT_DIR", "GIT_WORK_TREE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_INDEX_FILE"],
+  "ambient_git_config_variables_inherited": false,
+  "fixed_git_environment": {
+    "GIT_ATTR_NOSYSTEM": "1",
+    "GIT_CONFIG_COUNT": "0",
+    "GIT_CONFIG_GLOBAL": "NUL",
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_OPTIONAL_LOCKS": "0",
+    "NO_COLOR": "1"
+  },
   "bindings_before_journal_root": true,
   "maximum_executions": 1,
   "retry_allowed": false,

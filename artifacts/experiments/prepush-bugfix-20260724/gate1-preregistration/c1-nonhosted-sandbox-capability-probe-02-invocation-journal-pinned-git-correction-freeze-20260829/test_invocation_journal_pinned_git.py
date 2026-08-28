@@ -66,6 +66,34 @@ def test_pinned_adapter_rejects_wrong_prefix_and_command() -> None:
         runner([*prefix, "rev-parse", "HEAD"], input=b"x", capture_output=True, check=False, timeout=30.0)
 
 
+def test_git_environment_is_allowlisted_and_drops_repository_selectors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    selectors = {
+        "GIT_DIR": "decoy/.git",
+        "GIT_WORK_TREE": "decoy",
+        "GIT_OBJECT_DIRECTORY": "decoy/objects",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES": "decoy/alternate",
+        "GIT_COMMON_DIR": "decoy/common",
+        "GIT_INDEX_FILE": "decoy/index",
+        "GIT_CONFIG_SYSTEM": "decoy/system-config",
+        "GIT_CONFIG_GLOBAL": "decoy/global-config",
+    }
+    for key, value in selectors.items():
+        monkeypatch.setenv(key, value)
+    environment = BOOTSTRAP._pinned_git_environment()
+    for key in selectors:
+        assert environment.get(key) != selectors[key]
+    assert environment == {
+        **{
+            key: os.environ[key]
+            for key in BOOTSTRAP.INHERITED_GIT_ENVIRONMENT_KEYS
+            if os.environ.get(key)
+        },
+        **BOOTSTRAP.FIXED_GIT_ENVIRONMENT,
+    }
+
+
 def test_execute_ignores_malicious_path_before_any_formal_root(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -90,9 +118,40 @@ def test_execute_ignores_malicious_path_before_any_formal_root(
         assert not path.exists()
 
 
+def test_execute_ignores_git_dir_and_work_tree_decoy_before_any_formal_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    git = str(BOOTSTRAP.EXPECTED_GIT_PATH)
+    decoy = tmp_path / "authorized-decoy"
+    subprocess.run([git, "init", "-q", str(decoy)], check=True)
+    subprocess.run([git, "-C", str(decoy), "config", "user.name", "Probe Test"], check=True)
+    subprocess.run([git, "-C", str(decoy), "config", "user.email", "probe@example.invalid"], check=True)
+    (decoy / "decoy.txt").write_text("decoy\n", encoding="utf-8")
+    subprocess.run([git, "-C", str(decoy), "add", "decoy.txt"], check=True)
+    subprocess.run([git, "-C", str(decoy), "commit", "-q", "-m", "decoy"], check=True)
+    decoy_head = subprocess.check_output([git, "-C", str(decoy), "rev-parse", "HEAD"], text=True).strip()
+    monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(decoy))
+    monkeypatch.setenv("GIT_OBJECT_DIRECTORY", str(decoy / ".git" / "objects"))
+    monkeypatch.setattr(sys, "argv", ["-"])
+    monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
+
+    with pytest.raises(BOOTSTRAP.JournalError, match="owner authority does not match repository HEAD"):
+        BOOTSTRAP.execute(
+            repo_root=REPO,
+            owner_authorized_freeze_commit=decoy_head,
+            owner_authorized_execution_packet_sha256="1" * 64,
+            owner_authorized_readiness_review_sha256="2" * 64,
+        )
+
+    for path in formal_paths(load_manifest()):
+        assert not path.exists()
+
+
 def test_all_git_verification_is_adapter_threaded() -> None:
     source = (BASE / "invocation_journal_pinned_git_bootstrap.py").read_text(encoding="utf-8")
     assert '[str(EXPECTED_GIT_PATH), *argv[1:]]' in source
+    assert "env=_pinned_git_environment()" in source
     assert '"git",\n            "--no-replace-objects"' in source
     assert source.count("subprocess.run(") == 2
     assert "_git(repo, git_runner" in source
