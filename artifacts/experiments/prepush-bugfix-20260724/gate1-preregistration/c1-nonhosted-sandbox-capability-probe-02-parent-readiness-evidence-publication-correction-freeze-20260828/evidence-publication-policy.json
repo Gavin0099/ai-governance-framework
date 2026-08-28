@@ -1,0 +1,23 @@
+{
+  "schema": "c1-probe02-parent-readiness-evidence-publication-policy.v1",
+  "start_file": "start.json",
+  "receipt_file": "c1-nonhosted-capability-probe-02-readiness-receipt-20260828-rev1.json",
+  "terminal_file": "terminal.json",
+  "review_file": "c1-nonhosted-capability-probe-02-readiness-review-20260828-rev1.json",
+  "authority_consumed": false,
+  "probe02_attempt_consumed": false,
+  "child_launch_before_start_forbidden": true,
+  "bindings_before_evidence_root": true,
+  "exclusive_evidence_root": true,
+  "exclusive_file_create": true,
+  "fsync_required": true,
+  "readback_required": true,
+  "raw_stdout_retained": false,
+  "raw_stderr_retained": false,
+  "review_packet_created_by_publisher": false,
+  "review_packet_approval_claim_allowed": false,
+  "hosted_requests": 0,
+  "auth_payloads": 0,
+  "qualification_attempts_consumed": 0,
+  "retry_authorized": false
+}
