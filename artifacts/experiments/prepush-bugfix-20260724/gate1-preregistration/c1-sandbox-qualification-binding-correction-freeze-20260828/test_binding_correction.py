@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import types
@@ -18,6 +19,12 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 EXECUTOR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(EXECUTOR)
+BOOTSTRAP_SPEC = importlib.util.spec_from_file_location(
+    "qualification_binding_bootstrap", BASE / "qualification_binding_bootstrap.py"
+)
+assert BOOTSTRAP_SPEC and BOOTSTRAP_SPEC.loader
+BOOTSTRAP = importlib.util.module_from_spec(BOOTSTRAP_SPEC)
+BOOTSTRAP_SPEC.loader.exec_module(BOOTSTRAP)
 
 
 def sha256(path: Path) -> str:
@@ -352,6 +359,7 @@ def test_binding_failure_reads_no_auth_creates_no_roots_and_launches_nothing(
     paths = {
         "qualification_output_root": "final",
         "cli_staging_root": "staging",
+        "bootstrap_staging_root": "bootstrap",
         "installed_cli_source": str(tmp_path / "codex.exe"),
         "live_machine_policy": str(tmp_path / "requirements.toml"),
         "python_executable": str(tmp_path / "python.exe"),
@@ -368,6 +376,15 @@ def test_binding_failure_reads_no_auth_creates_no_roots_and_launches_nothing(
     monkeypatch.setattr(EXECUTOR, "_repo_root", lambda base: tmp_path)
     monkeypatch.setattr(EXECUTOR, "_git", lambda repo, *args, **kwargs: "4" * 40)
     monkeypatch.setattr(EXECUTOR, "_authorized_manifest", lambda repo, commit: data)
+    monkeypatch.setattr(
+        EXECUTOR,
+        "_derived_paths",
+        lambda repo, value: {
+            "qualification_output_root": final,
+            "cli_staging_root": staging,
+            "bootstrap_staging_root": BASE,
+        },
+    )
     monkeypatch.setattr(
         EXECUTOR,
         "_validate_frozen_files",
@@ -402,6 +419,128 @@ def test_binding_order_precedes_roots_import_auth_and_hosted_launch() -> None:
     ]
     positions = [body.index(token) for token in ordered]
     assert positions == sorted(positions)
+
+
+def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
+    completed = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repo), *args],
+        input=input_bytes,
+        check=True,
+        capture_output=True,
+    )
+    return completed.stdout
+
+
+def test_authorized_blob_bootstrap_ignores_dirty_executor_and_launches_no_dirty_code(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "bootstrap-test@example.invalid")
+    _git(repo, "config", "user.name", "Bootstrap Test")
+    freeze = repo.joinpath(*BOOTSTRAP.FREEZE_REPO_DIR.split("/"))
+    freeze.mkdir(parents=True)
+    bootstrap_payload = (BASE / "qualification_binding_bootstrap.py").read_bytes()
+    trusted_executor = (
+        "import os\n"
+        "from pathlib import Path\n"
+        "Path(os.environ['C1_BOOTSTRAP_TEST_MARKER']).write_text('trusted', encoding='utf-8')\n"
+    ).encode("utf-8")
+    bootstrap_path = freeze / "qualification_binding_bootstrap.py"
+    executor_path = freeze / "qualification_binding_executor.py"
+    bootstrap_path.write_bytes(bootstrap_payload)
+    executor_path.write_bytes(trusted_executor)
+    bootstrap_oid = _git(repo, "hash-object", "--no-filters", str(bootstrap_path)).decode().strip()
+    executor_oid = _git(repo, "hash-object", "--no-filters", str(executor_path)).decode().strip()
+    python_path = Path(sys.executable).resolve()
+    data = {
+        "schema": BOOTSTRAP.MANIFEST_SCHEMA,
+        "runtime": {
+            "python_executable_bytes": python_path.stat().st_size,
+            "python_executable_sha256": hashlib.sha256(python_path.read_bytes()).hexdigest(),
+        },
+        "derived_paths": {
+            "python_executable": str(python_path),
+            "bootstrap_staging_root": ".qualification-bootstrap-stage",
+        },
+        "frozen_files": [
+            {
+                "path": bootstrap_path.name,
+                "git_blob_oid": bootstrap_oid,
+                "bytes": len(bootstrap_payload),
+                "sha256": hashlib.sha256(bootstrap_payload).hexdigest(),
+            },
+            {
+                "path": executor_path.name,
+                "git_blob_oid": executor_oid,
+                "bytes": len(trusted_executor),
+                "sha256": hashlib.sha256(trusted_executor).hexdigest(),
+            },
+        ],
+    }
+    (freeze / "binding-correction-manifest.json").write_text(
+        json.dumps(data, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "fixture")
+    head = _git(repo, "rev-parse", "HEAD").decode().strip()
+    dirty_marker = tmp_path / "dirty-marker"
+    hosted_marker = tmp_path / "hosted-marker"
+    executor_path.write_text(
+        "from pathlib import Path\n"
+        f"Path({str(dirty_marker)!r}).write_text('dirty')\n"
+        f"Path({str(hosted_marker)!r}).write_text('hosted')\n",
+        encoding="utf-8",
+    )
+    marker = tmp_path / "trusted-marker"
+    auth = tmp_path / "auth.json"
+    environment = dict(os.environ)
+    environment["C1_BOOTSTRAP_TEST_MARKER"] = str(marker)
+    committed_bootstrap = _git(
+        repo,
+        "show",
+        f"{head}:{BOOTSTRAP.FREEZE_REPO_DIR}/qualification_binding_bootstrap.py",
+    )
+    completed = subprocess.run(
+        [
+            str(python_path),
+            "-I",
+            "-",
+            "--repo-root",
+            str(repo),
+            "--owner-authorized-freeze-commit",
+            head,
+            "--auth-file",
+            str(auth),
+        ],
+        input=committed_bootstrap,
+        check=False,
+        capture_output=True,
+        env=environment,
+    )
+    assert completed.returncode == 0, completed.stderr.decode("utf-8", errors="replace")
+    assert marker.read_text(encoding="utf-8") == "trusted"
+    assert not dirty_marker.exists()
+    assert not hosted_marker.exists()
+    assert not auth.exists()
+    assert not (repo / ".qualification-bootstrap-stage").exists()
+
+
+def test_bootstrap_rejects_direct_working_tree_execution_before_git(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        BOOTSTRAP,
+        "_git",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("git was called")),
+    )
+    with pytest.raises(BOOTSTRAP.BootstrapError, match="streamed"):
+        BOOTSTRAP.execute(
+            repo_root=tmp_path,
+            owner_authorized_freeze_commit="1" * 40,
+            auth_file=tmp_path / "auth.json",
+        )
 
 
 def _terminal_payload() -> bytes:
@@ -493,6 +632,7 @@ def test_attempt_output_and_staging_roots_remain_absent() -> None:
     paths = EXECUTOR._derived_paths(repo, manifest())
     assert not paths["qualification_output_root"].exists()
     assert not paths["cli_staging_root"].exists()
+    assert not paths["bootstrap_staging_root"].exists()
 
 
 def test_source_bindings_resolve_from_exact_git_blobs() -> None:

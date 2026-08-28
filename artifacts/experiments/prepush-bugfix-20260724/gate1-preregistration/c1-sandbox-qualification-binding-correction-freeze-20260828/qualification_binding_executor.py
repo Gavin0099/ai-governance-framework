@@ -191,7 +191,11 @@ def _derived_paths(repo: Path, manifest: Mapping[str, object]) -> Mapping[str, P
     if not isinstance(paths, dict):
         raise ExecutorError("derived path policy is unavailable")
     result: dict[str, Path] = {}
-    for key in ("qualification_output_root", "cli_staging_root"):
+    for key in (
+        "qualification_output_root",
+        "cli_staging_root",
+        "bootstrap_staging_root",
+    ):
         result[key] = _contained_repo_path(repo, str(paths[key]), label=key)
     if result["qualification_output_root"].parent != result["cli_staging_root"].parent:
         raise ExecutorError("qualification and staging roots do not share a frozen parent")
@@ -396,6 +400,8 @@ def execute_qualification(
     state["authority_verified"] = True
     manifest = _authorized_manifest(repo, freeze_commit)
     paths = _derived_paths(repo, manifest)
+    if base != paths["bootstrap_staging_root"]:
+        raise ExecutorError("executor was not materialized by the authorized bootstrap")
     final_root = paths["qualification_output_root"]
     staging_root = paths["cli_staging_root"]
     private_root = staging_root / "private-runner-root"

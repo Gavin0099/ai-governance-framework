@@ -1,9 +1,28 @@
 # C1 sandbox qualification binding correction freeze
 
 This directory supersedes the unexecuted qualification pre-run freeze merged by
-PR #127. It closes the two P1 review findings without executing qualification.
+PR #127. It closes the reviewed binding and publication findings without
+executing qualification.
 
-The executor first resolves and verifies the owner-authorized HEAD. It then
+The only authorized entrypoint is `qualification_binding_bootstrap.py` streamed
+directly from the owner-authorized commit blob into the exact Python interpreter
+with `-I -`. Direct execution of either working-tree Python file is forbidden.
+The bootstrap uses Git with `--no-replace-objects`, verifies HEAD, the manifest,
+the complete frozen-file tree, every frozen blob OID/content binding, and the
+Python executable before creating its bounded staging root. It then materializes
+the verified executor and launches only that copy. The executor rejects any base
+directory other than the frozen bootstrap staging root.
+
+The reviewed execution shape is:
+
+```text
+git --no-replace-objects -c safe.directory=<repo> -C <repo> show <authorized-commit>:artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-binding-correction-freeze-20260828/qualification_binding_bootstrap.py | <exact-python> -I - --repo-root <repo> --owner-authorized-freeze-commit <authorized-commit> --auth-file <authorized-auth-file>
+```
+
+Changing the left side to a working-tree read, invoking either Python file by
+path, or omitting `-I` is outside this freeze and is not authorized.
+
+The materialized executor resolves and verifies the owner-authorized HEAD. It
 loads this manifest from that exact Git commit, not from the working tree. Every
 source binding is read and verified from Git objects into memory before any
 staging root is created, authentication bytes are read, executable module is

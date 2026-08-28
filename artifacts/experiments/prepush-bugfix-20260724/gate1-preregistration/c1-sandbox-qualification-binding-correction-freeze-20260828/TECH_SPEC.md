@@ -20,6 +20,8 @@ change the execution policy or code while preserving the authorized HEAD.
 
 The owner-authorized commit is the sole source of manifest and executable
 dependency bytes. Working-tree or module-cache state cannot select them.
+The executor itself is reached only through a bootstrap streamed from that
+commit; it cannot authenticate itself after working-tree execution has begun.
 
 ## Scope
 
@@ -44,7 +46,13 @@ dependency bytes. Working-tree or module-cache state cannot select them.
 
 ## Boundary and API considerations
 
-The CLI remains exactly `--owner-authorized-freeze-commit` plus `--auth-file`.
+The bootstrap CLI adds the exact repository root to
+`--owner-authorized-freeze-commit` plus `--auth-file`; its Python source must be
+provided on stdin from the authorized Git blob. Direct file execution is
+rejected. The executor CLI remains internal to the bootstrap.
+The reviewed command must retain Git's global `--no-replace-objects` option and
+Python's isolated `-I -` stdin entrypoint; a working-tree redirect is outside
+the execution authority.
 The attempt ID and publication roots remain unchanged. The manifest remains
 self-excluded from its own frozen-file list, but is loaded only as a Git blob
 from the authorized commit.
@@ -58,7 +66,11 @@ denial, consumer readiness, or machine-wide bypass prohibition.
 ## Failure paths and risk points
 
 - wrong authority fails before manifest use;
-- invalid manifest/source blobs fail before staging or auth read;
+- direct working-tree bootstrap or executor execution is rejected;
+- dirty executor bytes cannot be selected because the bootstrap materializes
+  the authorized blob;
+- invalid manifest/frozen blobs fail before bootstrap staging;
+- invalid source bindings fail before qualification/CLI staging or auth read;
 - unsafe bound paths fail before materialization;
 - pre-existing output/staging roots are never overwritten or deleted;
 - module-cache entries are restored after exact modules are loaded;
