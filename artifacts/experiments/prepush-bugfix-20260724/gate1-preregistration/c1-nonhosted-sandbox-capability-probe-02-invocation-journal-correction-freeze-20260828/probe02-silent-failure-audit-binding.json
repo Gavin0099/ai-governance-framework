@@ -1,0 +1,11 @@
+{
+  "schema": "c1-probe02-silent-failure-audit-binding.v1",
+  "audited_commit": "2e42cc6abe0c3f6cdea89e660cc1271c5842fb33",
+  "audit_session": "2026-08-28-69",
+  "audit_terminal": "SILENT_FAILURE_PATH_REMAINS",
+  "preclaim_authority_consumed_without_terminal": true,
+  "postclaim_publication_denial_terminal_created": false,
+  "postclaim_publication_denial_claim_root_exists": true,
+  "postclaim_publication_denial_claim_children": 0,
+  "correction_required_before_readiness_authorization": true
+}
