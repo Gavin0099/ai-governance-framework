@@ -1,0 +1,49 @@
+# Technical specification
+
+## Scope
+
+Freeze the narrow Finding 58 correction at execution base
+`de7a3f05f196895dc55a5e406f2c4ef2f19ed23e`: the outer Probe-02 invocation
+journal must not obtain Git identity or blob evidence through ambient command
+resolution.
+
+## Trust chain
+
+1. The bootstrap may run only as stdin from an owner-authorized commit blob.
+2. Before Git is invoked, the exact Git and Python files are checked by path,
+   byte count, and SHA-256; `sys.executable` must be the pinned Python.
+3. A subprocess.run-compatible adapter accepts only the frozen repository
+   prefix and the required `rev-parse`, `cat-file blob`, or
+   `ls-tree --name-only` command shapes.
+4. The adapter executes the exact pinned Git path and retains
+   `--no-replace-objects`.
+5. Manifest, frozen inventory, source bindings, HEAD, and anchor OIDs all use
+   that adapter.  No independent ambient-Git path remains.
+6. Only after all bindings and pre-journal state checks pass may the journal
+   root and `start.json` be created and the child be launched.
+
+## Preserved semantics
+
+- Attempt id remains `C1-nonhosted-sandbox-capability-probe-02`.
+- The journal, attempt, CLI-staging, and private paths remain unchanged.
+- `start.json` remains the authority-consumption boundary and precedes child
+  launch.
+- Maximum executions remains one; retry remains forbidden.
+- Hosted requests, auth payloads, qualification, randomization, and arms remain
+  outside this freeze.
+
+## Adversarial evidence
+
+The focused tests place a fake Git command first on `PATH` and execute the real
+`execute()` entry.  The pinned Git must report the real HEAD mismatch, the fake
+Git marker must remain absent, and the journal/start/attempt/CLI/private roots
+must remain absent.  Additional tests reject malformed adapter prefixes,
+unexpected Git commands, and altered subprocess parameters.
+
+## Claim ceiling
+
+This freeze can establish reviewable pinned-Git implementation bytes and
+synthetic/adversarial evidence that ambient `PATH` cannot select Git in the
+outer journal verification path.  It does not authorize or establish Probe-02,
+readiness, sandbox capability, hosted transport, qualification, randomization,
+or arm results.

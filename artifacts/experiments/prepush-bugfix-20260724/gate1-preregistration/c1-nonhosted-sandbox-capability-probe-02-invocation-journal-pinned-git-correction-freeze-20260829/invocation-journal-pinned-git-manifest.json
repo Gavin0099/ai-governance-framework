@@ -1,0 +1,124 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-freeze.v1",
+  "status": "PINNED_GIT_CORRECTION_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "execution_commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+    "predecessor_freeze_directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828",
+    "predecessor_bytes_modified": false,
+    "finding": "FINDING_58"
+  },
+  "binding_contract": {
+    "bootstrap_source": "OWNER_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "git_source": "EXACT_PATH_BYTES_AND_SHA256",
+    "ambient_path_trusted": false,
+    "git_replace_objects_allowed": false,
+    "all_git_operations_use_pinned_adapter": true,
+    "all_bindings_before_journal_claim": true,
+    "working_tree_code_trusted": false
+  },
+  "runtime": {
+    "git_executable": "C:/Program Files/Git/cmd/git.exe",
+    "git_executable_bytes": 46480,
+    "git_executable_sha256": "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "child_timeout_seconds": 180
+  },
+  "derived_paths": {
+    "journal_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/c1-nonhosted-sandbox-capability-probe-02",
+    "journal_parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/.gitattributes",
+    "attempt_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-02",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.cli-staging",
+    "private_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.private",
+    "parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.gitattributes"
+  },
+  "parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_contract": {
+    "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
+    "maximum_executions": 1,
+    "retry_allowed": false,
+    "authority_consumed_only_after_start_readback": true,
+    "start_survives_child_failure": true,
+    "raw_child_output_retained": false
+  },
+  "source_bindings": [
+    {
+      "label": "predecessor_manifest",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828/capability-probe-02-invocation-journal-manifest.json",
+      "git_blob_oid": "5c5cc7a7fb50bba3874206a449e250f8238a295a",
+      "bytes": 6362,
+      "sha256": "9148353bdedb5bf331c0e94877a699b2621f5a08680e10d5698ed060d81c165c"
+    },
+    {
+      "label": "predecessor_bootstrap",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828/invocation_journal_bootstrap.py",
+      "git_blob_oid": "88fc30c981486082f1c45c62b8b974974bc39c48",
+      "bytes": 21348,
+      "sha256": "5442a6da9cb1d2e55161c5ca2a8dc6b96805987a402065817c2cdd3f1563b549"
+    },
+    {
+      "label": "probe02_child_bootstrap",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828/capability_probe_02_bootstrap.py",
+      "git_blob_oid": "5a95747d0c690c968de54515e0177446be56f3b2",
+      "bytes": 6676,
+      "sha256": "0edca0a097ef4d381ec6152aaa8142d87dc15ca297f1a28beed79bcd5d2f6ef2"
+    }
+  ],
+  "frozen_executor_sha256": "6175996b8e2d492fcfe3ee2ed09b75c09c103e58c6644711a0232423c51f91f7",
+  "frozen_files": [
+    {"path": ".gitattributes", "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46", "bytes": 8, "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"},
+    {"path": "README.md", "git_blob_oid": "3dd719c5ff2f88921cedc1ac70fad2b2fea685c4", "bytes": 766, "sha256": "0ea0d8e327b976351099e9e73bce12a64746e05f67d47fd46316dd8f2f7eb500"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "2ef20601daaa4778b0d3ea1d0c06fa96eedeb810", "bytes": 2196, "sha256": "e1cf17625aa64c34ef7c6ec245e81a9fd36390bf15f0ca2025afb86fa0137332"},
+    {"path": "pinned-git-policy.json", "git_blob_oid": "1558eedfc59f9088ff51d3ae0d52bfbdae8ee81c", "bytes": 669, "sha256": "008f8620d830fcf679334722276c468b941a1f3706ca3bc283f8be0f0ec17ce5"},
+    {"path": "invocation_journal_pinned_git_bootstrap.py", "git_blob_oid": "6e16fbaa10d853d9227dc83f7ab221322d7a5d68", "bytes": 24810, "sha256": "6175996b8e2d492fcfe3ee2ed09b75c09c103e58c6644711a0232423c51f91f7"},
+    {"path": "test_invocation_journal_pinned_git.py", "git_blob_oid": "ad4d1c7f34a1a5a205306c7a251bbd7b6a5e35bd", "bytes": 6296, "sha256": "59d4566ef59f2d92a1fb9e60e2f5dec1b21a2c151e4fb6b10b2d6842f7286cb7"}
+  ],
+  "execution_authority": {
+    "invocation_journal_execution_authorized": false,
+    "capability_probe_02_authorized": false,
+    "hosted_request_authorized": false,
+    "qualification_03_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false
+  },
+  "authoring_boundary": {
+    "journal_root_created": false,
+    "start_receipt_created": false,
+    "outcome_created": false,
+    "attempt_root_created": false,
+    "child_pipeline_launched": false,
+    "capability_probe_executed": false,
+    "hosted_request_executed": false,
+    "randomization_created": false
+  },
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "reviewable exact-Git invocation-journal bytes",
+      "synthetic malicious-PATH resistance before formal roots"
+    ],
+    "does_not_establish": [
+      "invocation-journal execution authorization or result",
+      "capability-probe-02 authorization or result",
+      "sandbox capability or qualification",
+      "hosted transport, randomization, or arm execution"
+    ]
+  }
+}
