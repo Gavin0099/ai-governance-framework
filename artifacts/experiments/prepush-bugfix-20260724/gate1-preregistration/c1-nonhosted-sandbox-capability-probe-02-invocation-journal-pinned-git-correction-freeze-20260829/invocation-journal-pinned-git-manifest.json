@@ -1,0 +1,151 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-freeze.v1",
+  "status": "PINNED_GIT_CORRECTION_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "execution_commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+    "predecessor_freeze_directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828",
+    "predecessor_bytes_modified": false,
+    "finding": "FINDING_58"
+  },
+  "binding_contract": {
+    "bootstrap_source": "OWNER_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "git_source": "EXACT_PATH_BYTES_AND_SHA256",
+    "ambient_path_trusted": false,
+    "ambient_git_prefixed_variables_inherited": false,
+    "git_environment_source": "EXPLICIT_ALLOWLIST_PLUS_FIXED_VALUES",
+    "repository_object_index_and_config_selectors_inherited": false,
+    "git_replace_objects_allowed": false,
+    "all_git_operations_use_pinned_adapter": true,
+    "outer_child_and_driver_git_operations_use_pinned_adapter": true,
+    "corrected_child_source": "OWNER_AUTHORIZED_COMMIT_FROZEN_INVENTORY",
+    "child_launch_ambient_path_inherited": false,
+    "child_launch_arbitrary_git_variables_inherited": false,
+    "checkout_git_entry_type": "NON_REPARSE_REGULAR_GITFILE",
+    "owner_approved_checkout_root": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution",
+    "alternate_valid_worktree_allowed": false,
+    "git_directory_identity_source": "FILESYSTEM_CONTRACT_CROSS_CHECKED_BY_PINNED_GIT",
+    "gitfile_target_contract": "EXACT_COMMON_DIR_WORKTREES_CHECKOUT_BASENAME",
+    "git_common_directory": "D:/ai-governance-framework/.git",
+    "worktree_reverse_gitfile_exact": true,
+    "worktree_commondir_exact_bytes": "../..\\n",
+    "show_toplevel_equals_exact_repo_root": true,
+    "absolute_git_dir_equals_frozen_derived_gitdir": true,
+    "git_common_dir_equals_frozen_common_dir": true,
+    "unauthorized_symlink_or_reparse_allowed": false,
+    "outer_child_and_driver_share_git_directory_identity_contract": true,
+    "all_bindings_before_journal_claim": true,
+    "working_tree_code_trusted": false
+  },
+  "runtime": {
+    "git_executable": "C:/Program Files/Git/mingw64/bin/git.exe",
+    "git_executable_bytes": 4321168,
+    "git_executable_sha256": "fc0f1cae1304fcdcf4d0749f421c5ed21471efc856301f92f56d4b844be84363",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "child_timeout_seconds": 180
+  },
+  "derived_paths": {
+    "journal_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/c1-nonhosted-sandbox-capability-probe-02",
+    "journal_parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/.gitattributes",
+    "attempt_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-02",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.cli-staging",
+    "private_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.private",
+    "parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.gitattributes"
+  },
+  "parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_contract": {
+    "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
+    "maximum_executions": 1,
+    "retry_allowed": false,
+    "authority_consumed_only_after_start_readback": true,
+    "start_survives_child_failure": true,
+    "raw_child_output_retained": false
+  },
+  "source_bindings": [
+    {
+      "label": "predecessor_manifest",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828/capability-probe-02-invocation-journal-manifest.json",
+      "git_blob_oid": "5c5cc7a7fb50bba3874206a449e250f8238a295a",
+      "bytes": 6362,
+      "sha256": "9148353bdedb5bf331c0e94877a699b2621f5a08680e10d5698ed060d81c165c"
+    },
+    {
+      "label": "predecessor_bootstrap",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-correction-freeze-20260828/invocation_journal_bootstrap.py",
+      "git_blob_oid": "88fc30c981486082f1c45c62b8b974974bc39c48",
+      "bytes": 21348,
+      "sha256": "5442a6da9cb1d2e55161c5ca2a8dc6b96805987a402065817c2cdd3f1563b549"
+    },
+    {
+      "label": "superseded_probe02_child_bootstrap",
+      "commit": "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-readiness-correction-freeze-20260828/capability_probe_02_bootstrap.py",
+      "git_blob_oid": "5a95747d0c690c968de54515e0177446be56f3b2",
+      "bytes": 6676,
+      "sha256": "0edca0a097ef4d381ec6152aaa8142d87dc15ca297f1a28beed79bcd5d2f6ef2"
+    }
+  ],
+  "frozen_executor_sha256": "8bdfd43757664226534891a65c09a19dfaf779c833293b60247cd1cf0ce572a1",
+  "frozen_child_bootstrap_sha256": "98234b11bd3f566f4549422cafb9cf3192829f76a30ed4ca62edbb05fc1b1f8e",
+  "frozen_child_driver_sha256": "7abd51543881d04d6578e3441c1e6750766d5dc319740a447d7eed3890ebdaaa",
+  "frozen_files": [
+    {"path": ".gitattributes", "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46", "bytes": 8, "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"},
+    {"path": "README.md", "git_blob_oid": "a675c7ee88af6ebbae50b169d73926e3214de3dc", "bytes": 2118, "sha256": "5e93b5ff0648d0bbc084d13fe8b073ec6fc5ff44c92ae2bf66d0c1c11780b3d7"},
+    {"path": "TECH_SPEC.md", "git_blob_oid": "a0ac1743569f53ac869c936e1a26975a978dd5af", "bytes": 5590, "sha256": "57aaadca3ed7d673979b495702ec816da4e8d4bf93f4bc15ffb962478fe5a940"},
+    {"path": "pinned-git-policy.json", "git_blob_oid": "243b3828b18c9b218727f085e5028755896e5cc5", "bytes": 2852, "sha256": "2116e03699caea0e5519d69a5b104f0bf81ca6d9513a6c692ff4a0fbf8e01794"},
+    {"path": "invocation_journal_pinned_git_bootstrap.py", "git_blob_oid": "e957a6e339c9cb1883d78a4ca14a02c4d5f5de19", "bytes": 30644, "sha256": "8bdfd43757664226534891a65c09a19dfaf779c833293b60247cd1cf0ce572a1"},
+    {"path": "capability_probe_02_pinned_git_bootstrap.py", "git_blob_oid": "3cbce496e8c04329a39c51b18148ec71e93947ec", "bytes": 15454, "sha256": "98234b11bd3f566f4549422cafb9cf3192829f76a30ed4ca62edbb05fc1b1f8e"},
+    {"path": "capability_probe_02_pinned_git_driver.py", "git_blob_oid": "7b5bfe64faea31becc1570880e944ca44bb5abbe", "bytes": 20681, "sha256": "7abd51543881d04d6578e3441c1e6750766d5dc319740a447d7eed3890ebdaaa"},
+    {"path": "test_invocation_journal_pinned_git.py", "git_blob_oid": "57ecf162044c142d7efd55ca872569a563c0610a", "bytes": 24959, "sha256": "461168d619fcd5b5c13edce5efac5a13060bde6b9705e8ca4a33d2966ea8cb59"}
+  ],
+  "execution_authority": {
+    "invocation_journal_execution_authorized": false,
+    "capability_probe_02_authorized": false,
+    "hosted_request_authorized": false,
+    "qualification_03_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false
+  },
+  "authoring_boundary": {
+    "journal_root_created": false,
+    "execution_checkout_created": false,
+    "start_receipt_created": false,
+    "outcome_created": false,
+    "attempt_root_created": false,
+    "child_pipeline_launched": false,
+    "capability_probe_executed": false,
+    "hosted_request_executed": false,
+    "randomization_created": false
+  },
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "reviewable exact-Git invocation-journal bytes",
+      "synthetic malicious-PATH resistance before formal roots",
+      "cross-layer outer-to-child pinned-Git and sanitized-environment resistance",
+      "cross-layer detached-worktree Git-directory identity validation before formal roots"
+    ],
+    "does_not_establish": [
+      "invocation-journal execution authorization or result",
+      "capability-probe-02 authorization or result",
+      "sandbox capability or qualification",
+      "hosted transport, randomization, or arm execution"
+    ]
+  }
+}
