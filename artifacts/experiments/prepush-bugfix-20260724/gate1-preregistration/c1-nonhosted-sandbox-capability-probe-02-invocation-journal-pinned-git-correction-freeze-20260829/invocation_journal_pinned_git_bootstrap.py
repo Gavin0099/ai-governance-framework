@@ -30,6 +30,10 @@ EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f4
 EXPECTED_PYTHON_PATH = Path("D:/ai-governance-framework/.venv/Scripts/python.exe")
 EXPECTED_PYTHON_BYTES = 255320
 EXPECTED_PYTHON_SHA256 = "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84"
+EXPECTED_GIT_COMMON_DIR = Path("D:/ai-governance-framework/.git")
+GITFILE_MAX_BYTES = 4096
+WORKTREE_COMMONDIR_BYTES = b"../..\n"
+REPARSE_POINT = 0x400
 INHERITED_GIT_ENVIRONMENT_KEYS = (
     "COMSPEC",
     "SYSTEMDRIVE",
@@ -199,6 +203,88 @@ def _pinned_git_runner(repo: Path) -> GitRunner:
         )
 
     return run
+
+
+def _is_reparse_or_symlink(path: Path) -> bool:
+    if path.is_symlink():
+        return True
+    return bool(getattr(path.lstat(), "st_file_attributes", 0) & REPARSE_POINT)
+
+
+def _bounded_regular_file(path: Path, label: str, maximum: int = GITFILE_MAX_BYTES) -> bytes:
+    if not path.is_file() or _is_reparse_or_symlink(path):
+        raise JournalError(f"{label} must be a non-reparse regular file")
+    payload = path.read_bytes()
+    if not payload or len(payload) > maximum:
+        raise JournalError(f"{label} byte contract mismatch")
+    return payload
+
+
+def _require_nonreparse_directory(path: Path, label: str) -> None:
+    if not path.is_dir() or _is_reparse_or_symlink(path):
+        raise JournalError(f"{label} must be a non-reparse directory")
+
+
+def _gitfile_target(payload: bytes, label: str) -> Path:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise JournalError(f"{label} encoding invalid") from exc
+    if not text.endswith("\n") or text.count("\n") != 1 or not text.startswith("gitdir: "):
+        raise JournalError(f"{label} format invalid")
+    raw = text[len("gitdir: "):-1]
+    windows = PureWindowsPath(raw)
+    if not raw or not windows.is_absolute():
+        raise JournalError(f"{label} target must be absolute")
+    return Path(raw).absolute()
+
+
+def _absolute_path_record(payload: bytes, label: str) -> Path:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise JournalError(f"{label} encoding invalid") from exc
+    if not text.endswith("\n") or text.count("\n") != 1:
+        raise JournalError(f"{label} format invalid")
+    raw = text[:-1]
+    if not raw or not PureWindowsPath(raw).is_absolute():
+        raise JournalError(f"{label} target must be absolute")
+    return Path(raw).absolute()
+
+
+def _verify_git_directory_identity(repo: Path, git_runner: GitRunner) -> None:
+    _require_nonreparse_directory(repo, "checkout root")
+    if repo.resolve() != repo.absolute():
+        raise JournalError("checkout root resolved identity mismatch")
+    repo = repo.absolute()
+    dot_git = repo / ".git"
+    gitdir = _gitfile_target(_bounded_regular_file(dot_git, "checkout gitfile"), "checkout gitfile")
+    common = EXPECTED_GIT_COMMON_DIR.absolute()
+    _require_nonreparse_directory(common, "Git common directory")
+    if common.resolve() != common:
+        raise JournalError("Git common directory resolved identity mismatch")
+    expected_gitdir = (common / "worktrees" / repo.name).absolute()
+    if gitdir != expected_gitdir:
+        raise JournalError("checkout gitfile target mismatch")
+    _require_nonreparse_directory(common / "worktrees", "Git worktrees directory")
+    _require_nonreparse_directory(gitdir, "worktree Git directory")
+    reverse_path = _absolute_path_record(
+        _bounded_regular_file(gitdir / "gitdir", "worktree reverse gitfile"),
+        "worktree reverse gitfile",
+    )
+    if reverse_path != dot_git.absolute():
+        raise JournalError("worktree reverse gitfile mismatch")
+    if _bounded_regular_file(gitdir / "commondir", "worktree commondir") != WORKTREE_COMMONDIR_BYTES:
+        raise JournalError("worktree commondir bytes mismatch")
+    if (gitdir / "../..").resolve() != common:
+        raise JournalError("Git common directory binding mismatch")
+    observed = {
+        "toplevel": Path(str(_git(repo, git_runner, "rev-parse", "--show-toplevel"))).resolve(),
+        "gitdir": Path(str(_git(repo, git_runner, "rev-parse", "--absolute-git-dir"))).resolve(),
+        "common": Path(str(_git(repo, git_runner, "rev-parse", "--git-common-dir"))).resolve(),
+    }
+    if observed != {"toplevel": repo, "gitdir": gitdir, "common": common}:
+        raise JournalError("Git directory/worktree identity mismatch")
 
 
 def _git(
@@ -641,7 +727,7 @@ def execute(
 ) -> Mapping[str, object]:
     if sys.argv[0] != "-" or globals().get("__file__") != "<stdin>":
         raise JournalError("journal bootstrap must be streamed from the owner-authorized commit blob")
-    repo = repo_root.resolve()
+    repo = repo_root.absolute()
     commit = owner_authorized_freeze_commit.lower()
     if len(commit) != 40 or any(char not in HEX for char in commit):
         raise JournalError("owner commit is not a full SHA")
@@ -653,6 +739,8 @@ def execute(
             raise JournalError(f"owner-authorized {label} digest invalid")
     _verify_runtime()
     git_runner = _pinned_git_runner(repo)
+    _verify_git_directory_identity(repo, git_runner)
+    repo = repo.resolve()
     if str(_git(repo, git_runner, "rev-parse", "HEAD")) != commit:
         raise JournalError("owner authority does not match repository HEAD")
     manifest = _manifest(repo, git_runner, commit)

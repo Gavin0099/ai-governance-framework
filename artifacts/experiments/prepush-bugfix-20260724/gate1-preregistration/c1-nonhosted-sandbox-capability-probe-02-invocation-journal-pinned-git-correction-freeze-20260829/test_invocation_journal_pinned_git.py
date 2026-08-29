@@ -59,6 +59,36 @@ def formal_paths(manifest: dict) -> list[Path]:
     return [REPO / raw[key] for key in ("journal_root", "attempt_output_root", "cli_staging_root", "private_root")]
 
 
+def synthetic_worktree(tmp_path: Path) -> tuple[Path, Path, Path]:
+    repo = tmp_path / "checkout"
+    common = tmp_path / "source" / ".git"
+    gitdir = common / "worktrees" / repo.name
+    repo.mkdir(parents=True)
+    gitdir.mkdir(parents=True)
+    (repo / ".git").write_bytes(f"gitdir: {gitdir.as_posix()}\n".encode())
+    (gitdir / "gitdir").write_bytes(f"{(repo / '.git').as_posix()}\n".encode())
+    (gitdir / "commondir").write_bytes(b"../..\n")
+    return repo.resolve(), common.resolve(), gitdir.resolve()
+
+
+def identity_runner(
+    repo: Path, gitdir: Path, common: Path, overrides: dict[str, Path] | None = None
+):
+    values = {
+        "--show-toplevel": repo,
+        "--absolute-git-dir": gitdir,
+        "--git-common-dir": common,
+    }
+    values.update(overrides or {})
+
+    def run(argv: list[str], **_: object) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.CompletedProcess(
+            argv, 0, f"{values[argv[-1]].as_posix()}\n".encode(), b""
+        )
+
+    return run
+
+
 def test_runtime_and_policy_pin_exact_git() -> None:
     manifest = load_manifest()
     runtime = manifest["runtime"]
@@ -69,6 +99,13 @@ def test_runtime_and_policy_pin_exact_git() -> None:
     assert policy["ambient_path_trusted"] is False
     assert policy["bare_git_execution_allowed"] is False
     assert policy["all_git_blob_inventory_and_source_binding_operations_use_adapter"] is True
+    assert policy["checkout_git_entry_type"] == "NON_REPARSE_REGULAR_GITFILE"
+    assert policy["checkout_root_reparse_allowed"] is False
+    assert policy["git_common_directory"] == "D:/ai-governance-framework/.git"
+    assert policy["pinned_git_identity_queries"] == [
+        "--show-toplevel", "--absolute-git-dir", "--git-common-dir"
+    ]
+    assert policy["pinned_git_identity_must_equal_filesystem_contract"] is True
 
 
 def test_pinned_adapter_rejects_wrong_prefix_and_command() -> None:
@@ -127,6 +164,129 @@ def test_outer_child_and_nested_git_environments_drop_ambient_selectors(
         assert "GIT_WORK_TREE" not in environment
         assert "GIT_OBJECT_DIRECTORY" not in environment
     assert child_driver["C1_CAPABILITY_EXECUTOR_SHA256"] == "a" * 64
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_accepts_exact_bidirectional_worktree(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    module._verify_git_directory_identity(repo, identity_runner(repo, gitdir, common))
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_rejects_redirected_gitfile_before_git(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, _ = synthetic_worktree(tmp_path)
+    decoy = common / "worktrees" / "authorized-decoy"
+    decoy.mkdir()
+    (repo / ".git").write_bytes(f"gitdir: {decoy.as_posix()}\n".encode())
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    launched = False
+
+    def forbidden(*_: object, **__: object):
+        nonlocal launched
+        launched = True
+        raise AssertionError("Git must not launch for redirected gitfile")
+
+    with pytest.raises(RuntimeError, match="gitfile target mismatch"):
+        module._verify_git_directory_identity(repo, forbidden)
+    assert launched is False
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_rejects_reparse_gitfile_before_git(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, _ = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    real = module._is_reparse_or_symlink
+    monkeypatch.setattr(
+        module, "_is_reparse_or_symlink",
+        lambda path: True if path == repo / ".git" else real(path),
+    )
+    with pytest.raises(RuntimeError, match="non-reparse regular file"):
+        module._verify_git_directory_identity(
+            repo, lambda *_args, **_kwargs: pytest.fail("Git launched")
+        )
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_rejects_reparse_worktree_git_directory(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    real = module._is_reparse_or_symlink
+    monkeypatch.setattr(
+        module, "_is_reparse_or_symlink",
+        lambda path: True if path == gitdir else real(path),
+    )
+    with pytest.raises(RuntimeError, match="worktree Git directory must be a non-reparse directory"):
+        module._verify_git_directory_identity(
+            repo, lambda *_args, **_kwargs: pytest.fail("Git launched")
+        )
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_rejects_reverse_gitdir_decoy(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, gitdir = synthetic_worktree(tmp_path)
+    decoy = tmp_path / "decoy" / ".git"
+    decoy.parent.mkdir()
+    decoy.write_text("decoy\n", encoding="utf-8")
+    (gitdir / "gitdir").write_bytes(f"{decoy.as_posix()}\n".encode())
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    with pytest.raises(RuntimeError, match="reverse gitfile mismatch"):
+        module._verify_git_directory_identity(
+            repo, lambda *_args, **_kwargs: pytest.fail("Git launched")
+        )
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+@pytest.mark.parametrize(
+    "selector",
+    ["--show-toplevel", "--absolute-git-dir", "--git-common-dir"],
+)
+def test_git_directory_identity_rejects_pinned_git_identity_disagreement(
+    module, selector: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+    observed_decoy = tmp_path / "observed-decoy"
+    with pytest.raises(RuntimeError, match="Git directory/worktree identity mismatch"):
+        module._verify_git_directory_identity(
+            repo,
+            identity_runner(repo, gitdir, common, {selector: observed_decoy}),
+        )
+
+
+def test_live_detached_checkout_git_directory_identity_matches() -> None:
+    BOOTSTRAP._verify_git_directory_identity(REPO, BOOTSTRAP._pinned_git_runner(REPO))
+
+
+def test_execute_rejects_git_directory_identity_before_any_formal_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    decoy_common = tmp_path / "decoy" / ".git"
+    decoy_common.mkdir(parents=True)
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_GIT_COMMON_DIR", decoy_common)
+    monkeypatch.setattr(sys, "argv", ["-"])
+    monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
+
+    with pytest.raises(BOOTSTRAP.JournalError, match="gitfile target mismatch"):
+        BOOTSTRAP.execute(
+            repo_root=REPO,
+            owner_authorized_freeze_commit=EXPECTED_COMMIT,
+            owner_authorized_execution_packet_sha256="1" * 64,
+            owner_authorized_readiness_review_sha256="2" * 64,
+        )
+
+    for path in formal_paths(load_manifest()):
+        assert not path.exists()
 
 
 def test_execute_ignores_malicious_path_before_any_formal_root(
@@ -203,6 +363,12 @@ def test_all_git_verification_is_adapter_threaded() -> None:
         assert "[str(EXPECTED_GIT_PATH), *argv[1:]]" in corrected_source
         assert "env=_pinned_git_environment()" in corrected_source
         assert 'subprocess.run(\n        [\n            "git"' not in corrected_source
+        assert corrected_source.index(
+            "_verify_git_directory_identity(repo, git_runner)"
+        ) < corrected_source.index('_git(repo, git_runner, "rev-parse", "HEAD")')
+    assert source.index("_verify_git_directory_identity(repo, git_runner)") < source.index(
+        '_git(repo, git_runner, "rev-parse", "HEAD")'
+    )
     assert "engine._git = pinned_engine_git" in driver_source
     assert "git_runner=git_runner" in driver_source
 

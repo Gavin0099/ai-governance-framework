@@ -30,7 +30,19 @@ resolution.
    ambient `PATH` and arbitrary `GIT_*`; the downstream readiness and capability
    engine Git entrypoints are explicitly routed through the corrected driver's
    pinned adapter.
-8. Only after all bindings and pre-journal state checks pass may the journal
+8. Before HEAD or blob lookup, outer, corrected child, and corrected driver
+   independently validate the same detached-worktree identity contract:
+   - the checkout root is a non-reparse directory and `.git` is a non-reparse
+     LF-only regular gitfile;
+   - its absolute target is exactly
+     `D:/ai-governance-framework/.git/worktrees/<checkout-name>`;
+   - the target, common Git directory, and `worktrees` directory are
+     non-reparse directories;
+   - the target's reverse `gitdir` record resolves exactly to the checkout
+     gitfile and `commondir` is byte-exact `../..\n`;
+   - pinned Git's `--show-toplevel`, `--absolute-git-dir`, and
+     `--git-common-dir` outputs match the independently derived identities.
+9. Only after all bindings and pre-journal state checks pass may the journal
    root and `start.json` be created and the child be launched.
 
 ## Preserved semantics
@@ -57,6 +69,12 @@ The cross-layer test then publishes a synthetic start record and launches the
 corrected child with hostile ambient `PATH`, `GIT_DIR`, and `GIT_WORK_TREE`.
 The child must use the target checkout and pinned Git, return a bounded nonzero
 before capability execution, and leave the fake-Git marker absent.
+Git-directory adversarial tests run the same validator through outer, corrected
+child, and corrected driver. They reject a redirected checkout gitfile, a
+reparse gitfile or worktree-admin directory, a decoy reverse gitfile, and any
+disagreement in the three pinned-Git identity queries. A real detached worktree
+is accepted, while an execute-path binding failure leaves journal, start,
+attempt, CLI, and private roots absent.
 
 ## Claim ceiling
 

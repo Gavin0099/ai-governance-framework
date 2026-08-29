@@ -15,6 +15,14 @@ same Git executable and sanitize Git and child-process environments; neither
 the superseded bare-Git child nor ambient `PATH`/`GIT_*` reaches the execution
 chain.
 
+The same three layers also freeze the detached-worktree identity before any
+HEAD/blob binding or journal claim. The checkout must contain a non-reparse
+regular `.git` gitfile pointing to the exact worktree-admin directory under
+`D:/ai-governance-framework/.git/worktrees/<checkout-name>`. The reverse
+gitfile, exact `commondir` bytes, non-reparse directories, and pinned Git's
+`--show-toplevel`, `--absolute-git-dir`, and `--git-common-dir` results must all
+agree. Redirected or decoy Git directories therefore fail before formal roots.
+
 No readiness probe, capability probe, hosted request, authorization packet, or
 downstream execution was performed by this freeze.  All execution-authority and
 authoring-boundary flags remain false.

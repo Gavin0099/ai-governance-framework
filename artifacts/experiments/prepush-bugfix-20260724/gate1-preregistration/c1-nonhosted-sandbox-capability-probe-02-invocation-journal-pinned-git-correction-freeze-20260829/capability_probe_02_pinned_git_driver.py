@@ -30,6 +30,10 @@ CORRECTION_MANIFEST_REPO_PATH = f"{CORRECTION_REPO_DIR}/invocation-journal-pinne
 EXPECTED_GIT_PATH = Path("C:/Program Files/Git/cmd/git.exe")
 EXPECTED_GIT_BYTES = 46480
 EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5"
+EXPECTED_GIT_COMMON_DIR = Path("D:/ai-governance-framework/.git")
+GITFILE_MAX_BYTES = 4096
+WORKTREE_COMMONDIR_BYTES = b"../..\n"
+REPARSE_POINT = 0x400
 INHERITED_GIT_ENVIRONMENT_KEYS = (
     "COMSPEC", "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "TMP", "WINDIR",
 )
@@ -86,6 +90,87 @@ def _pinned_git_runner(repo: Path) -> GitRunner:
         )
 
     return run
+
+
+def _is_reparse_or_symlink(path: Path) -> bool:
+    if path.is_symlink():
+        return True
+    return bool(getattr(path.lstat(), "st_file_attributes", 0) & REPARSE_POINT)
+
+
+def _bounded_regular_file(path: Path, label: str, maximum: int = GITFILE_MAX_BYTES) -> bytes:
+    if not path.is_file() or _is_reparse_or_symlink(path):
+        raise DriverError(f"{label} must be a non-reparse regular file")
+    payload = path.read_bytes()
+    if not payload or len(payload) > maximum:
+        raise DriverError(f"{label} byte contract mismatch")
+    return payload
+
+
+def _require_nonreparse_directory(path: Path, label: str) -> None:
+    if not path.is_dir() or _is_reparse_or_symlink(path):
+        raise DriverError(f"{label} must be a non-reparse directory")
+
+
+def _gitfile_target(payload: bytes, label: str) -> Path:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DriverError(f"{label} encoding invalid") from exc
+    if not text.endswith("\n") or text.count("\n") != 1 or not text.startswith("gitdir: "):
+        raise DriverError(f"{label} format invalid")
+    raw = text[len("gitdir: "):-1]
+    if not raw or not PureWindowsPath(raw).is_absolute():
+        raise DriverError(f"{label} target must be absolute")
+    return Path(raw).absolute()
+
+
+def _absolute_path_record(payload: bytes, label: str) -> Path:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DriverError(f"{label} encoding invalid") from exc
+    if not text.endswith("\n") or text.count("\n") != 1:
+        raise DriverError(f"{label} format invalid")
+    raw = text[:-1]
+    if not raw or not PureWindowsPath(raw).is_absolute():
+        raise DriverError(f"{label} target must be absolute")
+    return Path(raw).absolute()
+
+
+def _verify_git_directory_identity(repo: Path, git_runner: GitRunner) -> None:
+    _require_nonreparse_directory(repo, "checkout root")
+    if repo.resolve() != repo.absolute():
+        raise DriverError("checkout root resolved identity mismatch")
+    repo = repo.absolute()
+    dot_git = repo / ".git"
+    gitdir = _gitfile_target(_bounded_regular_file(dot_git, "checkout gitfile"), "checkout gitfile")
+    common = EXPECTED_GIT_COMMON_DIR.absolute()
+    _require_nonreparse_directory(common, "Git common directory")
+    if common.resolve() != common:
+        raise DriverError("Git common directory resolved identity mismatch")
+    expected_gitdir = (common / "worktrees" / repo.name).absolute()
+    if gitdir != expected_gitdir:
+        raise DriverError("checkout gitfile target mismatch")
+    _require_nonreparse_directory(common / "worktrees", "Git worktrees directory")
+    _require_nonreparse_directory(gitdir, "worktree Git directory")
+    reverse_path = _absolute_path_record(
+        _bounded_regular_file(gitdir / "gitdir", "worktree reverse gitfile"),
+        "worktree reverse gitfile",
+    )
+    if reverse_path != dot_git.absolute():
+        raise DriverError("worktree reverse gitfile mismatch")
+    if _bounded_regular_file(gitdir / "commondir", "worktree commondir") != WORKTREE_COMMONDIR_BYTES:
+        raise DriverError("worktree commondir bytes mismatch")
+    if (gitdir / "../..").resolve() != common:
+        raise DriverError("Git common directory binding mismatch")
+    observed = {
+        "toplevel": Path(str(_git(repo, git_runner, "rev-parse", "--show-toplevel"))).resolve(),
+        "gitdir": Path(str(_git(repo, git_runner, "rev-parse", "--absolute-git-dir"))).resolve(),
+        "common": Path(str(_git(repo, git_runner, "rev-parse", "--git-common-dir"))).resolve(),
+    }
+    if observed != {"toplevel": repo, "gitdir": gitdir, "common": common}:
+        raise DriverError("Git directory/worktree identity mismatch")
 
 
 def _git(repo: Path, git_runner: GitRunner, *args: str, binary: bool = False) -> bytes | str:
@@ -258,13 +343,15 @@ def execute(
 ) -> Mapping[str, object]:
     if sys.argv[0] != "-" or globals().get("__file__") != "<stdin>":
         raise DriverError("driver must be streamed by the authorized bootstrap")
-    repo = repo_root.resolve()
+    repo = repo_root.absolute()
     commit = owner_authorized_freeze_commit.lower()
     if len(commit) != 40 or any(char not in HEX for char in commit):
         raise DriverError("owner commit is not a full SHA")
     if not EXPECTED_GIT_PATH.is_file() or EXPECTED_GIT_PATH.stat().st_size != EXPECTED_GIT_BYTES or _sha256_file(EXPECTED_GIT_PATH) != EXPECTED_GIT_SHA256:
         raise DriverError("Git binding mismatch")
     git_runner = _pinned_git_runner(repo)
+    _verify_git_directory_identity(repo, git_runner)
+    repo = repo.resolve()
     if str(_git(repo, git_runner, "rev-parse", "HEAD")) != commit:
         raise DriverError("owner authority does not match repository HEAD")
     manifest = _manifest(repo, git_runner, commit)
