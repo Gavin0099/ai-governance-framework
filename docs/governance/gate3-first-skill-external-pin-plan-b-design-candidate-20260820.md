@@ -628,6 +628,18 @@ reviewer/owner receipt or separately controlled append record against the exact
 event-7 bytes.  A valid event-6 pin without that final-head record preserves
 the release-order evidence but leaves the unit uncountable.
 
+This future Route B condition intentionally differs from, but does not modify,
+expand or supersede, the current C1 frozen D5 policy identified by the immutable
+external cross-reference
+`1ced27d08e0330ca5ebe21ed241f0074ec500958:artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-d5-countability-amendment-20260826/d5-countability-policy.json`
+(the referenced commit is not inherited through `007bd77a` ancestry):
+`CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED`,
+`decision_scope=internal_skill_funding_only`,
+`required_for_current_c1=false` and `absence_alone=NOT_A_FAILURE`.  That D5
+policy remains limited to current C1 internal Skill-funding countability; this
+candidate's final-head condition applies only to a future Route B and does not
+become approved through this cross-reference.
+
 ## Time and ordering semantics
 
 The trusted statement is relative ordering, not precise wall-clock time:
