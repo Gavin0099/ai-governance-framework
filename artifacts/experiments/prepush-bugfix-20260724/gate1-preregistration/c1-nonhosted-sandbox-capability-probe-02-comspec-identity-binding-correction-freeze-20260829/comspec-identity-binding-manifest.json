@@ -35,6 +35,7 @@
     "all_git_operations_use_pinned_adapter": true,
     "outer_child_and_driver_git_operations_use_pinned_adapter": true,
     "corrected_child_source": "OWNER_AUTHORIZED_COMMIT_FROZEN_INVENTORY",
+    "active_correction_directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-correction-freeze-20260829",
     "child_launch_ambient_path_inherited": false,
     "child_launch_ambient_comspec_inherited": false,
     "child_launch_arbitrary_git_variables_inherited": false,
@@ -122,9 +123,9 @@
       "sha256": "b1a6cbef481b8bb1ae4f614c513fa8bc8fa387ebd408be1ba0731533c1d5a8b8"
     }
   ],
-  "frozen_executor_sha256": "ec8791809f7ed79aafa43e4472e794155753bdbfa01081278e483dd39b8ee8d4",
-  "frozen_child_bootstrap_sha256": "71708395b9fb21ba0ab62d7c8c7b2337f613b04fe2bc17acfe2fa40d0a1f16cb",
-  "frozen_child_driver_sha256": "c54f1a67fa11c76ef030a32faac2d66498c96bc69c1c439497aa4c04aee049b9",
+  "frozen_executor_sha256": "2500a9bf583ef996e77a59f048e1d473b7d1868db64f6c045d6c7bfb8e620b19",
+  "frozen_child_bootstrap_sha256": "cfdbba871b8f3d85e5b09428e5da7600077089b8f23dde0d38bbc7e4d82f895b",
+  "frozen_child_driver_sha256": "dddd4385fa1e22be67240262f7bbbe94b66eca16038d8d39142732c65b748615",
   "frozen_files": [
     {
       "path": ".gitattributes",
@@ -152,27 +153,27 @@
     },
     {
       "path": "invocation_journal_pinned_git_bootstrap.py",
-      "git_blob_oid": "5f0531632fcfc666193244d9efd1b24c7b9b2f4c",
-      "bytes": 31808,
-      "sha256": "ec8791809f7ed79aafa43e4472e794155753bdbfa01081278e483dd39b8ee8d4"
+      "git_blob_oid": "2561f2f56e88c572d71745c2e566b0fce3ec7419",
+      "bytes": 31809,
+      "sha256": "2500a9bf583ef996e77a59f048e1d473b7d1868db64f6c045d6c7bfb8e620b19"
     },
     {
       "path": "capability_probe_02_pinned_git_bootstrap.py",
-      "git_blob_oid": "fc6908a3303f5dfec06f0572cdeae850bf9f3b4e",
-      "bytes": 16265,
-      "sha256": "71708395b9fb21ba0ab62d7c8c7b2337f613b04fe2bc17acfe2fa40d0a1f16cb"
+      "git_blob_oid": "1661a743cad47e8ae814da7cefb8dec17ea0a78f",
+      "bytes": 16266,
+      "sha256": "cfdbba871b8f3d85e5b09428e5da7600077089b8f23dde0d38bbc7e4d82f895b"
     },
     {
       "path": "capability_probe_02_pinned_git_driver.py",
-      "git_blob_oid": "0918fe1ae892da969b335a6db5793924715c1984",
-      "bytes": 24469,
-      "sha256": "c54f1a67fa11c76ef030a32faac2d66498c96bc69c1c439497aa4c04aee049b9"
+      "git_blob_oid": "68becae6ea2fe1360953033bfde2e01ce1590227",
+      "bytes": 24470,
+      "sha256": "dddd4385fa1e22be67240262f7bbbe94b66eca16038d8d39142732c65b748615"
     },
     {
       "path": "test_comspec_identity_binding.py",
-      "git_blob_oid": "ca454ec414383417aa82b5f713b3d5e2b33f04fa",
-      "bytes": 34501,
-      "sha256": "eb10e8822b75ba8b4ae33fcc98be83f0d7e86b093ba2eee1eddb2d195773fe00"
+      "git_blob_oid": "83b8750e5bdeb6336f12de57bc76656c1d400b1f",
+      "bytes": 36366,
+      "sha256": "a2e651a076c081425a5dea85c18ae40a5b1d1751a2fab4ac83114fdc31ccdbfb"
     }
   ],
   "execution_authority": {

@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,11 @@ EXPECTED_COMMIT = "0a882464833c9c023272befdc3a258409c4a0f08"
 GIT_IMPLEMENTATION = Path("C:/Program Files/Git/mingw64/bin/git.exe")
 WHOAMI_IMPLEMENTATION = Path("C:/Windows/System32/whoami.exe")
 COMSPEC_IMPLEMENTATION = Path("C:/Windows/System32/cmd.exe")
+ACTIVE_CORRECTION_REPO_DIR = (
+    "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
+    "c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-"
+    "correction-freeze-20260829"
+)
 GIT_LAUNCHERS = (
     Path("C:/Program Files/Git/cmd/git.exe"),
     Path("C:/Program Files/Git/bin/git.exe"),
@@ -174,6 +180,37 @@ def test_runtime_and_policy_pin_exact_comspec() -> None:
     assert policy["child_comspec_reverified"] is True
     assert policy["driver_comspec_reverified"] is True
     assert policy["engine_comspec_reverified"] is True
+
+
+def test_outer_child_and_driver_select_one_active_correction_directory() -> None:
+    manifest = load_manifest()
+    assert BOOTSTRAP.FREEZE_REPO_DIR == ACTIVE_CORRECTION_REPO_DIR
+    assert CHILD.CORRECTION_REPO_DIR == ACTIVE_CORRECTION_REPO_DIR
+    assert DRIVER.CORRECTION_REPO_DIR == ACTIVE_CORRECTION_REPO_DIR
+    expected_manifest = f"{ACTIVE_CORRECTION_REPO_DIR}/{MANIFEST.name}"
+    assert BOOTSTRAP.MANIFEST_REPO_PATH == expected_manifest
+    assert CHILD.CORRECTION_MANIFEST_REPO_PATH == expected_manifest
+    assert DRIVER.CORRECTION_MANIFEST_REPO_PATH == expected_manifest
+    assert manifest["binding_contract"]["active_correction_directory"] == ACTIVE_CORRECTION_REPO_DIR
+
+
+def test_candidate_child_to_driver_path_loads_active_manifest_blob() -> None:
+    runner = CHILD._pinned_git_runner(REPO)
+    driver_repo_path = f"{CHILD.CORRECTION_REPO_DIR}/{CHILD.CORRECTED_DRIVER_NAME}"
+    _, driver_payload = CHILD._blob(REPO, runner, "", driver_repo_path)
+    assert driver_payload == (BASE / CHILD.CORRECTED_DRIVER_NAME).read_bytes()
+
+    selected_driver = types.ModuleType("candidate_comspec_driver")
+    selected_driver.__file__ = "<candidate-git-index:comspec-driver>"
+    exec(compile(driver_payload, selected_driver.__file__, "exec"), selected_driver.__dict__)
+    assert selected_driver.CORRECTION_REPO_DIR == ACTIVE_CORRECTION_REPO_DIR
+
+    _, manifest_payload = CHILD._blob(
+        REPO, runner, "", selected_driver.CORRECTION_MANIFEST_REPO_PATH
+    )
+    manifest = json.loads(manifest_payload)
+    assert manifest["schema"] == selected_driver.CORRECTION_SCHEMA
+    assert manifest_payload == MANIFEST.read_bytes()
 
 
 def test_all_active_environments_replace_hostile_ambient_comspec(

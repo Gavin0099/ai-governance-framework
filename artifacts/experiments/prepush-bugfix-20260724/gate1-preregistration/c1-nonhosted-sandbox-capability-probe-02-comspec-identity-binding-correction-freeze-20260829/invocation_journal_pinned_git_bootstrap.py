@@ -18,7 +18,7 @@ OUTCOME_SCHEMA = "c1-nonhosted-sandbox-capability-invocation-outcome.v1"
 ATTEMPT_ID = "C1-nonhosted-sandbox-capability-probe-02"
 FREEZE_REPO_DIR = (
     "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
-    "c1-nonhosted-sandbox-capability-probe-02-whoami-identity-binding-"
+    "c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-"
     "correction-freeze-20260829"
 )
 MANIFEST_REPO_PATH = f"{FREEZE_REPO_DIR}/comspec-identity-binding-manifest.json"

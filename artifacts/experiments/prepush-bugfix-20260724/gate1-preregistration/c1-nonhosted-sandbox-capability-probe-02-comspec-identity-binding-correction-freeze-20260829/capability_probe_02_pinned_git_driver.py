@@ -23,7 +23,7 @@ READINESS_NAME = "execution_readiness.py"
 CORRECTION_SCHEMA = "c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-freeze.v1"
 CORRECTION_REPO_DIR = (
     "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/"
-    "c1-nonhosted-sandbox-capability-probe-02-whoami-identity-binding-"
+    "c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-"
     "correction-freeze-20260829"
 )
 CORRECTION_MANIFEST_REPO_PATH = f"{CORRECTION_REPO_DIR}/comspec-identity-binding-manifest.json"
