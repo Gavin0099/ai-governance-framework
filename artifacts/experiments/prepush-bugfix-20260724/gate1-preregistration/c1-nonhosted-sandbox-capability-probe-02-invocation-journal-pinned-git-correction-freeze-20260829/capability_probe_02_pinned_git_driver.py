@@ -27,9 +27,9 @@ CORRECTION_REPO_DIR = (
     "correction-freeze-20260829"
 )
 CORRECTION_MANIFEST_REPO_PATH = f"{CORRECTION_REPO_DIR}/invocation-journal-pinned-git-manifest.json"
-EXPECTED_GIT_PATH = Path("C:/Program Files/Git/cmd/git.exe")
-EXPECTED_GIT_BYTES = 46480
-EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5"
+EXPECTED_GIT_PATH = Path("C:/Program Files/Git/mingw64/bin/git.exe")
+EXPECTED_GIT_BYTES = 4321168
+EXPECTED_GIT_SHA256 = "fc0f1cae1304fcdcf4d0749f421c5ed21471efc856301f92f56d4b844be84363"
 EXPECTED_GIT_COMMON_DIR = Path("D:/ai-governance-framework/.git")
 EXPECTED_CHECKOUT_ROOT = Path("C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution")
 GITFILE_MAX_BYTES = 4096

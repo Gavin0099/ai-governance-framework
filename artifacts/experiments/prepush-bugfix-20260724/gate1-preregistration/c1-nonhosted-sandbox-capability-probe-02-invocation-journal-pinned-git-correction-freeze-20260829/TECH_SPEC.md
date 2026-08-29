@@ -10,8 +10,12 @@ resolution.
 ## Trust chain
 
 1. The bootstrap may run only as stdin from an owner-authorized commit blob.
-2. Before Git is invoked, the exact Git and Python files are checked by path,
-   byte count, and SHA-256; `sys.executable` must be the pinned Python.
+2. Before Git is invoked, the exact Git implementation at
+   `C:/Program Files/Git/mingw64/bin/git.exe` and the exact Python file are
+   checked by path, byte count, and SHA-256; `sys.executable` must be the pinned
+   Python. The small `cmd/git.exe` and `bin/git.exe` launchers are forbidden:
+   pinning either launcher would leave the implementation it delegates to
+   outside the trust boundary.
 3. A subprocess.run-compatible adapter accepts only the frozen repository
    prefix and the required `rev-parse`, `cat-file blob`, or
    `ls-tree --name-only` command shapes.

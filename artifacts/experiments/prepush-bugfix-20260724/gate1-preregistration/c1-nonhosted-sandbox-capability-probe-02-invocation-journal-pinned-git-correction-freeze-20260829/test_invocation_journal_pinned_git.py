@@ -20,6 +20,11 @@ FROZEN_EXECUTION_CHECKOUT = Path(
     "c1-nonhosted-capability-probe-02-execution"
 )
 EXPECTED_COMMIT = "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e"
+GIT_IMPLEMENTATION = Path("C:/Program Files/Git/mingw64/bin/git.exe")
+GIT_LAUNCHERS = (
+    Path("C:/Program Files/Git/cmd/git.exe"),
+    Path("C:/Program Files/Git/bin/git.exe"),
+)
 
 
 def load_module():
@@ -106,6 +111,14 @@ def test_runtime_and_policy_pin_exact_git() -> None:
     assert runtime["git_executable"] == BOOTSTRAP.EXPECTED_GIT_PATH.as_posix()
     assert runtime["git_executable_bytes"] == BOOTSTRAP.EXPECTED_GIT_BYTES
     assert runtime["git_executable_sha256"] == BOOTSTRAP.EXPECTED_GIT_SHA256
+    for module in (BOOTSTRAP, CHILD, DRIVER):
+        assert module.EXPECTED_GIT_PATH == GIT_IMPLEMENTATION
+        assert module.EXPECTED_GIT_BYTES == GIT_IMPLEMENTATION.stat().st_size
+        assert module.EXPECTED_GIT_SHA256 == sha256(GIT_IMPLEMENTATION.read_bytes())
+        assert module.EXPECTED_GIT_PATH not in GIT_LAUNCHERS
+    assert policy["git_cmd_launcher_allowed"] is False
+    assert policy["git_bin_launcher_allowed"] is False
+    assert policy["git_implementation_executed_directly"] is True
     assert manifest["binding_contract"]["owner_approved_checkout_root"] == BOOTSTRAP.EXPECTED_CHECKOUT_ROOT.as_posix()
     assert policy["ambient_path_trusted"] is False
     assert policy["bare_git_execution_allowed"] is False

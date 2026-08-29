@@ -2,8 +2,11 @@
 
 This directory freezes the Finding 58 correction for the outer Probe-02
 invocation journal.  The predecessor journal used the ambient `PATH` to resolve
-`git`; this revision pins Git by absolute path, byte count, and SHA-256 before
-any repository identity or blob is trusted.
+`git`; this revision directly executes the implementation at
+`C:/Program Files/Git/mingw64/bin/git.exe` and pins it by absolute path, byte
+count, and SHA-256 before any repository identity or blob is trusted. The small
+`cmd/git.exe` and `bin/git.exe` launchers are not allowed because their own
+bytes do not bind the implementation to which they delegate.
 
 The new bootstrap supersedes the predecessor bootstrap only for a future
 Probe-02 entry.  It preserves the reviewed start-before-child journal semantics,
