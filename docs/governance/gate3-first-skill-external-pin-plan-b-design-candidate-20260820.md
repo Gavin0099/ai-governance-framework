@@ -1,6 +1,6 @@
 # Gate 3 first-Skill external-pin Plan B design candidate
 
-Status: **CANDIDATE — CONDITIONAL-TRUST MODEL DECIDED, REVISION 5 NOT YET
+Status: **CANDIDATE — CONDITIONAL-TRUST MODEL DECIDED, REVISION 6 NOT YET
 REVIEWED OR ACCEPTED.**
 
 The owner confirmed Route B on 2026-08-20: do not use a second natural person
@@ -16,6 +16,13 @@ coordinator from selecting a provider after seeing the run by binding the
 accepted provider profile into the frozen protocol contract, but no account,
 signature, proof bundle or repository artifact can prove that the operator is
 not secretly controlled by or colluding with the coordinator.
+
+Revision 6 makes the provider admission root independent of the run contract,
+closes the proof-bundle wire schema and assigns disjoint failure predicates to
+an absent event-7 manifest reference, an invalid manifest, a missing component
+and mismatched component bytes.  It still does not select a provider or supply
+the future owner-accepted admission bytes; their absence remains a hard stop
+before implementation.
 
 ## Claim boundary — first page, before mechanism
 
@@ -223,8 +230,13 @@ independence premise.
 
 ### Verifier
 
-The verifier trusts only the admitted provider profile, retained trust material,
-exact local chain bytes and complete proof bundle.  It does not trust a caller-
+The verifier's first trust input is the exact pre-authority provider-admission
+artifact identified by constants in the owner-accepted implementation bytes.
+It then trusts only profile, policy and trust-material bytes whose identities
+that artifact pins, plus exact local chain bytes and a complete proof bundle.
+The expected admission or profile identity is never selected from a caller,
+run contract, event 7 or the bundle.  Those surfaces carry only copies that
+must match the pre-authority root.  The verifier does not trust a caller-
 supplied boolean, receipt ID, timestamp string, web screenshot, local cache or
 provider success message.
 
@@ -248,18 +260,104 @@ reviewed and owner-accepted.  It must pin:
 - privacy statement for submitted digest and retained locator metadata.
 
 The accepted profile's digest must be stored in the new Route B protocol
-contract before any event for the run is written.  The profile must bind the
-digests of its trust-root and verification-policy bytes.  Because every event
-binds the exact protocol-contract digest, this makes provider selection a
-pre-run commitment.  The verifier obtains the expected profile digest from
-those independently selected frozen contract bytes; the profile and trust-root
-copies inside the proof bundle are retained inputs that must match that
-authority, not a source from which the expected value may be invented.
+contract before any event for the run is written.  The contract must also copy
+the admitted provider-admission digest.  Because every event binds the exact
+protocol-contract digest, this makes the already-admitted provider selection a
+pre-run commitment.  The run contract is not the source of that authority: it
+must match the independent admission root defined below.  The profile,
+verification-policy and trust-root copies inside the proof bundle are retained
+inputs that must match that root, not a source from which the expected value
+may be invented.
 
 An API that returns only a server-generated timestamp or receipt identifier is
 not sufficient.  A surface whose history can be edited by the coordinator, or
 whose proof can be verified only by asking the same live API to say `valid`, is
 not sufficient.
+
+### Pre-authority provider admission artifact
+
+Provider qualification must create exactly one canonical admission artifact at
+the fixed repository-relative locator
+`artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3-external-pin-provider-admission.v1.json`.
+It is outside every comparison-unit evidence root and no runtime argument may
+replace, redirect or override that locator.
+
+The artifact is canonical UTF-8 JSON with no BOM, sorted keys, compact
+separators and one trailing LF.  Its top-level object contains exactly:
+
+| Field | Exact value or role |
+| --- | --- |
+| `schema` | literal `gate3-external-pin-provider-admission.v1` |
+| `provider_profile` | one identity object for the accepted profile bytes |
+| `offline_verifier` | one identity object for the independently reviewed verifier bytes |
+| `verification_policy` | one identity object for the exact offline verification-policy bytes |
+| `trust_material` | array of every trust-root, witness-root or consensus-validation component admitted by the profile |
+| `bundle_component_contract` | array fixing the exact role cardinality permitted in a proof-bundle manifest |
+
+Each identity object contains exactly `locator`, `sha256` and `byte_length`.
+Each `trust_material` item contains exactly `role`, `ordinal`, `locator`,
+`sha256` and `byte_length`.  Each `bundle_component_contract` item contains
+exactly `role` and `count`.  All digests are 64 lowercase hexadecimal
+characters; byte lengths and counts are non-negative JSON integers, not
+strings or floats.  Duplicate JSON keys, unknown fields, unknown roles,
+duplicate `(role, ordinal)` pairs, duplicate locators, non-contiguous ordinals
+or a trust-material count inconsistent with the component contract make the
+artifact invalid.
+
+Admission-bound component locators are fixed ASCII repository-relative paths
+beneath
+`artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/provider-admission/`.
+The same absolute-path, drive/UNC, backslash, colon, NUL, empty-segment, `.`,
+`..`, symlink, junction and reparse-point prohibitions defined for bundle
+components below apply before any admission component is read.  Every locator
+is also named in the owner decision; no locator is synthesized from a run
+field.  `trust_material` must contain at least one item.  Both admission arrays
+are canonical: `trust_material` is sorted by ASCII `role` then numeric
+`ordinal`, and `bundle_component_contract` contains every role in the closed
+bundle vocabulary exactly once in ASCII role order.  Every admission
+`trust_material` item uses the literal role `trust_material`; its profile-
+specific meaning is carried by the separately hashed profile and policy, not by
+an open-ended manifest role.
+
+The separate provider-qualification owner decision must name all of the
+following before implementation begins:
+
+- the fixed admission locator above;
+- the exact admission-artifact SHA-256, byte length and Git blob object ID;
+- the owner-accepted repository commit containing those exact bytes;
+- the exact SHA-256 and byte length of the profile, verifier, policy and every
+  trust-material component bound by the artifact; and
+- the implementation commit whose constants pin the admission locator,
+  SHA-256 and byte length and whose verifier bytes match the admitted verifier
+  identity.
+
+`ADMITTED_PROVIDER_ADMISSION_LOCATOR`,
+`ADMITTED_PROVIDER_ADMISSION_SHA256` and
+`ADMITTED_PROVIDER_ADMISSION_BYTE_LENGTH` are therefore compile/source-time
+constants in the owner-accepted implementation, not parameters.  Before a run
+contract or event is parsed, the verifier reads the fixed artifact, checks its
+exact identity against those constants, applies the closed-schema rules above,
+then loads and hashes every bound component.  Only after that step may it
+require the Route B contract's `provider_admission_sha256` and
+`provider_profile_sha256` copies to match.  A caller, event 7 or bundle cannot
+select a different authority by supplying a self-consistent profile and proof.
+
+This bootstrap is deliberately acyclic.  The admitted `offline_verifier` bytes
+must not contain the admission artifact digest or any of the three
+`ADMITTED_PROVIDER_ADMISSION_*` constants.  A separate bootstrap module in the
+owner-accepted implementation commit owns those constants, verifies and freezes
+the admission/profile/policy/trust byte map, and then invokes the admitted pure
+offline verifier with that already-verified map.  The artifact pins the pure
+verifier; the owner decision pins the complete implementation commit.  An
+implementation that embeds the admission digest inside the verifier bytes that
+the admission artifact hashes is cyclic and invalid.
+
+The admission artifact must not contain a comparison identity, request digest,
+entry locator, proof digest, bundle-manifest identity or event digest.  It is a
+pre-run authority root, not a receptacle for producer-derived values.  Until
+the fixed artifact, exact identities, owner decision and pinning implementation
+commit all exist, the result is `EXTERNAL_PIN_ADMISSION_INVALID` and no Route B
+run contract may be admitted.
 
 ## Protocol version and legacy compatibility
 
@@ -268,9 +366,12 @@ authority for the retained 2026-07-29 rehearsal and must not be overwritten to
 introduce Route B.  The earlier proposal to add the provider-profile digest to
 that existing file is superseded by this compatibility requirement.  Route B
 must mint a new versioned protocol contract whose closed external-pin section
-contains at least the request schema, admitted `provider_profile_sha256`,
+contains at least the request schema, admitted
+`provider_admission_sha256`, admitted `provider_profile_sha256`,
 profile-bound trust-material digests and the literal activation policy
-`required_for_mapping_release`.
+`required_for_mapping_release`.  Every copied identity must match the
+pre-authority artifact; a self-consistent run contract is not independently
+authoritative.
 
 Each verifier invocation receives one exact contract path, loads its bytes and
 requires every event's `contract_sha256` to match.  External-pin semantics are
@@ -300,6 +401,7 @@ and one trailing LF.  Its closed schema is
 | `head_ordinal` | derived from pinned `EVENT_SEQUENCE`; current value `6` |
 | `head_event_sha256` | digest of exact event-6 bytes |
 | `mapping_commitment_sha256` | commitment copied from verified event 1 |
+| `provider_admission_sha256` | digest copied from the independently pinned admission root, after the contract copy is matched to it |
 | `provider_profile_sha256` | digest copied from the frozen Route B protocol contract, never selected from the bundle |
 
 `chain_contract_sha256` is not a digest of the Python tuple or the amendment's
@@ -310,7 +412,8 @@ must contain an `evidence_chain.event_order` exactly equal to the pinned runtime
 file is the byte authority for `chain_contract_sha256`, while the pinned runtime
 tuple is the ordinal authority.  Neither silently substitutes for the other.
 The request's `provider_profile_sha256` must equal the value already present in
-those frozen contract bytes.
+those frozen contract bytes, and both that value and
+`provider_admission_sha256` must first match the pre-authority admission root.
 
 `comparison_unit_sha256` is the SHA-256 of canonical
 `gate3-comparison-unit-identity.v1` JSON containing exactly `schema`, `task_id`,
@@ -330,36 +433,99 @@ retained source bytes; no digest-shaped caller input is accepted as authority.
 The derivation is acyclic and has one direction:
 
 ```text
-protocol contract + comparison identity + event 6 + provider profile
+provider admission + protocol contract + comparison identity + event 6
     -> canonical pin request -> submitted digest -> provider proof bundle
     -> event 7
 ```
 
-The provider profile must not contain an expected request digest, entry locator,
-proof digest, bundle-manifest digest or event-7 digest.  The request must not
-contain any locator, proof, bundle or event-7 value.  Any dependency pointing
-backward across that sequence is invalid rather than resolved by iteration.
+The provider admission artifact and provider profile must not contain an
+expected request digest, entry locator, proof digest, bundle-manifest digest or
+event-7 digest.  The request must not contain any locator, proof, bundle or
+event-7 value.  Any dependency pointing backward across that sequence is
+invalid rather than resolved by iteration.
 
 ## Proof bundle
 
 Pin finalization must capture complete bytes, not merely an entry ID.  The
 closed local bundle manifest is
-`gate3-external-ordering-proof-bundle.v1` and binds the SHA-256 and byte length
-of every retained component:
+`gate3-external-ordering-proof-bundle.v1`.  It uses the same canonical JSON
+encoding as the pin request and contains exactly these top-level fields:
 
-- canonical pin-request bytes;
-- exact provider submission bytes;
-- exact submission response bytes;
-- integrated entry bytes;
-- complete inclusion path or equivalent proof;
-- signed/witnessed checkpoint or consensus anchor;
-- any required consistency or witness material;
-- admitted provider-profile bytes;
-- trust-root/verification-policy bytes; and
-- a second exact retrieval response obtained through the public read path.
+| Field | Exact value or role |
+| --- | --- |
+| `schema` | literal `gate3-external-ordering-proof-bundle.v1` |
+| `provider_admission_sha256` | digest of the pre-authority admission artifact |
+| `provider_profile_sha256` | digest of its admitted profile component |
+| `pin_request_sha256` | digest of the exact canonical request bytes |
+| `stable_entry_locator` | locator in the exact canonical syntax admitted by the profile |
+| `checkpoint_or_anchor_sha256` | digest of the single checkpoint/anchor component |
+| `components` | ordered array of component identity objects |
 
-Opaque provider bytes remain opaque.  The canonical manifest records their
-digests and roles; it does not normalize or reserialize them.
+Each component identity object contains exactly `role`, `ordinal`, `locator`,
+`sha256` and `byte_length`.  `components` is sorted first by ASCII `role`, then
+numeric `ordinal`; any other order is non-canonical.  The closed role vocabulary
+is:
+
+```text
+pin_request
+provider_submission_request
+provider_submission_response
+integrated_entry
+inclusion_proof
+checkpoint_or_anchor
+provider_profile
+verification_policy
+public_retrieval_request
+public_retrieval_response
+trust_material
+consistency_material
+witness_material
+consensus_material
+provider_auxiliary_proof
+```
+
+The first ten roles occur exactly once with ordinal `0`; their admission-
+artifact contract entries must therefore carry `count: 1`.  The pre-authority
+admission artifact fixes the exact count of every remaining role; no producer,
+request, event or manifest may change those counts.  Ordinals for every role
+must be contiguous from `0` through `count - 1`.  Unknown or duplicate JSON
+keys, unknown roles, duplicate `(role, ordinal)` pairs, duplicate locators,
+missing ordinals, extra components or a role-count mismatch are invalid.
+
+Every component locator is relative to the manifest's bundle directory and
+must equal the derived ASCII form
+`components/<role>-<ordinal>-<sha256>.bin`.  Absolute paths, URI syntax, drive
+or UNC prefixes, backslashes, colon, NUL, empty segments, `.` or `..`, Unicode
+lookalikes, symlinks, junctions and other reparse points are forbidden.  The
+derived target must remain a strict regular-file descendant of the bundle
+directory.  The event-7 manifest locator is not caller-selected; it must equal
+`external-pin/<comparison_unit_sha256>/proof-bundle-manifest.v1.json` beneath
+the comparison evidence root.
+
+Opaque provider bytes remain opaque.  The manifest records their exact digests,
+lengths and roles; it does not normalize or reserialize them.  Complete
+inclusion paths, consistency data or provider-specific proof sequences are each
+captured as opaque component bytes under the exact role counts admitted before
+the run.
+
+The producer snapshot rule is create-once components first and manifest last.
+It captures each network request, response and derived proof component into one
+immutable byte array, writes each derived component locator with create-new
+semantics, re-reads that file exactly once, and computes the manifest digest and
+length from that one in-memory copy.  Only after every required component is
+present and matched may it create the canonical manifest once.  It must not
+overwrite, merge or refill a component after manifest creation.
+
+The verifier snapshot rule is manifest once, then every component once.  It
+derives the manifest locator, reads the exact manifest bytes into memory once,
+checks the event-7 digest and length, parses with duplicate-key rejection, and
+validates the closed schema before opening components.  It then derives and
+path-validates every component locator, rejects link/reparse traversal, reads
+each regular file into memory once, and uses that same byte array for length,
+digest and semantic proof verification.  No later path re-read may feed the
+decision.  This captured manifest plus captured component byte map is the one
+coherent verifier snapshot; later filesystem mutation cannot change the bytes
+already used for the verdict.
 
 The public retrieval must be possible using the stable entry locator and public
 profile alone.  A successful read using cached submission credentials is not
@@ -371,7 +537,10 @@ claim limitation stated on the first page remains controlling.
 
 ## Producer and release-gate sequence
 
-1. Verify the frozen protocol-contract bytes and exact events 1–6.
+1. Verify the fixed pre-authority admission artifact and all profile, verifier,
+   policy and trust-material bytes it binds; then require the frozen
+   protocol-contract copies to match that authority and verify exact events
+   1–6.
 2. Require event 5 to bind the primary scorer source and event 6 to bind the
    second scorer source.  Require both files to match their retained digests and
    event 6's previous-event digest to bind the exact event-5 bytes.
@@ -401,12 +570,14 @@ claim limitation stated on the first page remains controlling.
     append-only surface.  Until that copy is retained and verifiable, the
     mapping is released but the comparison unit is not retained or countable.
 
-Event 7 must bind a proof-bundle path beneath the evidence root, its manifest
-digest, pin-request digest, provider-profile digest, stable entry locator and
-checkpoint/anchor digest.  The mapping artifact must not be published to the
-scorer-visible or public evidence surface before this gate succeeds.  This is a
-canonical-release guarantee only; it does not prove the coordinator lacked or
-never disclosed the mapping out of band.
+Event 7 must bind the exact fields `proof_bundle_manifest_locator`,
+`proof_bundle_manifest_sha256` and `proof_bundle_manifest_byte_length`, plus
+the pin-request digest, provider-admission digest, provider-profile digest,
+stable entry locator and checkpoint/anchor digest.  The manifest locator must
+equal the derived fixed form above; no arbitrary path is admitted.  The mapping
+artifact must not be published to the scorer-visible or public evidence surface
+before this gate succeeds.  This is a canonical-release guarantee only; it does
+not prove the coordinator lacked or never disclosed the mapping out of band.
 
 ### Verification-side obligation
 
@@ -419,19 +590,30 @@ must:
 1. verify events 1–6 and retain their exact bytes;
 2. reconstruct the canonical pin request and compare its bytes and digest with
    both event 7 and the bundle manifest;
-3. resolve the proof-bundle path beneath the evidence root and verify the exact
-   manifest digest recorded in event 7;
-4. independently load the admitted provider profile and verify its digest;
-5. re-run offline inclusion/checkpoint/witness or consensus verification over
+3. require event 7 to contain all three manifest-reference identity fields,
+   derive the only allowed locator beneath the evidence root, and verify the
+   exact manifest digest and byte length recorded in event 7;
+4. parse the manifest under the closed schema, role-cardinality, canonicality,
+   locator and coherent-snapshot rules above and load every required component;
+5. independently load the fixed pre-authority admission artifact, verify it
+   against the owner-accepted implementation constants, and require the
+   contract, event 7, manifest, profile, policy and trust-material copies all to
+   match it;
+6. re-run offline inclusion/checkpoint/witness or consensus verification over
    the retained provider bytes; and
-6. compare the verifier-derived locator and checkpoint/anchor digest with event
+7. compare the verifier-derived locator and checkpoint/anchor digest with event
    7 before accepting `mapping_released`.
 
 A caller boolean, a serialized `verified_pin`, or fields copied into a handmade
-event file are not authority.  Missing bundle fields or bytes fail with
-`MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`; present but mismatched or invalid
-material fails under the corresponding closed external-pin code.  Thus a
-handwritten event 7 cannot become valid by bypassing `release_mapping(...)`.
+event file are not authority.  `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` applies
+only when a Route B event 7 omits one or more of its three required manifest-
+reference identity fields.  Once all three fields exist, invalid manifest bytes
+fail with `EXTERNAL_PIN_BUNDLE_MANIFEST_INVALID`; a manifest that has parsed and
+passed the closed schema but references an absent required component fails with
+`EXTERNAL_PIN_BUNDLE_INCOMPLETE`; present bytes whose digest or length differs
+fail with `EXTERNAL_PIN_BUNDLE_COMPONENT_MISMATCH`.  These predicates are
+disjoint.  Thus a handwritten event 7 cannot become valid by bypassing
+`release_mapping(...)`.
 
 This obligation is contract-versioned.  A legacy contract that does not
 declare Route B is verified under its admitted historical semantics and is not
@@ -467,6 +649,7 @@ path, credential or submitted value in exceptions.  At minimum:
 
 | Code | Refusal |
 | --- | --- |
+| `EXTERNAL_PIN_ADMISSION_INVALID` | fixed admission artifact absent, identity-mismatched, malformed, not owner-pinned by the implementation, or inconsistent with its bound profile/verifier/policy/trust bytes |
 | `EXTERNAL_PIN_PROFILE_INVALID` | profile absent, changed, unknown or unsupported |
 | `EXTERNAL_PIN_REQUEST_MISMATCH` | reconstructed request or submitted digest differs |
 | `EXTERNAL_PIN_ALREADY_USED` | a create-once submission-attempt record already exists and no admitted resume/idempotent operation applies |
@@ -477,9 +660,11 @@ path, credential or submitted value in exceptions.  At minimum:
 | `EXTERNAL_PIN_ENTRY_MISMATCH` | retrieved entry does not contain the submitted digest |
 | `EXTERNAL_PIN_PROOF_INVALID` | inclusion, checkpoint, witness, consensus or signature verification fails |
 | `EXTERNAL_PIN_CHECKPOINT_STALE` | checkpoint violates the admitted freshness/finality policy |
-| `EXTERNAL_PIN_BUNDLE_INCOMPLETE` | any required raw component is absent |
+| `EXTERNAL_PIN_BUNDLE_MANIFEST_INVALID` | referenced manifest bytes fail identity, canonical serialization, closed-schema, role-cardinality or locator-safety validation |
+| `EXTERNAL_PIN_BUNDLE_INCOMPLETE` | the manifest parsed and passed its closed schema, but a required referenced component file is absent or unreadable |
+| `EXTERNAL_PIN_BUNDLE_COMPONENT_MISMATCH` | a referenced component exists but its exact byte length or SHA-256 does not match the valid manifest |
 | `EXTERNAL_PIN_LATE` | mapping release or mapping publication already exists |
-| `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` | event-7 construction or verification lacks the required bundle |
+| `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED` | Route B event-7 construction or verification omits `proof_bundle_manifest_locator`, `proof_bundle_manifest_sha256` or `proof_bundle_manifest_byte_length` |
 | `FINAL_HEAD_RECEIPT_REQUIRED` | Route B event 7 exists but its exact final-head digest is absent or invalid on the admitted receipt/surface |
 
 Absence, timeout, DNS/TLS failure, rate limit, stale checkpoint, API drift,
@@ -539,11 +724,16 @@ first tranche.
 The provider adapter needs four conceptual operations:
 
 ```text
-submit(request_digest, admitted_profile) -> stable_locator_or_pending_handle
-finalize(locator_or_handle, admitted_profile) -> raw_proof_components
-retrieve_public(stable_locator, admitted_profile) -> raw_retrieval_components
-verify_offline(request_bytes, proof_bundle, admitted_profile) -> verified_pin
+load_fixed_admission() -> verified_admission
+submit(request_digest) -> stable_locator_or_pending_handle
+finalize(locator_or_handle) -> raw_proof_components
+retrieve_public(stable_locator) -> raw_retrieval_components
+verify_offline(request_bytes, proof_bundle_snapshot) -> verified_pin
 ```
+
+`load_fixed_admission()` is an internal bootstrap with no path, digest, profile
+or trust-material argument.  The other operations consume only its frozen
+internal result; no public operation accepts an admission/profile substitute.
 
 The release gate accepts only an opaque `verified_pin` minted by the offline
 verifier.  It has no boolean override and no API accepting a raw receipt ID,
@@ -601,12 +791,13 @@ Before any live provider call, focused offline tests must demonstrate:
    fixture;
 2. `chain_contract_sha256` comes from exact admitted protocol-contract bytes,
    whose event order must equal pinned `EVENT_SEQUENCE`; the Route B contract
-   contains the expected provider-profile digest before event 1, while the
-   legacy v1 bytes remain unchanged;
+   contains the expected provider-admission and provider-profile digests before
+   event 1, both match the fixed admission root pinned by the implementation,
+   and the legacy v1 bytes remain unchanged;
 3. the second-scorer ordinal is derived from pinned `EVENT_SEQUENCE`, current
    value 6, while the six-item conceptual prose is never used as an ordinal;
-4. domain, contract, comparison, head, commitment and profile mutations each
-   change the submitted digest and fail verification;
+4. domain, contract, comparison, head, commitment, admission and profile
+   mutations each change the submitted digest and fail verification;
 5. any provider-profile/request field that introduces a backward dependency in
    the documented derivation is rejected;
 6. event 5, truncated event 6 and either changed scorer source fail before
@@ -617,36 +808,49 @@ Before any live provider call, focused offline tests must demonstrate:
    pre-pin rebuild is detectable;
 8. event 7 cannot be accepted without verifier-reconstructed request bytes and
    successful offline proof verification;
-9. a handwritten event 7 with plausible pin-shaped fields but no bundle fails
-   with `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`;
-10. a handwritten event 7 carrying a complete valid bundle from another chain
+9. a Route B event 7 missing any one of the manifest locator, SHA-256 or byte-
+   length identity fields fails only with
+   `MAPPING_RELEASE_EXTERNAL_PIN_REQUIRED`;
+10. event 7 with all three reference fields but non-canonical, unknown-field,
+    duplicate-key, duplicate-role, role-count or unsafe-locator manifest bytes
+    fails only with `EXTERNAL_PIN_BUNDLE_MANIFEST_INVALID`;
+11. a canonical manifest that has passed schema validation but whose required
+    component file is absent fails only with
+    `EXTERNAL_PIN_BUNDLE_INCOMPLETE`;
+12. a present component with changed length or digest fails only with
+    `EXTERNAL_PIN_BUNDLE_COMPONENT_MISMATCH`, and semantic verification consumes
+    the same captured bytes rather than reopening its path;
+13. a caller-selected admission path/digest, or a self-consistent contract,
+    event 7 and bundle built around an unadmitted profile, fails with
+    `EXTERNAL_PIN_ADMISSION_INVALID` before proof verification;
+14. a handwritten event 7 carrying a complete valid bundle from another chain
     or comparison unit fails request reconstruction;
-11. a raw receipt ID, caller boolean, serialized `verified_pin`, timestamp
+15. a raw receipt ID, caller boolean, serialized `verified_pin`, timestamp
     string, screenshot, cached response and local digest file are rejected;
-12. valid inclusion/checkpoint/witness or consensus fixtures verify offline;
-13. request, bundle path, bundle digest, entry, inclusion path, checkpoint,
+16. valid inclusion/checkpoint/witness or consensus fixtures verify offline;
+17. request, bundle path, bundle digest, entry, inclusion path, checkpoint,
     locator, trust root and profile mutations fail in `verify_chain(...)`;
-14. public retrieval requiring submission credentials fails at the adapter
+18. public retrieval requiring submission credentials fails at the adapter
     boundary, while the test and claim text explicitly do not represent this
     as proof against hidden transport/cache credentials;
-15. unavailable, pending, timed-out, stale, rate-limited and malformed responses
+19. unavailable, pending, timed-out, stale, rate-limited and malformed responses
     all refuse mapping release;
-16. mapping publication before proof returns `EXTERNAL_PIN_LATE` and cannot be
+20. mapping publication before proof returns `EXTERNAL_PIN_LATE` and cannot be
     repaired retrospectively;
-17. retained proof still verifies with the network disabled;
-18. missing long-term proof material degrades to
+21. retained proof still verifies with the network disabled;
+22. missing long-term proof material degrades to
     `EXTERNAL_PIN_NOT_VERIFIABLE`, never success;
-19. a second logical submission after the create-once attempt record returns
+23. a second logical submission after the create-once attempt record returns
     `EXTERNAL_PIN_ALREADY_USED`; exact admitted resume/idempotent replay cannot
     create a second logical entry, and removal of that guard makes the
     sensitivity test fail;
-20. the retained 2026-07-29 rehearsal verifies under its exact legacy v1
+24. the retained 2026-07-29 rehearsal verifies under its exact legacy v1
     contract and remains synthetic/non-counted, while the same event-7 shape
     under the Route B contract fails without its external bundle;
-21. the exact event-7 digest matches the separately retained final-head receipt;
+25. the exact event-7 digest matches the separately retained final-head receipt;
     missing or altered receipt bytes return `FINAL_HEAD_RECEIPT_REQUIRED` and
     leave the unit uncountable; and
-22. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
+26. claim tests reject `scorer_blind`, `independent_comparison`, bounded attempt
     count, complete unit selection, complete bundle discovery, absence of
     discarded/covert runs, population-level effect, `Gate3_pass` and
     Skill-effect conclusions derived from the pin, and reject any statement
