@@ -542,6 +542,33 @@ def test_wrong_whoami_digest_fails_before_formal_roots(
         assert not path.exists()
 
 
+def test_outer_wrong_whoami_digest_fails_before_journal_or_child(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    launched = False
+
+    def launcher(*args: object, **kwargs: object) -> BOOTSTRAP.ChildResult:
+        nonlocal launched
+        launched = True
+        raise AssertionError("child launcher must be unreachable")
+
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_WHOAMI_SHA256", "0" * 64)
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
+    monkeypatch.setattr(sys, "argv", ["-"])
+    monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
+    with pytest.raises(BOOTSTRAP.JournalError, match="whoami binding mismatch"):
+        BOOTSTRAP.execute(
+            repo_root=REPO,
+            owner_authorized_freeze_commit=EXPECTED_COMMIT,
+            owner_authorized_execution_packet_sha256="1" * 64,
+            owner_authorized_readiness_review_sha256="2" * 64,
+            launcher=launcher,
+        )
+    assert launched is False
+    for path in formal_paths(load_manifest()):
+        assert not path.exists()
+
+
 def test_driver_injects_pinned_identity_before_reviewed_readiness() -> None:
     source = (BASE / "capability_probe_02_pinned_git_driver.py").read_text(
         encoding="utf-8"

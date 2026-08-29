@@ -30,6 +30,9 @@ EXPECTED_GIT_SHA256 = "fc0f1cae1304fcdcf4d0749f421c5ed21471efc856301f92f56d4b844
 EXPECTED_PYTHON_PATH = Path("D:/ai-governance-framework/.venv/Scripts/python.exe")
 EXPECTED_PYTHON_BYTES = 255320
 EXPECTED_PYTHON_SHA256 = "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84"
+EXPECTED_WHOAMI_PATH = Path("C:/Windows/System32/whoami.exe")
+EXPECTED_WHOAMI_BYTES = 98304
+EXPECTED_WHOAMI_SHA256 = "23240ef9f8b0a9a324110b1c2331de31dc1b0e08f5359cb707e51a939af56cd3"
 EXPECTED_GIT_COMMON_DIR = Path("D:/ai-governance-framework/.git")
 EXPECTED_CHECKOUT_ROOT = Path("C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution")
 GITFILE_MAX_BYTES = 4096
@@ -133,6 +136,12 @@ def _verify_file(path: Path, expected_bytes: int, expected_sha256: str, label: s
 def _verify_runtime() -> None:
     _verify_file(EXPECTED_GIT_PATH, EXPECTED_GIT_BYTES, EXPECTED_GIT_SHA256, "Git")
     _verify_file(EXPECTED_PYTHON_PATH, EXPECTED_PYTHON_BYTES, EXPECTED_PYTHON_SHA256, "Python")
+    _verify_file(
+        EXPECTED_WHOAMI_PATH,
+        EXPECTED_WHOAMI_BYTES,
+        EXPECTED_WHOAMI_SHA256,
+        "whoami",
+    )
     if Path(sys.executable).resolve() != EXPECTED_PYTHON_PATH.resolve():
         raise JournalError("executing Python identity mismatch")
 
@@ -760,6 +769,9 @@ def execute(
         or runtime.get("python_executable") != EXPECTED_PYTHON_PATH.as_posix()
         or runtime.get("python_executable_bytes") != EXPECTED_PYTHON_BYTES
         or runtime.get("python_executable_sha256") != EXPECTED_PYTHON_SHA256
+        or runtime.get("whoami_executable") != EXPECTED_WHOAMI_PATH.as_posix()
+        or runtime.get("whoami_executable_bytes") != EXPECTED_WHOAMI_BYTES
+        or runtime.get("whoami_executable_sha256") != EXPECTED_WHOAMI_SHA256
     ):
         raise JournalError("manifest runtime binding mismatch")
     _verify_prejournal_state(repo, git_runner, commit, manifest, paths)
