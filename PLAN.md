@@ -2367,6 +2367,42 @@ Current blocking relationships for this work item:
   `handle_boundary_available()` and `ACTIVE` are both `False`.
 - Credentials, preflight and live remain unauthorized.
 
+### Gate 3 first-Skill funding gate — principal before engineering
+
+The goal remains to complete Gate 3 and test the first Bug Fix Engineering
+Skill. The owner now reconciles the natural pilot's eight-step card with the
+later nine-step program method as program Section 3 steps 1–7 and 9; step 8 is
+omitted only because it governs Arm-D-only validator treatment and a natural
+pilot has no experimental arms. This is a 2026-08-20 owner decision, not a
+claim that the later program text caused the 2026-07-17 pilot record.
+
+No scorer-before-mapping implementation is funded until a separately controlled
+external-pin authority is shown feasible for this repository. The decision must
+name the chain writer, a genuinely independent pin controller, the durable
+append-only surface, pin timing and contents, the mapping-release check, and
+inadmissible sources. A second account controlled by the same natural person or
+automation agent is not a different principal. The protection state that keeps
+the coordinator from modifying, deleting, merging or force-updating the surface
+must be checked and retained at pin time.
+
+External-record absence, timeout, stale or mismatched bytes, unknown or changed
+protection state, a non-independent controller, or a pin created after mapping
+release all fail closed. There is no temporary release and no retrospective
+pin. If no qualifying principal and surface exist, this work stops with Gate 2
+process integrity still `NOT_ESTABLISHED`; a local chain, another file in the
+same output tree, same-agent memory or caller-supplied digest cannot replace the
+missing authority.
+
+Only after that feasibility gate passes may the owner consider one bounded
+tranche: the six create-once previous-digest events from randomization seal
+through two scorer submissions and mapping release, plus one non-counted
+rehearsal. That is the complete cost ceiling before a new owner decision. It
+authorizes no counted pair, Skill promotion or broader runtime/native surface.
+The historical Gate 2 run cannot be repaired retrospectively. A first counted
+pair would begin, not complete, Gate 3; completion still requires at least three
+separately originated natural bugs across two consumer repositories under the
+accepted repeat rules.
+
 Claim ceiling: this work item has produced design authority, an independent
 ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, a
 committed tranche that opens and holds directory handles (N3c-1), and one that
