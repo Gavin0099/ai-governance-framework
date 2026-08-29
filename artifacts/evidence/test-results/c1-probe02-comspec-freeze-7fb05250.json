@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe -B -m pytest -q --basetemp C:\\Users\\daish\\.codex\\visualizations\\2026\\08\\20\\01a01f9a-76de-7b00-8170-409653fa352d\\pytest-comspec-receipt-23 artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-comspec-identity-binding-correction-freeze-20260829/test_comspec_identity_binding.py",
+  "exit_code": 0,
+  "started_at": "2026-08-29T08:00:51Z",
+  "finished_at": "2026-08-29T08:00:55Z",
+  "runner": "codex-focused-pytest",
+  "linked_commit": "7fb052501ea7bf5dedd8f2474434757d5f232bad",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/c1-probe02-comspec-freeze-7fb05250.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
