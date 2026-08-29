@@ -22,6 +22,9 @@ regular `.git` gitfile pointing to the exact worktree-admin directory under
 gitfile, exact `commondir` bytes, non-reparse directories, and pinned Git's
 `--show-toplevel`, `--absolute-git-dir`, and `--git-common-dir` results must all
 agree. Redirected or decoy Git directories therefore fail before formal roots.
+The checkout root itself is also byte-for-byte frozen as
+`C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution`;
+another otherwise valid worktree cannot consume the same authorization.
 
 No readiness probe, capability probe, hosted request, authorization packet, or
 downstream execution was performed by this freeze.  All execution-authority and

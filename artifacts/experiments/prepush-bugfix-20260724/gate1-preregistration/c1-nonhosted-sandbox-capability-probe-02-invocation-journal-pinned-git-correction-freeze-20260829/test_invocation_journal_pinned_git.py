@@ -59,6 +59,11 @@ def formal_paths(manifest: dict) -> list[Path]:
     return [REPO / raw[key] for key in ("journal_root", "attempt_output_root", "cli_staging_root", "private_root")]
 
 
+def formal_paths_under(repo: Path, manifest: dict) -> list[Path]:
+    raw = manifest["derived_paths"]
+    return [repo / raw[key] for key in ("journal_root", "attempt_output_root", "cli_staging_root", "private_root")]
+
+
 def synthetic_worktree(tmp_path: Path) -> tuple[Path, Path, Path]:
     repo = tmp_path / "checkout"
     common = tmp_path / "source" / ".git"
@@ -96,10 +101,13 @@ def test_runtime_and_policy_pin_exact_git() -> None:
     assert runtime["git_executable"] == BOOTSTRAP.EXPECTED_GIT_PATH.as_posix()
     assert runtime["git_executable_bytes"] == BOOTSTRAP.EXPECTED_GIT_BYTES
     assert runtime["git_executable_sha256"] == BOOTSTRAP.EXPECTED_GIT_SHA256
+    assert manifest["binding_contract"]["owner_approved_checkout_root"] == BOOTSTRAP.EXPECTED_CHECKOUT_ROOT.as_posix()
     assert policy["ambient_path_trusted"] is False
     assert policy["bare_git_execution_allowed"] is False
     assert policy["all_git_blob_inventory_and_source_binding_operations_use_adapter"] is True
     assert policy["checkout_git_entry_type"] == "NON_REPARSE_REGULAR_GITFILE"
+    assert policy["owner_approved_checkout_root"] == BOOTSTRAP.EXPECTED_CHECKOUT_ROOT.as_posix()
+    assert policy["alternate_valid_worktree_allowed"] is False
     assert policy["checkout_root_reparse_allowed"] is False
     assert policy["git_common_directory"] == "D:/ai-governance-framework/.git"
     assert policy["pinned_git_identity_queries"] == [
@@ -171,8 +179,39 @@ def test_git_directory_identity_accepts_exact_bidirectional_worktree(
     module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     module._verify_git_directory_identity(repo, identity_runner(repo, gitdir, common))
+
+
+@pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
+def test_git_directory_identity_rejects_second_valid_worktree(
+    module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    authorized, common, authorized_gitdir = synthetic_worktree(tmp_path)
+    alternate = tmp_path / "alternate"
+    alternate_gitdir = common / "worktrees" / alternate.name
+    alternate.mkdir()
+    alternate_gitdir.mkdir()
+    (alternate / ".git").write_bytes(
+        f"gitdir: {alternate_gitdir.as_posix()}\n".encode()
+    )
+    (alternate_gitdir / "gitdir").write_bytes(
+        f"{(alternate / '.git').as_posix()}\n".encode()
+    )
+    (alternate_gitdir / "commondir").write_bytes(b"../..\n")
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", authorized)
+    monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
+
+    module._verify_git_directory_identity(
+        authorized,
+        identity_runner(authorized, authorized_gitdir, common),
+    )
+    with pytest.raises(RuntimeError, match="owner-approved identity"):
+        module._verify_git_directory_identity(
+            alternate,
+            identity_runner(alternate, alternate_gitdir, common),
+        )
 
 
 @pytest.mark.parametrize("module", [BOOTSTRAP, CHILD, DRIVER])
@@ -183,6 +222,7 @@ def test_git_directory_identity_rejects_redirected_gitfile_before_git(
     decoy = common / "worktrees" / "authorized-decoy"
     decoy.mkdir()
     (repo / ".git").write_bytes(f"gitdir: {decoy.as_posix()}\n".encode())
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     launched = False
 
@@ -201,6 +241,7 @@ def test_git_directory_identity_rejects_reparse_gitfile_before_git(
     module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     repo, common, _ = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     real = module._is_reparse_or_symlink
     monkeypatch.setattr(
@@ -218,6 +259,7 @@ def test_git_directory_identity_rejects_reparse_worktree_git_directory(
     module, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     real = module._is_reparse_or_symlink
     monkeypatch.setattr(
@@ -239,6 +281,7 @@ def test_git_directory_identity_rejects_reverse_gitdir_decoy(
     decoy.parent.mkdir()
     decoy.write_text("decoy\n", encoding="utf-8")
     (gitdir / "gitdir").write_bytes(f"{decoy.as_posix()}\n".encode())
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     with pytest.raises(RuntimeError, match="reverse gitfile mismatch"):
         module._verify_git_directory_identity(
@@ -255,6 +298,7 @@ def test_git_directory_identity_rejects_pinned_git_identity_disagreement(
     module, selector: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     repo, common, gitdir = synthetic_worktree(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_CHECKOUT_ROOT", repo)
     monkeypatch.setattr(module, "EXPECTED_GIT_COMMON_DIR", common)
     observed_decoy = tmp_path / "observed-decoy"
     with pytest.raises(RuntimeError, match="Git directory/worktree identity mismatch"):
@@ -264,7 +308,10 @@ def test_git_directory_identity_rejects_pinned_git_identity_disagreement(
         )
 
 
-def test_live_detached_checkout_git_directory_identity_matches() -> None:
+def test_live_detached_checkout_git_directory_identity_matches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
     BOOTSTRAP._verify_git_directory_identity(REPO, BOOTSTRAP._pinned_git_runner(REPO))
 
 
@@ -273,6 +320,7 @@ def test_execute_rejects_git_directory_identity_before_any_formal_root(
 ) -> None:
     decoy_common = tmp_path / "decoy" / ".git"
     decoy_common.mkdir(parents=True)
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
     monkeypatch.setattr(BOOTSTRAP, "EXPECTED_GIT_COMMON_DIR", decoy_common)
     monkeypatch.setattr(sys, "argv", ["-"])
     monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
@@ -289,6 +337,27 @@ def test_execute_rejects_git_directory_identity_before_any_formal_root(
         assert not path.exists()
 
 
+def test_execute_rejects_second_worktree_before_any_formal_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    alternate = tmp_path / "second-valid-worktree"
+    alternate.mkdir()
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
+    monkeypatch.setattr(sys, "argv", ["-"])
+    monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
+
+    with pytest.raises(BOOTSTRAP.JournalError, match="owner-approved identity"):
+        BOOTSTRAP.execute(
+            repo_root=alternate,
+            owner_authorized_freeze_commit=EXPECTED_COMMIT,
+            owner_authorized_execution_packet_sha256="1" * 64,
+            owner_authorized_readiness_review_sha256="2" * 64,
+        )
+
+    for path in formal_paths_under(alternate, load_manifest()):
+        assert not path.exists()
+
+
 def test_execute_ignores_malicious_path_before_any_formal_root(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -297,6 +366,7 @@ def test_execute_ignores_malicious_path_before_any_formal_root(
     marker = fake / "fake-git-launched.txt"
     (fake / "git.cmd").write_text(f'@echo launched>"{marker}"\r\n@exit /b 0\r\n', encoding="utf-8")
     monkeypatch.setenv("PATH", f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
     monkeypatch.setattr(sys, "argv", ["-"])
     monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
 
@@ -328,6 +398,7 @@ def test_execute_ignores_git_dir_and_work_tree_decoy_before_any_formal_root(
     monkeypatch.setenv("GIT_DIR", str(decoy / ".git"))
     monkeypatch.setenv("GIT_WORK_TREE", str(decoy))
     monkeypatch.setenv("GIT_OBJECT_DIRECTORY", str(decoy / ".git" / "objects"))
+    monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)
     monkeypatch.setattr(sys, "argv", ["-"])
     monkeypatch.setitem(BOOTSTRAP.__dict__, "__file__", "<stdin>")
 

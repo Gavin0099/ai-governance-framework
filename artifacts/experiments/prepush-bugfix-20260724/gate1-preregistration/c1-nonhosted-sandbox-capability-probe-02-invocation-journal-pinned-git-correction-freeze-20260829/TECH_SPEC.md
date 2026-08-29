@@ -32,6 +32,8 @@ resolution.
    pinned adapter.
 8. Before HEAD or blob lookup, outer, corrected child, and corrected driver
    independently validate the same detached-worktree identity contract:
+   - the checkout root equals the single frozen owner-approved path; a second
+     valid linked worktree is not an equivalent execution identity;
    - the checkout root is a non-reparse directory and `.git` is a non-reparse
      LF-only regular gitfile;
    - its absolute target is exactly
@@ -73,7 +75,8 @@ Git-directory adversarial tests run the same validator through outer, corrected
 child, and corrected driver. They reject a redirected checkout gitfile, a
 reparse gitfile or worktree-admin directory, a decoy reverse gitfile, and any
 disagreement in the three pinned-Git identity queries. A real detached worktree
-is accepted, while an execute-path binding failure leaves journal, start,
+at the owner-approved identity is accepted; a second otherwise valid worktree
+is rejected. An execute-path binding failure leaves journal, start,
 attempt, CLI, and private roots absent.
 
 ## Claim ceiling

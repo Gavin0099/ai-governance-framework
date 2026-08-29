@@ -31,6 +31,7 @@ EXPECTED_GIT_PATH = Path("C:/Program Files/Git/cmd/git.exe")
 EXPECTED_GIT_BYTES = 46480
 EXPECTED_GIT_SHA256 = "3cbd024d9d11ef08bd6a0cb5a973613c50825b4952bc6006f3f4222f436091e5"
 EXPECTED_GIT_COMMON_DIR = Path("D:/ai-governance-framework/.git")
+EXPECTED_CHECKOUT_ROOT = Path("C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution")
 GITFILE_MAX_BYTES = 4096
 WORKTREE_COMMONDIR_BYTES = b"../..\n"
 REPARSE_POINT = 0x400
@@ -139,6 +140,8 @@ def _absolute_path_record(payload: bytes, label: str) -> Path:
 
 
 def _verify_git_directory_identity(repo: Path, git_runner: GitRunner) -> None:
+    if repo.absolute() != EXPECTED_CHECKOUT_ROOT.absolute():
+        raise DriverError("checkout root does not match owner-approved identity")
     _require_nonreparse_directory(repo, "checkout root")
     if repo.resolve() != repo.absolute():
         raise DriverError("checkout root resolved identity mismatch")
