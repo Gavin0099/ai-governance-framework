@@ -21,6 +21,8 @@
   "checkout_git_entry_type": "NON_REPARSE_REGULAR_GITFILE",
   "owner_approved_checkout_root": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution",
   "alternate_valid_worktree_allowed": false,
+  "configured_checkout_materialized": false,
+  "configured_checkout_live_validation_deferred_until_materialization": true,
   "checkout_root_reparse_allowed": false,
   "gitfile_target_contract": "EXACT_COMMON_DIR_WORKTREES_CHECKOUT_BASENAME",
   "gitfile_target_must_be_absolute": true,

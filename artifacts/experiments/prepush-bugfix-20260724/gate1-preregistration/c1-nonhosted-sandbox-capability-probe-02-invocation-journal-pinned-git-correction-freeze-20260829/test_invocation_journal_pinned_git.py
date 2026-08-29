@@ -14,6 +14,11 @@ import pytest
 BASE = Path(__file__).resolve().parent
 REPO = Path.cwd().resolve()
 MANIFEST = BASE / "invocation-journal-pinned-git-manifest.json"
+FROZEN_EXECUTION_CHECKOUT = Path(
+    "C:/Users/daish/.codex/visualizations/2026/08/20/"
+    "01a01f9a-76de-7b00-8170-409653fa352d/"
+    "c1-nonhosted-capability-probe-02-execution"
+)
 EXPECTED_COMMIT = "de7a3f05f196895dc55a5e406f2c4ef2f19ed23e"
 
 
@@ -114,6 +119,18 @@ def test_runtime_and_policy_pin_exact_git() -> None:
         "--show-toplevel", "--absolute-git-dir", "--git-common-dir"
     ]
     assert policy["pinned_git_identity_must_equal_filesystem_contract"] is True
+
+
+def test_frozen_execution_checkout_identity_is_exact_unmaterialized_contract() -> None:
+    manifest = load_manifest()
+    policy = json.loads((BASE / "pinned-git-policy.json").read_text(encoding="utf-8"))
+    for module in (BOOTSTRAP, CHILD, DRIVER):
+        assert module.EXPECTED_CHECKOUT_ROOT == FROZEN_EXECUTION_CHECKOUT
+    assert manifest["binding_contract"]["owner_approved_checkout_root"] == FROZEN_EXECUTION_CHECKOUT.as_posix()
+    assert policy["owner_approved_checkout_root"] == FROZEN_EXECUTION_CHECKOUT.as_posix()
+    assert manifest["authoring_boundary"]["execution_checkout_created"] is False
+    assert policy["configured_checkout_materialized"] is False
+    assert not FROZEN_EXECUTION_CHECKOUT.exists()
 
 
 def test_pinned_adapter_rejects_wrong_prefix_and_command() -> None:
@@ -308,7 +325,7 @@ def test_git_directory_identity_rejects_pinned_git_identity_disagreement(
         )
 
 
-def test_live_detached_checkout_git_directory_identity_matches(
+def test_current_detached_checkout_topology_matches_when_explicitly_bound(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(BOOTSTRAP, "EXPECTED_CHECKOUT_ROOT", REPO)

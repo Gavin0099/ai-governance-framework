@@ -79,6 +79,14 @@ at the owner-approved identity is accepted; a second otherwise valid worktree
 is rejected. An execute-path binding failure leaves journal, start,
 attempt, CLI, and private roots absent.
 
+The frozen execution checkout is intentionally not materialized by this
+authoring freeze. Tests therefore distinguish two claims: the exact path token
+is pinned byte-for-byte across all three executables, manifest, and policy and
+is currently absent; the filesystem topology validator is exercised against a
+real current detached checkout only after explicitly binding that checkout as
+a synthetic test identity. Live validation of the frozen execution path occurs
+after its separately authorized materialization and before any journal claim.
+
 ## Claim ceiling
 
 This freeze can establish reviewable pinned-Git implementation bytes and
