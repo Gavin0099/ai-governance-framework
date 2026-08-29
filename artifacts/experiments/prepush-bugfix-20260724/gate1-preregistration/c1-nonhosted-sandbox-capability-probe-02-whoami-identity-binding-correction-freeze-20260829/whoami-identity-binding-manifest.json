@@ -1,0 +1,207 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-02-whoami-identity-binding-freeze.v1",
+  "status": "WHOAMI_IDENTITY_BINDING_CORRECTION_FROZEN_NOT_EXECUTED",
+  "framework_base": {
+    "execution_commit": "4be68faf9965430d35040304c4514aca2645b9c2",
+    "predecessor_freeze_directory": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-correction-freeze-20260829",
+    "predecessor_bytes_modified": false,
+    "finding": "FINDING_59"
+  },
+  "audit_binding": {
+    "file": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-probe02-external-executable-resolution-audit/c1-probe02-external-executable-resolution-audit-20260829-rev1.md",
+    "bytes": 13027,
+    "sha256": "01d795573a93221265ac4793365d6fa303d7582d6405efd43baba2e60fc68e9b",
+    "terminal": "AMBIENT_EXECUTABLE_TRUST_ROOT_REMAINS",
+    "blocking_finding": "FINDING_59"
+  },
+  "binding_contract": {
+    "bootstrap_source": "OWNER_AUTHORIZED_COMMIT_BLOB_STDIN",
+    "manifest_source": "OWNER_AUTHORIZED_COMMIT_BLOB",
+    "git_source": "EXACT_PATH_BYTES_AND_SHA256",
+    "whoami_identity_source": "EXACT_PATH_BYTES_AND_SHA256",
+    "identity_projection_source": "PINNED_RUNNER_INJECTED_BY_CORRECTED_DRIVER",
+    "default_unverified_identity_runner_reachable": false,
+    "identity_binding_before_git_identity": true,
+    "identity_binding_before_journal_root": true,
+    "ambient_path_trusted": false,
+    "ambient_git_prefixed_variables_inherited": false,
+    "git_environment_source": "EXPLICIT_ALLOWLIST_PLUS_FIXED_VALUES",
+    "identity_environment_source": "EXPLICIT_ALLOWLIST_PLUS_FIXED_VALUES",
+    "git_replace_objects_allowed": false,
+    "all_git_operations_use_pinned_adapter": true,
+    "outer_child_and_driver_git_operations_use_pinned_adapter": true,
+    "corrected_child_source": "OWNER_AUTHORIZED_COMMIT_FROZEN_INVENTORY",
+    "child_launch_ambient_path_inherited": false,
+    "child_launch_arbitrary_git_variables_inherited": false,
+    "checkout_git_entry_type": "NON_REPARSE_REGULAR_GITFILE",
+    "owner_approved_checkout_root": "C:/Users/daish/.codex/visualizations/2026/08/20/01a01f9a-76de-7b00-8170-409653fa352d/c1-nonhosted-capability-probe-02-execution",
+    "alternate_valid_worktree_allowed": false,
+    "git_directory_identity_source": "FILESYSTEM_CONTRACT_CROSS_CHECKED_BY_PINNED_GIT",
+    "git_common_directory": "D:/ai-governance-framework/.git",
+    "unauthorized_symlink_or_reparse_allowed": false,
+    "all_bindings_before_journal_claim": true,
+    "working_tree_code_trusted": false
+  },
+  "runtime": {
+    "git_executable": "C:/Program Files/Git/mingw64/bin/git.exe",
+    "git_executable_bytes": 4321168,
+    "git_executable_sha256": "fc0f1cae1304fcdcf4d0749f421c5ed21471efc856301f92f56d4b844be84363",
+    "python_executable": "D:/ai-governance-framework/.venv/Scripts/python.exe",
+    "python_executable_bytes": 255320,
+    "python_executable_sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "whoami_executable": "C:/Windows/System32/whoami.exe",
+    "whoami_executable_bytes": 98304,
+    "whoami_executable_sha256": "23240ef9f8b0a9a324110b1c2331de31dc1b0e08f5359cb707e51a939af56cd3",
+    "child_timeout_seconds": 180
+  },
+  "derived_paths": {
+    "journal_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/c1-nonhosted-sandbox-capability-probe-02",
+    "journal_parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-invocation-journal/.gitattributes",
+    "attempt_output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/c1-nonhosted-sandbox-capability-probe-02",
+    "cli_staging_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.cli-staging",
+    "private_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.c1-nonhosted-sandbox-capability-probe-02.private",
+    "parent_anchor": "artifacts/experiments/prepush-bugfix-20260724/gate1-execution/.gitattributes"
+  },
+  "parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_parent_binding": {
+    "anchor_git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+    "anchor_bytes": 8,
+    "anchor_sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  },
+  "journal_contract": {
+    "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
+    "maximum_executions": 1,
+    "retry_allowed": false,
+    "authority_consumed_only_after_start_readback": true,
+    "start_survives_child_failure": true,
+    "raw_child_output_retained": false
+  },
+  "source_bindings": [
+    {
+      "label": "predecessor_manifest",
+      "commit": "4be68faf9965430d35040304c4514aca2645b9c2",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-correction-freeze-20260829/invocation-journal-pinned-git-manifest.json",
+      "git_blob_oid": "687f089b1e8f477ecd71a8ba49d7d663f867631b",
+      "bytes": 9056,
+      "sha256": "fea25c2466367716f5a411f718af2d447944e669fe7c7d8d27348ffb54eb16c1"
+    },
+    {
+      "label": "predecessor_outer_journal",
+      "commit": "4be68faf9965430d35040304c4514aca2645b9c2",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-correction-freeze-20260829/invocation_journal_pinned_git_bootstrap.py",
+      "git_blob_oid": "e957a6e339c9cb1883d78a4ca14a02c4d5f5de19",
+      "bytes": 30644,
+      "sha256": "8bdfd43757664226534891a65c09a19dfaf779c833293b60247cd1cf0ce572a1"
+    },
+    {
+      "label": "predecessor_child_bootstrap",
+      "commit": "4be68faf9965430d35040304c4514aca2645b9c2",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-correction-freeze-20260829/capability_probe_02_pinned_git_bootstrap.py",
+      "git_blob_oid": "3cbce496e8c04329a39c51b18148ec71e93947ec",
+      "bytes": 15454,
+      "sha256": "98234b11bd3f566f4549422cafb9cf3192829f76a30ed4ca62edbb05fc1b1f8e"
+    },
+    {
+      "label": "predecessor_driver",
+      "commit": "4be68faf9965430d35040304c4514aca2645b9c2",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-nonhosted-sandbox-capability-probe-02-invocation-journal-pinned-git-correction-freeze-20260829/capability_probe_02_pinned_git_driver.py",
+      "git_blob_oid": "7b5bfe64faea31becc1570880e944ca44bb5abbe",
+      "bytes": 20681,
+      "sha256": "7abd51543881d04d6578e3441c1e6750766d5dc319740a447d7eed3890ebdaaa"
+    }
+  ],
+  "frozen_executor_sha256": "77c738e42b200d5a85ba6257ff141d3c0c47d3297239cd6d076d1d154f717375",
+  "frozen_child_bootstrap_sha256": "70271b2bca2a8de8aee92cba8a3b1afaf581698ca154a10c47738ae37ca0c3a8",
+  "frozen_child_driver_sha256": "b1a6cbef481b8bb1ae4f614c513fa8bc8fa387ebd408be1ba0731533c1d5a8b8",
+  "frozen_files": [
+    {
+      "path": ".gitattributes",
+      "git_blob_oid": "fa1385d99a319b43c06f5309d1aae9fdd3adea46",
+      "bytes": 8,
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "path": "README.md",
+      "git_blob_oid": "441be3e51a45a0ddaec732583cd9eb065958fdc1",
+      "bytes": 1234,
+      "sha256": "493ceb6d6fb98ce1eb33b5d7e34208b34799eb413d1f49a6491dfe634c9ec862"
+    },
+    {
+      "path": "TECH_SPEC.md",
+      "git_blob_oid": "81878e4c823a350b59fbcd5078d28a880282f20a",
+      "bytes": 2727,
+      "sha256": "7e7cd6f5286ce7a287b7f7922b825d978e826797f89855f90b8e2135a23c4cfc"
+    },
+    {
+      "path": "whoami-identity-binding-policy.json",
+      "git_blob_oid": "45194d95b2a9d6fa9ff17cea36a2c107c86a9a79",
+      "bytes": 2635,
+      "sha256": "d3e33e0e1568f58b61a191a2a0d55ce9a2a74fab502f069b75c64ea33997817c"
+    },
+    {
+      "path": "invocation_journal_pinned_git_bootstrap.py",
+      "git_blob_oid": "24443b623a87b81fb4832ec6dba3ce0e105b2e77",
+      "bytes": 31176,
+      "sha256": "77c738e42b200d5a85ba6257ff141d3c0c47d3297239cd6d076d1d154f717375"
+    },
+    {
+      "path": "capability_probe_02_pinned_git_bootstrap.py",
+      "git_blob_oid": "673bc181411aa363a23f582b068a05c3bd05a5f1",
+      "bytes": 15436,
+      "sha256": "70271b2bca2a8de8aee92cba8a3b1afaf581698ca154a10c47738ae37ca0c3a8"
+    },
+    {
+      "path": "capability_probe_02_pinned_git_driver.py",
+      "git_blob_oid": "cabccd0374da61b4c827d4534a2d8e2b668ef97d",
+      "bytes": 23102,
+      "sha256": "b1a6cbef481b8bb1ae4f614c513fa8bc8fa387ebd408be1ba0731533c1d5a8b8"
+    },
+    {
+      "path": "test_whoami_identity_binding.py",
+      "git_blob_oid": "5ec10d0d3ea74e908a76b2a215dd32b9b64b067d",
+      "bytes": 29697,
+      "sha256": "43975922f112c13dee6449d6f7ec1ae30f3996bd8847375065f4ee490248ce50"
+    }
+  ],
+  "execution_authority": {
+    "invocation_journal_execution_authorized": false,
+    "capability_probe_02_authorized": false,
+    "hosted_request_authorized": false,
+    "qualification_03_authorized": false,
+    "randomization_authorized": false,
+    "producer_authorized": false,
+    "scorer_authorized": false,
+    "arms_authorized": false,
+    "mapping_release_authorized": false,
+    "rekor_post_authorized": false
+  },
+  "authoring_boundary": {
+    "journal_root_created": false,
+    "execution_checkout_created": false,
+    "start_receipt_created": false,
+    "outcome_created": false,
+    "attempt_root_created": false,
+    "child_pipeline_launched": false,
+    "capability_probe_executed": false,
+    "hosted_request_executed": false,
+    "randomization_created": false
+  },
+  "claim_ceiling": {
+    "freeze_can_establish": [
+      "reviewable exact-whoami identity-binding bytes",
+      "default unverified readiness identity runner is unreachable in the corrected path",
+      "wrong whoami bytes fail before formal roots",
+      "existing exact-Git and checkout-identity controls remain frozen"
+    ],
+    "does_not_establish": [
+      "invocation-journal execution authorization or result",
+      "capability-probe-02 authorization or result",
+      "sandbox capability or qualification",
+      "hosted transport, randomization, or arm execution"
+    ]
+  }
+}
