@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "governance_runtime_output_misroute_recovery_manifest",
+  "incident_id": "runtime-output-misroute-20260830-2107-2112",
+  "session_id": "31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2",
+  "source_root": ".qualification_tmp/solo-20260830",
+  "source_file_count": 20,
+  "source_total_bytes": 594080,
+  "source_manifest_algorithm": "Sort by repository-relative path; encode each row as relative_path|bytes|sha256 followed by LF; hash the complete UTF-8/no-BOM byte sequence with SHA-256.",
+  "source_manifest_sha256": "349e850c3d1da706bea89f521cbb4c603254cfbe367e25cc5c201c0b758ebeed",
+  "archive": {
+    "path": "artifacts/evidence/runtime-output-misroute-20260830/governance-runtime-output-misroute-20260830.zip",
+    "bytes": 133055,
+    "sha256": "bc03423c22dfa52aacd8c20bea3170aa796f6b8f41b730ed484678a8d5670869"
+  },
+  "entries": [
+    {"path":"artifacts/claim-enforcement/claim-enforcement-receipts.ndjson","bytes":942,"sha256":"da7421329d36a06f09c2f39eadb8e0781bfd394b2fefdeef3fbc9a0961af0135"},
+    {"path":"artifacts/codeburn_closeout_ingest.db","bytes":565248,"sha256":"e1133ee9f49543338e5dc39ff3063da3a5f2d0e63cc123f33a5ab7652516119b"},
+    {"path":"artifacts/governance/runtime_phase_summary.json","bytes":1372,"sha256":"a9c97549636d3cb4c0da3492f1a0e3d5a1e3e16cd60737443e8a8e32f675e9d1"},
+    {"path":"artifacts/runtime/advisory/memory-significance-31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":351,"sha256":"4bf7ad4fefb2e6537e72755dbb38403433c7db83adaa7d6cfdba875de45af00a"},
+    {"path":"artifacts/runtime/candidates/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":2984,"sha256":"7de93bd8e26eac330be6a6f8b4c04caf7c86239e4adf1d8a21114479b011d333"},
+    {"path":"artifacts/runtime/canonical-audit-log.jsonl","bytes":1086,"sha256":"7f9b85c152c3a529f6af6e64bdd17a68fe1b383cab061ac23992416d38161fd3"},
+    {"path":"artifacts/runtime/closeout-receipts/closeout_receipt_20260830T130751518570Z.json","bytes":2308,"sha256":"db094183dbcac43658c146875d38d5e9f91c75af069224d571c93c5870270ed6"},
+    {"path":"artifacts/runtime/closeout-receipts/closeout_receipt_20260830T131234341160Z.json","bytes":2317,"sha256":"e23570b2e48608e563937bd540ca042bf739ad4772cdd015407cb45ae7b427cd"},
+    {"path":"artifacts/runtime/closeout-trigger-evidence.ndjson","bytes":598,"sha256":"2fe28d35fc8a53ad97f854b7323670323a12c1461a5fc5ae5ad55e2be4c21ef8"},
+    {"path":"artifacts/runtime/closeouts/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":303,"sha256":"86fccb28525734ff0679811dc90695dfc1e007036d2a5edbd580dbb5d462c60f"},
+    {"path":"artifacts/runtime/curated/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":1099,"sha256":"1347545fa8d6e2bd5b0b7b5a6b9a501000d8d2e7b757683adde3d111886d6e1f"},
+    {"path":"artifacts/runtime/memory-candidates/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":926,"sha256":"dfb321ab4386e790dfc9b775f99453ea361657bb3fef886e561b91d2d57d9364"},
+    {"path":"artifacts/runtime/recovery-log.ndjson","bytes":896,"sha256":"78222769f47cddaaf3f60005b8ec5778178d1ddb78143050d88d8678ac831088"},
+    {"path":"artifacts/runtime/side-effect-journal.ndjson","bytes":910,"sha256":"98563f21910133bcfff17cdf15bb788552c54109e9bdddc7e0538d714197e2cb"},
+    {"path":"artifacts/runtime/summaries/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":4454,"sha256":"db3f57e5bafe6c06c2f7856ae1dcb268cb9d00a5a58600a06750e2d59be4ba95"},
+    {"path":"artifacts/runtime/traces/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":3653,"sha256":"5bf274329882b273e9dbf5020c96f1ed8c47f6ec6d6b6209cdabe1d26929f689"},
+    {"path":"artifacts/runtime/verdicts/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2.json","bytes":2895,"sha256":"2d412e490ae5da99b135b48b787ffd09df4e77f52a3216ce8e0ba352461be145"},
+    {"path":"artifacts/session-index.ndjson","bytes":362,"sha256":"7350ce5953fc5a4335e17992e6bc56b8f9c4930e84ec8dd10e0a1010222b16a6"},
+    {"path":"artifacts/session/claim-enforcement/31bf9f05-6c1d-4ec5-a7fd-9a26d7a6d4c2/claim-enforcement-check.json","bytes":507,"sha256":"9126d1804c542ef3a65e5d3f3251f20ff7cab1c3c4152c0401dcca234d920096"},
+    {"path":"memory/2026-08-30.md","bytes":869,"sha256":"05059427b88e47f86385e86656f7591669e96ea67e30e7fa549571c3c37249bc"}
+  ],
+  "claim_ceiling": "Preservation only. This manifest does not reconcile, merge, ingest, promote, or establish canonical admissibility for any recovered record."
+}
