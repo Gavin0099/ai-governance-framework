@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "operation": "manual_verified_archive_replacement_cutover",
+  "authority_scope": "operational_memory_only",
+  "created_before_cutover": true,
+  "source_git_context": {
+    "head": "6501d90f52c5e372fc049da34b3210fd01245fb4",
+    "parent": "0269ce9e858c161c2d425aaa442529453defecf9",
+    "branch": "feat/gate3-historical-materialization"
+  },
+  "source": {
+    "path": "memory/01_active_task.md",
+    "sha256": "38680653be7302482a0736af7d2ab92a282bc3fa311362f7a56db90c04824d78",
+    "git_blob": "0ebf087ea6d6ddac4cc6362475401576a7bc2ce9",
+    "bytes": 11447,
+    "chars": 11435,
+    "lf": 159,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true
+  },
+  "verified_archive": {
+    "path": "memory/archive/active_task_20260830_021544.md",
+    "sha256": "38680653be7302482a0736af7d2ab92a282bc3fa311362f7a56db90c04824d78",
+    "git_blob": "0ebf087ea6d6ddac4cc6362475401576a7bc2ce9",
+    "bytes": 11447,
+    "chars": 11435,
+    "lf": 159,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "byte_equal_to_source": true
+  },
+  "approved_replacement": {
+    "path": "memory/archive/active_task_20260830_replacement_candidate.md",
+    "sha256": "af8ea689932f374963830a27f124b90912ff238f0482830cf173ce1cf1279624",
+    "git_blob": "16bcc826e69c779b00cc6e89d84462bf3b3566e4",
+    "bytes": 8661,
+    "chars": 8659,
+    "lf": 122,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "target_active_sha256": "af8ea689932f374963830a27f124b90912ff238f0482830cf173ce1cf1279624",
+    "independent_review": {
+      "reviewer": "/root/amendment_fidelity_review",
+      "verdict": "APPROVED",
+      "blocking_findings": 0,
+      "warnings": 0,
+      "correction_from_rejected_sha256": "5d401ab08157ba1ef4ef4125ddaaadbb08440b3160706cfc4aaa8e99d6215418",
+      "sole_semantic_delta": "44 historical / 19 prospective -> 43 historical / 20 prospective"
+    }
+  },
+  "preservation_matrix": {
+    "path": "memory/archive/active_task_20260830_preservation_matrix.md",
+    "sha256": "424a54053e805c100669b4b94ebac51796185b66e30e7774546fd73f6f83e135",
+    "git_blob": "55893882af7809d7009de45dbe79f4be12353e13",
+    "bytes": 5889,
+    "chars": 5881,
+    "lf": 50,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "rows": 18,
+    "pass": 18,
+    "pending": 0,
+    "independent_recheck": "APPROVED"
+  },
+  "rollback": {
+    "canonical_source": "memory/archive/active_task_20260830_021544.md",
+    "expected_restored_sha256": "38680653be7302482a0736af7d2ab92a282bc3fa311362f7a56db90c04824d78",
+    "scratchpad_dependency": false
+  },
+  "boundaries": {
+    "modifies_gate3_semantics": false,
+    "authorizes_provider_feasibility": false,
+    "authorizes_implementation": false,
+    "uses_legacy_destructive_clean": false,
+    "modifies_existing_global_archive_manifest": false,
+    "push_authorized": false
+  }
+}
