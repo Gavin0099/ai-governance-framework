@@ -1,6 +1,6 @@
 # Solo Engineering Skill Evaluation Protocol Candidate
 
-Status: **CANDIDATE / NOT ADOPTED / NOT AUTHORIZED FOR EXECUTION**
+Status: **ADOPTED / NOT AUTHORIZED FOR EXECUTION**
 
 ## 1. Purpose and authority boundary
 
@@ -119,10 +119,11 @@ per-arm attrition and metric before revealing arm identity.
 
 ## 8. Size, execution and claim ceiling
 
-This exact protocol artifact must remain at or below 6,000 bytes. The limit may
-not be bypassed with an appendix, second protocol file, schema, validator or new
-subsystem. If the draft exceeds the limit, remove content or STOP.
+`6,000 bytes` is the compactness ceiling, not byte-neutrality. Amendments
+may change length but must remain within it; otherwise STOP and revisit scope.
+No appendix, second file, schema, validator or subsystem may bypass it. Semantic
+correctness takes priority.
 
-Commit-binding does not adopt this candidate or authorize task selection, IDs,
-tests, scorers, execution, rehearsal, implementation, network activity, memory
-changes, cleanup or push. Execution needs a revision-bound owner decision.
+Adoption does not authorize task selection, IDs, tests, scorers, execution,
+rehearsal, implementation, network activity, memory changes, cleanup or push.
+Execution needs a separate revision-bound owner decision.
