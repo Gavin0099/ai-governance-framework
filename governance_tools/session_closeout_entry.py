@@ -17,6 +17,8 @@ Usage:
 Exit codes:
     0  closeout executed (pipeline ran, regardless of closeout content quality)
     1  pipeline failed to run (runtime error, not closeout content failure)
+    2  CLI contract failure: argparse reports a missing required --project-root;
+       a supplied but invalid root reports a ROOT_BINDING_FAILURE: stderr prefix
 
 Closeout content quality (missing file, schema invalid, etc.) is reported in
 the output but does NOT cause a non-zero exit. The pipeline ran; the verdict
@@ -341,7 +343,7 @@ def _extract_transcript_path_from_stop_payload(payload: dict[str, Any]) -> "Path
 
 
 def run(
-    project_root: Path,
+    project_root: Path | str,
     transcript_path: "Path | None" = None,
     hook_session_id: "str | None" = None,
     ledger_write_allowed: "bool | None" = None,
@@ -361,7 +363,13 @@ def run(
 
     hook_session_id: optional session_id from the Stop hook stdin payload.
     Used as a secondary stable ID source if .current-session-id is not present.
+
+    The explicit root is validated again at this callable boundary even when a
+    CLI caller already performed its preflight. This prevents a future direct
+    importer from bypassing root validation. RootBindingError is raised before
+    run_session_end_hook, so a rejected root cannot reach any writer.
     """
+    project_root = _validate_explicit_project_root(str(project_root))
     return run_session_end_hook(
         project_root=project_root,
         transcript_path=transcript_path,

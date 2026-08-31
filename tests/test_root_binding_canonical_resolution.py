@@ -34,6 +34,7 @@ from governance_tools.session_closeout_entry import (  # noqa: E402
     RootBindingError,
     _validate_explicit_project_root,
     main,
+    run,
 )
 
 ENTRYPOINT = "governance_tools.session_closeout_entry"
@@ -149,8 +150,9 @@ def test_missing_project_root_fails_closed_with_no_writes(tmp_path):
     result = _run_entrypoint(workdir)
     after = _tree(workdir)
 
-    assert result.returncode != 0
+    assert result.returncode == 2
     assert "--project-root" in (result.stderr + result.stdout)
+    assert "ROOT_BINDING_FAILURE:" not in result.stderr
     assert after == before
 
 
@@ -235,13 +237,29 @@ def test_failed_binding_writes_nothing_to_cwd_or_supplied_path(tmp_path):
     before_cwd, before_root = _tree(workdir), _tree(bare)
     result = _run_entrypoint(workdir, "--project-root", str(bare))
 
-    assert result.returncode != 0
+    assert result.returncode == 2
     assert "ROOT_BINDING_FAILURE" in result.stderr
     assert _tree(workdir) == before_cwd
     assert _tree(bare) == before_root
     for produced in (workdir, bare):
         assert not (produced / "artifacts").exists()
         assert not (produced / "memory").exists()
+
+
+def test_direct_run_rejects_invalid_root_before_writer(tmp_path):
+    """The callable write boundary cannot bypass explicit-root validation."""
+    bare = tmp_path / "bare-root"
+    bare.mkdir()
+
+    with patch(
+        "governance_tools.session_closeout_entry.run_session_end_hook"
+    ) as writer:
+        with pytest.raises(RootBindingError):
+            run(bare)
+
+    writer.assert_not_called()
+    assert not (bare / "artifacts").exists()
+    assert not (bare / "memory").exists()
 
 
 # --- the un-ratified branch stays un-implemented -----------------------------

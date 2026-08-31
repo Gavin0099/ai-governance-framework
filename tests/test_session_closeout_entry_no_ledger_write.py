@@ -5,6 +5,8 @@ from governance_tools.session_closeout_entry import run
 
 
 def test_session_closeout_entry_forwards_no_ledger_write_mode(tmp_path: Path) -> None:
+    (tmp_path / "AGENTS.md").write_text("# test governance root\n", encoding="utf-8")
+    (tmp_path / "governance").mkdir()
     hook_result = {"ok": True, "session_id": "entry-no-ledger"}
 
     with patch("governance_tools.session_closeout_entry.run_session_end_hook", return_value=hook_result) as mocked:
@@ -12,7 +14,7 @@ def test_session_closeout_entry_forwards_no_ledger_write_mode(tmp_path: Path) ->
 
     assert result == hook_result
     mocked.assert_called_once_with(
-        project_root=tmp_path,
+        project_root=tmp_path.resolve(),
         transcript_path=None,
         hook_session_id=None,
         ledger_write_allowed=False,
