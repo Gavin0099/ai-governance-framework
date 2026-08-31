@@ -1,0 +1,19 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_reconciliation.py tests/test_authority_metadata_consistency.py -q -p no:cacheprovider --basetemp artifacts/evidence/test-results/.tmp-mrcsp-m1b3-pytest --junitxml artifacts/evidence/test-results/receipt-mrcsp-m1b3-missing-logical-surface-20260831.xml",
+  "exit_code": 0,
+  "started_at": "2026-08-31T11:48:36Z",
+  "finished_at": "2026-08-31T11:48:37Z",
+  "runner": "codex",
+  "linked_commit": "e8494e6e98fc1cafec0d6cd7e982edddfc44c833",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-mrcsp-m1b3-missing-logical-surface-20260831.xml"
+  ],
+  "cannot_claim": [
+    "repository-wide logical memory completeness, memory correctness, freshness, or supersession",
+    "Markdown parsing, repair safety, file creation, deletion, alias inference, normalization, or semantic identity",
+    "receipt authenticity: every field is fabricatable by a direct writer",
+    "runtime, schema, hook, CI, gate, blocker, enforcement, push, PR, merge readiness, activation, or M2 behavior"
+  ]
+}
