@@ -21,6 +21,11 @@ from governance_tools.session_closeout_entry import (
 )
 
 
+def _mark_governance_root(root: Path) -> None:
+    (root / "AGENTS.md").write_text("# test governance root\n", encoding="utf-8")
+    (root / "governance").mkdir()
+
+
 def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) -> None:
     artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
     artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -59,6 +64,7 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
 
 
 def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> None:
+    _mark_governance_root(tmp_path)
     artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
     artifact.parent.mkdir(parents=True, exist_ok=True)
     artifact.write_text('{"ok": true}\n', encoding="utf-8")
@@ -122,6 +128,7 @@ def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> Non
 def test_main_persists_exact_written_outcome_without_promotion_dependency(
     tmp_path: Path,
 ) -> None:
+    _mark_governance_root(tmp_path)
     artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
     artifact.parent.mkdir(parents=True, exist_ok=True)
     artifact.write_text('{"ok": true}\n', encoding="utf-8")
