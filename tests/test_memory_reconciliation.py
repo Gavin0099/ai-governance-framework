@@ -7,12 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from memory_pipeline import memory_layout
 from governance_tools.memory_reconciliation import (
     KnowledgeIdentityObservation,
     MemoryRecordBytes,
     detect_exact_byte_duplicate,
     detect_knowledge_identity_collision,
     detect_memory_encoding_integrity,
+    detect_missing_logical_memory_surface,
     render_report_json,
 )
 from governance_tools.authority_loader import parse_frontmatter
@@ -35,6 +37,11 @@ IDENTITY_CONTRACT = (
     REPO_ROOT
     / "governance"
     / "MEMORY_RECONCILIATION_KNOWLEDGE_IDENTITY_CONTRACT.md"
+)
+MISSING_SURFACE_CONTRACT = (
+    REPO_ROOT
+    / "governance"
+    / "MEMORY_RECONCILIATION_MISSING_LOGICAL_SURFACE_CONTRACT.md"
 )
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 
@@ -71,6 +78,19 @@ def _identity_contract() -> dict[str, object]:
         r"<!-- mrcsp-m1b-knowledge-identity:begin -->\s*"
         r"```json\s*(.*?)\s*```\s*"
         r"<!-- mrcsp-m1b-knowledge-identity:end -->",
+        text,
+        flags=re.DOTALL,
+    )
+    assert match is not None
+    return json.loads(match.group(1))
+
+
+def _missing_surface_contract() -> dict[str, object]:
+    text = MISSING_SURFACE_CONTRACT.read_text(encoding="utf-8")
+    match = re.search(
+        r"<!-- mrcsp-m1b-missing-logical-surface:begin -->\s*"
+        r"```json\s*(.*?)\s*```\s*"
+        r"<!-- mrcsp-m1b-missing-logical-surface:end -->",
         text,
         flags=re.DOTALL,
     )
@@ -185,6 +205,172 @@ def test_identity_contract_matches_owner_authorized_done() -> None:
         "different_identity_finding_count": 0,
         "serialization": "utf8_sorted_compact_json_with_trailing_lf",
     }
+
+
+def test_missing_surface_contract_is_registered_canonical_authority() -> None:
+    assert parse_frontmatter(MISSING_SURFACE_CONTRACT) == {
+        "audience": "agent-on-demand",
+        "authority": "canonical",
+        "can_override": False,
+        "overridden_by": "AGENT.md",
+        "default_load": "on-demand",
+    }
+    authority = AUTHORITY.read_text(encoding="utf-8")
+    assert (
+        "| `governance/MEMORY_RECONCILIATION_MISSING_LOGICAL_SURFACE_CONTRACT.md` "
+        "| agent-on-demand | canonical | false | AGENT.md | on-demand |"
+    ) in authority
+
+
+def test_missing_surface_contract_matches_owner_authorized_done() -> None:
+    assert _missing_surface_contract() == {
+        "contract_version": "mrcsp-missing-logical-memory-surface.v0.1",
+        "input_count": 2,
+        "input_requirement": (
+            "one_caller_admitted_existing_directory_and_one_configured_logical_name"
+        ),
+        "resolution": "memory_pipeline.memory_layout.resolve_memory_file",
+        "finding_code": "missing_logical_memory_surface",
+        "finding_severity": "warning",
+        "mode": "report_only",
+        "all_aliases_missing_finding_count": 1,
+        "any_configured_alias_present_finding_count": 0,
+        "serialization": "utf8_sorted_compact_json_with_trailing_lf",
+    }
+
+
+def test_canonical_logical_file_present_produces_zero_findings(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "01_active_task.md").write_text("active", encoding="utf-8")
+
+    report = detect_missing_logical_memory_surface(tmp_path, "active_task")
+
+    assert report == {
+        "detector": "missing_logical_memory_surface",
+        "findings": [],
+        "mode": "report_only",
+        "report_version": "mrcsp-missing-logical-memory-surface.v0.1",
+    }
+
+
+def test_secondary_alias_present_without_canonical_produces_zero_findings(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "02_tech_stack.md").write_text("stack", encoding="utf-8")
+
+    report = detect_missing_logical_memory_surface(tmp_path, "tech_stack")
+
+    assert report["findings"] == []
+
+
+def test_all_configured_aliases_missing_produces_exactly_one_finding(
+    tmp_path: Path,
+) -> None:
+    report = detect_missing_logical_memory_surface(tmp_path, "knowledge_base")
+
+    assert report["findings"] == [
+        {
+            "code": "missing_logical_memory_surface",
+            "logical_name": "knowledge_base",
+            "mode": "report_only",
+            "resolved_path": str(tmp_path / "03_knowledge_base.md"),
+            "severity": "warning",
+        }
+    ]
+
+
+def test_missing_surface_report_is_byte_stable_for_unchanged_tree(
+    tmp_path: Path,
+) -> None:
+    first = render_report_json(
+        detect_missing_logical_memory_surface(tmp_path, "review_log")
+    )
+    second = render_report_json(
+        detect_missing_logical_memory_surface(tmp_path, "review_log")
+    )
+
+    assert first == second
+    assert first.endswith(b"\n")
+    assert b" " not in first
+
+
+def test_missing_surface_detector_rejects_unknown_logical_name(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="MEMORY_FILE_ALIASES"):
+        detect_missing_logical_memory_surface(tmp_path, "unknown")
+
+
+def test_missing_surface_detector_rejects_missing_or_non_directory_root(
+    tmp_path: Path,
+) -> None:
+    missing = tmp_path / "missing"
+    file_root = tmp_path / "file.md"
+    file_root.write_text("not a directory", encoding="utf-8")
+
+    for invalid_root in (missing, file_root):
+        with pytest.raises(ValueError, match="exist and be a directory"):
+            detect_missing_logical_memory_surface(invalid_root, "active_task")
+
+
+@pytest.mark.parametrize(
+    "memory_root, logical_name",
+    [
+        ("memory", "active_task"),
+        (None, "active_task"),
+        (Path("."), None),
+        (Path("."), 1),
+        (Path("."), ""),
+    ],
+)
+def test_missing_surface_detector_rejects_invalid_argument_types(
+    memory_root: object, logical_name: object
+) -> None:
+    with pytest.raises(ValueError):
+        detect_missing_logical_memory_surface(  # type: ignore[arg-type]
+            memory_root, logical_name
+        )
+
+
+def test_missing_surface_detector_converts_resolver_exception_to_value_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def raising_resolver(memory_root: Path, logical_name: str) -> Path:
+        raise RuntimeError("resolver failed")
+
+    monkeypatch.setattr(memory_layout, "resolve_memory_file", raising_resolver)
+
+    with pytest.raises(ValueError, match="resolution failed"):
+        detect_missing_logical_memory_surface(tmp_path, "active_task")
+
+
+def test_missing_surface_detector_snapshots_resolution_and_existence_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    resolver_calls: list[tuple[Path, str]] = []
+
+    class CountingResolvedPath:
+        def __init__(self) -> None:
+            self.exists_calls = 0
+
+        def exists(self) -> bool:
+            self.exists_calls += 1
+            return True
+
+    resolved_path = CountingResolvedPath()
+
+    def counting_resolver(memory_root: Path, logical_name: str) -> CountingResolvedPath:
+        resolver_calls.append((memory_root, logical_name))
+        return resolved_path
+
+    monkeypatch.setattr(memory_layout, "resolve_memory_file", counting_resolver)
+
+    report = detect_missing_logical_memory_surface(tmp_path, "active_task")
+
+    assert report["findings"] == []
+    assert resolver_calls == [(tmp_path, "active_task")]
+    assert resolved_path.exists_calls == 1
 
 
 def _identity_observation(

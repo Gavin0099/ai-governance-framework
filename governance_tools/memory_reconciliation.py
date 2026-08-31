@@ -11,7 +11,10 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import islice
+from pathlib import Path
 from typing import Any
+
+from memory_pipeline import memory_layout
 
 
 REPORT_VERSION = "mrcsp-exact-byte-detector.v0.1"
@@ -23,6 +26,9 @@ ENCODING_FINDING_CODE = "memory_encoding_integrity_anomaly"
 IDENTITY_REPORT_VERSION = "mrcsp-knowledge-identity-collision.v0.1"
 IDENTITY_DETECTOR_NAME = "knowledge_identity_collision"
 IDENTITY_FINDING_CODE = "knowledge_identity_collision"
+MISSING_SURFACE_REPORT_VERSION = "mrcsp-missing-logical-memory-surface.v0.1"
+MISSING_SURFACE_DETECTOR_NAME = "missing_logical_memory_surface"
+MISSING_SURFACE_FINDING_CODE = "missing_logical_memory_surface"
 
 
 @dataclass(frozen=True)
@@ -227,6 +233,53 @@ def detect_knowledge_identity_collision(
         "findings": findings,
         "mode": "report_only",
         "report_version": IDENTITY_REPORT_VERSION,
+    }
+
+
+def detect_missing_logical_memory_surface(
+    memory_root: Path, logical_name: str
+) -> dict[str, Any]:
+    """Report whether one caller-admitted logical memory surface is missing."""
+
+    if not isinstance(memory_root, Path):
+        raise ValueError("memory_root must be a pathlib.Path")
+    if type(logical_name) is not str or not logical_name:
+        raise ValueError("logical_name must be a configured non-empty string")
+
+    try:
+        root_is_directory = memory_root.is_dir()
+    except Exception as exc:
+        raise ValueError("memory_root must be safely readable") from exc
+    if not root_is_directory:
+        raise ValueError("memory_root must exist and be a directory")
+
+    if logical_name not in memory_layout.MEMORY_FILE_ALIASES:
+        raise ValueError("logical_name must be defined in MEMORY_FILE_ALIASES")
+
+    resolver = memory_layout.resolve_memory_file
+    try:
+        resolved_path = resolver(memory_root, logical_name)
+        resolved_exists = resolved_path.exists()
+    except Exception as exc:
+        raise ValueError("logical memory surface resolution failed") from exc
+
+    findings: list[dict[str, Any]] = []
+    if not resolved_exists:
+        findings.append(
+            {
+                "code": MISSING_SURFACE_FINDING_CODE,
+                "logical_name": logical_name,
+                "mode": "report_only",
+                "resolved_path": str(resolved_path),
+                "severity": "warning",
+            }
+        )
+
+    return {
+        "detector": MISSING_SURFACE_DETECTOR_NAME,
+        "findings": findings,
+        "mode": "report_only",
+        "report_version": MISSING_SURFACE_REPORT_VERSION,
     }
 
 

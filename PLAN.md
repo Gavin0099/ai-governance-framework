@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-24
+> **最後更新**: 2026-08-31
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -92,9 +92,29 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-2 candidate):
+Current refresh - 2026-08-31 (owner-authorized MRCSP M1b-3 candidate):
 
-- [>] Add one deterministic report-only namespaced knowledge-identity collision
+- [>] Add one deterministic report-only detector for one caller-admitted
+  `memory_root` directory and one logical name defined by
+  `MEMORY_FILE_ALIASES`.
+- DONE: resolution reuses
+  `memory_pipeline.memory_layout.resolve_memory_file()`; an existing canonical
+  or secondary alias produces zero findings; all configured aliases missing
+  produces exactly one `missing_logical_memory_surface` warning; repeated
+  unchanged input produces byte-stable JSON; invalid roots, logical names,
+  argument types, and ordinary resolver exceptions fail closed with
+  `ValueError`.
+- Claim ceiling: one caller-specified logical surface at one filesystem
+  observation only. No repository-wide completeness, parsing, repair,
+  creation, deletion, alias inference, normalization, semantic identity,
+  freshness, supersession, reader, projection, writer, schema, runtime, hook,
+  CI, gate, blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+
+Current refresh - 2026-08-24 (MRCSP M1b-2 active):
+
+- [x] Add one deterministic report-only namespaced knowledge-identity collision
   detector over exactly two caller-admitted `KnowledgeIdentityObservation`
   values.
 - DONE: two distinct record identities with the same exact case-sensitive
@@ -108,6 +128,8 @@ Current refresh - 2026-08-24 (owner-authorized MRCSP M1b-2 candidate):
   enforcement, or M2 behavior is authorized.
 - Activation requires exact-head owner merge attestation, independent technical
   review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #107 at merge commit
+  `3d335e26`.
 
 Current refresh - 2026-08-24 (MRCSP M1b-1 active):
 
