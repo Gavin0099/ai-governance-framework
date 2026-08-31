@@ -143,6 +143,9 @@ _COST_KEYS = frozenset(
 _REQUIRED_COST_KEYS = frozenset({"elapsed_ms", "tool_calls"})
 _LOWER_HEX_40 = re.compile(r"[0-9a-f]{40}\Z")
 _LOWER_HEX_64 = re.compile(r"[0-9a-f]{64}\Z")
+_RFC3339_UTC = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z"
+)
 _FORBIDDEN_PUBLIC_TOKENS = frozenset({"CONTROL", "TREATMENT"})
 
 
@@ -198,16 +201,13 @@ def _is_uuid4(value: object) -> bool:
 
 
 def _is_rfc3339_utc(value: object) -> bool:
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or _RFC3339_UTC.fullmatch(value) is None:
         return False
-    candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        parsed = datetime.fromisoformat(candidate)
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
     except ValueError:
         return False
-    return parsed.tzinfo is not None and parsed.utcoffset() is not None and (
-        parsed.utcoffset().total_seconds() == 0
-    )
+    return parsed.utcoffset() is not None and parsed.utcoffset().total_seconds() == 0
 
 
 def _require_exact_keys(value: object, expected: frozenset[str]) -> Mapping[str, Any]:
@@ -253,19 +253,33 @@ def _validate_genesis(event: Mapping[str, Any]) -> None:
         _fail(LEDGER_TRANSITION_FAILURE)
     if not _is_uuid4(event.get("evaluation_id")):
         _fail()
-    expected = {
+    expected_strings = {
         "predecessor_digest": V1_LEDGER_SHA256,
         "adopted_protocol_sha256": ADOPTED_PROTOCOL_SHA256,
         "adopted_contract_sha256": ADOPTED_CONTRACT_SHA256,
         "adopted_schema_id": ADOPTED_SCHEMA_ID,
         "legacy_pair_id": LEGACY_PAIR_ID,
         "legacy_pair_state_at_v1": "PAIR_CREATED",
-        "legacy_pair_attempts_used": 0,
         "legacy_pair_disposition": "PRE_ATTEMPT_TERMINATION",
-        "attempt_ceiling_total": ATTEMPT_CEILING_TOTAL,
-        "attempt_ceiling_breakdown": ATTEMPT_CEILING_BREAKDOWN,
     }
-    if any(event.get(key) != value for key, value in expected.items()):
+    if any(event.get(key) != value for key, value in expected_strings.items()):
+        _fail()
+    if (
+        type(event.get("legacy_pair_attempts_used")) is not int
+        or event["legacy_pair_attempts_used"] != 0
+        or type(event.get("attempt_ceiling_total")) is not int
+        or event["attempt_ceiling_total"] != ATTEMPT_CEILING_TOTAL
+    ):
+        _fail()
+    breakdown = _require_exact_keys(
+        event.get("attempt_ceiling_breakdown"),
+        frozenset(ATTEMPT_CEILING_BREAKDOWN),
+    )
+    if any(
+        type(breakdown[slot]) is not int
+        or breakdown[slot] != ATTEMPT_CEILING_BREAKDOWN[slot]
+        for slot in SLOTS
+    ):
         _fail()
 
 
@@ -456,6 +470,8 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
                     _fail(LEDGER_TRANSITION_FAILURE)
             pairs[pair_id] = {
                 "slot": slot,
+                "category": event["category"],
+                "repository": event["repository"],
                 "phase": "CREATED",
                 "handles": [],
                 "digest": None,
@@ -468,12 +484,21 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
                 shakedown_id = slot_pairs.get("R2-SHAKEDOWN")
                 if shakedown_id is None or pairs[shakedown_id]["phase"] != "UNBLINDED":
                     _fail(LEDGER_TRANSITION_FAILURE)
-            if pair_id is not None:
-                if pair_id not in pairs or pairs[pair_id]["slot"] != slot:
+            if pair_id is None:
+                if slot in slot_pairs:
                     _fail(LEDGER_TRANSITION_FAILURE)
-                if pairs[pair_id]["handles"]:
+            else:
+                pair = pairs.get(pair_id)
+                if (
+                    pair is None
+                    or pair["slot"] != slot
+                    or pair["category"] != event["category"]
+                    or pair["repository"] != event["repository"]
+                    or pair["phase"] != "CREATED"
+                    or pair["handles"]
+                ):
                     _fail(LEDGER_TRANSITION_FAILURE)
-                pairs[pair_id]["phase"] = "STOPPED"
+                pair["phase"] = "STOPPED"
             globally_stopped = True
             continue
 
@@ -606,7 +631,7 @@ def read_ledger(path: Path | str, *, allow_missing: bool = False) -> list[dict[s
         text = data.decode("utf-8", errors="strict")
         events = [
             json.loads(line, object_pairs_hook=_pairs_without_duplicate_keys)
-            for line in text.splitlines()
+            for line in text[:-1].split("\n")
         ]
     except LedgerError:
         raise

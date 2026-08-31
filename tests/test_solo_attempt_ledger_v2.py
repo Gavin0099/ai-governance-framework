@@ -100,6 +100,26 @@ def _pair_created(
     }
 
 
+def _pre_attempt_failure(
+    events: list[dict[str, object]],
+    pair_id: str | None,
+    slot: str,
+    *,
+    category: str = "bugfix",
+    repository: str = "synthetic-consumer",
+) -> dict[str, object]:
+    return {
+        **_common(events, "PRE_ATTEMPT_INFRA_FAILURE", pair_id, slot),
+        "category": category,
+        "repository": repository,
+        "admission_result": {
+            "status": "FAIL_CLOSED",
+            "preflight_ids": ["preflight-v2"],
+            "task_exposure_state": "NONE",
+        },
+    }
+
+
 def _append_complete_pair(
     events: list[dict[str, object]], slot: str, pair_id: str, seed: int
 ) -> None:
@@ -217,6 +237,46 @@ def test_composites_reject_nested_values_and_boolean_counts() -> None:
     _assert_code(events, ledger.LEDGER_SCHEMA_FAILURE)
 
 
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda event: event.update({"legacy_pair_attempts_used": False}),
+        lambda event: event.update({"attempt_ceiling_total": 14.0}),
+        lambda event: event["attempt_ceiling_breakdown"].update(
+            {"R2-SHAKEDOWN": 2.0}
+        ),
+    ],
+)
+def test_genesis_requires_exact_integer_types(mutator) -> None:
+    genesis = _genesis()
+    mutator(genesis)
+
+    _assert_code([genesis], ledger.LEDGER_SCHEMA_FAILURE)
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        "2026-W36-1T00:00:00Z",
+        "2026-08-31T00:00Z",
+        "2026-08-31T00:00:00+0000",
+        "2026-08-31T00:00:00+00:00",
+        "2026-08-31 00:00:00Z",
+    ],
+)
+def test_genesis_rejects_non_frozen_timestamp_profiles(timestamp: str) -> None:
+    genesis = _genesis()
+    genesis["timestamp_utc"] = timestamp
+
+    _assert_code([genesis], ledger.LEDGER_SCHEMA_FAILURE)
+
+
+def test_genesis_accepts_canonical_frozen_timestamp() -> None:
+    summary = ledger.validate_ledger_events([_genesis()])
+
+    assert summary.ledger_event_count == 1
+
+
 def test_fixed_error_does_not_echo_secret_like_input() -> None:
     sentinel = "SECRET-CONTROLLER-MAPPING-SENTINEL"
     events = _complete_shakedown()
@@ -260,37 +320,58 @@ def test_r2_pair_cannot_reuse_legacy_pair_identity() -> None:
 
 def test_pre_pair_failure_is_terminal_and_analytic_slot_waits_for_shakedown() -> None:
     events = [_genesis()]
-    events.append(
-        {
-            **_common(events, "PRE_ATTEMPT_INFRA_FAILURE", None, "R2-SHAKEDOWN"),
-            "category": "bugfix",
-            "repository": "synthetic-consumer",
-            "admission_result": {
-                "status": "FAIL_CLOSED",
-                "preflight_ids": ["preflight-v2"],
-                "task_exposure_state": "NONE",
-            },
-        }
-    )
+    events.append(_pre_attempt_failure(events, None, "R2-SHAKEDOWN"))
     summary = ledger.validate_ledger_events(events)
     assert summary.pair_count == 0
     assert summary.admitted_attempt_count == 0
     assert summary.initiated_attempt_count == 0
 
     events = [_genesis()]
-    events.append(
-        {
-            **_common(events, "PRE_ATTEMPT_INFRA_FAILURE", None, "A1"),
-            "category": "bugfix",
-            "repository": "synthetic-consumer",
-            "admission_result": {
-                "status": "REFUSED",
-                "preflight_ids": ["preflight-v2"],
-                "task_exposure_state": "NONE",
-            },
-        }
-    )
+    failure = _pre_attempt_failure(events, None, "A1")
+    failure["admission_result"]["status"] = "REFUSED"
+    events.append(failure)
     _assert_code(events, ledger.LEDGER_TRANSITION_FAILURE)
+
+
+def test_pre_attempt_failure_rejects_null_pair_after_pair_creation() -> None:
+    events = [_genesis()]
+    events.append(_pair_created(events, "R2-SHAKEDOWN", "pair-r2"))
+    events.append(_pre_attempt_failure(events, None, "R2-SHAKEDOWN"))
+
+    _assert_code(events, ledger.LEDGER_TRANSITION_FAILURE)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("category", "different-category"),
+        ("repository", "different-repository"),
+    ],
+)
+def test_pre_attempt_failure_rejects_mismatched_pair_binding(
+    field: str, value: str
+) -> None:
+    events = [_genesis()]
+    pair_id = "pair-r2"
+    events.append(_pair_created(events, "R2-SHAKEDOWN", pair_id))
+    failure = _pre_attempt_failure(events, pair_id, "R2-SHAKEDOWN")
+    failure[field] = value
+    events.append(failure)
+
+    _assert_code(events, ledger.LEDGER_TRANSITION_FAILURE)
+
+
+def test_pre_attempt_failure_accepts_exact_existing_pair_binding() -> None:
+    events = [_genesis()]
+    pair_id = "pair-r2"
+    events.append(_pair_created(events, "R2-SHAKEDOWN", pair_id))
+    events.append(_pre_attempt_failure(events, pair_id, "R2-SHAKEDOWN"))
+
+    summary = ledger.validate_ledger_events(events)
+
+    assert summary.pair_count == 1
+    assert summary.admitted_attempt_count == 0
+    assert summary.initiated_attempt_count == 0
 
 
 def test_admitted_not_exposed_reserves_handle_without_consumption_and_stops() -> None:
@@ -365,6 +446,24 @@ def test_append_writes_strict_utf8_lf_and_round_trips(tmp_path: Path) -> None:
     assert not data.startswith(b"\xef\xbb\xbf")
     assert summary == ledger.validate_ledger_file(path)
     assert ledger.read_ledger(path) == events
+
+
+@pytest.mark.parametrize("separator", ["\u0085", "\u2028", "\u2029"])
+def test_unicode_line_separators_round_trip_inside_json_strings(
+    tmp_path: Path, separator: str
+) -> None:
+    path = tmp_path / f"unicode-{ord(separator):04x}.ndjson"
+    events = [_genesis()]
+    pair = _pair_created(events, "R2-SHAKEDOWN", "pair-r2")
+    pair["category"] = f"bugfix{separator}category"
+    events.append(pair)
+
+    for event in events:
+        ledger.append_event(path, event)
+
+    assert separator.encode("utf-8") in path.read_bytes()
+    assert ledger.read_ledger(path) == events
+    assert ledger.validate_ledger_file(path).pair_count == 1
 
 
 def test_append_rejects_candidate_before_write(tmp_path: Path) -> None:

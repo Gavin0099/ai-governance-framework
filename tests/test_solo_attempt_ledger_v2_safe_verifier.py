@@ -114,6 +114,21 @@ def test_success_emits_only_fixed_public_scalar_counts(tmp_path: Path) -> None:
     }
 
 
+def test_invalid_closed_schema_genesis_never_passes(tmp_path: Path) -> None:
+    path = tmp_path / "synthetic-invalid-genesis-v2.ndjson"
+    genesis = _genesis()
+    genesis["attempt_ceiling_total"] = 14.0
+    path.write_bytes(ledger.encode_event(genesis))
+
+    completed = _run_v2_cli(path)
+
+    assert completed.returncode == 1
+    assert completed.stderr == ""
+    payload = _assert_fixed_flat_output(completed.stdout)
+    assert payload["status"] == "FAIL"
+    assert payload["code"] == ledger.LEDGER_SCHEMA_FAILURE
+
+
 @pytest.mark.parametrize(
     "raw",
     [
