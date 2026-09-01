@@ -90,6 +90,7 @@ _KEY_RECORD_KEYS = frozenset({"schema_version", "key_id", "key_b64"})
 _LOWER_HEX_64 = re.compile(r"[0-9a-f]{64}\Z")
 _KEY_ID = re.compile(r"solo-r2-[0-9a-f]{32}\Z")
 _AES_KEY_BYTES = 32
+_KEY_ID_ENTROPY_BYTES = 16
 _NONCE_BYTES = 12
 _TAG_BYTES = 16
 
@@ -500,6 +501,65 @@ def _contains_git_marker(path: Path) -> bool:
     return False
 
 
+def _path_entry_exists(path: Path) -> bool:
+    try:
+        return os.path.lexists(path)
+    except (OSError, TypeError, ValueError):
+        _fail(KEY_CUSTODY_FAILURE)
+
+
+def _resolved_custody_roots(boundary: CustodyBoundary) -> tuple[Path, ...]:
+    if type(boundary) is not CustodyBoundary:
+        _fail(KEY_CUSTODY_FAILURE)
+    roots: list[Path] = []
+    for raw_root in boundary.roots():
+        try:
+            root_path = Path(raw_root)
+        except (TypeError, ValueError):
+            _fail(KEY_CUSTODY_FAILURE)
+        root = _canonical_root(root_path, KEY_CUSTODY_FAILURE)
+        if not root.is_dir():
+            _fail(KEY_CUSTODY_FAILURE)
+        roots.append(root)
+    return tuple(roots)
+
+
+def validate_controller_key_target(
+    path: Path | str, *, custody_boundary: CustodyBoundary
+) -> Path:
+    """Validate one absent explicit key target without creating anything."""
+
+    try:
+        supplied = Path(path)
+    except (TypeError, ValueError):
+        _fail(KEY_CUSTODY_FAILURE)
+    if not supplied.is_absolute() or not supplied.name:
+        _fail(KEY_CUSTODY_FAILURE)
+    try:
+        parent = supplied.parent.resolve(strict=True)
+        lexical = supplied.absolute()
+    except (OSError, RuntimeError):
+        _fail(KEY_CUSTODY_FAILURE)
+    if not parent.is_dir():
+        _fail(KEY_CUSTODY_FAILURE)
+    candidate = parent / supplied.name
+    temporary = candidate.with_name(f".{candidate.name}.tmp")
+    if _path_entry_exists(candidate) or _path_entry_exists(temporary):
+        _fail(KEY_CUSTODY_FAILURE)
+
+    roots = _resolved_custody_roots(custody_boundary)
+    if any(
+        _is_within(candidate, root) or _is_within(lexical, root)
+        for root in roots
+    ):
+        _fail(KEY_CUSTODY_FAILURE)
+    if _contains_git_marker(parent) or _contains_git_marker(lexical.parent):
+        _fail(KEY_CUSTODY_FAILURE)
+    if not os.access(parent, os.W_OK):
+        _fail(KEY_CUSTODY_FAILURE)
+    return candidate
+
+
 def _validate_key_path(path: Path | str, boundary: CustodyBoundary) -> Path:
     try:
         supplied = Path(path)
@@ -511,16 +571,7 @@ def _validate_key_path(path: Path | str, boundary: CustodyBoundary) -> Path:
     if not candidate.is_file():
         _fail(KEY_CUSTODY_FAILURE)
 
-    roots: list[Path] = []
-    for raw_root in boundary.roots():
-        try:
-            root_path = Path(raw_root)
-        except (TypeError, ValueError):
-            _fail(KEY_CUSTODY_FAILURE)
-        root = _canonical_root(root_path, KEY_CUSTODY_FAILURE)
-        if not root.is_dir():
-            _fail(KEY_CUSTODY_FAILURE)
-        roots.append(root)
+    roots = _resolved_custody_roots(boundary)
 
     try:
         lexical = supplied.absolute()
@@ -536,6 +587,90 @@ def _validate_key_path(path: Path | str, boundary: CustodyBoundary) -> Path:
     if not os.access(candidate, os.R_OK):
         _fail(KEY_CUSTODY_FAILURE)
     return candidate
+
+
+def _controller_key_record_bytes(key_id: str, key_bytes: bytes) -> bytes:
+    key = _validate_controller_key(_ControllerKey(key_id, key_bytes))
+    record = {
+        "schema_version": CONTROLLER_KEY_SCHEMA,
+        "key_id": key.key_id,
+        "key_b64": _encode_base64(key.key_bytes),
+    }
+    try:
+        encoded = json.dumps(
+            record, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+    except (TypeError, ValueError, UnicodeError):
+        _fail(KEY_MATERIAL_FAILURE)
+    reparsed = _parse_json_object(encoded, KEY_MATERIAL_FAILURE)
+    _require_exact_dict(reparsed, _KEY_RECORD_KEYS, KEY_MATERIAL_FAILURE)
+    if reparsed != record:
+        _fail(KEY_MATERIAL_FAILURE)
+    return encoded
+
+
+def create_controller_key(
+    path: Path | str, *, custody_boundary: CustodyBoundary
+) -> str:
+    """Create one repo-external controller key once without returning key bytes."""
+
+    target = validate_controller_key_target(
+        path, custody_boundary=custody_boundary
+    )
+    temporary = target.with_name(f".{target.name}.tmp")
+    try:
+        key_id_entropy = os.urandom(_KEY_ID_ENTROPY_BYTES)
+        key_bytes = os.urandom(_AES_KEY_BYTES)
+    except Exception:
+        _fail(SEALING_FAILURE)
+    if (
+        type(key_id_entropy) is not bytes
+        or len(key_id_entropy) != _KEY_ID_ENTROPY_BYTES
+        or type(key_bytes) is not bytes
+        or len(key_bytes) != _AES_KEY_BYTES
+    ):
+        _fail(SEALING_FAILURE)
+    key_id = f"solo-r2-{key_id_entropy.hex()}"
+    encoded = _controller_key_record_bytes(key_id, key_bytes)
+
+    replace_started = False
+    try:
+        with temporary.open("xb+", buffering=0) as stream:
+            written = stream.write(encoded)
+            if written != len(encoded):
+                raise OSError("short write")
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read() != encoded:
+                raise OSError("read-back mismatch")
+        if _path_entry_exists(target):
+            raise OSError("target appeared before publication")
+        replace_started = True
+        os.replace(temporary, target)
+    except ControllerStateError:
+        if not replace_started:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+    except OSError:
+        if not replace_started or not _path_entry_exists(target):
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+        _fail(KEY_CUSTODY_FAILURE)
+
+    loaded = _load_controller_key(
+        target,
+        custody_boundary=custody_boundary,
+        expected_key_id=key_id,
+    )
+    if loaded.key_id != key_id:
+        _fail(KEY_MATERIAL_FAILURE)
+    return key_id
 
 
 def _require_single_link(file_stat: os.stat_result) -> None:

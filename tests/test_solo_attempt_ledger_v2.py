@@ -448,6 +448,158 @@ def test_append_writes_strict_utf8_lf_and_round_trips(tmp_path: Path) -> None:
     assert ledger.read_ledger(path) == events
 
 
+def test_create_genesis_ledger_atomically_publishes_exactly_one_event(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "synthetic-ledger.v2.ndjson"
+    genesis = _genesis()
+
+    summary = ledger.create_genesis_ledger(path, genesis)
+
+    assert path.read_bytes() == ledger.encode_event(genesis)
+    assert ledger.read_ledger(path) == [genesis]
+    assert summary == ledger.validate_ledger_file(path)
+    assert summary.ledger_event_count == 1
+    assert summary.pair_count == 0
+    assert summary.initiated_attempt_count == 0
+    assert summary.next_event_seq == 2
+    assert not path.with_name(f".{path.name}.tmp").exists()
+    assert (
+        ledger.classify_genesis_publication(path, genesis)
+        == ledger.GENESIS_PUBLICATION_VALID
+    )
+
+
+def test_create_genesis_publishes_the_validated_snapshot_not_mutated_caller_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "synthetic-ledger.v2.ndjson"
+    genesis = _genesis()
+    expected = deepcopy(genesis)
+    real_fsync = ledger.os.fsync
+
+    def mutate_caller_after_write(file_descriptor: int) -> None:
+        real_fsync(file_descriptor)
+        genesis["attempt_ceiling_breakdown"]["A1"] = 999
+
+    monkeypatch.setattr(ledger.os, "fsync", mutate_caller_after_write)
+    summary = ledger.create_genesis_ledger(path, genesis)
+
+    assert genesis != expected
+    assert ledger.read_ledger(path) == [expected]
+    assert summary == ledger.validate_ledger_file(path)
+    assert (
+        ledger.classify_genesis_publication(path, expected)
+        == ledger.GENESIS_PUBLICATION_VALID
+    )
+
+
+def test_create_genesis_rejects_existing_target_or_temporary_without_overwrite(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "synthetic-ledger.v2.ndjson"
+    path.write_bytes(b"existing-target\n")
+    with pytest.raises(ledger.LedgerError) as caught:
+        ledger.create_genesis_ledger(path, _genesis())
+    assert caught.value.code == ledger.LEDGER_APPEND_FAILURE
+    assert path.read_bytes() == b"existing-target\n"
+
+    path.unlink()
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_bytes(b"existing-temporary")
+    with pytest.raises(ledger.LedgerError) as caught:
+        ledger.create_genesis_ledger(path, _genesis())
+    assert caught.value.code == ledger.LEDGER_APPEND_FAILURE
+    assert not path.exists()
+    assert temporary.read_bytes() == b"existing-temporary"
+
+
+def test_create_genesis_fsync_failure_keeps_canonical_absent_and_cleans_temp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "synthetic-ledger.v2.ndjson"
+
+    def fail_fsync(_file_descriptor: int) -> None:
+        raise OSError("synthetic fsync failure")
+
+    monkeypatch.setattr(ledger.os, "fsync", fail_fsync)
+    with pytest.raises(ledger.LedgerError) as caught:
+        ledger.create_genesis_ledger(path, _genesis())
+
+    assert caught.value.code == ledger.LEDGER_APPEND_FAILURE
+    assert not path.exists()
+    assert not path.with_name(f".{path.name}.tmp").exists()
+
+
+def test_create_genesis_pre_replace_inspection_failure_cleans_temporary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "synthetic-ledger.v2.ndjson"
+    real_exists = ledger._path_entry_exists
+    calls = 0
+
+    def fail_third_inspection(candidate: Path) -> bool:
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise ledger.LedgerError(ledger.LEDGER_APPEND_FAILURE)
+        return real_exists(candidate)
+
+    monkeypatch.setattr(ledger, "_path_entry_exists", fail_third_inspection)
+    with pytest.raises(ledger.LedgerError) as caught:
+        ledger.create_genesis_ledger(path, _genesis())
+
+    assert caught.value.code == ledger.LEDGER_APPEND_FAILURE
+    assert not path.exists()
+    assert not path.with_name(f".{path.name}.tmp").exists()
+
+
+@pytest.mark.parametrize(
+    ("replace_outcome", "expected_state", "target_exists", "target_valid"),
+    [
+        ("absent", ledger.GENESIS_PUBLICATION_ABSENT, False, False),
+        ("valid", ledger.GENESIS_PUBLICATION_VALID, True, True),
+        ("invalid", ledger.GENESIS_PUBLICATION_INVALID, True, False),
+    ],
+)
+def test_create_genesis_uncertain_replace_classifies_once_without_retry_or_repair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    replace_outcome: str,
+    expected_state: str,
+    target_exists: bool,
+    target_valid: bool,
+) -> None:
+    path = tmp_path / f"{replace_outcome}.v2.ndjson"
+    genesis = _genesis()
+    real_replace = ledger.os.replace
+    calls = 0
+
+    def uncertain_replace(source: Path, target: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if replace_outcome == "valid":
+            real_replace(source, target)
+        elif replace_outcome == "invalid":
+            target.write_bytes(b"partial-or-invalid")
+        raise OSError("synthetic uncertain replace")
+
+    monkeypatch.setattr(ledger.os, "replace", uncertain_replace)
+    with pytest.raises(ledger.GenesisPublicationError) as caught:
+        ledger.create_genesis_ledger(path, genesis)
+
+    assert calls == 1
+    assert caught.value.code == ledger.LEDGER_APPEND_FAILURE
+    assert caught.value.publication_state == expected_state
+    assert path.exists() is target_exists
+    if target_exists:
+        assert (
+            ledger.classify_genesis_publication(path, genesis)
+            == (ledger.GENESIS_PUBLICATION_VALID if target_valid else ledger.GENESIS_PUBLICATION_INVALID)
+        )
+    assert path.with_name(f".{path.name}.tmp").exists() is (replace_outcome != "valid")
+
+
 @pytest.mark.parametrize("separator", ["\u0085", "\u2028", "\u2029"])
 def test_unicode_line_separators_round_trip_inside_json_strings(
     tmp_path: Path, separator: str

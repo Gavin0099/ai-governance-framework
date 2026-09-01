@@ -60,6 +60,9 @@ LEDGER_PARSE_FAILURE = "LEDGER_PARSE_FAILURE / STOP"
 LEDGER_SCHEMA_FAILURE = "LEDGER_SCHEMA_FAILURE / STOP"
 LEDGER_TRANSITION_FAILURE = "LEDGER_TRANSITION_FAILURE / STOP"
 LEDGER_APPEND_FAILURE = "LEDGER_APPEND_FAILURE / STOP"
+GENESIS_PUBLICATION_ABSENT = "ABSENT"
+GENESIS_PUBLICATION_VALID = "VALID"
+GENESIS_PUBLICATION_INVALID = "INVALID"
 
 _COMMON_KEYS = frozenset(
     {
@@ -155,6 +158,20 @@ class LedgerError(RuntimeError):
     def __init__(self, code: str) -> None:
         self.code = code
         super().__init__(code)
+
+
+class GenesisPublicationError(LedgerError):
+    """Uncertain first-publication failure with one read-only classification."""
+
+    def __init__(self, publication_state: str) -> None:
+        if publication_state not in {
+            GENESIS_PUBLICATION_ABSENT,
+            GENESIS_PUBLICATION_VALID,
+            GENESIS_PUBLICATION_INVALID,
+        }:
+            publication_state = GENESIS_PUBLICATION_INVALID
+        self.publication_state = publication_state
+        super().__init__(LEDGER_APPEND_FAILURE)
 
 
 @dataclass(frozen=True)
@@ -654,6 +671,126 @@ def encode_event(event: Mapping[str, Any]) -> bytes:
     if b"\r" in encoded or encoded.startswith(b"\xef\xbb\xbf"):
         _fail()
     return encoded
+
+
+def _path_entry_exists(path: Path) -> bool:
+    try:
+        return os.path.lexists(path)
+    except (OSError, TypeError, ValueError):
+        _fail(LEDGER_APPEND_FAILURE)
+
+
+def _snapshot_genesis_event(
+    event: Mapping[str, Any],
+) -> tuple[dict[str, Any], bytes, LedgerSummary]:
+    """Freeze, validate, and re-encode one genesis without caller aliases."""
+
+    try:
+        initial_bytes = encode_event(event)
+        snapshot = json.loads(
+            initial_bytes,
+            object_pairs_hook=_pairs_without_duplicate_keys,
+        )
+    except LedgerError:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        _fail(LEDGER_SCHEMA_FAILURE)
+    if type(snapshot) is not dict:
+        _fail(LEDGER_SCHEMA_FAILURE)
+    summary = validate_ledger_events([snapshot])
+    canonical_bytes = encode_event(snapshot)
+    if canonical_bytes != initial_bytes:
+        _fail(LEDGER_SCHEMA_FAILURE)
+    return snapshot, canonical_bytes, summary
+
+
+def classify_genesis_publication(
+    path: Path | str, event: Mapping[str, Any]
+) -> str:
+    """Classify a first-publication target without changing filesystem state."""
+
+    ledger_path = Path(path)
+    expected_event, expected_bytes, _summary = _snapshot_genesis_event(event)
+    try:
+        if not _path_entry_exists(ledger_path):
+            return GENESIS_PUBLICATION_ABSENT
+    except LedgerError:
+        return GENESIS_PUBLICATION_INVALID
+    try:
+        if ledger_path.read_bytes() != expected_bytes:
+            return GENESIS_PUBLICATION_INVALID
+        events = read_ledger(ledger_path)
+        summary = validate_ledger_events(events)
+    except (LedgerError, OSError):
+        return GENESIS_PUBLICATION_INVALID
+    if (
+        events != [expected_event]
+        or summary.ledger_event_count != 1
+        or summary.pair_count != 0
+        or summary.admitted_attempt_count != 0
+        or summary.initiated_attempt_count != 0
+        or summary.next_event_seq != 2
+    ):
+        return GENESIS_PUBLICATION_INVALID
+    return GENESIS_PUBLICATION_VALID
+
+
+def create_genesis_ledger(
+    path: Path | str, event: Mapping[str, Any]
+) -> LedgerSummary:
+    """Publish one complete genesis through a same-directory atomic replace."""
+
+    ledger_path = Path(path)
+    candidate, encoded, summary = _snapshot_genesis_event(event)
+    temporary = ledger_path.with_name(f".{ledger_path.name}.tmp")
+    if (
+        not ledger_path.parent.is_dir()
+        or _path_entry_exists(ledger_path)
+        or _path_entry_exists(temporary)
+    ):
+        _fail(LEDGER_APPEND_FAILURE)
+
+    replace_started = False
+    try:
+        with temporary.open("xb+", buffering=0) as stream:
+            written = stream.write(encoded)
+            if written != len(encoded):
+                raise OSError("short write")
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read() != encoded:
+                raise OSError("read-back mismatch")
+        if _path_entry_exists(ledger_path):
+            raise OSError("target appeared before publication")
+        replace_started = True
+        os.replace(temporary, ledger_path)
+    except LedgerError:
+        if not replace_started:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+    except OSError:
+        if replace_started:
+            raise GenesisPublicationError(
+                classify_genesis_publication(ledger_path, candidate)
+            ) from None
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        if _path_entry_exists(ledger_path):
+            raise GenesisPublicationError(
+                classify_genesis_publication(ledger_path, candidate)
+            ) from None
+        _fail(LEDGER_APPEND_FAILURE)
+
+    publication_state = classify_genesis_publication(ledger_path, candidate)
+    if publication_state != GENESIS_PUBLICATION_VALID:
+        raise GenesisPublicationError(publication_state)
+    return summary
 
 
 def append_event(path: Path | str, event: Mapping[str, Any]) -> LedgerSummary:

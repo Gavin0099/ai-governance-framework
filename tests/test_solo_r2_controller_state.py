@@ -167,6 +167,29 @@ def custody(
     return boundary, key_path, key_id, key_bytes
 
 
+def _new_key_target(
+    tmp_path: Path,
+) -> tuple[controller.CustodyBoundary, Path]:
+    assert REPO_ROOT.resolve() not in tmp_path.resolve().parents, SECRET_TEST_ROOT_UNTRUSTED
+    named_roots = {
+        "consumer_root": tmp_path / "new-consumer",
+        "materialization_root": tmp_path / "new-materialization",
+        "execution_root": tmp_path / "new-execution",
+        "scoring_root": tmp_path / "new-scoring",
+    }
+    for root in named_roots.values():
+        root.mkdir()
+    boundary = controller.CustodyBoundary(
+        governance_root=REPO_ROOT,
+        **named_roots,
+    )
+    custody_root = tmp_path / "new-controller-custody"
+    custody_root.mkdir()
+    key_path = custody_root / "key.json"
+    _assert_outside(key_path.parent, boundary.roots())
+    return boundary, key_path
+
+
 @pytest.mark.parametrize(
     ("phase", "attempts", "scoring", "presentation", "outputs"),
     [
@@ -790,3 +813,147 @@ def test_failure_paths_create_no_repo_secret_or_package_artifacts(
             expected_slot=state["slot"],  # type: ignore[arg-type]
         )
     assert all(not path.exists() for path in prospective)
+
+
+def test_create_controller_key_is_create_once_and_never_returns_key_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    state = _state(controller.ORDER_FROZEN)
+    draws = iter(
+        (
+            bytes.fromhex("11" * 16),
+            bytes.fromhex("22" * 32),
+            bytes.fromhex("33" * 12),
+        )
+    )
+    monkeypatch.setattr(controller.os, "urandom", lambda _size: next(draws))
+
+    key_id = controller.create_controller_key(
+        key_path, custody_boundary=boundary
+    )
+
+    assert key_id == "solo-r2-" + "11" * 16
+    assert set(inspect.signature(controller.create_controller_key).parameters) == {
+        "path",
+        "custody_boundary",
+    }
+    assert "key" not in inspect.signature(
+        controller.create_controller_key
+    ).return_annotation.lower()
+    assert key_path.read_bytes() == json.dumps(
+        {
+            "schema_version": controller.CONTROLLER_KEY_SCHEMA,
+            "key_id": key_id,
+            "key_b64": base64.b64encode(bytes.fromhex("22" * 32)).decode("ascii"),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    assert not key_path.with_name(f".{key_path.name}.tmp").exists()
+    assert key_path.stat().st_nlink == 1
+
+    sealed = _seal_state(
+        state,
+        key_path=key_path,
+        custody_boundary=boundary,
+    )
+    assert controller.parse_sealed_package(sealed.package_bytes)["key_id"] == key_id
+
+
+def test_create_controller_key_rejects_existing_target_or_temporary_without_overwrite(
+    tmp_path: Path,
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    key_path.write_bytes(b"existing-target")
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert key_path.read_bytes() == b"existing-target"
+
+    key_path.unlink()
+    temporary = key_path.with_name(f".{key_path.name}.tmp")
+    temporary.write_bytes(b"existing-temporary")
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert not key_path.exists()
+    assert temporary.read_bytes() == b"existing-temporary"
+
+
+def test_create_controller_key_fsync_failure_leaves_no_published_or_temporary_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    monkeypatch.setattr(controller.os, "fsync", lambda _fd: (_ for _ in ()).throw(OSError()))
+
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert not key_path.exists()
+    assert not key_path.with_name(f".{key_path.name}.tmp").exists()
+
+
+def test_create_controller_key_pre_replace_inspection_failure_cleans_temporary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    real_exists = controller._path_entry_exists
+    calls = 0
+
+    def fail_third_inspection(candidate: Path) -> bool:
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise controller.ControllerStateError(controller.KEY_CUSTODY_FAILURE)
+        return real_exists(candidate)
+
+    monkeypatch.setattr(controller, "_path_entry_exists", fail_third_inspection)
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert not key_path.exists()
+    assert not key_path.with_name(f".{key_path.name}.tmp").exists()
+
+
+def test_create_controller_key_preserves_published_orphan_after_uncertain_replace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    real_replace = os.replace
+
+    def replace_then_fail(source: Path, target: Path) -> None:
+        real_replace(source, target)
+        raise OSError("synthetic uncertain replace")
+
+    monkeypatch.setattr(controller.os, "replace", replace_then_fail)
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert key_path.is_file()
+    assert key_path.stat().st_nlink == 1
+    assert not key_path.with_name(f".{key_path.name}.tmp").exists()
+
+
+def test_create_controller_key_rejects_forbidden_target_and_rng_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    boundary, key_path = _new_key_target(tmp_path)
+    forbidden = boundary.materialization_root / "controller-key.json"
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(forbidden, custody_boundary=boundary)
+    assert caught.value.code == controller.KEY_CUSTODY_FAILURE
+    assert not forbidden.exists()
+
+    def fail_rng(_size: int) -> bytes:
+        raise RuntimeError("secret rng detail")
+
+    monkeypatch.setattr(controller.os, "urandom", fail_rng)
+    with pytest.raises(controller.ControllerStateError) as caught:
+        controller.create_controller_key(key_path, custody_boundary=boundary)
+    assert caught.value.code == controller.SEALING_FAILURE
+    assert str(caught.value) == controller.SEALING_FAILURE
+    assert not key_path.exists()
