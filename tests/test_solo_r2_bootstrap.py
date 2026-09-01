@@ -107,6 +107,7 @@ def test_preflight_is_read_only_and_requires_exact_v1_and_absent_targets(
 def test_bootstrap_creates_key_then_exact_genesis_without_pair_or_order_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    canonical_before = CANONICAL_LEDGER.read_bytes()
     project_root, boundary, key_path, public_path = _synthetic_environment(tmp_path)
     draws = iter((bytes.fromhex("11" * 16), bytes.fromhex("22" * 32)))
     identifiers = iter((_uuid(101), _uuid(102)))
@@ -142,7 +143,7 @@ def test_bootstrap_creates_key_then_exact_genesis_without_pair_or_order_state(
     assert json.loads(key_path.read_bytes())["key_id"] == "solo-r2-" + "11" * 16
     assert list(tmp_path.rglob("*.sealed.json")) == []
     assert list(tmp_path.rglob("*blind-scoring-bundle*")) == []
-    assert not CANONICAL_LEDGER.exists()
+    assert CANONICAL_LEDGER.read_bytes() == canonical_before
 
 
 def test_bootstrap_api_has_no_raw_key_or_pair_order_inputs() -> None:
@@ -258,6 +259,7 @@ def test_existing_publication_state_stops_before_key_creation(
 def test_cli_check_is_read_only_and_write_uses_only_synthetic_roots(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    canonical_before = CANONICAL_LEDGER.read_bytes()
     project_root, boundary, key_path, public_path = _synthetic_environment(tmp_path)
     args = _bootstrap_args(project_root, boundary, key_path, "--check")
     assert bootstrap.main(args) == 0
@@ -279,4 +281,4 @@ def test_cli_check_is_read_only_and_write_uses_only_synthetic_roots(
     assert "solo-r2-" not in captured.out + captured.err
     assert key_path.is_file()
     assert ledger.validate_ledger_file(public_path).ledger_event_count == 1
-    assert not CANONICAL_LEDGER.exists()
+    assert CANONICAL_LEDGER.read_bytes() == canonical_before

@@ -142,6 +142,7 @@ def _prepare_scoring(
 def test_complete_synthetic_lifecycle_composes_all_three_boundaries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    canonical_before = CANONICAL_LEDGER.read_bytes()
     observed_nonces: list[str] = []
     original_seal = controller.seal_controller_state
 
@@ -175,7 +176,7 @@ def test_complete_synthetic_lifecycle_composes_all_three_boundaries(
     assert len(observed_nonces) == 4
     assert len(set(observed_nonces)) == 4
     assert len(list(controller_root.glob("*.sealed.json"))) == 3
-    assert not CANONICAL_LEDGER.exists()
+    assert CANONICAL_LEDGER.read_bytes() == canonical_before
 
 
 def test_attempt_bound_uses_one_atomic_current_checkpoint_path(tmp_path: Path) -> None:
@@ -454,12 +455,16 @@ def test_import_graph_is_one_way_and_existing_boundaries_do_not_import_integrati
 
 
 def test_canonical_ledger_path_is_rejected_before_any_write(tmp_path: Path) -> None:
-    assert not CANONICAL_LEDGER.exists()
+    canonical_before = CANONICAL_LEDGER.read_bytes()
+    governance_root = tmp_path / "governance-root"
+    synthetic_canonical = governance_root / ledger.PUBLIC_LEDGER_PATH
+    synthetic_canonical.parent.mkdir(parents=True)
+    assert not synthetic_canonical.exists()
     roots = {name: tmp_path / name for name in ("consumer", "materialization", "execution", "scoring", "controller")}
     for root in roots.values():
         root.mkdir()
     boundary = controller.CustodyBoundary(
-        governance_root=REPO_ROOT,
+        governance_root=governance_root,
         consumer_root=roots["consumer"],
         materialization_root=roots["materialization"],
         execution_root=roots["execution"],
@@ -470,7 +475,7 @@ def test_canonical_ledger_path_is_rejected_before_any_write(tmp_path: Path) -> N
 
     with pytest.raises(integration.LifecycleIntegrationError):
         integration.SyntheticLifecycleCoordinator.start(
-            ledger_path=CANONICAL_LEDGER,
+            ledger_path=synthetic_canonical,
             controller_root=roots["controller"],
             scoring_root=roots["scoring"],
             key_path=key_path,
@@ -483,12 +488,14 @@ def test_canonical_ledger_path_is_rejected_before_any_write(tmp_path: Path) -> N
             preflight_ids=["synthetic-preflight-v2"],
             rubric_id="synthetic-rubric-v1",
         )
-    assert not CANONICAL_LEDGER.exists()
+    assert not synthetic_canonical.exists()
+    assert CANONICAL_LEDGER.read_bytes() == canonical_before
     assert not list(roots["controller"].iterdir())
     assert not list(roots["scoring"].iterdir())
 
 
 def test_module_has_no_execution_entrypoint_and_no_real_state(tmp_path: Path) -> None:
+    canonical_before = CANONICAL_LEDGER.read_bytes()
     assert not hasattr(integration, "main")
     assert not hasattr(integration.SyntheticLifecycleCoordinator, "resume")
     coordinator, _, _, _, _ = _make_coordinator(tmp_path)
@@ -498,4 +505,4 @@ def test_module_has_no_execution_entrypoint_and_no_real_state(tmp_path: Path) ->
         "PAIR_CREATED",
     ]
     assert coordinator.ledger_path != CANONICAL_LEDGER
-    assert not CANONICAL_LEDGER.exists()
+    assert CANONICAL_LEDGER.read_bytes() == canonical_before

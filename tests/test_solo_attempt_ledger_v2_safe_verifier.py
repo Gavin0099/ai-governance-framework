@@ -215,5 +215,10 @@ def test_v1_verifier_bytes_and_real_behavior_are_unchanged() -> None:
     assert payload["attempt_count"] == 0
 
 
-def test_canonical_v2_ledger_has_not_been_created() -> None:
-    assert not REAL_V2_LEDGER.exists()
+def test_safe_verifier_does_not_mutate_canonical_v2_ledger() -> None:
+    canonical_before = REAL_V2_LEDGER.read_bytes()
+
+    result = verify_public_ledger(REAL_V2_LEDGER)
+
+    assert result["status"] == "PASS"
+    assert REAL_V2_LEDGER.read_bytes() == canonical_before
