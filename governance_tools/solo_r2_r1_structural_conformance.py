@@ -26,13 +26,20 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
+SOURCE_SNAPSHOT_COMMIT: Final = "33896f224fdf8dba50302756e53b84e82c186d6c"
+TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
+    "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
+)
 SAMPLING_ROLE: Final = "REGRESSION_ONLY_NOT_PROOF"
 
 INSPECTOR_RELPATH: Final = (
     "governance_tools/solo_r2_r1_structural_conformance.py"
 )
 EVIDENCE_RELPATH: Final = (
+    "artifacts/evidence/solo-evaluation-20260831/"
+    "r2-r1-structural-conformance-33896f22.json"
+)
+PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
     "r2-r1-structural-conformance-99a01342.json"
 )
@@ -45,6 +52,7 @@ _RUNTIME_MODULES: Final = (
     "governance_tools/solo_attempt_ledger_v2.py",
     "governance_tools/solo_attempt_ledger_v2_safe_verifier.py",
     "governance_tools/solo_r2_blind_scoring_bundle.py",
+    "governance_tools/solo_r2_bootstrap.py",
     "governance_tools/solo_r2_controller_state.py",
     "governance_tools/solo_r2_lifecycle_integration.py",
     "governance_tools/solo_r2_random_domains.py",
@@ -96,6 +104,13 @@ _AUTHORITY_BINDINGS: Final = (
 
 _SOURCE_BINDINGS: Final = (
     {
+        "path": "governance_tools/solo_attempt_ledger_v2.py",
+        "sha256": "72b4114555a16c78df7ce97ce950e76159b11a523d4324156339919086dce2bf",
+        "git_blob": "520c8106e52a13e2b1384d7eaf262ed031b88782",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "role": "atomic_genesis_publication_runtime_surface",
+    },
+    {
         "path": "governance_tools/solo_r2_random_domains.py",
         "sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597",
         "git_blob": "b3c9442298f2aba0adcac5c48b5ea436726fc662",
@@ -110,10 +125,17 @@ _SOURCE_BINDINGS: Final = (
         "role": "presentation_order_boundary",
     },
     {
+        "path": "governance_tools/solo_r2_bootstrap.py",
+        "sha256": "778b8687af679a4bafb824b0ec40def0c65c2fc66ecaae2a5e03dae3e055269b",
+        "git_blob": "96490b51873a371b78815275db540c12c11f5e18",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "role": "bootstrap_runtime_participant_and_call_site_closure",
+    },
+    {
         "path": "governance_tools/solo_r2_controller_state.py",
-        "sha256": "273013197f7e454c75be175fbddb52445bcfa5f0e5c937c5cf4bbb17561c64a9",
-        "git_blob": "127fdb491d5ad7e3b684e086b0af541c041259a4",
-        "last_change_commit": "66b02a832b705f257df59162a66db1cf369704b1",
+        "sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+        "git_blob": "c73a5515b5024c59a5271bd6b93d11f7d7f97c37",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
         "role": "sealed_order_revalidation",
     },
     {
@@ -206,7 +228,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_controller_state.py",
         "scope": "validate_controller_state",
-        "line": 332,
+        "line": 333,
         "callee": "arm_order_from_entropy",
         "args": ["entropy"],
         "keywords": {},
@@ -960,7 +982,7 @@ def build_evidence(project_root: Path | str) -> dict[str, Any]:
         },
         "production_call_sites": calls,
         "tranche4_interface_reconciliation": {
-            "implementation_commit": SOURCE_SNAPSHOT_COMMIT,
+            "implementation_commit": TRANCHE4_IMPLEMENTATION_COMMIT,
             "scorer_delivery": {
                 "fields": ["bundle_path", "bundle_bytes"],
                 "frozen": True,

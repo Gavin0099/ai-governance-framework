@@ -63,12 +63,41 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
+        "33896f224fdf8dba50302756e53b84e82c186d6c"
     )
     assert {
         binding["sha256"]
         for binding in first["source_snapshot"]["source_bindings"]
     } == {binding["sha256"] for binding in conformance._SOURCE_BINDINGS}
+
+    bindings = {
+        binding["path"]: binding
+        for binding in first["source_snapshot"]["source_bindings"]
+    }
+    assert bindings["governance_tools/solo_attempt_ledger_v2.py"] == {
+        "path": "governance_tools/solo_attempt_ledger_v2.py",
+        "sha256": "72b4114555a16c78df7ce97ce950e76159b11a523d4324156339919086dce2bf",
+        "git_blob": "520c8106e52a13e2b1384d7eaf262ed031b88782",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "role": "atomic_genesis_publication_runtime_surface",
+        "bytes": 29000,
+    }
+    assert bindings["governance_tools/solo_r2_bootstrap.py"] == {
+        "path": "governance_tools/solo_r2_bootstrap.py",
+        "sha256": "778b8687af679a4bafb824b0ec40def0c65c2fc66ecaae2a5e03dae3e055269b",
+        "git_blob": "96490b51873a371b78815275db540c12c11f5e18",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "role": "bootstrap_runtime_participant_and_call_site_closure",
+        "bytes": 7974,
+    }
+    assert bindings["governance_tools/solo_r2_controller_state.py"] == {
+        "path": "governance_tools/solo_r2_controller_state.py",
+        "sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+        "git_blob": "c73a5515b5024c59a5271bd6b93d11f7d7f97c37",
+        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "role": "sealed_order_revalidation",
+        "bytes": 30061,
+    }
 
 
 def test_namespace_records_one_exact_self_exclusion(tmp_path: Path) -> None:
@@ -85,6 +114,26 @@ def test_namespace_records_one_exact_self_exclusion(tmp_path: Path) -> None:
     assert conformance.INSPECTOR_RELPATH not in namespace["runtime_participants"]
     assert set(namespace["runtime_participants"]) == set(
         conformance._RUNTIME_MODULES
+    )
+    assert "governance_tools/solo_r2_bootstrap.py" in namespace[
+        "runtime_participants"
+    ]
+
+
+def test_bootstrap_is_bound_and_has_no_generator_call_site(tmp_path: Path) -> None:
+    evidence = conformance.build_evidence(_fixture_root(tmp_path))
+
+    bootstrap_path = "governance_tools/solo_r2_bootstrap.py"
+    assert any(
+        binding["path"] == bootstrap_path
+        for binding in evidence["source_snapshot"]["source_bindings"]
+    )
+    assert bootstrap_path not in evidence["generator_surfaces"][
+        "random_domain_import_projection"
+    ]
+    assert all(
+        call["path"] != bootstrap_path
+        for call in evidence["production_call_sites"]
     )
 
 
@@ -211,7 +260,9 @@ def test_tranche4_interface_reconciliation_is_mechanically_bound(
     evidence = conformance.build_evidence(_fixture_root(tmp_path))
     reconciliation = evidence["tranche4_interface_reconciliation"]
 
-    assert reconciliation["implementation_commit"] == conformance.SOURCE_SNAPSHOT_COMMIT
+    assert reconciliation["implementation_commit"] == (
+        conformance.TRANCHE4_IMPLEMENTATION_COMMIT
+    )
     assert reconciliation["scorer_delivery"] == {
         "fields": ["bundle_path", "bundle_bytes"],
         "frozen": True,
@@ -271,6 +322,20 @@ def test_write_is_create_once_and_preserves_existing_bytes(tmp_path: Path) -> No
         conformance.write_evidence(root)
     assert caught.value.code == conformance.R1_EVIDENCE_WRITE_FAILURE
     assert target.read_bytes() == written
+
+
+def test_new_generation_write_preserves_previous_evidence(tmp_path: Path) -> None:
+    root = _fixture_root(tmp_path)
+    previous = root / conformance.PREVIOUS_EVIDENCE_RELPATH
+    previous.parent.mkdir(parents=True, exist_ok=True)
+    previous_bytes = b'{"generation":"99a01342"}\n'
+    previous.write_bytes(previous_bytes)
+
+    target, _ = conformance.write_evidence(root)
+
+    assert target == root / conformance.EVIDENCE_RELPATH
+    assert target != previous
+    assert previous.read_bytes() == previous_bytes
 
 
 def test_failure_before_write_leaves_no_partial_artifact(tmp_path: Path) -> None:
