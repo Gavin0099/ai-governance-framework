@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "33896f224fdf8dba50302756e53b84e82c186d6c"
+SOURCE_SNAPSHOT_COMMIT: Final = "51e9a27c2af55784d6eba21c9032a70e04eeaba9"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-33896f22.json"
+    "r2-r1-structural-conformance-51e9a27c.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-99a01342.json"
+    "r2-r1-structural-conformance-33896f22.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
@@ -55,6 +55,7 @@ _RUNTIME_MODULES: Final = (
     "governance_tools/solo_r2_bootstrap.py",
     "governance_tools/solo_r2_controller_state.py",
     "governance_tools/solo_r2_lifecycle_integration.py",
+    "governance_tools/solo_r2_pair_creation.py",
     "governance_tools/solo_r2_random_domains.py",
 )
 _OBSERVED_NAMESPACE: Final = tuple(sorted((*_RUNTIME_MODULES, INSPECTOR_RELPATH)))
@@ -145,6 +146,13 @@ _SOURCE_BINDINGS: Final = (
         "last_change_commit": "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0",
         "role": "production_entropy_and_generator_call_sites",
     },
+    {
+        "path": "governance_tools/solo_r2_pair_creation.py",
+        "sha256": "f685b5a3dcafbc2168d07a884d343d3895c29ed8e03ab8e13e0bfafa6b13ddcc",
+        "git_blob": "e471a5e13c82e18e5bc9022778f18bd388180caf",
+        "last_change_commit": "51e9a27c2af55784d6eba21c9032a70e04eeaba9",
+        "role": "pair_creation_entropy_and_arm_order_call_site_closure",
+    },
 )
 
 _DOMAIN_CONSTANTS: Final = {
@@ -178,6 +186,10 @@ _EXPECTED_SIGNATURES: Final = {
     "governance_tools/solo_r2_lifecycle_integration.py": {
         "_draw_entropy32": [],
     },
+    "governance_tools/solo_r2_pair_creation.py": {
+        "_draw_entropy32": [],
+        "_order_state": ["evaluation_id", "pair_id"],
+    },
 }
 
 _EXPECTED_RANDOM_IMPORTS: Final = {
@@ -188,6 +200,9 @@ _EXPECTED_RANDOM_IMPORTS: Final = {
     ],
     "governance_tools/solo_r2_controller_state.py": ["arm_order_from_entropy"],
     "governance_tools/solo_r2_lifecycle_integration.py": [
+        "solo_r2_random_domains as random_domains"
+    ],
+    "governance_tools/solo_r2_pair_creation.py": [
         "solo_r2_random_domains as random_domains"
     ],
 }
@@ -305,6 +320,22 @@ _EXPECTED_RELEVANT_CALLS: Final = (
         "line": 773,
         "callee": "_draw_entropy32",
         "args": [],
+        "keywords": {},
+    },
+    {
+        "path": "governance_tools/solo_r2_pair_creation.py",
+        "scope": "_order_state",
+        "line": 314,
+        "callee": "_draw_entropy32",
+        "args": [],
+        "keywords": {},
+    },
+    {
+        "path": "governance_tools/solo_r2_pair_creation.py",
+        "scope": "_order_state",
+        "line": 316,
+        "callee": "random_domains.arm_order_from_entropy",
+        "args": ["order_entropy"],
         "keywords": {},
     },
 )
@@ -798,6 +829,68 @@ def _validate_integration(tree: ast.Module) -> dict[str, Any]:
     }
 
 
+def _validate_pair_creation(tree: ast.Module) -> dict[str, Any]:
+    functions = _function_map(tree)
+    expected = _EXPECTED_SIGNATURES[
+        "governance_tools/solo_r2_pair_creation.py"
+    ]
+    draw = functions.get("_draw_entropy32")
+    order_state = functions.get("_order_state")
+    if (
+        draw is None
+        or order_state is None
+        or _signature(draw) != expected["_draw_entropy32"]
+        or _signature(order_state) != expected["_order_state"]
+    ):
+        _fail()
+    urandom_calls = [
+        node
+        for node in ast.walk(draw)
+        if isinstance(node, ast.Call) and _dotted_name(node.func) == "os.urandom"
+    ]
+    if (
+        len(urandom_calls) != 1
+        or len(urandom_calls[0].args) != 1
+        or _expression(urandom_calls[0].args[0])
+        != "random_domains.ENTROPY_BYTES"
+        or urandom_calls[0].keywords
+    ):
+        _fail()
+    entropy_assignments = [
+        node
+        for node in ast.walk(order_state)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "order_entropy"
+        and isinstance(node.value, ast.Call)
+        and _dotted_name(node.value.func) == "_draw_entropy32"
+        and not node.value.args
+        and not node.value.keywords
+    ]
+    order_calls = [
+        node
+        for node in ast.walk(order_state)
+        if isinstance(node, ast.Call)
+        and _dotted_name(node.func) == "random_domains.arm_order_from_entropy"
+    ]
+    if (
+        len(entropy_assignments) != 1
+        or len(order_calls) != 1
+        or len(order_calls[0].args) != 1
+        or _expression(order_calls[0].args[0]) != "order_entropy"
+        or order_calls[0].keywords
+    ):
+        _fail()
+    return {
+        "entropy_drawer_signature": [],
+        "entropy_source": "os.urandom(random_domains.ENTROPY_BYTES)",
+        "order_state_signature": ["evaluation_id", "pair_id"],
+        "order_entropy_assignment": "order_entropy = _draw_entropy32()",
+        "arm_order_input": "order_entropy",
+    }
+
+
 def _validate_evidence(value: object) -> dict[str, Any]:
     if type(value) is not dict or frozenset(value) != _TOP_LEVEL_KEYS:
         _fail()
@@ -905,6 +998,9 @@ def build_evidence(project_root: Path | str) -> dict[str, Any]:
     integration_surface = _validate_integration(
         trees["governance_tools/solo_r2_lifecycle_integration.py"]
     )
+    pair_creation_surface = _validate_pair_creation(
+        trees["governance_tools/solo_r2_pair_creation.py"]
+    )
 
     import_projection = _random_import_projection(trees)
     if import_projection != _EXPECTED_RANDOM_IMPORTS:
@@ -978,6 +1074,7 @@ def build_evidence(project_root: Path | str) -> dict[str, Any]:
             "blind_scoring_bundle": bundle_surface,
             "controller_state": controller_surface,
             "lifecycle_integration": integration_surface,
+            "pair_creation": pair_creation_surface,
             "random_domain_import_projection": import_projection,
         },
         "production_call_sites": calls,

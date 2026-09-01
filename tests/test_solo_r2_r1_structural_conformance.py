@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "33896f224fdf8dba50302756e53b84e82c186d6c"
+        "51e9a27c2af55784d6eba21c9032a70e04eeaba9"
     )
     assert {
         binding["sha256"]
@@ -98,6 +98,14 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
         "role": "sealed_order_revalidation",
         "bytes": 30061,
     }
+    assert bindings["governance_tools/solo_r2_pair_creation.py"] == {
+        "path": "governance_tools/solo_r2_pair_creation.py",
+        "sha256": "f685b5a3dcafbc2168d07a884d343d3895c29ed8e03ab8e13e0bfafa6b13ddcc",
+        "git_blob": "e471a5e13c82e18e5bc9022778f18bd388180caf",
+        "last_change_commit": "51e9a27c2af55784d6eba21c9032a70e04eeaba9",
+        "role": "pair_creation_entropy_and_arm_order_call_site_closure",
+        "bytes": 15321,
+    }
 
 
 def test_namespace_records_one_exact_self_exclusion(tmp_path: Path) -> None:
@@ -118,6 +126,9 @@ def test_namespace_records_one_exact_self_exclusion(tmp_path: Path) -> None:
     assert "governance_tools/solo_r2_bootstrap.py" in namespace[
         "runtime_participants"
     ]
+    assert "governance_tools/solo_r2_pair_creation.py" in namespace[
+        "runtime_participants"
+    ]
 
 
 def test_bootstrap_is_bound_and_has_no_generator_call_site(tmp_path: Path) -> None:
@@ -135,6 +146,71 @@ def test_bootstrap_is_bound_and_has_no_generator_call_site(tmp_path: Path) -> No
         call["path"] != bootstrap_path
         for call in evidence["production_call_sites"]
     )
+
+
+def test_pair_creation_is_bound_to_zero_argument_order_entropy(
+    tmp_path: Path,
+) -> None:
+    evidence = conformance.build_evidence(_fixture_root(tmp_path))
+    pair_path = "governance_tools/solo_r2_pair_creation.py"
+
+    assert any(
+        binding["path"] == pair_path
+        for binding in evidence["source_snapshot"]["source_bindings"]
+    )
+    assert evidence["generator_surfaces"]["pair_creation"] == {
+        "entropy_drawer_signature": [],
+        "entropy_source": "os.urandom(random_domains.ENTROPY_BYTES)",
+        "order_state_signature": ["evaluation_id", "pair_id"],
+        "order_entropy_assignment": "order_entropy = _draw_entropy32()",
+        "arm_order_input": "order_entropy",
+    }
+    assert evidence["generator_surfaces"]["random_domain_import_projection"][
+        pair_path
+    ] == ["solo_r2_random_domains as random_domains"]
+    assert [
+        call
+        for call in evidence["production_call_sites"]
+        if call["path"] == pair_path
+    ] == [
+        {
+            "path": pair_path,
+            "scope": "_order_state",
+            "line": 314,
+            "callee": "_draw_entropy32",
+            "args": [],
+            "keywords": {},
+        },
+        {
+            "path": pair_path,
+            "scope": "_order_state",
+            "line": 316,
+            "callee": "random_domains.arm_order_from_entropy",
+            "args": ["order_entropy"],
+            "keywords": {},
+        },
+    ]
+
+
+def test_pair_creation_rejects_secret_correlated_order_inputs() -> None:
+    source = (REPO_ROOT / "governance_tools/solo_r2_pair_creation.py").read_text(
+        encoding="utf-8"
+    )
+    draw_from_pair = source.replace(
+        "order_entropy = _draw_entropy32()",
+        "order_entropy = _draw_entropy32(pair_id)",
+        1,
+    )
+    with pytest.raises(conformance.R1ConformanceError):
+        conformance._validate_pair_creation(ast.parse(draw_from_pair))
+
+    order_from_pair = source.replace(
+        "random_domains.arm_order_from_entropy(order_entropy)",
+        "random_domains.arm_order_from_entropy(pair_id)",
+        1,
+    )
+    with pytest.raises(conformance.R1ConformanceError):
+        conformance._validate_pair_creation(ast.parse(order_from_pair))
 
 
 def test_new_r2_production_module_invalidates_namespace(tmp_path: Path) -> None:
@@ -328,7 +404,7 @@ def test_new_generation_write_preserves_previous_evidence(tmp_path: Path) -> Non
     root = _fixture_root(tmp_path)
     previous = root / conformance.PREVIOUS_EVIDENCE_RELPATH
     previous.parent.mkdir(parents=True, exist_ok=True)
-    previous_bytes = b'{"generation":"99a01342"}\n'
+    previous_bytes = b'{"generation":"33896f22"}\n'
     previous.write_bytes(previous_bytes)
 
     target, _ = conformance.write_evidence(root)
