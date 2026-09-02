@@ -92,6 +92,31 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):
+
+- [>] Define one bounded exact round-trip specification for one
+  caller-authorized canonical session-derived record and logical `active_task`
+  surface.
+- DONE: the reviewed specification reuses the canonical writer's public
+  outcome, `build_record_identity()`, `render_active_task_projection()`, and
+  `memory_pipeline.memory_layout.resolve_memory_file()`; keeps writer-owned
+  identity continuity separate from exact content continuity; requires the
+  writer outcome path to equal the resolver snapshot before retrieval; treats
+  missing surfaces, malformed or ambiguous persisted markers, path drift,
+  invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
+  fail-closed; preserves M-1 non-resolved states without context rendering;
+  forbids silent drop, injection, and duplicate rendering; and freezes the
+  focused evidence-case inventory without implementing runtime behavior.
+- Claim ceiling: specification for one caller-authorized active-task exact
+  round trip only. No authority-policy creation, writer or identity redesign,
+  MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
+  update, supersession, freshness, deletion, schema, hook, CI, gate, blocker,
+  enforcement, Memory Runtime R1, or Gate 3 behavior is authorized.
+- Specification activation requires exact-head owner merge attestation,
+  independent technical review, green required checks, reviewed-head
+  preservation, and merge. Runtime implementation requires a separate owner
+  authorization after specification activation.
+
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
 - [x] Add one deterministic report-only detector for one caller-admitted
