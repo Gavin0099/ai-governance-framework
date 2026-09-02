@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-31
+> **最後更新**: 2026-09-02
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -92,9 +92,9 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-08-31 (owner-authorized MRCSP M1b-3 candidate):
+Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
-- [>] Add one deterministic report-only detector for one caller-admitted
+- [x] Add one deterministic report-only detector for one caller-admitted
   `memory_root` directory and one logical name defined by
   `MEMORY_FILE_ALIASES`.
 - DONE: resolution reuses
@@ -111,6 +111,8 @@ Current refresh - 2026-08-31 (owner-authorized MRCSP M1b-3 candidate):
   CI, gate, blocker, enforcement, or M2 behavior is authorized.
 - Activation requires exact-head owner merge attestation, independent technical
   review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #137 at merge commit
+  `bf07acc6`.
 
 Current refresh - 2026-08-24 (MRCSP M1b-2 active):
 
