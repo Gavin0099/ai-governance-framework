@@ -113,7 +113,7 @@ def round_trip_active_task(
 
     if not isinstance(writer_path, Path):
         raise ValueError("canonical writer returned an invalid path")
-    if writer_status not in {
+    if not isinstance(writer_status, str) or writer_status not in {
         memory_record.MEMORY_WRITE_STATUS_WRITTEN,
         memory_record.MEMORY_WRITE_STATUS_ALREADY_PRESENT,
     }:
@@ -227,8 +227,10 @@ def _validate_authority_observation(
         raise ValueError("authority observation requested identity mismatch")
 
     state = observation.get("resolution_state")
+    if not isinstance(state, str):
+        raise ValueError("authority observation has an invalid resolution state")
     if state in NON_RESOLVED_STATES:
-        return str(state)
+        return state
     if state != RESOLUTION_STATE_RESOLVED:
         raise ValueError("authority observation has an invalid resolution state")
     if observation.get("resolved_record_identity") != expected_identity:

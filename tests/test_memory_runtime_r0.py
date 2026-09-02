@@ -491,6 +491,38 @@ def test_invalid_writer_outcome_fails_closed(
         )
 
 
+def test_unhashable_writer_status_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    target.write_text(
+        memory_record.render_active_task_projection(record, summary="Task"),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        memory_record,
+        "append_projection_with_outcome",
+        lambda **kwargs: memory_record.MemoryWriteOutcome(
+            path=target,
+            status=[],
+            record_identity=record["record_identity"],
+            writer=memory_record.WRITER_ID,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="unsupported status"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+
 @pytest.mark.parametrize(
     "state", ["reviewer_required", "disputed", "insufficient_authority", "unassessable"]
 )
@@ -524,6 +556,15 @@ def test_m1_observation_subject_mismatch_fails_closed(
     observation = _resolved_observation(record, "Task", **{field: value})
 
     with pytest.raises(ValueError, match="mismatch"):
+        _call(tmp_path, record=record, summary="Task", observation=observation)
+
+
+def test_unhashable_authority_resolution_state_fails_closed(tmp_path: Path) -> None:
+    record = _record()
+    observation = _resolved_observation(record, "Task")
+    observation["resolution_state"] = []
+
+    with pytest.raises(ValueError, match="invalid resolution state"):
         _call(tmp_path, record=record, summary="Task", observation=observation)
 
 
