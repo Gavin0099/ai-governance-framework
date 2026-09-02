@@ -92,6 +92,43 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidate):
+
+- [>] Define one bounded exact round-trip specification for one
+  caller-authorized canonical session-derived record and logical `active_task`
+  surface.
+- DONE: the reviewed specification reuses the canonical writer's public
+  outcome, `build_record_identity()`, `render_active_task_projection()`, and
+  `memory_pipeline.memory_layout.resolve_memory_file()`; keeps writer-owned
+  identity continuity separate from exact content continuity; requires the
+  writer outcome path to equal the resolver snapshot before retrieval; treats
+  missing surfaces, malformed or ambiguous persisted markers, path drift,
+  invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
+  fail-closed; binds the caller-admitted M-1 observation to the exact query,
+  logical surface, and canonical record identity; preserves M-1 non-resolved
+  states without context rendering; permits structurally valid historical
+  non-target identities while requiring exactly one byte-matching target
+  payload; accepts only LF or CRLF persisted framing and renders the verified
+  payload through the public writer's canonical LF line; requires a resolved
+  authority observation to match both record identity and the SHA-256 of that
+  public renderer's exact UTF-8 bytes while leaving legacy digest-less
+  observations parseable but non-resolving;
+  forbids silent drop, injection, and duplicate rendering; and freezes the
+  focused evidence-case inventory without implementing runtime behavior.
+- Claim ceiling: specification for one caller-authorized active-task exact
+  round trip only. No authority-policy creation, writer or identity redesign,
+  MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
+  update, supersession, freshness, deletion, Runtime public result transport or
+  schema, API versioning, hook, CI, gate, blocker, enforcement, Memory Runtime
+  R1, or Gate 3 behavior is authorized.
+- Implementation-readiness acceptance requires an owner merge attestation
+  recorded for the exact candidate HEAD before merge, technical review
+  approving that same HEAD with no unresolved P0/P1, green required checks,
+  reviewed-head preservation, and merge. A later merge action cannot
+  retroactively establish the owner-attestation predicate. Acceptance
+  does not activate a governance authority. Runtime implementation requires a
+  separate owner authorization after specification acceptance.
+
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
 - [x] Add one deterministic report-only detector for one caller-admitted
