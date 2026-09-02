@@ -250,7 +250,18 @@ def test_r0_plan_records_spec_acceptance_and_bounded_implementation() -> None:
     assert "Delivery predicates were satisfied for exact independently reviewed head" in plan
     assert "`966dbbb3f4f8e8c987e286396a032d9230dc2940`" in plan
     assert "merged through PR #140 at\n  `ae926fc7b877c413036ba37cc0655cf62fbda75c`" in plan
-    assert "later closeout commit does not imply that the PLAN or memory record existed in" in plan
+    assert (
+        "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819"
+        in plan
+    )
+    assert (
+        "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801"
+        in plan
+    )
+    assert (
+        "later\n  closeout commit does not imply that the PLAN or memory record existed in merge"
+        in plan
+    )
     assert "Specification activation" not in plan
 
     closeout_memory = R0_CLOSEOUT_MEMORY.read_text(encoding="utf-8")

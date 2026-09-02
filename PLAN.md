@@ -152,9 +152,13 @@ Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation 
   `ae926fc7b877c413036ba37cc0655cf62fbda75c` after owner authorization, zero
   unresolved P0/P1, green pre-merge checks, reviewed-head preservation, and a
   successful post-merge Governance Check whose Canonical Drift Post-Merge Audit
-  passed. This one-time reconciliation records that earlier delivery event; its
-  later closeout commit does not imply that the PLAN or memory record existed in
-  merge commit `ae926fc7`.
+  passed. External delivery evidence is the
+  [PR #140 pre-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819)
+  and the
+  [PR #140 post-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801).
+  This one-time reconciliation records that earlier delivery event; its later
+  closeout commit does not imply that the PLAN or memory record existed in merge
+  commit `ae926fc7`.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
