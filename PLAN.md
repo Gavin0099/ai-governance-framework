@@ -132,7 +132,7 @@ Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation 
   `b2cc43bc5e7e9032d55aa49f5e820220a792eb43`, merged through PR #139 at
   `ee44240f` after owner attestation, zero unresolved P0/P1, green checks, and
   reviewed-head preservation.
-- [>] Implement the smallest active-task Runtime vertical slice over one
+- [x] Implement the smallest active-task Runtime vertical slice over one
   caller-authorized canonical record and one caller-admitted M-1 observation.
 - DONE: the Runtime calls the canonical active-task writer, snapshots the
   logical resolver path and exact persisted bytes, independently parses every
@@ -147,6 +147,14 @@ Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation 
   only. No writer, resolver, authority, identity, MRCSP, schema, hook, CI, gate,
   enforcement, RAG, semantic retrieval, update, supersession, deletion, crash
   safety, Runtime R1, or Gate 3 behavior is changed or authorized.
+- Delivery predicates were satisfied for exact independently reviewed head
+  `966dbbb3f4f8e8c987e286396a032d9230dc2940`, merged through PR #140 at
+  `ae926fc7b877c413036ba37cc0655cf62fbda75c` after owner authorization, zero
+  unresolved P0/P1, green pre-merge checks, reviewed-head preservation, and a
+  successful post-merge Governance Check whose Canonical Drift Post-Merge Audit
+  passed. This one-time reconciliation records that earlier delivery event; its
+  later closeout commit does not imply that the PLAN or memory record existed in
+  merge commit `ae926fc7`.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
