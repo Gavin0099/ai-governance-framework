@@ -92,9 +92,9 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidate):
+Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation active):
 
-- [>] Define one bounded exact round-trip specification for one
+- [x] Define one bounded exact round-trip specification for one
   caller-authorized canonical session-derived record and logical `active_task`
   surface.
 - DONE: the reviewed specification reuses the canonical writer's public
@@ -128,6 +128,25 @@ Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidat
   retroactively establish the owner-attestation predicate. Acceptance
   does not activate a governance authority. Runtime implementation requires a
   separate owner authorization after specification acceptance.
+- Implementation-readiness predicates were satisfied for exact reviewed head
+  `b2cc43bc5e7e9032d55aa49f5e820220a792eb43`, merged through PR #139 at
+  `ee44240f` after owner attestation, zero unresolved P0/P1, green checks, and
+  reviewed-head preservation.
+- [>] Implement the smallest active-task Runtime vertical slice over one
+  caller-authorized canonical record and one caller-admitted M-1 observation.
+- DONE: the Runtime calls the canonical active-task writer, snapshots the
+  logical resolver path and exact persisted bytes, independently parses every
+  projection-looking active-task line fail closed, permits well-formed
+  historical non-target identities, requires exactly one target identity and
+  exact canonical payload, binds `resolved` to both writer-owned identity and
+  the SHA-256 of public-renderer UTF-8 bytes, preserves the four M-1
+  non-resolved states with zero context bytes, and returns the public
+  renderer's canonical LF bytes only after the entire bounded chain succeeds;
+  every frozen R0 evidence case has executable focused coverage.
+- Claim ceiling: one active-task exact write-resolve-read-verify-render path
+  only. No writer, resolver, authority, identity, MRCSP, schema, hook, CI, gate,
+  enforcement, RAG, semantic retrieval, update, supersession, deletion, crash
+  safety, Runtime R1, or Gate 3 behavior is changed or authorized.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 

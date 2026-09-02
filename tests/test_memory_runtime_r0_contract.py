@@ -227,13 +227,13 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
     assert len(cases) == len(set(cases)) == 32
 
 
-def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authority() -> None:
+def test_r0_plan_records_spec_acceptance_and_bounded_implementation() -> None:
     plan = PLAN.read_text(encoding="utf-8")
     assert (
         "Current refresh - 2026-09-02 "
-        "(Memory Runtime R0 technical specification candidate):"
+        "(Memory Runtime R0 exact round-trip implementation active):"
     ) in plan
-    assert "- [>] Define one bounded exact round-trip specification" in plan
+    assert "- [x] Define one bounded exact round-trip specification" in plan
     assert "Runtime implementation requires a\n  separate owner authorization" in plan
     assert (
         "Implementation-readiness acceptance requires an owner merge attestation\n"
@@ -241,6 +241,11 @@ def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authori
     ) in plan
     assert "approving that same HEAD with no unresolved P0/P1" in plan
     assert "cannot\n  retroactively establish the owner-attestation predicate" in plan
+    assert "Implementation-readiness predicates were satisfied for exact reviewed head" in plan
+    assert "`b2cc43bc5e7e9032d55aa49f5e820220a792eb43`" in plan
+    assert "merged through PR #139 at\n  `ee44240f`" in plan
+    assert "- [>] Implement the smallest active-task Runtime vertical slice" in plan
+    assert "every frozen R0 evidence case has executable focused coverage" in plan
     assert "Specification activation" not in plan
 
     contract = CONTRACT.read_text(encoding="utf-8")
