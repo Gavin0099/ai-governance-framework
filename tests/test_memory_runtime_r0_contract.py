@@ -38,6 +38,7 @@ def test_r0_contract_is_registered_as_specification_only() -> None:
     }
 
     authority = AUTHORITY.read_text(encoding="utf-8")
+    assert "> updated: 2026-09-02" in authority
     assert (
         "| `governance/MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP_CONTRACT.md` | "
         "agent-on-demand | canonical | false | AGENT.md | on-demand |"
@@ -65,6 +66,12 @@ def test_r0_contract_reuses_current_public_dependencies_without_broadening_ident
             "insufficient_authority",
             "unassessable",
         ],
+        "m1_observation_binding": {
+            "query_class": "current_progress",
+            "logical_name": "active_task",
+            "requested_record_identity": "must_equal_caller_authorized_record_identity",
+            "resolved_record_identity": "must_equal_writer_outcome_identity_when_resolved",
+        },
         "failure_mode": "fail_closed",
         "mrcsp_composition": "caller_admitted_observation_only_no_detector_call",
         "implementation_authorized": False,
@@ -114,7 +121,15 @@ def test_r0_contract_preserves_m1_states_and_keeps_m1b3_caller_admitted() -> Non
         "unassessable",
     ):
         assert state in text
-    assert "must be returned unchanged with zero rendered records" in text
+    assert re.search(r"states must be returned unchanged\s+with zero rendered records", text)
+    assert "`query_class` is exactly `current_progress`" in text
+    assert "whose `logical_name` is exactly\n`active_task`" in text
+    assert "`requested_record_identity` equals the\ncaller-authorized canonical record identity" in text
+    assert re.search(
+        r"`resolved_record_identity` equal to the canonical writer outcome\s+identity",
+        text,
+    )
+    assert "Missing or mismatched binding fields fail closed with `ValueError`" in text
     assert "must not call the M1b-3 detector" in text
     assert "A clean M1b-3 report is advisory only" in text
     assert "`logical_name` and\n  `resolved_path` exactly match" in text
@@ -134,7 +149,11 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "ordinary_dependency_exceptions_fail_closed",
         "invalid_utf8_fails_closed",
         "zero_multiple_or_malformed_marker_fails_closed",
+        "caller_record_identity_mismatch_fails_closed",
+        "writer_outcome_identity_mismatch_fails_closed",
+        "unexpected_writer_status_fails_closed",
         "m1_non_resolved_states_preserved_without_rendering",
+        "m1_observation_subject_mismatch_fails_closed",
         "m1b3_detector_is_not_called",
         "m1b3_finding_requires_logical_name_and_path_match",
         "clean_m1b3_report_is_advisory_only",
@@ -144,7 +163,7 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "single_snapshot_dependency_counts",
         "unchanged_input_and_snapshot_produce_byte_identical_json",
     ]
-    assert len(cases) == len(set(cases)) == 20
+    assert len(cases) == len(set(cases)) == 24
 
 
 def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authority() -> None:

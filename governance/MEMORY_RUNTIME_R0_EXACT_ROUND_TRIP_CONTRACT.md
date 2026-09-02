@@ -92,6 +92,12 @@ bounded local snapshots.
     "insufficient_authority",
     "unassessable"
   ],
+  "m1_observation_binding": {
+    "query_class": "current_progress",
+    "logical_name": "active_task",
+    "requested_record_identity": "must_equal_caller_authorized_record_identity",
+    "resolved_record_identity": "must_equal_writer_outcome_identity_when_resolved"
+  },
   "failure_mode": "fail_closed",
   "mrcsp_composition": "caller_admitted_observation_only_no_detector_call",
   "implementation_authorized": false
@@ -111,10 +117,20 @@ validate the supplied evidence shape and continuity, but it does not decide:
 - whether privacy, retention, or deletion policy permits it; or
 - whether an M-1 non-resolved state should be upgraded.
 
-Only a caller-admitted `resolved` observation may continue to context
-rendering. `reviewer_required`, `disputed`, `insufficient_authority`, and
-`unassessable` must be returned unchanged with zero rendered records. They are
-not ordinary exceptions and must not be collapsed into `ValueError`.
+The caller-admitted observation must be carried in an R0 binding envelope whose
+`query_class` is exactly `current_progress`, whose `logical_name` is exactly
+`active_task`, and whose `requested_record_identity` equals the
+caller-authorized canonical record identity. A `resolved` observation must also
+name a `resolved_record_identity` equal to the canonical writer outcome
+identity. Missing or mismatched binding fields fail closed with `ValueError`
+and zero rendering. This envelope binds the supplied observation to this R0
+request; it does not implement, reinterpret, or broaden M-1 resolution.
+
+Only a correctly bound caller-admitted `resolved` observation may continue to
+context rendering. Correctly bound `reviewer_required`, `disputed`,
+`insufficient_authority`, and `unassessable` states must be returned unchanged
+with zero rendered records. They are not ordinary exceptions and must not be
+collapsed into `ValueError`.
 
 ### Writer And Identity Continuity
 
@@ -281,7 +297,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 - Private writer helpers and `_RECORD_IDENTITY_FIELDS` are not R0 APIs.
 - The writer-path/resolver-path asymmetry is checked, not normalized or hidden.
 - Exact retrieval does not imply current-state authority; the supplied M-1
-  resolution observation remains a separate input and result field.
+  resolution observation remains a separate, request-bound input and result
+  field.
 - Result serialization must be deterministic UTF-8 JSON with sorted keys,
   compact separators, and one trailing LF. It must contain no timestamp,
   absolute machine path, reviewer identity, or ambient filesystem scan result.
@@ -298,6 +315,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 - trusting current-writer validation instead of independently parsing
   persisted bytes;
 - treating a clean unbound M1b-3 report as request-specific proof;
+- accepting an M-1 observation bound to another query, logical surface, or
+  record identity;
 - converting a missing surface into an empty context;
 - preserving identity equality while silently dropping the record; and
 - treating verbatim retrieval as freshness, truth, supersession, or semantic
@@ -319,7 +338,11 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   "ordinary_dependency_exceptions_fail_closed",
   "invalid_utf8_fails_closed",
   "zero_multiple_or_malformed_marker_fails_closed",
+  "caller_record_identity_mismatch_fails_closed",
+  "writer_outcome_identity_mismatch_fails_closed",
+  "unexpected_writer_status_fails_closed",
   "m1_non_resolved_states_preserved_without_rendering",
+  "m1_observation_subject_mismatch_fails_closed",
   "m1b3_detector_is_not_called",
   "m1b3_finding_requires_logical_name_and_path_match",
   "clean_m1b3_report_is_advisory_only",

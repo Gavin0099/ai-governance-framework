@@ -4,7 +4,7 @@
 
 > machine-readable: true
 > version: 1.1.0
-> updated: 2026-08-31
+> updated: 2026-09-02
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live

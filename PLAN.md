@@ -104,7 +104,9 @@ Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):
   writer outcome path to equal the resolver snapshot before retrieval; treats
   missing surfaces, malformed or ambiguous persisted markers, path drift,
   invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
-  fail-closed; preserves M-1 non-resolved states without context rendering;
+  fail-closed; binds the caller-admitted M-1 observation to the exact query,
+  logical surface, and canonical record identity; preserves M-1 non-resolved
+  states without context rendering;
   forbids silent drop, injection, and duplicate rendering; and freezes the
   focused evidence-case inventory without implementing runtime behavior.
 - Claim ceiling: specification for one caller-authorized active-task exact
