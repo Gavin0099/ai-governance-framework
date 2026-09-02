@@ -115,8 +115,9 @@ Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidat
 - Claim ceiling: specification for one caller-authorized active-task exact
   round trip only. No authority-policy creation, writer or identity redesign,
   MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
-  update, supersession, freshness, deletion, schema, hook, CI, gate, blocker,
-  enforcement, Memory Runtime R1, or Gate 3 behavior is authorized.
+  update, supersession, freshness, deletion, Runtime public result transport or
+  schema, API versioning, hook, CI, gate, blocker, enforcement, Memory Runtime
+  R1, or Gate 3 behavior is authorized.
 - Implementation-readiness acceptance requires an owner merge attestation
   recorded for the exact candidate HEAD before merge, technical review
   approving that same HEAD with no unresolved P0/P1, green required checks,

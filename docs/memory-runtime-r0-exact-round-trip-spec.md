@@ -114,6 +114,9 @@ bounded local snapshots.
 ```
 <!-- memory-runtime-r0-contract:end -->
 
+The embedded JSON above is specification metadata for document tests. It is
+not a Runtime result object or a frozen transport schema.
+
 ### Admission And Authority Boundary
 
 R0 receives a caller-authorized canonical record, caller-supplied active-task
@@ -140,6 +143,14 @@ context rendering. Correctly bound `reviewer_required`, `disputed`,
 `insufficient_authority`, and `unassessable` states must be returned unchanged
 with zero rendered records. They are not ordinary exceptions and must not be
 collapsed into `ValueError`.
+
+Each R0 invocation has exactly one semantic disposition: `resolved`, exactly
+one of those four caller-admitted non-resolved states, or fail-closed failure
+with `ValueError` and zero context rendering. R0 defines the conditions for
+those dispositions, but it does not define their Python object shape, Runtime
+public API, JSON fields, transport encoding, serialized result bytes, API
+versioning, or compatibility policy. Those choices are deferred to the
+separately authorized implementation tranche.
 
 ### Writer And Identity Continuity
 
@@ -279,7 +290,8 @@ must not call the M1b-3 detector.
 - preservation of caller-admitted M-1 resolution states;
 - optional consumption of one caller-admitted M1b-3 observation without
   detector invocation; and
-- deterministic, closed-schema result bytes for unchanged inputs and snapshots.
+- deterministic identity selection, exact persisted payload comparison, and
+  canonical context-rendering bytes for unchanged inputs and snapshots.
 
 ## Non-Goals
 
@@ -295,6 +307,8 @@ must not call the M1b-3 detector.
 - no Markdown meaning extraction beyond the bounded projection-line grammar;
 - no update, supersession, merge, freshness, conflict resolution, retention,
   expiry, delete, repair, or rollback;
+- no Runtime public result API shape, resolved or failure JSON schema,
+  serialized result-byte contract, API versioning, or compatibility policy;
 - no schema, hook, CI, gate, blocker, enforcement, or Gate 3 change; and
 - no Memory Runtime R1 or later tranche.
 
@@ -320,9 +334,9 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 - Exact retrieval does not imply current-state authority; the supplied M-1
   resolution observation remains a separate, request-bound input and result
   field.
-- Result serialization must be deterministic UTF-8 JSON with sorted keys,
-  compact separators, and one trailing LF. It must contain no timestamp,
-  absolute machine path, reviewer identity, or ambient filesystem scan result.
+- R0 freezes semantic disposition conditions and exact memory/context
+  continuity only. Runtime result transport and serialized result bytes remain
+  intentionally undefined until the implementation tranche.
 
 ## Failure Paths And Risk Points
 
@@ -376,7 +390,7 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   "reserved_projection_tokens_fail_at_writer_boundary",
   "no_silent_drop_injection_or_duplicate_render",
   "single_snapshot_dependency_counts",
-  "unchanged_input_and_snapshot_produce_byte_identical_json"
+  "unchanged_input_and_snapshot_preserve_exact_round_trip_bytes"
 ]
 ```
 <!-- memory-runtime-r0-evidence-cases:end -->

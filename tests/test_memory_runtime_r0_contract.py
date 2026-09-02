@@ -145,6 +145,24 @@ def test_r0_contract_preserves_m1_states_and_keeps_m1b3_caller_admitted() -> Non
     assert "`logical_name` and\n  `resolved_path` exactly match" in text
 
 
+def test_r0_defers_result_transport_without_weakening_semantic_dispositions() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert "exactly one semantic disposition" in text
+    assert "`resolved`, exactly\none of those four caller-admitted non-resolved states" in text
+    assert "fail-closed failure\nwith `ValueError` and zero context rendering" in text
+    assert "it does not define their Python object shape" in text
+    assert "serialized result bytes, API\nversioning, or compatibility policy" in text
+    assert "deferred to the\nseparately authorized implementation tranche" in text
+    assert "not a Runtime result object or a frozen transport schema" in text
+
+    for speculative_promise in (
+        "deterministic, closed-schema result bytes",
+        "Result serialization must be deterministic UTF-8 JSON",
+        "unchanged_input_and_snapshot_produce_byte_identical_json",
+    ):
+        assert speculative_promise not in text
+
+
 def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
     cases = _json_block("memory-runtime-r0-evidence-cases")
     assert cases == [
@@ -173,7 +191,7 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "reserved_projection_tokens_fail_at_writer_boundary",
         "no_silent_drop_injection_or_duplicate_render",
         "single_snapshot_dependency_counts",
-        "unchanged_input_and_snapshot_produce_byte_identical_json",
+        "unchanged_input_and_snapshot_preserve_exact_round_trip_bytes",
     ]
     assert len(cases) == len(set(cases)) == 26
 
