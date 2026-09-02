@@ -5,11 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from governance_tools.authority_loader import parse_frontmatter
-
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = REPO_ROOT / "governance" / "MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP_CONTRACT.md"
+CONTRACT = REPO_ROOT / "docs" / "memory-runtime-r0-exact-round-trip-spec.md"
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 PLAN = REPO_ROOT / "PLAN.md"
 MEMORY_RECORD = REPO_ROOT / "governance_tools" / "memory_record.py"
@@ -28,23 +25,16 @@ def _json_block(marker: str) -> Any:
     return json.loads(match.group(1))
 
 
-def test_r0_contract_is_registered_as_specification_only() -> None:
-    assert parse_frontmatter(CONTRACT) == {
-        "audience": "agent-on-demand",
-        "authority": "canonical",
-        "can_override": False,
-        "overridden_by": "AGENT.md",
-        "default_load": "on-demand",
-    }
+def test_r0_spec_is_non_authoritative_and_unregistered() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert not text.startswith("---")
+    assert "NON-AUTHORITATIVE TECHNICAL\nSPECIFICATION" in text
+    assert "is not registered in\n`governance/AUTHORITY.md`" in text
+    assert "does not activate a\n  governance authority" in PLAN.read_text(encoding="utf-8")
 
     authority = AUTHORITY.read_text(encoding="utf-8")
-    assert "> updated: 2026-09-02" in authority
-    assert (
-        "| `governance/MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP_CONTRACT.md` | "
-        "agent-on-demand | canonical | false | AGENT.md | on-demand |"
-    ) in authority
-    assert "canonical Memory Runtime R0 specification" in authority
-    assert "specification only; no runtime implementation" in authority
+    assert "MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP" not in authority
+    assert "memory-runtime-r0-exact-round-trip-spec.md" not in authority
 
 
 def test_r0_contract_reuses_current_public_dependencies_without_broadening_identity() -> None:
@@ -58,6 +48,7 @@ def test_r0_contract_reuses_current_public_dependencies_without_broadening_ident
         "expected_line_source": "governance_tools.memory_record.render_active_task_projection",
         "resolver": "memory_pipeline.memory_layout.resolve_memory_file",
         "rendering": "verbatim_retrieved_projection_line",
+        "non_target_candidate_policy": "ignore_if_structurally_valid",
         "allowed_write_statuses": ["written", "already_present"],
         "resolution_states": [
             "resolved",
@@ -112,6 +103,15 @@ def test_r0_contract_freezes_identity_content_path_and_set_invariants() -> None:
         assert required in text
 
 
+def test_r0_spec_allows_well_formed_historical_non_target_identities() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert "another identity is a permitted\nhistorical non-target record" in text
+    assert "ignored for target selection" in text
+    assert "Its presence\nis not corruption" in text
+    assert "exactly one candidate for the\nexpected identity" in text
+    assert "well_formed_non_target_identities_are_ignored" in text
+
+
 def test_r0_contract_preserves_m1_states_and_keeps_m1b3_caller_admitted() -> None:
     text = CONTRACT.read_text(encoding="utf-8")
     for state in (
@@ -148,7 +148,8 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "invalid_argument_types_fail_closed",
         "ordinary_dependency_exceptions_fail_closed",
         "invalid_utf8_fails_closed",
-        "zero_multiple_or_malformed_marker_fails_closed",
+        "target_zero_multiple_or_malformed_marker_fails_closed",
+        "well_formed_non_target_identities_are_ignored",
         "caller_record_identity_mismatch_fails_closed",
         "writer_outcome_identity_mismatch_fails_closed",
         "unexpected_writer_status_fails_closed",
@@ -163,14 +164,20 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "single_snapshot_dependency_counts",
         "unchanged_input_and_snapshot_produce_byte_identical_json",
     ]
-    assert len(cases) == len(set(cases)) == 24
+    assert len(cases) == len(set(cases)) == 25
 
 
 def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authority() -> None:
     plan = PLAN.read_text(encoding="utf-8")
-    assert "Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):" in plan
+    assert (
+        "Current refresh - 2026-09-02 "
+        "(Memory Runtime R0 technical specification candidate):"
+    ) in plan
     assert "- [>] Define one bounded exact round-trip specification" in plan
     assert "Runtime implementation requires a separate owner\n  authorization" in plan
+    assert "Implementation-readiness acceptance requires technical review approving the" in plan
+    assert "exact candidate HEAD with no unresolved P0/P1" in plan
+    assert "Specification activation" not in plan
 
     contract = CONTRACT.read_text(encoding="utf-8")
     for non_claim in (

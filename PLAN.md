@@ -92,7 +92,7 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):
+Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidate):
 
 - [>] Define one bounded exact round-trip specification for one
   caller-authorized canonical session-derived record and logical `active_task`
@@ -106,7 +106,8 @@ Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):
   invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
   fail-closed; binds the caller-admitted M-1 observation to the exact query,
   logical surface, and canonical record identity; preserves M-1 non-resolved
-  states without context rendering;
+  states without context rendering; permits structurally valid historical
+  non-target identities while requiring exactly one byte-matching target;
   forbids silent drop, injection, and duplicate rendering; and freezes the
   focused evidence-case inventory without implementing runtime behavior.
 - Claim ceiling: specification for one caller-authorized active-task exact
@@ -114,10 +115,11 @@ Current refresh - 2026-09-02 (Memory Runtime R0 specification candidate):
   MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
   update, supersession, freshness, deletion, schema, hook, CI, gate, blocker,
   enforcement, Memory Runtime R1, or Gate 3 behavior is authorized.
-- Specification activation requires exact-head owner merge attestation,
-  independent technical review, green required checks, reviewed-head
-  preservation, and merge. Runtime implementation requires a separate owner
-  authorization after specification activation.
+- Implementation-readiness acceptance requires technical review approving the
+  exact candidate HEAD with no unresolved P0/P1, green required checks,
+  reviewed-head preservation, and merge. Acceptance does not activate a
+  governance authority. Runtime implementation requires a separate owner
+  authorization after specification acceptance.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 

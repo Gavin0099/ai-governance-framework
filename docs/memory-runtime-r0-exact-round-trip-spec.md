@@ -1,19 +1,23 @@
----
-audience: agent-on-demand
-authority: canonical
-can_override: false
-overridden_by: AGENT.md
-default_load: on-demand
----
+# Memory Runtime R0 Exact Round-Trip Technical Specification
 
-# Memory Runtime R0 Exact Round-Trip Contract
-
-Status: CANDIDATE SPECIFICATION; ACTIVE AS A SPECIFICATION ONLY AFTER
-EXACT-HEAD OWNER ATTESTATION, INDEPENDENT TECHNICAL REVIEW, GREEN REQUIRED
-CHECKS, REVIEWED-HEAD PRESERVATION, AND MERGE
+Status: IMPLEMENTATION-READINESS CANDIDATE; NON-AUTHORITATIVE TECHNICAL
+SPECIFICATION
 
 Program: Memory Runtime
 Milestone: R0
+
+## Authority Boundary
+
+This document is an implementation-driving engineering specification. It is
+not a canonical governance authority, is not registered in
+`governance/AUTHORITY.md`, and does not become an agent-loading requirement or
+an enforcement source when merged. It records the expected behavior for a
+separately authorized implementation tranche.
+
+Implementation-readiness acceptance is a delivery decision, not governance
+activation. A concrete observed runtime failure may later justify the smallest
+necessary failure-driven governance rule, but this specification does not
+pre-authorize that promotion.
 
 ## Problem
 
@@ -84,6 +88,7 @@ bounded local snapshots.
   "expected_line_source": "governance_tools.memory_record.render_active_task_projection",
   "resolver": "memory_pipeline.memory_layout.resolve_memory_file",
   "rendering": "verbatim_retrieved_projection_line",
+  "non_target_candidate_policy": "ignore_if_structurally_valid",
   "allowed_write_statuses": ["written", "already_present"],
   "resolution_states": [
     "resolved",
@@ -203,7 +208,8 @@ The reader must validate persisted bytes independently. It cannot assume the
 file was produced only by the current writer because the file may be older or
 manually edited.
 
-For active-task projection candidates, the bounded grammar requires:
+For every projection-looking active-task line, the bounded structural grammar
+requires:
 
 1. strict UTF-8 decoding with no replacement fallback;
 2. one record on exactly one LF-terminated line;
@@ -212,12 +218,17 @@ For active-task projection candidates, the bounded grammar requires:
 5. no `memory_record_projection:`, `<!--`, or `-->` token inside the summary;
 6. exactly one terminal marker;
 7. exact surface token `active-task-summary`;
-8. exactly one lowercase 64-hex identity in that marker; and
-9. byte equality with the public writer renderer's expected line.
+8. exactly one lowercase 64-hex identity in that marker.
 
-There must be exactly one valid candidate for the expected identity. Zero,
-multiple, malformed, non-terminal, wrong-surface, wrong-identity, or
-content-mismatched candidates fail closed. Unrelated non-projection Markdown
+A structurally valid candidate carrying another identity is a permitted
+historical non-target record and is ignored for target selection. Its presence
+is not corruption. A projection-looking line that fails the structural grammar
+cannot be safely excluded as the target and therefore fails closed.
+
+After structural validation, there must be exactly one candidate for the
+expected identity, and that target line must be byte-equal to the public writer
+renderer's expected line. Zero target candidates, multiple target candidates,
+or a target content mismatch fails closed. Unrelated non-projection Markdown
 may remain outside this bounded grammar and is not interpreted by R0.
 
 ### Set Completeness
@@ -279,8 +290,8 @@ must not call the M1b-3 detector.
 
 ## Affected Surfaces
 
-This specification changes only the R0 contract, its authority registration,
-its PLAN candidate, and document-contract tests. A separately authorized
+This specification changes only the R0 technical specification, its PLAN
+candidate, and document-contract tests. A separately authorized
 implementation is expected to add one reader/runtime module and focused tests;
 the exact implementation paths remain intentionally unfrozen until that
 tranche begins.
@@ -314,6 +325,7 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   files;
 - trusting current-writer validation instead of independently parsing
   persisted bytes;
+- treating a well-formed historical non-target identity as corruption;
 - treating a clean unbound M1b-3 report as request-specific proof;
 - accepting an M-1 observation bound to another query, logical surface, or
   record identity;
@@ -337,7 +349,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   "invalid_argument_types_fail_closed",
   "ordinary_dependency_exceptions_fail_closed",
   "invalid_utf8_fails_closed",
-  "zero_multiple_or_malformed_marker_fails_closed",
+  "target_zero_multiple_or_malformed_marker_fails_closed",
+  "well_formed_non_target_identities_are_ignored",
   "caller_record_identity_mismatch_fails_closed",
   "writer_outcome_identity_mismatch_fails_closed",
   "unexpected_writer_status_fails_closed",
@@ -357,7 +370,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 
 Specification tests freeze the contract structure, current public dependency
 names, M-1 state preservation, composition B, evidence-case inventory,
-authority registration, and non-goals. They prove document consistency only.
+non-authoritative placement, and non-goals. They prove document consistency
+only.
 
 The future implementation tranche must turn every listed case into executable
 behavioral tests and retain the existing memory writer, layout, MRCSP, authority
@@ -366,8 +380,8 @@ bounded exact round trip under tested snapshots.
 
 ## Claim Ceiling
 
-This specification may claim only a reviewable proposed contract for one
-caller-authorized canonical active-task record to preserve writer-owned
+This specification may claim only a reviewable proposed technical contract
+for one caller-authorized canonical active-task record to preserve writer-owned
 identity and exact projection-line bytes through bounded retrieval and verbatim
 context rendering.
 
@@ -379,8 +393,9 @@ or any Gate 3 change.
 
 ## Implementation Tranche Recommendation
 
-After this specification is independently reviewed, exact-head preserved, and
-merged, the next separately authorized tranche should implement only the one
-active-task exact round trip and the evidence cases above. Stop after that
-vertical slice. Do not add semantic retrieval, additional logical surfaces, or
-lifecycle mutation in the same tranche.
+After this specification receives exact-head technical approval with no
+unresolved P0/P1, green required checks, reviewed-head preservation, and merge,
+it is accepted as implementation-ready. The next separately authorized tranche
+should implement only the one active-task exact round trip and the evidence
+cases above. Stop after that vertical slice. Do not add semantic retrieval,
+additional logical surfaces, or lifecycle mutation in the same tranche.

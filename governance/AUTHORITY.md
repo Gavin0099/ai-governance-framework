@@ -4,7 +4,7 @@
 
 > machine-readable: true
 > version: 1.1.0
-> updated: 2026-09-02
+> updated: 2026-08-31
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -50,7 +50,6 @@ question into one property. Memory surfaces use the question-specific roles in
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
-| `governance/MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_RECONCILIATION_FIXTURE_ADMISSIBILITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_RECONCILIATION_EXACT_BYTE_DETECTOR_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
 | `governance/MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md` | agent-on-demand | canonical | false | AGENT.md | on-demand |
@@ -139,7 +138,6 @@ canonical > reference > derived
 | `governance/MEMORY_RECONCILIATION_ENCODING_INTEGRITY_CONTRACT.md` | canonical MRCSP M1b-1 detector contract | deterministic strict UTF-8 and literal U+FFFD anomaly reporting for one caller-admitted record | report-only; no mojibake heuristic, repair, identity collision, missing surface, reader, schema, runtime, hook, CI, gate, blocker, or enforcement behavior |
 | `governance/MEMORY_RECONCILIATION_KNOWLEDGE_IDENTITY_CONTRACT.md` | canonical MRCSP M1b-2 detector contract | deterministic exact case-sensitive knowledge-identity collision reporting for two caller-admitted observations | report-only; no parsing, normalization, semantic identity, missing surface, reader, schema, runtime, hook, CI, gate, blocker, or enforcement behavior |
 | `governance/MEMORY_RECONCILIATION_MISSING_LOGICAL_SURFACE_CONTRACT.md` | canonical MRCSP M1b-3 detector contract | deterministic alias-aware missing-surface reporting for one caller-admitted logical memory surface | report-only; no scanning, parsing, repair, freshness, supersession, reader, schema, runtime, hook, CI, gate, blocker, enforcement, or M2 behavior |
-| `governance/MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP_CONTRACT.md` | canonical Memory Runtime R0 specification | one proposed caller-authorized active-task successful-write outcome, logical-surface retrieval, and identity-bound verbatim context-rendering contract | specification only; no runtime implementation, atomic-write or crash-safety claim, semantic retrieval, RAG, lifecycle mutation, MRCSP integration, enforcement, R1, or Gate 3 behavior |
 | `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | canonical solo-owner merge decision contract | exact-head owner attestation, independent technical review, green required checks, and reviewed-head preservation | reporting and authority semantics only; no GitHub settings, CI, runtime, hook, gate, blocker, or enforcement behavior |
 | `docs/e1-mutation-catalog.md` | mutation contract catalog / mutation surface inventory | documents mutation-capable surfaces and their allowed claim level | catalog presence is not enforcement by itself |
 | `governance_tools.memory_workflow` | implementation surface for governed memory workflow | dispatch, write-path assessment, guard summary, and receipt status reporting | implementation behavior must not exceed documented contract |
