@@ -109,7 +109,10 @@ Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidat
   states without context rendering; permits structurally valid historical
   non-target identities while requiring exactly one byte-matching target
   payload; accepts only LF or CRLF persisted framing and renders the verified
-  payload through the public writer's canonical LF line;
+  payload through the public writer's canonical LF line; requires a resolved
+  authority observation to match both record identity and the SHA-256 of that
+  public renderer's exact UTF-8 bytes while leaving legacy digest-less
+  observations parseable but non-resolving;
   forbids silent drop, injection, and duplicate rendering; and freezes the
   focused evidence-case inventory without implementing runtime behavior.
 - Claim ceiling: specification for one caller-authorized active-task exact

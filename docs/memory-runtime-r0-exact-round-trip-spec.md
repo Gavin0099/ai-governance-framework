@@ -105,7 +105,8 @@ bounded local snapshots.
     "query_class": "current_progress",
     "logical_name": "active_task",
     "requested_record_identity": "must_equal_caller_authorized_record_identity",
-    "resolved_record_identity": "must_equal_writer_outcome_identity_when_resolved"
+    "resolved_record_identity": "must_equal_writer_outcome_identity_when_resolved",
+    "authorized_projection_sha256": "must_equal_sha256_of_public_renderer_exact_utf8_bytes_when_resolved"
   },
   "failure_mode": "fail_closed",
   "mrcsp_composition": "caller_admitted_observation_only_no_detector_call",
@@ -134,9 +135,27 @@ The caller-admitted observation must be carried in an R0 binding envelope whose
 `active_task`, and whose `requested_record_identity` equals the
 caller-authorized canonical record identity. A `resolved` observation must also
 name a `resolved_record_identity` equal to the canonical writer outcome
-identity. Missing or mismatched binding fields fail closed with `ValueError`
-and zero rendering. This envelope binds the supplied observation to this R0
-request; it does not implement, reinterpret, or broaden M-1 resolution.
+identity and an `authorized_projection_sha256` equal to the lowercase SHA-256
+hex digest of the exact UTF-8 bytes returned by
+`render_active_task_projection(record, summary=caller_supplied_summary)`.
+R0 must call that public renderer once, snapshot its exact returned string,
+encode it once as strict UTF-8, and digest those bytes without another
+normalization step. Missing or mismatched binding fields fail closed with `ValueError`
+and zero rendering. A malformed or non-lowercase digest is a
+mismatched binding field. Identity match alone never authorizes changed summary
+content, and matching content bytes never override an identity mismatch. This
+envelope binds the supplied observation to this R0 request; it does not
+implement, reinterpret, or broaden M-1 resolution.
+
+The current R0 decision input contains exactly one caller-admitted observation.
+A collection or multiple current observations is invalid input and fails
+closed; R0 does not reconcile conflicting authority decisions. A legacy
+persisted observation without `authorized_projection_sha256` may remain
+parseable historical data and is not declared corrupt by this specification.
+It cannot satisfy a current content-bound `resolved` decision. A legacy
+non-resolved observation may remain in its caller-admitted non-resolved state,
+but a legacy `resolved` observation without the digest fails closed rather than
+authorizing current content.
 
 Only a correctly bound caller-admitted `resolved` observation may continue to
 context rendering. Correctly bound `reviewer_required`, `disputed`,
@@ -383,6 +402,12 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   "unexpected_writer_status_fails_closed",
   "m1_non_resolved_states_preserved_without_rendering",
   "m1_observation_subject_mismatch_fails_closed",
+  "authority_identity_and_projection_digest_match",
+  "authority_digest_mismatch_for_changed_summary_fails_closed",
+  "authority_identity_mismatch_with_same_content_fails_closed",
+  "malformed_authority_projection_digest_fails_closed",
+  "legacy_observation_without_digest_is_non_resolving_history",
+  "multiple_current_authority_observations_fail_closed",
   "m1b3_detector_is_not_called",
   "m1b3_finding_requires_logical_name_and_path_match",
   "clean_m1b3_report_is_advisory_only",

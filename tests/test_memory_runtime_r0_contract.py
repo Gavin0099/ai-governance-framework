@@ -63,6 +63,9 @@ def test_r0_contract_reuses_current_public_dependencies_without_broadening_ident
             "logical_name": "active_task",
             "requested_record_identity": "must_equal_caller_authorized_record_identity",
             "resolved_record_identity": "must_equal_writer_outcome_identity_when_resolved",
+            "authorized_projection_sha256": (
+                "must_equal_sha256_of_public_renderer_exact_utf8_bytes_when_resolved"
+            ),
         },
         "failure_mode": "fail_closed",
         "mrcsp_composition": "caller_admitted_observation_only_no_detector_call",
@@ -145,6 +148,28 @@ def test_r0_contract_preserves_m1_states_and_keeps_m1b3_caller_admitted() -> Non
     assert "`logical_name` and\n  `resolved_path` exactly match" in text
 
 
+def test_r0_binds_resolved_authority_to_identity_and_exact_projection_bytes() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert "`authorized_projection_sha256` equal to the lowercase SHA-256" in text
+    assert "exact UTF-8 bytes returned by\n`render_active_task_projection" in text
+    assert "call that public renderer once" in text
+    assert "encode it once as strict UTF-8" in text
+    assert "without another\nnormalization step" in text
+    assert "Identity match alone never authorizes changed summary" in text
+    assert "content, and matching content bytes never override an identity mismatch" in text
+    assert "A malformed or non-lowercase digest is a\nmismatched binding field" in text
+
+
+def test_r0_legacy_observations_remain_history_but_cannot_resolve_content() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert "exactly one caller-admitted observation" in text
+    assert "multiple current observations is invalid input and fails\nclosed" in text
+    assert "may remain\nparseable historical data" in text
+    assert "is not declared corrupt" in text
+    assert "cannot satisfy a current content-bound `resolved` decision" in text
+    assert "legacy `resolved` observation without the digest fails closed" in text
+
+
 def test_r0_defers_result_transport_without_weakening_semantic_dispositions() -> None:
     text = CONTRACT.read_text(encoding="utf-8")
     assert "exactly one semantic disposition" in text
@@ -184,6 +209,12 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "unexpected_writer_status_fails_closed",
         "m1_non_resolved_states_preserved_without_rendering",
         "m1_observation_subject_mismatch_fails_closed",
+        "authority_identity_and_projection_digest_match",
+        "authority_digest_mismatch_for_changed_summary_fails_closed",
+        "authority_identity_mismatch_with_same_content_fails_closed",
+        "malformed_authority_projection_digest_fails_closed",
+        "legacy_observation_without_digest_is_non_resolving_history",
+        "multiple_current_authority_observations_fail_closed",
         "m1b3_detector_is_not_called",
         "m1b3_finding_requires_logical_name_and_path_match",
         "clean_m1b3_report_is_advisory_only",
@@ -193,7 +224,7 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "single_snapshot_dependency_counts",
         "unchanged_input_and_snapshot_preserve_exact_round_trip_bytes",
     ]
-    assert len(cases) == len(set(cases)) == 26
+    assert len(cases) == len(set(cases)) == 32
 
 
 def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authority() -> None:
