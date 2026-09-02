@@ -107,7 +107,9 @@ Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidat
   fail-closed; binds the caller-admitted M-1 observation to the exact query,
   logical surface, and canonical record identity; preserves M-1 non-resolved
   states without context rendering; permits structurally valid historical
-  non-target identities while requiring exactly one byte-matching target;
+  non-target identities while requiring exactly one byte-matching target
+  payload; accepts only LF or CRLF persisted framing and renders the verified
+  payload through the public writer's canonical LF line;
   forbids silent drop, injection, and duplicate rendering; and freezes the
   focused evidence-case inventory without implementing runtime behavior.
 - Claim ceiling: specification for one caller-authorized active-task exact

@@ -46,6 +46,9 @@ RAG, lifecycle automation, or a policy for deciding what deserves memory.
   `governance/MEMORY_SURFACE_AUTHORITY_CONTRACT.md` to resolve logical surfaces
   through `memory_pipeline.memory_layout` rather than require a hard-coded
   consumer filename.
+- The writer's existing-record check uses `read_text()` and `splitlines()`, so
+  it accepts an LF- or CRLF-framed matching projection as `already_present`.
+  `.gitattributes` does not pin the active-task surface to LF.
 - `memory_pipeline.memory_layout.resolve_memory_file()` currently resolves
   logical `active_task` to the configured alias table.
 - MRCSP M1b-3 reports one bounded caller-admitted missing-surface observation.
@@ -67,7 +70,7 @@ caller-authorized canonical record and summary
   -> canonical active-task writer
   -> writer outcome identity and path
   -> logical-surface resolution and exact persisted-byte retrieval
-  -> verbatim context line with the same provenance identity
+  -> canonical LF context line with the same provenance identity
 ```
 
 The future implementation may report `resolved` only after the canonical
@@ -87,7 +90,8 @@ bounded local snapshots.
   "identity_source": "governance_tools.memory_record.build_record_identity",
   "expected_line_source": "governance_tools.memory_record.render_active_task_projection",
   "resolver": "memory_pipeline.memory_layout.resolve_memory_file",
-  "rendering": "verbatim_retrieved_projection_line",
+  "rendering": "canonical_lf_writer_line_from_verified_persisted_payload",
+  "persisted_line_endings": ["lf", "crlf"],
   "non_target_candidate_policy": "ignore_if_structurally_valid",
   "allowed_write_statuses": ["written", "already_present"],
   "resolution_states": [
@@ -170,11 +174,15 @@ R0 must obtain the writer-owned expected line only through:
 render_active_task_projection(record, summary=caller_supplied_summary)
 ```
 
-It must not call or copy private summary-normalization helpers. The UTF-8 bytes
-of that public renderer's return value must equal the one persisted projection
-line selected for the expected identity, the retrieved line bytes, and the
-verbatim context line bytes. A same-identity line with different summary bytes
-fails closed even when the writer reports `already_present`.
+It must not call or copy private summary-normalization helpers. R0 snapshots the
+public renderer's LF-terminated UTF-8 line, separates its one terminal LF from
+the payload, and compares that payload byte-for-byte with the one persisted
+projection payload selected for the expected identity. The persisted frame may
+end in exactly LF or CRLF; a bare CR, mixed terminator, missing terminator, or
+additional bytes fail closed. Context rendering uses the public renderer's
+canonical LF-terminated bytes after the persisted payload comparison succeeds.
+A same-identity line with different summary bytes fails closed even when the
+writer reports `already_present`.
 
 ### Logical Path Continuity And Snapshot Boundary
 
@@ -212,7 +220,7 @@ For every projection-looking active-task line, the bounded structural grammar
 requires:
 
 1. strict UTF-8 decoding with no replacement fallback;
-2. one record on exactly one LF-terminated line;
+2. one record on exactly one LF- or CRLF-terminated line, with no bare CR;
 3. the exact `- ` line prefix;
 4. one non-empty summary with no leading or trailing whitespace;
 5. no `memory_record_projection:`, `<!--`, or `-->` token inside the summary;
@@ -226,10 +234,12 @@ is not corruption. A projection-looking line that fails the structural grammar
 cannot be safely excluded as the target and therefore fails closed.
 
 After structural validation, there must be exactly one candidate for the
-expected identity, and that target line must be byte-equal to the public writer
-renderer's expected line. Zero target candidates, multiple target candidates,
-or a target content mismatch fails closed. Unrelated non-projection Markdown
-may remain outside this bounded grammar and is not interpreted by R0.
+expected identity. After removing exactly one allowed line terminator from the
+target and the public writer renderer's expected LF line, their payload bytes
+must be equal. The context line is then the renderer's canonical LF bytes. Zero
+target candidates, multiple target candidates, an unsupported line ending, or
+a target payload mismatch fails closed. Unrelated non-projection Markdown may
+remain outside this bounded grammar and is not interpreted by R0.
 
 ### Set Completeness
 
@@ -265,7 +275,7 @@ must not call the M1b-3 detector.
 - the existing canonical active-task writer and its public identity and render
   functions;
 - exact logical-path comparison, bounded byte retrieval, independent grammar,
-  and verbatim one-line context rendering;
+  and canonical LF one-line context rendering after exact payload comparison;
 - preservation of caller-admitted M-1 resolution states;
 - optional consumption of one caller-admitted M1b-3 observation without
   detector invocation; and
@@ -320,6 +330,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 - treating a successful verified round trip as proof that an interrupted writer
   cannot leave partial bytes;
 - treating `already_present` as proof that persisted summary bytes match;
+- requiring raw LF framing after the canonical writer accepted a CRLF-framed
+  existing projection through universal-newline matching;
 - reading the writer's hard-coded path instead of the logical resolver result;
 - accepting an alias-table drift that makes writer and reader target different
   files;
@@ -331,8 +343,8 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
   record identity;
 - converting a missing surface into an empty context;
 - preserving identity equality while silently dropping the record; and
-- treating verbatim retrieval as freshness, truth, supersession, or semantic
-  relevance.
+- treating exact payload retrieval and canonical LF rendering as freshness,
+  truth, supersession, or semantic relevance.
 
 ## Evidence Plan
 
@@ -341,6 +353,7 @@ hooks, schemas, and CI workflows are read-only dependencies for this spec.
 [
   "exact_written_round_trip",
   "exact_already_present_round_trip_without_duplicate",
+  "exact_already_present_crlf_round_trip",
   "same_identity_different_summary_fails_closed",
   "writer_resolver_path_mismatch_fails_closed",
   "missing_or_non_directory_root_fails_closed",
@@ -382,8 +395,8 @@ bounded exact round trip under tested snapshots.
 
 This specification may claim only a reviewable proposed technical contract
 for one caller-authorized canonical active-task record to preserve writer-owned
-identity and exact projection-line bytes through bounded retrieval and verbatim
-context rendering.
+identity and exact projection payload bytes through bounded retrieval and
+canonical LF context rendering.
 
 It does not claim that runtime behavior exists, that MRCSP is integrated into
 runtime, that a write is semantically correct or currently authoritative, that

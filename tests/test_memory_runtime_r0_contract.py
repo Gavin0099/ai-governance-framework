@@ -47,7 +47,8 @@ def test_r0_contract_reuses_current_public_dependencies_without_broadening_ident
         "identity_source": "governance_tools.memory_record.build_record_identity",
         "expected_line_source": "governance_tools.memory_record.render_active_task_projection",
         "resolver": "memory_pipeline.memory_layout.resolve_memory_file",
-        "rendering": "verbatim_retrieved_projection_line",
+        "rendering": "canonical_lf_writer_line_from_verified_persisted_payload",
+        "persisted_line_endings": ["lf", "crlf"],
         "non_target_candidate_policy": "ignore_if_structurally_valid",
         "allowed_write_statuses": ["written", "already_present"],
         "resolution_states": [
@@ -112,6 +113,15 @@ def test_r0_spec_allows_well_formed_historical_non_target_identities() -> None:
     assert "well_formed_non_target_identities_are_ignored" in text
 
 
+def test_r0_spec_accepts_crlf_framing_but_compares_exact_payload_bytes() -> None:
+    text = CONTRACT.read_text(encoding="utf-8")
+    assert "The persisted frame may\nend in exactly LF or CRLF" in text
+    assert "with no bare CR" in text
+    assert "their payload bytes\nmust be equal" in text
+    assert "renderer's canonical LF bytes" in text
+    assert "exact_already_present_crlf_round_trip" in text
+
+
 def test_r0_contract_preserves_m1_states_and_keeps_m1b3_caller_admitted() -> None:
     text = CONTRACT.read_text(encoding="utf-8")
     for state in (
@@ -140,6 +150,7 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
     assert cases == [
         "exact_written_round_trip",
         "exact_already_present_round_trip_without_duplicate",
+        "exact_already_present_crlf_round_trip",
         "same_identity_different_summary_fails_closed",
         "writer_resolver_path_mismatch_fails_closed",
         "missing_or_non_directory_root_fails_closed",
@@ -164,7 +175,7 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
         "single_snapshot_dependency_counts",
         "unchanged_input_and_snapshot_produce_byte_identical_json",
     ]
-    assert len(cases) == len(set(cases)) == 25
+    assert len(cases) == len(set(cases)) == 26
 
 
 def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authority() -> None:
