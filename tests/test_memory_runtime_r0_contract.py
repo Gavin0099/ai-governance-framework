@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = REPO_ROOT / "docs" / "memory-runtime-r0-exact-round-trip-spec.md"
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 PLAN = REPO_ROOT / "PLAN.md"
+R0_CLOSEOUT_MEMORY = REPO_ROOT / "memory" / "2026-09-02.md"
 MEMORY_RECORD = REPO_ROOT / "governance_tools" / "memory_record.py"
 MEMORY_LAYOUT = REPO_ROOT / "memory_pipeline" / "memory_layout.py"
 
@@ -244,9 +245,33 @@ def test_r0_plan_records_spec_acceptance_and_bounded_implementation() -> None:
     assert "Implementation-readiness predicates were satisfied for exact reviewed head" in plan
     assert "`b2cc43bc5e7e9032d55aa49f5e820220a792eb43`" in plan
     assert "merged through PR #139 at\n  `ee44240f`" in plan
-    assert "- [>] Implement the smallest active-task Runtime vertical slice" in plan
+    assert "- [x] Implement the smallest active-task Runtime vertical slice" in plan
     assert "every frozen R0 evidence case has executable focused coverage" in plan
+    assert "Delivery predicates were satisfied for exact independently reviewed head" in plan
+    assert "`966dbbb3f4f8e8c987e286396a032d9230dc2940`" in plan
+    assert "merged through PR #140 at\n  `ae926fc7b877c413036ba37cc0655cf62fbda75c`" in plan
+    assert (
+        "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819"
+        in plan
+    )
+    assert (
+        "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801"
+        in plan
+    )
+    assert (
+        "later\n  closeout commit does not imply that the PLAN or memory record existed in merge"
+        in plan
+    )
     assert "Specification activation" not in plan
+
+    closeout_memory = R0_CLOSEOUT_MEMORY.read_text(encoding="utf-8")
+    assert "exact independently reviewed head 966dbbb3f4f8e8c987e286396a032d9230dc2940" in closeout_memory
+    assert "commit: ae926fc7b877c413036ba37cc0655cf62fbda75c" in closeout_memory
+    assert "commit_hash: ae926fc7b877c413036ba37cc0655cf62fbda75c" in closeout_memory
+    assert (
+        "This canonical record is added by a later closeout commit and was not present "
+        "in event commit ae926fc7."
+    ) in closeout_memory
 
     contract = CONTRACT.read_text(encoding="utf-8")
     assert (
