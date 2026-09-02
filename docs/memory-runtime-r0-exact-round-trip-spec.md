@@ -406,9 +406,12 @@ or any Gate 3 change.
 
 ## Implementation Tranche Recommendation
 
-After this specification receives exact-head technical approval with no
+After this specification receives an owner merge attestation recorded for the
+exact candidate HEAD before merge, technical approval of that same HEAD with no
 unresolved P0/P1, green required checks, reviewed-head preservation, and merge,
-it is accepted as implementation-ready. The next separately authorized tranche
-should implement only the one active-task exact round trip and the evidence
-cases above. Stop after that vertical slice. Do not add semantic retrieval,
-additional logical surfaces, or lifecycle mutation in the same tranche.
+it is accepted as implementation-ready. The merge action cannot retroactively
+establish the owner-attestation predicate. The next separately authorized
+tranche should implement only the one active-task exact round trip and the
+evidence cases above. Stop after that vertical slice. Do not add semantic
+retrieval, additional logical surfaces, or lifecycle mutation in the same
+tranche.

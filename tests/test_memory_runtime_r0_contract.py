@@ -30,7 +30,7 @@ def test_r0_spec_is_non_authoritative_and_unregistered() -> None:
     assert not text.startswith("---")
     assert "NON-AUTHORITATIVE TECHNICAL\nSPECIFICATION" in text
     assert "is not registered in\n`governance/AUTHORITY.md`" in text
-    assert "does not activate a\n  governance authority" in PLAN.read_text(encoding="utf-8")
+    assert "does not activate a governance authority" in PLAN.read_text(encoding="utf-8")
 
     authority = AUTHORITY.read_text(encoding="utf-8")
     assert "MEMORY_RUNTIME_R0_EXACT_ROUND_TRIP" not in authority
@@ -185,12 +185,23 @@ def test_r0_plan_entry_is_candidate_and_requires_separate_implementation_authori
         "(Memory Runtime R0 technical specification candidate):"
     ) in plan
     assert "- [>] Define one bounded exact round-trip specification" in plan
-    assert "Runtime implementation requires a separate owner\n  authorization" in plan
-    assert "Implementation-readiness acceptance requires technical review approving the" in plan
-    assert "exact candidate HEAD with no unresolved P0/P1" in plan
+    assert "Runtime implementation requires a\n  separate owner authorization" in plan
+    assert (
+        "Implementation-readiness acceptance requires an owner merge attestation\n"
+        "  recorded for the exact candidate HEAD before merge"
+    ) in plan
+    assert "approving that same HEAD with no unresolved P0/P1" in plan
+    assert "cannot\n  retroactively establish the owner-attestation predicate" in plan
     assert "Specification activation" not in plan
 
     contract = CONTRACT.read_text(encoding="utf-8")
+    assert (
+        "owner merge attestation recorded for the\n"
+        "exact candidate HEAD before merge"
+    ) in contract
+    assert "technical approval of that same HEAD" in contract
+    assert "cannot retroactively\nestablish the owner-attestation predicate" in contract
+
     for non_claim in (
         "no implementation in this specification tranche",
         "no writer redesign",

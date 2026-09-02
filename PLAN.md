@@ -117,11 +117,13 @@ Current refresh - 2026-09-02 (Memory Runtime R0 technical specification candidat
   MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
   update, supersession, freshness, deletion, schema, hook, CI, gate, blocker,
   enforcement, Memory Runtime R1, or Gate 3 behavior is authorized.
-- Implementation-readiness acceptance requires technical review approving the
-  exact candidate HEAD with no unresolved P0/P1, green required checks,
-  reviewed-head preservation, and merge. Acceptance does not activate a
-  governance authority. Runtime implementation requires a separate owner
-  authorization after specification acceptance.
+- Implementation-readiness acceptance requires an owner merge attestation
+  recorded for the exact candidate HEAD before merge, technical review
+  approving that same HEAD with no unresolved P0/P1, green required checks,
+  reviewed-head preservation, and merge. A later merge action cannot
+  retroactively establish the owner-attestation predicate. Acceptance
+  does not activate a governance authority. Runtime implementation requires a
+  separate owner authorization after specification acceptance.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
