@@ -24,7 +24,7 @@ NON_RESOLVED_STATES = frozenset(
     }
 )
 
-_ACTIVE_TASK_MARKER_TOKEN = b"memory_record_projection:active-task-summary:"
+_PROJECTION_MARKER_NAMESPACE = b"memory_record_projection:"
 _ACTIVE_TASK_LINE = re.compile(
     rb"^- (.+) <!-- memory_record_projection:active-task-summary:([0-9a-f]{64}) -->$"
 )
@@ -277,7 +277,7 @@ def _parse_projection_candidates(
 
     candidates: list[tuple[str, bytes]] = []
     for framed_line in persisted_bytes.splitlines(keepends=True):
-        if _ACTIVE_TASK_MARKER_TOKEN not in framed_line:
+        if _PROJECTION_MARKER_NAMESPACE not in framed_line:
             continue
         if framed_line.endswith(b"\r\n"):
             payload = framed_line[:-2]

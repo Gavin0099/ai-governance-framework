@@ -411,6 +411,37 @@ def test_well_formed_non_target_identities_are_ignored(tmp_path: Path) -> None:
     assert ("0" * 64).encode("ascii") not in context
 
 
+@pytest.mark.parametrize(
+    "malformed_marker",
+    [
+        "memory_record_projection:active-task-summaryX:",
+        "memory_record_projection:active-task-summary :",
+    ],
+)
+def test_valid_target_with_malformed_projection_namespace_fails_closed(
+    tmp_path: Path,
+    malformed_marker: str,
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    malformed = (
+        f"- Historical task <!-- {malformed_marker}"
+        + ("0" * 64)
+        + " -->\n"
+    )
+    (memory_root / "01_active_task.md").write_text(malformed, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="malformed active-task grammar"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+
 def test_caller_record_identity_mismatch_fails_closed(tmp_path: Path) -> None:
     record = _record()
     record["record_identity"] = "0" * 64
