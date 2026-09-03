@@ -860,6 +860,14 @@ def main() -> int:
         next_step=args.next_step,
         plan_reconciliation=plan_reconciliation,
     )
+    if any(surface != SURFACE_DAILY for surface in surfaces):
+        projection_record = dict(record)
+        projection_record.pop("record_identity", None)
+        try:
+            record = prepare_projection_record(projection_record)
+        except ValueError as exc:
+            print(f"[memory_record] error: {exc}")
+            return 2
     outcomes: list[MemoryWriteOutcome] = []
     for surface in surfaces:
         if surface == SURFACE_DAILY:

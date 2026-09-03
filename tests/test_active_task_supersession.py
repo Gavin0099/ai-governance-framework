@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -734,6 +735,53 @@ def test_relation_writer_rejects_dual_namespace_before_mutation(tmp_path: Path) 
         )
 
     assert surface.read_bytes() == before
+
+
+def test_multisurface_cli_normalizes_before_any_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    next_step = "  review the next result  "
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "memory_record.py",
+            "--what-changed",
+            "multi-surface normalization",
+            "--next-step",
+            next_step,
+            "--commit",
+            "UNCOMMITTED",
+            "--session-id",
+            "r1-multisurface-preflight",
+            "--test-evidence",
+            "NOT CLAIMED: multi-surface preflight regression",
+            "--plan-reconciliation",
+            "not_applicable",
+            "--project-root",
+            str(tmp_path),
+            "--surface",
+            "daily",
+            "--surface",
+            "review-log",
+        ],
+    )
+
+    assert memory_record.main() == 0
+
+    daily_paths = sorted(
+        path
+        for path in (tmp_path / "memory").glob("*.md")
+        if path.name != "04_review_log.md"
+    )
+    assert len(daily_paths) == 1
+    daily_text = daily_paths[0].read_text(encoding="utf-8")
+    review_text = (tmp_path / "memory" / "04_review_log.md").read_text(
+        encoding="utf-8"
+    )
+    assert "  next_step: review the next result\n" in daily_text
+    assert "- Next action: review the next result\n" in review_text
 
 
 def test_same_identity_with_changed_summary_fails_before_mutation(tmp_path: Path) -> None:
