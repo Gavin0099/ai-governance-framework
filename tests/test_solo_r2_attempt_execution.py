@@ -24,6 +24,7 @@ from governance_tools.solo_r2_codex_runner import (
     PAIR_INVALID,
     PreparedArm,
     RuntimeIdentity,
+    SandboxGenerationFingerprint,
     ToolCatalog,
     ToolDescriptor,
     REQUIRED_EXECUTION_POLICY,
@@ -36,6 +37,16 @@ HOST_LOCAL = HostLocalIsolation(True, 0)
 CATALOG = ToolCatalog.project((ToolDescriptor("read"), ToolDescriptor("shell")))
 IDENTITY = RuntimeIdentity(
     "gpt-5.6-sol", "high", "UNAVAILABLE", "client", "host", IDENTITY_DISPOSITION
+)
+OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
+ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
+GENERATION = SandboxGenerationFingerprint.create(
+    offline_sid=OFFLINE_SID,
+    online_sid=ONLINE_SID,
+    offline_password_last_set_utc="2026-09-02T10:25:08.5697508Z",
+    online_password_last_set_utc="2026-09-02T10:25:08.6099464Z",
+    sandbox_users_json_byte_length=2,
+    sandbox_users_json_sha256=hashlib.sha256(b"{}").hexdigest(),
 )
 
 
@@ -58,13 +69,13 @@ def _binding(path: Path) -> subject.PairBinding:
     )
 
 
-def _materialization(generation: str = "generation-1") -> PairMaterializationEvidence:
+def _materialization(generation: str = GENERATION.value) -> PairMaterializationEvidence:
     rows = (("source.txt", 7, hashlib.sha256(b"source\n").hexdigest()),)
     common = dict(
         base_commit=FROZEN_BASE_COMMIT,
         inventory=rows,
         inventory_sha256=inventory_sha256(rows),
-        sandbox_principal="CodexSandboxOffline",
+        sandbox_principal=OFFLINE_SID,
         sandbox_account_generation=generation,
         fresh_leaf_destroyed=True,
     )
@@ -81,20 +92,20 @@ def _materialization(generation: str = "generation-1") -> PairMaterializationEvi
     )
 
 
-def _canary(generation: str = "generation-1") -> CanaryQualification:
+def _canary(generation: str = GENERATION.value) -> CanaryQualification:
     return CanaryQualification(
         "canary-context",
         "canary-workspace",
         IDENTITY,
         REQUIRED_EXECUTION_POLICY,
         CATALOG,
-        "CodexSandboxOffline",
+        OFFLINE_SID,
         generation,
         HOST_LOCAL,
     )
 
 
-def _arm(ordinal: int, generation: str = "generation-1") -> PreparedArm:
+def _arm(ordinal: int, generation: str = GENERATION.value) -> PreparedArm:
     return PreparedArm(
         arm_ordinal=ordinal,
         context_id=f"context-{ordinal}",
@@ -103,7 +114,7 @@ def _arm(ordinal: int, generation: str = "generation-1") -> PreparedArm:
         execution_policy=REQUIRED_EXECUTION_POLICY,
         configured_tool_inventory=CATALOG.public_inventory(),
         catalog_sha256=CATALOG.catalog_sha256,
-        sandbox_principal="CodexSandboxOffline",
+        sandbox_principal=OFFLINE_SID,
         sandbox_account_generation=generation,
         host_local=HOST_LOCAL,
     )
@@ -279,9 +290,26 @@ def test_sandbox_account_generation_must_match_between_arms(tmp_path: Path) -> N
             materialization=_materialization(),
             canary=_canary(),
             control=_arm(1),
-            treatment=_arm(2, "generation-2"),
+            treatment=_arm(2, "sha256:" + "1" * 64),
         )
-    assert caught.value.code == PAIR_INVALID
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_sid_only_generation_is_pre_attempt_infrastructure_failure(tmp_path: Path) -> None:
+    path = _ledger_copy(tmp_path)
+    lock = subject.PairLedgerLock(
+        ledger_path=path,
+        lock_path=(tmp_path / "pair.lock").resolve(),
+        binding=_binding(path),
+    )
+    with lock, pytest.raises(subject.AttemptExecutionError) as caught:
+        subject.PreAttemptExecutionCoordinator(lock).validate(
+            materialization=_materialization(OFFLINE_SID),
+            canary=_canary(OFFLINE_SID),
+            control=_arm(1, OFFLINE_SID),
+            treatment=_arm(2, OFFLINE_SID),
+        )
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
 
 
 def test_formal_host_local_observation_must_match_canary(tmp_path: Path) -> None:

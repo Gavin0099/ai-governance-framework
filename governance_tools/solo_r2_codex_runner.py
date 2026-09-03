@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import stat
 import subprocess
@@ -47,6 +48,28 @@ MAX_ELAPSED_SECONDS = 1_800
 MAX_TRACE_BYTES = 64 * 1024 * 1024
 MAX_TRACE_LINE_BYTES = 1024 * 1024
 MAX_PROMPT_BYTES = 1024 * 1024
+CODEX_PAYLOAD_BYTE_LENGTH = 293_056_816
+CODEX_PAYLOAD_SHA256 = "0d916cde6e0f5231b24f4d861c7a6c591bbed67925d8a26e1335c18a15e31819"
+WINDOWS_POWERSHELL_PATH = Path(
+    r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+)
+WINDOWS_POWERSHELL_BYTE_LENGTH = 454_656
+WINDOWS_POWERSHELL_SHA256 = "7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5"
+LOCAL_ACCOUNTS_MODULE_PATH = Path(
+    r"C:\Windows\System32\WindowsPowerShell\v1.0\Modules"
+    r"\Microsoft.PowerShell.LocalAccounts\1.0.0.0"
+    r"\Microsoft.Powershell.LocalAccounts.dll"
+)
+LOCAL_ACCOUNTS_MODULE_BYTE_LENGTH = 94_208
+LOCAL_ACCOUNTS_MODULE_SHA256 = "e3fd92382a1ffc15724b215dcc3729961d0af730c93362db317d98b43c54c9ce"
+SANDBOX_GENERATION_SCHEMA = "solo-r2-sandbox-generation/v1"
+SANDBOX_GENERATION_PREFIX = "sha256:"
+MAX_SANDBOX_USERS_JSON_BYTES = 1024 * 1024
+_PAYLOAD_DIRECTORY_NAME = re.compile(r"[0-9a-f]{16}")
+_SID = re.compile(r"S-1-(?:\d+-)+\d+")
+_PASSWORD_LAST_SET_UTC = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}Z"
+)
 _PASSIVE_ITEM_TYPES = frozenset({"agent_message", "reasoning"})
 _TOP_LEVEL_EVENTS = frozenset(
     {
@@ -128,6 +151,296 @@ def _closed_directory(path: Path) -> Path:
     ):
         _fail()
     return resolved
+
+
+class _GUID(ctypes.Structure):
+    _fields_ = (
+        ("Data1", wintypes.DWORD),
+        ("Data2", wintypes.WORD),
+        ("Data3", wintypes.WORD),
+        ("Data4", ctypes.c_ubyte * 8),
+    )
+
+    @classmethod
+    def parse(cls, value: str) -> "_GUID":
+        return cls.from_buffer_copy(uuid.UUID(value).bytes_le)
+
+
+def _windows_local_app_data_path() -> Path:
+    """Resolve LocalAppData through the Windows known-folder API, not env."""
+
+    if os.name != "nt":
+        _fail()
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+    ole32 = ctypes.WinDLL("ole32", use_last_error=True)
+    shell32.SHGetKnownFolderPath.argtypes = (
+        ctypes.POINTER(_GUID), wintypes.DWORD, wintypes.HANDLE,
+        ctypes.POINTER(wintypes.LPWSTR),
+    )
+    shell32.SHGetKnownFolderPath.restype = ctypes.c_long
+    ole32.CoTaskMemFree.argtypes = (ctypes.c_void_p,)
+    folder = _GUID.parse("f1b32785-6fba-4fcf-9d55-7b8e7f157091")
+    value = wintypes.LPWSTR()
+    if shell32.SHGetKnownFolderPath(ctypes.byref(folder), 0, None, ctypes.byref(value)) != 0:
+        _fail()
+    try:
+        if not value.value:
+            _fail()
+        return _closed_directory(Path(value.value))
+    finally:
+        ole32.CoTaskMemFree(value)
+
+
+def resolve_codex_payload() -> PinnedExecutable:
+    """Select the one governed Codex payload by known-folder root and bytes."""
+
+    root = _closed_directory(
+        _windows_local_app_data_path() / "OpenAI" / "Codex" / "bin"
+    )
+    matches: list[PinnedExecutable] = []
+    try:
+        children = tuple(sorted(root.iterdir(), key=lambda item: item.name))
+    except OSError:
+        _fail()
+    for child in children:
+        try:
+            directory = _closed_directory(child)
+        except RunnerGateError:
+            raise
+        if _PAYLOAD_DIRECTORY_NAME.fullmatch(directory.name) is None:
+            continue
+        candidate = directory / "codex.exe"
+        if not candidate.exists():
+            continue
+        try:
+            pinned = PinnedExecutable.capture(candidate)
+        except Exception:
+            _fail()
+        if (
+            pinned.byte_length == CODEX_PAYLOAD_BYTE_LENGTH
+            and pinned.sha256 == CODEX_PAYLOAD_SHA256
+        ):
+            matches.append(pinned)
+    if len(matches) != 1:
+        _fail()
+    return matches[0]
+
+
+@dataclass(frozen=True)
+class SandboxGenerationFingerprint:
+    offline_sid: str
+    online_sid: str
+    offline_password_last_set_utc: str
+    online_password_last_set_utc: str
+    sandbox_users_json_byte_length: int
+    sandbox_users_json_sha256: str
+    value: str
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        offline_sid: str,
+        online_sid: str,
+        offline_password_last_set_utc: str,
+        online_password_last_set_utc: str,
+        sandbox_users_json_byte_length: int,
+        sandbox_users_json_sha256: str,
+    ) -> "SandboxGenerationFingerprint":
+        material = {
+            "offline_password_last_set_utc": offline_password_last_set_utc,
+            "offline_sid": offline_sid,
+            "online_password_last_set_utc": online_password_last_set_utc,
+            "online_sid": online_sid,
+            "sandbox_users_json_byte_length": sandbox_users_json_byte_length,
+            "sandbox_users_json_sha256": sandbox_users_json_sha256,
+            "schema": SANDBOX_GENERATION_SCHEMA,
+        }
+        result = cls(
+            offline_sid,
+            online_sid,
+            offline_password_last_set_utc,
+            online_password_last_set_utc,
+            sandbox_users_json_byte_length,
+            sandbox_users_json_sha256,
+            SANDBOX_GENERATION_PREFIX + _sha256(_canonical_json(material)),
+        )
+        result.validate()
+        return result
+
+    def validate(self) -> None:
+        if (
+            not isinstance(self.offline_sid, str)
+            or _SID.fullmatch(self.offline_sid) is None
+            or not isinstance(self.online_sid, str)
+            or _SID.fullmatch(self.online_sid) is None
+            or self.offline_sid == self.online_sid
+            or not isinstance(self.offline_password_last_set_utc, str)
+            or _PASSWORD_LAST_SET_UTC.fullmatch(self.offline_password_last_set_utc) is None
+            or not isinstance(self.online_password_last_set_utc, str)
+            or _PASSWORD_LAST_SET_UTC.fullmatch(self.online_password_last_set_utc) is None
+            or type(self.sandbox_users_json_byte_length) is not int
+            or not 0 < self.sandbox_users_json_byte_length <= MAX_SANDBOX_USERS_JSON_BYTES
+            or not isinstance(self.sandbox_users_json_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", self.sandbox_users_json_sha256) is None
+        ):
+            _fail()
+        material = {
+            "offline_password_last_set_utc": self.offline_password_last_set_utc,
+            "offline_sid": self.offline_sid,
+            "online_password_last_set_utc": self.online_password_last_set_utc,
+            "online_sid": self.online_sid,
+            "sandbox_users_json_byte_length": self.sandbox_users_json_byte_length,
+            "sandbox_users_json_sha256": self.sandbox_users_json_sha256,
+            "schema": SANDBOX_GENERATION_SCHEMA,
+        }
+        expected = SANDBOX_GENERATION_PREFIX + _sha256(_canonical_json(material))
+        if self.value != expected:
+            _fail()
+
+
+SandboxGenerationProbe = Callable[[], SandboxGenerationFingerprint]
+
+
+def _sandbox_users_json_identity(codex_home: Path) -> tuple[int, str]:
+    root = _closed_directory(codex_home)
+    matches: list[Path] = []
+    pending = [root]
+    while pending:
+        directory = pending.pop()
+        try:
+            children = tuple(directory.iterdir())
+        except OSError:
+            _fail()
+        for child in children:
+            try:
+                value = os.lstat(child)
+            except OSError:
+                _fail()
+            if (
+                stat.S_ISLNK(value.st_mode)
+                or bool(
+                    getattr(value, "st_file_attributes", 0)
+                    & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+                )
+            ):
+                _fail()
+            if stat.S_ISDIR(value.st_mode):
+                pending.append(child)
+            elif stat.S_ISREG(value.st_mode) and child.name == "sandbox_users.json":
+                matches.append(child)
+            elif not stat.S_ISREG(value.st_mode):
+                _fail()
+    if len(matches) != 1:
+        _fail()
+    try:
+        payload = matches[0].read_bytes()
+    except OSError:
+        _fail()
+    if not payload or len(payload) > MAX_SANDBOX_USERS_JSON_BYTES:
+        _fail()
+    return len(payload), _sha256(payload)
+
+
+_SANDBOX_ACCOUNT_QUERY = (
+    "$ErrorActionPreference='Stop';"
+    f"Import-Module -Name '{LOCAL_ACCOUNTS_MODULE_PATH}' -Force -ErrorAction Stop;"
+    "$offline=Microsoft.PowerShell.LocalAccounts\\Get-LocalUser "
+    "-Name 'CodexSandboxOffline' -ErrorAction Stop;"
+    "$online=Microsoft.PowerShell.LocalAccounts\\Get-LocalUser "
+    "-Name 'CodexSandboxOnline' -ErrorAction Stop;"
+    "if($null -eq $offline.PasswordLastSet -or $null -eq $online.PasswordLastSet)"
+    "{throw 'PASSWORD_LAST_SET_UNAVAILABLE'};"
+    "[ordered]@{offline_sid=$offline.SID.Value;online_sid=$online.SID.Value;"
+    "offline_password_last_set_utc=$offline.PasswordLastSet.ToUniversalTime().ToString('o');"
+    "online_password_last_set_utc=$online.PasswordLastSet.ToUniversalTime().ToString('o')}"
+    "|ConvertTo-Json -Compress"
+)
+
+
+def capture_sandbox_generation(
+    *, codex_home: Path, temp_root: Path
+) -> SandboxGenerationFingerprint:
+    """Measure the generation-sensitive pre-ID state without reading secrets."""
+
+    try:
+        powershell = PinnedExecutable.capture(WINDOWS_POWERSHELL_PATH)
+        module = PinnedExecutable.capture(LOCAL_ACCOUNTS_MODULE_PATH)
+    except Exception:
+        _fail()
+    if (
+        powershell.byte_length != WINDOWS_POWERSHELL_BYTE_LENGTH
+        or powershell.sha256 != WINDOWS_POWERSHELL_SHA256
+        or module.byte_length != LOCAL_ACCOUNTS_MODULE_BYTE_LENGTH
+        or module.sha256 != LOCAL_ACCOUNTS_MODULE_SHA256
+    ):
+        _fail()
+    powershell.verify()
+    module.verify()
+    result = _run_contained_once(
+        (
+            str(powershell.path), "-NoLogo", "-NoProfile", "-NonInteractive",
+            "-Command", _SANDBOX_ACCOUNT_QUERY,
+        ),
+        input_bytes=b"",
+        cwd=_closed_directory(codex_home),
+        env=launcher_environment(codex_home, temp_root),
+        timeout_seconds=30,
+    )
+    powershell.verify()
+    module.verify()
+    if (
+        result.returncode != 0
+        or result.timed_out
+        or result.tree_terminated is not True
+        or not result.stdout
+        or len(result.stdout) > 8192
+        or result.stderr != b""
+    ):
+        _fail()
+    try:
+        projection = _json_object(result.stdout)
+    except RunnerGateError:
+        _fail()
+    expected_keys = {
+        "offline_sid", "online_sid", "offline_password_last_set_utc",
+        "online_password_last_set_utc",
+    }
+    if not isinstance(projection, dict) or set(projection) != expected_keys:
+        _fail()
+    marker_length, marker_sha256 = _sandbox_users_json_identity(codex_home)
+    try:
+        return SandboxGenerationFingerprint.create(
+            offline_sid=projection["offline_sid"],
+            online_sid=projection["online_sid"],
+            offline_password_last_set_utc=projection["offline_password_last_set_utc"],
+            online_password_last_set_utc=projection["online_password_last_set_utc"],
+            sandbox_users_json_byte_length=marker_length,
+            sandbox_users_json_sha256=marker_sha256,
+        )
+    except (KeyError, TypeError):
+        _fail()
+
+
+def validate_sandbox_binding(
+    principal: str,
+    generation: str,
+    observed: SandboxGenerationFingerprint,
+) -> None:
+    observed.validate()
+    validate_sandbox_binding_value(principal, generation)
+    if principal != observed.offline_sid or generation != observed.value:
+        _fail()
+
+
+def validate_sandbox_binding_value(principal: str, generation: str) -> None:
+    if (
+        not isinstance(principal, str)
+        or _SID.fullmatch(principal) is None
+        or not isinstance(generation, str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", generation) is None
+    ):
+        _fail()
 
 
 @dataclass(frozen=True, order=True)
@@ -411,25 +724,43 @@ class CodexRunnerAdapter:
         expected_catalog: ToolCatalog,
         codex_home: Path,
         temp_root: Path,
+        sandbox_generation_probe: SandboxGenerationProbe | None = None,
     ) -> None:
         self.executable = executable
         self.backend = backend
         self.expected_catalog = expected_catalog
         self._launcher_env = launcher_environment(codex_home, temp_root)
         self._tool_env = model_tool_environment(temp_root)
+        self._sandbox_generation_probe = sandbox_generation_probe or (
+            lambda: capture_sandbox_generation(
+                codex_home=codex_home, temp_root=temp_root
+            )
+        )
         self._canary: CanaryQualification | None = None
         self._prepared_ordinals: set[int] = set()
+
+    def _generation(self) -> SandboxGenerationFingerprint:
+        try:
+            observed = self._sandbox_generation_probe()
+            observed.validate()
+        except Exception:
+            _fail()
+        return observed
 
     def qualify_canary(self) -> CanaryQualification:
         if self._canary is not None:
             _fail()
         self.executable.verify()
+        generation_before = self._generation()
         observed = self.backend.run_canary(
             executable=self.executable,
             expected_catalog=self.expected_catalog,
             launcher_environment=dict(self._launcher_env),
             model_tool_environment=dict(self._tool_env),
         )
+        generation_after = self._generation()
+        if generation_after != generation_before:
+            _fail()
         catalog = ToolCatalog.observed(
             observed.configured_tool_inventory, observed.catalog_sha256
         )
@@ -442,10 +773,13 @@ class CodexRunnerAdapter:
             or observed.network_tcp_egress_denied is not True
             or not observed.context_id
             or not observed.workspace_id
-            or not observed.sandbox_principal
-            or not observed.sandbox_account_generation
         ):
             _fail(PAIR_INVALID)
+        validate_sandbox_binding(
+            observed.sandbox_principal,
+            observed.sandbox_account_generation,
+            generation_before,
+        )
         self._canary = CanaryQualification(
             observed.context_id,
             observed.workspace_id,
@@ -466,6 +800,9 @@ class CodexRunnerAdapter:
         ):
             _fail()
         self.executable.verify()
+        generation_before = self._generation()
+        if generation_before.value != self._canary.sandbox_account_generation:
+            _fail()
         observed = self.backend.prepare_arm(
             arm_ordinal=arm_ordinal,
             executable=self.executable,
@@ -473,6 +810,9 @@ class CodexRunnerAdapter:
             launcher_environment=dict(self._launcher_env),
             model_tool_environment=dict(self._tool_env),
         )
+        generation_after = self._generation()
+        if generation_after != generation_before:
+            _fail()
         catalog = ToolCatalog.observed(
             observed.configured_tool_inventory, observed.catalog_sha256
         )
@@ -488,10 +828,13 @@ class CodexRunnerAdapter:
             or not observed.workspace_id
             or observed.context_id == self._canary.context_id
             or observed.workspace_id == self._canary.workspace_id
-            or not observed.sandbox_principal
-            or not observed.sandbox_account_generation
         ):
             _fail(PAIR_INVALID)
+        validate_sandbox_binding(
+            observed.sandbox_principal,
+            observed.sandbox_account_generation,
+            generation_before,
+        )
         self._prepared_ordinals.add(arm_ordinal)
         return PreparedArm(
             arm_ordinal,
@@ -596,7 +939,7 @@ class ProcessResult:
 @dataclass(frozen=True)
 class SandboxProcessIdentity:
     principal: str
-    account_generation: str
+    principal_sid: str
     integrity: str
     elevated: bool
 
@@ -604,7 +947,8 @@ class SandboxProcessIdentity:
         principal_leaf = _principal_leaf(self.principal)
         if (
             principal_leaf.casefold() != "codexsandboxoffline"
-            or not self.account_generation
+            or not isinstance(self.principal_sid, str)
+            or _SID.fullmatch(self.principal_sid) is None
             or self.integrity != "MEDIUM"
             or self.elevated is not False
         ):
@@ -647,9 +991,13 @@ class NativeCodexExecBackend:
         *,
         executable: PinnedExecutable,
         configured_catalog: ToolCatalog,
+        sandbox_generation_capture: Callable[..., SandboxGenerationFingerprint] | None = None,
     ) -> None:
         self.executable = executable
         self.configured_catalog = configured_catalog
+        self._sandbox_generation_capture = (
+            sandbox_generation_capture or capture_sandbox_generation
+        )
 
     def _command(self, schema_path: Path, final_path: Path) -> tuple[str, ...]:
         executable = self.executable.verify()
@@ -705,12 +1053,24 @@ class NativeCodexExecBackend:
             _fail(PAIR_INVALID)
         identity = _windows_process_identity()
         identity.validate()
+        try:
+            generation = self._sandbox_generation_capture(
+                codex_home=home, temp_root=output
+            )
+            generation.validate()
+        except Exception:
+            _fail()
+        if any(output.iterdir()):
+            _fail()
         if (
-            _principal_leaf(identity.principal).casefold()
-            != _principal_leaf(prepared_arm.sandbox_principal).casefold()
-            or identity.account_generation != prepared_arm.sandbox_account_generation
+            identity.principal_sid != prepared_arm.sandbox_principal
         ):
             _fail(PAIR_INVALID)
+        validate_sandbox_binding(
+            prepared_arm.sandbox_principal,
+            prepared_arm.sandbox_account_generation,
+            generation,
+        )
 
         schema_path = output / "output-schema.json"
         final_path = output / "final-message.json"
@@ -1117,7 +1477,7 @@ def _windows_process_identity() -> SandboxProcessIdentity:
         if not advapi32.ConvertSidToStringSidW(user.User.Sid, ctypes.byref(string_sid)):
             _fail()
         try:
-            generation = string_sid.value
+            principal_sid = string_sid.value
         finally:
             kernel32.LocalFree(string_sid)
         name_size = wintypes.DWORD()
@@ -1135,6 +1495,6 @@ def _windows_process_identity() -> SandboxProcessIdentity:
         ):
             _fail()
         principal = f"{domain.value}\\{name.value}" if domain.value else name.value
-        return SandboxProcessIdentity(principal, generation, integrity, not not elevation)
+        return SandboxProcessIdentity(principal, principal_sid, integrity, not not elevation)
     finally:
         kernel32.CloseHandle(token)

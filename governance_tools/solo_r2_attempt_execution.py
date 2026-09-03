@@ -24,6 +24,7 @@ from governance_tools.solo_r2_codex_runner import (
     PreparedArm,
     RunnerGateError,
     ToolCatalog,
+    validate_sandbox_binding_value,
     validate_execution_result,
 )
 
@@ -270,6 +271,40 @@ class PreAttemptExecutionCoordinator:
             _fail()
         summary = self.pair_lock.assert_unchanged()
         try:
+            for principal, generation in (
+                (canary.sandbox_principal, canary.sandbox_account_generation),
+                (control.sandbox_principal, control.sandbox_account_generation),
+                (treatment.sandbox_principal, treatment.sandbox_account_generation),
+                (
+                    materialization.control.sandbox_principal,
+                    materialization.control.sandbox_account_generation,
+                ),
+                (
+                    materialization.treatment.sandbox_principal,
+                    materialization.treatment.sandbox_account_generation,
+                ),
+            ):
+                validate_sandbox_binding_value(principal, generation)
+        except (AttributeError, RunnerGateError):
+            _fail()
+        if (
+            control.sandbox_principal != treatment.sandbox_principal
+            or control.sandbox_account_generation
+            != treatment.sandbox_account_generation
+            or control.sandbox_principal != canary.sandbox_principal
+            or control.sandbox_account_generation
+            != canary.sandbox_account_generation
+            or control.sandbox_principal
+            != materialization.control.sandbox_principal
+            or control.sandbox_account_generation
+            != materialization.control.sandbox_account_generation
+            or treatment.sandbox_principal
+            != materialization.treatment.sandbox_principal
+            or treatment.sandbox_account_generation
+            != materialization.treatment.sandbox_account_generation
+        ):
+            _fail()
+        try:
             materialization.validate()
             canary.host_local.validate()
             control_catalog = self._catalog(control)
@@ -296,20 +331,6 @@ class PreAttemptExecutionCoordinator:
             != treatment.runtime_identity.reasoning_effort
             or control.execution_policy != treatment.execution_policy
             or control.execution_policy != canary.execution_policy
-            or control.sandbox_principal != treatment.sandbox_principal
-            or control.sandbox_account_generation
-            != treatment.sandbox_account_generation
-            or control.sandbox_principal != canary.sandbox_principal
-            or control.sandbox_account_generation
-            != canary.sandbox_account_generation
-            or control.sandbox_principal
-            != materialization.control.sandbox_principal
-            or control.sandbox_account_generation
-            != materialization.control.sandbox_account_generation
-            or treatment.sandbox_principal
-            != materialization.treatment.sandbox_principal
-            or treatment.sandbox_account_generation
-            != materialization.treatment.sandbox_account_generation
             or len({control.context_id, treatment.context_id, canary.context_id}) != 3
             or len({control.workspace_id, treatment.workspace_id, canary.workspace_id}) != 3
             or control_catalog.catalog_sha256 != treatment_catalog.catalog_sha256

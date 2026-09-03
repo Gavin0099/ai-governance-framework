@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import hashlib
 import json
 from pathlib import Path
 import os
+import subprocess
 import sys
 
 import pytest
@@ -23,6 +25,16 @@ CATALOG = subject.ToolCatalog.project(
     )
 )
 HOST_LOCAL = HostLocalIsolation(True, 0)
+OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
+ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
+GENERATION = subject.SandboxGenerationFingerprint.create(
+    offline_sid=OFFLINE_SID,
+    online_sid=ONLINE_SID,
+    offline_password_last_set_utc="2026-09-02T10:25:08.5697508Z",
+    online_password_last_set_utc="2026-09-02T10:25:08.6099464Z",
+    sandbox_users_json_byte_length=2,
+    sandbox_users_json_sha256=hashlib.sha256(b"{}").hexdigest(),
+)
 IDENTITY = subject.RuntimeIdentity(
     subject.MODEL_SELECTOR,
     subject.REASONING_EFFORT,
@@ -45,8 +57,8 @@ class Backend:
             credential_sentinel_visible=False,
             network_tcp_egress_denied=True,
             host_local=HOST_LOCAL,
-            sandbox_principal="CodexSandboxOffline",
-            sandbox_account_generation="generation-1",
+            sandbox_principal=OFFLINE_SID,
+            sandbox_account_generation=GENERATION.value,
         )
 
     def run_canary(self, **kwargs):
@@ -64,8 +76,8 @@ class Backend:
             configured_tool_inventory=CATALOG.public_inventory(),
             catalog_sha256=CATALOG.catalog_sha256,
             task_exposure_state="NONE",
-            sandbox_principal="CodexSandboxOffline",
-            sandbox_account_generation="generation-1",
+            sandbox_principal=OFFLINE_SID,
+            sandbox_account_generation=GENERATION.value,
             credential_sentinel_visible=False,
             host_local=HOST_LOCAL,
         )
@@ -78,6 +90,7 @@ def _adapter(tmp_path: Path, backend: Backend | None = None) -> subject.CodexRun
         expected_catalog=CATALOG,
         codex_home=(tmp_path / "codex-home").resolve(),
         temp_root=tmp_path.resolve(),
+        sandbox_generation_probe=lambda: GENERATION,
     )
 
 
@@ -109,8 +122,8 @@ def _prepared() -> subject.PreparedArm:
         subject.REQUIRED_EXECUTION_POLICY,
         CATALOG.public_inventory(),
         CATALOG.catalog_sha256,
-        "CodexSandboxOffline",
-        "generation-1",
+        OFFLINE_SID,
+        GENERATION.value,
         HOST_LOCAL,
     )
 
@@ -147,6 +160,259 @@ def test_policy_claims_only_post_hoc_cap() -> None:
     policy = subject.REQUIRED_EXECUTION_POLICY
     assert policy.tool_call_cap_enforcement == "MEASURED_POST_HOC"
     assert policy.hard_pre_dispatch_cap == "NOT_CLAIMED"
+
+
+def test_generation_fingerprint_changes_with_password_or_marker() -> None:
+    password_changed = subject.SandboxGenerationFingerprint.create(
+        offline_sid=OFFLINE_SID,
+        online_sid=ONLINE_SID,
+        offline_password_last_set_utc="2026-09-02T10:26:08.5697508Z",
+        online_password_last_set_utc=GENERATION.online_password_last_set_utc,
+        sandbox_users_json_byte_length=GENERATION.sandbox_users_json_byte_length,
+        sandbox_users_json_sha256=GENERATION.sandbox_users_json_sha256,
+    )
+    marker_changed = subject.SandboxGenerationFingerprint.create(
+        offline_sid=OFFLINE_SID,
+        online_sid=ONLINE_SID,
+        offline_password_last_set_utc=GENERATION.offline_password_last_set_utc,
+        online_password_last_set_utc=GENERATION.online_password_last_set_utc,
+        sandbox_users_json_byte_length=3,
+        sandbox_users_json_sha256=hashlib.sha256(b"{ }").hexdigest(),
+    )
+    assert password_changed.value != GENERATION.value
+    assert marker_changed.value != GENERATION.value
+
+
+def test_sid_cannot_be_used_as_generation() -> None:
+    with pytest.raises(subject.RunnerGateError) as caught:
+        subject.validate_sandbox_binding_value(OFFLINE_SID, OFFLINE_SID)
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_payload_resolver_requires_one_content_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    local = tmp_path / "Local"
+    root = local / "OpenAI" / "Codex" / "bin"
+    payload = b"exact-codex"
+    candidate = root / "0123456789abcdef" / "codex.exe"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_bytes(payload)
+    monkeypatch.setattr(subject, "_windows_local_app_data_path", lambda: local.resolve())
+    monkeypatch.setattr(subject, "CODEX_PAYLOAD_BYTE_LENGTH", len(payload))
+    monkeypatch.setattr(subject, "CODEX_PAYLOAD_SHA256", hashlib.sha256(payload).hexdigest())
+
+    resolved = subject.resolve_codex_payload()
+    assert resolved.path == candidate.resolve()
+    resolved.verify()
+
+    duplicate = root / "fedcba9876543210" / "codex.exe"
+    duplicate.parent.mkdir()
+    duplicate.write_bytes(payload)
+    with pytest.raises(subject.RunnerGateError) as caught:
+        subject.resolve_codex_payload()
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_payload_resolver_rejects_zero_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    local = tmp_path / "Local"
+    candidate = local / "OpenAI" / "Codex" / "bin" / "0123456789abcdef" / "codex.exe"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_bytes(b"wrong")
+    monkeypatch.setattr(subject, "_windows_local_app_data_path", lambda: local.resolve())
+    monkeypatch.setattr(subject, "CODEX_PAYLOAD_BYTE_LENGTH", 5)
+    monkeypatch.setattr(subject, "CODEX_PAYLOAD_SHA256", "0" * 64)
+    with pytest.raises(subject.RunnerGateError) as caught:
+        subject.resolve_codex_payload()
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_payload_resolver_rejects_reparse_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    local = tmp_path / "Local"
+    root = local / "OpenAI" / "Codex" / "bin"
+    target = tmp_path / "payload-target"
+    target.mkdir(parents=True)
+    root.mkdir(parents=True)
+    link = root / "0123456789abcdef"
+    if os.name == "nt":
+        completed = subprocess.run(
+            (
+                r"C:\Windows\System32\cmd.exe",
+                "/d",
+                "/c",
+                "mklink",
+                "/J",
+                str(link),
+                str(target),
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+            shell=False,
+        )
+        assert completed.returncode == 0, completed.stderr
+    else:
+        link.symlink_to(target, target_is_directory=True)
+    monkeypatch.setattr(subject, "_windows_local_app_data_path", lambda: local.resolve())
+    try:
+        with pytest.raises(subject.RunnerGateError) as caught:
+            subject.resolve_codex_payload()
+    finally:
+        if os.name == "nt":
+            os.rmdir(link)
+        else:
+            link.unlink()
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_generation_capture_hashes_unique_marker_and_account_projection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = (tmp_path / "codex-home").resolve()
+    temp = (tmp_path / "temp").resolve()
+    home.mkdir()
+    temp.mkdir()
+    marker = home / "state" / "sandbox_users.json"
+    marker.parent.mkdir()
+    marker.write_bytes(b'{"generation":2}\n')
+    executable = Path(sys.executable).resolve()
+    payload = executable.read_bytes()
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_PATH", executable)
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_BYTE_LENGTH", len(payload))
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_SHA256", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_PATH", executable)
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_BYTE_LENGTH", len(payload))
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_SHA256", hashlib.sha256(payload).hexdigest())
+
+    projection = {
+        "offline_sid": OFFLINE_SID,
+        "online_sid": ONLINE_SID,
+        "offline_password_last_set_utc": "2026-09-02T10:25:08.5697508Z",
+        "online_password_last_set_utc": "2026-09-02T10:25:08.6099464Z",
+    }
+
+    def query(command, *, input_bytes, cwd, env, timeout_seconds):
+        assert command[0] == str(executable)
+        assert command[1:5] == ("-NoLogo", "-NoProfile", "-NonInteractive", "-Command")
+        assert input_bytes == b"" and cwd == home and timeout_seconds == 30
+        assert "PATH" not in env
+        return subject.ProcessResult(
+            0, json.dumps(projection).encode("ascii"), b"", False, True
+        )
+
+    monkeypatch.setattr(subject, "_run_contained_once", query)
+    observed = subject.capture_sandbox_generation(codex_home=home, temp_root=temp)
+    assert observed.offline_sid == OFFLINE_SID
+    assert observed.sandbox_users_json_byte_length == len(marker.read_bytes())
+    assert observed.sandbox_users_json_sha256 == hashlib.sha256(marker.read_bytes()).hexdigest()
+    subject.validate_sandbox_binding(OFFLINE_SID, observed.value, observed)
+
+
+def test_generation_marker_must_be_unique(tmp_path: Path) -> None:
+    home = (tmp_path / "codex-home").resolve()
+    home.mkdir()
+    with pytest.raises(subject.RunnerGateError) as absent:
+        subject._sandbox_users_json_identity(home)
+    assert absent.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+    for name in ("one", "two"):
+        path = home / name / "sandbox_users.json"
+        path.parent.mkdir()
+        path.write_text("{}", encoding="ascii")
+    with pytest.raises(subject.RunnerGateError) as ambiguous:
+        subject._sandbox_users_json_identity(home)
+    assert ambiguous.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_generation_capture_maps_malformed_projection_to_pre_attempt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = (tmp_path / "codex-home").resolve()
+    temp = (tmp_path / "temp").resolve()
+    home.mkdir()
+    temp.mkdir()
+    executable = Path(sys.executable).resolve()
+    payload = executable.read_bytes()
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_PATH", executable)
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_BYTE_LENGTH", len(payload))
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_SHA256", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_PATH", executable)
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_BYTE_LENGTH", len(payload))
+    monkeypatch.setattr(subject, "LOCAL_ACCOUNTS_MODULE_SHA256", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(
+        subject,
+        "_run_contained_once",
+        lambda *args, **kwargs: subject.ProcessResult(
+            0, b'{"offline_sid":"one","offline_sid":"two"}', b"", False, True
+        ),
+    )
+
+    with pytest.raises(subject.RunnerGateError) as caught:
+        subject.capture_sandbox_generation(codex_home=home, temp_root=temp)
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_adapter_rejects_generation_change_during_pre_id_observation(
+    tmp_path: Path,
+) -> None:
+    changed = subject.SandboxGenerationFingerprint.create(
+        offline_sid=OFFLINE_SID,
+        online_sid=ONLINE_SID,
+        offline_password_last_set_utc="2026-09-02T10:26:08.5697508Z",
+        online_password_last_set_utc=GENERATION.online_password_last_set_utc,
+        sandbox_users_json_byte_length=GENERATION.sandbox_users_json_byte_length,
+        sandbox_users_json_sha256=GENERATION.sandbox_users_json_sha256,
+    )
+    observations = iter((GENERATION, changed))
+    adapter = subject.CodexRunnerAdapter(
+        executable=PinnedExecutable.capture(Path(sys.executable).resolve()),
+        backend=Backend(),
+        expected_catalog=CATALOG,
+        codex_home=(tmp_path / "codex-home").resolve(),
+        temp_root=tmp_path.resolve(),
+        sandbox_generation_probe=lambda: next(observations),
+    )
+    with pytest.raises(subject.RunnerGateError) as caught:
+        adapter.qualify_canary()
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_adapter_remeasures_generation_before_formal_arm(tmp_path: Path) -> None:
+    changed = subject.SandboxGenerationFingerprint.create(
+        offline_sid=OFFLINE_SID,
+        online_sid=ONLINE_SID,
+        offline_password_last_set_utc="2026-09-02T10:26:08.5697508Z",
+        online_password_last_set_utc=GENERATION.online_password_last_set_utc,
+        sandbox_users_json_byte_length=GENERATION.sandbox_users_json_byte_length,
+        sandbox_users_json_sha256=GENERATION.sandbox_users_json_sha256,
+    )
+    observations = iter((GENERATION, GENERATION, changed))
+    backend = Backend()
+    prepare_calls = 0
+    original = backend.prepare_arm
+
+    def counted_prepare(**kwargs):
+        nonlocal prepare_calls
+        prepare_calls += 1
+        return original(**kwargs)
+
+    backend.prepare_arm = counted_prepare
+    adapter = subject.CodexRunnerAdapter(
+        executable=PinnedExecutable.capture(Path(sys.executable).resolve()),
+        backend=backend,
+        expected_catalog=CATALOG,
+        codex_home=(tmp_path / "codex-home").resolve(),
+        temp_root=tmp_path.resolve(),
+        sandbox_generation_probe=lambda: next(observations),
+    )
+    adapter.qualify_canary()
+    with pytest.raises(subject.RunnerGateError) as caught:
+        adapter.prepare_formal_arm(1)
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+    assert prepare_calls == 0
 
 
 def test_canary_and_formal_arms_are_fresh_and_unexposed(tmp_path: Path) -> None:
@@ -237,12 +503,13 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
         subject,
         "_windows_process_identity",
         lambda: subject.SandboxProcessIdentity(
-            "CodexSandboxOffline", "generation-1", "MEDIUM", False
+            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
         ),
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        sandbox_generation_capture=lambda **kwargs: GENERATION,
     )
     result = backend.execute(
         prepared_arm=_prepared(),
@@ -313,12 +580,13 @@ def test_security_identity_mismatch_denies_before_process_dispatch(
         subject,
         "_windows_process_identity",
         lambda: subject.SandboxProcessIdentity(
-            "Administrator", "generation-1", "HIGH", True
+            "Administrator", "S-1-5-21-1-2-3-500", "HIGH", True
         ),
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        sandbox_generation_capture=lambda **kwargs: GENERATION,
     )
     with pytest.raises(subject.RunnerGateError) as caught:
         backend.execute(
@@ -331,6 +599,97 @@ def test_security_identity_mismatch_denies_before_process_dispatch(
         )
     assert caught.value.code == subject.PAIR_INVALID
     assert called is False
+
+
+def test_generation_mismatch_denies_before_schema_or_codex_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    executable = PinnedExecutable.capture(Path(sys.executable).resolve())
+    dispatched = False
+    changed = subject.SandboxGenerationFingerprint.create(
+        offline_sid=OFFLINE_SID,
+        online_sid=ONLINE_SID,
+        offline_password_last_set_utc="2026-09-02T10:26:08.5697508Z",
+        online_password_last_set_utc=GENERATION.online_password_last_set_utc,
+        sandbox_users_json_byte_length=GENERATION.sandbox_users_json_byte_length,
+        sandbox_users_json_sha256=GENERATION.sandbox_users_json_sha256,
+    )
+
+    def execute(*args, **kwargs):
+        nonlocal dispatched
+        dispatched = True
+        raise AssertionError("must not dispatch")
+
+    for name in ("workspace", "codex-home", "output"):
+        (tmp_path / name).mkdir()
+    monkeypatch.setattr(subject, "_run_contained_once", execute)
+    monkeypatch.setattr(
+        subject,
+        "_windows_process_identity",
+        lambda: subject.SandboxProcessIdentity(
+            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
+        ),
+    )
+    backend = subject.NativeCodexExecBackend(
+        executable=executable,
+        configured_catalog=CATALOG,
+        sandbox_generation_capture=lambda **kwargs: changed,
+    )
+    with pytest.raises(subject.RunnerGateError) as caught:
+        backend.execute(
+            prepared_arm=_prepared(),
+            workspace_root=(tmp_path / "workspace").resolve(),
+            codex_home=(tmp_path / "codex-home").resolve(),
+            output_root=(tmp_path / "output").resolve(),
+            prompt=b"task\n",
+            output_schema={"type": "object"},
+        )
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+    assert dispatched is False
+    assert tuple((tmp_path / "output").iterdir()) == ()
+
+
+def test_generation_probe_output_mutation_denies_before_codex_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    executable = PinnedExecutable.capture(Path(sys.executable).resolve())
+    dispatched = False
+    for name in ("workspace", "codex-home", "output"):
+        (tmp_path / name).mkdir()
+
+    def execute(*args, **kwargs):
+        nonlocal dispatched
+        dispatched = True
+        raise AssertionError("must not dispatch")
+
+    def mutating_capture(**kwargs):
+        (kwargs["temp_root"] / "unexpected").write_bytes(b"mutation")
+        return GENERATION
+
+    monkeypatch.setattr(subject, "_run_contained_once", execute)
+    monkeypatch.setattr(
+        subject,
+        "_windows_process_identity",
+        lambda: subject.SandboxProcessIdentity(
+            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
+        ),
+    )
+    backend = subject.NativeCodexExecBackend(
+        executable=executable,
+        configured_catalog=CATALOG,
+        sandbox_generation_capture=mutating_capture,
+    )
+    with pytest.raises(subject.RunnerGateError) as caught:
+        backend.execute(
+            prepared_arm=_prepared(),
+            workspace_root=(tmp_path / "workspace").resolve(),
+            codex_home=(tmp_path / "codex-home").resolve(),
+            output_root=(tmp_path / "output").resolve(),
+            prompt=b"task\n",
+            output_schema={"type": "object"},
+        )
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+    assert dispatched is False
 
 
 def test_trace_and_claim_tampering_fail_closed(tmp_path: Path) -> None:
