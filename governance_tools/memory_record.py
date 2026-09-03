@@ -280,6 +280,8 @@ def _projection_marker_line_present(
     for index, line in enumerate(framed_lines):
         if index < len(framed_lines) - 1 and line.endswith("\r"):
             line = line[:-1]
+        elif index == len(framed_lines) - 1 and line.endswith("\r"):
+            raise ValueError("existing projection surface ends with a bare CR")
         if surface == SURFACE_REVIEW_LOG and line == marker:
             return True
         if (

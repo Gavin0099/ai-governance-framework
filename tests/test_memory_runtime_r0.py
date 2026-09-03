@@ -181,6 +181,30 @@ def test_legacy_boundary_record_with_valid_replacement_fails_without_duplicate_a
     assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
 
 
+def test_legacy_terminal_bare_cr_fails_without_duplicate_append(tmp_path: Path) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    persisted = memory_record.render_active_task_projection(
+        record,
+        summary="Task",
+    ).encode("utf-8")[:-1] + b"\r"
+    target.write_bytes(persisted)
+
+    with pytest.raises(ValueError, match="ends with a bare CR"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert target.read_bytes() == persisted
+    assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
+
+
 @pytest.mark.parametrize(
     "line_boundary",
     ["\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
