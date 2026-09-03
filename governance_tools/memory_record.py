@@ -276,7 +276,10 @@ def _projection_marker_line_present(
     identity: str,
 ) -> bool:
     marker = f"<!-- memory_record_projection:{surface}:{identity} -->"
-    for line in existing.splitlines():
+    framed_lines = existing.split("\n")
+    for index, line in enumerate(framed_lines):
+        if index < len(framed_lines) - 1 and line.endswith("\r"):
+            line = line[:-1]
         if surface == SURFACE_REVIEW_LOG and line == marker:
             return True
         if (

@@ -149,7 +149,7 @@ def test_writer_rejects_splitlines_boundaries_before_persisting(
     "line_boundary",
     ["\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
 )
-def test_existing_splitlines_boundary_record_fails_without_duplicate_append(
+def test_legacy_boundary_record_with_valid_replacement_fails_without_duplicate_append(
     tmp_path: Path,
     line_boundary: str,
 ) -> None:
@@ -162,14 +162,14 @@ def test_existing_splitlines_boundary_record_fails_without_duplicate_append(
     ).encode("utf-8")
     target.write_bytes(persisted)
 
-    with pytest.raises(ValueError, match="exactly one line"):
+    with pytest.raises(ValueError, match="contains a line boundary"):
         round_trip_active_task(
             project_root=project_root,
             memory_root=memory_root,
             logical_name="active_task",
             record=record,
-            summary=f"Task{line_boundary}Something",
-            authority_observation={},
+            summary="Replacement task",
+            authority_observation=_resolved_observation(record, "Replacement task"),
         )
 
     assert target.read_bytes() == persisted
