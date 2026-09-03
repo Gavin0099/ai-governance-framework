@@ -190,7 +190,7 @@ Current refresh - 2026-09-03 (Memory Runtime R1 specification accepted; implemen
   owner merge authorization. Acceptance does not authorize the implementation
   tranche or any RAG work.
 - Specification acceptance predicates were satisfied for exact reviewed head
-  `c56bef214056058e33cc607c623e1769dd22d8e8`, merged through PR #144 at
+  `c56bef21f4993cdedd6dc41f92b2ada88ff6d5c8`, merged through PR #144 at
   `c751644be56439ec8ea910de0cfaebc3c078f4ad` after owner authorization, zero
   unresolved P0/P1, green checks, and reviewed-head preservation.
 - [>] Implement the bounded two-version `active_task` supersession vertical
