@@ -26,6 +26,7 @@ def _record() -> dict[str, str]:
 def _roots(tmp_path: Path) -> tuple[Path, Path]:
     memory_root = tmp_path / "memory"
     memory_root.mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
     return tmp_path, memory_root
 
 
@@ -349,6 +350,107 @@ def test_missing_or_non_directory_memory_root_fails_closed(
             summary="Task",
             authority_observation=_resolved_observation(record, "Task"),
         )
+
+
+@pytest.mark.parametrize("root_case", ["relative", "noncanonical", "cross_repo"])
+def test_invalid_root_identity_fails_before_writer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    root_case: str,
+) -> None:
+    project_root, memory_root = _roots(tmp_path / "project")
+    record = _record()
+    writer_called = False
+
+    def unexpected_writer(**kwargs: Any) -> Any:
+        nonlocal writer_called
+        writer_called = True
+        raise AssertionError("writer must not run for an invalid root identity")
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", unexpected_writer)
+
+    if root_case == "relative":
+        monkeypatch.chdir(project_root)
+        admitted_project_root = Path(".")
+        admitted_memory_root = Path("memory")
+    elif root_case == "noncanonical":
+        child = project_root / "child"
+        child.mkdir()
+        admitted_project_root = child / ".."
+        admitted_memory_root = memory_root
+    else:
+        other_memory_root = tmp_path / "other-repo" / "memory"
+        other_memory_root.mkdir(parents=True)
+        admitted_project_root = project_root
+        admitted_memory_root = other_memory_root
+
+    with pytest.raises(ValueError):
+        round_trip_active_task(
+            project_root=admitted_project_root,
+            memory_root=admitted_memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert writer_called is False
+    assert not (memory_root / "01_active_task.md").exists()
+
+
+def test_absolute_canonical_worktree_shape_round_trip_succeeds(tmp_path: Path) -> None:
+    project_root = (tmp_path / "worktree").resolve()
+    memory_root = project_root / "memory"
+    memory_root.mkdir(parents=True)
+    (project_root / ".git").write_text("gitdir: synthetic-worktree-metadata\n", encoding="utf-8")
+    record = _record()
+
+    disposition, context = round_trip_active_task(
+        project_root=project_root,
+        memory_root=memory_root,
+        logical_name="active_task",
+        record=record,
+        summary="Task",
+        authority_observation=_resolved_observation(record, "Task"),
+    )
+
+    assert disposition == "resolved"
+    assert context == memory_record.render_active_task_projection(
+        record,
+        summary="Task",
+    ).encode("utf-8")
+
+
+def test_canonical_wrong_subtree_fails_before_writer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository_root, _repository_memory_root = _roots(tmp_path / "repository")
+    admitted_project_root = repository_root / "docs" / "governance"
+    admitted_memory_root = admitted_project_root / "memory"
+    admitted_memory_root.mkdir(parents=True)
+    record = _record()
+    writer_called = False
+
+    def unexpected_writer(**kwargs: Any) -> Any:
+        nonlocal writer_called
+        writer_called = True
+        raise AssertionError("writer must not run for a canonical wrong subtree")
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", unexpected_writer)
+
+    with pytest.raises(ValueError, match="Git worktree root"):
+        round_trip_active_task(
+            project_root=admitted_project_root,
+            memory_root=admitted_memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert writer_called is False
+    assert not (admitted_memory_root / "01_active_task.md").exists()
 
 
 def test_unknown_logical_name_fails_closed(tmp_path: Path) -> None:
