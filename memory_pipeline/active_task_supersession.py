@@ -393,6 +393,8 @@ def _parse_surface(
         is_relation = _SUPERSESSION_NAMESPACE in framed_line
         if not is_projection and not is_relation:
             continue
+        if is_projection and is_relation:
+            raise ValueError("active-task structured line declares multiple namespaces")
         if framed_line.endswith(b"\r\n"):
             payload = framed_line[:-2]
         elif framed_line.endswith(b"\n"):

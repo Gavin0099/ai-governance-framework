@@ -614,6 +614,25 @@ def test_malformed_relation_and_missing_endpoint_fail_closed(tmp_path: Path) -> 
         )
 
 
+def test_projection_line_that_also_claims_relation_namespace_fails_closed(
+    tmp_path: Path,
+) -> None:
+    project_root, memory_root, _ = _roots(tmp_path)
+    predecessor = _record("v1")
+    summary = "Inspect memory_runtime_supersession: history."
+    _write_projection(project_root, predecessor, summary)
+
+    with pytest.raises(ValueError, match="multiple namespaces"):
+        select_current_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            predecessor_record=predecessor,
+            predecessor_summary=summary,
+            authority_observation=_base_authority(predecessor, summary),
+        )
+
+
 def test_same_identity_with_changed_summary_fails_before_mutation(tmp_path: Path) -> None:
     project_root, memory_root, surface = _roots(tmp_path)
     predecessor = _record("v1")
