@@ -26,6 +26,7 @@ def _record() -> dict[str, str]:
 def _roots(tmp_path: Path) -> tuple[Path, Path]:
     memory_root = tmp_path / "memory"
     memory_root.mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
     return tmp_path, memory_root
 
 
@@ -418,6 +419,38 @@ def test_absolute_canonical_worktree_shape_round_trip_succeeds(tmp_path: Path) -
         record,
         summary="Task",
     ).encode("utf-8")
+
+
+def test_canonical_wrong_subtree_fails_before_writer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository_root, _repository_memory_root = _roots(tmp_path / "repository")
+    admitted_project_root = repository_root / "docs" / "governance"
+    admitted_memory_root = admitted_project_root / "memory"
+    admitted_memory_root.mkdir(parents=True)
+    record = _record()
+    writer_called = False
+
+    def unexpected_writer(**kwargs: Any) -> Any:
+        nonlocal writer_called
+        writer_called = True
+        raise AssertionError("writer must not run for a canonical wrong subtree")
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", unexpected_writer)
+
+    with pytest.raises(ValueError, match="Git worktree root"):
+        round_trip_active_task(
+            project_root=admitted_project_root,
+            memory_root=admitted_memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert writer_called is False
+    assert not (admitted_memory_root / "01_active_task.md").exists()
 
 
 def test_unknown_logical_name_fails_closed(tmp_path: Path) -> None:

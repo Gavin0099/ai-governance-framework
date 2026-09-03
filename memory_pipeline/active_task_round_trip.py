@@ -242,6 +242,13 @@ def _validate_canonical_roots(*, project_root: Path, memory_root: Path) -> None:
         raise ValueError("memory_root must be canonical")
     if canonical_memory_root != canonical_project_root / "memory":
         raise ValueError("memory_root must be the canonical project memory root")
+    try:
+        git_marker = canonical_project_root / ".git"
+        project_root_has_git_marker = git_marker.is_dir() or git_marker.is_file()
+    except Exception as exc:
+        raise ValueError("R0 repository root marker validation failed") from exc
+    if not project_root_has_git_marker:
+        raise ValueError("project_root must be a Git worktree root")
 
 
 def _validate_authority_observation(
