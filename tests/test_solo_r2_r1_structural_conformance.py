@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "51e9a27c2af55784d6eba21c9032a70e04eeaba9"
+        "b402fe48dc7c5ae2901757f8e584d0d2a17109a5"
     )
     assert {
         binding["sha256"]
@@ -404,7 +404,7 @@ def test_new_generation_write_preserves_previous_evidence(tmp_path: Path) -> Non
     root = _fixture_root(tmp_path)
     previous = root / conformance.PREVIOUS_EVIDENCE_RELPATH
     previous.parent.mkdir(parents=True, exist_ok=True)
-    previous_bytes = b'{"generation":"33896f22"}\n'
+    previous_bytes = b'{"generation":"51e9a27c"}\n'
     previous.write_bytes(previous_bytes)
 
     target, _ = conformance.write_evidence(root)

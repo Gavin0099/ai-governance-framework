@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "51e9a27c2af55784d6eba21c9032a70e04eeaba9"
+SOURCE_SNAPSHOT_COMMIT: Final = "b402fe48dc7c5ae2901757f8e584d0d2a17109a5"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-51e9a27c.json"
+    "r2-r1-structural-conformance-b402fe48.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-33896f22.json"
+    "r2-r1-structural-conformance-51e9a27c.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
@@ -51,8 +51,11 @@ EXCLUSION_REASON: Final = (
 _RUNTIME_MODULES: Final = (
     "governance_tools/solo_attempt_ledger_v2.py",
     "governance_tools/solo_attempt_ledger_v2_safe_verifier.py",
+    "governance_tools/solo_r2_attempt_execution.py",
+    "governance_tools/solo_r2_attempt_materialization.py",
     "governance_tools/solo_r2_blind_scoring_bundle.py",
     "governance_tools/solo_r2_bootstrap.py",
+    "governance_tools/solo_r2_codex_runner.py",
     "governance_tools/solo_r2_controller_state.py",
     "governance_tools/solo_r2_lifecycle_integration.py",
     "governance_tools/solo_r2_pair_creation.py",
