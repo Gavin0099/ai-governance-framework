@@ -48,6 +48,7 @@ _UNSUPPORTED_LINE_BOUNDARIES = (
 )
 _SUMMARY_RESERVED_TOKENS = (
     b"memory_record_projection:",
+    _SUPERSESSION_NAMESPACE,
     b"<!--",
     b"-->",
 )
@@ -326,6 +327,9 @@ def _validate_roots_and_resolve(
 
 def _build_version(record: dict[str, str], summary: str) -> _Version:
     try:
+        summary_bytes = summary.encode("utf-8", errors="strict")
+        if any(token in summary_bytes for token in _SUMMARY_RESERVED_TOKENS):
+            raise ValueError("active-task summary contains reserved structured syntax")
         caller_identity = record.get("record_identity")
         prepared_record = memory_record.prepare_projection_record(record)
         identity = prepared_record["record_identity"]

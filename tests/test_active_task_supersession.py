@@ -619,8 +619,9 @@ def test_projection_line_that_also_claims_relation_namespace_fails_closed(
 ) -> None:
     project_root, memory_root, _ = _roots(tmp_path)
     predecessor = _record("v1")
-    summary = "Inspect memory_runtime_supersession: history."
-    _write_projection(project_root, predecessor, summary)
+    persisted_summary = "Inspect memory_runtime_supersession: history."
+    requested_summary = "Inspect supersession history."
+    _write_projection(project_root, predecessor, persisted_summary)
 
     with pytest.raises(ValueError, match="multiple namespaces"):
         select_current_active_task(
@@ -628,9 +629,51 @@ def test_projection_line_that_also_claims_relation_namespace_fails_closed(
             memory_root=memory_root,
             logical_name="active_task",
             predecessor_record=predecessor,
-            predecessor_summary=summary,
-            authority_observation=_base_authority(predecessor, summary),
+            predecessor_summary=requested_summary,
+            authority_observation=_base_authority(predecessor, requested_summary),
         )
+
+
+def test_successor_relation_namespace_fails_before_writers_and_preserves_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root, memory_root, surface = _roots(tmp_path)
+    predecessor = _record("v1")
+    successor = _record("v2")
+    predecessor_summary = "Implement R1 specification."
+    successor_summary = "Inspect memory_runtime_supersession: history."
+    _write_projection(project_root, predecessor, predecessor_summary)
+    before = surface.read_bytes()
+    authority = _resolved_authority(
+        predecessor,
+        predecessor_summary,
+        successor,
+        successor_summary,
+    )
+
+    def unexpected_writer(**_: object) -> object:
+        raise AssertionError("reserved successor syntax must fail before writer invocation")
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", unexpected_writer)
+    monkeypatch.setattr(
+        memory_record,
+        "append_active_task_supersession_relation_with_outcome",
+        unexpected_writer,
+    )
+
+    with pytest.raises(ValueError, match="reserved structured syntax"):
+        _call(
+            project_root,
+            memory_root,
+            predecessor,
+            predecessor_summary,
+            successor,
+            successor_summary,
+            authority,
+        )
+
+    assert surface.read_bytes() == before
 
 
 def test_same_identity_with_changed_summary_fails_before_mutation(tmp_path: Path) -> None:
