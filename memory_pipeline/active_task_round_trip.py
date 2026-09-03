@@ -204,15 +204,7 @@ def _validate_inputs(
         raise ValueError("logical_name must be the configured active_task surface")
     if logical_name not in memory_layout.MEMORY_FILE_ALIASES:
         raise ValueError("logical_name must be defined in MEMORY_FILE_ALIASES")
-    try:
-        project_root_is_directory = project_root.exists() and project_root.is_dir()
-        memory_root_is_directory = memory_root.exists() and memory_root.is_dir()
-    except Exception as exc:
-        raise ValueError("R0 root validation failed") from exc
-    if not project_root_is_directory:
-        raise ValueError("project_root must exist and be a directory")
-    if not memory_root_is_directory:
-        raise ValueError("memory_root must exist and be a directory")
+    _validate_canonical_roots(project_root=project_root, memory_root=memory_root)
     if not isinstance(record, dict):
         raise ValueError("record must be a dict")
     if not all(isinstance(key, str) and isinstance(value, str) for key, value in record.items()):
@@ -223,6 +215,33 @@ def _validate_inputs(
         raise ValueError("authority_observation must be exactly one mapping")
     if m1b3_observation is not None and not isinstance(m1b3_observation, Mapping):
         raise ValueError("m1b3_observation must be one mapping when provided")
+
+
+def _validate_canonical_roots(*, project_root: Path, memory_root: Path) -> None:
+    if not project_root.is_absolute():
+        raise ValueError("project_root must be absolute")
+    if not memory_root.is_absolute():
+        raise ValueError("memory_root must be absolute")
+    try:
+        project_root_is_directory = project_root.exists() and project_root.is_dir()
+        memory_root_is_directory = memory_root.exists() and memory_root.is_dir()
+    except Exception as exc:
+        raise ValueError("R0 root validation failed") from exc
+    if not project_root_is_directory:
+        raise ValueError("project_root must exist and be a directory")
+    if not memory_root_is_directory:
+        raise ValueError("memory_root must exist and be a directory")
+    try:
+        canonical_project_root = project_root.resolve(strict=True)
+        canonical_memory_root = memory_root.resolve(strict=True)
+    except Exception as exc:
+        raise ValueError("R0 canonical root resolution failed") from exc
+    if project_root != canonical_project_root:
+        raise ValueError("project_root must be canonical")
+    if memory_root != canonical_memory_root:
+        raise ValueError("memory_root must be canonical")
+    if canonical_memory_root != canonical_project_root / "memory":
+        raise ValueError("memory_root must be the canonical project memory root")
 
 
 def _validate_authority_observation(
