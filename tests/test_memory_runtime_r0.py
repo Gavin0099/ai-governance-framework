@@ -162,12 +162,7 @@ def test_legacy_boundary_record_with_valid_replacement_fails_without_duplicate_a
     ).encode("utf-8")
     target.write_bytes(persisted)
 
-    expected_error = (
-        "malformed active-task grammar"
-        if line_boundary == "\r"
-        else "contains a line boundary"
-    )
-    with pytest.raises(ValueError, match=expected_error):
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
         round_trip_active_task(
             project_root=project_root,
             memory_root=memory_root,
@@ -191,7 +186,38 @@ def test_legacy_terminal_bare_cr_fails_without_duplicate_append(tmp_path: Path) 
     ).encode("utf-8")[:-1] + b"\r"
     target.write_bytes(persisted)
 
-    with pytest.raises(ValueError, match="ends with a bare CR"):
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert target.read_bytes() == persisted
+    assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
+
+
+@pytest.mark.parametrize(
+    "line_boundary",
+    ["\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+)
+def test_legacy_boundary_before_valid_marker_fails_without_duplicate_append(
+    tmp_path: Path,
+    line_boundary: str,
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    persisted = (
+        f"unrelated{line_boundary}"
+        + memory_record.render_active_task_projection(record, summary="Task")
+    ).encode("utf-8")
+    target.write_bytes(persisted)
+
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
         round_trip_active_task(
             project_root=project_root,
             memory_root=memory_root,

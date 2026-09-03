@@ -276,12 +276,16 @@ def _projection_marker_line_present(
     identity: str,
 ) -> bool:
     marker = f"<!-- memory_record_projection:{surface}:{identity} -->"
+    unsupported_boundaries = _SINGLE_LINE_BOUNDARIES[2:]
+    if any(boundary in existing for boundary in unsupported_boundaries):
+        raise ValueError("existing projection surface contains an unsupported line boundary")
+    if "\r" in existing.replace("\r\n", ""):
+        raise ValueError("existing projection surface contains an unsupported line boundary")
+
     framed_lines = existing.split("\n")
     for index, line in enumerate(framed_lines):
         if index < len(framed_lines) - 1 and line.endswith("\r"):
             line = line[:-1]
-        elif index == len(framed_lines) - 1 and line.endswith("\r"):
-            raise ValueError("existing projection surface ends with a bare CR")
         if surface == SURFACE_REVIEW_LOG and line == marker:
             return True
         if (
