@@ -235,13 +235,21 @@ entire admitted projection and relation surface from that snapshot, including:
 `BASE_CURRENT` permits the bounded mutation below. The exact already-complete
 `SUPERSEDED_CURRENT` is an idempotent success with zero writer invocations.
 The only recoverable partial state contains exactly one verified v1, exactly one
-verified v2, no relation involving either endpoint, and the same exact resolved
-supersession authorization. It has no current record and produces zero context,
-but an explicit retry of that same authorized request may invoke only the
-relation writer to append the missing exact edge. The projection writer must not
-run during this retry. Any malformed line, endpoint mismatch, digest mismatch,
-duplicate, conflicting relation, or different authorization makes the state
+verified v2, no relation involving either endpoint, and exactly one currently
+M-1-resolved supersession authorization that satisfies the semantic predicates
+above and binds those persisted endpoint pairs exactly. It has no current record
+and produces zero context, but an explicit currently authorized retry may invoke
+only the relation writer to append the missing exact edge. The projection writer
+must not run during this retry. Any malformed line, endpoint mismatch, digest
+mismatch, duplicate, conflicting relation, non-resolved authorization, or
+authorization that does not bind those exact endpoints makes the state
 non-recoverable.
+
+The failed first invocation does not persist an authorization-observation
+identity, so R1 cannot and does not claim that the retry observation is
+byte-identical to the first one. Recovery authority is established from the
+single current M-1-resolved observation supplied to the retry, not by guessing
+or reconstructing an unpersisted prior observation.
 `INVALID_OR_AMBIGUOUS`, or any root, framing, grammar, identity, digest,
 authority, endpoint, or cardinality failure discoverable from the pre-write
 snapshot, raises `ValueError` before either writer is invoked and leaves the
@@ -259,9 +267,9 @@ If step 1 succeeds and step 2 fails for a reason not discoverable from the
 validated pre-write snapshot, the unmatched v2 projection is retained with no
 current record and zero context. It can progress only through the explicit
 relation-only retry above after revalidating one fresh immutable snapshot and
-the same exact authorization. A relation whose v2 endpoint is absent also fails
-closed. R1 does not delete, roll back, automatically repair, or claim general
-transactional recovery.
+one currently M-1-resolved authorization bound to the persisted endpoint pairs.
+A relation whose v2 endpoint is absent also fails closed. R1 does not delete,
+roll back, automatically repair, or claim general transactional recovery.
 
 ## Scope
 
@@ -272,7 +280,7 @@ transactional recovery.
 - deterministic unique-current selection after complete snapshot validation;
 - v1 historical retention and zero v1 current-context rendering; and
 - idempotent retry of the exact v2 projection and exact relation; and
-- one explicit same-authorization, relation-only retry after v2 succeeded and
+- one explicit currently authorized, relation-only retry after v2 succeeded and
   relation append failed.
 
 ## Non-Goals
@@ -373,8 +381,9 @@ for this repository.
   v2 would mutate before failure; validate the complete pre-write snapshot
   before either writer invocation.
 - Rejecting every exact v1-plus-v2 partial state would make one ordinary relation
-  writer failure permanently unrecoverable; permit only the same-authorized,
-  relation-only retry while continuing to render zero context until it succeeds.
+  writer failure permanently unrecoverable; permit only a relation-only retry
+  carrying one currently M-1-resolved authorization bound to the persisted
+  endpoint pairs, while continuing to render zero context until it succeeds.
 - Ignoring malformed relation-looking lines would create a fail-open parser
   bypass.
 - Reusing `memory_identity.py` identities as active-task identities would merge
@@ -400,9 +409,11 @@ The future implementation must minimally cover:
    also present;
 9. a v2 projection left without a relation gives neither v1 nor v2 current
    status and renders zero context;
-10. the same exact resolved authorization may recover that state by invoking
-    only the relation writer, after which v2 renders exactly once;
-11. a changed authorization, identity, digest, malformed line, or conflicting
+10. exactly one currently M-1-resolved authorization bound to the persisted
+    endpoint pairs may recover that state by invoking only the relation writer,
+    after which v2 renders exactly once;
+11. a non-resolved, multiply supplied, endpoint-mismatched, or malformed current
+    authorization, an identity/digest mismatch, malformed line, or conflicting
     relation makes the partial state non-recoverable with both writer call
     counts at zero and bytes unchanged;
 12. resolved authorization binds `supersede`, `current_progress`, `active_task`,
@@ -436,7 +447,7 @@ the next separately authorized tranche should implement only:
 ```text
 append/confirm distinct v2 projection
 -> append/confirm one exact v1-to-v2 relation
--> on exact same-authorized partial retry, append only the missing relation
+-> on an exactly bound, currently authorized partial retry, append only the missing relation
 -> validate one two-node snapshot
 -> render v2 once and v1 zero times
 ```
