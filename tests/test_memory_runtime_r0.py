@@ -124,6 +124,153 @@ def test_exact_already_present_round_trip_does_not_duplicate(tmp_path: Path) -> 
     ) == 1
 
 
+@pytest.mark.parametrize(
+    "line_boundary",
+    ["\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+)
+def test_writer_rejects_splitlines_boundaries_before_persisting(
+    tmp_path: Path,
+    line_boundary: str,
+) -> None:
+    record = _record()
+
+    with pytest.raises(ValueError, match="exactly one line"):
+        memory_record.append_projection_with_outcome(
+            project_root=tmp_path,
+            record=record,
+            surface=memory_record.SURFACE_ACTIVE_TASK_SUMMARY,
+            active_task_summary=f"Task{line_boundary}Something",
+        )
+
+    assert not (tmp_path / "memory").exists()
+
+
+@pytest.mark.parametrize(
+    "line_boundary",
+    ["\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+)
+def test_legacy_boundary_record_with_valid_replacement_fails_without_duplicate_append(
+    tmp_path: Path,
+    line_boundary: str,
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    persisted = (
+        f"- Task{line_boundary}Something "
+        f"<!-- memory_record_projection:active-task-summary:{record['record_identity']} -->\n"
+    ).encode("utf-8")
+    target.write_bytes(persisted)
+
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Replacement task",
+            authority_observation=_resolved_observation(record, "Replacement task"),
+        )
+
+    assert target.read_bytes() == persisted
+    assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
+
+
+def test_legacy_terminal_bare_cr_fails_without_duplicate_append(tmp_path: Path) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    persisted = memory_record.render_active_task_projection(
+        record,
+        summary="Task",
+    ).encode("utf-8")[:-1] + b"\r"
+    target.write_bytes(persisted)
+
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert target.read_bytes() == persisted
+    assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
+
+
+@pytest.mark.parametrize(
+    "line_boundary",
+    ["\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+)
+def test_legacy_boundary_before_valid_marker_fails_without_duplicate_append(
+    tmp_path: Path,
+    line_boundary: str,
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    persisted = (
+        f"unrelated{line_boundary}"
+        + memory_record.render_active_task_projection(record, summary="Task")
+    ).encode("utf-8")
+    target.write_bytes(persisted)
+
+    with pytest.raises(ValueError, match="contains an unsupported line boundary"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+    assert target.read_bytes() == persisted
+    assert target.read_bytes().count(record["record_identity"].encode("ascii")) == 1
+
+
+@pytest.mark.parametrize(
+    "line_boundary",
+    ["\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+)
+def test_independent_parser_rejects_persisted_summary_line_boundaries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    line_boundary: str,
+) -> None:
+    record = _record()
+    project_root, memory_root = _roots(tmp_path)
+    target = memory_root / "01_active_task.md"
+    target.write_bytes(
+        (
+            f"- Historical{line_boundary}task "
+            f"<!-- memory_record_projection:active-task-summary:{record['record_identity']} -->\n"
+        ).encode("utf-8")
+    )
+    monkeypatch.setattr(
+        memory_record,
+        "append_projection_with_outcome",
+        lambda **kwargs: memory_record.MemoryWriteOutcome(
+            path=target,
+            status=memory_record.MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+            record_identity=record["record_identity"],
+            writer=memory_record.WRITER_ID,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="contains a line boundary"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary="Task",
+            authority_observation=_resolved_observation(record, "Task"),
+        )
+
+
 def test_exact_already_present_crlf_round_trip_renders_lf(tmp_path: Path) -> None:
     record = _record()
     project_root, memory_root = _roots(tmp_path)

@@ -198,12 +198,27 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
     )
 
 
+_SINGLE_LINE_BOUNDARIES = (
+    "\n",
+    "\r",
+    "\v",
+    "\f",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x85",
+    "\u2028",
+    "\u2029",
+)
+
+
 def _validate_single_line(value: str | None, *, field_name: str) -> str:
-    candidate = (value or "").strip()
+    raw_value = value or ""
+    if any(boundary in raw_value for boundary in _SINGLE_LINE_BOUNDARIES):
+        raise ValueError(f"{field_name} must be exactly one line")
+    candidate = raw_value.strip()
     if not candidate:
         raise ValueError(f"{field_name} must be non-empty")
-    if "\n" in candidate or "\r" in candidate:
-        raise ValueError(f"{field_name} must be exactly one line")
     return candidate
 
 
@@ -261,7 +276,16 @@ def _projection_marker_line_present(
     identity: str,
 ) -> bool:
     marker = f"<!-- memory_record_projection:{surface}:{identity} -->"
-    for line in existing.splitlines():
+    unsupported_boundaries = _SINGLE_LINE_BOUNDARIES[2:]
+    if any(boundary in existing for boundary in unsupported_boundaries):
+        raise ValueError("existing projection surface contains an unsupported line boundary")
+    if "\r" in existing.replace("\r\n", ""):
+        raise ValueError("existing projection surface contains an unsupported line boundary")
+
+    framed_lines = existing.split("\n")
+    for index, line in enumerate(framed_lines):
+        if index < len(framed_lines) - 1 and line.endswith("\r"):
+            line = line[:-1]
         if surface == SURFACE_REVIEW_LOG and line == marker:
             return True
         if (
@@ -319,7 +343,11 @@ def append_projection_with_outcome(
             "projection surface must be 'review-log' or 'active-task-summary'"
         )
 
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    if path.exists():
+        with path.open("r", encoding="utf-8", newline="") as fh:
+            existing = fh.read()
+    else:
+        existing = ""
     if _projection_marker_line_present(
         existing=existing,
         surface=surface,
