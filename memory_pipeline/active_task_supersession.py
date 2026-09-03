@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from governance_tools import memory_record
-from memory_pipeline import memory_layout
+from memory_pipeline import active_task_round_trip, memory_layout
 
 
 LOGICAL_NAME_ACTIVE_TASK = "active_task"
@@ -177,11 +177,24 @@ def select_current_active_task(
     predecessor = _build_version(dict(predecessor_record), predecessor_summary)
     snapshot = _read_surface(path)
 
-    successor_values = (successor_record, successor_summary, authority_observation)
+    successor_values = (successor_record, successor_summary)
     if all(value is None for value in successor_values):
+        if not isinstance(authority_observation, Mapping):
+            raise ValueError("base authority_observation must be exactly one mapping")
+        try:
+            authority_snapshot = dict(authority_observation)
+        except Exception as exc:
+            raise ValueError("R1 base authority input snapshot failed") from exc
         _validate_base_snapshot(snapshot, predecessor=predecessor)
+        authority_state = active_task_round_trip._validate_authority_observation(
+            authority_snapshot,
+            expected_identity=predecessor.identity,
+            expected_digest=predecessor.digest,
+        )
+        if authority_state in NON_RESOLVED_STATES:
+            return authority_state, b""
         return CURRENT_STATE_BASE, predecessor.canonical_bytes
-    if any(value is None for value in successor_values):
+    if any(value is None for value in successor_values) or authority_observation is None:
         raise ValueError("successor record, summary, and authorization must be supplied together")
     if not isinstance(successor_record, dict) or not isinstance(successor_summary, str):
         raise ValueError("successor record and summary types are invalid")

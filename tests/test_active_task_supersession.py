@@ -75,6 +75,23 @@ def _resolved_authority(
     return observation
 
 
+def _base_authority(
+    predecessor: dict[str, str],
+    predecessor_summary: str,
+    **overrides: Any,
+) -> dict[str, Any]:
+    observation: dict[str, Any] = {
+        "resolution_state": "resolved",
+        "query_class": "current_progress",
+        "logical_name": "active_task",
+        "requested_record_identity": predecessor["record_identity"],
+        "resolved_record_identity": predecessor["record_identity"],
+        "authorized_projection_sha256": _digest(predecessor, predecessor_summary),
+    }
+    observation.update(overrides)
+    return observation
+
+
 def _write_projection(
     project_root: Path,
     record: dict[str, str],
@@ -121,10 +138,72 @@ def test_v1_only_is_base_current(tmp_path: Path) -> None:
         logical_name="active_task",
         predecessor_record=predecessor,
         predecessor_summary=summary,
+        authority_observation=_base_authority(predecessor, summary),
     )
 
     assert disposition == CURRENT_STATE_BASE
     assert context == _projection(predecessor, summary)
+
+
+@pytest.mark.parametrize(
+    "resolution_state",
+    ["reviewer_required", "disputed", "insufficient_authority", "unassessable"],
+)
+def test_v1_only_preserves_non_resolved_authority_with_zero_context(
+    tmp_path: Path,
+    resolution_state: str,
+) -> None:
+    project_root, memory_root, _ = _roots(tmp_path)
+    predecessor = _record("v1")
+    summary = "Implement R1 specification."
+    _write_projection(project_root, predecessor, summary)
+    authority = _base_authority(
+        predecessor,
+        summary,
+        resolution_state=resolution_state,
+    )
+
+    disposition, context = select_current_active_task(
+        project_root=project_root,
+        memory_root=memory_root,
+        logical_name="active_task",
+        predecessor_record=predecessor,
+        predecessor_summary=summary,
+        authority_observation=authority,
+    )
+
+    assert disposition == resolution_state
+    assert context == b""
+
+
+def test_v1_only_requires_content_bound_authority(tmp_path: Path) -> None:
+    project_root, memory_root, _ = _roots(tmp_path)
+    predecessor = _record("v1")
+    summary = "Implement R1 specification."
+    _write_projection(project_root, predecessor, summary)
+
+    with pytest.raises(ValueError, match="base authority_observation"):
+        select_current_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            predecessor_record=predecessor,
+            predecessor_summary=summary,
+        )
+
+    with pytest.raises(ValueError, match="projection digest mismatch"):
+        select_current_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            predecessor_record=predecessor,
+            predecessor_summary=summary,
+            authority_observation=_base_authority(
+                predecessor,
+                summary,
+                authorized_projection_sha256="0" * 64,
+            ),
+        )
 
 
 def test_valid_supersession_keeps_v1_and_returns_only_v2(tmp_path: Path) -> None:
