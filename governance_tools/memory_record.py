@@ -337,7 +337,11 @@ def append_projection_with_outcome(
             "projection surface must be 'review-log' or 'active-task-summary'"
         )
 
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    if path.exists():
+        with path.open("r", encoding="utf-8", newline="") as fh:
+            existing = fh.read()
+    else:
+        existing = ""
     if _projection_marker_line_present(
         existing=existing,
         surface=surface,
