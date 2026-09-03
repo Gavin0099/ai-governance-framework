@@ -160,6 +160,31 @@ Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation 
   closeout commit does not imply that the PLAN or memory record existed in merge
   commit `ae926fc7`.
 
+Current refresh - 2026-09-03 (Memory Runtime R1 supersession specification candidate):
+
+- [>] Define one non-authoritative technical specification for exactly one
+  append-only `active_task` supersession edge from distinct v1 and v2 canonical
+  record identities.
+- DONE: the specification keeps `build_record_identity()` and
+  `memory_layout.py` unchanged; binds each version through the existing record
+  identity plus the SHA-256 of public-renderer bytes; preserves v1 as history;
+  defines exactly three dispositions where v1-only is the base current, one
+  exact v1-to-v2 relation makes v2 the superseding current, and every partial or
+  ambiguous state yields zero context; requires complete immutable pre-write
+  snapshot validation before either writer invocation; fails closed without
+  mutation on every pre-existing missing, malformed, duplicate, conflicting,
+  cyclic, self-referential, or content-mismatched lineage state; and defines a
+  focused evidence plan without implementing Runtime behavior.
+- Claim ceiling: one proposed two-version, one-edge `active_task` supersession
+  contract only. No implementation, writer/identity/layout semantic change,
+  authority-policy creation, longer lineage, migration, deletion, expiry,
+  atomicity, crash/concurrency qualification, RAG, semantic retrieval, hook,
+  CI, gate, blocker, enforcement, Gate 3, or governance authority is authorized.
+- Specification acceptance requires exact-head technical review with no
+  unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
+  owner merge authorization. Acceptance does not authorize the implementation
+  tranche or any RAG work.
+
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
 - [x] Add one deterministic report-only detector for one caller-admitted
