@@ -496,21 +496,18 @@ def _projection_marker_line_present(
     return False
 
 
-def append_projection_with_outcome(
-    *,
-    project_root: Path,
-    record: dict[str, str],
-    surface: str,
-    active_task_summary: str | None = None,
-) -> MemoryWriteOutcome:
-    """Append to one of the two fixed non-daily memory projection surfaces."""
-    normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
+def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
+    """Return the exact normalized record consumed by projection writers."""
+
+    normalized_test_evidence, evidence_error = validate_test_evidence(
+        record.get("test_evidence")
+    )
     if evidence_error is not None:
         raise ValueError(evidence_error)
-    record = dict(record)
-    record["test_evidence"] = normalized_test_evidence
-    identity = build_record_identity(record)
-    record["record_identity"] = identity
+    prepared = dict(record)
+    prepared["test_evidence"] = normalized_test_evidence
+    identity = build_record_identity(prepared)
+    prepared["record_identity"] = identity
     for field_name in (
         "writer",
         "what_changed",
@@ -521,10 +518,23 @@ def append_projection_with_outcome(
         "next_step",
         "plan_reconciliation",
     ):
-        record[field_name] = _validate_projection_field(
-            str(record.get(field_name, "")),
+        prepared[field_name] = _validate_projection_field(
+            str(prepared.get(field_name, "")),
             field_name=field_name,
         )
+    return prepared
+
+
+def append_projection_with_outcome(
+    *,
+    project_root: Path,
+    record: dict[str, str],
+    surface: str,
+    active_task_summary: str | None = None,
+) -> MemoryWriteOutcome:
+    """Append to one of the two fixed non-daily memory projection surfaces."""
+    record = prepare_projection_record(record)
+    identity = record["record_identity"]
 
     if surface == SURFACE_REVIEW_LOG:
         path = project_root / "memory" / "04_review_log.md"

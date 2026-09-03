@@ -313,10 +313,15 @@ def _validate_roots_and_resolve(
 
 def _build_version(record: dict[str, str], summary: str) -> _Version:
     try:
-        identity = memory_record.build_record_identity(record)
-        if record.get("record_identity") != identity:
+        caller_identity = record.get("record_identity")
+        prepared_record = memory_record.prepare_projection_record(record)
+        identity = prepared_record["record_identity"]
+        if caller_identity != identity:
             raise ValueError("caller record identity does not match canonical identity")
-        rendered = memory_record.render_active_task_projection(record, summary=summary)
+        rendered = memory_record.render_active_task_projection(
+            prepared_record,
+            summary=summary,
+        )
         canonical_bytes = rendered.encode("utf-8", errors="strict")
     except ValueError:
         raise
@@ -325,7 +330,7 @@ def _build_version(record: dict[str, str], summary: str) -> _Version:
     if not canonical_bytes.endswith(b"\n") or canonical_bytes.endswith(b"\r\n"):
         raise ValueError("canonical active-task projection must end with one LF")
     return _Version(
-        record=record,
+        record=prepared_record,
         summary=summary,
         identity=identity,
         canonical_bytes=canonical_bytes,

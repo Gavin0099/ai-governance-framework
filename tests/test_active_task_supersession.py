@@ -376,6 +376,62 @@ def test_unhashable_writer_status_fails_closed_as_value_error(
     assert surface.read_bytes() == before
 
 
+def test_writer_normalization_identity_drift_fails_before_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_root, memory_root, surface = _roots(tmp_path)
+    predecessor, successor = _record("v1"), _record("v2")
+    v1_summary, v2_summary = "Implement R1.", "R1 is current."
+    _write_projection(project_root, predecessor, v1_summary)
+    before = surface.read_bytes()
+    successor["test_evidence"] = f"  {successor['test_evidence']}  "
+    successor["record_identity"] = memory_record.build_record_identity(successor)
+    authority = _resolved_authority(predecessor, v1_summary, successor, v2_summary)
+
+    def unexpected_writer(**_: object) -> object:
+        raise AssertionError("normalization drift must fail before writer invocation")
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", unexpected_writer)
+    monkeypatch.setattr(
+        memory_record,
+        "append_active_task_supersession_relation_with_outcome",
+        unexpected_writer,
+    )
+    with pytest.raises(ValueError, match="identity does not match canonical identity"):
+        _call(
+            project_root,
+            memory_root,
+            predecessor,
+            v1_summary,
+            successor,
+            v2_summary,
+            authority,
+        )
+    assert surface.read_bytes() == before
+
+
+def test_writer_normalization_with_canonical_identity_completes(tmp_path: Path) -> None:
+    project_root, memory_root, _ = _roots(tmp_path)
+    predecessor, successor = _record("v1"), _record("v2")
+    v1_summary, v2_summary = "Implement R1.", "R1 is current."
+    _write_projection(project_root, predecessor, v1_summary)
+    successor["test_evidence"] = f"  {successor['test_evidence']}  "
+    successor["record_identity"] = memory_record.prepare_projection_record(successor)[
+        "record_identity"
+    ]
+    authority = _resolved_authority(predecessor, v1_summary, successor, v2_summary)
+
+    assert _call(
+        project_root,
+        memory_root,
+        predecessor,
+        v1_summary,
+        successor,
+        v2_summary,
+        authority,
+    ) == (CURRENT_STATE_SUPERSEDED, _projection(successor, v2_summary))
+
+
 def test_conflicting_prewrite_relation_fails_before_writers_and_preserves_bytes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
