@@ -493,7 +493,7 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
         nonlocal called
         called += 1
         assert command[0] == str(executable.path)
-        assert command[1:10] == (
+        assert command[1:12] == (
             "-c",
             "model_reasoning_effort=high",
             "-c",
@@ -502,8 +502,13 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
             'windows.sandbox="elevated"',
             "-c",
             "sandbox_workspace_write.network_access=false",
+            "-c",
+            'cli_auth_credentials_store="keyring"',
             "exec",
         )
+        assert command.count('cli_auth_credentials_store="keyring"') == 1
+        assert 'cli_auth_credentials_store="auto"' not in command
+        assert 'cli_auth_credentials_store="file"' not in command
         assert "--json" in command and "--ignore-user-config" in command
         assert "--strict-config" in command
         assert command[command.index("--sandbox") + 1] == "workspace-write"

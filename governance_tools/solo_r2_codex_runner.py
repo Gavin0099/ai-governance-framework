@@ -1020,6 +1020,8 @@ class NativeCodexExecBackend:
             'windows.sandbox="elevated"',
             "-c",
             "sandbox_workspace_write.network_access=false",
+            "-c",
+            'cli_auth_credentials_store="keyring"',
             "exec",
             "--ignore-user-config",
             "--strict-config",
