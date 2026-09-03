@@ -249,10 +249,16 @@ def _validate_projection_field(value: str | None, *, field_name: str) -> str:
 
 
 def _validate_active_task_summary(value: str | None) -> str:
-    return _validate_projection_field(
+    candidate = _validate_projection_field(
         value,
         field_name="active_task_summary",
     )
+    if "memory_runtime_supersession:" in candidate:
+        raise ValueError(
+            "active_task_summary contains reserved supersession syntax: "
+            "memory_runtime_supersession:"
+        )
+    return candidate
 
 
 def render_review_log_projection(record: dict[str, str]) -> str:
@@ -424,6 +430,8 @@ def _parse_active_task_structured_lines(
         is_relation = _ACTIVE_TASK_SUPERSESSION_NAMESPACE in framed_line
         if not is_projection and not is_relation:
             continue
+        if is_projection and is_relation:
+            raise ValueError("active-task structured line claims multiple namespaces")
         if framed_line.endswith(b"\r\n"):
             payload = framed_line[:-2]
         elif framed_line.endswith(b"\n"):

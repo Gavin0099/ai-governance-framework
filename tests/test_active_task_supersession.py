@@ -617,11 +617,17 @@ def test_malformed_relation_and_missing_endpoint_fail_closed(tmp_path: Path) -> 
 def test_projection_line_that_also_claims_relation_namespace_fails_closed(
     tmp_path: Path,
 ) -> None:
-    project_root, memory_root, _ = _roots(tmp_path)
+    project_root, memory_root, surface = _roots(tmp_path)
     predecessor = _record("v1")
     persisted_summary = "Inspect memory_runtime_supersession: history."
     requested_summary = "Inspect supersession history."
-    _write_projection(project_root, predecessor, persisted_summary)
+    surface.write_bytes(
+        (
+            f"- {persisted_summary} "
+            "<!-- memory_record_projection:active-task-summary:"
+            f"{predecessor['record_identity']} -->\n"
+        ).encode("utf-8")
+    )
 
     with pytest.raises(ValueError, match="multiple namespaces"):
         select_current_active_task(
@@ -649,8 +655,16 @@ def test_successor_relation_namespace_fails_before_writers_and_preserves_bytes(
         predecessor,
         predecessor_summary,
         successor,
-        successor_summary,
+        "Safe successor summary.",
     )
+    unsafe_projection = (
+        f"- {successor_summary} "
+        "<!-- memory_record_projection:active-task-summary:"
+        f"{successor['record_identity']} -->\n"
+    ).encode("utf-8")
+    authority["successor_projection_sha256"] = hashlib.sha256(
+        unsafe_projection
+    ).hexdigest()
 
     def unexpected_writer(**_: object) -> object:
         raise AssertionError("reserved successor syntax must fail before writer invocation")
@@ -671,6 +685,52 @@ def test_successor_relation_namespace_fails_before_writers_and_preserves_bytes(
             successor,
             successor_summary,
             authority,
+        )
+
+    assert surface.read_bytes() == before
+
+
+def test_canonical_projection_writer_rejects_supersession_namespace_before_write(
+    tmp_path: Path,
+) -> None:
+    project_root, _, surface = _roots(tmp_path)
+
+    with pytest.raises(ValueError, match="reserved supersession syntax"):
+        memory_record.append_projection_with_outcome(
+            project_root=project_root,
+            record=_record("v2"),
+            surface=memory_record.SURFACE_ACTIVE_TASK_SUMMARY,
+            active_task_summary="Inspect memory_runtime_supersession: history.",
+        )
+
+    assert not surface.exists()
+
+
+def test_relation_writer_rejects_dual_namespace_before_mutation(tmp_path: Path) -> None:
+    project_root, _, surface = _roots(tmp_path)
+    predecessor = _record("v1")
+    successor = _record("v2")
+    predecessor_summary = "Implement R1 specification."
+    successor_summary = "R1 implementation is ready for review."
+    _write_projection(project_root, predecessor, predecessor_summary)
+    _write_projection(project_root, successor, successor_summary)
+    with surface.open("ab") as fh:
+        fh.write(
+            (
+                "- Historical memory_runtime_supersession: note "
+                "<!-- memory_record_projection:active-task-summary:"
+                f"{'0' * 64} -->\n"
+            ).encode("utf-8")
+        )
+    before = surface.read_bytes()
+
+    with pytest.raises(ValueError, match="multiple namespaces"):
+        memory_record.append_active_task_supersession_relation_with_outcome(
+            project_root=project_root,
+            predecessor_record_identity=predecessor["record_identity"],
+            predecessor_projection_sha256=_digest(predecessor, predecessor_summary),
+            successor_record_identity=successor["record_identity"],
+            successor_projection_sha256=_digest(successor, successor_summary),
         )
 
     assert surface.read_bytes() == before
