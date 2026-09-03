@@ -27,6 +27,7 @@ CATALOG = subject.ToolCatalog.project(
 HOST_LOCAL = HostLocalIsolation(True, 0)
 OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
+LAUNCHER_SID = "S-1-5-21-4017902291-1272973841-664929404-1001"
 GENERATION = subject.SandboxGenerationFingerprint.create(
     offline_sid=OFFLINE_SID,
     online_sid=ONLINE_SID,
@@ -186,6 +187,12 @@ def test_generation_fingerprint_changes_with_password_or_marker() -> None:
 def test_sid_cannot_be_used_as_generation() -> None:
     with pytest.raises(subject.RunnerGateError) as caught:
         subject.validate_sandbox_binding_value(OFFLINE_SID, OFFLINE_SID)
+    assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
+
+
+def test_sandbox_principal_stays_bound_to_machine_offline_sid() -> None:
+    with pytest.raises(subject.RunnerGateError) as caught:
+        subject.validate_sandbox_binding(LAUNCHER_SID, GENERATION.value, GENERATION)
     assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
 
 
@@ -502,13 +509,14 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
     monkeypatch.setattr(
         subject,
         "_windows_process_identity",
-        lambda: subject.SandboxProcessIdentity(
-            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
+        lambda: subject.LauncherProcessIdentity(
+            "DESKTOP\\daish", LAUNCHER_SID, "MEDIUM", False
         ),
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        expected_launcher_sid=LAUNCHER_SID,
         sandbox_generation_capture=lambda **kwargs: GENERATION,
     )
     result = backend.execute(
@@ -562,8 +570,24 @@ def test_observed_tools_only_need_to_be_subset_of_projection(tmp_path: Path) -> 
     assert not CATALOG.admits(("unconfigured_tool",))
 
 
-def test_security_identity_mismatch_denies_before_process_dispatch(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "identity",
+    (
+        subject.LauncherProcessIdentity(
+            "DESKTOP\\other", "S-1-5-21-1-2-3-1002", "MEDIUM", False
+        ),
+        subject.LauncherProcessIdentity(
+            "DESKTOP\\daish", LAUNCHER_SID, "HIGH", False
+        ),
+        subject.LauncherProcessIdentity(
+            "DESKTOP\\daish", LAUNCHER_SID, "MEDIUM", True
+        ),
+    ),
+)
+def test_launcher_identity_mismatch_denies_before_process_dispatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    identity: subject.LauncherProcessIdentity,
 ) -> None:
     executable = PinnedExecutable.capture(Path(sys.executable).resolve())
     called = False
@@ -579,13 +603,12 @@ def test_security_identity_mismatch_denies_before_process_dispatch(
     monkeypatch.setattr(
         subject,
         "_windows_process_identity",
-        lambda: subject.SandboxProcessIdentity(
-            "Administrator", "S-1-5-21-1-2-3-500", "HIGH", True
-        ),
+        lambda: identity,
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        expected_launcher_sid=LAUNCHER_SID,
         sandbox_generation_capture=lambda **kwargs: GENERATION,
     )
     with pytest.raises(subject.RunnerGateError) as caught:
@@ -626,13 +649,14 @@ def test_generation_mismatch_denies_before_schema_or_codex_dispatch(
     monkeypatch.setattr(
         subject,
         "_windows_process_identity",
-        lambda: subject.SandboxProcessIdentity(
-            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
+        lambda: subject.LauncherProcessIdentity(
+            "DESKTOP\\daish", LAUNCHER_SID, "MEDIUM", False
         ),
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        expected_launcher_sid=LAUNCHER_SID,
         sandbox_generation_capture=lambda **kwargs: changed,
     )
     with pytest.raises(subject.RunnerGateError) as caught:
@@ -670,13 +694,14 @@ def test_generation_probe_output_mutation_denies_before_codex_dispatch(
     monkeypatch.setattr(
         subject,
         "_windows_process_identity",
-        lambda: subject.SandboxProcessIdentity(
-            "CodexSandboxOffline", OFFLINE_SID, "MEDIUM", False
+        lambda: subject.LauncherProcessIdentity(
+            "DESKTOP\\daish", LAUNCHER_SID, "MEDIUM", False
         ),
     )
     backend = subject.NativeCodexExecBackend(
         executable=executable,
         configured_catalog=CATALOG,
+        expected_launcher_sid=LAUNCHER_SID,
         sandbox_generation_capture=mutating_capture,
     )
     with pytest.raises(subject.RunnerGateError) as caught:

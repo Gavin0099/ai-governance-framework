@@ -937,18 +937,20 @@ class ProcessResult:
 
 
 @dataclass(frozen=True)
-class SandboxProcessIdentity:
+class LauncherProcessIdentity:
     principal: str
     principal_sid: str
     integrity: str
     elevated: bool
 
-    def validate(self) -> None:
-        principal_leaf = _principal_leaf(self.principal)
+    def validate(self, expected_principal_sid: str) -> None:
+        _principal_leaf(self.principal)
         if (
-            principal_leaf.casefold() != "codexsandboxoffline"
+            not isinstance(expected_principal_sid, str)
+            or _SID.fullmatch(expected_principal_sid) is None
             or not isinstance(self.principal_sid, str)
             or _SID.fullmatch(self.principal_sid) is None
+            or self.principal_sid != expected_principal_sid
             or self.integrity != "MEDIUM"
             or self.elevated is not False
         ):
@@ -991,10 +993,17 @@ class NativeCodexExecBackend:
         *,
         executable: PinnedExecutable,
         configured_catalog: ToolCatalog,
+        expected_launcher_sid: str,
         sandbox_generation_capture: Callable[..., SandboxGenerationFingerprint] | None = None,
     ) -> None:
+        if (
+            not isinstance(expected_launcher_sid, str)
+            or _SID.fullmatch(expected_launcher_sid) is None
+        ):
+            _fail(PAIR_INVALID)
         self.executable = executable
         self.configured_catalog = configured_catalog
+        self.expected_launcher_sid = expected_launcher_sid
         self._sandbox_generation_capture = (
             sandbox_generation_capture or capture_sandbox_generation
         )
@@ -1052,7 +1061,7 @@ class NativeCodexExecBackend:
         if any(output.iterdir()) or len({workspace, home, output}) != 3:
             _fail(PAIR_INVALID)
         identity = _windows_process_identity()
-        identity.validate()
+        identity.validate(self.expected_launcher_sid)
         try:
             generation = self._sandbox_generation_capture(
                 codex_home=home, temp_root=output
@@ -1062,10 +1071,6 @@ class NativeCodexExecBackend:
             _fail()
         if any(output.iterdir()):
             _fail()
-        if (
-            identity.principal_sid != prepared_arm.sandbox_principal
-        ):
-            _fail(PAIR_INVALID)
         validate_sandbox_binding(
             prepared_arm.sandbox_principal,
             prepared_arm.sandbox_account_generation,
@@ -1386,7 +1391,7 @@ def _job_is_empty(job: int | None) -> bool:
     return False
 
 
-def _windows_process_identity() -> SandboxProcessIdentity:
+def _windows_process_identity() -> LauncherProcessIdentity:
     """Read the current Windows token; environment user names are not trusted."""
 
     if os.name != "nt":
@@ -1495,6 +1500,6 @@ def _windows_process_identity() -> SandboxProcessIdentity:
         ):
             _fail()
         principal = f"{domain.value}\\{name.value}" if domain.value else name.value
-        return SandboxProcessIdentity(principal, principal_sid, integrity, not not elevation)
+        return LauncherProcessIdentity(principal, principal_sid, integrity, not not elevation)
     finally:
         kernel32.CloseHandle(token)
