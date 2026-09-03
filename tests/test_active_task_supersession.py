@@ -9,6 +9,7 @@ import pytest
 
 from governance_tools import memory_record
 from memory_pipeline import active_task_supersession
+from memory_pipeline.active_task_round_trip import round_trip_active_task
 from memory_pipeline.active_task_supersession import (
     CURRENT_STATE_BASE,
     CURRENT_STATE_SUPERSEDED,
@@ -522,6 +523,29 @@ def test_writer_normalization_with_canonical_identity_completes(tmp_path: Path) 
         v2_summary,
         authority,
     ) == (CURRENT_STATE_SUPERSEDED, _projection(successor, v2_summary))
+
+
+def test_r0_raw_identity_normalization_drift_fails_before_persisting(
+    tmp_path: Path,
+) -> None:
+    project_root, memory_root, surface = _roots(tmp_path)
+    record = _record("r0")
+    summary = "R0 remains current."
+    record["next_step"] = f"  {record['next_step']}  "
+    record["record_identity"] = memory_record.build_record_identity(record)
+    authority = _base_authority(record, summary)
+
+    with pytest.raises(ValueError, match="identity does not match canonical identity"):
+        round_trip_active_task(
+            project_root=project_root,
+            memory_root=memory_root,
+            logical_name="active_task",
+            record=record,
+            summary=summary,
+            authority_observation=authority,
+        )
+
+    assert not surface.exists()
 
 
 def test_conflicting_prewrite_relation_fails_before_writers_and_preserves_bytes(

@@ -499,6 +499,7 @@ def _projection_marker_line_present(
 def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
     """Return the exact normalized record consumed by projection writers."""
 
+    supplied_identity = record.get("record_identity")
     normalized_test_evidence, evidence_error = validate_test_evidence(
         record.get("test_evidence")
     )
@@ -522,7 +523,10 @@ def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
             str(prepared.get(field_name, "")),
             field_name=field_name,
         )
-    prepared["record_identity"] = build_record_identity(prepared)
+    normalized_identity = build_record_identity(prepared)
+    if supplied_identity is not None and supplied_identity != normalized_identity:
+        raise ValueError("record identity does not match canonical identity")
+    prepared["record_identity"] = normalized_identity
     return prepared
 
 
