@@ -198,12 +198,27 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
     )
 
 
+_SINGLE_LINE_BOUNDARIES = (
+    "\n",
+    "\r",
+    "\v",
+    "\f",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x85",
+    "\u2028",
+    "\u2029",
+)
+
+
 def _validate_single_line(value: str | None, *, field_name: str) -> str:
-    candidate = (value or "").strip()
+    raw_value = value or ""
+    if any(boundary in raw_value for boundary in _SINGLE_LINE_BOUNDARIES):
+        raise ValueError(f"{field_name} must be exactly one line")
+    candidate = raw_value.strip()
     if not candidate:
         raise ValueError(f"{field_name} must be non-empty")
-    if "\n" in candidate or "\r" in candidate:
-        raise ValueError(f"{field_name} must be exactly one line")
     return candidate
 
 

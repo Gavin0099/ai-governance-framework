@@ -34,6 +34,18 @@ _SUMMARY_RESERVED_TOKENS = (
     b"<!--",
     b"-->",
 )
+_SUMMARY_LINE_BOUNDARIES = (
+    b"\n",
+    b"\r",
+    b"\x0b",
+    b"\x0c",
+    b"\x1c",
+    b"\x1d",
+    b"\x1e",
+    "\x85".encode("utf-8"),
+    "\u2028".encode("utf-8"),
+    "\u2029".encode("utf-8"),
+)
 
 
 def round_trip_active_task(
@@ -296,6 +308,8 @@ def _parse_projection_candidates(
         summary, identity_bytes = match.groups()
         if not summary or summary.strip() != summary:
             raise ValueError("persisted active-task summary whitespace is invalid")
+        if any(boundary in summary for boundary in _SUMMARY_LINE_BOUNDARIES):
+            raise ValueError("persisted active-task summary contains a line boundary")
         if any(token in summary for token in _SUMMARY_RESERVED_TOKENS):
             raise ValueError("persisted active-task summary contains reserved syntax")
         candidates.append((identity_bytes.decode("ascii"), payload))
