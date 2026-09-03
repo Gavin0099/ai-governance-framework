@@ -506,9 +506,9 @@ def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
         raise ValueError(evidence_error)
     prepared = dict(record)
     prepared["test_evidence"] = normalized_test_evidence
-    identity = build_record_identity(prepared)
-    prepared["record_identity"] = identity
     for field_name in (
+        "record_format_version",
+        "memory_type",
         "writer",
         "what_changed",
         "commit_hash",
@@ -522,6 +522,7 @@ def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
             str(prepared.get(field_name, "")),
             field_name=field_name,
         )
+    prepared["record_identity"] = build_record_identity(prepared)
     return prepared
 
 

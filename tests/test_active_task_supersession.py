@@ -455,15 +455,28 @@ def test_unhashable_writer_status_fails_closed_as_value_error(
     assert surface.read_bytes() == before
 
 
+@pytest.mark.parametrize(
+    "identity_field",
+    [
+        "record_format_version",
+        "memory_type",
+        "writer",
+        "commit_hash",
+        "test_evidence",
+        "next_step",
+    ],
+)
 def test_writer_normalization_identity_drift_fails_before_mutation(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    identity_field: str,
 ) -> None:
     project_root, memory_root, surface = _roots(tmp_path)
     predecessor, successor = _record("v1"), _record("v2")
     v1_summary, v2_summary = "Implement R1.", "R1 is current."
     _write_projection(project_root, predecessor, v1_summary)
     before = surface.read_bytes()
-    successor["test_evidence"] = f"  {successor['test_evidence']}  "
+    successor[identity_field] = f"  {successor[identity_field]}  "
     successor["record_identity"] = memory_record.build_record_identity(successor)
     authority = _resolved_authority(predecessor, v1_summary, successor, v2_summary)
 
