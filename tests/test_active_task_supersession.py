@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -332,6 +333,37 @@ def test_invalid_authority_fails_before_writers_and_preserves_bytes(
         unexpected_writer,
     )
     with pytest.raises(ValueError, match=message):
+        _call(
+            project_root,
+            memory_root,
+            predecessor,
+            v1_summary,
+            successor,
+            v2_summary,
+            authority,
+        )
+    assert surface.read_bytes() == before
+
+
+def test_unhashable_writer_status_fails_closed_as_value_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_root, memory_root, surface = _roots(tmp_path)
+    predecessor, successor = _record("v1"), _record("v2")
+    v1_summary, v2_summary = "Implement R1.", "R1 is current."
+    _write_projection(project_root, predecessor, v1_summary)
+    before = surface.read_bytes()
+    authority = _resolved_authority(predecessor, v1_summary, successor, v2_summary)
+
+    def invalid_outcome(**_: object) -> object:
+        return SimpleNamespace(
+            path=surface,
+            status=[],
+            record_identity=successor["record_identity"],
+        )
+
+    monkeypatch.setattr(memory_record, "append_projection_with_outcome", invalid_outcome)
+    with pytest.raises(ValueError, match="unsupported status"):
         _call(
             project_root,
             memory_root,

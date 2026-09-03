@@ -604,12 +604,12 @@ def _validate_write_outcome(
         outcome_identity = outcome.record_identity  # type: ignore[attr-defined]
     except Exception as exc:
         raise ValueError("active-task writer returned an invalid outcome") from exc
-    if outcome_path != path:
+    if not isinstance(outcome_path, Path) or outcome_path != path:
         raise ValueError("active-task writer returned an unexpected path")
-    if outcome_status not in {
+    if not isinstance(outcome_status, str) or outcome_status not in {
         memory_record.MEMORY_WRITE_STATUS_WRITTEN,
         memory_record.MEMORY_WRITE_STATUS_ALREADY_PRESENT,
     }:
         raise ValueError("active-task writer returned an unsupported status")
-    if outcome_identity != identity:
+    if not isinstance(outcome_identity, str) or outcome_identity != identity:
         raise ValueError("active-task writer returned an unexpected identity")
