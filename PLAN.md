@@ -2,12 +2,12 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-08-20
+> **最後更新**: 2026-09-04
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
 > **Risk tier**: L2
-> **Planning window**: 2026-03 through 2026-08
+> **Planning window**: 2026-03 through 2026-09
 > **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
@@ -2365,7 +2365,24 @@ Current blocking relationships for this work item:
 - M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
   wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
   `handle_boundary_available()` and `ACTIVE` are both `False`.
-- Credentials, preflight and live remain unauthorized.
+- **2026-09-04 current-state reconciliation.** The active-state cutover is
+  complete: `memory/01_active_task.md` points by exact SHA-256
+  `3c255c2bc72988464afbefd13731691a244f6de84a8e7e8e7d32a4d799801bc5`
+  to `memory/05_authority_index.md`. The index is retrieval-only, not new
+  authority or independent proof.
+- R2 sandbox/custody qualification and both V2 wrappers are frozen. The first
+  production `codex exec --json` reached the service but failed HTTP 401 before
+  tool execution; Attempt and Grimm exposure stayed zero. Frozen keyring V2
+  `-Mode Status` then returned `AUTHENTICATED` for
+  `C:\Users\daish\.codex-r2-canary` under explicit keyring/no fallback, with no
+  `auth.json` and no Login. The qualification-home authentication sub-blocker
+  is cleared; production runner explicit keyring wiring and runtime
+  requalification remain required.
+- Current order: commit the staged runner keyring wiring, refresh R1 generation
+  8, rebound only the dry-run wrapper HEAD/runner pins, then separately
+  authorize the second real non-exposure dry-run. This reconciliation authorizes
+  no Login, credential read/copy/mutation, live execution, Attempt, or Gate 3
+  success claim.
 
 ### Gate 3 first-Skill funding gate — principal before engineering
 
