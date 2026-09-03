@@ -159,6 +159,8 @@ def test_tool_gate_is_explicitly_reference_only() -> None:
 
 def test_policy_claims_only_post_hoc_cap() -> None:
     policy = subject.REQUIRED_EXECUTION_POLICY
+    assert policy.approval_mode == "CODEX_NATIVE_NEVER"
+    assert policy.network_mode == "CODEX_NATIVE_SANDBOX_OFFLINE"
     assert policy.tool_call_cap_enforcement == "MEASURED_POST_HOC"
     assert policy.hard_pre_dispatch_cap == "NOT_CLAIMED"
 
@@ -491,8 +493,22 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
         nonlocal called
         called += 1
         assert command[0] == str(executable.path)
-        assert command[1:4] == ("-c", "model_reasoning_effort=high", "exec")
+        assert command[1:10] == (
+            "-c",
+            "model_reasoning_effort=high",
+            "-c",
+            'approval_policy="never"',
+            "-c",
+            'windows.sandbox="elevated"',
+            "-c",
+            "sandbox_workspace_write.network_access=false",
+            "exec",
+        )
         assert "--json" in command and "--ignore-user-config" in command
+        assert "--strict-config" in command
+        assert command[command.index("--sandbox") + 1] == "workspace-write"
+        assert "--dangerously-bypass-approvals-and-sandbox" not in command
+        assert "danger-full-access" not in command
         assert command[-3:] == ("--model", "gpt-5.6-sol", "-")
         assert timeout_seconds == 1_800 and input_bytes == b"task\n"
         assert cwd == (tmp_path / "workspace").resolve()
