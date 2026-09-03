@@ -21,6 +21,14 @@ R1 therefore addresses one question only:
 > How can one new `active_task` record explicitly supersede one previous record
 > while preserving both versions and rendering only the unique current version?
 
+This specification is an owner-authorized product-capability design slice. Its
+evidence basis is the observed repository limitation described below: current
+code has no persisted supersession relation or current-version selector. It does
+not claim that an unsafe Runtime failure has already occurred, and it does not
+add a governance surface. The repository's failure-driven governance rule would
+apply only to a separately proposed governance control, not to this explicitly
+non-authoritative working specification.
+
 ## Current Repository Truth
 
 At immutable base `34586db22abc9c9c816012ac6a1fe90d93050236`:
@@ -71,9 +79,10 @@ the admitted v2 projection exists, only the unique exact v1-to-v2 relation can
 establish a current record. Any partial or ambiguous supersession state has no
 current record and produces zero context.
 
-The relation does not make content authoritative by itself. Authorization must
-already exist outside R1 and must bind both endpoint identities and both exact
-projection digests.
+The relation does not make content authoritative by itself. One externally
+authorized supersession decision must already exist and must bind the decision,
+logical surface, both endpoint identities, and both exact projection digests as
+defined below.
 
 ## Minimal Supersession Model
 
@@ -94,6 +103,41 @@ version is referenced by the pair:
 The two records must have distinct record identities. Same identity with
 different content remains an R0 content mismatch and fails closed; R1 must not
 reinterpret it as supersession.
+
+### Supersession Authorization
+
+R1 consumes exactly one caller-admitted semantic authorization observation; it
+does not decide who may authorize supersession. The observation is usable only
+when all of these semantic predicates hold:
+
+- the decision is exactly `supersede`;
+- the logical name is exactly `active_task` and the question class is exactly
+  `current_progress`;
+- the predecessor reference equals the exact v1 `(record_identity,
+  projection_sha256)` pair;
+- the successor reference equals the exact v2 `(record_identity,
+  projection_sha256)` pair;
+- the authority source is a current human instruction or approved change under
+  the existing M-1 reader rules;
+- the M-1 resolution state is `resolved`, including current projection status,
+  authority-qualified reviewed status, traceable latest-evidence and latest-
+  transition coverage, no unreconciled later qualified change, and a coverage
+  boundary determinable without semantic guessing; and
+- one traceable source anchor identifies the external authorization evidence.
+
+R1 validates equality and the admitted resolved disposition; it does not
+re-perform reviewer qualification, infer missing coverage, or create authority.
+An admitted `reviewer_required`, `disputed`, `insufficient_authority`, or
+`unassessable` disposition remains non-resolved and produces zero context. A
+missing, malformed, non-string, unsupported, multiply supplied, unexpectedly
+different, or endpoint-mismatched semantic value fails closed with `ValueError`
+before either writer. Legacy observations that do not bind the exact decision
+and both endpoint pairs may remain historical data but cannot authorize R1.
+
+These are semantic requirements, not a frozen mapping, JSON, dataclass, CLI, or
+public Runtime result schema. The implementation tranche may choose a private
+transport shape, but it must prove every predicate above and reject ambiguous
+input rather than silently supplying defaults.
 
 ### Persisted Relation
 
@@ -163,7 +207,7 @@ closed with zero context. Longer chains are deferred rather than guessed.
 An admitted v2 projection without the unique exact edge is an incomplete
 supersession state, not a reason to continue rendering v1. It is
 `INVALID_OR_AMBIGUOUS` and fails closed with zero context. R1 does not repair or
-complete that partial state automatically.
+complete that partial state during retrieval.
 
 Structurally valid projections and relations that are disconnected from the
 admitted v1/v2 lineage may remain as historical non-target data. Malformed
@@ -185,10 +229,19 @@ entire admitted projection and relation surface from that snapshot, including:
 - endpoint presence, relation cardinality, and every relation involving v1 or
   v2; and
 - classification as either `BASE_CURRENT` or the exact already-complete
-  `SUPERSEDED_CURRENT` requested by the caller.
+  `SUPERSEDED_CURRENT` requested by the caller, or as the one narrowly
+  recoverable partial state defined below.
 
 `BASE_CURRENT` permits the bounded mutation below. The exact already-complete
 `SUPERSEDED_CURRENT` is an idempotent success with zero writer invocations.
+The only recoverable partial state contains exactly one verified v1, exactly one
+verified v2, no relation involving either endpoint, and the same exact resolved
+supersession authorization. It has no current record and produces zero context,
+but an explicit retry of that same authorized request may invoke only the
+relation writer to append the missing exact edge. The projection writer must not
+run during this retry. Any malformed line, endpoint mismatch, digest mismatch,
+duplicate, conflicting relation, or different authorization makes the state
+non-recoverable.
 `INVALID_OR_AMBIGUOUS`, or any root, framing, grammar, identity, digest,
 authority, endpoint, or cardinality failure discoverable from the pre-write
 snapshot, raises `ValueError` before either writer is invoked and leaves the
@@ -203,11 +256,12 @@ The smallest safe write order is:
    rendering v2.
 
 If step 1 succeeds and step 2 fails for a reason not discoverable from the
-validated pre-write snapshot, the unmatched v2 projection is retained in an
-`INVALID_OR_AMBIGUOUS` state with no current record and zero context. A later R1
-invocation does not silently repair it. A relation whose v2 endpoint is absent
-also fails closed. R1 does not delete, roll back, or claim transactional
-recovery.
+validated pre-write snapshot, the unmatched v2 projection is retained with no
+current record and zero context. It can progress only through the explicit
+relation-only retry above after revalidating one fresh immutable snapshot and
+the same exact authorization. A relation whose v2 endpoint is absent also fails
+closed. R1 does not delete, roll back, automatically repair, or claim general
+transactional recovery.
 
 ## Scope
 
@@ -217,7 +271,9 @@ recovery.
 - exact endpoint content binding through public-renderer SHA-256 digests;
 - deterministic unique-current selection after complete snapshot validation;
 - v1 historical retention and zero v1 current-context rendering; and
-- idempotent retry of the exact v2 projection and exact relation.
+- idempotent retry of the exact v2 projection and exact relation; and
+- one explicit same-authorization, relation-only retry after v2 succeeded and
+  relation append failed.
 
 ## Non-Goals
 
@@ -230,8 +286,8 @@ recovery.
 - no automatic decision that two records describe the same logical task;
 - no authority-policy creation or automatic supersession approval;
 - no result transport schema or public Runtime API freeze;
-- no atomic multi-write transaction, crash recovery, locking, or concurrency
-  qualification;
+- no atomic multi-write transaction, rollback, general crash recovery, locking,
+  or concurrency qualification beyond the one exact relation-only retry;
 - no expiry, deletion, compaction, migration, or historical backfill;
 - no semantic retrieval, embeddings, ranking, RAG, LLM call, or context-budget
   policy; and
@@ -264,7 +320,8 @@ Those implementation surfaces are provisional, not authorized by this spec.
 - R1 must not import private writer normalization helpers or copy the writer's
   record-identity field list.
 - A caller-admitted supersession authorization is evidence supplied to R1; R1
-  validates its exact binding but does not decide who may issue it.
+  validates its exact semantic disposition and binding but does not decide who
+  may issue it or redefine M-1 qualification.
 - Selection authority and relevance ranking are separate. Supersession decides
   which versions are eligible as current; a future retriever may rank only
   records that have already passed that eligibility boundary.
@@ -315,6 +372,9 @@ for this repository.
 - Detecting malformed or conflicting persisted relations only after appending
   v2 would mutate before failure; validate the complete pre-write snapshot
   before either writer invocation.
+- Rejecting every exact v1-plus-v2 partial state would make one ordinary relation
+  writer failure permanently unrecoverable; permit only the same-authorized,
+  relation-only retry while continuing to render zero context until it succeeds.
 - Ignoring malformed relation-looking lines would create a fail-open parser
   bypass.
 - Reusing `memory_identity.py` identities as active-task identities would merge
@@ -338,12 +398,21 @@ The future implementation must minimally cover:
 8. malformed or conflicting pre-write relation state fails with both writer
    call counts at zero and persisted bytes unchanged, even when a valid edge is
    also present;
-9. a v2 projection left without a relation makes the entire admitted state
-   invalid, so neither v1 nor v2 renders;
-10. a relation whose v2 projection is absent fails closed;
-11. unrelated structurally valid historical lineages do not affect selection;
-12. root validation fails before either writer is invoked; and
-13. unchanged inputs and filesystem snapshot produce the same selected identity
+9. a v2 projection left without a relation gives neither v1 nor v2 current
+   status and renders zero context;
+10. the same exact resolved authorization may recover that state by invoking
+    only the relation writer, after which v2 renders exactly once;
+11. a changed authorization, identity, digest, malformed line, or conflicting
+    relation makes the partial state non-recoverable with both writer call
+    counts at zero and bytes unchanged;
+12. resolved authorization binds `supersede`, `current_progress`, `active_task`,
+    both exact endpoint pairs, M-1 resolved eligibility, and a source anchor;
+13. non-resolved M-1 dispositions produce zero context, while malformed,
+    ambiguous, legacy-unbound, or multiply supplied authorization fails closed;
+14. a relation whose v2 projection is absent fails closed;
+15. unrelated structurally valid historical lineages do not affect selection;
+16. root validation fails before either writer is invoked; and
+17. unchanged inputs and filesystem snapshot produce the same selected identity
     and canonical context bytes.
 
 Validation should run the new R1 focused tests together with the existing R0
@@ -353,11 +422,11 @@ filesystem matrices are not part of this tranche.
 ## Claim Ceiling
 
 This candidate specifies one two-version, one-edge, caller-authorized
-`active_task` supersession and unique-current-selection behavior. It does not
-claim the behavior exists, is enforced, is crash-safe, is production-qualified,
-or generalizes to longer lineages or other memory surfaces. It does not claim
-RAG, semantic retrieval, deletion, expiry, concurrency safety, or authority
-policy.
+`active_task` supersession, one exact relation-only retry, and
+unique-current-selection behavior. It does not claim the behavior exists, is
+enforced, is generally crash-safe, is production-qualified, or generalizes to
+longer lineages or other memory surfaces. It does not claim RAG, semantic
+retrieval, deletion, expiry, concurrency safety, or authority policy.
 
 ## Implementation Tranche Recommendation
 
@@ -367,6 +436,7 @@ the next separately authorized tranche should implement only:
 ```text
 append/confirm distinct v2 projection
 -> append/confirm one exact v1-to-v2 relation
+-> on exact same-authorized partial retry, append only the missing relation
 -> validate one two-node snapshot
 -> render v2 once and v1 zero times
 ```

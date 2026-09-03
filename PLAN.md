@@ -170,11 +170,15 @@ Current refresh - 2026-09-03 (Memory Runtime R1 supersession specification candi
   identity plus the SHA-256 of public-renderer bytes; preserves v1 as history;
   defines exactly three dispositions where v1-only is the base current, one
   exact v1-to-v2 relation makes v2 the superseding current, and every partial or
-  ambiguous state yields zero context; requires complete immutable pre-write
-  snapshot validation before either writer invocation; fails closed without
-  mutation on every pre-existing missing, malformed, duplicate, conflicting,
-  cyclic, self-referential, or content-mismatched lineage state; and defines a
-  focused evidence plan without implementing Runtime behavior.
+  ambiguous state yields zero context; permits only one same-authorization,
+  relation-only retry for the exact v1-plus-v2 missing-edge partial state;
+  requires a caller-admitted M-1-resolved semantic authorization binding the
+  supersede decision and both endpoint identity/digest pairs; requires complete
+  immutable pre-write snapshot validation before either writer invocation;
+  fails closed without mutation on every other pre-existing missing, malformed,
+  duplicate, conflicting, cyclic, self-referential, or content-mismatched
+  lineage state; and defines a focused evidence plan without implementing
+  Runtime behavior.
 - Claim ceiling: one proposed two-version, one-edge `active_task` supersession
   contract only. No implementation, writer/identity/layout semantic change,
   authority-policy creation, longer lineage, migration, deletion, expiry,
