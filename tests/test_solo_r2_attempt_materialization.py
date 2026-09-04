@@ -357,10 +357,10 @@ def test_pair_materialization_is_byte_identical_and_sequential(tmp_path: Path) -
         repository=_binding(root),
         leaves=manager,
         packet=subject.TreatmentInstruction.load(PACKET),
-        host_local=subject.HostLocalIsolation(
-            subject.HostLocalEndpointDisposition.REACHABLE, 0
-        ),
         forbidden_snapshot_paths=("hidden-oracle.txt",),
+    )
+    host_local = subject.HostLocalIsolation(
+        subject.HostLocalEndpointDisposition.REACHABLE, 0
     )
 
     def fake_git(executable, binding, args, *, temp_root):
@@ -373,7 +373,7 @@ def test_pair_materialization_is_byte_identical_and_sequential(tmp_path: Path) -
     with mock.patch.object(subject, "verify_repository_binding"), mock.patch.object(
         subject, "_run_git", side_effect=fake_git
     ):
-        evidence = materializer.qualify_pair("pair-id")
+        evidence = materializer.qualify_pair("pair-id", host_local)
 
     assert evidence.control.inventory == evidence.treatment.inventory
     assert evidence.control.treatment_instruction_sha256 is None
@@ -400,9 +400,9 @@ def test_pair_materialization_rejects_sandbox_account_generation_drift(
         repository=_binding(root),
         leaves=subject.LeafWorkspaceManager((tmp_path / "leaves").resolve(), acl_probe=probe),
         packet=subject.TreatmentInstruction.load(PACKET),
-        host_local=subject.HostLocalIsolation(
-            subject.HostLocalEndpointDisposition.REACHABLE, 0
-        ),
+    )
+    host_local = subject.HostLocalIsolation(
+        subject.HostLocalEndpointDisposition.REACHABLE, 0
     )
 
     def fake_git(executable, binding, args, *, temp_root):
@@ -415,7 +415,7 @@ def test_pair_materialization_rejects_sandbox_account_generation_drift(
     with mock.patch.object(subject, "verify_repository_binding"), mock.patch.object(
         subject, "_run_git", side_effect=fake_git
     ), pytest.raises(subject.MaterializationError) as caught:
-        materializer.qualify_pair("pair-id")
+        materializer.qualify_pair("pair-id", host_local)
     assert caught.value.code == subject.PAIR_INVALID
 
 

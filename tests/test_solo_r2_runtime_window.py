@@ -2,29 +2,32 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from io import BytesIO
 import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
 import sys
+import tarfile
 
 import pytest
 
 from governance_tools import solo_attempt_ledger_v2 as ledger
+from governance_tools import solo_r2_attempt_materialization as materialization_subject
 from governance_tools import solo_r2_controller_state as controller_state
 from governance_tools import solo_r2_random_domains as random_domains
 from governance_tools import solo_r2_runtime_window as subject
 from governance_tools.solo_r2_attempt_execution import PairBinding, PairLedgerLock
 from governance_tools.solo_r2_attempt_materialization import (
-    ArmMaterializationEvidence,
     FROZEN_BASE_COMMIT,
+    FrozenGitMaterializer,
     HostLocalEndpointDisposition,
     HostLocalIsolation,
-    PairMaterializationEvidence,
+    LeafAclObservation,
+    LeafWorkspaceManager,
     PinnedExecutable,
     RepositoryBinding,
-    TREATMENT_PACKET_SHA256,
-    inventory_sha256,
+    TreatmentInstruction,
 )
 from governance_tools.solo_r2_codex_runner import (
     CODEX_PAYLOAD_BYTE_LENGTH,
@@ -43,6 +46,7 @@ from governance_tools.solo_r2_codex_runner import (
 
 
 CANONICAL = Path("artifacts/evidence/solo-evaluation-20260831/attempt-ledger.v2.ndjson")
+PACKET = Path("artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md")
 OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
 HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
@@ -113,25 +117,6 @@ def _order_state(binding: PairBinding) -> dict[str, object]:
         "presentation_order": [],
         "attempt_output_refs": [],
     }
-
-
-def _materialization(generation: SandboxGenerationFingerprint) -> PairMaterializationEvidence:
-    rows = (("source.txt", 7, hashlib.sha256(b"source\n").hexdigest()),)
-    common = dict(
-        base_commit=FROZEN_BASE_COMMIT,
-        inventory=rows,
-        inventory_sha256=inventory_sha256(rows),
-        sandbox_principal=OFFLINE_SID,
-        sandbox_account_generation=generation.value,
-        fresh_leaf_destroyed=True,
-    )
-    return PairMaterializationEvidence(
-        ArmMaterializationEvidence(1, treatment_instruction_sha256=None, **common),
-        ArmMaterializationEvidence(
-            2, treatment_instruction_sha256=TREATMENT_PACKET_SHA256, **common
-        ),
-        HOST_LOCAL,
-    )
 
 
 class NativeBackendDouble:
@@ -237,18 +222,6 @@ class NativeBackendDouble:
             hashlib.sha256(final).hexdigest(),
             len(final),
         )
-
-
-class MaterializerDouble:
-    def __init__(self, evidence: PairMaterializationEvidence) -> None:
-        self.evidence = evidence
-        self.leaves = SimpleNamespace(active=None)
-        self.calls: list[str] = []
-
-    def qualify_pair(self, pair_id: str) -> PairMaterializationEvidence:
-        assert self.leaves.active is None
-        self.calls.append(pair_id)
-        return self.evidence
 
 
 class FreezeProbeDouble:
@@ -1094,7 +1067,42 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
         pair_lock=pair_lock,
     )
     assert sealed_order.ordinals() == (2, 1)
-    materializer = MaterializerDouble(_materialization(GENERATION_B))
+    repository_root = (tmp_path / "materialization-repository").resolve()
+    repository_root.mkdir()
+    leaves = LeafWorkspaceManager(
+        (tmp_path / "materialization-leaves").resolve(),
+        acl_probe=lambda path: LeafAclObservation(
+            path,
+            OFFLINE_SID,
+            GENERATION_B.value,
+            True,
+            True,
+        ),
+    )
+    materializer = FrozenGitMaterializer(
+        git=executable,
+        repository=RepositoryBinding(repository_root, repository_root, repository_root),
+        leaves=leaves,
+        packet=TreatmentInstruction.load(PACKET),
+    )
+
+    archive_bytes = BytesIO()
+    with tarfile.open(fileobj=archive_bytes, mode="w:") as archive:
+        payload = b"source\n"
+        info = tarfile.TarInfo("source.txt")
+        info.size = len(payload)
+        archive.addfile(info, BytesIO(payload))
+
+    def fake_materialization_git(executable, binding, args, *, temp_root):
+        del executable, binding, temp_root
+        if args[:2] == ("rev-parse", "--verify"):
+            return (FROZEN_BASE_COMMIT + "\n").encode("ascii")
+        if args[:2] == ("archive", "--format=tar"):
+            return archive_bytes.getvalue()
+        raise AssertionError(args)
+
+    monkeypatch.setattr(materialization_subject, "verify_repository_binding", lambda *args, **kwargs: None)
+    monkeypatch.setattr(materialization_subject, "_run_git", fake_materialization_git)
     freeze_probe = FreezeProbeDouble(
         pair_lock,
         _freeze(executable, pair_lock.binding, GENERATION_B),
@@ -1104,7 +1112,7 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
         backend=backend,
         adapter=adapter,
         freeze_probe=freeze_probe,  # type: ignore[arg-type]
-        materializer=materializer,  # type: ignore[arg-type]
+        materializer=materializer,
         pair_lock=pair_lock,
         sealed_order=sealed_order,
     )
@@ -1133,7 +1141,7 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     )
     assert boundary_path.is_file()
     assert listener.closed is True
-    assert materializer.calls == [pair_lock.binding.pair_id]
+    assert result.materialization.host_local == backend.require_boundary_evidence().host_local
     assert materializer.leaves.active is None
     assert freeze_probe.checks == 5
     assert freeze_probe.quiescence_checks == 1

@@ -800,14 +800,12 @@ class FrozenGitMaterializer:
         repository: RepositoryBinding,
         leaves: LeafWorkspaceManager,
         packet: TreatmentInstruction,
-        host_local: HostLocalIsolation,
         forbidden_snapshot_paths: Sequence[str] = (),
     ) -> None:
         self.git = git
         self.repository = repository
         self.leaves = leaves
         self.packet = packet
-        self.host_local = host_local
         self.forbidden_snapshot_paths = tuple(forbidden_snapshot_paths)
 
     def _one(self, pair_id: str, ordinal: int, treatment: bool) -> ArmMaterializationEvidence:
@@ -858,12 +856,14 @@ class FrozenGitMaterializer:
             self.leaves.release(leaf)
         return evidence
 
-    def qualify_pair(self, pair_id: str) -> PairMaterializationEvidence:
+    def qualify_pair(
+        self, pair_id: str, host_local: HostLocalIsolation
+    ) -> PairMaterializationEvidence:
         if not isinstance(pair_id, str) or not pair_id:
             _fail()
-        self.host_local.validate()
+        host_local.validate()
         control = self._one(pair_id, 1, False)
         treatment = self._one(pair_id, 2, True)
-        result = PairMaterializationEvidence(control, treatment, self.host_local)
+        result = PairMaterializationEvidence(control, treatment, host_local)
         result.validate()
         return result

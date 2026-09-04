@@ -1881,13 +1881,17 @@ class PreAttemptFrozenRuntimeWindow:
                 _fail(SAME_MACHINE_WINDOW_REJECTED)
             self.backend.bind_freeze(candidate.generation)
             qualification = self.adapter.qualify_canary()
+            boundary_evidence = self.backend.require_boundary_evidence()
             freeze = self.freeze_probe.finalize(
                 candidate,
-                self.backend.require_boundary_evidence(),
+                boundary_evidence,
             )
             self.freeze_probe.assert_unchanged(freeze)
 
-            materialization = self.materializer.qualify_pair(self.pair_lock.binding.pair_id)
+            materialization = self.materializer.qualify_pair(
+                self.pair_lock.binding.pair_id,
+                boundary_evidence.host_local,
+            )
             if self.materializer.leaves.active is not None:
                 _fail(PAIR_INVALID)
             self.freeze_probe.assert_unchanged(freeze)
