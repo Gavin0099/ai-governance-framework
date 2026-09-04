@@ -129,9 +129,11 @@ class NativeBackendDouble:
         self.executable = executable
         self.configured_catalog = CATALOG
         self.calls = 0
+        self.preparations: list[object] = []
 
     def execute(self, **kwargs) -> NativeExecutionResult:
         self.calls += 1
+        self.preparations.append(kwargs["prepared_arm"])
         workspace = kwargs["workspace_root"]
         output = kwargs["output_root"]
         challenge = (workspace / "qualification-challenge.txt").read_text("ascii")
@@ -227,8 +229,26 @@ class FreezeProbeDouble:
     def assert_runtime_quiescent(self) -> None:
         self.quiescence_checks += 1
 
-    def capture(self) -> subject.RuntimeFreeze:
+    def capture_candidate(self) -> subject.RuntimeFreezeCandidate:
         self.pair_lock.assert_unchanged()
+        return subject.RuntimeFreezeCandidate(
+            **{
+                key: value
+                for key, value in self.freeze.__dict__.items()
+                if key != "boundary_evidence_sha256"
+            }
+        )
+
+    def finalize(
+        self,
+        candidate: subject.RuntimeFreezeCandidate,
+        boundary_evidence: subject.PreExposureBoundaryEvidence,
+    ) -> subject.RuntimeFreeze:
+        assert candidate == self.capture_candidate()
+        self.freeze = subject.RuntimeFreeze(
+            **candidate.__dict__,
+            boundary_evidence_sha256=boundary_evidence.evidence_sha256,
+        )
         return self.freeze
 
     def assert_unchanged(self, expected: subject.RuntimeFreeze) -> None:
@@ -263,8 +283,24 @@ def _freeze(
         binding.slot,
         (str(executable.path), "exec"),
         "4" * 64,
+        True,
         "5" * 64,
     )
+
+
+class PassingBoundarySource:
+    def __call__(self, **kwargs) -> subject.PreExposureBoundaryObservation:
+        assert kwargs["result"] is not None
+        kwargs["generation"].validate()
+        return subject.PreExposureBoundaryObservation(
+            "DENIED",
+            True,
+            "BLOCKED",
+            True,
+            True,
+            0,
+            (),
+        )
 
 
 def test_current_codex_0153_payload_is_exactly_pinned() -> None:
@@ -398,6 +434,93 @@ def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Pat
         subject.PreExposureBoundaryEvidence.load(path, expected_sha256=digest)
 
 
+def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -> None:
+    path = (tmp_path / "boundary.json").resolve()
+    producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=path,
+        observation_source=PassingBoundarySource(),
+    )
+    result = SimpleNamespace()
+    evidence = producer.produce(  # type: ignore[arg-type]
+        result=result,
+        generation=GENERATION_B,
+    )
+    evidence.validate()
+    assert evidence.credential_sentinel_visible is False
+    assert evidence.network_tcp_egress_denied is True
+    assert evidence.host_local == HOST_LOCAL
+    assert subject.PreExposureBoundaryEvidence.load(
+        path,
+        expected_sha256=evidence.evidence_sha256,
+    ) == evidence
+    with pytest.raises(subject.RuntimeWindowError):
+        producer.produce(result=result, generation=GENERATION_B)  # type: ignore[arg-type]
+    with pytest.raises(subject.RuntimeWindowError):
+        subject.PreExposureBoundaryEvidence.create_once(
+            path,
+            credential_sentinel_visible=False,
+            network_tcp_egress_denied=True,
+            host_local=HOST_LOCAL,
+        )
+
+
+@pytest.mark.parametrize(
+    "changes, expected_code",
+    (
+        ({"credential_read": "UNAVAILABLE"}, subject.PAIR_INVALID),
+        ({"launcher_egress_pre_reachable": False}, subject.PAIR_INVALID),
+        ({"child_egress_connect": "CONNECTED"}, subject.PAIR_INVALID),
+        ({"launcher_egress_post_reachable": False}, subject.PAIR_INVALID),
+        ({"host_local_endpoint_reachable": None}, subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE),
+        ({"host_local_endpoint_reachable": False}, subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE),
+        ({"observed_host_listener_count": None}, subject.PAIR_INVALID),
+        ({"observed_host_listener_count": 1}, subject.PAIR_INVALID),
+        ({"runtime_endpoint_inputs": ("tcp://host:1",)}, subject.PAIR_INVALID),
+    ),
+)
+def test_boundary_producer_fails_closed_on_unusable_observation(
+    tmp_path: Path,
+    changes: dict[str, object],
+    expected_code: str,
+) -> None:
+    values: dict[str, object] = {
+        "credential_read": "DENIED",
+        "launcher_egress_pre_reachable": True,
+        "child_egress_connect": "BLOCKED",
+        "launcher_egress_post_reachable": True,
+        "host_local_endpoint_reachable": True,
+        "observed_host_listener_count": 0,
+        "runtime_endpoint_inputs": (),
+    }
+    values.update(changes)
+
+    def source(**kwargs) -> subject.PreExposureBoundaryObservation:
+        del kwargs
+        return subject.PreExposureBoundaryObservation(**values)  # type: ignore[arg-type]
+
+    path = (tmp_path / "boundary.json").resolve()
+    producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=path,
+        observation_source=source,
+    )
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        producer.produce(result=SimpleNamespace(), generation=GENERATION_B)  # type: ignore[arg-type]
+    assert caught.value.code == expected_code
+    assert not path.exists()
+
+
+def test_current_host_local_source_is_an_explicit_stop(tmp_path: Path) -> None:
+    path = (tmp_path / "boundary.json").resolve()
+    producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=path,
+        observation_source=subject.HostLocalObservationUnavailable(),
+    )
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        producer.produce(result=SimpleNamespace(), generation=GENERATION_B)  # type: ignore[arg-type]
+    assert caught.value.code == subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE
+    assert not path.exists()
+
+
 def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -418,7 +541,11 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
         observations += 1
         return GENERATION_A if observations == 1 else GENERATION_B
 
-    boundary = subject.PreExposureBoundaryEvidence("5" * 64, False, True, HOST_LOCAL)
+    boundary_path = (tmp_path / "boundary.json").resolve()
+    boundary_producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=boundary_path,
+        observation_source=PassingBoundarySource(),
+    )
     identity = RuntimeIdentity(
         "gpt-5.6-sol",
         "high",
@@ -437,7 +564,7 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
         qualification_output=(tmp_path / "qualification-output").resolve(),
         whoami=executable,
         runtime_identity=identity,
-        boundary_evidence=boundary,
+        boundary_producer=boundary_producer,
         generation_probe=generation_probe,
     )
     adapter = subject.CodexRunnerAdapter(
@@ -497,6 +624,13 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     assert result.validation.initiated_attempt_count == 0
     assert backend.prepared_ordinals == (2, 1)
     assert native.calls == 2
+    assert all(
+        isinstance(value, subject.ProvisioningExecutionPreparation)
+        for value in native.preparations
+    )
+    assert all(not hasattr(value, "host_local") for value in native.preparations)
+    assert backend.boundary_evidence is not None
+    assert boundary_path.is_file()
     assert materializer.calls == [pair_lock.binding.pair_id]
     assert materializer.leaves.active is None
     assert freeze_probe.checks == 5

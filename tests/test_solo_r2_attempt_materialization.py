@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import base64
 from io import BytesIO
+import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 import tarfile
 from unittest import mock
@@ -67,6 +70,216 @@ def test_leaf_manager_enforces_one_active_and_create_once(tmp_path: Path) -> Non
     manager.release(first)
     with pytest.raises(subject.MaterializationError):
         manager.create("pair-1")
+
+
+def _generation(value: str = "generation-1") -> SimpleNamespace:
+    generation = SimpleNamespace(
+        offline_sid="S-1-5-21-1-2-3-1003",
+        value=value,
+    )
+    generation.validate = lambda: None
+    return generation
+
+
+def _acl_projection(
+    launcher_sid: str,
+    offline_sid: str,
+    *,
+    protected: bool = True,
+) -> bytes:
+    return json.dumps(
+        {
+            "protected": protected,
+            "sandbox_group_sid": "S-1-5-21-1-2-3-1005",
+            "offline_member": True,
+            "rules": [
+                {
+                    "sid": "S-1-5-18",
+                    "rights": 2_032_127,
+                    "access_type": 0,
+                    "inheritance": 3,
+                    "propagation": 0,
+                    "inherited": False,
+                },
+                {
+                    "sid": "S-1-5-32-544",
+                    "rights": 2_032_127,
+                    "access_type": 0,
+                    "inheritance": 3,
+                    "propagation": 0,
+                    "inherited": False,
+                },
+                {
+                    "sid": launcher_sid,
+                    "rights": 2_032_127,
+                    "access_type": 0,
+                    "inheritance": 3,
+                    "propagation": 0,
+                    "inherited": False,
+                },
+                {
+                    "sid": "S-1-5-21-1-2-3-1005",
+                    "rights": 197_055,
+                    "access_type": 0,
+                    "inheritance": 3,
+                    "propagation": 0,
+                    "inherited": False,
+                },
+            ],
+        },
+        separators=(",", ":"),
+    ).encode("ascii")
+
+
+def test_windows_leaf_acl_probe_prepares_and_reads_exact_safe_shape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leaf = (tmp_path / "leaf").resolve()
+    temp = (tmp_path / "temp").resolve()
+    leaf.mkdir()
+    temp.mkdir()
+    launcher_sid = "S-1-5-21-1-2-3-1001"
+    generation = _generation()
+    calls: list[tuple[object, ...]] = []
+
+    def run(command, **kwargs):
+        calls.append(tuple(command))
+        assert kwargs["shell"] is False
+        assert kwargs["cwd"] == leaf
+        assert "PATH" not in kwargs["env"]
+        return SimpleNamespace(
+            returncode=0,
+            stdout=_acl_projection(launcher_sid, generation.offline_sid),
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(subject.subprocess, "run", run)
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(Path(sys.executable).resolve()),
+        launcher_sid=launcher_sid,
+        generation_probe=lambda: generation,
+        credentials_denied=lambda observed: observed is generation,
+        temp_root=temp,
+    )
+    observation = probe(leaf)
+    observation.validate(leaf)
+    assert observation.sandbox_principal == generation.offline_sid
+    assert observation.sandbox_account_generation == generation.value
+    assert len(calls) == 1
+    assert calls[0][1:5] == (
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-EncodedCommand",
+    )
+    script = base64.b64decode(calls[0][5]).decode("utf-16-le")
+    assert "CodexSandboxUsers" in script
+    assert generation.offline_sid in script
+
+
+def test_windows_leaf_manager_factory_uses_concrete_probe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    temp = (tmp_path / "temp").resolve()
+    temp.mkdir()
+    launcher_sid = "S-1-5-21-1-2-3-1001"
+    generation = _generation()
+    monkeypatch.setattr(
+        subject.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=_acl_projection(launcher_sid, generation.offline_sid),
+            stderr=b"",
+        ),
+    )
+    manager = subject.LeafWorkspaceManager.for_windows_runtime(
+        (tmp_path / "leaves").resolve(),
+        powershell=subject.PinnedExecutable.capture(Path(sys.executable).resolve()),
+        launcher_sid=launcher_sid,
+        generation_probe=lambda: generation,
+        credentials_denied=lambda observed: observed is generation,
+        temp_root=temp,
+    )
+    leaf = manager.create("pair-1")
+    assert isinstance(manager._acl_probe, subject.WindowsLeafAclProbe)
+    leaf.acl.validate(leaf.path)
+    manager.release(leaf)
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ("unprotected", "extra_ace", "offline_not_member", "credential_visible"),
+)
+def test_windows_leaf_acl_probe_fails_closed_on_untrusted_observation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: str,
+) -> None:
+    leaf = (tmp_path / "leaf").resolve()
+    temp = (tmp_path / "temp").resolve()
+    leaf.mkdir()
+    temp.mkdir()
+    launcher_sid = "S-1-5-21-1-2-3-1001"
+    generation = _generation()
+    projection = json.loads(_acl_projection(launcher_sid, generation.offline_sid))
+    if failure == "unprotected":
+        projection["protected"] = False
+    elif failure == "extra_ace":
+        projection["rules"].append(dict(projection["rules"][0]))
+    elif failure == "offline_not_member":
+        projection["offline_member"] = False
+
+    monkeypatch.setattr(
+        subject.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(projection, separators=(",", ":")).encode("ascii"),
+            stderr=b"",
+        ),
+    )
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(Path(sys.executable).resolve()),
+        launcher_sid=launcher_sid,
+        generation_probe=lambda: generation,
+        credentials_denied=lambda observed: failure != "credential_visible",
+        temp_root=temp,
+    )
+    with pytest.raises(subject.MaterializationError):
+        probe(leaf)
+
+
+def test_windows_leaf_acl_probe_rejects_generation_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    leaf = (tmp_path / "leaf").resolve()
+    temp = (tmp_path / "temp").resolve()
+    leaf.mkdir()
+    temp.mkdir()
+    launcher_sid = "S-1-5-21-1-2-3-1001"
+    before = _generation("generation-1")
+    after = _generation("generation-2")
+    generations = iter((before, after))
+    monkeypatch.setattr(
+        subject.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=_acl_projection(launcher_sid, before.offline_sid),
+            stderr=b"",
+        ),
+    )
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(Path(sys.executable).resolve()),
+        launcher_sid=launcher_sid,
+        generation_probe=lambda: next(generations),
+        credentials_denied=lambda observed: True,
+        temp_root=temp,
+    )
+    with pytest.raises(subject.MaterializationError) as caught:
+        probe(leaf)
+    assert caught.value.code == subject.PAIR_INVALID
 
 
 def test_host_local_reachability_requires_zero_listener_and_zero_inputs() -> None:

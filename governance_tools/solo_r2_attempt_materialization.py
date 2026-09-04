@@ -8,17 +8,19 @@ written into the consumer snapshot.
 
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 import hashlib
 from io import BytesIO
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import subprocess
 import tarfile
-from typing import Callable, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 
 MATERIALIZATION_FAILURE = "PRE_ATTEMPT_INFRA_FAILURE / STOP"
@@ -178,6 +180,242 @@ class LeafAclObservation:
 AclProbe = Callable[[Path], LeafAclObservation]
 
 
+_WINDOWS_SID = re.compile(r"S-1-(?:\d+-)+\d+\Z")
+_WINDOWS_FULL_CONTROL = 2_032_127
+_WINDOWS_MODIFY = 197_055
+
+
+class WindowsLeafAclProbe:
+    """Prepare and read back one canonical, run-owned Windows leaf DACL.
+
+    This is deliberately narrower than token simulation.  Only the protected,
+    non-inherited four-ACE shape created here is admissible.  Credential denial
+    must be supplied by the child-side boundary producer for the same sandbox
+    generation; it is never inferred from the leaf DACL.
+    """
+
+    def __init__(
+        self,
+        *,
+        powershell: PinnedExecutable,
+        launcher_sid: str,
+        generation_probe: Callable[[], Any],
+        credentials_denied: Callable[[Any], bool],
+        temp_root: Path | str,
+    ) -> None:
+        self.powershell = powershell
+        self.launcher_sid = launcher_sid
+        self.generation_probe = generation_probe
+        self.credentials_denied = credentials_denied
+        self.temp_root = Path(temp_root)
+        if (
+            _WINDOWS_SID.fullmatch(launcher_sid) is None
+            or not callable(generation_probe)
+            or not callable(credentials_denied)
+            or not self.temp_root.is_absolute()
+        ):
+            _fail(PAIR_INVALID)
+        try:
+            temp_stat = os.lstat(self.temp_root)
+            resolved_temp = self.temp_root.resolve(strict=True)
+        except OSError:
+            _fail()
+        if (
+            resolved_temp != self.temp_root.resolve()
+            or not stat.S_ISDIR(temp_stat.st_mode)
+            or _is_reparse(temp_stat)
+        ):
+            _fail(PAIR_INVALID)
+        self.temp_root = resolved_temp
+        self.powershell.verify()
+
+    @staticmethod
+    def _quote(value: str) -> str:
+        if not value or any(character in value for character in "'\r\n"):
+            _fail(PAIR_INVALID)
+        return f"'{value}'"
+
+    def _command(self, leaf: Path, offline_sid: str) -> tuple[str, ...]:
+        if _WINDOWS_SID.fullmatch(offline_sid) is None:
+            _fail(PAIR_INVALID)
+        fixed_rules = (
+            ("S-1-5-18", "FullControl"),
+            ("S-1-5-32-544", "FullControl"),
+            (self.launcher_sid, "FullControl"),
+        )
+        additions = "".join(
+            "$sid=New-Object System.Security.Principal.SecurityIdentifier("
+            f"{self._quote(sid)});"
+            "$rule=New-Object System.Security.AccessControl.FileSystemAccessRule("
+            "$sid,"
+            f"[System.Security.AccessControl.FileSystemRights]::{right},"
+            "([System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor "
+            "[System.Security.AccessControl.InheritanceFlags]::ObjectInherit),"
+            "[System.Security.AccessControl.PropagationFlags]::None,"
+            "[System.Security.AccessControl.AccessControlType]::Allow);"
+            "$acl.AddAccessRule($rule)|Out-Null;"
+            for sid, right in fixed_rules
+        )
+        script = (
+            "$ErrorActionPreference='Stop';"
+            f"$path={self._quote(str(leaf))};"
+            f"$offlineSidValue={self._quote(offline_sid)};"
+            "$sandboxGroupName='CodexSandboxUsers';"
+            "$sandboxGroupAccount=New-Object System.Security.Principal.NTAccount("
+            "$sandboxGroupName);"
+            "$sandboxGroupSid=$sandboxGroupAccount.Translate("
+            "[System.Security.Principal.SecurityIdentifier]);"
+            "Add-Type -AssemblyName System.DirectoryServices.AccountManagement;"
+            "$principalContext=New-Object "
+            "System.DirectoryServices.AccountManagement.PrincipalContext("
+            "[System.DirectoryServices.AccountManagement.ContextType]::Machine);"
+            "$groupPrincipal=[System.DirectoryServices.AccountManagement.GroupPrincipal]"
+            "::FindByIdentity($principalContext,$sandboxGroupSid.Value);"
+            "if($null -eq $groupPrincipal){throw 'sandbox group missing'};"
+            "$memberSids=@($groupPrincipal.GetMembers($true)|ForEach-Object{"
+            "if($null -ne $_.Sid){$_.Sid.Value}});"
+            "$directory=New-Object System.IO.DirectoryInfo($path);"
+            "$acl=New-Object System.Security.AccessControl.DirectorySecurity;"
+            "$acl.SetAccessRuleProtection($true,$false);"
+            + additions
+            + "$groupRule=New-Object System.Security.AccessControl.FileSystemAccessRule("
+            "$sandboxGroupSid,[System.Security.AccessControl.FileSystemRights]::Modify,"
+            "([System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor "
+            "[System.Security.AccessControl.InheritanceFlags]::ObjectInherit),"
+            "[System.Security.AccessControl.PropagationFlags]::None,"
+            "[System.Security.AccessControl.AccessControlType]::Allow);"
+            "$acl.AddAccessRule($groupRule)|Out-Null;"
+            + "$directory.SetAccessControl($acl);"
+            "$observed=$directory.GetAccessControl("
+            "[System.Security.AccessControl.AccessControlSections]::Access);"
+            "$rows=@($observed.GetAccessRules($true,$true,"
+            "[System.Security.Principal.SecurityIdentifier])|ForEach-Object{"
+            "[ordered]@{sid=$_.IdentityReference.Value;"
+            "rights=[int]$_.FileSystemRights;access_type=[int]$_.AccessControlType;"
+            "inheritance=[int]$_.InheritanceFlags;"
+            "propagation=[int]$_.PropagationFlags;inherited=[bool]$_.IsInherited}});"
+            "[ordered]@{protected=[bool]$observed.AreAccessRulesProtected;"
+            "sandbox_group_sid=$sandboxGroupSid.Value;"
+            "offline_member=[bool]($memberSids -contains $offlineSidValue);rules=$rows}"
+            "|ConvertTo-Json -Compress -Depth 4"
+        )
+        encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+        return (
+            str(self.powershell.verify()),
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-EncodedCommand",
+            encoded,
+        )
+
+    def __call__(self, leaf: Path) -> LeafAclObservation:
+        try:
+            resolved_leaf = leaf.resolve(strict=True)
+            value = os.lstat(resolved_leaf)
+            generation = self.generation_probe()
+            generation.validate()
+            offline_sid = generation.offline_sid
+            generation_value = generation.value
+        except (AttributeError, OSError):
+            _fail()
+        if (
+            resolved_leaf != leaf.resolve()
+            or not stat.S_ISDIR(value.st_mode)
+            or _is_reparse(value)
+            or _WINDOWS_SID.fullmatch(offline_sid) is None
+            or not isinstance(generation_value, str)
+            or not generation_value
+        ):
+            _fail(PAIR_INVALID)
+        environment = {"TEMP": str(self.temp_root), "TMP": str(self.temp_root)}
+        for key in ("COMSPEC", "SYSTEMROOT", "WINDIR"):
+            if os.environ.get(key):
+                environment[key] = os.environ[key]
+        try:
+            completed = subprocess.run(
+                self._command(resolved_leaf, offline_sid),
+                cwd=resolved_leaf,
+                env=environment,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=30,
+                check=False,
+                shell=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            _fail()
+        self.powershell.verify()
+        if (
+            completed.returncode != 0
+            or completed.stderr
+            or not completed.stdout
+            or len(completed.stdout) > 65_536
+        ):
+            _fail()
+        try:
+            projection = json.loads(completed.stdout)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            _fail(PAIR_INVALID)
+        if not isinstance(projection, dict) or set(projection) != {
+            "protected",
+            "sandbox_group_sid",
+            "offline_member",
+            "rules",
+        }:
+            _fail(PAIR_INVALID)
+        sandbox_group_sid = projection["sandbox_group_sid"]
+        rows = projection["rules"]
+        if (
+            _WINDOWS_SID.fullmatch(sandbox_group_sid) is None
+            or sandbox_group_sid in {self.launcher_sid, offline_sid}
+            or projection["offline_member"] is not True
+            or not isinstance(rows, list)
+        ):
+            _fail(PAIR_INVALID)
+        expected = {
+            ("S-1-5-18", _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
+            ("S-1-5-32-544", _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
+            (self.launcher_sid, _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
+            (sandbox_group_sid, _WINDOWS_MODIFY, 0, 3, 0, False),
+        }
+        observed: set[tuple[object, ...]] = set()
+        for row in rows:
+            if not isinstance(row, dict) or set(row) != {
+                "sid",
+                "rights",
+                "access_type",
+                "inheritance",
+                "propagation",
+                "inherited",
+            }:
+                _fail(PAIR_INVALID)
+            observed.add(tuple(row[key] for key in (
+                "sid", "rights", "access_type", "inheritance", "propagation", "inherited"
+            )))
+        if (
+            projection["protected"] is not True
+            or len(rows) != len(expected)
+            or observed != expected
+        ):
+            _fail(PAIR_INVALID)
+        try:
+            denied = self.credentials_denied(generation)
+            generation_after = self.generation_probe()
+        except Exception:
+            _fail()
+        if denied is not True or generation_after != generation:
+            _fail(PAIR_INVALID)
+        return LeafAclObservation(
+            resolved_leaf,
+            offline_sid,
+            generation_value,
+            True,
+            True,
+        )
+
+
 @dataclass(frozen=True)
 class TreatmentInstruction:
     payload: bytes
@@ -213,6 +451,30 @@ class LeafWorkspace:
 
 class LeafWorkspaceManager:
     """Create-once leaves with at most one active leaf in this process."""
+
+    @classmethod
+    def for_windows_runtime(
+        cls,
+        root: Path | str,
+        *,
+        powershell: PinnedExecutable,
+        launcher_sid: str,
+        generation_probe: Callable[[], Any],
+        credentials_denied: Callable[[Any], bool],
+        temp_root: Path | str,
+    ) -> "LeafWorkspaceManager":
+        """Compose the production leaf manager with the concrete ACL probe."""
+
+        return cls(
+            root,
+            acl_probe=WindowsLeafAclProbe(
+                powershell=powershell,
+                launcher_sid=launcher_sid,
+                generation_probe=generation_probe,
+                credentials_denied=credentials_denied,
+                temp_root=temp_root,
+            ),
+        )
 
     def __init__(self, root: Path | str, *, acl_probe: AclProbe) -> None:
         self.root = Path(root)

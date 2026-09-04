@@ -17,7 +17,7 @@ from pathlib import Path, PurePosixPath
 import re
 import secrets
 import stat
-from typing import Callable, Mapping
+from typing import Callable, Mapping, Protocol
 import uuid
 
 from governance_tools import solo_r2_controller_state as controller_state
@@ -44,7 +44,9 @@ from governance_tools.solo_r2_codex_runner import (
     CanaryObservation,
     CanaryQualification,
     CodexRunnerAdapter,
+    ExecutionPolicy,
     NativeCodexExecBackend,
+    NativeExecutionPreparation,
     NativeExecutionResult,
     PreparedArm,
     RuntimeIdentity,
@@ -60,6 +62,7 @@ from governance_tools.solo_r2_codex_runner import (
 PRE_ATTEMPT_INFRA_FAILURE = "PRE_ATTEMPT_INFRA_FAILURE / STOP"
 PAIR_INVALID = "PAIR_INVALID / STOP"
 SAME_MACHINE_WINDOW_REJECTED = "SAME_MACHINE_WINDOW_REJECTED / STOP"
+HOST_LOCAL_OBSERVATION_UNAVAILABLE = "HOST_LOCAL_OBSERVATION_UNAVAILABLE / STOP"
 READY_BEFORE_ATTEMPT = "R2_READY_BEFORE_ATTEMPT_HANDLE_CREATION"
 QUALIFICATION_STATUS = "R2_NON_EXPOSURE_OK"
 BOUNDARY_SCHEMA = "solo-r2-pre-exposure-boundary/v1"
@@ -119,6 +122,48 @@ class PreExposureBoundaryEvidence:
             _fail(PAIR_INVALID)
 
     @classmethod
+    def create_once(
+        cls,
+        path: Path | str,
+        *,
+        credential_sentinel_visible: bool,
+        network_tcp_egress_denied: bool,
+        host_local: HostLocalIsolation,
+    ) -> "PreExposureBoundaryEvidence":
+        target = Path(path)
+        host_local.validate()
+        if (
+            not target.is_absolute()
+            or credential_sentinel_visible is not False
+            or network_tcp_egress_denied is not True
+        ):
+            _fail(PAIR_INVALID)
+        _closed_directory(target.parent)
+        if os.path.lexists(target):
+            _fail(PAIR_INVALID)
+        payload = json.dumps(
+            {
+                "schema": BOUNDARY_SCHEMA,
+                "credential_sentinel_visible": credential_sentinel_visible,
+                "network_tcp_egress_denied": network_tcp_egress_denied,
+                "host_local_endpoint_reachable": host_local.host_local_endpoint_reachable,
+                "observed_host_listener_count": host_local.observed_host_listener_count,
+                "runtime_endpoint_inputs": list(host_local.runtime_endpoint_inputs),
+            },
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("ascii") + b"\n"
+        try:
+            with target.open("xb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except OSError:
+            _fail()
+        return cls.load(target, expected_sha256=_sha256(payload))
+
+    @classmethod
     def load(cls, path: Path | str, *, expected_sha256: str) -> "PreExposureBoundaryEvidence":
         source = Path(path)
         try:
@@ -171,6 +216,99 @@ class PreExposureBoundaryEvidence:
         )
         result.validate()
         return result
+
+
+@dataclass(frozen=True)
+class PreExposureBoundaryObservation:
+    credential_read: str
+    launcher_egress_pre_reachable: bool
+    child_egress_connect: str
+    launcher_egress_post_reachable: bool
+    host_local_endpoint_reachable: bool | None
+    observed_host_listener_count: int | None
+    runtime_endpoint_inputs: tuple[str, ...]
+
+
+class BoundaryObservationSource(Protocol):
+    def __call__(
+        self,
+        *,
+        result: NativeExecutionResult,
+        generation: SandboxGenerationFingerprint,
+    ) -> PreExposureBoundaryObservation: ...
+
+
+class PreExposureBoundaryEvidenceProducer:
+    """Compose typed child/launcher observations into create-once evidence."""
+
+    def __init__(
+        self,
+        *,
+        evidence_path: Path | str,
+        observation_source: BoundaryObservationSource,
+    ) -> None:
+        self.evidence_path = Path(evidence_path)
+        self.observation_source = observation_source
+        self._used = False
+        if not self.evidence_path.is_absolute() or not callable(observation_source):
+            _fail(PAIR_INVALID)
+
+    def produce(
+        self,
+        *,
+        result: NativeExecutionResult,
+        generation: SandboxGenerationFingerprint,
+    ) -> PreExposureBoundaryEvidence:
+        if self._used:
+            _fail(PAIR_INVALID)
+        self._used = True
+        try:
+            observation = self.observation_source(result=result, generation=generation)
+        except RuntimeWindowError:
+            raise
+        except Exception:
+            _fail()
+        if not isinstance(observation, PreExposureBoundaryObservation):
+            _fail(PAIR_INVALID)
+        if (
+            observation.credential_read != "DENIED"
+            or observation.launcher_egress_pre_reachable is not True
+            or observation.child_egress_connect != "BLOCKED"
+            or observation.launcher_egress_post_reachable is not True
+            or not isinstance(observation.runtime_endpoint_inputs, tuple)
+            or observation.runtime_endpoint_inputs
+        ):
+            _fail(PAIR_INVALID)
+        if observation.host_local_endpoint_reachable is not True:
+            _fail(HOST_LOCAL_OBSERVATION_UNAVAILABLE)
+        if (
+            type(observation.observed_host_listener_count) is not int
+            or observation.observed_host_listener_count != 0
+        ):
+            _fail(PAIR_INVALID)
+        return PreExposureBoundaryEvidence.create_once(
+            self.evidence_path,
+            credential_sentinel_visible=False,
+            network_tcp_egress_denied=True,
+            host_local=HostLocalIsolation(
+                observation.host_local_endpoint_reachable,
+                observation.observed_host_listener_count,
+                observation.runtime_endpoint_inputs,
+            ),
+        )
+
+
+class HostLocalObservationUnavailable:
+    """Current production stop until same-host TCP reachability is observed."""
+
+    def __call__(
+        self,
+        *,
+        result: NativeExecutionResult,
+        generation: SandboxGenerationFingerprint,
+    ) -> PreExposureBoundaryObservation:
+        del result, generation
+        _fail(HOST_LOCAL_OBSERVATION_UNAVAILABLE)
 
 
 @dataclass(frozen=True)
@@ -253,7 +391,7 @@ class GitRepositoryFreezeProbe:
 
 
 @dataclass(frozen=True)
-class RuntimeFreeze:
+class RuntimeFreezeCandidate:
     payload_path: Path
     payload_byte_length: int
     payload_sha256: str
@@ -268,8 +406,12 @@ class RuntimeFreeze:
     slot: str
     command_policy: tuple[str, ...]
     command_policy_sha256: str
+    runtime_quiescent: bool
+
+
+@dataclass(frozen=True)
+class RuntimeFreeze(RuntimeFreezeCandidate):
     boundary_evidence_sha256: str
-    runtime_quiescent: bool = True
 
 
 class RuntimeFreezeProbe:
@@ -283,7 +425,7 @@ class RuntimeFreezeProbe:
         qualification_helper: PinnedExecutable,
         generation_probe: Callable[[], SandboxGenerationFingerprint],
         pair_lock: PairLedgerLock,
-        boundary_evidence: PreExposureBoundaryEvidence,
+        boundary_evidence: PreExposureBoundaryEvidence | None = None,
         assert_runtime_quiescent: Callable[[], None],
     ) -> None:
         self.backend = backend
@@ -294,9 +436,8 @@ class RuntimeFreezeProbe:
         self.boundary_evidence = boundary_evidence
         self.assert_runtime_quiescent = assert_runtime_quiescent
 
-    def capture(self) -> RuntimeFreeze:
+    def capture_candidate(self) -> RuntimeFreezeCandidate:
         self.assert_runtime_quiescent()
-        self.boundary_evidence.validate()
         self.pair_lock.assert_unchanged()
         payload = resolve_codex_payload()
         payload.verify()
@@ -316,7 +457,7 @@ class RuntimeFreezeProbe:
             command_policy, ensure_ascii=True, separators=(",", ":")
         ).encode("ascii")
         binding = self.pair_lock.binding
-        result = RuntimeFreeze(
+        result = RuntimeFreezeCandidate(
             payload.path,
             payload.byte_length,
             payload.sha256,
@@ -331,7 +472,7 @@ class RuntimeFreezeProbe:
             binding.slot,
             command_policy,
             _sha256(policy_payload),
-            self.boundary_evidence.evidence_sha256,
+            True,
         )
         self.pair_lock.assert_unchanged()
         payload.verify()
@@ -343,8 +484,44 @@ class RuntimeFreezeProbe:
         self.assert_runtime_quiescent()
         return result
 
+    def finalize(
+        self,
+        candidate: RuntimeFreezeCandidate,
+        boundary_evidence: PreExposureBoundaryEvidence,
+    ) -> RuntimeFreeze:
+        boundary_evidence.validate()
+        if (
+            self.boundary_evidence is not None
+            and self.boundary_evidence != boundary_evidence
+        ):
+            _fail(PAIR_INVALID)
+        if self.capture_candidate() != candidate:
+            _fail(SAME_MACHINE_WINDOW_REJECTED)
+        self.boundary_evidence = boundary_evidence
+        return RuntimeFreeze(
+            **candidate.__dict__,
+            boundary_evidence_sha256=boundary_evidence.evidence_sha256,
+        )
+
+    def capture(self) -> RuntimeFreeze:
+        if self.boundary_evidence is None:
+            _fail(PAIR_INVALID)
+        return self.finalize(self.capture_candidate(), self.boundary_evidence)
+
     def assert_unchanged(self, expected: RuntimeFreeze) -> None:
-        if self.capture() != expected:
+        if (
+            self.boundary_evidence is None
+            or self.boundary_evidence.evidence_sha256
+            != expected.boundary_evidence_sha256
+            or self.capture_candidate()
+            != RuntimeFreezeCandidate(
+                **{
+                    key: value
+                    for key, value in expected.__dict__.items()
+                    if key != "boundary_evidence_sha256"
+                }
+            )
+        ):
             _fail(SAME_MACHINE_WINDOW_REJECTED)
 
 
@@ -492,6 +669,19 @@ class ProvisioningObservation:
     attempt_handle: None = None
 
 
+@dataclass(frozen=True)
+class ProvisioningExecutionPreparation:
+    """Non-counted native input with no pre-existing boundary assertion."""
+
+    runtime_identity: RuntimeIdentity
+    execution_policy: ExecutionPolicy
+    configured_tool_inventory: tuple[Mapping[str, object], ...]
+    catalog_sha256: str
+    sandbox_principal: str
+    sandbox_account_generation: str
+    task_exposure_state: str = "NONE"
+
+
 class NativePreExposureObservationBackend:
     """Concrete production implementation of the pre-exposure backend."""
 
@@ -506,7 +696,7 @@ class NativePreExposureObservationBackend:
         qualification_output: Path,
         whoami: PinnedExecutable,
         runtime_identity: RuntimeIdentity,
-        boundary_evidence: PreExposureBoundaryEvidence,
+        boundary_producer: PreExposureBoundaryEvidenceProducer,
         generation_probe: Callable[[], SandboxGenerationFingerprint],
     ) -> None:
         self.native_backend = native_backend
@@ -517,17 +707,19 @@ class NativePreExposureObservationBackend:
         self.qualification_output = _closed_directory(qualification_output)
         self.whoami = whoami
         self.runtime_identity = runtime_identity
-        self.boundary_evidence = boundary_evidence
+        self.boundary_producer = boundary_producer
+        self.boundary_evidence: PreExposureBoundaryEvidence | None = None
         self.generation_probe = generation_probe
         self._freeze: SandboxGenerationFingerprint | None = None
         self._provisioned = False
         self._canary_used = False
         self._prepared_ordinals: list[int] = []
         runtime_identity.validate()
-        boundary_evidence.validate()
         whoami.verify()
         if (
-            len(
+            not isinstance(boundary_producer, PreExposureBoundaryEvidenceProducer)
+            or not callable(generation_probe)
+            or len(
                 {
                     self.codex_home,
                     self.provisioning_workspace,
@@ -558,19 +750,19 @@ class NativePreExposureObservationBackend:
         except Exception:
             _fail()
 
-    def _prepared(self, generation: SandboxGenerationFingerprint, context: str) -> PreparedArm:
+    def _pre_boundary_preparation(
+        self, generation: SandboxGenerationFingerprint
+    ) -> ProvisioningExecutionPreparation:
+        """Build only the seven fields consumed by native dispatch."""
+
         catalog = self.native_backend.configured_catalog
-        return PreparedArm(
-            1,
-            context,
-            context,
+        return ProvisioningExecutionPreparation(
             self.runtime_identity,
             REQUIRED_EXECUTION_POLICY,
             catalog.public_inventory(),
             catalog.catalog_sha256,
             generation.offline_sid,
             generation.value,
-            self.boundary_evidence.host_local,
         )
 
     @staticmethod
@@ -594,7 +786,7 @@ class NativePreExposureObservationBackend:
         output: Path,
         context: str,
     ) -> tuple[str, NativeExecutionResult]:
-        if any(output.iterdir()) or any(workspace.iterdir()):
+        if not context or any(output.iterdir()) or any(workspace.iterdir()):
             _fail(PAIR_INVALID)
         challenge = secrets.token_hex(16)
         if _CHALLENGE.fullmatch(challenge) is None:
@@ -620,7 +812,7 @@ class NativePreExposureObservationBackend:
         ).encode("utf-8")
         try:
             result = self.native_backend.execute(
-                prepared_arm=self._prepared(generation, context),
+                prepared_arm=self._pre_boundary_preparation(generation),
                 workspace_root=workspace,
                 codex_home=self.codex_home,
                 output_root=output,
@@ -744,6 +936,12 @@ class NativePreExposureObservationBackend:
             context="r2-information-dependency-qualification",
         )
         self._validate_probe(challenge=challenge, result=result, generation=self._freeze)
+        boundary_evidence = self.boundary_producer.produce(
+            result=result,
+            generation=self._freeze,
+        )
+        boundary_evidence.validate()
+        self.boundary_evidence = boundary_evidence
         self._canary_used = True
         catalog = self.native_backend.configured_catalog
         return CanaryObservation(
@@ -772,6 +970,7 @@ class NativePreExposureObservationBackend:
         if (
             self._freeze is None
             or not self._canary_used
+            or self.boundary_evidence is None
             or arm_ordinal not in {1, 2}
             or arm_ordinal in self._prepared_ordinals
             or executable != self.native_backend.executable
@@ -801,6 +1000,12 @@ class NativePreExposureObservationBackend:
             self.boundary_evidence.credential_sentinel_visible,
             self.boundary_evidence.host_local,
         )
+
+    def require_boundary_evidence(self) -> PreExposureBoundaryEvidence:
+        if self.boundary_evidence is None or not self._canary_used:
+            _fail(PAIR_INVALID)
+        self.boundary_evidence.validate()
+        return self.boundary_evidence
 
     @property
     def prepared_ordinals(self) -> tuple[int, ...]:
@@ -858,11 +1063,15 @@ class PreAttemptFrozenRuntimeWindow:
         with self.pair_lock:
             self.freeze_probe.assert_runtime_quiescent()
             provisioning = self.backend.provision_sandbox()
-            freeze = self.freeze_probe.capture()
-            if provisioning.generation_after != freeze.generation:
+            candidate = self.freeze_probe.capture_candidate()
+            if provisioning.generation_after != candidate.generation:
                 _fail(SAME_MACHINE_WINDOW_REJECTED)
-            self.backend.bind_freeze(freeze.generation)
+            self.backend.bind_freeze(candidate.generation)
             qualification = self.adapter.qualify_canary()
+            freeze = self.freeze_probe.finalize(
+                candidate,
+                self.backend.require_boundary_evidence(),
+            )
             self.freeze_probe.assert_unchanged(freeze)
 
             materialization = self.materializer.qualify_pair(self.pair_lock.binding.pair_id)

@@ -634,6 +634,24 @@ class PreparedArm:
     task_exposure_state: str = "NONE"
 
 
+class NativeExecutionPreparation(Protocol):
+    """The exact pre-dispatch fields consumed by the native backend.
+
+    Formal ``PreparedArm`` values and non-counted provisioning contexts may
+    both satisfy this protocol.  Boundary evidence is deliberately absent:
+    the first provisioning child is what makes child-side observation
+    possible, so requiring that evidence here would create a bootstrap cycle.
+    """
+
+    task_exposure_state: str
+    runtime_identity: RuntimeIdentity
+    execution_policy: ExecutionPolicy
+    configured_tool_inventory: tuple[Mapping[str, object], ...]
+    catalog_sha256: str
+    sandbox_principal: str
+    sandbox_account_generation: str
+
+
 class PreExposureObservationBackend(Protocol):
     """Pre-ID observation boundary; it makes no cap-enforcement claim."""
 
@@ -1055,7 +1073,7 @@ class NativeCodexExecBackend:
     def execute(
         self,
         *,
-        prepared_arm: PreparedArm,
+        prepared_arm: NativeExecutionPreparation,
         workspace_root: Path,
         codex_home: Path,
         output_root: Path,
