@@ -160,7 +160,7 @@ Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation 
   closeout commit does not imply that the PLAN or memory record existed in merge
   commit `ae926fc7`.
 
-Current refresh - 2026-09-03 (Memory Runtime R1 specification accepted; implementation candidate):
+Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation delivered):
 
 - [x] Define one non-authoritative technical specification for exactly one
   append-only `active_task` supersession edge from distinct v1 and v2 canonical
@@ -193,7 +193,7 @@ Current refresh - 2026-09-03 (Memory Runtime R1 specification accepted; implemen
   `c56bef21f4993cdedd6dc41f92b2ada88ff6d5c8`, merged through PR #144 at
   `c751644be56439ec8ea910de0cfaebc3c078f4ad` after owner authorization, zero
   unresolved P0/P1, green checks, and reviewed-head preservation.
-- [>] Implement the bounded two-version `active_task` supersession vertical
+- [x] Implement the bounded two-version `active_task` supersession vertical
   slice defined by the accepted R1 specification.
 - DONE: from a fully validated immutable pre-write snapshot, a canonical v1
   plus one content-bound resolved supersession authorization can append the
@@ -213,6 +213,17 @@ Current refresh - 2026-09-03 (Memory Runtime R1 specification accepted; implemen
 - Delivery requires exact-head technical review with no unresolved P0/P1,
   green scope-matched checks, reviewed-head preservation, and separate owner
   merge authorization.
+- Implementation delivery predicates were satisfied for exact reviewed head
+  `6b441071c794ac38f69403919ce969eb205abcc7`, merged through PR #145 at
+  `c6e5d9e14ddba7ec1d7543f1808c98c946d297ee` after owner authorization,
+  zero unresolved P0/P1, green required and post-merge checks, and
+  reviewed-head preservation.
+- Known non-blocking P2 carried forward: daily-only versus multi-surface CLI
+  invocation can derive different daily record identities from otherwise
+  identical whitespace-bearing inputs. This delivery does not change
+  daily-only identity normalization semantics.
+- This records bounded R1 implementation delivery only. It does not establish
+  R1 qualification or authorize RAG or any later lifecycle slice.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
