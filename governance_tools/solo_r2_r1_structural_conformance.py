@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "e10d448a0f858171f54a7008e923af2f8dbd7577"
+SOURCE_SNAPSHOT_COMMIT: Final = "581b37f91d7af318bdd6adc5a1eedb1fd68a1f78"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-e10d448a.json"
+    "r2-r1-structural-conformance-581b37f9.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-e20f5d4c.json"
+    "r2-r1-structural-conformance-e10d448a.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
@@ -110,9 +110,9 @@ _AUTHORITY_BINDINGS: Final = (
 _SOURCE_BINDINGS: Final = (
     {
         "path": "governance_tools/solo_attempt_ledger_v2.py",
-        "sha256": "72b4114555a16c78df7ce97ce950e76159b11a523d4324156339919086dce2bf",
-        "git_blob": "520c8106e52a13e2b1384d7eaf262ed031b88782",
-        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "sha256": "652e9c8f2fb01cade50c8e712cf0819341f36c4fd14bef43fb90fb606e20c5dc",
+        "git_blob": "a1947f59b76832b11b43029b4fac0c88fed801ed",
+        "last_change_commit": "581b37f91d7af318bdd6adc5a1eedb1fd68a1f78",
         "role": "atomic_genesis_publication_runtime_surface",
     },
     {
@@ -131,9 +131,9 @@ _SOURCE_BINDINGS: Final = (
     },
     {
         "path": "governance_tools/solo_r2_bootstrap.py",
-        "sha256": "778b8687af679a4bafb824b0ec40def0c65c2fc66ecaae2a5e03dae3e055269b",
-        "git_blob": "96490b51873a371b78815275db540c12c11f5e18",
-        "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+        "sha256": "c600126318a687a13f4b51a0aa192f8c1baafe8f76ceefc2185e33318820bdf6",
+        "git_blob": "f52ce48b84a95f00e629989e8b25a24fafd7a7f8",
+        "last_change_commit": "581b37f91d7af318bdd6adc5a1eedb1fd68a1f78",
         "role": "bootstrap_runtime_participant_and_call_site_closure",
     },
     {
@@ -152,9 +152,9 @@ _SOURCE_BINDINGS: Final = (
     },
     {
         "path": "governance_tools/solo_r2_pair_creation.py",
-        "sha256": "f685b5a3dcafbc2168d07a884d343d3895c29ed8e03ab8e13e0bfafa6b13ddcc",
-        "git_blob": "e471a5e13c82e18e5bc9022778f18bd388180caf",
-        "last_change_commit": "51e9a27c2af55784d6eba21c9032a70e04eeaba9",
+        "sha256": "76e8fecf3571c7e5deac9d1437bbbb55b6604fe5262186503701cda490ea43ff",
+        "git_blob": "abb6b099f53e56d7bcc626712aeac2da6545ad1d",
+        "last_change_commit": "581b37f91d7af318bdd6adc5a1eedb1fd68a1f78",
         "role": "pair_creation_entropy_and_arm_order_call_site_closure",
     },
 )
@@ -329,7 +329,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_pair_creation.py",
         "scope": "_order_state",
-        "line": 314,
+        "line": 466,
         "callee": "_draw_entropy32",
         "args": [],
         "keywords": {},
@@ -337,7 +337,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_pair_creation.py",
         "scope": "_order_state",
-        "line": 316,
+        "line": 468,
         "callee": "random_domains.arm_order_from_entropy",
         "args": ["order_entropy"],
         "keywords": {},
