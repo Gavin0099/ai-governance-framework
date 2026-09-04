@@ -48,8 +48,8 @@ MAX_ELAPSED_SECONDS = 1_800
 MAX_TRACE_BYTES = 64 * 1024 * 1024
 MAX_TRACE_LINE_BYTES = 1024 * 1024
 MAX_PROMPT_BYTES = 1024 * 1024
-CODEX_PAYLOAD_BYTE_LENGTH = 293_056_816
-CODEX_PAYLOAD_SHA256 = "0d916cde6e0f5231b24f4d861c7a6c591bbed67925d8a26e1335c18a15e31819"
+CODEX_PAYLOAD_BYTE_LENGTH = 295_295_792
+CODEX_PAYLOAD_SHA256 = "be83164c07287d028cc4725105f3cceaaf244d53a862e19743f55e9150a66fc1"
 WINDOWS_POWERSHELL_PATH = Path(
     r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 )
@@ -1036,6 +1036,20 @@ class NativeCodexExecBackend:
             "--model",
             MODEL_SELECTOR,
             "-",
+        )
+
+    def command_policy_projection(self) -> tuple[str, ...]:
+        """Return the exact stable argv/config surface with path slots named."""
+
+        schema = Path("__SOLO_R2_OUTPUT_SCHEMA_PATH__")
+        final = Path("__SOLO_R2_FINAL_MESSAGE_PATH__")
+        return tuple(
+            "{output_schema_path}"
+            if token == str(schema)
+            else "{final_message_path}"
+            if token == str(final)
+            else token
+            for token in self._command(schema, final)
         )
 
     def execute(
