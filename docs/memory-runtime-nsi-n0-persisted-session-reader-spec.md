@@ -1,7 +1,11 @@
 # Memory Runtime NSI-N0 Feasibility And Representation Decision
 
-Status: non-authoritative technical feasibility decision candidate; not a
-reader specification, governance authority, or implementation.
+Status: delivered and accepted non-authoritative technical feasibility
+decision; not a reader specification, governance authority, or implementation.
+
+Delivery: PR #147; exact reviewed head
+`f1530182d65c4cbd4ab24bfd75e6e5af0ce343fc`; merge commit
+`10044277b99e68973130d23ce97697418de59d21`.
 
 ## Question
 
@@ -132,7 +136,7 @@ criteria for this feasibility decision.
 
 ## Acceptance
 
-NSI-N0 is complete when this exact two-file candidate records all of the
+NSI-N0 is complete because this delivered two-file decision records all of the
 following without promising an implementation-ready reader grammar:
 
 1. existing persisted surfaces can reconstruct record plus summary;
