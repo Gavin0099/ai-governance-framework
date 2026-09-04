@@ -238,23 +238,36 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   reconstruct each admitted canonical record from its exact review-log
   checkpoint, join it to its exact active-task summary and projection digest by
   record identity, and consume exactly one persisted, previously admitted,
-  content-bound M-1 observation attachment; the reader derives either the R0
-  v1-only input or the complete R1 v1-to-v2 input without caller-supplied
+  content-bound M-1 observation attachment carrying a source-compatible,
+  independently comparable freshness observation; the reader derives either
+  the R0 v1-only input or the complete R1 v1-to-v2 input without caller-supplied
   record, summary, or authority data; missing, duplicate, malformed,
   mismatched, stale, or
   insufficient authority produces zero context and fails closed through
-  `ValueError` or one preserved M-1 non-resolved disposition; it replays the
-  persisted observation but does not independently prove human or approved-
-  change authority; no timestamp,
+  `ValueError` or one M-1 non-resolved disposition; an already non-resolved
+  attachment preserves its disposition, while a resolved attachment whose
+  freshness mismatches or cannot be established becomes `unassessable`; an
+  `approved_change` attachment must bind the exact observed repository HEAD,
+  but HEAD equality is necessary rather than sufficient because it cannot
+  prove the absence of a later unpersisted qualified human instruction; a
+  `current_human_instruction` attachment cannot be replayed as resolved until
+  independently comparable persisted instruction-freshness evidence exists;
+  the reader replays the persisted observation but does not independently prove
+  human or approved-change authority; no timestamp,
   file order, newest-text, chat-history, directory-wide semantic scan, or
   inferred authority may select current state.
 - Current repository evidence shows that the current `01_active_task` alias for
   logical `active_task` plus the existing `04_review_log` alias for logical
   `review_log` can reconstruct summary and record, but
-  no merged persisted surface carries the R0/R1 content-bound M-1 observation.
+  no merged persisted surface carries the R0/R1 content-bound M-1 observation
+  or independently comparable instruction-freshness evidence.
   Therefore the smallest implementation recommendation is one append-only
   observation attachment on the existing logical `review_log` surface, not a
   new memory database, top-level manifest, or schema file.
+- Consequently, current persisted repo state cannot safely replay any resolved
+  attachment as resolved across sessions. NSI-N0 records that blocker; it does
+  not authorize an instruction-freshness representation or claim that N1 can
+  produce resolved context before such evidence is separately authorized.
 - The previously non-blocking absence of an R1 current projection is reopened
   only as `OBSERVED_NSI_BLOCKER`: the current `01_active_task` surface contains
   older Gate 3 projections and no R1 relation, so a natural-session pilot cannot
@@ -267,7 +280,8 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   approval proof, hook, CI, gate,
   enforcement, session automation, two-session pilot, longer lineage, graph,
   RAG, semantic retrieval, deletion, expiry, concurrency, crash atomicity, or
-  production qualification is authorized.
+  production qualification or instruction-freshness representation is
+  authorized.
 - A later NSI-N1 implementation may extract or add one internal pure
   snapshot-selection core shared with the existing R0/R1 entrypoints, but it
   may not change their public behavior or validation semantics.

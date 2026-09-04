@@ -56,6 +56,10 @@ The following statements were observed at merged main
   `authorized_projection_sha256`, or the R1 predecessor/successor identity and
   digest authority binding. Those fields currently exist only in technical
   specifications and executable tests.
+- No merged persisted artifact provides an independently comparable identity
+  for the current qualified human-instruction state. Repository HEAD can detect
+  commit drift, but cannot prove that no later unpersisted qualified human
+  instruction exists.
 - The current `memory/01_active_task.md` contains four historical Gate 3-era
   projections and no `memory_runtime_supersession:` relation. It contains no R1
   milestone projection from which this pilot could start.
@@ -100,6 +104,8 @@ the bounded logical-name request.
 - exact record-identity and public-renderer digest joins;
 - exact replay of previously admitted authority-source and source-anchor fields,
   without an independent approval-provenance claim;
+- a source-compatible, independently comparable authority-freshness gate that
+  downgrades unverifiable resolved replay to `unassessable`;
 - preserved M-1 non-resolved outcomes with zero context; and
 - one future minimal reader/adapter implementation tranche.
 
@@ -117,6 +123,7 @@ the bounded logical-name request.
   validation semantics, or `memory_layout.py`; a behavior-preserving extraction
   of an internal snapshot-consuming selection core is allowed only in N1;
 - no natural Session A/B pilot, v1 bootstrap, migration, or historical rewrite;
+- no instruction ledger or new instruction-freshness representation;
 - no longer lineage, graph engine, concurrency, rollback, crash atomicity,
   deletion, expiry, semantic retrieval, or RAG; and
 - no claim that an approved change grants authority beyond its recorded scope.
@@ -184,6 +191,14 @@ it:
   states, and exactly one of `reviewer_required`, `disputed`,
   `insufficient_authority`, or `unassessable`.
 
+A resolved attachment must also carry a source-compatible freshness
+observation. For `approved_change`, this includes the exact repository HEAD
+observed when the attachment was admitted. HEAD equality is necessary but not
+sufficient: it proves only that repository commit identity is unchanged and
+must not be used to infer that no later unpersisted qualified human instruction
+exists. A `current_human_instruction` attachment has no cross-session comparable
+identity in the current repository and therefore cannot be replayed as resolved.
+
 NSI-N0 does not add a schema file or freeze a public result API. N1 must choose
 the smallest exact, strict-UTF-8, line-framed representation on `review_log`
 that can carry those existing fields. The representation must be independently
@@ -193,14 +208,26 @@ reviewed implementation diff, not an authority created by this document.
 
 For cross-session reconstruction, an unrecorded `current_human_instruction` is
 not replayable. A resolved attachment must have been persisted by a separately
-authorized Session A action and must reproduce the exact authority-source and
-source-anchor fields admitted in that action. Session B verifies endpoint,
-content, eligibility, and field-shape continuity, then passes the reconstructed
-observation to the existing R0/R1 validator. It does not independently prove
-that a human or approved change possessed authority, and it does not infer
-approval from commit existence, PLAN ordering, writer identity, or memory
-presence. A workflow that requires fresh authority qualification or proof must
-remain non-resolved until a qualified source is admitted outside this reader.
+authorized Session A action and must reproduce the exact authority-source,
+source-anchor, and freshness fields admitted in that action. Session B verifies
+endpoint, content, eligibility, field-shape, and mechanically comparable
+freshness continuity before selection. A mismatched repository HEAD is
+`unassessable`, and an equal HEAD remains `unassessable` unless additional
+source-compatible evidence mechanically establishes freshness. In particular,
+the reader does not infer the absence of a later qualified human instruction
+from HEAD equality. It does not independently prove that a human or approved
+change possessed authority, and it does not infer approval from commit
+existence, PLAN ordering, writer identity, or memory presence. A workflow that
+requires fresh authority qualification or proof must remain non-resolved until
+a qualified source is admitted outside this reader.
+
+The current repository therefore cannot mechanically preserve `resolved` for
+either authority source across sessions: `current_human_instruction` has no
+comparable persisted identity, and `approved_change` HEAD equality cannot rule
+out a later unpersisted qualified instruction. NSI-N0 records this feasibility
+blocker. It does not authorize the missing instruction-freshness representation
+or claim that N1 can produce resolved context before such evidence is separately
+authorized and available.
 
 ## Deterministic Join And Selection
 
@@ -220,10 +247,18 @@ The reader uses this order:
    authority-source and source-anchor values exactly; do not upgrade them based
    on anchor existence. Do not use timestamp, line order, filename order, or
    newest text.
-6. Join each selected attachment to exactly one canonical checkpoint and exactly
+6. Apply the authority-freshness gate. Preserve an attachment that is already
+   non-resolved. For a resolved attachment, require source-compatible,
+   independently comparable freshness evidence. An `approved_change` HEAD
+   mismatch or any inability to establish complete freshness yields
+   `unassessable` with zero context; HEAD equality alone never establishes the
+   absence of a later unpersisted qualified human instruction. A persisted
+   `current_human_instruction` cannot remain resolved without independently
+   comparable persisted instruction-state evidence.
+7. Join each selected attachment to exactly one canonical checkpoint and exactly
    one exact active-task projection per bound identity.
-7. Recompute record identity, public-renderer bytes, and projection digest.
-8. Require exactly one supported bounded disposition:
+8. Recompute record identity, public-renderer bytes, and projection digest.
+9. Require exactly one supported bounded disposition:
    - one v1 record plus one resolved base attachment and no admitted
      supersession relation; or
    - one v1, one v2, one exact v1-to-v2 relation, and one resolved supersession
@@ -235,10 +270,10 @@ The reader uses this order:
      checkpoints must still join exactly; or
    - no observation attachment after otherwise valid structural parsing, which
      deterministically returns `insufficient_authority` with zero context.
-9. Construct the existing R0/R1 caller input from the verified snapshots and
+10. Construct the existing R0/R1 caller input from the verified snapshots and
    pass it to the shared internal snapshot-selection core. Do not call the
    current live-reading/writing R0/R1 entrypoints after the snapshots are taken.
-10. Emit only the selector's canonical current context. v1 contributes zero
+11. Emit only the selector's canonical current context. v1 contributes zero
     context after a valid supersession.
 
 The reader does not accept a caller-selected target identity. Exactly-one
@@ -294,6 +329,12 @@ deferred. No serialized result-byte promise is made here.
   its applicability ambiguous; preserve the recorded non-resolved state when
   exactly one attachment applies, otherwise fail closed with zero context. The
   reader does not semantically discover unrecorded external transitions.
+- **Freshness mismatch or uncertainty:** an originally resolved attachment whose
+  repository HEAD differs, whose source-compatible freshness evidence differs,
+  or whose complete freshness cannot be established becomes `unassessable`
+  with zero context. HEAD equality alone never upgrades or preserves resolved
+  state. An attachment already carrying a non-resolved M-1 disposition keeps
+  that exact disposition.
 - **Malformed structured data:** invalid UTF-8, framing, marker, attachment, or
   required-field shape raises `ValueError` before context rendering.
 - **Partial R1 state:** v1 plus v2 without the exact relation produces zero
@@ -328,8 +369,9 @@ insufficient for chat-free authority-observation reconstruction, and that one
 bounded reader can join existing logical `active_task` and `review_log` data
 plus one minimal persisted observation attachment on `review_log`.
 
-It does not claim that the reader, attachment writer, session integration,
-bootstrap, qualification, or two-session pilot exists. It does not establish
+It does not claim that the reader, attachment writer, instruction-freshness
+representation, session integration, bootstrap, qualification, or two-session
+pilot exists. It does not establish
 authority, repair current memory, make the existing Gate 3 projection current,
 or authorize RAG or later lifecycle work.
 
@@ -337,10 +379,13 @@ or authorize RAG or later lifecycle work.
 
 N1 focused tests must demonstrate:
 
-1. one canonical v1 checkpoint, projection, and resolved base attachment joins
-   to the exact R0 input and returns v1 once;
-2. one canonical v1/v2 pair, one exact relation, and one resolved supersession
-   attachment joins to the exact R1 input and returns only v2;
+1. if a later separately authorized source-compatible freshness representation
+   exists, one canonical v1 checkpoint, projection, resolved base attachment,
+   and independently comparable freshness observation joins to the exact R0
+   input and returns v1 once;
+2. under the same explicit precondition, one canonical v1/v2 pair, one exact
+   relation, resolved supersession attachment, and independently comparable
+   freshness observation joins to the exact R1 input and returns only v2;
 3. unrelated well-formed historical checkpoints, projections, relations, and
    attachments do not change the target result;
 4. a missing observation attachment returns `insufficient_authority` with zero
@@ -348,19 +393,23 @@ N1 focused tests must demonstrate:
    observation attachment fails closed with `ValueError`;
 5. identity, digest, public-renderer, endpoint, M-1 eligibility, or source-anchor
    mismatch fails closed;
-6. one exactly joined non-resolved base or edge attachment preserves its M-1
+6. an `approved_change` HEAD mismatch, an equal HEAD without evidence covering
+   later qualified human instructions, and a replayed
+   `current_human_instruction` without independently comparable persisted
+   instruction-state evidence each yield `unassessable` with zero context;
+7. one exactly joined non-resolved base or edge attachment preserves its M-1
    state with zero context, including a partial v1/v2 edge shape, while
    duplicate or conflicting non-resolved attachments fail closed;
-7. malformed UTF-8, framing, marker, or attachment fails closed;
-8. partial v1-plus-v2 state yields zero context and performs no repair;
-9. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
+8. malformed UTF-8, framing, marker, or attachment fails closed;
+9. partial v1-plus-v2 state yields zero context and performs no repair;
+10. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
    not re-read during selection;
-10. direct calls to current live-reading/writing R0/R1 entrypoints are absent
+11. direct calls to current live-reading/writing R0/R1 entrypoints are absent
     after the reader snapshots, while parity tests show the shared internal
     selection core preserves their bounded validation semantics;
-11. no record, summary, identity, digest, or authority input can be supplied by
+12. no record, summary, identity, digest, or authority input can be supplied by
     the session caller; and
-12. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
+13. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
 
 Spec-only validation is limited to scope census, link/token consistency,
 `git diff --check`, PLAN freshness, and independent two-file technical review.
@@ -373,6 +422,9 @@ tranche that:
 
 - adds the smallest exact observation-attachment grammar to logical
   `review_log`;
+- records the exact observed repository HEAD for `approved_change` attachments,
+  without treating equality as complete freshness proof or inventing an
+  instruction-state ledger;
 - appends it only through a bounded canonical helper;
 - parses existing canonical checkpoints plus the new attachment;
 - joins logical `active_task` and `review_log` snapshots into existing R0/R1
@@ -383,4 +435,7 @@ tranche that:
 
 NSI-N1 must not bootstrap current v1 or run the Session A/B pilot. Those actions
 remain separate because they mutate canonical memory and test a later live
-integration boundary.
+integration boundary. Without a separately authorized and available
+instruction-freshness representation, N1 may implement structural joins and
+non-resolved outcomes but must not claim either positive resolved case or
+Natural Session Integration success.
