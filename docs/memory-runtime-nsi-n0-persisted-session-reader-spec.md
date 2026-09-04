@@ -56,9 +56,10 @@ The following statements were observed at merged main
   `authorized_projection_sha256`, or the R1 predecessor/successor identity and
   digest authority binding. Those fields currently exist only in technical
   specifications and executable tests.
-- No merged persisted artifact provides an independently comparable identity
-  for the current qualified human-instruction state. Repository HEAD can detect
-  commit drift, but cannot prove that no later unpersisted qualified human
+- No merged persisted artifact provides a commit-stable, independently
+  comparable identity for the current qualified human-instruction state. A
+  pre-write repository HEAD changes when the attachment is committed, while the
+  resulting HEAD still cannot prove that no later unpersisted qualified human
   instruction exists.
 - The current `memory/01_active_task.md` contains four historical Gate 3-era
   projections and no `memory_runtime_supersession:` relation. It contains no R1
@@ -191,13 +192,15 @@ it:
   states, and exactly one of `reviewer_required`, `disputed`,
   `insufficient_authority`, or `unassessable`.
 
-A resolved attachment must also carry a source-compatible freshness
-observation. For `approved_change`, this includes the exact repository HEAD
-observed when the attachment was admitted. HEAD equality is necessary but not
-sufficient: it proves only that repository commit identity is unchanged and
-must not be used to infer that no later unpersisted qualified human instruction
-exists. A `current_human_instruction` attachment has no cross-session comparable
-identity in the current repository and therefore cannot be replayed as resolved.
+A resolved attachment must also carry a source-compatible, commit-stable
+freshness observation. A pre-write repository HEAD is not admissible because
+committing the attachment necessarily changes it and would immediately make the
+new record appear stale. Any future `approved_change` freshness representation
+must survive and validate the attachment-containing commit, while also avoiding
+the inference that Git state proves no later unpersisted qualified human
+instruction exists. NSI-N0 does not define that representation. A
+`current_human_instruction` attachment has no cross-session comparable identity
+in the current repository and therefore cannot be replayed as resolved.
 
 NSI-N0 does not add a schema file or freeze a public result API. N1 must choose
 the smallest exact, strict-UTF-8, line-framed representation on `review_log`
@@ -211,23 +214,24 @@ not replayable. A resolved attachment must have been persisted by a separately
 authorized Session A action and must reproduce the exact authority-source,
 source-anchor, and freshness fields admitted in that action. Session B verifies
 endpoint, content, eligibility, field-shape, and mechanically comparable
-freshness continuity before selection. A mismatched repository HEAD is
-`unassessable`, and an equal HEAD remains `unassessable` unless additional
-source-compatible evidence mechanically establishes freshness. In particular,
-the reader does not infer the absence of a later qualified human instruction
-from HEAD equality. It does not independently prove that a human or approved
-change possessed authority, and it does not infer approval from commit
-existence, PLAN ordering, writer identity, or memory presence. A workflow that
-requires fresh authority qualification or proof must remain non-resolved until
-a qualified source is admitted outside this reader.
+freshness continuity before selection. A pre-write HEAD, a mismatched freshness
+anchor, or an anchor that cannot validate the attachment-containing committed
+state is `unassessable`. Even a future commit-stable repository anchor remains
+insufficient unless source-compatible evidence mechanically establishes
+freshness across qualified human instructions. The reader does not independently
+prove that a human or approved change possessed authority, and it does not infer
+approval from commit existence, PLAN ordering, writer identity, or memory
+presence. A workflow that requires fresh authority qualification or proof must
+remain non-resolved until a qualified source is admitted outside this reader.
 
 The current repository therefore cannot mechanically preserve `resolved` for
 either authority source across sessions: `current_human_instruction` has no
-comparable persisted identity, and `approved_change` HEAD equality cannot rule
-out a later unpersisted qualified instruction. NSI-N0 records this feasibility
-blocker. It does not authorize the missing instruction-freshness representation
-or claim that N1 can produce resolved context before such evidence is separately
-authorized and available.
+comparable persisted identity, and no commit-stable `approved_change` freshness
+anchor both validates the attachment-containing commit and covers later
+qualified instructions. NSI-N0 records this feasibility blocker. It does not
+authorize the missing instruction-freshness representation or claim that N1 can
+produce resolved context before such evidence is separately authorized and
+available.
 
 ## Deterministic Join And Selection
 
@@ -249,10 +253,12 @@ The reader uses this order:
    newest text.
 6. Apply the authority-freshness gate. Preserve an attachment that is already
    non-resolved. For a resolved attachment, require source-compatible,
-   independently comparable freshness evidence. An `approved_change` HEAD
-   mismatch or any inability to establish complete freshness yields
-   `unassessable` with zero context; HEAD equality alone never establishes the
-   absence of a later unpersisted qualified human instruction. A persisted
+   independently comparable freshness evidence. Reject a pre-write HEAD as
+   self-invalidating across the attachment commit. Any mismatch, inability to
+   validate the attachment-containing committed state, or inability to
+   establish complete freshness yields `unassessable` with zero context; a Git
+   anchor alone never establishes the absence of a later unpersisted qualified
+   human instruction. A persisted
    `current_human_instruction` cannot remain resolved without independently
    comparable persisted instruction-state evidence.
 7. Join each selected attachment to exactly one canonical checkpoint and exactly
@@ -329,12 +335,12 @@ deferred. No serialized result-byte promise is made here.
   its applicability ambiguous; preserve the recorded non-resolved state when
   exactly one attachment applies, otherwise fail closed with zero context. The
   reader does not semantically discover unrecorded external transitions.
-- **Freshness mismatch or uncertainty:** an originally resolved attachment whose
-  repository HEAD differs, whose source-compatible freshness evidence differs,
-  or whose complete freshness cannot be established becomes `unassessable`
-  with zero context. HEAD equality alone never upgrades or preserves resolved
-  state. An attachment already carrying a non-resolved M-1 disposition keeps
-  that exact disposition.
+- **Freshness mismatch or uncertainty:** an originally resolved attachment with
+  a pre-write HEAD, a freshness mismatch, an anchor that cannot validate the
+  attachment-containing commit, or incomplete source-compatible freshness
+  becomes `unassessable` with zero context. Git identity alone never upgrades or
+  preserves resolved state. An attachment already carrying a non-resolved M-1
+  disposition keeps that exact disposition.
 - **Malformed structured data:** invalid UTF-8, framing, marker, attachment, or
   required-field shape raises `ValueError` before context rendering.
 - **Partial R1 state:** v1 plus v2 without the exact relation produces zero
@@ -393,8 +399,9 @@ N1 focused tests must demonstrate:
    observation attachment fails closed with `ValueError`;
 5. identity, digest, public-renderer, endpoint, M-1 eligibility, or source-anchor
    mismatch fails closed;
-6. an `approved_change` HEAD mismatch, an equal HEAD without evidence covering
-   later qualified human instructions, and a replayed
+6. a self-invalidating pre-write HEAD, an anchor that does not validate the
+   attachment-containing commit, a Git anchor without evidence covering later
+   qualified human instructions, and a replayed
    `current_human_instruction` without independently comparable persisted
    instruction-state evidence each yield `unassessable` with zero context;
 7. one exactly joined non-resolved base or edge attachment preserves its M-1
@@ -422,9 +429,8 @@ tranche that:
 
 - adds the smallest exact observation-attachment grammar to logical
   `review_log`;
-- records the exact observed repository HEAD for `approved_change` attachments,
-  without treating equality as complete freshness proof or inventing an
-  instruction-state ledger;
+- rejects pre-write HEAD equality as a freshness anchor and does not invent an
+  attachment-containing-commit or instruction-state representation;
 - appends it only through a bounded canonical helper;
 - parses existing canonical checkpoints plus the new attachment;
 - joins logical `active_task` and `review_log` snapshots into existing R0/R1

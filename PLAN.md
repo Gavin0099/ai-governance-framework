@@ -247,9 +247,10 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   `ValueError` or one M-1 non-resolved disposition; an already non-resolved
   attachment preserves its disposition, while a resolved attachment whose
   freshness mismatches or cannot be established becomes `unassessable`; an
-  `approved_change` attachment must bind the exact observed repository HEAD,
-  but HEAD equality is necessary rather than sufficient because it cannot
-  prove the absence of a later unpersisted qualified human instruction; a
+  future `approved_change` freshness anchor must survive and validate the
+  attachment-containing commit rather than compare against the self-invalidating
+  pre-write HEAD, and still cannot by itself prove the absence of a later
+  unpersisted qualified human instruction; a
   `current_human_instruction` attachment cannot be replayed as resolved until
   independently comparable persisted instruction-freshness evidence exists;
   the reader replays the persisted observation but does not independently prove
@@ -260,14 +261,15 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   logical `active_task` plus the existing `04_review_log` alias for logical
   `review_log` can reconstruct summary and record, but
   no merged persisted surface carries the R0/R1 content-bound M-1 observation
-  or independently comparable instruction-freshness evidence.
+  or a commit-stable, independently comparable instruction-freshness anchor.
   Therefore the smallest implementation recommendation is one append-only
   observation attachment on the existing logical `review_log` surface, not a
   new memory database, top-level manifest, or schema file.
 - Consequently, current persisted repo state cannot safely replay any resolved
   attachment as resolved across sessions. NSI-N0 records that blocker; it does
-  not authorize an instruction-freshness representation or claim that N1 can
-  produce resolved context before such evidence is separately authorized.
+  not authorize a commit-stable instruction-freshness representation or claim
+  that N1 can produce resolved context before such evidence is separately
+  authorized.
 - The previously non-blocking absence of an R1 current projection is reopened
   only as `OBSERVED_NSI_BLOCKER`: the current `01_active_task` surface contains
   older Gate 3 projections and no R1 relation, so a natural-session pilot cannot
