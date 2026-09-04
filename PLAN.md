@@ -225,80 +225,32 @@ Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation
 - This records bounded R1 implementation delivery only. It does not establish
   R1 qualification or authorize RAG or any later lifecycle slice.
 
-Current refresh - 2026-09-04 (Natural Session Integration N0 specification candidate):
+Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision candidate):
 
-- [>] Define one non-authoritative technical specification for a persisted
-  `active_task` session reader that can reconstruct the complete R0/R1 caller
-  inputs without prior chat history.
-- DONE: one new session can snapshot the canonical Git worktree identity once,
-  resolve logical `active_task` and `review_log` once through
-  `memory_pipeline.memory_layout`, take one immutable byte snapshot of each,
-  perform all subsequent selection through one internal snapshot-consuming
-  validation core without invoking a live-reading R0/R1 entrypoint,
-  reconstruct each admitted canonical record from its exact review-log
-  checkpoint, join it to its exact active-task summary and projection digest by
-  record identity, and consume exactly one persisted, previously admitted,
-  content-bound M-1 observation attachment carrying a source-compatible,
-  independently comparable freshness observation; the reader may derive either
-  the R0 v1-only input when exactly one complete projection/checkpoint join and
-  no supersession-edge candidate exists, or the complete R1 v1-to-v2 input
-  without caller-supplied record, summary, or authority data; any second
-  complete join in the base shape yields zero context rather than being guessed
-  unrelated; missing, duplicate, malformed,
-  mismatched, stale, or
-  insufficient authority produces zero context and fails closed through
-  `ValueError` or one M-1 non-resolved disposition; an already non-resolved
-  attachment preserves its disposition, while a resolved attachment whose
-  freshness mismatches or cannot be established becomes `unassessable`; a
-  future `approved_change` freshness anchor must survive and validate the
-  attachment-containing commit rather than compare against the self-invalidating
-  pre-write HEAD, and still cannot by itself prove the absence of a later
-  unpersisted qualified human instruction; a
-  `current_human_instruction` attachment cannot be replayed as resolved until
-  independently comparable persisted instruction-freshness evidence exists;
-  when one exact R1 edge attachment is admitted, at most one well-formed base
-  attachment bound to its predecessor remains historical and is excluded from
-  current eligibility, while the edge disposition controls zero-context or v2
-  selection and can never fall back to v1;
-  the reader replays the persisted observation but does not independently prove
-  human or approved-change authority; no timestamp,
-  file order, newest-text, chat-history, directory-wide semantic scan, or
-  inferred authority may select current state.
-- Current repository evidence shows that the current `01_active_task` alias for
-  logical `active_task` plus the existing `04_review_log` alias for logical
-  `review_log` can reconstruct summary and record, but
-  no merged persisted surface carries the R0/R1 content-bound M-1 observation
-  or a commit-stable, independently comparable instruction-freshness anchor.
-  Therefore the smallest implementation recommendation is one append-only
-  observation attachment on the existing logical `review_log` surface, not a
-  new memory database, top-level manifest, or schema file.
-- Consequently, current persisted repo state cannot safely replay any resolved
-  attachment as resolved across sessions. NSI-N0 records that blocker; it does
-  not authorize a commit-stable instruction-freshness representation or claim
-  that N1 can produce resolved context before such evidence is separately
-  authorized.
-- The previously non-blocking absence of an R1 current projection is reopened
-  only as `OBSERVED_NSI_BLOCKER`: the current `01_active_task` surface contains
-  older Gate 3 projections and no R1 relation, so a natural-session pilot cannot
-  start from a qualified current v1. The daily-only versus multi-surface
-  identity-consistency P2 and the PLAN-header-date P2 remain carried forward
-  and outside this specification.
-- Claim ceiling: one proposed persisted-session reader for the bounded
-  `active_task` R0/R1 shapes only. No implementation, writer change, formal
-  schema, new logical surface, authority-policy creation or independent
-  approval proof, hook, CI, gate,
-  enforcement, session automation, two-session pilot, longer lineage, graph,
-  RAG, semantic retrieval, deletion, expiry, concurrency, crash atomicity, or
-  production qualification or instruction-freshness representation is
-  authorized.
-- A later NSI-N1 implementation may extract or add one internal pure
-  snapshot-selection core shared with the existing R0/R1 entrypoints, but it
-  may not change their public behavior or validation semantics.
-- Specification acceptance requires exact-head technical review with no
-  unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
-  separate owner merge authorization. Adapter implementation, v1 bootstrap,
-  qualification, and the real Session A/B pilot each require later explicit
-  authorization.
+- [>] Record the bounded NSI-N0 feasibility result without defining an
+  implementation-ready persisted-session reader grammar.
+- DONE: current persisted logical `active_task` and `review_log` surfaces can
+  reconstruct record plus summary, but current repository state cannot
+  mechanically establish cross-session authority freshness; resolved Natural
+  Session replay is therefore `BLOCKED` with zero context;
+  `current_human_instruction` cannot be replayed as resolved without an
+  independently comparable persisted instruction-state identity;
+  `approved_change` cannot be replayed as resolved from repository HEAD equality
+  alone, and a pre-write HEAD is self-invalidating across the
+  attachment-containing commit; this decision does not define reader grammar,
+  attachment cardinality, historical precedence, standalone-v2 admission, or
+  R1 edge-selection semantics.
+- Next candidate: one separately authorized minimal technical spike to determine
+  the smallest persisted freshness evidence capable of mechanically classifying
+  Session B as same, changed, or unverifiable relative to Session A. The spike
+  may conclude that no safe bounded representation exists.
+- Claim ceiling: feasibility and representation decision only. No reader,
+  adapter, attachment writer, schema, instruction ledger, bootstrap, migration,
+  Session A/B pilot, RAG, lifecycle expansion, Runtime change, governance
+  authority, enforcement, or merge is authorized.
+- Acceptance requires exact-head independent review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
 
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
