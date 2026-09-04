@@ -28,6 +28,7 @@ from governance_tools.solo_r2_attempt_execution import (
 )
 from governance_tools.solo_r2_attempt_materialization import (
     FrozenGitMaterializer,
+    HostLocalEndpointDisposition,
     HostLocalIsolation,
     PairMaterializationEvidence,
     PinnedExecutable,
@@ -65,7 +66,7 @@ SAME_MACHINE_WINDOW_REJECTED = "SAME_MACHINE_WINDOW_REJECTED / STOP"
 HOST_LOCAL_OBSERVATION_UNAVAILABLE = "HOST_LOCAL_OBSERVATION_UNAVAILABLE / STOP"
 READY_BEFORE_ATTEMPT = "R2_READY_BEFORE_ATTEMPT_HANDLE_CREATION"
 QUALIFICATION_STATUS = "R2_NON_EXPOSURE_OK"
-BOUNDARY_SCHEMA = "solo-r2-pre-exposure-boundary/v1"
+BOUNDARY_SCHEMA = "solo-r2-pre-exposure-boundary/v2"
 _LOWER_HEX_40 = re.compile(r"[0-9a-f]{40}\Z")
 _LOWER_HEX_64 = re.compile(r"[0-9a-f]{64}\Z")
 _CHALLENGE = re.compile(r"[0-9a-f]{32}\Z")
@@ -146,7 +147,9 @@ class PreExposureBoundaryEvidence:
                 "schema": BOUNDARY_SCHEMA,
                 "credential_sentinel_visible": credential_sentinel_visible,
                 "network_tcp_egress_denied": network_tcp_egress_denied,
-                "host_local_endpoint_reachable": host_local.host_local_endpoint_reachable,
+                "host_local_endpoint_reachable": (
+                    host_local.host_local_endpoint_reachable.value
+                ),
                 "observed_host_listener_count": host_local.observed_host_listener_count,
                 "runtime_endpoint_inputs": list(host_local.runtime_endpoint_inputs),
             },
@@ -204,12 +207,18 @@ class PreExposureBoundaryEvidence:
             not isinstance(item, str) for item in runtime_inputs
         ):
             _fail(PAIR_INVALID)
+        try:
+            host_local_disposition = HostLocalEndpointDisposition(
+                value["host_local_endpoint_reachable"]
+            )
+        except (TypeError, ValueError):
+            _fail(PAIR_INVALID)
         result = cls(
             evidence_sha256=expected_sha256,
             credential_sentinel_visible=value["credential_sentinel_visible"],
             network_tcp_egress_denied=value["network_tcp_egress_denied"],
             host_local=HostLocalIsolation(
-                value["host_local_endpoint_reachable"],
+                host_local_disposition,
                 value["observed_host_listener_count"],
                 tuple(runtime_inputs),
             ),
@@ -219,12 +228,59 @@ class PreExposureBoundaryEvidence:
 
 
 @dataclass(frozen=True)
+class HostLocalTcpObservation:
+    """Raw facts from one qualification-owned same-host TCP probe.
+
+    ``NO_CONNECTION`` is a completed observation after the child command has
+    returned a structured ``CONNECTION_FAILED`` result.  It is deliberately
+    distinct from ``TIMEOUT``: a timeout can never establish ``BLOCKED``.
+    """
+
+    expected_nonce: str
+    child_connect: str
+    listener_outcome: str
+    listener_payload: str | None
+    launcher_pre_reachable: bool
+    launcher_post_reachable: bool
+    same_child_required_probes_passed: bool
+
+    def classify(self) -> HostLocalEndpointDisposition:
+        if (
+            not isinstance(self.expected_nonce, str)
+            or _CHALLENGE.fullmatch(self.expected_nonce) is None
+            or not isinstance(self.child_connect, str)
+            or not isinstance(self.listener_outcome, str)
+            or (
+                self.listener_payload is not None
+                and not isinstance(self.listener_payload, str)
+            )
+            or self.launcher_pre_reachable is not True
+            or self.launcher_post_reachable is not True
+            or self.same_child_required_probes_passed is not True
+        ):
+            return HostLocalEndpointDisposition.UNRESOLVED
+        if (
+            self.listener_outcome == "PAYLOAD_RECEIVED"
+            and self.listener_payload == self.expected_nonce
+            and self.child_connect == "CONNECTED"
+        ):
+            return HostLocalEndpointDisposition.REACHABLE
+        if (
+            self.listener_outcome == "NO_CONNECTION"
+            and self.listener_payload is None
+            and self.child_connect == "CONNECTION_FAILED"
+        ):
+            return HostLocalEndpointDisposition.BLOCKED
+        return HostLocalEndpointDisposition.UNRESOLVED
+
+
+@dataclass(frozen=True)
 class PreExposureBoundaryObservation:
     credential_read: str
     launcher_egress_pre_reachable: bool
     child_egress_connect: str
     launcher_egress_post_reachable: bool
-    host_local_endpoint_reachable: bool | None
+    host_local_tcp: HostLocalTcpObservation
     observed_host_listener_count: int | None
     runtime_endpoint_inputs: tuple[str, ...]
 
@@ -279,7 +335,10 @@ class PreExposureBoundaryEvidenceProducer:
             or observation.runtime_endpoint_inputs
         ):
             _fail(PAIR_INVALID)
-        if observation.host_local_endpoint_reachable is not True:
+        if not isinstance(observation.host_local_tcp, HostLocalTcpObservation):
+            _fail(HOST_LOCAL_OBSERVATION_UNAVAILABLE)
+        host_local_disposition = observation.host_local_tcp.classify()
+        if host_local_disposition is HostLocalEndpointDisposition.UNRESOLVED:
             _fail(HOST_LOCAL_OBSERVATION_UNAVAILABLE)
         if (
             type(observation.observed_host_listener_count) is not int
@@ -291,7 +350,7 @@ class PreExposureBoundaryEvidenceProducer:
             credential_sentinel_visible=False,
             network_tcp_egress_denied=True,
             host_local=HostLocalIsolation(
-                observation.host_local_endpoint_reachable,
+                host_local_disposition,
                 observation.observed_host_listener_count,
                 observation.runtime_endpoint_inputs,
             ),
@@ -299,7 +358,7 @@ class PreExposureBoundaryEvidenceProducer:
 
 
 class HostLocalObservationUnavailable:
-    """Current production stop until same-host TCP reachability is observed."""
+    """Compatibility stop until same-host TCP behavior is resolved."""
 
     def __call__(
         self,

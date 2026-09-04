@@ -13,6 +13,7 @@ from governance_tools import solo_r2_attempt_execution as subject
 from governance_tools.solo_r2_attempt_materialization import (
     ArmMaterializationEvidence,
     FROZEN_BASE_COMMIT,
+    HostLocalEndpointDisposition,
     HostLocalIsolation,
     PairMaterializationEvidence,
     TREATMENT_PACKET_SHA256,
@@ -33,7 +34,7 @@ from governance_tools.solo_r2_codex_runner import (
 
 
 CANONICAL = Path("artifacts/evidence/solo-evaluation-20260831/attempt-ledger.v2.ndjson")
-HOST_LOCAL = HostLocalIsolation(True, 0)
+HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
 CATALOG = ToolCatalog.project((ToolDescriptor("read"), ToolDescriptor("shell")))
 IDENTITY = RuntimeIdentity(
     "gpt-5.6-sol", "high", "UNAVAILABLE", "client", "host", IDENTITY_DISPOSITION
@@ -319,7 +320,10 @@ def test_formal_host_local_observation_must_match_canary(tmp_path: Path) -> None
         lock_path=(tmp_path / "pair.lock").resolve(),
         binding=_binding(path),
     )
-    treatment = replace(_arm(2), host_local=HostLocalIsolation(False, 0))
+    treatment = replace(
+        _arm(2),
+        host_local=HostLocalIsolation(HostLocalEndpointDisposition.BLOCKED, 0),
+    )
     with lock, pytest.raises(subject.AttemptExecutionError) as caught:
         subject.PreAttemptExecutionCoordinator(lock).validate(
             materialization=_materialization(),

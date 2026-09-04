@@ -282,12 +282,29 @@ def test_windows_leaf_acl_probe_rejects_generation_drift(
     assert caught.value.code == subject.PAIR_INVALID
 
 
-def test_host_local_reachability_requires_zero_listener_and_zero_inputs() -> None:
+def test_host_local_tri_state_requires_resolved_zero_listener_and_zero_inputs() -> None:
     with pytest.raises(subject.MaterializationError):
-        subject.HostLocalIsolation(True, 1).validate()
+        subject.HostLocalIsolation(
+            subject.HostLocalEndpointDisposition.REACHABLE, 1
+        ).validate()
     with pytest.raises(subject.MaterializationError):
-        subject.HostLocalIsolation(True, 0, ("http://127.0.0.1:9000",)).validate()
-    subject.HostLocalIsolation(True, 0).validate()
+        subject.HostLocalIsolation(
+            subject.HostLocalEndpointDisposition.BLOCKED,
+            0,
+            ("http://127.0.0.1:9000",),
+        ).validate()
+    with pytest.raises(subject.MaterializationError):
+        subject.HostLocalIsolation(
+            subject.HostLocalEndpointDisposition.UNRESOLVED, 0
+        ).validate()
+    with pytest.raises(subject.MaterializationError):
+        subject.HostLocalIsolation("REACHABLE", 0).validate()  # type: ignore[arg-type]
+    subject.HostLocalIsolation(
+        subject.HostLocalEndpointDisposition.REACHABLE, 0
+    ).validate()
+    subject.HostLocalIsolation(
+        subject.HostLocalEndpointDisposition.BLOCKED, 0
+    ).validate()
 
 
 def test_git_environment_drops_path_and_rejects_authority_overrides(
@@ -340,7 +357,9 @@ def test_pair_materialization_is_byte_identical_and_sequential(tmp_path: Path) -
         repository=_binding(root),
         leaves=manager,
         packet=subject.TreatmentInstruction.load(PACKET),
-        host_local=subject.HostLocalIsolation(True, 0),
+        host_local=subject.HostLocalIsolation(
+            subject.HostLocalEndpointDisposition.REACHABLE, 0
+        ),
         forbidden_snapshot_paths=("hidden-oracle.txt",),
     )
 
@@ -381,7 +400,9 @@ def test_pair_materialization_rejects_sandbox_account_generation_drift(
         repository=_binding(root),
         leaves=subject.LeafWorkspaceManager((tmp_path / "leaves").resolve(), acl_probe=probe),
         packet=subject.TreatmentInstruction.load(PACKET),
-        host_local=subject.HostLocalIsolation(True, 0),
+        host_local=subject.HostLocalIsolation(
+            subject.HostLocalEndpointDisposition.REACHABLE, 0
+        ),
     )
 
     def fake_git(executable, binding, args, *, temp_root):

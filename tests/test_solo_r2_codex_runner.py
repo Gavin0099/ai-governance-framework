@@ -12,6 +12,7 @@ import pytest
 
 from governance_tools import solo_r2_codex_runner as subject
 from governance_tools.solo_r2_attempt_materialization import (
+    HostLocalEndpointDisposition,
     HostLocalIsolation,
     PinnedExecutable,
 )
@@ -24,7 +25,7 @@ CATALOG = subject.ToolCatalog.project(
         subject.ToolDescriptor("mcp_tool_call", approval_required=True),
     )
 )
-HOST_LOCAL = HostLocalIsolation(True, 0)
+HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
 OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
 LAUNCHER_SID = "S-1-5-21-4017902291-1272973841-664929404-1001"
@@ -47,7 +48,7 @@ IDENTITY = subject.RuntimeIdentity(
 
 
 class Backend:
-    def __init__(self) -> None:
+    def __init__(self, host_local: HostLocalIsolation = HOST_LOCAL) -> None:
         self.canary = subject.CanaryObservation(
             context_id="canary-context",
             workspace_id="canary-workspace",
@@ -57,7 +58,7 @@ class Backend:
             catalog_sha256=CATALOG.catalog_sha256,
             credential_sentinel_visible=False,
             network_tcp_egress_denied=True,
-            host_local=HOST_LOCAL,
+            host_local=host_local,
             sandbox_principal=OFFLINE_SID,
             sandbox_account_generation=GENERATION.value,
         )
@@ -80,7 +81,7 @@ class Backend:
             sandbox_principal=OFFLINE_SID,
             sandbox_account_generation=GENERATION.value,
             credential_sentinel_visible=False,
-            host_local=HOST_LOCAL,
+            host_local=self.canary.host_local,
         )
 
 
@@ -434,6 +435,15 @@ def test_canary_and_formal_arms_are_fresh_and_unexposed(tmp_path: Path) -> None:
     assert first.task_exposure_state == second.task_exposure_state == "NONE"
     with pytest.raises(subject.RunnerGateError):
         adapter.prepare_formal_arm(1)
+
+
+def test_adapter_propagates_resolved_blocked_host_local_disposition(
+    tmp_path: Path,
+) -> None:
+    host_local = HostLocalIsolation(HostLocalEndpointDisposition.BLOCKED, 0)
+    adapter = _adapter(tmp_path, Backend(host_local))
+    assert adapter.qualify_canary().host_local == host_local
+    assert adapter.prepare_formal_arm(1).host_local == host_local
 
 
 def test_configured_tool_projection_drift_is_pair_invalid(tmp_path: Path) -> None:

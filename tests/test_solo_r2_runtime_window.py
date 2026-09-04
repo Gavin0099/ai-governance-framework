@@ -18,6 +18,7 @@ from governance_tools.solo_r2_attempt_execution import PairBinding, PairLedgerLo
 from governance_tools.solo_r2_attempt_materialization import (
     ArmMaterializationEvidence,
     FROZEN_BASE_COMMIT,
+    HostLocalEndpointDisposition,
     HostLocalIsolation,
     PairMaterializationEvidence,
     PinnedExecutable,
@@ -44,7 +45,7 @@ from governance_tools.solo_r2_codex_runner import (
 CANONICAL = Path("artifacts/evidence/solo-evaluation-20260831/attempt-ledger.v2.ndjson")
 OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
-HOST_LOCAL = HostLocalIsolation(True, 0)
+HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
 CATALOG = ToolCatalog.project((ToolDescriptor("command_execution"),))
 
 
@@ -288,6 +289,20 @@ def _freeze(
     )
 
 
+def _host_local_tcp(**changes: object) -> subject.HostLocalTcpObservation:
+    values: dict[str, object] = {
+        "expected_nonce": "1" * 32,
+        "child_connect": "CONNECTED",
+        "listener_outcome": "PAYLOAD_RECEIVED",
+        "listener_payload": "1" * 32,
+        "launcher_pre_reachable": True,
+        "launcher_post_reachable": True,
+        "same_child_required_probes_passed": True,
+    }
+    values.update(changes)
+    return subject.HostLocalTcpObservation(**values)  # type: ignore[arg-type]
+
+
 class PassingBoundarySource:
     def __call__(self, **kwargs) -> subject.PreExposureBoundaryObservation:
         assert kwargs["result"] is not None
@@ -297,7 +312,7 @@ class PassingBoundarySource:
             True,
             "BLOCKED",
             True,
-            True,
+            _host_local_tcp(),
             0,
             (),
         )
@@ -418,7 +433,7 @@ def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Pat
         "schema": subject.BOUNDARY_SCHEMA,
         "credential_sentinel_visible": False,
         "network_tcp_egress_denied": True,
-        "host_local_endpoint_reachable": True,
+        "host_local_endpoint_reachable": "REACHABLE",
         "observed_host_listener_count": 0,
         "runtime_endpoint_inputs": [],
     }
@@ -432,6 +447,17 @@ def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Pat
     path.write_text(json.dumps(value), encoding="utf-8")
     with pytest.raises(subject.RuntimeWindowError):
         subject.PreExposureBoundaryEvidence.load(path, expected_sha256=digest)
+    value["network_tcp_egress_denied"] = True
+    value["host_local_endpoint_reachable"] = True
+    legacy_payload = json.dumps(value, separators=(",", ":"), sort_keys=True).encode(
+        "ascii"
+    )
+    path.write_bytes(legacy_payload)
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        subject.PreExposureBoundaryEvidence.load(
+            path, expected_sha256=hashlib.sha256(legacy_payload).hexdigest()
+        )
+    assert caught.value.code == subject.PAIR_INVALID
 
 
 def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -> None:
@@ -471,8 +497,7 @@ def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -
         ({"launcher_egress_pre_reachable": False}, subject.PAIR_INVALID),
         ({"child_egress_connect": "CONNECTED"}, subject.PAIR_INVALID),
         ({"launcher_egress_post_reachable": False}, subject.PAIR_INVALID),
-        ({"host_local_endpoint_reachable": None}, subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE),
-        ({"host_local_endpoint_reachable": False}, subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE),
+        ({"host_local_tcp": None}, subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE),
         ({"observed_host_listener_count": None}, subject.PAIR_INVALID),
         ({"observed_host_listener_count": 1}, subject.PAIR_INVALID),
         ({"runtime_endpoint_inputs": ("tcp://host:1",)}, subject.PAIR_INVALID),
@@ -488,7 +513,7 @@ def test_boundary_producer_fails_closed_on_unusable_observation(
         "launcher_egress_pre_reachable": True,
         "child_egress_connect": "BLOCKED",
         "launcher_egress_post_reachable": True,
-        "host_local_endpoint_reachable": True,
+        "host_local_tcp": _host_local_tcp(),
         "observed_host_listener_count": 0,
         "runtime_endpoint_inputs": (),
     }
@@ -514,6 +539,103 @@ def test_current_host_local_source_is_an_explicit_stop(tmp_path: Path) -> None:
     producer = subject.PreExposureBoundaryEvidenceProducer(
         evidence_path=path,
         observation_source=subject.HostLocalObservationUnavailable(),
+    )
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        producer.produce(result=SimpleNamespace(), generation=GENERATION_B)  # type: ignore[arg-type]
+    assert caught.value.code == subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE
+    assert not path.exists()
+
+
+@pytest.mark.parametrize(
+    "changes, expected",
+    (
+        ({}, HostLocalEndpointDisposition.REACHABLE),
+        (
+            {
+                "child_connect": "CONNECTION_FAILED",
+                "listener_outcome": "NO_CONNECTION",
+                "listener_payload": None,
+            },
+            HostLocalEndpointDisposition.BLOCKED,
+        ),
+        ({"listener_outcome": "TIMEOUT"}, HostLocalEndpointDisposition.UNRESOLVED),
+        ({"child_connect": "failed somehow"}, HostLocalEndpointDisposition.UNRESOLVED),
+        ({"launcher_pre_reachable": False}, HostLocalEndpointDisposition.UNRESOLVED),
+        ({"launcher_post_reachable": False}, HostLocalEndpointDisposition.UNRESOLVED),
+        (
+            {"listener_payload": "2" * 32},
+            HostLocalEndpointDisposition.UNRESOLVED,
+        ),
+        ({"listener_payload": None}, HostLocalEndpointDisposition.UNRESOLVED),
+        (
+            {"same_child_required_probes_passed": False},
+            HostLocalEndpointDisposition.UNRESOLVED,
+        ),
+        ({"listener_outcome": "UNKNOWN"}, HostLocalEndpointDisposition.UNRESOLVED),
+    ),
+)
+def test_host_local_tcp_facts_classify_without_treating_unknown_as_safe(
+    changes: dict[str, object],
+    expected: HostLocalEndpointDisposition,
+) -> None:
+    assert _host_local_tcp(**changes).classify() is expected
+
+
+def test_blocked_host_local_observation_creates_resolved_boundary_evidence(
+    tmp_path: Path,
+) -> None:
+    path = (tmp_path / "boundary.json").resolve()
+
+    def source(**kwargs) -> subject.PreExposureBoundaryObservation:
+        del kwargs
+        return subject.PreExposureBoundaryObservation(
+            "DENIED",
+            True,
+            "BLOCKED",
+            True,
+            _host_local_tcp(
+                child_connect="CONNECTION_FAILED",
+                listener_outcome="NO_CONNECTION",
+                listener_payload=None,
+            ),
+            0,
+            (),
+        )
+
+    evidence = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=path,
+        observation_source=source,
+    ).produce(result=SimpleNamespace(), generation=GENERATION_B)  # type: ignore[arg-type]
+    assert evidence.host_local.host_local_endpoint_reachable is (
+        HostLocalEndpointDisposition.BLOCKED
+    )
+    assert evidence.host_local.observed_host_listener_count == 0
+    assert evidence.host_local.runtime_endpoint_inputs == ()
+    assert subject.PreExposureBoundaryEvidence.load(
+        path, expected_sha256=evidence.evidence_sha256
+    ) == evidence
+
+
+def test_unresolved_host_local_observation_cannot_create_boundary_evidence(
+    tmp_path: Path,
+) -> None:
+    path = (tmp_path / "boundary.json").resolve()
+
+    def source(**kwargs) -> subject.PreExposureBoundaryObservation:
+        del kwargs
+        return subject.PreExposureBoundaryObservation(
+            "DENIED",
+            True,
+            "BLOCKED",
+            True,
+            _host_local_tcp(listener_outcome="TIMEOUT"),
+            0,
+            (),
+        )
+
+    producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=path,
+        observation_source=source,
     )
     with pytest.raises(subject.RuntimeWindowError) as caught:
         producer.produce(result=SimpleNamespace(), generation=GENERATION_B)  # type: ignore[arg-type]

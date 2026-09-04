@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+from enum import Enum
 import hashlib
 from io import BytesIO
 import json
@@ -136,17 +137,29 @@ class RepositoryBinding:
                 _fail()
 
 
+class HostLocalEndpointDisposition(str, Enum):
+    """Behavioral result of the qualification-only same-host TCP probe."""
+
+    REACHABLE = "REACHABLE"
+    BLOCKED = "BLOCKED"
+    UNRESOLVED = "UNRESOLVED"
+
+
 @dataclass(frozen=True)
 class HostLocalIsolation:
-    """The sandbox can reach the host, so no host endpoint may be an input."""
+    """Observed same-host TCP behavior with every runtime endpoint removed."""
 
-    host_local_endpoint_reachable: bool
+    host_local_endpoint_reachable: HostLocalEndpointDisposition
     observed_host_listener_count: int
     runtime_endpoint_inputs: tuple[str, ...] = ()
 
     def validate(self) -> None:
         if (
-            self.host_local_endpoint_reachable is not True
+            not isinstance(
+                self.host_local_endpoint_reachable, HostLocalEndpointDisposition
+            )
+            or self.host_local_endpoint_reachable
+            is HostLocalEndpointDisposition.UNRESOLVED
             or type(self.observed_host_listener_count) is not int
             or self.observed_host_listener_count != 0
             or not isinstance(self.runtime_endpoint_inputs, tuple)
