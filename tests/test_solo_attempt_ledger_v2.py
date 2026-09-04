@@ -11,6 +11,14 @@ import pytest
 from governance_tools import solo_attempt_ledger_v2 as ledger
 
 
+def test_replacement_ledger_namespace_is_one_fixed_sibling_path() -> None:
+    assert ledger.REPLACEMENT_PUBLIC_LEDGER_PATH == Path(
+        "artifacts/evidence/solo-evaluation-r2-replacement-20260905/"
+        "attempt-ledger.v2.ndjson"
+    )
+    assert ledger.REPLACEMENT_PUBLIC_LEDGER_PATH != ledger.PUBLIC_LEDGER_PATH
+
+
 def _uuid(number: int) -> str:
     return str(UUID(int=number, version=4))
 

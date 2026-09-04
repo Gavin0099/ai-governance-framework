@@ -20,6 +20,7 @@ import base64
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
+import json
 import os
 from pathlib import Path
 import sys
@@ -35,6 +36,8 @@ from governance_tools import solo_r2_random_domains as random_domains
 PAIR_CREATION_FAILURE = "R2_PAIR_CREATION_FAILURE / STOP"
 CONTROLLER_ORDER_FAILURE = "CONTROLLER_ORDER_FAILURE / STOP"
 PAIR_CREATION_COMPLETE = "R2_SHAKEDOWN_PAIR_CREATED"
+OWNER_COMMITMENT_SCHEMA = "solo_r2_owner_commitment.v1"
+OWNER_COMMITMENT_AUTHORITY = "OWNER_ATTESTED_CREATION_TIME_COMMITMENT"
 
 EXPECTED_GENESIS_SHA256 = (
     "f284484a74e5efb9faa62cf09fdd065890cf27d51ee3261eba18646390bbd40c"
@@ -184,6 +187,7 @@ def _validate_controller_root(
     *,
     key_path: object,
     custody_boundary: controller.CustodyBoundary,
+    key_must_exist: bool = True,
 ) -> Path:
     root = _canonical_directory(value, reject_alias=True)
     boundary_roots = _resolved_boundary_roots(custody_boundary)
@@ -199,12 +203,17 @@ def _validate_controller_root(
     if not supplied_key.is_absolute():
         _fail()
     try:
-        resolved_key = supplied_key.resolve(strict=True)
+        if key_must_exist:
+            resolved_key = supplied_key.resolve(strict=True)
+            if not resolved_key.is_file():
+                _fail()
+            key_root = resolved_key.parent
+        else:
+            key_root = supplied_key.parent.resolve(strict=True)
+            if _normalized_path(supplied_key.parent) != _normalized_path(key_root):
+                _fail()
     except (OSError, RuntimeError):
         _fail()
-    if not resolved_key.is_file():
-        _fail()
-    key_root = resolved_key.parent
     if _is_within(root, key_root) or _is_within(key_root, root):
         _fail()
     if _contains_git_marker(root) or not os.access(root, os.W_OK):
@@ -217,8 +226,76 @@ def _validate_controller_root(
     return root
 
 
-def _validate_exact_genesis(project_root: Path) -> tuple[Path, dict[str, object]]:
-    lexical = project_root / ledger.PUBLIC_LEDGER_PATH
+def _validate_commitment_target(
+    value: object,
+    *,
+    controller_root: Path,
+    custody_boundary: controller.CustodyBoundary,
+) -> Path:
+    try:
+        supplied = Path(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        _fail()
+    if not supplied.is_absolute():
+        _fail()
+    try:
+        parent = supplied.parent.resolve(strict=True)
+    except (OSError, RuntimeError):
+        _fail()
+    if (
+        not parent.is_dir()
+        or _normalized_path(supplied.parent) != _normalized_path(parent)
+        or _has_reparse_or_symlink_component(parent)
+        or _contains_git_marker(parent)
+        or not os.access(parent, os.W_OK)
+    ):
+        _fail()
+    target = parent / supplied.name
+    temporary = target.with_name(f".{target.name}.tmp")
+    if _path_entry_exists(target) or _path_entry_exists(temporary):
+        _fail()
+    boundary_roots = _resolved_boundary_roots(custody_boundary)
+    if any(
+        _is_within(parent, forbidden) or _is_within(forbidden, parent)
+        for forbidden in boundary_roots
+    ):
+        _fail()
+    if _is_within(parent, controller_root) or _is_within(controller_root, parent):
+        _fail()
+    return target
+
+
+def validate_replacement_targets(
+    *,
+    controller_root: Path | str,
+    key_path: Path | str,
+    commitment_path: Path | str,
+    custody_boundary: controller.CustodyBoundary,
+) -> tuple[Path, Path]:
+    """Validate replacement custody targets before key or ledger publication."""
+
+    private_root = _validate_controller_root(
+        controller_root,
+        key_path=key_path,
+        custody_boundary=custody_boundary,
+        key_must_exist=False,
+    )
+    commitment = _validate_commitment_target(
+        commitment_path,
+        controller_root=private_root,
+        custody_boundary=custody_boundary,
+    )
+    return private_root, commitment
+
+
+def _validate_exact_genesis_binding(
+    project_root: Path,
+    *,
+    ledger_relpath: Path,
+    expected_genesis_sha256: str,
+    expected_evaluation_id: str,
+) -> tuple[Path, dict[str, object]]:
+    lexical = project_root / ledger_relpath
     try:
         public_path = lexical.resolve(strict=True)
         data = public_path.read_bytes()
@@ -226,7 +303,7 @@ def _validate_exact_genesis(project_root: Path) -> tuple[Path, dict[str, object]
         _fail()
     if (
         _normalized_path(lexical) != _normalized_path(public_path)
-        or hashlib.sha256(data).hexdigest() != EXPECTED_GENESIS_SHA256
+        or hashlib.sha256(data).hexdigest() != expected_genesis_sha256
     ):
         _fail()
     try:
@@ -250,10 +327,19 @@ def _validate_exact_genesis(project_root: Path) -> tuple[Path, dict[str, object]
     genesis = events[0]
     if (
         genesis.get("event_type") != "V2_GENESIS"
-        or genesis.get("evaluation_id") != EXPECTED_EVALUATION_ID
+        or genesis.get("evaluation_id") != expected_evaluation_id
     ):
         _fail()
     return public_path, genesis
+
+
+def _validate_exact_genesis(project_root: Path) -> tuple[Path, dict[str, object]]:
+    return _validate_exact_genesis_binding(
+        project_root,
+        ledger_relpath=ledger.PUBLIC_LEDGER_PATH,
+        expected_genesis_sha256=EXPECTED_GENESIS_SHA256,
+        expected_evaluation_id=EXPECTED_EVALUATION_ID,
+    )
 
 
 def _draw_entropy32() -> bytes:
@@ -310,6 +396,72 @@ def _atomic_create_checkpoint(path: Path, data: bytes) -> None:
         _fail(CONTROLLER_ORDER_FAILURE)
 
 
+def _commitment_bytes(
+    *,
+    evaluation_id: str,
+    pair_id: str,
+    sealed_package_digest: str,
+    created_at_utc: str,
+) -> bytes:
+    record = {
+        "record_schema": OWNER_COMMITMENT_SCHEMA,
+        "evaluation_id": evaluation_id,
+        "pair_id": pair_id,
+        "slot": SHAKEDOWN_SLOT,
+        "sealed_package_digest": sealed_package_digest,
+        "created_at_utc": created_at_utc,
+        "authority_class": OWNER_COMMITMENT_AUTHORITY,
+    }
+    try:
+        encoded = json.dumps(
+            record,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8") + b"\n"
+    except (TypeError, ValueError):
+        _fail(CONTROLLER_ORDER_FAILURE)
+    if b"\r" in encoded or encoded.startswith(b"\xef\xbb\xbf"):
+        _fail(CONTROLLER_ORDER_FAILURE)
+    return encoded
+
+
+def _atomic_create_commitment(path: Path, data: bytes) -> None:
+    """Create, flush, no-clobber publish and verify one owner commitment."""
+
+    if type(data) is not bytes or not data:
+        _fail(CONTROLLER_ORDER_FAILURE)
+    temporary = path.with_name(f".{path.name}.tmp")
+    if _path_entry_exists(path) or _path_entry_exists(temporary):
+        _fail(CONTROLLER_ORDER_FAILURE)
+    publication_started = False
+    try:
+        with temporary.open("xb+", buffering=0) as stream:
+            written = stream.write(data)
+            if written != len(data):
+                raise OSError("short write")
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read() != data:
+                raise OSError("read-back mismatch")
+        # A same-directory hard link makes target creation atomic and refuses
+        # an existing target.  Unlike os.replace(), it cannot overwrite a
+        # commitment that appears after the preflight absence check.
+        os.link(temporary, path, follow_symlinks=False)
+        publication_started = True
+        temporary.unlink()
+        if path.read_bytes() != data:
+            raise OSError("published commitment mismatch")
+    except OSError:
+        if not publication_started:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+        _fail(CONTROLLER_ORDER_FAILURE)
+
+
 def _order_state(*, evaluation_id: str, pair_id: str) -> dict[str, object]:
     order_entropy = _draw_entropy32()
     try:
@@ -347,23 +499,15 @@ def _pair_event(*, pair_id: str) -> dict[str, object]:
     }
 
 
-def create_shakedown_pair(
+def _create_pair_after_validation(
     *,
-    project_root: Path | str,
-    controller_root: Path | str,
+    public_path: Path,
+    genesis: dict[str, object],
+    private_root: Path,
     key_path: Path | str,
     custody_boundary: controller.CustodyBoundary,
+    commitment_path: Path | None,
 ) -> PairCreationResult:
-    """Seal one new R2-SHAKEDOWN order, append its Pair, and stop."""
-
-    root = _validate_project_root(project_root, custody_boundary)
-    public_path, genesis = _validate_exact_genesis(root)
-    private_root = _validate_controller_root(
-        controller_root,
-        key_path=key_path,
-        custody_boundary=custody_boundary,
-    )
-
     pair_id = _new_uuid4()
     event = _pair_event(pair_id=pair_id)
     try:
@@ -386,6 +530,14 @@ def create_shakedown_pair(
 
     checkpoint_path = _checkpoint_path(private_root, pair_id)
     _atomic_create_checkpoint(checkpoint_path, package.package_bytes)
+    if commitment_path is not None:
+        commitment = _commitment_bytes(
+            evaluation_id=str(genesis["evaluation_id"]),
+            pair_id=pair_id,
+            sealed_package_digest=package.sealed_package_digest,
+            created_at_utc=_timestamp_utc(),
+        )
+        _atomic_create_commitment(commitment_path, commitment)
     try:
         summary = ledger.append_event(public_path, event)
     except ledger.LedgerError:
@@ -419,6 +571,71 @@ def create_shakedown_pair(
         checkpoint_path=checkpoint_path,
         sealed_package_digest=package.sealed_package_digest,
         ledger_sha256=hashlib.sha256(ledger_bytes).hexdigest(),
+    )
+
+
+def create_shakedown_pair(
+    *,
+    project_root: Path | str,
+    controller_root: Path | str,
+    key_path: Path | str,
+    custody_boundary: controller.CustodyBoundary,
+) -> PairCreationResult:
+    """Seal one new original-evaluation R2-SHAKEDOWN Pair and stop."""
+
+    root = _validate_project_root(project_root, custody_boundary)
+    public_path, genesis = _validate_exact_genesis(root)
+    private_root = _validate_controller_root(
+        controller_root,
+        key_path=key_path,
+        custody_boundary=custody_boundary,
+    )
+    return _create_pair_after_validation(
+        public_path=public_path,
+        genesis=genesis,
+        private_root=private_root,
+        key_path=key_path,
+        custody_boundary=custody_boundary,
+        commitment_path=None,
+    )
+
+
+def _create_replacement_shakedown_pair(
+    *,
+    project_root: Path | str,
+    controller_root: Path | str,
+    key_path: Path | str,
+    commitment_path: Path | str,
+    expected_genesis_sha256: str,
+    expected_evaluation_id: str,
+    custody_boundary: controller.CustodyBoundary,
+) -> PairCreationResult:
+    """Create the sole owner-authorized sibling Pair with durable commitment."""
+
+    root = _validate_project_root(project_root, custody_boundary)
+    public_path, genesis = _validate_exact_genesis_binding(
+        root,
+        ledger_relpath=ledger.REPLACEMENT_PUBLIC_LEDGER_PATH,
+        expected_genesis_sha256=expected_genesis_sha256,
+        expected_evaluation_id=expected_evaluation_id,
+    )
+    private_root = _validate_controller_root(
+        controller_root,
+        key_path=key_path,
+        custody_boundary=custody_boundary,
+    )
+    commitment = _validate_commitment_target(
+        commitment_path,
+        controller_root=private_root,
+        custody_boundary=custody_boundary,
+    )
+    return _create_pair_after_validation(
+        public_path=public_path,
+        genesis=genesis,
+        private_root=private_root,
+        key_path=key_path,
+        custody_boundary=custody_boundary,
+        commitment_path=commitment,
     )
 
 

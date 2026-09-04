@@ -21,6 +21,10 @@ LEDGER_SCHEMA = "solo_attempt_ledger.v2"
 PUBLIC_LEDGER_PATH = Path(
     "artifacts/evidence/solo-evaluation-20260831/attempt-ledger.v2.ndjson"
 )
+REPLACEMENT_PUBLIC_LEDGER_PATH = Path(
+    "artifacts/evidence/solo-evaluation-r2-replacement-20260905/"
+    "attempt-ledger.v2.ndjson"
+)
 V1_LEDGER_SHA256 = (
     "596e798868adae1f9b0fd7d33d6eef6505d947415b95b748381951f3e32e04ab"
 )

@@ -478,3 +478,64 @@ def test_json_checkpoint_contains_no_public_pair_event_or_attempt_payload(
     assert "realized_order" not in envelope
     assert "order_entropy" not in envelope
     assert ledger.validate_ledger_file(public_path).initiated_attempt_count == 0
+
+
+def test_owner_commitment_is_canonical_and_contains_no_mapping_or_key_material() -> None:
+    encoded = pair_creation._commitment_bytes(
+        evaluation_id="10000000-0000-4000-8000-000000000001",
+        pair_id="20000000-0000-4000-8000-000000000002",
+        sealed_package_digest="a" * 64,
+        created_at_utc="2026-09-05T00:00:00Z",
+    )
+    assert encoded.endswith(b"\n")
+    assert b"\r" not in encoded
+    record = json.loads(encoded)
+    assert record == {
+        "authority_class": pair_creation.OWNER_COMMITMENT_AUTHORITY,
+        "created_at_utc": "2026-09-05T00:00:00Z",
+        "evaluation_id": "10000000-0000-4000-8000-000000000001",
+        "pair_id": "20000000-0000-4000-8000-000000000002",
+        "record_schema": pair_creation.OWNER_COMMITMENT_SCHEMA,
+        "sealed_package_digest": "a" * 64,
+        "slot": pair_creation.SHAKEDOWN_SLOT,
+    }
+    forbidden = {
+        "key",
+        "key_path",
+        "realized_order",
+        "order_entropy",
+        "arm_identity",
+        "attempt_handle",
+    }
+    assert forbidden.isdisjoint(record)
+    assert b"CONTROL" not in encoded
+    assert b"TREATMENT" not in encoded
+
+
+def test_replacement_commitment_target_is_create_once_and_outside_package_root(
+    tmp_path: Path,
+) -> None:
+    project_root, boundary, key_path, public_path, roots = _environment(tmp_path)
+    commitment_root = tmp_path / "owner-commitment"
+    commitment_root.mkdir()
+    commitment_path = commitment_root / "commitment.json"
+
+    private_root, target = pair_creation.validate_replacement_targets(
+        controller_root=roots["controller-state"],
+        key_path=key_path,
+        commitment_path=commitment_path,
+        custody_boundary=boundary,
+    )
+    assert private_root == roots["controller-state"]
+    assert target == commitment_path
+
+    commitment_path.write_bytes(b"existing\n")
+    with pytest.raises(pair_creation.PairCreationError):
+        pair_creation.validate_replacement_targets(
+            controller_root=roots["controller-state"],
+            key_path=key_path,
+            commitment_path=commitment_path,
+            custody_boundary=boundary,
+        )
+    assert commitment_path.read_bytes() == b"existing\n"
+    assert ledger.validate_ledger_file(public_path).pair_count == 0
