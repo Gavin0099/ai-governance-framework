@@ -65,12 +65,58 @@ explicit `WARNING` as appropriate.
 
 | Level | Meaning |
 |---|---|
-| `BLOCKING` | A governance, correctness, or safety issue that must be fixed |
+| `BLOCKING` | A governance, correctness, or safety issue severe enough that shipping it knowingly is not acceptable |
 | `WARNING` | A risk, debt item, or weak evidence point that must be explicit |
 | `SUGGESTION` | A non-blocking improvement |
 
+These levels name **how severe** a finding is. Whether a given finding stops the
+change under review is a separate question, answered in §2.2. A `BLOCKING`
+finding that the reviewed change neither introduced nor reaches is recorded,
+dispositioned, and carried forward; write it as `BLOCKING / carried-forward` so
+severity and applicability are never read as a single claim.
+
 Do not confuse `ESCALATED` with `BLOCKING`.
 Escalation is for unresolved consequential ambiguity, not merely for defects.
+
+### 2.2 Finding Severity vs Merge Blocking Applicability
+
+**Severity describes the finding. Blocking applicability describes the current
+decision. They are not equivalent.**
+
+A severe finding that this change neither introduces, worsens, nor reaches is
+still severe. It is not automatically this change's responsibility to fix.
+
+Preserve whatever severity scale the review already uses — the levels in §2.1
+here, or the `P0`/`P1`/`P2`/`P3` an external reviewer emits. Do not invent a
+second scale to express blocking applicability; answer it as a separate
+question about the same finding.
+
+Every finding must carry four answers:
+
+| Field | What it answers |
+|---|---|
+| Severity | How bad the finding is, on the scale already in use |
+| Attribution | Introduced, worsened, exposed, or pre-existing relative to this change |
+| Decision impact | Whether it makes this change's `DONE` or merge safety unsound |
+| Disposition | fix now, workaround, carried-forward, or separate bounded work |
+
+A finding blocks only when at least one of these holds:
+
+1. The change introduces or worsens a `BLOCKING`-severity issue.
+2. The finding makes the change's stated `DONE` or claim ceiling untrue.
+3. The issue is pre-existing, but this change causes the dangerous path to be
+   entered, or widens exposure to it.
+4. The finding invalidates evidence, identity, or irreversible state that this
+   decision relies on.
+
+Otherwise the finding is recorded with its severity intact, given an explicit
+disposition, and carried forward. Severity is never lowered to make something
+non-blocking, and a real finding is never reported as fixed or absent.
+
+`APPROVED` therefore means no *blocking* finding remains in the reviewed scope,
+not that the surrounding subsystem is free of findings. Do not convert a
+bounded change into subsystem qualification because a review touched that
+subsystem; see the merge-gate skill for the review-boundary rules.
 
 ---
 

@@ -20,6 +20,10 @@ This directory contains Claude-facing local skills for the AI Governance Framewo
   - Use when implementation is done and the next step is a reviewer-ready pull-request summary.
   - Covers PR framing, scope boundaries, risk/evidence language, and reviewer entrypoints.
 
+- `pr-review-merge-gate`
+  - Use when deciding whether a PR can merge safely, triaging findings, or re-reviewing a correction.
+  - Covers the frozen merge decision, finding triage, delta-bounded re-review, and the merge-ready definition.
+
 - `external-onboarding`
   - Use when onboarding or triaging an external repo against this framework.
   - Covers hook installation, readiness assessment, onboarding smoke, and report generation.
