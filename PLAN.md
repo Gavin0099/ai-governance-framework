@@ -225,6 +225,33 @@ Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation
 - This records bounded R1 implementation delivery only. It does not establish
   R1 qualification or authorize RAG or any later lifecycle slice.
 
+Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision candidate):
+
+- [>] Record the bounded NSI-N0 feasibility result without defining an
+  implementation-ready persisted-session reader grammar.
+- DONE: current persisted logical `active_task` and `review_log` surfaces can
+  reconstruct record plus summary, but current repository state cannot
+  mechanically establish cross-session authority freshness; resolved Natural
+  Session replay is therefore `BLOCKED` with zero context;
+  `current_human_instruction` cannot be replayed as resolved without an
+  independently comparable persisted instruction-state identity;
+  `approved_change` cannot be replayed as resolved from repository HEAD equality
+  alone, and a pre-write HEAD is self-invalidating across the
+  attachment-containing commit; this decision does not define reader grammar,
+  attachment cardinality, historical precedence, standalone-v2 admission, or
+  R1 edge-selection semantics.
+- Next candidate: one separately authorized minimal technical spike to determine
+  the smallest persisted freshness evidence capable of mechanically classifying
+  Session B as same, changed, or unverifiable relative to Session A. The spike
+  may conclude that no safe bounded representation exists.
+- Claim ceiling: feasibility and representation decision only. No reader,
+  adapter, attachment writer, schema, instruction ledger, bootstrap, migration,
+  Session A/B pilot, RAG, lifecycle expansion, Runtime change, governance
+  authority, enforcement, or merge is authorized.
+- Acceptance requires exact-head independent review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
+
 Current refresh - 2026-09-02 (MRCSP M1b-3 active):
 
 - [x] Add one deterministic report-only detector for one caller-admitted
