@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
@@ -211,6 +212,17 @@ _SINGLE_LINE_BOUNDARIES = (
     "\u2029",
 )
 
+_LOWER_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_ACTIVE_TASK_PROJECTION_BYTES = re.compile(
+    rb"^- (.+) <!-- memory_record_projection:active-task-summary:([0-9a-f]{64}) -->$"
+)
+_ACTIVE_TASK_SUPERSESSION_BYTES = re.compile(
+    rb"^<!-- memory_runtime_supersession:active-task-summary:"
+    rb"([0-9a-f]{64}):([0-9a-f]{64}):([0-9a-f]{64}):([0-9a-f]{64}) -->$"
+)
+_ACTIVE_TASK_PROJECTION_NAMESPACE = b"memory_record_projection:"
+_ACTIVE_TASK_SUPERSESSION_NAMESPACE = b"memory_runtime_supersession:"
+
 
 def _validate_single_line(value: str | None, *, field_name: str) -> str:
     raw_value = value or ""
@@ -237,10 +249,16 @@ def _validate_projection_field(value: str | None, *, field_name: str) -> str:
 
 
 def _validate_active_task_summary(value: str | None) -> str:
-    return _validate_projection_field(
+    candidate = _validate_projection_field(
         value,
         field_name="active_task_summary",
     )
+    if "memory_runtime_supersession:" in candidate:
+        raise ValueError(
+            "active_task_summary contains reserved supersession syntax: "
+            "memory_runtime_supersession:"
+        )
+    return candidate
 
 
 def render_review_log_projection(record: dict[str, str]) -> str:
@@ -267,6 +285,193 @@ def render_active_task_projection(record: dict[str, str], *, summary: str) -> st
         f"- {normalized_summary} "
         f"<!-- memory_record_projection:{SURFACE_ACTIVE_TASK_SUMMARY}:{identity} -->\n"
     )
+
+
+def render_active_task_supersession_relation(
+    *,
+    predecessor_record_identity: str,
+    predecessor_projection_sha256: str,
+    successor_record_identity: str,
+    successor_projection_sha256: str,
+) -> str:
+    """Render one exact two-version active-task supersession relation."""
+
+    fields = {
+        "predecessor_record_identity": predecessor_record_identity,
+        "predecessor_projection_sha256": predecessor_projection_sha256,
+        "successor_record_identity": successor_record_identity,
+        "successor_projection_sha256": successor_projection_sha256,
+    }
+    for field_name, value in fields.items():
+        if not isinstance(value, str) or _LOWER_SHA256.fullmatch(value) is None:
+            raise ValueError(f"{field_name} must be one lowercase SHA-256 value")
+    if predecessor_record_identity == successor_record_identity:
+        raise ValueError("active-task supersession endpoints must be distinct")
+    return (
+        "<!-- memory_runtime_supersession:active-task-summary:"
+        f"{predecessor_record_identity}:{predecessor_projection_sha256}:"
+        f"{successor_record_identity}:{successor_projection_sha256} -->\n"
+    )
+
+
+def append_active_task_supersession_relation_with_outcome(
+    *,
+    project_root: Path,
+    predecessor_record_identity: str,
+    predecessor_projection_sha256: str,
+    successor_record_identity: str,
+    successor_projection_sha256: str,
+) -> MemoryWriteOutcome:
+    """Append one exact relation after verifying both persisted endpoints.
+
+    ``record_identity`` in the returned outcome names the successor endpoint.
+    The higher-level Runtime owns repository-root and full-snapshot admission;
+    this writer independently refuses missing/mismatched endpoints, malformed
+    structured lines, and a conflicting relation involving either endpoint.
+    """
+
+    rendered = render_active_task_supersession_relation(
+        predecessor_record_identity=predecessor_record_identity,
+        predecessor_projection_sha256=predecessor_projection_sha256,
+        successor_record_identity=successor_record_identity,
+        successor_projection_sha256=successor_projection_sha256,
+    )
+    rendered_bytes = rendered.encode("ascii")
+    expected_relation = rendered_bytes[:-1]
+    path = project_root / "memory" / "01_active_task.md"
+    try:
+        existing = path.read_bytes()
+    except FileNotFoundError as exc:
+        raise ValueError("active-task projection surface is missing") from exc
+    except Exception as exc:
+        raise ValueError("active-task projection surface read failed") from exc
+
+    projections, relations = _parse_active_task_structured_lines(existing)
+    expected_endpoints = {
+        predecessor_record_identity: predecessor_projection_sha256,
+        successor_record_identity: successor_projection_sha256,
+    }
+    for identity, digest in expected_endpoints.items():
+        matching = [payload for candidate, payload in projections if candidate == identity]
+        if len(matching) != 1:
+            raise ValueError("active-task relation endpoint must exist exactly once")
+        canonical_line = matching[0] + b"\n"
+        if hashlib.sha256(canonical_line).hexdigest() != digest:
+            raise ValueError("active-task relation endpoint digest mismatch")
+
+    endpoint_identities = {
+        predecessor_record_identity,
+        successor_record_identity,
+    }
+    involving = [
+        relation
+        for relation in relations
+        if relation[0] in endpoint_identities or relation[2] in endpoint_identities
+    ]
+    exact = [relation for relation in involving if relation[4] == expected_relation]
+    if len(exact) == 1 and len(involving) == 1:
+        return MemoryWriteOutcome(
+            path=path,
+            status=MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+            record_identity=successor_record_identity,
+            writer=WRITER_ID,
+        )
+    if involving:
+        raise ValueError("active-task supersession relation conflicts with an endpoint")
+
+    try:
+        with path.open("ab") as fh:
+            if existing and not existing.endswith(b"\n"):
+                fh.write(b"\n")
+            if existing:
+                fh.write(b"\n")
+            fh.write(rendered_bytes)
+    except Exception as exc:
+        raise ValueError("active-task supersession relation write failed") from exc
+    return MemoryWriteOutcome(
+        path=path,
+        status=MEMORY_WRITE_STATUS_WRITTEN,
+        record_identity=successor_record_identity,
+        writer=WRITER_ID,
+    )
+
+
+def _parse_active_task_structured_lines(
+    persisted_bytes: bytes,
+) -> tuple[
+    tuple[tuple[str, bytes], ...],
+    tuple[tuple[str, str, str, str, bytes], ...],
+]:
+    try:
+        persisted_text = persisted_bytes.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("active-task projection surface is not strict UTF-8") from exc
+    if persisted_text.encode("utf-8", errors="strict") != persisted_bytes:
+        raise ValueError("active-task projection surface snapshot changed")
+    unsupported = (
+        b"\x0b",
+        b"\x0c",
+        b"\x1c",
+        b"\x1d",
+        b"\x1e",
+        "\x85".encode("utf-8"),
+        "\u2028".encode("utf-8"),
+        "\u2029".encode("utf-8"),
+    )
+    if any(boundary in persisted_bytes for boundary in unsupported):
+        raise ValueError("active-task projection surface contains an unsupported line boundary")
+    if b"\r" in persisted_bytes.replace(b"\r\n", b""):
+        raise ValueError("active-task projection surface contains an unsupported line boundary")
+
+    projections: list[tuple[str, bytes]] = []
+    relations: list[tuple[str, str, str, str, bytes]] = []
+    for framed_line in persisted_bytes.splitlines(keepends=True):
+        is_projection = _ACTIVE_TASK_PROJECTION_NAMESPACE in framed_line
+        is_relation = _ACTIVE_TASK_SUPERSESSION_NAMESPACE in framed_line
+        if not is_projection and not is_relation:
+            continue
+        if is_projection and is_relation:
+            raise ValueError("active-task structured line claims multiple namespaces")
+        if framed_line.endswith(b"\r\n"):
+            payload = framed_line[:-2]
+        elif framed_line.endswith(b"\n"):
+            payload = framed_line[:-1]
+        else:
+            raise ValueError("active-task structured line has an unsupported terminator")
+
+        if is_projection:
+            match = _ACTIVE_TASK_PROJECTION_BYTES.fullmatch(payload)
+            if match is None:
+                raise ValueError("active-task projection line is malformed")
+            summary, identity_bytes = match.groups()
+            if not summary or summary.strip() != summary:
+                raise ValueError("active-task projection summary whitespace is invalid")
+            if any(
+                token in summary
+                for token in (b"memory_record_projection:", b"<!--", b"-->")
+            ):
+                raise ValueError("active-task projection summary contains reserved syntax")
+            projections.append((identity_bytes.decode("ascii"), payload))
+            continue
+
+        match = _ACTIVE_TASK_SUPERSESSION_BYTES.fullmatch(payload)
+        if match is None:
+            raise ValueError("active-task supersession relation is malformed")
+        predecessor_id, predecessor_digest, successor_id, successor_digest = (
+            part.decode("ascii") for part in match.groups()
+        )
+        if predecessor_id == successor_id:
+            raise ValueError("active-task supersession relation is self-referential")
+        relations.append(
+            (
+                predecessor_id,
+                predecessor_digest,
+                successor_id,
+                successor_digest,
+                payload,
+            )
+        )
+    return tuple(projections), tuple(relations)
 
 
 def _projection_marker_line_present(
@@ -299,22 +504,20 @@ def _projection_marker_line_present(
     return False
 
 
-def append_projection_with_outcome(
-    *,
-    project_root: Path,
-    record: dict[str, str],
-    surface: str,
-    active_task_summary: str | None = None,
-) -> MemoryWriteOutcome:
-    """Append to one of the two fixed non-daily memory projection surfaces."""
-    normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
+def prepare_projection_record(record: dict[str, str]) -> dict[str, str]:
+    """Return the exact normalized record consumed by projection writers."""
+
+    supplied_identity = record.get("record_identity")
+    normalized_test_evidence, evidence_error = validate_test_evidence(
+        record.get("test_evidence")
+    )
     if evidence_error is not None:
         raise ValueError(evidence_error)
-    record = dict(record)
-    record["test_evidence"] = normalized_test_evidence
-    identity = build_record_identity(record)
-    record["record_identity"] = identity
+    prepared = dict(record)
+    prepared["test_evidence"] = normalized_test_evidence
     for field_name in (
+        "record_format_version",
+        "memory_type",
         "writer",
         "what_changed",
         "commit_hash",
@@ -324,10 +527,27 @@ def append_projection_with_outcome(
         "next_step",
         "plan_reconciliation",
     ):
-        record[field_name] = _validate_projection_field(
-            str(record.get(field_name, "")),
+        prepared[field_name] = _validate_projection_field(
+            str(prepared.get(field_name, "")),
             field_name=field_name,
         )
+    normalized_identity = build_record_identity(prepared)
+    if supplied_identity is not None and supplied_identity != normalized_identity:
+        raise ValueError("record identity does not match canonical identity")
+    prepared["record_identity"] = normalized_identity
+    return prepared
+
+
+def append_projection_with_outcome(
+    *,
+    project_root: Path,
+    record: dict[str, str],
+    surface: str,
+    active_task_summary: str | None = None,
+) -> MemoryWriteOutcome:
+    """Append to one of the two fixed non-daily memory projection surfaces."""
+    record = prepare_projection_record(record)
+    identity = record["record_identity"]
 
     if surface == SURFACE_REVIEW_LOG:
         path = project_root / "memory" / "04_review_log.md"
@@ -640,6 +860,14 @@ def main() -> int:
         next_step=args.next_step,
         plan_reconciliation=plan_reconciliation,
     )
+    if any(surface != SURFACE_DAILY for surface in surfaces):
+        projection_record = dict(record)
+        projection_record.pop("record_identity", None)
+        try:
+            record = prepare_projection_record(projection_record)
+        except ValueError as exc:
+            print(f"[memory_record] error: {exc}")
+            return 2
     outcomes: list[MemoryWriteOutcome] = []
     for surface in surfaces:
         if surface == SURFACE_DAILY:

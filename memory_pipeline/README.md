@@ -7,6 +7,9 @@ Modules:
 - `active_task_round_trip.py`: write, resolve, retrieve, and exactly verify one
   caller-authorized active-task projection before returning canonical LF
   context bytes
+- `active_task_supersession.py`: validate one bounded two-version active-task
+  lineage, append one authorized v1-to-v2 relation, and select exactly one
+  current version
 - `session_snapshot.py`: capture session output into `memory/candidates/`
 - `memory_curator.py`: reduce noise and produce curated runtime artifacts
 - `promotion_policy.py`: classify candidate memory promotion decisions
@@ -34,3 +37,17 @@ R0 boundary:
 - R0 does not provide semantic retrieval, RAG, update, supersession, deletion,
   crash recovery, MRCSP detector integration, or a public result transport
   schema.
+
+R1 boundary:
+
+- A v1-only snapshot selects v1 as the base current. A snapshot containing
+  exact v1 and v2 projections plus one exact v1-to-v2 relation selects only v2.
+- A recoverable v1-plus-v2 snapshot may append only its missing relation under
+  a fresh, content-bound resolved authority observation. Other partial,
+  malformed, duplicate, or conflicting lineage shapes fail closed.
+- Every pre-write error is rejected before either writer is called. If the
+  projection succeeds and the relation write fails, v2 remains historical but
+  no current context is returned until a later authorized relation-only retry.
+- R1 preserves the four M-1 non-resolved dispositions with zero context and
+  zero writes. It does not provide longer graph traversal, RAG, deletion,
+  expiry, rollback, crash atomicity, or general concurrency control.
