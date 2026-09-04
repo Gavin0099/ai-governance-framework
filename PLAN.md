@@ -240,7 +240,8 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   record identity, and consume exactly one persisted, previously admitted,
   content-bound M-1 observation attachment carrying a source-compatible,
   independently comparable freshness observation; the reader derives either
-  the R0 v1-only input or the complete R1 v1-to-v2 input without caller-supplied
+  the R0 v1-only input only when no admitted v2 projection or supersession-edge
+  candidate exists, or the complete R1 v1-to-v2 input without caller-supplied
   record, summary, or authority data; missing, duplicate, malformed,
   mismatched, stale, or
   insufficient authority produces zero context and fails closed through

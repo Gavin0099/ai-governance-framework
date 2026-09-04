@@ -247,9 +247,10 @@ The reader uses this order:
 4. Parse all well-formed observation attachments. Structurally valid unrelated
    history is allowed.
 5. Classify the bounded persisted shape before selecting current eligibility.
-   In a v1-only shape, exactly one joined base attachment is eligible. In an R1
-   shape, exactly one joined edge attachment controls the disposition; at most
-   one well-formed base attachment bound exactly to its predecessor may remain
+   A v1-only shape contains no admitted v2 projection and no supersession-edge
+   candidate; only in that shape is exactly one joined base attachment eligible.
+   In an R1 shape, exactly one joined edge attachment controls the disposition;
+   at most one well-formed base attachment bound exactly to its predecessor may remain
    as historical evidence and is excluded from current eligibility. The
    presence of any v2 or edge candidate forbids fallback to the predecessor
    base attachment, including when the edge is partial or non-resolved.
