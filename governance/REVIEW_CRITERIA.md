@@ -8,9 +8,9 @@ default_load: on-demand
 
 # REVIEW_CRITERIA.md
 
-**Code Review and Audit Protocol - v1.2**
+**Code Review and Audit Protocol - v1.3**
 
-> **Version**: 1.2 | **Priority**: 3 (audit protocol)
+> **Version**: 1.3 | **Priority**: 3 (audit protocol)
 >
 > Defines how to audit, critique, and verify code changes.
 > Load this document when `SCOPE = review`.
@@ -32,6 +32,11 @@ or unresolved items that may overlap the current review scope. At minimum, check
 `memory/04_review_log.md` and `memory/03_knowledge_base.md` when they exist.
 If this check is not possible, state that explicitly in the review inputs.
 
+Before reviewing a change, identify the current owner decision, the change's
+DONE condition, its claim ceiling, and the review boundary. The review boundary
+is the changed surface plus the necessary semantic blast radius; it is not the
+entire repository by default.
+
 ---
 
 ## 1. Review Philosophy
@@ -51,23 +56,108 @@ Do not approve without naming the supporting evidence.
 
 | Verdict | Meaning | Use when |
 |---|---|---|
-| `APPROVED` | Safe enough to accept | No blocking governance or correctness issue remains |
+| `APPROVED` | Safe enough to accept | No unresolved finding blocks the current owner decision |
 | `CHANGES_REQUESTED` | Must be fixed | A clear blocking issue exists |
 | `ESCALATED` | Requires human decision | Material risk or trade-off ambiguity remains after review |
 
-A verdict is evidence-bound. `APPROVED` requires named evidence that no blocking
-finding remains in the reviewed scope. If the review depends on missing
+A verdict is evidence-bound. `APPROVED` requires named evidence that no finding
+materially blocks the current owner decision within the reviewed scope. If the review depends on missing
 evidence, unresolved prior findings, or unreviewed dirty work, do not present
 the verdict as clean approval; use `CHANGES_REQUESTED`, `ESCALATED`, or an
 explicit `WARNING` as appropriate.
 
-### 2.1 Finding Levels
+### 2.1 Finding Severity and Current-Decision Treatment
 
-| Level | Meaning |
+Finding severity and current-decision treatment are separate dimensions.
+Severity describes the intrinsic consequence of the defect. Treatment describes
+what the current owner decision may do about it.
+
+| Severity | Meaning |
 |---|---|
-| `BLOCKING` | A governance, correctness, or safety issue that must be fixed |
-| `WARNING` | A risk, debt item, or weak evidence point that must be explicit |
-| `SUGGESTION` | A non-blocking improvement |
+| `P0` | Critical defect with catastrophic, irreversible, authority, security, or evidence-validity consequences |
+| `P1` | High-severity concrete correctness, safety, governance, or claim-boundary defect |
+| `P2` | Medium-severity risk, debt, or weakness that does not currently invalidate the accepted boundary |
+| `P3` | Low-severity improvement or optimization |
+
+| Treatment | Meaning |
+|---|---|
+| `BLOCKING` | The current owner decision must not proceed until the finding is fixed or an evidence-backed bounded workaround is accepted by the applicable owner or governing authority |
+| `WARNING` | The current decision may proceed only with the risk and disposition stated explicitly |
+| `SUGGESTION` | The finding has no material effect on the current decision |
+
+Severity alone does not determine treatment. A `P1` may be `WARNING` and
+`carried-forward` when evidence proves that it does not materially affect the
+current decision. The same `P1` may be `BLOCKING` at another decision boundary.
+
+Attribution informs responsibility but does not determine blocking
+applicability. A pre-existing finding remains `BLOCKING` when the current change
+executes or relies on the affected path, increases its exposure, interacts with
+it materially, or relies on evidence that it invalidates.
+
+A finding is `BLOCKING` for the current decision when any of these conditions
+holds:
+
+1. the change introduces or worsens a `P0` or `P1` defect;
+2. the finding invalidates the frozen DONE condition or claim ceiling;
+3. the change enters, relies on, or materially increases exposure to the unsafe
+   path;
+4. the finding invalidates merge safety, relied-upon evidence or identity, or an
+   irreversible state transition.
+
+A workaround can remove blocking applicability only when the applicable owner or
+governing authority accepts it and it already exists as reviewable evidence: it
+is deterministic, bounded, replayable, fail-closed, and preserves the claim
+ceiling. An intention that an operator will remember a step later is not a
+workaround.
+
+Every real finding requires disposition, but a finding is not automatically a
+new task. Non-blocking findings may be carried forward or assigned to separate
+bounded work; they must not be represented as fixed or absent.
+
+### 2.2 Delta-Bounded Re-Review
+
+A fix commit makes approval of the prior HEAD stale, so the exact current HEAD
+must still be reviewed. Re-review should converge by prioritizing:
+
+1. whether prior blockers are resolved;
+2. whether the correction delta introduces or worsens a blocker;
+3. adjacent paths necessarily affected by the correction's semantic blast
+   radius.
+
+Expand beyond that boundary only when the claim ceiling expanded, the correction
+changed a shared semantic choke point, or new evidence proves the prior boundary
+was incomplete. A new HEAD does not by itself reopen subsystem qualification.
+
+### 2.3 Engineering, Qualification, and Gate 3 Decisions
+
+An Engineering Merge Gate asks whether the exact change can safely and honestly
+satisfy its frozen DONE. It does not qualify the entire subsystem. A
+Qualification Gate asks whether the named capability has the additional evidence
+required for a formal qualification or GO claim.
+
+Gate 3 applies the same finding logic separately at four decision boundaries:
+
+1. Engineering Merge;
+2. Bootstrap Readiness;
+3. Execution Authorization;
+4. Evidence / Result Acceptance.
+
+Gate 3 workarounds must additionally be precommitted, arm-symmetric,
+secret-independent, outcome-independent, Attempt-accounting preserving, and
+replayable. Existing preregistered or frozen Gate 3 requirements remain minimum
+conditions and cannot be weakened by this decision-bound model. Unrelated
+ancestry movement does not invalidate qualification; changes to bound
+implementation bytes, relevant transitive dependencies, shared semantic helpers,
+or qualification assumptions do.
+
+### 2.4 Specification Review Stop Rule
+
+A future-state concern does not block specification acceptance merely because it
+could matter to an implementation path that does not yet exist. It remains
+blocking when it makes the specification's DONE self-contradictory, makes the
+next authorized implementation boundary unsafe or unimplementable, or freezes
+an incorrect public contract. Other future concerns must be recorded as deferred
+design questions rather than expanded into the current specification.
 
 Do not confuse `ESCALATED` with `BLOCKING`.
 Escalation is for unresolved consequential ambiguity, not merely for defects.
@@ -162,6 +252,12 @@ Every review response should include:
 **Verdict**: APPROVED | CHANGES_REQUESTED | ESCALATED
 **Risk Level**: Low | Medium | High
 
+### Frozen Decision Boundary
+- Current owner decision: ...
+- DONE: ...
+- Claim ceiling: ...
+- Review boundary: ...
+
 ### Governance Audit
 - Architecture: ...
 - Native Safety: ... | N/A
@@ -170,11 +266,14 @@ Every review response should include:
 - Baseline Status: Stable | Unverified | Unstable | N/A
 
 ### Technical Findings
-1. [BLOCKING|WARNING|SUGGESTION] Title
+1. [P0|P1|P2|P3] [BLOCKING|WARNING|SUGGESTION] Title
    - Location: `path:line`
    - Evidence: ...
    - Rule Reference: ...
-   - Fix Required / Reasoning: ...
+   - Attribution: introduced | worsened | exposed | pre-existing
+   - Current-decision impact: ...
+   - Status: open | resolved | carried-forward | not-reproduced
+   - Disposition: fix now | bounded workaround | carried-forward | separate work
 
 ### Knowledge Base Alignment
 - Anti-patterns checked: N
