@@ -24,12 +24,20 @@ Assess whether the planned and implemented slice stays within scope, preserves c
 Use `.agent/templates/review_report.md` and include:
 
 - reviewed scope
-- findings ordered by severity
+- findings ordered by severity, each carrying attribution, decision impact, and disposition
 - approval-gate assessment
 - claim-ceiling assessment
 - selected-test limitation
 - risks
 - verdict
+
+## Finding is not a task
+
+A finding is a statement about the code. It is not automatically an assignment to the slice under review.
+
+For each finding, state its severity, whether this slice introduced, worsened, exposed, or merely sits near the problem, and whether it makes this slice's claim ceiling or merge safety unsound. If a finding does not materially change the current decision, give it an explicit disposition and carry it forward. Do not let it silently become work this slice must absorb.
+
+Never lower a real finding's severity to make it non-blocking, and never report a carried-forward finding as fixed or absent. See `governance/REVIEW_CRITERIA.md` section 2.2.
 
 ## Claim ceiling
 
