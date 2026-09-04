@@ -253,6 +253,10 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   unpersisted qualified human instruction; a
   `current_human_instruction` attachment cannot be replayed as resolved until
   independently comparable persisted instruction-freshness evidence exists;
+  when one exact R1 edge attachment is admitted, at most one well-formed base
+  attachment bound to its predecessor remains historical and is excluded from
+  current eligibility, while the edge disposition controls zero-context or v2
+  selection and can never fall back to v1;
   the reader replays the persisted observation but does not independently prove
   human or approved-change authority; no timestamp,
   file order, newest-text, chat-history, directory-wide semantic scan, or

@@ -246,12 +246,20 @@ The reader uses this order:
    use only those immutable snapshots.
 4. Parse all well-formed observation attachments. Structurally valid unrelated
    history is allowed.
-5. Select attachments whose endpoint and content bindings join exactly and
-   whose recorded M-1 fields are complete for their stated resolution. Preserve
+5. Classify the bounded persisted shape before selecting current eligibility.
+   In a v1-only shape, exactly one joined base attachment is eligible. In an R1
+   shape, exactly one joined edge attachment controls the disposition; at most
+   one well-formed base attachment bound exactly to its predecessor may remain
+   as historical evidence and is excluded from current eligibility. The
+   presence of any v2 or edge candidate forbids fallback to the predecessor
+   base attachment, including when the edge is partial or non-resolved.
+6. Select the controlling attachment whose endpoint and content bindings join
+   exactly and whose recorded M-1 fields are complete for their stated
+   resolution. Preserve
    authority-source and source-anchor values exactly; do not upgrade them based
    on anchor existence. Do not use timestamp, line order, filename order, or
    newest text.
-6. Apply the authority-freshness gate. Preserve an attachment that is already
+7. Apply the authority-freshness gate. Preserve an attachment that is already
    non-resolved. For a resolved attachment, require source-compatible,
    independently comparable freshness evidence. Reject a pre-write HEAD as
    self-invalidating across the attachment commit. Any mismatch, inability to
@@ -261,10 +269,10 @@ The reader uses this order:
    human instruction. A persisted
    `current_human_instruction` cannot remain resolved without independently
    comparable persisted instruction-state evidence.
-7. Join each selected attachment to exactly one canonical checkpoint and exactly
+8. Join each selected attachment to exactly one canonical checkpoint and exactly
    one exact active-task projection per bound identity.
-8. Recompute record identity, public-renderer bytes, and projection digest.
-9. Require exactly one supported bounded disposition:
+9. Recompute record identity, public-renderer bytes, and projection digest.
+10. Require exactly one supported bounded disposition:
    - one v1 record plus one resolved base attachment and no admitted
      supersession relation; or
    - one v1, one v2, one exact v1-to-v2 relation, and one resolved supersession
@@ -276,17 +284,20 @@ The reader uses this order:
      checkpoints must still join exactly; or
    - no observation attachment after otherwise valid structural parsing, which
      deterministically returns `insufficient_authority` with zero context.
-10. Construct the existing R0/R1 caller input from the verified snapshots and
+11. Construct the existing R0/R1 caller input from the verified snapshots and
    pass it to the shared internal snapshot-selection core. Do not call the
    current live-reading/writing R0/R1 entrypoints after the snapshots are taken.
-11. Emit only the selector's canonical current context. v1 contributes zero
+12. Emit only the selector's canonical current context. v1 contributes zero
     context after a valid supersession.
 
 The reader does not accept a caller-selected target identity. Exactly-one
 eligibility must emerge from persisted content-bound observation attachments.
-Two eligible base attachments, two competing edge attachments, multiple
-non-resolved attachments for the same bounded request, or any unsupported shape
-is ambiguous and fails closed.
+Two eligible base attachments in a v1-only shape, more than one base attachment
+bound to the R1 predecessor, two competing edge attachments, multiple
+controlling non-resolved attachments for the same bounded request, or any
+unsupported shape is ambiguous and fails closed. One exact predecessor base
+attachment beside the controlling R1 edge is historical, not a second eligible
+current attachment.
 
 ## Boundary And API Considerations
 
@@ -344,7 +355,8 @@ deferred. No serialized result-byte promise is made here.
 - **Malformed structured data:** invalid UTF-8, framing, marker, attachment, or
   required-field shape raises `ValueError` before context rendering.
 - **Partial R1 state:** v1 plus v2 without the exact relation produces zero
-  context. The session reader never performs relation-only recovery.
+  context. A historical predecessor base attachment cannot restore v1 context,
+  and the session reader never performs relation-only recovery.
 - **Implicit authority:** PLAN text, daily `next_step`, Git ancestry, canonical
   writer identity, or file presence alone must never be promoted into a resolved
   attachment.
@@ -409,14 +421,18 @@ N1 focused tests must demonstrate:
    duplicate or conflicting non-resolved attachments fail closed;
 8. malformed UTF-8, framing, marker, or attachment fails closed;
 9. partial v1-plus-v2 state yields zero context and performs no repair;
-10. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
+10. one exact predecessor base attachment retained beside a controlling R1 edge
+    is historical and does not compete with the edge; a resolved edge selects
+    only v2 when freshness is otherwise established, while a partial or
+    non-resolved edge yields zero context and never falls back to v1;
+11. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
    not re-read during selection;
-11. direct calls to current live-reading/writing R0/R1 entrypoints are absent
+12. direct calls to current live-reading/writing R0/R1 entrypoints are absent
     after the reader snapshots, while parity tests show the shared internal
     selection core preserves their bounded validation semantics;
-12. no record, summary, identity, digest, or authority input can be supplied by
+13. no record, summary, identity, digest, or authority input can be supplied by
     the session caller; and
-13. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
+14. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
 
 Spec-only validation is limited to scope census, link/token consistency,
 `git diff --check`, PLAN freshness, and independent two-file technical review.
