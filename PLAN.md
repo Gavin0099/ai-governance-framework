@@ -225,10 +225,13 @@ Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation
 - This records bounded R1 implementation delivery only. It does not establish
   R1 qualification or authorize RAG or any later lifecycle slice.
 
-Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision candidate):
+Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision delivered):
 
-- [>] Record the bounded NSI-N0 feasibility result without defining an
+- [x] Record the bounded NSI-N0 feasibility result without defining an
   implementation-ready persisted-session reader grammar.
+- Delivery evidence: PR #147; exact reviewed head
+  `f1530182d65c4cbd4ab24bfd75e6e5af0ce343fc`; merge commit
+  `10044277b99e68973130d23ce97697418de59d21`.
 - DONE: current persisted logical `active_task` and `review_log` surfaces can
   reconstruct record plus summary, but current repository state cannot
   mechanically establish cross-session authority freshness; resolved Natural
