@@ -47,6 +47,15 @@ OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
 HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
 CATALOG = ToolCatalog.project((ToolDescriptor("command_execution"),))
+OFF_HOST_ENDPOINT = subject.OffHostControlEndpoint("192.0.2.1", 443)
+PROBE_IDENTITY = subject.BoundaryProbeIdentity(
+    subject._PROBE_SCRIPT_RELPATH,
+    len(subject._BOUNDARY_PROBE_SCRIPT),
+    hashlib.sha256(subject._BOUNDARY_PROBE_SCRIPT).hexdigest(),
+    str(subject.WINDOWS_POWERSHELL_PATH),
+    subject.WINDOWS_POWERSHELL_BYTE_LENGTH,
+    subject.WINDOWS_POWERSHELL_SHA256,
+)
 
 
 def _generation(timestamp: str, marker: bytes) -> SandboxGenerationFingerprint:
@@ -126,11 +135,19 @@ def _materialization(generation: SandboxGenerationFingerprint) -> PairMaterializ
 
 
 class NativeBackendDouble:
-    def __init__(self, executable: PinnedExecutable) -> None:
+    def __init__(
+        self,
+        executable: PinnedExecutable,
+        *,
+        qualification_changes: dict[str, object] | None = None,
+        qualification_output: str | None = None,
+    ) -> None:
         self.executable = executable
         self.configured_catalog = CATALOG
         self.calls = 0
         self.preparations: list[object] = []
+        self.qualification_changes = qualification_changes or {}
+        self.qualification_output = qualification_output
 
     def execute(self, **kwargs) -> NativeExecutionResult:
         self.calls += 1
@@ -139,6 +156,34 @@ class NativeBackendDouble:
         output = kwargs["output_root"]
         challenge = (workspace / "qualification-challenge.txt").read_text("ascii")
         whoami = str(Path(sys.executable).resolve())
+        properties = kwargs["output_schema"]["properties"]
+        machine_probe = "credential_read" in properties
+        if machine_probe:
+            command = kwargs["prompt"].decode("utf-8").splitlines()[2]
+            final_value = {
+                "challenge": challenge,
+                "challenge_read": "READ",
+                "credential_read": "DENIED",
+                "host_local_connect": "CONNECTED",
+                "off_host_connect": "CONNECTION_FAILED",
+                "principal_observation": "OBSERVED",
+                "principal_sid": OFFLINE_SID,
+                "status": subject.QUALIFICATION_STATUS,
+            }
+            final_value.update(self.qualification_changes)
+            aggregated_output = json.dumps(
+                final_value, separators=(",", ":"), sort_keys=True
+            )
+            if self.qualification_output is not None:
+                aggregated_output = self.qualification_output
+        else:
+            command = f"read qualification-challenge.txt; '{whoami}' /user"
+            final_value = {
+                "status": subject.QUALIFICATION_STATUS,
+                "challenge": challenge,
+                "principal_sid": OFFLINE_SID,
+            }
+            aggregated_output = f"CodexSandboxOffline {OFFLINE_SID}\n{challenge}"
         trace = b"".join(
             json.dumps(event, separators=(",", ":"), sort_keys=True).encode("ascii")
             + b"\n"
@@ -154,10 +199,8 @@ class NativeBackendDouble:
                     "item": {
                         "id": "one",
                         "type": "command_execution",
-                        "command": f"read qualification-challenge.txt; '{whoami}' /user",
-                        "aggregated_output": (
-                            f"CodexSandboxOffline {OFFLINE_SID}\n{challenge}"
-                        ),
+                        "command": command,
+                        "aggregated_output": aggregated_output,
                         "status": "completed",
                         "exit_code": 0,
                     },
@@ -166,13 +209,7 @@ class NativeBackendDouble:
             )
         )
         schema = _canonical_json(kwargs["output_schema"]) + b"\n"
-        final = _canonical_json(
-            {
-                "status": subject.QUALIFICATION_STATUS,
-                "challenge": challenge,
-                "principal_sid": OFFLINE_SID,
-            }
-        ) + b"\n"
+        final = _canonical_json(final_value) + b"\n"
         trace_path = output / "codex-trace.jsonl"
         schema_path = output / "output-schema.json"
         final_path = output / "final-message.json"
@@ -315,7 +352,289 @@ class PassingBoundarySource:
             _host_local_tcp(),
             0,
             (),
+            OFF_HOST_ENDPOINT,
+            PROBE_IDENTITY,
         )
+
+
+class FakeLocalBoundaryListener:
+    host = "127.0.0.1"
+    port = 49152
+
+    def __init__(
+        self,
+        *,
+        workspace: Path,
+        outcome: str = "PAYLOAD_RECEIVED",
+        payload: str | None = None,
+        pre_control: bool = True,
+        post_control: bool = True,
+        close_count: int = 0,
+        close_error: bool = False,
+    ) -> None:
+        self.workspace = workspace
+        self.outcome = outcome
+        self.payload = payload
+        self.controls = [pre_control, post_control]
+        self.close_count = close_count
+        self.close_error = close_error
+        self.closed = False
+
+    def launcher_round_trip(self, payload: str, *, timeout_seconds: float) -> bool:
+        assert len(payload) == 32
+        assert timeout_seconds > 0
+        return self.controls.pop(0)
+
+    def observe_child(self) -> tuple[str, str | None]:
+        value = self.payload
+        if value == "EXPECTED":
+            value = (self.workspace / "qualification-challenge.txt").read_text("ascii")
+        return self.outcome, value
+
+    def close_and_count(self) -> int:
+        if self.close_error:
+            raise OSError("teardown failed")
+        self.closed = True
+        return self.close_count
+
+
+class FakeBoundaryTransport:
+    def __init__(
+        self,
+        listener: FakeLocalBoundaryListener,
+        *,
+        egress_controls: tuple[bool, bool] = (True, True),
+    ) -> None:
+        self.listener = listener
+        self.egress_controls = list(egress_controls)
+
+    def open_local_listener(self) -> FakeLocalBoundaryListener:
+        return self.listener
+
+    def can_connect(
+        self, endpoint: subject.OffHostControlEndpoint, *, timeout_seconds: float
+    ) -> bool:
+        assert endpoint == OFF_HOST_ENDPOINT
+        assert timeout_seconds > 0
+        return self.egress_controls.pop(0)
+
+
+def _run_machine_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    listener_outcome: str = "PAYLOAD_RECEIVED",
+    listener_payload: str | None = "EXPECTED",
+    listener_pre_control: bool = True,
+    listener_post_control: bool = True,
+    listener_close_count: int = 0,
+    listener_close_error: bool = False,
+    egress_controls: tuple[bool, bool] = (True, True),
+    qualification_changes: dict[str, object] | None = None,
+    qualification_output: str | None = None,
+) -> tuple[
+    subject.PreExposureBoundaryObservation,
+    NativeExecutionResult,
+    FakeLocalBoundaryListener,
+]:
+    workspace = (tmp_path / "qualification-workspace").resolve()
+    output = (tmp_path / "qualification-output").resolve()
+    workspace.mkdir()
+    output.mkdir()
+    challenge = "a" * 32
+    challenge_path = workspace / "qualification-challenge.txt"
+    challenge_path.write_text(challenge, encoding="ascii")
+    sentinel = (tmp_path / subject._CREDENTIAL_SENTINEL_NAME).resolve()
+    sentinel.write_text("c" * 32, encoding="ascii")
+    executable = PinnedExecutable.capture(Path(sys.executable).resolve())
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_PATH", executable.path)
+    monkeypatch.setattr(
+        subject, "WINDOWS_POWERSHELL_BYTE_LENGTH", executable.byte_length
+    )
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_SHA256", executable.sha256)
+    listener = FakeLocalBoundaryListener(
+        workspace=workspace,
+        outcome=listener_outcome,
+        payload=listener_payload,
+        pre_control=listener_pre_control,
+        post_control=listener_post_control,
+        close_count=listener_close_count,
+        close_error=listener_close_error,
+    )
+    transport = FakeBoundaryTransport(listener, egress_controls=egress_controls)
+    probe = subject.MachineBackedBoundaryProbe(
+        off_host_control_endpoint=OFF_HOST_ENDPOINT,
+        credential_sentinel_path=sentinel,
+        transport=transport,
+    )
+    native = NativeBackendDouble(
+        executable,
+        qualification_changes=qualification_changes,
+        qualification_output=qualification_output,
+    )
+
+    def execute(
+        *, prompt: bytes, output_schema: dict[str, object]
+    ) -> NativeExecutionResult:
+        return native.execute(
+            prepared_arm=SimpleNamespace(),
+            workspace_root=workspace,
+            output_root=output,
+            prompt=prompt,
+            output_schema=output_schema,
+        )
+
+    result, observation = probe.run(
+        workspace=workspace,
+        challenge=challenge,
+        challenge_path=challenge_path,
+        whoami=executable,
+        generation=GENERATION_B,
+        configured_catalog=CATALOG,
+        execute=execute,  # type: ignore[arg-type]
+    )
+    assert set(workspace.iterdir()) == {challenge_path}
+    return observation, result, listener
+
+
+def test_machine_probe_reachable_uses_one_exact_governed_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observation, result, listener = _run_machine_probe(tmp_path, monkeypatch)
+    assert observation.host_local_tcp.classify() is (
+        HostLocalEndpointDisposition.REACHABLE
+    )
+    assert observation.credential_read == "DENIED"
+    assert observation.child_egress_connect == "BLOCKED"
+    assert observation.off_host_control_endpoint == OFF_HOST_ENDPOINT
+    observation.qualification_probe.validate()
+    assert result.tool_call_count == 1
+    assert listener.closed is True
+    event = next(
+        json.loads(line)
+        for line in result.trace_path.read_bytes().splitlines()
+        if json.loads(line).get("type") == "item.completed"
+    )
+    command = event["item"]["command"]
+    assert command.startswith("& '")
+    assert " -NoLogo -NoProfile -NonInteractive -File " in command
+    assert subject._PROBE_SCRIPT_RELPATH in command
+    assert subject._PROBE_CONFIG_RELPATH in command
+    assert b"qualification-boundary-probe.ps1" not in b"".join(
+        path.read_bytes() for path in (tmp_path / "qualification-workspace").iterdir()
+    )
+
+
+def test_machine_probe_blocked_is_valid_structured_negative_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observation, result, _ = _run_machine_probe(
+        tmp_path,
+        monkeypatch,
+        listener_outcome="NO_CONNECTION",
+        listener_payload=None,
+        qualification_changes={"host_local_connect": "CONNECTION_FAILED"},
+    )
+    evidence_path = (tmp_path / "boundary.json").resolve()
+    evidence = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=evidence_path
+    ).produce(
+        result=result,
+        generation=GENERATION_B,
+        observation=observation,
+    )
+    assert evidence.host_local.host_local_endpoint_reachable is (
+        HostLocalEndpointDisposition.BLOCKED
+    )
+    assert evidence.off_host_control_endpoint == OFF_HOST_ENDPOINT
+    assert subject.PreExposureBoundaryEvidence.load(
+        evidence_path, expected_sha256=evidence.evidence_sha256
+    ) == evidence
+
+
+@pytest.mark.parametrize(
+    "probe_args",
+    (
+        {"listener_outcome": "TIMEOUT", "listener_payload": None},
+        {"listener_payload": "b" * 32},
+        {"listener_post_control": False},
+        {"egress_controls": (True, False)},
+        {"qualification_changes": {"challenge_read": "ERROR"}},
+        {"qualification_changes": {"challenge": "b" * 32}},
+        {"qualification_changes": {"credential_read": "VISIBLE"}},
+        {"qualification_changes": {"off_host_connect": "TIMEOUT"}},
+    ),
+)
+def test_machine_probe_unknown_facts_never_create_boundary_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    probe_args: dict[str, object],
+) -> None:
+    observation, result, _ = _run_machine_probe(
+        tmp_path, monkeypatch, **probe_args  # type: ignore[arg-type]
+    )
+    producer = subject.PreExposureBoundaryEvidenceProducer(
+        evidence_path=(tmp_path / "boundary.json").resolve()
+    )
+    with pytest.raises(subject.RuntimeWindowError):
+        producer.produce(
+            result=result,
+            generation=GENERATION_B,
+            observation=observation,
+        )
+    assert not (tmp_path / "boundary.json").exists()
+
+
+def test_machine_probe_missing_or_malformed_output_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(subject.RuntimeWindowError):
+        _run_machine_probe(
+            tmp_path,
+            monkeypatch,
+            qualification_output='{"status":"R2_NON_EXPOSURE_OK"}',
+        )
+
+
+def test_machine_probe_teardown_failure_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(subject.RuntimeWindowError):
+        _run_machine_probe(tmp_path, monkeypatch, listener_close_error=True)
+
+
+def test_machine_probe_nonzero_listener_count_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(subject.RuntimeWindowError):
+        _run_machine_probe(tmp_path, monkeypatch, listener_close_count=1)
+
+
+def test_machine_probe_pre_control_failure_stops_before_child_execution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        _run_machine_probe(tmp_path, monkeypatch, listener_pre_control=False)
+    assert caught.value.code == subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE
+
+
+def test_machine_probe_off_host_pre_control_failure_stops_before_child_execution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(subject.RuntimeWindowError) as caught:
+        _run_machine_probe(tmp_path, monkeypatch, egress_controls=(False, True))
+    assert caught.value.code == subject.HOST_LOCAL_OBSERVATION_UNAVAILABLE
+
+
+def test_probe_script_uses_pinned_inputs_without_ambient_path() -> None:
+    script = subject._BOUNDARY_PROBE_SCRIPT.decode("ascii")
+    assert "$config.whoami_path" in script
+    assert "qualification-challenge.txt" not in script
+    assert "$env:PATH" not in script
+    assert "Get-Command" not in script
+    assert hashlib.sha256(subject._BOUNDARY_PROBE_SCRIPT).hexdigest() == (
+        PROBE_IDENTITY.script_sha256
+    )
 
 
 def test_current_codex_0153_payload_is_exactly_pinned() -> None:
@@ -419,7 +738,12 @@ def test_freeze_capture_rejects_generation_drift_during_capture(
         generation_probe=lambda: next(generations),
         pair_lock=pair_lock,
         boundary_evidence=subject.PreExposureBoundaryEvidence(
-            "5" * 64, False, True, HOST_LOCAL
+            "5" * 64,
+            False,
+            True,
+            HOST_LOCAL,
+            OFF_HOST_ENDPOINT,
+            PROBE_IDENTITY,
         ),
         assert_runtime_quiescent=lambda: None,
     )
@@ -436,6 +760,18 @@ def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Pat
         "host_local_endpoint_reachable": "REACHABLE",
         "observed_host_listener_count": 0,
         "runtime_endpoint_inputs": [],
+        "off_host_control_endpoint": {
+            "host": OFF_HOST_ENDPOINT.host,
+            "port": OFF_HOST_ENDPOINT.port,
+        },
+        "qualification_probe": {
+            "script_relative_path": PROBE_IDENTITY.script_relative_path,
+            "script_byte_length": PROBE_IDENTITY.script_byte_length,
+            "script_sha256": PROBE_IDENTITY.script_sha256,
+            "powershell_path": PROBE_IDENTITY.powershell_path,
+            "powershell_byte_length": PROBE_IDENTITY.powershell_byte_length,
+            "powershell_sha256": PROBE_IDENTITY.powershell_sha256,
+        },
     }
     path = tmp_path / "boundary.json"
     payload = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("ascii")
@@ -458,6 +794,17 @@ def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Pat
             path, expected_sha256=hashlib.sha256(legacy_payload).hexdigest()
         )
     assert caught.value.code == subject.PAIR_INVALID
+    value["host_local_endpoint_reachable"] = "REACHABLE"
+    value["schema"] = "solo-r2-pre-exposure-boundary/v2"
+    old_schema_payload = json.dumps(
+        value, separators=(",", ":"), sort_keys=True
+    ).encode("ascii")
+    path.write_bytes(old_schema_payload)
+    with pytest.raises(subject.RuntimeWindowError):
+        subject.PreExposureBoundaryEvidence.load(
+            path,
+            expected_sha256=hashlib.sha256(old_schema_payload).hexdigest(),
+        )
 
 
 def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -> None:
@@ -475,6 +822,8 @@ def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -
     assert evidence.credential_sentinel_visible is False
     assert evidence.network_tcp_egress_denied is True
     assert evidence.host_local == HOST_LOCAL
+    assert evidence.off_host_control_endpoint == OFF_HOST_ENDPOINT
+    assert evidence.qualification_probe == PROBE_IDENTITY
     assert subject.PreExposureBoundaryEvidence.load(
         path,
         expected_sha256=evidence.evidence_sha256,
@@ -487,6 +836,8 @@ def test_boundary_evidence_create_once_and_producer_round_trip(tmp_path: Path) -
             credential_sentinel_visible=False,
             network_tcp_egress_denied=True,
             host_local=HOST_LOCAL,
+            off_host_control_endpoint=OFF_HOST_ENDPOINT,
+            qualification_probe=PROBE_IDENTITY,
         )
 
 
@@ -516,6 +867,8 @@ def test_boundary_producer_fails_closed_on_unusable_observation(
         "host_local_tcp": _host_local_tcp(),
         "observed_host_listener_count": 0,
         "runtime_endpoint_inputs": (),
+        "off_host_control_endpoint": OFF_HOST_ENDPOINT,
+        "qualification_probe": PROBE_IDENTITY,
     }
     values.update(changes)
 
@@ -600,6 +953,8 @@ def test_blocked_host_local_observation_creates_resolved_boundary_evidence(
             ),
             0,
             (),
+            OFF_HOST_ENDPOINT,
+            PROBE_IDENTITY,
         )
 
     evidence = subject.PreExposureBoundaryEvidenceProducer(
@@ -631,6 +986,8 @@ def test_unresolved_host_local_observation_cannot_create_boundary_evidence(
             _host_local_tcp(listener_outcome="TIMEOUT"),
             0,
             (),
+            OFF_HOST_ENDPOINT,
+            PROBE_IDENTITY,
         )
 
     producer = subject.PreExposureBoundaryEvidenceProducer(
@@ -666,7 +1023,24 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     boundary_path = (tmp_path / "boundary.json").resolve()
     boundary_producer = subject.PreExposureBoundaryEvidenceProducer(
         evidence_path=boundary_path,
-        observation_source=PassingBoundarySource(),
+    )
+    credential_sentinel = (tmp_path / subject._CREDENTIAL_SENTINEL_NAME).resolve()
+    credential_sentinel.write_text("c" * 32, encoding="ascii")
+    listener = FakeLocalBoundaryListener(
+        workspace=(tmp_path / "qualification-workspace").resolve(),
+        payload="EXPECTED",
+    )
+    transport = FakeBoundaryTransport(listener)
+    executable = PinnedExecutable.capture(Path(sys.executable).resolve())
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_PATH", executable.path)
+    monkeypatch.setattr(
+        subject, "WINDOWS_POWERSHELL_BYTE_LENGTH", executable.byte_length
+    )
+    monkeypatch.setattr(subject, "WINDOWS_POWERSHELL_SHA256", executable.sha256)
+    boundary_probe = subject.MachineBackedBoundaryProbe(
+        off_host_control_endpoint=OFF_HOST_ENDPOINT,
+        credential_sentinel_path=credential_sentinel,
+        transport=transport,
     )
     identity = RuntimeIdentity(
         "gpt-5.6-sol",
@@ -687,6 +1061,7 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
         whoami=executable,
         runtime_identity=identity,
         boundary_producer=boundary_producer,
+        boundary_probe=boundary_probe,
         generation_probe=generation_probe,
     )
     adapter = subject.CodexRunnerAdapter(
@@ -752,7 +1127,12 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     )
     assert all(not hasattr(value, "host_local") for value in native.preparations)
     assert backend.boundary_evidence is not None
+    assert backend.boundary_evidence.off_host_control_endpoint == OFF_HOST_ENDPOINT
+    assert backend.boundary_evidence.qualification_probe.powershell_path == str(
+        executable.path
+    )
     assert boundary_path.is_file()
+    assert listener.closed is True
     assert materializer.calls == [pair_lock.binding.pair_id]
     assert materializer.leaves.active is None
     assert freeze_probe.checks == 5
