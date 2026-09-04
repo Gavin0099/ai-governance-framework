@@ -245,13 +245,18 @@ The reader uses this order:
 3. Strict-decode and independently parse both snapshots. Subsequent decisions
    use only those immutable snapshots.
 4. Parse all well-formed observation attachments. Structurally valid unrelated
-   history is allowed.
+   history is allowed only where the supported bounded shape supplies a
+   structural selector; the base shape does not guess that an additional
+   complete projection/checkpoint join is unrelated.
 5. Classify the bounded persisted shape before selecting current eligibility.
-   A v1-only shape contains no admitted v2 projection and no supersession-edge
-   candidate; only in that shape is exactly one joined base attachment eligible.
+   A v1-only shape contains exactly one complete projection/checkpoint join and
+   no supersession-edge candidate; only in that shape is exactly one joined
+   base attachment eligible. A second complete projection/checkpoint join makes
+   the base shape unsupported because persisted state cannot distinguish
+   unrelated history from an incomplete v2 without semantic guessing.
    In an R1 shape, exactly one joined edge attachment controls the disposition;
-   at most one well-formed base attachment bound exactly to its predecessor may remain
-   as historical evidence and is excluded from current eligibility. The
+   at most one well-formed base attachment bound exactly to its predecessor may
+   remain as historical evidence and is excluded from current eligibility. The
    presence of any v2 or edge candidate forbids fallback to the predecessor
    base attachment, including when the edge is partial or non-resolved.
 6. Select the controlling attachment whose endpoint and content bindings join
@@ -274,8 +279,9 @@ The reader uses this order:
    one exact active-task projection per bound identity.
 9. Recompute record identity, public-renderer bytes, and projection digest.
 10. Require exactly one supported bounded disposition:
-   - one v1 record plus one resolved base attachment and no admitted
-     supersession relation; or
+   - exactly one joined v1 record plus one resolved base attachment, no second
+     complete projection/checkpoint join, and no supersession-edge candidate;
+     or
    - one v1, one v2, one exact v1-to-v2 relation, and one resolved supersession
      attachment bound to both endpoints; or
    - exactly one joined base or edge attachment carrying one of the four M-1
@@ -293,8 +299,9 @@ The reader uses this order:
 
 The reader does not accept a caller-selected target identity. Exactly-one
 eligibility must emerge from persisted content-bound observation attachments.
-Two eligible base attachments in a v1-only shape, more than one base attachment
-bound to the R1 predecessor, two competing edge attachments, multiple
+Two eligible base attachments or a second complete projection/checkpoint join
+in a v1-only shape, more than one base attachment bound to the R1 predecessor,
+two competing edge attachments, multiple
 controlling non-resolved attachments for the same bounded request, or any
 unsupported shape is ambiguous and fails closed. One exact predecessor base
 attachment beside the controlling R1 edge is historical, not a second eligible
@@ -355,9 +362,10 @@ deferred. No serialized result-byte promise is made here.
   disposition keeps that exact disposition.
 - **Malformed structured data:** invalid UTF-8, framing, marker, attachment, or
   required-field shape raises `ValueError` before context rendering.
-- **Partial R1 state:** v1 plus v2 without the exact relation produces zero
-  context. A historical predecessor base attachment cannot restore v1 context,
-  and the session reader never performs relation-only recovery.
+- **Partial R1 state:** a second complete projection/checkpoint join in the base
+  shape, including v1 plus v2 without the exact relation, produces zero context.
+  A historical predecessor base attachment cannot restore v1 context, and the
+  session reader never performs relation-only recovery.
 - **Implicit authority:** PLAN text, daily `next_step`, Git ancestry, canonical
   writer identity, or file presence alone must never be promoted into a resolved
   attachment.
@@ -405,8 +413,10 @@ N1 focused tests must demonstrate:
 2. under the same explicit precondition, one canonical v1/v2 pair, one exact
    relation, resolved supersession attachment, and independently comparable
    freshness observation joins to the exact R1 input and returns only v2;
-3. unrelated well-formed historical checkpoints, projections, relations, and
-   attachments do not change the target result;
+3. in an edge-selected R1 shape, unrelated well-formed historical checkpoints,
+   projections, relations, and attachments do not change the target result; in
+   the base shape, a second complete projection/checkpoint join yields zero
+   context because no persisted structural selector proves it unrelated;
 4. a missing observation attachment returns `insufficient_authority` with zero
    context, while a missing or duplicate checkpoint/projection or a duplicate
    observation attachment fails closed with `ValueError`;

@@ -239,15 +239,17 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   checkpoint, join it to its exact active-task summary and projection digest by
   record identity, and consume exactly one persisted, previously admitted,
   content-bound M-1 observation attachment carrying a source-compatible,
-  independently comparable freshness observation; the reader derives either
-  the R0 v1-only input only when no admitted v2 projection or supersession-edge
-  candidate exists, or the complete R1 v1-to-v2 input without caller-supplied
-  record, summary, or authority data; missing, duplicate, malformed,
+  independently comparable freshness observation; the reader may derive either
+  the R0 v1-only input when exactly one complete projection/checkpoint join and
+  no supersession-edge candidate exists, or the complete R1 v1-to-v2 input
+  without caller-supplied record, summary, or authority data; any second
+  complete join in the base shape yields zero context rather than being guessed
+  unrelated; missing, duplicate, malformed,
   mismatched, stale, or
   insufficient authority produces zero context and fails closed through
   `ValueError` or one M-1 non-resolved disposition; an already non-resolved
   attachment preserves its disposition, while a resolved attachment whose
-  freshness mismatches or cannot be established becomes `unassessable`; an
+  freshness mismatches or cannot be established becomes `unassessable`; a
   future `approved_change` freshness anchor must survive and validate the
   attachment-containing commit rather than compare against the self-invalidating
   pre-write HEAD, and still cannot by itself prove the absence of a later
