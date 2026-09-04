@@ -35,16 +35,18 @@ The following statements were observed at merged main
 - Repository callers of those entrypoints are limited to their implementation,
   technical specifications, and tests. No natural session-start caller exists.
 - `governance_tools.memory_record.render_active_task_projection()` persists one
-  summary plus one canonical record identity on logical `01_active_task`.
+  summary plus one canonical record identity on logical `active_task`, whose
+  current canonical filename is `01_active_task.md`.
 - `render_review_log_projection()` persists a canonical checkpoint on logical
-  `04_review_log`: writer, session id, identity, commit binding, record text,
+  `review_log`, whose current canonical filename is `04_review_log.md`: writer,
+  session id, identity, commit binding, record text,
   test boundary, next action, PLAN reconciliation, and memory binding. Together
   with the writer-owned fixed record type and format version, that checkpoint
   can reconstruct a candidate canonical record and verify it by re-rendering
   exact bytes and recomputing `build_record_identity()`.
-- Logical `01_active_task` and `04_review_log` are already resolved through
-  `memory_pipeline.memory_layout`; a session reader must not hard-code their
-  consumer filenames.
+- The `active_task` and `review_log` resolver keys are already declared by
+  `memory_pipeline.memory_layout`; a session reader must use those exact keys
+  and must not hard-code their consumer filenames.
 - M-1 classifies daily records as event/provenance history, PLAN plus an approved
   change as work ordering, `01` as a reviewed current-state projection, and
   `04` as append-only review history. Canonical storage alone does not create
@@ -69,15 +71,15 @@ One persisted-session reader responsibility is defined for logical
 `active_task`. Given only a caller-admitted canonical repository root, it:
 
 1. snapshots the canonical Git worktree identity, then resolves and snapshots
-   the logical `01_active_task` and `04_review_log` surfaces;
+   logical `active_task` and `review_log` through `memory_layout`;
 2. reconstructs the exact canonical record or bounded v1/v2 records;
 3. joins each record to the exact summary and projection digest by record
    identity;
-4. obtains exactly one matching persisted M-1 authority attachment from logical
-   `04_review_log`;
-5. validates the attachment's exact endpoint, eligibility, and source-anchor
-   bindings from the same repository snapshot, without treating mere anchor
-   existence as proof of authority; and
+4. obtains exactly one matching persisted, previously admitted M-1 observation
+   attachment from logical `review_log`;
+5. reconstructs and validates the attachment fields already consumed by R0/R1,
+   without treating the attachment or its anchor as independent proof of
+   authority; and
 6. invokes the existing R0/R1 selector with reconstructed inputs, returning
    context only when that selector establishes one current record.
 
@@ -90,13 +92,13 @@ the bounded logical-name request.
 - one repository worktree root admitted by the caller;
 - logical `active_task` only;
 - the existing R0 v1-only shape and R1 two-version, one-edge shape only;
-- logical `01_active_task` as the summary, projection-identity, and
+- resolver key `active_task` as the summary, projection-identity, and
   supersession-relation source;
-- logical `04_review_log` as the canonical-record-checkpoint and persisted
-  authority-attachment source;
+- resolver key `review_log` as the canonical-record-checkpoint and persisted
+  observation-attachment source;
 - exact record-identity and public-renderer digest joins;
-- committed approved-change authority anchors that can be checked from the same
-  repository state;
+- exact replay of previously admitted authority-source and source-anchor fields,
+  without an independent approval-provenance claim;
 - preserved M-1 non-resolved outcomes with zero context; and
 - one future minimal reader/adapter implementation tranche.
 
@@ -119,7 +121,7 @@ the bounded logical-name request.
 
 ## Persisted Source Model
 
-### Summary and supersession state: logical `01_active_task`
+### Summary and supersession state: logical `active_task`
 
 The reader reuses the exact projection and relation grammars already accepted by
 R0/R1. It may tolerate unrelated well-formed historical projections and
@@ -133,7 +135,7 @@ The active-task snapshot supplies:
 - for the R1 shape, the predecessor/successor identity and digest pairs carried
   by the one exact supersession relation.
 
-### Canonical record: logical `04_review_log`
+### Canonical record: logical `review_log`
 
 For every admitted active-task identity, the reader requires exactly one
 matching canonical checkpoint. It reconstructs the candidate record using only
@@ -151,18 +153,19 @@ Daily memory remains event history and is not scanned to select current state.
 It may corroborate an anchor during human review, but it is not an NSI-N0 join
 source.
 
-### Authority: one minimal attachment on logical `04_review_log`
+### Authority observation: one minimal attachment on logical `review_log`
 
 Current merged surfaces do not persist the content-bound M-1 observation needed
 by R0/R1. The next implementation tranche therefore needs one minimal
-append-only authority attachment on the existing logical `04_review_log`
+append-only observation attachment on the existing logical `review_log`
 surface. This is an attachment to the existing review surface, not a second
 memory database or a new logical surface.
 
 The attachment must carry the already-defined M-1 vocabulary and the exact
-content binding needed by the selected bounded shape. It is a persisted record
-of an already-admitted M-1 decision; neither its writer nor its later reader may
-create authority merely by storing or finding it:
+content binding needed by the selected bounded shape. It is a persisted replay
+record of an already-admitted M-1 observation; neither its writer nor its later
+reader may create or independently prove authority merely by storing or finding
+it:
 
 - for R0 base current: query class, logical name, requested/resolved record
   identity, projection digest, resolution state, projection status, review
@@ -171,14 +174,16 @@ create authority merely by storing or finding it:
   anchor;
 - for R1 superseded current: decision, query class, logical name,
   predecessor/successor identities and projection digests, resolution state,
-  eligibility state, authority source, and source anchor; and
+  projection status, review status, reviewer-authority state, anchor state,
+  latest-transition coverage, later-change state, coverage-boundary state,
+  authority source, and source anchor; and
 - for a non-resolved observation: the same requested endpoint identity and
   digest binding for its bounded R0 or R1 shape, the applicable M-1 predicate
   states, and exactly one of `reviewer_required`, `disputed`,
   `insufficient_authority`, or `unassessable`.
 
 NSI-N0 does not add a schema file or freeze a public result API. N1 must choose
-the smallest exact, strict-UTF-8, line-framed representation on `04_review_log`
+the smallest exact, strict-UTF-8, line-framed representation on `review_log`
 that can carry those existing fields. The representation must be independently
 parseable, reject unknown or duplicate required fields, and be reproduced
 byte-for-byte in tests before it is used. Encoding design remains part of N1's
@@ -186,32 +191,33 @@ reviewed implementation diff, not an authority created by this document.
 
 For cross-session reconstruction, an unrecorded `current_human_instruction` is
 not replayable. A resolved attachment must have been persisted by a separately
-authorized Session A action and must bind the exact approved-change source it
-records. Session B verifies that the explicit anchor resolves to the pinned
-repository evidence and that all content and eligibility bindings still match;
-it does not independently prove the human's legal identity, and it does not
-infer approval from commit existence, PLAN ordering, writer identity, or memory
-presence. If the source cannot be replayed within that claim ceiling, the
-attachment cannot resolve current state.
+authorized Session A action and must reproduce the exact authority-source and
+source-anchor fields admitted in that action. Session B verifies endpoint,
+content, eligibility, and field-shape continuity, then passes the reconstructed
+observation to the existing R0/R1 validator. It does not independently prove
+that a human or approved change possessed authority, and it does not infer
+approval from commit existence, PLAN ordering, writer identity, or memory
+presence. A workflow that requires fresh authority qualification or proof must
+remain non-resolved until a qualified source is admitted outside this reader.
 
 ## Deterministic Join And Selection
 
 The reader uses this order:
 
 1. Validate the canonical project root and Git worktree marker using the R0/R1
-   root boundary, and snapshot the repository HEAD used for source-anchor
-   checks exactly once.
-2. Resolve logical `01_active_task` and `04_review_log` once through
-   `memory_layout`; snapshot each resolved path, existence state, and exact bytes
-   once.
+   root boundary, and snapshot the repository HEAD that identifies this
+   persisted observation state exactly once.
+2. Resolve `active_task` and `review_log` once through `memory_layout`; snapshot
+   each resolved path, existence state, and exact bytes once.
 3. Strict-decode and independently parse both snapshots. Subsequent decisions
    use only those immutable snapshots.
-4. Parse all well-formed authority attachments. Structurally valid unrelated
+4. Parse all well-formed observation attachments. Structurally valid unrelated
    history is allowed.
-5. Select attachments whose explicit source anchors resolve to their exact
-   pinned repository evidence and whose recorded M-1 eligibility predicates are
-   complete. Anchor existence alone is insufficient. Do not use timestamp,
-   line order, filename order, or newest text.
+5. Select attachments whose endpoint and content bindings join exactly and
+   whose recorded M-1 fields are complete for their stated resolution. Preserve
+   authority-source and source-anchor values exactly; do not upgrade them based
+   on anchor existence. Do not use timestamp, line order, filename order, or
+   newest text.
 6. Join each selected attachment to exactly one canonical checkpoint and exactly
    one exact active-task projection per bound identity.
 7. Recompute record identity, public-renderer bytes, and projection digest.
@@ -219,16 +225,24 @@ The reader uses this order:
    - one v1 record plus one resolved base attachment and no admitted
      supersession relation; or
    - one v1, one v2, one exact v1-to-v2 relation, and one resolved supersession
-     attachment bound to both endpoints.
+     attachment bound to both endpoints; or
+   - exactly one joined base or edge attachment carrying one of the four M-1
+     non-resolved states, in which case preserve that state with zero context.
+     A non-resolved edge may describe the admitted v1/v2 partial state without
+     a completed relation, but both referenced endpoint projections and
+     checkpoints must still join exactly; or
+   - no observation attachment after otherwise valid structural parsing, which
+     deterministically returns `insufficient_authority` with zero context.
 9. Construct the existing R0/R1 caller input from the verified snapshots and
    call the existing selector.
 10. Emit only the selector's canonical current context. v1 contributes zero
     context after a valid supersession.
 
 The reader does not accept a caller-selected target identity. Exactly-one
-eligibility must emerge from persisted content-bound authority attachments. Two
-eligible base attachments, two competing edge attachments, or any unsupported
-shape is ambiguous and fails closed.
+eligibility must emerge from persisted content-bound observation attachments.
+Two eligible base attachments, two competing edge attachments, multiple
+non-resolved attachments for the same bounded request, or any unsupported shape
+is ambiguous and fails closed.
 
 ## Boundary And API Considerations
 
@@ -258,16 +272,17 @@ deferred. No serialized result-byte promise is made here.
   identity; fail closed.
 - **Content mismatch:** public-renderer bytes or projection digest differ; fail
   closed.
-- **Missing authority:** structurally valid content without a matching persisted
-  authority attachment cannot resolve current state; return an appropriate M-1
-  non-resolved disposition with zero context.
+- **Missing authority observation:** structurally valid content without a
+  matching persisted observation attachment returns `insufficient_authority`
+  with zero context; it does not synthesize a resolved observation.
 - **Duplicate or conflicting authority:** more than one attachment is eligible
   for the same base or edge, or attachments select competing current records;
   fail closed as ambiguity.
-- **Stale authority:** the explicit source anchor does not cover the pinned
-  approved change or a later recorded substantive transition remains
-  unreconciled; preserve `reviewer_required`, `disputed`,
-  `insufficient_authority`, or `unassessable` with zero context.
+- **Stale authority observation:** an attachment already records incomplete
+  latest-evidence/transition coverage, or competing persisted observations make
+  its applicability ambiguous; preserve the recorded non-resolved state when
+  exactly one attachment applies, otherwise fail closed with zero context. The
+  reader does not semantically discover unrecorded external transitions.
 - **Malformed structured data:** invalid UTF-8, framing, marker, attachment, or
   required-field shape raises `ValueError` before context rendering.
 - **Partial R1 state:** v1 plus v2 without the exact relation produces zero
@@ -275,9 +290,10 @@ deferred. No serialized result-byte promise is made here.
 - **Implicit authority:** PLAN text, daily `next_step`, Git ancestry, canonical
   writer identity, or file presence alone must never be promoted into a resolved
   attachment.
-- **Unreplayable authority:** an attachment that merely says an owner or reviewer
-  approved something, without an exact persisted source binding, cannot resolve
-  current state. NSI-N0 does not claim cryptographic or legal identity proof.
+- **Unreplayable authority:** missing or malformed authority-source and
+  source-anchor fields cannot resolve current state. Well-formed fields are
+  replayed as a previously admitted observation, not treated as cryptographic,
+  legal, or independently revalidated approval proof.
 - **Second database:** adding a new session-state JSON/manifest or copying full
   records into another surface is outside the recommended N1 tranche.
 
@@ -297,9 +313,9 @@ The following remain carried forward and do not enter NSI-N0:
 ## Claim Ceiling
 
 This specification may claim only that current merged repository evidence is
-insufficient for chat-free authority reconstruction, and that one bounded
-reader can join existing logical `01` and `04` data plus one minimal persisted
-authority attachment on `04`.
+insufficient for chat-free authority-observation reconstruction, and that one
+bounded reader can join existing logical `active_task` and `review_log` data
+plus one minimal persisted observation attachment on `review_log`.
 
 It does not claim that the reader, attachment writer, session integration,
 bootstrap, qualification, or two-session pilot exists. It does not establish
@@ -316,12 +332,14 @@ N1 focused tests must demonstrate:
    attachment joins to the exact R1 input and returns only v2;
 3. unrelated well-formed historical checkpoints, projections, relations, and
    attachments do not change the target result;
-4. missing or duplicate checkpoint, projection, or authority attachment yields
-   zero context and the specified non-resolved or `ValueError` outcome;
+4. a missing observation attachment returns `insufficient_authority` with zero
+   context, while a missing or duplicate checkpoint/projection or a duplicate
+   observation attachment fails closed with `ValueError`;
 5. identity, digest, public-renderer, endpoint, M-1 eligibility, or source-anchor
    mismatch fails closed;
-6. stale but structurally valid authority preserves the correct M-1
-   non-resolved state with zero context;
+6. one exactly joined non-resolved base or edge attachment preserves its M-1
+   state with zero context, including a partial v1/v2 edge shape, while
+   duplicate or conflicting non-resolved attachments fail closed;
 7. malformed UTF-8, framing, marker, or attachment fails closed;
 8. partial v1-plus-v2 state yields zero context and performs no repair;
 9. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
@@ -339,11 +357,12 @@ Passing those checks proves specification coherence only, not reader behavior.
 After this exact specification is accepted, authorize one NSI-N1 reader/adapter
 tranche that:
 
-- adds the smallest exact authority-attachment grammar to logical
-  `04_review_log`;
+- adds the smallest exact observation-attachment grammar to logical
+  `review_log`;
 - appends it only through a bounded canonical helper;
 - parses existing canonical checkpoints plus the new attachment;
-- joins logical `01` and `04` snapshots into existing R0/R1 selector inputs; and
+- joins logical `active_task` and `review_log` snapshots into existing R0/R1
+  selector inputs; and
 - provides one internal persisted-session reader entrypoint.
 
 NSI-N1 must not bootstrap current v1 or run the Session A/B pilot. Those actions

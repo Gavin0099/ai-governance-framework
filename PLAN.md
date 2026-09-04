@@ -231,23 +231,27 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   `active_task` session reader that can reconstruct the complete R0/R1 caller
   inputs without prior chat history.
 - DONE: one new session can snapshot the canonical Git worktree identity once,
-  resolve the logical `01_active_task` and `04_review_log` surfaces once, take
-  one immutable byte snapshot of each,
+  resolve logical `active_task` and `review_log` once through
+  `memory_pipeline.memory_layout`, take one immutable byte snapshot of each,
   reconstruct each admitted canonical record from its exact review-log
   checkpoint, join it to its exact active-task summary and projection digest by
-  record identity, and consume exactly one persisted content-bound M-1
-  authority attachment; the reader derives either the R0 v1-only input or the
-  complete R1 v1-to-v2 input without caller-supplied record, summary, or
-  authority data; missing, duplicate, malformed, mismatched, stale, or
+  record identity, and consume exactly one persisted, previously admitted,
+  content-bound M-1 observation attachment; the reader derives either the R0
+  v1-only input or the complete R1 v1-to-v2 input without caller-supplied
+  record, summary, or authority data; missing, duplicate, malformed,
+  mismatched, stale, or
   insufficient authority produces zero context and fails closed through
-  `ValueError` or one preserved M-1 non-resolved disposition; no timestamp,
+  `ValueError` or one preserved M-1 non-resolved disposition; it replays the
+  persisted observation but does not independently prove human or approved-
+  change authority; no timestamp,
   file order, newest-text, chat-history, directory-wide semantic scan, or
   inferred authority may select current state.
-- Current repository evidence shows that `01_active_task` plus the existing
-  canonical `04_review_log` checkpoint can reconstruct summary and record, but
+- Current repository evidence shows that the current `01_active_task` alias for
+  logical `active_task` plus the existing `04_review_log` alias for logical
+  `review_log` can reconstruct summary and record, but
   no merged persisted surface carries the R0/R1 content-bound M-1 observation.
   Therefore the smallest implementation recommendation is one append-only
-  authority attachment on the existing logical `04_review_log` surface, not a
+  observation attachment on the existing logical `review_log` surface, not a
   new memory database, top-level manifest, or schema file.
 - The previously non-blocking absence of an R1 current projection is reopened
   only as `OBSERVED_NSI_BLOCKER`: the current `01_active_task` surface contains
@@ -257,7 +261,8 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   and outside this specification.
 - Claim ceiling: one proposed persisted-session reader for the bounded
   `active_task` R0/R1 shapes only. No implementation, writer change, formal
-  schema, new logical surface, authority-policy creation, hook, CI, gate,
+  schema, new logical surface, authority-policy creation or independent
+  approval proof, hook, CI, gate,
   enforcement, session automation, two-session pilot, longer lineage, graph,
   RAG, semantic retrieval, deletion, expiry, concurrency, crash atomicity, or
   production qualification is authorized.
