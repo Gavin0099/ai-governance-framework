@@ -331,6 +331,7 @@ def create_replacement_evaluation(
         commitment_path=commitment_path,
         custody_boundary=custody_boundary,
     )
+    pair_creation._probe_commitment_filesystem_capability(commitment_path)
     try:
         evaluation_id = str(uuid4())
         event_id = str(uuid4())

@@ -539,3 +539,130 @@ def test_replacement_commitment_target_is_create_once_and_outside_package_root(
         )
     assert commitment_path.read_bytes() == b"existing\n"
     assert ledger.validate_ledger_file(public_path).pair_count == 0
+
+
+def test_commitment_filesystem_probe_uses_dedicated_names_and_cleans_up(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commitment_root = tmp_path / "owner-commitment"
+    commitment_root.mkdir()
+    commitment_path = commitment_root / "commitment.json"
+    temporary = pair_creation._commitment_temporary_path(commitment_path)
+    monkeypatch.setattr(
+        pair_creation,
+        "_new_uuid4",
+        lambda: "10000000-0000-4000-8000-000000000001",
+    )
+    real_link = pair_creation.os.link
+    observed_links: list[tuple[Path, Path]] = []
+
+    def observe_link(source: object, destination: object, **kwargs: object) -> None:
+        observed_links.append((Path(source), Path(destination)))
+        real_link(source, destination, **kwargs)
+
+    monkeypatch.setattr(pair_creation.os, "link", observe_link)
+
+    pair_creation._probe_commitment_filesystem_capability(commitment_path)
+
+    assert len(observed_links) == 2
+    assert all(
+        source not in {commitment_path, temporary}
+        and destination not in {commitment_path, temporary}
+        for source, destination in observed_links
+    )
+    assert all(
+        source.name.endswith(".capability-probe.tmp")
+        and destination.name.endswith(".capability-probe")
+        for source, destination in observed_links
+    )
+    assert not commitment_path.exists()
+    assert not temporary.exists()
+    assert not list(commitment_root.iterdir())
+
+
+def test_commitment_filesystem_probe_requires_second_link_to_fail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commitment_root = tmp_path / "owner-commitment"
+    commitment_root.mkdir()
+    commitment_path = commitment_root / "commitment.json"
+    real_link = pair_creation.os.link
+    link_count = 0
+
+    def link_without_no_clobber(*args: object, **kwargs: object) -> None:
+        nonlocal link_count
+        link_count += 1
+        if link_count == 1:
+            real_link(*args, **kwargs)
+
+    monkeypatch.setattr(pair_creation.os, "link", link_without_no_clobber)
+    with pytest.raises(pair_creation.PairCreationError) as caught:
+        pair_creation._probe_commitment_filesystem_capability(commitment_path)
+
+    assert caught.value.code == pair_creation.CONTROLLER_ORDER_FAILURE
+    assert link_count == 2
+    assert not commitment_path.exists()
+    assert not list(commitment_root.iterdir())
+
+
+@pytest.mark.parametrize("failure", ["first-link", "read-back"])
+def test_commitment_filesystem_probe_fails_closed_and_cleans_probe_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    commitment_root = tmp_path / "owner-commitment"
+    commitment_root.mkdir()
+    commitment_path = commitment_root / "commitment.json"
+    if failure == "first-link":
+        def fail_link(*_args: object, **_kwargs: object) -> None:
+            raise OSError("unsupported")
+
+        monkeypatch.setattr(
+            pair_creation.os,
+            "link",
+            fail_link,
+        )
+    else:
+        real_read_bytes = Path.read_bytes
+
+        def mismatched_probe_readback(path: Path) -> bytes:
+            if path.name.endswith(".capability-probe"):
+                return b"mismatched\n"
+            return real_read_bytes(path)
+
+        monkeypatch.setattr(Path, "read_bytes", mismatched_probe_readback)
+
+    with pytest.raises(pair_creation.PairCreationError) as caught:
+        pair_creation._probe_commitment_filesystem_capability(commitment_path)
+
+    assert caught.value.code == pair_creation.CONTROLLER_ORDER_FAILURE
+    assert not commitment_path.exists()
+    assert not list(commitment_root.iterdir())
+
+
+def test_commitment_filesystem_probe_cleanup_failure_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commitment_root = tmp_path / "owner-commitment"
+    commitment_root.mkdir()
+    commitment_path = commitment_root / "commitment.json"
+    real_unlink = Path.unlink
+    failed_once = False
+
+    def fail_first_probe_cleanup(
+        path: Path, *args: object, **kwargs: object
+    ) -> None:
+        nonlocal failed_once
+        if path.name.endswith(".capability-probe") and not failed_once:
+            failed_once = True
+            raise OSError("cleanup denied")
+        real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_first_probe_cleanup)
+    with pytest.raises(pair_creation.PairCreationError) as caught:
+        pair_creation._probe_commitment_filesystem_capability(commitment_path)
+
+    assert caught.value.code == pair_creation.CONTROLLER_ORDER_FAILURE
+    assert failed_once is True
+    assert not commitment_path.exists()
+    for residue in commitment_root.iterdir():
+        real_unlink(residue)

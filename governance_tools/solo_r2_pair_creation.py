@@ -96,6 +96,15 @@ def _path_entry_exists(path: Path) -> bool:
         _fail()
 
 
+def _commitment_temporary_path(path: Path) -> Path:
+    """Derive the sole commitment temporary path used by validation and publish."""
+
+    try:
+        return path.with_name(f".{path.name}.tmp")
+    except (OSError, RuntimeError, TypeError, ValueError):
+        _fail(CONTROLLER_ORDER_FAILURE)
+
+
 def _normalized_path(path: Path) -> str:
     try:
         return os.path.normcase(os.path.abspath(path))
@@ -251,7 +260,7 @@ def _validate_commitment_target(
     ):
         _fail()
     target = parent / supplied.name
-    temporary = target.with_name(f".{target.name}.tmp")
+    temporary = _commitment_temporary_path(target)
     if _path_entry_exists(target) or _path_entry_exists(temporary):
         _fail()
     boundary_roots = _resolved_boundary_roots(custody_boundary)
@@ -431,7 +440,7 @@ def _atomic_create_commitment(path: Path, data: bytes) -> None:
 
     if type(data) is not bytes or not data:
         _fail(CONTROLLER_ORDER_FAILURE)
-    temporary = path.with_name(f".{path.name}.tmp")
+    temporary = _commitment_temporary_path(path)
     if _path_entry_exists(path) or _path_entry_exists(temporary):
         _fail(CONTROLLER_ORDER_FAILURE)
     publication_started = False
@@ -459,6 +468,80 @@ def _atomic_create_commitment(path: Path, data: bytes) -> None:
                 temporary.unlink(missing_ok=True)
             except OSError:
                 pass
+        _fail(CONTROLLER_ORDER_FAILURE)
+
+
+def _probe_commitment_filesystem_capability(value: object) -> None:
+    """Prove hard-link no-clobber semantics without touching commitment names.
+
+    The real commitment target and its real temporary path are absence-checked
+    only.  All writes use a random probe-only basename so an interrupted probe
+    cannot occupy either create-once commitment path.
+    """
+
+    try:
+        supplied = Path(value)  # type: ignore[arg-type]
+        parent = supplied.parent.resolve(strict=True)
+    except (OSError, RuntimeError, TypeError, ValueError):
+        _fail(CONTROLLER_ORDER_FAILURE)
+    target = parent / supplied.name
+    temporary = _commitment_temporary_path(target)
+    if _path_entry_exists(target) or _path_entry_exists(temporary):
+        _fail(CONTROLLER_ORDER_FAILURE)
+
+    probe_id = _new_uuid4().replace("-", "")
+    probe_target = parent / f"solo-r2-{probe_id}.capability-probe"
+    probe_source = _commitment_temporary_path(probe_target)
+    if _path_entry_exists(probe_target) or _path_entry_exists(probe_source):
+        _fail(CONTROLLER_ORDER_FAILURE)
+
+    probe_data = b"solo-r2-hard-link-no-clobber-capability-probe\n"
+    probe_failed = False
+    cleanup_failed = False
+    try:
+        with probe_source.open("xb+", buffering=0) as stream:
+            written = stream.write(probe_data)
+            if written != len(probe_data):
+                raise OSError("short probe write")
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read() != probe_data:
+                raise OSError("probe read-back mismatch")
+        os.link(probe_source, probe_target, follow_symlinks=False)
+        if (
+            probe_target.read_bytes() != probe_data
+            or not os.path.samefile(probe_source, probe_target)
+        ):
+            raise OSError("probe hard-link mismatch")
+        try:
+            os.link(probe_source, probe_target, follow_symlinks=False)
+        except FileExistsError:
+            pass
+        else:
+            raise OSError("probe destination was not no-clobber")
+        if probe_target.read_bytes() != probe_data:
+            raise OSError("probe destination changed")
+    except OSError:
+        probe_failed = True
+    finally:
+        for candidate in (probe_target, probe_source):
+            try:
+                candidate.unlink(missing_ok=True)
+            except OSError:
+                cleanup_failed = True
+        for candidate in (probe_target, probe_source):
+            try:
+                if os.path.lexists(candidate):
+                    cleanup_failed = True
+            except (OSError, TypeError, ValueError):
+                cleanup_failed = True
+        try:
+            if os.path.lexists(target) or os.path.lexists(temporary):
+                probe_failed = True
+        except (OSError, TypeError, ValueError):
+            probe_failed = True
+    if probe_failed or cleanup_failed:
         _fail(CONTROLLER_ORDER_FAILURE)
 
 

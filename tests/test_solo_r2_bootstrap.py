@@ -399,8 +399,8 @@ def test_replacement_commitment_target_race_cannot_overwrite_existing_bytes(
         dst_dir_fd: object = None,
         follow_symlinks: bool = True,
     ) -> None:
-        assert Path(destination) == commitment_path
-        commitment_path.write_bytes(b"independent-existing-commitment\n")
+        if Path(destination) == commitment_path:
+            commitment_path.write_bytes(b"independent-existing-commitment\n")
         real_link(
             source,
             destination,
@@ -456,6 +456,82 @@ def test_replacement_preflight_rejects_existing_or_invalid_custody_targets(
         )
     assert not replacement_ledger.exists()
     assert not commitment_path.exists()
+    assert CANONICAL_LEDGER.read_bytes() == original_before
+
+
+def test_replacement_preflight_rejects_existing_commitment_temporary_path(
+    tmp_path: Path,
+) -> None:
+    (
+        project_root,
+        boundary,
+        key_path,
+        replacement_ledger,
+        controller_root,
+        commitment_path,
+    ) = _replacement_environment(tmp_path)
+    original_before = CANONICAL_LEDGER.read_bytes()
+    temporary = pair_creation._commitment_temporary_path(commitment_path)
+    temporary.write_bytes(b"occupied\n")
+
+    with pytest.raises(pair_creation.PairCreationError):
+        bootstrap.validate_replacement_preconditions(
+            project_root=project_root,
+            controller_root=controller_root,
+            key_path=key_path,
+            commitment_path=commitment_path,
+            custody_boundary=boundary,
+        )
+
+    assert not key_path.exists()
+    assert not replacement_ledger.exists()
+    assert not commitment_path.exists()
+    assert temporary.read_bytes() == b"occupied\n"
+    assert CANONICAL_LEDGER.read_bytes() == original_before
+
+
+def test_replacement_capability_probe_precedes_key_and_all_persistent_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (
+        project_root,
+        boundary,
+        key_path,
+        replacement_ledger,
+        controller_root,
+        commitment_path,
+    ) = _replacement_environment(tmp_path)
+    original_before = CANONICAL_LEDGER.read_bytes()
+    key_calls = 0
+
+    def fail_probe(_path: object) -> None:
+        raise pair_creation.PairCreationError(pair_creation.CONTROLLER_ORDER_FAILURE)
+
+    def observe_key(*_args: object, **_kwargs: object) -> str:
+        nonlocal key_calls
+        key_calls += 1
+        return "unexpected"
+
+    monkeypatch.setattr(
+        pair_creation, "_probe_commitment_filesystem_capability", fail_probe
+    )
+    monkeypatch.setattr(controller, "create_controller_key", observe_key)
+
+    with pytest.raises(pair_creation.PairCreationError) as caught:
+        bootstrap.create_replacement_evaluation(
+            project_root=project_root,
+            controller_root=controller_root,
+            key_path=key_path,
+            commitment_path=commitment_path,
+            custody_boundary=boundary,
+        )
+
+    assert caught.value.code == pair_creation.CONTROLLER_ORDER_FAILURE
+    assert key_calls == 0
+    assert not key_path.exists()
+    assert not replacement_ledger.exists()
+    assert not commitment_path.exists()
+    assert not list(controller_root.iterdir())
     assert CANONICAL_LEDGER.read_bytes() == original_before
 
 
