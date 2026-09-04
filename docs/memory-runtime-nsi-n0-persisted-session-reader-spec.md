@@ -80,8 +80,9 @@ One persisted-session reader responsibility is defined for logical
 5. reconstructs and validates the attachment fields already consumed by R0/R1,
    without treating the attachment or its anchor as independent proof of
    authority; and
-6. invokes the existing R0/R1 selector with reconstructed inputs, returning
-   context only when that selector establishes one current record.
+6. runs the reconstructed inputs through one internal snapshot-consuming
+   selection core that preserves the existing R0/R1 validation semantics,
+   returning context only when that core establishes one current record.
 
 The reader does not receive a record, summary, target identity, or authority
 observation from chat. The only caller input is the canonical project root and
@@ -112,8 +113,9 @@ the bounded logical-name request.
   as reconstruction input;
 - no directory-wide semantic scan, timestamp/latest-text selection, fuzzy join,
   or authority inference;
-- no modification of `build_record_identity()`, R0/R1 semantics, or
-  `memory_layout.py`;
+- no modification of `build_record_identity()`, R0/R1 public behavior or
+  validation semantics, or `memory_layout.py`; a behavior-preserving extraction
+  of an internal snapshot-consuming selection core is allowed only in N1;
 - no natural Session A/B pilot, v1 bootstrap, migration, or historical rewrite;
 - no longer lineage, graph engine, concurrency, rollback, crash atomicity,
   deletion, expiry, semantic retrieval, or RAG; and
@@ -234,7 +236,8 @@ The reader uses this order:
    - no observation attachment after otherwise valid structural parsing, which
      deterministically returns `insufficient_authority` with zero context.
 9. Construct the existing R0/R1 caller input from the verified snapshots and
-   call the existing selector.
+   pass it to the shared internal snapshot-selection core. Do not call the
+   current live-reading/writing R0/R1 entrypoints after the snapshots are taken.
 10. Emit only the selector's canonical current context. v1 contributes zero
     context after a valid supersession.
 
@@ -251,6 +254,14 @@ expose one internal function or CLI entrypoint, but its caller may provide only
 the canonical project root and logical `active_task` request. It must not expose
 record, summary, identity, digest, or authority override parameters that recreate
 the current caller-driven gap.
+
+The existing caller-facing R0/R1 functions do not accept an immutable surface
+snapshot: they resolve and read again, and the R0 round-trip path may write. N1
+must therefore extract or add one pure internal selection core that accepts the
+already parsed snapshot plus reconstructed inputs. Existing R0/R1 entrypoints
+must delegate to or remain behaviorally equivalent to that core, with parity
+tests for their accepted and fail-closed cases. This is an internal reuse
+boundary, not a new public Runtime API.
 
 The semantic outcomes remain:
 
@@ -344,9 +355,12 @@ N1 focused tests must demonstrate:
 8. partial v1-plus-v2 state yields zero context and performs no repair;
 9. dependency calls, resolver outputs, paths, and bytes are snapshotted once and
    not re-read during selection;
-10. no record, summary, identity, digest, or authority input can be supplied by
+10. direct calls to current live-reading/writing R0/R1 entrypoints are absent
+    after the reader snapshots, while parity tests show the shared internal
+    selection core preserves their bounded validation semantics;
+11. no record, summary, identity, digest, or authority input can be supplied by
     the session caller; and
-11. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
+12. adjacent R0, R1, memory-layout, and canonical-writer tests remain green.
 
 Spec-only validation is limited to scope census, link/token consistency,
 `git diff --check`, PLAN freshness, and independent two-file technical review.
@@ -362,7 +376,9 @@ tranche that:
 - appends it only through a bounded canonical helper;
 - parses existing canonical checkpoints plus the new attachment;
 - joins logical `active_task` and `review_log` snapshots into existing R0/R1
-  selector inputs; and
+  selector inputs;
+- extracts or adds one internal pure snapshot-selection core while preserving
+  existing R0/R1 public behavior and validation semantics; and
 - provides one internal persisted-session reader entrypoint.
 
 NSI-N1 must not bootstrap current v1 or run the Session A/B pilot. Those actions

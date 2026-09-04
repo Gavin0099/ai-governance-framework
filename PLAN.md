@@ -233,6 +233,8 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
 - DONE: one new session can snapshot the canonical Git worktree identity once,
   resolve logical `active_task` and `review_log` once through
   `memory_pipeline.memory_layout`, take one immutable byte snapshot of each,
+  perform all subsequent selection through one internal snapshot-consuming
+  validation core without invoking a live-reading R0/R1 entrypoint,
   reconstruct each admitted canonical record from its exact review-log
   checkpoint, join it to its exact active-task summary and projection digest by
   record identity, and consume exactly one persisted, previously admitted,
@@ -266,6 +268,9 @@ Current refresh - 2026-09-04 (Natural Session Integration N0 specification candi
   enforcement, session automation, two-session pilot, longer lineage, graph,
   RAG, semantic retrieval, deletion, expiry, concurrency, crash atomicity, or
   production qualification is authorized.
+- A later NSI-N1 implementation may extract or add one internal pure
+  snapshot-selection core shared with the existing R0/R1 entrypoints, but it
+  may not change their public behavior or validation semantics.
 - Specification acceptance requires exact-head technical review with no
   unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
   separate owner merge authorization. Adapter implementation, v1 bootstrap,
