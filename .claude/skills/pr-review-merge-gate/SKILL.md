@@ -104,12 +104,31 @@ MERGE READY when:
 2. PR-introduced or PR-worsened blocking findings = 0;
 3. no unresolved finding invalidates the PR's frozen DONE, claim ceiling,
    merge safety, or relied-upon evidence;
-4. required scope-matched checks are green;
+4. every required check is green for that exact head;
 5. remaining real findings carry an explicit disposition and are not
-   misreported as fixed or absent.
+   misreported as fixed or absent; and
+6. the merge-authority predicates still hold for the same head.
 ```
 
-This is deliberately not "repository-wide blocking findings = 0".
+Point 2 is the change: it is deliberately not "repository-wide blocking
+findings = 0".
+
+Point 6 is not. This skill narrows **which findings block**; it removes no
+merge-authority predicate. In this repository those predicates are
+`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, and all four must hold for
+the same exact candidate head:
+
+```text
+owner_merge_attestation        = recorded_for_exact_head
+independent_technical_review   = independent_approved_for_exact_head
+required_checks                = green_for_exact_head
+head_state                     = matches_reviewed_head
+```
+
+Any missing, unknown, stale, failing, or non-independent predicate makes the
+decision ineligible, and that decision fails closed. Never round it up from
+partial evidence, and never report `MERGE DECISION: READY` on the strength of
+findings triage alone.
 
 ## 6. Report the decision, not just the findings
 
@@ -127,8 +146,17 @@ Carried-forward findings:
   Reason: this PR neither modifies nor executes that path
   Disposition: separate bounded work
 
+Merge-authority predicates for this head:
+- owner attestation: recorded | missing
+- independent technical review: approved for exact head | missing | stale
+- required checks: green for exact head | failing | unknown
+- head state: matches reviewed head | moved
+
 Required checks: green
 ```
+
+If any predicate is missing or unknown, the decision is `INELIGIBLE`, not
+`READY` — even when blocking findings are zero.
 
 Stated this way, "there is an open P1" and "this PR can merge" stop
 contradicting each other.

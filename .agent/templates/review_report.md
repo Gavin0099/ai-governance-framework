@@ -40,9 +40,16 @@
 
 ## findings
 
-| Severity | File | Issue | Recommendation |
-| --- | --- | --- | --- |
-|  |  |  |  |
+| Severity | Attribution | Decision impact | Disposition | File | Issue | Recommendation |
+| --- | --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |  |
+
+- Severity: on the scale already in use; do not invent a second one.
+- Attribution: introduced | worsened | exposed | pre-existing, relative to this slice.
+- Decision impact: does it make this slice's claim ceiling or merge safety unsound? yes | no
+- Disposition: fix now | workaround | carried-forward | separate bounded work
+
+Severity and decision impact are answered separately. See `governance/REVIEW_CRITERIA.md` section 2.2.
 
 ## approval_gate_assessment
 

@@ -65,9 +65,15 @@ explicit `WARNING` as appropriate.
 
 | Level | Meaning |
 |---|---|
-| `BLOCKING` | A governance, correctness, or safety issue that must be fixed |
+| `BLOCKING` | A governance, correctness, or safety issue severe enough that shipping it knowingly is not acceptable |
 | `WARNING` | A risk, debt item, or weak evidence point that must be explicit |
 | `SUGGESTION` | A non-blocking improvement |
+
+These levels name **how severe** a finding is. Whether a given finding stops the
+change under review is a separate question, answered in §2.2. A `BLOCKING`
+finding that the reviewed change neither introduced nor reaches is recorded,
+dispositioned, and carried forward; write it as `BLOCKING / carried-forward` so
+severity and applicability are never read as a single claim.
 
 Do not confuse `ESCALATED` with `BLOCKING`.
 Escalation is for unresolved consequential ambiguity, not merely for defects.
