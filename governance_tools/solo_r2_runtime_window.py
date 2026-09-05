@@ -139,7 +139,11 @@ try {
     [void][IO.File]::ReadAllBytes([string]$config.credential_sentinel_path)
     $credentialRead = 'VISIBLE'
 } catch {
-    if ($_.Exception.HResult -eq -2147024891 -or $_.Exception -is [UnauthorizedAccessException] -or $_.Exception -is [Security.SecurityException]) {
+    $credentialException = $_.Exception
+    if ($credentialException -is [System.Management.Automation.MethodInvocationException]) {
+        $credentialException = $credentialException.InnerException
+    }
+    if ($null -ne $credentialException -and ($credentialException.HResult -eq -2147024891 -or $credentialException -is [UnauthorizedAccessException] -or $credentialException -is [Security.SecurityException])) {
         $credentialRead = 'DENIED'
     } else {
         $credentialRead = 'ERROR'
@@ -828,6 +832,7 @@ class MachineBackedBoundaryProbe:
         *,
         configured_catalog: ToolCatalog,
         expected_command: str,
+        powershell_path: str,
     ) -> dict[str, object]:
         metrics = validate_execution_result(result, configured_catalog)
         if (
@@ -860,10 +865,16 @@ class MachineBackedBoundaryProbe:
             _fail(PAIR_INVALID)
         item = completed[0]
         output = item.get("aggregated_output")
+        # Generate the reviewed CLI display form from authority, never unescape
+        # or parse the observed command. JSON decoding has already happened.
+        wrapped_command = (
+            '"' + powershell_path.replace("\\", "\\\\") + '" -Command "'
+            + expected_command.replace("\\", "\\\\") + '"'
+        )
         if (
             item.get("status") != "completed"
             or item.get("exit_code") != 0
-            or item.get("command") != expected_command
+            or item.get("command") not in (expected_command, wrapped_command)
             or not isinstance(output, str)
         ):
             _fail(PAIR_INVALID)
@@ -1024,6 +1035,7 @@ class MachineBackedBoundaryProbe:
                 result,
                 configured_catalog=configured_catalog,
                 expected_command=command,
+                powershell_path=str(powershell.path),
             )
         finally:
             try:

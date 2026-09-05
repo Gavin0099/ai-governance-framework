@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 import sys
+import subprocess
 import tarfile
 
 import pytest
@@ -61,6 +62,124 @@ PROBE_IDENTITY = subject.BoundaryProbeIdentity(
     subject.WINDOWS_POWERSHELL_BYTE_LENGTH,
     subject.WINDOWS_POWERSHELL_SHA256,
 )
+
+
+# Literal JSON-decoded display fixture: JSON escaping is not CLI escaping.
+_DIRECT_PROBE_COMMAND = r"& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -File 'D:\probe\qualification-boundary-probe.ps1' -ConfigPath 'D:\probe\qualification-boundary-config.json'"
+_WRAPPED_PROBE_COMMAND = r'''"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoLogo -NoProfile -NonInteractive -File 'D:\\probe\\qualification-boundary-probe.ps1' -ConfigPath 'D:\\probe\\qualification-boundary-config.json'"'''
+
+
+@pytest.mark.parametrize("recorded,accepted", [
+    (_DIRECT_PROBE_COMMAND, True),
+    (_WRAPPED_PROBE_COMMAND, True),
+    (_WRAPPED_PROBE_COMMAND.replace("boundary-probe.ps1", "other.ps1"), False),
+    (_WRAPPED_PROBE_COMMAND + " -NoProfile", False),
+    (_WRAPPED_PROBE_COMMAND.replace("powershell.exe", "other.exe", 1), False),
+    ('"powershell.exe" -Command "' + _WRAPPED_PROBE_COMMAND + '"', False),
+    (_WRAPPED_PROBE_COMMAND.replace("\\\\", "\\", 1), False),
+    ("prefix " + _WRAPPED_PROBE_COMMAND, False),
+    (_DIRECT_PROBE_COMMAND + "; Write-Output forged", False),
+])
+def test_probe_command_accepts_only_closed_representations(tmp_path, recorded, accepted):
+    (tmp_path / "qualification-challenge.txt").write_text("a" * 32)
+    backend = NativeBackendDouble(None, command_override=recorded)
+    result = backend.execute(
+        prepared_arm=None, workspace_root=tmp_path, output_root=tmp_path,
+        output_schema=subject.MachineBackedBoundaryProbe._schema(),
+        prompt=("probe\nonce\n" + _DIRECT_PROBE_COMMAND).encode(),
+    )
+    kwargs = dict(configured_catalog=CATALOG, expected_command=_DIRECT_PROBE_COMMAND,
+                  powershell_path=r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
+    if accepted:
+        assert subject.MachineBackedBoundaryProbe._read_command_result(result, **kwargs)["challenge"] == "a" * 32
+    else:
+        with pytest.raises(subject.RuntimeWindowError) as caught:
+            subject.MachineBackedBoundaryProbe._read_command_result(result, **kwargs)
+        assert caught.value.code == subject.PAIR_INVALID
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Requires Windows PowerShell 5.1")
+@pytest.mark.parametrize("case,expected,root_type", [
+    ("acl", "DENIED", "UnauthorizedAccessException"),
+    ("missing", "ERROR", "FileNotFoundException"),
+    ("missing-parent", "ERROR", "DirectoryNotFoundException"),
+    ("sharing", "ERROR", "IOException"),
+    ("direct-denied", "DENIED", "UnauthorizedAccessException"),
+    ("security", "DENIED", "SecurityException"),
+    ("unknown", "ERROR", "InvalidOperationException"),
+    ("unknown-wrapper", "ERROR", "UnauthorizedAccessException"),
+])
+def test_real_powershell_probe_credential_classifier(tmp_path, case, expected, root_type):
+    # Extract the deployed bytes, not a Python translation of the classifier.
+    source = subject._BOUNDARY_PROBE_SCRIPT.decode("ascii")
+    fragment = source[source.index("try {\n    [void][IO.File]::ReadAllBytes"):source.index("$offHostConnect =")]
+    read_expression = "[void][IO.File]::ReadAllBytes([string]$config.credential_sentinel_path)"
+    synthetic = {
+        "direct-denied": "throw [UnauthorizedAccessException]::new('synthetic')",
+        "security": "throw [Security.SecurityException]::new('synthetic')",
+        "unknown": "throw [InvalidOperationException]::new('synthetic')",
+        "unknown-wrapper": "throw [InvalidOperationException]::new('synthetic', [UnauthorizedAccessException]::new('inner'))",
+    }
+    if case in synthetic:
+        fragment = fragment.replace(read_expression, synthetic[case])
+    # Capture the actual exception without replacing production classification.
+    fragment = fragment.replace("} catch {", "} catch {\n    $caught = $_.Exception", 1)
+    fixture = str(tmp_path / "fixture.txt").replace("'", "''")
+    script = r'''
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw 'PowerShell 5.1 required' }
+$path = '__FIXTURE__'
+$case = '__CASE__'
+$originalAcl = $null
+$handle = $null
+[IO.File]::WriteAllText($path, 'public test fixture')
+try {
+    if ($case -eq 'acl') {
+        $originalAcl = [IO.File]::GetAccessControl($path)
+        $acl = [IO.File]::GetAccessControl($path)
+        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+        $rule = [Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::ReadData, [Security.AccessControl.AccessControlType]::Deny)
+        $acl.AddAccessRule($rule)
+        [IO.File]::SetAccessControl($path, $acl)
+    }
+    if ($case -eq 'sharing') { $handle = [IO.File]::Open($path, 'Open', 'ReadWrite', 'None') }
+    if ($case -eq 'missing') { $path += '.absent' }
+    if ($case -eq 'missing-parent') { $path += '.absent\child.txt' }
+    $config = @{credential_sentinel_path=$path}
+    __FRAGMENT__
+    [ordered]@{classification=$credentialRead; outer=$caught.GetType().Name; root=$caught.GetBaseException().GetType().Name; hresult=$caught.GetBaseException().HResult} | ConvertTo-Json -Compress
+} finally {
+    if ($null -ne $handle) { $handle.Dispose() }
+    if ($null -ne $originalAcl) {
+        $sections = [Security.AccessControl.AccessControlSections]::Access
+        $restoredAcl = [Security.AccessControl.FileSecurity]::new()
+        $restoredAcl.SetSecurityDescriptorSddlForm($originalAcl.GetSecurityDescriptorSddlForm($sections), $sections)
+        [IO.File]::SetAccessControl($path, $restoredAcl)
+        $actualAcl = [IO.File]::GetAccessControl($path)
+        $actualSddl = $actualAcl.GetSecurityDescriptorSddlForm($sections)
+        $expectedSddl = $originalAcl.GetSecurityDescriptorSddlForm($sections)
+        # Windows may set the auto-inherited bookkeeping bit when restoring.
+        # Every ACE and the inheritance protection state must still match.
+        if ($actualSddl.Substring($actualSddl.IndexOf('(')) -cne $expectedSddl.Substring($expectedSddl.IndexOf('(')) -or $actualAcl.AreAccessRulesProtected -ne $originalAcl.AreAccessRulesProtected) { throw 'Fixture ACL restoration failed' }
+    }
+}
+'''.replace("__FIXTURE__", fixture).replace("__CASE__", case).replace("__FRAGMENT__", fragment)
+    completed = subprocess.run(
+        [str(subject.WINDOWS_POWERSHELL_PATH), "-NoLogo", "-NoProfile", "-NonInteractive",
+         "-EncodedCommand", base64.b64encode(script.encode("utf-16-le")).decode("ascii")],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    observed = json.loads(completed.stdout)
+    assert observed["classification"] == expected
+    assert observed["root"] == root_type
+    if case in {"acl", "missing", "missing-parent", "sharing"}:
+        assert observed["outer"] == "MethodInvocationException"
+    if case == "acl":
+        assert observed["hresult"] == -2147024891
+    if case == "sharing":
+        assert observed["hresult"] == -2147024864
 
 
 def _generation(timestamp: str, marker: bytes) -> SandboxGenerationFingerprint:
