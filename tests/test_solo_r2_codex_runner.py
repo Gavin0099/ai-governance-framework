@@ -224,6 +224,89 @@ def test_payload_resolver_requires_one_content_match(
     assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
 
 
+def _owner_payload_fixture(tmp_path, monkeypatch):
+    local = tmp_path / "Local"
+    candidate = local / "OpenAI" / "Codex" / "bin" / "0123456789abcdef" / "codex.exe"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_bytes(b"owner-adopted-payload")
+    monkeypatch.setattr(subject, "_windows_local_app_data_path", lambda: local.resolve())
+    record = tmp_path / "owner-pin.json"
+    value = {
+        "schema": "solo-r2-owner-payload-pin/v1",
+        "authority_class": "OWNER_ATTESTED",
+        "evaluation_id": "bba7af6e-6b0f-43b6-9af3-be755c7ade2d",
+        "pair_id": "07fc2e7f-2eae-49f0-9021-0793f0778902",
+        "slot": "R2-SHAKEDOWN",
+        "payload_byte_length": candidate.stat().st_size,
+        "payload_sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
+    }
+    record.write_bytes(subject._canonical_json(value) + b"\n")
+    pin = subject.OwnerPayloadPin(
+        PinnedExecutable.capture(record.resolve()), value["evaluation_id"],
+        value["pair_id"], value["slot"],
+    )
+    return candidate, record, value, pin
+
+
+def test_owner_pin_selects_exact_payload_without_changing_legacy_policy(tmp_path, monkeypatch):
+    candidate, record, value, pin = _owner_payload_fixture(tmp_path, monkeypatch)
+    monkeypatch.setenv("PATH", str(tmp_path / "hostile"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "decoy"))
+    resolved = subject.resolve_codex_payload(owner_pin=pin)
+    assert resolved.path == candidate.resolve()
+    with pytest.raises(subject.RunnerGateError):
+        subject.resolve_codex_payload()
+    duplicate = candidate.parent.parent / "fedcba9876543210" / "codex.exe"
+    duplicate.parent.mkdir()
+    duplicate.write_bytes(candidate.read_bytes())
+    with pytest.raises(subject.RunnerGateError):
+        subject.resolve_codex_payload(owner_pin=pin)
+
+
+@pytest.mark.parametrize("field,replacement", [
+    ("evaluation_id", "2fc5fd9b-9283-4d45-8c6a-ed6e2eb525e5"),
+    ("pair_id", "346df3b9-4637-4187-a59e-52863bb8b172"),
+    ("slot", "OTHER"), ("authority_class", "AUTO_DISCOVERED"),
+    ("payload_byte_length", True), ("payload_sha256", "ABC"),
+])
+def test_owner_pin_rejects_invalid_record_before_discovery(tmp_path, monkeypatch, field, replacement):
+    _, record, value, pin = _owner_payload_fixture(tmp_path, monkeypatch)
+    value[field] = replacement
+    record.write_bytes(subject._canonical_json(value) + b"\n")
+    pin = replace(pin, record=PinnedExecutable.capture(record.resolve()))
+    monkeypatch.setattr(subject, "_windows_local_app_data_path", lambda: pytest.fail("discovery reached"))
+    with pytest.raises(subject.RunnerGateError):
+        subject.resolve_codex_payload(owner_pin=pin)
+
+
+@pytest.mark.parametrize("change", ["record", "payload", "missing", "noncanonical", "duplicate_key"])
+def test_owner_pin_drift_stops_before_native_dispatch(tmp_path, monkeypatch, change):
+    candidate, record, value, pin = _owner_payload_fixture(tmp_path, monkeypatch)
+    backend = subject.NativeCodexExecBackend(
+        executable=subject.resolve_codex_payload(owner_pin=pin),
+        configured_catalog=CATALOG, expected_launcher_sid=LAUNCHER_SID,
+        owner_payload_pin=pin,
+    )
+    if change == "record":
+        record.write_bytes(b"{}\n")
+    elif change == "payload":
+        candidate.write_bytes(b"unapproved-update")
+    elif change == "missing":
+        record.unlink()
+    else:
+        payload = json.dumps(value, indent=2).encode() if change == "noncanonical" else b'{"schema":1,"schema":2}\n'
+        record.write_bytes(payload)
+        backend.owner_payload_pin = replace(pin, record=PinnedExecutable.capture(record.resolve()))
+    monkeypatch.setattr(subject, "_windows_process_identity", lambda: pytest.fail("identity probe reached"))
+    output = tmp_path / "output"
+    with pytest.raises(subject.RunnerGateError):
+        backend.execute(
+            prepared_arm=_prepared(), workspace_root=tmp_path, codex_home=tmp_path,
+            output_root=output, prompt=b"never dispatched", output_schema={},
+        )
+    assert not output.exists()
+
+
 def test_payload_resolver_rejects_zero_match(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

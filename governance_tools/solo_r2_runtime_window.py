@@ -1212,7 +1212,14 @@ class RuntimeFreezeProbe:
     def capture_candidate(self) -> RuntimeFreezeCandidate:
         self.assert_runtime_quiescent()
         self.pair_lock.assert_unchanged()
-        payload = resolve_codex_payload()
+        payload = self.backend.resolve_payload()
+        owner_pin = self.backend.owner_payload_pin
+        if owner_pin is not None and (
+            owner_pin.evaluation_id != self.pair_lock.binding.evaluation_id
+            or owner_pin.pair_id != self.pair_lock.binding.pair_id
+            or owner_pin.slot != self.pair_lock.binding.slot
+        ):
+            _fail(PAIR_INVALID)
         payload.verify()
         qualification_helper = self.qualification_helper
         qualification_helper.verify()
@@ -1515,7 +1522,7 @@ class NativePreExposureObservationBackend:
                     self.qualification_output,
                 )
             )
-            or native_backend.executable != resolve_codex_payload()
+            or native_backend.executable != native_backend.resolve_payload()
         ):
             _fail(PAIR_INVALID)
 
@@ -1873,6 +1880,16 @@ class PreAttemptFrozenRuntimeWindow:
         if self._used:
             _fail()
         self._used = True
+        native = self.backend.native_backend
+        owner_pin = native.owner_payload_pin
+        if owner_pin is not None:
+            if (
+                owner_pin.evaluation_id != self.pair_lock.binding.evaluation_id
+                or owner_pin.pair_id != self.pair_lock.binding.pair_id
+                or owner_pin.slot != self.pair_lock.binding.slot
+                or native.resolve_payload() != native.executable
+            ):
+                _fail(PAIR_INVALID)
         with self.pair_lock:
             self.freeze_probe.assert_runtime_quiescent()
             provisioning = self.backend.provision_sandbox()

@@ -120,6 +120,11 @@ def _order_state(binding: PairBinding) -> dict[str, object]:
 
 
 class NativeBackendDouble:
+    owner_payload_pin = None
+
+    def resolve_payload(self):
+        return subject.resolve_codex_payload()
+
     def __init__(
         self,
         executable: PinnedExecutable,
@@ -701,6 +706,8 @@ def test_freeze_capture_rejects_generation_drift_during_capture(
     )
     native = SimpleNamespace(
         executable=executable,
+        owner_payload_pin=None,
+        resolve_payload=lambda: subject.resolve_codex_payload(),
         command_policy_projection=lambda: (str(executable.path), "exec"),
     )
     generations = iter((GENERATION_A, GENERATION_B))
@@ -723,6 +730,56 @@ def test_freeze_capture_rejects_generation_drift_during_capture(
     with pair_lock, pytest.raises(subject.RuntimeWindowError) as caught:
         probe.capture()
     assert caught.value.code == subject.SAME_MACHINE_WINDOW_REJECTED
+
+
+@pytest.mark.parametrize("failure", ["wrong_pair", "record_changed"])
+def test_owner_payload_pin_failure_precedes_window_lock_and_provisioning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+) -> None:
+    from governance_tools import solo_r2_codex_runner as runner
+
+    local = tmp_path / "Local"
+    executable_path = local / "OpenAI" / "Codex" / "bin" / "0123456789abcdef" / "codex.exe"
+    executable_path.parent.mkdir(parents=True)
+    executable_path.write_bytes(b"adopted-native-fixture")
+    monkeypatch.setattr(runner, "_windows_local_app_data_path", lambda: local.resolve())
+    value = {
+        "schema": "solo-r2-owner-payload-pin/v1", "authority_class": "OWNER_ATTESTED",
+        "evaluation_id": "bba7af6e-6b0f-43b6-9af3-be755c7ade2d",
+        "pair_id": "07fc2e7f-2eae-49f0-9021-0793f0778902", "slot": "R2-SHAKEDOWN",
+        "payload_byte_length": executable_path.stat().st_size,
+        "payload_sha256": hashlib.sha256(executable_path.read_bytes()).hexdigest(),
+    }
+    path = tmp_path / "owner-pin.json"
+    path.write_bytes(runner._canonical_json(value) + b"\n")
+    pin = runner.OwnerPayloadPin(
+        PinnedExecutable.capture(path.resolve()), value["evaluation_id"],
+        value["pair_id"], value["slot"],
+    )
+    native = runner.NativeCodexExecBackend(
+        executable=runner.resolve_codex_payload(owner_pin=pin), configured_catalog=CATALOG,
+        expected_launcher_sid="S-1-5-21-4017902291-1272973841-664929404-1001",
+        owner_payload_pin=pin,
+    )
+    binding = SimpleNamespace(evaluation_id=pin.evaluation_id, pair_id=pin.pair_id, slot=pin.slot)
+    if failure == "wrong_pair":
+        binding.pair_id = "346df3b9-4637-4187-a59e-52863bb8b172"
+    else:
+        path.write_bytes(b"{}\n")
+    # No context-manager methods: reaching lock acquisition fails this test.
+    lock = SimpleNamespace(binding=binding)
+    backend = SimpleNamespace(
+        native_backend=native, whoami=native.executable,
+        provision_sandbox=lambda: pytest.fail("provisioning reached"),
+    )
+    window = subject.PreAttemptFrozenRuntimeWindow(
+        backend=backend, adapter=SimpleNamespace(backend=backend),
+        freeze_probe=SimpleNamespace(pair_lock=lock, qualification_helper=backend.whoami),
+        materializer=None, pair_lock=lock, sealed_order=None,
+    )
+    with pytest.raises((subject.RuntimeWindowError, runner.RunnerGateError)):
+        window.run()
+    assert not (tmp_path / "pair.lock").exists()
 
 
 def test_boundary_evidence_loads_only_exact_fail_closed_projection(tmp_path: Path) -> None:

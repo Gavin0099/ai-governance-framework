@@ -191,9 +191,66 @@ def _windows_local_app_data_path() -> Path:
         ole32.CoTaskMemFree(value)
 
 
-def resolve_codex_payload() -> PinnedExecutable:
+@dataclass(frozen=True)
+class OwnerPayloadPin:
+    """Owner-adopted record identity, independent of installed payload bytes.
+
+    The caller must bind ``record.sha256`` in prior owner authorization, never
+    derive it from a record selected alongside the executable at execution time.
+    This is Solo owner authority, not independent-principal attestation.
+    """
+
+    record: PinnedExecutable
+    evaluation_id: str
+    pair_id: str
+    slot: str
+
+    def expected_identity(self) -> tuple[int, str]:
+        try:
+            self.record.verify()
+            payload = self.record.path.read_bytes()
+            if len(payload) > 4096 or _sha256(payload) != self.record.sha256:
+                _fail(PAIR_INVALID)
+            value = _json_object(payload)
+            if set(value) != {
+                "schema", "authority_class", "evaluation_id", "pair_id", "slot",
+                "payload_byte_length", "payload_sha256",
+            } or payload != _canonical_json(value) + b"\n":
+                _fail(PAIR_INVALID)
+            for identifier in (self.evaluation_id, self.pair_id):
+                parsed = uuid.UUID(identifier)
+                if parsed.version != 4 or str(parsed) != identifier:
+                    _fail(PAIR_INVALID)
+            if (
+                value["schema"] != "solo-r2-owner-payload-pin/v1"
+                or value["authority_class"] != "OWNER_ATTESTED"
+                or value["evaluation_id"] != self.evaluation_id
+                or value["pair_id"] != self.pair_id
+                or value["slot"] != self.slot
+                or self.slot != "R2-SHAKEDOWN"
+                or type(value["payload_byte_length"]) is not int
+                or value["payload_byte_length"] <= 0
+                or not isinstance(value["payload_sha256"], str)
+                or re.fullmatch(r"[0-9a-f]{64}", value["payload_sha256"]) is None
+            ):
+                _fail(PAIR_INVALID)
+            self.record.verify()
+            return value["payload_byte_length"], value["payload_sha256"]
+        except RunnerGateError:
+            raise
+        except Exception:
+            _fail(PAIR_INVALID)
+
+
+def resolve_codex_payload(*, owner_pin: OwnerPayloadPin | None = None) -> PinnedExecutable:
     """Select the one governed Codex payload by known-folder root and bytes."""
 
+    if owner_pin is not None and type(owner_pin) is not OwnerPayloadPin:
+        _fail(PAIR_INVALID)
+    expected = (
+        owner_pin.expected_identity() if owner_pin is not None
+        else (CODEX_PAYLOAD_BYTE_LENGTH, CODEX_PAYLOAD_SHA256)
+    )
     root = _closed_directory(
         _windows_local_app_data_path() / "OpenAI" / "Codex" / "bin"
     )
@@ -217,12 +274,15 @@ def resolve_codex_payload() -> PinnedExecutable:
         except Exception:
             _fail()
         if (
-            pinned.byte_length == CODEX_PAYLOAD_BYTE_LENGTH
-            and pinned.sha256 == CODEX_PAYLOAD_SHA256
+            pinned.byte_length == expected[0]
+            and pinned.sha256 == expected[1]
         ):
             matches.append(pinned)
     if len(matches) != 1:
         _fail()
+    if owner_pin is not None and owner_pin.expected_identity() != expected:
+        _fail(PAIR_INVALID)
+    matches[0].verify()
     return matches[0]
 
 
@@ -1013,6 +1073,7 @@ class NativeCodexExecBackend:
         configured_catalog: ToolCatalog,
         expected_launcher_sid: str,
         sandbox_generation_capture: Callable[..., SandboxGenerationFingerprint] | None = None,
+        owner_payload_pin: OwnerPayloadPin | None = None,
     ) -> None:
         if (
             not isinstance(expected_launcher_sid, str)
@@ -1022,11 +1083,19 @@ class NativeCodexExecBackend:
         self.executable = executable
         self.configured_catalog = configured_catalog
         self.expected_launcher_sid = expected_launcher_sid
+        self.owner_payload_pin = owner_payload_pin
+        if owner_payload_pin is not None and self.resolve_payload() != executable:
+            _fail(PAIR_INVALID)
         self._sandbox_generation_capture = (
             sandbox_generation_capture or capture_sandbox_generation
         )
 
+    def resolve_payload(self) -> PinnedExecutable:
+        return resolve_codex_payload(owner_pin=self.owner_payload_pin)
+
     def _command(self, schema_path: Path, final_path: Path) -> tuple[str, ...]:
+        if self.owner_payload_pin is not None and self.resolve_payload() != self.executable:
+            _fail(PAIR_INVALID)
         executable = self.executable.verify()
         return (
             str(executable),
@@ -1082,6 +1151,8 @@ class NativeCodexExecBackend:
     ) -> NativeExecutionResult:
         """Expose one task exactly once; callers own admission before this call."""
 
+        if self.owner_payload_pin is not None and self.resolve_payload() != self.executable:
+            _fail(PAIR_INVALID)
         if (
             prepared_arm.task_exposure_state != "NONE"
             or not isinstance(prompt, bytes)
