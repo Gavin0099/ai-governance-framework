@@ -735,7 +735,9 @@ class PreExposureObservationBackend(Protocol):
     ) -> ArmPreparationObservation: ...
 
 
-def launcher_environment(codex_home: Path, temp_root: Path) -> dict[str, str]:
+def launcher_environment(
+    codex_home: Path, temp_root: Path, *, expected_launcher_sid: str | None = None
+) -> dict[str, str]:
     """Closed environment for Codex; no discovery PATH is inherited."""
 
     if not codex_home.is_absolute() or not temp_root.is_absolute():
@@ -746,18 +748,26 @@ def launcher_environment(codex_home: Path, temp_root: Path) -> dict[str, str]:
         "TEMP": str(temp_root),
         "TMP": str(temp_root),
     }
+    if expected_launcher_sid is not None:
+        # R2 environment contract: elevated setup returns marker custody to this
+        # verified owner. Never inherit USERNAME or fall back to Administrators.
+        env["USERNAME"] = _verified_owner_username(expected_launcher_sid)
     for key in ("COMSPEC", "SYSTEMROOT", "WINDIR"):
         if key in os.environ and os.environ[key]:
             env[key] = os.environ[key]
     return env
 
 
-def model_tool_environment(temp_root: Path) -> dict[str, str]:
+def model_tool_environment(
+    temp_root: Path, *, owner_username: str | None = None
+) -> dict[str, str]:
     """Expected model-tool environment measured by the sandbox canary."""
 
     if not temp_root.is_absolute():
         _fail()
     env = {"NO_COLOR": "1", "TEMP": str(temp_root), "TMP": str(temp_root)}
+    if owner_username is not None:
+        env["USERNAME"] = owner_username
     for key in ("COMSPEC", "SYSTEMROOT", "WINDIR"):
         if key in os.environ and os.environ[key]:
             env[key] = os.environ[key]
@@ -803,12 +813,17 @@ class CodexRunnerAdapter:
         codex_home: Path,
         temp_root: Path,
         sandbox_generation_probe: SandboxGenerationProbe | None = None,
+        expected_launcher_sid: str | None = None,
     ) -> None:
         self.executable = executable
         self.backend = backend
         self.expected_catalog = expected_catalog
-        self._launcher_env = launcher_environment(codex_home, temp_root)
-        self._tool_env = model_tool_environment(temp_root)
+        self._launcher_env = launcher_environment(
+            codex_home, temp_root, expected_launcher_sid=expected_launcher_sid
+        )
+        self._tool_env = model_tool_environment(
+            temp_root, owner_username=self._launcher_env.get("USERNAME")
+        )
         self._sandbox_generation_probe = sandbox_generation_probe or (
             lambda: capture_sandbox_generation(
                 codex_home=codex_home, temp_root=temp_root
@@ -1184,8 +1199,9 @@ class NativeCodexExecBackend:
         output = _closed_directory(output_root)
         if any(output.iterdir()) or len({workspace, home, output}) != 3:
             _fail(PAIR_INVALID)
-        identity = _windows_process_identity()
-        identity.validate(self.expected_launcher_sid)
+        environment = launcher_environment(
+            home, output, expected_launcher_sid=self.expected_launcher_sid
+        )
         try:
             generation = self._sandbox_generation_capture(
                 codex_home=home, temp_root=output
@@ -1220,7 +1236,6 @@ class NativeCodexExecBackend:
         command = self._command(
             schema_path, final_path, allow_non_git_workdir=allow_non_git_workdir
         )
-        environment = launcher_environment(home, output)
         # This is the only production dispatch.  Retry is intentionally absent.
         result = _run_contained_once(
             command,
@@ -1515,6 +1530,73 @@ def _job_is_empty(job: int | None) -> bool:
             return True
         time.sleep(0.01)
     return False
+
+
+def _verified_owner_username(expected_sid: str) -> str:
+    """Token SID -> account -> SID; validate the exact short name Codex resolves."""
+
+    try:
+        identity = _windows_process_identity()
+        identity.validate(expected_sid)
+        # _windows_process_identity resolves this token SID with LookupAccountSidW.
+        username = identity.principal.rsplit("\\", 1)[-1]
+        if (
+            not username
+            or username != username.strip()
+            or any(character in username for character in ("\x00", "\\", "/", "@"))
+            or _windows_sid_for_account(username) != expected_sid
+        ):
+            _fail()
+        return username
+    except RunnerGateError:
+        raise
+    except Exception:
+        _fail()
+
+
+def _windows_sid_for_account(account: str) -> str:
+    """Resolve the same unqualified account name used by Codex's setup helper."""
+
+    if os.name != "nt":
+        _fail()
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    advapi32.LookupAccountNameW.argtypes = (
+        wintypes.LPCWSTR, wintypes.LPCWSTR, ctypes.c_void_p,
+        ctypes.POINTER(wintypes.DWORD), wintypes.LPWSTR,
+        ctypes.POINTER(wintypes.DWORD), ctypes.POINTER(wintypes.DWORD),
+    )
+    advapi32.LookupAccountNameW.restype = wintypes.BOOL
+    advapi32.ConvertSidToStringSidW.argtypes = (
+        ctypes.c_void_p, ctypes.POINTER(wintypes.LPWSTR),
+    )
+    advapi32.ConvertSidToStringSidW.restype = wintypes.BOOL
+    kernel32.LocalFree.argtypes = (ctypes.c_void_p,)
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    sid_size, domain_size, sid_type = wintypes.DWORD(), wintypes.DWORD(), wintypes.DWORD()
+    ctypes.set_last_error(0)
+    result = advapi32.LookupAccountNameW(
+        None, account, None, ctypes.byref(sid_size), None,
+        ctypes.byref(domain_size), ctypes.byref(sid_type),
+    )
+    if result or ctypes.get_last_error() != 122 or not sid_size.value:
+        _fail()
+    sid = ctypes.create_string_buffer(sid_size.value)
+    domain = ctypes.create_unicode_buffer(max(1, domain_size.value))
+    if not advapi32.LookupAccountNameW(
+        None, account, sid, ctypes.byref(sid_size), domain,
+        ctypes.byref(domain_size), ctypes.byref(sid_type),
+    ) or sid_type.value != 1:  # SidTypeUser; groups are never owner identities.
+        _fail()
+    value = wintypes.LPWSTR()
+    if not advapi32.ConvertSidToStringSidW(sid, ctypes.byref(value)):
+        _fail()
+    try:
+        if not value.value or _SID.fullmatch(value.value) is None:
+            _fail()
+        return value.value
+    finally:
+        kernel32.LocalFree(value)
 
 
 def _windows_process_identity() -> LauncherProcessIdentity:

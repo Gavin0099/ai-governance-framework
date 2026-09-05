@@ -29,6 +29,13 @@ HOST_LOCAL = HostLocalIsolation(HostLocalEndpointDisposition.REACHABLE, 0)
 OFFLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1003"
 ONLINE_SID = "S-1-5-21-4017902291-1272973841-664929404-1004"
 LAUNCHER_SID = "S-1-5-21-4017902291-1272973841-664929404-1001"
+
+
+@pytest.fixture(autouse=True)
+def owner_account_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Existing native-dispatch fixtures use a synthetic DESKTOP\\daish token.
+    monkeypatch.setattr(subject, "_windows_sid_for_account", lambda name: LAUNCHER_SID if name == "daish" else "")
+
 GENERATION = subject.SandboxGenerationFingerprint.create(
     offline_sid=OFFLINE_SID,
     online_sid=ONLINE_SID,
@@ -618,6 +625,7 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
         assert timeout_seconds == 1_800 and input_bytes == b"task\n"
         assert cwd == (tmp_path / "workspace").resolve()
         assert "PATH" not in env and env["CODEX_HOME"].endswith("codex-home")
+        assert env["USERNAME"] == "daish"
         final_path = Path(command[command.index("--output-last-message") + 1])
         final_path.write_bytes(b'{"status":"ok"}\n')
         return subject.ProcessResult(
@@ -837,6 +845,68 @@ def test_generation_probe_output_mutation_denies_before_codex_dispatch(
         )
     assert caught.value.code == subject.PRE_ATTEMPT_INFRA_FAILURE
     assert dispatched is False
+
+
+@pytest.mark.parametrize("ambient", (None, "Administrators", "untrusted-user"))
+def test_owner_environment_uses_verified_sid_not_ambient(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, ambient: str | None,
+) -> None:
+    if ambient is None:
+        monkeypatch.delenv("USERNAME", raising=False)
+    else:
+        monkeypatch.setenv("USERNAME", ambient)
+    monkeypatch.setattr(subject, "_windows_process_identity", lambda: subject.LauncherProcessIdentity(
+        "DESKTOP\\daish", LAUNCHER_SID, "MEDIUM", False,
+    ))
+    base = subject.launcher_environment(tmp_path, tmp_path)
+    owner_env = subject.launcher_environment(tmp_path, tmp_path, expected_launcher_sid=LAUNCHER_SID)
+    assert owner_env == {**base, "USERNAME": "daish"}
+    adapter = subject.CodexRunnerAdapter(
+        executable=PinnedExecutable.capture(Path(sys.executable).resolve()),
+        backend=Backend(), expected_catalog=CATALOG, codex_home=tmp_path,
+        temp_root=tmp_path, expected_launcher_sid=LAUNCHER_SID,
+        sandbox_generation_probe=lambda: GENERATION,
+    )
+    assert adapter._launcher_env == owner_env
+    assert adapter._tool_env == {**subject.model_tool_environment(tmp_path), "USERNAME": "daish"}
+
+
+@pytest.mark.parametrize("failure", ("forward", "reverse", "wrong_sid", "group", "empty"))
+def test_owner_resolution_failure_stops_before_argv_or_schema(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+) -> None:
+    calls = []
+    def identity():
+        calls.append("identity")
+        if failure == "forward":
+            raise OSError("LookupAccountSid failed")
+        return subject.LauncherProcessIdentity(
+            "DESKTOP\\" if failure == "empty" else "DESKTOP\\daish",
+            LAUNCHER_SID, "MEDIUM", False,
+        )
+    def reverse(name):
+        calls.append("reverse")
+        if failure in {"reverse", "group"}:
+            raise OSError("LookupAccountName failed or non-user account")
+        return OFFLINE_SID if failure == "wrong_sid" else LAUNCHER_SID
+    monkeypatch.setenv("USERNAME", "daish")  # Must not serve as a fallback.
+    monkeypatch.setattr(subject, "_windows_process_identity", identity)
+    monkeypatch.setattr(subject, "_windows_sid_for_account", reverse)
+    monkeypatch.setattr(subject.NativeCodexExecBackend, "_command", lambda *a, **k: calls.append("argv"))
+    monkeypatch.setattr(subject, "_run_contained_once", lambda *a, **k: calls.append("dispatch"))
+    for name in ("workspace", "home", "output"):
+        (tmp_path / name).mkdir()
+    backend = subject.NativeCodexExecBackend(
+        executable=PinnedExecutable.capture(Path(sys.executable).resolve()),
+        configured_catalog=CATALOG, expected_launcher_sid=LAUNCHER_SID,
+        sandbox_generation_capture=lambda **k: GENERATION,
+    )
+    with pytest.raises(subject.RunnerGateError):
+        backend.execute(prepared_arm=_prepared(), workspace_root=tmp_path / "workspace",
+                        codex_home=tmp_path / "home", output_root=tmp_path / "output",
+                        prompt=b"task\n", output_schema={"type": "object"})
+    assert "argv" not in calls and "dispatch" not in calls
+    assert list((tmp_path / "output").iterdir()) == []
 
 
 def test_trace_and_claim_tampering_fail_closed(tmp_path: Path) -> None:
