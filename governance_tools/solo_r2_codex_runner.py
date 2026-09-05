@@ -1093,7 +1093,11 @@ class NativeCodexExecBackend:
     def resolve_payload(self) -> PinnedExecutable:
         return resolve_codex_payload(owner_pin=self.owner_payload_pin)
 
-    def _command(self, schema_path: Path, final_path: Path) -> tuple[str, ...]:
+    def _command(
+        self, schema_path: Path, final_path: Path, *, allow_non_git_workdir: bool = False
+    ) -> tuple[str, ...]:
+        if type(allow_non_git_workdir) is not bool:
+            _fail(PAIR_INVALID)
         if self.owner_payload_pin is not None and self.resolve_payload() != self.executable:
             _fail(PAIR_INVALID)
         executable = self.executable.verify()
@@ -1110,6 +1114,7 @@ class NativeCodexExecBackend:
             "-c",
             'cli_auth_credentials_store="keyring"',
             "exec",
+            *(("--skip-git-repo-check",) if allow_non_git_workdir else ()),
             "--ignore-user-config",
             "--strict-config",
             "--sandbox",
@@ -1125,7 +1130,9 @@ class NativeCodexExecBackend:
             "-",
         )
 
-    def command_policy_projection(self) -> tuple[str, ...]:
+    def command_policy_projection(
+        self, *, allow_non_git_workdir: bool = False
+    ) -> tuple[str, ...]:
         """Return the exact stable argv/config surface with path slots named."""
 
         schema = Path("__SOLO_R2_OUTPUT_SCHEMA_PATH__")
@@ -1136,7 +1143,9 @@ class NativeCodexExecBackend:
             else "{final_message_path}"
             if token == str(final)
             else token
-            for token in self._command(schema, final)
+            for token in self._command(
+                schema, final, allow_non_git_workdir=allow_non_git_workdir
+            )
         )
 
     def execute(
@@ -1148,13 +1157,15 @@ class NativeCodexExecBackend:
         output_root: Path,
         prompt: bytes,
         output_schema: Mapping[str, object],
+        allow_non_git_workdir: bool = False,
     ) -> NativeExecutionResult:
         """Expose one task exactly once; callers own admission before this call."""
 
         if self.owner_payload_pin is not None and self.resolve_payload() != self.executable:
             _fail(PAIR_INVALID)
         if (
-            prepared_arm.task_exposure_state != "NONE"
+            type(allow_non_git_workdir) is not bool
+            or prepared_arm.task_exposure_state != "NONE"
             or not isinstance(prompt, bytes)
             or not prompt
             or len(prompt) > MAX_PROMPT_BYTES
@@ -1206,7 +1217,9 @@ class NativeCodexExecBackend:
                 os.fsync(stream.fileno())
         except OSError:
             _fail()
-        command = self._command(schema_path, final_path)
+        command = self._command(
+            schema_path, final_path, allow_non_git_workdir=allow_non_git_workdir
+        )
         environment = launcher_environment(home, output)
         # This is the only production dispatch.  Retry is intentionally absent.
         result = _run_contained_once(

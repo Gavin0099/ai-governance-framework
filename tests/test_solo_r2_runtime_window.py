@@ -136,10 +136,12 @@ class NativeBackendDouble:
         self.configured_catalog = CATALOG
         self.calls = 0
         self.preparations: list[object] = []
+        self.non_git_options: list[object] = []
         self.qualification_changes = qualification_changes or {}
         self.qualification_output = qualification_output
 
     def execute(self, **kwargs) -> NativeExecutionResult:
+        self.non_git_options.append(kwargs.get("allow_non_git_workdir", False))
         self.calls += 1
         self.preparations.append(kwargs["prepared_arm"])
         workspace = kwargs["workspace_root"]
@@ -641,6 +643,48 @@ def test_native_command_policy_projection_binds_keyring_and_path_slots() -> None
     assert "danger-full-access" not in projection
 
 
+def test_non_git_opt_in_changes_only_git_check_in_command_and_projection() -> None:
+    executable = PinnedExecutable.capture(Path(sys.executable).resolve())
+    backend = NativeCodexExecBackend(
+        executable=executable, configured_catalog=CATALOG,
+        expected_launcher_sid="S-1-5-21-1-2-3-1001",
+    )
+    schema, final = Path("schema.json"), Path("final.json")
+    expected = (
+        str(executable.path), "-c", "model_reasoning_effort=high",
+        "-c", 'approval_policy="never"', "-c", 'windows.sandbox="elevated"',
+        "-c", "sandbox_workspace_write.network_access=false",
+        "-c", 'cli_auth_credentials_store="keyring"', "exec",
+        "--ignore-user-config", "--strict-config", "--sandbox", "workspace-write",
+        "--json", "--ephemeral", "--output-last-message", str(final),
+        "--output-schema", str(schema), "--model", "gpt-5.6-sol", "-",
+    )
+    assert backend._command(schema, final) == expected
+    assert backend._command(schema, final, allow_non_git_workdir=False) == expected
+    for allow in (False, True):
+        command = backend._command(schema, final, allow_non_git_workdir=allow)
+        projection = backend.command_policy_projection(allow_non_git_workdir=allow)
+        assert command.count("--skip-git-repo-check") == int(allow)
+        assert projection.count("--skip-git-repo-check") == int(allow)
+        assert tuple(t for t in command if t != "--skip-git-repo-check") == expected
+        assert tuple(
+            str(schema) if t == "{output_schema_path}" else
+            str(final) if t == "{final_message_path}" else t
+            for t in projection
+        ) == command
+
+
+@pytest.mark.parametrize("value", (None, 0, 1, "true"))
+def test_non_git_opt_in_rejects_non_boolean(value: object) -> None:
+    from governance_tools.solo_r2_codex_runner import RunnerGateError
+    backend = NativeCodexExecBackend(
+        executable=PinnedExecutable.capture(Path(sys.executable).resolve()),
+        configured_catalog=CATALOG, expected_launcher_sid="S-1-5-21-1-2-3-1001",
+    )
+    with pytest.raises(RunnerGateError):
+        backend.command_policy_projection(allow_non_git_workdir=value)
+
+
 def test_git_repository_probe_binds_head_blobs_and_worktree_bytes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -704,11 +748,17 @@ def test_freeze_capture_rejects_generation_drift_during_capture(
         subject.RepositoryFileIdentity("runner.py", 1, "1" * 64),
         subject.RepositoryFileIdentity("materialization.py", 1, "2" * 64),
     )
+    projected_options = []
+
+    def command_policy_projection(**kwargs):
+        projected_options.append(kwargs)
+        return (str(executable.path), "exec", "--skip-git-repo-check")
+
     native = SimpleNamespace(
         executable=executable,
         owner_payload_pin=None,
         resolve_payload=lambda: subject.resolve_codex_payload(),
-        command_policy_projection=lambda: (str(executable.path), "exec"),
+        command_policy_projection=command_policy_projection,
     )
     generations = iter((GENERATION_A, GENERATION_B))
     probe = subject.RuntimeFreezeProbe(
@@ -730,6 +780,7 @@ def test_freeze_capture_rejects_generation_drift_during_capture(
     with pair_lock, pytest.raises(subject.RuntimeWindowError) as caught:
         probe.capture()
     assert caught.value.code == subject.SAME_MACHINE_WINDOW_REJECTED
+    assert projected_options == [{"allow_non_git_workdir": True}]
 
 
 @pytest.mark.parametrize("failure", ["wrong_pair", "record_changed"])
@@ -1186,6 +1237,7 @@ def test_provision_freeze_qualification_and_sealed_pre_attempt_handoff(
     assert result.validation.initiated_attempt_count == 0
     assert backend.prepared_ordinals == (2, 1)
     assert native.calls == 2
+    assert native.non_git_options == [True, True]
     assert all(
         isinstance(value, subject.ProvisioningExecutionPreparation)
         for value in native.preparations

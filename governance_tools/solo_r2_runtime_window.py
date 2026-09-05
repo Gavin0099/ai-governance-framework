@@ -1232,7 +1232,10 @@ class RuntimeFreezeProbe:
             ledger_payload = self.pair_lock.ledger_path.read_bytes()
         except OSError:
             _fail()
-        command_policy = self.backend.command_policy_projection()
+        # This window provisions and qualifies in dedicated non-Git workspaces.
+        command_policy = self.backend.command_policy_projection(
+            allow_non_git_workdir=True
+        )
         policy_payload = json.dumps(
             command_policy, ensure_ascii=True, separators=(",", ":")
         ).encode("ascii")
@@ -1602,6 +1605,7 @@ class NativePreExposureObservationBackend:
                 output_root=output,
                 prompt=prompt,
                 output_schema=self._schema(),
+                allow_non_git_workdir=True,
             )
             if challenge_path.read_bytes() != challenge_payload:
                 _fail(PAIR_INVALID)
@@ -1738,6 +1742,7 @@ class NativePreExposureObservationBackend:
                     output_root=self.qualification_output,
                     prompt=prompt,
                     output_schema=output_schema,
+                    allow_non_git_workdir=True,
                 )
 
             result, observation = self.boundary_probe.run(

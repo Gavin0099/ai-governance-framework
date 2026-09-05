@@ -576,8 +576,12 @@ def test_canary_fails_closed_on_boundary_regression(
         _adapter(tmp_path, backend).qualify_canary()
 
 
+@pytest.mark.parametrize(
+    "non_git_options",
+    ({}, {"allow_non_git_workdir": False}, {"allow_non_git_workdir": True}),
+)
 def test_native_backend_launches_exact_codex_argv_and_derives_trace(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, non_git_options: dict
 ) -> None:
     executable = PinnedExecutable.capture(Path(sys.executable).resolve())
     called = 0
@@ -600,6 +604,9 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
             "exec",
         )
         assert command.count('cli_auth_credentials_store="keyring"') == 1
+        assert command.count("--skip-git-repo-check") == int(
+            non_git_options.get("allow_non_git_workdir", False)
+        )
         assert 'cli_auth_credentials_store="auto"' not in command
         assert 'cli_auth_credentials_store="file"' not in command
         assert "--json" in command and "--ignore-user-config" in command
@@ -640,6 +647,7 @@ def test_native_backend_launches_exact_codex_argv_and_derives_trace(
         output_root=(tmp_path / "output").resolve(),
         prompt=b"task\n",
         output_schema={"type": "object"},
+        **non_git_options,
     )
     assert called == 1
     assert result.disposition == subject.SUCCESS
