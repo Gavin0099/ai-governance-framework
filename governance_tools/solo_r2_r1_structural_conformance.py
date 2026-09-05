@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "fee236c1232da29e72efe107569103b077a31755"
+SOURCE_SNAPSHOT_COMMIT: Final = "dfe1e43886532354725009fe24633e1a57244d6c"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-fee236c1.json"
+    "r2-r1-structural-conformance-dfe1e438.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-f907bf6b.json"
+    "r2-r1-structural-conformance-fee236c1.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
