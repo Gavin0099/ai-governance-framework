@@ -33,7 +33,7 @@ def test_governance_workflow_keeps_memory_push_filter_and_runs_for_all_main_prs(
 
 def test_full_test_suite_is_an_independent_job_with_report_only_census() -> None:
     text = _workflow_text()
-    job_section = _section(text, "  full-test-suite:", "  memory-workflow-selective:")
+    job_section = _section(text, "  full-test-suite:", "  governance-fast-checks:")
     census_build_step = _section(
         text,
         "      - name: Build guard enforcement census (report-only)",
@@ -42,7 +42,7 @@ def test_full_test_suite_is_an_independent_job_with_report_only_census() -> None
     census_upload_step = _section(
         text,
         "      - name: Upload guard enforcement census",
-        "  memory-workflow-selective:",
+        "  governance-fast-checks:",
     )
 
     assert "name: Full Test Suite" in job_section
@@ -58,9 +58,9 @@ def test_full_test_suite_is_an_independent_job_with_report_only_census() -> None
 
 def test_governance_workflow_runs_selective_memory_blocker() -> None:
     text = _workflow_text()
-    job_section = _section(text, "  memory-workflow-selective:", "  plan-freshness:")
+    job_section = _section(text, "  governance-fast-checks:", "  canonical-drift-post-merge:")
 
-    assert "name: Memory Workflow Selective Blocker" in job_section
+    assert "name: Block current-diff non-canonical memory writer" in job_section
     assert "python -m governance_tools.ci_memory_workflow_check" in job_section
     assert '--base-ref "$BASE_REF"' in job_section
     assert '--head-ref "$HEAD_REF"' in job_section
@@ -110,7 +110,7 @@ def test_bash32_job_selects_pre_push_object_guard_behaviour() -> None:
     job_section = _section(
         text,
         "  bash32-runtime-compatibility:",
-        "  interception-ledger-check:",
+        "  violation-triage-gate:",
     )
 
     assert "Run pre-push prerequisite regressions under Bash 3.2" in job_section
@@ -165,3 +165,43 @@ def test_main_push_runs_non_required_canonical_drift_audit() -> None:
         "python governance_tools/governance_drift_checker.py "
         "--repo . --framework-root . --format human"
     ) in job_section
+
+
+def test_fast_checks_keep_failure_isolation_and_advisory_policy() -> None:
+    section = _section(_workflow_text(), "  governance-fast-checks:", "  canonical-drift-post-merge:")
+    checks = section.split("      - name: ")[1:]
+    assert len(checks) == 5
+    advisory = {"Check memory pressure", "Check documentation drift"}
+    for check in checks:
+        name = check.splitlines()[0]
+        assert "if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}" in check
+        assert "timeout-minutes: 5" in check
+        assert ("continue-on-error: true" in check) == (name in advisory)
+    assert "fetch-depth: 0" in section
+    assert "--warn-only" in section
+    assert "continue-on-error" not in section.split("    steps:")[0]
+
+
+def test_governance_deduplicates_feature_push_and_preserves_required_checks() -> None:
+    text = _workflow_text()
+    push = _section(text, "  push:", "  pull_request:")
+    assert "branches: [main]" in push
+    assert "feature/**" not in push
+    for job, name in (
+        ("phase-gates", "Phase Gate Verification"),
+        ("runtime-enforcement", "Runtime Governance Enforcement"),
+        ("reviewer-policy-gate", "Reviewer Handoff Policy Gate"),
+    ):
+        section = text.split(f"  {job}:\n", 1)[1].split("\n\n", 1)[0]
+        assert f"name: {name}" in section
+    assert "run: bash scripts/run-runtime-governance.sh --mode ci" in text
+    assert "tests/test_reviewer_handoff_summary.py::test_non_overridable_claim_cannot_be_overridden" in text
+
+
+def test_pages_requires_explicit_manual_dispatch() -> None:
+    text = Path(".github/workflows/docs-pages.yml").read_text(encoding="utf-8")
+    triggers = _section(text, "on:\n", "permissions:")
+    assert "  workflow_dispatch:" in triggers
+    assert "  push:" not in triggers
+    assert "  pull_request:" not in triggers
+    assert "  schedule:" not in triggers

@@ -1,18 +1,7 @@
 name: Build and deploy AI Governance Wiki
 
+# Wiki publication is manual-only to avoid automatic CI usage.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    paths:
-      - ".github/workflows/docs-pages.yml"
-      - "docs/wiki/**"
-      - "scripts/generate_wiki_status.py"
-      - "README.md"
-      - "PLAN.md"
-      - "CHANGELOG.md"
-      - ".agents/skills/**"
-      - ".claude/skills/**"
   workflow_dispatch:
 
 permissions:

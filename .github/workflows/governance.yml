@@ -2,7 +2,7 @@ name: Governance Check
 
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main]  # Feature branches are checked by pull_request, once.
     paths:
       - '.github/workflows/governance.yml'
       - '.governance/**'
@@ -69,20 +69,25 @@ jobs:
           path: artifacts/governance-report/
           if-no-files-found: warn
 
-  memory-workflow-selective:
-    name: Memory Workflow Selective Blocker
+  governance-fast-checks:
+    name: Governance Fast Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: '3.11'
 
+      # Independent checks still run after a previous check fails.
+      # Advisory checks keep their original non-blocking behavior.
       - name: Block current-diff non-canonical memory writer
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_REF="${{ github.event.pull_request.base.sha }}"
@@ -100,18 +105,9 @@ jobs:
             --head-ref "$HEAD_REF" \
             --format human
 
-  plan-freshness:
-    name: PLAN.md Freshness
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Check PLAN.md freshness
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
         run: |
           OUTPUT=$(python governance_tools/plan_freshness.py --format json) || true
           echo "$OUTPUT" | python3 -c "
@@ -127,6 +123,47 @@ jobs:
           elif status == 'STALE':
               print(f'::warning file=PLAN.md::PLAN.md is STALE ({days}d). Consider updating soon.')
           "
+
+      - name: Check memory pressure
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
+        continue-on-error: true
+        run: |
+          if [ ! -d "memory" ]; then
+            echo "memory/ not found, skipping pressure check"
+            exit 0
+          fi
+          OUTPUT=$(python governance_tools/memory_janitor.py --memory-root ./memory --check --format json) || true
+          echo "$OUTPUT" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          status = r['status']
+          lines = r['line_count']
+          hard = r.get('hard_limit', 200)
+          print(f'Memory status: {status} ({lines}/{hard} lines)')
+          if status == 'EMERGENCY':
+              print('::error::Memory EMERGENCY, run: python governance_tools/memory_janitor.py --execute')
+              sys.exit(1)
+          elif status == 'CRITICAL':
+              print(f'::warning::Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.')
+          elif status == 'WARNING':
+              print(f'::notice::Memory WARNING ({lines} lines). Monitor and plan cleanup.')
+          "
+
+      - name: Check documentation drift
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
+        continue-on-error: true
+        run: python governance_tools/doc_drift_checker.py --project-root . --format human
+
+      - name: Run governance check (warn-only)
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          python -m governance_tools.ci_governance_check \
+            --project-root . \
+            --warn-only \
+            --format human
 
   canonical-drift-post-merge:
     name: Canonical Drift Post-Merge Audit
@@ -268,56 +305,6 @@ jobs:
           path: artifacts/enumd-observe-probe/
           if-no-files-found: warn
 
-  memory-pressure:
-    name: Memory Pressure
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Check memory pressure
-        run: |
-          if [ ! -d "memory" ]; then
-            echo "memory/ not found, skipping pressure check"
-            exit 0
-          fi
-          OUTPUT=$(python governance_tools/memory_janitor.py --memory-root ./memory --check --format json) || true
-          echo "$OUTPUT" | python3 -c "
-          import json, sys
-          r = json.load(sys.stdin)
-          status = r['status']
-          lines = r['line_count']
-          hard = r.get('hard_limit', 200)
-          print(f'Memory status: {status} ({lines}/{hard} lines)')
-          if status == 'EMERGENCY':
-              print('::error::Memory EMERGENCY, run: python governance_tools/memory_janitor.py --execute')
-              sys.exit(1)
-          elif status == 'CRITICAL':
-              print(f'::warning::Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.')
-          elif status == 'WARNING':
-              print(f'::notice::Memory WARNING ({lines} lines). Monitor and plan cleanup.')
-          "
-
-  doc-drift:
-    name: Documentation Drift
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Check documentation drift
-        run: python governance_tools/doc_drift_checker.py --project-root . --format human
-
   runtime-enforcement:
     name: Runtime Governance Enforcement
     runs-on: ubuntu-latest
@@ -414,24 +401,6 @@ jobs:
         run: >-
           python -m pytest -q tests/test_hook_memory_policy.py
           -k 'pre_push_prerequisite or external_consumer_runtime_failure or pre_push_object_guard'
-
-  interception-ledger-check:
-    name: Interception Ledger Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Run governance check (warn-only)
-        run: |
-          python -m governance_tools.ci_governance_check \
-            --project-root . \
-            --warn-only \
-            --format human
 
   violation-triage-gate:
     name: Violation Triage Gate
