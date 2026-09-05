@@ -177,6 +177,63 @@ def test_windows_leaf_acl_probe_prepares_and_reads_exact_safe_shape(
     assert generation.offline_sid in script
 
 
+@pytest.mark.parametrize("returncode,stderr", [(0, b"real failure"), (1, b"")])
+def test_windows_leaf_acl_probe_preserves_process_failure_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, returncode: int, stderr: bytes
+) -> None:
+    leaf = tmp_path / "leaf"
+    leaf.mkdir()
+    generation = _generation()
+    launcher_sid = "S-1-5-21-1-2-3-1001"
+    monkeypatch.setattr(subject.subprocess, "run", lambda *a, **kw: SimpleNamespace(
+        returncode=returncode,
+        stdout=_acl_projection(launcher_sid, generation.offline_sid),
+        stderr=stderr,
+    ))
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(Path(sys.executable).resolve()),
+        launcher_sid=launcher_sid, generation_probe=lambda: generation,
+        credentials_denied=lambda _: pytest.fail("Failure must stop before credential check"),
+        temp_root=tmp_path,
+    )
+    with pytest.raises(subject.MaterializationError) as caught:
+        probe(leaf)
+    assert caught.value.code == subject.MATERIALIZATION_FAILURE
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Requires Windows PowerShell 5.1")
+def test_windows_leaf_probe_prefix_suppresses_real_progress_only(tmp_path: Path) -> None:
+    powershell = Path(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(powershell),
+        launcher_sid="S-1-5-21-1-2-3-1001", generation_probe=_generation,
+        credentials_denied=lambda _: True, temp_root=tmp_path,
+    )
+    command = probe._command(tmp_path / "not-created", _generation().offline_sid)
+    script = base64.b64decode(command[-1]).decode("utf-16-le")
+    prefix = script.split("$path=", 1)[0]
+    assert prefix == "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';"
+    environment = {"TEMP": str(tmp_path), "TMP": str(tmp_path)}
+    for key in ("COMSPEC", "SYSTEMROOT", "WINDIR"):
+        if os.environ.get(key):
+            environment[key] = os.environ[key]
+    body = (
+        "if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw '5.1 required' };"
+        "Write-Progress -Activity 'fixture progress' -Status 'running' -PercentComplete 50;"
+        "[Console]::Out.Write('{\"probe\":\"ok\"}');"
+    )
+    for emit_error in (False, True):
+        payload = prefix + body + ("[Console]::Error.Write('real failure');" if emit_error else "")
+        result = subject.subprocess.run(
+            [*command[:-1], base64.b64encode(payload.encode("utf-16-le")).decode("ascii")],
+            cwd=tmp_path, env=environment, stdin=subject.subprocess.DEVNULL,
+            capture_output=True, timeout=30, check=False, shell=False,
+        )
+        assert result.returncode == 0
+        assert result.stdout == b'{"probe":"ok"}'
+        assert result.stderr == (b"real failure" if emit_error else b"")
+
+
 def test_windows_leaf_manager_factory_uses_concrete_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

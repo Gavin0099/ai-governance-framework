@@ -271,6 +271,7 @@ class WindowsLeafAclProbe:
         )
         script = (
             "$ErrorActionPreference='Stop';"
+            "$ProgressPreference='SilentlyContinue';"
             f"$path={self._quote(str(leaf))};"
             f"$offlineSidValue={self._quote(offline_sid)};"
             "$sandboxGroupName='CodexSandboxUsers';"
