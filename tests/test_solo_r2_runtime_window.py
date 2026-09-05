@@ -67,11 +67,19 @@ PROBE_IDENTITY = subject.BoundaryProbeIdentity(
 # Literal JSON-decoded display fixture: JSON escaping is not CLI escaping.
 _DIRECT_PROBE_COMMAND = r"& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -File 'D:\probe\qualification-boundary-probe.ps1' -ConfigPath 'D:\probe\qualification-boundary-config.json'"
 _WRAPPED_PROBE_COMMAND = r'''"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoLogo -NoProfile -NonInteractive -File 'D:\\probe\\qualification-boundary-probe.ps1' -ConfigPath 'D:\\probe\\qualification-boundary-config.json'"'''
+_NO_PROFILE_WRAPPED_PROBE_COMMAND = r'''"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -NoProfile -Command "& 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -NoLogo -NoProfile -NonInteractive -File 'D:\\probe\\qualification-boundary-probe.ps1' -ConfigPath 'D:\\probe\\qualification-boundary-config.json'"'''
 
 
 @pytest.mark.parametrize("recorded,accepted", [
     (_DIRECT_PROBE_COMMAND, True),
     (_WRAPPED_PROBE_COMMAND, True),
+    (_NO_PROFILE_WRAPPED_PROBE_COMMAND, True),
+    (_WRAPPED_PROBE_COMMAND.replace(' -Command ', ' -NoLogo -Command ', 1), False),
+    (_NO_PROFILE_WRAPPED_PROBE_COMMAND.replace(' -Command ', ' -NoLogo -Command ', 1), False),
+    (_NO_PROFILE_WRAPPED_PROBE_COMMAND.replace(' -NoProfile -Command ', ' -Command -NoProfile ', 1), False),
+    (_NO_PROFILE_WRAPPED_PROBE_COMMAND.replace('boundary-probe.ps1', 'boundary-probe.ps2'), False),
+    (_NO_PROFILE_WRAPPED_PROBE_COMMAND.replace('powershell.exe', 'other.exe', 1), False),
+    ('"powershell.exe" -Command "' + _NO_PROFILE_WRAPPED_PROBE_COMMAND + '"', False),
     (_WRAPPED_PROBE_COMMAND.replace("boundary-probe.ps1", "other.ps1"), False),
     (_WRAPPED_PROBE_COMMAND + " -NoProfile", False),
     (_WRAPPED_PROBE_COMMAND.replace("powershell.exe", "other.exe", 1), False),

@@ -871,10 +871,16 @@ class MachineBackedBoundaryProbe:
             '"' + powershell_path.replace("\\", "\\\\") + '" -Command "'
             + expected_command.replace("\\", "\\\\") + '"'
         )
+        no_profile_wrapped_command = (
+            '"' + powershell_path.replace("\\", "\\\\") + '" -NoProfile -Command "'
+            + expected_command.replace("\\", "\\\\") + '"'
+        )
         if (
             item.get("status") != "completed"
             or item.get("exit_code") != 0
-            or item.get("command") not in (expected_command, wrapped_command)
+            or item.get("command") not in (
+                expected_command, wrapped_command, no_profile_wrapped_command
+            )
             or not isinstance(output, str)
         ):
             _fail(PAIR_INVALID)
