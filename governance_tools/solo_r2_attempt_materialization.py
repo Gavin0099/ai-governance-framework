@@ -195,7 +195,8 @@ AclProbe = Callable[[Path], LeafAclObservation]
 
 _WINDOWS_SID = re.compile(r"S-1-(?:\d+-)+\d+\Z")
 _WINDOWS_FULL_CONTROL = 2_032_127
-_WINDOWS_MODIFY = 197_055
+# .NET FileSystemAccessRule adds Synchronize to a Modify Allow ACE.
+_WINDOWS_MODIFY_ALLOW = 197_055 | 1_048_576
 
 
 class WindowsLeafAclProbe:
@@ -392,7 +393,7 @@ class WindowsLeafAclProbe:
             ("S-1-5-18", _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
             ("S-1-5-32-544", _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
             (self.launcher_sid, _WINDOWS_FULL_CONTROL, 0, 3, 0, False),
-            (sandbox_group_sid, _WINDOWS_MODIFY, 0, 3, 0, False),
+            (sandbox_group_sid, _WINDOWS_MODIFY_ALLOW, 0, 3, 0, False),
         }
         observed: set[tuple[object, ...]] = set()
         for row in rows:

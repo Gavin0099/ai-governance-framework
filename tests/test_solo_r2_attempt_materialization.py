@@ -119,7 +119,7 @@ def _acl_projection(
                 },
                 {
                     "sid": "S-1-5-21-1-2-3-1005",
-                    "rights": 197_055,
+                    "rights": 1_245_631,
                     "access_type": 0,
                     "inheritance": 3,
                     "propagation": 0,
@@ -234,6 +234,72 @@ def test_windows_leaf_probe_prefix_suppresses_real_progress_only(tmp_path: Path)
         assert result.stderr == (b"real failure" if emit_error else b"")
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Requires Windows PowerShell 5.1 and Codex sandbox accounts")
+def test_windows_leaf_acl_real_filesystem_roundtrip(tmp_path: Path) -> None:
+    leaf = tmp_path / "acl-roundtrip"
+    leaf.mkdir()
+    powershell = Path(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
+    quoted_leaf = "'" + str(leaf).replace("'", "''") + "'"
+
+    def run_script(script: str) -> bytes:
+        result = subject.subprocess.run(
+            [str(powershell), "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand",
+             base64.b64encode(script.encode("utf-16-le")).decode("ascii")],
+            capture_output=True, timeout=30, check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stderr == b""
+        return result.stdout
+
+    setup = run_script(
+        "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';"
+        "if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) { throw '5.1 required' };"
+        "$offline=$null;try {$offline=([Security.Principal.NTAccount]::new('CodexSandboxOffline')).Translate([Security.Principal.SecurityIdentifier]).Value} catch [Security.Principal.IdentityNotMappedException] {};"
+        "$sections=[Security.AccessControl.AccessControlSections]::Access;"
+        f"$original=[IO.Directory]::GetAccessControl({quoted_leaf});"
+        "[ordered]@{offline=$offline;owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;"
+        "sddl=$original.GetSecurityDescriptorSddlForm($sections);protected=$original.AreAccessRulesProtected}|ConvertTo-Json -Compress"
+    )
+    identity = json.loads(setup)
+    if identity["offline"] is None:
+        pytest.skip("CodexSandboxOffline account not installed; no ACL mutation performed")
+    generation = _generation()
+    generation.offline_sid = identity["offline"]
+    probe = subject.WindowsLeafAclProbe(
+        powershell=subject.PinnedExecutable.capture(powershell),
+        launcher_sid=identity["owner"], generation_probe=lambda: generation,
+        credentials_denied=lambda _: True, temp_root=tmp_path,
+    )
+    try:
+        # Runs the unmodified production command and filesystem readback verifier.
+        observation = probe(leaf)
+        observation.validate(leaf)
+        observed = json.loads(run_script(
+            "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';"
+            f"$acl=[IO.Directory]::GetAccessControl({quoted_leaf});"
+            "$rows=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])|ForEach-Object{"
+            "[ordered]@{rights=[int]$_.FileSystemRights;allow=[int]$_.AccessControlType;inheritance=[int]$_.InheritanceFlags;propagation=[int]$_.PropagationFlags;inherited=$_.IsInherited}});"
+            "[ordered]@{protected=$acl.AreAccessRulesProtected;rows=$rows}|ConvertTo-Json -Depth 4 -Compress"
+        ))
+        assert observed["protected"] is True
+        assert sorted(row["rights"] for row in observed["rows"]) == [1_245_631, 2_032_127, 2_032_127, 2_032_127]
+        assert all((row["allow"], row["inheritance"], row["propagation"], row["inherited"]) == (0, 3, 0, False) for row in observed["rows"])
+    finally:
+        sddl = identity["sddl"].replace("'", "''")
+        restored = json.loads(run_script(
+            "$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';"
+            "$sections=[Security.AccessControl.AccessControlSections]::Access;"
+            "$acl=[Security.AccessControl.DirectorySecurity]::new();"
+            f"$acl.SetSecurityDescriptorSddlForm('{sddl}',$sections);"
+            f"[IO.Directory]::SetAccessControl({quoted_leaf},$acl);"
+            f"$actual=[IO.Directory]::GetAccessControl({quoted_leaf});"
+            "[ordered]@{sddl=$actual.GetSecurityDescriptorSddlForm($sections);protected=$actual.AreAccessRulesProtected}|ConvertTo-Json -Compress"
+        ))
+        # Ignore only Windows' auto-inherited bookkeeping flag; compare all ACEs.
+        assert restored["sddl"][restored["sddl"].index("("):] == identity["sddl"][identity["sddl"].index("("):]
+        assert restored["protected"] == identity["protected"]
+
+
 def test_windows_leaf_manager_factory_uses_concrete_probe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -266,7 +332,9 @@ def test_windows_leaf_manager_factory_uses_concrete_probe(
 
 @pytest.mark.parametrize(
     "failure",
-    ("unprotected", "extra_ace", "offline_not_member", "credential_visible"),
+    ("unprotected", "extra_ace", "offline_not_member", "credential_visible",
+     "missing_synchronize", "extra_right", "inheritance", "propagation",
+     "deny_type", "inherited", "full_control_changed"),
 )
 def test_windows_leaf_acl_probe_fails_closed_on_untrusted_observation(
     tmp_path: Path,
@@ -286,6 +354,20 @@ def test_windows_leaf_acl_probe_fails_closed_on_untrusted_observation(
         projection["rules"].append(dict(projection["rules"][0]))
     elif failure == "offline_not_member":
         projection["offline_member"] = False
+    elif failure == "missing_synchronize":
+        projection["rules"][3]["rights"] = 197_055
+    elif failure == "extra_right":
+        projection["rules"][3]["rights"] |= 262_144  # ChangePermissions
+    elif failure == "inheritance":
+        projection["rules"][3]["inheritance"] = 1
+    elif failure == "propagation":
+        projection["rules"][3]["propagation"] = 1
+    elif failure == "deny_type":
+        projection["rules"][3]["access_type"] = 1
+    elif failure == "inherited":
+        projection["rules"][3]["inherited"] = True
+    elif failure == "full_control_changed":
+        projection["rules"][0]["rights"] = 1_245_631
 
     monkeypatch.setattr(
         subject.subprocess,
