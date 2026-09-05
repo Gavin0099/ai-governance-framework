@@ -11,6 +11,7 @@ import sys
 import tarfile
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from governance_tools import solo_attempt_ledger_v2 as ledger
 from governance_tools import solo_r2_attempt_materialization as materialization_subject
@@ -131,6 +132,8 @@ class NativeBackendDouble:
         *,
         qualification_changes: dict[str, object] | None = None,
         qualification_output: str | None = None,
+        execution_evidence: bool = True,
+        command_override: str | None = None,
     ) -> None:
         self.executable = executable
         self.configured_catalog = CATALOG
@@ -139,6 +142,8 @@ class NativeBackendDouble:
         self.non_git_options: list[object] = []
         self.qualification_changes = qualification_changes or {}
         self.qualification_output = qualification_output
+        self.execution_evidence = execution_evidence
+        self.command_override = command_override
 
     def execute(self, **kwargs) -> NativeExecutionResult:
         self.non_git_options.append(kwargs.get("allow_non_git_workdir", False))
@@ -200,6 +205,25 @@ class NativeBackendDouble:
                 {"type": "turn.completed"},
             )
         )
+        if not self.execution_evidence:
+            trace = b"".join(
+                _canonical_json(event) + b"\n"
+                for event in (
+                    {"type": "thread.started", "thread_id": "thread"},
+                    {"type": "turn.started"},
+                    {"type": "item.completed", "item": {
+                        "id": "answer", "type": "agent_message",
+                        "text": _canonical_json(final_value).decode("ascii"),
+                    }},
+                    {"type": "turn.completed"},
+                )
+            )
+        elif self.command_override is not None:
+            events = [json.loads(line) for line in trace.splitlines()]
+            for event in events:
+                if event["type"] == "item.completed":
+                    event["item"]["command"] = self.command_override
+            trace = b"".join(_canonical_json(event) + b"\n" for event in events)
         schema = _canonical_json(kwargs["output_schema"]) + b"\n"
         final = _canonical_json(final_value) + b"\n"
         trace_path = output / "codex-trace.jsonl"
@@ -412,6 +436,8 @@ def _run_machine_probe(
     egress_controls: tuple[bool, bool] = (True, True),
     qualification_changes: dict[str, object] | None = None,
     qualification_output: str | None = None,
+    execution_evidence: bool = True,
+    command_override: str | None = None,
 ) -> tuple[
     subject.PreExposureBoundaryObservation,
     NativeExecutionResult,
@@ -451,6 +477,8 @@ def _run_machine_probe(
         executable,
         qualification_changes=qualification_changes,
         qualification_output=qualification_output,
+        execution_evidence=execution_evidence,
+        command_override=command_override,
     )
 
     def execute(
@@ -475,6 +503,70 @@ def _run_machine_probe(
     )
     assert set(workspace.iterdir()) == {challenge_path}
     return observation, result, listener
+
+
+@pytest.mark.parametrize("probe_class", (
+    subject.NativePreExposureObservationBackend, subject.MachineBackedBoundaryProbe,
+))
+def test_probe_schema_requires_challenge_shape_but_does_not_prove_execution(
+    probe_class: type,
+) -> None:
+    schema = probe_class._schema()
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    value = {
+        key: (definition["const"] if "const" in definition else
+              "ERROR" if "enum" in definition else "")
+        for key, definition in schema["properties"].items()
+    }
+    for challenge in ("", "a" * 31, "a" * 33, "g" * 32, "A" * 32, "a" * 32 + "\n"):
+        value["challenge"] = challenge
+        assert not validator.is_valid(value)
+    # Invented but well-shaped data can pass schema. The evidence gate must
+    # still reject it; ERROR probe fields remain representable.
+    value["challenge"] = "0123456789abcdef0123456789abcdef"
+    assert validator.is_valid(value)
+
+
+@pytest.mark.parametrize(
+    "execution_evidence,challenge,command_override,accepted",
+    (
+        (False, "b" * 32, None, False),
+        (True, "b" * 32, None, False),
+        (False, "a" * 32, None, False),
+        (True, "a" * 32, None, True),
+        (True, "a" * 32, "Write-Output unrelated", False),
+    ),
+    ids=("no-exec-fabricated", "exec-wrong-challenge", "no-exec-exact-challenge",
+         "exec-exact-challenge", "unrelated-command-exact-challenge"),
+)
+def test_qualification_requires_exact_execution_and_hidden_challenge(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    execution_evidence: bool, challenge: str, command_override: str | None,
+    accepted: bool,
+) -> None:
+    evidence_path = (tmp_path / "boundary.json").resolve()
+
+    def qualify():
+        observation, result, _ = _run_machine_probe(
+            tmp_path, monkeypatch, execution_evidence=execution_evidence,
+            qualification_changes={"challenge": challenge},
+            command_override=command_override,
+        )
+        return subject.PreExposureBoundaryEvidenceProducer(
+            evidence_path=evidence_path,
+        ).produce(result=result, generation=GENERATION_B, observation=observation)
+
+    if accepted:
+        evidence = qualify()
+        assert evidence_path.is_file()
+        assert subject.PreExposureBoundaryEvidence.load(
+            evidence_path, expected_sha256=evidence.evidence_sha256,
+        ) == evidence
+    else:
+        with pytest.raises(subject.RuntimeWindowError):
+            qualify()
+        assert not evidence_path.exists()
 
 
 def test_machine_probe_reachable_uses_one_exact_governed_command(

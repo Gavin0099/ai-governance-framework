@@ -799,7 +799,9 @@ class MachineBackedBoundaryProbe:
             "principal_observation": ("OBSERVED", "ERROR"),
         }
         properties: dict[str, object] = {
-            "challenge": {"type": "string"},
+            "challenge": {
+                "type": "string", "pattern": "^[0-9a-f]{32}$", "maxLength": 32,
+            },
             "principal_sid": {"type": "string"},
             "status": {"type": "string", "const": QUALIFICATION_STATUS},
         }
@@ -1558,7 +1560,9 @@ class NativePreExposureObservationBackend:
             "type": "object",
             "properties": {
                 "status": {"type": "string", "const": QUALIFICATION_STATUS},
-                "challenge": {"type": "string"},
+                "challenge": {
+                    "type": "string", "pattern": "^[0-9a-f]{32}$", "maxLength": 32,
+                },
                 "principal_sid": {"type": "string"},
             },
             "required": ["status", "challenge", "principal_sid"],
