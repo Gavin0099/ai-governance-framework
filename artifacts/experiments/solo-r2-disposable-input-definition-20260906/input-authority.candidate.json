@@ -1,0 +1,48 @@
+{
+  "status": "CANDIDATE_NOT_REVIEWED_NOT_ADOPTED",
+  "purpose": "Disposable synthetic queue-range bug-fix input proposal only; no executable snapshot or frozen oracle exists for this proposal.",
+  "task_id_candidate": "disposable-queue-range/shakedown/simple",
+  "created_at_utc": "2026-09-06T02:35:24.145688+00:00",
+  "task_prompt": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/task-packet.candidate.md",
+    "bytes": 1328,
+    "sha256": "13b73cf74593380685772ffe765e6478abf3c741b2fad8fc517aae6285726a65",
+    "computed_git_blob_oid": "729a7ebf9cc830f466014c4907d8731f7246b757"
+  },
+  "rubric": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/rubric.candidate.md",
+    "bytes": 3754,
+    "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+    "computed_git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+  },
+  "rubric_provenance": {
+    "source_commit": "d3725fe87d8d1a4b0cdd4b522103e74dffeb0770",
+    "source_path": "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+    "reuse": "Exact bytes copied; no new quality dimensions or score threshold. Task/rubric pairing still requires review and adoption."
+  },
+  "owner_adoption": null,
+  "base_commit": null,
+  "fix_commit": null,
+  "oracle_identity": null,
+  "qualification_identity": null,
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "freeze_complete": false,
+  "production_admission_compatible": false,
+  "open_prerequisites": [
+    "Review exact candidate task and rubric pairing.",
+    "Define and qualify an isolated disposable source snapshot and oracle/cases without exposing Grimm or historical fixes.",
+    "Resolve current production Bookstore-Scraper/Base/Fix/oracle pin compatibility through a separately authorized bounded decision; do not bypass or change it in this slice.",
+    "Complete exact input adoption and remaining P07 freeze before any separately authorized new Pair."
+  ],
+  "execution_authorized": false,
+  "pair_creation_authorized": false,
+  "attempt_authorized": false,
+  "unblinding_authorized": false,
+  "push_authorized": false,
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ]
+}
