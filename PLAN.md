@@ -2633,3 +2633,12 @@ See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json.
 This supersedes only the earlier unresolved allocation status; exact placement
 and identity remain unresolved. No ledger/ID creation, production, Pair, Attempt,
 qualification rerun or push is authorized.
+
+
+### Solo R2 disposable placement owner adoption - 2026-09-06
+
+Owner adopts exact placement contract 7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246.
+See docs/governance/solo-r2-disposable-placement-owner-adoption-20260906.json.
+Placement/identity definition is adopted; no evaluation ID or genesis exists from this action.
+One scoped local durability commit then STOP. Production implementation, ledger/Pair/Attempt
+creation, execution, qualification rerun and push remain unauthorized.
