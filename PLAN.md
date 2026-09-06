@@ -2586,3 +2586,15 @@ The P0b required-drift-gate slice is done when:
 - Cannot claim workspace clean while runtime ledgers remain dirty.
 - Cannot claim that a refreshed baseline hash proves owner authorization for
   future protected-file changes.
+
+
+### Solo R2 exact task/rubric owner adoption — 2026-09-06
+
+Owner adopts the exact reviewed task/rubric identities in
+`artifacts/experiments/solo-r2-input-definition-20260906/input-authority.owner-adopted.json`.
+This prospectively supersedes the earlier candidate-input-review next step only.
+The task and rubric bytes remain unchanged. The enclosing local commit supplies
+the durable freeze identity after its tree is verified. All other P07 inputs and
+Pair/readiness admission remain separate prerequisites. No retrospective binding
+to an existing Pair, new Pair, Attempt, execution, or push is authorized.
+Next: STOP; owner separately authorizes new Pair creation before further admission.

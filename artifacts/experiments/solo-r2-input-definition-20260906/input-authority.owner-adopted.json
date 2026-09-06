@@ -1,0 +1,57 @@
+{
+  "status": "OWNER_ADOPTED",
+  "purpose": "Owner-adopted exact task and rubric bytes for the next separately authorized Solo R2 shakedown Pair; durable input authority only, not execution admission.",
+  "task_id_candidate": "Bookstore-Scraper/shakedown/simple",
+  "rubric_id_candidate": "solo-r2-blind-patch-quality-v1",
+  "task_prompt": {
+    "path": "artifacts/experiments/solo-r2-input-definition-20260906/task-packet.candidate.md",
+    "bytes": 1086,
+    "sha256": "f7ebc61d0e262868a6c74a3f76348a504abe409d0d01ff8ca135ab15e91cbefc",
+    "computed_git_blob_oid": "f16335cd4829c90c6445212536c7ff81880b5f29"
+  },
+  "rubric": {
+    "path": "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+    "bytes": 3754,
+    "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+    "computed_git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+  },
+  "existing_protocol_adoption": {
+    "path": "docs/governance/solo-evaluation-revision-2-owner-adoption-20260831.md",
+    "bytes": 4065,
+    "sha256": "6bf8eed7b4b585db08e0a7f0668ecc67aee41ff63a901095b8aec488c17caf66",
+    "computed_git_blob_oid": "23fdbd6e28589f8b6ae43004f801b2bf8bd5560e"
+  },
+  "authority_boundary": "The current owner decision adopts only the exact task and rubric identities below. Existing R2 protocol authority, retention rules and claim ceiling remain unchanged. This is not a retrospective freeze for any existing Pair and does not establish all P07 inputs or production readiness.",
+  "owner_adoption": {
+    "status": "OWNER_ADOPTED",
+    "authority_source": "Explicit owner instruction in the main session: Input Adoption + Durable Freeze; 2026-09-06",
+    "recorded_at_utc": "2026-09-06T02:23:47.706468+00:00",
+    "timestamp_meaning": "Time this explicit owner adoption was durably recorded; not an independently attested signature timestamp.",
+    "decision": "Owner adopts the exact reviewed task packet and rubric identities recorded in input-authority.candidate.json for the next Solo R2 shakedown Pair. Preserve the reviewed task/rubric bytes unchanged. Record durable owner adoption and make a scoped local commit containing only the adopted input authority and required governance/memory updates. Do not push, do not create the new Pair, and do not start an Attempt. Stop after durable freeze is verified.",
+    "baseline_commit": "0c090481354ae46a243a232d92947c0db10fb066"
+  },
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "ordering_requirement": "Owner adoption and exact input freeze must precede any separately authorized new Pair creation. No retrospective binding to the existing replacement Pair.",
+  "blob_provenance": "Exact raw Git blob identities; verify the enclosing local adoption commit tree against these values after commit. No self-referential commit SHA is embedded.",
+  "rubric_boundary": "Owner adopts the exact 0-8 quality rubric bytes. This is not a correctness threshold or amendment of the adopted study retention rule.",
+  "execution_authorized": false,
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "source_candidate": {
+    "path": "artifacts/experiments/solo-r2-input-definition-20260906/input-authority.candidate.json",
+    "bytes": 1889,
+    "sha256": "a3918b14a521e26b821c8a531cbb1ae18d36133209a6e9b2a953122da847ae30",
+    "computed_git_blob_oid": "5677145e33215d6307de866361e3aced20a2fa63"
+  },
+  "freeze_scope": [
+    "task_prompt",
+    "rubric"
+  ],
+  "pair_creation_authorized": false,
+  "attempt_authorized": false,
+  "push_authorized": false
+}
