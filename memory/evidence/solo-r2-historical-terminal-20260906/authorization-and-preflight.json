@@ -1,0 +1,47 @@
+{
+  "elapsed_basis": "Adopted C05 and retained metadata: original monotonic timing lost after catalog exception",
+  "evaluation_id": "1ebfbc48-d2fe-459d-bab7-b9fd75a5810b",
+  "event_content": {
+    "attempt_handle": "05c34d23676e8434c6e310b9205fc1995e09ef3983968cef1f823bc508047671",
+    "attempt_state": "TERMINAL",
+    "correctness_result": {
+      "oracle_status": "NOT_RUN",
+      "passed_case_count": 0,
+      "regression_status": "NOT_EVALUATED",
+      "required_case_count": 10,
+      "scope_status": "NOT_EVALUATED"
+    },
+    "cost_amendment_sha256": "c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad",
+    "cost_metrics": {
+      "elapsed_ms": "UNAVAILABLE",
+      "tool_calls": 7
+    },
+    "event_seq": 5,
+    "event_type": "EXECUTION_TERMINAL",
+    "pair_id": "747c09b2-56d0-42d0-bc34-d505e23e311e",
+    "schema_version": "solo_attempt_ledger.v2.1",
+    "slot": "R2-SHAKEDOWN",
+    "terminal_classification": "HARNESS_FAILURE",
+    "unavailable_cost_reasons": {
+      "elapsed_ms": "MEASUREMENT_PREEMPTED_BY_EXCEPTION"
+    }
+  },
+  "generated_fields": "event_id generated once at append; timestamp is current append time, not execution end",
+  "genesis_sha256": "b07fd8c903e770e205cc9a1c03a6462d144c4da30e4a44b1ecf72ccd4f074ba2",
+  "implementation_head": "1880be0f19f10bbbf1a2b75d62dd259b587cef6e",
+  "interpretation": "Authorization for previously proposed single historical terminal append only",
+  "not_authorized": [
+    "retry",
+    "new Pair",
+    "Attempt 2",
+    "execution",
+    "scoring",
+    "push"
+  ],
+  "owner_instruction": "\u6388\u6b0a\u4f60\u505a\u4e0b\u53bb",
+  "prefix_sha256": "ee51b11bdaa746e6cb338ca6245029563de858653b5062bfeab9ca1c83faf0da",
+  "trace_identity": {
+    "bytes": 13072,
+    "sha256": "aa04724b6b2131937d065edf6885f93a812322f663a906114db6491c8291a881"
+  }
+}

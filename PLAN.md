@@ -2714,3 +2714,9 @@ or push in this slice. Implementation commit verification is the stopping point.
 - R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
 - New create-once evidence: `artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-0c48594a.json`; R1 targeted tests 20 PASS. Previous generation preserved.
 - Separate refresh commit follows independent review. STOP after committed identity verification; historical terminal append still requires separate authorization. Ledger remains four events; no retry, execution or push.
+
+## Solo R2 historical Attempt terminal closure (2026-09-06)
+
+- Owner-authorized historical append completed: fifth event EXECUTION_TERMINAL / HARNESS_FAILURE; original four-event prefix preserved byte-for-byte.
+- Initiated count remains 1; terminal count is 1. elapsed_ms UNAVAILABLE, tool_calls 7; optional tokens_total omitted with raw components retained in controller custody.
+- Evidence: memory/evidence/solo-r2-historical-terminal-20260906/result.json. No output sealing, correctness evaluation, retry, Attempt 2 or push. STOP; later bug-fix/retry decisions remain separate.
