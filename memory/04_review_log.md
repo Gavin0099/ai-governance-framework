@@ -5195,3 +5195,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: Recomputed all seven R1 bindings: baseline 2 mismatches/current 3/introduced lifecycle 1. Existing seven-file independent review hashes unchanged; prior 28 new tests passed, full Solo 478 passed/11 failed. Corrected regression-comparison.json and scope-reconciliation.md under memory/evidence/solo-r2-disposable-integration-20260906/. Complete staged-scope review and post-commit identity verification pending; no runtime rerun for evidence-only correction.
 - Next action: After this scoped implementation commit, STOP. Next separate slice must refresh R1 generation for exact committed ledger_v2, pair_creation and lifecycle_integration bytes. No pre-commit refresh, live execution or push.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:8e191c2f2bafbbc1f035ec58b0b6cdd5a1aaa8e98c6634af1a0250ead60f3ccb -->
+### Canonical memory checkpoint — solo-r2-r1-refresh-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `8e191c2f2bafbbc1f035ec58b0b6cdd5a1aaa8e98c6634af1a0250ead60f3ccb`
+- Commit binding: `3b820a2c` (bound)
+- Record: R1 refresh after committed integration 3b820a2c: three pins rebound to exact committed sources; four disposable namespace members added to existing strict scan. Existing validator function AST unchanged. Evidence generated; 490 Solo regression passed; independent R1 review 20 passed Blocking 0. This record references the implementation baseline, not the upcoming refresh commit. No evaluation/ledger/Pair/Attempt, execution or push.
+- Validation boundary: memory/evidence/solo-r2-r1-refresh-20260906/tests.json; memory/evidence/solo-r2-r1-refresh-20260906/review.json; exact R1 artifact sha256 1e32693147ff9fde7f06efd77053dbab9ec0fcff3a3a5f5734f9d2b122ca1cf0
+- Next action: STOP after scoped local refresh commit verification. Real evaluation and execution require separate owner authorization.
+- PLAN reconciliation: `updated`

@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "dfe1e43886532354725009fe24633e1a57244d6c"
+SOURCE_SNAPSHOT_COMMIT: Final = "3b820a2c3f115c3ee26d0514f10a39aad44a0b34"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-dfe1e438.json"
+    "r2-r1-structural-conformance-3b820a2c.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-fee236c1.json"
+    "r2-r1-structural-conformance-dfe1e438.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
@@ -57,6 +57,10 @@ _RUNTIME_MODULES: Final = (
     "governance_tools/solo_r2_bootstrap.py",
     "governance_tools/solo_r2_codex_runner.py",
     "governance_tools/solo_r2_controller_state.py",
+    "governance_tools/solo_r2_disposable_binding.py",
+    "governance_tools/solo_r2_disposable_execution.py",
+    "governance_tools/solo_r2_disposable_materialization.py",
+    "governance_tools/solo_r2_disposable_profile.py",
     "governance_tools/solo_r2_lifecycle_integration.py",
     "governance_tools/solo_r2_pair_creation.py",
     "governance_tools/solo_r2_random_domains.py",
@@ -110,9 +114,9 @@ _AUTHORITY_BINDINGS: Final = (
 _SOURCE_BINDINGS: Final = (
     {
         "path": "governance_tools/solo_attempt_ledger_v2.py",
-        "sha256": "652e9c8f2fb01cade50c8e712cf0819341f36c4fd14bef43fb90fb606e20c5dc",
-        "git_blob": "a1947f59b76832b11b43029b4fac0c88fed801ed",
-        "last_change_commit": "581b37f91d7af318bdd6adc5a1eedb1fd68a1f78",
+        "sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
+        "git_blob": "0420f7f03deccb19746d0318915613b0656275f4",
+        "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
         "role": "atomic_genesis_publication_runtime_surface",
     },
     {
@@ -145,16 +149,16 @@ _SOURCE_BINDINGS: Final = (
     },
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
-        "sha256": "23a91128de101c967eaf3a6ea70cab645d2fcb41827f252112017dcc7bd631c8",
-        "git_blob": "70c8dc1e255540baca09cb4a05194b8b345372c3",
-        "last_change_commit": "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0",
+        "sha256": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda",
+        "git_blob": "7abbf24947297f49defbf6c0edcacfc5851eadc6",
+        "last_change_commit": "3b820a2c3f115c3ee26d0514f10a39aad44a0b34",
         "role": "production_entropy_and_generator_call_sites",
     },
     {
         "path": "governance_tools/solo_r2_pair_creation.py",
-        "sha256": "f271af4934000df186c5845af473cd4bb9958db3eef22f06d37853529f2f66dd",
-        "git_blob": "a17196272688cd2b8ef668c5867a92224d538b8a",
-        "last_change_commit": "182d3965bb65dd4886d70fab003c56fc8fe58c02",
+        "sha256": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2",
+        "git_blob": "a9205606ea2faf2d47e55ae8f27cdc6284ed4795",
+        "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
         "role": "pair_creation_entropy_and_arm_order_call_site_closure",
     },
 )
@@ -271,7 +275,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.admit_attempt.operation",
-        "line": 630,
+        "line": 633,
         "callee": "_draw_entropy32",
         "args": [],
         "keywords": {},
@@ -279,7 +283,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.admit_attempt.operation",
-        "line": 631,
+        "line": 634,
         "callee": "self._identifier_registry.admit",
         "args": ["random_domains.ATTEMPT_HANDLE_DOMAIN", "entropy"],
         "keywords": {},
@@ -287,7 +291,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-        "line": 758,
+        "line": 761,
         "callee": "self._identifier_registry.admit",
         "args": [
             "random_domains.SCORING_LABEL_DOMAIN",
@@ -298,7 +302,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-        "line": 759,
+        "line": 762,
         "callee": "_draw_entropy32",
         "args": [],
         "keywords": {},
@@ -306,7 +310,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-        "line": 767,
+        "line": 770,
         "callee": "scoring_bundle.build_blind_scoring_bundle",
         "args": [],
         "keywords": {
@@ -321,7 +325,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_lifecycle_integration.py",
         "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-        "line": 773,
+        "line": 776,
         "callee": "_draw_entropy32",
         "args": [],
         "keywords": {},

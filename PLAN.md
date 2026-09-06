@@ -2682,3 +2682,9 @@ R1 remains FAIL. See memory/evidence/solo-r2-disposable-integration-20260906/
 scope-reconciliation.md and regression-comparison.json. External inventory guard,
 its tests/configuration and workflow changes remain excluded. No refresh, execution
 or push in this slice. Implementation commit verification is the stopping point.
+
+## Solo R2 R1 refresh after 3b820a2c (2026-09-06)
+
+- Three committed source pins refreshed; four disposable namespace members included without changing validator functions.
+- Evidence: `memory/evidence/solo-r2-r1-refresh-20260906/`; 490 Solo tests passed, independent R1 review 20 passed / Blocking 0.
+- Scope: structural evidence only; no real evaluation, ledger, Pair, Attempt, admission, or push. Stop after scoped local commit verification.
