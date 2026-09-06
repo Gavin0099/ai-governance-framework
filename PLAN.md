@@ -2727,3 +2727,11 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Outer launcher check and tamper rejection: 6 PASS; five known module pins and wrapper digests updated, prior manifest preserved.
 - Scope is local committed repair and static import binding only. Existing Phase A state is not migrated; readiness and execution admission remain unverified.
 - No real ledger change, Pair/Attempt, retry or push. STOP after committed identity verification.
+
+## Solo R2 replacement disposable decision adoption (2026-09-06)
+
+- Owner adopted exact6250byte decision SHA bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3 after independent ACCEPT / Blocking 0.
+- Old evaluation FAILED_MECHANISM_SHAKEDOWN / PRESERVED / NO_FURTHER_ARM; existing five-event ledger unchanged.
+- Exactly one additional replacement allocation and distinct fixed placement adopted; IDs and ledger remain uncreated.
+- Authority: docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json. New custody/binding prerequisites remain open.
+- STOP after local adoption commit verification; no implementation, migration, retry, creation, execution or push.

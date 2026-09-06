@@ -1,0 +1,36 @@
+{
+  "mode": "candidate_review",
+  "mode_source": "Explicit owner-requested independent sub-agent review",
+  "task_authority": "Review exact candidate; no automatic owner adoption",
+  "scope": "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md",
+  "done": "Independent ACCEPT; Blocking 0",
+  "reviewer": "review_disposable_arm_integration",
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "bytes": 6250,
+  "lines": 107,
+  "sha256": "bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3",
+  "git_blob_oid": "f30bd4d6e7df54c927ce5cc334ca4658b14915e9",
+  "checked": [
+    "E02/E09/E12",
+    "P05",
+    "D2",
+    "cost adoption",
+    "committed public ledger",
+    "repair revision/evidence"
+  ],
+  "claim_ceiling": "Candidate suitability for owner adoption only",
+  "not_claimed": [
+    "owner adoption",
+    "commit",
+    "implementation",
+    "creation",
+    "execution",
+    "push"
+  ],
+  "evidence_refs": [
+    "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md"
+  ],
+  "risk": "Custody and new authority binding remain prerequisites",
+  "next_action": "Owner separately adopts exact bytes; then define minimum binding tranche"
+}
