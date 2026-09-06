@@ -2642,3 +2642,18 @@ See docs/governance/solo-r2-disposable-placement-owner-adoption-20260906.json.
 Placement/identity definition is adopted; no evaluation ID or genesis exists from this action.
 One scoped local durability commit then STOP. Production implementation, ledger/Pair/Attempt
 creation, execution, qualification rerun and push remain unauthorized.
+
+### Solo R2 disposable production binding - local implementation 2026-09-06
+
+Owner-authorized fixed-placement genesis creation and pre-Pair binding implemented
+in the local worktree; six code/test files reviewed, Blocking=0, 164 targeted tests.
+Evidence: memory/evidence/solo-r2-disposable-binding-20260906/.
+Not committed or pushed. This supersedes implementation-not-started only for this
+bounded creation/pre-Pair slice; materializer/arm integration and full production
+admission are not established. No real evaluation, ledger, Pair or Attempt created.
+STOP with implementation/test/review evidence ready; future actions need their own scope.
+
+Local commit checkpoint: 9bcd7ffc (2026-09-06) now durably contains the six
+reviewed creation/pre-Pair implementation files. This supersedes the uncommitted
+status above. Evidence companion preserves review/test identities; no push.
+Materializer/arm integration remains NOT DONE and separately scoped. STOP.
