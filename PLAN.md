@@ -2598,3 +2598,18 @@ the durable freeze identity after its tree is verified. All other P07 inputs and
 Pair/readiness admission remain separate prerequisites. No retrospective binding
 to an existing Pair, new Pair, Attempt, execution, or push is authorized.
 Next: STOP; owner separately authorizes new Pair creation before further admission.
+
+
+### Solo R2 disposable input identity freeze — 2026-09-06
+
+Owner adopts the unchanged disposable task and reuses the existing exact rubric.
+Source commit `695863d1922c7b03a7672d3471160e5514945f95` pins the snapshot subtree,
+evaluator-only oracle and reference repair. The adopted binding is
+`artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json`.
+Base has four expected endpoint failures out of ten cases; reference repair
+passes ten, with three visible tests passing on each. Export pins LF bytes via
+command-local core.autocrlf=false. This supersedes candidate-only input status,
+not production admission: current materializer Base/export bindings remain
+incompatible and unchanged. Grimm stays reserved. STOP after local authority
+commit verification; separate owner authorization is required for production
+binding, remaining P07 admission, new Pair, Attempt and execution. No push.

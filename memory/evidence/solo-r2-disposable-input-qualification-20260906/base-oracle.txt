@@ -1,0 +1,79 @@
+test_empty_input (__main__.RequiredCases.test_empty_input) ... ok
+test_equal_bounds (__main__.RequiredCases.test_equal_bounds) ... FAIL
+test_input_unchanged (__main__.RequiredCases.test_input_unchanged) ... ok
+test_interior_and_exterior (__main__.RequiredCases.test_interior_and_exterior) ... ok
+test_lower_endpoint (__main__.RequiredCases.test_lower_endpoint) ... FAIL
+test_negative_and_zero_endpoints (__main__.RequiredCases.test_negative_and_zero_endpoints) ... FAIL
+test_new_list_original_tuples_and_payloads (__main__.RequiredCases.test_new_list_original_tuples_and_payloads) ... ok
+test_order_and_duplicates (__main__.RequiredCases.test_order_and_duplicates) ... ok
+test_reversed_range (__main__.RequiredCases.test_reversed_range) ... ok
+test_upper_endpoint (__main__.RequiredCases.test_upper_endpoint) ... FAIL
+
+======================================================================
+FAIL: test_equal_bounds (__main__.RequiredCases.test_equal_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\ai-governance-framework\artifacts\experiments\solo-r2-disposable-input-definition-20260906\evaluator\oracle.py", line 22, in test_equal_bounds
+    self.assertEqual(select_entries(entries, 2, 2), [(2, "a"), (2, "b")])
+AssertionError: Lists differ: [] != [(2, 'a'), (2, 'b')]
+
+Second list contains 2 additional elements.
+First extra element 0:
+(2, 'a')
+
+- []
++ [(2, 'a'), (2, 'b')]
+
+======================================================================
+FAIL: test_lower_endpoint (__main__.RequiredCases.test_lower_endpoint)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\ai-governance-framework\artifacts\experiments\solo-r2-disposable-input-definition-20260906\evaluator\oracle.py", line 15, in test_lower_endpoint
+    self.assertEqual(select_entries([(2, "lower")], 2, 4), [(2, "lower")])
+AssertionError: Lists differ: [] != [(2, 'lower')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+(2, 'lower')
+
+- []
++ [(2, 'lower')]
+
+======================================================================
+FAIL: test_negative_and_zero_endpoints (__main__.RequiredCases.test_negative_and_zero_endpoints)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\ai-governance-framework\artifacts\experiments\solo-r2-disposable-input-definition-20260906\evaluator\oracle.py", line 26, in test_negative_and_zero_endpoints
+    self.assertEqual(
+AssertionError: Lists differ: [(-1, 'inside')] != [(-2, 'lower'), (-1, 'inside'), (0, 'upper')]
+
+First differing element 0:
+(-1, 'inside')
+(-2, 'lower')
+
+Second list contains 2 additional elements.
+First extra element 1:
+(-1, 'inside')
+
+- [(-1, 'inside')]
++ [(-2, 'lower'), (-1, 'inside'), (0, 'upper')]
+
+======================================================================
+FAIL: test_upper_endpoint (__main__.RequiredCases.test_upper_endpoint)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\ai-governance-framework\artifacts\experiments\solo-r2-disposable-input-definition-20260906\evaluator\oracle.py", line 18, in test_upper_endpoint
+    self.assertEqual(select_entries([(4, "upper")], 2, 4), [(4, "upper")])
+AssertionError: Lists differ: [] != [(4, 'upper')]
+
+Second list contains 1 additional elements.
+First extra element 0:
+(4, 'upper')
+
+- []
++ [(4, 'upper')]
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.001s
+
+FAILED (failures=4)

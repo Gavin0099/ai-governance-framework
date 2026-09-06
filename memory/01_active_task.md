@@ -123,3 +123,6 @@ remains outside the Gate 3 critical path and outside this slice.
 
 
 - Owner adopted exact Solo R2 task/rubric bytes; enclosing local commit establishes freeze after verification. STOP; new Pair creation requires separate authorization. <!-- memory_record_projection:active-task-summary:7d9a941064f486eb6f7eb360e54e670db5d2bd15f5fa96375b29ef476da2fbb8 -->
+
+
+- Disposable inputs qualified at 695863d1: Base 4 expected failures, reference 10/10; task unchanged, rubric reused. Authority freezes subtree/oracle locally; production binding unchanged, no Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:a4e46ca16fafb26c2dc6e6eec20b9f0f0c83c6483bdcf2e8f3273e57877594dd -->
