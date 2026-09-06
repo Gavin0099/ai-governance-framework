@@ -1,0 +1,46 @@
+{
+  "scope": "Replacement external launcher wiring and static verification only",
+  "baseline_commit": "54bf67b063d9705e02041d40d337c6b91ad14679",
+  "file_sha256": {
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/controller.py": "5c9b7f3db150bbf69716c8dbb03cd9254d683c90f232dcd5805dc3c51fe6e1d1",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/launch.ps1": "283ae45b976fa63c8dd7509505c7dfc9b48113ba27d760600da5d41d7c64dcf1",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/manifest.json": "a6427ed72c1820df6f2f312b93e7b9d00393192137ff4279ffcd55e6590d3680",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py": "af5c6362f064f521c3854ba77fa16f708e9b82182b6de06ba31aa8ad6e7a808d",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/README.md": "e9885dd5c95e3361135bb9d27ddc16ce809a2af75abd40682ede5e992fa864f8"
+  },
+  "targeted_tests": {
+    "command": ".venv/Scripts/python.exe -B -m pytest artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py -q -p no:cacheprovider --basetemp C:/Users/daish/AppData/Local/Temp/r2-launcher-check-20260907a --tb=short",
+    "passed": 16,
+    "failed": 0
+  },
+  "earlier_sandbox_run": "Temp-directory and outer-process access prevented validation; rerun used external isolated temp with escalation. No product change to bypass checks.",
+  "manifest_changes": [
+    "six committed reviewed production source pins",
+    "current installed candidate payload path/identity; no adoption",
+    "replacement_binding_source_commit provenance"
+  ],
+  "pin_inventory_added": 0,
+  "pin_inventory_removed": 0,
+  "old_ledger": {
+    "sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+    "events": 5
+  },
+  "new_ledger_exists": false,
+  "new_runtime_exists": false,
+  "test_boundary": "Synthetic creation exercises real binding/custody/Pair APIs in external temporary repositories. Quiescence, host identity, input loading and freeze observation are substituted. Actual outer wrapper executes check only.",
+  "not_claimed": [
+    "real creation authorization",
+    "real host creation or admission PASS",
+    "readiness PASS",
+    "payload-pin adoption",
+    "Attempt or arm execution",
+    "A/B completion",
+    "commit",
+    "push"
+  ],
+  "excluded_dirty_paths": [
+    "governance_tools/external_tree_inventory_guard.py",
+    "tests/test_external_tree_inventory_guard.py",
+    "tests/test_governance_workflow_contract.py"
+  ]
+}

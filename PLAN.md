@@ -2757,3 +2757,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics. New evidence: artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-de85d2f8.json. Previous generation preserved.
 - R1 structural check and targeted20tests PASS. Independent refresh review precedes separate local commit.
 - STOP after refresh commit verification; no real evaluation/ledger/Pair/Attempt or push. Outer launcher and real admission remain unverified.
+
+## Solo R2 replacement launcher static verification (2026-09-07)
+
+- Replacement-only external launcher offers check and Phase A creation-to-candidate STOP; no readiness/execution/adoption modes.
+- Targeted 16 PASS; independent 16 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-launcher-20260907/review.json.
+- Owner authorized scoped local delivery of the five reviewed launcher files and required records; committed identity verification follows. Existing production and old five-event ledger unchanged; no real replacement allocation, Pair, Attempt or payload-pin adoption.
+- Static wiring is verified; real-host creation and admission are not. STOP after local commit verification; real creation requires separate authorization. No push.
