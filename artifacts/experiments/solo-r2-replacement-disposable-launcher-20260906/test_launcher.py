@@ -101,7 +101,7 @@ def test_outer_check_does_not_create_real_allocation():
     assert [p.exists() for p in targets]==before
 
 
-@pytest.mark.parametrize('mode',['phase-b','controlled-readiness-and-wait'])
+@pytest.mark.parametrize('mode',['refresh-payload-pin-candidate','controlled-readiness-and-wait'])
 def test_outer_has_no_readiness_or_execution_mode(mode):
     result=outer(HERE/'launch.ps1','-Mode',mode)
     assert result.returncode!=0 and 'STATIC_BINDINGS_PASS' not in result.stdout
@@ -153,3 +153,218 @@ def test_payload_drift_rejected_without_creation(tmp_path):
     m=json.loads((HERE/'manifest.json').read_bytes());m['candidate_payload']['sha256']='0'*64
     result=outer(wrapper_at(tmp_path,m),'-Mode','check')
     assert result.returncode!=0 and 'STATIC_BINDINGS_PASS' not in result.stdout
+
+
+@pytest.fixture
+def phase_b_fixture(phase, monkeypatch):
+    s = phase
+    c.phase_a(s.modules, s.manifest)
+    state_raw = (s.base/'phase-a.json').read_bytes()
+    state = json.loads(state_raw)
+    record = (s.base/'payload-pin.candidate.json').read_bytes()
+    adoption = dict(status='OWNER_ADOPTED', record_sha256=c.digest(record), record_bytes=319,
+        evaluation_id=state['evaluation_id'], pair_id=state['pair_id'],
+        phase_a_state_sha256=c.digest(state_raw), verified_ledger_sha256=state['ledger_sha256'])
+    # Phase A fixture uses small inert payload, so canonical record length differs.
+    # Match production length without making this a real executable.
+    value = json.loads(record); value['payload_byte_length'] = 295408944
+    record = c.canonical(value)
+    assert len(record) == 319
+    (s.base/'payload-pin.candidate.json').write_bytes(record)
+    state['payload_record_bytes'] = 319; state['payload_record_sha256'] = c.digest(record)
+    state_raw = c.canonical(state); (s.base/'phase-a.json').write_bytes(state_raw)
+    adoption.update(record_sha256=c.digest(record), phase_a_state_sha256=c.digest(state_raw))
+    adopted_raw = c.canonical(adoption)
+    directory = s.env.root/c.ADOPTION_DIR; directory.mkdir(parents=True)
+    blobs = {'payload-pin.adopted.json': record, 'owner-adoption.json': adopted_raw}
+    for n, raw in blobs.items(): (directory/n).write_bytes(raw)
+    for key, val in dict(PIN_SHA=c.digest(record), ADOPTION_SHA=c.digest(adopted_raw),
+        STATE_SHA=c.digest(state_raw), EVALUATION=state['evaluation_id'], PAIR=state['pair_id']).items():
+        monkeypatch.setattr(c, key, val)
+    monkeypatch.setattr(c, 'committed_blob', lambda modules, manifest, path: blobs[path.name])
+    return NS(s=s, state=state, blobs=blobs, directory=directory)
+
+
+def test_phase_b_verifies_bound_inputs_without_creation(phase_b_fixture, monkeypatch):
+    x=phase_b_fixture
+    monkeypatch.setattr(binding,'uuid4',lambda:pytest.fail('ID created'))
+    state,bound,record=c.load_phase_b_inputs(x.s.modules,x.s.manifest)
+    assert state==x.state and bound.evaluation_id==state['evaluation_id']
+    assert record==x.blobs['payload-pin.adopted.json']
+
+
+@pytest.mark.parametrize('target',['committed_pin','committed_adoption','working_adoption','state',
+    'candidate','ledger','started','checkpoint'])
+def test_phase_b_rejects_drift_before_runtime(phase_b_fixture,target):
+    x=phase_b_fixture;s=x.s
+    if target.startswith('committed_'):
+        name='payload-pin.adopted.json' if target=='committed_pin' else 'owner-adoption.json'
+        x.blobs[name]+=b' '
+    else:
+        path={'working_adoption':x.directory/'owner-adoption.json','state':s.base/'phase-a.json',
+            'candidate':s.base/'payload-pin.candidate.json',
+            'ledger':s.env.root/profile.REPLACEMENT_LEDGER_PATH,
+            'started':s.base/'execution'/'already-started',
+            'checkpoint':s.base/'controller'/'unexpected'}[target]
+        with path.open('ab') as stream:stream.write(b' ')
+    with pytest.raises(RuntimeError):c.load_phase_b_inputs(s.modules,s.manifest)
+
+
+def test_phase_b_ready_keeps_same_live_objects_until_explicit_abort(phase_b_fixture,monkeypatch,capsys):
+    x=phase_b_fixture;s=x.s
+    ready=NS(disposition='READY',task_exposure_state='NONE',attempt_handle=None)
+    calls=[]
+    window=NS(run=lambda:(calls.append('run') or ready))
+    boundary=object();paths=c.paths()
+    monkeypatch.setattr(c,'build_readiness_window',lambda *args:(window,boundary,paths))
+    s.modules['runtime']=NS(READY_BEFORE_ATTEMPT='READY')
+    inputs=iter(['', 'EXECUTE wrong', 'ABORT'])
+    original=c.wait_for_owner
+    def waiting(state,w,r,b,p,bound,transition):
+        assert w is window and r is ready and b is boundary and p is paths
+        return original(state,w,r,b,p,bound,transition)
+    monkeypatch.setattr(c,'wait_for_owner',waiting)
+    monkeypatch.setattr(c,'execution_transition',lambda *args:('fixture',lambda *a:False))
+    monkeypatch.setattr('builtins.input',lambda:next(inputs))
+    with pytest.raises(RuntimeError,match='explicit owner abort'):c.phase_b(s.modules,s.manifest)
+    assert calls==['run']
+    assert capsys.readouterr().out.count('Not authorized. Still waiting.')==2
+    assert len(ledger.read_ledger(s.env.root/profile.REPLACEMENT_LEDGER_PATH))==2
+
+
+def test_wait_eof_does_not_return_or_authorize(monkeypatch):
+    answers=iter([EOFError(),'ABORT']);slept=[]
+    def read():
+        a=next(answers)
+        if isinstance(a,Exception):raise a
+        return a
+    monkeypatch.setattr('builtins.input',read);monkeypatch.setattr(c.time,'sleep',slept.append)
+    with pytest.raises(RuntimeError,match='explicit owner abort'):
+        c.wait_for_owner({},object(),object(),object(),{},object(),('fixture',lambda *args:pytest.fail('EOF authorized')))
+    assert slept==[1]
+
+
+def test_missing_home_rejected_before_native_runtime(tmp_path,monkeypatch):
+    monkeypatch.setattr(c,'HOME',tmp_path/'absent')
+    with pytest.raises(RuntimeError,match='HOME missing'):c.build_readiness_window({}, {}, {}, None, b'')
+
+
+@pytest.mark.parametrize('stale_payload',[False,True])
+def test_window_assembly_uses_replacement_binding_and_rechecks_payload(phase_b_fixture,monkeypatch,tmp_path,stale_payload):
+    x=phase_b_fixture;s=x.s
+    state,bound,record=c.load_phase_b_inputs(s.modules,s.manifest)
+    home=tmp_path/'dedicated-home';home.mkdir();monkeypatch.setattr(c,'HOME',home)
+    made={};calls=[]
+    def constructor(name):
+        def create(*args,**kwargs):
+            value=NS(args=args,kwargs=kwargs);made[name]=value;return value
+        return create
+    def resolve(**kwargs):
+        calls.append('payload')
+        if stale_payload:raise RuntimeError('stale payload')
+        return NS(sha256='f'*64)
+    runner=NS(OwnerPayloadPin=constructor('pin'),resolve_codex_payload=resolve,
+        _windows_process_identity=lambda:NS(validate=lambda sid:calls.append('identity')),
+        ToolCatalog=NS(project=constructor('catalog')),ToolDescriptor=lambda name:name,
+        RuntimeIdentity=constructor('identity'),IDENTITY_DISPOSITION='fixture',
+        NativeCodexExecBackend=constructor('native'),CodexRunnerAdapter=constructor('adapter'),
+        capture_sandbox_generation=lambda **k:pytest.fail('native generation executed'))
+    runtime=NS(WindowsCodexRuntimeQuiescence=lambda **k:lambda:calls.append('quiescence'),
+        SealedArmOrder=NS(from_sealed_package=constructor('order')))
+    for name in ['NativePreExposureObservationBackend','PreExposureBoundaryEvidenceProducer',
+        'MachineBackedBoundaryProbe','OffHostControlEndpoint','RuntimeFreezeProbe','PreAttemptFrozenRuntimeWindow']:
+        setattr(runtime,name,constructor(name))
+    material=NS(PinnedExecutable=constructor('executable'),
+        LeafWorkspaceManager=NS(for_windows_runtime=constructor('leaves')),
+        TreatmentInstruction=NS(load=constructor('packet')))
+    modules=dict(s.modules,runner=runner,runtime=runtime,material=material,
+        attempt=NS(PairBinding=constructor('pair'),PairLedgerLock=constructor('lock')),
+        dm=NS(DisposableGitMaterializer=constructor('materializer')))
+    manifest={'executables':{name:dict(path='C:/fixture.exe',bytes=1,sha256='f'*64) for name in ['whoami','powershell']}}
+    if stale_payload:
+        with pytest.raises(RuntimeError,match='stale payload'):c.build_readiness_window(modules,manifest,state,bound,record)
+        assert calls==['payload'] and not tuple((s.base/'execution').iterdir())
+    else:
+        window,boundary,p=c.build_readiness_window(modules,manifest,state,bound,record)
+        assert calls==['payload','quiescence','identity']
+        assert made['lock'].kwargs['ledger_path']==s.env.root/profile.REPLACEMENT_LEDGER_PATH
+        assert made['lock'].kwargs['expected_ledger_sha256']==state['ledger_sha256']
+        assert made['order'].kwargs['expected_digest']==state['sealed_package_digest']
+        assert window.kwargs['backend'] is made['NativePreExposureObservationBackend']
+        assert window.kwargs['adapter'] is made['adapter']
+        assert window.kwargs['materializer'] is made['materializer']
+        assert made['materializer'].kwargs['authority']==bound.input_authority
+
+
+@pytest.fixture
+def transition_fixture(phase_b_fixture,monkeypatch):
+    x=phase_b_fixture;s=x.s
+    state,bound,record=c.load_phase_b_inputs(s.modules,s.manifest)
+    ready=NS(disposition='READY',task_exposure_state='NONE',attempt_handle=None)
+    window=NS(backend=NS(native_backend=object()),adapter=object(),freeze_probe=object(),
+        materializer=NS(leaves=object()),pair_lock=object(),sealed_order=object())
+    window._issued_readiness=(ready,None,None,(window.backend,window.adapter,window.freeze_probe,
+        window.materializer,window.pair_lock,window.sealed_order,window.backend.native_backend,
+        window.materializer.leaves))
+    calls=[]
+    def execution(**kwargs):
+        assert kwargs['window'] is window
+        assert kwargs['replacement_binding'].evaluation_id==state['evaluation_id']
+        assert kwargs['expected_genesis_binding_sha256']==state['binding_sha256']
+        assert kwargs['expected_order_sha256']==state['sealed_package_digest']
+        return NS(run=lambda **k:calls.append(k))
+    s.modules.update(runner=NS(OwnerPayloadPin=lambda *a:a,resolve_codex_payload=lambda **k:None),
+        material=NS(PinnedExecutable=lambda *a:a),de=NS(DisposableArmExecution=execution))
+    command,execute=c.execution_transition(s.modules,s.manifest,state,window,ready,object(),c.paths(),bound)
+    return NS(x=x,command=command,execute=execute,window=window,ready=ready,calls=calls)
+
+
+def test_exact_authorization_invokes_execution_once_and_rejects_replay(transition_fixture):
+    t=transition_fixture
+    assert t.execute(t.command,t.window,t.ready) is True
+    assert t.calls==[{'previously_verified_readiness':t.ready}]
+    with pytest.raises(RuntimeError,match='already consumed'):t.execute(t.command,t.window,t.ready)
+    assert len(t.calls)==1
+
+
+@pytest.mark.parametrize('kind',['blank','space','malformed','evaluation','pair','nonce'])
+def test_wrong_authorization_never_reaches_execution(transition_fixture,kind):
+    t=transition_fixture;parts=t.command.split()
+    if kind=='blank':answer=''
+    elif kind=='space':answer=' '+t.command
+    elif kind=='malformed':answer='EXECUTE'
+    else:
+        parts[{'evaluation':1,'pair':2,'nonce':3}[kind]]='wrong';answer=' '.join(parts)
+    assert t.execute(answer,t.window,t.ready) is False and not t.calls
+    assert not (t.x.s.base/'execution'/'owner-execution-authorization.json').exists()
+
+
+@pytest.mark.parametrize('kind',['window','readiness','issued','consumed','backend','ledger','state','adoption','payload'])
+def test_authorized_transition_rejects_current_drift(transition_fixture,kind):
+    t=transition_fixture;s=t.x.s;window=t.window;ready=t.ready
+    if kind=='window':window=NS(**vars(window))
+    elif kind=='readiness':ready=NS(**vars(ready))
+    elif kind=='issued':window._issued_readiness=tuple(list(window._issued_readiness))
+    elif kind=='consumed':window._readiness_consumed=True
+    elif kind=='backend':window.backend=NS(native_backend=object())
+    elif kind=='payload':
+        def reject(**kwargs):raise RuntimeError('payload changed')
+        s.modules['runner'].resolve_codex_payload=reject
+    else:
+        path={'ledger':s.env.root/profile.REPLACEMENT_LEDGER_PATH,
+            'state':s.base/'phase-a.json','adoption':t.x.directory/'owner-adoption.json'}[kind]
+        with path.open('ab') as stream:stream.write(b' ')
+    with pytest.raises(RuntimeError):t.execute(t.command,window,ready)
+    assert not t.calls
+    with pytest.raises(RuntimeError,match='already consumed'):t.execute(t.command,t.window,t.ready)
+
+
+def test_live_wait_accepts_only_matching_authorization_after_blank_and_eof(transition_fixture,monkeypatch):
+    t=transition_fixture;answers=iter(['',EOFError(),'EXECUTE wrong',t.command]);slept=[]
+    def read():
+        answer=next(answers)
+        if isinstance(answer,Exception):raise answer
+        return answer
+    monkeypatch.setattr('builtins.input',read);monkeypatch.setattr(c.time,'sleep',slept.append)
+    c.wait_for_owner(t.x.state,t.window,t.ready,object(),c.paths(),object(),(t.command,t.execute))
+    assert slept==[1] and t.calls==[{'previously_verified_readiness':t.ready}]

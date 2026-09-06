@@ -2771,3 +2771,17 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Owner adopted exact 319-byte pin SHA256 0edfdabdb50094e0fa72eb6edd6ab9c17987c917bd2f530908920cf7f2ef99e8. Exact copy and conversation-sourced adoption: memory/evidence/solo-r2-replacement-payload-pin-adoption-20260907/owner-adoption.json.
 - Owner authorized scoped Git durability of the exact adopted bytes and adoption record; committed identity verification follows. Attempt 0, exposure NONE. No readiness, execution, payload regeneration or old-pin reuse.
 - STOP after scoped commit and identity verification. Replacement Phase B wiring and later runtime readiness require separate authorization.
+
+## Solo R2 replacement Phase B wiring (2026-09-07)
+
+- Added committed-adoption/external-state verification, replacement-only readiness object assembly, and live in-process wait. Blank input and EOF do not return; explicit ABORT discards live handoff.
+- Targeted 30 tests PASS. Native runtime observations remain simulated; no real Phase B or Attempt executed. Evidence: memory/evidence/solo-r2-replacement-phase-b-20260907/validation.json.
+- Execution entry remains disabled pending owner scope answer; do not claim executable continuation READY. Dedicated replacement Codex HOME is absent and requires separate runtime preparation.
+- Uncommitted, no production/frozen-input/ledger changes. STOP after independent review; no real readiness or push.
+
+## Solo R2 controlled EXECUTE wiring (2026-09-07)
+
+- Owner separately authorized the final one-use live execution transition; this supersedes the preceding pending-scope note only.
+- Exact evaluation/Pair/nonce authorization revalidates current adoption/state/ledger/payload and original live objects, then calls the existing execution API once. No second readiness run or cross-process resume.
+- Targeted 47 tests PASS with isolated execution substitute; evidence: memory/evidence/solo-r2-replacement-controlled-execute-20260907/validation.json. Independent review required before this slice stops.
+- Owner authorized scoped local commit after 47 targeted and 47 independent PASS / Blocking 0. R1 source pins 7/7 MATCH; no refresh needed. Verify committed identities then STOP. No real readiness, Attempt, exposure, arm, scoring or push. Dedicated HOME remains a later runtime prerequisite; launcher logic frozen.

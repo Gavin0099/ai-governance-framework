@@ -1,12 +1,12 @@
 param(
-    [ValidateSet('check','phase-a')][string]$Mode = 'check'
+    [ValidateSet('check','phase-a','phase-b')][string]$Mode = 'check'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $Root = 'D:\ai-governance-framework'
 $Here = Join-Path $Root 'artifacts\experiments\solo-r2-replacement-disposable-launcher-20260906'
 $ManifestSha = 'a6427ed72c1820df6f2f312b93e7b9d00393192137ff4279ffcd55e6590d3680'
-$ControllerSha = '5c9b7f3db150bbf69716c8dbb03cd9254d683c90f232dcd5805dc3c51fe6e1d1'
+$ControllerSha = '33d2160055edc3db214c547b2a34e98b48714da7a298256d9d58c278288deabb'
 
 function Assert-Pin([string]$Path, [string]$Sha, [long]$Size = -1) {
     if (-not [IO.Path]::IsPathRooted($Path)) { throw 'Relative trust path' }
