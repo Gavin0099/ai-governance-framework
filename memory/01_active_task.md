@@ -128,3 +128,6 @@ remains outside the Gate 3 critical path and outside this slice.
 - Disposable inputs qualified at 695863d1: Base 4 expected failures, reference 10/10; task unchanged, rubric reused. Authority freezes subtree/oracle locally; production binding unchanged, no Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:a4e46ca16fafb26c2dc6e6eec20b9f0f0c83c6483bdcf2e8f3273e57877594dd -->
 
 - Owner adopted v2.1 amendment; see docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json. Local commit verification then STOP; D2 allocation unresolved; no production/Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:29735f39f5f0eaaddad0b69bb23506e243434a8b4a151d2fe1b2e8439f605218 -->
+
+
+- D2 allocation adopted: one extra disposable evaluation/ledger allowance. See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json. Placement unresolved; no creation/execution authority. <!-- memory_record_projection:active-task-summary:4abae7efb9b50e2e48661afa714d543781fdeb542d9b8c1e7b37fe9e81628ddc -->

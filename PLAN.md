@@ -2623,3 +2623,13 @@ Binding spec is preserved subordinate design provenance, not implementation auth
 D2 ledger placement/evaluation allocation remains an unresolved separate owner decision.
 One scoped local commit and exact committed-byte verification only; then STOP.
 No production, qualification rerun, new ledger/evaluation, Pair, Attempt or push.
+
+
+### Solo R2 D2 allocation owner decision - 2026-09-06
+
+D2 allocation is adopted: preserve one replacement evaluation and allow one
+additional disposable mechanism-shakedown evaluation with one dedicated ledger.
+See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json.
+This supersedes only the earlier unresolved allocation status; exact placement
+and identity remain unresolved. No ledger/ID creation, production, Pair, Attempt,
+qualification rerun or push is authorized.

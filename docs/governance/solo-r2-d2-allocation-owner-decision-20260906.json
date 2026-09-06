@@ -1,0 +1,47 @@
+{
+  "status": "OWNER_ADOPTED",
+  "decision": "D2_ALLOCATION_ONLY",
+  "recorded_at_utc": "2026-09-06T05:02:10.274436+00:00",
+  "authority_source": "Current main-session owner reply: 正式採納上述 D2 allocation 決策",
+  "timestamp_meaning": "Local recording time, not an independently witnessed signature.",
+  "baseline_commit": "a081eb1ff4fa91e4b9932b5a3164ad118d5ddba4",
+  "schema_adoption_record": "docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json",
+  "adopted_schema_id": "solo_attempt_ledger.v2.1@sha256:ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab",
+  "allocation": {
+    "existing_replacement_evaluation_allowance_preserved": 1,
+    "additional_disposable_evaluation_allowance": 1,
+    "dedicated_disposable_ledger_allowance": 1,
+    "purpose": "Validate the complete Skill Evaluation pipeline through a disposable Solo R2 mechanism shakedown."
+  },
+  "supersession_scope": "One bounded exception to the one-replacement-evaluation allocation limit: preserve the original replacement allocation and add one disposable mechanism-shakedown allocation. Does not remove the limit or replace the original evaluation.",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "purpose_restriction": "MECHANISM_SHAKEDOWN_ONLY",
+  "remaining_open_prerequisites": [
+    "Exact disposable ledger placement and identity remain undecided.",
+    "Allocation approval is not authority to generate an evaluation ID or materialize a ledger.",
+    "Production implementation, Pair creation and Attempt execution require separate bounded authorization."
+  ],
+  "disposable_evaluation_id": null,
+  "disposable_ledger_path": null,
+  "disposable_ledger_identity": null,
+  "not_authorized": [
+    "replace or rebind the existing replacement evaluation",
+    "migration or rebinding of existing ledgers",
+    "Formal evidence",
+    "A1-A6 counted evidence",
+    "Grimm task exposure or mutation",
+    "arbitrary additional ledgers or evaluations",
+    "production modification",
+    "qualification rerun",
+    "evaluation ID generation or ledger creation",
+    "Pair creation",
+    "Attempt creation or execution",
+    "push"
+  ],
+  "authority_relationship": "Resolves only the allocation portion of amendment A02/D2. Earlier frozen amendment, specification, inputs and adoption records remain unchanged historical bytes; this later decision does not rewrite them.",
+  "next_step": "Define and obtain owner agreement on exact disposable evaluation/ledger placement and identity before implementation or creation."
+}
