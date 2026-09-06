@@ -84,14 +84,21 @@ class DisposableLifecycle(lifecycle.SyntheticLifecycleCoordinator):
     @classmethod
     def attach(cls, *, pair_lock, materializer, controller_root, scoring_root,
                key_path, custody_boundary, expected_genesis_binding_sha256,
-               expected_order_sha256):
+               expected_order_sha256, replacement_binding=None):
         pair_lock.assert_unchanged()
         authority = materializer.authority
         data = materializer.verify_authority()
         if pair_lock.binding.input_authority != authority:
             _fail()
         root = binding._root(materializer.repository)
-        public = binding._fixed_path(root, profile.LEDGER_PATH)
+        replacement = replacement_binding is not None
+        public = binding._fixed_path(root, profile.REPLACEMENT_LEDGER_PATH if replacement else profile.LEDGER_PATH)
+        if replacement:
+            if type(replacement_binding) is not binding.ReplacementLedgerBinding:
+                _fail()
+            replacement_binding.verify(public, public.read_bytes())
+            binding.verify_replacement_custody(controller_root=controller_root,
+                key_path=key_path, custody_boundary=custody_boundary)
         if pair_lock.ledger_path != public or custody_boundary.governance_root != root:
             _fail()
         raw = public.read_bytes()
@@ -101,9 +108,9 @@ class DisposableLifecycle(lifecycle.SyntheticLifecycleCoordinator):
             _fail()
         pair_lock.binding.validate_event(events[0], events[1])
         genesis_bytes = raw.splitlines(keepends=True)[0]
-        bound = binding._fixed_path(root, profile.BINDING_PATH).read_bytes()
+        bound = binding._fixed_path(root, profile.REPLACEMENT_BINDING_PATH if replacement else profile.BINDING_PATH).read_bytes()
         if (hashlib.sha256(bound).hexdigest() != expected_genesis_binding_sha256
-                or binding._json(bound) != binding._binding(root, events[0], genesis_bytes)):
+                or binding._json(bound) != binding._binding(root, events[0], genesis_bytes, replacement=replacement)):
             _fail()
         private = pairs._canonical_directory(controller_root, reject_alias=True)
         scorer = pairs._canonical_directory(scoring_root, reject_alias=True)
@@ -121,6 +128,7 @@ class DisposableLifecycle(lifecycle.SyntheticLifecycleCoordinator):
             preflight_ids=['R2_PRE_ID_EXECUTION_SURFACE_VALIDATED'],
             rubric_id=data['rubric']['sha256'])
         instance._pair_prefix = raw
+        instance._replacement_binding = replacement_binding
         instance._ledger_digest = hashlib.sha256(raw).hexdigest()
         checkpoint = instance._checkpoint_path(controller.ORDER_FROZEN)
         material._regular_unlinked_path(checkpoint)
@@ -150,13 +158,15 @@ class DisposableArmExecution:
 
     def __init__(self, *, window, controller_root, scoring_root, key_path,
                  custody_boundary, expected_genesis_binding_sha256,
-                 expected_order_sha256):
+                 expected_order_sha256, replacement_binding=None):
         self._validate_wiring(window, custody_boundary)
         self.window = window
         self.attach_args = dict(controller_root=controller_root, scoring_root=scoring_root,
             key_path=key_path, custody_boundary=custody_boundary,
             expected_genesis_binding_sha256=expected_genesis_binding_sha256,
             expected_order_sha256=expected_order_sha256)
+        if replacement_binding is not None:
+            self.attach_args['replacement_binding'] = replacement_binding
         self._used = False
 
     @staticmethod

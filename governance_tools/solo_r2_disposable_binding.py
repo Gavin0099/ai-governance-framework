@@ -314,19 +314,19 @@ class DisposableCreationResult:
     binding_sha256: str
 
 
-def _binding(root: Path, event: dict[str, Any], raw: bytes) -> dict[str, Any]:
+def _binding(root: Path, event: dict[str, Any], raw: bytes, *, replacement=False) -> dict[str, Any]:
     return {
         "binding_version": "solo_r2_disposable_genesis_binding.v1",
         "repository_root": str(root),
-        "ledger_path": profile.LEDGER_PATH.as_posix(),
+        "ledger_path": (profile.REPLACEMENT_LEDGER_PATH if replacement else profile.LEDGER_PATH).as_posix(),
         "evaluation_id": event["evaluation_id"],
         "event_id": event["event_id"],
         "genesis_bytes": len(raw),
         "genesis_sha256": _sha(raw),
         "schema_id": profile.SCHEMA_ID,
         "input_authority_sha256": profile.INPUT_SHA256,
-        "allocation_sha256": profile.ALLOCATION_SHA256,
-        "placement_sha256": profile.PLACEMENT_SHA256,
+        "allocation_sha256": profile.REPLACEMENT_DECISION_SHA256 if replacement else profile.ALLOCATION_SHA256,
+        "placement_sha256": profile.REPLACEMENT_DECISION_SHA256 if replacement else profile.PLACEMENT_SHA256,
     }
 
 
@@ -348,11 +348,21 @@ def create_disposable_evaluation(
     This operation must never be used as a preflight. Tests use isolated roots;
     implementation/adoption authorization alone is not authorization to call it.
     """
+    return _create_evaluation(git=git, repository=repository, temp_root=temp_root)
+
+
+def _create_evaluation(*, git, repository, temp_root, replacement_authority=None):
     load_input_authority(git=git, repository=repository, temp_root=temp_root)
     root = _root(repository)
     old_ids = _existing_evaluations(root)
-    public = _fixed_path(root, profile.LEDGER_PATH)
-    binding_path = _fixed_path(root, profile.BINDING_PATH)
+    replacement = replacement_authority is not None
+    if replacement:
+        _require_replacement_authority(replacement_authority)
+        old_ids.add(_failed_evaluation(root))
+    public_rel = profile.REPLACEMENT_LEDGER_PATH if replacement else profile.LEDGER_PATH
+    binding_rel = profile.REPLACEMENT_BINDING_PATH if replacement else profile.BINDING_PATH
+    public = _fixed_path(root, public_rel)
+    binding_path = _fixed_path(root, binding_rel)
     for target in (public, binding_path):
         if os.path.lexists(target.parent) or not target.parent.parent.is_dir():
             _fail()
@@ -367,12 +377,12 @@ def create_disposable_evaluation(
     event["adopted_schema_id"] = profile.SCHEMA_ID
     ledger.validate_ledger_events([event])
     raw = ledger.encode_event(event)
-    binding_bytes = ledger.encode_event(_binding(root, event, raw))
+    binding_bytes = ledger.encode_event(_binding(root, event, raw, replacement=replacement))
     try:
         public.parent.mkdir()
         binding_path.parent.mkdir()
-        _fixed_path(root, profile.LEDGER_PATH)
-        _fixed_path(root, profile.BINDING_PATH)
+        _fixed_path(root, public_rel)
+        _fixed_path(root, binding_rel)
         _write_once(public, raw)
         _write_once(binding_path, binding_bytes)
     except (OSError, RuntimeError):
@@ -408,3 +418,140 @@ def validate_disposable_pair_preconditions(
     if _json(binding_raw) != _binding(root, event, raw):
         _fail()
     return public, event, authority
+
+
+@dataclass(frozen=True)
+class ReplacementAuthority:
+    """Committed exact decision/adoptions; no creation or execution permission."""
+
+    documents: tuple[bytes, ...]
+
+    def verify(self):
+        if type(self.documents) is not tuple or len(self.documents) != len(profile.REPLACEMENT_DOCUMENTS):
+            _fail()
+        for raw, (_, _, digest) in zip(self.documents, profile.REPLACEMENT_DOCUMENTS):
+            if type(raw) is not bytes or _sha(raw) != digest:
+                _fail()
+
+
+def _require_replacement_authority(authority):
+    if type(authority) is not ReplacementAuthority:
+        _fail()
+    authority.verify()
+
+
+def load_replacement_authority(*, git, repository, temp_root) -> ReplacementAuthority:
+    _root(repository)
+    verify_repository_binding(git, repository, temp_root=temp_root)
+    documents = []
+    for commit, path, _ in profile.REPLACEMENT_DOCUMENTS:
+        ref = f"{commit}:{path}"
+        if _run_git(git, repository, ("--no-replace-objects", "cat-file", "-t", ref),
+                    temp_root=temp_root).strip() != b"blob":
+            _fail()
+        documents.append(_run_git(git, repository, ("--no-replace-objects", "cat-file", "blob", ref),
+                                  temp_root=temp_root))
+    result = ReplacementAuthority(tuple(documents))
+    result.verify()
+    return result
+
+
+def _failed_evaluation(root):
+    # Exact historical bytes suffice for collision/isolation. Do not transfer
+    # the old cost-extension authority into a new evaluation's validation.
+    raw = _fixed_path(root, profile.LEDGER_PATH).read_bytes()
+    if _sha(raw) != profile.FAILED_LEDGER_SHA256:
+        _fail()
+    return _json(raw.splitlines()[0])["evaluation_id"]
+
+
+@dataclass(frozen=True)
+class ReplacementLedgerBinding:
+    """Externally expected genesis identity, carried unchanged to each append."""
+
+    authority: ReplacementAuthority
+    raw: bytes
+    evaluation_id: str
+    genesis: bytes
+    input_authority: ExperimentInputAuthority
+
+    def verify(self, path, prefix):
+        _require_replacement_authority(self.authority)
+        if type(self.input_authority) is not ExperimentInputAuthority:
+            _fail()
+        self.input_authority.document()
+        root = profile.ROOT
+        if Path(path) != _fixed_path(root, profile.REPLACEMENT_LEDGER_PATH):
+            _fail()
+        if type(self.raw) is not bytes or type(self.genesis) is not bytes:
+            _fail()
+        if not ledger._is_uuid4(self.evaluation_id):
+            _fail()
+        if self.evaluation_id in (_existing_evaluations(root) | {_failed_evaluation(root)}):
+            _fail()
+        if not prefix or prefix.splitlines(keepends=True)[0] != self.genesis:
+            _fail()
+        event = _json(self.genesis)
+        ledger.validate_ledger_events([event])
+        if event['schema_version'] != profile.SCHEMA or event['evaluation_id'] != self.evaluation_id:
+            _fail()
+        actual = _fixed_path(root, profile.REPLACEMENT_BINDING_PATH).read_bytes()
+        if actual != self.raw or _json(self.raw) != _binding(root, event, self.genesis, replacement=True):
+            _fail()
+
+    def verify_append(self, path, prefix, event):
+        self.verify(path, prefix)
+        existing = [_json(line) for line in prefix.splitlines()]
+        # Other slots in the shared schema are not part of this allocation.
+        if any(e.get('slot') != 'R2-SHAKEDOWN' for e in [*existing[1:], event]):
+            _fail()
+        if any(ledger._COST_EXTENSION_KEYS & e.keys() for e in [*existing, event]):
+            _fail()
+        for item in [*existing[1:], event]:
+            if item.get('event_type') == 'PAIR_CREATED' and (
+                item.get('repository') != self.input_authority.repository
+                or item.get('frozen_identities') != self.input_authority.pair_identities()
+            ):
+                _fail()
+
+
+def create_replacement_disposable_evaluation(*, git, repository, temp_root):
+    """OWNER-CREATION-ONLY. No CLI or automatic allocation from an adoption."""
+    authority = load_replacement_authority(git=git, repository=repository, temp_root=temp_root)
+    return _create_evaluation(git=git, repository=repository, temp_root=temp_root,
+                              replacement_authority=authority)
+
+
+def load_replacement_ledger_binding(*, git, repository, temp_root,
+                                    expected_binding_sha256, expected_evaluation_id):
+    """Read-only; expected digest/ID must come from creation owner custody."""
+    authority = load_replacement_authority(git=git, repository=repository, temp_root=temp_root)
+    inputs = load_input_authority(git=git, repository=repository, temp_root=temp_root)
+    root = _root(repository)
+    public = _fixed_path(root, profile.REPLACEMENT_LEDGER_PATH)
+    raw = _fixed_path(root, profile.REPLACEMENT_BINDING_PATH).read_bytes()
+    if _sha(raw) != expected_binding_sha256:
+        _fail()
+    prefix = public.read_bytes()
+    if not prefix:
+        _fail()
+    bound = ReplacementLedgerBinding(authority, raw, expected_evaluation_id,
+                                      prefix.splitlines(keepends=True)[0], inputs)
+    bound.verify(public, prefix)
+    ledger.validate_ledger_events(ledger.read_ledger(public))
+    return bound
+
+
+def verify_replacement_custody(*, controller_root, key_path, custody_boundary,
+                               commitment_path=None):
+    base = profile.REPLACEMENT_RUNTIME_ROOT
+    expected = [(Path(controller_root), base / 'controller'),
+                (Path(key_path), base / 'keys/controller-key.json'),
+                (custody_boundary.governance_root, profile.ROOT)]
+    for name in ('consumer', 'materialization', 'execution', 'scoring'):
+        expected.append((getattr(custody_boundary, name + '_root'), base / name))
+    if commitment_path is not None:
+        expected.append((Path(commitment_path), base / 'commitments/sealed-package-digest.commitment'))
+    for actual, fixed in expected:
+        if actual != fixed or actual.resolve(strict=False) != fixed or pairs._has_reparse_or_symlink_component(actual):
+            _fail()

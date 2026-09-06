@@ -2743,3 +2743,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Replacement append requires binding + genesis + evaluation + exact path; path membership alone is insufficient.
 - Old five-event ledger and consumed Attempt preserved; no production edits, migration, new experiment, execution or push.
 - STOP after scoped local commit and exact identity verification; implementation remains separately authorized.
+
+## Solo R2 replacement binding implementation (2026-09-07)
+
+- Fixed replacement create/append APIs bind exact adopted authority, genesis, evaluation and placement; old cost authority is not transferred.
+- Directly affected regression 239 PASS; independent 66 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-binding-implementation-20260907/review.json.
+- Old ledger remains five events; no real evaluation, Pair, Attempt or runtime executed. Outer launcher/admission is not verified.
+- New R1 drift affects ledger_v2, pair_creation and lifecycle; refresh immediately after this implementation commit, then STOP. No push.

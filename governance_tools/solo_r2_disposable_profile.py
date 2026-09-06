@@ -14,6 +14,19 @@ INPUT_PATH = "artifacts/experiments/solo-r2-disposable-input-definition-20260906
 PLACEMENT_SHA256 = "7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246"
 ALLOCATION_SHA256 = "8a7e8cd74d883a733a5df887923b5eccf31ffe2ed0ed462446f15ae1066192b6"
 
+# Exactly one separately adopted replacement; never replace the historical pins.
+REPLACEMENT_LEDGER_PATH = Path("artifacts/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson")
+REPLACEMENT_BINDING_PATH = Path("memory/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/genesis-binding.json")
+REPLACEMENT_RUNTIME_ROOT = Path("D:/r2-replacement-disposable-shakedown-20260906")
+REPLACEMENT_DECISION_SHA256 = "bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3"
+FAILED_LEDGER_SHA256 = "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836"
+REPLACEMENT_DOCUMENTS = (
+    ("f75a78eeb32bf79e58a91898d0775fd3f58854b8", "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md", REPLACEMENT_DECISION_SHA256),
+    ("f75a78eeb32bf79e58a91898d0775fd3f58854b8", "docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json", "cec44fbd4193e9fed85dbfce6f3824d11f49251c69c45c9d45fabeebe9f7e980"),
+    ("622e1d9def23af1eac2ea1fbea7b5eadf136d7b0", "docs/governance/solo-r2-replacement-binding-proposal-20260906.md", "e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9"),
+    ("622e1d9def23af1eac2ea1fbea7b5eadf136d7b0", "docs/governance/solo-r2-replacement-binding-owner-adoption-20260906.json", "544bbe976edc4eab9b77fee0411651324889be6b816ff6db5a1ed49a01d0d799"),
+)
+
 COST_ADOPTION_COMMIT = "eb70b863d53eb68c6ee692f84634604877a60b17"
 COST_AMENDMENT_PATH = "docs/governance/solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md"
 COST_AMENDMENT_SHA256 = "c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad"

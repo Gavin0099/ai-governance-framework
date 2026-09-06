@@ -22,7 +22,9 @@ USAGE = dict(input_tokens=119407, cached_input_tokens=101248,
 @pytest.fixture
 def case(tmp_path, monkeypatch, request):
     # Public metadata only; no historical trace, key, output or arm order is read.
-    prefix = (ROOT / profile.LEDGER_PATH).read_bytes()
+    # Replay the exact adopted pre-terminal prefix, not the evolving ledger tail.
+    # CostAmendmentAuthority.verify_prefix below pins these four original events.
+    prefix = b''.join((ROOT / profile.LEDGER_PATH).read_bytes().splitlines(keepends=True)[:4])
     authority = ledger.CostAmendmentAuthority(
         (ROOT/profile.COST_AMENDMENT_PATH).read_bytes(),
         (ROOT/profile.COST_ADOPTION_PATH).read_bytes())

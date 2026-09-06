@@ -494,6 +494,9 @@ class SyntheticLifecycleCoordinator:
         }
         authority = getattr(self, "_cost_authority", None)
         options = {} if authority is None else {"cost_authority": authority}
+        replacement_binding = getattr(self, "_replacement_binding", None)
+        if replacement_binding is not None:
+            options["replacement_binding"] = replacement_binding
         evidence = getattr(self, "_pending_failure_evidence", None)
         if evidence is not None:
             options["failure_evidence"] = evidence

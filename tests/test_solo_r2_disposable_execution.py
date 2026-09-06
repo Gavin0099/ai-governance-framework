@@ -35,8 +35,8 @@ def archive(entries):
 @pytest.fixture
 def setup(environment, monkeypatch):
     env = environment
-    created = create(env)
-    pair = pairs.create_disposable_shakedown_pair(**pair_args(env, created))
+    created = getattr(env, 'create', create)(env)
+    pair = getattr(env, 'create_pair', pairs.create_disposable_shakedown_pair)(**pair_args(env, created))
     data = authority().document()
     entries = [(Path(i['path']).name, (REPO/i['path']).read_bytes(), tarfile.REGTYPE)
                for i in data['base_snapshot']['files']]
@@ -56,7 +56,7 @@ def setup(environment, monkeypatch):
     mat = subject.DisposableGitMaterializer(authority=authority(), git=None,
         repository=env.args['repository'], leaves=leaves,
         packet=material.TreatmentInstruction.load(REPO/'artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md'))
-    public = env.root/profile.LEDGER_PATH
+    public = getattr(env, 'public', env.root/profile.LEDGER_PATH)
     event = ledger.read_ledger(public)[1]
     bind = preflight.PairBinding(created.evaluation_id,pair.pair_id,event['slot'],event['category'],
                                  authority().repository,authority().pair_identities(),authority())
@@ -100,6 +100,8 @@ def setup(environment, monkeypatch):
     args=dict(window=window,controller_root=env.roots['controller-state'],scoring_root=env.roots['scoring'],
               key_path=env.key,custody_boundary=env.custody,
               expected_genesis_binding_sha256=created.binding_sha256,expected_order_sha256=pair.sealed_package_digest)
+    if hasattr(env, 'load_binding'):
+        args['replacement_binding'] = env.load_binding(created)
     state.run=execution.DisposableArmExecution(**args)
     state.execute=lambda: state.run.run(previously_verified_readiness=window.run())
     state.args=args

@@ -880,11 +880,17 @@ def create_genesis_ledger(
 
 def append_event(path: Path | str, event: Mapping[str, Any], *,
                  cost_authority: CostAmendmentAuthority | None = None,
-                 failure_evidence: object = None) -> LedgerSummary:
+                 failure_evidence: object = None,
+                 replacement_binding: object = None) -> LedgerSummary:
     """Validate full history, durably append one event, then report success."""
 
     ledger_path = Path(path)
-    prefix = ledger_path.read_bytes() if _COST_EXTENSION_KEYS & event.keys() else b""
+    prefix = ledger_path.read_bytes() if replacement_binding is not None or _COST_EXTENSION_KEYS & event.keys() else b""
+    if replacement_binding is not None:
+        from governance_tools.solo_r2_disposable_binding import ReplacementLedgerBinding
+        if type(replacement_binding) is not ReplacementLedgerBinding or cost_authority is not None:
+            _fail(LEDGER_APPEND_FAILURE)
+        replacement_binding.verify_append(ledger_path, prefix, event)
     existing = read_ledger(ledger_path, allow_missing=True)
     candidate = [*existing, dict(event)]
     summary = validate_ledger_events(candidate, cost_authority=cost_authority)
@@ -894,13 +900,14 @@ def append_event(path: Path | str, event: Mapping[str, Any], *,
         validate_failure_cost_evidence(event, failure_evidence, prefix)
     if summary.schema_version == disposable.SCHEMA:
         from governance_tools.solo_r2_pair_creation import _has_reparse_or_symlink_component
-        expected = disposable.ROOT / disposable.LEDGER_PATH
+        expected = disposable.ROOT / (disposable.REPLACEMENT_LEDGER_PATH
+            if replacement_binding is not None else disposable.LEDGER_PATH)
         if (ledger_path != expected or ledger_path.resolve(strict=True) != expected
                 or _has_reparse_or_symlink_component(ledger_path)
                 or ledger_path.stat().st_nlink != 1):
             _fail(LEDGER_APPEND_FAILURE)
     encoded = encode_event(event)
-    if _COST_EXTENSION_KEYS & event.keys() and ledger_path.read_bytes() != prefix:
+    if (replacement_binding is not None or _COST_EXTENSION_KEYS & event.keys()) and ledger_path.read_bytes() != prefix:
         _fail(LEDGER_APPEND_FAILURE)
     try:
         if not ledger_path.parent.is_dir():

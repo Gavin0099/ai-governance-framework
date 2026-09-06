@@ -591,6 +591,7 @@ def _create_pair_after_validation(
     custody_boundary: controller.CustodyBoundary,
     commitment_path: Path | None,
     disposable_authority=None,
+    replacement_binding=None,
 ) -> PairCreationResult:
     if disposable_authority is not None:
         from governance_tools.solo_r2_disposable_binding import ExperimentInputAuthority
@@ -633,7 +634,8 @@ def _create_pair_after_validation(
         )
         _atomic_create_commitment(commitment_path, commitment)
     try:
-        summary = ledger.append_event(public_path, event)
+        summary = ledger.append_event(public_path, event, **(
+            {} if replacement_binding is None else {"replacement_binding": replacement_binding}))
     except ledger.LedgerError:
         raise
     except Exception:
@@ -717,6 +719,34 @@ def create_disposable_shakedown_pair(
         key_path=key_path, custody_boundary=custody_boundary,
         commitment_path=commitment, disposable_authority=authority,
     )
+
+
+def create_replacement_disposable_shakedown_pair(
+    *, git, repository, temp_root: Path,
+    expected_binding_sha256: str, expected_evaluation_id: str,
+    controller_root: Path | str, key_path: Path | str,
+    commitment_path: Path | str, custody_boundary: controller.CustodyBoundary,
+) -> PairCreationResult:
+    """Separate owner creation operation for only the adopted replacement."""
+    from governance_tools import solo_r2_disposable_binding as binding
+    _validate_project_root(repository.root, custody_boundary)
+    binding.verify_replacement_custody(controller_root=controller_root, key_path=key_path,
+        commitment_path=commitment_path, custody_boundary=custody_boundary)
+    bound = binding.load_replacement_ledger_binding(git=git, repository=repository,
+        temp_root=temp_root, expected_binding_sha256=expected_binding_sha256,
+        expected_evaluation_id=expected_evaluation_id)
+    from governance_tools import solo_r2_disposable_profile as profile
+    public_path = repository.root / profile.REPLACEMENT_LEDGER_PATH
+    events = ledger.read_ledger(public_path)
+    if len(events) != 1:
+        _fail()
+    authority = binding.load_input_authority(git=git, repository=repository, temp_root=temp_root)
+    private_root, commitment = validate_replacement_targets(controller_root=controller_root,
+        key_path=key_path, commitment_path=commitment_path, custody_boundary=custody_boundary)
+    bound.verify(public_path, public_path.read_bytes())
+    return _create_pair_after_validation(public_path=public_path, genesis=events[0],
+        private_root=private_root, key_path=key_path, custody_boundary=custody_boundary,
+        commitment_path=commitment, disposable_authority=authority, replacement_binding=bound)
 
 
 def _create_replacement_shakedown_pair(
