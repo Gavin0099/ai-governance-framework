@@ -2735,3 +2735,11 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Exactly one additional replacement allocation and distinct fixed placement adopted; IDs and ledger remain uncreated.
 - Authority: docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json. New custody/binding prerequisites remain open.
 - STOP after local adoption commit verification; no implementation, migration, retry, creation, execution or push.
+
+## Solo R2 replacement binding proposal adoption (2026-09-06)
+
+- Owner adopted unchanged 16452-byte proposal SHA e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9; independent full review ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-replacement-binding-owner-adoption-20260906.json. Attempt ceilings are per-ledger; cross-evaluation allocation is owner-bound, not a schema-global counter.
+- Replacement append requires binding + genesis + evaluation + exact path; path membership alone is insufficient.
+- Old five-event ledger and consumed Attempt preserved; no production edits, migration, new experiment, execution or push.
+- STOP after scoped local commit and exact identity verification; implementation remains separately authorized.

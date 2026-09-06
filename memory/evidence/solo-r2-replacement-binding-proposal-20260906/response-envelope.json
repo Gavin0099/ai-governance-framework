@@ -1,0 +1,25 @@
+{
+  "mode": "review",
+  "mode_source": "Owner exact-byte adoption with scoped commit and verification stop",
+  "task_authority": "Explicit current owner adoption instruction",
+  "scope": "Candidate replacement binding proposal and required canonical record only",
+  "done": "Owner adoption recorded; local commit verification pending",
+  "claim_ceiling": "Exact-byte binding proposal adoption only; not production implementation",
+  "not_claimed": [
+    "production compatibility",
+    "runtime readiness",
+    "new evaluation/Pair/Attempt creation",
+    "execution authorization",
+    "new unavailable-cost entitlement",
+    "clean workspace",
+    "overall shakedown completion"
+  ],
+  "evidence_refs": [
+    "docs/governance/solo-r2-replacement-binding-proposal-20260906.md",
+    "memory/evidence/solo-r2-replacement-binding-proposal-20260906/identity.json",
+    "memory/evidence/solo-r2-replacement-binding-proposal-20260906/review.json",
+    "docs/governance/solo-r2-replacement-binding-owner-adoption-20260906.json"
+  ],
+  "risk": "New custody paths and integration remain proposed. Historical cost authority cannot be inherited. Unrelated dirty work excluded.",
+  "next_action": "Commit scoped adopted documents and verify exact committed identities, then STOP."
+}

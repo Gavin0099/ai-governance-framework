@@ -1,0 +1,48 @@
+{
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "/root/review_replacement_binding",
+  "scope": "Full exact-byte proposal review; not owner adoption",
+  "reviewed_identity": {
+    "path": "docs/governance/solo-r2-replacement-binding-proposal-20260906.md",
+    "bytes": 16452,
+    "lines": 124,
+    "sha256": "e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9",
+    "git_blob_oid": "7ce6c1b0fff22f40f4ff90a1b847583b675ae9c5"
+  },
+  "loaded_governance": [
+    "SYSTEM_PROMPT",
+    "REVIEW_CRITERIA",
+    "AGENT",
+    "ARCHITECTURE",
+    "TESTING"
+  ],
+  "checks": [
+    "Fixed new placement matches adopted decision; additional custody paths require adoption",
+    "No implicit inheritance of old state or instance authority",
+    "Fresh key/evaluation/Pair/payload-pin ordering",
+    "Historical unavailable-cost authority remains instance-bound",
+    "Consumer allowlist covers actual hardcoded dependencies",
+    "Negative tests cover old identities, wrong equal repository labels and replay"
+  ],
+  "findings": [],
+  "sources": [
+    "docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json",
+    "governance_tools/solo_r2_disposable_profile.py",
+    "governance_tools/solo_r2_disposable_binding.py",
+    "governance_tools/solo_attempt_ledger_v2.py",
+    "governance_tools/solo_r2_pair_creation.py",
+    "governance_tools/solo_r2_disposable_execution.py",
+    "governance_tools/solo_r2_disposable_materialization.py",
+    "artifacts/experiments/solo-r2-disposable-launcher-20260906/controller.py"
+  ],
+  "old_ledger_sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+  "not_claimed": [
+    "owner adoption",
+    "production compatibility",
+    "runtime custody/readiness",
+    "complete shakedown",
+    "implementation tests"
+  ],
+  "persisted_by": "parent from independent reviewer final result"
+}
