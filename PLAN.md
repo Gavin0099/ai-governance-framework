@@ -2764,3 +2764,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Targeted 16 PASS; independent 16 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-launcher-20260907/review.json.
 - Owner authorized scoped local delivery of the five reviewed launcher files and required records; committed identity verification follows. Existing production and old five-event ledger unchanged; no real replacement allocation, Pair, Attempt or payload-pin adoption.
 - Static wiring is verified; real-host creation and admission are not. STOP after local commit verification; real creation requires separate authorization. No push.
+
+## Solo R2 replacement payload-pin adoption (2026-09-07)
+
+- External Phase A created evaluation 8e3fb9fe-d94b-45d5-897c-3a3e75849bd8 and Pair eef1c2f5-91d7-4d8d-b765-251340f35d67; verified ledger contains only GENESIS and PAIR_CREATED.
+- Owner adopted exact 319-byte pin SHA256 0edfdabdb50094e0fa72eb6edd6ab9c17987c917bd2f530908920cf7f2ef99e8. Exact copy and conversation-sourced adoption: memory/evidence/solo-r2-replacement-payload-pin-adoption-20260907/owner-adoption.json.
+- Owner authorized scoped Git durability of the exact adopted bytes and adoption record; committed identity verification follows. Attempt 0, exposure NONE. No readiness, execution, payload regeneration or old-pin reuse.
+- STOP after scoped commit and identity verification. Replacement Phase B wiring and later runtime readiness require separate authorization.
