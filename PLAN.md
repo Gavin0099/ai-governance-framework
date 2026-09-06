@@ -2707,3 +2707,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Minimal v2.1 cost representation implemented; numeric v2 unchanged. Extended append requires exact adoption and durable controller evidence verified against the retained trace.
 - Targeted 138 PASS; independent 42 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-unavailable-cost-implementation-20260906/review.json.
 - New R1 drift affects ledger_v2 and lifecycle; refresh follows this implementation commit immediately. Real ledger remains four events; no historical append, retry, Attempt 2 or push.
+
+## Solo R2 unavailable-cost R1 refresh (2026-09-06)
+
+- Implementation committed at `0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab`; targeted 138 PASS and independent 42 PASS / Blocking 0.
+- R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
+- New create-once evidence: `artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-0c48594a.json`; R1 targeted tests 20 PASS. Previous generation preserved.
+- Separate refresh commit follows independent review. STOP after committed identity verification; historical terminal append still requires separate authorization. Ledger remains four events; no retry, execution or push.

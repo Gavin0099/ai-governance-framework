@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "3b820a2c3f115c3ee26d0514f10a39aad44a0b34"
+        "0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab"
     )
     assert {
         binding["sha256"]
@@ -76,11 +76,11 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     }
     assert bindings["governance_tools/solo_attempt_ledger_v2.py"] == {
         "path": "governance_tools/solo_attempt_ledger_v2.py",
-        "sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
-        "git_blob": "0420f7f03deccb19746d0318915613b0656275f4",
-        "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
+        "sha256": "7954c4b472611c8f70faa6ad4b08b18146bb7b4b1ea0954c0b1b985e1da91d20",
+        "git_blob": "89a3ebf779943ebd679ced081e72f11ca315da87",
+        "last_change_commit": "0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab",
         "role": "atomic_genesis_publication_runtime_surface",
-        "bytes": 30751,
+        "bytes": 34672,
     }
     assert bindings["governance_tools/solo_r2_bootstrap.py"] == {
         "path": "governance_tools/solo_r2_bootstrap.py",
@@ -299,7 +299,7 @@ def test_production_call_site_projection_is_exact(tmp_path: Path) -> None:
         {
             "path": "governance_tools/solo_r2_lifecycle_integration.py",
             "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-            "line": 770,
+            "line": 815,
             "callee": "scoring_bundle.build_blind_scoring_bundle",
             "args": [],
             "keywords": {
