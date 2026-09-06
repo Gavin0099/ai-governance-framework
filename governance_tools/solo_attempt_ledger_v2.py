@@ -16,6 +16,8 @@ import re
 from typing import Any, Mapping, Sequence
 from uuid import UUID
 
+from governance_tools import solo_r2_disposable_profile as disposable
+
 
 LEDGER_SCHEMA = "solo_attempt_ledger.v2"
 PUBLIC_LEDGER_PATH = Path(
@@ -254,8 +256,8 @@ def _reject_forbidden_public_tokens(value: object) -> None:
             _reject_forbidden_public_tokens(child)
 
 
-def _validate_common(event: Mapping[str, Any], expected_seq: int) -> None:
-    if event.get("schema_version") != LEDGER_SCHEMA:
+def _validate_common(event: Mapping[str, Any], expected_seq: int, schema: str = LEDGER_SCHEMA) -> None:
+    if event.get("schema_version") != schema:
         _fail()
     if type(event.get("event_seq")) is not int or event["event_seq"] != expected_seq:
         _fail(LEDGER_TRANSITION_FAILURE)
@@ -267,9 +269,9 @@ def _validate_common(event: Mapping[str, Any], expected_seq: int) -> None:
         _fail()
 
 
-def _validate_genesis(event: Mapping[str, Any]) -> None:
+def _validate_genesis(event: Mapping[str, Any], schema: str = LEDGER_SCHEMA) -> None:
     _require_exact_keys(event, _GENESIS_KEYS)
-    _validate_common(event, 1)
+    _validate_common(event, 1, schema)
     if event["event_type"] != "V2_GENESIS":
         _fail(LEDGER_TRANSITION_FAILURE)
     if not _is_uuid4(event.get("evaluation_id")):
@@ -278,7 +280,7 @@ def _validate_genesis(event: Mapping[str, Any]) -> None:
         "predecessor_digest": V1_LEDGER_SHA256,
         "adopted_protocol_sha256": ADOPTED_PROTOCOL_SHA256,
         "adopted_contract_sha256": ADOPTED_CONTRACT_SHA256,
-        "adopted_schema_id": ADOPTED_SCHEMA_ID,
+        "adopted_schema_id": disposable.SCHEMA_ID if schema == disposable.SCHEMA else ADOPTED_SCHEMA_ID,
         "legacy_pair_id": LEGACY_PAIR_ID,
         "legacy_pair_state_at_v1": "PAIR_CREATED",
         "legacy_pair_disposition": "PRE_ATTEMPT_TERMINATION",
@@ -304,7 +306,18 @@ def _validate_genesis(event: Mapping[str, Any]) -> None:
         _fail()
 
 
-def _validate_frozen_identities(value: object) -> Mapping[str, Any]:
+def _validate_frozen_identities(value: object, schema: str = LEDGER_SCHEMA) -> Mapping[str, Any]:
+    if schema == disposable.SCHEMA:
+        expected = {
+            "protocol_sha256": ADOPTED_PROTOCOL_SHA256,
+            "contract_sha256": ADOPTED_CONTRACT_SHA256,
+            "schema_id": disposable.SCHEMA_ID,
+            "input_authority_sha256": disposable.INPUT_SHA256,
+        }
+        identities = _require_exact_keys(value, frozenset(expected))
+        if dict(identities) != expected:
+            _fail()
+        return identities
     identities = _require_exact_keys(value, _FROZEN_IDENTITY_KEYS)
     if identities["protocol_sha256"] != ADOPTED_PROTOCOL_SHA256:
         _fail()
@@ -369,14 +382,14 @@ def _validate_cost_metrics(value: object) -> None:
         _fail()
 
 
-def _validate_event_shape(event: object, expected_seq: int) -> Mapping[str, Any]:
+def _validate_event_shape(event: object, expected_seq: int, schema: str = LEDGER_SCHEMA) -> Mapping[str, Any]:
     if not isinstance(event, Mapping):
         _fail()
     event_type = event.get("event_type")
     if not isinstance(event_type, str) or event_type not in _EVENT_EXTRA_KEYS:
         _fail()
     _require_exact_keys(event, _COMMON_KEYS | _EVENT_EXTRA_KEYS[event_type])
-    _validate_common(event, expected_seq)
+    _validate_common(event, expected_seq, schema)
     pair_id = event["pair_id"]
     if event_type == "PRE_ATTEMPT_INFRA_FAILURE":
         if pair_id is not None and not _is_nonempty_string(pair_id):
@@ -385,13 +398,15 @@ def _validate_event_shape(event: object, expected_seq: int) -> Mapping[str, Any]
         _fail()
     if event["slot"] not in SLOTS:
         _fail()
+    if schema == disposable.SCHEMA and event["slot"] != "R2-SHAKEDOWN":
+        _fail()
 
     if event_type == "PAIR_CREATED":
         if not _is_nonempty_string(event["category"]) or not _is_nonempty_string(
             event["repository"]
         ):
             _fail()
-        _validate_frozen_identities(event["frozen_identities"])
+        _validate_frozen_identities(event["frozen_identities"], schema)
     elif event_type == "PRE_ATTEMPT_INFRA_FAILURE":
         if not _is_nonempty_string(event["category"]) or not _is_nonempty_string(
             event["repository"]
@@ -454,7 +469,10 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
     genesis = events[0]
     if not isinstance(genesis, Mapping):
         _fail()
-    _validate_genesis(genesis)
+    schema = genesis.get("schema_version")
+    if schema not in (LEDGER_SCHEMA, disposable.SCHEMA):
+        _fail()
+    _validate_genesis(genesis, schema)
     evaluation_id = genesis["evaluation_id"]
     event_ids = {genesis["event_id"]}
     pairs: dict[str, dict[str, Any]] = {}
@@ -469,7 +487,7 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
     globally_stopped = False
 
     for expected_seq, raw_event in enumerate(events[1:], start=2):
-        event = _validate_event_shape(raw_event, expected_seq)
+        event = _validate_event_shape(raw_event, expected_seq, schema)
         event_id = event["event_id"]
         if event_id in event_ids:
             _fail(LEDGER_TRANSITION_FAILURE)
@@ -609,7 +627,7 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
             _fail(LEDGER_TRANSITION_FAILURE)
 
     return LedgerSummary(
-        schema_version=LEDGER_SCHEMA,
+        schema_version=schema,
         ledger_event_count=len(events),
         pair_count=len(pairs),
         admitted_attempt_count=admitted_total,
@@ -746,6 +764,10 @@ def create_genesis_ledger(
 
     ledger_path = Path(path)
     candidate, encoded, summary = _snapshot_genesis_event(event)
+    # Disposable publication also needs the one-allocation binding record.
+    # Only its dedicated creation operation can publish that pair of artifacts.
+    if summary.schema_version == disposable.SCHEMA:
+        _fail(LEDGER_APPEND_FAILURE)
     temporary = ledger_path.with_name(f".{ledger_path.name}.tmp")
     if (
         not ledger_path.parent.is_dir()
@@ -804,6 +826,13 @@ def append_event(path: Path | str, event: Mapping[str, Any]) -> LedgerSummary:
     existing = read_ledger(ledger_path, allow_missing=True)
     candidate = [*existing, dict(event)]
     summary = validate_ledger_events(candidate)
+    if summary.schema_version == disposable.SCHEMA:
+        from governance_tools.solo_r2_pair_creation import _has_reparse_or_symlink_component
+        expected = disposable.ROOT / disposable.LEDGER_PATH
+        if (ledger_path != expected or ledger_path.resolve(strict=True) != expected
+                or _has_reparse_or_symlink_component(ledger_path)
+                or ledger_path.stat().st_nlink != 1):
+            _fail(LEDGER_APPEND_FAILURE)
     encoded = encode_event(event)
     try:
         if not ledger_path.parent.is_dir():

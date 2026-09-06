@@ -70,8 +70,17 @@ class PairBinding:
     category: str
     repository: str
     frozen_identities: Mapping[str, object]
+    input_authority: object | None = None
 
     def validate_event(self, genesis: Mapping[str, Any], event: Mapping[str, Any]) -> None:
+        from governance_tools import solo_r2_disposable_profile as profile
+        if genesis.get("schema_version") == profile.SCHEMA:
+            from governance_tools.solo_r2_disposable_binding import ExperimentInputAuthority
+            if type(self.input_authority) is not ExperimentInputAuthority:
+                _fail(PAIR_INVALID)
+            if (self.repository != self.input_authority.repository
+                    or dict(self.frozen_identities) != self.input_authority.pair_identities()):
+                _fail(PAIR_INVALID)
         if (
             genesis.get("evaluation_id") != self.evaluation_id
             or event.get("event_type") != "PAIR_CREATED"

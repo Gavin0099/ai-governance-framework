@@ -590,9 +590,20 @@ def _create_pair_after_validation(
     key_path: Path | str,
     custody_boundary: controller.CustodyBoundary,
     commitment_path: Path | None,
+    disposable_authority=None,
 ) -> PairCreationResult:
+    if disposable_authority is not None:
+        from governance_tools.solo_r2_disposable_binding import ExperimentInputAuthority
+        if type(disposable_authority) is not ExperimentInputAuthority:
+            _fail()
+        identities = disposable_authority.pair_identities()
+        repository_name = disposable_authority.repository
     pair_id = _new_uuid4()
     event = _pair_event(pair_id=pair_id)
+    if disposable_authority is not None:
+        from governance_tools import solo_r2_disposable_profile as profile
+        event.update(schema_version=profile.SCHEMA, repository=repository_name,
+                     frozen_identities=identities)
     try:
         ledger.validate_ledger_events([genesis, event])
     except ledger.LedgerError:
@@ -680,6 +691,31 @@ def create_shakedown_pair(
         key_path=key_path,
         custody_boundary=custody_boundary,
         commitment_path=None,
+    )
+
+
+def create_disposable_shakedown_pair(
+    *, git, repository, temp_root: Path,
+    expected_binding_sha256: str, expected_evaluation_id: str,
+    controller_root: Path | str, key_path: Path | str,
+    commitment_path: Path | str, custody_boundary: controller.CustodyBoundary,
+) -> PairCreationResult:
+    """Separate owner-authorized Pair operation; never part of bootstrap/preflight."""
+    from governance_tools.solo_r2_disposable_binding import validate_disposable_pair_preconditions
+    _validate_project_root(repository.root, custody_boundary)
+    public_path, genesis, authority = validate_disposable_pair_preconditions(
+        git=git, repository=repository, temp_root=temp_root,
+        expected_binding_sha256=expected_binding_sha256,
+        expected_evaluation_id=expected_evaluation_id,
+    )
+    private_root, commitment = validate_replacement_targets(
+        controller_root=controller_root, key_path=key_path,
+        commitment_path=commitment_path, custody_boundary=custody_boundary,
+    )
+    return _create_pair_after_validation(
+        public_path=public_path, genesis=genesis, private_root=private_root,
+        key_path=key_path, custody_boundary=custody_boundary,
+        commitment_path=commitment, disposable_authority=authority,
     )
 
 
