@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab"
+        "de85d2f8ecf5f1ccb732e09ec4053b74456ab180"
     )
     assert {
         binding["sha256"]
@@ -76,11 +76,11 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     }
     assert bindings["governance_tools/solo_attempt_ledger_v2.py"] == {
         "path": "governance_tools/solo_attempt_ledger_v2.py",
-        "sha256": "7954c4b472611c8f70faa6ad4b08b18146bb7b4b1ea0954c0b1b985e1da91d20",
-        "git_blob": "89a3ebf779943ebd679ced081e72f11ca315da87",
-        "last_change_commit": "0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab",
+        "sha256": "dbfa2fd26fa2f2d99dd06def029f9b3f5951922a4feaff5674325dbc1ff80324",
+        "git_blob": "d2c3f747c45aff454626b0fbf8331516b5bdc6e2",
+        "last_change_commit": "de85d2f8ecf5f1ccb732e09ec4053b74456ab180",
         "role": "atomic_genesis_publication_runtime_surface",
-        "bytes": 34672,
+        "bytes": 35226,
     }
     assert bindings["governance_tools/solo_r2_bootstrap.py"] == {
         "path": "governance_tools/solo_r2_bootstrap.py",
@@ -100,11 +100,11 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     }
     assert bindings["governance_tools/solo_r2_pair_creation.py"] == {
         "path": "governance_tools/solo_r2_pair_creation.py",
-        "sha256": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2",
-        "git_blob": "a9205606ea2faf2d47e55ae8f27cdc6284ed4795",
-        "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
+        "sha256": "656bc9405d22549811b73e4a3a95e1034a6488c177b957f1ba73f18bcac0ca35",
+        "git_blob": "3db1d53d0b6e0ed960c73b72a8fac9464461cbfe",
+        "last_change_commit": "de85d2f8ecf5f1ccb732e09ec4053b74456ab180",
         "role": "pair_creation_entropy_and_arm_order_call_site_closure",
-        "bytes": 27562,
+        "bytes": 29440,
     }
 
 
@@ -299,7 +299,7 @@ def test_production_call_site_projection_is_exact(tmp_path: Path) -> None:
         {
             "path": "governance_tools/solo_r2_lifecycle_integration.py",
             "scope": "SyntheticLifecycleCoordinator.prepare_scoring.operation",
-            "line": 815,
+            "line": 818,
             "callee": "scoring_bundle.build_blind_scoring_bundle",
             "args": [],
             "keywords": {

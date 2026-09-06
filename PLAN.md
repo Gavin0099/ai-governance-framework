@@ -2750,3 +2750,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Directly affected regression 239 PASS; independent 66 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-binding-implementation-20260907/review.json.
 - Old ledger remains five events; no real evaluation, Pair, Attempt or runtime executed. Outer launcher/admission is not verified.
 - New R1 drift affects ledger_v2, pair_creation and lifecycle; refresh immediately after this implementation commit, then STOP. No push.
+
+## Solo R2 replacement binding R1 refresh (2026-09-07)
+
+- Implementation committed at de85d2f8ecf5f1ccb732e09ec4053b74456ab180; reviewed source bytes verified 9/9. Regression239PASS and independent66PASS.
+- R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics. New evidence: artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-de85d2f8.json. Previous generation preserved.
+- R1 structural check and targeted20tests PASS. Independent refresh review precedes separate local commit.
+- STOP after refresh commit verification; no real evaluation/ledger/Pair/Attempt or push. Outer launcher and real admission remain unverified.
