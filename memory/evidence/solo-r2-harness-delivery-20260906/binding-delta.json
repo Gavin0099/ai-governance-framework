@@ -1,0 +1,33 @@
+{
+  "changed_pins": [
+    {
+      "path": "D:\\ai-governance-framework\\governance_tools\\solo_attempt_ledger_v2.py",
+      "previous_sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
+      "sha256": "7954c4b472611c8f70faa6ad4b08b18146bb7b4b1ea0954c0b1b985e1da91d20"
+    },
+    {
+      "path": "D:\\ai-governance-framework\\governance_tools\\solo_r2_disposable_binding.py",
+      "previous_sha256": "5d08d242338e56bca3f045951cdf74498338e610255a1efa5dadefd442aced47",
+      "sha256": "598ea51514ff9b4a204c5b5efb135c01f9ecdabd17590ec7e8ef01d95861621d"
+    },
+    {
+      "path": "D:\\ai-governance-framework\\governance_tools\\solo_r2_disposable_execution.py",
+      "previous_sha256": "43627da76dbb7428225418d0959c14e11d77ace3a40ea4bcbd4652964b6af580",
+      "sha256": "b4ff89e6fb32dbc646b1fd40c334ebd05bd53223d09578b6129e6f9b1ffe7342"
+    },
+    {
+      "path": "D:\\ai-governance-framework\\governance_tools\\solo_r2_disposable_profile.py",
+      "previous_sha256": "dc652724822d1901dfbc50936d6a769807a71ffaf35c44197e78ac1366b661f8",
+      "sha256": "e7e17cde2d57b5da615e1201460853eb13d34a0630238f784f40622553d60d5b"
+    },
+    {
+      "path": "D:\\ai-governance-framework\\governance_tools\\solo_r2_lifecycle_integration.py",
+      "previous_sha256": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda",
+      "sha256": "6670e7cc49c0277938ff397806ca507b0ec7b986fdbdc2670a0ea0b2dcca7d03"
+    }
+  ],
+  "previous_manifest_sha256": "381be682943000315e8fd6965cc0f307b3b90deb891b47aaab80e5cb4153de2c",
+  "manifest_sha256": "45e7eb2b2ed05a341cd17b11031172077b3458976e2173c181c8746f1c82a548",
+  "controller_sha256": "eec6d6d84f110ff16a2f46a15be46782afe090fa1b789ced250d554de616268f",
+  "scope": "Static entry binding only; old experiment state/manifest binding not migrated; no execution admission"
+}

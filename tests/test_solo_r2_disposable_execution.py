@@ -85,7 +85,7 @@ def setup(environment, monkeypatch):
         assert kwargs['prompt']==expected
         state.calls.append(kwargs)
         (workspace/'queue_range.py').write_bytes(state.repaired)
-        return _result(kwargs['output_root'],'runtime','shell')
+        return _result(kwargs['output_root'],'codex-trace','shell')
     backend=SimpleNamespace(native_backend=SimpleNamespace(execute=native,
         executable=pin, owner_payload_pin=None), codex_home=env.roots['execution'],
         whoami=pin, provision_sandbox=lambda: SimpleNamespace(generation_after=GENERATION),
@@ -186,6 +186,89 @@ def test_native_failure_after_exposure_cannot_retry(setup):
     assert ledger.validate_ledger_file(s.public).initiated_attempt_count==1
     with pytest.raises(Exception): execution.DisposableArmExecution(**s.args).run()
     assert len(s.calls)==1 and s.mat.leaves.active is None
+    failure=json.loads((s.calls[0]['output_root']/'execution-failure.json').read_bytes())
+    assert failure['unavailable_metrics']==['tool_calls']
+    assert failure['terminal_event_ready'] is False
+    assert ledger.read_ledger(s.public)[-1]['event_type']=='TASK_EXPOSED'
+
+
+def test_native_failure_with_retained_trace_is_terminal_and_never_retried(setup, monkeypatch):
+    s=setup
+    captured=[]
+    handler=execution.DisposableArmExecution._record_exposed_failure
+    def observe(coordinator, *args):
+        captured.append(coordinator)
+        return handler(coordinator, *args)
+    monkeypatch.setattr(execution.DisposableArmExecution, '_record_exposed_failure', staticmethod(observe))
+    original=s.run.window.backend.native_backend.execute
+    def fail(**kwargs):
+        original(**kwargs)  # Retain real-format trace, then simulate catalog rejection.
+        raise RuntimeError('synthetic post-dispatch catalog rejection')
+    s.run.window.backend.native_backend.execute=fail
+    with pytest.raises(RuntimeError) as caught: s.execute()
+    events=ledger.read_ledger(s.public)
+    assert [e['event_type'] for e in events][-2:]==['TASK_EXPOSED','EXECUTION_TERMINAL'], repr(caught.value)
+    assert events[-1]['correctness_result']['scope_status']=='NOT_EVALUATED'
+    assert events[-1]['cost_metrics']['tool_calls']>=0
+    assert len(s.calls)==1
+    assert ledger.validate_ledger_file(s.public).initiated_attempt_count==1
+    evidence=json.loads((s.calls[0]['output_root']/'execution-failure.json').read_bytes())
+    assert evidence['disposition']=='UNCLASSIFIED' and evidence['terminal_event_ready']
+    assert captured[0]._terminal_outputs == {}
+    assert captured[0]._stopped
+    with pytest.raises(Exception): captured[0].prepare_scoring()
+    with pytest.raises(Exception): s.execute()
+    assert len(s.calls)==1
+
+
+def test_failure_evidence_write_error_cannot_append_or_continue(setup, monkeypatch):
+    s=setup
+    original=s.run.window.backend.native_backend.execute
+    def fail(**kwargs):
+        original(**kwargs)
+        raise RuntimeError('synthetic post dispatch failure')
+    s.run.window.backend.native_backend.execute=fail
+    writer=execution._write_once
+    def reject(path, raw):
+        if path.name=='execution-failure.json': raise OSError('synthetic persistence failure')
+        return writer(path, raw)
+    monkeypatch.setattr(execution,'_write_once',reject)
+    with pytest.raises(OSError): s.execute()
+    assert ledger.read_ledger(s.public)[-1]['event_type']=='TASK_EXPOSED'
+    with pytest.raises(Exception): s.execute()
+    assert len(s.calls)==1 and s.mat.leaves.active is None
+
+
+def test_malformed_failure_trace_never_fabricates_cost_or_terminal(setup):
+    s=setup
+    def fail(**kwargs):
+        s.calls.append(kwargs)
+        (kwargs['output_root']/'codex-trace.jsonl').write_bytes(b'invalid')
+        raise RuntimeError('synthetic malformed trace')
+    s.run.window.backend.native_backend.execute=fail
+    with pytest.raises(RuntimeError): s.execute()
+    failure=json.loads((s.calls[0]['output_root']/'execution-failure.json').read_bytes())
+    assert failure['unavailable_metrics']==['tool_calls']
+    assert 'tool_calls' not in failure['cost_metrics']
+    assert ledger.read_ledger(s.public)[-1]['event_type']=='TASK_EXPOSED'
+
+
+def test_failure_terminal_append_error_remains_stopped(setup,monkeypatch):
+    s=setup; original=s.run.window.backend.native_backend.execute
+    def fail(**kwargs):
+        original(**kwargs)
+        raise RuntimeError('synthetic post dispatch failure')
+    s.run.window.backend.native_backend.execute=fail
+    append=ledger.append_event
+    def reject(path,event):
+        if event['event_type']=='EXECUTION_TERMINAL': raise ledger.LedgerError('synthetic append failure')
+        return append(path,event)
+    monkeypatch.setattr(ledger,'append_event',reject)
+    with pytest.raises(ledger.LedgerError): s.execute()
+    assert (s.calls[0]['output_root']/'execution-failure.json').exists()
+    assert ledger.read_ledger(s.public)[-1]['event_type']=='TASK_EXPOSED'
+    with pytest.raises(Exception): s.execute()
+    assert len(s.calls)==1
 
 
 def test_materialization_authority_must_match_pair(setup):
@@ -265,7 +348,7 @@ def test_real_pinned_git_exports_only_frozen_subtree_under_poisoned_environment(
 
 
 @pytest.mark.parametrize('mutation',['test','extra','ledger'])
-def test_post_arm_mismatch_never_becomes_terminal_output(setup,mutation):
+def test_post_arm_mismatch_never_becomes_successful_output(setup,mutation):
     s=setup
     original=s.run.window.backend.native_backend.execute
     def dispatch(**kwargs):
@@ -281,7 +364,11 @@ def test_post_arm_mismatch_never_becomes_terminal_output(setup,mutation):
     s.run.window.backend.native_backend.execute=dispatch
     with pytest.raises(Exception): s.execute()
     assert len(s.calls)==1
-    assert not any(e['event_type']=='EXECUTION_TERMINAL' for e in ledger.read_ledger(s.public))
+    terminals=[e for e in ledger.read_ledger(s.public) if e['event_type']=='EXECUTION_TERMINAL']
+    if mutation=='ledger':
+        assert not terminals
+    else:
+        assert len(terminals)==1 and terminals[0]['correctness_result']['scope_status']=='NOT_EVALUATED'
 
 
 @pytest.mark.parametrize('name',['solo_r2_disposable_materialization','solo_r2_disposable_execution'])

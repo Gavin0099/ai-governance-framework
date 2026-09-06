@@ -2720,3 +2720,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Owner-authorized historical append completed: fifth event EXECUTION_TERMINAL / HARNESS_FAILURE; original four-event prefix preserved byte-for-byte.
 - Initiated count remains 1; terminal count is 1. elapsed_ms UNAVAILABLE, tool_calls 7; optional tokens_total omitted with raw components retained in controller custody.
 - Evidence: memory/evidence/solo-r2-historical-terminal-20260906/result.json. No output sealing, correctness evaluation, retry, Attempt 2 or push. STOP; later bug-fix/retry decisions remain separate.
+
+## Solo R2 harness repair delivery (2026-09-06)
+
+- Two-mode repair reviewed: direct 77 PASS, independent 10 PASS / Blocking 0.
+- Outer launcher check and tamper rejection: 6 PASS; five known module pins and wrapper digests updated, prior manifest preserved.
+- Scope is local committed repair and static import binding only. Existing Phase A state is not migrated; readiness and execution admission remain unverified.
+- No real ledger change, Pair/Attempt, retry or push. STOP after committed identity verification.

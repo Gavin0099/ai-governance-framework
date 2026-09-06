@@ -22,6 +22,7 @@ from governance_tools.solo_r2_attempt_execution import PreAttemptExecutionCoordi
 from governance_tools.solo_r2_disposable_materialization import DisposableGitMaterializer
 from governance_tools.solo_r2_runtime_window import (PreAttemptFrozenRuntimeWindow, GitRepositoryFreezeProbe,
     PreAttemptRuntimeReadiness, READY_BEFORE_ATTEMPT)
+from governance_tools.solo_r2_codex_runner import derive_trace_metrics
 
 
 def _fail():
@@ -214,6 +215,8 @@ class DisposableArmExecution:
         mat = window.materializer
         handle = None
         leaf = None
+        started = None
+        output = None
         try:
             task = mat.task_bytes()  # Controller-only; never written to a leaf.
             leaf = mat.materialize(f'{coordinator._pair_id}-execution-{prepared.arm_ordinal}')
@@ -262,13 +265,47 @@ class DisposableArmExecution:
                 cost_metrics={'elapsed_ms':elapsed, 'tool_calls':result.tool_call_count},
                 output_ref=hashlib.sha256(patch).hexdigest(),
                 output_payload=json.dumps({'source':patch.decode('utf-8', errors='strict')}, ensure_ascii=True))
-        except BaseException:
-            if handle is not None:
-                events = ledger.read_ledger(coordinator.ledger_path)
-                if coordinator._attempt_states(events).get(handle) == 'ADMITTED':
-                    coordinator.record_admitted_not_exposed(handle)
-            coordinator._stopped = True
+        except BaseException as failure:
+            try:
+                if handle is not None:
+                    events = ledger.read_ledger(coordinator.ledger_path)
+                    state = coordinator._attempt_states(events).get(handle)
+                    if state == 'ADMITTED':
+                        coordinator.record_admitted_not_exposed(handle)
+                    elif state == 'TASK_EXPOSED':
+                        self._record_exposed_failure(coordinator, handle, output, started, failure)
+            finally:
+                coordinator._stopped = True
             raise
         finally:
             if leaf is not None:
                 mat.leaves.release(leaf)
+
+    @staticmethod
+    def _record_exposed_failure(coordinator, handle, output, started, failure):
+        """Retain the failure before terminal append; never retry or invent costs."""
+        costs = {}
+        if started is not None:
+            costs['elapsed_ms'] = max(0, int((time.monotonic()-started)*1000))
+        try:
+            material._regular_unlinked_path(output/'codex-trace.jsonl')
+            metrics = derive_trace_metrics((output/'codex-trace.jsonl').read_bytes())
+            costs['tool_calls'] = metrics.tool_call_count
+        except Exception:
+            pass  # Missing/unparseable trace is not zero observed tool calls.
+        evidence = dict(disposition='UNCLASSIFIED', failure_type=type(failure).__name__,
+            task_exposure_state='EXPOSED', cost_metrics=costs,
+            unavailable_metrics=sorted({'elapsed_ms','tool_calls'}-costs.keys()),
+            terminal_event_ready={'elapsed_ms','tool_calls'} <= costs.keys(),
+            claim='No oracle, regression, scope or correctness judgment; no retry authorized')
+        raw = json.dumps(evidence,sort_keys=True).encode()+b'\n'
+        _write_once(output/'execution-failure.json',raw)
+        if not evidence['terminal_event_ready']:
+            return  # Retain evidence and re-raise original failure; do not invent required costs.
+        # Failure accounting is not result sealing. Preserve the same validated
+        # ledger boundary without inserting diagnostic prose into scoring inputs.
+        coordinator._append_event('EXECUTION_TERMINAL', attempt_handle=handle,
+            attempt_state='TERMINAL',
+            correctness_result={'oracle_status':'NOT_RUN','required_case_count':10,
+                'passed_case_count':0,'regression_status':'NOT_EVALUATED','scope_status':'NOT_EVALUATED'},
+            cost_metrics=costs)
