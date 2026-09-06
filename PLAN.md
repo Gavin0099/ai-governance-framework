@@ -2657,3 +2657,28 @@ Local commit checkpoint: 9bcd7ffc (2026-09-06) now durably contains the six
 reviewed creation/pre-Pair implementation files. This supersedes the uncommitted
 status above. Evidence companion preserves review/test identities; no push.
 Materializer/arm integration remains NOT DONE and separately scoped. STOP.
+
+### Solo R2 disposable materializer / arm integration - 2026-09-06
+
+Owner-authorized seven-file integration implemented in the local worktree.
+Exact subtree and packet binding, durable exposure-before-dispatch, per-arm runtime
+freeze and retained source/runtime evidence are covered by 28 passing new tests.
+Independent review APPROVED, Blocking=0; evidence in
+memory/evidence/solo-r2-disposable-integration-20260906/.
+All-Solo: 478 passed / 11 historical R1 fingerprint failures; the same 11 fail
+on baseline fd772498 (R1: 8 passed / 11 failed). No new failure names observed;
+not an all-green or production-admission claim. Frozen inputs unchanged.
+Implementation UNCOMMITTED; no real evaluation/ledger/Pair/Attempt, no task run,
+no oracle/scoring/unblinding, no qualification rerun, no push. STOP.
+
+### Solo R2 pre-commit evidence correction - 2026-09-06
+
+Owner authorizes evidence/scope reconciliation and one reviewed implementation
+commit, then STOP. Prior failure-name comparison did not establish unchanged R1:
+9bcd7ffc introduced ledger_v2 + pair_creation drift; the integration slice adds
+lifecycle_integration drift. Three bound modules require the next separate
+post-implementation-commit R1 generation refresh against exact committed bytes.
+R1 remains FAIL. See memory/evidence/solo-r2-disposable-integration-20260906/
+scope-reconciliation.md and regression-comparison.json. External inventory guard,
+its tests/configuration and workflow changes remain excluded. No refresh, execution
+or push in this slice. Implementation commit verification is the stopping point.

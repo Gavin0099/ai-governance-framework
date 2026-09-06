@@ -279,6 +279,8 @@ class PreAttemptExecutionCoordinator:
         if self._used:
             _fail()
         summary = self.pair_lock.assert_unchanged()
+        if materialization.input_authority != self.pair_lock.binding.input_authority:
+            _fail(PAIR_INVALID)
         try:
             for principal, generation in (
                 (canary.sandbox_principal, canary.sandbox_account_generation),

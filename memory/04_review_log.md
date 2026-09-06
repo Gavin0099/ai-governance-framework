@@ -5173,3 +5173,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PASS: memory/evidence/solo-r2-disposable-binding-20260906/targeted-tests.json records 164 passed; review.json records independent 32 passed and APPROVED Blocking=0 with six exact source hashes. Qualification NOT RERUN.
 - Next action: STOP with implementation, tests and review evidence ready. No commit or push performed. Creation, execution and further integration require their own authorized scope.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:b3ccc4209d2635a940e6aad8b9002a6f6b7995856224c11590d1e4651d0cba85 -->
+### Canonical memory checkpoint — solo-r2-disposable-integration-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `b3ccc4209d2635a940e6aad8b9002a6f6b7995856224c11590d1e4651d0cba85`
+- Commit binding: `fd772498` (bound)
+- Record: Owner-authorized disposable v2.1 materializer/arm integration implemented in seven local code/test files, UNCOMMITTED. Exact subtree verified before leaf writes; only treatment receives frozen packet; durable TASK_EXPOSED precedes dispatch; every arm rechecks runtime freeze allowing only owned ledger progress; repaired source/runtime evidence retained with oracle NOT_RUN. Independent review APPROVED Blocking=0. Frozen twelve inputs unchanged; no real creation, exposure, execution, qualification, commit or push. Commit field is pre-implementation baseline only.
+- Validation boundary: 28 new tests passed independently. Full 16-file Solo run: 478 passed / 11 failed at memory/evidence/solo-r2-disposable-integration-20260906/targeted-tests.json. Same 11 historical R1 failures reproduced using fd772498 committed fixture bytes: r1-baseline.json, regression-comparison.json. Seven reviewer hashes match review.json. NOT CLAIMED: all Solo tests green or real runtime admission.
+- Next action: STOP with implementation and review evidence ready; scoped commit and live admission/execution require separate scope. Do not change historical R1 fingerprints or qualification to make this report green.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:015636cff9175ca9b21ad35e4bc21a567fe7bd76e5096b18f11cecd90c411098 -->
+### Canonical memory checkpoint — solo-r2-integration-reconciliation-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `015636cff9175ca9b21ad35e4bc21a567fe7bd76e5096b18f11cecd90c411098`
+- Commit binding: `fd772498` (bound)
+- Record: Corrected prior R1 presentation: fd772498 baseline contains ledger_v2 and pair_creation drift introduced by 9bcd7ffc; this uncommitted integration adds lifecycle_integration as third R1-bound drift. Same failed test names did not establish unchanged R1. Updated current/baseline fingerprints and documented exact seven-file dependencies; external inventory guard/tests/config and workflow changes excluded. Owner authorizes one reviewed scoped implementation/evidence commit then STOP; usual separate companion sequence is bounded by this explicit instruction. Commit field is baseline only; future enclosing commit establishes implementation identity.
+- Validation boundary: Recomputed all seven R1 bindings: baseline 2 mismatches/current 3/introduced lifecycle 1. Existing seven-file independent review hashes unchanged; prior 28 new tests passed, full Solo 478 passed/11 failed. Corrected regression-comparison.json and scope-reconciliation.md under memory/evidence/solo-r2-disposable-integration-20260906/. Complete staged-scope review and post-commit identity verification pending; no runtime rerun for evidence-only correction.
+- Next action: After this scoped implementation commit, STOP. Next separate slice must refresh R1 generation for exact committed ledger_v2, pair_creation and lifecycle_integration bytes. No pre-commit refresh, live execution or push.
+- PLAN reconciliation: `updated`

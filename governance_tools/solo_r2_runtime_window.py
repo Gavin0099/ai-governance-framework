@@ -1116,6 +1116,7 @@ class RepositoryRuntimeIdentity:
     head_commit: str
     runner: RepositoryFileIdentity
     materialization: RepositoryFileIdentity
+    disposable_sources: tuple[RepositoryFileIdentity, ...] = ()
 
 
 class GitRepositoryFreezeProbe:
@@ -1230,8 +1231,11 @@ class RuntimeFreezeProbe:
         self.assert_runtime_quiescent = assert_runtime_quiescent
 
     def capture_candidate(self) -> RuntimeFreezeCandidate:
+        return self._capture_candidate(self.pair_lock.assert_unchanged)
+
+    def _capture_candidate(self, ledger_guard) -> RuntimeFreezeCandidate:
         self.assert_runtime_quiescent()
-        self.pair_lock.assert_unchanged()
+        ledger_guard()
         payload = self.backend.resolve_payload()
         owner_pin = self.backend.owner_payload_pin
         if owner_pin is not None and (
@@ -1277,7 +1281,7 @@ class RuntimeFreezeProbe:
             _sha256(policy_payload),
             True,
         )
-        self.pair_lock.assert_unchanged()
+        ledger_guard()
         payload.verify()
         qualification_helper.verify()
         generation_after = self.generation_probe()
@@ -1325,6 +1329,25 @@ class RuntimeFreezeProbe:
                 }
             )
         ):
+            _fail(SAME_MACHINE_WINDOW_REJECTED)
+
+    def assert_execution_unchanged(self, expected: RuntimeFreeze, coordinator) -> None:
+        """Same freeze during disposable execution; only owned ledger appends may advance."""
+        from governance_tools.solo_r2_disposable_execution import DisposableLifecycle
+        if (type(coordinator) is not DisposableLifecycle
+                or not self.pair_lock._held
+                or coordinator.ledger_path != self.pair_lock.ledger_path
+                or coordinator._pair_id != expected.pair_id
+                or coordinator._evaluation_id != expected.evaluation_id):
+            _fail(PAIR_INVALID)
+        coordinator._validated_events()
+        current = self._capture_candidate(coordinator._validated_events)
+        values = {key: value for key, value in expected.__dict__.items()
+                  if key != 'boundary_evidence_sha256'}
+        values['ledger_sha256'] = coordinator._ledger_digest
+        if (current != RuntimeFreezeCandidate(**values)
+                or self.boundary_evidence is None
+                or self.boundary_evidence.evidence_sha256 != expected.boundary_evidence_sha256):
             _fail(SAME_MACHINE_WINDOW_REJECTED)
 
 

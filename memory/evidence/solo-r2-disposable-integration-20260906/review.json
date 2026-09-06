@@ -1,0 +1,24 @@
+{
+  "reviewer": "review_disposable_arm_integration",
+  "verdict": "APPROVED",
+  "blocking": 0,
+  "independent_tests": "28 passed in 12.09s",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_attempt_materialization.py": "4e117400af54b030cf141dbc7ee68ca1bf04ac5210eafd84507a8c8132823383",
+    "governance_tools/solo_r2_attempt_execution.py": "012db584438be3cd360486f5d4a8fdc534d18f890d45b89e2c23f3f6820e9084",
+    "governance_tools/solo_r2_lifecycle_integration.py": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda",
+    "governance_tools/solo_r2_runtime_window.py": "2539406c9e6af2d2dc1ab66535d24fd4076573718ee81207c3cc9c2a9a430bac",
+    "governance_tools/solo_r2_disposable_materialization.py": "70eb8bd7cb1d524976977ab9d7bd39cdcb41d55776b136b76b613c56a9242ee6",
+    "governance_tools/solo_r2_disposable_execution.py": "c92e3dedb9bfbe9fe0d08b9ffbd8aea8aeb63b2774e4262ce391364eebb94f87",
+    "tests/test_solo_r2_disposable_execution.py": "c02bba58b7c189305110dad0388991661955da5107cdae269cfd81061160a15a"
+  },
+  "scope": "Disposable materializer/arm integration with synthetic lifecycle and native transport substituted in sequence tests; real pinned Git read-only subtree test.",
+  "not_claimed": [
+    "real runtime admission",
+    "actual arm execution",
+    "oracle/scoring/unblinding",
+    "S2 integrity",
+    "commit/push",
+    "all Solo tests green"
+  ]
+}

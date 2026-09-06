@@ -483,7 +483,7 @@ class SyntheticLifecycleCoordinator:
         existing = ledger.read_ledger(self._ledger_path)
         sequence = len(existing) + 1
         event = {
-            "schema_version": ledger.LEDGER_SCHEMA,
+            "schema_version": self._event_schema(),
             "event_seq": sequence,
             "event_type": event_type,
             "event_id": str(uuid4()),
@@ -497,6 +497,9 @@ class SyntheticLifecycleCoordinator:
         if persisted != expected:
             raise ledger.LedgerError(ledger.LEDGER_APPEND_FAILURE)
         return persisted
+
+    def _event_schema(self) -> str:
+        return ledger.LEDGER_SCHEMA
 
     def _validated_events(self) -> tuple[list[dict[str, Any]], ledger.LedgerSummary]:
         events = ledger.read_ledger(self._ledger_path)

@@ -1,0 +1,95 @@
+{
+  "baseline_commit": "fd772498",
+  "current_counts": {
+    "passed": 478,
+    "failed": 11
+  },
+  "baseline_r1_counts": {
+    "passed": 8,
+    "failed": 11
+  },
+  "same_failure_set": true,
+  "failed_tests": [
+    "tests/test_solo_r2_r1_structural_conformance.py::test_bootstrap_is_bound_and_has_no_generator_call_site",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_build_is_deterministic_and_binds_exact_sources",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_candidate_metadata_is_deterministic_and_externally_routed",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_evidence_schema_is_closed",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_main_reports_only_fixed_disposition_and_digest",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_namespace_records_one_exact_self_exclusion",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_new_generation_write_preserves_previous_evidence",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_pair_creation_is_bound_to_zero_argument_order_entropy",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_production_call_site_projection_is_exact",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_tranche4_interface_reconciliation_is_mechanically_bound",
+    "tests/test_solo_r2_r1_structural_conformance.py::test_write_is_create_once_and_preserves_existing_bytes"
+  ],
+  "baseline_source_fingerprint_mismatches": [
+    "governance_tools/solo_attempt_ledger_v2.py",
+    "governance_tools/solo_r2_pair_creation.py"
+  ],
+  "claim_ceiling": "R1 remains FAIL. This slice introduced lifecycle-integration bound-module drift, in addition to ledger_v2 and pair_creation drift committed in 9bcd7ffc. Post-implementation-commit R1 generation refresh remains required for all three exact committed modules. Same failed test names may mask additional mismatches; not full regression PASS, qualification or production admission.",
+  "current_source_fingerprint_mismatches": [
+    "governance_tools/solo_attempt_ledger_v2.py",
+    "governance_tools/solo_r2_lifecycle_integration.py",
+    "governance_tools/solo_r2_pair_creation.py"
+  ],
+  "introduced_source_fingerprint_mismatches": [
+    "governance_tools/solo_r2_lifecycle_integration.py"
+  ],
+  "source_fingerprint_comparison": [
+    {
+      "path": "governance_tools/solo_attempt_ledger_v2.py",
+      "r1_expected_sha256": "652e9c8f2fb01cade50c8e712cf0819341f36c4fd14bef43fb90fb606e20c5dc",
+      "baseline_sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
+      "current_sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf"
+    },
+    {
+      "path": "governance_tools/solo_r2_random_domains.py",
+      "r1_expected_sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597",
+      "baseline_sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597",
+      "current_sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597"
+    },
+    {
+      "path": "governance_tools/solo_r2_blind_scoring_bundle.py",
+      "r1_expected_sha256": "8703fcc07d91e54dd9a890ac138dc40b7493922471966f04998f95e0e64dc394",
+      "baseline_sha256": "8703fcc07d91e54dd9a890ac138dc40b7493922471966f04998f95e0e64dc394",
+      "current_sha256": "8703fcc07d91e54dd9a890ac138dc40b7493922471966f04998f95e0e64dc394"
+    },
+    {
+      "path": "governance_tools/solo_r2_bootstrap.py",
+      "r1_expected_sha256": "4458f0e7cd3775160a8e1300cc2089dea03978a5f0c33c2d26c9bd75ed7db927",
+      "baseline_sha256": "4458f0e7cd3775160a8e1300cc2089dea03978a5f0c33c2d26c9bd75ed7db927",
+      "current_sha256": "4458f0e7cd3775160a8e1300cc2089dea03978a5f0c33c2d26c9bd75ed7db927"
+    },
+    {
+      "path": "governance_tools/solo_r2_controller_state.py",
+      "r1_expected_sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+      "baseline_sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+      "current_sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f"
+    },
+    {
+      "path": "governance_tools/solo_r2_lifecycle_integration.py",
+      "r1_expected_sha256": "23a91128de101c967eaf3a6ea70cab645d2fcb41827f252112017dcc7bd631c8",
+      "baseline_sha256": "23a91128de101c967eaf3a6ea70cab645d2fcb41827f252112017dcc7bd631c8",
+      "current_sha256": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda"
+    },
+    {
+      "path": "governance_tools/solo_r2_pair_creation.py",
+      "r1_expected_sha256": "f271af4934000df186c5845af473cd4bb9958db3eef22f06d37853529f2f66dd",
+      "baseline_sha256": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2",
+      "current_sha256": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2"
+    }
+  ],
+  "same_failure_set_meaning": "Test names only. Does not mean unchanged R1 source state or absence of additional drift.",
+  "refresh_obligation": {
+    "status": "REQUIRED_AFTER_IMPLEMENTATION_COMMIT",
+    "modules": [
+      "governance_tools/solo_attempt_ledger_v2.py",
+      "governance_tools/solo_r2_lifecycle_integration.py",
+      "governance_tools/solo_r2_pair_creation.py"
+    ],
+    "prior_implementation_commit": "9bcd7ffc",
+    "current_slice_module": "governance_tools/solo_r2_lifecycle_integration.py",
+    "refresh_performed": false,
+    "authority": "Current owner directs reconciliation and scoped implementation commit, then STOP; refresh is next separate slice."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "D:/ai-governance-framework/.venv/Scripts/python.exe -m pytest tests/test_solo_r2_runtime_window.py tests/test_solo_r2_random_domains.py tests/test_solo_r2_r1_structural_conformance.py tests/test_solo_r2_pair_creation.py tests/test_solo_r2_lifecycle_integration.py tests/test_solo_r2_disposable_execution.py tests/test_solo_r2_disposable_binding.py tests/test_solo_r2_controller_state.py tests/test_solo_r2_codex_runner.py tests/test_solo_r2_bootstrap.py tests/test_solo_r2_blind_scoring_bundle.py tests/test_solo_r2_attempt_materialization.py tests/test_solo_r2_attempt_execution.py tests/test_solo_attempt_ledger_v2_safe_verifier.py tests/test_solo_attempt_ledger_v2.py tests/test_solo_attempt_ledger_safe_verifier.py -q -p no:cacheprovider --basetemp C:/Users/daish/AppData/Local/Temp/codex-r2-integration-20260906-final",
+  "exit_code": 1,
+  "started_at": "2026-09-06T06:02:19Z",
+  "finished_at": "2026-09-06T06:03:04Z",
+  "runner": "pytest",
+  "linked_commit": "fd77249811fb2e0ff5daba416bc7384a415ea294",
+  "output_artifacts": [
+    "memory/evidence/solo-r2-disposable-integration-20260906/targeted-tests.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

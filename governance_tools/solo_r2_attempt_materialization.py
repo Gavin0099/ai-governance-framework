@@ -769,14 +769,28 @@ class PairMaterializationEvidence:
     control: ArmMaterializationEvidence
     treatment: ArmMaterializationEvidence
     host_local: HostLocalIsolation
+    input_authority: object | None = None
 
     def validate(self) -> None:
         self.host_local.validate()
+        base = FROZEN_BASE_COMMIT
+        if self.input_authority is not None:
+            from governance_tools.solo_r2_disposable_binding import ExperimentInputAuthority
+            if type(self.input_authority) is not ExperimentInputAuthority:
+                _fail(PAIR_INVALID)
+            snapshot = self.input_authority.document()["base_snapshot"]
+            base = snapshot["commit"]
+            expected = tuple(sorted((
+                item["path"][len(snapshot["subdirectory"]) + 1:],
+                item["bytes"], item["sha256"],
+            ) for item in snapshot["files"]))
+            if self.control.inventory != expected:
+                _fail(PAIR_INVALID)
         if (
             self.control.ordinal != 1
             or self.treatment.ordinal != 2
-            or self.control.base_commit != FROZEN_BASE_COMMIT
-            or self.treatment.base_commit != FROZEN_BASE_COMMIT
+            or self.control.base_commit != base
+            or self.treatment.base_commit != base
             or self.control.inventory != self.treatment.inventory
             or self.control.inventory_sha256 != self.treatment.inventory_sha256
             or self.control.inventory_sha256 != inventory_sha256(self.control.inventory)
