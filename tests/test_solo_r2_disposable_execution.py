@@ -64,23 +64,16 @@ def setup(environment, monkeypatch):
                                    binding=bind,expected_ledger_sha256=pair.ledger_sha256)
     order = runtime.SealedArmOrder.from_sealed_package(pair.checkpoint_path,
         key_path=env.key,custody_boundary=env.custody,expected_digest=pair.sealed_package_digest,pair_lock=lock)
-    # Only machine readiness/native transport are synthetic; production preflight,
-    # Pair binding, sealed state and complete lifecycle remain under test.
-    window = object.__new__(runtime.PreAttemptFrozenRuntimeWindow)
-    window.materializer=mat
-    window.pair_lock=lock
-    window.sealed_order=order
-    window.freeze_probe=SimpleNamespace(repository_probe=object.__new__(execution.DisposableRepositoryFreezeProbe),
-        assert_unchanged=lambda freeze: None,
-        assert_execution_unchanged=lambda freeze, coordinator: coordinator._validated_events())
-    def ready(self):
-        with lock:
-            evidence=mat.qualify_pair(pair.pair_id,HOST_LOCAL)
-            validation=preflight.PreAttemptExecutionCoordinator(lock).validate(
-                materialization=evidence,canary=_canary(),control=_arm(1),treatment=_arm(2))
-            freeze = window.freeze_probe.capture() if hasattr(window.freeze_probe,'capture') else None
-        return SimpleNamespace(freeze=freeze,prepared_control=_arm(1),prepared_treatment=_arm(2),validation=validation)
-    monkeypatch.setattr(runtime.PreAttemptFrozenRuntimeWindow,'run',ready)
+    # The real one-shot window and handoff run; only OS/native observations are doubles.
+    from tests.test_solo_r2_runtime_window import FreezeProbeDouble, _freeze
+    marker = env.roots['execution'] / 'inert-executable-marker'
+    marker.write_bytes(b'not executable')
+    pin = material.PinnedExecutable.capture(marker.resolve())
+    freeze = replace(_freeze(pin, bind, GENERATION),
+                     ledger_sha256=hashlib.sha256(public.read_bytes()).hexdigest())
+    probe = FreezeProbeDouble(lock, freeze, pin)
+    probe.repository_probe = object.__new__(execution.DisposableRepositoryFreezeProbe)
+    probe.assert_execution_unchanged = lambda freeze, coordinator: coordinator._validated_events()
     def native(**kwargs):
         events=ledger.read_ledger(public)
         assert events[-1]['event_type']=='TASK_EXPOSED'
@@ -93,13 +86,22 @@ def setup(environment, monkeypatch):
         state.calls.append(kwargs)
         (workspace/'queue_range.py').write_bytes(state.repaired)
         return _result(kwargs['output_root'],'runtime','shell')
-    window.backend=SimpleNamespace(native_backend=SimpleNamespace(execute=native,
-        executable=SimpleNamespace(verify=lambda: None)),codex_home=env.roots['execution'])
-    window.freeze_probe.backend=window.backend.native_backend
+    backend=SimpleNamespace(native_backend=SimpleNamespace(execute=native,
+        executable=pin, owner_payload_pin=None), codex_home=env.roots['execution'],
+        whoami=pin, provision_sandbox=lambda: SimpleNamespace(generation_after=GENERATION),
+        bind_freeze=lambda generation: None, prepared_ordinals=order.ordinals(),
+        require_boundary_evidence=lambda: SimpleNamespace(validate=lambda:None,
+            host_local=HOST_LOCAL,evidence_sha256='e'*64))
+    adapter=SimpleNamespace(backend=backend, qualify_canary=lambda:_canary(),
+                            prepare_formal_arm=lambda ordinal:_arm(ordinal))
+    probe.backend=backend.native_backend
+    window=runtime.PreAttemptFrozenRuntimeWindow(backend=backend,adapter=adapter,
+        freeze_probe=probe,materializer=mat,pair_lock=lock,sealed_order=order)
     args=dict(window=window,controller_root=env.roots['controller-state'],scoring_root=env.roots['scoring'],
               key_path=env.key,custody_boundary=env.custody,
               expected_genesis_binding_sha256=created.binding_sha256,expected_order_sha256=pair.sealed_package_digest)
     state.run=execution.DisposableArmExecution(**args)
+    state.execute=lambda: state.run.run(previously_verified_readiness=window.run())
     state.args=args
     state.mat=mat
     state.public=public
@@ -109,7 +111,7 @@ def setup(environment, monkeypatch):
 def test_disposable_pair_to_two_terminal_outputs_without_oracle_or_unblinding(setup):
     s=setup
     old=[p.read_bytes() for p in (s.env.original,s.env.replacement)]
-    coordinator=s.run.run()
+    coordinator=s.execute()
     events=ledger.read_ledger(s.public)
     assert [e['event_type'] for e in events]==['V2_GENESIS','PAIR_CREATED']+[
         'ATTEMPT_ADMITTED','TASK_EXPOSED','EXECUTION_TERMINAL']*2
@@ -129,7 +131,7 @@ def test_disposable_pair_to_two_terminal_outputs_without_oracle_or_unblinding(se
     assert all(json.loads(payload)['source'].encode()==s.repaired
                for _,payload in coordinator._terminal_outputs.values())
     assert [p.read_bytes() for p in (s.env.original,s.env.replacement)]==old
-    with pytest.raises(material.MaterializationError): s.run.run()
+    with pytest.raises(runtime.RuntimeWindowError): s.execute()
     with pytest.raises(Exception): execution.DisposableArmExecution(**s.args).run()
     assert len(s.calls)==2
 
@@ -147,7 +149,7 @@ def test_archive_mismatch_rejected_before_leaf_or_attempt(setup,kind):
                       {'symlink':tarfile.SYMTYPE,'hardlink':tarfile.LNKTYPE}.get(kind,typ))
     s.archive=archive(entries)
     before=s.public.read_bytes()
-    with pytest.raises(material.MaterializationError): s.run.run()
+    with pytest.raises(material.MaterializationError): s.execute()
     assert s.public.read_bytes()==before and not s.calls
     assert not list(s.mat.leaves.root.iterdir())
 
@@ -157,7 +159,7 @@ def test_wrong_attach_identity_no_attempt_or_prompt(setup,field):
     s=setup
     s.run.attach_args[field]='0'*64
     before=s.public.read_bytes()
-    with pytest.raises(Exception): s.run.run()
+    with pytest.raises(Exception): s.execute()
     assert s.public.read_bytes()==before and not s.calls
 
 
@@ -168,7 +170,7 @@ def test_exposure_append_failure_does_not_deliver_prompt(setup,monkeypatch):
         if event['event_type']=='TASK_EXPOSED': raise ledger.LedgerError(ledger.LEDGER_APPEND_FAILURE)
         return original(path,event)
     monkeypatch.setattr(ledger,'append_event',append)
-    with pytest.raises(Exception): s.run.run()
+    with pytest.raises(Exception): s.execute()
     assert not s.calls
     assert ledger.validate_ledger_file(s.public).initiated_attempt_count==0
     assert list(s.env.roots['controller-state'].glob('*.execution-started'))
@@ -180,7 +182,7 @@ def test_native_failure_after_exposure_cannot_retry(setup):
         s.calls.append(kwargs)
         raise RuntimeError('synthetic transport failure')
     s.run.window.backend.native_backend.execute=fail
-    with pytest.raises(RuntimeError): s.run.run()
+    with pytest.raises(RuntimeError): s.execute()
     assert ledger.validate_ledger_file(s.public).initiated_attempt_count==1
     with pytest.raises(Exception): execution.DisposableArmExecution(**s.args).run()
     assert len(s.calls)==1 and s.mat.leaves.active is None
@@ -189,14 +191,14 @@ def test_native_failure_after_exposure_cannot_retry(setup):
 def test_materialization_authority_must_match_pair(setup):
     s=setup
     s.run.window.pair_lock.binding=replace(s.run.window.pair_lock.binding,input_authority=None)
-    with pytest.raises(Exception): s.run.run()
+    with pytest.raises(Exception): s.execute()
     assert not s.calls and ledger.validate_ledger_file(s.public).admitted_attempt_count==0
 
 
 def test_altered_treatment_packet_rejected_before_any_leaf(setup):
     s=setup
     s.mat.packet=replace(s.mat.packet,payload=b'not the frozen packet')
-    with pytest.raises(material.MaterializationError): s.run.run()
+    with pytest.raises(material.MaterializationError): s.execute()
     assert not list(s.mat.leaves.root.iterdir()) and not s.calls
 
 
@@ -221,8 +223,10 @@ def test_real_freeze_probe_between_arms_allows_only_owned_ledger_progress(setup,
     monkeypatch.setattr(execution.DisposableRepositoryFreezeProbe,'capture',lambda self: state.repository)
     window.freeze_probe=runtime.RuntimeFreezeProbe(backend=native,repository_probe=repo,
         qualification_helper=pin,generation_probe=lambda:state.generation,pair_lock=window.pair_lock,
-        boundary_evidence=SimpleNamespace(validate=lambda:None,evidence_sha256='e'*64),
+        boundary_evidence=None,
         assert_runtime_quiescent=lambda:None)
+    window.backend.whoami=pin
+    window.backend.require_boundary_evidence=lambda: SimpleNamespace(validate=lambda:None,host_local=HOST_LOCAL,evidence_sha256="e"*64)
     original=native.execute
     def dispatch(**kwargs):
         result=original(**kwargs)
@@ -233,10 +237,10 @@ def test_real_freeze_probe_between_arms_allows_only_owned_ledger_progress(setup,
         return result
     native.execute=dispatch
     if mutation=='none':
-        s.run.run()
+        s.execute()
         assert len(s.calls)==2
     else:
-        with pytest.raises(Exception): s.run.run()
+        with pytest.raises(Exception): s.execute()
         assert len(s.calls)==1
         assert ledger.validate_ledger_file(s.public).initiated_attempt_count==1
 
@@ -275,7 +279,7 @@ def test_post_arm_mismatch_never_becomes_terminal_output(setup,mutation):
             s.public.write_bytes(changed)
         return result
     s.run.window.backend.native_backend.execute=dispatch
-    with pytest.raises(Exception): s.run.run()
+    with pytest.raises(Exception): s.execute()
     assert len(s.calls)==1
     assert not any(e['event_type']=='EXECUTION_TERMINAL' for e in ledger.read_ledger(s.public))
 
@@ -305,3 +309,59 @@ def test_miswired_runtime_rejected_before_readiness(setup,mismatch):
     before=s.public.read_bytes()
     with pytest.raises(material.MaterializationError): execution.DisposableArmExecution(**s.args)
     assert s.public.read_bytes()==before and not s.calls
+
+
+def test_real_readiness_handoff_consumed_without_second_window_run(setup, monkeypatch):
+    s = setup
+    window = s.run.window
+    readiness = window.run()
+    before = s.public.read_bytes()
+    assert readiness.disposition == runtime.READY_BEFORE_ATTEMPT
+    assert window._used and not s.calls
+    assert ledger.validate_ledger_file(s.public).admitted_attempt_count == 0
+    with pytest.raises(runtime.RuntimeWindowError):
+        window.run()
+    def forbidden_run(self):
+        pytest.fail('execution reran readiness')
+    monkeypatch.setattr(runtime.PreAttemptFrozenRuntimeWindow, 'run', forbidden_run)
+    s.run.run(previously_verified_readiness=readiness)
+    assert len(s.calls) == 2 and s.public.read_bytes() != before
+    with pytest.raises(Exception):
+        execution.DisposableArmExecution(**s.args).run(previously_verified_readiness=readiness)
+    assert len(s.calls) == 2
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing', 'not-pass', 'clone', 'evaluation', 'pair', 'ledger', 'genesis',
+    'authority', 'runtime', 'consumed', 'exposed', 'unissued', 'binding-pair',
+    'native-backend', 'both-native-backends', 'leaf-manager',
+])
+def test_handoff_rejects_before_attempt(setup, mutation):
+    s = setup
+    window = s.run.window
+    ready = window.run()
+    if mutation == 'missing': ready = None
+    elif mutation == 'not-pass': ready = replace(ready, disposition='FAIL')
+    elif mutation == 'clone': ready = replace(ready)
+    elif mutation in ('evaluation', 'pair'):
+        object.__setattr__(ready, 'freeze', replace(ready.freeze, **{mutation+'_id':'wrong'}))
+    elif mutation == 'ledger': s.public.write_bytes(s.public.read_bytes()+b'\n')
+    elif mutation == 'genesis': s.run.attach_args['expected_genesis_binding_sha256']='0'*64
+    elif mutation == 'authority': window.pair_lock.binding=replace(window.pair_lock.binding,input_authority=None)
+    elif mutation == 'runtime': window.freeze_probe.freeze=replace(ready.freeze,payload_sha256='0'*64)
+    elif mutation == 'consumed': window.consume_readiness(ready)
+    elif mutation == 'exposed': object.__setattr__(ready,'task_exposure_state','TASK_EXPOSED')
+    elif mutation == 'unissued': del window._issued_readiness
+    elif mutation in ('native-backend', 'both-native-backends'):
+        from copy import copy
+        window.backend.native_backend=copy(window.backend.native_backend)
+        if mutation == 'both-native-backends': window.freeze_probe.backend=window.backend.native_backend
+    elif mutation == 'leaf-manager':
+        from copy import copy
+        window.materializer.leaves=copy(window.materializer.leaves)
+    elif mutation == 'binding-pair': window.pair_lock.binding=replace(window.pair_lock.binding,pair_id='wrong')
+    before = s.public.read_bytes()
+    with pytest.raises(Exception): s.run.run(previously_verified_readiness=ready)
+    assert s.public.read_bytes() == before
+    assert not s.calls
+    assert not list(s.env.roots['controller-state'].glob('*.execution-started'))

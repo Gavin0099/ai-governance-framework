@@ -20,7 +20,8 @@ from governance_tools import solo_r2_pair_creation as pairs
 from governance_tools import solo_r2_attempt_materialization as material
 from governance_tools.solo_r2_attempt_execution import PreAttemptExecutionCoordinator
 from governance_tools.solo_r2_disposable_materialization import DisposableGitMaterializer
-from governance_tools.solo_r2_runtime_window import PreAttemptFrozenRuntimeWindow, GitRepositoryFreezeProbe
+from governance_tools.solo_r2_runtime_window import (PreAttemptFrozenRuntimeWindow, GitRepositoryFreezeProbe,
+    PreAttemptRuntimeReadiness, READY_BEFORE_ATTEMPT)
 
 
 def _fail():
@@ -149,13 +150,7 @@ class DisposableArmExecution:
     def __init__(self, *, window, controller_root, scoring_root, key_path,
                  custody_boundary, expected_genesis_binding_sha256,
                  expected_order_sha256):
-        if (type(window) is not PreAttemptFrozenRuntimeWindow
-                or type(window.materializer) is not DisposableGitMaterializer
-                or type(window.freeze_probe.repository_probe) is not DisposableRepositoryFreezeProbe
-                or window.freeze_probe.backend is not window.backend.native_backend
-                or pairs._canonical_directory(window.materializer.leaves.root, reject_alias=True)
-                != pairs._canonical_directory(custody_boundary.materialization_root, reject_alias=True)):
-            _fail()
+        self._validate_wiring(window, custody_boundary)
         self.window = window
         self.attach_args = dict(controller_root=controller_root, scoring_root=scoring_root,
             key_path=key_path, custody_boundary=custody_boundary,
@@ -163,16 +158,46 @@ class DisposableArmExecution:
             expected_order_sha256=expected_order_sha256)
         self._used = False
 
-    def run(self):
+    @staticmethod
+    def _validate_wiring(window, custody_boundary):
+        if (type(window) is not PreAttemptFrozenRuntimeWindow
+                or type(window.materializer) is not DisposableGitMaterializer
+                or type(window.freeze_probe.repository_probe) is not DisposableRepositoryFreezeProbe
+                or window.freeze_probe.backend is not window.backend.native_backend
+                or pairs._canonical_directory(window.materializer.leaves.root, reject_alias=True)
+                != pairs._canonical_directory(custody_boundary.materialization_root, reject_alias=True)):
+            _fail()
+
+    def run(self, *, previously_verified_readiness=None):
         if self._used:
             _fail()
         self._used = True
         window = self.window
-        readiness = window.run()
+        readiness = previously_verified_readiness
+        if (type(readiness) is not PreAttemptRuntimeReadiness
+                or readiness.disposition != READY_BEFORE_ATTEMPT
+                or readiness.task_exposure_state != 'NONE'
+                or readiness.attempt_handle is not None
+                or readiness.target_pair_attempt_events != 0):
+            _fail()
         self._freeze = readiness.freeze
         mat = window.materializer
         with window.pair_lock:
+            self._validate_wiring(window, self.attach_args['custody_boundary'])
+            window.consume_readiness(readiness)
+            identity = window.pair_lock.binding
+            if (readiness.freeze.evaluation_id != identity.evaluation_id
+                    or readiness.freeze.pair_id != identity.pair_id
+                    or readiness.freeze.slot != identity.slot
+                    or readiness.freeze.ledger_sha256 != window.pair_lock._digest
+                    or readiness.materialization.input_authority != mat.authority):
+                _fail()
             window.freeze_probe.assert_unchanged(readiness.freeze)
+            current_validation = PreAttemptExecutionCoordinator(window.pair_lock).validate(
+                materialization=readiness.materialization, canary=readiness.qualification,
+                control=readiness.prepared_control, treatment=readiness.prepared_treatment)
+            if current_validation != readiness.validation:
+                _fail()
             coordinator = DisposableLifecycle.attach(pair_lock=window.pair_lock,
                 materializer=mat, **self.attach_args)
             state = coordinator._read_checkpoint(controller.ORDER_FROZEN)

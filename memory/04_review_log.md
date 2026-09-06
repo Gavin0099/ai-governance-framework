@@ -5206,3 +5206,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: memory/evidence/solo-r2-r1-refresh-20260906/tests.json; memory/evidence/solo-r2-r1-refresh-20260906/review.json; exact R1 artifact sha256 1e32693147ff9fde7f06efd77053dbab9ec0fcff3a3a5f5734f9d2b122ca1cf0
 - Next action: STOP after scoped local refresh commit verification. Real evaluation and execution require separate owner authorization.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:61c3b7a5987a7f535844eec1066170ac3bb5f91e058f8fae0f7c51066017ef66 -->
+### Canonical memory checkpoint — solo-r2-production-admission-review-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `61c3b7a5987a7f535844eec1066170ac3bb5f91e058f8fae0f7c51066017ef66`
+- Commit binding: `0a01efe2` (bound)
+- Record: Production admission review at 0a01efe2: PRODUCTION_ADMISSION_BLOCKED, one open A1. Completed PreAttemptFrozenRuntimeWindow is one-shot; DisposableArmExecution.run calls window.run again instead of consuming existing readiness. Separate readiness STOP and later execution authorization lacks handoff. Full review: memory/evidence/solo-r2-production-admission-review-20260906/review.json. No production/R1/schema/ledger changes, no real creation/execution, no commit/push.
+- Validation boundary: Object-only completed-window reproduction returns RuntimeWindowError PRE_ATTEMPT_INFRA_FAILURE / STOP before backend or ledger access. Code references in review.json. No pytest or live runtime rerun.
+- Next action: Repair only A1 readiness handoff after bounded implementation authorization; preserve one-shot freeze validation; no real evaluation/Pair yet.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:1f08a230706f942128e94bbfd6121e873a9a8cfcb0c585fe18f102a1f45aa344 -->
+### Canonical memory checkpoint — solo-r2-readiness-handoff-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `1f08a230706f942128e94bbfd6121e873a9a8cfcb0c585fe18f102a1f45aa344`
+- Commit binding: `0a01efe2` (bound)
+- Record: Readiness handoff candidate implemented in runtime_window/disposable_execution and matching tests. Real successful window result issued once and consumed explicitly without rerun; identity/wiring/freeze/Pair/authority/genesis revalidated before Attempt. Independent review ACCEPT Blocking 0; A1 resolved in candidate. Production admission remains blocked only pending reviewed scoped commit and exact committed-source check. No R1/schema/materializer/frozen-input changes; no real creation/execution, commit or push. Evidence memory/evidence/solo-r2-readiness-handoff-20260906/.
+- Validation boundary: tests.json: five scope/adjacent files 187 passed/exit0; independent review.json: 129 passed Blocking0 and 3 exact SHA256 matched. Tests use real one-shot window orchestration with native/OS doubles. No live arm executed.
+- Next action: Scoped local commit after owner authorization, then verify exact committed consumer bytes; no new R1 generation, no live creation or execution yet.
+- PLAN reconciliation: `deferred:scope-split-next-slice`

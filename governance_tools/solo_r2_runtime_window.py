@@ -9,6 +9,8 @@ It cannot mint an Attempt handle or expose task bytes.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 from dataclasses import dataclass
 import hashlib
 import ipaddress
@@ -1981,7 +1983,7 @@ class PreAttemptFrozenRuntimeWindow:
             self.freeze_probe.assert_unchanged(freeze)
             if validation.attempt_handle is not None or validation.task_exposure_state != "NONE":
                 _fail(PAIR_INVALID)
-            return PreAttemptRuntimeReadiness(
+            result = PreAttemptRuntimeReadiness(
                 READY_BEFORE_ATTEMPT,
                 freeze,
                 provisioning,
@@ -1993,3 +1995,30 @@ class PreAttemptFrozenRuntimeWindow:
                 self.sealed_order.order[0],
                 self.sealed_order.ordinals()[0],
             )
+            # Publish provenance only after the full real window has succeeded.
+            self._issued_readiness = (
+                result, deepcopy(result), deepcopy(self.pair_lock.binding),
+                (self.backend, self.adapter, self.freeze_probe,
+                 self.materializer, self.pair_lock, self.sealed_order,
+                 self.backend.native_backend, self.materializer.leaves),
+            )
+            return result
+
+
+    def consume_readiness(self, result: PreAttemptRuntimeReadiness) -> None:
+        """Consume this window's successful result once; never reprobe or resume.
+
+        This in-process provenance check is not owner execution authorization.
+        The caller must hold the Pair lease and revalidate current identities.
+        """
+        issued = getattr(self, "_issued_readiness", None)
+        if (issued is None or result is not issued[0]
+                or getattr(self, "_readiness_consumed", False)):
+            _fail(PAIR_INVALID)
+        self._readiness_consumed = True
+        if (result != issued[1] or self.pair_lock.binding != issued[2]
+                or any(current is not original for current, original in zip(
+                    (self.backend, self.adapter, self.freeze_probe,
+                     self.materializer, self.pair_lock, self.sealed_order,
+                     self.backend.native_backend, self.materializer.leaves), issued[3]))):
+            _fail(PAIR_INVALID)

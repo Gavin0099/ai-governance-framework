@@ -1,0 +1,16 @@
+{
+  "disposition": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "review_disposable_arm_integration",
+  "independent_tests": "129 passed in 24.15s",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_runtime_window.py": "96f2f0e4df646c06900d3dae5b55cedc38b0fa1103d48b276c6fa483ca26e773",
+    "governance_tools/solo_r2_disposable_execution.py": "43627da76dbb7428225418d0959c14e11d77ace3a40ea4bcbd4652964b6af580",
+    "tests/test_solo_r2_disposable_execution.py": "f69d6273fe36daaaa3a0c96e22b7b8f6b04afa17c930cf31d816db313fbbec58"
+  },
+  "resolved": [
+    "A1: real one-shot readiness now handed off explicitly, never rerun",
+    "Native backend swap between readiness and execution rejected via exact instance provenance and locked wiring revalidation"
+  ],
+  "claim_ceiling": "Same-process handoff only; no restart/resume and no owner authority inferred from readiness"
+}
