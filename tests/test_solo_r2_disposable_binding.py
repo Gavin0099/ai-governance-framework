@@ -312,6 +312,8 @@ def test_loader_rejects_unavailable_committed_authority(tmp_path, monkeypatch):
 
 def test_real_committed_authority_resolution_is_read_only(tmp_path, monkeypatch):
     # Only load_input_authority is invoked on REPO, never creation or Pair APIs.
+    public = REPO / profile.LEDGER_PATH
+    before = public.read_bytes() if public.exists() else None
     git = PinnedExecutable.capture(Path(shutil.which("git")).resolve())
     repository = RepositoryBinding(REPO, REPO / ".git", REPO / ".git")
     monkeypatch.setenv("GIT_DIR", str(tmp_path / "decoy"))
@@ -319,4 +321,4 @@ def test_real_committed_authority_resolution_is_read_only(tmp_path, monkeypatch)
     monkeypatch.setattr(subject, "uuid4", lambda: pytest.fail("read generated an ID"))
     loaded = subject.load_input_authority(git=git, repository=repository, temp_root=tmp_path)
     assert loaded.raw == authority().raw
-    assert not (REPO / profile.LEDGER_PATH).exists()
+    assert (public.read_bytes() if public.exists() else None) == before

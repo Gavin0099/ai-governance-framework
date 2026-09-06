@@ -155,6 +155,158 @@ def _existing_evaluations(root: Path) -> set[str]:
     return identities
 
 
+def load_cost_amendment_authority(
+    *, git: PinnedExecutable, repository: RepositoryBinding, temp_root: Path,
+) -> ledger.CostAmendmentAuthority:
+    """Resolve only the exact committed adoption, never a worktree candidate."""
+    _root(repository)
+    verify_repository_binding(git, repository, temp_root=temp_root)
+    values = []
+    for path in (profile.COST_AMENDMENT_PATH, profile.COST_ADOPTION_PATH):
+        ref = f"{profile.COST_ADOPTION_COMMIT}:{path}"
+        if _run_git(git, repository, ("--no-replace-objects", "cat-file", "-t", ref),
+                    temp_root=temp_root).strip() != b"blob":
+            _fail()
+        values.append(_run_git(git, repository, ("--no-replace-objects", "cat-file", "blob", ref),
+                               temp_root=temp_root))
+    authority = ledger.CostAmendmentAuthority(*values)
+    authority.binding()
+    return authority
+
+
+def _validate_failure_cost_observations(event, evidence, prefix: bytes) -> None:
+    """Verify controller observations before writing supplemental public costs.
+
+    Exception classification/timing observations remain controller evidence,
+    not facts a public ledger parser can independently observe.
+    """
+    from governance_tools.solo_r2_codex_runner import derive_trace_metrics
+
+    if type(evidence) is not dict or set(evidence) != {
+        "ledger_prefix_sha256", "attempt_handle", "classification", "exception_type",
+        "trace_jsonl", "observed_costs", "measurement_failures", "token_components",
+        "aggregation_rule", "tokens_total_omission_reason",
+    }:
+        _fail()
+    if (evidence["ledger_prefix_sha256"] != _sha(prefix)
+            or evidence["attempt_handle"] != event["attempt_handle"]
+            or evidence["classification"] != "HARNESS_FAILURE"
+            or type(evidence["exception_type"]) is not str
+            or not evidence["exception_type"].isidentifier()):
+        _fail()
+    observed = evidence["observed_costs"]
+    if (type(observed) is not dict or not observed.keys() <= ledger._COST_KEYS
+            or any(not ledger._is_non_negative_int(v) for v in observed.values())):
+        _fail()
+    known = dict(observed)
+    components = {}
+    trace = evidence["trace_jsonl"]
+    if trace is not None:
+        if type(trace) is not str:
+            _fail()
+        metrics = derive_trace_metrics(trace.encode("utf-8"))
+        if "tool_calls" in known and known["tool_calls"] != metrics.tool_call_count:
+            _fail()
+        known["tool_calls"] = metrics.tool_call_count
+        rows = [_json(row.encode("utf-8")) for row in trace.splitlines() if row.strip()]
+        usages = [row["usage"] for row in rows if row.get("type") == "turn.completed" and "usage" in row]
+        if len(usages) > 1:
+            _fail()
+        if usages:
+            components = usages[0]
+            if (type(components) is not dict
+                    or any(not ledger._is_non_negative_int(v) for v in components.values())):
+                _fail()
+    if evidence["token_components"] != components:
+        _fail()
+    # No aggregation rule is adopted for this profile. Never invent or infer one.
+    if (evidence["aggregation_rule"] is not None or "tokens_total" in known
+            or evidence["tokens_total_omission_reason"] != "NO_ADOPTED_AGGREGATION_RULE"):
+        _fail()
+    missing = evidence["measurement_failures"]
+    if (type(missing) is not dict or not missing or not missing.keys() <= ledger._COST_KEYS
+            or any(reason != ledger.MEASUREMENT_EXCEPTION for reason in missing.values())
+            or missing.keys() & known.keys()):
+        _fail()
+    expected = {**known, **{key: ledger.UNAVAILABLE_COST for key in missing}}
+    if (not ledger._REQUIRED_COST_KEYS <= expected.keys()
+            or event["cost_metrics"] != expected
+            or event["unavailable_cost_reasons"] != missing
+            or event["terminal_classification"] != evidence["classification"]):
+        _fail()
+
+
+def _cost_evidence_paths(handle):
+    if not ledger._is_lower_hex(handle, ledger._LOWER_HEX_64):
+        _fail()
+    root = pairs._canonical_directory(profile.COST_CONTROLLER_ROOT, reject_alias=True)
+    if root != profile.COST_CONTROLLER_ROOT or pairs._contains_git_marker(root):
+        _fail()
+    attempt = pairs._canonical_directory(root / handle, reject_alias=True)
+    return (_fixed_path(attempt, Path("codex-trace.jsonl")),
+            _fixed_path(attempt, Path("unavailable-cost.json")))
+
+
+def _verify_retained_trace(handle, evidence):
+    trace_path, _ = _cost_evidence_paths(handle)
+    raw = trace_path.read_bytes() if trace_path.exists() else None
+    supplied = evidence.get("trace_jsonl")
+    if raw is None:
+        if supplied is not None:
+            _fail()
+    elif type(supplied) is not str or supplied.encode("utf-8") != raw:
+        _fail()
+    return None if raw is None else {"bytes":len(raw), "sha256":_sha(raw)}
+
+
+@dataclass(frozen=True)
+class RetainedFailureCostEvidence:
+    """Digest of a create-once controller record; every consumer re-reads it."""
+    attempt_handle: str
+    sha256: str
+
+
+def persist_failure_cost_evidence(event, evidence, prefix: bytes) -> RetainedFailureCostEvidence:
+    """Controller-only; independently checks the actual retained trace before fsync."""
+    _validate_failure_cost_observations(event, evidence, prefix)
+    identity = _verify_retained_trace(event["attempt_handle"], evidence)
+    _, path = _cost_evidence_paths(event["attempt_handle"])
+    raw = json.dumps({"observations":evidence, "trace_identity":identity},
+                     sort_keys=True, ensure_ascii=True).encode()+b"\n"
+    _write_once(path, raw)
+    receipt = RetainedFailureCostEvidence(event["attempt_handle"], _sha(raw))
+    validate_failure_cost_evidence(event, receipt, prefix)
+    return receipt
+
+
+def validate_failure_cost_evidence(event, receipt, prefix: bytes) -> None:
+    if (type(receipt) is not RetainedFailureCostEvidence
+            or receipt.attempt_handle != event["attempt_handle"]):
+        _fail()
+    _, path = _cost_evidence_paths(receipt.attempt_handle)
+    raw = path.read_bytes()
+    if _sha(raw) != receipt.sha256:
+        _fail()
+    record = _json(raw)
+    if set(record) != {"observations", "trace_identity"}:
+        _fail()
+    _validate_failure_cost_observations(event, record["observations"], prefix)
+    if _verify_retained_trace(receipt.attempt_handle, record["observations"]) != record["trace_identity"]:
+        _fail()
+
+
+def available_cost_total(cost_rows, metric):
+    """Scalar cost reduction: absent optional aggregates propagate UNAVAILABLE."""
+    if metric not in ledger._COST_KEYS:
+        _fail()
+    values = [row.get(metric, ledger.UNAVAILABLE_COST) for row in cost_rows]
+    if not values or ledger.UNAVAILABLE_COST in values:
+        return ledger.UNAVAILABLE_COST
+    if any(not ledger._is_non_negative_int(value) for value in values):
+        _fail()
+    return sum(values)
+
+
 @dataclass(frozen=True)
 class DisposableCreationResult:
     evaluation_id: str

@@ -2701,3 +2701,9 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Authority: docs/governance/solo-r2-v2.1-unavailable-cost-owner-adoption-20260906.json; preserves existing disposable genesis and four-event prefix.
 - Current Attempt remains initiated and exposed, without terminal; this supersedes earlier pre-execution status only. No ledger mutation in this adoption.
 - Next: separate minimal implementation authorization, then separately authorized historical terminal append. No retry, Attempt 2, new Pair, A1-A6 or push authority. Stop after scoped local commit and exact committed-byte verification.
+
+## Solo R2 unavailable-cost implementation (2026-09-06)
+
+- Minimal v2.1 cost representation implemented; numeric v2 unchanged. Extended append requires exact adoption and durable controller evidence verified against the retained trace.
+- Targeted 138 PASS; independent 42 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-unavailable-cost-implementation-20260906/review.json.
+- New R1 drift affects ledger_v2 and lifecycle; refresh follows this implementation commit immediately. Real ledger remains four events; no historical append, retry, Attempt 2 or push.

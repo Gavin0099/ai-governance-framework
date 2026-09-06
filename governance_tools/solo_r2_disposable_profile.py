@@ -14,6 +14,14 @@ INPUT_PATH = "artifacts/experiments/solo-r2-disposable-input-definition-20260906
 PLACEMENT_SHA256 = "7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246"
 ALLOCATION_SHA256 = "8a7e8cd74d883a733a5df887923b5eccf31ffe2ed0ed462446f15ae1066192b6"
 
+COST_ADOPTION_COMMIT = "eb70b863d53eb68c6ee692f84634604877a60b17"
+COST_AMENDMENT_PATH = "docs/governance/solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md"
+COST_AMENDMENT_SHA256 = "c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad"
+COST_ADOPTION_PATH = "docs/governance/solo-r2-v2.1-unavailable-cost-owner-adoption-20260906.json"
+COST_ADOPTION_SHA256 = "be92d5d1b670dd9aa04db2076de653eb8a89d87a689a57ba1c44383f364a5b7e"
+# Existing external launcher's controller namespace; not caller-selected custody.
+COST_CONTROLLER_ROOT = Path("D:/r2-disposable-shakedown-20260906/controller")
+
 # Trust anchors for the adopted documents, not duplicate descriptions of inputs.
 ADOPTED_DOCUMENTS = (
     ("a081eb1ff4fa91e4b9932b5a3164ad118d5ddba4", "docs/governance/solo-r2-input-authority-schema-amendment-20260906.md", AMENDMENT_SHA256),

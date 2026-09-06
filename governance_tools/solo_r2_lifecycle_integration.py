@@ -492,8 +492,14 @@ class SyntheticLifecycleCoordinator:
             "slot": SYNTHETIC_SLOT,
             **extra,
         }
-        expected = ledger.append_event(self._ledger_path, event)
-        persisted = ledger.validate_ledger_file(self._ledger_path)
+        authority = getattr(self, "_cost_authority", None)
+        options = {} if authority is None else {"cost_authority": authority}
+        evidence = getattr(self, "_pending_failure_evidence", None)
+        if evidence is not None:
+            options["failure_evidence"] = evidence
+        expected = ledger.append_event(self._ledger_path, event, **options)
+        persisted = ledger.validate_ledger_file(self._ledger_path, **(
+            {} if authority is None else {"cost_authority": authority}))
         if persisted != expected:
             raise ledger.LedgerError(ledger.LEDGER_APPEND_FAILURE)
         return persisted
@@ -503,7 +509,9 @@ class SyntheticLifecycleCoordinator:
 
     def _validated_events(self) -> tuple[list[dict[str, Any]], ledger.LedgerSummary]:
         events = ledger.read_ledger(self._ledger_path)
-        summary = ledger.validate_ledger_events(events)
+        authority = getattr(self, "_cost_authority", None)
+        summary = ledger.validate_ledger_events(events, **(
+            {} if authority is None else {"cost_authority": authority}))
         genesis = events[0]
         if genesis.get("evaluation_id") != self._evaluation_id:
             _fail()
@@ -737,6 +745,43 @@ class SyntheticLifecycleCoordinator:
             return summary
 
         return self._execute(operation)
+
+    def record_harness_failure(self, attempt_handle, *, cost_authority,
+                               cost_metrics, unavailable_cost_reasons,
+                               failure_evidence, correctness_result):
+        """OWNER-APPEND-ONLY: terminate with controller evidence; never resume.
+
+        This method does not restore a lost coordinator or admit another arm.
+        Historical invocation still requires a separately authorized controller.
+        """
+        from governance_tools.solo_r2_disposable_binding import persist_failure_cost_evidence
+
+        def operation():
+            if (self._event_schema() != "solo_attempt_ledger.v2.1"
+                    or type(cost_authority) is not ledger.CostAmendmentAuthority
+                    or self._controller_root != ledger.disposable.COST_CONTROLLER_ROOT):
+                _fail()
+            prefix = self._ledger_path.read_bytes()
+            cost_authority.verify_prefix(prefix)
+            events, _ = self._validated_events()
+            if self._attempt_states(events).get(attempt_handle) != "TASK_EXPOSED":
+                _fail()
+            fields = dict(attempt_handle=attempt_handle, attempt_state="TERMINAL",
+                          correctness_result=dict(correctness_result), cost_metrics=dict(cost_metrics),
+                          cost_amendment_sha256=ledger.disposable.COST_AMENDMENT_SHA256,
+                          terminal_classification="HARNESS_FAILURE",
+                          unavailable_cost_reasons=dict(unavailable_cost_reasons))
+            receipt = persist_failure_cost_evidence(fields, failure_evidence, prefix)
+            self._cost_authority = cost_authority
+            self._pending_failure_evidence = receipt
+            # Deliberately no _terminal_outputs insertion: this is not result sealing.
+            return self._append_event("EXECUTION_TERMINAL", **fields)
+
+        try:
+            return self._execute(operation)
+        finally:
+            self._pending_failure_evidence = None
+            self._stopped = True
 
     def prepare_scoring(self) -> ScorerDelivery:
         """Seal final controller state and create one scorer-only bundle."""

@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -150,6 +151,9 @@ _COST_KEYS = frozenset(
     {"elapsed_ms", "tokens_total", "tool_calls", "review_rounds"}
 )
 _REQUIRED_COST_KEYS = frozenset({"elapsed_ms", "tool_calls"})
+_COST_EXTENSION_KEYS = frozenset({"cost_amendment_sha256", "terminal_classification", "unavailable_cost_reasons"})
+UNAVAILABLE_COST = "UNAVAILABLE"
+MEASUREMENT_EXCEPTION = "MEASUREMENT_PREEMPTED_BY_EXCEPTION"
 _LOWER_HEX_40 = re.compile(r"[0-9a-f]{40}\Z")
 _LOWER_HEX_64 = re.compile(r"[0-9a-f]{64}\Z")
 _RFC3339_UTC = re.compile(
@@ -382,13 +386,60 @@ def _validate_cost_metrics(value: object) -> None:
         _fail()
 
 
-def _validate_event_shape(event: object, expected_seq: int, schema: str = LEDGER_SCHEMA) -> Mapping[str, Any]:
+@dataclass(frozen=True)
+class CostAmendmentAuthority:
+    """Exact adopted bytes, supplied by the committed-object loader; no boolean gate."""
+
+    amendment: bytes
+    adoption: bytes
+
+    def binding(self) -> Mapping[str, Any]:
+        if (type(self.amendment) is not bytes or type(self.adoption) is not bytes
+                or hashlib.sha256(self.amendment).hexdigest() != disposable.COST_AMENDMENT_SHA256
+                or hashlib.sha256(self.adoption).hexdigest() != disposable.COST_ADOPTION_SHA256):
+            _fail()
+        record = json.loads(self.adoption, object_pairs_hook=_pairs_without_duplicate_keys)
+        return record["existing_ledger_binding"]
+
+    def verify_prefix(self, raw: bytes) -> None:
+        bound = self.binding()
+        lines = raw.splitlines(keepends=True)
+        count = bound["adoption_time_event_count"]
+        if (len(lines) < count
+                or hashlib.sha256(b"".join(lines[:count])).hexdigest() != bound["adoption_time_prefix_sha256"]
+                or hashlib.sha256(lines[0]).hexdigest() != bound["genesis_sha256"]):
+            _fail()
+
+
+def _validate_extended_cost(event: Mapping[str, Any], authority: CostAmendmentAuthority) -> None:
+    authority.binding()
+    if (event["cost_amendment_sha256"] != disposable.COST_AMENDMENT_SHA256
+            or event["terminal_classification"] != "HARNESS_FAILURE"):
+        _fail()
+    costs, reasons = event["cost_metrics"], event["unavailable_cost_reasons"]
+    if (not isinstance(costs, Mapping) or not isinstance(reasons, Mapping)
+            or not _REQUIRED_COST_KEYS <= costs.keys() or not costs.keys() <= _COST_KEYS):
+        _fail()
+    absent = {key for key, value in costs.items() if value == UNAVAILABLE_COST}
+    if (not absent or set(reasons) != absent
+            or any(value != MEASUREMENT_EXCEPTION for value in reasons.values())
+            or any(not _is_non_negative_int(value) for key, value in costs.items() if key not in absent)):
+        _fail()
+
+
+def _validate_event_shape(event: object, expected_seq: int, schema: str = LEDGER_SCHEMA,
+                          cost_authority: CostAmendmentAuthority | None = None) -> Mapping[str, Any]:
     if not isinstance(event, Mapping):
         _fail()
     event_type = event.get("event_type")
     if not isinstance(event_type, str) or event_type not in _EVENT_EXTRA_KEYS:
         _fail()
-    _require_exact_keys(event, _COMMON_KEYS | _EVENT_EXTRA_KEYS[event_type])
+    extension = bool(_COST_EXTENSION_KEYS & event.keys())
+    if extension and (schema != disposable.SCHEMA or event_type != "EXECUTION_TERMINAL"
+                      or type(cost_authority) is not CostAmendmentAuthority):
+        _fail()
+    _require_exact_keys(event, _COMMON_KEYS | _EVENT_EXTRA_KEYS[event_type]
+                       | (_COST_EXTENSION_KEYS if extension else frozenset()))
     _validate_common(event, expected_seq, schema)
     pair_id = event["pair_id"]
     if event_type == "PRE_ATTEMPT_INFRA_FAILURE":
@@ -439,7 +490,10 @@ def _validate_event_shape(event: object, expected_seq: int, schema: str = LEDGER
         if event["attempt_state"] != "TERMINAL":
             _fail()
         _validate_correctness(event["correctness_result"])
-        _validate_cost_metrics(event["cost_metrics"])
+        if extension:
+            _validate_extended_cost(event, cost_authority)
+        else:
+            _validate_cost_metrics(event["cost_metrics"])
     else:
         if not _is_lower_hex(event["sealed_package_digest"], _LOWER_HEX_64):
             _fail()
@@ -458,7 +512,8 @@ def _validate_event_shape(event: object, expected_seq: int, schema: str = LEDGER
     return event
 
 
-def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary:
+def validate_ledger_events(events: Sequence[Mapping[str, Any]], *,
+                           cost_authority: CostAmendmentAuthority | None = None) -> LedgerSummary:
     """Validate a complete v2 event history and return public scalar counts."""
 
     if not isinstance(events, Sequence) or isinstance(events, (str, bytes, bytearray)):
@@ -473,6 +528,10 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
     if schema not in (LEDGER_SCHEMA, disposable.SCHEMA):
         _fail()
     _validate_genesis(genesis, schema)
+    if any(isinstance(event, Mapping) and _COST_EXTENSION_KEYS & event.keys() for event in events):
+        if type(cost_authority) is not CostAmendmentAuthority or schema != disposable.SCHEMA:
+            _fail()
+        cost_authority.verify_prefix(b"".join(encode_event(event) for event in events))
     evaluation_id = genesis["evaluation_id"]
     event_ids = {genesis["event_id"]}
     pairs: dict[str, dict[str, Any]] = {}
@@ -487,7 +546,7 @@ def validate_ledger_events(events: Sequence[Mapping[str, Any]]) -> LedgerSummary
     globally_stopped = False
 
     for expected_seq, raw_event in enumerate(events[1:], start=2):
-        event = _validate_event_shape(raw_event, expected_seq, schema)
+        event = _validate_event_shape(raw_event, expected_seq, schema, cost_authority)
         event_id = event["event_id"]
         if event_id in event_ids:
             _fail(LEDGER_TRANSITION_FAILURE)
@@ -819,13 +878,20 @@ def create_genesis_ledger(
     return summary
 
 
-def append_event(path: Path | str, event: Mapping[str, Any]) -> LedgerSummary:
+def append_event(path: Path | str, event: Mapping[str, Any], *,
+                 cost_authority: CostAmendmentAuthority | None = None,
+                 failure_evidence: object = None) -> LedgerSummary:
     """Validate full history, durably append one event, then report success."""
 
     ledger_path = Path(path)
+    prefix = ledger_path.read_bytes() if _COST_EXTENSION_KEYS & event.keys() else b""
     existing = read_ledger(ledger_path, allow_missing=True)
     candidate = [*existing, dict(event)]
-    summary = validate_ledger_events(candidate)
+    summary = validate_ledger_events(candidate, cost_authority=cost_authority)
+    if _COST_EXTENSION_KEYS & event.keys():
+        from governance_tools.solo_r2_disposable_binding import validate_failure_cost_evidence
+        cost_authority.verify_prefix(prefix)
+        validate_failure_cost_evidence(event, failure_evidence, prefix)
     if summary.schema_version == disposable.SCHEMA:
         from governance_tools.solo_r2_pair_creation import _has_reparse_or_symlink_component
         expected = disposable.ROOT / disposable.LEDGER_PATH
@@ -834,6 +900,8 @@ def append_event(path: Path | str, event: Mapping[str, Any]) -> LedgerSummary:
                 or ledger_path.stat().st_nlink != 1):
             _fail(LEDGER_APPEND_FAILURE)
     encoded = encode_event(event)
+    if _COST_EXTENSION_KEYS & event.keys() and ledger_path.read_bytes() != prefix:
+        _fail(LEDGER_APPEND_FAILURE)
     try:
         if not ledger_path.parent.is_dir():
             raise OSError("parent unavailable")
@@ -847,7 +915,10 @@ def append_event(path: Path | str, event: Mapping[str, Any]) -> LedgerSummary:
     return summary
 
 
-def validate_ledger_file(path: Path | str) -> LedgerSummary:
+def validate_ledger_file(path: Path | str, *,
+                         cost_authority: CostAmendmentAuthority | None = None) -> LedgerSummary:
     """Validate an existing v2 ledger file."""
 
-    return validate_ledger_events(read_ledger(path))
+    if cost_authority is not None:
+        cost_authority.verify_prefix(Path(path).read_bytes())
+    return validate_ledger_events(read_ledger(path), cost_authority=cost_authority)
