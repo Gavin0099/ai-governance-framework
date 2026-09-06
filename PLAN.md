@@ -2613,3 +2613,13 @@ not production admission: current materializer Base/export bindings remain
 incompatible and unchanged. Grimm stays reserved. STOP after local authority
 commit verification; separate owner authorization is required for production
 binding, remaining P07 admission, new Pair, Attempt and execution. No push.
+
+
+### Solo R2 v2.1 schema amendment owner adoption - 2026-09-06
+
+Owner adopts exact amendment ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab.
+Authority record: docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json.
+Binding spec is preserved subordinate design provenance, not implementation authority.
+D2 ledger placement/evaluation allocation remains an unresolved separate owner decision.
+One scoped local commit and exact committed-byte verification only; then STOP.
+No production, qualification rerun, new ledger/evaluation, Pair, Attempt or push.
