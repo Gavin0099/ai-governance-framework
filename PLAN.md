@@ -2694,3 +2694,10 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Handoff implementation: `3e1674ab`; A1 resolved.
 - Production wiring and committed identity: READY, supported by `memory/evidence/solo-r2-readiness-handoff-20260906/committed-admission-review.json`.
 - No real evaluation, ledger, Pair, Attempt or arm execution. Next: separate owner creation authorization; no push.
+
+## Solo R2 unavailable-cost amendment owner adoption (2026-09-06)
+
+- Owner adopted exact 14824-byte amendment SHA-256 c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad after independent four-point ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-v2.1-unavailable-cost-owner-adoption-20260906.json; preserves existing disposable genesis and four-event prefix.
+- Current Attempt remains initiated and exposed, without terminal; this supersedes earlier pre-execution status only. No ledger mutation in this adoption.
+- Next: separate minimal implementation authorization, then separately authorized historical terminal append. No retry, Attempt 2, new Pair, A1-A6 or push authority. Stop after scoped local commit and exact committed-byte verification.

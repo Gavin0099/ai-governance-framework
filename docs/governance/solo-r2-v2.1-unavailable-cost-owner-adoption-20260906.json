@@ -1,0 +1,63 @@
+{
+  "status": "OWNER_ADOPTED",
+  "recorded_at_utc": "2026-09-06T12:00:32.974428+00:00",
+  "authority_source": "Explicit owner instruction in current main session: Owner Adoption - Solo R2 v2.1 Unavailable Cost Amendment; exact-byte adoption and one scoped local commit followed by verification and STOP.",
+  "timestamp_meaning": "Local recording time; not independently witnessed or signed.",
+  "baseline_commit": "a313c01abf5c9d03e3efd6b98a59be285aa37e91",
+  "amendment": {
+    "path": "docs/governance/solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md",
+    "bytes": 14824,
+    "lines": 235,
+    "sha256": "c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad",
+    "git_blob_oid": "4293466d8f806e4c23bc0395d1b73a97b3c0378a"
+  },
+  "adopted_supplemental_profile_id": "solo_r2_v2_1_unavailable_cost.v1@sha256:c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad",
+  "existing_ledger_binding": {
+    "path": "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "evaluation_id": "1ebfbc48-d2fe-459d-bab7-b9fd75a5810b",
+    "pair_id": "747c09b2-56d0-42d0-bc34-d505e23e311e",
+    "genesis_sha256": "b07fd8c903e770e205cc9a1c03a6462d144c4da30e4a44b1ecf72ccd4f074ba2",
+    "genesis_bytes": 929,
+    "adoption_time_prefix_sha256": "ee51b11bdaa746e6cb338ca6245029563de858653b5062bfeab9ca1c83faf0da",
+    "adoption_time_event_count": 4,
+    "preserved_schema_id": "solo_attempt_ledger.v2.1@sha256:ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab",
+    "preserved_protocol_sha256": "1b93c13a287090015aa01e42ad423d8c9fa60bf7565baf3f0bf4abe1141bcdff",
+    "preserved_execution_contract_sha256": "3503313ccc9ff563d4a464309348af23bd3ae37d3cffb96d7d009173b345f3ea",
+    "input_authority_sha256": "5c9fd7d1ed813b60ac13b6f5b495ed60da503817298af988412346682c1190bb"
+  },
+  "interpretation_authority": "Adopts the supplemental interpretation for this existing dedicated disposable ledger only; activation in production and any append require separate authorization. Genesis, Pair and existing prefix bytes remain unchanged.",
+  "permitted_representation": [
+    "Required unavailable cost only for the constrained HARNESS_FAILURE case with MEASUREMENT_PREEMPTED_BY_EXCEPTION and verified controller evidence",
+    "Known tool_calls=7 remains a measured integer",
+    "Optional tokens_total omitted without adopted aggregation rule; all available components and NO_ADOPTED_AGGREGATION_RULE retained in controller evidence"
+  ],
+  "e10_boundary": "For this v2.1 disposable profile only, this amendment narrows E10 public cost representation; all other parent execution-contract requirements remain unchanged.",
+  "e12_boundary": "This disposable mechanism-shakedown evaluation does not constitute or replace the E12 qualification shakedown and does not authorize A1-A6 progression.",
+  "review": {
+    "path": "memory/evidence/solo-r2-disposable-launcher-20260906/unavailable-cost-exact-review.json",
+    "sha256": "a79f1394925c053435e9ea53f569a1cb3314bb4c7e1a0515891ac70f64484494",
+    "verdict": "ACCEPT",
+    "blocking": 0,
+    "scope": "Four specified document checks and exact bytes; no independent historical trace revalidation claimed"
+  },
+  "candidate_header_interpretation": "Historical CANDIDATE header preserved unchanged; adoption is recorded here separately.",
+  "authorized_scope": [
+    "exact-byte adoption",
+    "one scoped local authority/PLAN/canonical-memory commit",
+    "committed identity verification"
+  ],
+  "not_authorized": [
+    "existing ledger event modification",
+    "terminal append",
+    "production implementation",
+    "Attempt 2",
+    "retry or replacement",
+    "new Pair",
+    "A1-A6 progression",
+    "Formal or counted evidence",
+    "push"
+  ],
+  "blob_provenance": "No self-referential enclosing commit embedded; verify committed blobs after creation.",
+  "durability_scope": "Local only after committed-byte verification; no remote durability claim.",
+  "stop": "After scoped local commit and independent committed identity verification."
+}
