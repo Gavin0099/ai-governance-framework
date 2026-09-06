@@ -2688,3 +2688,9 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Three committed source pins refreshed; four disposable namespace members included without changing validator functions.
 - Evidence: `memory/evidence/solo-r2-r1-refresh-20260906/`; 490 Solo tests passed, independent R1 review 20 passed / Blocking 0.
 - Scope: structural evidence only; no real evaluation, ledger, Pair, Attempt, admission, or push. Stop after scoped local commit verification.
+
+## Solo R2 handoff committed admission review (2026-09-06)
+
+- Handoff implementation: `3e1674ab`; A1 resolved.
+- Production wiring and committed identity: READY, supported by `memory/evidence/solo-r2-readiness-handoff-20260906/committed-admission-review.json`.
+- No real evaluation, ledger, Pair, Attempt or arm execution. Next: separate owner creation authorization; no push.

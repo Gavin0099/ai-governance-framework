@@ -1,0 +1,87 @@
+{
+  "verdict": "PRODUCTION_ADMISSION_READY",
+  "meaning": "Reviewed production wiring and committed identity ready for separately authorized creation/pre-Attempt operations; not a live readiness result or execution authority",
+  "implementation_commit": "3e1674ab227f479f84f13c3dcf9f8e53b7833b68",
+  "production_repository_probe": {
+    "head_commit": "3e1674ab227f479f84f13c3dcf9f8e53b7833b68",
+    "runner": {
+      "relative_path": "governance_tools/solo_r2_codex_runner.py",
+      "byte_length": 60171,
+      "sha256": "fcb63b8fbfb9ca742cf811b9003bfb83df0212e104911ed6751da9338a435cf3"
+    },
+    "materialization": {
+      "relative_path": "governance_tools/solo_r2_attempt_materialization.py",
+      "byte_length": 32022,
+      "sha256": "4e117400af54b030cf141dbc7ee68ca1bf04ac5210eafd84507a8c8132823383"
+    },
+    "disposable_sources": [
+      {
+        "relative_path": "governance_tools/solo_r2_disposable_materialization.py",
+        "byte_length": 5699,
+        "sha256": "70eb8bd7cb1d524976977ab9d7bd39cdcb41d55776b136b76b613c56a9242ee6"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_disposable_execution.py",
+        "byte_length": 14317,
+        "sha256": "43627da76dbb7428225418d0959c14e11d77ace3a40ea4bcbd4652964b6af580"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_disposable_binding.py",
+        "byte_length": 9983,
+        "sha256": "5d08d242338e56bca3f045951cdf74498338e610255a1efa5dadefd442aced47"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_disposable_profile.py",
+        "byte_length": 1881,
+        "sha256": "dc652724822d1901dfbc50936d6a769807a71ffaf35c44197e78ac1366b661f8"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_attempt_execution.py",
+        "byte_length": 13676,
+        "sha256": "012db584438be3cd360486f5d4a8fdc534d18f890d45b89e2c23f3f6820e9084"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_lifecycle_integration.py",
+        "byte_length": 33282,
+        "sha256": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda"
+      },
+      {
+        "relative_path": "governance_tools/solo_r2_runtime_window.py",
+        "byte_length": 74919,
+        "sha256": "96f2f0e4df646c06900d3dae5b55cedc38b0fa1103d48b276c6fa483ca26e773"
+      },
+      {
+        "relative_path": "governance_tools/solo_attempt_ledger_v2.py",
+        "byte_length": 30751,
+        "sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf"
+      }
+    ]
+  },
+  "input_authority_sha256": "5c9fd7d1ed813b60ac13b6f5b495ed60da503817298af988412346682c1190bb",
+  "reviewed_source_match": "3/3 committed blob and worktree bytes match independently reviewed hashes",
+  "frozen_inputs_unchanged": [
+    "artifacts/experiments/solo-r2-input-definition-20260906/input-authority.candidate.json",
+    "artifacts/experiments/solo-r2-input-definition-20260906/input-authority.owner-adopted.json",
+    "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+    "artifacts/experiments/solo-r2-input-definition-20260906/task-packet.candidate.md",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/oracle.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/reference_queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.candidate.json",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/rubric.candidate.md",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/test_queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/task-packet.candidate.md"
+  ],
+  "real_disposable_state": "No evaluation/ledger/Pair/Attempt created",
+  "validation": "Read-only production DisposableRepositoryFreezeProbe.capture and load_input_authority using pinned Git; no window.run, backend launch, qualification or materialization",
+  "not_claimed": [
+    "Actual machine readiness PASS",
+    "Owner creation or execution authorization",
+    "CONTROL/TREATMENT or oracle/scoring/unblinding/report verified end to end",
+    "Bug Fix Safety effectiveness",
+    "Formal or counted evidence",
+    "Cross-process readiness resume"
+  ],
+  "next_action": "Owner separately authorizes real disposable evaluation/ledger/Pair creation up to pre-Attempt. Execution and unblinding require their own authorization."
+}
