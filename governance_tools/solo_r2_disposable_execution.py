@@ -24,6 +24,165 @@ from governance_tools.solo_r2_runtime_window import (PreAttemptFrozenRuntimeWind
     PreAttemptRuntimeReadiness, READY_BEFORE_ATTEMPT)
 from governance_tools.solo_r2_codex_runner import derive_trace_metrics
 
+SCORING_ADOPTION_COMMIT = '7a23b95afa09485d8321b638227bf631e2ddad12'
+SCORING_ADOPTION_PATH = 'memory/evidence/solo-r2-final-scoring-continuation-adoption-20260907/owner-adoption.json'
+SCORING_ADOPTION_SHA256 = '6d93cbb66eafdb13d9da7a3572a263a3625faa60f2da01c032f8993a2e614066'
+
+
+def load_scoring_continuation_authority(*, git, repository, temp_root):
+    """Read the one prospective adoption; never infer historical custody."""
+    root = binding._root(repository)
+    material.verify_repository_binding(git, repository, temp_root=temp_root)
+    raw = material._run_git(git, repository,
+        ('--no-replace-objects', 'cat-file', 'blob',
+         SCORING_ADOPTION_COMMIT + ':' + SCORING_ADOPTION_PATH), temp_root=temp_root)
+    material._regular_unlinked_path(root / SCORING_ADOPTION_PATH)
+    if (hashlib.sha256(raw).hexdigest() != SCORING_ADOPTION_SHA256
+            or (root / SCORING_ADOPTION_PATH).read_bytes() != raw):
+        _fail()
+    return binding._json(raw)
+
+
+def _continuation_inputs(record, root):
+    """Verify every adopted artifact before opening any sealed mapping."""
+    captured = {}
+    def walk(value):
+        if isinstance(value, dict):
+            if {'path', 'bytes', 'sha256'} <= value.keys():
+                path = Path(value['path'])
+                if not path.is_absolute():
+                    path = root / path
+                if not (path.is_relative_to(root) or path.is_relative_to(profile.FINAL_RUNTIME_ROOT)):
+                    _fail()
+                material._regular_unlinked_path(path)
+                raw = path.read_bytes()
+                if len(raw) != value['bytes'] or hashlib.sha256(raw).hexdigest() != value['sha256']:
+                    _fail()
+                captured[path] = raw
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+    walk(record)
+    if len(captured) != 22:
+        _fail()
+    return captured
+
+
+def prepare_final_scoring_continuation(*, git, repository, temp_root):
+    """OWNER-EXECUTION-ONLY. No CLI, scoring, unblinding, or arm resume.
+
+    Calling consumes the prospective adoption to seal exactly once. Merely
+    adopting inputs or importing this function never authorizes that operation.
+    """
+    record = load_scoring_continuation_authority(git=git, repository=repository, temp_root=temp_root)
+    root = binding._root(repository)
+    captured = _continuation_inputs(record, root)
+    # Final creation binding has its own previously committed custody identity.
+    bound = binding.load_final_ledger_binding(git=git, repository=repository,
+        temp_root=temp_root, expected_binding_sha256='82fd9e09f9f83e02f2cc5183d0f97098e650ede893e9f723f3de9b9c4c55ae10',
+        expected_evaluation_id=record['evaluation_id'])
+    return _prepare_final_scoring(record, captured, bound, root)
+
+
+def _prepare_final_scoring(record, captured, bound, root):
+    if type(bound) is not binding.FinalLedgerBinding:
+        _fail()
+    base = profile.FINAL_RUNTIME_ROOT
+    public = root / profile.FINAL_LEDGER_PATH
+    prefix = captured[public]
+    bound.verify(public, prefix)
+    events = ledger.read_ledger(public)
+    ledger.validate_ledger_events(events)
+    if ([e['event_type'] for e in events] != ['V2_GENESIS', 'PAIR_CREATED'] +
+            ['ATTEMPT_ADMITTED', 'TASK_EXPOSED', 'EXECUTION_TERMINAL'] * 2
+            or events[0]['evaluation_id'] != record['evaluation_id']
+            or events[1]['pair_id'] != record['pair_id']):
+        _fail()
+    pair = events[1]
+    if (pair['frozen_identities'] != bound.input_authority.pair_identities()
+            or record['frozen_rubric'] != bound.input_authority.document()['rubric']):
+        _fail()
+    boundary = controller.CustodyBoundary(root, *(base / n for n in
+        ('consumer', 'materialization', 'execution', 'scoring')))
+    key = base / 'keys/controller-key.json'
+    binding.verify_final_custody(controller_root=base/'controller', key_path=key, custody_boundary=boundary)
+    coord = _ScoringOnlyLifecycle(lifecycle._START_TOKEN, ledger_path=public,
+        controller_root=base/'controller', scoring_root=base/'scoring', key_path=key,
+        custody_boundary=boundary, evaluation_id=record['evaluation_id'], pair_id=record['pair_id'],
+        category=pair['category'], repository=pair['repository'], frozen_identities=pair['frozen_identities'],
+        preflight_ids=['R2_PRE_ID_EXECUTION_SURFACE_VALIDATED'], rubric_id=record['frozen_rubric']['sha256'])
+    coord._pair_prefix = prefix
+    coord._ledger_digest = hashlib.sha256(prefix).hexdigest()
+    coord._replacement_binding = bound
+    coord._captured = captured
+    for path in (coord._bundle_path(), coord._checkpoint_path(controller.SCORING_BOUND)):
+        if os.path.lexists(path):
+            _fail()
+    cp = record['attempt_bound_checkpoint']
+    if Path(cp['path']) != coord._checkpoint_path(controller.ATTEMPT_BOUND):
+        _fail()
+    coord._checkpoint_digests[controller.ATTEMPT_BOUND] = cp['sha256']
+    previous = coord._read_checkpoint(controller.ATTEMPT_BOUND)
+    handles = [e['attempt_handle'] for e in events if e['event_type'] == 'ATTEMPT_ADMITTED']
+    if [x['attempt_handle'] for x in previous['attempt_bindings']] != handles:
+        _fail()
+    # Preserve the existing evaluation-local collision boundary across handoff.
+    coord._identifier_registry._seen.update(handles)
+    coord._sealed_nonces.add(controller.parse_sealed_package(captured[Path(cp['path'])])['nonce_b64'])
+    for handle, row, terminal in zip(handles, record['terminal_outputs'], (events[4], events[7])):
+        if row['attempt_handle'] != handle or terminal.get('terminal_classification') is not None:
+            _fail()
+        def content(name):
+            path = Path(row[name]['path'])
+            return captured[path if path.is_absolute() else root/path]
+        source = content('terminal_output')
+        runtime = binding._json(content('runtime_evidence'))
+        oracle = binding._json(content('verified_oracle'))
+        if (runtime['source_sha256'] != hashlib.sha256(source).hexdigest()
+                or runtime['runtime_result']['disposition'] != 'SUCCESS'
+                or oracle['evaluation_id'] != record['evaluation_id'] or oracle['pair_id'] != record['pair_id']
+                or oracle['attempt_handle'] != handle or oracle['output_sha256'] != runtime['source_sha256']
+                or oracle['oracle_status'] != 'PASS' or oracle['passed_case_count'] != 10
+                or oracle['required_case_count'] != 10):
+            _fail()
+        # No paths, handles, output hashes, traces or oracle internals enter payload.
+        payload = json.dumps({'source': source.decode('utf-8'),
+            'final_response': binding._json(content('final_message')),
+            'correctness': {**terminal['correctness_result'], 'oracle_status': 'PASS', 'passed_case_count': 10},
+            'cost': terminal['cost_metrics']}, ensure_ascii=True)
+        if lifecycle.scoring_bundle._contains_scorer_forbidden_identity(payload):
+            _fail()
+        # Distinct preserved artifacts may have identical contents. This locator
+        # stays sealed; never salt content hashes or expose custody to the scorer.
+        output_ref = row['terminal_output']['path'] + '@sha256:' + row['terminal_output']['sha256']
+        coord._terminal_outputs[handle] = (output_ref, payload)
+    if len(coord._terminal_outputs) != 2:
+        _fail()
+    return coord.prepare_scoring()
+
+
+class _ScoringOnlyLifecycle(lifecycle.SyntheticLifecycleCoordinator):
+    """Private one-transition controller; never returned to a caller."""
+
+    def _event_schema(self):
+        return profile.SCHEMA
+
+    def _append_event(self, event_type, **kwargs):
+        if event_type != 'CONTROLLER_STATE_SEALED':
+            _fail()
+        for path, raw in self._captured.items():
+            material._regular_unlinked_path(path)
+            if path.read_bytes() != raw:
+                _fail()
+        actual = self._bundle_path().read_bytes()
+        if actual != self._bundle_bytes:
+            _fail()
+        lifecycle.scoring_bundle.parse_blind_scoring_bundle(actual)
+        self._read_checkpoint(controller.SCORING_BOUND)
+        return super()._append_event(event_type, **kwargs)
+
 
 def _fail():
     material._fail(material.PAIR_INVALID)
