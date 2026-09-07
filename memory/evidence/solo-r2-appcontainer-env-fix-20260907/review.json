@@ -1,0 +1,39 @@
+{
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "/root/review_final_binding",
+  "scope": "Full intended ten-file commit scope including original five files, scope-record, response-envelope, review record, and only current PLAN/day appends; review record has no self-hash.",
+  "reviewed_sha256": {
+    "memory/evidence/solo-r2-appcontainer-isolation-20260907/Probe.cs": "aed2e952f7f947882bb95d5593a4ae288aadfda509a244eec13dd1a3e4e3c41a",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/Probe.before.cs": "7a28e8783451e4226e373021b83b977dbffe1318df53bece227b1ee8605e135d",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/LaunchVerification.cs": "cc96735ce614925d92e2a37ece996ce6ff520e1a2460c14c44aae77f239d6842",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/verify.ps1": "53603b85a27a2f8d8dc218dec909d64a4b2f3e312e620cfaee0ae2ab562fa32e",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/validation.json": "5cab5fa8b7fcaa5948ff59db0cd7c269a5ea09eb15254c4b7eb2da1145f6415a",
+    "PLAN.md": "b4f8a95063a75edd5f21b8c06a738db037baa849bea81035a614089f2d8325b4",
+    "memory/2026-09-07.md": "41a6ff27f11f5360f2fa6bd9005c56f952e03f0b19fc3df6ece41b7454bad43b",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/scope-record.json": "26eadf6939016e51be476a5d5983b126bb463dee4553b11e9d3b29ecde3eb590",
+    "memory/evidence/solo-r2-appcontainer-env-fix-20260907/response-envelope.json": "0a4777efb034a8f18d77de98ddb0463854662bfbfee8237ad04d15ff52ecc8b9"
+  },
+  "verification": [
+    "Independently compared full Probe.before.cs and Probe.cs: exactly one environment literal change adding fixed LOCALAPPDATA; all other source identical.",
+    "Read full Probe source and LaunchVerification source; Win32 calls retain explicit fixed DLL paths, Pack=8 structures, platform/ABI checks and paired native cleanup. No raw handles escape adapter.",
+    "Verification script extracts exact three-variable environment from changed source, confirms all other source text unchanged, verifies compiler and historical executable hashes, compiles without deploying, launches old executable CREATE_SUSPENDED, validates exact AppContainer token SID, terminates without ResumeThread.",
+    "Script requires positive suspended creation and negative old-environment error 203; snapshots ACLs and verifies three historical digests.",
+    "Saved validation.json records expected positive/negative results and source hash matches independently reviewed source.",
+    "Supplemental complete intended commit scope reviewed: scope-record and response envelope; PLAN/day current-slice semantics reviewed and complete planned staged bytes independently verified equal HEAD bytes plus only reviewed append. Five original reviewed file hashes unchanged. No setup/ACL/diagnostic scripts or binaries enter intended scope."
+  ],
+  "independent_runtime_rerun": false,
+  "findings": [],
+  "claim_ceiling": "Source correction and reported suspended process creation/token SID only. Native Windows-specific adapter uses explicit system DLL imports; no portability/general native abstraction claim. Saved runtime result reviewed, not independently rerun by reviewer.",
+  "not_claimed": [
+    "External Probe.exe updated or deployed",
+    "Filesystem read/deny probes executed or passed",
+    "Scorer isolation established",
+    "Scoring or unblinding",
+    "Real mapping contents inspected",
+    "Independent verification of external historical artifact bytes or ACL snapshots",
+    "Readiness/Attempt/arm execution",
+    "Commit or push"
+  ],
+  "next_action": "Parent may prepare scoped durability record under existing authorization; STOP before deployment or real probes."
+}

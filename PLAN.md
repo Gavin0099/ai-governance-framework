@@ -2823,3 +2823,7 @@ Four-file fixed-instance implementation validated with 109 targeted tests. Evide
 ## R1 refresh after superseding implementation - 2026-09-07
 
 R1 refreshed against exact 13b895a3 sources: seven pins verified; 20 targeted tests and real repo structural check PASS. Evidence: memory/evidence/solo-r2-r1-superseding-refresh-20260907/validation.json. Only R1 metadata refreshed; historical ledger/bundle/checkpoint unchanged. Scoped local commit and verify, then STOP; no bundle generation, scoring, unblinding or push.
+
+## AppContainer minimal launch environment - 2026-09-07
+
+Only LOCALAPPDATA added to the existing sanitized Probe.cs environment. Suspended-process verification: three variables create the process with the exact existing token SID; removing LOCALAPPDATA reproduces 203. No child entrypoint/read probes, ACL changes, scoring, historical writes or push. Evidence: memory/evidence/solo-r2-appcontainer-env-fix-20260907/validation.json. Corrected source compiled; external Probe.exe remains historical and has not been redeployed. Independent review and scoped local commit, then STOP; isolation read probes remain a separate next slice.

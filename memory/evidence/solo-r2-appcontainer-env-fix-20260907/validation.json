@@ -1,0 +1,31 @@
+﻿{
+    "status":  "APP_CONTAINER_PROCESS_START_PASS",
+    "positive":  "created_suspended=true;token_is_appcontainer=1;terminated_without_resume=true;actual_token_sid=S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637;sid=S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637",
+    "negative":  "create_error=203;sid=S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637",
+    "environment":  [
+                        "LOCALAPPDATA=C:\\Users\\daish\\AppData\\Local",
+                        "SystemRoot=C:\\Windows",
+                        "WINDIR=C:\\Windows"
+                    ],
+    "acl_unchanged":  true,
+    "history":  [
+                    {
+                        "sha":  "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77",
+                        "path":  "D:\\ai-governance-framework\\artifacts\\evidence\\solo-r2-final-disposable-mechanism-shakedown-20260907\\attempt-ledger.v2.1.ndjson"
+                    },
+                    {
+                        "sha":  "f0e8af8750182d6dc4bacd5b7f0c280f8b0acccd1dc57ea7844c2fcff5516dce",
+                        "path":  "D:\\r2-final-disposable-shakedown-20260907\\scoring\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.blind-scoring-bundle.json"
+                    },
+                    {
+                        "sha":  "243e6c2defc1272347b940e8ac20786e0e52f626216ff71a43cf34b3a5243558",
+                        "path":  "D:\\r2-final-disposable-shakedown-20260907\\controller\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.scoring-bound.sealed.json"
+                    }
+                ],
+    "source_sha256":  "aed2e952f7f947882bb95d5593a4ae288aadfda509a244eec13dd1a3e4e3c41a",
+    "compiled_sha256":  "ce63475a9e17e903ad5fccc3d9adfe1c78611f8176c08977f78bc4b0434c3642",
+    "external_probe_deployed":  false,
+    "child_resumed":  false,
+    "read_probes_run":  false,
+    "claim_ceiling":  "Suspended process creation and actual token SID only; child entrypoint not run."
+}
