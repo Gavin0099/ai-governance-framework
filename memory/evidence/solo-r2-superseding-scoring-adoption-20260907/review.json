@@ -1,0 +1,24 @@
+{
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "review_type": "Main-agent full-document technical review; not independent sub-agent review",
+  "reviewed_identity": {
+    "path": "docs/governance/solo-r2-superseding-scoring-sealing-authority-candidate-20260907.md",
+    "bytes": 18168,
+    "lines": 119,
+    "sha256": "10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c",
+    "git_blob_oid": "b59d537bd7354b8ce4e04dca8bd08a02874d1ebc"
+  },
+  "checks": [
+    "historical preservation",
+    "single supersession and replay rejection",
+    "separate exact-byte owner activation",
+    "exclusive new identity",
+    "fresh scorer requirement with isolation open",
+    "scores frozen before separately authorized opening"
+  ],
+  "limitations": [
+    "Fresh scorer isolation remains an execution prerequisite",
+    "No implementation or runtime tests claimed"
+  ]
+}

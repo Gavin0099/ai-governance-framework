@@ -1,0 +1,43 @@
+{
+  "status": "OWNER_ADOPTED",
+  "authority_source": "Explicit owner exact-byte adoption in current conversation",
+  "baseline_commit": "2ae93b86c14ed06ac5bb643aefe40117e77e0487",
+  "adopted_identity": {
+    "path": "docs/governance/solo-r2-superseding-scoring-sealing-authority-candidate-20260907.md",
+    "bytes": 18168,
+    "lines": 119,
+    "sha256": "10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c",
+    "git_blob_oid": "b59d537bd7354b8ce4e04dca8bd08a02874d1ebc"
+  },
+  "review": {
+    "path": "memory/evidence/solo-r2-superseding-scoring-adoption-20260907/review.json",
+    "sha256": "5c26d5eba77af4ef6b98add4e6af03a33c39aaa4acb880f0dff9f009d3fd9cd6"
+  },
+  "candidate_header_interpretation": "Historical candidate header preserved unchanged; adoption status derives from this explicit owner decision, not the candidate header",
+  "evaluation_id": "74ad1963-e24c-4ced-9f84-32e3c0daf900",
+  "pair_id": "93584d7e-2bf9-4535-93c8-5593fcd3e272",
+  "historical_ledger_sha256": "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77",
+  "historical_ledger_events": 9,
+  "historical_bundle_sha256": "f0e8af8750182d6dc4bacd5b7f0c280f8b0acccd1dc57ea7844c2fcff5516dce",
+  "historical_checkpoint_sha256": "243e6c2defc1272347b940e8ac20786e0e52f626216ff71a43cf34b3a5243558",
+  "historical_bundle_disposition": "NOT_ADMISSIBLE_FOR_SCORING / BLINDNESS_IDENTITY_LEAKAGE",
+  "allocation": "Exactly one detached superseding scoring instance for this existing Pair; no second generation or replay",
+  "contract_exception": "Instance-only S06 exception to parent L04/L09/L12: nine-event ledger remains historical; separately activated detached identity governs later scoring/opening. Generic validators unchanged.",
+  "activation": "New artifacts require separate exact-byte owner adoption of full transition and new identities; generation alone is not scoring authority",
+  "fresh_scorer": "Required; isolation remains OPEN and this context is ineligible",
+  "ordering": "new identity activation -> separately authorized fresh scoring -> freeze both scores -> STOP -> separately authorized unblinding",
+  "not_authorized": [
+    "implementation",
+    "real bundle/checkpoint creation",
+    "historical mutation",
+    "scorer execution",
+    "blind scoring",
+    "mapping disclosure",
+    "unblinding",
+    "arm/oracle rerun",
+    "new evaluation/Pair",
+    "Formal/counted/A1-A6",
+    "push"
+  ],
+  "stop": "One scoped local adoption commit; verify committed candidate bytes/SHA256/blob and preserved history, then STOP"
+}

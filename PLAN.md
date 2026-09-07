@@ -2810,3 +2810,7 @@ Owner adopts exact preserved scoring inputs as new prospective authority; histor
 ## Minimal final scoring continuation implementation - 2026-09-07
 
 Final-only consumer verifies prospective adoption and 22 exact artifacts before existing scoring preparation. Two changed code/test files; no real continuation. Validation: memory/evidence/solo-r2-final-scoring-continuation-implementation-20260907/validation.json. Scoped commit after independent review, STOP. Separate owner execution authorization required for bundle/checkpoint and ninth sealing event; prior eight ledger events remain unchanged.
+
+## Superseding scoring authority adoption - 2026-09-07
+
+Owner adopted exact 18168-byte authority SHA256 10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c. Record: memory/evidence/solo-r2-superseding-scoring-adoption-20260907/owner-adoption.json. Historical nine-event ledger and rejected bundle/checkpoint preserved. One prospective detached supersession only; implementation, artifact activation, fresh scoring and unblinding require separate authorization. Earlier closeout/push draft remains paused. Local adoption commit and verify, STOP; no push.
