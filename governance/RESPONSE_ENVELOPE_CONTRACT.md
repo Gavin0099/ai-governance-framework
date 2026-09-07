@@ -31,9 +31,8 @@ default_load: on-demand
 > added or changed.
 > v0.7 (2026-08-04): separates the complete machine envelope from the default
 > human rendering. Compact Chinese-first responses omit empty audit fields;
-> failed/partial work and owner decisions expand only when compact reporting
-> cannot preserve the decision boundary; full-evidence requests expand.
-> Dirty state, high-risk scope,
+> forced expansion is limited to failed or partial work, an owner decision
+> request, or an explicit full-evidence request. Dirty state, high-risk scope,
 > and expressible limitations use one compact `注意：` line. Required machine
 > fields and evidence semantics are unchanged; progress updates are governed by
 > `AGENTS.md`.

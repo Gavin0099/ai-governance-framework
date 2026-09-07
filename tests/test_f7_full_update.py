@@ -815,6 +815,11 @@ def test_external_contract_apply_detects_previous_v07_reporting_rules(tmp_path: 
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Response envelope contract version: v0.8" in agents_text
     assert "Failure or an owner decision alone does not force expansion" in agents_text
+    assert (
+        "the blocker, ability to proceed, risks, decision-relevant non-claims, "
+        "claim boundary, and required owner choice / authorization"
+    ) in agents_text
+    assert "unavailable or ambiguously preserved canonical records still expand" in agents_text
 
 
 def test_response_surface_accepts_v08_but_rejects_v07(tmp_path: Path) -> None:
