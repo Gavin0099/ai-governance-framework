@@ -1,6 +1,6 @@
 ---
 name: pr-review-merge-gate
-description: Open or review a tightly scoped pull request, disposition findings against a frozen owner decision, and merge only when the exact current HEAD has no unresolved current-decision BLOCKING finding and the appropriate engineering or qualification gate passes. Use when the user explicitly authorizes PR review followed by conditional merge; do not use for review-only requests or when merge authorization is absent.
+description: Open or review a tightly scoped pull request, disposition findings against a frozen owner decision, and merge only when the exact current HEAD has no unresolved finding that blocks that decision and the appropriate engineering or qualification gate passes. Use when the user explicitly authorizes PR review followed by conditional merge; do not use for review-only requests or when merge authorization is absent.
 ---
 
 # PR Review Merge Gate
@@ -44,36 +44,42 @@ alone is not a review.
 
 For every real finding, report these dimensions separately:
 
-- `severity`: `P0` | `P1` | `P2` | `P3`;
+- finding label / severity: preserve the original value and source convention;
 - `attribution`: introduced | worsened | exposed | pre-existing;
-- `treatment`: `BLOCKING` | `WARNING` | `SUGGESTION` for the frozen decision;
-- `disposition`: fix now | bounded workaround | carried-forward | separate work.
+- current-decision impact: yes | no, with an evidence-backed reason;
+- disposition: fix now | workaround | carried-forward | separate work.
 
-Attribution does not decide treatment. A pre-existing problem is still
-`BLOCKING` when the PR executes or relies on the path, increases exposure,
-interacts with it materially, or relies on evidence it invalidates.
+Do not migrate severity vocabulary. Existing `BLOCKING`, `WARNING`, and
+`SUGGESTION` finding labels remain valid, as do external `P0`-`P3` labels when
+already in use. Neither a source label nor attribution determines impact.
+A pre-existing problem still blocks when the PR relies on the unsafe path,
+increases exposure, interacts with it materially, or relies on evidence it
+invalidates. Never downgrade the original label to justify proceeding.
 
-Severity also does not decide treatment. Preserve a real `P1` as `P1` when it is
-non-blocking for this decision; give it an evidence-supported carried-forward or
-separate-work disposition instead of silently downgrading or fixing unrelated
-scope.
+Impact `yes` means the frozen decision cannot proceed while the finding remains
+unresolved. Impact `no` requires evidence and a disclosed disposition; it does
+not mean the finding is fixed or harmless at another boundary. Escalate unknown
+impact instead of treating it as `no`.
 
-Treat a finding as `BLOCKING` when it:
+Set current-decision impact to `yes` when the finding:
 
-1. is introduced or worsened by the PR at `P0` or `P1` severity;
+1. is a concrete defect introduced or materially worsened by the PR affecting
+   correctness, safety, governance, or the stated claim boundary;
 2. invalidates the frozen DONE or claim ceiling;
-3. affects a path the PR enters, relies on, or materially exposes;
+3. affects an unsafe path the PR enters, relies on, or materially exposes;
 4. invalidates merge safety, relied-upon evidence or identity, or an irreversible
-   state transition.
+   state transition's safety.
 
 A workaround removes blocking applicability only when the applicable owner or
 governing authority accepts it and it is deterministic, bounded, replayable,
 fail-closed, claim-preserving, and already available as reviewable evidence. An
-operator's future intention is not a workaround.
+operator's future intention is not a workaround. Record the accepted evidence
+and why impact is now `no`; preserve the finding label and workaround
+disposition. `carried-forward` or `separate work` alone cannot clear `yes`.
 
 ## Remediate and Re-Review
 
-Fix current-decision `BLOCKING` findings within scope, normally batching one
+Fix findings with current-decision impact `yes` within scope, normally batching one
 review round before pushing. Require proportionate replayable regression
 evidence. Stop for owner direction when remediation changes architecture,
 expands the capability, crosses repositories, changes authority, or creates an
@@ -98,7 +104,8 @@ unimplementable, or freeze an incorrect public contract.
 Use the Engineering Merge Gate for ordinary capability PRs. The exact current
 HEAD is merge-ready only when:
 
-1. no unresolved finding has `BLOCKING` treatment for the frozen merge decision;
+1. no unresolved finding has current-decision impact `yes`, and no impact
+   assessment remains unknown for the frozen merge decision;
 2. required scope-matched checks pass and mergeability is acceptable;
 3. the PR body matches current evidence, scope, and claims;
 4. no unrelated files are included;
@@ -119,15 +126,18 @@ For Gate 3, freeze and review four decisions independently:
 3. Execution Authorization;
 4. Evidence / Result Acceptance.
 
-Do not use a finding's treatment at one boundary as its treatment at another.
+Assess current-decision impact separately at each boundary. Impact `no` at
+Engineering Merge does not grant execution authority or result acceptance.
 Gate 3 workarounds must also be precommitted, arm-symmetric,
 secret-independent, outcome-independent, Attempt-accounting preserving, and
 replayable. Never weaken an existing preregistered or frozen requirement through
 this workflow.
 
-Qualification remains reusable across unrelated ancestry movement only when
-bound implementation bytes, relevant transitive dependencies, shared semantic
-helpers, and qualification assumptions remain unchanged.
+Unrelated ancestry movement alone need not invalidate qualification when bound
+implementation bytes, relevant transitive dependencies, shared semantic helpers,
+qualification assumptions, and explicit head/ancestry bindings remain satisfied.
+Revalidate affected evidence when any of those changes. Never discard a frozen
+binding to preserve a prior qualification result.
 
 ## Complete the Gate
 

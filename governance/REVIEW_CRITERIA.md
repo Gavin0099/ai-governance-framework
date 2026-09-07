@@ -66,49 +66,57 @@ evidence, unresolved prior findings, or unreviewed dirty work, do not present
 the verdict as clean approval; use `CHANGES_REQUESTED`, `ESCALATED`, or an
 explicit `WARNING` as appropriate.
 
-### 2.1 Finding Severity and Current-Decision Treatment
+### 2.1 Finding Labels and Current-Decision Impact
 
-Finding severity and current-decision treatment are separate dimensions.
-Severity describes the intrinsic consequence of the defect. Treatment describes
-what the current owner decision may do about it.
+Preserve the finding label or severity scale already used by the repository or
+source review. This change does not migrate severity vocabulary or create a
+second scale. The existing finding vocabulary remains:
 
-| Severity | Meaning |
+| Level | Meaning |
 |---|---|
-| `P0` | Critical defect with catastrophic, irreversible, authority, security, or evidence-validity consequences |
-| `P1` | High-severity concrete correctness, safety, governance, or claim-boundary defect |
-| `P2` | Medium-severity risk, debt, or weakness that does not currently invalidate the accepted boundary |
-| `P3` | Low-severity improvement or optimization |
+| `BLOCKING` | A governance, correctness, or safety issue that must be fixed |
+| `WARNING` | A risk, debt item, or weak evidence point that must be explicit |
+| `SUGGESTION` | A non-blocking improvement |
 
-| Treatment | Meaning |
-|---|---|
-| `BLOCKING` | The current owner decision must not proceed until the finding is fixed or an evidence-backed bounded workaround is accepted by the applicable owner or governing authority |
-| `WARNING` | The current decision may proceed only with the risk and disposition stated explicitly |
-| `SUGGESTION` | The finding has no material effect on the current decision |
+These are source finding labels, not automatic answers to the current merge
+decision. Preserve an external review's `P0`-`P3` labels when it uses them;
+neither translate them into the table nor require existing reports to adopt them.
+Keep a real finding's label unchanged when carrying it forward.
 
-Severity alone does not determine treatment. A `P1` may be `WARNING` and
-`carried-forward` when evidence proves that it does not materially affect the
-current decision. The same `P1` may be `BLOCKING` at another decision boundary.
+For each finding, report separately:
 
-Attribution informs responsibility but does not determine blocking
-applicability. A pre-existing finding remains `BLOCKING` when the current change
-executes or relies on the affected path, increases its exposure, interacts with
-it materially, or relies on evidence that it invalidates.
+- finding label / severity: the original value and its source convention;
+- attribution: introduced | worsened | exposed | pre-existing;
+- current-decision impact: yes | no, with an evidence-backed reason;
+- disposition: fix now | workaround | carried-forward | separate work.
 
-A finding is `BLOCKING` for the current decision when any of these conditions
-holds:
+`current-decision impact: yes` means the stated decision cannot proceed with
+the finding unresolved. `no` means evidence supports proceeding at this decision
+boundary with the finding and its disposition disclosed; it does not mean fixed,
+absent, or harmless at another boundary. Unknown impact must be escalated, not
+recorded as `no`. A source label of `BLOCKING` does not itself set this field.
 
-1. the change introduces or worsens a `P0` or `P1` defect;
+Attribution alone also does not decide impact. A pre-existing finding still
+blocks when the current change relies on the unsafe path, increases its exposure,
+interacts with it materially, or relies on evidence that it invalidates.
+
+Set current-decision impact to `yes` when any of these conditions holds:
+
+1. the change introduces or materially worsens a concrete defect affecting
+   correctness, safety, governance, or the stated claim boundary;
 2. the finding invalidates the frozen DONE condition or claim ceiling;
 3. the change enters, relies on, or materially increases exposure to the unsafe
    path;
-4. the finding invalidates merge safety, relied-upon evidence or identity, or an
-   irreversible state transition.
+4. the finding invalidates merge safety, relied-upon evidence or identity, or
+   the safety of an irreversible state transition.
 
 A workaround can remove blocking applicability only when the applicable owner or
 governing authority accepts it and it already exists as reviewable evidence: it
 is deterministic, bounded, replayable, fail-closed, and preserves the claim
 ceiling. An intention that an operator will remember a step later is not a
-workaround.
+workaround. Record the accepted evidence and why the impact is now `no`, while
+retaining the finding label and workaround disposition. Merely assigning
+`carried-forward` or `separate work` never clears an impact of `yes`.
 
 Every real finding requires disposition, but a finding is not automatically a
 new task. Non-blocking findings may be carried forward or assigned to separate
@@ -145,10 +153,14 @@ Gate 3 applies the same finding logic separately at four decision boundaries:
 Gate 3 workarounds must additionally be precommitted, arm-symmetric,
 secret-independent, outcome-independent, Attempt-accounting preserving, and
 replayable. Existing preregistered or frozen Gate 3 requirements remain minimum
-conditions and cannot be weakened by this decision-bound model. Unrelated
-ancestry movement does not invalidate qualification; changes to bound
-implementation bytes, relevant transitive dependencies, shared semantic helpers,
-or qualification assumptions do.
+conditions and cannot be weakened by this decision-bound model. Evaluate
+current-decision impact separately at each boundary; a `no` at Engineering Merge
+does not imply execution authority or result acceptance. Unrelated ancestry
+movement alone need not invalidate qualification when all bound implementation
+bytes, relevant transitive dependencies, shared semantic helpers, qualification
+assumptions, and explicit head/ancestry bindings remain satisfied. Revalidate
+the affected evidence when any of those changes; this is not permission to
+discard an existing frozen binding.
 
 ### 2.4 Specification Review Stop Rule
 
@@ -159,7 +171,7 @@ next authorized implementation boundary unsafe or unimplementable, or freezes
 an incorrect public contract. Other future concerns must be recorded as deferred
 design questions rather than expanded into the current specification.
 
-Do not confuse `ESCALATED` with `BLOCKING`.
+Do not confuse `ESCALATED` with an established current-decision impact of `yes`.
 Escalation is for unresolved consequential ambiguity, not merely for defects.
 
 ---
@@ -266,14 +278,15 @@ Every review response should include:
 - Baseline Status: Stable | Unverified | Unstable | N/A
 
 ### Technical Findings
-1. [P0|P1|P2|P3] [BLOCKING|WARNING|SUGGESTION] Title
+1. [existing finding label / severity] Title
+   - Label convention / source: ...
    - Location: `path:line`
    - Evidence: ...
    - Rule Reference: ...
    - Attribution: introduced | worsened | exposed | pre-existing
-   - Current-decision impact: ...
+   - Current-decision impact: yes | no — evidence-backed reason
    - Status: open | resolved | carried-forward | not-reproduced
-   - Disposition: fix now | bounded workaround | carried-forward | separate work
+   - Disposition: fix now | workaround | carried-forward | separate work
 
 ### Knowledge Base Alignment
 - Anti-patterns checked: N
