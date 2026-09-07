@@ -2798,3 +2798,7 @@ Final-only typed production binding and dedicated launcher implemented under dc2
 ## Final fresh binding R1 refresh - 2026-09-07
 
 Implementation c763e738 committed after full 15-file scope ACCEPT. Refresh binds exact committed ledger/pair bytes; five other pins unchanged. R1 --check PASS and 20 tests PASS. Evidence: memory/evidence/solo-r2-final-binding-implementation-20260907/r1-closeout.json. No final allocation or runtime created. STOP after separate refresh commit verification.
+
+## Final Pair payload-pin adoption - 2026-09-07
+
+Owner adopted exact 319-byte pin ee27ce5e92f948320ad0e2fb81bb29f34e8bfc8934296a63d18c6b3418f8d8af for final Pair 93584d7e-2bf9-4535-93c8-5593fcd3e272. Authority: memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/owner-adoption.json. Preserve Phase A identity; ledger two events, Attempt 0, exposure NONE. Scoped local adoption commit then STOP; no readiness or execution authorized.
