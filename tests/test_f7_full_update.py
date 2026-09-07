@@ -168,7 +168,7 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     _make_external_contract_repo(repo)
     _write(
         repo / "governance" / "RESPONSE_ENVELOPE_CONTRACT.md",
-        "# Response Envelope Contract v0.7\n"
+        "# Response Envelope Contract v0.8\n"
         "> v0.6 historical release note\n",
     )
     _write(
@@ -658,7 +658,7 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "expanded-report exception to the compact three-line default" in agents_text
-    assert "Response envelope contract version: v0.7" in agents_text
+    assert "Response envelope contract version: v0.8" in agents_text
     assert "full_evidence_request" in agents_text
     assert "owner_decision_required" in agents_text
     assert "failed_or_partial" in agents_text
@@ -755,7 +755,7 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "expanded-report exception to the compact three-line default" in agents_text
-    assert "Response envelope contract version: v0.7" in agents_text
+    assert "Response envelope contract version: v0.8" in agents_text
     assert "full_evidence_request" in agents_text
     assert "owner_decision_required" in agents_text
     assert "failed_or_partial" in agents_text
@@ -790,9 +790,52 @@ def test_external_contract_apply_marks_legacy_response_envelope_conflict(tmp_pat
     assert result.stages["response_envelope_surface"] == "conflict"
     assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.1"]
     assert "Response envelope contract: v0.1" in agents_text
-    assert "Response envelope contract version: v0.7" in agents_text
+    assert "Response envelope contract version: v0.8" in agents_text
     assert "full_evidence_request" in agents_text
     assert any("response envelope contract versions conflict" in warning for warning in result.warnings)
+
+
+def test_external_contract_apply_detects_previous_v07_reporting_rules(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        repo / "AGENTS.md",
+        "# Contract Agent Rules\n\n"
+        "<!-- Response envelope contract: v0.7 -->\n"
+        "- Failed or partial reports must always expand.\n",
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    assert result.f7_final_status == "partially_updated"
+    assert result.stages["response_envelope_surface"] == "conflict"
+    assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.7"]
+    agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Response envelope contract version: v0.8" in agents_text
+    assert "Failure or an owner decision alone does not force expansion" in agents_text
+
+
+def test_response_surface_accepts_v08_but_rejects_v07(tmp_path: Path) -> None:
+    for path, prefix in (
+        ("AGENTS.md", "<!-- Response envelope contract: "),
+        (".github/copilot-instructions.md", "<!-- Response envelope contract: "),
+        ("governance/RESPONSE_ENVELOPE_CONTRACT.md", "# Response Envelope Contract "),
+    ):
+        _write(tmp_path / path, prefix + "v0.8\n")
+    assert f7_full_update._response_envelope_surface_conflicts(tmp_path) == []
+    for path, prefix in (
+        ("AGENTS.md", "<!-- Response envelope contract: "),
+        (".github/copilot-instructions.md", "<!-- Response envelope contract: "),
+        ("governance/RESPONSE_ENVELOPE_CONTRACT.md", "# Response Envelope Contract "),
+    ):
+        _write(tmp_path / path, prefix + "v0.7\n")
+    assert f7_full_update._response_envelope_surface_conflicts(tmp_path) == [
+        "AGENTS.md: v0.7",
+        ".github/copilot-instructions.md: v0.7",
+        "governance/RESPONSE_ENVELOPE_CONTRACT.md: v0.7",
+    ]
 
 
 def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outside_boundary(tmp_path: Path) -> None:

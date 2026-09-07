@@ -6,7 +6,12 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.7
+# Response Envelope Contract v0.8
+
+> v0.8 (2026-09-07): permits compact failed/partial and owner-decision reports
+> when decision boundaries remain explicit; raw evidence stays canonical without
+> mandatory human display. Diagnosis, review, and concept explanations retain
+> their task-adaptive shape. No machine schema or execution authority change.
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
@@ -73,11 +78,12 @@ it but may not create or upgrade it while rendering.
 
 ### Compact by default
 
-For any task, including failed or partial work, use compact rendering when a
+For completion-class reports, including failed or partial work, use compact rendering when a
 short answer preserves the blocker, ability to proceed, risks, non-claims, and
 required owner decision or authorization. Select what affects the current
 decision, not the full execution log. Use the current session language and the
-existing three-line preface:
+existing three-line preface. Diagnosis, review, and concept requests instead
+use Engineering Explanation; do not force an irrelevant next action:
 
 ```text
 Result: <what is complete, incomplete, or blocked>

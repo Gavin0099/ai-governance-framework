@@ -87,7 +87,7 @@ Treat repository governance outputs as high-priority project truth.
 <!-- AI Governance Framework: copilot-instructions v1.1 -->
 <!-- Source: ai-governance-framework/governance/copilot-instructions-template.md -->
 <!-- Deploy via: bash scripts/install-hooks.sh --target /path/to/repo -->
-<!-- Response envelope contract: v0.7 -->
+<!-- Response envelope contract: v0.8 -->
 <!-- Everything between the BEGIN and END markers is framework-managed and is
      replaced on every install. Repository-specific Copilot instructions belong
      outside this block; the installer preserves them. -->
@@ -135,13 +135,15 @@ record.
 
 ### Compact by default
 
-For any task, including failed or partial work, use compact reporting when a
+For completion-class reports, including failed or partial work, use compact reporting when a
 short answer preserves the blocker, ability to proceed, risks, non-claims, and
 required owner choice / authorization. Select information that affects the
 current decision, not the full execution log. Use the first three lines in the
 session language. Add one `注意：` line when dirty state, high-risk scope, or a
 decision-relevant limitation needs to be visible but can still be stated
-without changing the claim boundary:
+without changing the claim boundary. Diagnosis, review, and concept requests
+instead use the contract's Engineering Explanation shape, without forcing an
+irrelevant next action:
 
 ```text
 Result: <what is complete, incomplete, or blocked>
