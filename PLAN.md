@@ -2802,3 +2802,7 @@ Implementation c763e738 committed after full 15-file scope ACCEPT. Refresh binds
 ## Final Pair payload-pin adoption - 2026-09-07
 
 Owner adopted exact 319-byte pin ee27ce5e92f948320ad0e2fb81bb29f34e8bfc8934296a63d18c6b3418f8d8af for final Pair 93584d7e-2bf9-4535-93c8-5593fcd3e272. Authority: memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/owner-adoption.json. Preserve Phase A identity; ledger two events, Attempt 0, exposure NONE. Scoped local adoption commit then STOP; no readiness or execution authorized.
+
+## Final scoring continuation prospective adoption - 2026-09-07
+
+Owner adopts exact preserved scoring inputs as new prospective authority; historical ATTEMPT_BOUND digest custody remains ABSENT. Authority: memory/evidence/solo-r2-final-scoring-continuation-adoption-20260907/owner-adoption.json. Eight ledger events, outputs and oracle provenance unchanged. Scoped local adoption commit and verify, then STOP; no continuation, bundle, scoring, sealing append or unblinding.

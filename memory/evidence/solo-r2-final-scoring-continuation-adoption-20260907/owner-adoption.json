@@ -1,0 +1,143 @@
+{
+  "status": "OWNER_ADOPTED",
+  "authority_source": "Explicit owner adoption in current conversation",
+  "authority_meaning": "New prospective authority for these exact preserved scoring-continuation inputs; not recovered historical expected-digest custody or restored original controller authority",
+  "baseline_commit": "03bc6702de73bebf24c2f202cd82b9516f9e2aa5",
+  "evaluation_id": "74ad1963-e24c-4ced-9f84-32e3c0daf900",
+  "pair_id": "93584d7e-2bf9-4535-93c8-5593fcd3e272",
+  "ledger_prefix": {
+    "path": "artifacts/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/attempt-ledger.v2.1.ndjson",
+    "bytes": 4820,
+    "sha256": "4bf66f238de952e7aa791a4084e7bb63b7d39c102cee9c879d9f7c2e82534e49",
+    "event_count": 8,
+    "preservation": "Existing eight events must remain byte-for-byte unchanged"
+  },
+  "attempt_bound_checkpoint": {
+    "path": "D:/r2-final-disposable-shakedown-20260907/controller/2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.attempt-bound.sealed.json",
+    "bytes": 1634,
+    "sha256": "c73b95f743974bf6703fccbbd78a50971c7366580c95c31fa8362de4944a645a"
+  },
+  "input_authority": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json",
+    "bytes": 7719,
+    "sha256": "5c9fd7d1ed813b60ac13b6f5b495ed60da503817298af988412346682c1190bb"
+  },
+  "frozen_rubric": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/rubric.candidate.md",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 3754,
+    "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+    "git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+  },
+  "terminal_outputs": [
+    {
+      "attempt_handle": "8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07",
+      "terminal_output": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07/queue_range.py",
+        "bytes": 189,
+        "sha256": "88eafbdd5b7cd78c5efb94e1823f4df20f5edd28162be48c69f3003677cec7b3"
+      },
+      "runtime_evidence": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07/runtime-evidence.json",
+        "bytes": 1498,
+        "sha256": "0c42d21fe178731c3f6d7721aea01ceb41e41cd55af890f32ee2d5ce21d550f1"
+      },
+      "final_message": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07/final-message.json",
+        "bytes": 502,
+        "sha256": "20ed504edb6bff2c8bb12ca24dbd0bda95ca94397a988bd596c431d0045f2e31"
+      },
+      "trace": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07/codex-trace.jsonl",
+        "bytes": 24862,
+        "sha256": "ed942d00cf3d7e0c352f8410c99cef0fc2bd099af16dfcc1defffc0c1870fa72"
+      },
+      "verified_oracle": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.verified-result.json",
+        "bytes": 2492,
+        "sha256": "1d08d99b86f617cbfd21fc266658c003d2f5bb270447cc0ed621dfcf187539b7"
+      },
+      "initial_oracle_record": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.result.json",
+        "bytes": 1870,
+        "sha256": "0822baff08e055c655fb4b1ed8160f0162da2c9867245725509cfff1009d6183"
+      },
+      "oracle_stdout": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "oracle_stderr": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.stderr.txt",
+        "bytes": 924,
+        "sha256": "eb8bd522baf2c277e03c7fbb978e3d4906eea1347e0147d1df8e126c67eaa8d1"
+      }
+    },
+    {
+      "attempt_handle": "ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b",
+      "terminal_output": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b/queue_range.py",
+        "bytes": 189,
+        "sha256": "88eafbdd5b7cd78c5efb94e1823f4df20f5edd28162be48c69f3003677cec7b3"
+      },
+      "runtime_evidence": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b/runtime-evidence.json",
+        "bytes": 1498,
+        "sha256": "656cd7def0b89ef76852b6ceba4079620705c9d65b5561cd8160348a69ebaf33"
+      },
+      "final_message": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b/final-message.json",
+        "bytes": 868,
+        "sha256": "93b2befb9cf11f28a32d6741973afd8c3f26380e8bc70e2f48a3a13899c32844"
+      },
+      "trace": {
+        "path": "D:/r2-final-disposable-shakedown-20260907/controller/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b/codex-trace.jsonl",
+        "bytes": 15892,
+        "sha256": "61bc685c4a1c4d7d7da9a2a945c90a09f12beab18c2501e289a6a538870ca7c2"
+      },
+      "verified_oracle": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.verified-result.json",
+        "bytes": 2492,
+        "sha256": "5a65872df42bc21fc883ac7d4bff1613c5737c84aae602b5c02d324186b75d88"
+      },
+      "initial_oracle_record": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.result.json",
+        "bytes": 1870,
+        "sha256": "7c1c8de5d027f52e6a16e7e544ed887a6b769c2c47056570ed772632f63bf9d1"
+      },
+      "oracle_stdout": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "oracle_stderr": {
+        "path": "memory/evidence/solo-r2-final-oracle-20260907/ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.stderr.txt",
+        "bytes": 924,
+        "sha256": "eb8bd522baf2c277e03c7fbb978e3d4906eea1347e0147d1df8e126c67eaa8d1"
+      }
+    }
+  ],
+  "oracle_correction_summary": {
+    "path": "memory/evidence/solo-r2-final-oracle-20260907/verified-summary.json",
+    "bytes": 975,
+    "sha256": "f23b0ef7fa46e73d7abc7da7b867142c3ad9d5ffe1346b695f4f976d39133e02"
+  },
+  "oracle_initial_summary": {
+    "path": "memory/evidence/solo-r2-final-oracle-20260907/summary.json",
+    "bytes": 828,
+    "sha256": "a2b6bbe7659d87230adb9045b9eada29fe31e793fd27e348e0a8678a7860afb8"
+  },
+  "oracle_provenance": "Initial FAIL was CRLF aggregation parser error; verified PASS derives from retained original outputs, no oracle rerun",
+  "historical_expected_digest_custody": "ABSENT",
+  "not_authorized": [
+    "continuation implementation in this slice",
+    "sealing event append in this slice",
+    "arm or oracle rerun",
+    "mapping reveal",
+    "blind scoring",
+    "unblinding",
+    "new evaluation/Pair/Attempt",
+    "push"
+  ],
+  "next_action": "STOP after scoped local adoption commit and exact identity verification. Separate authorization for minimal scoring continuation and sealing append."
+}
