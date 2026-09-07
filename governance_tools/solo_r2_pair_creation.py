@@ -600,6 +600,11 @@ def _create_pair_after_validation(
         identities = disposable_authority.pair_identities()
         repository_name = disposable_authority.repository
     pair_id = _new_uuid4()
+    if replacement_binding is not None:
+        from governance_tools import solo_r2_disposable_binding as binding
+        if (type(replacement_binding) is binding.FinalLedgerBinding
+                and pair_id in binding._final_historical_pairs(custody_boundary.governance_root)):
+            _fail()
     event = _pair_event(pair_id=pair_id)
     if disposable_authority is not None:
         from governance_tools import solo_r2_disposable_profile as profile
@@ -737,6 +742,33 @@ def create_replacement_disposable_shakedown_pair(
         expected_evaluation_id=expected_evaluation_id)
     from governance_tools import solo_r2_disposable_profile as profile
     public_path = repository.root / profile.REPLACEMENT_LEDGER_PATH
+    events = ledger.read_ledger(public_path)
+    if len(events) != 1:
+        _fail()
+    authority = binding.load_input_authority(git=git, repository=repository, temp_root=temp_root)
+    private_root, commitment = validate_replacement_targets(controller_root=controller_root,
+        key_path=key_path, commitment_path=commitment_path, custody_boundary=custody_boundary)
+    bound.verify(public_path, public_path.read_bytes())
+    return _create_pair_after_validation(public_path=public_path, genesis=events[0],
+        private_root=private_root, key_path=key_path, custody_boundary=custody_boundary,
+        commitment_path=commitment, disposable_authority=authority, replacement_binding=bound)
+
+def create_final_disposable_shakedown_pair(
+    *, git, repository, temp_root: Path,
+    expected_binding_sha256: str, expected_evaluation_id: str,
+    controller_root: Path | str, key_path: Path | str,
+    commitment_path: Path | str, custody_boundary: controller.CustodyBoundary,
+) -> PairCreationResult:
+    """Separate owner creation operation for only the adopted final fresh allocation."""
+    from governance_tools import solo_r2_disposable_binding as binding
+    _validate_project_root(repository.root, custody_boundary)
+    binding.verify_final_custody(controller_root=controller_root, key_path=key_path,
+        commitment_path=commitment_path, custody_boundary=custody_boundary)
+    bound = binding.load_final_ledger_binding(git=git, repository=repository,
+        temp_root=temp_root, expected_binding_sha256=expected_binding_sha256,
+        expected_evaluation_id=expected_evaluation_id)
+    from governance_tools import solo_r2_disposable_profile as profile
+    public_path = repository.root / profile.FINAL_LEDGER_PATH
     events = ledger.read_ledger(public_path)
     if len(events) != 1:
         _fail()

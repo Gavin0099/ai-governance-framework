@@ -43,3 +43,14 @@ ADOPTED_DOCUMENTS = (
     ("cab2c62d135dd220d0aa7f9f143a19b23cd6cc0a", "docs/governance/solo-r2-disposable-ledger-placement-contract-20260906.md", PLACEMENT_SHA256),
     ("cab2c62d135dd220d0aa7f9f143a19b23cd6cc0a", "docs/governance/solo-r2-disposable-placement-owner-adoption-20260906.json", "0bac2f52e3fe3e4c990efecfd83b332627f5742b82efa38b032de09cdacaac9c"),
 )
+
+# Final allocation is distinct from both historical disposable allocations.
+FINAL_LEDGER_PATH = Path("artifacts/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/attempt-ledger.v2.1.ndjson")
+FINAL_BINDING_PATH = Path("memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/genesis-binding.json")
+FINAL_RUNTIME_ROOT = Path("D:/r2-final-disposable-shakedown-20260907")
+FINAL_DECISION_SHA256 = "33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2"
+FINAL_PRIOR_LEDGER_SHA256 = "33e291c2018aabaa004ca7998ee87a5cbfefefc81b53e77374ae694c1e42f3d8"
+FINAL_DOCUMENTS = (
+    ("dc2a3a9845a0e30edcf5648c14a9279ae6d72076", "docs/governance/solo-r2-final-fresh-allocation-placement-candidate-20260907.md", FINAL_DECISION_SHA256),
+    ("dc2a3a9845a0e30edcf5648c14a9279ae6d72076", "docs/governance/solo-r2-final-fresh-allocation-owner-adoption-20260907.json", "a0520c216ef3c55e885af8a3f8f06c7f329a49ba407c97479d495560996b9d44"),
+)

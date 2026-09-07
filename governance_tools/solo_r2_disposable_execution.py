@@ -92,12 +92,13 @@ class DisposableLifecycle(lifecycle.SyntheticLifecycleCoordinator):
             _fail()
         root = binding._root(materializer.repository)
         replacement = replacement_binding is not None
-        public = binding._fixed_path(root, profile.REPLACEMENT_LEDGER_PATH if replacement else profile.LEDGER_PATH)
+        if replacement and type(replacement_binding) not in (binding.ReplacementLedgerBinding, binding.FinalLedgerBinding):
+            _fail()
+        final = type(replacement_binding) is binding.FinalLedgerBinding
+        public = binding._fixed_path(root, replacement_binding.ledger_relative_path if replacement else profile.LEDGER_PATH)
         if replacement:
-            if type(replacement_binding) is not binding.ReplacementLedgerBinding:
-                _fail()
             replacement_binding.verify(public, public.read_bytes())
-            binding.verify_replacement_custody(controller_root=controller_root,
+            (binding.verify_final_custody if final else binding.verify_replacement_custody)(controller_root=controller_root,
                 key_path=key_path, custody_boundary=custody_boundary)
         if pair_lock.ledger_path != public or custody_boundary.governance_root != root:
             _fail()
@@ -108,9 +109,9 @@ class DisposableLifecycle(lifecycle.SyntheticLifecycleCoordinator):
             _fail()
         pair_lock.binding.validate_event(events[0], events[1])
         genesis_bytes = raw.splitlines(keepends=True)[0]
-        bound = binding._fixed_path(root, profile.REPLACEMENT_BINDING_PATH if replacement else profile.BINDING_PATH).read_bytes()
+        bound = binding._fixed_path(root, replacement_binding.binding_relative_path if replacement else profile.BINDING_PATH).read_bytes()
         if (hashlib.sha256(bound).hexdigest() != expected_genesis_binding_sha256
-                or binding._json(bound) != binding._binding(root, events[0], genesis_bytes, replacement=replacement)):
+                or binding._json(bound) != binding._binding(root, events[0], genesis_bytes, replacement=replacement and not final, final=final)):
             _fail()
         private = pairs._canonical_directory(controller_root, reject_alias=True)
         scorer = pairs._canonical_directory(scoring_root, reject_alias=True)
