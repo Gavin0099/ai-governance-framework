@@ -2785,3 +2785,8 @@ or push in this slice. Implementation commit verification is the stopping point.
 - Exact evaluation/Pair/nonce authorization revalidates current adoption/state/ledger/payload and original live objects, then calls the existing execution API once. No second readiness run or cross-process resume.
 - Targeted 47 tests PASS with isolated execution substitute; evidence: memory/evidence/solo-r2-replacement-controlled-execute-20260907/validation.json. Independent review required before this slice stops.
 - Owner authorized scoped local commit after 47 targeted and 47 independent PASS / Blocking 0. R1 source pins 7/7 MATCH; no refresh needed. Verify committed identities then STOP. No real readiness, Attempt, exposure, arm, scoring or push. Dedicated HOME remains a later runtime prerequisite; launcher logic frozen.
+
+
+## Final fresh disposable allocation adoption - 2026-09-07
+
+Owner adopted exact candidate 33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2. Authority: docs/governance/solo-r2-final-fresh-allocation-owner-adoption-20260907.json. One final evaluation/ledger/Pair and two fresh arms as allocation only; all creation and execution require separate authorization. Historical runs preserved, no further automatic replacement. Current slice: scoped local adoption durability then STOP.

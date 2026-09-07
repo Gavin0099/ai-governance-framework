@@ -1,0 +1,34 @@
+{
+  "mode": "completion",
+  "mode_source": "explicit owner exact-byte adoption and local commit authorization",
+  "task_authority": "Explicit main-session Owner Adoption \u2014 Final Fresh Solo R2 Disposable Allocation / Placement",
+  "scope": "Candidate document and canonical evidence/memory only",
+  "done": "Owner adoption recorded; scoped commit and verification pending",
+  "claim_ceiling": "Final allocation adopted only; operational actions not authorized",
+  "not_claimed": [
+    "production implementation",
+    "launcher modification",
+    "evaluation ID generation",
+    "ledger creation",
+    "Pair creation",
+    "Attempt admission",
+    "task exposure",
+    "CONTROL/TREATMENT execution",
+    "oracle",
+    "blind scoring",
+    "unblinding",
+    "retry",
+    "additional allocation",
+    "A1-A6 progression",
+    "Formal or counted evidence",
+    "push"
+  ],
+  "evidence_refs": [
+    "docs/governance/solo-r2-final-fresh-allocation-placement-candidate-20260907.md",
+    "memory\\evidence\\solo-r2-final-allocation-candidate-20260907\\identity.json",
+    "memory/evidence/solo-r2-final-allocation-candidate-20260907/review.json",
+    "docs/governance/solo-r2-final-fresh-allocation-owner-adoption-20260907.json"
+  ],
+  "risk": "Proposed new custody and HOME reuse not operationally verified; later binding implementation needed",
+  "next_action": "After committed bytes/SHA256/blob verification. No implementation or operational continuation."
+}
