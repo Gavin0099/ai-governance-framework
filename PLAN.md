@@ -2827,3 +2827,7 @@ R1 refreshed against exact 13b895a3 sources: seven pins verified; 20 targeted te
 ## AppContainer minimal launch environment - 2026-09-07
 
 Only LOCALAPPDATA added to the existing sanitized Probe.cs environment. Suspended-process verification: three variables create the process with the exact existing token SID; removing LOCALAPPDATA reproduces 203. No child entrypoint/read probes, ACL changes, scoring, historical writes or push. Evidence: memory/evidence/solo-r2-appcontainer-env-fix-20260907/validation.json. Corrected source compiled; external Probe.exe remains historical and has not been redeployed. Independent review and scoped local commit, then STOP; isolation read probes remain a separate next slice.
+
+## Dedicated runtime parent custody - 2026-09-07
+
+Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/SYSTEM/Administrators only. Host verify_custody PASS. Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical. Disk ACL and preserved ledger/bundle/checkpoint bytes and ACLs unchanged. Evidence: memory/evidence/solo-r2-parent-custody-acl-20260907/result.json. No AppContainer child/RX/scoring; STOP. Next separately authorized action is projection/read-denial verification, not bundle creation.
