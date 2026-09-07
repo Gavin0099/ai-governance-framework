@@ -16,7 +16,7 @@ def setup(saved,monkeypatch):
     monkeypatch.setattr(s,'HISTORY',tuple((n,len(p[n].read_bytes()),s._sha(p[n].read_bytes())) for n in ('ledger','old_bundle','old_checkpoint')))
     monkeypatch.setattr(s,'_policy',lambda *args:e.root)
     e.kw={**e.args,'verify_custody':lambda *args:None}
-    e.generate=lambda:s.generate_candidate(**e.kw,verify_projection=lambda payloads:None)
+    e.generate=lambda:s.generate_candidate(**e.kw,verify_projection=lambda payloads:None,verify_persisted_bundle=lambda *args:None,initialize_custody=lambda *args:None)
     e.p=p
     e.before={n:p[n].read_bytes() for n,_,_ in s.HISTORY}
     return e
@@ -139,9 +139,9 @@ def test_partial_failure_is_quarantined_no_retry(setup,monkeypatch,failure):
 
 def test_semantic_projection_and_custody_checks_before_reservation(setup):
     e=setup
-    with pytest.raises(Exception):s.generate_candidate(**e.kw,verify_projection=lambda *a:False)
+    with pytest.raises(Exception):s.generate_candidate(**e.kw,verify_projection=lambda *a:False,verify_persisted_bundle=lambda *a:None,initialize_custody=lambda *a:None)
     kw={**e.kw,'verify_custody':lambda *a:False}
-    with pytest.raises(Exception):s.generate_candidate(**kw,verify_projection=lambda *a:None)
+    with pytest.raises(Exception):s.generate_candidate(**kw,verify_projection=lambda *a:None,verify_persisted_bundle=lambda *a:None,initialize_custody=lambda *a:None)
     assert not e.p['private'].exists()
 
 

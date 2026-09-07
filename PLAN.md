@@ -2835,3 +2835,7 @@ Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/S
 ## Synthetic scorer isolation durability - 2026-09-07
 
 Fixed native verifier and split probe source preserved with synthetic live evidence (host custody, AppContainer projection, eight forbidden read denials, temporary RX restored). Current build and five pure ACL cases PASS; no live rerun. Scope: memory/evidence/solo-r2-isolation-capability-commit-20260907/scope-record.json. Real bundle anonymity, Python consumer integration and scorer execution remain unclaimed. Local scoped commit then STOP; no ACL/environment changes, bundle/scoring/unblinding or push.
+
+## Real superseding bundle callback wiring - 2026-09-07
+
+Fixed-instance generator now requires reviewed semantic payload identities, new-instance custody initialization using the existing ACL model, and native verification of the persisted real bundle before its transition receipt. Validation: memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json (46 Python and 11 native contract cases). Independent review and scoped commit, then STOP. No real generation/reservation, deployment, ACL mutation, probe, scoring or unblinding. Real parent custody, reviewed deployed executable/RX and semantic payload digest custody remain runtime prerequisites; no R1 source pin changed.

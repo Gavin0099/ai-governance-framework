@@ -171,8 +171,9 @@ def _project(row, terminal, root, ordinal):
     return payload
 
 
-def generate_candidate(*, git, repository, temp_root, verify_custody, verify_projection):
+def generate_candidate(*, git, repository, temp_root, verify_custody, verify_projection, verify_persisted_bundle, initialize_custody):
     """Separate owner generation authorization required. Returns identities only."""
+    if not callable(verify_persisted_bundle) or not callable(initialize_custody): _fail()
     root,p,boundary,key,record,events,old=_load(git,repository,temp_root,verify_custody)
     if os.path.lexists(p['private']) or os.path.lexists(p['scorer']): _fail()
     outputs=[_project(row,events[index],root,i) for i,(row,index) in enumerate(zip(record['terminal_outputs'],(4,7)))]
@@ -181,6 +182,7 @@ def generate_candidate(*, git, repository, temp_root, verify_custody, verify_pro
     # Reservation before RNG/writes; any subsequent error consumes this instance.
     p['private'].mkdir(); _write(p['private']/'reservation.json',dict(policy=POLICY_SHA,revision=1))
     p['scorer'].mkdir()
+    if initialize_custody(p['private'],p['scorer'],boundary) is not None: _fail()
     if verify_custody(p['private'],p['scorer'],boundary) is not None: _fail()
     seen={x['attempt_handle'] for x in old['attempt_bindings']} | set(old['presentation_order'])
     labels=[]
@@ -195,7 +197,10 @@ def generate_candidate(*, git, repository, temp_root, verify_custody, verify_pro
     package=crypto.seal_controller_state(crypto.freeze_controller_state(new),key_path=key,custody_boundary=boundary)
     previous_nonces={crypto.parse_sealed_package(_raw(f))['nonce_b64'] for f in (p['base']/'controller').glob('*.sealed.json')}
     if crypto.parse_sealed_package(package.package_bytes)['nonce_b64'] in previous_nonces: _fail()
-    _write(p['checkpoint'],package.package_bytes); _write(p['bundle'],bundle.encode_blind_scoring_bundle(value))
+    bundle_bytes=bundle.encode_blind_scoring_bundle(value)
+    _write(p['checkpoint'],package.package_bytes); _write(p['bundle'],bundle_bytes)
+    # Expected bytes originate in this live generation, never from a disk self-hash.
+    if verify_persisted_bundle(p['bundle'],bundle_bytes) is not None: _fail()
     _write(p['private']/'projection.json',dict(source_adoption=inputs.SCORING_ADOPTION_SHA256,
         original_final_messages=[r['final_message'] for r in record['terminal_outputs']],projected_payload_sha256=[_sha(v.encode()) for v in outputs]))
     # Revalidate all original identities and verify saved products before transition.

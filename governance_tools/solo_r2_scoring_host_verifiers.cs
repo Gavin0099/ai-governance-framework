@@ -14,6 +14,9 @@ using Microsoft.Win32.SafeHandles;
 public static class SoloR2ScoringHostVerifiers {
  public const string Root = @"D:\r2-final-disposable-shakedown-20260907\scorer-isolation-probe-1";
  public const string Projection = Root+@"\inputs\projection.json";
+ public const string RealPrivate = @"D:\r2-final-disposable-shakedown-20260907\controller\superseding-scoring-1";
+ public const string RealRoot = @"D:\r2-final-disposable-shakedown-20260907\scoring\superseding-scoring-1";
+ public const string RealProjection = RealRoot+@"\blind-scoring-bundle.json";
  const string Owner = "S-1-5-21-4017902291-1272973841-664929404-1001";
  const string App = "S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637";
  // Existing probe targets only. Opening checks permissions, never reads bytes.
@@ -59,7 +62,7 @@ public static class SoloR2ScoringHostVerifiers {
    Require((File.GetAttributes(node)&FileAttributes.ReparsePoint)==0);
   }
  }
- static void Acl(string path,bool directory){
+ static void Acl(string path,bool directory,bool scorer=true){
   NoReparse(path);
   FileSystemSecurity acl=directory?(FileSystemSecurity)Directory.GetAccessControl(path):File.GetAccessControl(path);
   Require(acl.GetOwner(typeof(SecurityIdentifier)).Value==Owner);
@@ -68,9 +71,9 @@ public static class SoloR2ScoringHostVerifiers {
   foreach(FileSystemAccessRule ace in acl.GetAccessRules(true,true,typeof(SecurityIdentifier))){
    string sid=ace.IdentityReference.Value;
    Require(ace.AccessControlType==AccessControlType.Allow && (sid==Owner||sid=="S-1-5-18"||sid=="S-1-5-32-544"||sid==App));
-   if(sid==App){Require(((long)ace.FileSystemRights&0xD0116)==0);appRead|=((long)ace.FileSystemRights&1)!=0;}
+   if(sid==App){Require(scorer);Require(((long)ace.FileSystemRights&0xD0116)==0);appRead|=((long)ace.FileSystemRights&1)!=0;}
   }
-  Require(appRead);
+  Require(!scorer || appRead);
  }
  static bool Denied(string path,uint access){
   using(SafeFileHandle h=CreateFileW(path,access,7,IntPtr.Zero,3,0x02000000,IntPtr.Zero)){
@@ -103,21 +106,84 @@ public static class SoloR2ScoringHostVerifiers {
   using(var stream=new FileStream(Projection,FileMode.Open,FileAccess.Read,FileShare.Read)){FileCheck(stream);}
   foreach(string path in Forbidden)Require(File.Exists(path));
  }
- static void ScorerPath(){
+ // Fixed real placement only; parent and private custody remain host-only.
+ static void RealParents(string privateRoot,string scorerRoot){
+  Require(privateRoot==RealPrivate && scorerRoot==RealRoot);
+  Require(Environment.OSVersion.Platform==PlatformID.Win32NT && Environment.Is64BitProcess);
+  using(var user=WindowsIdentity.GetCurrent()){Require(user.User.Value==Owner);}
+  foreach(string parent in new[]{Path.GetDirectoryName(RealPrivate),Path.GetDirectoryName(RealRoot),Path.GetDirectoryName(Root)}){
+   NoReparse(parent);var acl=Directory.GetAccessControl(parent);
+   Require(acl.GetOwner(typeof(SecurityIdentifier)).Value==Owner);
+   foreach(FileSystemAccessRule ace in acl.GetAccessRules(true,true,typeof(SecurityIdentifier)))CheckParentRule(ace);
+  }
+ }
+ public static void verify_custody(string privateRoot,string scorerRoot){
+  RealParents(privateRoot,scorerRoot);
+  bool priv=Directory.Exists(privateRoot),pub=Directory.Exists(scorerRoot);
+  Require(priv==pub && !File.Exists(privateRoot) && !File.Exists(scorerRoot));
+  if(priv){Acl(privateRoot,true,false);Acl(scorerRoot,true);}
+  if(File.Exists(RealProjection)){
+   Require(pub);Acl(RealProjection,false);
+   using(var stream=new FileStream(RealProjection,FileMode.Open,FileAccess.Read,FileShare.Read)){FileCheck(stream);}
+  }
+  foreach(string path in Forbidden)Require(File.Exists(path));
+ }
+ // Apply the existing ACL model only to this newly reserved instance.
+ internal static DirectorySecurity NewCustodyAcl(bool scorer){
+  var acl=new DirectorySecurity();acl.SetAccessRuleProtection(true,false);
+  acl.SetOwner(new SecurityIdentifier(Owner));
+  foreach(string sid in new[]{Owner,"S-1-5-18","S-1-5-32-544"})
+   acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(sid),FileSystemRights.FullControl,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Allow));
+  if(scorer)acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(App),FileSystemRights.ReadAndExecute,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Allow));
+  return acl;
+ }
+ public static void initialize_custody(string privateRoot,string scorerRoot){
+  RealParents(privateRoot,scorerRoot);NoReparse(privateRoot);NoReparse(scorerRoot);
+  foreach(string dir in new[]{privateRoot,scorerRoot}){
+   var acl=Directory.GetAccessControl(dir);
+   Require(acl.GetOwner(typeof(SecurityIdentifier)).Value==Owner && !acl.AreAccessRulesProtected);
+  }
+  string reservation=privateRoot+@"\reservation.json";
+  string[] entries=Directory.GetFileSystemEntries(privateRoot);
+  Require(entries.Length==1 && entries[0]==reservation && Directory.GetFileSystemEntries(scorerRoot).Length==0);
+  NoReparse(reservation);
+  // Hold the reservation against substitution while changing only its ACL.
+  using(var stream=new FileStream(reservation,FileMode.Open,FileAccess.Read,FileShare.Read)){
+   FileCheck(stream);
+   string expected="{\"policy\":\"10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c\",\"revision\":1}\n";
+   byte[] bytes=new byte[System.Text.Encoding.UTF8.GetByteCount(expected)];
+   Require(stream.Length==bytes.Length && stream.Read(bytes,0,bytes.Length)==bytes.Length && System.Text.Encoding.UTF8.GetString(bytes)==expected);
+   Directory.SetAccessControl(privateRoot,NewCustodyAcl(false));
+   Directory.SetAccessControl(scorerRoot,NewCustodyAcl(true));
+   var fileAcl=new FileSecurity();fileAcl.SetAccessRuleProtection(true,false);fileAcl.SetOwner(new SecurityIdentifier(Owner));
+   foreach(string sid in new[]{Owner,"S-1-5-18","S-1-5-32-544"})
+    fileAcl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(sid),FileSystemRights.FullControl,AccessControlType.Allow));
+   File.SetAccessControl(reservation,fileAcl);
+   Acl(privateRoot,true,false);Acl(scorerRoot,true);Acl(reservation,false,false);FileCheck(stream);
+  }
+ }
+ internal static void ProjectionIdentity(string root,string projection,string expectedReviewedSha256){
+  Require((root==Root && projection==Projection)||(root==RealRoot && projection==RealProjection));
+  Require(expectedReviewedSha256!=null && expectedReviewedSha256.Length==64);
+  foreach(char c in expectedReviewedSha256)Require((c>='0'&&c<='9')||(c>='a'&&c<='f'));
+ }
+ static void ScorerPath(string root,string projection){
   // Host checks the parent hierarchy. Child checks only its allowed subtree.
-  foreach(string path in new[]{Root,Root+@"\inputs",Projection})
+  foreach(string path in new[]{root,Path.GetDirectoryName(projection),projection})
    Require((File.GetAttributes(path)&FileAttributes.ReparsePoint)==0);
  }
  public static void verify_projection(string expectedReviewedSha256){
-  Token();ScorerPath();
-  Require(expectedReviewedSha256!=null && expectedReviewedSha256.Length==64);
-  foreach(char c in expectedReviewedSha256)Require((c>='0'&&c<='9')||(c>='a'&&c<='f'));
-  using(var stream=new FileStream(Projection,FileMode.Open,FileAccess.Read,FileShare.Read)){
+  verify_projection(Root,Projection,expectedReviewedSha256);
+ }
+ public static void verify_projection(string root,string projection,string expectedReviewedSha256){
+  ProjectionIdentity(root,projection,expectedReviewedSha256);
+  Token();ScorerPath(root,projection);
+  using(var stream=new FileStream(projection,FileMode.Open,FileAccess.Read,FileShare.Read)){
    FileCheck(stream);
    using(var sha=SHA256.Create()){
     string actual=BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant();
     Require(actual==expectedReviewedSha256);
-    Require(Denied(Projection,0x40000000));
+    Require(Denied(projection,0x40000000));
     foreach(string path in Forbidden)Require(Denied(path,0x80000000));
    }
   }
