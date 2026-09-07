@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "c763e738f754282f19c0e5b794dadaa0a44daa65"
+        "13b895a3e7645e55eb128011f5c3fae97e599cc8"
     )
     assert {
         binding["sha256"]

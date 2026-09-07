@@ -26,7 +26,7 @@ STRUCTURAL_CONFORMANCE_PASS: Final = "STRUCTURAL_CONFORMANCE_PASS"
 
 SCHEMA_VERSION: Final = "solo_r2_r1_structural_conformance.v1"
 ARTIFACT_TYPE: Final = "r1_structural_conformance_evidence"
-SOURCE_SNAPSHOT_COMMIT: Final = "c763e738f754282f19c0e5b794dadaa0a44daa65"
+SOURCE_SNAPSHOT_COMMIT: Final = "13b895a3e7645e55eb128011f5c3fae97e599cc8"
 TRANCHE4_IMPLEMENTATION_COMMIT: Final = (
     "99a01342fd530f6cb03ff4d6c5af8de9e755d5c0"
 )
@@ -37,11 +37,11 @@ INSPECTOR_RELPATH: Final = (
 )
 EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-c763e738.json"
+    "r2-r1-structural-conformance-13b895a3.json"
 )
 PREVIOUS_EVIDENCE_RELPATH: Final = (
     "artifacts/evidence/solo-evaluation-20260831/"
-    "r2-r1-structural-conformance-de85d2f8.json"
+    "r2-r1-structural-conformance-c763e738.json"
 )
 EXCLUDED_VALIDATION_MODULES: Final = (INSPECTOR_RELPATH,)
 EXCLUSION_REASON: Final = (
@@ -65,6 +65,7 @@ _RUNTIME_MODULES: Final = (
     "governance_tools/solo_r2_pair_creation.py",
     "governance_tools/solo_r2_random_domains.py",
     "governance_tools/solo_r2_runtime_window.py",
+    "governance_tools/solo_r2_superseding_scoring.py",
 )
 _OBSERVED_NAMESPACE: Final = tuple(sorted((*_RUNTIME_MODULES, INSPECTOR_RELPATH)))
 
@@ -128,9 +129,9 @@ _SOURCE_BINDINGS: Final = (
     },
     {
         "path": "governance_tools/solo_r2_blind_scoring_bundle.py",
-        "sha256": "8703fcc07d91e54dd9a890ac138dc40b7493922471966f04998f95e0e64dc394",
-        "git_blob": "291ef7cf6facb26a0145f7223c3b58b43e427546",
-        "last_change_commit": "66b02a832b705f257df59162a66db1cf369704b1",
+        "sha256": "4b4747c2a86e57f0b5a8f27940fc425f69218fd6a49393250c90f7df82ee264b",
+        "git_blob": "d6d057216dae66e06b3c01c13f45a99834f64649",
+        "last_change_commit": "13b895a3e7645e55eb128011f5c3fae97e599cc8",
         "role": "presentation_order_boundary",
     },
     {
@@ -201,6 +202,7 @@ _EXPECTED_SIGNATURES: Final = {
 }
 
 _EXPECTED_RANDOM_IMPORTS: Final = {
+    "governance_tools/solo_r2_superseding_scoring.py": ["solo_r2_random_domains as randoms"],
     "governance_tools/solo_r2_blind_scoring_bundle.py": [
         "RandomDomainError",
         "SAMPLING_ROLE",
@@ -243,7 +245,7 @@ _EXPECTED_RELEVANT_CALLS: Final = (
     {
         "path": "governance_tools/solo_r2_blind_scoring_bundle.py",
         "scope": "build_blind_scoring_bundle",
-        "line": 207,
+        "line": 234,
         "callee": "presentation_order_bit_from_entropy",
         "args": ["presentation_entropy"],
         "keywords": {},
@@ -730,7 +732,7 @@ def _validate_bundle(tree: ast.Module) -> dict[str, Any]:
         for node in ast.walk(function)
         if isinstance(node, ast.Call) and _dotted_name(node.func) == "labels.sort"
     ]
-    if sort_lines != [205] or sort_lines[0] >= calls[0].lineno:
+    if sort_lines != [232] or sort_lines[0] >= calls[0].lineno:
         _fail()
     return {
         "builder_signature": expected,

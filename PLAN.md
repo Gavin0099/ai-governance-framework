@@ -2818,3 +2818,8 @@ Owner adopted exact 18168-byte authority SHA256 10fc9ad2e7ab83088391ed3beaa705d6
 ## Superseding scoring implementation - 2026-09-07
 
 Four-file fixed-instance implementation validated with 109 targeted tests. Evidence: memory/evidence/solo-r2-superseding-scoring-implementation-20260907/validation.json. Independent review before scoped commit; no real generation/activation/scorer/opening, historical ledger unchanged. Fresh scorer/host custody remains execution prerequisite. R1 bundle binding now drifts; separate post-commit refresh required before execution. Commit this implementation then STOP, no push.
+
+
+## R1 refresh after superseding implementation - 2026-09-07
+
+R1 refreshed against exact 13b895a3 sources: seven pins verified; 20 targeted tests and real repo structural check PASS. Evidence: memory/evidence/solo-r2-r1-superseding-refresh-20260907/validation.json. Only R1 metadata refreshed; historical ledger/bundle/checkpoint unchanged. Scoped local commit and verify, then STOP; no bundle generation, scoring, unblinding or push.

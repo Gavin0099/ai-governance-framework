@@ -1,0 +1,22 @@
+{
+  "reviewer": "/root/review_final_binding",
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "independent_checks": {
+    "committed_source_pins_match": "7/7",
+    "r1_check": "STRUCTURAL_CONFORMANCE_PASS",
+    "targeted_tests_passed": 20
+  },
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_r1_structural_conformance.py": "5b5d057e3ba8767e7e1a038a7bdbff009c1a21c8604f8c6837efee5c9a477bb4",
+    "tests/test_solo_r2_r1_structural_conformance.py": "5f84eac95231e2990138d6df57c40ee43cf5205418f1f3ac3c8e865aefade7b4",
+    "artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-13b895a3.json": "4d0cf252770ff1ae9205933d6ff2922b0ea30f9ae9bbfb11afd6b03fd3ff5329"
+  },
+  "additional_coverage": [
+    "validation.json",
+    "PLAN current tranche only",
+    "daily current canonical entry only"
+  ],
+  "claim_ceiling": "Existing R1 structural/freshness scope only; no exhaustive superseding semantic claim",
+  "memory_workflow": "guard_ran=True; completion_claim_allowed=True; provenance/historical advisories retained"
+}
