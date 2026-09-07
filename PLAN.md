@@ -2843,3 +2843,8 @@ Fixed-instance generator now requires reviewed semantic payload identities, new-
 ## Simplified scoring claim-ceiling adoption - 2026-09-07
 
 Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03 (7170 bytes, 73 lines). Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged. Record: memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json. Scoped adoption commit and identity verification then STOP; actual fresh-context scoring/freeze and later unblinding require separate authorizations.
+
+
+## R2 regression evidence projection / consumer adoption - 2026-09-07
+
+Owner adopted four exact reviewed files; independent ACCEPT / Blocking 0, 55 independent tests and 132 local tests. Evidence and version-binding states survive the future-round synthetic consumer. Authority: memory/evidence/solo-r2-regression-projection-adoption-20260907/owner-adoption.json. Scoped local commit then identity verification and STOP. Real launcher integration, Python investigation, fresh round and push are not authorized by this adoption.

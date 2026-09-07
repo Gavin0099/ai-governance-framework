@@ -1,0 +1,42 @@
+{
+  "status": "OWNER_ADOPTED_EXACT_SCOPE",
+  "authority": "Owner reply: \u597d \u6388\u6b0a\u505a\u4e0b\u53bb, approving preceding exact-scope adoption and scoped local commit proposal.",
+  "baseline_commit": "646dbe69a5cba96ca01087bbe3714c4c53070367",
+  "files": [
+    {
+      "path": "governance_tools/solo_r2_regression_projection.py",
+      "bytes": 8472,
+      "sha256": "d4e839d82ce5817d5a72a8061a54bd31afb13156862b90cd8482569a5ff4b64d",
+      "git_blob": "c22357b2e0fc12c47e4a86a9757381905b0e553d"
+    },
+    {
+      "path": "governance_tools/solo_r2_future_scoring_consumer.py",
+      "bytes": 2722,
+      "sha256": "fd03944248b97853093fd92155df187cc79d6390b1481443315499e261bdfe98",
+      "git_blob": "080cc492369e11693fabce652d1a8eddfbea36e1"
+    },
+    {
+      "path": "tests/test_solo_r2_regression_projection.py",
+      "bytes": 10502,
+      "sha256": "e4838703287dca66c0e577a39ad129a7970c1a0284c06e94018949214d80d841",
+      "git_blob": "02c6eaa61521d466554989000d0fc2dd3590f214"
+    },
+    {
+      "path": "tests/test_solo_r2_future_scoring_consumer.py",
+      "bytes": 5170,
+      "sha256": "5ac76fd8dbb37628b588e934fb31681e1f27838c7aa81aadc1c18c419d1a7d71",
+      "git_blob": "4f8decf826483d5241a4e8a11d566b33521a127e"
+    }
+  ],
+  "review_sha256": "17a8c4f09681c5af9ac646c5385e4d6e4e53efedb48eacffd82c48a9dfdccb74",
+  "claim_ceiling": "Future-round synthetic projection/consumer capability only; no real launcher adoption or execution.",
+  "not_authorized": [
+    "Python investigation",
+    "Skill/environment changes",
+    "old frozen round or score changes",
+    "fresh round creation",
+    "scoring",
+    "push"
+  ],
+  "stop": "Verify committed identities then STOP"
+}
