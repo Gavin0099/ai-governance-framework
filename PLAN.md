@@ -2839,3 +2839,7 @@ Fixed native verifier and split probe source preserved with synthetic live evide
 ## Real superseding bundle callback wiring - 2026-09-07
 
 Fixed-instance generator now requires reviewed semantic payload identities, new-instance custody initialization using the existing ACL model, and native verification of the persisted real bundle before its transition receipt. Validation: memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json (46 Python and 11 native contract cases). Independent review and scoped commit, then STOP. No real generation/reservation, deployment, ACL mutation, probe, scoring or unblinding. Real parent custody, reviewed deployed executable/RX and semantic payload digest custody remain runtime prerequisites; no R1 source pin changed.
+
+## Simplified scoring claim-ceiling adoption - 2026-09-07
+
+Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03 (7170 bytes, 73 lines). Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged. Record: memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json. Scoped adoption commit and identity verification then STOP; actual fresh-context scoring/freeze and later unblinding require separate authorizations.
