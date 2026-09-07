@@ -259,7 +259,9 @@ class DisposableArmExecution:
             for name in original:
                 material._regular_unlinked_path(leaf.path / name)
                 raw = (leaf.path / name).read_bytes()
-                if name != 'queue_range.py':
+                # The digest-bound disposable task permits this source and its
+                # existing regression test; never generalize to test_* paths.
+                if name not in {'queue_range.py', 'test_queue_range.py'}:
                     mat._verify_blob(raw, original[name])
             patch = (leaf.path / 'queue_range.py').read_bytes()
             _write_once(output / 'queue_range.py', patch)

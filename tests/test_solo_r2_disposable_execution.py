@@ -349,14 +349,16 @@ def test_real_pinned_git_exports_only_frozen_subtree_under_poisoned_environment(
     finally: leaves.release(leaf)
 
 
-@pytest.mark.parametrize('mutation',['test','extra','ledger'])
+@pytest.mark.parametrize('mutation',['unrelated-source','unrelated-test','extra','missing-test','ledger'])
 def test_post_arm_mismatch_never_becomes_successful_output(setup,mutation):
     s=setup
     original=s.run.window.backend.native_backend.execute
     def dispatch(**kwargs):
         result=original(**kwargs)
-        if mutation=='test': (kwargs['workspace_root']/'test_queue_range.py').write_bytes(b'changed')
-        elif mutation=='extra': (kwargs['workspace_root']/'extra.py').write_bytes(b'extra')
+        if mutation in ('unrelated-source','unrelated-test','extra'):
+            name={'unrelated-source':'other.py','unrelated-test':'test_other.py','extra':'unexpected.txt'}[mutation]
+            (kwargs['workspace_root']/name).write_bytes(b'extra')
+        elif mutation=='missing-test': (kwargs['workspace_root']/'test_queue_range.py').unlink()
         else:
             raw=s.public.read_bytes()
             changed=raw.replace(b'{',b'{ ',1)
@@ -371,6 +373,30 @@ def test_post_arm_mismatch_never_becomes_successful_output(setup,mutation):
         assert not terminals
     else:
         assert len(terminals)==1 and terminals[0]['correctness_result']['scope_status']=='NOT_EVALUATED'
+
+
+@pytest.mark.parametrize('changed', [('queue_range.py',), ('test_queue_range.py',),
+                                    ('queue_range.py','test_queue_range.py')])
+def test_frozen_task_authorized_changes_collected_without_false_rejection(setup, changed):
+    s=setup
+    original=s.run.window.backend.native_backend.execute
+    baseline={name:raw for name,raw,_ in s.entries}
+    assert set(baseline)=={'queue_range.py','test_queue_range.py'}
+    def dispatch(**kwargs):
+        result=original(**kwargs)
+        for name,raw in baseline.items():
+            # Reset the native double's source edit for the test-only case.
+            payload=raw+b'\n# Direct regression coverage note\n' if name in changed else raw
+            (kwargs['workspace_root']/name).write_bytes(payload)
+        return result
+    s.run.window.backend.native_backend.execute=dispatch
+    s.execute()
+    terminals=[e for e in ledger.read_ledger(s.public) if e['event_type']=='EXECUTION_TERMINAL']
+    assert len(s.calls)==2 and len(terminals)==2
+    assert all(e['correctness_result']['scope_status']=='WITHIN_SCOPE' for e in terminals)
+    for call in s.calls:
+        assert (call['output_root']/'runtime-evidence.json').is_file()
+        assert not (call['output_root']/'execution-failure.json').exists()
 
 
 @pytest.mark.parametrize('name',['solo_r2_disposable_materialization','solo_r2_disposable_execution'])

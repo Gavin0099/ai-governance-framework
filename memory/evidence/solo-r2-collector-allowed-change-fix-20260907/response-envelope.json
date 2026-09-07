@@ -1,0 +1,22 @@
+{
+  "mode": "completion",
+  "mode_source": "implementation targeted validation and independent review completed",
+  "task_authority": "Owner Authorization \u2014 Disposable Collector Allowed-Change Contract Fix",
+  "scope": "Two-file collector fix and targeted tests; operational evidence only",
+  "done": "Authorized allowed-change collector mismatch fixed and independently reviewed",
+  "claim_ceiling": "Validated worktree fix only; not committed or runtime admitted",
+  "not_claimed": [
+    "Historical first throw site established",
+    "UNCLASSIFIED reclassification",
+    "Complete modified-test artifact retention",
+    "Runtime admission",
+    "Retry or second arm authorization",
+    "A/B completion",
+    "Commit or push"
+  ],
+  "evidence_refs": [
+    "memory/evidence/solo-r2-collector-allowed-change-fix-20260907/review.json"
+  ],
+  "risk": "Historical first throw remains unproven; launcher pins unchanged; unrelated dirty files excluded",
+  "next_action": "STOP; any durability/launcher binding or experiment disposition requires separate scope."
+}
