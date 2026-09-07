@@ -285,7 +285,8 @@ def _load_from_path(
         )
     try:
         loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
-        raw.update({k: v for k, v in loaded.items() if v is not None})
+        # An explicitly null fail_mode is invalid, not an omitted setting.
+        raw.update({k: v for k, v in loaded.items() if v is not None or k == "fail_mode"})
     except Exception as exc:
         return _build_policy(
             dict(_DEFAULTS),
@@ -318,6 +319,14 @@ def _build_policy(
     repo_policy_present: bool = False,
     policy_load_error: str | None = None,
 ) -> GatePolicy:
+    fail_mode = raw.get("fail_mode", FAIL_MODE_STRICT)
+    if not isinstance(fail_mode, str) or fail_mode not in (
+        FAIL_MODE_STRICT, FAIL_MODE_PERMISSIVE, FAIL_MODE_AUDIT,
+    ):
+        raise ValueError(
+            f"gate_policy: invalid fail_mode {fail_mode!r} — "
+            "must be one of: strict, permissive, audit"
+        )
     ut = raw.get("unknown_treatment") or {}
     if isinstance(ut, str):
         # allow shorthand: unknown_treatment: never_block
@@ -347,7 +356,7 @@ def _build_policy(
     else:
         skip_type_str = None
     return GatePolicy(
-        fail_mode=str(raw.get("fail_mode", FAIL_MODE_STRICT)),
+        fail_mode=fail_mode,
         blocking_actions=list(raw.get("blocking_actions", ["production_fix_required"])),
         unknown_treatment_mode=str(ut.get("mode", "block_if_count_exceeds")),
         unknown_treatment_threshold=int(ut.get("threshold", 3)),
@@ -396,6 +405,16 @@ def classify_artifact(
         return ArtifactResult(
             state=ARTIFACT_STATE_MALFORMED,
             load_error="artifact root is not a JSON object",
+        )
+
+    # Validate before staleness: stale invalid data must not reach evaluation.
+    # None remains the ingestor's legitimate no-failure representation.
+    disposition = data.get("failure_disposition")
+    if disposition is not None and not isinstance(disposition, dict):
+        return ArtifactResult(
+            state=ARTIFACT_STATE_MALFORMED,
+            load_error="failure_disposition must be null or a JSON object",
+            failure_disposition_key_present="failure_disposition" in data,
         )
 
     # Stale check (only when stale detection is enabled)
