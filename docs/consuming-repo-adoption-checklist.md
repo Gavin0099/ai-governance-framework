@@ -162,7 +162,7 @@ artifact_stale_seconds: 86400
 ```yaml
 version: "1"
 
-fail_mode: warn
+fail_mode: audit
 
 skip_test_result_check: true   # 結構性宣告：此 repo 不產出 test-result artifact
 

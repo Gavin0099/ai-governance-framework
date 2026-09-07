@@ -165,7 +165,7 @@ def test_run_session_end_hook_with_skip_policy_suppresses_signal_and_does_not_af
     gov = tmp_path / "governance"
     gov.mkdir(parents=True, exist_ok=True)
     (gov / "gate_policy.yaml").write_text(
-        "fail_mode: warn\nskip_test_result_check: true\n", encoding="utf-8"
+        "fail_mode: audit\nskip_test_result_check: true\n", encoding="utf-8"
     )
 
     result = run_session_end_hook(tmp_path)
