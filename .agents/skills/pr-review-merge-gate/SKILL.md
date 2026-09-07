@@ -110,7 +110,27 @@ HEAD is merge-ready only when:
 3. the PR body matches current evidence, scope, and claims;
 4. no unrelated files are included;
 5. remaining real findings have evidence-supported owner-visible dispositions;
-6. merge authorization still applies to the exact head and base.
+6. merge authorization still applies to the exact head and base;
+7. every predicate of the applicable repository merge-authority contract is
+   satisfied. Load that contract before assessing merge readiness; this list
+   cannot replace or weaken its requirements.
+
+When the repository operates under its
+`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, verify all four predicates
+for the same exact candidate HEAD:
+
+- `owner_merge_attestation=recorded_for_exact_head`;
+- `independent_technical_review=independent_approved_for_exact_head`;
+- `required_checks=green_for_exact_head`;
+- `head_state=matches_reviewed_head`.
+
+Any missing, unknown, stale, failing, or non-independent required predicate
+makes the candidate ineligible. A review performed by the implementation
+authoring process cannot satisfy the independent-review predicate, even when
+it finds no current-decision blocker and CI is green. Record the independent
+reviewer's identity, exact target, evidence, and verdict. A GitHub `APPROVED`
+review is optional additional evidence under this contract, not a substitute
+for any missing predicate.
 
 Use the Qualification Gate only for a formal POC pass, qualification, GO, or
 equivalent admission claim. Add the applicable golden set, threshold,
