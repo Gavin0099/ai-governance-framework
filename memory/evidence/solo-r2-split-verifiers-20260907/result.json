@@ -1,0 +1,30 @@
+{
+  "status": "FRESH_SCORER_ISOLATION_BLOCKED",
+  "authority_compatibility": "S04/S07 require custody and isolation, not custody in scorer context",
+  "policy_sha256": "10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c",
+  "targeted_tests": 5,
+  "host_custody": "REJECTED: HOST_CUSTODY_PARENT_WRITER:S-1-5-11",
+  "failed_parent": "D:\\r2-final-disposable-shakedown-20260907",
+  "appcontainer_projection": "NOT_RUN: host gate failed",
+  "forbidden_read_denials": "Previous evidence only; not rerun this slice",
+  "acl": [
+    {
+      "path": "D:\\r2-final-disposable-shakedown-20260907",
+      "sddl": "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:(A;ID;FA;;;BA)(A;OICIIOID;GA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1",
+      "sddl": "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)(A;;0x1200a9;;;S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637)"
+    },
+    {
+      "path": "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1\\Probe.exe",
+      "sddl": "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)"
+    }
+  ],
+  "temporary_rx_granted": false,
+  "prior_executable_and_acl_preserved": true,
+  "historical_digests_unchanged": true,
+  "candidate_deployed": false,
+  "real_superseding_bundle_created": false,
+  "scoring_run": false
+}

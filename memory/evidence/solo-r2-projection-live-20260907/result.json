@@ -1,0 +1,38 @@
+﻿{
+    "status":  "FRESH_SCORER_ISOLATION_READY",
+    "native_exit":  0,
+    "output":  [
+                   "2047"
+               ],
+    "error":  null,
+    "host_custody_pass":  true,
+    "appcontainer_projection_pass":  true,
+    "forbidden_read_denial_pass":  true,
+    "sid":  "S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637",
+    "root":  "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1",
+    "projection_sha256":  "8f5c5e52d297484ca3e87b835976a837c1f7971ba3cb371ce464c57f9c7f530e",
+    "deployed_sha256":  "6bcc03dd0ceb27baf7112e42c11483d19de69ec56ccb7efbd09dea9e10bfb3f8",
+    "temporary_rx_revoked":  true,
+    "acl_before":  [
+                       {
+                           "path":  "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1",
+                           "sddl":  "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)(A;;0x1200a9;;;S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637)"
+                       },
+                       {
+                           "path":  "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1\\inputs",
+                           "sddl":  "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)(A;OICI;0x1200a9;;;S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637)"
+                       },
+                       {
+                           "path":  "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1\\Probe.exe",
+                           "sddl":  "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)"
+                       },
+                       {
+                           "path":  "D:\\r2-final-disposable-shakedown-20260907\\scorer-isolation-probe-1\\inputs\\projection.json",
+                           "sddl":  "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:AI(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)(A;ID;0x1200a9;;;S-1-15-2-131220624-4122180277-3555119406-1414502418-3096179838-1091309190-3293210637)"
+                       }
+                   ],
+    "history_unchanged":  true,
+    "scoring_run":  false,
+    "bundle_created":  false,
+    "claim_ceiling":  "Synthetic projection OS isolation and native verifier entry only; no actual bundle semantic validation, Python consumer integration or scorer model execution"
+}

@@ -2831,3 +2831,7 @@ Only LOCALAPPDATA added to the existing sanitized Probe.cs environment. Suspende
 ## Dedicated runtime parent custody - 2026-09-07
 
 Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/SYSTEM/Administrators only. Host verify_custody PASS. Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical. Disk ACL and preserved ledger/bundle/checkpoint bytes and ACLs unchanged. Evidence: memory/evidence/solo-r2-parent-custody-acl-20260907/result.json. No AppContainer child/RX/scoring; STOP. Next separately authorized action is projection/read-denial verification, not bundle creation.
+
+## Synthetic scorer isolation durability - 2026-09-07
+
+Fixed native verifier and split probe source preserved with synthetic live evidence (host custody, AppContainer projection, eight forbidden read denials, temporary RX restored). Current build and five pure ACL cases PASS; no live rerun. Scope: memory/evidence/solo-r2-isolation-capability-commit-20260907/scope-record.json. Real bundle anonymity, Python consumer integration and scorer execution remain unclaimed. Local scoped commit then STOP; no ACL/environment changes, bundle/scoring/unblinding or push.
