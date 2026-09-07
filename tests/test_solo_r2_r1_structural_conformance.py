@@ -63,7 +63,7 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     assert first["machine_disposition"] == conformance.STRUCTURAL_CONFORMANCE_PASS
     assert first["sampling_role"] == "REGRESSION_ONLY_NOT_PROOF"
     assert first["source_snapshot"]["repository_tree_commit"] == (
-        "de85d2f8ecf5f1ccb732e09ec4053b74456ab180"
+        "c763e738f754282f19c0e5b794dadaa0a44daa65"
     )
     assert {
         binding["sha256"]
@@ -76,11 +76,11 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     }
     assert bindings["governance_tools/solo_attempt_ledger_v2.py"] == {
         "path": "governance_tools/solo_attempt_ledger_v2.py",
-        "sha256": "dbfa2fd26fa2f2d99dd06def029f9b3f5951922a4feaff5674325dbc1ff80324",
-        "git_blob": "d2c3f747c45aff454626b0fbf8331516b5bdc6e2",
-        "last_change_commit": "de85d2f8ecf5f1ccb732e09ec4053b74456ab180",
+        "sha256": "639dd718b7ca265d3ef5ce4a93a004f45378daa35288a1a627777f1acacdf3cd",
+        "git_blob": "e4c0121a4a7c443832a9059e15148a4605a3d988",
+        "last_change_commit": "c763e738f754282f19c0e5b794dadaa0a44daa65",
         "role": "atomic_genesis_publication_runtime_surface",
-        "bytes": 35226,
+        "bytes": 35274,
     }
     assert bindings["governance_tools/solo_r2_bootstrap.py"] == {
         "path": "governance_tools/solo_r2_bootstrap.py",
@@ -100,11 +100,11 @@ def test_build_is_deterministic_and_binds_exact_sources(tmp_path: Path) -> None:
     }
     assert bindings["governance_tools/solo_r2_pair_creation.py"] == {
         "path": "governance_tools/solo_r2_pair_creation.py",
-        "sha256": "656bc9405d22549811b73e4a3a95e1034a6488c177b957f1ba73f18bcac0ca35",
-        "git_blob": "3db1d53d0b6e0ed960c73b72a8fac9464461cbfe",
-        "last_change_commit": "de85d2f8ecf5f1ccb732e09ec4053b74456ab180",
+        "sha256": "6eadaa6cdc429f1d80461c48d5ee440e7951f305bcdf52617562322092e0d80b",
+        "git_blob": "b4cd9d46d4518d0cabc788b59d10f51263cea691",
+        "last_change_commit": "c763e738f754282f19c0e5b794dadaa0a44daa65",
         "role": "pair_creation_entropy_and_arm_order_call_site_closure",
-        "bytes": 29440,
+        "bytes": 31474,
     }
 
 

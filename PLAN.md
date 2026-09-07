@@ -2794,3 +2794,7 @@ Owner adopted exact candidate 33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac67
 ## Final fresh disposable binding implementation - 2026-09-07
 
 Final-only typed production binding and dedicated launcher implemented under dc2a3a98. Validation: memory/evidence/solo-r2-final-binding-implementation-20260907/validation.json. Lifecycle unchanged; historical ledgers/frozen inputs preserved. Independent review precedes scoped implementation commit; ledger/pair R1 source refresh immediately follows in a separate commit. No real final allocation, readiness or arm execution. STOP after committed binding and R1 identity verification.
+
+## Final fresh binding R1 refresh - 2026-09-07
+
+Implementation c763e738 committed after full 15-file scope ACCEPT. Refresh binds exact committed ledger/pair bytes; five other pins unchanged. R1 --check PASS and 20 tests PASS. Evidence: memory/evidence/solo-r2-final-binding-implementation-20260907/r1-closeout.json. No final allocation or runtime created. STOP after separate refresh commit verification.
