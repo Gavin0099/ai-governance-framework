@@ -2814,3 +2814,7 @@ Final-only consumer verifies prospective adoption and 22 exact artifacts before 
 ## Superseding scoring authority adoption - 2026-09-07
 
 Owner adopted exact 18168-byte authority SHA256 10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c. Record: memory/evidence/solo-r2-superseding-scoring-adoption-20260907/owner-adoption.json. Historical nine-event ledger and rejected bundle/checkpoint preserved. One prospective detached supersession only; implementation, artifact activation, fresh scoring and unblinding require separate authorization. Earlier closeout/push draft remains paused. Local adoption commit and verify, STOP; no push.
+
+## Superseding scoring implementation - 2026-09-07
+
+Four-file fixed-instance implementation validated with 109 targeted tests. Evidence: memory/evidence/solo-r2-superseding-scoring-implementation-20260907/validation.json. Independent review before scoped commit; no real generation/activation/scorer/opening, historical ledger unchanged. Fresh scorer/host custody remains execution prerequisite. R1 bundle binding now drifts; separate post-commit refresh required before execution. Commit this implementation then STOP, no push.

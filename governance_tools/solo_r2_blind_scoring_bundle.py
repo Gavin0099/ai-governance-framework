@@ -43,6 +43,18 @@ _JSON_UNICODE_ESCAPE = re.compile(r"\\u([0-9a-f]{4})", re.IGNORECASE)
 _ARM_IDENTITY_TOKEN = re.compile(
     r"(?<![a-z0-9_])(?:control|treatment)(?![a-z0-9_])"
 )
+# Free-text custody joins observed outside the closed metadata key set.
+_ABSOLUTE_CUSTODY_PATH = re.compile(
+    r"(?<![a-z0-9_])[a-z]:[/\\]"
+    r"|(?<![a-z0-9_\\])\\\\[a-z0-9_.-]+\\"
+    r"|(?<![a-z0-9_.:/])/(?:[a-z0-9_.-]+/)+[a-z0-9_.-]+"
+)
+_EXECUTION_ORDINAL = re.compile(
+    r"\b(?:execution|attempt)[ _-]+(?:ordinal[ _-]+)?#?\d+\b"
+    r"|\brun(?:[-_]+|\s+(?:ordinal\s+|#))\d+\b"
+    r"|\b(?:first|second|1st|2nd)[ _-]+(?:execution|attempt|run)\b"
+)
+_PERCENT_ASCII_ESCAPE = re.compile(r"%([0-7][0-9a-f])", re.IGNORECASE)
 _FORBIDDEN_JOIN_KEYS = (
     "attempt_handle",
     "event_seq",
@@ -131,10 +143,25 @@ def _contains_scorer_forbidden_identity(value: str) -> bool:
         normalized.casefold(),
         _decode_json_ascii_escapes(normalized).casefold(),
     }
+    # Decode bounded ASCII wrappers used by JSON and Markdown link destinations.
+    decoded = normalized
+    while True:
+        unwrapped = _decode_json_ascii_escapes(decoded)
+        unwrapped = _PERCENT_ASCII_ESCAPE.sub(
+            lambda match: chr(int(match.group(1), 16)), unwrapped
+        )
+        unwrapped = unwrapped.replace(r"\/", "/")
+        unwrapped = unwrapped.replace(r"\-", "-").replace(r"\_", "_")
+        if unwrapped == decoded:
+            break
+        decoded = unwrapped
+    views.add(decoded.casefold())
     return any(
         _LIFECYCLE_IDENTITY_TOKEN.search(view) is not None
         or _STRUCTURED_JOIN_FIELD.search(view) is not None
         or _ARM_IDENTITY_TOKEN.search(view) is not None
+        or _ABSOLUTE_CUSTODY_PATH.search(view) is not None
+        or _EXECUTION_ORDINAL.search(view) is not None
         for view in views
     )
 

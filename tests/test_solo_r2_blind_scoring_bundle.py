@@ -257,6 +257,56 @@ def test_payload_identity_grammar_does_not_reject_near_miss_text() -> None:
     assert bundle.validate_blind_scoring_bundle(value) is value
 
 
+@pytest.mark.parametrize('payload', [
+    'Saved at D:/workspace/execution-2/queue_range.py',
+    r'Saved at C:\workspace\queue_range.py',
+    '[source](D:/workspace/queue_range.py)',
+    r'[source](C:\\workspace\\queue_range.py)',
+    r'"D:\/workspace\/queue_range.py"',
+    '[source](D%3A%2Fworkspace%2Fqueue_range.py)',
+    '[source](D%253A%252Fworkspace%252Fqueue_range.py)',
+    _json_escape_ascii('D:/workspace/queue_range.py'),
+    _fullwidth_ascii('D:/workspace/queue_range.py'),
+    r'Copied from \\server\workspace\queue_range.py',
+    'Saved at /tmp/workspace/queue_range.py',
+    'The execution-2 output is complete.',
+    'This is execution ordinal 2.',
+    'From the second execution.',
+    'From run #1.',
+    _json_escape_ascii('execution-2'),
+    'execution%2D2',
+    r'**execution\-2** completed.',
+])
+def test_free_text_custody_and_chronology_rejected_by_builder_and_parser(payload):
+    with pytest.raises(bundle.BlindScoringBundleError):
+        bundle.build_blind_scoring_bundle(
+            evaluation_id=str(uuid4()), pair_id='pair', slot='R2-SHAKEDOWN',
+            rubric_id='rubric', outputs_by_label={_label('a'):payload, _label('b'):'repair'},
+            presentation_entropy=bytes(32))
+    value=_valid_bundle()
+    value['outputs'][0]['output_payload']=payload
+    raw=json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(',', ':')).encode()+b'\n'
+    with pytest.raises(bundle.BlindScoringBundleError):
+        bundle.parse_blind_scoring_bundle(raw)
+
+
+@pytest.mark.parametrize('payload', [
+    'Changed queue_range.py and tests/test_queue_range.py.',
+    'See ./tests/regression/test_queue_range.py and ../tests/test_queue_range.py.',
+    'The first item and second item retain input order.',
+    'Run tests to check endpoint inclusion; 10 cases passed.',
+    'Run 3 regression tests before changing the implementation.',
+    'def select(values, lower, upper):\n    return [x for x in values if lower <= x <= upper]',
+    'ratio = total / count\npattern = r"[a-z]+"\npercent = value % 100',
+    'Validation was unavailable; no test execution is claimed.',
+    '[Python docs](https://docs.python.org/3/library/functions.html)',
+])
+def test_legitimate_code_reasoning_and_relative_paths_remain_valid(payload):
+    value=_valid_bundle()
+    value['outputs'][0]['output_payload']=payload
+    assert bundle.parse_blind_scoring_bundle(bundle.encode_blind_scoring_bundle(value))==value
+
+
 @pytest.mark.parametrize(
     "mutation",
     [

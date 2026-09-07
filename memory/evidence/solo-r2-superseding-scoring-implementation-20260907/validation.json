@@ -1,0 +1,26 @@
+{
+  "scope_sha256": {
+    "governance_tools/solo_r2_superseding_scoring.py": "58fb243e0d285f08a49705a8256f37e9d7701ed54db9380fa3d8f3d32c611e63",
+    "governance_tools/solo_r2_blind_scoring_bundle.py": "4b4747c2a86e57f0b5a8f27940fc425f69218fd6a49393250c90f7df82ee264b",
+    "tests/test_solo_r2_superseding_scoring.py": "ba05f4833601ce40fb5e0ae51ff3738544c0784c62384462ce804835c31ec08b",
+    "tests/test_solo_r2_blind_scoring_bundle.py": "1ff8c7f21875687fe5d412b66f8d6b5584b15440e493fc8a275500573b95aa00"
+  },
+  "authority_commit": "3e36fef9535aff0c4b048ad26d9304e2ee4633d7",
+  "targeted": {
+    "command": "python -B -m pytest tests/test_solo_r2_superseding_scoring.py tests/test_solo_r2_blind_scoring_bundle.py -q -p no:cacheprovider",
+    "passed": 109,
+    "seconds": 32.17
+  },
+  "r1": "R1_CONFORMANCE_FAILURE / STOP: new blind_scoring_bundle source drift; post-implementation separate refresh outstanding",
+  "fresh_scorer_isolation": "OPEN execution prerequisite; injected host verifiers do not establish real isolation",
+  "not_claimed": [
+    "real generation",
+    "activation",
+    "scoring",
+    "unblinding",
+    "ledger mutation",
+    "arm/oracle rerun",
+    "R1 PASS",
+    "push"
+  ]
+}
