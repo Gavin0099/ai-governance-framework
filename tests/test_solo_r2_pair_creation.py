@@ -234,7 +234,9 @@ def test_symlink_or_junction_controller_alias_is_rejected(
             return True
         return bool(real_isjunction is not None and real_isjunction(value))
 
-    monkeypatch.setattr(pair_creation.os.path, "isjunction", identify_controller_as_junction)
+    monkeypatch.setattr(
+        pair_creation.os.path, "isjunction", identify_controller_as_junction, raising=False
+    )
     with pytest.raises(pair_creation.PairCreationError):
         _create(project_root, boundary, key_path, roots)
     assert public_path.read_bytes() == before
