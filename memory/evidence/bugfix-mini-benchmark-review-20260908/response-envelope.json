@@ -1,0 +1,26 @@
+{
+  "mode": "expanded",
+  "mode_source": "failed_or_partial",
+  "task_authority": "Owner requested five-item independent review only",
+  "scope": "review: exactly three benchmark tasks",
+  "done": "Review completed; candidate CHANGES_REQUESTED / Blocking 1",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "Candidate accepted/adopted",
+    "Runner integration",
+    "Real model evaluation",
+    "Difficulty calibration",
+    "Commit/push",
+    "Clean workspace"
+  ],
+  "evidence_refs": [
+    "memory/evidence/bugfix-mini-benchmark-review-20260908/review.json",
+    "memory/evidence/bugfix-mini-benchmark-review-20260908/validation.json"
+  ],
+  "risk": "Hard public task names the exact superficial repair it is meant to test; candidate unchanged, unrelated dirty work excluded.",
+  "next_action": "STOP; revise only mutation-specific task hint and refresh exact snapshot when authorized. No automatic repair or integration."
+}

@@ -1,0 +1,117 @@
+{
+  "mode": "compact",
+  "mode_source": "authorized_preparation_complete_stop_for_review",
+  "task_authority": "Owner Authorization — Bug Fix Safety Three-Task Mini-Benchmark Preparation",
+  "scope": "Exactly three fixture tasks; no existing runner/Skill/scorer changes",
+  "done": "THREE_TASK_BENCHMARK_READY_FOR_REVIEW",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "Owner adoption of candidate",
+    "Independent review completed",
+    "Calibrated difficulty",
+    "Real runner compatibility or three-task integration",
+    "Real Skill efficacy",
+    "Average governance cost reduction",
+    "Commit or push"
+  ],
+  "evidence_refs": [
+    "tests\\fixtures\\bug_fix_safety_mini_benchmark\\README.md",
+    "tests\\fixtures\\bug_fix_safety_mini_benchmark\\manifest.json",
+    "memory\\evidence\\bugfix-mini-benchmark-prep-20260908\\validation.json"
+  ],
+  "validation_command": "& .\\.venv\\Scripts\\python.exe -B tests/fixtures/bug_fix_safety_mini_benchmark/validate_preparation.py --output memory/evidence/bugfix-mini-benchmark-prep-20260908/validation.json",
+  "validation_exit_code": 0,
+  "task_results": [
+    {
+      "task": "easy_queue_range",
+      "baseline_failures": 7,
+      "reference_passed": 12,
+      "wrong_repair_failures": 6,
+      "public_reproducer": "lower_example",
+      "wrong_repair_counterexample": "upper_endpoint",
+      "baseline_sha256": "72a20391a3b999730443025f39b90d2aa3ddbcb20215635dbe4e362154bc729c",
+      "regression_categories": [
+        "empty_reversed",
+        "endpoints",
+        "negative_no_match",
+        "order_duplicates",
+        "preservation"
+      ]
+    },
+    {
+      "task": "medium_interval_merge",
+      "baseline_failures": 3,
+      "reference_passed": 13,
+      "wrong_repair_failures": 3,
+      "public_reproducer": "nested_example",
+      "wrong_repair_counterexample": "touching_pair",
+      "baseline_sha256": "9c05fbb94a569178e21e0af152a53c7b45ff25602849fb159ceab5d2adc78fcf",
+      "regression_categories": [
+        "empty_negative",
+        "nesting",
+        "preservation",
+        "sorting_duplicates",
+        "touching",
+        "transitive"
+      ]
+    },
+    {
+      "task": "hard_dependency_cycle",
+      "baseline_failures": 5,
+      "reference_passed": 14,
+      "wrong_repair_failures": 6,
+      "public_reproducer": "diamond_example",
+      "wrong_repair_counterexample": "two_node_cycle",
+      "baseline_sha256": "39070fa0a149c76a15a2a291812895654293148d3ccf55083663248d2bf72a6d",
+      "regression_categories": [
+        "disconnected",
+        "duplicate_edges",
+        "empty_acyclic",
+        "multi_cycle",
+        "order",
+        "repeat_preservation",
+        "self_cycle",
+        "sharing",
+        "sinks"
+      ]
+    }
+  ],
+  "manifest_identity": {
+    "path": "tests\\fixtures\\bug_fix_safety_mini_benchmark\\manifest.json",
+    "bytes": 4097,
+    "sha256": "f46d95be89638764df93ca803918eba8558758ae88fcbc223b421bd4bcf8296f",
+    "git_blob": "187598b686b16f672888f5cc5414a3e03dcfb6d0"
+  },
+  "regression_evidence_assessment": {
+    "criterion_source": "Shared RUBRIC.md and each task RUBRIC.md",
+    "required_fields": [
+      "complete final subject source",
+      "complete test source and independent assertions",
+      "anonymized executable/command and arguments",
+      "process completion state, exit code, stdout/stderr, positive test count",
+      "test AND subject current-version binding",
+      "assertion-to-task-category coverage"
+    ],
+    "insufficient_evidence": "Missing/stale/unknown/not-executed/collection failure => NOT_ASSESSABLE; oracle PASS not substitute",
+    "assessable_failure": "Current-version completed assertion failure => 0 under predeclared rubric, not a change to oracle",
+    "verification_level": "Preparation criteria concretely specified and category-to-literal-case panels validated; future delivery/scorer execution NOT TESTED"
+  },
+  "risk": "Current Lite adapter is queue-range-specific and restricts source AST. No claim this pack runs through it. Hard difficulty and discriminative value are uncalibrated. Easy resembles prior calibration task.",
+  "next_action": "STOP for independent review; no implementation, model execution, scoring, benchmark continuation, commit or push",
+  "head": "7b1483d8c768c4d14ac8c053110681220b89755e",
+  "governance_cost_observation": {
+    "repo": "ai-governance-framework",
+    "task": "three-task benchmark preparation",
+    "governance_version": "未確認",
+    "result": "準備完成，待審查",
+    "friction": "未觀察到",
+    "extra_time": "未量測",
+    "decision_changed": "未觀察到額外治理事件",
+    "counterfactual": "未知",
+    "initial_judgment": "尚無法判斷；不以單次準備活動證明治理效益"
+  }
+}

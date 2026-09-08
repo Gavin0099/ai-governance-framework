@@ -1,0 +1,400 @@
+{
+  "function": "merge_intervals",
+  "defect_case": "nested_example",
+  "superficial_counterexample": "touching_pair",
+  "result_kind": "fresh_nested_list",
+  "required_categories": [
+    "nesting",
+    "transitive",
+    "touching",
+    "sorting_duplicates",
+    "empty_negative",
+    "preservation"
+  ],
+  "regression_case_ids": [
+    "transitive_chain",
+    "touching_pair",
+    "duplicates",
+    "unsorted_disjoint",
+    "empty",
+    "negative",
+    "singleton"
+  ],
+  "oracle_cases": [
+    {
+      "id": "nested_example",
+      "args": [
+        [
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          10
+        ]
+      ],
+      "reason": "Contained interval cannot shorten union extent.",
+      "categories": [
+        "nesting"
+      ]
+    },
+    {
+      "id": "nested_then_bridge",
+      "args": [
+        [
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            9,
+            12
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          12
+        ]
+      ],
+      "reason": "The later bridge overlaps the original extent through 10.",
+      "categories": [
+        "nesting",
+        "transitive"
+      ]
+    },
+    {
+      "id": "transitive_chain",
+      "args": [
+        [
+          [
+            5,
+            8
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            6
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          8
+        ]
+      ],
+      "reason": "Strict overlaps connect all three despite input order.",
+      "categories": [
+        "transitive",
+        "sorting_duplicates"
+      ]
+    },
+    {
+      "id": "touching_pair",
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "reason": "Half-open intervals only touch and must remain separate.",
+      "categories": [
+        "touching"
+      ]
+    },
+    {
+      "id": "touching_chain",
+      "args": [
+        [
+          [
+            2,
+            3
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "reason": "Sorting does not turn adjacency into overlap.",
+      "categories": [
+        "touching",
+        "sorting_duplicates"
+      ]
+    },
+    {
+      "id": "duplicates",
+      "args": [
+        [
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          4
+        ]
+      ],
+      "reason": "Duplicate non-empty intervals overlap; nested one cannot shrink.",
+      "categories": [
+        "sorting_duplicates",
+        "nesting"
+      ]
+    },
+    {
+      "id": "same_start",
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          8
+        ]
+      ],
+      "reason": "All share positive extent; retain greatest end.",
+      "categories": [
+        "nesting"
+      ]
+    },
+    {
+      "id": "same_end",
+      "args": [
+        [
+          [
+            3,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            5,
+            8
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          8
+        ]
+      ],
+      "reason": "All overlap; retain earliest start and common end.",
+      "categories": [
+        "nesting"
+      ]
+    },
+    {
+      "id": "unsorted_disjoint",
+      "args": [
+        [
+          [
+            7,
+            9
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          2
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          7,
+          9
+        ]
+      ],
+      "reason": "Separate components remain separate and are sorted.",
+      "categories": [
+        "sorting_duplicates",
+        "preservation"
+      ]
+    },
+    {
+      "id": "empty",
+      "args": [
+        []
+      ],
+      "expected": [],
+      "reason": "No intervals, new empty output.",
+      "categories": [
+        "empty_negative",
+        "preservation"
+      ]
+    },
+    {
+      "id": "negative",
+      "args": [
+        [
+          [
+            -5,
+            -1
+          ],
+          [
+            -3,
+            2
+          ],
+          [
+            2,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          -5,
+          2
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "reason": "First two overlap; the third only touches merged end.",
+      "categories": [
+        "empty_negative",
+        "touching"
+      ]
+    },
+    {
+      "id": "singleton",
+      "args": [
+        [
+          [
+            4,
+            7
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          4,
+          7
+        ]
+      ],
+      "reason": "Value unchanged but output and its pair must not alias input.",
+      "categories": [
+        "preservation"
+      ]
+    },
+    {
+      "id": "bridge_touching_components",
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            2,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          5
+        ]
+      ],
+      "reason": "A third strict-overlap bridge legitimately connects the touching pair.",
+      "categories": [
+        "transitive",
+        "touching"
+      ]
+    }
+  ]
+}

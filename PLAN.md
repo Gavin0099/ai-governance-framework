@@ -2895,3 +2895,26 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Owner authorized one scoped local evidence/PLAN/memory commit and STOP. Preserve the real flow report, frozen scores, raw model/host receipts and exact identity verification; historical precommit snapshots remain unchanged. No production changes, rerun, rescoring, benchmark or push.
 - Adapter total was 87,015 ms, not per model: CONTROL 29,344 ms; TREATMENT 34,687 ms; scorer 21,734 ms. The single-task 7/8 vs 8/8 observation does not establish general Skill efficacy or average cost reduction.
 - Evidence inventory: memory/evidence/p2-lite-parser-20260908/durability-manifest.json. After committed bytes verification, P2 Slice 2 durability is closed; any mini benchmark is future scope, not an automatic continuation.
+
+
+## POST-GATE3 three-task benchmark preparation — 2026-09-08
+
+- THREE_TASK_BENCHMARK_READY_FOR_REVIEW: exactly Easy queue-range, Medium strict half-open interval merge, Hard directed dependency-cycle misclassification. Specifications/baselines/literal oracles/regression panels/rubrics fixed in tests/fixtures/bug_fix_safety_mini_benchmark/manifest.json before validation and any model execution.
+- Local authored-fixture validation: reference repairs 12/12, 13/13, 14/14; baselines fail 7, 3, 5 cases; plausible wrong repairs fix public symptoms but fail 6, 3, 6 cases. Source/test evidence and current-version completion requirements declared before scoring; missing evidence stays NOT_ASSESSABLE.
+- No runner/Skill/scorer change, model execution, scoring/unblinding, historical mutation, commit or push. Existing Lite adapter remains task-specific; integration and difficulty calibration not claimed. Evidence: memory/evidence/bugfix-mini-benchmark-prep-20260908/preparation-report.json and validation.json.
+- STOP for independent review. Candidate identity is not owner adoption or authorization for real benchmark runs. Unrelated dirty work excluded.
+
+
+## Three-task benchmark independent review — 2026-09-08
+
+- CHANGES_REQUESTED / Blocking 1: Hard TASK.md line14 names the precise ignore-revisits superficial repair, hinting away the trap intended for measurement. Preserve behavioral cycle requirements but remove mutation-specific guidance in a separately authorized revision. Candidate bytes remain unchanged.
+- Baseline reproduction, prospective expected-case snapshot, oracle discrimination and concrete Regression Safety criteria otherwise pass review. Independent fixture validation: references12/12,13/13,14/14; wrong repairs rejected. Evidence memory/evidence/bugfix-mini-benchmark-review-20260908/review.json.
+- STOP. No owner adoption, runner integration, model execution, scoring, difficulty calibration, commit or push. No new tasks or governance scope.
+
+
+## Three-task benchmark hint removal and acceptance — 2026-09-08
+
+- Removed only the Hard public TASK implementation-specific ignore-revisits hint; functional cycle detection requirement remains. Manifest updates only that TASK identity; other 17 entries unchanged.
+- Local fixture validation PASS: correct repairs 12/12, 13/13, 14/14; all intended baseline defects and superficial-repair counterexamples retained. Independent re-review ACCEPT / Blocking 0; prior full review remains applicable.
+- Owner authorized this narrow correction followed by adoption/scoped commit after Blocking 0. Accepted pack manifest SHA256 a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34. Exact snapshot and historical review evidence retained; no claim that earlier candidate snapshots were adopted.
+- STOP after scoped local commit and identity verification. Runner integration/difficulty calibration/model evaluation remain unverified; no runner/Skill/scorer or historical-result changes, no push. Unrelated dirty work excluded.
