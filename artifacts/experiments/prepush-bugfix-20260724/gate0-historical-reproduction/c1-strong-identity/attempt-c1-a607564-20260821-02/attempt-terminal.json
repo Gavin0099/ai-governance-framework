@@ -1,0 +1,69 @@
+{
+  "schema": "gate0-historical-reproduction-attempt-terminal.v1",
+  "attempt_id": "c1-a607564-20260821-02",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "terminal": true,
+  "disposition": "VERIFIED_FOR_GATE0_REVIEW",
+  "manifest": {
+    "commit": "ef7f221a88ba517a44de2562f15df1c131237e4e",
+    "remote_ref": "refs/heads/codex/gate0-c1-oracle-redesign-attempt-02",
+    "remote_ref_observed_commit_before_run": "ef7f221a88ba517a44de2562f15df1c131237e4e",
+    "sha256": "d0d5cc040a1561c10a1bf141d1a763b053588d5d1ae9a303108a328e5ddb5259",
+    "bytes": 6796
+  },
+  "oracle": {
+    "sha256": "702e0a78ec4d7e62abf57fd643bc068da559621428310fed2f22547b29ab9dad",
+    "bytes": 8411,
+    "baseline_before_after_equal": true,
+    "fixed_before_after_equal": true
+  },
+  "baseline_receipt": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/baseline-receipt.json",
+    "sha256": "a70962406f6395c1e579c2df61564a6f011bef1402dd80d34a21f42357ba1375",
+    "bytes": 3756
+  },
+  "fixed_receipt": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/fixed-receipt.json",
+    "sha256": "adef9bdffafe9fb047355ec36b1f0e91d1eff22e87ef0a334c271b37f3975535",
+    "bytes": 3375
+  },
+  "role_status": {
+    "baseline": "TERMINAL_EXPECTED_FAILURE",
+    "fixed": "TERMINAL_PASS"
+  },
+  "pair_contract": {
+    "baseline_expected_test_selected": true,
+    "baseline_expected_test_failed": true,
+    "baseline_other_tests_passed": 4,
+    "fixed_expected_test_selected": true,
+    "fixed_all_tests_passed": 5,
+    "identical_image": true,
+    "identical_dependency_lock": true,
+    "identical_oracle": true,
+    "identical_command": true,
+    "identical_environment": true,
+    "matches": true
+  },
+  "reason": "The redesigned frozen oracle produced the defect-specific strong-identity failure on the exact baseline with the other four tests passing, while the identical focused file passed all five tests on the exact fixed tree.",
+  "candidate_status": "VERIFIED_FOR_GATE0_REVIEW",
+  "gate0_status": "NOT_ADMITTED",
+  "retry_policy": {
+    "repair_in_place": false,
+    "same_attempt_retry_authorized": false,
+    "third_attempt_authorized": false
+  },
+  "next_step": "Independent exact-evidence review may decide whether C1 is admitted at Gate 0. This terminal record does not perform that decision.",
+  "not_claimed": [
+    "Gate 0 admission",
+    "Gate 1 preregistration",
+    "Route C activation",
+    "A/B execution",
+    "counted Gate 3 evidence",
+    "measured Skill effectiveness",
+    "effect size",
+    "prevalence",
+    "process integrity",
+    "promotion evidence",
+    "generalization"
+  ]
+}

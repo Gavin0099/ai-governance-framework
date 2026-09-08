@@ -1,0 +1,111 @@
+{
+  "schema": "gate0-historical-reproduction-pre-run-manifest.v1",
+  "status": "PRE_RUN_FROZEN",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "attempt_id": "c1-a607564-20260821-01",
+  "created_date": "2026-08-21",
+  "framework_base_commit": "83771289adb05ad85e111734a4c9baae7854736f",
+  "authority": {
+    "program": "docs/governance/evidence-backed-engineering-skill-program-2026-07-24.md",
+    "preflight": "docs/status/gate3-historical-task-source-reproduction-preflight-2026-08-21.md",
+    "scope": "Gate 0 technical reproduction only",
+    "not_authorized": [
+      "Gate 0 admission",
+      "Gate 1 preregistration",
+      "Route C activation",
+      "A/B execution",
+      "counted Gate 3 execution",
+      "C2 or C3 execution"
+    ]
+  },
+  "selection_boundary": {
+    "informed_selection": true,
+    "post_census_reselection": true,
+    "complete_prospective_population": false,
+    "claim_ceiling": "A successful pair may support bounded technical feasibility and reviewer-counterfactual judgment only. It cannot establish measured Skill effectiveness, effect size, prevalence, countability, process integrity, promotion evidence, or generalization."
+  },
+  "source": {
+    "repository_path": "D:/meiandraybook",
+    "remote_url": "https://github.com/Gavin0099/meiandraybook.git",
+    "fetched_remote_tip": "09fb4362a645b402c3a51c8ef59ad476910a2828",
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "fixed_commit": "a60756436095fb3b14aecbc9094dd88a8ab9ef16",
+    "fixed_tree": "8d611a09b559d6fa42f7b7b75dc713f1186592a3"
+  },
+  "frozen_oracle": {
+    "source_commit": "a60756436095fb3b14aecbc9094dd88a8ab9ef16",
+    "path": "src/lib/integration/__tests__/bulk_import_integrity.test.ts",
+    "sha256": "7c0c5055543332cb00431623861ea99539e6130bc712b2cc4e1de358219d7042",
+    "bytes": 8352,
+    "overlay_roles": [
+      "baseline",
+      "fixed"
+    ],
+    "expected_test_name": "does not soft-match distinct strong identities to the same existing book",
+    "expected_baseline_signal": "The second incoming book is incorrectly assigned an existing_book_id instead of existing_book_id=null with audit.action=created."
+  },
+  "dependency_lock": {
+    "path": "package-lock.json",
+    "baseline_sha256": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "fixed_sha256": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "bytes": 474302,
+    "byte_equal": true
+  },
+  "execution_environment": {
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "resolved_from_tag": "node:22-bookworm-slim",
+    "image_id": "sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "node": "v22.23.2",
+    "npm": "10.9.8",
+    "kernel_probe": "Linux 6.18.33.2-microsoft-standard-WSL2 x86_64",
+    "timeout": "GNU coreutils 9.1",
+    "sha256sum": "GNU coreutils 9.1",
+    "network": "bridge during npm ci and focused test",
+    "injected_environment": {
+      "CI": "1",
+      "HOME": "/tmp/c1-home",
+      "NPM_CONFIG_CACHE": "/tmp/c1-npm-cache",
+      "NPM_CONFIG_AUDIT": "false",
+      "NPM_CONFIG_FUND": "false",
+      "NPM_CONFIG_UPDATE_NOTIFIER": "false"
+    }
+  },
+  "procedure": {
+    "materialization": "git archive of each exact commit into a new disposable role directory outside every consumer worktree",
+    "pre_network_checks": [
+      "source commit and tree match this manifest",
+      "oracle source bytes match sha256 and byte length",
+      "baseline and fixed lockfiles each match sha256 and byte length",
+      "only the frozen oracle path is overlaid into each role tree"
+    ],
+    "container_workdir": "/work",
+    "install_command": "npm ci",
+    "focused_test_command": "npm test -- src/lib/integration/__tests__/bulk_import_integrity.test.ts",
+    "container_command": "timeout --signal=TERM --kill-after=15s 10m sh -lc 'npm ci && npm test -- src/lib/integration/__tests__/bulk_import_integrity.test.ts'",
+    "role_order": [
+      "baseline",
+      "fixed"
+    ],
+    "host_timeout_seconds": 630,
+    "repair_in_place": false
+  },
+  "closed_dispositions": [
+    "INPUT_MISMATCH",
+    "ENVIRONMENT_FAILURE",
+    "BASELINE_NOT_RECONSTRUCTED",
+    "ORACLE_DOES_NOT_DISCRIMINATE",
+    "WRONG_FAILURE",
+    "FIX_NOT_VERIFIED",
+    "PAIR_INVALID",
+    "CONTAMINATED",
+    "ENVIRONMENT_UNPINNED",
+    "VERIFIED_FOR_GATE0_REVIEW"
+  ],
+  "success_contract": {
+    "baseline": "The exact expected test fails for the strong-identity collision while the remaining focused-file tests pass.",
+    "fixed": "All tests in the identical frozen focused file pass.",
+    "pair": "Both roles bind to this manifest and use identical image, lock, oracle, commands, injected environment, network mode, and timeouts."
+  }
+}

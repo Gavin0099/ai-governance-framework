@@ -1,0 +1,24 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-stop-binding.v1",
+  "attempt_id": "C1-nonhosted-sandbox-capability-probe-01",
+  "execution_commit": "9b6d0826c23fae4ccc5a0398cf6f24ddf2a145ac",
+  "execution_authorization_packet": {
+    "bytes": 6985,
+    "sha256": "b6f4c0e008e12af56319d63d2a2b2292198ef3609d6cbfffb3320866c73f1543"
+  },
+  "independent_stop_review_session": "2026-08-28-64",
+  "disposition": "CONSUMED_PRECLAIM_NO_RETRY",
+  "invocation_count": 1,
+  "output_claim_created": false,
+  "terminal_created": false,
+  "sandbox_helper_launched": false,
+  "negative_control_attempted": false,
+  "absolute_python_control_attempted": false,
+  "hosted_requests": 0,
+  "auth_payloads": 0,
+  "qualification_attempts_consumed": 0,
+  "randomization_created": false,
+  "repair_allowed": false,
+  "retry_allowed": false,
+  "root_cause": "fresh Git checkouts did not materialize the empty gate1-execution parent required by the atomic attempt claim"
+}

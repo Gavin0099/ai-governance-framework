@@ -1,0 +1,229 @@
+{
+  "schema": "c1-stryker-sidecar-probe-manifest.v2",
+  "status": "PRE_RUN_INPUTS_DEFINED_NOT_EXECUTED",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-02",
+  "created_date": "2026-08-21",
+  "framework_base_commit": "fec093987fc808ac19c21fbd95796fd19c1f05b2",
+  "reused_design_commit": "f7831551e2988e590734288de66fff2db1c5369c",
+  "attempt_01_terminal": {
+    "merge_commit": "fec093987fc808ac19c21fbd95796fd19c1f05b2",
+    "terminal": "SIDECAR_RESOLUTION_FAILED",
+    "terminal_sha256": "aff5570c02748b6d25a8600612e544ddac6ad613f6a89ed605bda56cb38ed47f",
+    "bytes": 5194,
+    "first_error_code": "POWERSHELL_LITERAL_WILDCARD_NOT_EXPANDED"
+  },
+  "spec": {
+    "problem": "Attempt-01 froze the sidecar design inputs but its unfrozen orchestration used a wildcard with Copy-Item -LiteralPath and failed before Docker. A fresh attempt must make the complete harness reviewable and must change only exact-input materialization behavior.",
+    "current_repository_truth": [
+      "PR #91 preserves attempt-01 pre-run inputs and immutable failed evidence on main",
+      "attempt-01 did not create a Docker container or execute npm, resolution, Vitest, Stryker, mutation, graph comparison, or functional cost checks",
+      "the attempt-01 sidecar package graph, binding, probes, configs, adapter, and fixtures are reusable by exact blob digest"
+    ],
+    "target_outcome": "Run one disposable attempt-02 from a pushed pre-run commit using a frozen, self-tested exact-input materialization harness and preserve one allowed fail-closed terminal.",
+    "scope": [
+      "freeze the complete PowerShell execution harness",
+      "self-test exact child enumeration and byte-identical copy",
+      "reuse every sidecar design input from f7831551 byte-for-byte",
+      "execute one disposable baseline snapshot without mounting the consumer worktree",
+      "record resolution, graph, mutation, leakage, timeout, OOM, and observed cost evidence"
+    ],
+    "non_goals": [
+      "modify attempt-01",
+      "repair in place or retry attempt-02",
+      "change the sidecar package graph, plugin binding, resolution probe, Stryker config, Vitest config, range adapter, fixtures, or terminal criteria",
+      "preregister, approve, or freeze Gate 1",
+      "create or execute A/B/C/D"
+    ],
+    "affected_surfaces": [
+      "new c1-stryker-sidecar-attempt-02 manifest and PowerShell harness",
+      "new attempt-02 evidence directory after execution"
+    ],
+    "boundary_and_api_considerations": [
+      "consumer repository is read only and used only as a git archive source",
+      "Docker mounts are limited to disposable /consumer, /tool, /probe-input, and /evidence",
+      "network is allowed only for npm ci and disabled for all validation execution",
+      "the entry process working directory is /consumer"
+    ],
+    "claim_ceiling": "The attempt may establish only whether this exact C1 sidecar boundary passes its frozen technical checks. It cannot establish validator effect, Skill effect, general sidecar reuse, Gate 1 readiness, preregistration, freeze, or an arm result.",
+    "failure_paths": [
+      "exact-copy self-test or inventory mismatch",
+      "remote/pre-run binding mismatch",
+      "dependency installation or resolution failure",
+      "consumer graph change",
+      "mount or output leakage",
+      "timeout, OOM, functional failure, or cost ceiling breach"
+    ],
+    "evidence_plan": [
+      "synthetic materialization self-test receipt",
+      "exact source/destination materialization inventory",
+      "range, npm, resolution, timeout, dry-run, mutation, graph, mount, leakage, and resource surfaces",
+      "terminal receipt binding every created artifact by SHA-256 and bytes"
+    ],
+    "implementation_tranche": "one pre-run commit and push, one disposable execution, one evidence commit and push"
+  },
+  "authority": {
+    "owner_authority": "2026-08-21 explicit DONE for one fresh C1 Stryker sidecar attempt-02",
+    "repair_in_place": false,
+    "retry_authorized": false,
+    "preregistration_authorized": false,
+    "gate1_freeze_authorized": false,
+    "arms_authorized": false
+  },
+  "source": {
+    "repository_path_read_only_for_archive_only": "D:/meiandraybook",
+    "remote_url": "https://github.com/Gavin0099/meiandraybook.git",
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "consumer_worktree_mounted": false,
+    "consumer_worktree_mutation_allowed": false,
+    "historical_fix_mounted_or_applied": false
+  },
+  "execution_environment": {
+    "host_docker_cli": {
+      "path": "C:/Users/daish/AppData/Local/Programs/DockerDesktop/resources/bin/docker.exe",
+      "sha256": "00ffff945b67c65aae98dd980621a80ee135ed4e0931b33ca03687caee019713",
+      "bytes": 43247024,
+      "client_version": "29.7.2",
+      "server_version": "29.7.2",
+      "server_platform": "Docker Desktop 4.87.0 (236836)"
+    },
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "expected_node": "v22.23.2",
+    "expected_npm": "10.9.8",
+    "entry_process_working_directory": "/consumer",
+    "network": "enabled only for npm ci in disposable /tool and /consumer roles; disabled for every later phase",
+    "limits": {
+      "cpus": 2,
+      "memory": "2g",
+      "pids_limit": 512,
+      "tool_npm_ci_timeout_seconds": 300,
+      "consumer_npm_ci_timeout_seconds": 600,
+      "dry_run_timeout_seconds": 300,
+      "mutation_timeout_seconds": 300,
+      "total_wall_seconds_cost_ceiling": 900
+    }
+  },
+  "materialization_delta": {
+    "attempt_01_primitive": "Copy-Item -LiteralPath with a wildcard",
+    "attempt_02_primitive": "Get-ChildItem -LiteralPath -Force followed by per-child Copy-Item -LiteralPath -Recurse",
+    "source_destination_inventory_required_equal": true,
+    "destination_required_empty": true,
+    "synthetic_self_test_required_before_pre_run_commit": true,
+    "complete_harness_frozen": true
+  },
+  "frozen_harness_bindings": [
+    {
+      "path": ".gitattributes",
+      "sha256": "1349094487e290e8fe99ce71ac927db6cce1b5202f2e1ee5ed8c2f4b56193fac",
+      "bytes": 92
+    },
+    {
+      "path": "materialize-sidecar-inputs.ps1",
+      "sha256": "c0cc987fc25c7319614e12de90331fe50387f7968406ef505aaa2929b627c185",
+      "bytes": 2522
+    },
+    {
+      "path": "test-materialize-sidecar-inputs.ps1",
+      "sha256": "d5c9958cf7645c370b9c8cbc6ff2a1791775801c54640d8ddb31adedbedccdcc",
+      "bytes": 2933
+    },
+    {
+      "path": "run-sidecar-probe.ps1",
+      "sha256": "ebf0960c117e38969b503a14509019ca7a7f73b694191ac82229a6916b20b38b",
+      "bytes": 27631
+    }
+  ],
+  "reused_input_bindings": [
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package.json",
+      "materialized_path": "tool/package.json",
+      "sha256": "b897175c96811370e4df32c1cbc76a63b45c854b70b04a94af68f238c3345434",
+      "bytes": 299
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/tool/package-lock.json",
+      "materialized_path": "tool/package-lock.json",
+      "sha256": "bb30b56550f5f1e8acb72241d17d54c6bcf5a44c1196a83beabd07b4ba796d0c",
+      "bytes": 126501
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/plugin-entry-binding.json",
+      "materialized_path": "plugin-entry-binding.json",
+      "sha256": "e2792c940e39ac0b0acef954da10cb5040fc0e73ceba4504c60c9f07230f3a79",
+      "bytes": 979
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/resolution-probe.mjs",
+      "materialized_path": "resolution-probe.mjs",
+      "sha256": "53c18253be487406e44f317c8daaf2e2601714fb093fb2cd21293fb71fdecfa2",
+      "bytes": 4268
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/dependency-graph-fingerprint.mjs",
+      "materialized_path": "dependency-graph-fingerprint.mjs",
+      "sha256": "a78845998a90f1286f53d4199fa0ba43946e5dd0f7f89bfbc12af26cb00302fe",
+      "bytes": 1849
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/stryker.sidecar.config.mjs",
+      "materialized_path": "stryker.sidecar.config.mjs",
+      "sha256": "ef751d9f09ce352c2d6f9f4280ab14cc6a00a6d06274eed41ada515dbccbf45e",
+      "bytes": 1878
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker-sidecar/vitest.sidecar-probe.config.mjs",
+      "materialized_path": "vitest.sidecar-probe.config.mjs",
+      "sha256": "4eb51b10ac2bfc9eb548065482896ec14fe1e79481801a81d874fcde9343b566",
+      "bytes": 1863
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/diff_to_mutation_ranges.py",
+      "materialized_path": "diff_to_mutation_ranges.py",
+      "sha256": "c0b9a2698dae56525d5bcf1c9a6afce7a66aed7699ee847b65646a123aeb10ad",
+      "bytes": 6614
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/validator-probe-fixture.ts",
+      "materialized_path": "probe-fixture/src/validator-probe-fixture.ts",
+      "sha256": "5cb65c2a697934e921a45ef51a760dbd0f0d81e5229190dd38cd2539a4f9374e",
+      "bytes": 169
+    },
+    {
+      "source_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-validator-probe/c1-stryker/probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "materialized_path": "probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "sha256": "3089b6c474f3217a4feec332c62b2eca5cc19d4308c11093294546356c313f2f",
+      "bytes": 368
+    }
+  ],
+  "expected_materialized_file_count": 10,
+  "consumer_graph_contract": {
+    "allowed_dependency_command": "npm ci only",
+    "forbidden_commands": ["npm install", "npm update", "npm audit fix", "npx with package download"],
+    "before_after_equal_fields": [
+      "package_json_sha256",
+      "package_lock_sha256",
+      "node_modules_package_lock_sha256",
+      "npm_ls_exit_code",
+      "npm_ls_canonical_sha256",
+      "npm_ls_stderr_sha256"
+    ]
+  },
+  "classification": {
+    "allowed_terminals": [
+      "SIDECAR_BOUNDARY_PASSED",
+      "CONSUMER_GRAPH_CHANGED",
+      "SIDECAR_RESOLUTION_FAILED",
+      "SIDECAR_LEAKAGE_BLOCKED",
+      "SIDECAR_COST_BLOCKED"
+    ],
+    "precedence": [
+      "SIDECAR_LEAKAGE_BLOCKED",
+      "CONSUMER_GRAPH_CHANGED",
+      "SIDECAR_COST_BLOCKED",
+      "SIDECAR_RESOLUTION_FAILED",
+      "SIDECAR_BOUNDARY_PASSED"
+    ]
+  },
+  "claim_ceiling": "This probe may establish only whether this exact C1/Stryker sidecar boundary passes the frozen technical checks after the sole materialization-harness delta. It cannot establish validator effect, Skill effect, general sidecar reuse, Gate 1 readiness, preregistration, freeze, or any arm result."
+}

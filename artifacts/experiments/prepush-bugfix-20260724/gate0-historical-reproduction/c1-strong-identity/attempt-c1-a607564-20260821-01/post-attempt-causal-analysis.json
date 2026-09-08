@@ -1,0 +1,84 @@
+{
+  "schema": "gate0-historical-reproduction-post-attempt-causal-analysis.v1",
+  "attempt_id": "c1-a607564-20260821-01",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "analysis_date": "2026-08-21",
+  "analysis_method": "STATIC_SOURCE_ANALYSIS_ONLY",
+  "original_evidence_immutable": true,
+  "terminal_disposition_unchanged": "ORACLE_DOES_NOT_DISCRIMINATE",
+  "evidence_bindings": {
+    "pre_run_manifest": {
+      "sha256": "eff2f9483214f96fe9cb064db0c7f18803d366e8052088406e467863958b06ed",
+      "bytes": 4879
+    },
+    "attempt_terminal": {
+      "sha256": "82e7e6251fa8fa64e3b00933cbab743ceea68bf51c79cebbd4326e231cdc41f2",
+      "bytes": 1658
+    },
+    "baseline_receipt": {
+      "sha256": "6a529dde37efd5c431fb47826df1d1f0e5009b1ccaca70a14d6d64179c71b354",
+      "bytes": 3522
+    },
+    "baseline_stdout": {
+      "sha256": "51930012b0721649380bdddae760af5c0f8e46f8a67a392af6a7157e6d645b79",
+      "bytes": 597
+    },
+    "baseline_stderr": {
+      "sha256": "d3f3ff201c9aec3749a20b978114e5b8b1bf3b02bb86e60195a2cc807ca05b96",
+      "bytes": 369
+    }
+  },
+  "frozen_source_bindings": {
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "fixed_commit": "a60756436095fb3b14aecbc9094dd88a8ab9ef16",
+    "fixed_tree": "8d611a09b559d6fa42f7b7b75dc713f1186592a3",
+    "production_path": "src/lib/integration/import-logic.ts",
+    "baseline_production_blob": "77570a9738f718e146a5d6e0e2c3b9d52da91895",
+    "fixed_production_blob": "4722b20e44b20f53a8748a17b0001984687d582f",
+    "oracle_path": "src/lib/integration/__tests__/bulk_import_integrity.test.ts",
+    "fixed_oracle_blob": "92052fb231ad0455227d26a5e7bca438615bc8c9",
+    "fixed_oracle_sha256": "7c0c5055543332cb00431623861ea99539e6130bc712b2cc4e1de358219d7042",
+    "fixed_oracle_bytes": 8352
+  },
+  "alternative_cause_analysis": {
+    "wrong_baseline": {
+      "status": "EXCLUDED_BY_STATIC_SOURCE_DIFF",
+      "basis": [
+        "The baseline production code allows an ISBN and URL miss to fall through to title-and-publisher soft matching.",
+        "The fixed production code restricts the soft lookup population and the final soft-match branch to books without both ISBN and URL strong identities.",
+        "The fixed commit therefore contains a substantive production correction for the frozen candidate root cause rather than only a test change."
+      ]
+    },
+    "oracle_fixture_non_discrimination": {
+      "status": "SUPPORTED_BY_STATIC_EXECUTION_PATH_ANALYSIS",
+      "basis": [
+        "The frozen regression test calls createFakeSupabase with isbnRows only.",
+        "The fake returns options.softRows or an empty array for the title-and-publisher lookup, and the regression test does not provide softRows.",
+        "On the baseline, the second book misses the ISBN and URL maps and reaches the soft path, but the empty soft result leaves softMap without a matching identity, so the result is null.",
+        "On the fixed code, the second book has strong identities and bypasses the soft branch, so the result is also null.",
+        "The asserted result is therefore identical for baseline and fixed even though the production correction is substantive."
+      ]
+    }
+  },
+  "dynamic_confirmation": {
+    "performed": false,
+    "reason": "This correction was authorized to record static causal analysis and adjust the receipt specification only; no new experiment, oracle redesign, or retry was authorized."
+  },
+  "interpretation": "The original ORACLE_DOES_NOT_DISCRIMINATE disposition remains correct after excluding a wrong baseline by frozen source diff and identifying a concrete fixture-level non-discrimination path. The fixture explanation is a static inference, not a newly executed result.",
+  "candidate_status": "NOT_VERIFIED",
+  "gate0_status": "NOT_ADMITTED",
+  "not_claimed": [
+    "dynamic confirmation of the fixture explanation",
+    "a corrected or independently justified oracle",
+    "successful defect reproduction",
+    "fixed-role verification",
+    "Gate 0 admission",
+    "authorization to retry C1",
+    "Gate 1 preregistration",
+    "A/B execution",
+    "counted Gate 3 evidence",
+    "Skill effectiveness",
+    "promotion evidence"
+  ]
+}

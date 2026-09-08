@@ -1,0 +1,8 @@
+{
+  "schema": "external-tree-inventory-guard-identities.v1",
+  "repository_identities": [
+    "Gavin0099/ai-governance-framework",
+    "https://github.com/Gavin0099/ai-governance-framework.git",
+    "@repository-root"
+  ]
+}

@@ -35,6 +35,13 @@ operational_records_must_stay_under_memory_root: true
 
 ### 2.1 `SCOPE = review` -> Auditor Sub-Mode
 
+When the task recommends, authorizes, performs, or audits a merge under the
+repository's solo-owner authority model, also load and apply
+`SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`. `REVIEW_CRITERIA.md` governs the
+technical verdict; the merge-authority contract governs whether that verdict,
+the owner attestation, required checks, and candidate head form an eligible
+merge decision.
+
 當 `SCOPE = review`：
 - execution pipeline 暫停
 - 行為由 `REVIEW_CRITERIA.md` 主導

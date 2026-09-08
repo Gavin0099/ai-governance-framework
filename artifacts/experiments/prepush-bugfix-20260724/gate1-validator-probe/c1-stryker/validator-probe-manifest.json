@@ -1,0 +1,188 @@
+{
+  "schema": "c1-stryker-validator-probe-manifest.v1",
+  "status": "PRE_RUN_INPUTS_DEFINED_NOT_EXECUTED",
+  "probe_id": "c1-stryker-materialization-20260821-01",
+  "created_date": "2026-08-21",
+  "framework_base_commit": "4861bd84c3627335c9c4d636562ce5a43be5ca74",
+  "authority": {
+    "owner_authority": "2026-08-21 explicit DONE for one disposable C1 validator materialization and non-leakage probe",
+    "preflight": "docs/status/gate3-c1-gate1-preflight-2026-08-21.md",
+    "scope": [
+      "exact top-level tarball and integrity installation",
+      "Vitest dry run through Stryker",
+      "diff-derived changed-production-line mutation ranges",
+      "timeout and failure classification",
+      "raw-output hidden-information scan",
+      "runtime and bounded resource-cost measurement"
+    ],
+    "not_authorized": [
+      "Gate 1 preregistration or experiment freeze",
+      "A, B, C, or D arm creation or execution",
+      "producer, scorer, or model execution",
+      "consumer worktree checkout, pull, edit, install, or branch change",
+      "C2, C3, or Route C work",
+      "Skill-effectiveness or validator-effect claim"
+    ]
+  },
+  "source": {
+    "repository_path_read_only": "D:/meiandraybook",
+    "remote_url": "https://github.com/Gavin0099/meiandraybook.git",
+    "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "materialization": "git archive of the exact baseline into disposable sibling roles named baseline and candidate",
+    "consumer_worktree_mutation_allowed": false,
+    "historical_fix_mounted_or_applied": false
+  },
+  "execution_environment": {
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "resolved_tag_history": "node:22-bookworm-slim",
+    "platform": "linux/amd64",
+    "expected_node": "v22.23.2",
+    "expected_npm": "10.9.8",
+    "network": "enabled only for npm ci, exact tarball download, and transitive dependency installation; disabled for adapter, dry run, mutation run, and leakage scan",
+    "limits": {
+      "cpus": 2,
+      "memory": "2g",
+      "pids_limit": 512,
+      "install_timeout_seconds": 600,
+      "dry_run_timeout_seconds": 300,
+      "mutation_timeout_seconds": 300,
+      "total_wall_seconds_cost_ceiling": 900
+    }
+  },
+  "packages": [
+    {
+      "name": "@stryker-mutator/core",
+      "version": "10.0.0",
+      "tarball_url": "https://registry.npmjs.org/@stryker-mutator/core/-/core-10.0.0.tgz",
+      "integrity": "sha512-ZvMsRyaXQQ5e6Thcid9pkuODv6Fn9E3nrBQJUap+hcJuGJ4unm26afo3m6YKSjn8kinyxJ/3TXf0cTWRDaTxVw==",
+      "sha512_hex": "66f32c472697410e5ee9385c89df6992e383bfa167f44de7ac140951aa7e85c26e189e2e9e6dba69fa379ba60a4a39fc9229f2c49ff74d77f47135910da4f157"
+    },
+    {
+      "name": "@stryker-mutator/vitest-runner",
+      "version": "10.0.0",
+      "tarball_url": "https://registry.npmjs.org/@stryker-mutator/vitest-runner/-/vitest-runner-10.0.0.tgz",
+      "integrity": "sha512-SHK2/vfvRUpiz7jXPnQMBnr6zLdm69DK03Mo5mPhaZWcRSygrKUqYsPqWsXsK+5ySHzlMTfCyFK5NQ/X9sJFFw==",
+      "sha512_hex": "4872b6fef7ef454a62cfb8d73e740c067afaccb766ebd0cad37328e663e169959c452ca0aca52a62c3ea5ac5ec2bee72487ce53137c2c852b9350fd7f6c24517"
+    }
+  ],
+  "committed_inputs": [
+    {
+      "path": "diff_to_mutation_ranges.py",
+      "sha256": "c0b9a2698dae56525d5bcf1c9a6afce7a66aed7699ee847b65646a123aeb10ad",
+      "bytes": 6614
+    },
+    {
+      "path": "test_diff_to_mutation_ranges.py",
+      "sha256": "cee0c71fe244caa97bf62d81107bd2397cda9fbdd2b43682e0b3e1bf1e4702e4",
+      "bytes": 3406
+    },
+    {
+      "path": "stryker.config.mjs",
+      "sha256": "d123e8cbe602d973ad8d5951508508f7e4f901dc84a282f6523c6fe275a444a0",
+      "bytes": 1230
+    },
+    {
+      "path": "probe-fixture/src/validator-probe-fixture.ts",
+      "sha256": "5cb65c2a697934e921a45ef51a760dbd0f0d81e5229190dd38cd2539a4f9374e",
+      "bytes": 169
+    },
+    {
+      "path": "probe-fixture/src/__tests__/validator-probe-fixture.test.ts",
+      "sha256": "3089b6c474f3217a4feec332c62b2eca5cc19d4308c11093294546356c313f2f",
+      "bytes": 368
+    }
+  ],
+  "range_contract": {
+    "baseline_role": "baseline",
+    "candidate_role": "candidate",
+    "production_roots": [
+      "src",
+      "lib",
+      "app",
+      "packages"
+    ],
+    "excluded_segments": [
+      "__tests__",
+      "test",
+      "tests",
+      "fixtures",
+      "generated"
+    ],
+    "expected_probe_mutate_ranges": [
+      "src/validator-probe-fixture.ts:1-4"
+    ],
+    "expected_excluded_changed_paths": [
+      "src/__tests__/validator-probe-fixture.test.ts"
+    ],
+    "deletion_only_policy": "fail with NO_MUTATABLE_CHANGED_PRODUCTION_LINES rather than invent a target"
+  },
+  "probe_fixture_boundary": {
+    "purpose": "public task-neutral tool compatibility fixture",
+    "copied_only_into_candidate_role": true,
+    "contains_c1_product_behavior": false,
+    "contains_hidden_oracle_behavior": false,
+    "contains_historical_fix": false,
+    "is_an_experiment_arm": false
+  },
+  "procedure": {
+    "pre_network_checks": [
+      "framework HEAD contains this manifest and every committed input at its declared SHA-256 and byte length",
+      "the exact pre-run commit is pushed before materialization begins",
+      "consumer baseline commit and tree match this manifest",
+      "consumer worktree status is recorded before and after and must be byte-for-byte unchanged as a path/status inventory digest"
+    ],
+    "materialization_steps": [
+      "create a fresh disposable probe root outside the consumer worktree",
+      "git archive the exact baseline twice into sibling baseline and candidate directories",
+      "copy only the committed public probe fixture into candidate",
+      "run the committed adapter and require the exact expected range and exclusion lists",
+      "copy the committed Stryker config into a separate read-only probe-input mount"
+    ],
+    "install_steps": [
+      "run npm ci in candidate under the pinned image",
+      "download both exact tarball URLs to a disposable package directory",
+      "verify each tarball with sha512sum against sha512_hex",
+      "run npm install --no-save --package-lock=false using only the verified local tarballs",
+      "record npm ls for core, Vitest runner, and Vitest"
+    ],
+    "dry_run": "with C1_PROBE_DRY_RUN_ONLY=1 and the exact JSON range list in C1_PROBE_MUTATE_RANGES_JSON, run timeout 300s npx --no-install stryker run /probe-input/stryker.config.mjs",
+    "mutation_run": "with C1_PROBE_DRY_RUN_ONLY=0 and the same exact inputs, run timeout 300s npx --no-install stryker run /probe-input/stryker.config.mjs",
+    "timeout_sentinel": "run timeout 1s node -e setTimeout for 5 seconds and require exit 124 before interpreting a later 124 as timeout",
+    "resource_observation": "record host wall time for install, dry run, and mutation run; enforce Docker CPU, memory, and PID limits; inspect OOMKilled and exit code",
+    "repair_in_place": false
+  },
+  "non_leakage": {
+    "scan_surfaces": [
+      "range adapter stdout, stderr, and JSON",
+      "Stryker dry-run stdout and stderr",
+      "Stryker mutation stdout, stderr, and JSON report"
+    ],
+    "case_insensitive_denied_literals": [
+      "a607564",
+      "softmap",
+      "softmissbooks",
+      "master-existing",
+      "mixed-batch",
+      "attempt-c1",
+      "oracle_does_not_discriminate",
+      "gate3-c1-method-sensitivity",
+      "gate1-c1-bugfix-skill-proposal"
+    ],
+    "allowed_output_basis": "only candidate-owned source/test paths, probe fixture names, generated mutants, execution diagnostics, and aggregate cost",
+    "any_denied_match_disposition": "VALIDATOR_LEAKAGE_BLOCKED"
+  },
+  "classification": {
+    "VALIDATOR_PROBE_PASSED": "all six requested checks pass and total wall time is within the cost ceiling",
+    "VALIDATOR_PROBE_FAILED": "input, install, dry-run, range, timeout-classification, execution, or evidence binding fails without a denied leakage match",
+    "VALIDATOR_LEAKAGE_BLOCKED": "any scanned raw validator surface contains a denied hidden-information literal or receives a forbidden input",
+    "VALIDATOR_COST_BLOCKED": "execution succeeds functionally but exceeds the total wall-time ceiling or any declared resource limit",
+    "precedence": [
+      "VALIDATOR_LEAKAGE_BLOCKED",
+      "VALIDATOR_COST_BLOCKED",
+      "VALIDATOR_PROBE_FAILED",
+      "VALIDATOR_PROBE_PASSED"
+    ]
+  },
+  "claim_ceiling": "This probe may establish only bounded technical compatibility, diff-range behavior, failure classification, non-leakage for the scanned exact outputs, and observed cost under one disposable environment. It cannot establish validator effect, Skill effect, general non-leakage, Gate 1 readiness, preregistration, freeze, or any arm result."
+}

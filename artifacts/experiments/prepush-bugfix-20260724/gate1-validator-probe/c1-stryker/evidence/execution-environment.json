@@ -1,0 +1,9 @@
+{
+  "resolved_docker_cli": "C:\\Users\\daish\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe",
+  "docker_client": "29.7.2",
+  "docker_server": "29.7.2",
+  "docker_desktop": "4.87.0",
+  "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+  "image_present_before_run": true,
+  "path_resolution_event": "initial shell PATH omitted the existing user-local Docker CLI; no validator command had run; execution continued with the absolute existing CLI path"
+}

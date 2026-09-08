@@ -1,0 +1,47 @@
+{
+  "schema": "c1-execution-convergence-policy.v1",
+  "status": "FROZEN_NOT_OBSERVED",
+  "window_members": [
+    "C1-nonhosted-sandbox-capability-probe-02",
+    "C1-sandboxed-runner-qualification-03"
+  ],
+  "modeled_infrastructure_categories": [
+    "binding",
+    "cleanup",
+    "evidence_publication",
+    "filesystem_projection",
+    "git_checkout_materialization",
+    "hosted_transport",
+    "machine_policy",
+    "parent_readiness",
+    "probe_artifact",
+    "runtime_identity",
+    "sandbox_surface",
+    "task_command_resolution"
+  ],
+  "unmapped_failure_token": "NEW_UNMODELED_INFRASTRUCTURE",
+  "stop_token": "STOP_BEFORE_FURTHER_FORMAL_ATTEMPT",
+  "probe_02_intended_surface_requires": [
+    "sandbox_helper_launched",
+    "negative_control_attempted",
+    "absolute_python_control_attempted",
+    "bounded_capability_evidence_present",
+    "no_new_infrastructure_failure_category"
+  ],
+  "qualification_03_intended_surface_requires": [
+    "hosted_transport_completed",
+    "exact_task_command_attempted",
+    "probe_artifact_read_and_validated",
+    "no_new_infrastructure_failure_category"
+  ],
+  "stop_effects": {
+    "probe_03_authorized": false,
+    "qualification_04_authorized": false,
+    "runtime_dependency_inventory_required": true,
+    "execution_state_machine_audit_required": true,
+    "window_expiry_overrides_stop": false,
+    "time_pressure_overrides_stop": false,
+    "near_success_overrides_stop": false,
+    "new_owner_decision_required_after_audit": true
+  }
+}

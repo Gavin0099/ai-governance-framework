@@ -1,0 +1,63 @@
+{
+  "schema": "gate0-historical-reproduction-terminal-receipt.v1",
+  "attempt_id": "c1-a607564-20260821-01",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "role": "baseline",
+  "terminal": true,
+  "manifest": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-01/pre-run-manifest.json",
+    "commit": "7f30a782842ea14534828d2259a62f5b90f3f2b4",
+    "remote_ref": "refs/heads/codex/gate0-c1-strong-identity-reproduction",
+    "remote_ref_observed_commit": "7f30a782842ea14534828d2259a62f5b90f3f2b4",
+    "sha256": "eff2f9483214f96fe9cb064db0c7f18803d366e8052088406e467863958b06ed",
+    "bytes": 4879
+  },
+  "input": {
+    "source_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "source_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "materialization": "exact git archive into a new disposable directory outside the consumer worktree",
+    "oracle_overlay_only": true,
+    "oracle_sha256_before_run": "7c0c5055543332cb00431623861ea99539e6130bc712b2cc4e1de358219d7042",
+    "oracle_sha256_after_run": "7c0c5055543332cb00431623861ea99539e6130bc712b2cc4e1de358219d7042",
+    "oracle_bytes": 8352,
+    "lock_sha256_before_run": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "lock_sha256_after_run": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "lock_bytes": 474302
+  },
+  "execution": {
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "network": "bridge",
+    "command": "timeout --signal=TERM --kill-after=15s 10m sh -lc 'npm ci && npm test -- src/lib/integration/__tests__/bulk_import_integrity.test.ts'",
+    "started_utc": "2026-08-21T05:43:13.8667267+00:00",
+    "ended_utc": "2026-08-21T05:48:21.2145254+00:00",
+    "duration_ms": 307348,
+    "host_timeout": false,
+    "exit_code": 0
+  },
+  "evidence": {
+    "stdout_path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-01/baseline.stdout.txt",
+    "stdout_sha256": "51930012b0721649380bdddae760af5c0f8e46f8a67a392af6a7157e6d645b79",
+    "stdout_bytes": 597,
+    "stderr_path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-01/baseline.stderr.txt",
+    "stderr_sha256": "d3f3ff201c9aec3749a20b978114e5b8b1bf3b02bb86e60195a2cc807ca05b96",
+    "stderr_bytes": 369
+  },
+  "observed": {
+    "dependency_install": "737 packages added",
+    "test_files_passed": 1,
+    "test_files_failed": 0,
+    "tests_passed": 5,
+    "tests_failed": 0,
+    "expected_test_selected": true,
+    "expected_test_result": "PASS"
+  },
+  "contract_comparison": {
+    "expected": "The exact strong-identity regression test fails on the baseline while the remaining focused-file tests pass.",
+    "observed": "The exact focused file ran all five tests and all five passed, including the expected strong-identity regression test.",
+    "matches": false
+  },
+  "disposition": "ORACLE_DOES_NOT_DISCRIMINATE",
+  "fixed_role": "NOT_RUN_DUE_TO_BASELINE_DISCRIMINATION_FAILURE",
+  "claim_ceiling": "This receipt establishes only that the frozen oracle passed on the exact baseline under the frozen environment. It is not a successful defect reproduction, Gate 0 admission, Skill-effectiveness evidence, countability evidence, or authorization to modify and retry this attempt."
+}

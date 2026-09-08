@@ -1,0 +1,19 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_reconciliation.py tests/test_memory_reconciliation_fixture_admissibility.py tests/test_memory_surface_authority_contract.py tests/test_authority_document_paths.py tests/test_authority_metadata_consistency.py tests/test_authority_loader.py -q --basetemp .tmp_pytest_mrcsp_m1a_fix_receipt --junitxml artifacts/evidence/test-results/receipt-mrcsp-m1a-exact-byte-detector-review-fix-20260824.xml",
+  "exit_code": 0,
+  "started_at": "2026-08-24T06:35:24Z",
+  "finished_at": "2026-08-24T06:35:26Z",
+  "runner": "codex",
+  "linked_commit": "872ab907b0ca84161e0303c5b95b37d1993f7578",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-mrcsp-m1a-exact-byte-detector-review-fix-20260824.xml"
+  ],
+  "cannot_claim": [
+    "semantic equivalence or reconciliation of the compared records",
+    "fixture admission by the detector itself",
+    "receipt authenticity: every field is fabricatable by a direct writer",
+    "human approval, merge readiness, or enforcement behavior"
+  ]
+}

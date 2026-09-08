@@ -1,0 +1,2 @@
+range_output=C:\Users\daish\.codex\visualizations\2026\08\20\01a01f9a-76de-7b00-8170-409653fa352d\c1-validator-probe-run-20260821-01\evidence\mutation-ranges.json
+mutate_range_count=1

@@ -1,0 +1,35 @@
+{
+  "schema": "c1-stryker-sidecar-non-leakage-scan.v1",
+  "scanned_created_raw_surfaces": [
+    {
+      "surface": "range-adapter.stdout.txt",
+      "sha256": "a26f14895b84c47cd29fa74878361cf6733403b6720251e681edbcb9b6a858d6",
+      "bytes": 186,
+      "denied_matches": []
+    },
+    {
+      "surface": "range-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "denied_matches": []
+    },
+    {
+      "surface": "mutation-ranges.json",
+      "sha256": "7a55249eed585eefc24eb0e41a9b8accde9e79577c8d51216a8051087b750ca0",
+      "bytes": 530,
+      "denied_matches": []
+    }
+  ],
+  "denied_match_count": 0,
+  "denied_matches": [],
+  "scan_passed_for_created_surfaces": true,
+  "uncreated_surfaces": [
+    "resolution probe stdout/stderr",
+    "dependency fingerprints",
+    "Stryker dry-run stdout/stderr",
+    "Stryker mutation stdout/stderr/JSON",
+    "Vitest runtime resolution records"
+  ],
+  "mount_audit": "NO_DOCKER_CONTAINER_OR_MOUNT_WAS_CREATED",
+  "scope_limit": "No claim is made about uncreated raw surfaces or general non-leakage."
+}

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Mapping
 
 import gate3_final_message_actual_capture as capture
+import gate3_private_rendering as private_rendering
 
 
 PUBLIC_CLAIM = capture.PUBLIC_CLAIM
@@ -345,11 +346,11 @@ def workspace_baseline_digest(baseline: Mapping[str, bytes]) -> str:
     )
 
 
-@dataclass(frozen=True)
-class InjectedContainedResult:
+@dataclass(frozen=True, repr=False, eq=False)
+class InjectedContainedResult(private_rendering.PrivateRendering):
     returncode: int | None
-    stdout: bytes
-    stderr: bytes
+    stdout: bytes = private_rendering.private_field()
+    stderr: bytes = private_rendering.private_field()
     process_disposition: str = "EXITED"
     stdout_eof: bool = True
     stdout_reader_complete: bool = True
@@ -677,8 +678,8 @@ def _validate_precleanup(
     return expected_profile
 
 
-@dataclass
-class RunnerIntegrationCoordinator:
+@dataclass(repr=False, eq=False)
+class RunnerIntegrationCoordinator(private_rendering.PrivateRendering):
     capture_store: capture.CreateOnceStore
     evidence_store: capture.CreateOnceStore
     bindings: capture.CaptureBindings
@@ -686,13 +687,18 @@ class RunnerIntegrationCoordinator:
     runtime_readers: Mapping[str, Callable[[], bytes]]
     invoke: Callable[[], InjectedContainedResult]
     observe_final: Callable[[], str]
-    workspace_baseline: Mapping[str, bytes]
-    read_workspace: Callable[[], Mapping[str, bytes]]
+    workspace_baseline: Mapping[str, bytes] = private_rendering.private_field()
+    read_workspace: Callable[[], Mapping[str, bytes]] = private_rendering.private_field()
     cleanup: Callable[[], str]
     crash_at: str | None = None
-    _admitted_baseline: dict[str, bytes] | None = field(
-        default=None, init=False, repr=False, compare=False
+    _admitted_baseline: dict[str, bytes] | None = private_rendering.private_field(
+        default=None, init=False
     )
+
+    # A mutable dataclass with generated eq is unhashable.  The rendering base
+    # supplies __hash__, so it is removed again here: the boundary must not hand
+    # this type a capability it never had.
+    __hash__ = None  # type: ignore[assignment]
 
     def _observe_workspace(self) -> str:
         """Derive the workspace axis here, not through a caller-supplied callback.

@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import shlex
+import sys
 from pathlib import Path
 
 GENERATION = '195a204f3e7e7d6055bc2293e0fe011c64285946'
@@ -29,6 +30,13 @@ MARKER = b'if [ ! -f "$RUNTIME_SCRIPT" ]; then\n'
 
 class InstallationMismatch(ValueError):
     pass
+
+
+def require_supported_platform():
+    # Only the Windows local installation was qualified. In particular the
+    # frozen scanner's Git object framing is not compatible with Linux Git 2.43.
+    if sys.platform != 'win32':
+        raise InstallationMismatch('unsupported platform: fixed profile requires Windows')
 
 
 def digest(raw: bytes) -> str:
@@ -145,6 +153,7 @@ def expected(repo_root: Path, framework_root: Path, repository_id: str, config_s
 def prepare(repo_root: Path, framework_root: Path, repository_id: str,
             adopted_config_sha256: str, output: Path):
     """Explicit preparation, no auto-discovery/adoption, no live hook writes."""
+    require_supported_platform()
     hook, receipt = expected(repo_root, framework_root, repository_id, adopted_config_sha256)
     output = output.absolute()
     canonical(output.parent)
@@ -159,6 +168,7 @@ def prepare(repo_root: Path, framework_root: Path, repository_id: str,
 
 def verify(repo_root: Path, framework_root: Path, hook: Path, receipt: Path,
            repository_id: str, expected_repository_id: str, adopted_config_sha256: str):
+    require_supported_platform()
     if repository_id != expected_repository_id:
         raise InstallationMismatch('wrong repository identity')
     # Read receipt first. Absence must stop rather than enroll the current state.

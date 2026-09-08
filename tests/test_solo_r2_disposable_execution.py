@@ -331,6 +331,7 @@ def test_real_freeze_probe_between_arms_allows_only_owned_ledger_progress(setup,
 
 
 def test_real_pinned_git_exports_only_frozen_subtree_under_poisoned_environment(tmp_path,monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     from governance_tools.solo_r2_disposable_binding import load_input_authority
     git=material.PinnedExecutable.capture(Path(shutil.which('git')).resolve())
     repo=material.RepositoryBinding(REPO,REPO/'.git',REPO/'.git')

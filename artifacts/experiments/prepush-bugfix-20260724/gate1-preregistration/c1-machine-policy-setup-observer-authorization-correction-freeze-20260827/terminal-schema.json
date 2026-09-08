@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostic": {"maxLength": 240, "type": "string"},
+    "execution_identity": {"type": ["object", "null"]},
+    "executing_commit_verified": {"type": "boolean"},
+    "freeze_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "hosted_request_executed": {"const": false},
+    "machine_mutation_attempted": {"type": "boolean"},
+    "observer_failure": {"type": ["object", "null"]},
+    "randomization_created": {"const": false},
+    "sandbox_qualification_executed": {"const": false},
+    "schema": {"const": "c1-machine-policy-setup-terminal.v4"},
+    "setup_attempt_id": {"const": "C1-machine-policy-setup-04"},
+    "setup_plan_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "status": {"type": "string"}
+  },
+  "required": [
+    "schema", "status", "setup_attempt_id", "freeze_commit",
+    "setup_plan_sha256", "machine_mutation_attempted",
+    "sandbox_qualification_executed", "hosted_request_executed",
+    "randomization_created", "execution_identity", "executing_commit_verified", "observer_failure",
+    "diagnostic"
+  ],
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "MACHINE_POLICY_EXECUTOR_IDENTITY_UNAVAILABLE"}}},
+      "then": {
+        "properties": {
+          "executing_commit_verified": {"const": false},
+          "freeze_commit": {"const": "0000000000000000000000000000000000000000"},
+          "machine_mutation_attempted": {"const": false}
+        }
+      },
+      "else": {"properties": {"executing_commit_verified": {"const": true}}}
+    }
+  ],
+  "type": "object"
+}

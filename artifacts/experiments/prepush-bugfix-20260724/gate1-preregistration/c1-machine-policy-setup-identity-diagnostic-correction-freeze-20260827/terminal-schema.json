@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostic": {"maxLength": 240, "type": "string"},
+    "execution_identity": {"type": ["object", "null"]},
+    "freeze_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "hosted_request_executed": {"const": false},
+    "machine_mutation_attempted": {"type": "boolean"},
+    "observer_failure": {"type": ["object", "null"]},
+    "randomization_created": {"const": false},
+    "sandbox_qualification_executed": {"const": false},
+    "schema": {"const": "c1-machine-policy-setup-terminal.v2"},
+    "setup_attempt_id": {"const": "C1-machine-policy-setup-02"},
+    "setup_plan_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "status": {"type": "string"}
+  },
+  "required": [
+    "schema", "status", "setup_attempt_id", "freeze_commit",
+    "setup_plan_sha256", "machine_mutation_attempted",
+    "sandbox_qualification_executed", "hosted_request_executed",
+    "randomization_created", "execution_identity", "observer_failure",
+    "diagnostic"
+  ],
+  "type": "object"
+}

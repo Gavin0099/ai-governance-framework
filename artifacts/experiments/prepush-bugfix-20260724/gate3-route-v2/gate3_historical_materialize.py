@@ -31,10 +31,11 @@ never created, deleted or marked — an object this module creates owes a
 deletion and a borrowed one owes never being deleted, and nothing can hold both
 obligations at once.
 
-Both public entry points still refuse.  `handle_boundary_available()` defers to
-the native boundary, which reports False until an admission record and a
-capability probe exist; this module does not decide that question and does not
-pretend to.
+The public `materialize` and `cleanup` entry points still refuse.
+`handle_boundary_available()` defers to the native boundary, which reports
+False until an admission record and a capability probe exist; this module does
+not decide that question and does not pretend to.  M3-b-2A's transport helpers
+consume an already-live tree and do not move that availability boundary.
 """
 
 from __future__ import annotations
@@ -602,8 +603,8 @@ def _release(bindings, chain, created, leaves, root_name, error) -> None:
         error.add_note(f"cleanup after this error also failed: {failure}")
 
 
-def verify(tree: MaterializedTree, *, bindings=None) -> None:
-    """Re-verify identity, the exact path set, and every byte.
+def _verified_payloads(tree: MaterializedTree, *, bindings=None) -> dict[str, bytes]:
+    """Re-verify identity, the exact path set and bytes, then return the bytes.
 
     This detects a replacement; it does not prevent one.  Preventing a
     substituted module from running is M3's loader problem, not this check.
@@ -680,6 +681,7 @@ def verify(tree: MaterializedTree, *, bindings=None) -> None:
     held = dict(tree.leaves)
     if set(held) != set(tree.files):
         raise MaterializationError("RECORD_INVALID")
+    payloads: dict[str, bytes] = {}
     for relative, digest in tree.files.items():
         leaf = held[relative]
         try:
@@ -688,6 +690,14 @@ def verify(tree: MaterializedTree, *, bindings=None) -> None:
             raise _translate(error) from None
         if _sha256(payload) != digest:
             raise MaterializationError("MATERIALIZED_BYTES_CHANGED")
+        payloads[relative] = payload
+    return payloads
+
+
+def verify(tree: MaterializedTree, *, bindings=None) -> None:
+    """Re-verify one tree without exposing the bytes read through its handles."""
+
+    _verified_payloads(tree, bindings=bindings)
 
 
 def _record_of(tree: MaterializedTree) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -769,6 +779,31 @@ def _record_of(tree: MaterializedTree) -> tuple[tuple[str, ...], tuple[str, ...]
         raise MaterializationError("RECORD_INVALID")
 
     return tuple(sorted(checked)), directories
+
+
+def transport_bundle(
+    tree: MaterializedTree, *, bindings=None
+) -> tuple[str, str, Mapping[str, str], dict[str, bytes]]:
+    """Return root and bytes only for one live, internally consistent authority.
+
+    This is the M3-b-2 producer seam.  It accepts no path parameter and does not
+    call ``resolve``, ``absolute``, cwd or an environment fallback.  The existing
+    path-based set enumeration in ``_verified_payloads`` remains exactly the
+    limitation documented by ``verify``; every payload byte is still read
+    through its recorded held handle.
+    """
+
+    payloads = _verified_payloads(tree, bindings=bindings)
+    root = os.fspath(tree.root)
+    if type(root) is not str:
+        raise MaterializationError("RECORD_INVALID")
+    return root, tree.commit, tree.files, payloads
+
+
+def transport_root(tree: MaterializedTree, *, bindings=None) -> str:
+    """Return only the root projection of the verified transport bundle."""
+
+    return transport_bundle(tree, bindings=bindings)[0]
 
 
 def cleanup(tree: MaterializedTree, bindings=None) -> None:

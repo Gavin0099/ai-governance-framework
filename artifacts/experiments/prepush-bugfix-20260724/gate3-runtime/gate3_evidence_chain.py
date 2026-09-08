@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import hashlib
 import json
 import os
@@ -15,8 +17,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+FRAMEWORK_ROOT = Path(__file__).resolve().parents[4]
+if str(FRAMEWORK_ROOT) not in sys.path:
+    sys.path.insert(0, str(FRAMEWORK_ROOT))
+
+from governance_tools import rekor_provider
+
 
 CONTRACT_SCHEMA = "gate3-protocol-contract.v1"
+EXTERNAL_PIN_CONTRACT_SCHEMA = "gate3-protocol-contract.v2"
 METRICS_SCHEMA = "gate3-run-metrics.v1"
 SCORE_SCHEMA = "gate3-blind-score.v1"
 MAPPING_SCHEMA = "gate3-mapping-release.v1"
@@ -40,6 +49,17 @@ EVENT_SEQUENCE = (
     "second_scorer_submitted",
     "mapping_released",
 )
+EXTERNAL_PIN_EVENT_SEQUENCE = (
+    "randomization_committed",
+    "outcome_sealed",
+    "outcome_sealed",
+    "blind_set_closed",
+    "primary_scorer_submitted",
+    "second_scorer_submitted",
+    "external_chain_head_pinned",
+    "mapping_released",
+)
+SUPPORTED_EVENT_SEQUENCES = (EVENT_SEQUENCE, EXTERNAL_PIN_EVENT_SEQUENCE)
 CANDIDATE_FILES = (
     ".gitattributes",
     "docs/governance/gate3-preregistration-amendment-v1-candidate-20260729.md",
@@ -252,17 +272,71 @@ def _validate_source_base_commit(repo_root: Path, source_base_commit: str) -> No
 def load_contract(path: Path) -> tuple[dict[str, Any], str]:
     raw = path.read_bytes()
     value = _load_json(path)
-    if value.get("schema") != CONTRACT_SCHEMA:
-        raise EvidenceError("contract schema is not gate3-protocol-contract.v1")
-    if (
-        value.get("authorization")
-        != "pending_independent_review_and_owner_signature"
-    ):
-        raise EvidenceError("contract is not an unsigned candidate")
+    schema = value.get("schema")
+    if schema not in (CONTRACT_SCHEMA, EXTERNAL_PIN_CONTRACT_SCHEMA):
+        raise EvidenceError("contract schema is unsupported")
+    harness_root = path.parent
+    if schema == EXTERNAL_PIN_CONTRACT_SCHEMA:
+        extends_path = value.get("extends_path")
+        extends_sha256 = value.get("extends_sha256")
+        if (
+            not isinstance(extends_path, str)
+            or not extends_path
+            or Path(extends_path).is_absolute()
+            or ".." in Path(extends_path).parts
+        ):
+            raise EvidenceError("external-pin contract extends_path is invalid")
+        base_path = path.parent.joinpath(*extends_path.split("/"))
+        base_raw = base_path.read_bytes()
+        base = _load_json(base_path)
+        if (
+            base.get("schema") != CONTRACT_SCHEMA
+            or _sha256_bytes(base_raw) != extends_sha256
+        ):
+            raise EvidenceError("external-pin contract base binding is invalid")
+        overlay = value
+        value = json.loads(json.dumps(base))
+        value["schema"] = overlay["schema"]
+        value["authorization"] = overlay["authorization"]
+        value["evidence_chain"]["event_order"] = overlay["event_order"]
+        provider = overlay.get("external_pin_provider")
+        if (
+            not isinstance(provider, dict)
+            or set(provider)
+            != {
+                "profile_path",
+                "profile_sha256",
+                "proof_receipt_schema",
+                "signed_artifact",
+            }
+            or not isinstance(provider.get("profile_path"), str)
+            or Path(provider["profile_path"]).is_absolute()
+            or ".." in Path(provider["profile_path"]).parts
+            or not HEX64.fullmatch(str(provider.get("profile_sha256", "")))
+            or provider.get("proof_receipt_schema")
+            != rekor_provider.RECEIPT_SCHEMA
+            or provider.get("signed_artifact") != "ascii_chain_head_sha256"
+        ):
+            raise EvidenceError("external-pin provider binding is invalid")
+        value["external_pin_provider"] = provider
+        harness_root = base_path.parent
+    expected_authorization = (
+        "pending_independent_review_and_owner_signature"
+        if schema == CONTRACT_SCHEMA
+        else "arm_execution_admission_candidate_not_randomized"
+    )
+    if value.get("authorization") != expected_authorization:
+        raise EvidenceError("contract authorization is invalid")
     chain = value.get("evidence_chain")
     if not isinstance(chain, dict):
         raise EvidenceError("contract evidence_chain is absent")
-    if tuple(chain.get("event_order", [])) != EVENT_SEQUENCE:
+    event_sequence = tuple(chain.get("event_order", []))
+    expected_sequence = (
+        EVENT_SEQUENCE
+        if schema == CONTRACT_SCHEMA
+        else EXTERNAL_PIN_EVENT_SEQUENCE
+    )
+    if event_sequence != expected_sequence:
         raise EvidenceError("contract event order differs from runtime")
     primary = value.get("primary_study")
     if not isinstance(primary, dict) or tuple(
@@ -275,7 +349,7 @@ def load_contract(path: Path) -> tuple[dict[str, Any], str]:
         or harness.get("owner_signature_requires_candidate_contract") is not True
     ):
         raise EvidenceError("candidate harness contract is not signature-bound")
-    harness_path = path.parent / HARNESS_CONTRACT_NAME
+    harness_path = harness_root / HARNESS_CONTRACT_NAME
     harness_raw = harness_path.read_bytes()
     harness_value = _load_json(harness_path)
     if (
@@ -305,6 +379,50 @@ def load_contract(path: Path) -> tuple[dict[str, Any], str]:
         raise EvidenceError("candidate harness receipt contract differs from runtime")
     value["_harness_contract_sha256"] = _sha256_bytes(harness_raw)
     return value, _sha256_bytes(raw)
+
+
+def _event_sequence(contract: dict[str, Any]) -> tuple[str, ...]:
+    sequence = tuple(contract["evidence_chain"]["event_order"])
+    if sequence not in SUPPORTED_EVENT_SEQUENCES:
+        raise EvidenceError("contract event order is unsupported")
+    return sequence
+
+
+def _verify_external_pin_receipt(
+    *,
+    contract: dict[str, Any],
+    contract_path: Path,
+    receipt: dict[str, Any],
+    expected_chain_head_sha256: str,
+) -> rekor_provider.VerifiedReceipt:
+    provider = contract.get("external_pin_provider")
+    if not isinstance(provider, dict):
+        raise EvidenceError("external-pin provider is absent")
+    repo_root = contract_path.resolve().parents[4]
+    profile_path = repo_root.joinpath(*provider["profile_path"].split("/"))
+    if not profile_path.is_file():
+        raise EvidenceError("external-pin provider profile is absent")
+    profile_raw = _git(
+        repo_root, "show", f"HEAD:{provider['profile_path']}"
+    )
+    if _sha256_bytes(profile_raw) != provider["profile_sha256"]:
+        raise EvidenceError("external-pin provider profile binding mismatch")
+    try:
+        profile = rekor_provider.RekorProviderProfile.from_bytes(profile_raw)
+        verified = rekor_provider.verify_proof_bearing_receipt(profile, receipt)
+        signed_artifact = base64.b64decode(
+            str(receipt.get("signedArtifactBase64", "")), validate=True
+        )
+    except (
+        binascii.Error,
+        OSError,
+        ValueError,
+        rekor_provider.RekorVerificationError,
+    ) as exc:
+        raise EvidenceError("external pin proof verification failed") from exc
+    if signed_artifact != expected_chain_head_sha256.encode("ascii"):
+        raise EvidenceError("external pin subject is not the chain head")
+    return verified
 
 
 def _mapping_commitment(
@@ -1003,8 +1121,9 @@ def verify_chain(
     require_state: str | None = None,
 ) -> dict[str, Any]:
     contract, contract_sha = load_contract(contract_path)
+    event_sequence = _event_sequence(contract)
     files = _event_files(chain_dir)
-    if len(files) > len(EVENT_SEQUENCE):
+    if len(files) > len(event_sequence):
         raise EvidenceError("chain has too many events")
     events: list[dict[str, Any]] = []
     previous_raw: bytes | None = None
@@ -1021,7 +1140,7 @@ def verify_chain(
         event = _load_json(path)
         if raw != _json_bytes(event):
             raise EvidenceError(f"event is not canonical JSON: {path.name}")
-        expected_event = EVENT_SEQUENCE[index - 1]
+        expected_event = event_sequence[index - 1]
         expected_name = (
             f"{index:04d}-{expected_event.replace('_', '-')}.json"
         )
@@ -1215,6 +1334,37 @@ def verify_chain(
                 raise EvidenceError("primary and second scorer contexts are not independent")
             scorer_metadata[role] = metadata
             scorer_event_digests[role] = _sha256_bytes(raw)
+        elif expected_event == "external_chain_head_pinned":
+            receipt_path = _source_from_event(
+                event.get("pin_receipt_path"), chain_dir
+            )
+            if not receipt_path.is_file():
+                raise EvidenceError("external pin receipt source is absent")
+            receipt_raw = receipt_path.read_bytes()
+            receipt = _load_json(receipt_path)
+            if receipt_raw != _json_bytes(receipt):
+                raise EvidenceError("external pin receipt is not canonical JSON")
+            verified = _verify_external_pin_receipt(
+                contract=contract,
+                contract_path=contract_path,
+                receipt=receipt,
+                expected_chain_head_sha256=str(event.get("previous_event_sha256")),
+            )
+            provider = contract["external_pin_provider"]
+            expected_pin = {
+                "canonicalized_body_sha256": verified.canonicalized_body_sha256,
+                "checkpoint_signed_text_sha256": verified.checkpoint_signed_text_sha256,
+                "external_record_id": verified.external_record_id,
+                "inclusion_hash_count": verified.inclusion_hash_count,
+                "log_index": verified.log_index,
+                "pin_receipt_sha256": _sha256_bytes(receipt_raw),
+                "pinned_chain_head_sha256": event.get("previous_event_sha256"),
+                "provider_profile_sha256": provider["profile_sha256"],
+                "subject_sha256": verified.subject_sha256,
+                "tree_size": verified.tree_size,
+            }
+            if any(event.get(key) != value for key, value in expected_pin.items()):
+                raise EvidenceError("external pin event binding is invalid")
         elif expected_event == "mapping_released":
             if (
                 closed_ids is None
@@ -1253,6 +1403,19 @@ def verify_chain(
                     )
             if event.get("scorer_event_sha256") != scorer_event_digests:
                 raise EvidenceError("mapping release scorer-event digests mismatch")
+            if event_sequence == EXTERNAL_PIN_EVENT_SEQUENCE:
+                external_pin_event = next(
+                    (
+                        item
+                        for item in events
+                        if item["event"] == "external_chain_head_pinned"
+                    ),
+                    None,
+                )
+                if external_pin_event is None or event.get(
+                    "external_pin_event_sha256"
+                ) != _sha256_bytes(_json_bytes(external_pin_event)):
+                    raise EvidenceError("mapping release external pin binding is invalid")
             if (
                 event.get("randomization_record_sha256")
                 != randomization_record_sha256
@@ -1284,12 +1447,16 @@ def _append_event(
     fields: dict[str, Any],
 ) -> Path:
     report = verify_chain(chain_dir, contract_path)
+    contract, contract_sha = load_contract(contract_path)
+    event_sequence = _event_sequence(contract)
     sequence = report["event_count"] + 1
-    if sequence > len(EVENT_SEQUENCE) or EVENT_SEQUENCE[sequence - 1] != event_name:
+    if (
+        sequence > len(event_sequence)
+        or event_sequence[sequence - 1] != event_name
+    ):
         raise EvidenceError(
             f"event {event_name} is not allowed after state {report['state']}"
         )
-    _, contract_sha = load_contract(contract_path)
     event = {
         "contract_sha256": contract_sha,
         "event": event_name,
@@ -1467,9 +1634,10 @@ def submit_scorer(
         raise EvidenceError("scorer submission file is absent")
     report = verify_chain(chain_dir, contract_path)
     next_sequence = report["event_count"] + 1
+    event_sequence = _event_sequence(contract)
     if (
-        next_sequence > len(EVENT_SEQUENCE)
-        or EVENT_SEQUENCE[next_sequence - 1] != expected_event
+        next_sequence > len(event_sequence)
+        or event_sequence[next_sequence - 1] != expected_event
     ):
         raise EvidenceError(
             f"event {expected_event} is not allowed after state {report['state']}"
@@ -1532,14 +1700,66 @@ def submit_scorer(
     )
 
 
+def pin_external_chain_head(
+    chain_dir: Path,
+    contract_path: Path,
+    receipt_path: Path,
+) -> Path:
+    contract, _ = load_contract(contract_path)
+    if _event_sequence(contract) != EXTERNAL_PIN_EVENT_SEQUENCE:
+        raise EvidenceError("contract does not require an external pin")
+    report = verify_chain(
+        chain_dir, contract_path, require_state="second_scorer_submitted"
+    )
+    if not receipt_path.is_file():
+        raise EvidenceError("external pin receipt file is absent")
+    receipt_raw = receipt_path.read_bytes()
+    receipt = _load_json(receipt_path)
+    if receipt_raw != _json_bytes(receipt):
+        raise EvidenceError("external pin receipt is not canonical JSON")
+    verified = _verify_external_pin_receipt(
+        contract=contract,
+        contract_path=contract_path,
+        receipt=receipt,
+        expected_chain_head_sha256=report["head_sha256"],
+    )
+    provider = contract["external_pin_provider"]
+    return _append_event(
+        chain_dir,
+        contract_path,
+        "external_chain_head_pinned",
+        {
+            "pin_receipt_path": _source_relative_to_evidence_root(
+                receipt_path, chain_dir
+            ),
+            "pin_receipt_sha256": _sha256_bytes(receipt_raw),
+            "pinned_chain_head_sha256": report["head_sha256"],
+            "provider_profile_sha256": provider["profile_sha256"],
+            "external_record_id": verified.external_record_id,
+            "log_index": verified.log_index,
+            "tree_size": verified.tree_size,
+            "subject_sha256": verified.subject_sha256,
+            "canonicalized_body_sha256": verified.canonicalized_body_sha256,
+            "checkpoint_signed_text_sha256": verified.checkpoint_signed_text_sha256,
+            "inclusion_hash_count": verified.inclusion_hash_count,
+        },
+    )
+
+
 def release_mapping(
     chain_dir: Path,
     contract_path: Path,
     mapping_path: Path,
 ) -> Path:
     contract, _ = load_contract(contract_path)
+    event_sequence = _event_sequence(contract)
+    required_state = (
+        "external_chain_head_pinned"
+        if event_sequence == EXTERNAL_PIN_EVENT_SEQUENCE
+        else "second_scorer_submitted"
+    )
     verify_chain(
-        chain_dir, contract_path, require_state="second_scorer_submitted"
+        chain_dir, contract_path, require_state=required_state
     )
     if not mapping_path.is_file():
         raise EvidenceError("mapping file is absent")
@@ -1586,6 +1806,14 @@ def release_mapping(
         for path, event in zip(_event_files(chain_dir), events)
         if event["event"].endswith("_scorer_submitted")
     }
+    external_pin_event_sha256 = None
+    if event_sequence == EXTERNAL_PIN_EVENT_SEQUENCE:
+        pin_path = next(
+            path
+            for path, event in zip(_event_files(chain_dir), events)
+            if event["event"] == "external_chain_head_pinned"
+        )
+        external_pin_event_sha256 = _sha256_file(pin_path)
     return _append_event(
         chain_dir,
         contract_path,
@@ -1597,6 +1825,11 @@ def release_mapping(
             "mapping_sha256": _sha256_file(mapping_path),
             "randomization_record_sha256": randomization_sha,
             "scorer_event_sha256": scorer_event_digests,
+            **(
+                {"external_pin_event_sha256": external_pin_event_sha256}
+                if external_pin_event_sha256 is not None
+                else {}
+            ),
             "study_kind": close_event["study_kind"],
         },
     )
@@ -1750,6 +1983,11 @@ def _parser() -> argparse.ArgumentParser:
     submit.add_argument("--role", required=True, choices=("primary", "second"))
     submit.add_argument("--submission", required=True)
 
+    pin = sub.add_parser("pin-external-chain-head")
+    pin.add_argument("--chain-dir", required=True)
+    pin.add_argument("--contract", required=True)
+    pin.add_argument("--receipt", required=True)
+
     release = sub.add_parser("release-mapping")
     release.add_argument("--chain-dir", required=True)
     release.add_argument("--contract", required=True)
@@ -1767,6 +2005,7 @@ def _parser() -> argparse.ArgumentParser:
             "blind_set_closed",
             "primary_scorer_submitted",
             "second_scorer_submitted",
+            "external_chain_head_pinned",
             "mapping_released",
         ),
     )
@@ -1835,6 +2074,14 @@ def main(argv: list[str] | None = None) -> int:
                     Path(args.contract),
                     args.role,
                     Path(args.submission),
+                )
+            )
+        elif args.command == "pin-external-chain-head":
+            print(
+                pin_external_chain_head(
+                    Path(args.chain_dir),
+                    Path(args.contract),
+                    Path(args.receipt),
                 )
             )
         elif args.command == "release-mapping":

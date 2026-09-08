@@ -1,0 +1,79 @@
+{
+  "schema": "c1-sandbox-qualification-02-diagnostic-terminal-policy.v1",
+  "terminal_schema": "c1-sandboxed-runner-qualification-terminal.v2",
+  "create_once": true,
+  "only_retained_file": "qualification-terminal.json",
+  "success_status": "SANDBOXED_RUNNER_QUALIFIED_NOT_RANDOMIZED",
+  "failure_statuses": [
+    "SANDBOXED_RUNNER_BINDING_MISMATCH",
+    "SANDBOXED_RUNNER_HOSTED_TRANSPORT_UNAVAILABLE",
+    "SANDBOXED_RUNNER_PARTIAL_OR_TIMEOUT",
+    "SANDBOXED_RUNNER_PROBE_UNAVAILABLE",
+    "SANDBOXED_RUNNER_PROBE_INVALID",
+    "SANDBOXED_RUNNER_CLEANUP_FAILED",
+    "SANDBOXED_RUNNER_UNCLASSIFIED_FAILURE"
+  ],
+  "failure_stage_enum": [
+    "bindings",
+    "pre_request_setup",
+    "hosted_launch",
+    "transport_result",
+    "probe_read",
+    "probe_json",
+    "probe_schema",
+    "probe_validator",
+    "cleanup",
+    "unclassified"
+  ],
+  "exception_class_enum": [
+    "ExecutorError",
+    "FileNotFoundError",
+    "JSONDecodeError",
+    "OSError",
+    "RuntimeError",
+    "TimeoutError",
+    "TimeoutExpired",
+    "UnicodeDecodeError",
+    "ValueError",
+    "OTHER"
+  ],
+  "bounded_failure_evidence": {
+    "transport_fields": ["returncode", "timed_out", "stdout_bytes", "stderr_bytes"],
+    "digest_fields": ["stdout_sha256", "stderr_sha256"],
+    "raw_stdout_retained": false,
+    "raw_stderr_retained": false,
+    "raw_exception_message_retained": false
+  },
+  "success_requires": [
+    "authorized_commit_manifest_blob_loaded",
+    "all_executable_sources_materialized_from_verified_git_blobs",
+    "hosted_transport_completed",
+    "task_command_network_denied",
+    "sandbox_implementation_elevated",
+    "managed_requirement_enforced",
+    "fallback_not_observed",
+    "private_root_cleanup_complete",
+    "cli_staging_cleanup_complete"
+  ],
+  "forbidden_fields": [
+    "authorization",
+    "cookie",
+    "credentials",
+    "environment",
+    "event_stream",
+    "exception_message",
+    "firewall_rules",
+    "local_path",
+    "model_response",
+    "prompt",
+    "raw_output",
+    "raw_stderr",
+    "raw_stdout",
+    "resolved_addresses",
+    "username"
+  ],
+  "no_retry_after_any_terminal": true,
+  "qualification_01_retry_authorized": false,
+  "consumer_amendment_authorized": false,
+  "randomization_created": false
+}

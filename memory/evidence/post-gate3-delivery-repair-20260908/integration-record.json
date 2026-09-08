@@ -1,0 +1,144 @@
+{
+  "authority": "Owner directed continued repair through review/CI/merge",
+  "base": "a6a2d62251fbc87900484f0e44ef1737de2188f5",
+  "feature": "09248cb4e7ac49f7e78bc55e4db45668264bc9e4",
+  "conflicts": {
+    "PLAN.md": {
+      "parent_sha256": {
+        "2": "8ce3265ceccb0acc875728a64390f8c96bf417f498a86c5d7f714915561d8fba",
+        "3": "1da759ec0c8694beea8c66ea81f035c45edeac29c352a89c644f1a4dfed83558"
+      },
+      "resolved_sha256": "3a656a5f42d6a31ebf69b0e81a32710058189ec3606753763b8df780a35197f6",
+      "conflicts": 2,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    },
+    "memory/01_active_task.md": {
+      "parent_sha256": {
+        "2": "b06f466c2cd03574a563d4f9dc9ee847fa984fec76de7179bd0b8c13d62a5f0b",
+        "3": "a0e22fe27fc474bc089523e3c2d0c2d5197eb81f708c5276282ce886ab53913a"
+      },
+      "resolved_sha256": "685ebdcf9c1d1543518450b3c47f6e9c107948e19a92d1197ac62440d09c114e",
+      "conflicts": 1,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    },
+    "memory/04_review_log.md": {
+      "parent_sha256": {
+        "2": "d80df68fd0113c9ec6fab90805c5cb9d2000816277fc38200684c414be6d1da2",
+        "3": "00b675542af7e4a22f29d1cd83ab94d02dfc0a3ad49b0317ec4d28d3d80ee83e"
+      },
+      "resolved_sha256": "ee987614c8a4497605c3d1d4be0d7ffba6a7d9b34d0f44ef43bc36ff84c74c13",
+      "conflicts": 1,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    },
+    "memory/2026-08-31.md": {
+      "parent_sha256": {
+        "2": "791211960379b8c45b2bda6c40112dde7def238cb20c7cacfa136a7b6cff14c5",
+        "3": "00fa576fde582730505edda4c1a160923328489f74a5a946e0d5b44feaf15110"
+      },
+      "resolved_sha256": "fa7b109b47aa5d881e34de198a74c1b6782cbb9cdca3461133d0d586dd4af74c",
+      "conflicts": 1,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    },
+    "memory/2026-09-07.md": {
+      "parent_sha256": {
+        "2": "538376c46a7cab84b5e22f262ba939d2364ad41c1151d7138585c736188416c3",
+        "3": "9a0b69d71811a74ef57dff229b56209c80bb8a8b4685052c24876c6c3358a45f"
+      },
+      "resolved_sha256": "67ca9186332c117ab486f197d18ceabc05e6be30987088a71cdbb4f56137b9eb",
+      "conflicts": 1,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    },
+    "memory/2026-09-08.md": {
+      "parent_sha256": {
+        "2": "0a1869ecfc07018a78db81c73d19332d0330b964025b6844efcdd0e04eb2f54f",
+        "3": "00605f0db74037d61cd78a351a3dd3ee885f8678fc4be253ba582a47b7f883bb"
+      },
+      "resolved_sha256": "3da20b40d1bf99d6b4b2fcf6a7e6eefc42e76f104d829996c3d5d18aff08b654",
+      "conflicts": 5,
+      "policy": "Preserve both conflict sides; PLAN freshness uses execution date and conflicting old status blocks carry explicit historical source labels"
+    }
+  },
+  "restored_fixture": {
+    "path": "artifacts/evidence/solo-evaluation-r2-replacement-20260905/attempt-ledger.v2.ndjson",
+    "bytes": 1862,
+    "sha256": "72b41909c0c79ff19aa3a82a9195ef8f0abf2da787a589cf06e13e49f52a1d6c",
+    "source": "Existing local preserved public ledger; restored verbatim solely as missing historical/test input",
+    "events": 2,
+    "new_events": 0,
+    "not_claimed": "No new evaluation, event, execution or authority granted by archival materialization"
+  },
+  "not_claimed": [
+    "historical rescoring",
+    "P4 runtime-pin hardening",
+    "P5 deployment on other hosts"
+  ],
+  "canonical_record_reconstruction": {
+    "2026-08-31.md": {
+      "record_count": 9,
+      "record_identities": [
+        "af76f5997bda6c71a4e3c9aeaca3f95b317c68fa34e0b8638ede82b8dd0d3aa6",
+        "730bcb9893629d23ce75c473f2e81da4cd43eeeed8219fc58d435a38f4cee11c",
+        "23b485606500a6cbcbf9f8798b3731f1bfafcdb1451227bedc51a6273fe60111",
+        "3d3f9bbd4ad45863a720f38a87f7025c8db0e27bb0e1cd9c32d9599d29a415b3",
+        "8dff2276c9e0694601953bf68174bdea49ec24c7f59354d0b39b5bc63cf462e6",
+        "c18dcf1ff9f3a0c83e6d44ef7b6bbbc33b4fcb50e60bf567ecbbb93af2b34686",
+        "0dcd494ae8b2cb6f55d05d7cdbc1235c26eb0852eae75211010bacb4812cd43a",
+        "f986e2c0036db8c03c3cde02b368487b2c362f6717ec963d0419727475e57887",
+        "cefa73785a1fa40c869f9b94f23ac5309ed6516bdc561f0b51b9c18cc28523d7"
+      ],
+      "sha256": "c5dc41ed8b91f8024dee391286e256b1eeeacbd7a6e86111cedaaa36c2f10510",
+      "method": "Union complete canonical parent records; preserve each field and identity, deduplicate only identical records."
+    },
+    "2026-09-08.md": {
+      "record_count": 28,
+      "record_identities": [
+        "0bee0fea72760fe624e31eccf7200c57eb97dc0e3b108eecee2557d1833ab5b9",
+        "feb318bbe2129a8875dbd2476c38e92379c6d89af00078e120eb17a923cca42a",
+        "9ccfb7a32034dde06aa3d966ed55ba23a502b33b9d44bf8309f825ddf0fc989f",
+        "782890515366bd10de6ee295ac4184a948ff6051384a86176771ca7836296512",
+        "4ba6221a89652ca270b9580b298c13228edad2a2ab3b04096e97467881998475",
+        "e93416c6a2070d37cd14dbfdb52ba72d1b1cc55387d6551f4a2951874a44d2e4",
+        "4535418057979b8182cb2a64db3bed7f116c54b2043f7cf734e16d8364213872",
+        "560f8df906534e6f3b800e31912c8de1241fbc6fafb646a91d25e26df81faee9",
+        "b60777aa14ca46f50021a78e8c1f24bfcba20247b3f894007dc384e3753b9b75",
+        "bce385ad90243fe18c4156f98f3236c5dd6a49ec04866b0afdea48e6f0cdcc4c",
+        "e9794e0df1507835ccdcd62189874d2212ad6d212924ed5bda7473854787bb50",
+        "b91375711c4a019dc91f6c63c484cf64af41e9e03a175b47e3178c80bbc87756",
+        "db14bb4027e61f940d030abd055ddfebb59d79f726a49505672067bcec89edd6",
+        "855cfb08a9b4a21db4fd9e00fd7a634fe74d356f50b98745131de2e5b22d0246",
+        "9f980a9bdb86eb8d79bd41441a62568edd5b6ff2ae02bb44622ce177d19716de",
+        "39b64a3bb956e6ee906e9cbf46e83785ddaac6d8d2083d27981a5de30f34e968",
+        "d51df4c563cc2337eaccf82cd7aa05109f61eb024aa1fe128521ca8c785181ae",
+        "202b6875843e12b4904ba380f0fd3d3d888af09db227581151e12735d5f86bb9",
+        "afff4ac1749cdd3b892c0f3d44426983203c309f4e243379700baedb4768af53",
+        "60c66f66d5d0437633713800edf0730ed3b3cc634116e3e540e6af16e834f0ec",
+        "4c54e14e0f837bf0ad0b6bf855029ebb5ed140fe386ac8f1fee278ea1bcc373e",
+        "6ff64391d9711b456adb0095272d9756a446d7407cd75743f6723591bca8e14d",
+        "aae12df0e5fe6d09af154c26827df104c846290e1a68b6eb154a48d21cc7d76f",
+        "b4c85f52c16aa83071e3287db18ef982a5112d1ceb19c0ebcf330e90e704fe40",
+        "deeec2b299156fb2f1c42eca00fb0c648e53107532a0741f957bb5b8460c4709",
+        "651914405de111a038e2433a6861ab6c00045d2e15823daa6dd5fec52d038612",
+        "92dae3b51c26ab7cb27bda1b8c7d9b37e4c16becc4759c83a2aa2334e431def3",
+        "c0ef3906aff07d082857bef57f92ad58a0943186d9e1ba24fff7b1ac386b36b5"
+      ],
+      "sha256": "f8fe684e53bda132c59c7e1e86ef66d95e7e297a17a20809ef5de3e1a8d2ec5e",
+      "method": "Union complete canonical parent records; preserve each field and identity, deduplicate only identical records."
+    }
+  },
+  "additional_preserved_fixture": {
+    "path": "artifacts/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "bytes": 3235,
+    "sha256": "33e291c2018aabaa004ca7998ee87a5cbfefefc81b53e77374ae694c1e42f3d8",
+    "events": 5,
+    "purpose": "Restore exact historical public input required by tests/test_solo_r2_replacement_binding.py:37. No new event, execution, admission, or authority is created; original bytes remain unchanged."
+  },
+  "conflict_hash_semantics": "resolved_sha256 values are first-resolution snapshots; canonical_record_reconstruction supersedes daily record snapshots; subsequent canonical session records are separately identified",
+  "final_ledger_materialization": {
+    "path": "artifacts/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/attempt-ledger.v2.1.ndjson",
+    "source": "memory/evidence/solo-r2-closeout-20260908/ledger-snapshot.ndjson@09248cb4",
+    "bytes": 5193,
+    "sha256": "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77",
+    "events": 9,
+    "new_event_count": 0
+  }
+}

@@ -10,6 +10,11 @@ import pytest
 
 from governance_tools import governance_maturity_summary
 from governance_tools.external_repo_readiness import ExternalRepoReadiness
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    IDENTITY_CONFIG_SCHEMA,
+    REPOSITORY_ROOT_TOKEN,
+)
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     format_human,
@@ -79,6 +84,16 @@ def _install_governance_hooks(repo: Path, framework: Path) -> None:
     _write(repo / ".git" / "hooks" / "pre-commit", marker)
     _write(repo / ".git" / "hooks" / "pre-push", marker)
     _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework.resolve()))
+    _write(
+        repo / IDENTITY_CONFIG_REL,
+        json.dumps(
+            {
+                "schema": IDENTITY_CONFIG_SCHEMA,
+                "repository_identities": ["example.test/maturity-consumer", REPOSITORY_ROOT_TOKEN],
+            }
+        )
+        + "\n",
+    )
 
 
 def _write_fresh_plan(repo: Path) -> None:

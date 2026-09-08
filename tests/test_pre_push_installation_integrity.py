@@ -22,6 +22,8 @@ def command(*args, cwd=None):
 
 @pytest.fixture
 def installation(tmp_path):
+    if sys.platform != 'win32':
+        pytest.skip('Native 195a204f hook/scanner integration is Windows-only')
     repo=tmp_path/'repo'; repo.mkdir()
     command('init',str(repo)); command('config','user.name','Fixture',cwd=repo)
     command('config','user.email','fixture@example.invalid',cwd=repo)
@@ -32,7 +34,7 @@ def installation(tmp_path):
     config_sha=p5.digest(config.read_bytes())
     framework=tmp_path/'framework'; (framework/'governance_tools/profiles').mkdir(parents=True)
     for rel in (p5.VERIFIER,p5.TEMPLATE): shutil.copyfile(ROOT/rel,framework/rel)
-    scanner=(ROOT/'tests/fixtures/p5_pre_push_195a204f/external_tree_inventory_guard.py').read_bytes()
+    scanner=(ROOT/'governance_tools/profiles/external_tree_inventory_guard_195a204f.py').read_bytes()
     assert p5.digest(scanner)==p5.SCANNER_SHA
     (framework/p5.SCANNER).write_bytes(scanner)
     lib=framework/'scripts/lib';lib.mkdir(parents=True)
@@ -160,3 +162,45 @@ def test_exact_template_retains_whole_original_scan_and_tail():
     derived=p5.render_hook(original,REPOSITORY,'a'*64)
     assert original.split(p5.MARKER,1)[1]==derived.split(p5.MARKER,1)[1]
     assert original.split(p5.MARKER,1)[0]==derived.split(b'# P5 fixed-generation',1)[0]
+
+
+@pytest.mark.parametrize('platform', ['linux', 'darwin'])
+def test_unsupported_platform_rejects_before_any_filesystem_access(tmp_path, monkeypatch, platform):
+    monkeypatch.setattr(p5.sys, 'platform', platform)
+    monkeypatch.setattr(p5, 'expected', lambda *a: pytest.fail('filesystem read before platform rejection'))
+    monkeypatch.setattr(p5, 'read', lambda *a: pytest.fail('receipt read before platform rejection'))
+    with pytest.raises(p5.InstallationMismatch, match='unsupported platform'):
+        p5.prepare(tmp_path, tmp_path, REPOSITORY, 'a'*64, tmp_path/'candidate')
+    with pytest.raises(p5.InstallationMismatch, match='unsupported platform'):
+        p5.verify(tmp_path, tmp_path, tmp_path/'hook', tmp_path/'receipt', REPOSITORY, REPOSITORY, 'a'*64)
+    assert not (tmp_path/'candidate').exists()
+
+
+def test_shipped_scanner_exact_identity():
+    raw=(ROOT/'governance_tools/profiles/external_tree_inventory_guard_195a204f.py').read_bytes()
+    assert len(raw)==27034 and p5.digest(raw)==p5.SCANNER_SHA
+
+
+@pytest.mark.parametrize('failure', [None, 'scanner', 'config', 'repository', 'receipt', 'hook'])
+def test_receipt_identity_without_native_execution(tmp_path, monkeypatch, failure):
+    # Pure receipt checks remain portable; this does not qualify a native hook.
+    monkeypatch.setattr(p5, 'require_supported_platform', lambda: None)
+    repo=tmp_path/'repo'; hooks=repo/'.git/hooks'; hooks.mkdir(parents=True)
+    framework=tmp_path/'framework'; (framework/'governance_tools/profiles').mkdir(parents=True)
+    for name in (p5.VERIFIER, p5.TEMPLATE): shutil.copyfile(ROOT/name,framework/name)
+    shutil.copyfile(ROOT/'governance_tools/profiles/external_tree_inventory_guard_195a204f.py',framework/p5.SCANNER)
+    config=repo/p5.CONFIG; config.parent.mkdir()
+    config.write_bytes(p5.encode({'schema':'external-tree-inventory-guard-identities.v1','repository_identities':[REPOSITORY,'@repository-root']}))
+    sha=p5.digest(config.read_bytes()); candidate=tmp_path/'candidate'
+    p5.prepare(repo,framework,REPOSITORY,sha,candidate)
+    for name in ('pre-push',p5.RECEIPT): shutil.copyfile(candidate/name,hooks/name)
+    repository=REPOSITORY
+    if failure=='scanner': (framework/p5.SCANNER).write_bytes(b'wrong generation')
+    elif failure=='config': config.write_bytes(config.read_bytes()+b'\n')
+    elif failure=='repository': repository='wrong/repo'
+    elif failure=='receipt': (hooks/p5.RECEIPT).unlink()
+    elif failure=='hook': (hooks/'pre-push').write_bytes(b'wrong hook')
+    args=(repo,framework,hooks/'pre-push',hooks/p5.RECEIPT,repository,REPOSITORY,sha)
+    if failure:
+        with pytest.raises((p5.InstallationMismatch,OSError)): p5.verify(*args)
+    else: assert p5.verify(*args)['scanner_sha256']==p5.SCANNER_SHA

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe -m pytest artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandbox-qualification-prerun-freeze-20260827/test_qualification_prerun.py -q --basetemp .pytest-c1-sandbox-qualification-receipt",
+  "exit_code": 0,
+  "started_at": "2026-08-27T15:33:02Z",
+  "finished_at": "2026-08-27T15:33:04Z",
+  "runner": "codex",
+  "linked_commit": "f821088e6fce3869c756e4a1dfe234402636e1f8",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/c1-sandbox-qualification-prerun-f821088e.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

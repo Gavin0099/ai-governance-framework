@@ -1,0 +1,78 @@
+{
+  "schema": "c1-prior-infrastructure-evidence-inventory.v1",
+  "source_execution_worktree_head": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+  "evidence_root_repo_relative": "artifacts/experiments/prepush-bugfix-20260724/gate1-randomization",
+  "bounded_file_count": 6,
+  "files": [
+    {
+      "path": "c1-skill-primary-pair-01/repeat-01/terminal.json",
+      "bytes": 416,
+      "sha256": "bb2d2b87e2d77732811b7aa5af89a18e8451aaf96510d0ac17c0b9a1b3f646aa",
+      "content_class": "public_terminal",
+      "freeze_commit": "ce775f55e7b4e1b4c70698f9733b3dbe7da19db5",
+      "status": "RANDOMIZATION_BINDING_MISMATCH",
+      "randomization_created": false,
+      "event_count": 0,
+      "chain_state": "empty"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/batch-admission.json",
+      "bytes": 850,
+      "sha256": "cafec377a91048405aa23a14529f733176a41b1331362cb6076b4050af144d5b",
+      "content_class": "public_admission",
+      "admission_at_utc": "2026-08-27T02:29:55.939417Z",
+      "window_expires_at_utc": "2026-08-27T14:29:55.939417Z"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/terminal.json",
+      "bytes": 1054,
+      "sha256": "94e1d8c23b4b58163d8682ee513577d079cd8841fbaf6103b57271e792203a1d",
+      "content_class": "public_terminal",
+      "freeze_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "status": "RANDOMIZATION_COMMITTED",
+      "randomization_created": true,
+      "event_count": 1,
+      "chain_state": "randomization_committed"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/control/mapping-reveal.json",
+      "bytes": 337,
+      "sha256": "ac928997812463abacd480e8d3bb42a94384cdcd6dcba5051d429ffc825fe243",
+      "content_class": "private_control_surface",
+      "content_inspected_for_treatment_assignment": false,
+      "retention": "bytes_and_sha256_only"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/evidence/randomization-record.json",
+      "bytes": 1216,
+      "sha256": "f87d1a6f7f082258361c2e67ca6156d9571b518a79a0a8bb29af2710b5a7d49d",
+      "content_class": "public_randomization_record",
+      "pair_id": "C1-skill-primary-pair-02"
+    },
+    {
+      "path": "c1-skill-primary-pair-02/repeat-01/evidence/chain/0001-randomization-committed.json",
+      "bytes": 532,
+      "sha256": "4af72be90537daf9c558d2d719dbe9a1ed4c2cccf42b2c8a211520eeed2ac615",
+      "content_class": "public_chain_event",
+      "event": "randomization_committed",
+      "sequence": 1
+    }
+  ],
+  "mechanical_summary": {
+    "infrastructure_attempts_consumed": 2,
+    "randomizations_committed": 1,
+    "producer_dispatches": 0,
+    "outcomes_sealed": 0,
+    "scorer_submissions": 0,
+    "outcome_bearing_units_observed": 0,
+    "mapping_released": false,
+    "event_0002_count": 0,
+    "event_0003_count": 0,
+    "statistical_units_counted": 0
+  },
+  "blindness": {
+    "mapping_reveal_copied": false,
+    "treatment_assignment_retained": false,
+    "private_mapping_content_read": false
+  }
+}

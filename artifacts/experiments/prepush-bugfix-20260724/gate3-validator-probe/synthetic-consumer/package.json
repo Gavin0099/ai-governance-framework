@@ -1,0 +1,11 @@
+{
+  "name": "gate3-arm-d-synthetic-consumer",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

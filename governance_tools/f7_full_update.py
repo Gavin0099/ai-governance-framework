@@ -54,7 +54,7 @@ NOT_APPLICABLE = "not_applicable"
 NOT_VERIFIED = "not_verified"
 
 F7_UPDATE_BOUNDARY_MARKER = "<!-- governance:key=f7_update_boundary -->"
-RESPONSE_ENVELOPE_CONTRACT_VERSION = "v0.7"
+RESPONSE_ENVELOPE_CONTRACT_VERSION = "v0.8"
 _RESPONSE_ENVELOPE_VERSION_PATTERN = re.compile(
     r"response envelope contract(?:\s+version)?\s*[:=]?\s*v?(\d+\.\d+)",
     re.IGNORECASE,
@@ -64,9 +64,9 @@ F7_UPDATE_BOUNDARY_BLOCK = (
     "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
     "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
     "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` table rows as a table, not a prose summary, and include the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
-    "- F-7 terminal results are an expanded-report exception to the compact three-line default: relay the complete adoption table and preserve its machine status, claim boundary, evidence references, and next action.\n"
+    "- F-7 terminal results require an expanded report, not a technical-first opening. For completion or partial-completion reports, retain the first three non-empty lines as 結果 / 原因 / 下一步 (translated in other session languages); other task classes retain their existing rendering rules. Explain local completion, commit/push/merge state, and important unverified behavior in plain language before the complete adoption table. Follow governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md; preserve machine status, claim boundary, evidence references, and next action. Suggested actions do not grant authorization.\n"
     f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}. Compact human responses are the default.\n"
-    "- Ordinary expanded reporting has exactly three triggers: `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`.\n"
+    "- Ordinary expanded reporting retains three trigger IDs: `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`. Failure or an owner decision alone does not force expansion when a short answer preserves the blocker, ability to proceed, risks, decision-relevant non-claims, claim boundary, and required owner choice / authorization; full-evidence requests and unavailable or ambiguously preserved canonical records still expand.\n"
     "- Keep validation commands, counts, and diagnostics under `驗證` or `evidence_refs`; use `注意` only for one decision-relevant limitation.\n"
     "- If the adoption table is unavailable or cannot be relayed, report `human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`, and `completion_claim_allowed=false` with the reason; do not fabricate rows or claim a complete update report.\n"
     "- When a `mode` is used, keep `mode` event-derived with its `mode_source`; the human projection must not create trust claims or replace the canonical machine envelope.\n"

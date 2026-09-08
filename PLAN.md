@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-09-04
+> **最後更新**: 2026-09-08
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -91,6 +91,273 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation active):
+
+- [x] Define one bounded exact round-trip specification for one
+  caller-authorized canonical session-derived record and logical `active_task`
+  surface.
+- DONE: the reviewed specification reuses the canonical writer's public
+  outcome, `build_record_identity()`, `render_active_task_projection()`, and
+  `memory_pipeline.memory_layout.resolve_memory_file()`; keeps writer-owned
+  identity continuity separate from exact content continuity; requires the
+  writer outcome path to equal the resolver snapshot before retrieval; treats
+  missing surfaces, malformed or ambiguous persisted markers, path drift,
+  invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
+  fail-closed; binds the caller-admitted M-1 observation to the exact query,
+  logical surface, and canonical record identity; preserves M-1 non-resolved
+  states without context rendering; permits structurally valid historical
+  non-target identities while requiring exactly one byte-matching target
+  payload; accepts only LF or CRLF persisted framing and renders the verified
+  payload through the public writer's canonical LF line; requires a resolved
+  authority observation to match both record identity and the SHA-256 of that
+  public renderer's exact UTF-8 bytes while leaving legacy digest-less
+  observations parseable but non-resolving;
+  forbids silent drop, injection, and duplicate rendering; and freezes the
+  focused evidence-case inventory without implementing runtime behavior.
+- Claim ceiling: specification for one caller-authorized active-task exact
+  round trip only. No authority-policy creation, writer or identity redesign,
+  MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
+  update, supersession, freshness, deletion, Runtime public result transport or
+  schema, API versioning, hook, CI, gate, blocker, enforcement, Memory Runtime
+  R1, or Gate 3 behavior is authorized.
+- Implementation-readiness acceptance requires an owner merge attestation
+  recorded for the exact candidate HEAD before merge, technical review
+  approving that same HEAD with no unresolved P0/P1, green required checks,
+  reviewed-head preservation, and merge. A later merge action cannot
+  retroactively establish the owner-attestation predicate. Acceptance
+  does not activate a governance authority. Runtime implementation requires a
+  separate owner authorization after specification acceptance.
+- Implementation-readiness predicates were satisfied for exact reviewed head
+  `b2cc43bc5e7e9032d55aa49f5e820220a792eb43`, merged through PR #139 at
+  `ee44240f` after owner attestation, zero unresolved P0/P1, green checks, and
+  reviewed-head preservation.
+- [x] Implement the smallest active-task Runtime vertical slice over one
+  caller-authorized canonical record and one caller-admitted M-1 observation.
+- DONE: the Runtime calls the canonical active-task writer, snapshots the
+  logical resolver path and exact persisted bytes, independently parses every
+  projection-looking active-task line fail closed, permits well-formed
+  historical non-target identities, requires exactly one target identity and
+  exact canonical payload, binds `resolved` to both writer-owned identity and
+  the SHA-256 of public-renderer UTF-8 bytes, preserves the four M-1
+  non-resolved states with zero context bytes, and returns the public
+  renderer's canonical LF bytes only after the entire bounded chain succeeds;
+  every frozen R0 evidence case has executable focused coverage.
+- Claim ceiling: one active-task exact write-resolve-read-verify-render path
+  only. No writer, resolver, authority, identity, MRCSP, schema, hook, CI, gate,
+  enforcement, RAG, semantic retrieval, update, supersession, deletion, crash
+  safety, Runtime R1, or Gate 3 behavior is changed or authorized.
+- Delivery predicates were satisfied for exact independently reviewed head
+  `966dbbb3f4f8e8c987e286396a032d9230dc2940`, merged through PR #140 at
+  `ae926fc7b877c413036ba37cc0655cf62fbda75c` after owner authorization, zero
+  unresolved P0/P1, green pre-merge checks, reviewed-head preservation, and a
+  successful post-merge Governance Check whose Canonical Drift Post-Merge Audit
+  passed. External delivery evidence is the
+  [PR #140 pre-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819)
+  and the
+  [PR #140 post-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801).
+  This one-time reconciliation records that earlier delivery event; its later
+  closeout commit does not imply that the PLAN or memory record existed in merge
+  commit `ae926fc7`.
+
+Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation delivered):
+
+- [x] Define one non-authoritative technical specification for exactly one
+  append-only `active_task` supersession edge from distinct v1 and v2 canonical
+  record identities.
+- DONE: the specification keeps `build_record_identity()` and
+  `memory_layout.py` unchanged; binds each version through the existing record
+  identity plus the SHA-256 of public-renderer bytes; preserves v1 as history;
+  defines exactly three dispositions where v1-only is the base current, one
+  exact v1-to-v2 relation makes v2 the superseding current, and every partial or
+  ambiguous state yields zero context; permits only one relation-only retry for
+  the exact v1-plus-v2 missing-edge partial state when exactly one currently
+  M-1-resolved authorization binds the persisted endpoint pairs;
+  requires a caller-admitted M-1-resolved semantic authorization binding the
+  supersede decision and both endpoint identity/digest pairs; requires complete
+  immutable pre-write snapshot validation before either writer invocation;
+  fails closed without mutation on every other pre-existing missing, malformed,
+  duplicate, conflicting, cyclic, self-referential, or content-mismatched
+  lineage state; and defines a focused evidence plan without implementing
+  Runtime behavior.
+- Claim ceiling: one proposed two-version, one-edge `active_task` supersession
+  contract only. No implementation, writer/identity/layout semantic change,
+  authority-policy creation, longer lineage, migration, deletion, expiry,
+  atomicity, crash/concurrency qualification, RAG, semantic retrieval, hook,
+  CI, gate, blocker, enforcement, Gate 3, or governance authority is authorized.
+- Specification acceptance requires exact-head technical review with no
+  unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
+  owner merge authorization. Acceptance does not authorize the implementation
+  tranche or any RAG work.
+- Specification acceptance predicates were satisfied for exact reviewed head
+  `c56bef21f4993cdedd6dc41f92b2ada88ff6d5c8`, merged through PR #144 at
+  `c751644be56439ec8ea910de0cfaebc3c078f4ad` after owner authorization, zero
+  unresolved P0/P1, green checks, and reviewed-head preservation.
+- [x] Implement the bounded two-version `active_task` supersession vertical
+  slice defined by the accepted R1 specification.
+- DONE: from a fully validated immutable pre-write snapshot, a canonical v1
+  plus one content-bound resolved supersession authorization can append the
+  canonical v2 projection and one exact v1-to-v2 relation; the verified final
+  snapshot returns only v2 as current while retaining v1 as history; a complete
+  retry performs zero writes; a v2-written/relation-missing partial state
+  returns zero context and permits only a fresh authorized relation-only retry;
+  every pre-existing invalid state fails before either writer invocation with
+  bytes unchanged; and the four valid M-1 non-resolved states preserve their
+  disposition with zero context and zero writes.
+- Claim ceiling: one two-version, one-edge active-task supersession path only.
+  No longer lineage or graph engine, RAG, semantic retrieval, delete, expiry,
+  rollback, crash atomicity, general concurrency control, writer-owned record
+  identity redesign, R0 parser change, memory-layout change, authority-policy
+  creation, hook, CI, gate, blocker, enforcement, or Gate 3 behavior is
+  authorized.
+- Delivery requires exact-head technical review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
+- Implementation delivery predicates were satisfied for exact reviewed head
+  `6b441071c794ac38f69403919ce969eb205abcc7`, merged through PR #145 at
+  `c6e5d9e14ddba7ec1d7543f1808c98c946d297ee` after owner authorization,
+  zero unresolved P0/P1, green required and post-merge checks, and
+  reviewed-head preservation.
+- Known non-blocking P2 carried forward: daily-only versus multi-surface CLI
+  invocation can derive different daily record identities from otherwise
+  identical whitespace-bearing inputs. This delivery does not change
+  daily-only identity normalization semantics.
+- This records bounded R1 implementation delivery only. It does not establish
+  R1 qualification or authorize RAG or any later lifecycle slice.
+
+Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision delivered):
+
+- [x] Record the bounded NSI-N0 feasibility result without defining an
+  implementation-ready persisted-session reader grammar.
+- Delivery evidence: PR #147; exact reviewed head
+  `f1530182d65c4cbd4ab24bfd75e6e5af0ce343fc`; merge commit
+  `10044277b99e68973130d23ce97697418de59d21`.
+- DONE: current persisted logical `active_task` and `review_log` surfaces can
+  reconstruct record plus summary, but current repository state cannot
+  mechanically establish cross-session authority freshness; resolved Natural
+  Session replay is therefore `BLOCKED` with zero context;
+  `current_human_instruction` cannot be replayed as resolved without an
+  independently comparable persisted instruction-state identity;
+  `approved_change` cannot be replayed as resolved from repository HEAD equality
+  alone, and a pre-write HEAD is self-invalidating across the
+  attachment-containing commit; this decision does not define reader grammar,
+  attachment cardinality, historical precedence, standalone-v2 admission, or
+  R1 edge-selection semantics.
+- Next candidate: one separately authorized minimal technical spike to determine
+  the smallest persisted freshness evidence capable of mechanically classifying
+  Session B as same, changed, or unverifiable relative to Session A. The spike
+  may conclude that no safe bounded representation exists.
+- Claim ceiling: feasibility and representation decision only. No reader,
+  adapter, attachment writer, schema, instruction ledger, bootstrap, migration,
+  Session A/B pilot, RAG, lifecycle expansion, Runtime change, governance
+  authority, enforcement, or merge is authorized.
+- Acceptance requires exact-head independent review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
+
+Current refresh - 2026-09-02 (MRCSP M1b-3 active):
+
+- [x] Add one deterministic report-only detector for one caller-admitted
+  `memory_root` directory and one logical name defined by
+  `MEMORY_FILE_ALIASES`.
+- DONE: resolution reuses
+  `memory_pipeline.memory_layout.resolve_memory_file()`; an existing canonical
+  or secondary alias produces zero findings; all configured aliases missing
+  produces exactly one `missing_logical_memory_surface` warning; repeated
+  unchanged input produces byte-stable JSON; invalid roots, logical names,
+  argument types, and ordinary resolver exceptions fail closed with
+  `ValueError`.
+- Claim ceiling: one caller-specified logical surface at one filesystem
+  observation only. No repository-wide completeness, parsing, repair,
+  creation, deletion, alias inference, normalization, semantic identity,
+  freshness, supersession, reader, projection, writer, schema, runtime, hook,
+  CI, gate, blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #137 at merge commit
+  `bf07acc6`.
+
+Current refresh - 2026-08-24 (MRCSP M1b-2 active):
+
+- [x] Add one deterministic report-only namespaced knowledge-identity collision
+  detector over exactly two caller-admitted `KnowledgeIdentityObservation`
+  values.
+- DONE: two distinct record identities with the same exact case-sensitive
+  `knowledge_id` produce exactly one `knowledge_identity_collision` finding;
+  different identifiers produce zero findings; input order does not change the
+  result; repeated input produces byte-stable JSON; invalid input fails closed
+  with `ValueError`.
+- Claim ceiling: exact caller-supplied knowledge-identifier equality only. No
+  Markdown parsing, normalization, semantic identity, missing logical surface,
+  reader, projection, supersession, schema, runtime, hook, CI, gate, blocker,
+  enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #107 at merge commit
+  `3d335e26`.
+
+Current refresh - 2026-08-24 (MRCSP M1b-1 active):
+
+- [x] Add one deterministic report-only encoding-integrity detector for one
+  caller-admitted `MemoryRecordBytes` value.
+- DONE: invalid UTF-8 produces exactly one
+  `memory_encoding_integrity_anomaly` finding; valid UTF-8 containing U+FFFD
+  produces exactly one finding; clean valid UTF-8 produces zero findings;
+  repeated input produces byte-stable JSON; non-record and empty-content input
+  fail closed with `ValueError`.
+- Claim ceiling: strict UTF-8 decode failure and literal U+FFFD presence only.
+  No heuristic mojibake detection, repair, identity collision, missing logical
+  surface, reader, projection, supersession, schema, runtime, hook, CI, gate,
+  blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #105 at merge commit
+  `13577288ec63e4a86bbd490fc02666be20469831`.
+
+Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correction):
+
+- [>] Replace the unsupported claim that a solo-owner repository requires a
+  GitHub `APPROVED` review with a canonical conjunctive merge decision:
+  exact-head owner merge attestation, exact-head independent technical review,
+  green required checks, and preservation of the reviewed head.
+- DONE: contract cases and mutation tests prove that all four predicates are
+  required, while GitHub `APPROVED` is optional additional evidence and cannot
+  substitute for a missing predicate.
+- Claim ceiling: merge authority and reviewer-facing reporting semantics only.
+  No GitHub setting, branch protection, ruleset, CI, runtime, hook, schema,
+  gate, blocker, enforcement, or M1b work is authorized.
+- Observed failure: PR #103's final body required a human GitHub `APPROVED`
+  review, but its GitHub review list was empty when the PR was merged. This
+  correction is prospective and does not retroactively satisfy that prose gate.
+
+Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
+
+- [x] Implement one deterministic report-only exact-byte duplicate detector
+  over exactly two independently identified, caller-admitted memory record byte
+  payloads.
+- DONE: equal raw bytes produce exactly one `duplicate_memory_entry` warning;
+  a one-byte mutation produces zero findings; identical logical input produces
+  byte-stable JSON.
+- Claim ceiling: raw-byte SHA-256 equality only. No fixture admission,
+  normalization, semantic reconciliation, reader, projection, writer, public
+  schema, runtime, hook, CI, gate, blocker, enforcement, historical scan, or
+  memory mutation is authorized.
+- Completed through independently reviewed merge `3d859c95` (PR #103). The
+  detector is active at its report-only claim ceiling. PR #103's separate prose
+  requirement for a GitHub approving review was not satisfied; that process
+  discrepancy triggered the solo-owner authority correction above.
+
+Current refresh - 2026-08-24 (owner-authorized MRCSP M0 candidate):
+
+- [x] Define the M0 fixture-admissibility contract and one synthetic redacted
+  exact-byte-duplicate test fixture with provenance, a complete redaction
+  boundary, pinned SHA-256, and fail-closed tests for byte mismatch, missing
+  provenance, missing digest, and incomplete redaction.
+- Claim ceiling: contract and one test-only fixture only. No reader, M1a,
+  writer/runtime, public schema, hook, CI, gate, enforcement, reconciliation,
+  consumer replay, or historical normalization is authorized.
+- Completed through independently reviewed merge `82e504f7` (PR #101). The M0
+  fixture remains test-only and does not itself prove detector correctness.
 
 Current refresh - 2026-08-14:
 
@@ -2327,21 +2594,23 @@ Current blocking relationships for this work item:
   measured process-control layouts, their pure `ctypes` declarations and the
   independent fixtures. Exact-digest fresh-context review approved the tranche;
   386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
-  called, `ACTIVE` remains `False`, and M3-b-2 has not begun. Its
-  materialized-root transport design is resolved by the accepted 2026-08-20
-  `GATE3HL\0` version-1 envelope decision; implementation remains separately
-  unauthorized.
+  called and `ACTIVE` remains `False`. The bounded M3-b-2A materialized-root
+  transport was merged by PR #108: implementation commit `ff9cdb77`, merge
+  commit `a59b0aef`. It adds the in-process `GATE3HL\0` version-1 codec,
+  verified-inner refactor, live-tree authority helper and sole parent adapter.
+  M3-b-2B still owns native process/job/scratch/pipe integration and has not
+  begun.
 - M3-b-3, the reconstruction call, is **unblocked as authority**, and that
   authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
   BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
   be written and reviewed — and it owns the parent-side result object with the
   two "not asserted" markers, which the BLOCKED-2 amendment requires and does
   not build.
-- How the child receives the materialized root is resolved as design, not
-  implementation: the parent binds one live `MaterializedTree` authority to one
-  stdin launch envelope containing the unchanged M3-a frame and root. The child
-  validates syntax and the deterministic leaf; the full absolute base remains
-  parent-trusted. No Python implementation exists and M3-b-2 has not begun.
+- M3-b-2A binds one live `MaterializedTree` authority to one launch envelope
+  containing the unchanged M3-a frame and root. The child validates syntax and
+  the deterministic leaf; the full absolute base remains parent-trusted. It has
+  no `__main__`, process, native call, historical import or active caller.
+  Focused 251, adjacent 292 and canonical precommit 201 passed before merge.
 - M4 follows, and is what lets a historical candidate be verified against
   materialized historical bytes instead of against the live worktree — which is
   what B-1 is waiting for.
@@ -2362,6 +2631,9 @@ Current blocking relationships for this work item:
   unprotected.
 - No manifest is repinned, no pair evidence is rewritten, and the consumed
   `NON_SUCCESS` pair does not regain usability through any of this.
+
+#### Historical branch record (09248cb4)
+
 - M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
   wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
   `handle_boundary_available()` and `ACTIVE` are both `False`.
@@ -2420,6 +2692,15 @@ pair would begin, not complete, Gate 3; completion still requires at least three
 separately originated natural bugs across two consumer repositories under the
 accepted repeat rules.
 
+#### Historical main record (a6a2d622)
+
+- M4 is not started, and M3 is delivered only as M3-a, M3-b-1 and bounded
+  M3-b-2A. Nothing is wired to M2 or to M3-a, nothing calls M3-b-1 or M3-b-2A,
+  and no availability flag moved: `handle_boundary_available()` and `ACTIVE`
+  are both `False`.
+- Credentials, preflight and live remain unauthorized.
+
+
 Claim ceiling: this work item has produced design authority, an independent
 ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, a
 committed tranche that opens and holds directory handles (N3c-1), and one that
@@ -2449,6 +2730,28 @@ treatment/Skill effectiveness is not established.
   `core.autocrlf=true` checkout preserved all 55 claimed exact-byte paths.
   This rehearsal is synthetic and non-counted; its scorer fixtures are not
   independent judgments and it does not approve, sign, promote or start Gate 3.
+
+- [x] **C1 Gate 1 preregistration and pre-randomization admission completed
+  2026-08-26.** The preregistration freeze is in merge commit `4f0eefb9`
+  (PR #113). Rekor provider verification and the proof-bearing write path are
+  in merge commits `26552169` through `5a0da107` (PRs #114-#117). The
+  client-side identity amendment is in `830577ef` (PR #118), and the integrated
+  admission gate is in `90227e36` (PR #119). The separate final-head
+  countability decision was frozen in reviewed commit `1ced27d0` and merged as
+  `3351584a` by PR #120. Its terminal is
+  `ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED`: event 7 remains a mandatory
+  proof-bearing external pin before event 8 mapping release; an additional
+  event-9-style external final-head receipt is not required for this internal
+  Skill-funding experiment. Randomization has not been created, A/B/C/D arms
+  have not executed, and both remain unauthorized pending separate explicit
+  owner authority bound to the reviewed D5 admission commit.
+
+Claim ceiling for this checkpoint: the experimental rules, validator path,
+external pin provider, client identity boundary and pre-randomization admission
+are available and reviewed. This does not establish Gate 3 readiness,
+treatment effect, governance effectiveness, validator-feedback effectiveness
+or Skill effectiveness, and it does not authorize randomization, producer or
+scorer execution, mapping release, or any A/B/C/D arm.
 
 ## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
 
@@ -2979,3 +3282,10 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Fixed 195a204f local profile binds explicit repository/config adoption, hook/scanner/verifier identities and receipt before unchanged object-closure scanning. Missing or drifted identities stop before scan. Not a canonical installer migration.
 - Isolated real-hook/scanner tests: 17 local PASS; independent review Blocking0. Exact historical scanner stored only as a test fixture; no unreachable-object dependency. Evidence: memory/evidence/p5-installation-integrity-20260908/review.json and validation.json.
 - Scoped local implementation commit only. Actual hook/scanner/config unchanged; no deployment, P4 work or push. STOP after committed identity verification; unrelated dirty work excluded.
+
+## PR155 delivery integration - 2026-09-08
+
+- Owner authorized continuous push / PR / review / conditional merge delivery. Integrate main a6a2d622 with feature 09248cb4 without rewriting either history. Preserve both branches' canonical memory records and historical claim boundaries.
+- Bounded delivery repairs: exact-byte checkout attributes, two unchanged preserved historical public ledger test inputs, and six read-only tests using their checkout root. No production trust pin, model invocation, historical score, or P4 change.
+- Evidence: memory/evidence/post-gate3-delivery-repair-20260908. Runtime smoke plus 201 tests and Lite/P3/P5 129 tests passed; final Strict rerun and GitHub current-head review / CI remain required before merge.
+- Original dirty workspace and local P5 installation remain separate; deployment compatibility does not establish a canonical or portable installer. Results remain NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY.

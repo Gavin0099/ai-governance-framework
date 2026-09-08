@@ -133,3 +133,9 @@ remains outside the Gate 3 critical path and outside this slice.
 - D2 allocation adopted: one extra disposable evaluation/ledger allowance. See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json. Placement unresolved; no creation/execution authority. <!-- memory_record_projection:active-task-summary:4abae7efb9b50e2e48661afa714d543781fdeb542d9b8c1e7b37fe9e81628ddc -->
 
 - Placement adopted; STOP. <!-- memory_record_projection:active-task-summary:004754f2e3577eb3d7fd277858fcc7213b3b1c3e07a0adebcef22bba0843754b -->
+
+- Repo PUBLIC by owner authority for consumer access; severe PR #95 exposure cleared, known mild exposure remains pending Gate 3 or public-need re-review. <!-- memory_record_projection:active-task-summary:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->
+
+- M3-b-2A merged by PR #108 at a59b0aef; status reconciliation is isolated, and M3-b-2B remains not started. <!-- memory_record_projection:active-task-summary:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
+
+- C1 Gate 1 admission passed and D5 was merged by PR #120 at 3351584a; randomization and A/B/C/D arms remain unauthorized and unstarted. <!-- memory_record_projection:active-task-summary:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->

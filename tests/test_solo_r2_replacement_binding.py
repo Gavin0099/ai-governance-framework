@@ -188,6 +188,7 @@ def test_old_custody_rejected_before_pair_id(replacement,monkeypatch):
 
 
 def test_exact_committed_adoptions_resolve_read_only(tmp_path,monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     old=(REPO/profile.LEDGER_PATH).read_bytes()
     git=PinnedExecutable.capture(Path(shutil.which('git')).resolve())
     repo=RepositoryBinding(REPO,REPO/'.git',REPO/'.git')
@@ -202,6 +203,7 @@ def final_adopted():
 
 
 def test_final_exact_committed_adoption_resolves_read_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     git = PinnedExecutable.capture(Path(shutil.which('git')).resolve())
     repo = RepositoryBinding(REPO, REPO/'.git', REPO/'.git')
     monkeypatch.setattr(binding, 'uuid4', lambda: pytest.fail('read generated ID'))

@@ -1,0 +1,28 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-invocation-journal-policy.v1",
+  "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
+  "journal_start_schema": "c1-nonhosted-sandbox-capability-invocation-start.v1",
+  "journal_outcome_schema": "c1-nonhosted-sandbox-capability-invocation-outcome.v1",
+  "authority_consumed_when": "START_RECEIPT_VISIBLE_AND_READBACK_EXACT",
+  "authority_not_consumed_before_start": true,
+  "child_launch_before_start_forbidden": true,
+  "journal_root_independent_from_attempt_root": true,
+  "journal_parent_outside_readiness_exact_child_boundary": true,
+  "journal_parent_git_materialized_by_exact_anchor": true,
+  "maximum_journal_owners": 1,
+  "retry_allowed": false,
+  "concurrent_loser_launch_allowed": false,
+  "concurrent_loser_cleanup_allowed": false,
+  "start_only_state": "INVOCATION_STARTED_OUTCOME_INCOMPLETE",
+  "bounded_outcome_statuses": [
+    "INVOCATION_CHILD_COMPLETED",
+    "INVOCATION_CHILD_ZERO_WITHOUT_TERMINAL",
+    "INVOCATION_CHILD_NONZERO",
+    "INVOCATION_CHILD_TIMEOUT",
+    "INVOCATION_CHILD_LAUNCH_FAILED",
+    "INVOCATION_CHILD_CRASHED"
+  ],
+  "raw_output_retained": false,
+  "hosted_requests": 0,
+  "auth_payloads": 0
+}

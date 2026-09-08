@@ -1,0 +1,8 @@
+{
+  "schema": "c1-stryker-sidecar-non-leakage.v1",
+  "scanned_surface_count": 4,
+  "denied_match_count": 0,
+  "denied_matches": [],
+  "mount_violation": false,
+  "consumer_worktree_mounted": false
+}

@@ -1253,3 +1253,104 @@ def test_errors_carry_no_path_or_content(base: Path) -> None:
     assert message == caught.value.code
     assert str(base) not in message
     assert "tampered" not in message
+
+
+# --- M3-b-2A: materialized-root transport authority ------------------------
+
+
+def test_transport_root_returns_the_authority_value_without_resolving(
+    base: Path, monkeypatch
+) -> None:
+    tree = build(base)
+    calls = []
+    real_revalidate = boundary.revalidate
+
+    def watching(bindings, anchor):
+        calls.append(anchor)
+        return real_revalidate(bindings, anchor)
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("ambient path source reached")
+
+    monkeypatch.setattr(boundary, "revalidate", watching)
+    monkeypatch.setattr(Path, "resolve", forbidden)
+    monkeypatch.setattr(os, "getcwd", forbidden)
+    monkeypatch.setattr(os, "getenv", forbidden)
+    try:
+        assert materialize.transport_root(tree) == os.fspath(tree.root)
+        assert calls == [dict(tree.created)[""]]
+    finally:
+        discard(tree)
+
+
+def test_transport_bundle_returns_every_verified_held_payload(base: Path) -> None:
+    tree = build(base)
+    try:
+        root, commit, inventory, payloads = materialize.transport_bundle(tree)
+        assert root == os.fspath(tree.root)
+        assert commit == tree.commit
+        assert inventory is tree.files
+        assert payloads == BLOBS
+    finally:
+        discard(tree)
+
+
+def test_transport_root_refuses_a_raw_string_before_revalidation(monkeypatch) -> None:
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("native revalidation reached for a raw string")
+
+    monkeypatch.setattr(boundary, "revalidate", forbidden)
+    with pytest.raises(materialize.MaterializationError, match="^RECORD_INVALID$"):
+        materialize.transport_root("C:\\not-authority", bindings=object())
+
+
+def test_transport_root_refuses_a_consumed_tree(base: Path) -> None:
+    tree = build(base)
+    discard(tree)
+    with pytest.raises(materialize.MaterializationError, match="^RECORD_INVALID$"):
+        materialize.transport_root(tree, bindings=object())
+
+
+def test_transport_root_refuses_a_forged_tree_before_revalidation(monkeypatch) -> None:
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("native revalidation reached for a forged tree")
+
+    monkeypatch.setattr(boundary, "revalidate", forbidden)
+    forged = materialize.MaterializedTree(object())
+    with pytest.raises(materialize.MaterializationError, match="^RECORD_INVALID$"):
+        materialize.transport_root(forged, bindings=object())
+
+
+def test_transport_root_refuses_a_recombined_identity(base: Path) -> None:
+    tree = build(base)
+    authority = tree._authority
+    original = authority.root_identity
+    authority.root_identity = "0" * 32
+    try:
+        with pytest.raises(
+            materialize.MaterializationError, match="^RECORD_INVALID$"
+        ):
+            materialize.transport_root(tree, bindings=object())
+    finally:
+        authority.root_identity = original
+        discard(tree)
+
+
+def test_transport_root_preserves_the_stale_anchor_code(
+    base: Path, monkeypatch
+) -> None:
+    tree = build(base)
+    real_revalidate = boundary.revalidate
+
+    def stale(*_args, **_kwargs):
+        raise boundary.NativeError("PATH_IDENTITY_CHANGED")
+
+    monkeypatch.setattr(boundary, "revalidate", stale)
+    try:
+        with pytest.raises(
+            materialize.MaterializationError, match="^ROOT_IDENTITY_CHANGED$"
+        ):
+            materialize.transport_root(tree)
+    finally:
+        monkeypatch.setattr(boundary, "revalidate", real_revalidate)
+        discard(tree)

@@ -7,12 +7,31 @@ This capability supports only the compatible set derived from
 canonical installer, a hook updater, or a migration of the historical installer.
 The existing tracked installer and actual `.git/hooks` are not changed here.
 
+This fixed local profile supports Windows only. `prepare` and `verify` reject
+other platforms before reading deployment inputs or producing a candidate.
+Linux Git 2.43 does not provide the object framing assumed by the frozen scanner;
+Unix executable-mode deployment is not implemented or claimed. Receipt identity
+validation alone does not qualify the Git/runtime combination. The actual
+object-closure dry run remains required on the destination Windows installation.
+
 The exact historical hook template is kept at
 `governance_tools/profiles/pre_push_195a204f.sh` (SHA-256
 `42db229b0461e5bdb6bdb09da4fc0ea49a073fd63a6639a22d2888372429a807`).
 The only accepted scanner is 27,034 bytes, SHA-256
 `f80b2ae95728b1468697de02c89cf7267fdde3c16d1705b7464160012dfabcb8`.
 The profile does not install, modify, import, or canonically adopt that scanner.
+
+The exact scanner is shipped as the immutable deployment asset
+`governance_tools/profiles/external_tree_inventory_guard_195a204f.py`. Before
+preparation, the owner must explicitly provision those bytes at
+`<dedicated-framework-root>/governance_tools/external_tree_inventory_guard.py`
+and verify the full digest above. Use a separate fixed-profile deployment root
+containing this verifier, the template, and the existing required runtime tools;
+do not overwrite a current canonical scanner from another generation. The
+scanner asset is not automatically installed, selected, or adopted. A normal
+checkout containing the current scanner is therefore not by itself a prepared
+195a204f installation. The accepted deployment path and exact-byte validation
+remain unchanged.
 
 ## Explicit preparation, separate deployment
 

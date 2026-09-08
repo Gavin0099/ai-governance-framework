@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_reconciliation_fixture_admissibility.py tests/test_memory_surface_authority_contract.py tests/test_authority_document_paths.py tests/test_authority_metadata_consistency.py tests/test_authority_loader.py -q --basetemp .pytest-mrcsp-m0-receipt",
+  "exit_code": 0,
+  "started_at": "2026-08-24T03:49:41Z",
+  "finished_at": "2026-08-24T03:49:43Z",
+  "runner": "codex",
+  "linked_commit": "8d06bcd727f1aeedd1a03db7e8d6079df76cd640",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-mrcsp-m0-fixture-admissibility-20260824.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

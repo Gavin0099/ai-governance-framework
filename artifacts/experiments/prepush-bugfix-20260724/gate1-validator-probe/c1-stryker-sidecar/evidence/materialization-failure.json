@@ -1,0 +1,46 @@
+{
+  "schema": "c1-stryker-sidecar-materialization-failure.v1",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-01",
+  "stage": "COPY_EXACT_FRAMEWORK_INPUTS_TO_PROBE_ROLE",
+  "first_error_code": "POWERSHELL_LITERAL_WILDCARD_NOT_EXPANDED",
+  "first_error": "Copy-Item used -LiteralPath with a trailing wildcard. LiteralPath treated the wildcard as a literal character, so the exact sidecar input directory contents were not copied into probe-input.",
+  "consequences": [
+    "tool package and lock were absent from the disposable tool role",
+    "public Vitest runtime config was absent from the disposable consumer role",
+    "range output excluded only the public test path and therefore did not match the frozen expected exclusion set"
+  ],
+  "completed_before_failure": [
+    "exact consumer baseline archive created",
+    "exact baseline and consumer roles extracted",
+    "exact framework input archive created and extracted",
+    "public production fixture copied",
+    "public fixture test copied",
+    "range adapter executed"
+  ],
+  "not_executed": [
+    "tool npm ci",
+    "consumer npm ci",
+    "dependency fingerprints",
+    "resolution probe",
+    "timeout sentinel",
+    "Docker mount creation",
+    "Stryker dry run",
+    "mutation run",
+    "Vitest runtime resolution",
+    "resource inspection"
+  ],
+  "repair_in_place": false,
+  "materialization_wall_seconds": 3.317,
+  "derived_archives": [
+    {
+      "role": "consumer_baseline",
+      "sha256": "efc65c763e74f173b3c1be7aa3b736dba1bc4c335e134459841b4a37acc5d7a5",
+      "bytes": 33505280
+    },
+    {
+      "role": "framework_inputs",
+      "sha256": "2fdee77a1423e778818b6963d6a2b30263d0e3fe104c221b77b6fe83699cd364",
+      "bytes": 184320
+    }
+  ]
+}

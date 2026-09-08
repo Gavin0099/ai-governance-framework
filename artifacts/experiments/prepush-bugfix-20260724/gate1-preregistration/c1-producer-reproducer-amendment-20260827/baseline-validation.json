@@ -1,0 +1,20 @@
+{
+  "schema": "c1-gate1-reproducer-baseline-validation.v1",
+  "status": "BASELINE_BEHAVIOR_OBSERVED",
+  "baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+  "baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+  "command_contract": "reproducer-contract.json#/command",
+  "exit_code": 0,
+  "test_file_count": 1,
+  "passed_test_count": 1,
+  "failed_test_count": 0,
+  "canonical_observation_line_utf8_lf_bytes": 185,
+  "canonical_observation_line_utf8_lf_sha256": "34f00c20577586a4751b1cebeb06ab67dbf46b0aa4993e455aaa41782ef117e3",
+  "private_consumer_bytes_retained": false,
+  "raw_process_output_retained": false,
+  "bulk_tree_inventory_retained": false,
+  "candidate_or_oracle_accessed": false,
+  "hosted_model_request_performed": false,
+  "scratch_cleanup_completed": true,
+  "claim_ceiling": "PINNED_BASELINE_BLACK_BOX_OBSERVATION_ONLY"
+}

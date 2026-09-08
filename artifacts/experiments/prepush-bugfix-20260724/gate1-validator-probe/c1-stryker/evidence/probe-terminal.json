@@ -1,0 +1,157 @@
+{
+  "schema": "c1-stryker-validator-probe-terminal.v1",
+  "probe_id": "c1-stryker-materialization-20260821-01",
+  "terminal": "VALIDATOR_PROBE_FAILED",
+  "completed_at_utc": "2026-08-21T09:25:08.6415454Z",
+  "authority": "Owner-authorized single materialization/non-leakage probe only",
+  "bindings": {
+    "pre_run_commit": "030f15bed6e72135809eb9403617cf5d7b7d17c2",
+    "pushed_ref": "origin/codex/c1-validator-probe",
+    "manifest_sha256": "b00ea81effab59af71478d0577e26df729d509c7a996097c271103d93237f486",
+    "manifest_bytes": 8808,
+    "source_baseline_commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+    "source_baseline_tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436"
+  },
+  "checks": {
+    "exact_tarball_integrity": {
+      "status": "PARTIAL",
+      "npm_ci": "PASS",
+      "tarball_download": "PASS",
+      "sha512": "PASS",
+      "exact_local_tarball_install": "FAIL",
+      "exit_code": 1,
+      "failure_class": "NPM_PEER_DEPENDENCY_RESOLUTION",
+      "detail": "npm install of the two verified local tarballs exited ERESOLVE while reconciling the historical root dependency tree."
+    },
+    "vitest_dry_run": {
+      "status": "NOT_RUN_DUE_TO_INSTALL_FAILURE"
+    },
+    "diff_to_mutation_range": {
+      "status": "PASS",
+      "mutate_ranges": [
+        "src/validator-probe-fixture.ts:1-4"
+      ],
+      "included_files": [
+        "src/validator-probe-fixture.ts"
+      ],
+      "excluded_changed_paths": [
+        "src/__tests__/validator-probe-fixture.test.ts"
+      ]
+    },
+    "timeout_failure_classification": {
+      "status": "PASS",
+      "sentinel_exit_code": 124,
+      "expected_exit_code": 124
+    },
+    "raw_output_non_leakage": {
+      "status": "PASS_FOR_CREATED_SURFACES",
+      "denied_match_count": 0,
+      "uncreated_surfaces": [
+        "Stryker dry-run stdout/stderr",
+        "Stryker mutation stdout/stderr/JSON"
+      ]
+    },
+    "runtime_resources": {
+      "status": "WITHIN_LIMITS_FOR_EXECUTED_PHASES",
+      "install_wall_seconds": 301.815,
+      "timeout_sentinel_wall_seconds": 1.475,
+      "install_oom_killed": false,
+      "declared_total_wall_seconds_ceiling": 900,
+      "dry_and_mutation_cost": "NOT_OBSERVED"
+    },
+    "consumer_worktree": {
+      "status": "DIGEST_CHANGED_WITHOUT_ATTRIBUTION",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "pre_status_sha256": "6530eda2ef040a2eafccb0fcdecf4c66c05c760a6fe8182ff4ef3a2b030c4491",
+      "post_status_sha256": "d34abe81b4704b7a5a5fd3771b776b5604bfda62f206540c871255710b02597f",
+      "pre_status_bytes": 3177085,
+      "post_status_bytes": 3177006,
+      "note": "The probe used git archive as a read-only source and wrote only to the disposable root. Path inventory was not inspected; the status digest difference is preserved without attributing its cause."
+    }
+  },
+  "fail_closed_reasons": [
+    "Exact verified local tarballs were not successfully installed because npm exited ERESOLVE.",
+    "Vitest dry-run and mutation materialization were therefore not executed.",
+    "Consumer status inventory digest differed at post-run observation; no unchanged-worktree claim is made."
+  ],
+  "repair_in_place": false,
+  "artifacts": [
+    {
+      "path": "consumer-status-pre.json",
+      "sha256": "d6273a5a63347df78ad3f7aca0e5af8bea1a896aae184601d8e08f1431308c13",
+      "bytes": 372
+    },
+    {
+      "path": "consumer-status-post.json",
+      "sha256": "3b773c496813e4b8d16a9a38c3f4d172dcbb09aab0ee46f6aad3e65ae48e752d",
+      "bytes": 373
+    },
+    {
+      "path": "execution-environment.json",
+      "sha256": "eb4090633226faabb8a19999ae41d0c6fd0df828f82f71a55bb86960c2ad24c8",
+      "bytes": 548
+    },
+    {
+      "path": "mutation-ranges.json",
+      "sha256": "15dc0281e6a0049127dda1a430ae00c6663ac9c23073355cbaa694c5739e3dbb",
+      "bytes": 531
+    },
+    {
+      "path": "range-adapter.stdout.txt",
+      "sha256": "f2ed564b87ec45d029764042fa0496e0137f8cd9a64ad52a90c1c8deadf5c1d6",
+      "bytes": 186
+    },
+    {
+      "path": "range-adapter.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "timeout-sentinel.json",
+      "sha256": "7e6b7360e8a4050f53d05e4fbcade23aff7cb9df411da6e426d737513d80d7c6",
+      "bytes": 432
+    },
+    {
+      "path": "timeout-sentinel.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "timeout-sentinel.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "install.json",
+      "sha256": "2063f8de408004722560a808a12a80be88f309013d41b58779eed77fb5c67082",
+      "bytes": 707
+    },
+    {
+      "path": "install.stdout.txt",
+      "sha256": "54477fb89425c3d333b7003ca5bb2dd7806de44bf2fe2124dc6294793978850c",
+      "bytes": 475
+    },
+    {
+      "path": "install.stderr.txt",
+      "sha256": "5d55186cbdb6840b6a0d0c10fae990df1484da9bf653d453046a4eb1abdcdc14",
+      "bytes": 1531
+    },
+    {
+      "path": "non-leakage-scan.json",
+      "sha256": "f4eb6ff53eed2cc462c65d3b06362e90e3dbe0d5d8b25196c3328f12548a97c8",
+      "bytes": 1766
+    }
+  ],
+  "claim_ceiling": "This probe may establish only bounded technical compatibility, diff-range behavior, failure classification, non-leakage for the scanned exact outputs, and observed cost under one disposable environment. It cannot establish validator effect, Skill effect, general non-leakage, Gate 1 readiness, preregistration, freeze, or any arm result.",
+  "not_claimed": [
+    "Gate 1 preregistration or freeze",
+    "A/B/C/D creation or execution",
+    "validator effect",
+    "Skill effect",
+    "general non-leakage",
+    "consumer worktree unchanged",
+    "Gate 1 readiness"
+  ]
+}

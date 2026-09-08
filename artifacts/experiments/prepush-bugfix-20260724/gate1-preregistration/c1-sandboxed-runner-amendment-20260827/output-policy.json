@@ -1,0 +1,42 @@
+{
+  "schema": "c1-sandboxed-runner-output-policy.v1",
+  "aggregate_only": true,
+  "maximum_diagnostic_characters": 240,
+  "allowed_terminal_fields": [
+    "schema",
+    "status",
+    "freeze_commit",
+    "qualification_attempt_id",
+    "randomization_created",
+    "hosted_request_attempted",
+    "hosted_transport_completed",
+    "task_command_network_denied",
+    "sandbox_implementation",
+    "managed_requirement_enforced",
+    "fallback_observed",
+    "digests",
+    "counts",
+    "cleanup",
+    "diagnostic"
+  ],
+  "forbidden_fields": [
+    "authorization",
+    "cookie",
+    "credentials",
+    "environment",
+    "event_stream",
+    "firewall_rules",
+    "local_path",
+    "model_response",
+    "prompt",
+    "raw_output",
+    "resolved_addresses",
+    "username"
+  ],
+  "retain_raw_stdout": false,
+  "retain_raw_stderr": false,
+  "retain_raw_event_stream": false,
+  "retain_firewall_inventory": false,
+  "cleanup_required_before_pass": true
+}
+

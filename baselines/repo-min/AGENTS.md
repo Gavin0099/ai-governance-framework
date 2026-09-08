@@ -47,7 +47,16 @@ A valid `already_current` conclusion for a submodule consumer must include:
 - target upstream framework HEAD
 - dry-run update result
 
-Required response shape:
+For completion or partial-completion update reports, retain the first three
+non-empty lines as 結果 / 原因 / 下一步 (translated in other session languages).
+Explain local completion, commit/push/merge state, and important unverified
+behavior in plain language before the complete adoption table and technical
+fields. Other task classes retain their existing rendering rules. Follow
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`; suggested actions do not grant
+authorization. Installed hooks or writers do not prove real-session execution.
+
+Required technical evidence shape (after the plain-language opening; not a
+replacement for the complete adoption table):
 
 ```text
 AI Governance update check: <already_current | update_available | updated | manual_update | destructive_manual_update | not_submodule_consumer | not_verified>
@@ -74,10 +83,21 @@ human_readable_adoption_summary: REPORTED | NOT REPORTED
 
 ### Response Envelope Boundary
 
-- Response envelope contract version: v0.7. Compact human responses are the
+- Response envelope contract version: v0.8. Compact human responses are the
   default.
-- Ordinary expanded reporting has exactly three triggers:
+- Ordinary expanded reporting retains three trigger IDs:
   `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`.
+- Failed/partial work and owner decisions may remain compact only when the
+  blocker, ability to proceed, risks, non-claims, and required choice or
+  authorization stay clear. Expand when a short answer cannot preserve those
+  boundaries, canonical evidence cannot be preserved, or full evidence is
+  requested. Existing F-7 expanded-report exceptions remain.
+- Keep all raw fields in canonical evidence; display exact tokens only when
+  their value affects the current decision / claim boundary or full evidence is
+  requested. Explain each displayed token in plain language.
+- The three-line preface applies to completion-class reports. Diagnosis,
+  review, and concept requests use the contract's Engineering Explanation shape
+  without forcing an irrelevant next action.
 - Keep validation commands, counts, and diagnostics under `驗證` or
   `evidence_refs`; use `注意` only for one decision-relevant limitation.
 
@@ -95,7 +115,10 @@ AGENTS.md was updated and the parent repo is up to date, so AI Governance is cur
 Valid partial conclusion:
 
 ```text
-AGENTS.md was updated, but the AI Governance Framework submodule was not checked.
+結果：這次只更新了指令文件，尚不能確認治理框架更新完成；沒有建立提交，上傳與合併狀態未確認。
+原因：治理框架的版本與導入狀態尚未檢查。
+下一步：先檢查框架版本及導入狀態，再判定是否需要更新；不因此取得更新或上傳授權。
+
 AI Governance update check: not_verified
 governance submodule path: NOT CHECKED
 nested governance HEAD: NOT CHECKED

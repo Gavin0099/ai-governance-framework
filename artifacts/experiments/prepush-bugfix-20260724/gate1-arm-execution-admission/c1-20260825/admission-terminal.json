@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "arm_d_adapter_bound": true,
+    "bindings_match": true,
+    "client_identity_accepted": true,
+    "d5_remains_unresolved": true,
+    "external_pin_provider_qualified": true,
+    "randomization_absent": true
+  },
+  "randomization_created": false,
+  "reasons": [],
+  "schema": "c1-arm-execution-admission-terminal.v2",
+  "status": "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED"
+}

@@ -7,6 +7,11 @@ from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_repo_readiness import assess_external_repo, format_human
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    IDENTITY_CONFIG_SCHEMA,
+    REPOSITORY_ROOT_TOKEN,
+)
 from governance_tools.framework_versioning import current_framework_release
 
 
@@ -33,11 +38,26 @@ def _make_framework(framework_root: Path) -> None:
     _write(framework_root / "governance_tools/contract_validator.py", "")
 
 
+def _write_identity_config(target_root: Path) -> None:
+    _write(
+        target_root / IDENTITY_CONFIG_REL,
+        json.dumps(
+            {
+                "schema": IDENTITY_CONFIG_SCHEMA,
+                "repository_identities": ["example.test/readiness-consumer", REPOSITORY_ROOT_TOKEN],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+
+
 def _make_target_repo(target_root: Path, framework_root: Path) -> None:
     hook_dir = target_root / ".git" / "hooks"
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write_identity_config(target_root)
     _write(
         target_root / "PLAN.md",
         f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
@@ -127,6 +147,7 @@ def test_assess_external_repo_can_use_explicit_framework_root() -> None:
     _make_framework(framework_root)
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write_identity_config(target_root)
     _write(
         target_root / "PLAN.md",
         f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",

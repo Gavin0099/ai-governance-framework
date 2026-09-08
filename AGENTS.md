@@ -118,15 +118,18 @@ Before acting, load the detailed protocol only when its trigger applies:
    New session-derived memory must use `governance_tools.memory_record`.
    Direct markdown append is prohibited.
 
-2. Final report / closeout:
-   read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+2. Owner-facing engineering explanation / final report / closeout:
+   when reporting status, diagnosis, review, completion, or when the owner asks
+   for a plain explanation, read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
    Use result-first reporting and preserve `not_claimed` in the complete
    machine envelope. In compact human output, omit the visible Cannot claim
    section only when no decision-relevant item exists or a compact `注意：`
    line preserves that boundary; expanded output must show every
    decision-relevant non-claim.
    When surfacing machine / guard field tokens, pair each with a one-line
-   plain-language meaning; keep the field, add the gloss.
+   plain-language meaning. This does not require displaying every token. Keep
+   all raw fields in canonical evidence; show exact tokens only when their value
+   affects the current decision / claim boundary or full evidence is requested.
 
 3. Review / assess / audit / recommend next changes:
    read `governance/REVIEW_CRITERIA.md`.
@@ -301,8 +304,11 @@ Preserve `not_claimed`, `task_authority`, `claim_ceiling`, and `evidence_refs`
 in the complete machine envelope. A compact human response may omit the visible
    Cannot claim section only when no decision-relevant item exists or the compact
    `注意：` line preserves that boundary; it must not discard the machine data.
-   Force expanded reporting only for failed or partial work, an owner decision
-   required, or an explicit full-evidence request. Dirty state, decision-relevant
+   Failed/partial work and owner decisions may remain compact when the blocker,
+   ability to proceed, risks, non-claims, and required choice / authorization are
+   clear. Expand when a short answer cannot preserve those boundaries, canonical
+   evidence cannot be preserved, or full evidence is requested. Existing F-7
+   expanded-report exceptions remain. Dirty state, decision-relevant
    limitations, and high-risk authority surfaces use one compact `注意：` line
    when that line can state their effect honestly; otherwise classify the result
    as failed or partial. `PASS` must always include a command, artifact, or

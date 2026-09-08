@@ -1,0 +1,15 @@
+{
+  "checks": {
+    "base_admission_passed": true,
+    "bindings_match": true,
+    "event_7_external_pin_preserved": true,
+    "event_8_local_chain_required": true,
+    "final_head_receipt_not_required": true,
+    "randomization_absent": true,
+    "resolved_token_exact": true
+  },
+  "randomization_created": false,
+  "reasons": [],
+  "schema": "c1-gate1-d5-amendment-admission-terminal.v1",
+  "status": "ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED"
+}

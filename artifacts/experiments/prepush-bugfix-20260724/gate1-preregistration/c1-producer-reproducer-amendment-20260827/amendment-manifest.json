@@ -1,0 +1,118 @@
+{
+  "schema": "c1-gate1-producer-reproducer-amendment-freeze.v1",
+  "status": "COMMON_INPUT_REPRODUCER_FROZEN_NOT_EXECUTED",
+  "created_at_utc": "2026-08-27T03:00:15.1043558Z",
+  "framework_base_commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+  "original_preregistration_freeze_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+  "frozen_files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 103,
+      "sha256": "65ce3ea28543f833edcb7be5e48566d4d2ff0750501b1c97a2c937f1e853901a"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1330,
+      "sha256": "7ddd17b507651eb3573746364da562280a86e8e80d47277f3dea0eadcb223a8e"
+    },
+    {
+      "path": "TECH_SPEC.md",
+      "bytes": 3671,
+      "sha256": "fe3730917ac58b7aae273a81443b2da520436cc430966738bf30ee472c20f909"
+    },
+    {
+      "path": "baseline-validation.json",
+      "bytes": 861,
+      "sha256": "d2ac0364c424cd3c1e8e79a4a20627afebc13f3a7ccc0f637e6255d4e3cd4cc0"
+    },
+    {
+      "path": "common-input-amendment.json",
+      "bytes": 2075,
+      "sha256": "43018f68f5495a23f4db8594db9daf1cb8e40bedaf1f64f2a6f2a22445d3af09"
+    },
+    {
+      "path": "producer-visible-bulk-import-reproducer.test.ts",
+      "bytes": 5867,
+      "sha256": "e1baa2beb02ebb4f9afd6c216b2c501cbf1ddd66dab4cb870c00316e65238fe6"
+    },
+    {
+      "path": "reproducer-contract.json",
+      "bytes": 2925,
+      "sha256": "658a91cc1d58ea1029bd2e9c9cf6f0eecfc1b253e800b1717d78f3c74a383b00"
+    },
+    {
+      "path": "test_reproducer_amendment.py",
+      "bytes": 7966,
+      "sha256": "7c2265a7050a3b9d6e5d5386cb1d7c8961aec62911db9539f2fe8bfc9757913f"
+    }
+  ],
+  "source_bindings": [
+    {
+      "authority": "framework_git",
+      "commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json",
+      "git_blob_oid": "911382a0205aae9abc3081442ac173a1eada11da",
+      "bytes": 9190,
+      "sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7"
+    },
+    {
+      "authority": "framework_git",
+      "commit": "568c5edf7a93325e8fb3ba2eb007c6fbeba4c345",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/common-task.md",
+      "git_blob_oid": "9687c6f0ecc72deffb599effd3fc9557a8948458",
+      "bytes": 1269,
+      "sha256": "a0975a81825e1c4e5f457c5b111624fe65c65f833232797fa3f20024235dded4"
+    },
+    {
+      "authority": "private_baseline_git_object",
+      "commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+      "tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+      "path": "src/app/api/admin/import-books/route.ts",
+      "git_blob_oid": "0c84326019374051992803957f7adfdeba5b9fd0",
+      "bytes": 14187,
+      "sha256": "0d54ee1ce2627cc8145075f67aac4ace83b5a9f306cf61c0be11585c14c5ec87"
+    },
+    {
+      "authority": "private_baseline_git_object",
+      "commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+      "tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+      "path": "package.json",
+      "git_blob_oid": "a53ef83cc35febc8a39ba8765c0bef246d2bd487",
+      "bytes": 1849,
+      "sha256": "57405167432a2367a9b35677c398a57315f5df4bf82ad79b3d31ec312002a98d"
+    },
+    {
+      "authority": "private_baseline_git_object",
+      "commit": "15d5d51356b4808e5fb12782961a94d9985b2ae6",
+      "tree": "a6946a0ba48f161f40e7ae7e3a4322bdef704e9a",
+      "path": "vitest.config.ts",
+      "git_blob_oid": "d26781e2d7709f3102f276fee7078b6aa13c43a4",
+      "bytes": 366,
+      "sha256": "0de11f8d7be3832fd791442ab9f48e6952361a309c06beee4a67ddd55a5cc83e"
+    }
+  ],
+  "producer_visible_surface": {
+    "arms": [
+      "A",
+      "B"
+    ],
+    "files": [
+      "producer-visible-bulk-import-reproducer.test.ts"
+    ],
+    "command_pointer": "reproducer-contract.json#/command/argv",
+    "identical_across_arms": true
+  },
+  "authoring_boundary": {
+    "randomization_created": false,
+    "producer_executed": false,
+    "scorer_executed": false,
+    "arm_executed": false,
+    "mapping_released": false,
+    "rekor_post_performed": false,
+    "candidate_bytes_read": false,
+    "scorer_only_oracle_bytes_read": false,
+    "historical_fix_bytes_read": false
+  },
+  "claim_ceiling": "COMMON_INPUT_REPRODUCER_FREEZE_ONLY",
+  "next_authority": "independent review of this freeze before producer pre-run implementation"
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "c1-stryker-sidecar-archive-fidelity-analysis.v1",
+  "probe_id": "c1-stryker-sidecar-materialization-20260821-02",
+  "performed": "STATIC_ONLY_ON_EXISTING_ATTEMPT_ARTIFACTS",
+  "new_probe_execution": false,
+  "terminal_modified": false,
+  "source_archive": "framework-attempt02-inputs.tar",
+  "source_archive_created_by_attempt": true,
+  "finding": "The archive entry for .gitattributes already contained CRLF-expanded bytes before extraction. Windows tar extraction preserved those archive bytes. The other three frozen PowerShell harness files matched their committed SHA-256 and byte bindings.",
+  "causal_strength": "SUPPORTED_BY_STATIC_ARCHIVE_ENTRY_INSPECTION",
+  "rows": [
+    {
+      "path": ".gitattributes",
+      "expected_sha256": "1349094487e290e8fe99ce71ac927db6cce1b5202f2e1ee5ed8c2f4b56193fac",
+      "expected_bytes": 92,
+      "tar_sha256": "d81cb4d5b70f252e073a8ed6c49e8ee54528980f4cf4a5757ab75d5b0591e552",
+      "tar_bytes": 96,
+      "matches": false,
+      "tar_crlf_count": 4,
+      "extracted_sha256": "d81cb4d5b70f252e073a8ed6c49e8ee54528980f4cf4a5757ab75d5b0591e552",
+      "extracted_bytes": 96,
+      "extracted_matches_tar": true
+    },
+    {
+      "path": "materialize-sidecar-inputs.ps1",
+      "expected_sha256": "c0cc987fc25c7319614e12de90331fe50387f7968406ef505aaa2929b627c185",
+      "expected_bytes": 2522,
+      "tar_sha256": "c0cc987fc25c7319614e12de90331fe50387f7968406ef505aaa2929b627c185",
+      "tar_bytes": 2522,
+      "matches": true
+    },
+    {
+      "path": "test-materialize-sidecar-inputs.ps1",
+      "expected_sha256": "d5c9958cf7645c370b9c8cbc6ff2a1791775801c54640d8ddb31adedbedccdcc",
+      "expected_bytes": 2933,
+      "tar_sha256": "d5c9958cf7645c370b9c8cbc6ff2a1791775801c54640d8ddb31adedbedccdcc",
+      "tar_bytes": 2933,
+      "matches": true
+    },
+    {
+      "path": "run-sidecar-probe.ps1",
+      "expected_sha256": "ebf0960c117e38969b503a14509019ca7a7f73b694191ac82229a6916b20b38b",
+      "expected_bytes": 27631,
+      "tar_sha256": "ebf0960c117e38969b503a14509019ca7a7f73b694191ac82229a6916b20b38b",
+      "tar_bytes": 27631,
+      "matches": true
+    }
+  ],
+  "not_claimed": [
+    "a corrected archive path",
+    "materialization self-test execution inside attempt-02",
+    "Docker container execution",
+    "sidecar resolution",
+    "consumer dependency graph stability",
+    "Stryker or Vitest behavior",
+    "authorization for repair or retry"
+  ]
+}

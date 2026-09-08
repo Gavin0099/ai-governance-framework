@@ -1,0 +1,29 @@
+{
+  "schema": "c1-gate1-model-harness.v1",
+  "status": "frozen_not_executed",
+  "model_build": {
+    "model_id": "gpt-5.2",
+    "cli_version": "codex-cli 0.146.0",
+    "command_contract_sha256": "faa5344db21f181f893669bd99a7d39980b3ef5d5c1cdfb42512b40e409fbcd9",
+    "executable_sha256": "bc343ba420dc2e2e9f59e6fc5e5bf0aae1cd8c771fc319665241fc9c0271fddb",
+    "runner_sha256": "d308331cc59cfce50604488a2ab9121727338fd7886c61a7f2e6fa6b5b2af7e8",
+    "availability_rule": "exact_match_or_stop_before_randomization"
+  },
+  "model_build_source": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3-route-v2-ab-contract-manifest-candidate.json",
+    "git_blob_oid": "4df6aa1c59f0d72adcaae4f28fd1113c30389a35",
+    "bytes": 4900,
+    "sha256": "fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440"
+  },
+  "harness_contract": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-harness-contract-v1.json",
+    "git_blob_oid": "363f76ce48948ffe7df0cbc940176a04ad23552c",
+    "bytes": 3321,
+    "sha256": "a6a74cb182a1ac447f5524c91808c9c071a24d5809212efe79f6dbd9c2c551e7",
+    "must_remain_byte_identical_after_first_counted_run": true
+  },
+  "non_counted_rehearsal": {
+    "completed_before_freeze": true,
+    "counted_sample": false
+  }
+}

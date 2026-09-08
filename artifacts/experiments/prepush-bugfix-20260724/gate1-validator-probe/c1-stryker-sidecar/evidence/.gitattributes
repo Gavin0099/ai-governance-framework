@@ -1,0 +1,2 @@
+*.json -text -diff
+*.txt -text -diff

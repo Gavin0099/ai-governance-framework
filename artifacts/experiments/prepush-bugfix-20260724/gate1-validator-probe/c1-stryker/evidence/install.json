@@ -1,0 +1,21 @@
+{
+  "exit_code": 1,
+  "wall_seconds": 301.815,
+  "container_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 1,
+    "Error": "",
+    "StartedAt": "2026-08-21T09:16:54.882894522Z",
+    "FinishedAt": "2026-08-21T09:21:55.002384042Z"
+  },
+  "tarball_sha512": {
+    "core": "66f32c472697410e5ee9385c89df6992e383bfa167f44de7ac140951aa7e85c26e189e2e9e6dba69fa379ba60a4a39fc9229f2c49ff74d77f47135910da4f157",
+    "vitest_runner": "4872b6fef7ef454a62cfb8d73e740c067afaccb766ebd0cad37328e663e169959c452ca0aca52a62c3ea5ac5ec2bee72487ce53137c2c852b9350fd7f6c24517"
+  }
+}

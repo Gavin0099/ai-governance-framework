@@ -1,0 +1,35 @@
+{
+  "aggregate_adapter": {
+    "bytes": 3751,
+    "git_blob_oid": "8b84c4805edf603dd0bf1e0e1b36a651698b1500",
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_d_feedback_adapter.py",
+    "sha256": "d4c8b7c8c21cb404c2a6d6a2de7fe7c52d8035c2bd98df9d66f5f5b191fe70f8"
+  },
+  "claim_ceiling": "bundle_binding_only_not_validator_execution",
+  "output_policy": {
+    "bytes": 464,
+    "git_blob_oid": "8d332dc1efdcc0f2e0ea8e88875711fba80b8cc9",
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-validator-probe/output-policy.json",
+    "sha256": "53f44273b2a7f4f5f5b914870fd31b24286cd5192fe2093f8775ae8fa937fde7"
+  },
+  "probe_contract": {
+    "bytes": 1927,
+    "git_blob_oid": "5096e7a8ac82da5609e50f58924e651f90da9cef",
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-validator-probe/probe-contract.json",
+    "sha256": "72623891fa72d06495a4c0b8bdbe329e2bc29a6d8fa4b67fb2bc092783c9b663"
+  },
+  "probe_implementation": {
+    "bytes": 26897,
+    "git_blob_oid": "00a097f962d8851f2d2b112ca8b830e80b58fc8d",
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-validator-probe/gate3_arm_d_validator_probe.py",
+    "sha256": "db0887892fa2a39e92e6b8f4c75440627ee7e00d3f946415de858596f1bdaab1"
+  },
+  "schema": "c1-gate1-uniform-posthoc-validator-bundle.v1",
+  "stryker_template": {
+    "bytes": 425,
+    "git_blob_oid": "bb1f0070663271ba744bf9006a1a6d47efd39245",
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-validator-probe/stryker.config.template.json",
+    "sha256": "9c8b79a3b200e7b0f5526aadf4f842f09ba089e8bc9403f94e56ca625add68e5"
+  }
+}
+

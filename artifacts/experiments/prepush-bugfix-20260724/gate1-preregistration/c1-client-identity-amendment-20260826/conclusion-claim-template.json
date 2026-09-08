@@ -1,0 +1,20 @@
+{
+  "schema": "c1-gate1-client-identity-claim-template.v1",
+  "decision_purpose": "internal_skill_funding_only",
+  "identity_evidence_level": "CLIENT_SIDE_INVOCATION_ONLY",
+  "server_executed_model_observed": false,
+  "provider_attestation_available": false,
+  "required_statements": [
+    "server-executed model was not independently observed",
+    "result applies only to the frozen exact client/harness and 12-hour window",
+    "result must not be generalized to another deployment or model family"
+  ],
+  "prohibited_generalizations": [
+    "server_executed_model_was_proven",
+    "immutable_hosted_deployment_was_proven",
+    "applies_to_other_deployments",
+    "applies_to_model_family",
+    "supports_external_model_effectiveness_claim"
+  ]
+}
+

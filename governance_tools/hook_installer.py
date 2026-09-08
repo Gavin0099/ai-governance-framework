@@ -14,11 +14,20 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Sequence
+
+from governance_tools.external_tree_inventory_guard import (
+    IDENTITY_CONFIG_REL,
+    IDENTITY_CONFIG_SCHEMA,
+    REPOSITORY_ROOT_TOKEN,
+    IdentityConfigError,
+    load_repository_identity_values,
+)
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -113,12 +122,121 @@ def _write_bytes_if_changed(path: Path, payload: bytes) -> bool:
     return True
 
 
+def _ensure_managed_hook_executable(path: Path) -> bool:
+    """Make an installed hook executable on POSIX without changing Windows ACLs."""
+
+    if os.name == "nt":
+        return False
+    current_mode = path.stat().st_mode
+    executable_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    if executable_mode == current_mode:
+        return False
+    path.chmod(executable_mode)
+    return True
+
+
 def _shell_hook_payload(path: Path) -> bytes:
     return path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
 def _framework_root_config_value(path: Path) -> str:
     return path.as_posix() if os.name == "nt" else str(path)
+
+
+def _origin_remote_identity(repo_root: Path) -> str | None:
+    """Return the exact configured origin URL; do not synthesize repository aliases."""
+
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), "remote", "get-url", "origin"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if completed.returncode != 0:
+        return None
+    value = (completed.stdout or "").strip()
+    return value or None
+
+
+def _requested_repository_identities(
+    repo_root: Path,
+    repository_identities: Sequence[str] | None,
+    existing_identities: Sequence[str] = (),
+) -> tuple[str, ...]:
+    if repository_identities is not None:
+        explicit = tuple(value.strip() for value in repository_identities)
+        if not explicit or any(not value for value in explicit):
+            raise ValueError("repository identity must be a non-empty string")
+        aliases = explicit
+    else:
+        origin = _origin_remote_identity(repo_root)
+        if origin is not None:
+            aliases = (origin,)
+        elif any(identity != REPOSITORY_ROOT_TOKEN for identity in existing_identities):
+            aliases = ()
+        else:
+            raise ValueError(
+                "repository identity is unavailable; configure origin or pass --repository-id"
+            )
+
+    # The repo root is an exact local alias, but it is not a substitute for an
+    # explicit repository identity. Persist the token rather than a
+    # machine-specific absolute path.
+    return (*aliases, REPOSITORY_ROOT_TOKEN)
+
+
+def _apply_external_tree_identity_config(
+    repo_root: Path,
+    *,
+    repository_identities: Sequence[str] | None,
+    installed: list[str],
+    changed: list[str],
+    errors: list[str],
+) -> None:
+    config = repo_root / IDENTITY_CONFIG_REL
+    existing: tuple[str, ...] = ()
+    if config.exists():
+        try:
+            existing = load_repository_identity_values(config)
+        except IdentityConfigError as exc:
+            errors.append(str(exc))
+            return
+
+    try:
+        requested = _requested_repository_identities(
+            repo_root,
+            repository_identities,
+            existing,
+        )
+    except ValueError as exc:
+        errors.append(str(exc))
+        return
+
+    merged = list(existing)
+    for identity in requested:
+        if identity not in merged:
+            merged.append(identity)
+    if not merged or REPOSITORY_ROOT_TOKEN not in merged:
+        errors.append("repository identity config must contain @repository-root")
+        return
+
+    payload = (
+        json.dumps(
+            {
+                "schema": IDENTITY_CONFIG_SCHEMA,
+                "repository_identities": merged,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    ).encode("utf-8")
+    if _write_bytes_if_changed(config, payload):
+        changed.append(str(config))
+    installed.append(str(config))
 
 
 def _has_marker(path: Path, marker: str) -> bool:
@@ -558,11 +676,45 @@ def install_copilot_instructions(
     )
 
 
+def install_external_tree_identity_config(
+    repo_root: Path,
+    framework_root: Path,
+    *,
+    repository_identities: Sequence[str] | None = None,
+) -> HookInstallApplyResult:
+    """Install only the tracked identity authority required by the pre-push guard."""
+
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+    installed: list[str] = []
+    changed: list[str] = []
+    errors: list[str] = []
+    if not (repo_root / ".git").exists():
+        errors.append(f"not a git repo: {repo_root}")
+    else:
+        _apply_external_tree_identity_config(
+            repo_root,
+            repository_identities=repository_identities,
+            installed=installed,
+            changed=changed,
+            errors=errors,
+        )
+    return HookInstallApplyResult(
+        ok=not errors,
+        repo_root=str(repo_root),
+        framework_root=str(framework_root),
+        installed_files=installed,
+        changed_files=changed,
+        errors=errors,
+    )
+
+
 def install_governance_hooks(
     repo_root: Path,
     framework_root: Path,
     *,
     include_copilot: bool = True,
+    repository_identities: Sequence[str] | None = None,
 ) -> HookInstallApplyResult:
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
@@ -586,6 +738,23 @@ def install_governance_hooks(
             errors=errors,
         )
 
+    _apply_external_tree_identity_config(
+        repo_root,
+        repository_identities=repository_identities,
+        installed=installed,
+        changed=changed,
+        errors=errors,
+    )
+    if errors:
+        return HookInstallApplyResult(
+            ok=False,
+            repo_root=str(repo_root),
+            framework_root=str(framework_root),
+            installed_files=installed,
+            changed_files=changed,
+            errors=errors,
+        )
+
     hook_dir.mkdir(parents=True, exist_ok=True)
     for hook_name in HOOK_NAMES:
         source = source_hook_dir / hook_name
@@ -594,7 +763,9 @@ def install_governance_hooks(
             errors.append(f"missing source hook: {source}")
             continue
         _backup_unmanaged(target, FRAMEWORK_MARKER, backups)
-        if _write_bytes_if_changed(target, _shell_hook_payload(source)):
+        payload_changed = _write_bytes_if_changed(target, _shell_hook_payload(source))
+        mode_changed = _ensure_managed_hook_executable(target)
+        if payload_changed or mode_changed:
             changed.append(str(target))
         installed.append(str(target))
 
@@ -635,7 +806,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--hooks-only",
         action="store_true",
-        help="Install only .git/hooks managed files and framework-root config; do not touch tracked Copilot instructions.",
+        help=(
+            "Install .git/hooks managed files, framework-root config, and the required tracked "
+            "external-tree identity config; do not touch tracked Copilot instructions."
+        ),
+    )
+    parser.add_argument(
+        "--identity-config-only",
+        action="store_true",
+        help="Install only the tracked external-tree repository identity config.",
+    )
+    parser.add_argument(
+        "--repository-id",
+        action="append",
+        dest="repository_ids",
+        help="Exact consumer repository identity; repeat for explicit aliases. Defaults to origin URL.",
     )
     parser.add_argument(
         "--copilot-instructions-only",
@@ -650,21 +835,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
 
-    exclusive = [args.hooks_only, args.copilot_instructions_only, args.copilot_only]
+    exclusive = [
+        args.hooks_only,
+        args.identity_config_only,
+        args.copilot_instructions_only,
+        args.copilot_only,
+    ]
     if sum(1 for flag in exclusive if flag) > 1:
         parser.error(
-            "--hooks-only, --copilot-instructions-only and --copilot-only are mutually exclusive"
+            "--hooks-only, --identity-config-only, --copilot-instructions-only and --copilot-only are mutually exclusive"
         )
+
+    if args.repository_ids and (args.copilot_only or args.copilot_instructions_only):
+        parser.error("--repository-id applies only to hook or identity-config installation")
 
     if args.copilot_only:
         result = install_copilot_surface(args.repo, args.framework_root)
     elif args.copilot_instructions_only:
         result = install_copilot_instructions(args.repo, args.framework_root)
+    elif args.identity_config_only:
+        result = install_external_tree_identity_config(
+            args.repo,
+            args.framework_root,
+            repository_identities=args.repository_ids,
+        )
     else:
         result = install_governance_hooks(
             args.repo,
             args.framework_root,
             include_copilot=not args.hooks_only,
+            repository_identities=args.repository_ids,
         )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))

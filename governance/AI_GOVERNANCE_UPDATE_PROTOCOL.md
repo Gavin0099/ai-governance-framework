@@ -56,7 +56,8 @@ A valid `already_current` conclusion for a submodule consumer must include:
 - target upstream framework HEAD
 - dry-run update result
 
-Required response shape:
+Required technical evidence shape (after the plain-language opening defined
+below; not a replacement for the complete adoption table):
 
 ```text
 AI Governance update check: <already_current | update_available | updated | manual_update | destructive_manual_update | not_submodule_consumer | not_verified>
@@ -95,7 +96,10 @@ AGENTS.md was updated and the parent repo is up to date, so AI Governance is cur
 Valid partial conclusion:
 
 ```text
-AGENTS.md was updated, but the AI Governance Framework submodule was not checked.
+結果：這次只更新了指令文件，尚不能確認治理框架更新完成；沒有建立提交，上傳與合併狀態未確認。
+原因：治理框架的版本與導入狀態尚未檢查。
+下一步：先檢查框架版本及導入狀態，再判定是否需要更新；不因此取得更新或上傳授權。
+
 AI Governance update check: not_verified
 governance submodule path: NOT CHECKED
 nested governance HEAD: NOT CHECKED
@@ -234,6 +238,103 @@ such as "cleaned the submodule" is not a substitute for the inventory.
 When reporting AI Governance updates in a consuming repository, keep receipt
 integrity, dirty-tree state, build evidence, and memory disposition separate.
 
+### Plain-Language Opening For Update Reports
+
+Before the required adoption table and technical evidence, explain what the
+existing results mean for the owner. For completion or partial-completion
+reports, retain the existing first three non-empty lines: 結果 / 原因 / 下一步
+(translated in other session languages). This does not introduce a paragraph
+format exception. Other task classes retain their existing rendering rules.
+Select the content of that opening to answer:
+
+- Is the local update complete, incomplete, or not yet verified? State the
+  actual blocker when one exists, rather than opening with status tokens.
+- Was the change committed, pushed, or merged? Keep these separate; local
+  validation does not prove delivery. If delivery was not checked, say unknown.
+- What important behavior remains unverified, and what is the next action?
+  Preserve any required owner authorization; a suggested action is not permission.
+
+Use ordinary language, not a list of field names followed by translations.
+An installed writer or hook does not prove it ran in a real session. Do not
+translate `full_candidate` into "fully working", or `not_checked` into a
+successful result. Mention exact tokens in the opening only when their exact
+value is needed for the current decision; retain them in the technical evidence.
+
+The required response shapes in this protocol remain the detailed evidence
+section, not the opening. The complete adoption table, required fields, evidence
+references, warnings, discarded-path inventory when applicable, and non-claims
+remain in the same final report. This is ordering and wording only: it changes
+no completion criteria, authorization, schema, or F-7 expanded-report exception.
+
+For update reports, present the plain-language opening, then the complete
+required adoption table, then only the required evidence or disclosures not
+already represented. Do not insert an additional technical-status table,
+update checklist, or closing recap that merely repeats those facts. The
+opening may summarize a decisive fact that also appears in the required table;
+do not remove a required table row to avoid that necessary overlap.
+
+The required evidence shapes are coverage requirements, not a demand for a
+second field-by-field rendering. A fact already shown in the table or opening
+need not be repeated only when its required value, meaning, and evidence
+binding are preserved. Add any missing exact HEADs, paths, command/results,
+status values, evidence references, warnings, or non-claims once after the
+table. Keep the complete canonical machine evidence unchanged. Distinct or
+conflicting signals are not duplicates; preserve their difference. An explicit
+full-evidence request still receives all requested detail.
+
+Use the opening or an optional 注意 line for the limitation that changes what
+the owner may conclude or do next, such as an unverified runtime or a missing
+authorization. An unrelated, untouched backup belongs in the required
+dirty-state disclosure after the table, not in that prominent warning merely
+because it is untracked. If dirty state affects scope, validation, or safe
+delivery, keep that impact prominent. Never suppress other decision-relevant
+limits to fit one line, or omit required discarded-path or dirty-state records.
+The next action must state an action and any needed authorization, not merely
+repeat a delivery status such as "not pushed".
+
+Example openings (illustrative inputs, not claims about the current repo):
+
+- Local workflow completed, committed but not pushed; runtime not checked:
+
+  ```text
+  結果：本機治理更新已完成，修改已提交，但還沒上傳。
+  原因：安裝檢查已通過；實際工作時保護流程是否會觸發，尚未驗證。
+  下一步：依目前授權處理上傳；若尚未授權，先請你確認。
+  ```
+
+- New files staged, required closeout blocked; no commit or push:
+
+  ```text
+  結果：新版檔案已準備好，但更新流程還沒完成，也沒有提交或上傳。
+  原因：必要的收尾檢查被尚未提交的變更擋住，不能先當作更新成功。
+  下一步：先確認這批檔案符合提交條件且已有授權，再提交並重跑收尾檢查。
+  ```
+
+- Summary unavailable:
+
+  ```text
+  結果：目前無法確認治理更新是否完整，上傳與合併狀態也未確認。
+  原因：導入檢查結果無法取得，不能先當作更新成功。
+  下一步：先取得缺少的檢查結果，再判定更新狀態。
+  ```
+
+For example acceptance, read only the opening and check that the local result,
+delivery state, decisive limitation, and needed owner action are understandable
+without knowing the field names. Then compare it with the source evidence:
+unknown must remain unknown, blocked must not become complete, and the full
+table must still follow. This is a human review, not a new automated gate.
+
+Also review the whole rendered report against the observed consumer case:
+local update checked, commit created but not uploaded, runtime unverified,
+and an unrelated untouched backup. The opening must make the update, delivery,
+runtime limitation, and authorization-dependent next action understandable;
+the required table remains complete; a supplemental evidence section preserves
+anything the opening/table did not cover, including the backup disposition.
+Reject an extra technical-status list that only repeats these sections.
+As counterchecks, a dirty file that blocks safe delivery must remain prominent,
+and an unavailable table must retain the existing incomplete-report fallback.
+These are presentation reviews, not new updater tests or completion criteria.
+
 ### Required Adoption Status Summary
 
 This section is the canonical reporting contract for adoption-summary relay.
@@ -340,7 +441,8 @@ reason: <why it was not run>
 claim boundary: update commit/build evidence only; adoption completeness was not reported
 ```
 
-Valid wording:
+Valid technical evidence excerpt (after the plain-language opening; not a
+complete final report):
 
 ```text
 AI Governance was updated, and the adoption status summary is partial:

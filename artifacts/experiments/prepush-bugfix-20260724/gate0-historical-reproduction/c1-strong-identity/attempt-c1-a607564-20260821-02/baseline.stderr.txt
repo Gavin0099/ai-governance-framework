@@ -1,0 +1,92 @@
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm warn deprecated glob@9.3.5: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/lib/integration/__tests__/bulk_import_integrity.test.ts[2m > [22mbook import snapshot preparation[2m > [22mdoes not soft-match distinct strong identities to the same existing book
+[31m[1mAssertionError[22m: expected { …(4) } to deeply equal ObjectContaining{…}[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- ObjectContaining {[39m
+[32m-   "audit": ObjectContaining {[39m
+[32m-     "action": "created",[39m
+[31m+ {[39m
+[31m+   "audit": {[39m
+[31m+     "action": "conflicted",[39m
+[31m+     "change_flags": {[39m
+[31m+       "isbn_conflict": true,[39m
+[2m      },[22m
+[32m-   "existing_book_id": null,[39m
+[31m+     "decision": {[39m
+[31m+       "action": "blocked",[39m
+[31m+       "impact_scope": [[39m
+[31m+         "identity",[39m
+[31m+       ],[39m
+[31m+       "reason": "isbn_conflict",[39m
+[31m+       "reason_code": "blocked_unresolved_identity_conflict",[39m
+[31m+       "severity": "high",[39m
+[31m+     },[39m
+[31m+     "detected_at": "2026-08-21T06:57:36.699Z",[39m
+[31m+     "is_auto_resolved": false,[39m
+[31m+     "message": "blocked_unresolved_identity_conflict",[39m
+[31m+     "processed_at": null,[39m
+[31m+     "resolution_action": null,[39m
+[31m+     "resolution_status": "open",[39m
+[31m+     "source_data": {[39m
+[31m+       "available": true,[39m
+[31m+       "book_id": "pub:9789571438214",[39m
+[31m+       "category": null,[39m
+[31m+       "core_title": null,[39m
+[31m+       "cover_image": null,[39m
+[31m+       "cover_image_url": null,[39m
+[31m+       "description": null,[39m
+[31m+       "id": "pub:9789571438214",[39m
+[31m+       "is_duplicate": false,[39m
+[31m+       "isbn": "9789571438214",[39m
+[31m+       "last_seen_at": "2026-07-22T00:00:00Z",[39m
+[31m+       "note": null,[39m
+[31m+       "original_price": 500,[39m
+[31m+       "price": 450,[39m
+[31m+       "price_original": 500,[39m
+[31m+       "price_sale": 450,[39m
+[31m+       "priority_series": null,[39m
+[31m+       "publish_date": null,[39m
+[31m+       "publisher": "Publisher A",[39m
+[31m+       "source_url": "https://example.test/product/000336937",[39m
+[31m+       "title": "吹奏魔笛的天使：音樂神童莫札特(二版)",[39m
+[31m+       "url": "https://example.test/product/000336937",[39m
+[31m+     },[39m
+[31m+   },[39m
+[31m+   "existing_book_id": "master-existing",[39m
+[31m+   "expected_book_updated_at": "2026-07-29T00:00:00Z",[39m
+[31m+   "write": {[39m
+[31m+     "available": true,[39m
+[31m+     "description_raw": null,[39m
+[31m+     "isbn": "9789571438214",[39m
+[31m+     "last_seen_at": "2026-07-22T00:00:00Z",[39m
+[31m+     "list_price": 500,[39m
+[31m+     "priority_series": null,[39m
+[31m+     "publish_date": null,[39m
+[31m+     "publisher": "Publisher A",[39m
+[31m+     "publisher_id": "publisher-id",[39m
+[31m+     "source_cover_image": null,[39m
+[31m+     "source_price_original": 500,[39m
+[31m+     "source_price_sale": 450,[39m
+[31m+     "source_title": "吹奏魔笛的天使：音樂神童莫札特(二版)",[39m
+[31m+     "source_url": "https://example.test/product/000336937",[39m
+[31m+     "title": "吹奏魔笛的天使：音樂神童莫札特(二版)",[39m
+[31m+   },[39m
+[2m  }[22m
+
+[36m [2m❯[22m src/lib/integration/__tests__/bulk_import_integrity.test.ts:[2m220:26[22m[39m
+    [90m218| [39m            existing_book_id[33m:[39m [32m'master-existing'[39m[33m,[39m
+    [90m219| [39m        }))
+    [90m220| [39m        [34mexpect[39m(items[[34m1[39m])[33m.[39m[34mtoEqual[39m(expect[33m.[39m[34mobjectContaining[39m({
+    [90m   | [39m                         [31m^[39m
+    [90m221| [39m            existing_book_id[33m:[39m [35mnull[39m[33m,[39m
+    [90m222| [39m            audit[33m:[39m expect[33m.[39m[34mobjectContaining[39m({ action[33m:[39m [32m'created'[39m })[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+

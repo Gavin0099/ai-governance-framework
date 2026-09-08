@@ -1,0 +1,64 @@
+{
+  "schema": "gate0-historical-reproduction-terminal-receipt.v1",
+  "attempt_id": "c1-a607564-20260821-02",
+  "candidate_id": "C1_STRONG_IDENTITY_COLLISION",
+  "role": "fixed",
+  "terminal": true,
+  "manifest": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/pre-run-manifest.json",
+    "commit": "ef7f221a88ba517a44de2562f15df1c131237e4e",
+    "remote_ref": "refs/heads/codex/gate0-c1-oracle-redesign-attempt-02",
+    "remote_ref_observed_commit": "ef7f221a88ba517a44de2562f15df1c131237e4e",
+    "sha256": "d0d5cc040a1561c10a1bf141d1a763b053588d5d1ae9a303108a328e5ddb5259",
+    "bytes": 6796
+  },
+  "input": {
+    "source_commit": "a60756436095fb3b14aecbc9094dd88a8ab9ef16",
+    "source_tree": "8d611a09b559d6fa42f7b7b75dc713f1186592a3",
+    "materialization": "exact git archive into a new disposable directory outside the consumer worktree",
+    "oracle_overlay_only": true,
+    "oracle_sha256_before_run": "702e0a78ec4d7e62abf57fd643bc068da559621428310fed2f22547b29ab9dad",
+    "oracle_sha256_after_run": "702e0a78ec4d7e62abf57fd643bc068da559621428310fed2f22547b29ab9dad",
+    "oracle_bytes": 8411,
+    "lock_sha256_before_run": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "lock_sha256_after_run": "70d76b7f160040851ec64ba31d12f35bda0394f37937b546310f3d5d41e9440f",
+    "lock_bytes": 474302
+  },
+  "execution": {
+    "image_reference": "docker.io/library/node@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436",
+    "platform": "linux/amd64",
+    "network": "bridge",
+    "command": "timeout --signal=TERM --kill-after=15s 10m sh -lc 'npm ci && npm test -- src/lib/integration/__tests__/bulk_import_integrity.test.ts'",
+    "started_utc": "2026-08-21T06:58:23.4209240+00:00",
+    "ended_utc": "2026-08-21T07:03:27.9138346+00:00",
+    "duration_ms": 304493,
+    "host_timeout": false,
+    "exit_code": 0
+  },
+  "evidence": {
+    "stdout_path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/fixed.stdout.txt",
+    "stdout_sha256": "12cd2bb54cb4102a2dbfa5552163e3962907c153240c7c2c8fa5c59ecd98e1f5",
+    "stdout_bytes": 597,
+    "stderr_path": "artifacts/experiments/prepush-bugfix-20260724/gate0-historical-reproduction/c1-strong-identity/attempt-c1-a607564-20260821-02/fixed.stderr.txt",
+    "stderr_sha256": "d3f3ff201c9aec3749a20b978114e5b8b1bf3b02bb86e60195a2cc807ca05b96",
+    "stderr_bytes": 369
+  },
+  "observed": {
+    "dependency_install": "737 packages added",
+    "test_files_passed": 1,
+    "test_files_failed": 0,
+    "tests_passed": 5,
+    "tests_failed": 0,
+    "expected_test_selected": true,
+    "expected_test_result": "PASS"
+  },
+  "contract_comparison": {
+    "expected": "All five tests in the identical frozen focused file pass on the fixed tree.",
+    "observed": "The focused file ran all five tests and all five passed.",
+    "matches": true
+  },
+  "disposition": "VERIFIED_FOR_GATE0_REVIEW",
+  "candidate_status": "VERIFIED_FOR_GATE0_REVIEW",
+  "gate0_status": "NOT_ADMITTED",
+  "claim_ceiling": "This receipt establishes only the fixed-role pass under the frozen attempt-02 inputs. Admission and every effectiveness, countability, process-integrity, promotion, prevalence, and generalization claim remain unavailable."
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "c1-arm-execution-admission.v2",
+  "status": "candidate_not_randomized",
+  "framework_base": {
+    "origin_main_commit": "830577ef2bf98b7981558b9ddeb1b2c42cb9bda6",
+    "identity_amendment_commit": "9014a49a319fd1ed2b37dd2ef40d5074b487546d",
+    "historical_admission_commit": "44573d00b0949999035e2d7941f2e5afcf1eef17"
+  },
+  "freeze_commit": "7109f3c24f9e38df161e4fd93c729820a151f0eb",
+  "d5_countability": "UNRESOLVED_SEPARATE_COUNTABILITY_DECISION",
+  "client_identity": {
+    "amendment_manifest_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/amendment-manifest.json",
+    "receipt_validator_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/client_identity_receipt.py",
+    "claim_template_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/conclusion-claim-template.json",
+    "identity_evidence_level": "CLIENT_SIDE_INVOCATION_ONLY",
+    "server_executed_model_observed": false,
+    "provider_attestation_available": false
+  },
+  "external_pin_provider": {
+    "event": "external_chain_head_pinned",
+    "provider_profile_path": "governance/rekor-v2-provider-profile.json",
+    "provider_profile_sha256": "caa3876354cef1d3971d6a81907d0a6f1f6d6d3e3ad9339f92f159b55ec48a3c",
+    "proof_receipt_schema": "ai-governance.rekor-proof-bearing-receipt/1",
+    "qualification_terminal_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/rekor-qualification-terminal.json",
+    "per_comparison_proof_required": true,
+    "qualification_is_not_comparison_evidence": true
+  },
+  "arm_d_adapter": {
+    "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_d_feedback_adapter.py",
+    "policy_path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/arm-d-feedback-policy.json"
+  },
+  "bindings": [
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/preregistration-manifest.json", "sha256": "8515cea0b62a8df1bb806782913ca4543f6699f53743ded3edd5fab42b3d67b7", "source": "git_blob"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-20260825/arm-d-feedback-policy.json", "sha256": "adb8370c6799b61bc760a1a4747df8f5fc4d44b4bb4d0341f979cf684996ae8c", "source": "git_blob"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/amendment-manifest.json", "sha256": "cf53a99b64314b7b88483ff0f191aa6e3560ec7b850f410c0e558310ad5157cd", "source": "git_blob"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/client_identity_receipt.py", "sha256": "f85b03358ea190029fee04e812dc4b8fd832bd65080a30a671e6399ac9910f48", "source": "git_blob"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-client-identity-amendment-20260826/conclusion-claim-template.json", "sha256": "4016547c5505a631d635b70bf4c48b3dd96d6c5678d4cfb6bc4a43f60ebbde8b", "source": "git_blob"},
+    {"path": "governance/rekor-v2-provider-profile.json", "sha256": "caa3876354cef1d3971d6a81907d0a6f1f6d6d3e3ad9339f92f159b55ec48a3c", "source": "git_blob"},
+    {"path": "governance_tools/rekor_provider.py", "sha256": "e7217bbe97c1b6792cbaf034cc27eee561633df912ab98e6aafc05d18f757559", "source": "git_blob"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/candidate/gate3-protocol-contract-external-pin-v2.json", "sha256": "f390e29adbfcdabacfcec918ce93f206c309620e192bc2d29b7d22be63451d13", "source": "raw_file"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate3-runtime/gate3_evidence_chain.py", "sha256": "1beef6b1450dcc51a7b522c9d9bef6120f0eefbbcffd5980e1ccec091c6fa2e3", "source": "raw_file"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_d_feedback_adapter.py", "sha256": "d4c8b7c8c21cb404c2a6d6a2de7fe7c52d8035c2bd98df9d66f5f5b191fe70f8", "source": "raw_file"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/arm_execution_admission.py", "sha256": "607986e84ba5bbff6c78357e66a1b332ee3fb46de8d3219b3de82b522d0f71ef", "source": "raw_file"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/local-runtime-facts.json", "sha256": "59eee2750e875318d252702763d88f37ed0dfd52f420f7d6811b4e5e3d82d0f9", "source": "raw_file"},
+    {"path": "artifacts/experiments/prepush-bugfix-20260724/gate1-arm-execution-admission/c1-20260825/rekor-qualification-terminal.json", "sha256": "8241433ee50ccd09c4134edef04aac99506df01106eafd177c6e20300c52f02e", "source": "raw_file"}
+  ],
+  "execution_authority": {
+    "randomization_authorized": false,
+    "arm_execution_authorized": false,
+    "required_next_authority": "explicit_owner_authorization_bound_to_reviewed_admission_commit"
+  },
+  "not_claimed": [
+    "randomization",
+    "producer execution",
+    "arm outcomes",
+    "scoring",
+    "mapping release",
+    "Gate 1 readiness",
+    "Gate 3 effectiveness",
+    "Skill effectiveness",
+    "governance effectiveness",
+    "validator feedback effectiveness"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "gate3-arm-d-validator-output-policy/1",
+  "allowed_result_fields": [
+    "schema_version",
+    "status",
+    "runtime",
+    "scope",
+    "mutation",
+    "failure_probes",
+    "digests",
+    "merkle_root",
+    "diagnostics",
+    "claim_ceiling"
+  ],
+  "forbidden_detail_fields": [
+    "files",
+    "location",
+    "mutants",
+    "replacement",
+    "source",
+    "tests"
+  ],
+  "aggregate_only": true,
+  "retain_raw_validator_output": false
+}

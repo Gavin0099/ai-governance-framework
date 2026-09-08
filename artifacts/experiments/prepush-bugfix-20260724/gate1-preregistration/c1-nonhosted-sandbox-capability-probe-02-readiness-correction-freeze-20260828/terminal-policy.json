@@ -1,0 +1,35 @@
+{
+  "schema": "c1-nonhosted-sandbox-capability-probe-terminal-policy.v3",
+  "attempt_id": "C1-nonhosted-sandbox-capability-probe-02",
+  "terminal_precedence": [
+    "CAPABILITY_PROBE_CLEANUP_FAILED",
+    "CAPABILITY_PROBE_SURFACE_UNAVAILABLE",
+    "CAPABILITY_PROBE_AMBIGUOUS",
+    "ABSOLUTE_PYTHON_TASK_PLANE_LAUNCHABLE"
+  ],
+  "preclaim_failure_terminal_allowed": false,
+  "preclaim_failure_consumes_owner_pipeline_authority": true,
+  "postclaim_bounded_failure_requires_unique_terminal": true,
+  "attempt_output_root_is_atomic_claim": true,
+  "only_claim_owner_may_cleanup": true,
+  "overlapping_loser_publication_allowed": false,
+  "overlapping_loser_cleanup_allowed": false,
+  "denial_without_bounded_proof_is_ambiguous": true,
+  "positive_terminal_requires": [
+    "reviewed_parent_readiness_matches_live_state",
+    "sandbox_helper_launched",
+    "negative_control_attempted_and_failed_without_marker",
+    "absolute_python_control_attempted",
+    "exact_marker_observed",
+    "stdout_empty",
+    "stderr_empty",
+    "private_and_cli_cleanup_complete"
+  ],
+  "terminal_forbidden_fields": [
+    "raw_stdout",
+    "raw_stderr",
+    "auth_payload",
+    "credential",
+    "randomization_mapping"
+  ]
+}

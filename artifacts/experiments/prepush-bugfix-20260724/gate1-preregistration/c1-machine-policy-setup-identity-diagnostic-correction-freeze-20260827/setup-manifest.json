@@ -1,0 +1,172 @@
+{
+  "schema": "c1-machine-policy-setup-identity-diagnostic-correction-freeze.v2",
+  "status": "MACHINE_POLICY_IDENTITY_DIAGNOSTIC_CORRECTION_FROZEN_NOT_AUTHORIZED",
+  "base_commit": "68bd0f6a0c1a62e010dcbc70d1fbeebf6405e750",
+  "supersedes_freeze_commit": "1807be5228475405883c384a3537f266b8ed6f7d",
+  "setup_plan_sha256": "28742c7f91e56a4c446a4dcfed6da98674f998bafc5499b7197cfbe3b2223055",
+  "prior_attempt": {
+    "attempt_id": "C1-machine-policy-setup-01",
+    "terminal_bytes": 467,
+    "terminal_sha256": "19d6e01b85978eee6a3d5f3a4b9fcd4d02a41c4b56e09281390f6695be3e0b5e",
+    "terminal_status": "MACHINE_POLICY_PRECONDITION_FAILED",
+    "machine_mutation_attempted": false,
+    "target_and_parent_absent_after_terminal": true,
+    "immutable_and_not_retried": true,
+    "exact_root_cause_proven": false
+  },
+  "execution_authority": {
+    "authorized": false,
+    "requires_exact_executing_freeze_commit": true,
+    "requires_exact_setup_plan_sha256": true,
+    "requires_new_owner_authority": true,
+    "setup_and_rollback_are_separate_owner_authorities": true
+  },
+  "identity_contract": {
+    "identity_only_probe_precedes_machine_state_queries": true,
+    "retained_fields": [
+      "sid_sha256", "account_class", "administrator_role_enabled"
+    ],
+    "setup_identity_must_match_rollback_owner_sid_digest": true,
+    "administrator_role_required": true,
+    "sandbox_account_forbidden": true,
+    "raw_sid_or_account_name_retained": false
+  },
+  "observer_contract": {
+    "schema": "c1-machine-policy-observation.v2",
+    "modes": ["identity", "full"],
+    "bounded_failure_fields": ["stage", "error_class"],
+    "raw_stderr_retained": false,
+    "raw_exception_retained": false,
+    "terminal_mapping": {
+      "INSUFFICIENT_PRIVILEGE": "MACHINE_POLICY_INSUFFICIENT_PRIVILEGE",
+      "missing_or_invalid_envelope": "MACHINE_POLICY_OBSERVER_LAUNCH_FAILED",
+      "bounded_other_failure": "MACHINE_POLICY_PRECONDITION_FAILED"
+    }
+  },
+  "target": {
+    "kind": "windows_system_managed_requirements",
+    "programdata_relative_path": "OpenAI/Codex/requirements.toml",
+    "must_be_absent_before_setup": true,
+    "already_exact_is_success": false,
+    "bytes": 58,
+    "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440",
+    "atomic_publication_required": true
+  },
+  "bounded_machine_state": {
+    "account_sid_sha256": "f0499f65a3828dfd191d0f3179ee47528dd723df2c1753e0f4131f83cd5017ce",
+    "firewall_security_descriptor_sha256": "9b3806eb0682cd3451b2226b6980de0aa0f2d70d5de9a863be65e12e8aa73d2d",
+    "frozen_observer_projection": {
+      "bytes": 367,
+      "sha256": "177a1d63754db207bdf5b86c924434b899c618e2d07acc4f84e9a661797ec302"
+    },
+    "firewall_profiles_enabled": ["Domain", "Private", "Public"],
+    "relevant_outbound_rules": 2,
+    "outbound_block_rules": 1,
+    "outbound_allow_rules": 1
+  },
+  "rollback": {
+    "precheck_schema": "c1-machine-policy-independent-rollback-precheck.v2",
+    "precheck_pass_status": "INDEPENDENT_ELEVATED_ROLLBACK_CHANNEL_READY",
+    "powershell_executable_sha256": "7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5",
+    "owner_sid_digest_retained": true,
+    "independent_from_codex": true,
+    "held_open_through_terminal": true,
+    "does_not_authorize_retry": true
+  },
+  "publication": {
+    "output_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-attempt-02",
+    "coordination_root": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/.c1-machine-policy-setup-attempt-02-coordination",
+    "terminal": "terminal.json",
+    "setup_evidence": "setup-evidence.json",
+    "downstream_receipt": "machine-policy-receipt.json",
+    "create_once": true
+  },
+  "repo_external_review_packets": [
+    {
+      "role": "setup_pre_run",
+      "lines": 430,
+      "bytes": 15786,
+      "sha256": "5d90d30e8159cef515c5ed79d66f3385ec847bd96108f33ced5cf8d199106065"
+    },
+    {
+      "role": "machine_wide_impact",
+      "lines": 512,
+      "bytes": 19584,
+      "sha256": "2e47fbb6a7d3332571fa3edd31827076e49d6c8565cc573255a9cc66ffc11ab9"
+    }
+  ],
+  "source_bindings": [
+    {
+      "commit": "1807be5228475405883c384a3537f266b8ed6f7d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-implementation-freeze-20260827/setup-manifest.json",
+      "git_blob_oid": "58c3e17c8d0f5b2b47bcf633555f730760d3b7c0",
+      "bytes": 6959,
+      "sha256": "961892d5300f1418e2afce4cc6fe72719c7926af5be3668223ca16dab415f0f5"
+    },
+    {
+      "commit": "1807be5228475405883c384a3537f266b8ed6f7d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-implementation-freeze-20260827/machine_policy_setup.py",
+      "git_blob_oid": "b212431d6b934c6606a440552e9b83842aba676f",
+      "bytes": 25486,
+      "sha256": "f668716fd27ef1406691d83812b5eb7ae65b0c23b399b4860c2426b433e7810f"
+    },
+    {
+      "commit": "1807be5228475405883c384a3537f266b8ed6f7d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-implementation-freeze-20260827/machine_policy_observer.ps1",
+      "git_blob_oid": "60a65ba0591869c46fb90c1cb8481c2847bfe2bb",
+      "bytes": 3143,
+      "sha256": "e76be98be6f8edf63c0e9afd543200b60fc6880e080f067dab96f6f296f6f0dd"
+    },
+    {
+      "commit": "1807be5228475405883c384a3537f266b8ed6f7d",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-machine-policy-setup-implementation-freeze-20260827/independent_owner_rollback.ps1",
+      "git_blob_oid": "e3c6b9abe360c73bf174bc0a21f3c6ee5712c454",
+      "bytes": 6084,
+      "sha256": "e2ac7ba9d3182bbdf5751e93582adc061deea810a976d79bd84644d93fc860c3"
+    },
+    {
+      "commit": "4fb786af7078baecdd6ef1cbd00e45fa58c37661",
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate1-preregistration/c1-sandboxed-runner-amendment-20260827/sandbox-requirements.toml",
+      "git_blob_oid": "c09376409c079ecf1dd04c8d9064e6eaf28b16c2",
+      "bytes": 58,
+      "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"
+    }
+  ],
+  "frozen_files": [
+    {"path": ".gitattributes", "bytes": 153, "sha256": "e0d4acf8201da8aaebc99359773c5019c41a9000be50bbe33d56a031930f11f1"},
+    {"path": "downstream-receipt-template.json", "bytes": 436, "sha256": "a931c94a2cb4d207c48994275242913ca8c498b27519eced36bf981071f87696"},
+    {"path": "independent_owner_rollback.ps1", "bytes": 6622, "sha256": "579351bf7e241f1fd95cb625fa5924ac8ef8cba54ee6054c07c8ca34d6ca9e81"},
+    {"path": "machine_policy_observer.ps1", "bytes": 6338, "sha256": "3215cb143933f2728e34b0ab29f4d14edfaa5dfa0a9a263705fd1fa0d85c2b0d"},
+    {"path": "machine_policy_setup.py", "bytes": 35330, "sha256": "b76d721433dfe4bb20224a0758c348afec2ce4221d3c4f090cc7905eaac158f6"},
+    {"path": "observation-schema.json", "bytes": 1408, "sha256": "1a7839110053b7aa61fc58fe87051b082ff584f3fedc7b89544267426f8dd504"},
+    {"path": "output-policy.json", "bytes": 611, "sha256": "9fe4c3446290baddb8938aab961a748bb2935bded52ab7978222036e0bfddf94"},
+    {"path": "README.md", "bytes": 1692, "sha256": "aaf812e1485604cf49835c948f1a3a2550dbb512508a799c5af4c23d7fe90e59"},
+    {"path": "requirements.toml", "bytes": 58, "sha256": "9aa1f17cc4a36a3ac502862eb42d84044799eaf1b4de7c8cb1e31a25b10c3440"},
+    {"path": "rollback-precheck-schema.json", "bytes": 1484, "sha256": "cd349ac0dd26820739ed6ab4645f4a13d20dbf156a1d11c73f7d5ecc4ad76b01"},
+    {"path": "setup-evidence-schema.json", "bytes": 1241, "sha256": "4511f72a91f1b78453777e828736280c929a8f257f6c6bd46bb0d1ffd02b93b6"},
+    {"path": "TECH_SPEC.md", "bytes": 2014, "sha256": "28742c7f91e56a4c446a4dcfed6da98674f998bafc5499b7197cfbe3b2223055"},
+    {"path": "terminal-policy.json", "bytes": 855, "sha256": "63be7996f045dec47b165a59dbe3819e0bac821ca1fbd5d5be399de7e77bd685"},
+    {"path": "terminal-schema.json", "bytes": 1109, "sha256": "2d6130e0cb17d0005c913bf3399bc7cacb3a6ecec15dfc57c26fdd05be791a36"},
+    {"path": "test_machine_policy_setup.py", "bytes": 18799, "sha256": "01ca6deee1858ab7f4fe3af038df5c7429f1e0633a2808392209a64cd40e2262"}
+  ],
+  "authoring_boundary": {
+    "requirements_created_or_deleted": false,
+    "account_modified": false,
+    "firewall_or_policy_modified": false,
+    "hosted_request_executed": false,
+    "sandbox_qualification_executed": false,
+    "randomization_created": false,
+    "arms_executed": false
+  },
+  "claim_ceiling": {
+    "proves": "reviewable identity admission and bounded diagnostic correction bytes are frozen",
+    "does_not_prove": [
+      "attempt-01 exact root cause",
+      "machine policy installed",
+      "sandbox network containment",
+      "hosted transport availability",
+      "randomization or arm execution",
+      "Gate 1 effectiveness"
+    ]
+  }
+}

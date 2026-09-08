@@ -1,0 +1,68 @@
+{
+  "schema": "c1-gate1-scorer-rubric.v1",
+  "status": "frozen_not_scored",
+  "primary_comparison": "B_vs_A",
+  "diagnostic_comparisons": ["B_vs_C", "C_vs_D"],
+  "qualifying_success_requires": [
+    "completed_under_cap",
+    "oracle_acceptance",
+    "regression_baseline_fail",
+    "regression_passes_after_fix",
+    "original_defect_caught",
+    "no_new_scoped_regression",
+    "critical_residuals_zero"
+  ],
+  "task_rule": {
+    "initial_pairs": 2,
+    "maximum_pairs": 3,
+    "third_pair_trigger": "any_initial_non_completion_or_tied_qualifying_success_count",
+    "fourth_pair_allowed": false,
+    "winner": "higher_qualifying_success_count_after_frozen_pairs_else_tie"
+  },
+  "program_promotion": {
+    "minimum_natural_bug_tasks": 3,
+    "minimum_consumer_repositories": 2,
+    "b_task_wins_minimum": 2,
+    "b_completion_rate_not_lower_than_a": true,
+    "critical_failure_unique_to_b_maximum": 0,
+    "product_success_difference_win_minimum": 1,
+    "minimum_valid_cost_pairs": 2,
+    "median_b_over_a_wall_clock_ratio_maximum": 1.2,
+    "median_b_over_a_tool_call_ratio_maximum": 1.2,
+    "wins_must_not_share_one_reused_context": true
+  },
+  "cost": {
+    "even_sample_median": "arithmetic_mean_of_two_middle_values",
+    "zero_denominator": "INVALID",
+    "missing_core_telemetry": "INSUFFICIENT",
+    "core_fields": ["wall_clock_ms", "tool_calls"],
+    "reported_fields": [
+      "owner_interventions",
+      "rework_count",
+      "retries",
+      "changed_files",
+      "diff_bytes",
+      "token_count"
+    ]
+  },
+  "second_scorer": {
+    "context_must_differ": true,
+    "decision_bearing_subset": [
+      "oracle_acceptance",
+      "original_defect_caught",
+      "critical_residuals",
+      "claim_mismatch_count"
+    ],
+    "disagreement_disposition": "INSUFFICIENT",
+    "post_mapping_adjudication_allowed": false
+  },
+  "mutation_diagnostic": {
+    "applied_post_hoc_to_all_arms": true,
+    "mutation_score_is_kpi": false,
+    "zero_survivors_is_automatic_success": false,
+    "nonzero_survivors_is_automatic_failure": false,
+    "cross_arm_ranking_requires_identical_population": true
+  },
+  "program_terminals": ["POSITIVE", "NEGATIVE", "INSUFFICIENT", "INVALID"]
+}
+

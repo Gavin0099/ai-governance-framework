@@ -286,6 +286,7 @@ def test_genesis_whitespace_drift_fails_exact_identity(environment):
 
 
 def test_pinned_git_mismatch_never_launches_or_generates_id(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     from governance_tools import solo_r2_attempt_materialization as materialization
     git = PinnedExecutable.capture(Path(shutil.which("git")).resolve())
     repository = RepositoryBinding(REPO, REPO / ".git", REPO / ".git")
@@ -297,6 +298,7 @@ def test_pinned_git_mismatch_never_launches_or_generates_id(tmp_path, monkeypatc
 
 
 def test_loader_rejects_unavailable_committed_authority(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     git = PinnedExecutable.capture(Path(shutil.which("git")).resolve())
     repository = RepositoryBinding(REPO, REPO / ".git", REPO / ".git")
     monkeypatch.setattr(subject, "verify_repository_binding", lambda *a, **k: None)
@@ -311,6 +313,7 @@ def test_loader_rejects_unavailable_committed_authority(tmp_path, monkeypatch):
 
 
 def test_real_committed_authority_resolution_is_read_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(profile, "ROOT", REPO)
     # Only load_input_authority is invoked on REPO, never creation or Pair APIs.
     public = REPO / profile.LEDGER_PATH
     before = public.read_bytes() if public.exists() else None

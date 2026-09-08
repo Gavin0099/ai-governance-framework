@@ -213,6 +213,54 @@ def fixture_aggregate() -> int:
 
 BYTEWISE_ORDER = sorted(FIXTURE_ALLOWLIST, key=lambda path: path.encode("utf-8"))
 
+LAUNCH_COMMIT = "1" * 40
+LAUNCH_PAYLOADS = {
+    "pkg/a.py": b"# launch fixture a\n",
+    "pkg/b.py": b"# launch fixture b\n",
+}
+
+
+def launch_candidate(*, commit=LAUNCH_COMMIT, payloads=None, extra=()) -> bytes:
+    selected = LAUNCH_PAYLOADS if payloads is None else payloads
+    files = [
+        {
+            "bytes": len(payload),
+            "path": path,
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        for path, payload in sorted(selected.items())
+    ]
+    files.extend(extra)
+    document = {"files": files, "source_base_commit": commit}
+    return json.dumps(document, sort_keys=True).encode("ascii")
+
+
+def launch_inventory(candidate=None) -> dict:
+    value = json.loads((launch_candidate() if candidate is None else candidate))
+    return {record["path"]: record["sha256"] for record in value["files"]}
+
+
+def launch_leaf(candidate=None) -> str:
+    payload = launch_candidate() if candidate is None else candidate
+    value = json.loads(payload)
+    return materialize._root_name(
+        value["source_base_commit"], launch_inventory(payload)
+    )
+
+
+def launch_root(base=r"C:\fixture", candidate=None) -> str:
+    return base + "\\" + launch_leaf(candidate)
+
+
+@pytest.fixture
+def launch_authority(monkeypatch):
+    payload = launch_candidate()
+    monkeypatch.setattr(child, "RUNTIME_MODULE_ALLOWLIST", tuple(LAUNCH_PAYLOADS))
+    monkeypatch.setattr(
+        child, "CANDIDATE_SET_SHA256", hashlib.sha256(payload).hexdigest()
+    )
+    return payload
+
 
 def refuses(code):
     """Assert one exact code, never merely 'it raised' and never a choice."""
@@ -1717,3 +1765,327 @@ def test_a_module_cannot_hide_by_swapping_its_own_spec(isolated_modules) -> None
     with refuses("LOADER_BYPASSED"):
         child.load_buffers({"pkg/fx_swap.py": escaping}, FIXTURE_ROOT)
     assert "fx_swap" not in sys.modules
+
+
+# --- M3-b-2A: launch envelope and materialized-root grammar -----------------
+
+
+def build_launch(
+    inner: bytes,
+    raw_root: bytes,
+    *,
+    magic=child.LAUNCH_MAGIC,
+    version=child.LAUNCH_VERSION,
+    inner_length=None,
+    root_length=None,
+    trailing=b"",
+) -> bytes:
+    """Independent raw builder for frames the production encoder refuses."""
+
+    return b"".join(
+        (
+            magic,
+            version.to_bytes(2, "little"),
+            (len(inner) if inner_length is None else inner_length).to_bytes(
+                4, "little"
+            ),
+            (len(raw_root) if root_length is None else root_length).to_bytes(
+                4, "little"
+            ),
+            inner,
+            raw_root,
+            trailing,
+        )
+    )
+
+
+def parse_launch(stream: bytes) -> tuple[bytes, bytes]:
+    """Independent reader written from the accepted wire table."""
+
+    assert stream[:8] == b"GATE3HL\x00"
+    assert int.from_bytes(stream[8:10], "little") == 1
+    inner_length = int.from_bytes(stream[10:14], "little")
+    root_length = int.from_bytes(stream[14:18], "little")
+    inner_end = 18 + inner_length
+    root_end = inner_end + root_length
+    assert root_end == len(stream)
+    return stream[18:inner_end], stream[inner_end:root_end]
+
+
+def test_l1_independent_reader_confirms_the_exact_outer_table(
+    launch_authority,
+) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    root = launch_root()
+    stream = child.encode_launch_stream(inner, root)
+    parsed_inner, parsed_root = parse_launch(stream)
+    assert child.LAUNCH_HEADER_BYTES == 18
+    assert parsed_inner == inner
+    assert parsed_root == root.encode("utf-8")
+
+
+def test_l2_the_inner_frame_is_byte_identical_to_direct_m3a_output(
+    launch_authority,
+) -> None:
+    direct = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    wrapped = child.encode_launch_stream(direct, launch_root())
+    inner, _root = parse_launch(wrapped)
+    assert inner == direct
+    assert child.decode_stream(inner) == LAUNCH_PAYLOADS
+
+
+def test_l2_outer_encoder_never_decodes_or_reencodes_the_inner_frame(
+    launch_authority, monkeypatch
+) -> None:
+    """Fail if a mutation normalizes M3-a bytes inside the outer encoder."""
+
+    direct = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("inner frame was decoded or re-encoded")
+
+    monkeypatch.setattr(child, "_decode_verified_stream", forbidden)
+    monkeypatch.setattr(child, "decode_stream", forbidden)
+    monkeypatch.setattr(child, "encode_stream", forbidden)
+
+    wrapped = child.encode_launch_stream(direct, launch_root())
+    inner, _root = parse_launch(wrapped)
+    assert inner == direct
+
+
+def test_l3_l5_every_outer_framing_failure_has_one_exact_code(
+    launch_authority,
+) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    raw_root = launch_root().encode("utf-8")
+    cases = (
+        (b"GATE3HL", "LAUNCH_STREAM_TRUNCATED"),
+        (
+            build_launch(inner, raw_root, magic=b"GATE3HM\x00"),
+            "LAUNCH_MAGIC_MISMATCH",
+        ),
+        (
+            build_launch(inner, raw_root, version=2),
+            "LAUNCH_VERSION_UNSUPPORTED",
+        ),
+        (
+            build_launch(inner, raw_root, inner_length=0),
+            "LAUNCH_INNER_LENGTH_INVALID",
+        ),
+        (
+            build_launch(
+                inner,
+                raw_root,
+                inner_length=child.DERIVED_MAX_STREAM_BYTES + 1,
+            ),
+            "LAUNCH_INNER_LENGTH_INVALID",
+        ),
+        (
+            build_launch(inner, raw_root, root_length=0),
+            "MATERIALIZED_ROOT_INVALID",
+        ),
+        (
+            build_launch(
+                inner,
+                raw_root,
+                root_length=child.MAX_MATERIALIZED_ROOT_BYTES + 1,
+            ),
+            "MATERIALIZED_ROOT_LENGTH_EXCEEDED",
+        ),
+        (
+            build_launch(inner, raw_root)[:-1],
+            "LAUNCH_STREAM_TRUNCATED",
+        ),
+        (
+            build_launch(inner, raw_root, trailing=b"x"),
+            "LAUNCH_TRAILING_BYTES",
+        ),
+        (inner, "LAUNCH_MAGIC_MISMATCH"),
+    )
+    for stream, code in cases:
+        with refuses(code):
+            child.decode_launch_stream(stream)
+
+
+def test_l3_the_encoder_refuses_wrong_types_and_component_bounds(
+    launch_authority, monkeypatch
+) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    with refuses("LAUNCH_STREAM_INVALID"):
+        child.decode_launch_stream(bytearray(inner))
+    with refuses("LAUNCH_STREAM_INVALID"):
+        child.encode_launch_stream(bytearray(inner), launch_root())
+    with refuses("MATERIALIZED_ROOT_INVALID"):
+        child.encode_launch_stream(inner, b"C:\\wrong-type")
+    monkeypatch.setattr(child, "DERIVED_MAX_STREAM_BYTES", 3)
+    with refuses("LAUNCH_INNER_LENGTH_INVALID"):
+        child.encode_launch_stream(b"four", launch_root())
+
+
+def test_l4_inner_authority_finishes_before_root_decode(
+    launch_authority, monkeypatch
+) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    stream = child.encode_launch_stream(inner, launch_root())
+    events = []
+    decode_inner = child._decode_verified_stream
+    decode_root = child._decode_materialized_root
+
+    def inner_spy(payload):
+        events.append("inner")
+        return decode_inner(payload)
+
+    def root_spy(raw, candidate):
+        events.append("root")
+        return decode_root(raw, candidate)
+
+    def forbidden_loader(*_args, **_kwargs):
+        raise AssertionError("loader construction reached the envelope decoder")
+
+    monkeypatch.setattr(child, "_decode_verified_stream", inner_spy)
+    monkeypatch.setattr(child, "_decode_materialized_root", root_spy)
+    monkeypatch.setattr(child, "load_buffers", forbidden_loader)
+    assert child.decode_launch_stream(stream) == (LAUNCH_PAYLOADS, launch_root())
+    assert events == ["inner", "root"]
+
+
+def test_l4_an_inner_failure_never_decodes_root(monkeypatch) -> None:
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("root decoded before inner authority")
+
+    monkeypatch.setattr(child, "_decode_materialized_root", forbidden)
+    with refuses("STREAM_TRUNCATED"):
+        child.decode_launch_stream(build_launch(b"x", b"\xff"))
+
+
+@pytest.mark.parametrize(
+    ("root", "code"),
+    (
+        ("", "MATERIALIZED_ROOT_INVALID"),
+        ("\\rooted-without-drive", "MATERIALIZED_ROOT_NOT_ABSOLUTE"),
+        ("relative\\" + "leaf", "MATERIALIZED_ROOT_NOT_ABSOLUTE"),
+        ("C:" + "leaf", "MATERIALIZED_ROOT_NOT_ABSOLUTE"),
+        ("C:\\base\\.\\leaf", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\base\\\\leaf", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\base\\leaf\\", "MATERIALIZED_ROOT_INVALID"),
+        ("C:/base/leaf", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\base\\\ufeffleaf", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\base\\\x00leaf", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\", "MATERIALIZED_ROOT_INVALID"),
+        (r"\\server\share", "MATERIALIZED_ROOT_INVALID"),
+        ("C:\\base\\\ud800", "MATERIALIZED_ROOT_INVALID"),
+    ),
+)
+def test_l6_root_encoder_refuses_the_named_invalid_corpus(root, code) -> None:
+    with refuses(code):
+        child._encode_materialized_root(root)
+
+
+def test_l6_invalid_utf8_and_wrong_leaf_are_distinct(launch_authority) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    with refuses("MATERIALIZED_ROOT_INVALID"):
+        child.decode_launch_stream(build_launch(inner, b"C:\\base\\\xff"))
+    with refuses("MATERIALIZED_ROOT_NAME_MISMATCH"):
+        child.decode_launch_stream(
+            child.encode_launch_stream(inner, r"C:\base\gate3-historical-wrong")
+        )
+
+
+def test_l6_root_errors_carry_no_root_or_bytes() -> None:
+    marker = "C:\\secret-marker\\wrong"
+    with pytest.raises(child.TransportError) as caught:
+        child._encode_materialized_root(marker + "\\")
+    assert caught.value.args == (caught.value.code,)
+    assert marker not in str(caught.value)
+
+
+def test_l6_both_root_length_bounds_are_independently_reachable() -> None:
+    ascii_root = "C:\\" + ("a" * child.MAX_MATERIALIZED_ROOT_UTF16_UNITS)
+    assert len(ascii_root.encode("utf-8")) < child.MAX_MATERIALIZED_ROOT_BYTES
+    with refuses("MATERIALIZED_ROOT_LENGTH_EXCEEDED"):
+        child._encode_materialized_root(ascii_root)
+
+    cjk_root = "C:\\" + ("界" * 21_845)
+    assert (
+        len(cjk_root.encode("utf-16-le")) // 2
+        < child.MAX_MATERIALIZED_ROOT_UTF16_UNITS
+    )
+    assert len(cjk_root.encode("utf-8")) > child.MAX_MATERIALIZED_ROOT_BYTES
+    with refuses("MATERIALIZED_ROOT_LENGTH_EXCEEDED"):
+        child._encode_materialized_root(cjk_root)
+
+
+@pytest.mark.parametrize(
+    "base",
+    (
+        r"C:\fixture",
+        r"\\server\share\fixture",
+        r"\\?\C:\fixture",
+        r"\\?\UNC\server\share\fixture",
+    ),
+)
+def test_l7_named_absolute_forms_round_trip(launch_authority, base) -> None:
+    root = launch_root(base)
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    stream = child.encode_launch_stream(inner, root)
+    assert child.decode_launch_stream(stream) == (LAUNCH_PAYLOADS, root)
+
+
+def test_l8_root_name_derivation_matches_m2_over_real_and_mutated_corpus() -> None:
+    real = candidate_bytes()
+    real_value = json.loads(real)
+    real_inventory = {
+        record["path"]: record["sha256"] for record in real_value["files"]
+    }
+    assert child._materialized_root_name(real) == materialize._root_name(
+        real_value["source_base_commit"], real_inventory
+    )
+    corpus = []
+    for commit, digest in (("2" * 40, "0" * 64), ("3" * 40, "f" * 64)):
+        corpus.append(
+            {
+                "files": [
+                    {"bytes": 1, "path": "a.py", "sha256": digest},
+                    {"bytes": 2, "path": "z/data.json", "sha256": "1" * 64},
+                ],
+                "source_base_commit": commit,
+            }
+        )
+    for value in corpus:
+        payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode(
+            "ascii"
+        )
+        inventory = {
+            record["path"]: record["sha256"] for record in value["files"]
+        }
+        assert child._materialized_root_name(payload) == materialize._root_name(
+            value["source_base_commit"], inventory
+        )
+
+
+def test_l8_non_ascii_inventory_refuses_name_derivation() -> None:
+    payload = launch_candidate(
+        extra=(
+            {"bytes": 1, "path": "é.txt", "sha256": "0" * 64},
+        )
+    )
+    with refuses("MATERIALIZED_ROOT_NAME_DERIVATION_FAILED"):
+        child._materialized_root_name(payload)
+
+
+def test_l12_two_absolute_bases_with_the_same_leaf_are_indistinguishable(
+    launch_authority,
+) -> None:
+    inner = child.encode_stream(launch_authority, LAUNCH_PAYLOADS)
+    roots = (launch_root(r"C:\first"), launch_root(r"D:\second"))
+    for root in roots:
+        stream = child.encode_launch_stream(inner, root)
+        assert child.decode_launch_stream(stream) == (LAUNCH_PAYLOADS, root)
+
+
+def test_l13_the_outer_maximum_is_recomputed_from_component_bounds() -> None:
+    assert child.MAX_LAUNCH_STREAM_BYTES == (
+        child.LAUNCH_HEADER_BYTES
+        + child.DERIVED_MAX_STREAM_BYTES
+        + child.MAX_MATERIALIZED_ROOT_BYTES
+    )

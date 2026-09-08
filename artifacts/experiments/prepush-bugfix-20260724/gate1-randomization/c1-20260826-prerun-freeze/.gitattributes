@@ -1,0 +1,5 @@
+.gitattributes -text -whitespace
+*.json -text -whitespace
+*.md -text -whitespace
+*.py -text -whitespace
+

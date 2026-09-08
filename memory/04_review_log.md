@@ -5141,6 +5141,17 @@ boundary from which future accepted-design edits can be diffed.
 - Next action: Submit the complete PR #95 projection set for exact-scope review, then stage only those projection blocks under separate authorization; exclude M3-b-2A and active-task changes.
 - PLAN reconciliation: `not_applicable`
 
+<!-- memory_record_projection:review-log:ac60d1482eb32d3d4ec3a1582db89948f5f57fc73c76ee166ef5e3bc81459b25 -->
+### Canonical memory checkpoint — 2026-08-23-10
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `ac60d1482eb32d3d4ec3a1582db89948f5f57fc73c76ee166ef5e3bc81459b25`
+- Commit binding: `ff639cc7ca7b1191e4cc4a3a1ec4cd0671aba4a9` (bound)
+- Record: Provenance and closure correction for PR #95 anchor findings 3, 4, 7, 8, and 9. This record binds the durable writer lineage to ff639cc7ca7b1191e4cc4a3a1ec4cd0671aba4a9. That commit and historical commit 08990fd3d3a0f6f082f20f3fbf563dc614b0c2ae contain the same Git blob objects for both transplanted files: governance_tools/memory_record.py = 79cdf21203204bc63495f12fb83a2f94f5a9cf9a and tests/test_memory_record.py = 142bc7d9a9c1dfb5dadc4e9dbab64ffbaf0eb922. The three earlier review-log projections, record identities 921da1526cc6f0a6b0c204542a41441ea2b20c4a85f9635c4c767cf51f86e8f4, 70f02f4a56d19a0bf6a15ad35da20ca5031ff99db70457bf82f26d430f7771ae, and 8f7d0de32e6f87b1524253630d9c615830dcefddce224d0fd419f643190858ca, were committed by 1efcd74dbcf385677b02a4117ca6a6a4ec95a92e. Their pending-commit language is retained unchanged as historical write-time state. The closure condition for findings 3, 4, 7, 8, and 9 is creation of a commit containing this correction record; when that containing commit exists, those findings are RESOLVED by the durable record plus the ff639cc7 blob-equivalence binding. This does not rewrite the earlier records or make 08990fd3 an ancestor of PR #96.
+- Validation boundary: NOT CLAIMED: this append does not claim CI success, PR merge, GitHub Support removal, visibility restoration, Gate 3 progress, or attempt-05; scoped validation and the containing commit are separate steps required by the authorized DONE.
+- Next action: Keep PR #96 Draft until independent review and CI become available; resolve the separate GitHub billing or spending-limit blocker without changing this record, repository visibility, or PR #78 history.
+- PLAN reconciliation: `not_applicable`
+
 <!-- memory_record_projection:review-log:12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601 -->
 ### Canonical memory checkpoint — 2026-08-24-16
 
@@ -5282,4 +5293,25 @@ boundary from which future accepted-design edits can be diffed.
 - Record: P5 fixed-generation installation receipt/verifier implemented and reviewed Blocking0. Local 17 PASS; isolated hook invokes exact scanner and preserves object-closure rejection. Actual hook/scanner/config unchanged. Explicit local profile only; no canonical adoption, deployment, P4 or push. Unrelated dirty work excluded.
 - Validation boundary: memory/evidence/p5-installation-integrity-20260908/review.json
 - Next action: Make authorized scoped P5 local commit, verify identities, STOP. Real profile deployment requires separate owner authorization.
+
+<!-- memory_record_projection:review-log:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
+### Canonical memory checkpoint — 2026-08-24-23
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac`
+- Commit binding: `a59b0aef93753630f9949233d03be555bad165c5` (bound)
+- Record: M3-b-2A is durably merged by PR #108: implementation checkpoint ff9cdb77db9133fa734bae461b71319f97d23292 is in merge commit a59b0aef93753630f9949233d03be555bad165c5. PLAN now records M3-b-2A as delivered while M3-b-2B remains not started; no B-1 or other primary dirty work is included.
+- Validation boundary: PR #108 updated-head checks: 11 SUCCESS and 1 expected SKIPPED; PLAN freshness: FRESH (2026-08-24, 0 days, no errors or warnings).
+- Next action: Review and push this isolated M3-b-2A status checkpoint; do not start M3-b-2B without fresh authority.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->
+### Canonical memory checkpoint — 2026-08-26-20
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7`
+- Commit binding: `3351584aa7988504316f46decdbdc50f877ca697` (bound)
+- Record: PR #120 merged the reviewed C1 D5 countability amendment: reviewed commit 1ced27d08e0330ca5ebe21ed241f0074ec500958 is preserved in merge commit 3351584aa7988504316f46decdbdc50f877ca697. The final-head receipt decision is CURRENT_C1_FINAL_HEAD_RECEIPT_NOT_REQUIRED for this internal Skill-funding experiment; event 7 external pin and event 8 local mapping release remain mandatory. The integrated terminal is ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED. PLAN now records that randomization and all A/B/C/D arms remain uncreated, unexecuted and unauthorized.
+- Validation boundary: PR #120 exact head 1ced27d08e0330ca5ebe21ed241f0074ec500958; GitHub checks 11 SUCCESS and 1 expected SKIPPED; merge commit 3351584aa7988504316f46decdbdc50f877ca697 preserves reviewed-head ancestry. Fresh core.autocrlf=true checkout focused pytest: 19 passed; canonical precommit before push: 201 passed.
+- Next action: Review this isolated status-reconciliation commit, then push it under separate authority; only after it is merged may the owner separately authorize create-once randomization bound to reviewed D5 admission commit 1ced27d08e0330ca5ebe21ed241f0074ec500958.
 - PLAN reconciliation: `updated`

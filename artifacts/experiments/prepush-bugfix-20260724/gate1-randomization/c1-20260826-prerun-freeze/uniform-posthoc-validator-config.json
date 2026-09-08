@@ -1,0 +1,17 @@
+{
+  "aggregate_only": true,
+  "arms": [
+    "A",
+    "B"
+  ],
+  "cross_arm_ranking_requires_identical_mutant_population": true,
+  "derive_targets_from_changed_production_lines": true,
+  "exclude_generated_files": true,
+  "exclude_tests": true,
+  "producer_feedback": false,
+  "raw_output_retained": false,
+  "retries": 0,
+  "schema": "c1-gate1-uniform-posthoc-validator-config.v1",
+  "task_specific_paths_frozen": false
+}
+
