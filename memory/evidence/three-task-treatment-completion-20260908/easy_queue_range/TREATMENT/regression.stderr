@@ -1,0 +1,95 @@
+test_both_endpoints (test_queue_range.SelectEntriesTests.test_both_endpoints) ... ERROR
+test_duplicates_and_unsorted_order (test_queue_range.SelectEntriesTests.test_duplicates_and_unsorted_order) ... ERROR
+test_empty_input_returns_new_list (test_queue_range.SelectEntriesTests.test_empty_input_returns_new_list) ... ERROR
+test_equal_bounds (test_queue_range.SelectEntriesTests.test_equal_bounds) ... ERROR
+test_negative_sequences (test_queue_range.SelectEntriesTests.test_negative_sequences) ... ERROR
+test_no_matches (test_queue_range.SelectEntriesTests.test_no_matches) ... ERROR
+test_non_mutation_and_new_outer_list (test_queue_range.SelectEntriesTests.test_non_mutation_and_new_outer_list) ... ERROR
+test_reproducer (test_queue_range.SelectEntriesTests.test_reproducer) ... ERROR
+test_reversed_bounds (test_queue_range.SelectEntriesTests.test_reversed_bounds) ... ERROR
+
+======================================================================
+ERROR: test_both_endpoints (test_queue_range.SelectEntriesTests.test_both_endpoints)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 13, in test_both_endpoints
+    select_entries([[0, "outside"], [1, "lower"], [2, "middle"],
+    ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_duplicates_and_unsorted_order (test_queue_range.SelectEntriesTests.test_duplicates_and_unsorted_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 26, in test_duplicates_and_unsorted_order
+    select_entries([[3, "c"], [1, "a"], [4, "out"],
+    ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_empty_input_returns_new_list (test_queue_range.SelectEntriesTests.test_empty_input_returns_new_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 33, in test_empty_input_returns_new_list
+    result = select_entries(entries, 1, 3)
+             ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_equal_bounds (test_queue_range.SelectEntriesTests.test_equal_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 20, in test_equal_bounds
+    select_entries([[2, "a"], [1, "b"], [2, "c"], [3, "d"]], 2, 2),
+    ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_negative_sequences (test_queue_range.SelectEntriesTests.test_negative_sequences)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 56, in test_negative_sequences
+    select_entries([[-1, "upper"], [-5, "out"], [0, "out"],
+    ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_no_matches (test_queue_range.SelectEntriesTests.test_no_matches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 63, in test_no_matches
+    result = select_entries(entries, -3, -1)
+             ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_non_mutation_and_new_outer_list (test_queue_range.SelectEntriesTests.test_non_mutation_and_new_outer_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 47, in test_non_mutation_and_new_outer_list
+    result = select_entries(entries, 1, 2)
+             ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_reproducer (test_queue_range.SelectEntriesTests.test_reproducer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 7, in test_reproducer
+    select_entries([[1, "a"], [2, "b"]], 1, 3),
+    ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+======================================================================
+ERROR: test_reversed_bounds (test_queue_range.SelectEntriesTests.test_reversed_bounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "test_queue_range.py", line 40, in test_reversed_bounds
+    result = select_entries(entries, 3, 1)
+             ^^^^^^^^^^^^^^
+NameError: name 'select_entries' is not defined
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.017s
+
+FAILED (errors=9)

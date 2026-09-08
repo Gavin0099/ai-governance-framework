@@ -1,0 +1,28 @@
+{
+  "mode": "expanded",
+  "mode_source": "failed_or_partial",
+  "task_authority": "Owner authorized exactly one real run per adopted task, independent failure handling, no retry/repair/push",
+  "scope": "three real Lite tasks and terminal aggregation only",
+  "done": "All three reached terminal dispositions; 0 complete comparisons, 3 blocked during CONTROL",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "Completed three-task A/B evaluation",
+    "Treatment execution",
+    "Blind scores or unblinding",
+    "Skill quality advantage",
+    "Generalized efficacy",
+    "Formal/counted evidence",
+    "Clean workspace"
+  ],
+  "evidence_refs": [
+    "memory/evidence/three-task-real-lite-20260908/summary.json",
+    "memory/evidence/three-task-real-lite-20260908/verification.json",
+    "memory/evidence/three-task-real-lite-20260908/benchmark-report.md"
+  ],
+  "risk": "Committed adapter does not admit all real generated unittest/source syntax; zero test-run completion cannot be treated as regression PASS. No repair in this slice.",
+  "next_action": "STOP; separate narrowly scoped compatibility decision, no automatic replay."
+}

@@ -2933,3 +2933,26 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Host now delegates a unique standard final unittest.main entry to actual suite execution; disk source/test bytes preserved. Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
 - Local91PASS, independent91PASS, ACCEPT Blocking0. Captured-output replays in separate test workspaces: Easy7tests/7NameErrors (missing import not repaired), Medium7tests pass, Hard2test methods pass. Deliberate failed assertions prove real counts/exit1. Evidence memory/evidence/lite-harness-compatibility-20260908/review.json and validation.json.
 - All original43 failure artifacts and adopted benchmark materials unchanged. No model/TREATMENT/scorer or Strict/Skill changes. Scoped compatibility commit and STOP; no second real benchmark or push without separate authorization. Unrelated dirty work and prior uncommitted live-run records excluded from this commit.
+
+
+## Three-task real Lite benchmark — 2026-09-08
+
+- One authorized invocation per task completed its terminal disposition: 0 complete comparisons / 3 blocked at CONTROL. All three model turns exit0; TREATMENT/scorer/freeze/unblind not run. Easy oracle12/12, regression exit5/Ran0/no count receipt. Medium unsupported call; Hard unsupported Python operation.
+- No retry or runner/fixture/Skill changes; next tasks used independent contexts and unchanged frozen materials. Total126375ms. Evidence memory/evidence/three-task-real-lite-20260908/benchmark-report.md, summary.json and verification.json. No Skill quality conclusion.
+- STOP after aggregation. Separate owner scope needed for compatibility repair; no automatic rerun, commit or push. Prior frozen results preserved.
+
+
+## Three-task Lite preserved CONTROL completion — 2026-09-08
+
+- Completed three fresh TREATMENT calls and three fresh anonymous scorer calls; no CONTROL model rerun. Original single-run CONTROL bytes recollected under 983d5fad committed harness, no import/fixture/Skill changes.
+- All oracle results PASS12/12,13/13,14/14 for both arms. Easy C7/T9 NameErrors: Regression Safety and total NOT_ASSESSABLE; Medium C7/T7 tests pass,8/8 both; Hard C2/T3 methods pass,8/8 both. No Treatment quality advantage established; no aggregate tie/general Skill efficacy claim.
+- Scores durably frozen before authorized unblinding. Verification covers153 new task artifacts,43 unchanged historical artifacts,unchanged bound production/fixtures. Evidence memory/evidence/three-task-treatment-completion-20260908/benchmark-report.md and verification.json.
+- 199500ms this slice, no automatic retry/manual execution repair, no shutdown/Strict setup. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. STOP; no commit/push, unrelated dirty work excluded.
+
+
+## P2 Lite multi-task closeout — 2026-09-08
+
+- REAL_LITE_MULTI_TASK_BENCHMARK_VALIDATED: three preserved CONTROL + three fresh TREATMENT comparisons completed, scores frozen then unblinded. Easy regression/total NOT_ASSESSABLE both; Medium/Hard8vs8. No stable Treatment advantage established.
+- Owner provisional disposition KEEP_OBSERVE / OPTIONAL; no Skill packet/default-loading/config change. Hard3vs2methods does not prove greater coverage. Earlier7vs8 signal remains separate; no generalized efficacy or average-cost claim.
+- Preserve first-run failures and completed artifacts in scoped local commit. Closeout memory/evidence/p2-multitask-closeout-20260908/closeout.md. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. No models/tests rerun, no push; unrelated dirty work excluded.
+- STOP. Candidate future work: another Skill or separately scoped Lite/Strict cost-value review; neither executes automatically.

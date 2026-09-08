@@ -1,0 +1,21 @@
+{
+  "mode": "compact",
+  "mode_source": "memory_record_completed",
+  "task_authority": "User: 先幫我記住; record direction only",
+  "scope": "Canonical owner-direction memory with corrected completed benchmark timeline",
+  "done": "Canonical record written and memory workflow allows completion",
+  "claim_ceiling": "Memory preservation only",
+  "not_claimed": [
+    "New execution authorization",
+    "Governance efficacy or cost benefit",
+    "Clean workspace",
+    "Commit",
+    "Push"
+  ],
+  "evidence_refs": [
+    "memory/2026-09-08.md:189",
+    "memory/evidence/three-task-treatment-completion-20260908/owner-direction-memory-check.txt:8"
+  ],
+  "risk": "Existing memory warnings remain; prior timeline must not trigger duplicate benchmark execution",
+  "next_action": "STOP; Governance Cost/Value Review remains a separately scoped candidate"
+}

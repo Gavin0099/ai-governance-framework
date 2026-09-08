@@ -1,0 +1,8 @@
+test_contract_cases (test_dependency_graph.HasCycleTests.test_contract_cases) ... ok
+test_order_independence_repeat_calls_and_no_mutation (test_dependency_graph.HasCycleTests.test_order_independence_repeat_calls_and_no_mutation) ... ok
+test_shared_dependency_regression (test_dependency_graph.HasCycleTests.test_shared_dependency_regression) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK

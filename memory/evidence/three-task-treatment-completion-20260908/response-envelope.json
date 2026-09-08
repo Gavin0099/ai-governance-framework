@@ -1,0 +1,31 @@
+{
+  "mode": "compact",
+  "mode_source": "authorized_execution_terminal",
+  "task_authority": "Owner requested preserved CONTROL outputs plus three fresh TREATMENT calls, oracle/regression, fresh anonymous scores, durable freeze then unblinding and aggregation; no repairs or retries",
+  "scope": "Three-task Lite completion using preserved CONTROL",
+  "done": "3/3 task processes completed; scores frozen and unblinded; interpretation includes unassessable Easy regression",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "Generalized Skill efficacy",
+    "Treatment quality advantage",
+    "Easy overall quality tie",
+    "Aggregate full quality tie",
+    "OS isolation",
+    "Formal/countable evidence",
+    "Contemporaneous repeated-sample design",
+    "Average operating-cost reduction",
+    "Clean workspace",
+    "Commit or push"
+  ],
+  "evidence_refs": [
+    "memory\\evidence\\three-task-treatment-completion-20260908\\benchmark-report.md",
+    "memory\\evidence\\three-task-treatment-completion-20260908\\verification.json",
+    "memory\\evidence\\three-task-treatment-completion-20260908\\summary.json"
+  ],
+  "risk": "Easy both submissions omit the subject import and assertions do not execute. Frozen rubric requires NOT_ASSESSABLE. CONTROL calls occurred earlier; raw bytes retained and only host collection rerun. New evidence remains uncommitted; unrelated dirty work excluded.",
+  "next_action": "STOP; no further execution, repair, commit or push in this slice"
+}
