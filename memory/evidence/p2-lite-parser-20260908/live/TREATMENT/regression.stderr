@@ -1,0 +1,12 @@
+test_duplicates_and_input_order (test_queue_range.SelectEntriesTests.test_duplicates_and_input_order) ... ok
+test_empty_input_returns_new_list (test_queue_range.SelectEntriesTests.test_empty_input_returns_new_list) ... ok
+test_equal_bounds (test_queue_range.SelectEntriesTests.test_equal_bounds) ... ok
+test_inclusive_endpoints (test_queue_range.SelectEntriesTests.test_inclusive_endpoints) ... ok
+test_input_unchanged_and_result_independent (test_queue_range.SelectEntriesTests.test_input_unchanged_and_result_independent) ... ok
+test_negative_sequences_and_no_matches (test_queue_range.SelectEntriesTests.test_negative_sequences_and_no_matches) ... ok
+test_reversed_bounds (test_queue_range.SelectEntriesTests.test_reversed_bounds) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK

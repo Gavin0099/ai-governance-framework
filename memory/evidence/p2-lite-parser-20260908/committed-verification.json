@@ -1,0 +1,25 @@
+{
+  "commit": "85dcfa7456957d943a621bb7ddd2c9c746ee5978",
+  "files": {
+    "governance_tools/skill_evaluation_lite_live.py": {
+      "bytes": 25058,
+      "sha256": "10a1b15ccca50f38d765a54a05298875921eeed2d6de275169a5e676bc5e9f7d",
+      "git_blob": "b9f4ceb5b6123b99bdd23037499a359784eca504",
+      "reviewed_normalized_match": true
+    },
+    "tests/test_skill_evaluation_lite_live.py": {
+      "bytes": 13214,
+      "sha256": "8b6de01bbde4af3c1056efb161bbfc3ff87cbd3924e50ba7eaff3a15f2229a83",
+      "git_blob": "76cbefea74f743f3fd414efb22a191e583a3d2e0",
+      "reviewed_normalized_match": true
+    },
+    "docs/governance/skill-evaluation-lite-slice2.md": {
+      "bytes": 7767,
+      "sha256": "eeba5472282833c7a54ef41c6f35ac0ea5f84a1910396ed1a03f117bc2bed5ff",
+      "git_blob": "a67d7a749d1fa9f2abc8b1aca98604a9057faa34",
+      "reviewed_normalized_match": true
+    }
+  },
+  "scope_match": true,
+  "push": false
+}

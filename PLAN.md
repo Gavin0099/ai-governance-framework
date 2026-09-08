@@ -2882,3 +2882,16 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Known 0.153.4 runtime warnings are distinguished from forbidden tools using full-message matches. Unknown error/incomplete turn/tool events still reject; exact warnings remain host-only and are retained in reports. Prior keyring override included.
 - Local and independent targeted tests: 57 PASS each; independent APPROVED / Blocking 0, including read-only replay of the historical completed model turn. Evidence: memory/evidence/p2-lite-parser-20260908/review.json and validation.json.
 - Owner-authorized order: scoped compatibility commit, then exactly one new real Lite E2E invocation; failure preserves evidence and stops. No automatic retry, Strict changes, or push. Real E2E remains unproven before execution.
+
+## POST-GATE3 P2 Slice 2 live outcome — 2026-09-08
+
+- Compatibility implementation committed at 85dcfa7456957d943a621bb7ddd2c9c746ee5978; one subsequent authorized Lite E2E completed in 87,015 ms of adapter time. Real model generation + host oracle/regression + fresh scorer + freeze + authorized unblinding/report completed.
+- Both oracles 10/10; CONTROL regression 6/6, TREATMENT 7/7. Frozen quality CONTROL 7/8, TREATMENT 8/8 (causal explanation difference). One bounded pipeline fixture only; no general Skill efficacy, measured cost reduction, OS isolation or Strict equivalence.
+- Four known warnings per model preserved; no tool event observed. Exact artifact/freeze/report linkage verified. Result REAL_LITE_END_TO_END_VALIDATED; report memory/evidence/p2-lite-parser-20260908/live/report.json. Live evidence remains uncommitted; no push or additional run. STOP.
+
+
+## P2 Slice 2 durability — 2026-09-08
+
+- Owner authorized one scoped local evidence/PLAN/memory commit and STOP. Preserve the real flow report, frozen scores, raw model/host receipts and exact identity verification; historical precommit snapshots remain unchanged. No production changes, rerun, rescoring, benchmark or push.
+- Adapter total was 87,015 ms, not per model: CONTROL 29,344 ms; TREATMENT 34,687 ms; scorer 21,734 ms. The single-task 7/8 vs 8/8 observation does not establish general Skill efficacy or average cost reduction.
+- Evidence inventory: memory/evidence/p2-lite-parser-20260908/durability-manifest.json. After committed bytes verification, P2 Slice 2 durability is closed; any mini benchmark is future scope, not an automatic continuation.

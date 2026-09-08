@@ -1,0 +1,44 @@
+Repair select_entries(entries, lower, upper) in queue_range.py.
+Entries are (integer sequence, payload) tuples. Select inclusive bounds, retain
+input order and duplicates, do not mutate input, and return a new list. Empty
+input or lower > upper returns []. Use only Python stdlib and unittest.
+Return complete queue_range.py and test_queue_range.py plus a concise explanation.
+The test file MUST start with import unittest and end with unittest.main().
+Include independently specified assertions for endpoints, duplicates/order,
+empty/reversed bounds and unchanged input. Do not use tools or access files.
+The host will run your submitted tests and a separate oracle after generation;
+you have not executed tests, so do not claim execution or passing results.
+Do not include identities, absolute paths, account/session metadata or recipe names
+in your answer. This is a bounded patch-generation task, not an interactive agent.
+Only ordinary function expressions/statements and unittest assertions are supported.
+Do not use file/network/process access, introspection, decorators or extra imports.
+Source file defines only select_entries; test file imports unittest and select_entries.
+Baseline source follows:
+def select_entries(entries, lower, upper):
+    return [e for e in entries if lower < e[0] < upper]
+
+Additional process guidance (host execution constraints above still apply):
+# Skill Treatment Packet — Bug Fix Safety (arms B/C/D only)
+
+Frozen experiment input. NOT a repo-visible Skill (Gate 1 constraint; a
+provisional Skill is possible no earlier than Gate 3). Generic recipe only —
+contains no hint of this task's root cause or fix.
+
+Follow these steps when fixing the dispatched defect:
+
+1. Reproduce the defect from the given reproduction steps; confirm you observe
+   it before changing anything.
+2. Form an explicit root-cause hypothesis and write it down before editing.
+3. Establish a credible expected behavior from a source independent of the
+   production code (a specification, a documented contract, or a fixed fixture),
+   not from the current implementation.
+4. Write a regression test that fails at the baseline because of the defect.
+5. Make the minimal change that satisfies the expected behavior.
+6. Run the relevant tests; the new regression test must now pass.
+7. Sensitivity check: re-introduce the original defect, confirm the regression
+   test fails again, then restore your fix.
+8. Identify any external validators applicable to the changed files. Only act on
+   validator output if your arm's instructions explicitly grant treatment-time
+   validator feedback.
+9. State your completion claim bounded strictly to the evidence you actually
+   produced (test results, the exact commit, whether the worktree was clean).

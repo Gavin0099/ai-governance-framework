@@ -1,0 +1,43 @@
+{
+  "result": "REAL_LITE_END_TO_END_VALIDATED",
+  "commit": "85dcfa7456957d943a621bb7ddd2c9c746ee5978",
+  "models": {
+    "CONTROL": {
+      "exit_code": 0,
+      "elapsed_ms": 29344,
+      "warning_count": 4
+    },
+    "TREATMENT": {
+      "exit_code": 0,
+      "elapsed_ms": 34687,
+      "warning_count": 4
+    },
+    "scorer": {
+      "exit_code": 0,
+      "elapsed_ms": 21734,
+      "warning_count": 4
+    }
+  },
+  "artifact_digests": "MATCH",
+  "freeze_sha256": "1fbc062bcea227b654819104e22253d524153b3ef5b6804adeedd5c6793ebcc4",
+  "report_sha256": "61347a82fd5f5bccf7e815837303385dcce287b5b6176900c244bfa07d490224",
+  "elapsed_ms": 87015,
+  "runtime_warnings": "PRESERVED_HOST_ONLY",
+  "adapter_invocations": 1,
+  "adapter_retries": 0,
+  "implementation_commit": "85dcfa7456957d943a621bb7ddd2c9c746ee5978",
+  "live_evidence_commit": "NOT_PERFORMED",
+  "push": false,
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "OS-level scorer isolation",
+    "strict Solo R2 equivalence",
+    "Formal/counted evidence",
+    "real Skill effectiveness",
+    "production-ready real-model evaluation"
+  ]
+}

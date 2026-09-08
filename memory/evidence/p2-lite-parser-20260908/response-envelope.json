@@ -1,0 +1,48 @@
+{
+  "mode": "expanded",
+  "mode_source": "failed_or_partial: runtime validated; live evidence not committed",
+  "task_authority": "Owner authorized narrow parser fix, targeted tests, independent review, scoped commit, then one real Lite E2E; no automatic retry or push",
+  "scope": "bugfix: Lite known warning classifier and prior shared keyring override",
+  "done": {
+    "implementation_commit": "85dcfa7456957d943a621bb7ddd2c9c746ee5978",
+    "implementation_tests": "57 local + 57 independent PASS",
+    "independent_review": "APPROVED / Blocking 0",
+    "real_lite_e2e": true,
+    "live_evidence_committed": false
+  },
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "OS-level scorer isolation",
+    "strict Solo R2 equivalence",
+    "Formal/counted evidence",
+    "real Skill effectiveness",
+    "production-ready real-model evaluation",
+    "comparative operating cost reduction",
+    "clean workspace",
+    "live evidence committed or pushed"
+  ],
+  "evidence_refs": [
+    "memory/evidence/p2-lite-parser-20260908/review.json",
+    "memory/evidence/p2-lite-parser-20260908/committed-verification.json",
+    "memory/evidence/p2-lite-parser-20260908/live-verification.json",
+    "memory/evidence/p2-lite-parser-20260908/live/report.json"
+  ],
+  "risk": "Four known runtime warnings per model retained. No observed tools. Bounded patch generation with host tests, not full interactive Skill tool workflow. Unrelated dirty work excluded.",
+  "next_action": "STOP. Preserve local evidence; no additional run or push.",
+  "governance_cost_observation": {
+    "repo": "ai-governance-framework",
+    "task": "P2 Slice 2 parser false reject",
+    "commit": "85dcfa7456957d943a621bb7ddd2c9c746ee5978",
+    "governance_version": "未確認",
+    "result": "本題流程完成，實跑證據尚未提交",
+    "friction": "已知 runtime warning 被誤分類為工具違規；本刀完成窄修正、測試與獨立審查",
+    "extra_time": "未量測；單次adapter實跑87015ms不是治理額外時間",
+    "decision_changed": "有：接受已知warning並保留證據，未知error與工具事件仍拒絕；真實流程得以完成",
+    "counterfactual": "依已保存trace重播，舊parser仍會拒絕該成功turn；這是reproducer結果。其他未發生風險未知。",
+    "initial_judgment": "必要correctness修正；本次觀察不能單獨證明治理有效或划算"
+  }
+}
