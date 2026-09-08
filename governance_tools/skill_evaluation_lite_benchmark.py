@@ -73,14 +73,22 @@ def load_fixture(key):
     return Fixture(key, task, contents[key+'/baseline.py'], contents[key+'/cases.json'], rubric)
 
 
-def prompt(fixture):
-    return (fixture.task.decode()+'\nBaseline source:\n'+fixture.baseline.decode()+
+def prompt(fixture, *, p3=False):
+    text = (fixture.task.decode()+'\nBaseline source:\n'+fixture.baseline.decode()+
         '\nExecution contract: return JSON source, test_source, summary only. '
         'Use no tools or files. Host will execute submitted code. Do not claim you ran it. '
         'Test source must start with import unittest and end with unittest.main(). '
         'Use a small pure-Python function (nested helpers permitted), loops, '
         'comprehensions and basic containers; unittest assertions only. '
         'No external I/O, introspection, decorators or additional imports.\n')
+    if p3:
+        from governance_tools.skill_evaluation_lite_p3 import policy_text
+        policy_text()
+        function, source, _ = fixture.interface
+        text += (f'Exception to additional-import restriction: tests must explicitly use '
+                 f'from {source[:-3]} import {function}. The host does not inject subject '
+                 'symbols into tests. Submitted source and tests must be independently loadable.\n')
+    return text
 
 
 def validate_submission(fixture, value):
@@ -159,7 +167,10 @@ def correctness(result, fixture):
                 required_case_count=count, regression_status='NOT_EVALUATED')
 
 
-def collect(fixture, binary, home, root, value, model_result):
+def collect(fixture, binary, home, root, value, model_result, *, p3=False):
+    if p3:
+        from governance_tools.skill_evaluation_lite_p3 import collect as collect_p3
+        return collect_p3(fixture, binary, home, root, value, model_result)
     validate_submission(fixture, value)
     _, source_name, test_name = fixture.interface
     workspace = root/'workspace'
@@ -215,12 +226,15 @@ def collect(fixture, binary, home, root, value, model_result):
     return ScoringInput(payload,trace,identity['payload_sha256'],identity['trace_sha256'])
 
 
-def prepare_task(root, config, skill_bytes, task_key):
+def prepare_task(root, config, skill_bytes, task_key, *, p3=False):
     """Future authorized model entry; this slice validates via fake model transport.
 
     Ends at anonymous input. No scorer execution, score freeze or unblinding.
     Caller must obtain separate real-execution authority before calling it live.
     """
+    if p3:
+        from governance_tools.skill_evaluation_lite_p3 import policy_text
+        policy_text()
     fixture=load_fixture(task_key)
     codex=live.Binary(**config['codex']); python=live.Binary(**config['python'])
     codex.verify(); python.verify()
@@ -234,10 +248,10 @@ def prepare_task(root, config, skill_bytes, task_key):
     try:
         for arm in ('CONTROL','TREATMENT'):
             folder=root/arm; folder.mkdir()
-            text=prompt(fixture)
+            text=prompt(fixture, p3=p3)
             if arm=='TREATMENT': text+='\nAdditional process guidance:\n'+skill_bytes.decode()
             value,result=live.model_call(codex,config['model'],home,folder,text,live.ARM_SCHEMA)
-            inputs[arm]=collect(fixture,python,home,folder,value,result)
+            inputs[arm]=collect(fixture,python,home,folder,value,result,p3=p3)
         session=lite.LiteSession(inputs,rubric_bytes=fixture.rubric,run_id=str(uuid.uuid4()),synthetic=False)
         live.save(root/'scorer-input.json',session.scorer_input)
         return session

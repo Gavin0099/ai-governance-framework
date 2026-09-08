@@ -55,6 +55,8 @@ def _parse(raw):
 
 def _available(row, dimension):
     if dimension == 'regression_safety':
+        if 'regression_assessment' in row:
+            return row['regression_assessment']['required_regression_score'] != NA
         evidence = row['regression_evidence']
         return bool(evidence['test_source']) and any(
             e['version_binding'] == 'EXECUTED_FOR_CURRENT_VERSION'
@@ -82,7 +84,9 @@ class LiteSession:
         # Synthetic opaque labels, deliberately unrelated to arm names or order.
         labels = (secrets.token_hex(32), secrets.token_hex(32))
         self._mapping = dict(zip(labels, ('CONTROL', 'TREATMENT')))
-        delivery = prepare_scoring_delivery(
+        from governance_tools.skill_evaluation_lite_p3 import P3Input, prepare_delivery
+        consumer = prepare_delivery if any(type(i) is P3Input for i in inputs_by_arm.values()) else prepare_scoring_delivery
+        delivery = consumer(
             inputs_by_label={key: inputs_by_arm[arm] for key, arm in self._mapping.items()},
             evaluation_id=run_id,
             pair_id='synthetic-lite-only' if synthetic else 'lite-only', slot='R2-SHAKEDOWN',
@@ -128,6 +132,10 @@ class LiteSession:
                     raise LiteError('Scorer identity leakage')
                 if not _available(rows[key], name) and score != NA:
                     raise LiteError('Insufficient evidence must remain NOT_ASSESSABLE')
+                if name == 'regression_safety' and 'regression_assessment' in rows[key]:
+                    required = rows[key]['regression_assessment']['required_regression_score']
+                    if required is not None and score != required:
+                        raise LiteError('P3 score contradicts attributable execution evidence')
         frozen = encode({'scorer_input_sha256': digest(self._input), 'scores': value['scores']})
         self._freeze = frozen
         return frozen
@@ -186,6 +194,10 @@ def synthetic_scorer(scorer_input):
                    'evidence': 'Synthetic fixture evidence only.' if _available(row, name)
                    else 'Required evidence absent; no score inferred from oracle.'}
             for name in DIMENSIONS}
+        if 'regression_assessment' in row:
+            required = row['regression_assessment']['required_regression_score']
+            if required is not None:
+                scores[row['presentation_key']]['regression_safety']['score'] = required
     return encode({'scores': scores})
 
 

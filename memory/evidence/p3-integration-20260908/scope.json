@@ -1,0 +1,39 @@
+{
+  "base_head": "6ab5db8895ae3299d15add3a678118af6f2772da",
+  "source_allowlist": [
+    "governance_tools/skill_evaluation_lite_p3.py",
+    "governance_tools/skill_evaluation_lite.py",
+    "governance_tools/skill_evaluation_lite_benchmark.py",
+    "tests/test_skill_evaluation_lite_p3.py"
+  ],
+  "done": "Prospective P3 integration, synthetic tests, independent review, scoped commit, STOP",
+  "no_real_model": true,
+  "no_historical_rescoring": true,
+  "no_push": true,
+  "identity": [
+    {
+      "path": "governance_tools/skill_evaluation_lite_p3.py",
+      "bytes": 16131,
+      "sha256": "e15d3b4a1646cc75890db5ad6f91d16d9ef5b299bec4457950de02a0cc03682d",
+      "git_blob": "a566630e43b0df3656525b33dcbce50813c66c73"
+    },
+    {
+      "path": "governance_tools/skill_evaluation_lite.py",
+      "bytes": 11096,
+      "sha256": "0df74a611ec12cbbb49b3a705ec2ce4454fb411aabb0393e817a7387f8a8ab7b",
+      "git_blob": "8b36b99ea7d50e4bc2f29366f9064c47bb9251df"
+    },
+    {
+      "path": "governance_tools/skill_evaluation_lite_benchmark.py",
+      "bytes": 15211,
+      "sha256": "59b9433ea9571e534aa3e49c28280459fc177daa2b61ad32d557622d6e6afd54",
+      "git_blob": "5e568c960bc21668f2c4efe6562457aefb952e03"
+    },
+    {
+      "path": "tests/test_skill_evaluation_lite_p3.py",
+      "bytes": 7449,
+      "sha256": "8b240d0096c1616ed84107c28e968d6175002a21f761589fa556a9f172b886a7",
+      "git_blob": "e33ff616fbe0d37b9a2b55c866cb7c723ddc2c85"
+    }
+  ]
+}

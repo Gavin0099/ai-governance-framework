@@ -5250,3 +5250,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: NOT RUN: no tests rerun for text review; prior7PASS at memory/evidence/p3-regression-rubric-candidate-20260908/tests.txt. Exact candidate/fixture/test and preserved historical identities reverified; independent five-clause review at memory/evidence/p3-regression-rubric-review-20260908/review.json.
 - Next action: STOP for separately authorized exact-byte owner adoption; no automatic commit or implementation.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:60c66f66d5d0437633713800edf0730ed3b3cc634116e3e540e6af16e834f0ec -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `60c66f66d5d0437633713800edf0730ed3b3cc634116e3e540e6af16e834f0ec`
+- Commit binding: `6ab5db8895ae3299d15add3a678118af6f2772da` (bound)
+- Record: P3 future-only projection/scorer opt-in integration: host-confirmed versions remain separate from execution errors; attributable submitted missing-import/syntax/assertion failures require0, harness/environment/unknown remainsNOT_ASSESSABLE; nonzero alone insufficient.112 targeted tests passed. Independent review in progress; two observed review findings fixed: scorer loading-contract visibility and host loader failure classification. Historical/default scoring unchanged; no model or push. Unrelated dirty work excluded.
+- Validation boundary: memory/evidence/p3-integration-20260908/tests-6.txt
+- Next action: Complete independent exact-byte review, scoped local commit if Blocking0, verify committed identities, then STOP.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:4c54e14e0f837bf0ad0b6bf855029ebb5ed140fe386ac8f1fee278ea1bcc373e -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `4c54e14e0f837bf0ad0b6bf855029ebb5ed140fe386ac8f1fee278ea1bcc373e`
+- Commit binding: `6ab5db8895ae3299d15add3a678118af6f2772da` (bound)
+- Record: P3 integration independent ACCEPT Blocking0 with112 independent PASS; both concrete review findings resolved. Local112PASS and preserved fixture/historical identities verified. Exact reviewed projection SHAe15d3b4a1646cc75890db5ad6f91d16d9ef5b299bec4457950de02a0cc03682d. Approved owner scope proceeds to local commit only; no real evaluations or push.
+- Validation boundary: memory/evidence/p3-integration-20260908/review.json
+- Next action: Scoped commit, verify exact committed identities and unchanged historical evidence, STOP.
+- PLAN reconciliation: `updated`

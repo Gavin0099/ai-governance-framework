@@ -2964,3 +2964,11 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Future-only: complete current-version execution evidence attributing regression nonexecution to submitted content supports0; evidence gaps/harness/environment/ambiguous attribution stayNOT_ASSESSABLE. Nonzero exit alone insufficient. Historical frozen scores and closeout unchanged.
 - Projection/scorer semantics unchanged. Existing error-to-NOT_CONFIRMED remains next separately authorized implementation issue. Synthetic fixture/test sources remain uncommitted; adoption does not claim production support.
 - One scoped local adoption commit and committed identity verification, STOP. No benchmark/model execution, Skill/fixture edits, historical rescoring or push. Unrelated dirty work excluded.
+
+
+## P3 prospective projection / scorer integration — 2026-09-08
+
+- Explicit p3=True future Lite adapter uses adopted amendment9ffa3492 and owner recordb22c8300. Existing default Lite and Strict sources remain unchanged except additive selection; frozen fixture/rubric and historical scores are preserved.
+- Host receipts separate current source/test versions from execution errors and identify the failing submitted/host phase. Missing import or syntax with attributable exact execution, and assertion failures, require0; harness/environment/unknown/missing evidence remainNOT_ASSESSABLE. Nonzero alone insufficient. Passing receipts leave unchanged coverage-based0/1/2 judgment to scorer.
+- Scorer receives explicit import/no-symbol-injection contract and anonymous failure locations; receipt digests remain host-only. Syntax-invalid submissions compile only; no unchecked submission execution. Future adapter entry, synthetic fixtures, independent review and committed identities are recorded in memory/evidence/p3-integration-20260908/.
+- DONE limited to synthetic integration plus scoped local commit. No real model, old benchmark rerun/rescoring, Skill change, adopted rubric edit or push. STOP after commit verification; unrelated dirty work excluded.

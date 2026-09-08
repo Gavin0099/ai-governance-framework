@@ -1,0 +1,35 @@
+{
+  "result": "P3_PROSPECTIVE_INTEGRATION_VALIDATED",
+  "local": {
+    "passed": 112,
+    "failed": 0,
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_skill_evaluation_lite_p3.py tests/test_skill_evaluation_lite.py tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite_benchmark.py -q -p no:cacheprovider --basetemp=memory/evidence/p3-integration-20260908/tests-6",
+    "output": "tests-6.txt"
+  },
+  "independent": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_skill_evaluation_lite_p3.py tests/test_skill_evaluation_lite.py tests/test_skill_evaluation_lite_benchmark.py tests/test_skill_evaluation_lite_live.py -q -p no:cacheprovider --basetemp=memory/evidence/p3-integration-20260908/review-tests-final",
+    "exit_code": 0,
+    "passed": 112,
+    "failed": 0,
+    "elapsed_seconds": 13.06
+  },
+  "review": "review.json",
+  "preservation": "preservation.json",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "governance_cost_observation": {
+    "review": "Two concrete correctness findings changed implementation: explicit scorer loading contract and host-loader error disposition. Necessary protection; evidence review.json.",
+    "agent_waste": "Initial test import and missing scratch parent fixed before useful tests; not governance friction.",
+    "extra_time": "not measured"
+  },
+  "not_claimed": [
+    "real model execution",
+    "historical rescoring",
+    "arbitrary Python error attribution",
+    "OS-level scorer isolation",
+    "push"
+  ]
+}
