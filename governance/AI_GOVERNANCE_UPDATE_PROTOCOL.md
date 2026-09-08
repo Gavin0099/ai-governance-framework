@@ -56,7 +56,8 @@ A valid `already_current` conclusion for a submodule consumer must include:
 - target upstream framework HEAD
 - dry-run update result
 
-Required response shape:
+Required technical evidence shape (after the plain-language opening defined
+below; not a replacement for the complete adoption table):
 
 ```text
 AI Governance update check: <already_current | update_available | updated | manual_update | destructive_manual_update | not_submodule_consumer | not_verified>
@@ -95,7 +96,10 @@ AGENTS.md was updated and the parent repo is up to date, so AI Governance is cur
 Valid partial conclusion:
 
 ```text
-AGENTS.md was updated, but the AI Governance Framework submodule was not checked.
+結果：這次只更新了指令文件，尚不能確認治理框架更新完成；沒有建立提交，上傳與合併狀態未確認。
+原因：治理框架的版本與導入狀態尚未檢查。
+下一步：先檢查框架版本及導入狀態，再判定是否需要更新；不因此取得更新或上傳授權。
+
 AI Governance update check: not_verified
 governance submodule path: NOT CHECKED
 nested governance HEAD: NOT CHECKED
@@ -400,7 +404,8 @@ reason: <why it was not run>
 claim boundary: update commit/build evidence only; adoption completeness was not reported
 ```
 
-Valid wording:
+Valid technical evidence excerpt (after the plain-language opening; not a
+complete final report):
 
 ```text
 AI Governance was updated, and the adoption status summary is partial:
