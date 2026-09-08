@@ -223,12 +223,21 @@ def validate_arm(value):
     validate_code(value['test_source'], tests=True)
 
 
-def validate_code(source, *, tests):
+def validate_code(source, *, tests, benchmark_function=None):
     """Small task-specific Python subset, not a general security sandbox.
 
     Reject host I/O/process/introspection before importing generated code. Only
     trusted stdlib unittest plus the separately checked queue helper may import.
     """
+    interfaces = {
+        None: ('select_entries', 'queue_range'),
+        'select_entries': ('select_entries', 'queue_range'),
+        'merge_intervals': ('merge_intervals', 'interval_merge'),
+        'has_cycle': ('has_cycle', 'dependency_graph'),
+    }
+    if benchmark_function not in interfaces:
+        raise lite.LiteError('Unsupported benchmark interface')
+    function, module = interfaces[benchmark_function]
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
@@ -245,6 +254,11 @@ def validate_code(source, *, tests):
         'assertIs','assertIsNot','assertIsNone','assertIsNotNone','assertIn','assertNotIn',
         'assertListEqual','assertSequenceEqual','assertTupleEqual','assertGreater',
         'assertLess','assertGreaterEqual','assertLessEqual'}
+    if benchmark_function is not None:
+        safe_calls |= {'set', 'dict', 'sorted', function}
+        safe_methods |= {'get', 'add', 'remove', 'discard', 'pop', 'sort', 'items', 'values', 'keys', 'extend'}
+        if not tests:
+            safe_calls |= {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
     for node in ast.walk(tree):
         if not isinstance(node, allowed):
             raise lite.LiteError('Unsupported Python operation')
@@ -264,7 +278,7 @@ def validate_code(source, *, tests):
             if not tests or len(node.names)!=1 or node.names[0].name!='unittest' or node.names[0].asname:
                 raise lite.LiteError('Unsupported import')
         if isinstance(node, ast.ImportFrom):
-            if not tests or node.module!='queue_range' or node.level or len(node.names)!=1 or node.names[0].name!='select_entries' or node.names[0].asname:
+            if not tests or node.module!=module or node.level or len(node.names)!=1 or node.names[0].name!=function or node.names[0].asname:
                 raise lite.LiteError('Unsupported import')
         if isinstance(node, ast.ClassDef):
             if not tests or node.decorator_list or node.keywords or len(node.bases)!=1 or ast.unparse(node.bases[0])!='unittest.TestCase':
@@ -273,7 +287,7 @@ def validate_code(source, *, tests):
             raise lite.LiteError('Unsupported function')
     if not tests:
         definitions=[n for n in tree.body if not (isinstance(n,ast.Expr) and isinstance(n.value,ast.Constant) and isinstance(n.value.value,str))]
-        if len(definitions)!=1 or not isinstance(definitions[0],ast.FunctionDef) or definitions[0].name!='select_entries':
+        if len(definitions)!=1 or not isinstance(definitions[0],ast.FunctionDef) or definitions[0].name!=function:
             raise lite.LiteError('Only queue helper definition permitted')
 
 

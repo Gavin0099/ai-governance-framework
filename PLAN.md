@@ -2918,3 +2918,11 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Local fixture validation PASS: correct repairs 12/12, 13/13, 14/14; all intended baseline defects and superficial-repair counterexamples retained. Independent re-review ACCEPT / Blocking 0; prior full review remains applicable.
 - Owner authorized this narrow correction followed by adoption/scoped commit after Blocking 0. Accepted pack manifest SHA256 a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34. Exact snapshot and historical review evidence retained; no claim that earlier candidate snapshots were adopted.
 - STOP after scoped local commit and identity verification. Runner integration/difficulty calibration/model evaluation remain unverified; no runner/Skill/scorer or historical-result changes, no push. Unrelated dirty work excluded.
+
+
+## Three-task Lite benchmark adapter — 2026-09-08
+
+- BENCHMARK_LITE_INTEGRATION_READY: three adopted fixtures verify manifest/bytes, materialize separate two-arm workspaces, use their own oracle cases and rubric, preserve host source/test versions and regression diagnostics through the existing anonymous consumer. No real model/scorer execution.
+- Only new bounded adapter/test and opt-in Lite AST support; Strict modules and all fixture bytes unchanged. Local 76 PASS, independent 76 PASS, review ACCEPT / Blocking 0. Evidence memory/evidence/lite-benchmark-adapter-20260908/review.json and validation.json.
+- Completed zero-test evidence remains unassessable. Regression launch/timeout/import failures preserve raw receipts and STOP rather than promising continued scoring. Host alias mapping is explicit; no OS isolation/general sandbox claim.
+- Owner authorized scoped local commit, identity verification, STOP. Separate authorization required for real three-task model runs; no scoring/freeze/unblinding, Skill/history change or push. Unrelated dirty work excluded.

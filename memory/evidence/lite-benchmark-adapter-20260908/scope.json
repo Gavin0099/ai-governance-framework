@@ -1,0 +1,41 @@
+{
+  "problem": "Existing Lite is queue-range specific; the three adopted fixtures cannot be consumed faithfully.",
+  "done": "BENCHMARK_LITE_INTEGRATION_READY: no-model integration proves each task reaches anonymous scorer input with task-specific oracle and version-bound regression evidence.",
+  "authority": "Current owner bounded fixture-driven adapter instruction; tests, independent review, scoped local commit, STOP.",
+  "scope": [
+    "governance_tools/skill_evaluation_lite_benchmark.py",
+    "governance_tools/skill_evaluation_lite_live.py (opt-in benchmark AST interface only)",
+    "tests/test_skill_evaluation_lite_benchmark.py",
+    "minimum PLAN/daily and review evidence"
+  ],
+  "non_goals": [
+    "real model evaluation",
+    "real scorer/freeze/unblinding",
+    "Strict changes",
+    "fixture edits",
+    "Skill edits",
+    "fourth task",
+    "push"
+  ],
+  "boundary": "New adapter calls existing Lite model transport/host process and existing LiteSession/future consumer. Existing queue-range validation defaults remain unchanged. No new schema or generic domain loader.",
+  "identities": "Adopted manifest a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34; full inventory contents byte/SHA/blob checked before output root/model launch. Existing Binary.verify + closed environment reused.",
+  "projection": "Host-observation readback aliases feed the unchanged queue-range projection; exact original filenames and source/test SHA preserved in host receipt. Shared rubric anti-inference instruction rendered with neutral wording; original rubric bytes unchanged.",
+  "evidence_plan": "Three actual host Python no-model E2E tests, wrong repairs, identity/path mismatch, zero tests, mutation; related Lite regression tests; independent review.",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "OS enforcement",
+    "real model success",
+    "Skill efficacy",
+    "generic evaluator readiness"
+  ],
+  "governance_cost_observation": {
+    "event": "First test invocation omitted creation of basetemp parent",
+    "impact": "31 setup errors, no implementation conclusion; rerun after parent directory creation",
+    "classification": "agent 自己的浪費",
+    "extra_time": "未量測"
+  }
+}
