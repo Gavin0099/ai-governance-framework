@@ -1,0 +1,75 @@
+{
+  "scope": "Preserve existing native verifier, fixed probe bridge and synthetic live evidence only. No behavior modifications.",
+  "authority": "Current owner scoped local commit authorization; earlier split-host and temporary exact-SID RX authorizations.",
+  "source_identities": {
+    "governance_tools/solo_r2_scoring_host_verifiers.cs": {
+      "bytes": 7793,
+      "sha256": "7c9db92d00fca3cadaa6861bee1e3fbf8ae65d4112f1864860f0df566738f56e"
+    },
+    "memory/evidence/solo-r2-split-verifiers-20260907/Probe.split.cs": {
+      "bytes": 9852,
+      "sha256": "bca291fc6ef817f34554f6f94040ec2da045c9f3ba19e3def5c27ca7d445c810"
+    },
+    "memory/evidence/solo-r2-split-verifiers-20260907/SplitTests.cs": {
+      "bytes": 1230,
+      "sha256": "501e6b17a856a92122195c28c8e60b9759f81050351c9ecd51144e6314162c36"
+    },
+    "memory/evidence/solo-r2-split-verifiers-20260907/test-output.txt": {
+      "bytes": 109,
+      "sha256": "ddfc48332e1d13a9b7e0b4bc027c9db827df0e57ac55b4ae078aff521d77db19"
+    },
+    "memory/evidence/solo-r2-split-verifiers-20260907/result.json": {
+      "bytes": 1847,
+      "sha256": "ff302e4f525ad5def133b25a10e658b3c7179f16c602ed18a8e26e1b30e6147b"
+    },
+    "memory/evidence/solo-r2-projection-live-20260907/run.ps1": {
+      "bytes": 4994,
+      "sha256": "9765651aa0a4b7aaa2f2b5f65a4f36a761444334643a7bbefc20073240e76d7f"
+    },
+    "memory/evidence/solo-r2-projection-live-20260907/native-result.json": {
+      "bytes": 117,
+      "sha256": "25f9d028d9fd6c8810a7b48064e5b8e59cfe71585991e763f7d7f66c11a40a34"
+    },
+    "memory/evidence/solo-r2-projection-live-20260907/result.json": {
+      "bytes": 2919,
+      "sha256": "250840b025b687e65907b41f12572ac1abada43b9ba837dc2e1b519b181380fe"
+    },
+    "memory/evidence/solo-r2-isolation-capability-commit-20260907/verify.ps1": {
+      "bytes": 2971,
+      "sha256": "9288f0cdde57da85e2463b091ffcb9fa82dd213c49bc6a3fda37d7fda090ac70"
+    },
+    "memory/evidence/solo-r2-isolation-capability-commit-20260907/validation.json": {
+      "bytes": 766,
+      "sha256": "8a0b590c0a204f4da771021acbfee3e676b09563772c1bdd003d2ca8eddf9aa7"
+    }
+  },
+  "review": "Current agent read complete verifier/bridge and historical run script; no new independent review claimed. Prior f680 review covers inherited launcher implementation only.",
+  "native_boundary": "Existing explicitly authorized fixed Windows x64 .NET Framework probe uses absolute Win32 UTF-16 imports, explicit ABI layouts and locally paired handles/buffers; no new general native abstraction or portability claim.",
+  "historical_test_note": "SplitTests.Main characterized the old writable-parent failure. Preserve unchanged; current verify.ps1 invokes only five existing pure Check cases, never Main.",
+  "historical_runner_note": "projection-live/run.ps1 is the preserved one-shot command, not a reusable launcher. It performs deployment/RX mutation and must not be invoked under this commit authorization. Its existing result blocks replay.",
+  "validation": {
+    "builds": 2,
+    "targeted_acl_cases": 5,
+    "saved_live_exit": 0,
+    "saved_live_mask": 2047,
+    "live_rerun": false,
+    "readonly_history_hashes": "MATCH",
+    "readonly_probe_acl": "Matches preserved pre-callback executable; exact SID RX absent",
+    "superseding_outputs": "NOT PRESENT"
+  },
+  "limitations": [
+    "Synthetic expected digest only; no real bundle semantic anonymity validation.",
+    "Not connected to Python superseding-scoring generation callbacks.",
+    "Probe contains forbidden path constants and must never be delivered as scorer input.",
+    "Real model/scorer runtime isolation not established by a synthetic probe.",
+    "Root ACL prior operation converted 11 child ACL representations; grants did not increase. No claim of unchanged child SDDL or whole historical subtree hardening."
+  ],
+  "excluded": [
+    "Unrelated existing dirty files",
+    "Compiled executables",
+    "Setup/ACL-repair scripts",
+    "Abandoned diagnostic variants",
+    "Real ledger, old bundle/checkpoint, real scoring state"
+  ],
+  "next_action": "STOP after committed identities verified; real bundle work requires separate bounded step."
+}

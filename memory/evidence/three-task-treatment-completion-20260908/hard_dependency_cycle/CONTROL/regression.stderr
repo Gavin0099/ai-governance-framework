@@ -1,0 +1,7 @@
+test_order_independence_repeat_calls_and_no_mutation (test_dependency_graph.HasCycleTests.test_order_independence_repeat_calls_and_no_mutation) ... ok
+test_required_cases (test_dependency_graph.HasCycleTests.test_required_cases) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK

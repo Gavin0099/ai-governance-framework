@@ -1,0 +1,69 @@
+{
+  "result": "LITE_BENCHMARK_TEST_HARNESS_COMPATIBILITY_VALIDATED",
+  "meaning": "No-model regression replays only; not a second real benchmark",
+  "head_before": "bfae8ce65b997f9690963f8ac396e29e355a8b0f",
+  "local_validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest -q tests/test_skill_evaluation_lite_benchmark.py tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite.py -p no:cacheprovider --basetemp=memory/evidence/lite-harness-compatibility-20260908/tests-2 --tb=short",
+    "exit_code": 0,
+    "passed": 91,
+    "failed": 0
+  },
+  "independent_validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/lite-harness-compatibility-20260908/independent-tests tests/test_skill_evaluation_lite_benchmark.py tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite.py",
+    "exit_code": 0,
+    "passed": 91,
+    "failed": 0,
+    "seconds": 6.34,
+    "model_execution": false,
+    "note": "Tests executed before final restoration of original CRLF on benchmark.py and test file; parent declared newline-only restoration, final reviewed identities use restored bytes."
+  },
+  "review_sha256": "0b0d13743b81821de8e2b22205e33609624b4c419d8ae76ade7132f11fec5803",
+  "reviewed_files": {
+    "governance_tools/skill_evaluation_lite_benchmark.py": {
+      "bytes": 14434,
+      "sha256": "ea948476ffcce2f5f987298a26e216d3eeaba3a7e1d49c784d30186db27ddb50",
+      "git_blob": "e435546936b8f68a10280ead39731a412206d07c"
+    },
+    "governance_tools/skill_evaluation_lite_live.py": {
+      "bytes": 26604,
+      "sha256": "d5eb3a323f5b41860edc0652332c9fe7b4927ad079cf073b5d9d7d0459de2c0b",
+      "git_blob": "cd8082689c7578ae451f61151a4eecada75a3f2f"
+    },
+    "tests/test_skill_evaluation_lite_benchmark.py": {
+      "bytes": 12883,
+      "sha256": "526a585e12d57d937cacfd9e510794eae207ed0e3ee2a2afbab4009fb89895a0",
+      "git_blob": "1fda4e259e5f74b7bd0b77e53a334f63365af3d4"
+    },
+    "tests/fixtures/lite_benchmark_compatibility/easy_queue_range.json": {
+      "bytes": 3578,
+      "sha256": "5c125a6cce3987d664e7098d11b004b5948c85a2b5f4eb2ce2d912f6de6b63bd",
+      "git_blob": "f7a69454c342cfbd769952c909e50c32ef407501"
+    },
+    "tests/fixtures/lite_benchmark_compatibility/hard_dependency_cycle.json": {
+      "bytes": 3589,
+      "sha256": "899ce7f0a30849280ed38beb97ecd7f1b14d367f043eb10d4b876e57193d496d",
+      "git_blob": "3a1b77b22e91af0fdb462c104382a6ad85a38e3a"
+    },
+    "tests/fixtures/lite_benchmark_compatibility/medium_interval_merge.json": {
+      "bytes": 3240,
+      "sha256": "84f62331f085701992ec46a7ef6bd0fd1f0f4d798bbf625283c6bc67e5fcef3c",
+      "git_blob": "8dc88c58ee27b3d00bdde3824b09d23232d5a092"
+    }
+  },
+  "preserved_original_failure_artifacts": 43,
+  "replay_results": {
+    "easy": "7 tests, 7 NameErrors, exit1; missing import not repaired",
+    "medium": "7 tests, 0 errors, exit0",
+    "hard": "2 test methods, 0 errors, exit0"
+  },
+  "test_count_integrity": "guarded and unguarded deliberate assertion failure each produce 1 test/1 failure/exit1; no fabricated count",
+  "model_invocations": 0,
+  "scoring": false,
+  "push": false,
+  "limitations": [
+    "Compatibility repair does not fix the captured Easy missing-import defect and does not establish a new live evaluation result.",
+    "No fresh TREATMENT/model/scorer execution or general Skill efficacy claim.",
+    "Task-specific AST restrictions are not general security sandbox proof.",
+    "Companion PLAN/memory/scope records excluded from this code review."
+  ]
+}

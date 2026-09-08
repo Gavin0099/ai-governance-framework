@@ -1,0 +1,29 @@
+{
+  "scope": "Owner-authorized single-use controlled EXECUTE branch through existing DisposableArmExecution API; isolated tests only",
+  "baseline_commit": "10840d57d6220990ae98e0c64d4f7d6f73d0fd25",
+  "file_sha256": {
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/controller.py": "33d2160055edc3db214c547b2a34e98b48714da7a298256d9d58c278288deabb",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/launch.ps1": "85a1367b5cc0ca178393ba85bd82ebfce5e1482dcfc31acae6f67e830f52837b",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py": "e50d8dc355ba95d0d04a5604b97d862bd0d2901b43272ba903e2bd62e3bcd4dc",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/README.md": "6b5b3365888ab502b14ac4ff02122fa97784e211dcf7cea8297f6ae5cc904e38",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/manifest.json": "a6427ed72c1820df6f2f312b93e7b9d00393192137ff4279ffcd55e6590d3680"
+  },
+  "tests": {
+    "command": ".venv/Scripts/python.exe -B -m pytest artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py -q -p no:cacheprovider --basetemp C:/Users/daish/AppData/Local/Temp/r2-execute-check-20260907a --tb=short",
+    "passed": 47,
+    "failed": 0
+  },
+  "test_boundary": "Native observations/constructors and final arm execution API substituted in isolated tests. Actual outer wrapper check only. No real readiness or arms.",
+  "old_ledger_sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+  "replacement_ledger_sha256": "482f4b04fb020caf019b0334602a00e96fee8d92bca3fb784ed4c145476086bf",
+  "replacement_events": 2,
+  "not_claimed": [
+    "real readiness PASS",
+    "Attempt admission or task exposure",
+    "real CONTROL/TREATMENT execution",
+    "oracle/scoring/unblinding",
+    "commit",
+    "push"
+  ],
+  "open_runtime_prerequisite": "Dedicated replacement Codex HOME is not prepared; no substitution or provisioning in this slice."
+}

@@ -1,0 +1,81 @@
+{
+  "status": "OWNER_ADOPTED",
+  "recorded_at_utc": "2026-09-06T14:27:12.466838+00:00",
+  "authority_source": "Explicit current main-session owner instruction: 採納這組 exact bytes，並授權 adoption record＋scoped local commit，驗證後 STOP",
+  "timestamp_meaning": "Local recording time; not independently witnessed or signed",
+  "baseline_commit": "0402b7937cfcfce8af55d50cb56744d8e1a8adfd",
+  "adopted_decision": {
+    "path": "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md",
+    "bytes": 6250,
+    "lines": 107,
+    "sha256": "bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3",
+    "git_blob_oid": "f30bd4d6e7df54c927ce5cc334ca4658b14915e9"
+  },
+  "candidate_header_interpretation": "Historical candidate header remains byte-for-byte unchanged; adoption is established by this separate record",
+  "review": {
+    "path": "memory/evidence/solo-r2-replacement-decision-candidate-20260906/review.json",
+    "sha256": "80adb505508585d2c51b394641585dc76a6e56cd374557f6c23abc949bd7a370",
+    "verdict": "ACCEPT",
+    "blocking": 0
+  },
+  "old_evaluation_disposition": {
+    "evaluation_id": "1ebfbc48-d2fe-459d-bab7-b9fd75a5810b",
+    "pair_id": "747c09b2-56d0-42d0-bc34-d505e23e311e",
+    "disposition": [
+      "FAILED_MECHANISM_SHAKEDOWN",
+      "PRESERVED",
+      "NO_FURTHER_ARM"
+    ],
+    "ledger_path": "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "ledger_sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+    "ledger_events": 5,
+    "meaning": "Owner disposition alongside existing evidence; no new ledger event or rewrite"
+  },
+  "allocation": {
+    "additional_replacement_disposable_evaluations": 1,
+    "dedicated_ledgers": 1,
+    "new_pairs": 1,
+    "slot": "R2-SHAKEDOWN",
+    "arm_attempts": 2,
+    "meaning": "One per fresh-context arm, not retries; no automatic further replacement"
+  },
+  "fixed_placement": {
+    "ledger": "artifacts/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "genesis_binding": "memory/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/genesis-binding.json"
+  },
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "new_genesis_identity": null,
+  "repair_baseline_commit": "0402b7937cfcfce8af55d50cb56744d8e1a8adfd",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "MECHANISM_SHAKEDOWN_ONLY",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "authority_relationship": "Adopts only this exact decision: bounded D2 allocation exception and distinct placement; previous authorities and history remain unchanged. No general retry right; old unavailable-cost authority is not transferred.",
+  "open_prerequisites": [
+    "New controller custody/keys/payload-pin/runtime-root placement binding",
+    "Reviewed committed replacement consumers",
+    "Separate review/adoption of any needed new unavailable-cost binding"
+  ],
+  "authorized_now": [
+    "adoption record",
+    "one scoped local authority/PLAN/canonical-memory commit",
+    "committed exact-identity verification"
+  ],
+  "not_authorized": [
+    "production implementation",
+    "evaluation or ledger creation",
+    "Pair or Attempt creation",
+    "task exposure or arm execution",
+    "old state migration",
+    "retry",
+    "oracle/scoring/unblinding",
+    "Formal or A1-A6 progression",
+    "push"
+  ],
+  "blob_provenance": "No self-referential enclosing commit embedded; baseline names parent only",
+  "durability_scope": "Local durability only after committed identity verification",
+  "stop": "After scoped local commit and verification; no automatic next tranche"
+}

@@ -1,0 +1,22 @@
+{
+  "mode": "task_completion",
+  "mode_source": "Bounded controlled EXECUTE wiring and independent isolated review completed",
+  "task_authority": "Explicit owner authorization for controlled EXECUTE branch plus isolated tests/review only",
+  "scope": "Replacement launcher controller/wrapper/tests/README; manifest unchanged; required records",
+  "done": "Implementation and independent review complete; uncommitted",
+  "claim_ceiling": "Same-process single-use execution API wiring verified in isolation only",
+  "not_claimed": [
+    "real readiness PASS",
+    "Attempt admission or task exposure",
+    "real CONTROL/TREATMENT execution",
+    "oracle/scoring/unblinding",
+    "commit",
+    "push"
+  ],
+  "evidence_refs": [
+    "memory/evidence/solo-r2-replacement-controlled-execute-20260907/validation.json",
+    "memory/evidence/solo-r2-replacement-controlled-execute-20260907/review.json"
+  ],
+  "risk": "Dedicated Codex HOME not prepared; real readiness/execution requires separate authorization. Existing dirty work excluded.",
+  "next_action": "STOP. Next proposed slice is scoped local commit of reviewed launcher and required records; no further launcher features."
+}

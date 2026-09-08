@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "head": "983d5fad7a4a28047b175adcddf904587a55a008",
+  "scope": "evidence preservation and closeout; no production or model execution",
+  "historical_and_completion_task_artifacts": 196,
+  "freeze_mapping_links": 3,
+  "control_model_reruns": 0,
+  "bound_sources_unchanged": true,
+  "prior_control_bytes_match_reviewed_fixtures": true,
+  "raw_artifacts_preserved": true,
+  "tests_rerun": 0,
+  "reason": "Evidence-only commit; exact identities and score relationships checked",
+  "limitations": [
+    "Existing dirty work excluded",
+    "No general Skill effectiveness or cost claim",
+    "No independent re-scoring"
+  ]
+}

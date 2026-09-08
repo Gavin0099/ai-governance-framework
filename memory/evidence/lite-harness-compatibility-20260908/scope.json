@@ -1,0 +1,51 @@
+{
+  "done": "Three captured submissions load into host unittest with truthful counts; narrowly required Medium/Hard AST patterns admitted; tests/review/scoped commit; STOP",
+  "authority": "Current owner Lite Benchmark Test-Harness Compatibility instruction",
+  "source_changes": [
+    "governance_tools/skill_evaluation_lite_benchmark.py",
+    "governance_tools/skill_evaluation_lite_live.py",
+    "tests/test_skill_evaluation_lite_benchmark.py"
+  ],
+  "reproducer_inputs": "tests/fixtures/lite_benchmark_compatibility/*.json are exact copies of preserved first benchmark CONTROL responses, not changed benchmark tasks or new model outputs",
+  "root_causes": [
+    "Easy unconditional unittest.main() ran during module load and exited before host suite/count collection",
+    "Medium test-only zip and assertIsInstance excluded",
+    "Hard test-only DictComp, IfExp and With/self.subTest excluded"
+  ],
+  "repair": "Delegate only the unique standard final unittest.main entry to the real host TestRunner; no test body edit, no fake count; allow only observed task-specific syntax/calls",
+  "non_goals": [
+    "repair missing import in captured Easy output",
+    "model/TREATMENT execution",
+    "Skill/scorer/Strict edits",
+    "benchmark oracle/task mutation",
+    "historical score/evidence rewrite",
+    "push"
+  ],
+  "observed_after_fix": {
+    "easy": {
+      "tests_run": 7,
+      "errors": 7,
+      "why": "Original test lacks select_entries import; preserved unchanged; not a PASS"
+    },
+    "medium": {
+      "tests_run": 7,
+      "errors": 0
+    },
+    "hard": {
+      "tests_run": 2,
+      "errors": 0,
+      "counting": "Unittest test method count, not subtest count"
+    }
+  },
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "cost_observation": {
+    "event": "Captured-output replays expose missing Easy import after entrypoint fix",
+    "decision": "Preserve genuine NameError rather than inject an import or claim PASS",
+    "extra_time": "未量測",
+    "judgment": "必要正確性防護；未額外擴框架"
+  }
+}

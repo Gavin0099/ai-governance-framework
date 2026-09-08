@@ -1,0 +1,37 @@
+{
+  "disposition": "REAL_LITE_END_TO_END_BLOCKED",
+  "implementation_local_tests": 172,
+  "implementation_independent_tests": 172,
+  "implementation_blocking": 0,
+  "test_command": ".venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/p2-lite-slice2-20260908/tests-2 tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite.py tests/test_solo_r2_future_scoring_consumer.py tests/test_solo_r2_regression_projection.py tests/test_solo_r2_blind_scoring_bundle.py",
+  "real_invocations": 1,
+  "model_exit_code": 1,
+  "model_elapsed_ms": 20516,
+  "reason": "HTTP 401 Missing bearer or basic authentication in header",
+  "adapter_replays": 0,
+  "native_reconnects_observed": true,
+  "arm_outputs": 0,
+  "real_oracle_runs": 0,
+  "real_scorer_runs": 0,
+  "frozen_scores": 0,
+  "unblinding": 0,
+  "credentials_changed": false,
+  "p1_reopened": false,
+  "strict_modified": false,
+  "push": false,
+  "known_open_observations": [
+    "CLI missing authentication; cause not investigated in this scope",
+    "Runtime requirement/configuration item.error events present; parser/runtime compatibility remains unverified"
+  ],
+  "governance_cost_observation": {
+    "repo": "ai-governance-framework",
+    "task": "P2 Slice 2 real Lite wiring",
+    "governance_version": "not independently confirmed",
+    "result": "partial",
+    "event": "Review caught missing anonymous task/baseline context and need for bounded generated-code admission; both corrected before live. Local test sentinel was ambiguous and corrected.",
+    "decision_changed": "yes: add task context and code admission before host execution",
+    "time": "not measured; model process elapsed is separately recorded, not governance overhead",
+    "counterfactual": "Review identified concrete gaps; actual harm without review is not measured.",
+    "judgment": "necessary correctness checks; test sentinel and failed documentation patch attempts are agent overhead, not proof of governance value. No real-evaluation cost reduction established."
+  }
+}

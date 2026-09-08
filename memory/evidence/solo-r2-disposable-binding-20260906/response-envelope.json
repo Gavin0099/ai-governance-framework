@@ -1,0 +1,42 @@
+{
+  "task": "Solo R2 disposable minimal production binding",
+  "task_authority": "user_request",
+  "scope": [
+    "governance_tools/solo_r2_disposable_profile.py",
+    "governance_tools/solo_r2_disposable_binding.py",
+    "governance_tools/solo_attempt_ledger_v2.py",
+    "governance_tools/solo_r2_pair_creation.py",
+    "governance_tools/solo_r2_attempt_execution.py",
+    "tests/test_solo_r2_disposable_binding.py"
+  ],
+  "done": "Local creation/pre-Pair binding implemented, 164 targeted tests passed, independent review APPROVED with zero blockers. Uncommitted scope only.",
+  "claim_ceiling": "Fixed disposable creation and exact pre-Pair binding; not full execution integration or admission.",
+  "not_claimed": [
+    "materializer/arm execution integration",
+    "full production admission",
+    "S2 evaluator integrity",
+    "real creation or execution authorization",
+    "commit or push"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "memory\\evidence\\solo-r2-disposable-binding-20260906\\targeted-tests.json",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\solo-r2-disposable-binding-20260906\\review.json",
+      "result": "PASS"
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m governance_tools.memory_workflow --check --repo . --run-guard",
+      "result": "PASS",
+      "detail": "exit 0; guard ran; completion_claim_allowed=True; current blockers zero; provenance and historical warnings remain."
+    }
+  ],
+  "risk": [
+    "Worktree not clean; unrelated dirty paths excluded from review.",
+    "Current implementation is not committed; receipt linked_commit is baseline only.",
+    "Memory writer warns about memory-root evidence path; actual receipt exists, no warning-free memory claim."
+  ],
+  "next_action": "STOP at authorized implementation/test/review boundary; no real creation, execution, commit or push."
+}

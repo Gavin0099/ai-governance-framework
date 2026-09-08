@@ -1,0 +1,38 @@
+{
+  "status": "OWNER_ADOPTED",
+  "recorded_at_utc": "2026-09-06T05:16:17.860148+00:00",
+  "authority_source": "Explicit owner instruction in the current main session: Owner Adoption — Solo R2 Disposable Ledger Placement Contract; adopt exact reviewed bytes, make one scoped local commit, verify and STOP.",
+  "timestamp_meaning": "Local recording time, not an independently witnessed owner signature.",
+  "baseline_commit": "744ba9973f70bede1eb93137f12e1b8110b0e5c7",
+  "placement_contract": {
+    "path": "docs/governance/solo-r2-disposable-ledger-placement-contract-20260906.md",
+    "bytes": 7499,
+    "lines": 132,
+    "sha256": "7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246",
+    "git_blob_oid": "dba5901556e32eae535849e24f0aa87a64098ad7"
+  },
+  "allocation_authority": {
+    "commit": "744ba9973f70bede1eb93137f12e1b8110b0e5c7",
+    "path": "docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json",
+    "sha256": "8a7e8cd74d883a733a5df887923b5eccf31ffe2ed0ed462446f15ae1066192b6"
+  },
+  "adopted_schema_id": "solo_attempt_ledger.v2.1@sha256:ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab",
+  "review_provenance": "Full placement-only technical review in the current main session: ACCEPT / PLACEMENT_CONTRACT_ACCEPT / Blocking=0. No independent external witness or additional sub-agent review claimed.",
+  "candidate_status_interpretation": "The preserved contract retains its historical candidate header; this later record adopts those exact bytes without modifying them.",
+  "authority_relationship": "Completes the placement/identity definition prerequisite for the one D2 disposable allocation. Does not alter frozen schema/input bytes, create any runtime object, or grant implementation authority. Prior records remain immutable historical context.",
+  "disposable_evaluation_id": null,
+  "genesis_identity": null,
+  "not_authorized": [
+    "disposable evaluation ID generation",
+    "disposable ledger creation",
+    "Pair creation",
+    "Attempt creation",
+    "execution",
+    "production implementation",
+    "qualification rerun",
+    "push"
+  ],
+  "durability_scope": "Local durable adoption after post-commit exact-byte verification only; no remote durability claim.",
+  "blob_provenance": "Raw blob identities describe reviewed bytes. Enclosing commit must be independently verified after creation; no self-referential enclosing commit SHA is embedded.",
+  "next_step": "STOP after local durability verification. Minimal production binding requires separate bounded authorization."
+}

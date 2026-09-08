@@ -6,7 +6,7 @@ Test groups:
   A. check_hot_memory_status   — threshold boundary + missing file
   B. generate_warning_message  — all status codes
   C. analyze_archivable_content— regex heuristics + missing file
-  D. execute_cleanup           — dry-run / real run / idempotency / edge cases
+  D. execute_cleanup           — fail-closed containment / no-write guarantees
   E. manifest                  — _load_manifest / _save_manifest round-trip
 """
 
@@ -19,7 +19,7 @@ import pytest
 
 # Make governance_tools importable without installation
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from governance_tools.memory_janitor import MemoryJanitor
+from governance_tools.memory_janitor import MemoryJanitor, UnsafeCleanupBlocked, main
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
@@ -41,6 +41,24 @@ def _write_lines(path: Path, n: int, extra: str = "") -> None:
     """在 path 寫入 n 行內容（最後附加 extra 區塊）。"""
     lines = [f"line {i}\n" for i in range(1, n + 1)]
     path.write_text("".join(lines) + extra, encoding="utf-8")
+
+
+def _current_like_active_task() -> str:
+    """Build a 159-line, character-threshold CRITICAL active-task projection."""
+    lines = [f"state line {i:03d} " + ("x" * 56) for i in range(1, 160)]
+    lines[0] = "# Active Task"
+    lines[83] = "## Next Steps"
+    lines[84] = "- Preserve the retained next step while newer state follows."
+    lines[94] = "## Open Risks"
+    lines[95] = "- Current risk must not disappear during memory maintenance."
+    lines[110] = "## Claim Ceiling"
+    lines[111] = "- Cleanup is not Gate 3 validity evidence."
+    lines[152] = "## Rev9 STOP"
+    lines[158] = "- Latest committed Gate 3 authority remains binding."
+    content = "\n".join(lines) + "\n"
+    assert len(content.splitlines()) == 159
+    assert 10_000 <= len(content) < 12_000
+    return content
 
 
 # ── A. check_hot_memory_status ────────────────────────────────────────────
@@ -93,6 +111,13 @@ class TestCheckHotMemoryStatus:
         _, _, status = janitor.check_hot_memory_status()
         assert status == "SAFE"
 
+    def test_current_like_projection_is_critical_by_character_count(self, janitor):
+        janitor.active_task_file.write_text(_current_like_active_task(), encoding="utf-8")
+        line_count, char_count, status = janitor.check_hot_memory_status()
+        assert line_count == 159
+        assert 10_000 <= char_count < 12_000
+        assert status == "CRITICAL"
+
 
 # ── B. generate_warning_message ───────────────────────────────────────────
 
@@ -112,6 +137,13 @@ class TestGenerateWarningMessage:
     def test_emergency_message_contains_line_count(self, janitor):
         msg = janitor.generate_warning_message(260, 260, "EMERGENCY")
         assert "260" in msg
+
+    @pytest.mark.parametrize("status", ["CRITICAL", "EMERGENCY"])
+    def test_high_pressure_guidance_requires_verified_cutover(self, janitor, status):
+        msg = janitor.generate_warning_message(260, 12_500, status)
+        assert "archive + replacement-state cutover" in msg
+        for unsafe_guidance in ("--clean", "--execute", "execute_cleanup_now", "強制執行掃除"):
+            assert unsafe_guidance not in msg
 
     def test_unknown_status_returns_empty(self, janitor):
         assert janitor.generate_warning_message(50, 50, "UNKNOWN") == ""
@@ -172,104 +204,109 @@ class TestAnalyzeArchivableContent:
 # ── D. execute_cleanup ────────────────────────────────────────────────────
 
 class TestExecuteCleanup:
-    def test_dry_run_does_not_modify_files(self, janitor):
-        original = "line 1\nline 2\nline 3\n"
-        janitor.active_task_file.write_text(original, encoding="utf-8")
-        janitor.execute_cleanup(dry_run=True)
-        assert janitor.active_task_file.read_text(encoding="utf-8") == original
+    def test_dry_run_reports_blocked_without_writes(self, janitor):
+        original = _current_like_active_task().encode("utf-8")
+        janitor.active_task_file.write_bytes(original)
 
-    def test_dry_run_no_archive_created(self, janitor):
-        _write_lines(janitor.active_task_file, 50)
-        janitor.execute_cleanup(dry_run=True)
-        archives = list(janitor.archive_dir.glob("active_task_*.md"))
-        assert len(archives) == 0
+        result = janitor.execute_cleanup(dry_run=True)
 
-    def test_missing_file_returns_message(self, janitor):
+        assert result.startswith("[BLOCKED]")
+        assert "verified archive" in result
+        assert "replacement-state cutover" in result
+        assert "截短" not in result
+        assert janitor.active_task_file.read_bytes() == original
+        assert not janitor.archive_dir.exists()
+
+    def test_missing_file_returns_message_without_creating_archive(self, janitor):
         result = janitor.execute_cleanup(dry_run=False)
         assert "不存在" in result
+        assert not janitor.archive_dir.exists()
 
-    def test_real_run_creates_archive(self, janitor):
-        _write_lines(janitor.active_task_file, 50)
-        janitor.execute_cleanup(dry_run=False)
-        archives = list(janitor.archive_dir.glob("active_task_*.md"))
-        assert len(archives) == 1
+    def test_real_cleanup_fails_closed_and_preserves_exact_bytes(self, janitor):
+        original = _current_like_active_task().encode("utf-8")
+        janitor.active_task_file.write_bytes(original)
 
-    def test_archive_contains_full_original_content(self, janitor):
-        content = "".join(f"line {i}\n" for i in range(1, 51))
-        janitor.active_task_file.write_text(content, encoding="utf-8")
-        janitor.execute_cleanup(dry_run=False)
-        archive = list(janitor.archive_dir.glob("active_task_*.md"))[0]
-        assert archive.read_text(encoding="utf-8") == content
+        with pytest.raises(UnsafeCleanupBlocked, match="verified archive"):
+            janitor.execute_cleanup(dry_run=False)
 
-    def test_original_file_truncated_after_cleanup(self, janitor):
-        _write_lines(janitor.active_task_file, 50)
-        original_lines = 50
-        janitor.execute_cleanup(dry_run=False)
-        new_lines = len(janitor.active_task_file.read_text(encoding="utf-8").splitlines())
-        assert new_lines < original_lines
+        assert janitor.active_task_file.read_bytes() == original
+        assert not janitor.archive_dir.exists()
 
-    def test_pointer_block_inserted_in_original(self, janitor):
-        _write_lines(janitor.active_task_file, 30)
-        janitor.execute_cleanup(dry_run=False)
-        content = janitor.active_task_file.read_text(encoding="utf-8")
-        assert "ARCHIVED" in content
-        assert "archive/" in content
+    def test_discard_region_sections_remain_after_refusal(self, janitor):
+        original = _current_like_active_task()
+        janitor.active_task_file.write_text(original, encoding="utf-8")
 
-    def test_manifest_written_after_real_run(self, janitor):
-        _write_lines(janitor.active_task_file, 30)
-        janitor.execute_cleanup(dry_run=False)
-        manifest_path = janitor.archive_dir / "manifest.json"
-        assert manifest_path.exists()
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        assert len(manifest["archives"]) == 1
+        with pytest.raises(UnsafeCleanupBlocked):
+            janitor.execute_cleanup(dry_run=False)
 
-    def test_manifest_appends_on_second_run(self, janitor):
-        _write_lines(janitor.active_task_file, 30)
-        janitor.execute_cleanup(dry_run=False)
-        _write_lines(janitor.active_task_file, 30)
-        janitor.execute_cleanup(dry_run=False)
-        manifest = json.loads(
-            (janitor.archive_dir / "manifest.json").read_text(encoding="utf-8")
+        retained = janitor.active_task_file.read_text(encoding="utf-8")
+        assert "## Open Risks" in retained
+        assert "## Claim Ceiling" in retained
+        assert "## Rev9 STOP" in retained
+        assert "Latest committed Gate 3 authority" in retained
+
+    def test_cleanup_without_next_steps_also_fails_closed(self, janitor):
+        original = ("# Title\n" + "".join(f"line {i}\n" for i in range(1, 30))).encode("utf-8")
+        janitor.active_task_file.write_bytes(original)
+
+        with pytest.raises(UnsafeCleanupBlocked):
+            janitor.execute_cleanup(dry_run=False)
+
+        assert janitor.active_task_file.read_bytes() == original
+        assert not janitor.archive_dir.exists()
+
+    @pytest.mark.parametrize("legacy_flag", ["--execute", "--clean"])
+    def test_cli_cleanup_flags_exit_nonzero_without_writes(
+        self, mem_root, legacy_flag, monkeypatch, capsys
+    ):
+        active = mem_root / "01_active_task.md"
+        original = _current_like_active_task().encode("utf-8")
+        active.write_bytes(original)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["memory_janitor.py", "--memory-root", str(mem_root), legacy_flag],
         )
-        assert len(manifest["archives"]) == 2
 
-    def test_manifest_entry_has_required_fields(self, janitor):
-        _write_lines(janitor.active_task_file, 30)
-        janitor.execute_cleanup(dry_run=False)
-        manifest = json.loads(
-            (janitor.archive_dir / "manifest.json").read_text(encoding="utf-8")
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+        assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        assert "verified archive" in captured.err
+        assert "replacement-state cutover" in captured.err
+        assert active.read_bytes() == original
+        assert not (mem_root / "archive").exists()
+
+    @pytest.mark.parametrize(
+        "mixed_flags",
+        [
+            ["--clean", "--check"],
+            ["--execute", "--plan"],
+            ["--clean", "--manifest"],
+        ],
+    )
+    def test_cleanup_intent_cannot_bypass_refusal_with_other_actions(
+        self, mem_root, mixed_flags, monkeypatch, capsys
+    ):
+        active = mem_root / "01_active_task.md"
+        original = _current_like_active_task().encode("utf-8")
+        active.write_bytes(original)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["memory_janitor.py", "--memory-root", str(mem_root), *mixed_flags],
         )
-        entry = manifest["archives"][0]
-        for field in ("timestamp", "datetime", "archive_file", "original_lines", "new_lines", "reason"):
-            assert field in entry, f"manifest entry missing field: {field}"
 
-    def test_next_steps_preserved_after_cleanup(self, janitor):
-        content = (
-            "# Title\n"
-            + "".join(f"line {i}\n" for i in range(1, 20))
-            + "\n## Next Steps\n\n- Do something important\n- Continue the work\n"
-        )
-        janitor.active_task_file.write_text(content, encoding="utf-8")
-        janitor.execute_cleanup(dry_run=False)
-        result = janitor.active_task_file.read_text(encoding="utf-8")
-        assert "Do something important" in result
+        with pytest.raises(SystemExit) as exc_info:
+            main()
 
-    def test_no_duplicate_next_steps(self, janitor):
-        content = (
-            "# Title\n"
-            + "".join(f"line {i}\n" for i in range(1, 20))
-            + "\n## Next Steps\n\n- Action item\n"
-        )
-        janitor.active_task_file.write_text(content, encoding="utf-8")
-        janitor.execute_cleanup(dry_run=False)
-        result = janitor.active_task_file.read_text(encoding="utf-8")
-        assert result.count("## Next Steps") == 1
-
-    def test_cleanup_without_next_steps_section(self, janitor):
-        content = "# Title\n" + "".join(f"line {i}\n" for i in range(1, 30))
-        janitor.active_task_file.write_text(content, encoding="utf-8")
-        result = janitor.execute_cleanup(dry_run=False)
-        assert "✅" in result
+        assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        assert "verified archive" in captured.err
+        assert "replacement-state cutover" in captured.err
+        assert active.read_bytes() == original
+        assert not (mem_root / "archive").exists()
 
 
 # ── E. create_archive_plan ───────────────────────────────────────────────
@@ -293,19 +330,58 @@ class TestCreateArchivePlan:
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_SOFT_LIMIT)
         report = janitor.create_archive_plan()
         assert "WARNING" in report
-        assert "建議" in report
+        assert "verified archive + replacement-state cutover" in report
+        assert "--execute" not in report
+        assert "--clean" not in report
 
-    def test_critical_status_suggests_execute(self, janitor):
+    def test_critical_status_requires_verified_cutover(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_HARD_LIMIT)
         report = janitor.create_archive_plan()
         assert "CRITICAL" in report
-        assert "--execute" in report
+        assert "archive + replacement-state cutover" in report
+        assert "--execute" not in report
+        assert "--clean" not in report
 
-    def test_emergency_status_urges_stop(self, janitor):
+    def test_emergency_status_urges_stop_without_destructive_guidance(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_CRITICAL)
         report = janitor.create_archive_plan()
         assert "EMERGENCY" in report
-        assert "立即" in report
+        assert "停止增加 active memory" in report
+        assert "archive + replacement-state cutover" in report
+        assert "--execute" not in report
+        assert "--clean" not in report
+
+    @pytest.mark.parametrize(
+        ("line_count", "expected_recommendation"),
+        [
+            (MemoryJanitor.HOT_MEMORY_HARD_LIMIT, "verified_archive_and_replacement_state_cutover_required"),
+            (MemoryJanitor.HOT_MEMORY_CRITICAL, "verified_archive_and_replacement_state_cutover_required"),
+        ],
+    )
+    def test_json_plan_never_recommends_destructive_cleanup(
+        self, mem_root, line_count, expected_recommendation, monkeypatch, capsys
+    ):
+        _write_lines(mem_root / "01_active_task.md", line_count)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "memory_janitor.py",
+                "--memory-root",
+                str(mem_root),
+                "--plan",
+                "--format",
+                "json",
+            ],
+        )
+
+        main()
+
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["recommendation"] == expected_recommendation
+        serialized = json.dumps(payload)
+        for unsafe_guidance in ("--clean", "--execute", "execute_cleanup_now"):
+            assert unsafe_guidance not in serialized
 
     def test_report_includes_adr_references(self, janitor):
         janitor.active_task_file.write_text(
@@ -337,6 +413,7 @@ class TestManifest:
         assert manifest["archives"] == []
 
     def test_load_manifest_corrupted_returns_empty(self, janitor):
+        janitor.archive_dir.mkdir(parents=True)
         (janitor.archive_dir / "manifest.json").write_text("NOT JSON", encoding="utf-8")
         manifest = janitor._load_manifest()
         assert manifest["archives"] == []
@@ -352,8 +429,7 @@ class TestManifest:
         assert (janitor.archive_dir / "manifest.json").exists()
 
     def test_manifest_is_valid_json(self, janitor):
-        _write_lines(janitor.active_task_file, 10)
-        janitor.execute_cleanup(dry_run=False)
+        janitor._save_manifest({"version": "1.0", "archives": []})
         raw = (janitor.archive_dir / "manifest.json").read_text(encoding="utf-8")
         parsed = json.loads(raw)  # must not raise
         assert isinstance(parsed, dict)

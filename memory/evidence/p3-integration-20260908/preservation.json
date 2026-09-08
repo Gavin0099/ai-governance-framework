@@ -1,0 +1,40 @@
+{
+  "checks": {
+    "tests/fixtures/bug_fix_safety_mini_benchmark/manifest.json": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/README.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/RUBRIC.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/validate_preparation.py": true,
+    "governance_tools/skill_evaluation_lite_live.py": true,
+    "governance_tools/solo_r2_regression_projection.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/easy_queue_range/baseline.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/easy_queue_range/cases.json": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/easy_queue_range/RUBRIC.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/easy_queue_range/TASK.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/easy_queue_range/validation_variants.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/hard_dependency_cycle/baseline.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/hard_dependency_cycle/cases.json": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/hard_dependency_cycle/RUBRIC.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/hard_dependency_cycle/TASK.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/hard_dependency_cycle/validation_variants.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/medium_interval_merge/baseline.py": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/medium_interval_merge/cases.json": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/medium_interval_merge/RUBRIC.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/medium_interval_merge/TASK.md": true,
+    "tests/fixtures/bug_fix_safety_mini_benchmark/medium_interval_merge/validation_variants.py": true,
+    "memory/evidence/three-task-treatment-completion-20260908/easy_queue_range/scores-frozen.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/easy_queue_range/report.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/easy_queue_range/scorer-input.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/medium_interval_merge/scores-frozen.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/medium_interval_merge/report.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/medium_interval_merge/scorer-input.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/hard_dependency_cycle/scores-frozen.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/hard_dependency_cycle/report.json": true,
+    "memory/evidence/three-task-treatment-completion-20260908/hard_dependency_cycle/scorer-input.json": true
+  },
+  "all_match": true,
+  "excluded_authorized_production_changes": [
+    "governance_tools/skill_evaluation_lite_p3.py",
+    "governance_tools/skill_evaluation_lite.py",
+    "governance_tools/skill_evaluation_lite_benchmark.py"
+  ]
+}

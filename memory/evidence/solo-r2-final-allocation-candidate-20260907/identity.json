@@ -1,0 +1,11 @@
+{
+  "status": "CANDIDATE_NOT_REVIEWED_NOT_ADOPTED",
+  "path": "docs/governance/solo-r2-final-fresh-allocation-placement-candidate-20260907.md",
+  "bytes": 17643,
+  "lines": 134,
+  "sha256": "33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2",
+  "git_blob_oid": "67ff3b7d9aadfb7b6e6cf2b82252f5c130570b8f",
+  "blob_provenance": "Computed from exact bytes; no git object write or commit performed.",
+  "baseline_commit": "609d8b1eddd8b1c6eeed707add3218dfb6a8cb17",
+  "runtime_or_creation_executed": false
+}

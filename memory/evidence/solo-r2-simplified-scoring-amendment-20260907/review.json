@@ -1,0 +1,47 @@
+{
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "/root/review_real_callbacks",
+  "review_coverage": "Full document, all 73 lines C01-C07",
+  "candidate": {
+    "path": "docs/governance/solo-r2-simplified-blind-scoring-amendment-candidate-20260907.md",
+    "bytes": 7170,
+    "lines": 73,
+    "sha256": "a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03",
+    "git_blob": "dc379c43681999f71d6e1c32f023b3d335b0c2a9"
+  },
+  "scope": "Exact-byte technical review of prospective simplified scoring authority only",
+  "checks": [
+    "C01 fixes the existing evaluation/Pair and activated bundle/transition/activation/rubric identities; artifact lengths/hashes and unchanged ledger independently match",
+    "C02 explicitly lowers assurance to NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY and supersedes only the instance scorer OS-isolation requirement; no strict PASS, Formal or general effectiveness claim",
+    "C03 preserves all historical evidence and keeps rejected bundle inadmissible",
+    "C04 requires exactly one context without inherited conversation or review history, only authorized inputs, restricted capabilities, opaque keys, and a private exact-delivery manifest; it makes no OS inaccessibility claim",
+    "C05 preserves frozen rubric scoring and observed evidence, stops after both scores freeze, rejects malformed/leaking/out-of-rubric results, and forbids invented OS receipts",
+    "C06 requires separate owner unblinding authorization after verified score freeze",
+    "C07 keeps adoption, commit and execution distinct; this review grants none"
+  ],
+  "findings": [],
+  "audit": {
+    "test_integrity": "No runtime tests warranted for candidate text; exact identity checks only",
+    "architecture": "Authority-only bounded instance change; no new framework or production code",
+    "baseline": "Existing activated identities rehashed read-only and matched",
+    "native": "Not applicable: no native modification",
+    "thread_safety": "Not applicable"
+  },
+  "claim_limits": [
+    "Review acceptance is not owner adoption",
+    "No fresh scorer context established",
+    "No scoring, score freeze or unblinding executed",
+    "Restricted delivery has not been operationally established"
+  ],
+  "not_run": [
+    "adoption",
+    "commit",
+    "production edits",
+    "scorer creation",
+    "scoring",
+    "mapping disclosure",
+    "ledger mutation",
+    "push"
+  ]
+}

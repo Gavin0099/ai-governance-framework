@@ -1,0 +1,12 @@
+{
+  "bound_source_match": true,
+  "control_model_invocations": 0,
+  "freeze_linkage_verified": true,
+  "head": "983d5fad7a4a28047b175adcddf904587a55a008",
+  "historical_artifact_count": 43,
+  "historical_unchanged": true,
+  "scorer_model_invocations": 3,
+  "summary_sha256": "0b128e189f6538c36fa064146f9d9a99dbb8066646d3a2f9132d1f238fa7585e",
+  "treatment_model_invocations": 3,
+  "verified_new_task_artifacts": 153
+}

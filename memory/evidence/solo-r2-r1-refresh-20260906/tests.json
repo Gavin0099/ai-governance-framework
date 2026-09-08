@@ -1,0 +1,32 @@
+{
+  "command": [
+    "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/test_solo_r2_runtime_window.py",
+    "tests/test_solo_r2_random_domains.py",
+    "tests/test_solo_r2_r1_structural_conformance.py",
+    "tests/test_solo_r2_pair_creation.py",
+    "tests/test_solo_r2_lifecycle_integration.py",
+    "tests/test_solo_r2_disposable_execution.py",
+    "tests/test_solo_r2_disposable_binding.py",
+    "tests/test_solo_r2_controller_state.py",
+    "tests/test_solo_r2_codex_runner.py",
+    "tests/test_solo_r2_bootstrap.py",
+    "tests/test_solo_r2_blind_scoring_bundle.py",
+    "tests/test_solo_r2_attempt_materialization.py",
+    "tests/test_solo_r2_attempt_execution.py",
+    "tests/test_solo_attempt_ledger_v2_safe_verifier.py",
+    "tests/test_solo_attempt_ledger_v2.py",
+    "tests/test_solo_attempt_ledger_safe_verifier.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "C:/Users/daish/AppData/Local/Temp/r1-refresh-20260906-solo-final"
+  ],
+  "started_at": "2026-09-06T06:42:48.992727+00:00",
+  "exit_code": 0,
+  "output": "memory/evidence/solo-r2-r1-refresh-20260906/tests.txt",
+  "claim_ceiling": "Solo regression only; no real execution admission"
+}

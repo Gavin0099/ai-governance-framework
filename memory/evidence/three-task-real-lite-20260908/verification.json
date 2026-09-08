@@ -1,0 +1,24 @@
+{
+  "result": "THREE_TASK_TERMINAL_EVIDENCE_VERIFIED",
+  "head": "bfae8ce65b997f9690963f8ac396e29e355a8b0f",
+  "files_checked": 43,
+  "summary_sha256": "bb7afa5d42e5aa3b42dd182a0dd7f9b31c55a5a8422bd514bfe503814d209d27",
+  "terminal_count": 3,
+  "completed_comparisons": 0,
+  "model_invocations": 3,
+  "control_model_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "treatment_invocations": 0,
+  "scorer_invocations": 0,
+  "oracle_invocations": 1,
+  "regression_invocations": 1,
+  "automatic_adapter_retries": 0,
+  "human_execution_interventions": 0,
+  "native_approval": "Owner-authorized host execution approval only; no shutdown/login/UAC repair or config change",
+  "bound_sources_and_fixtures": "UNCHANGED",
+  "commit": false,
+  "push": false
+}

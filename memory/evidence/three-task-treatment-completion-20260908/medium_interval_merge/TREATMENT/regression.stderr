@@ -1,0 +1,12 @@
+test_empty_returns_fresh_list (test_interval_merge.MergeIntervalsTests.test_empty_returns_fresh_list) ... ok
+test_input_unchanged_and_output_independent (test_interval_merge.MergeIntervalsTests.test_input_unchanged_and_output_independent) ... ok
+test_negative_endpoints (test_interval_merge.MergeIntervalsTests.test_negative_endpoints) ... ok
+test_nesting_cannot_shrink_extent (test_interval_merge.MergeIntervalsTests.test_nesting_cannot_shrink_extent) ... ok
+test_touching_remains_separate (test_interval_merge.MergeIntervalsTests.test_touching_remains_separate) ... ok
+test_transitive_overlap (test_interval_merge.MergeIntervalsTests.test_transitive_overlap) ... ok
+test_unsorted_disjoint_duplicates_and_equal_starts (test_interval_merge.MergeIntervalsTests.test_unsorted_disjoint_duplicates_and_equal_starts) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK

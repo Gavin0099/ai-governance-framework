@@ -1,0 +1,28 @@
+{
+  "tests": {
+    "passed": 57,
+    "command": "python -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/p2-lite-parser-20260908/tests-1 tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite.py",
+    "output": "memory/evidence/p2-lite-parser-20260908/tests.txt"
+  },
+  "scope": "Known warning parser + previously authorized keyring override. No other runtime/config changes.",
+  "files": {
+    "governance_tools/skill_evaluation_lite_live.py": {
+      "bytes": 25058,
+      "sha256": "10a1b15ccca50f38d765a54a05298875921eeed2d6de275169a5e676bc5e9f7d"
+    },
+    "tests/test_skill_evaluation_lite_live.py": {
+      "bytes": 13273,
+      "sha256": "215deaeacabcab262652e916a56b9b52903cc1a6005e1133cfabc7aaf1e7d88c"
+    },
+    "docs/governance/skill-evaluation-lite-slice2.md": {
+      "bytes": 7767,
+      "sha256": "eeba5472282833c7a54ef41c6f35ac0ea5f84a1910396ed1a03f117bc2bed5ff"
+    }
+  },
+  "live_execution": "NOT_RUN; requires reviewed scoped commit first",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ]
+}

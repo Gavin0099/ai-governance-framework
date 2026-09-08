@@ -1,0 +1,52 @@
+{
+  "mode": "durability_closeout",
+  "mode_source": "Owner requested exact historical terminal evidence local commit",
+  "task_authority": "Current owner instruction: durability commit only; no harness repair or retry",
+  "scope": [
+    "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "memory/evidence/solo-r2-disposable-mechanism-shakedown-20260906/genesis-binding.json",
+    "memory/evidence/solo-r2-historical-terminal-20260906/append_once.py",
+    "memory/evidence/solo-r2-historical-terminal-20260906/authorization-and-preflight.json",
+    "memory/evidence/solo-r2-historical-terminal-20260906/result.json"
+  ],
+  "done": "Five-event ledger, prefix, terminal and retained controller receipt verified; scoped commit pending",
+  "claim_ceiling": "Local committed historical failure evidence only",
+  "not_claimed": [
+    "A/B completed",
+    "model failure",
+    "retry entitlement",
+    "Attempt 2 authorization",
+    "remote durability"
+  ],
+  "evidence_refs": [
+    "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "memory/evidence/solo-r2-disposable-mechanism-shakedown-20260906/genesis-binding.json",
+    "memory/evidence/solo-r2-historical-terminal-20260906/append_once.py",
+    "memory/evidence/solo-r2-historical-terminal-20260906/authorization-and-preflight.json",
+    "memory/evidence/solo-r2-historical-terminal-20260906/result.json"
+  ],
+  "identities": {
+    "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson": {
+      "bytes": 3455,
+      "sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836"
+    },
+    "memory/evidence/solo-r2-disposable-mechanism-shakedown-20260906/genesis-binding.json": {
+      "bytes": 803,
+      "sha256": "5414b66882541a35a4563542025dd4f3d0f1b11c3773f61ca83e1339dfc4ae75"
+    },
+    "memory/evidence/solo-r2-historical-terminal-20260906/append_once.py": {
+      "bytes": 6938,
+      "sha256": "52f793f5ca3fa5a7929753755481063f58d68fce1b06069e4eabe91dc91cb54f"
+    },
+    "memory/evidence/solo-r2-historical-terminal-20260906/authorization-and-preflight.json": {
+      "bytes": 1823,
+      "sha256": "27bb5db96c082d0cc15785b165ed31e06a6e93bec12ede9cf3f6b49eb315dddc"
+    },
+    "memory/evidence/solo-r2-historical-terminal-20260906/result.json": {
+      "bytes": 3454,
+      "sha256": "15a3a2a66384512b6e1cd229c87c34c8bf2c5e2b622652b919be578e2f091a68"
+    }
+  },
+  "risk": "Private raw trace and controller evidence remain in existing external custody; commit stores their digests, not those private bytes",
+  "next_action": "Verify scoped committed identities then STOP; defect tranche separately authorized"
+}

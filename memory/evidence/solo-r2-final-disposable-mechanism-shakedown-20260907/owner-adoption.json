@@ -1,0 +1,31 @@
+{
+  "status": "OWNER_ADOPTED",
+  "authority_source": "Explicit owner exact-byte adoption in current conversation; candidate OWNER_ATTESTED field alone is not adoption",
+  "baseline_commit": "7066169756542cbaddc0fc19f713ab94d7798454",
+  "allocation_sha256": "33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2",
+  "evaluation_id": "74ad1963-e24c-4ced-9f84-32e3c0daf900",
+  "pair_id": "93584d7e-2bf9-4535-93c8-5593fcd3e272",
+  "record_sha256": "ee27ce5e92f948320ad0e2fb81bb29f34e8bfc8934296a63d18c6b3418f8d8af",
+  "record_bytes": 319,
+  "phase_a_state_sha256": "b6411afc0c7dd921cc066bfc99393dbdaa940f89e90fee5d10c8cc560e0bf715",
+  "verified_ledger_sha256": "b66d9f732fa4b73524276f4f23d6cab76b1ad62a1fb2764d1c6dee9f1e069fb0",
+  "genesis_sha256": "2e4d341e20cc8133713c20082fd0a5874c86a9f4e23b7e9abbb0105fa5ce22ec",
+  "binding_sha256": "82fd9e09f9f83e02f2cc5183d0f97098e650ede893e9f723f3de9b9c4c55ae10",
+  "ledger_events": 2,
+  "initiated_attempts": 0,
+  "task_exposure_state": "NONE",
+  "readiness": "NOT_RUN",
+  "not_authorized": [
+    "readiness",
+    "Attempt admission",
+    "task exposure",
+    "arm execution",
+    "oracle",
+    "scoring",
+    "unblinding",
+    "new evaluation/ledger/Pair",
+    "retry/replacement",
+    "push"
+  ],
+  "stop": "After scoped adoption commit and committed identity verification. Separate authorization required for Phase B."
+}

@@ -1,0 +1,37 @@
+{
+  "status": "CANDIDATE_NOT_ADOPTED",
+  "purpose": "Proposed pre-Pair task and rubric identity record; not an execution input accepted by production.",
+  "task_id_candidate": "Bookstore-Scraper/shakedown/simple",
+  "rubric_id_candidate": "solo-r2-blind-patch-quality-v1",
+  "task_prompt": {
+    "path": "artifacts/experiments/solo-r2-input-definition-20260906/task-packet.candidate.md",
+    "bytes": 1086,
+    "sha256": "f7ebc61d0e262868a6c74a3f76348a504abe409d0d01ff8ca135ab15e91cbefc",
+    "computed_git_blob_oid": "f16335cd4829c90c6445212536c7ff81880b5f29"
+  },
+  "rubric": {
+    "path": "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+    "bytes": 3754,
+    "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+    "computed_git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+  },
+  "existing_protocol_adoption": {
+    "path": "docs/governance/solo-evaluation-revision-2-owner-adoption-20260831.md",
+    "bytes": 4065,
+    "sha256": "6bf8eed7b4b585db08e0a7f0668ecc67aee41ff63a901095b8aec488c17caf66",
+    "computed_git_blob_oid": "23fdbd6e28589f8b6ae43004f801b2bf8bd5560e"
+  },
+  "authority_boundary": "The existing protocol adoption does not adopt these new input bytes. Owner adoption is pending.",
+  "owner_adoption": null,
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "ordering_requirement": "Owner adoption and exact input freeze must precede any separately authorized new Pair creation. No retrospective binding to the existing replacement Pair.",
+  "blob_provenance": "Computed Git blob object IDs only; these candidates have not been committed.",
+  "rubric_boundary": "Proposed quality total 0-8; not a correctness threshold or change to the adopted study retention rule.",
+  "execution_authorized": false,
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ]
+}

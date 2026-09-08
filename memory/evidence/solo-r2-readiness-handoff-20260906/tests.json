@@ -1,0 +1,21 @@
+{
+  "command": [
+    ".venv/Scripts/python.exe",
+    "-m",
+    "pytest",
+    "tests/test_solo_r2_disposable_execution.py",
+    "tests/test_solo_r2_runtime_window.py",
+    "tests/test_solo_r2_disposable_binding.py",
+    "tests/test_solo_r2_attempt_execution.py",
+    "tests/test_solo_r2_lifecycle_integration.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "C:/Users/daish/AppData/Local/Temp/r2-handoff-final"
+  ],
+  "exit_code": 0,
+  "head": "0a01efe2e0752db953523cca8995b0172b09fb1f",
+  "scope": "Handoff and adjacent Solo regressions; native/OS observations are synthetic",
+  "output": "memory/evidence/solo-r2-readiness-handoff-20260906/tests.txt"
+}

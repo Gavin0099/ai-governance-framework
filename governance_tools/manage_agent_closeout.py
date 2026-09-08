@@ -185,8 +185,20 @@ def _resolve_framework_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _fmt_cmd(template: str, framework_root: Path) -> str:
-    return template.replace("{framework_root}", str(framework_root).replace("\\", "/"))
+def _fmt_cmd(template: str, framework_root: Path, project_root: Path | str) -> str:
+    """Render a closeout command with an explicit, canonical project root.
+
+    `project_root` is never defaulted to the current directory: the canonical
+    artifact root is an explicit contract (owner-ratified 2026-06-23). Callers
+    that know the root pass the resolved absolute path; the human-facing manual
+    command passes a placeholder the operator must replace.
+    """
+    rendered = template.replace(
+        "{framework_root}", str(framework_root).replace("\\", "/")
+    )
+    if isinstance(project_root, Path):
+        project_root = str(project_root.resolve())
+    return rendered.replace("{project_root}", str(project_root).replace("\\", "/"))
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -203,18 +215,20 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+_MANUAL_ROOT_PLACEHOLDER = "<PROJECT_ROOT>"
+
 _CLOSEOUT_CMD = (
     "python {framework_root}/governance_tools/session_closeout_entry.py "
-    "--project-root . 2>/dev/null || true"
+    "--project-root {project_root} 2>/dev/null || true"
 )
 _CLOSEOUT_CMD_BARE = (
     "python {framework_root}/governance_tools/session_closeout_entry.py "
-    "--project-root ."
+    "--project-root {project_root}"
 )
 
 
 def _manual_closeout_cmd(framework_root: Path, agent_id: str, trigger_mode: str = "manual_fallback") -> str:
-    base = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root)
+    base = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root, _MANUAL_ROOT_PLACEHOLDER)
     return f"{base} --agent-id {agent_id} --trigger-mode {trigger_mode}"
 
 
@@ -288,7 +302,7 @@ class ClaudeAdapter(AgentAdapter):
             data["hooks"]["Stop"][0]["hooks"] = []
         data["hooks"]["Stop"][0]["hooks"].append({
             "type": "command",
-            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root),
+            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root),
             "statusMessage": "Running governance session closeout...",
         })
         _write_json(settings_path, data)
@@ -415,7 +429,7 @@ class CopilotAdapter(AgentAdapter):
         hook_path = self._hook_path(project_root)
         data = _read_json(hook_path)
         data.setdefault("hooks", {}).setdefault("sessionEnd", [])
-        bash_cmd = _fmt_cmd(_CLOSEOUT_CMD, framework_root)
+        bash_cmd = _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root)
         ps_cmd = bash_cmd.replace("2>/dev/null", "2>$null")
         data["hooks"]["sessionEnd"].append({
             "type": "command",
@@ -546,7 +560,7 @@ class GeminiAdapter(AgentAdapter):
         data = _read_json(settings_path)
         data.setdefault("hooks", {}).setdefault(self.HOOK_EVENT, [])
         data["hooks"][self.HOOK_EVENT].append({
-            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root),
+            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root),
             "timeout": 30,
         })
         _write_json(settings_path, data)
@@ -642,7 +656,7 @@ class ChatGPTWebAdapter(AgentAdapter):
             "location": None,
             "message": (
                 "ChatGPT web has no local hook surface. No installation possible.\n"
-                f"Run manually: {_fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root)}"
+                f"Run manually: {_fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root, project_root)}"
             ),
         }
 

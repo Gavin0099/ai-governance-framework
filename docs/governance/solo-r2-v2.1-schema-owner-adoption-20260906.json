@@ -1,0 +1,52 @@
+{
+  "status": "OWNER_ADOPTED",
+  "recorded_at_utc": "2026-09-06T04:52:31.172378+00:00",
+  "authority_source": "Explicit owner instruction in the current main session: Owner Adoption — Solo R2 v2.1 Schema Amendment. Adopt exact reviewed bytes and one scoped local commit, then STOP.",
+  "timestamp_meaning": "Local recording time; not an independently witnessed signature.",
+  "baseline_commit": "d4d8e0f6b41d7c1837edd70f77214212d99ae372",
+  "amendment": {
+    "path": "docs/governance/solo-r2-input-authority-schema-amendment-20260906.md",
+    "bytes": 10904,
+    "lines": 178,
+    "sha256": "ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab",
+    "git_blob_oid": "0bbd0e2466fb655e320128f28cabea2d9ec84d6e"
+  },
+  "adopted_schema_id": "solo_attempt_ledger.v2.1@sha256:ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab",
+  "binding_spec": {
+    "path": "docs/governance/solo-r2-input-authority-binding-spec-20260906.md",
+    "bytes": 12006,
+    "lines": 192,
+    "sha256": "afad960f35884e42c05382d37c6129091824327bae18bd28c2dc0afe47471b08",
+    "git_blob_oid": "bceb4a2af98a78b95601257b7cbbcdd0f5ae8258"
+  },
+  "binding_spec_relationship": "Preserved associated implementation specification and design provenance; subordinate to the adopted amendment and this owner decision. Not separate implementation or execution authority. Its next-tranche wording cannot bypass A02/D2 allocation decision.",
+  "review_evidence": {
+    "owner_supplied_full_review": "ACCEPT / Blocking=0; full-document review supplied in current conversation, not independently witnessed by this recorder.",
+    "independent_sub_agent_review": "review_amendment_d1_d2: APPROVED / Blocking=0, D1-D2 corrections only; exact candidate and parent digests independently verified."
+  },
+  "blob_provenance": "Identities describe exact raw bytes. The enclosing local commit must be verified after creation; no self-referential enclosing commit SHA is embedded.",
+  "candidate_status_interpretation": "The preserved amendment retains its historical CANDIDATE header. This separate record adopts its exact bytes without editing that header.",
+  "durability_scope": "local durable adoption only after committed-byte verification; no remote durability claimed.",
+  "open_prerequisites": [
+    "D2 disposable ledger placement and evaluation allocation require a separate owner decision.",
+    "The one-replacement-evaluation limit is not superseded."
+  ],
+  "s2_status": "OBSERVATION / NOT OWNER-ACCEPTED / NOT YET PROVEN BLOCKER",
+  "authorized_scope": [
+    "exact-byte adoption",
+    "one scoped local commit",
+    "post-commit identity verification"
+  ],
+  "not_authorized": [
+    "production implementation",
+    "new evaluation ID",
+    "third ledger",
+    "migration or rebinding of existing ledgers",
+    "Pair creation",
+    "Attempt creation or execution",
+    "qualification rerun",
+    "push"
+  ],
+  "frozen_inputs": "Unchanged; this adoption neither alters nor re-freezes task/rubric/snapshot/oracle.",
+  "stop": "Stop after local durable adoption verification."
+}

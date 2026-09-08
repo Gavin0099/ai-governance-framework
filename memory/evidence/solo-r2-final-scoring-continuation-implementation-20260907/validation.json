@@ -1,0 +1,25 @@
+{
+  "scope_sha256": {
+    "governance_tools/solo_r2_disposable_execution.py": "7b6b2eb10ea4db36d5054f12a55814b7ad72b1a3bce21e0f4a48a380165bab4f",
+    "tests/test_solo_r2_scoring_continuation.py": "720f6c1d3acf9e4c6f93dbcfd2821fe50f98f0fc15fd5311dfc2bd5db85c257b"
+  },
+  "adoption_commit": "7a23b95afa09485d8321b638227bf631e2ddad12",
+  "targeted_tests": 21,
+  "earlier_combined_tests": {
+    "passed": 122,
+    "skipped": 17,
+    "skip_reason": "non-final parameterization; latest target fixture is final only"
+  },
+  "prior_failure": "Identical content hashes were not distinct artifact refs; fixed using adopted custody locator plus original digest, sealed only",
+  "review": "latest independent scope review pending",
+  "not_claimed": [
+    "real continuation",
+    "real bundle/checkpoint",
+    "sealing append",
+    "scoring",
+    "unblinding",
+    "arm/oracle rerun",
+    "push"
+  ],
+  "execution_prerequisite": "Production module bytes changed; any pinned caller must consume this committed revision, not silently accept old launcher pins. No launcher updated here."
+}

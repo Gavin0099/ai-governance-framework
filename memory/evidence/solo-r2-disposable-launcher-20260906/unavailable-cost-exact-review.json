@@ -1,0 +1,40 @@
+{
+  "mode": "review",
+  "mode_source": "user requested four-point exact-byte review",
+  "task_authority": "Review only; adoption remains owner-only",
+  "scope": "Four specified amendment conditions and exact bytes",
+  "done": "Independent review ACCEPT; Blocking 0 in specified scope",
+  "claim_ceiling": "Document review only, not runtime or historical trace validation",
+  "not_claimed": [
+    "owner adoption",
+    "implementation validation",
+    "historical trace revalidation by reviewer",
+    "terminal append",
+    "Attempt 2 authorization",
+    "commit",
+    "push"
+  ],
+  "evidence_refs": [
+    "docs\\governance\\solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md:80",
+    "docs\\governance\\solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md:143",
+    "docs\\governance\\solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md:148",
+    "docs\\governance\\solo-r2-v2.1-unavailable-cost-amendment-candidate-20260906.md:163"
+  ],
+  "reviewer": "/root/review_disposable_arm_integration",
+  "verdict": "ACCEPT",
+  "blocking": 0,
+  "checks": {
+    "v2_1_harness_failure_reason": "PASS",
+    "available_tool_calls_preserved": "PASS",
+    "optional_aggregate_with_controller_evidence": "PASS",
+    "no_retry_replacement_analytic_progression": "PASS"
+  },
+  "identity": {
+    "bytes": 14824,
+    "lines": 235,
+    "sha256": "c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad",
+    "blob": "4293466d8f806e4c23bc0395d1b73a97b3c0378a"
+  },
+  "risk": "Workspace uncommitted; acceptance does not authorize adoption or execution",
+  "next_action": "Owner separately adopts exact reviewed amendment bytes"
+}

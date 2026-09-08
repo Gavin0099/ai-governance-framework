@@ -5174,6 +5174,126 @@ boundary from which future accepted-design edits can be diffed.
 - Next action: Submit the exact visibility correction projection with checkpoint 12bbe5f6 for review and commit; later re-review PUBLIC visibility when Gate 3 cross-repository work completes or public access is no longer required.
 - PLAN reconciliation: `not_applicable`
 
+<!-- memory_record_projection:review-log:3a8c2951895d7263c80418f003dc66d1913a5938c840d44ded8195ba58d66579 -->
+### Canonical memory checkpoint — solo-r2-disposable-binding-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `3a8c2951895d7263c80418f003dc66d1913a5938c840d44ded8195ba58d66579`
+- Commit binding: `cab2c62d135dd220d0aa7f9f143a19b23cd6cc0a` (bound)
+- Record: Implemented and independently reviewed six-file Solo R2 disposable fixed-placement genesis creation and pre-Pair binding slice in local worktree. Implementation remains UNCOMMITTED; supplied commit is baseline only, not implementation identity. Frozen inputs unchanged; no real evaluation, ledger, Pair or Attempt created. Materializer/arm integration and full production admission remain unestablished.
+- Validation boundary: PASS: memory/evidence/solo-r2-disposable-binding-20260906/targeted-tests.json records 164 passed; review.json records independent 32 passed and APPROVED Blocking=0 with six exact source hashes. Qualification NOT RERUN.
+- Next action: STOP with implementation, tests and review evidence ready. No commit or push performed. Creation, execution and further integration require their own authorized scope.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:b3ccc4209d2635a940e6aad8b9002a6f6b7995856224c11590d1e4651d0cba85 -->
+### Canonical memory checkpoint — solo-r2-disposable-integration-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `b3ccc4209d2635a940e6aad8b9002a6f6b7995856224c11590d1e4651d0cba85`
+- Commit binding: `fd772498` (bound)
+- Record: Owner-authorized disposable v2.1 materializer/arm integration implemented in seven local code/test files, UNCOMMITTED. Exact subtree verified before leaf writes; only treatment receives frozen packet; durable TASK_EXPOSED precedes dispatch; every arm rechecks runtime freeze allowing only owned ledger progress; repaired source/runtime evidence retained with oracle NOT_RUN. Independent review APPROVED Blocking=0. Frozen twelve inputs unchanged; no real creation, exposure, execution, qualification, commit or push. Commit field is pre-implementation baseline only.
+- Validation boundary: 28 new tests passed independently. Full 16-file Solo run: 478 passed / 11 failed at memory/evidence/solo-r2-disposable-integration-20260906/targeted-tests.json. Same 11 historical R1 failures reproduced using fd772498 committed fixture bytes: r1-baseline.json, regression-comparison.json. Seven reviewer hashes match review.json. NOT CLAIMED: all Solo tests green or real runtime admission.
+- Next action: STOP with implementation and review evidence ready; scoped commit and live admission/execution require separate scope. Do not change historical R1 fingerprints or qualification to make this report green.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:015636cff9175ca9b21ad35e4bc21a567fe7bd76e5096b18f11cecd90c411098 -->
+### Canonical memory checkpoint — solo-r2-integration-reconciliation-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `015636cff9175ca9b21ad35e4bc21a567fe7bd76e5096b18f11cecd90c411098`
+- Commit binding: `fd772498` (bound)
+- Record: Corrected prior R1 presentation: fd772498 baseline contains ledger_v2 and pair_creation drift introduced by 9bcd7ffc; this uncommitted integration adds lifecycle_integration as third R1-bound drift. Same failed test names did not establish unchanged R1. Updated current/baseline fingerprints and documented exact seven-file dependencies; external inventory guard/tests/config and workflow changes excluded. Owner authorizes one reviewed scoped implementation/evidence commit then STOP; usual separate companion sequence is bounded by this explicit instruction. Commit field is baseline only; future enclosing commit establishes implementation identity.
+- Validation boundary: Recomputed all seven R1 bindings: baseline 2 mismatches/current 3/introduced lifecycle 1. Existing seven-file independent review hashes unchanged; prior 28 new tests passed, full Solo 478 passed/11 failed. Corrected regression-comparison.json and scope-reconciliation.md under memory/evidence/solo-r2-disposable-integration-20260906/. Complete staged-scope review and post-commit identity verification pending; no runtime rerun for evidence-only correction.
+- Next action: After this scoped implementation commit, STOP. Next separate slice must refresh R1 generation for exact committed ledger_v2, pair_creation and lifecycle_integration bytes. No pre-commit refresh, live execution or push.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:8e191c2f2bafbbc1f035ec58b0b6cdd5a1aaa8e98c6634af1a0250ead60f3ccb -->
+### Canonical memory checkpoint — solo-r2-r1-refresh-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `8e191c2f2bafbbc1f035ec58b0b6cdd5a1aaa8e98c6634af1a0250ead60f3ccb`
+- Commit binding: `3b820a2c` (bound)
+- Record: R1 refresh after committed integration 3b820a2c: three pins rebound to exact committed sources; four disposable namespace members added to existing strict scan. Existing validator function AST unchanged. Evidence generated; 490 Solo regression passed; independent R1 review 20 passed Blocking 0. This record references the implementation baseline, not the upcoming refresh commit. No evaluation/ledger/Pair/Attempt, execution or push.
+- Validation boundary: memory/evidence/solo-r2-r1-refresh-20260906/tests.json; memory/evidence/solo-r2-r1-refresh-20260906/review.json; exact R1 artifact sha256 1e32693147ff9fde7f06efd77053dbab9ec0fcff3a3a5f5734f9d2b122ca1cf0
+- Next action: STOP after scoped local refresh commit verification. Real evaluation and execution require separate owner authorization.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:61c3b7a5987a7f535844eec1066170ac3bb5f91e058f8fae0f7c51066017ef66 -->
+### Canonical memory checkpoint — solo-r2-production-admission-review-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `61c3b7a5987a7f535844eec1066170ac3bb5f91e058f8fae0f7c51066017ef66`
+- Commit binding: `0a01efe2` (bound)
+- Record: Production admission review at 0a01efe2: PRODUCTION_ADMISSION_BLOCKED, one open A1. Completed PreAttemptFrozenRuntimeWindow is one-shot; DisposableArmExecution.run calls window.run again instead of consuming existing readiness. Separate readiness STOP and later execution authorization lacks handoff. Full review: memory/evidence/solo-r2-production-admission-review-20260906/review.json. No production/R1/schema/ledger changes, no real creation/execution, no commit/push.
+- Validation boundary: Object-only completed-window reproduction returns RuntimeWindowError PRE_ATTEMPT_INFRA_FAILURE / STOP before backend or ledger access. Code references in review.json. No pytest or live runtime rerun.
+- Next action: Repair only A1 readiness handoff after bounded implementation authorization; preserve one-shot freeze validation; no real evaluation/Pair yet.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:1f08a230706f942128e94bbfd6121e873a9a8cfcb0c585fe18f102a1f45aa344 -->
+### Canonical memory checkpoint — solo-r2-readiness-handoff-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `1f08a230706f942128e94bbfd6121e873a9a8cfcb0c585fe18f102a1f45aa344`
+- Commit binding: `0a01efe2` (bound)
+- Record: Readiness handoff candidate implemented in runtime_window/disposable_execution and matching tests. Real successful window result issued once and consumed explicitly without rerun; identity/wiring/freeze/Pair/authority/genesis revalidated before Attempt. Independent review ACCEPT Blocking 0; A1 resolved in candidate. Production admission remains blocked only pending reviewed scoped commit and exact committed-source check. No R1/schema/materializer/frozen-input changes; no real creation/execution, commit or push. Evidence memory/evidence/solo-r2-readiness-handoff-20260906/.
+- Validation boundary: tests.json: five scope/adjacent files 187 passed/exit0; independent review.json: 129 passed Blocking0 and 3 exact SHA256 matched. Tests use real one-shot window orchestration with native/OS doubles. No live arm executed.
+- Next action: Scoped local commit after owner authorization, then verify exact committed consumer bytes; no new R1 generation, no live creation or execution yet.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:fb13a21f1ebd3ffce6a3d56d4bc7e423a78311c2e904d92df9f1874abee245df -->
+### Canonical memory checkpoint — solo-r2-handoff-delivery-20260906
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `fb13a21f1ebd3ffce6a3d56d4bc7e423a78311c2e904d92df9f1874abee245df`
+- Commit binding: `3e1674ab` (bound)
+- Record: Handoff implementation committed as 3e1674ab; exact 12-file index/commit identity verified. Production admission rereview PRODUCTION_ADMISSION_READY limited to reviewed wiring and committed identities: actual read-only DisposableRepositoryFreezeProbe.capture verifies 10 consumers; load_input_authority verifies frozen committed objects; reviewed 3-file hashes and 12 frozen inputs match. No actual machine readiness or live creation/execution claimed. Evidence memory/evidence/solo-r2-readiness-handoff-20260906/committed-admission-review.json.
+- Validation boundary: Existing 187 scoped tests and independent129 remain bound to unchanged reviewed bytes. Read-only production source probe + authority loader PASS, 10 consumers /12 frozen inputs. No window.run or backend invocation.
+- Next action: STOP after local evidence commit; owner separately authorizes real disposable evaluation/ledger/Pair creation to pre-Attempt. Execution remains separately authorized.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:202b6875843e12b4904ba380f0fd3d3d888af09db227581151e12735d5f86bb9 -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `202b6875843e12b4904ba380f0fd3d3d888af09db227581151e12735d5f86bb9`
+- Commit binding: `ba7de668998ffe19922da404c0fc73abc5414cc5` (bound)
+- Record: P3 exact-byte independent review by /root/review_p3_rubric ACCEPT/APPROVED Blocking0. Candidate6266bytes/108lines SHA9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5 blob8b60f62a20ac133a08a99cf4ea58e4831dea4fc9 unchanged. Five checks: complete version evidence+submission attribution22-43; harness/environmentNA27-29; ambiguous attributionNA46-53; no exit/exception-only0 at31-58; no historical rewrite67-71. Full record memory/evidence/p3-regression-rubric-review-20260908/review.json. Existing error-to-NOT_CONFIRMED carried forward as integration prerequisite, not blocker. No adoption/implementation/commit/push. Active-task summary omitted to avoid expanding existing critical-pressure unrelated dirty surface; state preserved in PLAN/daily/review-log.
+- Validation boundary: NOT RUN: no tests rerun for text review; prior7PASS at memory/evidence/p3-regression-rubric-candidate-20260908/tests.txt. Exact candidate/fixture/test and preserved historical identities reverified; independent five-clause review at memory/evidence/p3-regression-rubric-review-20260908/review.json.
+- Next action: STOP for separately authorized exact-byte owner adoption; no automatic commit or implementation.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:60c66f66d5d0437633713800edf0730ed3b3cc634116e3e540e6af16e834f0ec -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `60c66f66d5d0437633713800edf0730ed3b3cc634116e3e540e6af16e834f0ec`
+- Commit binding: `6ab5db8895ae3299d15add3a678118af6f2772da` (bound)
+- Record: P3 future-only projection/scorer opt-in integration: host-confirmed versions remain separate from execution errors; attributable submitted missing-import/syntax/assertion failures require0, harness/environment/unknown remainsNOT_ASSESSABLE; nonzero alone insufficient.112 targeted tests passed. Independent review in progress; two observed review findings fixed: scorer loading-contract visibility and host loader failure classification. Historical/default scoring unchanged; no model or push. Unrelated dirty work excluded.
+- Validation boundary: memory/evidence/p3-integration-20260908/tests-6.txt
+- Next action: Complete independent exact-byte review, scoped local commit if Blocking0, verify committed identities, then STOP.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:4c54e14e0f837bf0ad0b6bf855029ebb5ed140fe386ac8f1fee278ea1bcc373e -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `4c54e14e0f837bf0ad0b6bf855029ebb5ed140fe386ac8f1fee278ea1bcc373e`
+- Commit binding: `6ab5db8895ae3299d15add3a678118af6f2772da` (bound)
+- Record: P3 integration independent ACCEPT Blocking0 with112 independent PASS; both concrete review findings resolved. Local112PASS and preserved fixture/historical identities verified. Exact reviewed projection SHAe15d3b4a1646cc75890db5ad6f91d16d9ef5b299bec4457950de02a0cc03682d. Approved owner scope proceeds to local commit only; no real evaluations or push.
+- Validation boundary: memory/evidence/p3-integration-20260908/review.json
+- Next action: Scoped commit, verify exact committed identities and unchanged historical evidence, STOP.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:6ff64391d9711b456adb0095272d9756a446d7407cd75743f6723591bca8e14d -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `6ff64391d9711b456adb0095272d9756a446d7407cd75743f6723591bca8e14d`
+- Commit binding: `475d36644892b9768105c1f6481dbd40237b4d2d` (bound)
+- Record: P5 fixed-generation installation receipt/verifier implemented and reviewed Blocking0. Local 17 PASS; isolated hook invokes exact scanner and preserves object-closure rejection. Actual hook/scanner/config unchanged. Explicit local profile only; no canonical adoption, deployment, P4 or push. Unrelated dirty work excluded.
+- Validation boundary: memory/evidence/p5-installation-integrity-20260908/review.json
+- Next action: Make authorized scoped P5 local commit, verify identities, STOP. Real profile deployment requires separate owner authorization.
+
 <!-- memory_record_projection:review-log:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
 ### Canonical memory checkpoint — 2026-08-24-23
 

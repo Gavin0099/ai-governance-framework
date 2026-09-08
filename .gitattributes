@@ -85,3 +85,17 @@
 /artifacts/evidence/test-results/m3b2a-in-process-20260820.txt -text -whitespace
 /docs/governance/gate3-native-handle-boundary-design-candidate-20260815.md -text
 /docs/adr/0001-gate3-native-directory-handle-boundary.md -text
+
+# These evaluated sources and frozen inputs are verified by exact-byte digests.
+/governance_tools/solo*.py -text
+/governance_tools/profiles/external_tree_inventory_guard_195a204f.py -text
+/governance_tools/solo*.cs -text
+/artifacts/evidence/solo*/** -text
+/artifacts/experiments/solo*/** -text
+/docs/governance/solo*.md -text
+/docs/governance/solo*.json -text
+/memory/evidence/solo*/** -text
+/tests/fixtures/bug_fix_safety_mini_benchmark/** -text
+/tests/fixtures/lite_benchmark_compatibility/*.json -text
+/docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md -text
+/memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json -text

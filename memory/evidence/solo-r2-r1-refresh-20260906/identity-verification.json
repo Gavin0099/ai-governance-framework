@@ -1,0 +1,70 @@
+{
+  "source_commit": "3b820a2c3f115c3ee26d0514f10a39aad44a0b34",
+  "source_bindings": [
+    {
+      "path": "governance_tools/solo_attempt_ledger_v2.py",
+      "sha256": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
+      "git_blob": "0420f7f03deccb19746d0318915613b0656275f4",
+      "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
+      "role": "atomic_genesis_publication_runtime_surface"
+    },
+    {
+      "path": "governance_tools/solo_r2_random_domains.py",
+      "sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597",
+      "git_blob": "b3c9442298f2aba0adcac5c48b5ea436726fc662",
+      "last_change_commit": "ed8fad34a3c9dd4c417b947b1bbc564dc1bddffc",
+      "role": "domain_separated_generators"
+    },
+    {
+      "path": "governance_tools/solo_r2_blind_scoring_bundle.py",
+      "sha256": "8703fcc07d91e54dd9a890ac138dc40b7493922471966f04998f95e0e64dc394",
+      "git_blob": "291ef7cf6facb26a0145f7223c3b58b43e427546",
+      "last_change_commit": "66b02a832b705f257df59162a66db1cf369704b1",
+      "role": "presentation_order_boundary"
+    },
+    {
+      "path": "governance_tools/solo_r2_bootstrap.py",
+      "sha256": "4458f0e7cd3775160a8e1300cc2089dea03978a5f0c33c2d26c9bd75ed7db927",
+      "git_blob": "fb2f50518fea27c49f671655df6433465b0c9b79",
+      "last_change_commit": "182d3965bb65dd4886d70fab003c56fc8fe58c02",
+      "role": "bootstrap_runtime_participant_and_call_site_closure"
+    },
+    {
+      "path": "governance_tools/solo_r2_controller_state.py",
+      "sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+      "git_blob": "c73a5515b5024c59a5271bd6b93d11f7d7f97c37",
+      "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+      "role": "sealed_order_revalidation"
+    },
+    {
+      "path": "governance_tools/solo_r2_lifecycle_integration.py",
+      "sha256": "9f1f82b5a51e1c2cca563639195d194099badd79c3267ac0cf6817cc387f9dda",
+      "git_blob": "7abbf24947297f49defbf6c0edcacfc5851eadc6",
+      "last_change_commit": "3b820a2c3f115c3ee26d0514f10a39aad44a0b34",
+      "role": "production_entropy_and_generator_call_sites"
+    },
+    {
+      "path": "governance_tools/solo_r2_pair_creation.py",
+      "sha256": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2",
+      "git_blob": "a9205606ea2faf2d47e55ae8f27cdc6284ed4795",
+      "last_change_commit": "9bcd7ffc0da331afe8bbd020c2759da264120b48",
+      "role": "pair_creation_entropy_and_arm_order_call_site_closure"
+    }
+  ],
+  "frozen_inputs_unchanged": [
+    "artifacts/experiments/solo-r2-input-definition-20260906/input-authority.candidate.json",
+    "artifacts/experiments/solo-r2-input-definition-20260906/input-authority.owner-adopted.json",
+    "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+    "artifacts/experiments/solo-r2-input-definition-20260906/task-packet.candidate.md",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/oracle.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/reference_queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.candidate.json",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/rubric.candidate.md",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/test_queue_range.py",
+    "artifacts/experiments/solo-r2-disposable-input-definition-20260906/task-packet.candidate.md"
+  ],
+  "real_disposable_ledger_absent": true,
+  "claim_ceiling": "Seven exact bound modules plus R1 structural namespace/call projections, not full protocol or live admission"
+}

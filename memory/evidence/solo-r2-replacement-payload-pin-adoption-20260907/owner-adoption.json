@@ -1,0 +1,36 @@
+{
+  "status": "OWNER_ADOPTED",
+  "authority_source": "Explicit human owner decision in this main conversation: Owner Adoption — Replacement Disposable OwnerPayloadPin",
+  "authority_source_limit": "Recorded by assistant from conversation; not an independent signature or terminal ADOPT event. OWNER_ATTESTED in candidate alone is not adoption evidence.",
+  "recorded_at_utc": "2026-09-06T16:46:51.473847+00:00",
+  "timestamp_meaning": "Recording time, not independently witnessed adoption time",
+  "evaluation_id": "8e3fb9fe-d94b-45d5-897c-3a3e75849bd8",
+  "pair_id": "eef1c2f5-91d7-4d8d-b765-251340f35d67",
+  "record_bytes": 319,
+  "record_sha256": "0edfdabdb50094e0fa72eb6edd6ab9c17987c917bd2f530908920cf7f2ef99e8",
+  "adopted_bytes_path": "memory/evidence/solo-r2-replacement-payload-pin-adoption-20260907/payload-pin.adopted.json",
+  "source_candidate_path": "D:\\r2-replacement-disposable-shakedown-20260906\\payload-pin.candidate.json",
+  "phase_a_state_sha256": "752f2a1bc14fa00ad85cb0172f02432072c25f680722b28dce674dec214a8c16",
+  "verified_ledger_sha256": "482f4b04fb020caf019b0334602a00e96fee8d92bca3fb784ed4c145476086bf",
+  "verified_events": [
+    "V2_GENESIS",
+    "PAIR_CREATED"
+  ],
+  "attempt": 0,
+  "task_exposure_state": "NONE",
+  "durability": "Local fsync-written files with readback; not committed or remote-durable",
+  "not_authorized": [
+    "Phase A rerun",
+    "new evaluation or Pair",
+    "readiness",
+    "Attempt creation",
+    "task exposure",
+    "arm execution",
+    "oracle",
+    "scoring",
+    "unblinding",
+    "push",
+    "Phase B implementation"
+  ],
+  "next_action": "STOP. Separate authorization required for replacement Phase B wiring/tests/review. Reverify installed payload bytes before any future readiness; adoption alone does not prove current payload freshness."
+}

@@ -1,0 +1,44 @@
+{
+  "authority": "Owner Adoption — P3 Regression Safety Rubric Amendment",
+  "authority_source": "Explicit owner message in this session; exact-byte prospective adoption and one scoped local commit",
+  "session": "01a07273-917e-7522-ab30-f662b5622133",
+  "status": "OWNER_ADOPTED",
+  "amendment_path": "docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md",
+  "identity": {
+    "bytes": 6266,
+    "lines": 108,
+    "sha256": "9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5",
+    "git_blob": "8b60f62a20ac133a08a99cf4ea58e4831dea4fc9"
+  },
+  "review_path": "memory/evidence/p3-regression-rubric-review-20260908/review.json",
+  "review_sha256": "9f1f97e2e3a81d0acf3ff035ddfa90a3a1f922f2d1b74200d5701403641e895a",
+  "review_verdict": "ACCEPT / Blocking = 0",
+  "prospective_rule": "Complete version-bound execution evidence attributable to submitted source/tests preventing required regression assertions permits score0 under the adopted exact rule. Missing evidence, harness/environment failure or unresolved attribution remains NOT_ASSESSABLE; nonzero exit alone is insufficient.",
+  "exact_text_authority": "The exact reviewed amendment controls the normative details; this record records owner adoption without editing its candidate-era status text.",
+  "effective_scope": "Future Lite evaluations only after separately authorized integration and future rubric freezing before execution/scoring",
+  "historical_preservation": [
+    "Existing Bug Fix Safety scores",
+    "Easy NOT_ASSESSABLE rating",
+    "Earlier Lite rounds",
+    "Frozen scoring outputs",
+    "Prior closeout conclusions"
+  ],
+  "implementation_boundary": "CONFIRMED VERSION, EXECUTION ERROR and SUBMISSION-CAUSED ATTRIBUTION must remain distinct; current error-to-NOT_CONFIRMED behavior is unchanged and remains a separate implementation issue.",
+  "not_authorized": [
+    "Projection or scorer code changes",
+    "Historical rescoring or reruns",
+    "Skill changes",
+    "Benchmark fixture changes",
+    "New Skill evaluation",
+    "Push"
+  ],
+  "allowed_commit": [
+    "Exact amendment",
+    "Owner-adoption record",
+    "Required review evidence",
+    "Minimum PLAN and canonical-memory updates"
+  ],
+  "supporting_fixtures": "Existing synthetic fixture/test sources remain local and uncommitted in this adoption slice; their identities and prior result are review evidence, not production enforcement.",
+  "baseline_head": "ba7de668998ffe19922da404c0fc73abc5414cc5",
+  "next_action": "After scoped local commit verify committed bytes/SHA/blob and STOP. Future implementation requires separate authorization."
+}

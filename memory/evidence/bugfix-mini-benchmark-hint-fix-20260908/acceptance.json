@@ -1,0 +1,32 @@
+{
+  "authority": "Current owner instruction: remove only Hard hint, refresh identities, validate, independent review; adoption/commit only after Blocking 0",
+  "condition": "Independent re-review ACCEPT / Blocking 0",
+  "scope": "Three-task preparation pack first scoped commit, one-statement Hard correction, manifest and review evidence; minimum PLAN/daily suffixes",
+  "manifest": {
+    "bytes": 4097,
+    "sha256": "a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34",
+    "git_blob": "f15f771ab44ec4532997e36e221efd9031bd5575"
+  },
+  "hard_task": {
+    "bytes": 1524,
+    "sha256": "765ce65c7c9950a2d016f8341d59f53711715e1ab0e2f6b45d2ac3ff27107c37",
+    "git_blob": "bddeb16569ee555539eada38a5f2af64b721382e"
+  },
+  "review": "independent-review.json",
+  "historical_snapshots": "Preserved as pre-fix candidate and rejected review, not active identities",
+  "not_authorized": [
+    "model execution",
+    "runner integration",
+    "push"
+  ],
+  "governance_cost_observation": {
+    "event": "Independent review found actor-visible superficial-fix advice",
+    "additional_work": "One-statement removal, identity refresh, fixture validation and bounded re-review",
+    "extra_time": "未量測",
+    "decision_changed": true,
+    "found_defect": "Hard TASK disclosed the specific wrong repair being tested",
+    "counterfactual": "推測：不修可能影響 Hard 題的鑑別力；未以模型實測",
+    "judgment": "必要防護",
+    "evidence": "../bugfix-mini-benchmark-review-20260908/review.json"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "status": "OWNER_ADOPTED",
+  "freeze_state": "DISPOSABLE_INPUTS_FROZEN",
+  "freeze_scope": "Local input artifacts and qualification only; not full P07 freeze or production admission.",
+  "task_id": "disposable-queue-range/shakedown/simple",
+  "owner_adoption": {
+    "authority_source": "Current main-session owner instruction: complete disposable input admission by review/adoption of exact task, reuse exact rubric, freeze Base commit/tree and oracle blob/digest.",
+    "recorded_at_utc": "2026-09-06T03:00:11.666165+00:00",
+    "timestamp_meaning": "Local recording time, not independently witnessed owner signature.",
+    "review_source": "Owner-supplied candidate review verifies task identity and suitability; current agent checks task/rubric pairing and fixed-case qualification. No independent sub-agent review claimed."
+  },
+  "source_candidate": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.candidate.json",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 2256,
+    "sha256": "3ed4f4aac1b8ad83f313463415de089d6e3acaf85445238e64eb18f4c31f3f6e",
+    "git_blob_oid": "27f1e5a905c90ef39c17ca997e12496bb383f7ec"
+  },
+  "task_prompt": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/task-packet.candidate.md",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 1328,
+    "sha256": "13b73cf74593380685772ffe765e6478abf3c741b2fad8fc517aae6285726a65",
+    "git_blob_oid": "729a7ebf9cc830f466014c4907d8731f7246b757"
+  },
+  "rubric": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/rubric.candidate.md",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 3754,
+    "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+    "git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+  },
+  "rubric_reuse": {
+    "version": "solo-r2-blind-patch-quality-v1",
+    "adopted_source": {
+      "path": "artifacts/experiments/solo-r2-input-definition-20260906/rubric.candidate.md",
+      "commit": "d3725fe87d8d1a4b0cdd4b522103e74dffeb0770",
+      "bytes": 3754,
+      "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+      "git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+    },
+    "disposition": "Exact-byte reuse, not a new rubric version or study retention-rule amendment."
+  },
+  "base_snapshot": {
+    "source_repository": "ai-governance-framework",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "subdirectory": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot",
+    "tree_oid": "81b97b79e32e977d716754aef514930835a2f2b2",
+    "archive_argv": [
+      "git",
+      "-c",
+      "core.autocrlf=false",
+      "archive",
+      "--format=tar",
+      "695863d1922c7b03a7672d3471160e5514945f95:artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot"
+    ],
+    "files": [
+      {
+        "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/queue_range.py",
+        "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+        "bytes": 187,
+        "sha256": "3399735d08706f48022d3e632d3adcd73b4e17deb6ff148ae106487a4a089f86",
+        "git_blob_oid": "f753d96b56029f93bc6cc75a3a97d031cae898f2"
+      },
+      {
+        "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot/test_queue_range.py",
+        "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+        "bytes": 529,
+        "sha256": "c1d4fef47e2a06cc143eb1323a11990678848ea115105968bfc5265d9b18131d",
+        "git_blob_oid": "18b5c7f3646cf63633ae1f8ed9ec881d866f551d"
+      }
+    ],
+    "export_boundary": "Export only this subtree; never the whole source repository. Oracle and reference repair are evaluator-only.",
+    "history": "Ordinary local commit with parent; no orphan history or separate repository."
+  },
+  "oracle": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/oracle.py",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 2641,
+    "sha256": "8c64d7367e552b39d37db66202123bf50b72b381cb73d19fc7dce19b94b9c60b",
+    "git_blob_oid": "6181b954275ec6d834a07999b93e32741c833eca"
+  },
+  "oracle_contract": {
+    "command": "python -B <frozen evaluator oracle.py> <arm workspace>/queue_range.py",
+    "required_cases": [
+      "test_lower_endpoint",
+      "test_upper_endpoint",
+      "test_equal_bounds",
+      "test_negative_and_zero_endpoints",
+      "test_interior_and_exterior",
+      "test_empty_input",
+      "test_reversed_range",
+      "test_order_and_duplicates",
+      "test_input_unchanged",
+      "test_new_list_original_tuples_and_payloads"
+    ],
+    "success": "All ten fixed cases must run successfully. NOT_RUN, missing output, import errors or contradictory evidence are not PASS.",
+    "source": "Fixed expected examples from task contract; reference implementation does not generate expected values.",
+    "immutability": "No oracle or case changes after Pair creation or results."
+  },
+  "reference_repair": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/reference_queue_range.py",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 193,
+    "sha256": "827ef2c2d341a1057692d09362f67013e37f9221857d01c87e17754336a9bb5f",
+    "git_blob_oid": "b79582f6a4f069103ab4f516dee0a1a323677fb8"
+  },
+  "qualification": {
+    "path": "memory/evidence/solo-r2-disposable-input-qualification-20260906/qualification.json",
+    "bytes": 4337,
+    "sha256": "2701922eaf666e51f4d443701c8e2df68a4c89871b7af9cf9af18c5b02535490",
+    "git_blob_oid": "40a456cc71a26c98e712d5bab7bde2fcd628f3a9",
+    "base": {
+      "passed": 6,
+      "expected_failures": 4
+    },
+    "reference": {
+      "passed": 10,
+      "failures": 0
+    },
+    "visible_tests": {
+      "base_passed": 3,
+      "reference_passed": 3
+    },
+    "claim": "Synthetic input qualification, not CONTROL/TREATMENT or end-to-end results."
+  },
+  "exposure_semantics": "TASK_DISCLOSURE_ONLY for initiated-attempt consumption. task_exposure_state is a lifecycle state, not cross-evaluation contamination proof. E02 fresh context remains an admission requirement; provider cache equivalence is UNAVAILABLE / NOT CLAIMED.",
+  "grimm_reservation": "d3725fe8 exact files remain unchanged and reserved; no Grimm task disclosure or Pair use authorized.",
+  "production_admission_compatible": false,
+  "remaining_admission_boundary": "Current production materializer pins a different Base and exports a whole commit, not this subtree. No constant, export behavior or admission check was modified. Separate bounded production binding and remaining P07/readiness authorization are required before new Pair creation; do not bypass current checks.",
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "pair_creation_authorized": false,
+  "attempt_authorized": false,
+  "execution_authorized": false,
+  "unblinding_authorized": false,
+  "push_authorized": false,
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "interpretation_limits": [
+    "Low discrimination is expected: a tie proves neither Skill ineffectiveness nor rubric discrimination failure.",
+    "Input qualification does not prove all evaluation machinery, isolation, Skill effectiveness or Formal Gate 3 validity.",
+    "Local durable freeze only; no remote delivery."
+  ],
+  "deferred_observations": [
+    "FROZEN_FIX_COMMIT declared-but-unconsumed: P2 / POST-GATE3, no engineering opened.",
+    "Codex 0.153.3 wrapper coupling: P2 / POST-GATE3, no genericization opened."
+  ]
+}

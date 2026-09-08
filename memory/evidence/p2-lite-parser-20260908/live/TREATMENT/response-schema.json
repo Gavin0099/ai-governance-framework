@@ -1,0 +1,1 @@
+{"additionalProperties": false, "properties": {"source": {"type": "string"}, "summary": {"type": "string"}, "test_source": {"type": "string"}}, "required": ["source", "test_source", "summary"], "type": "object"}

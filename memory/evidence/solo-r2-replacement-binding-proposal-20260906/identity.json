@@ -1,0 +1,32 @@
+{
+  "baseline_commit": "f75a78eeb32bf79e58a91898d0775fd3f58854b8",
+  "proposal": {
+    "path": "docs/governance/solo-r2-replacement-binding-proposal-20260906.md",
+    "bytes": 16452,
+    "lines": 124,
+    "sha256": "e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9",
+    "git_blob_oid": "7ce6c1b0fff22f40f4ff90a1b847583b675ae9c5"
+  },
+  "production_bytes_equal_committed": {
+    "governance_tools/solo_r2_disposable_profile.py": true,
+    "governance_tools/solo_r2_disposable_binding.py": true,
+    "governance_tools/solo_attempt_ledger_v2.py": true,
+    "governance_tools/solo_r2_pair_creation.py": true,
+    "governance_tools/solo_r2_lifecycle_integration.py": true,
+    "governance_tools/solo_r2_disposable_execution.py": true,
+    "governance_tools/solo_r2_disposable_materialization.py": true
+  },
+  "old_ledger_sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+  "old_ledger_events": 5,
+  "new_paths_absent": [
+    "artifacts/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+    "memory/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/genesis-binding.json"
+  ],
+  "architecture_preview": {
+    "command": ".venv/Scripts/python.exe -B governance_tools/architecture_impact_estimator.py --scope tooling --rules common --format json",
+    "exit_code": 0,
+    "limitation": "No before/after implementation supplied; empty file analysis is not evidence of low boundary risk or implementation compatibility. Concrete dependencies are manually traced in the proposal."
+  },
+  "review_status": "NOT_REVIEWED",
+  "runtime_tests": "NOT_RUN: documentation-only design"
+}

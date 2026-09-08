@@ -1,0 +1,103 @@
+{
+  "status": "OWNER_ADOPTED",
+  "recorded_at_utc": "2026-09-07T05:22:23.760689+00:00",
+  "authority_source": "Explicit main-session Owner Adoption — Final Fresh Solo R2 Disposable Allocation / Placement",
+  "timestamp_meaning": "Local recording time; not independently witnessed or signed",
+  "baseline_commit": "609d8b1eddd8b1c6eeed707add3218dfb6a8cb17",
+  "adopted_candidate": {
+    "path": "docs/governance/solo-r2-final-fresh-allocation-placement-candidate-20260907.md",
+    "bytes": 17643,
+    "lines": 134,
+    "sha256": "33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2",
+    "git_blob_oid": "67ff3b7d9aadfb7b6e6cf2b82252f5c130570b8f"
+  },
+  "candidate_header_interpretation": "Historical candidate header remains unchanged; this separate record establishes adoption of those exact bytes.",
+  "independent_review": {
+    "path": "memory/evidence/solo-r2-final-allocation-candidate-20260907/review.json",
+    "sha256": "c35b634e4778e0b6db58309b41013057dfa63d131fb05df813f7f611953da6c7",
+    "verdict": "ACCEPT",
+    "blocking": 0
+  },
+  "allocation": {
+    "final_fresh_evaluations": 1,
+    "dedicated_ledgers": 1,
+    "new_pairs": 1,
+    "fresh_context_arm_attempts": 2,
+    "meaning": "One per fresh arm; not retries. Allocation approval is not operational creation or execution authorization.",
+    "further_automatic_replacements": 0
+  },
+  "attempt_ceiling_interpretation": "Per-ledger counters are not a global mechanical ceiling. Two historical initiated disposable Attempts plus at most two final arm Attempts total four, bounded by owner allocation. No unused historical capacity transfers.",
+  "hard_stop": "If another harness/infrastructure defect prevents completion, STOP and reassess. No retry, replacement or extra allocation is authorized by that failure.",
+  "fixed_placement": {
+    "ledger": "D:/ai-governance-framework/artifacts/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/attempt-ledger.v2.1.ndjson",
+    "genesis_binding": "D:/ai-governance-framework/memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/genesis-binding.json",
+    "runtime_root": "D:/r2-final-disposable-shakedown-20260907",
+    "controller_root": "D:/r2-final-disposable-shakedown-20260907/controller",
+    "launcher_root": "D:/ai-governance-framework/artifacts/experiments/solo-r2-final-disposable-launcher-20260907",
+    "remaining_custody_paths": "Exactly as adopted candidate; not caller-selected."
+  },
+  "preserved_history": [
+    {
+      "evaluation_id": "1ebfbc48-d2fe-459d-bab7-b9fd75a5810b",
+      "pair_id": "747c09b2-56d0-42d0-bc34-d505e23e311e",
+      "ledger_path": "artifacts/evidence/solo-r2-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+      "ledger_sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+      "ledger_events": 5,
+      "existing_terminal_classification": "HARNESS_FAILURE",
+      "owner_disposition": "PRESERVED / NO_FURTHER_ARM / NOT_COMPLETE_AB",
+      "disposition_is_ledger_event": false
+    },
+    {
+      "evaluation_id": "8e3fb9fe-d94b-45d5-897c-3a3e75849bd8",
+      "pair_id": "eef1c2f5-91d7-4d8d-b765-251340f35d67",
+      "ledger_path": "artifacts/evidence/solo-r2-replacement-disposable-mechanism-shakedown-20260906/attempt-ledger.v2.1.ndjson",
+      "ledger_sha256": "33e291c2018aabaa004ca7998ee87a5cbfefefc81b53e77374ae694c1e42f3d8",
+      "ledger_events": 5,
+      "existing_terminal_classification": "UNCLASSIFIED",
+      "owner_disposition": "PRESERVED / NO_FURTHER_ARM / NOT_COMPLETE_AB",
+      "disposition_is_ledger_event": false
+    }
+  ],
+  "preservation_rule": "No migration, reset, rewriting or reuse of historical instance-bound state; traces, Attempts, checkpoints, keys, pins and evidence remain preserved.",
+  "authority_reuse": "Only exact frozen shared material/schema/protocol/contract/input identities under the candidate boundaries. No implicit inheritance of evaluation/Pair/ledger/checkpoint/payload-pin/readiness/cost-extension authority.",
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "MECHANISM_SHAKEDOWN_ONLY",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "new_evaluation_id": null,
+  "new_pair_id": null,
+  "authorized_now": [
+    "owner adoption record",
+    "one scoped local commit of adopted candidate and necessary authority/memory/PLAN/review records",
+    "committed exact identity verification"
+  ],
+  "not_authorized": [
+    "production implementation",
+    "launcher modification",
+    "evaluation ID generation",
+    "ledger creation",
+    "Pair creation",
+    "Attempt admission",
+    "task exposure",
+    "CONTROL/TREATMENT execution",
+    "oracle",
+    "blind scoring",
+    "unblinding",
+    "retry",
+    "additional allocation",
+    "A1-A6 progression",
+    "Formal or counted evidence",
+    "push"
+  ],
+  "open_prerequisites": [
+    "minimal production/launcher binding separately authorized, reviewed and committed",
+    "custody current-state verification",
+    "dedicated HOME reuse/isolation verification",
+    "new Pair-specific payload pin adoption only after authorized creation"
+  ],
+  "durability_scope": "Local Git durability only after committed verification; no remote durability claim",
+  "blob_provenance": "No enclosing self-referential commit embedded; baseline is parent.",
+  "stop": "After committed bytes/SHA256/blob verification. No implementation or operational continuation."
+}

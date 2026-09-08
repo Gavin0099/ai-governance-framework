@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "D:/ai-governance-framework/.venv/Scripts/python.exe C:/Users/daish/AppData/Local/Temp/codex-r2-r1-baseline-fd772498/run_baseline.py",
+  "exit_code": 1,
+  "started_at": "2026-09-06T06:04:19Z",
+  "finished_at": "2026-09-06T06:04:22Z",
+  "runner": "pytest",
+  "linked_commit": "fd77249811fb2e0ff5daba416bc7384a415ea294",
+  "output_artifacts": [
+    "memory/evidence/solo-r2-disposable-integration-20260906/r1-baseline.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

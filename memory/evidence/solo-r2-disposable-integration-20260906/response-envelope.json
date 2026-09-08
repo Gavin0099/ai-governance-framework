@@ -1,0 +1,44 @@
+{
+  "task": "Disposable v2.1 materializer / arm integration",
+  "task_authority": "user_request",
+  "scope": [
+    "governance_tools/solo_r2_attempt_materialization.py",
+    "governance_tools/solo_r2_attempt_execution.py",
+    "governance_tools/solo_r2_lifecycle_integration.py",
+    "governance_tools/solo_r2_runtime_window.py",
+    "governance_tools/solo_r2_disposable_materialization.py",
+    "governance_tools/solo_r2_disposable_execution.py",
+    "tests/test_solo_r2_disposable_execution.py"
+  ],
+  "done": "Seven-file implementation independently reviewed; pre-commit evidence corrected to disclose three R1 bound-module drifts, including lifecycle drift introduced by this slice.",
+  "claim_ceiling": "R1 remains FAIL. This slice introduced lifecycle-integration bound-module drift, in addition to ledger_v2 and pair_creation drift committed in 9bcd7ffc. Post-implementation-commit R1 generation refresh remains required for all three exact committed modules. Same failed test names may mask additional mismatches; not full regression PASS, qualification or production admission.",
+  "not_claimed": [
+    "real runtime admission",
+    "actual arm execution",
+    "oracle/scoring/unblinding",
+    "S2 integrity",
+    "commit/push",
+    "all Solo tests green"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "memory\\evidence\\solo-r2-disposable-integration-20260906\\targeted-tests.json",
+      "result": "FAIL"
+    },
+    {
+      "artifact": "memory\\evidence\\solo-r2-disposable-integration-20260906\\regression-comparison.json",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\solo-r2-disposable-integration-20260906\\review.json",
+      "result": "PASS"
+    }
+  ],
+  "risk": [
+    "All-Solo is not entirely green: historical R1 fingerprint mismatch remains.",
+    "Native execution in sequence tests is substituted; no live task exposure.",
+    "Unrelated dirty work excluded; implementation not committed.",
+    "Prior failure-name-only comparison concealed one additional bound-module mismatch; corrected by current_source_fingerprint_mismatches."
+  ],
+  "next_action": "Make owner-authorized reviewed scoped implementation commit then STOP. R1 generation refresh of the three committed modules is next separate slice."
+}

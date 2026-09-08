@@ -2,12 +2,12 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-09-02
+> **最後更新**: 2026-09-08
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
 > **Risk tier**: L2
-> **Planning window**: 2026-03 through 2026-08
+> **Planning window**: 2026-03 through 2026-09
 > **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
@@ -2631,11 +2631,75 @@ Current blocking relationships for this work item:
   unprotected.
 - No manifest is repinned, no pair evidence is rewritten, and the consumed
   `NON_SUCCESS` pair does not regain usability through any of this.
+
+#### Historical branch record (09248cb4)
+
+- M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
+  wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
+  `handle_boundary_available()` and `ACTIVE` are both `False`.
+- **2026-09-04 current-state reconciliation.** The active-state cutover is
+  complete: `memory/01_active_task.md` points by exact SHA-256
+  `3c255c2bc72988464afbefd13731691a244f6de84a8e7e8e7d32a4d799801bc5`
+  to `memory/05_authority_index.md`. The index is retrieval-only, not new
+  authority or independent proof.
+- R2 sandbox/custody qualification and both V2 wrappers are frozen. The first
+  production `codex exec --json` reached the service but failed HTTP 401 before
+  tool execution; Attempt and Grimm exposure stayed zero. Frozen keyring V2
+  `-Mode Status` then returned `AUTHENTICATED` for
+  `C:\Users\daish\.codex-r2-canary` under explicit keyring/no fallback, with no
+  `auth.json` and no Login. The qualification-home authentication sub-blocker
+  is cleared; production runner explicit keyring wiring and runtime
+  requalification remain required.
+- Current order: commit the staged runner keyring wiring, refresh R1 generation
+  8, rebound only the dry-run wrapper HEAD/runner pins, then separately
+  authorize the second real non-exposure dry-run. This reconciliation authorizes
+  no Login, credential read/copy/mutation, live execution, Attempt, or Gate 3
+  success claim.
+
+### Gate 3 first-Skill funding gate — principal before engineering
+
+The goal remains to complete Gate 3 and test the first Bug Fix Engineering
+Skill. The owner now reconciles the natural pilot's eight-step card with the
+later nine-step program method as program Section 3 steps 1–7 and 9; step 8 is
+omitted only because it governs Arm-D-only validator treatment and a natural
+pilot has no experimental arms. This is a 2026-08-20 owner decision, not a
+claim that the later program text caused the 2026-07-17 pilot record.
+
+No scorer-before-mapping implementation is funded until a separately controlled
+external-pin authority is shown feasible for this repository. The decision must
+name the chain writer, a genuinely independent pin controller, the durable
+append-only surface, pin timing and contents, the mapping-release check, and
+inadmissible sources. A second account controlled by the same natural person or
+automation agent is not a different principal. The protection state that keeps
+the coordinator from modifying, deleting, merging or force-updating the surface
+must be checked and retained at pin time.
+
+External-record absence, timeout, stale or mismatched bytes, unknown or changed
+protection state, a non-independent controller, or a pin created after mapping
+release all fail closed. There is no temporary release and no retrospective
+pin. If no qualifying principal and surface exist, this work stops with Gate 2
+process integrity still `NOT_ESTABLISHED`; a local chain, another file in the
+same output tree, same-agent memory or caller-supplied digest cannot replace the
+missing authority.
+
+Only after that feasibility gate passes may the owner consider one bounded
+tranche: the six create-once previous-digest events from randomization seal
+through two scorer submissions and mapping release, plus one non-counted
+rehearsal. That is the complete cost ceiling before a new owner decision. It
+authorizes no counted pair, Skill promotion or broader runtime/native surface.
+The historical Gate 2 run cannot be repaired retrospectively. A first counted
+pair would begin, not complete, Gate 3; completion still requires at least three
+separately originated natural bugs across two consumer repositories under the
+accepted repeat rules.
+
+#### Historical main record (a6a2d622)
+
 - M4 is not started, and M3 is delivered only as M3-a, M3-b-1 and bounded
   M3-b-2A. Nothing is wired to M2 or to M3-a, nothing calls M3-b-1 or M3-b-2A,
   and no availability flag moved: `handle_boundary_available()` and `ACTIVE`
   are both `False`.
 - Credentials, preflight and live remain unauthorized.
+
 
 Claim ceiling: this work item has produced design authority, an independent
 ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, a
@@ -2825,3 +2889,403 @@ The P0b required-drift-gate slice is done when:
 - Cannot claim workspace clean while runtime ledgers remain dirty.
 - Cannot claim that a refreshed baseline hash proves owner authorization for
   future protected-file changes.
+
+
+### Solo R2 exact task/rubric owner adoption — 2026-09-06
+
+Owner adopts the exact reviewed task/rubric identities in
+`artifacts/experiments/solo-r2-input-definition-20260906/input-authority.owner-adopted.json`.
+This prospectively supersedes the earlier candidate-input-review next step only.
+The task and rubric bytes remain unchanged. The enclosing local commit supplies
+the durable freeze identity after its tree is verified. All other P07 inputs and
+Pair/readiness admission remain separate prerequisites. No retrospective binding
+to an existing Pair, new Pair, Attempt, execution, or push is authorized.
+Next: STOP; owner separately authorizes new Pair creation before further admission.
+
+
+### Solo R2 disposable input identity freeze — 2026-09-06
+
+Owner adopts the unchanged disposable task and reuses the existing exact rubric.
+Source commit `695863d1922c7b03a7672d3471160e5514945f95` pins the snapshot subtree,
+evaluator-only oracle and reference repair. The adopted binding is
+`artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json`.
+Base has four expected endpoint failures out of ten cases; reference repair
+passes ten, with three visible tests passing on each. Export pins LF bytes via
+command-local core.autocrlf=false. This supersedes candidate-only input status,
+not production admission: current materializer Base/export bindings remain
+incompatible and unchanged. Grimm stays reserved. STOP after local authority
+commit verification; separate owner authorization is required for production
+binding, remaining P07 admission, new Pair, Attempt and execution. No push.
+
+
+### Solo R2 v2.1 schema amendment owner adoption - 2026-09-06
+
+Owner adopts exact amendment ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab.
+Authority record: docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json.
+Binding spec is preserved subordinate design provenance, not implementation authority.
+D2 ledger placement/evaluation allocation remains an unresolved separate owner decision.
+One scoped local commit and exact committed-byte verification only; then STOP.
+No production, qualification rerun, new ledger/evaluation, Pair, Attempt or push.
+
+
+### Solo R2 D2 allocation owner decision - 2026-09-06
+
+D2 allocation is adopted: preserve one replacement evaluation and allow one
+additional disposable mechanism-shakedown evaluation with one dedicated ledger.
+See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json.
+This supersedes only the earlier unresolved allocation status; exact placement
+and identity remain unresolved. No ledger/ID creation, production, Pair, Attempt,
+qualification rerun or push is authorized.
+
+
+### Solo R2 disposable placement owner adoption - 2026-09-06
+
+Owner adopts exact placement contract 7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246.
+See docs/governance/solo-r2-disposable-placement-owner-adoption-20260906.json.
+Placement/identity definition is adopted; no evaluation ID or genesis exists from this action.
+One scoped local durability commit then STOP. Production implementation, ledger/Pair/Attempt
+creation, execution, qualification rerun and push remain unauthorized.
+
+### Solo R2 disposable production binding - local implementation 2026-09-06
+
+Owner-authorized fixed-placement genesis creation and pre-Pair binding implemented
+in the local worktree; six code/test files reviewed, Blocking=0, 164 targeted tests.
+Evidence: memory/evidence/solo-r2-disposable-binding-20260906/.
+Not committed or pushed. This supersedes implementation-not-started only for this
+bounded creation/pre-Pair slice; materializer/arm integration and full production
+admission are not established. No real evaluation, ledger, Pair or Attempt created.
+STOP with implementation/test/review evidence ready; future actions need their own scope.
+
+Local commit checkpoint: 9bcd7ffc (2026-09-06) now durably contains the six
+reviewed creation/pre-Pair implementation files. This supersedes the uncommitted
+status above. Evidence companion preserves review/test identities; no push.
+Materializer/arm integration remains NOT DONE and separately scoped. STOP.
+
+### Solo R2 disposable materializer / arm integration - 2026-09-06
+
+Owner-authorized seven-file integration implemented in the local worktree.
+Exact subtree and packet binding, durable exposure-before-dispatch, per-arm runtime
+freeze and retained source/runtime evidence are covered by 28 passing new tests.
+Independent review APPROVED, Blocking=0; evidence in
+memory/evidence/solo-r2-disposable-integration-20260906/.
+All-Solo: 478 passed / 11 historical R1 fingerprint failures; the same 11 fail
+on baseline fd772498 (R1: 8 passed / 11 failed). No new failure names observed;
+not an all-green or production-admission claim. Frozen inputs unchanged.
+Implementation UNCOMMITTED; no real evaluation/ledger/Pair/Attempt, no task run,
+no oracle/scoring/unblinding, no qualification rerun, no push. STOP.
+
+### Solo R2 pre-commit evidence correction - 2026-09-06
+
+Owner authorizes evidence/scope reconciliation and one reviewed implementation
+commit, then STOP. Prior failure-name comparison did not establish unchanged R1:
+9bcd7ffc introduced ledger_v2 + pair_creation drift; the integration slice adds
+lifecycle_integration drift. Three bound modules require the next separate
+post-implementation-commit R1 generation refresh against exact committed bytes.
+R1 remains FAIL. See memory/evidence/solo-r2-disposable-integration-20260906/
+scope-reconciliation.md and regression-comparison.json. External inventory guard,
+its tests/configuration and workflow changes remain excluded. No refresh, execution
+or push in this slice. Implementation commit verification is the stopping point.
+
+## Solo R2 R1 refresh after 3b820a2c (2026-09-06)
+
+- Three committed source pins refreshed; four disposable namespace members included without changing validator functions.
+- Evidence: `memory/evidence/solo-r2-r1-refresh-20260906/`; 490 Solo tests passed, independent R1 review 20 passed / Blocking 0.
+- Scope: structural evidence only; no real evaluation, ledger, Pair, Attempt, admission, or push. Stop after scoped local commit verification.
+
+## Solo R2 handoff committed admission review (2026-09-06)
+
+- Handoff implementation: `3e1674ab`; A1 resolved.
+- Production wiring and committed identity: READY, supported by `memory/evidence/solo-r2-readiness-handoff-20260906/committed-admission-review.json`.
+- No real evaluation, ledger, Pair, Attempt or arm execution. Next: separate owner creation authorization; no push.
+
+## Solo R2 unavailable-cost amendment owner adoption (2026-09-06)
+
+- Owner adopted exact 14824-byte amendment SHA-256 c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad after independent four-point ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-v2.1-unavailable-cost-owner-adoption-20260906.json; preserves existing disposable genesis and four-event prefix.
+- Current Attempt remains initiated and exposed, without terminal; this supersedes earlier pre-execution status only. No ledger mutation in this adoption.
+- Next: separate minimal implementation authorization, then separately authorized historical terminal append. No retry, Attempt 2, new Pair, A1-A6 or push authority. Stop after scoped local commit and exact committed-byte verification.
+
+## Solo R2 unavailable-cost implementation (2026-09-06)
+
+- Minimal v2.1 cost representation implemented; numeric v2 unchanged. Extended append requires exact adoption and durable controller evidence verified against the retained trace.
+- Targeted 138 PASS; independent 42 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-unavailable-cost-implementation-20260906/review.json.
+- New R1 drift affects ledger_v2 and lifecycle; refresh follows this implementation commit immediately. Real ledger remains four events; no historical append, retry, Attempt 2 or push.
+
+## Solo R2 unavailable-cost R1 refresh (2026-09-06)
+
+- Implementation committed at `0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab`; targeted 138 PASS and independent 42 PASS / Blocking 0.
+- R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
+- New create-once evidence: `artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-0c48594a.json`; R1 targeted tests 20 PASS. Previous generation preserved.
+- Separate refresh commit follows independent review. STOP after committed identity verification; historical terminal append still requires separate authorization. Ledger remains four events; no retry, execution or push.
+
+## Solo R2 historical Attempt terminal closure (2026-09-06)
+
+- Owner-authorized historical append completed: fifth event EXECUTION_TERMINAL / HARNESS_FAILURE; original four-event prefix preserved byte-for-byte.
+- Initiated count remains 1; terminal count is 1. elapsed_ms UNAVAILABLE, tool_calls 7; optional tokens_total omitted with raw components retained in controller custody.
+- Evidence: memory/evidence/solo-r2-historical-terminal-20260906/result.json. No output sealing, correctness evaluation, retry, Attempt 2 or push. STOP; later bug-fix/retry decisions remain separate.
+
+## Solo R2 harness repair delivery (2026-09-06)
+
+- Two-mode repair reviewed: direct 77 PASS, independent 10 PASS / Blocking 0.
+- Outer launcher check and tamper rejection: 6 PASS; five known module pins and wrapper digests updated, prior manifest preserved.
+- Scope is local committed repair and static import binding only. Existing Phase A state is not migrated; readiness and execution admission remain unverified.
+- No real ledger change, Pair/Attempt, retry or push. STOP after committed identity verification.
+
+## Solo R2 replacement disposable decision adoption (2026-09-06)
+
+- Owner adopted exact6250byte decision SHA bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3 after independent ACCEPT / Blocking 0.
+- Old evaluation FAILED_MECHANISM_SHAKEDOWN / PRESERVED / NO_FURTHER_ARM; existing five-event ledger unchanged.
+- Exactly one additional replacement allocation and distinct fixed placement adopted; IDs and ledger remain uncreated.
+- Authority: docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json. New custody/binding prerequisites remain open.
+- STOP after local adoption commit verification; no implementation, migration, retry, creation, execution or push.
+
+## Solo R2 replacement binding proposal adoption (2026-09-06)
+
+- Owner adopted unchanged 16452-byte proposal SHA e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9; independent full review ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-replacement-binding-owner-adoption-20260906.json. Attempt ceilings are per-ledger; cross-evaluation allocation is owner-bound, not a schema-global counter.
+- Replacement append requires binding + genesis + evaluation + exact path; path membership alone is insufficient.
+- Old five-event ledger and consumed Attempt preserved; no production edits, migration, new experiment, execution or push.
+- STOP after scoped local commit and exact identity verification; implementation remains separately authorized.
+
+## Solo R2 replacement binding implementation (2026-09-07)
+
+- Fixed replacement create/append APIs bind exact adopted authority, genesis, evaluation and placement; old cost authority is not transferred.
+- Directly affected regression 239 PASS; independent 66 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-binding-implementation-20260907/review.json.
+- Old ledger remains five events; no real evaluation, Pair, Attempt or runtime executed. Outer launcher/admission is not verified.
+- New R1 drift affects ledger_v2, pair_creation and lifecycle; refresh immediately after this implementation commit, then STOP. No push.
+
+## Solo R2 replacement binding R1 refresh (2026-09-07)
+
+- Implementation committed at de85d2f8ecf5f1ccb732e09ec4053b74456ab180; reviewed source bytes verified 9/9. Regression239PASS and independent66PASS.
+- R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics. New evidence: artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-de85d2f8.json. Previous generation preserved.
+- R1 structural check and targeted20tests PASS. Independent refresh review precedes separate local commit.
+- STOP after refresh commit verification; no real evaluation/ledger/Pair/Attempt or push. Outer launcher and real admission remain unverified.
+
+## Solo R2 replacement launcher static verification (2026-09-07)
+
+- Replacement-only external launcher offers check and Phase A creation-to-candidate STOP; no readiness/execution/adoption modes.
+- Targeted 16 PASS; independent 16 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-launcher-20260907/review.json.
+- Owner authorized scoped local delivery of the five reviewed launcher files and required records; committed identity verification follows. Existing production and old five-event ledger unchanged; no real replacement allocation, Pair, Attempt or payload-pin adoption.
+- Static wiring is verified; real-host creation and admission are not. STOP after local commit verification; real creation requires separate authorization. No push.
+
+## Solo R2 replacement payload-pin adoption (2026-09-07)
+
+- External Phase A created evaluation 8e3fb9fe-d94b-45d5-897c-3a3e75849bd8 and Pair eef1c2f5-91d7-4d8d-b765-251340f35d67; verified ledger contains only GENESIS and PAIR_CREATED.
+- Owner adopted exact 319-byte pin SHA256 0edfdabdb50094e0fa72eb6edd6ab9c17987c917bd2f530908920cf7f2ef99e8. Exact copy and conversation-sourced adoption: memory/evidence/solo-r2-replacement-payload-pin-adoption-20260907/owner-adoption.json.
+- Owner authorized scoped Git durability of the exact adopted bytes and adoption record; committed identity verification follows. Attempt 0, exposure NONE. No readiness, execution, payload regeneration or old-pin reuse.
+- STOP after scoped commit and identity verification. Replacement Phase B wiring and later runtime readiness require separate authorization.
+
+## Solo R2 replacement Phase B wiring (2026-09-07)
+
+- Added committed-adoption/external-state verification, replacement-only readiness object assembly, and live in-process wait. Blank input and EOF do not return; explicit ABORT discards live handoff.
+- Targeted 30 tests PASS. Native runtime observations remain simulated; no real Phase B or Attempt executed. Evidence: memory/evidence/solo-r2-replacement-phase-b-20260907/validation.json.
+- Execution entry remains disabled pending owner scope answer; do not claim executable continuation READY. Dedicated replacement Codex HOME is absent and requires separate runtime preparation.
+- Uncommitted, no production/frozen-input/ledger changes. STOP after independent review; no real readiness or push.
+
+## Solo R2 controlled EXECUTE wiring (2026-09-07)
+
+- Owner separately authorized the final one-use live execution transition; this supersedes the preceding pending-scope note only.
+- Exact evaluation/Pair/nonce authorization revalidates current adoption/state/ledger/payload and original live objects, then calls the existing execution API once. No second readiness run or cross-process resume.
+- Targeted 47 tests PASS with isolated execution substitute; evidence: memory/evidence/solo-r2-replacement-controlled-execute-20260907/validation.json. Independent review required before this slice stops.
+- Owner authorized scoped local commit after 47 targeted and 47 independent PASS / Blocking 0. R1 source pins 7/7 MATCH; no refresh needed. Verify committed identities then STOP. No real readiness, Attempt, exposure, arm, scoring or push. Dedicated HOME remains a later runtime prerequisite; launcher logic frozen.
+
+
+## Final fresh disposable allocation adoption - 2026-09-07
+
+Owner adopted exact candidate 33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2. Authority: docs/governance/solo-r2-final-fresh-allocation-owner-adoption-20260907.json. One final evaluation/ledger/Pair and two fresh arms as allocation only; all creation and execution require separate authorization. Historical runs preserved, no further automatic replacement. Current slice: scoped local adoption durability then STOP.
+
+## Final fresh disposable binding implementation - 2026-09-07
+
+Final-only typed production binding and dedicated launcher implemented under dc2a3a98. Validation: memory/evidence/solo-r2-final-binding-implementation-20260907/validation.json. Lifecycle unchanged; historical ledgers/frozen inputs preserved. Independent review precedes scoped implementation commit; ledger/pair R1 source refresh immediately follows in a separate commit. No real final allocation, readiness or arm execution. STOP after committed binding and R1 identity verification.
+
+## Final fresh binding R1 refresh - 2026-09-07
+
+Implementation c763e738 committed after full 15-file scope ACCEPT. Refresh binds exact committed ledger/pair bytes; five other pins unchanged. R1 --check PASS and 20 tests PASS. Evidence: memory/evidence/solo-r2-final-binding-implementation-20260907/r1-closeout.json. No final allocation or runtime created. STOP after separate refresh commit verification.
+
+## Final Pair payload-pin adoption - 2026-09-07
+
+Owner adopted exact 319-byte pin ee27ce5e92f948320ad0e2fb81bb29f34e8bfc8934296a63d18c6b3418f8d8af for final Pair 93584d7e-2bf9-4535-93c8-5593fcd3e272. Authority: memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/owner-adoption.json. Preserve Phase A identity; ledger two events, Attempt 0, exposure NONE. Scoped local adoption commit then STOP; no readiness or execution authorized.
+
+## Final scoring continuation prospective adoption - 2026-09-07
+
+Owner adopts exact preserved scoring inputs as new prospective authority; historical ATTEMPT_BOUND digest custody remains ABSENT. Authority: memory/evidence/solo-r2-final-scoring-continuation-adoption-20260907/owner-adoption.json. Eight ledger events, outputs and oracle provenance unchanged. Scoped local adoption commit and verify, then STOP; no continuation, bundle, scoring, sealing append or unblinding.
+
+## Minimal final scoring continuation implementation - 2026-09-07
+
+Final-only consumer verifies prospective adoption and 22 exact artifacts before existing scoring preparation. Two changed code/test files; no real continuation. Validation: memory/evidence/solo-r2-final-scoring-continuation-implementation-20260907/validation.json. Scoped commit after independent review, STOP. Separate owner execution authorization required for bundle/checkpoint and ninth sealing event; prior eight ledger events remain unchanged.
+
+## Superseding scoring authority adoption - 2026-09-07
+
+Owner adopted exact 18168-byte authority SHA256 10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c. Record: memory/evidence/solo-r2-superseding-scoring-adoption-20260907/owner-adoption.json. Historical nine-event ledger and rejected bundle/checkpoint preserved. One prospective detached supersession only; implementation, artifact activation, fresh scoring and unblinding require separate authorization. Earlier closeout/push draft remains paused. Local adoption commit and verify, STOP; no push.
+
+## Superseding scoring implementation - 2026-09-07
+
+Four-file fixed-instance implementation validated with 109 targeted tests. Evidence: memory/evidence/solo-r2-superseding-scoring-implementation-20260907/validation.json. Independent review before scoped commit; no real generation/activation/scorer/opening, historical ledger unchanged. Fresh scorer/host custody remains execution prerequisite. R1 bundle binding now drifts; separate post-commit refresh required before execution. Commit this implementation then STOP, no push.
+
+
+## R1 refresh after superseding implementation - 2026-09-07
+
+R1 refreshed against exact 13b895a3 sources: seven pins verified; 20 targeted tests and real repo structural check PASS. Evidence: memory/evidence/solo-r2-r1-superseding-refresh-20260907/validation.json. Only R1 metadata refreshed; historical ledger/bundle/checkpoint unchanged. Scoped local commit and verify, then STOP; no bundle generation, scoring, unblinding or push.
+
+## AppContainer minimal launch environment - 2026-09-07
+
+Only LOCALAPPDATA added to the existing sanitized Probe.cs environment. Suspended-process verification: three variables create the process with the exact existing token SID; removing LOCALAPPDATA reproduces 203. No child entrypoint/read probes, ACL changes, scoring, historical writes or push. Evidence: memory/evidence/solo-r2-appcontainer-env-fix-20260907/validation.json. Corrected source compiled; external Probe.exe remains historical and has not been redeployed. Independent review and scoped local commit, then STOP; isolation read probes remain a separate next slice.
+
+## Dedicated runtime parent custody - 2026-09-07
+
+Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/SYSTEM/Administrators only. Host verify_custody PASS. Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical. Disk ACL and preserved ledger/bundle/checkpoint bytes and ACLs unchanged. Evidence: memory/evidence/solo-r2-parent-custody-acl-20260907/result.json. No AppContainer child/RX/scoring; STOP. Next separately authorized action is projection/read-denial verification, not bundle creation.
+
+## Synthetic scorer isolation durability - 2026-09-07
+
+Fixed native verifier and split probe source preserved with synthetic live evidence (host custody, AppContainer projection, eight forbidden read denials, temporary RX restored). Current build and five pure ACL cases PASS; no live rerun. Scope: memory/evidence/solo-r2-isolation-capability-commit-20260907/scope-record.json. Real bundle anonymity, Python consumer integration and scorer execution remain unclaimed. Local scoped commit then STOP; no ACL/environment changes, bundle/scoring/unblinding or push.
+
+## Real superseding bundle callback wiring - 2026-09-07
+
+Fixed-instance generator now requires reviewed semantic payload identities, new-instance custody initialization using the existing ACL model, and native verification of the persisted real bundle before its transition receipt. Validation: memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json (46 Python and 11 native contract cases). Independent review and scoped commit, then STOP. No real generation/reservation, deployment, ACL mutation, probe, scoring or unblinding. Real parent custody, reviewed deployed executable/RX and semantic payload digest custody remain runtime prerequisites; no R1 source pin changed.
+
+## Simplified scoring claim-ceiling adoption - 2026-09-07
+
+Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03 (7170 bytes, 73 lines). Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged. Record: memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json. Scoped adoption commit and identity verification then STOP; actual fresh-context scoring/freeze and later unblinding require separate authorizations.
+
+
+## R2 regression evidence projection / consumer adoption - 2026-09-07
+
+Owner adopted four exact reviewed files; independent ACCEPT / Blocking 0, 55 independent tests and 132 local tests. Evidence and version-binding states survive the future-round synthetic consumer. Authority: memory/evidence/solo-r2-regression-projection-adoption-20260907/owner-adoption.json. Scoped local commit then identity verification and STOP. Real launcher integration, Python investigation, fresh round and push are not authorized by this adoption.
+
+
+## Solo R2 decision-support closeout - 2026-09-08
+
+Execution, oracle (10/10 each), simplified score freeze and unblinding are complete. Regression safety and overall quality/tie remain undetermined. Claim ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; no strict OS-isolated shakedown PASS. Report: memory/evidence/solo-r2-closeout-20260908/REPORT.md. Python capability remains UNKNOWN and is POST-GATE3, not a closeout blocker. Scoped evidence commit/push and STOP; no new probe, scoring or allocation. Unrelated dirty work is excluded.
+
+
+## POST-GATE3 P2 Slice 1 — 2026-09-08
+
+- Synthetic Lite flow implemented: anonymous input -> fixture scoring -> freeze -> explicitly authorized unblinding -> report. Existing future scoring consumer reused unchanged.
+- Validation: local 149 PASS; independent 149 PASS; Blocking 0; synthetic CLI demo PASS. Evidence: memory/evidence/p2-lite-slice1-20260908/review.json and validation.json.
+- Ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY. Real runner/scorer, OS isolation, strict equivalence and actual cost reduction are not established. Strict and historical rounds unchanged.
+- Next: STOP after scoped local commit. Real Lite integration requires its own bounded slice; no push. P1 remains closed UNKNOWN.
+
+
+## POST-GATE3 P2 Slice 2 — 2026-09-08 (blocked real validation)
+
+- Bounded real adapter implemented: fresh model patch generation, host oracle/regression, anonymous scorer input, freeze then authorized unblinding. Local and independent tests: 172 PASS; implementation review Blocking 0.
+- One live invocation stopped at first model HTTP 401 (missing auth header), process exit 1. No CONTROL output; TREATMENT/oracle/scorer/freeze/report not run. Adapter replay 0; native CLI reconnect attempts preserved. Runtime configuration warnings also remain unverified.
+- Result: REAL_LITE_END_TO_END_BLOCKED. No real Lite readiness, cost reduction, complete interactive Skill workflow, strict equivalence or general Skill efficacy claimed. P1 closed UNKNOWN; Strict/historical rounds unchanged.
+- Evidence: memory/evidence/p2-lite-slice2-20260908/review.json and validation.json. Preserve scoped implementation/failure evidence commit, then STOP; no credential change, rerun or push.
+
+## POST-GATE3 P2 Slice 2 auth override — 2026-09-08
+
+- Shared Lite exec now explicitly selects the existing keyring store while retaining --ignore-user-config. Login status exit 0; 23 focused tests PASS. No login or credential/config mutation.
+- One authorized live replay: CONTROL model process exit 0 with response and turn.completed; parser rejects runtime item.error warnings as tool access. No observed tool event. TREATMENT/oracle/scorer/freeze/unblind not run. REAL_LITE_END_TO_END_BLOCKED; no automatic retry.
+- Evidence: memory/evidence/p2-lite-auth-20260908/result.json. Auth-only source/test edits remain uncommitted; preserve failure and STOP. Parser remediation is a separate slice. No push; historical rounds and Strict unchanged.
+
+
+## POST-GATE3 P2 Slice 2 warning parser — 2026-09-08
+
+- Known 0.153.4 runtime warnings are distinguished from forbidden tools using full-message matches. Unknown error/incomplete turn/tool events still reject; exact warnings remain host-only and are retained in reports. Prior keyring override included.
+- Local and independent targeted tests: 57 PASS each; independent APPROVED / Blocking 0, including read-only replay of the historical completed model turn. Evidence: memory/evidence/p2-lite-parser-20260908/review.json and validation.json.
+- Owner-authorized order: scoped compatibility commit, then exactly one new real Lite E2E invocation; failure preserves evidence and stops. No automatic retry, Strict changes, or push. Real E2E remains unproven before execution.
+
+## POST-GATE3 P2 Slice 2 live outcome — 2026-09-08
+
+- Compatibility implementation committed at 85dcfa7456957d943a621bb7ddd2c9c746ee5978; one subsequent authorized Lite E2E completed in 87,015 ms of adapter time. Real model generation + host oracle/regression + fresh scorer + freeze + authorized unblinding/report completed.
+- Both oracles 10/10; CONTROL regression 6/6, TREATMENT 7/7. Frozen quality CONTROL 7/8, TREATMENT 8/8 (causal explanation difference). One bounded pipeline fixture only; no general Skill efficacy, measured cost reduction, OS isolation or Strict equivalence.
+- Four known warnings per model preserved; no tool event observed. Exact artifact/freeze/report linkage verified. Result REAL_LITE_END_TO_END_VALIDATED; report memory/evidence/p2-lite-parser-20260908/live/report.json. Live evidence remains uncommitted; no push or additional run. STOP.
+
+
+## P2 Slice 2 durability — 2026-09-08
+
+- Owner authorized one scoped local evidence/PLAN/memory commit and STOP. Preserve the real flow report, frozen scores, raw model/host receipts and exact identity verification; historical precommit snapshots remain unchanged. No production changes, rerun, rescoring, benchmark or push.
+- Adapter total was 87,015 ms, not per model: CONTROL 29,344 ms; TREATMENT 34,687 ms; scorer 21,734 ms. The single-task 7/8 vs 8/8 observation does not establish general Skill efficacy or average cost reduction.
+- Evidence inventory: memory/evidence/p2-lite-parser-20260908/durability-manifest.json. After committed bytes verification, P2 Slice 2 durability is closed; any mini benchmark is future scope, not an automatic continuation.
+
+
+## POST-GATE3 three-task benchmark preparation — 2026-09-08
+
+- THREE_TASK_BENCHMARK_READY_FOR_REVIEW: exactly Easy queue-range, Medium strict half-open interval merge, Hard directed dependency-cycle misclassification. Specifications/baselines/literal oracles/regression panels/rubrics fixed in tests/fixtures/bug_fix_safety_mini_benchmark/manifest.json before validation and any model execution.
+- Local authored-fixture validation: reference repairs 12/12, 13/13, 14/14; baselines fail 7, 3, 5 cases; plausible wrong repairs fix public symptoms but fail 6, 3, 6 cases. Source/test evidence and current-version completion requirements declared before scoring; missing evidence stays NOT_ASSESSABLE.
+- No runner/Skill/scorer change, model execution, scoring/unblinding, historical mutation, commit or push. Existing Lite adapter remains task-specific; integration and difficulty calibration not claimed. Evidence: memory/evidence/bugfix-mini-benchmark-prep-20260908/preparation-report.json and validation.json.
+- STOP for independent review. Candidate identity is not owner adoption or authorization for real benchmark runs. Unrelated dirty work excluded.
+
+
+## Three-task benchmark independent review — 2026-09-08
+
+- CHANGES_REQUESTED / Blocking 1: Hard TASK.md line14 names the precise ignore-revisits superficial repair, hinting away the trap intended for measurement. Preserve behavioral cycle requirements but remove mutation-specific guidance in a separately authorized revision. Candidate bytes remain unchanged.
+- Baseline reproduction, prospective expected-case snapshot, oracle discrimination and concrete Regression Safety criteria otherwise pass review. Independent fixture validation: references12/12,13/13,14/14; wrong repairs rejected. Evidence memory/evidence/bugfix-mini-benchmark-review-20260908/review.json.
+- STOP. No owner adoption, runner integration, model execution, scoring, difficulty calibration, commit or push. No new tasks or governance scope.
+
+
+## Three-task benchmark hint removal and acceptance — 2026-09-08
+
+- Removed only the Hard public TASK implementation-specific ignore-revisits hint; functional cycle detection requirement remains. Manifest updates only that TASK identity; other 17 entries unchanged.
+- Local fixture validation PASS: correct repairs 12/12, 13/13, 14/14; all intended baseline defects and superficial-repair counterexamples retained. Independent re-review ACCEPT / Blocking 0; prior full review remains applicable.
+- Owner authorized this narrow correction followed by adoption/scoped commit after Blocking 0. Accepted pack manifest SHA256 a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34. Exact snapshot and historical review evidence retained; no claim that earlier candidate snapshots were adopted.
+- STOP after scoped local commit and identity verification. Runner integration/difficulty calibration/model evaluation remain unverified; no runner/Skill/scorer or historical-result changes, no push. Unrelated dirty work excluded.
+
+
+## Three-task Lite benchmark adapter — 2026-09-08
+
+- BENCHMARK_LITE_INTEGRATION_READY: three adopted fixtures verify manifest/bytes, materialize separate two-arm workspaces, use their own oracle cases and rubric, preserve host source/test versions and regression diagnostics through the existing anonymous consumer. No real model/scorer execution.
+- Only new bounded adapter/test and opt-in Lite AST support; Strict modules and all fixture bytes unchanged. Local 76 PASS, independent 76 PASS, review ACCEPT / Blocking 0. Evidence memory/evidence/lite-benchmark-adapter-20260908/review.json and validation.json.
+- Completed zero-test evidence remains unassessable. Regression launch/timeout/import failures preserve raw receipts and STOP rather than promising continued scoring. Host alias mapping is explicit; no OS isolation/general sandbox claim.
+- Owner authorized scoped local commit, identity verification, STOP. Separate authorization required for real three-task model runs; no scoring/freeze/unblinding, Skill/history change or push. Unrelated dirty work excluded.
+
+
+## Lite benchmark test-harness compatibility — 2026-09-08
+
+- Host now delegates a unique standard final unittest.main entry to actual suite execution; disk source/test bytes preserved. Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
+- Local91PASS, independent91PASS, ACCEPT Blocking0. Captured-output replays in separate test workspaces: Easy7tests/7NameErrors (missing import not repaired), Medium7tests pass, Hard2test methods pass. Deliberate failed assertions prove real counts/exit1. Evidence memory/evidence/lite-harness-compatibility-20260908/review.json and validation.json.
+- All original43 failure artifacts and adopted benchmark materials unchanged. No model/TREATMENT/scorer or Strict/Skill changes. Scoped compatibility commit and STOP; no second real benchmark or push without separate authorization. Unrelated dirty work and prior uncommitted live-run records excluded from this commit.
+
+
+## Three-task real Lite benchmark — 2026-09-08
+
+- One authorized invocation per task completed its terminal disposition: 0 complete comparisons / 3 blocked at CONTROL. All three model turns exit0; TREATMENT/scorer/freeze/unblind not run. Easy oracle12/12, regression exit5/Ran0/no count receipt. Medium unsupported call; Hard unsupported Python operation.
+- No retry or runner/fixture/Skill changes; next tasks used independent contexts and unchanged frozen materials. Total126375ms. Evidence memory/evidence/three-task-real-lite-20260908/benchmark-report.md, summary.json and verification.json. No Skill quality conclusion.
+- STOP after aggregation. Separate owner scope needed for compatibility repair; no automatic rerun, commit or push. Prior frozen results preserved.
+
+
+## Three-task Lite preserved CONTROL completion — 2026-09-08
+
+- Completed three fresh TREATMENT calls and three fresh anonymous scorer calls; no CONTROL model rerun. Original single-run CONTROL bytes recollected under 983d5fad committed harness, no import/fixture/Skill changes.
+- All oracle results PASS12/12,13/13,14/14 for both arms. Easy C7/T9 NameErrors: Regression Safety and total NOT_ASSESSABLE; Medium C7/T7 tests pass,8/8 both; Hard C2/T3 methods pass,8/8 both. No Treatment quality advantage established; no aggregate tie/general Skill efficacy claim.
+- Scores durably frozen before authorized unblinding. Verification covers153 new task artifacts,43 unchanged historical artifacts,unchanged bound production/fixtures. Evidence memory/evidence/three-task-treatment-completion-20260908/benchmark-report.md and verification.json.
+- 199500ms this slice, no automatic retry/manual execution repair, no shutdown/Strict setup. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. STOP; no commit/push, unrelated dirty work excluded.
+
+
+## P2 Lite multi-task closeout — 2026-09-08
+
+- REAL_LITE_MULTI_TASK_BENCHMARK_VALIDATED: three preserved CONTROL + three fresh TREATMENT comparisons completed, scores frozen then unblinded. Easy regression/total NOT_ASSESSABLE both; Medium/Hard8vs8. No stable Treatment advantage established.
+- Owner provisional disposition KEEP_OBSERVE / OPTIONAL; no Skill packet/default-loading/config change. Hard3vs2methods does not prove greater coverage. Earlier7vs8 signal remains separate; no generalized efficacy or average-cost claim.
+- Preserve first-run failures and completed artifacts in scoped local commit. Closeout memory/evidence/p2-multitask-closeout-20260908/closeout.md. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. No models/tests rerun, no push; unrelated dirty work excluded.
+- STOP. Candidate future work: another Skill or separately scoped Lite/Strict cost-value review; neither executes automatically.
+
+
+## P3 Regression Safety amendment owner adoption — 2026-09-08
+
+- OWNER_ADOPTED: exact6266bytes/108lines SHA9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5 blob8b60f62a20ac133a08a99cf4ea58e4831dea4fc9 after independent ACCEPT/Blocking0. Candidate text retained byte-identically; adoption record memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json records new authority.
+- Future-only: complete current-version execution evidence attributing regression nonexecution to submitted content supports0; evidence gaps/harness/environment/ambiguous attribution stayNOT_ASSESSABLE. Nonzero exit alone insufficient. Historical frozen scores and closeout unchanged.
+- Projection/scorer semantics unchanged. Existing error-to-NOT_CONFIRMED remains next separately authorized implementation issue. Synthetic fixture/test sources remain uncommitted; adoption does not claim production support.
+- One scoped local adoption commit and committed identity verification, STOP. No benchmark/model execution, Skill/fixture edits, historical rescoring or push. Unrelated dirty work excluded.
+
+
+## P3 prospective projection / scorer integration — 2026-09-08
+
+- Explicit p3=True future Lite adapter uses adopted amendment9ffa3492 and owner recordb22c8300. Existing default Lite and Strict sources remain unchanged except additive selection; frozen fixture/rubric and historical scores are preserved.
+- Host receipts separate current source/test versions from execution errors and identify the failing submitted/host phase. Missing import or syntax with attributable exact execution, and assertion failures, require0; harness/environment/unknown/missing evidence remainNOT_ASSESSABLE. Nonzero alone insufficient. Passing receipts leave unchanged coverage-based0/1/2 judgment to scorer.
+- Scorer receives explicit import/no-symbol-injection contract and anonymous failure locations; receipt digests remain host-only. Syntax-invalid submissions compile only; no unchecked submission execution. Future adapter entry, synthetic fixtures, independent review and committed identities are recorded in memory/evidence/p3-integration-20260908/.
+- DONE limited to synthetic integration plus scoped local commit. No real model, old benchmark rerun/rescoring, Skill change, adopted rubric edit or push. STOP after commit verification; unrelated dirty work excluded.
+
+
+## P5 fixed-generation hook installation integrity - 2026-09-08
+
+- Fixed 195a204f local profile binds explicit repository/config adoption, hook/scanner/verifier identities and receipt before unchanged object-closure scanning. Missing or drifted identities stop before scan. Not a canonical installer migration.
+- Isolated real-hook/scanner tests: 17 local PASS; independent review Blocking0. Exact historical scanner stored only as a test fixture; no unreachable-object dependency. Evidence: memory/evidence/p5-installation-integrity-20260908/review.json and validation.json.
+- Scoped local implementation commit only. Actual hook/scanner/config unchanged; no deployment, P4 work or push. STOP after committed identity verification; unrelated dirty work excluded.
+
+## PR155 delivery integration - 2026-09-08
+
+- Owner authorized continuous push / PR / review / conditional merge delivery. Integrate main a6a2d622 with feature 09248cb4 without rewriting either history. Preserve both branches' canonical memory records and historical claim boundaries.
+- Bounded delivery repairs: exact-byte checkout attributes, two unchanged preserved historical public ledger test inputs, and six read-only tests using their checkout root. No production trust pin, model invocation, historical score, or P4 change.
+- Evidence: memory/evidence/post-gate3-delivery-repair-20260908. Runtime smoke plus 201 tests and Lite/P3/P5 129 tests passed; final Strict rerun and GitHub current-head review / CI remain required before merge.
+- Original dirty workspace and local P5 installation remain separate; deployment compatibility does not establish a canonical or portable installer. Results remain NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY.

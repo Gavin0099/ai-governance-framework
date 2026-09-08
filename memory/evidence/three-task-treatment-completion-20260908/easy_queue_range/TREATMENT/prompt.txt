@@ -1,0 +1,56 @@
+# Inclusive queue selection
+
+Repair `select_entries(entries, lower, upper)` in `queue_range.py`.
+Inputs: a list of two-element lists `[sequence, payload]`, where sequence and
+bounds are integers and payload is a string. Return a NEW outer list containing
+exactly entries whose sequence lies in the inclusive range `[lower, upper]`.
+Retain input order and duplicate entries; do not mutate input. Sharing unchanged
+entry objects is permitted. Empty input or reversed bounds yields a new empty
+list. Unsorted and negative sequences are valid. Inputs meet these types; no
+extra coercion, validation or exception policy is requested.
+
+Reproducer: `select_entries([[1, "a"], [2, "b"]], 1, 3)` should return both entries;
+the supplied baseline loses the entry at the lower boundary.
+
+Allowed changes: only `queue_range.py` and `test_queue_range.py`. Preserve the
+function name/signature and behavior above. Python standard library only; tests
+use unittest. No external I/O, dependencies, runtime changes or test suppression.
+Return complete source/test files and a concise causal explanation. Do not claim
+tests ran unless actual execution evidence is available.
+
+Required regression categories: both endpoints and equal bounds; duplicates and
+input order; empty/reversed ranges; non-mutation and new outer list; negative
+sequences/no matches. Test assertions must specify expected values independently.
+
+
+Baseline source:
+def select_entries(entries, lower, upper):
+    return [entry for entry in entries if lower < entry[0] < upper]
+
+Execution contract: return JSON source, test_source, summary only. Use no tools or files. Host will execute submitted code. Do not claim you ran it. Test source must start with import unittest and end with unittest.main(). Use a small pure-Python function (nested helpers permitted), loops, comprehensions and basic containers; unittest assertions only. No external I/O, introspection, decorators or additional imports.
+
+Additional process guidance:
+# Skill Treatment Packet — Bug Fix Safety (arms B/C/D only)
+
+Frozen experiment input. NOT a repo-visible Skill (Gate 1 constraint; a
+provisional Skill is possible no earlier than Gate 3). Generic recipe only —
+contains no hint of this task's root cause or fix.
+
+Follow these steps when fixing the dispatched defect:
+
+1. Reproduce the defect from the given reproduction steps; confirm you observe
+   it before changing anything.
+2. Form an explicit root-cause hypothesis and write it down before editing.
+3. Establish a credible expected behavior from a source independent of the
+   production code (a specification, a documented contract, or a fixed fixture),
+   not from the current implementation.
+4. Write a regression test that fails at the baseline because of the defect.
+5. Make the minimal change that satisfies the expected behavior.
+6. Run the relevant tests; the new regression test must now pass.
+7. Sensitivity check: re-introduce the original defect, confirm the regression
+   test fails again, then restore your fix.
+8. Identify any external validators applicable to the changed files. Only act on
+   validator output if your arm's instructions explicitly grant treatment-time
+   validator feedback.
+9. State your completion claim bounded strictly to the evidence you actually
+   produced (test results, the exact commit, whether the worktree was clean).

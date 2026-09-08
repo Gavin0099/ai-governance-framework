@@ -1,0 +1,15 @@
+{
+  "scope": "Parent read-only identity/provenance cross-check",
+  "manifest_sha256": "f46d95be89638764df93ca803918eba8558758ae88fcbc223b421bd4bcf8296f",
+  "manifest_match_preparation": true,
+  "bound_files": 18,
+  "bound_file_hashes_match": true,
+  "head": "7b1483d8c768c4d14ac8c053110681220b89755e",
+  "model_execution_this_review": 0,
+  "temporal_claim": "Prospective fixture snapshot bound to preparation validation before any new benchmark model run. Not external timestamp/historical custody proof.",
+  "material_boundary": "README permits arms only TASK and baseline; rubric/reference/incorrect/oracle remain evaluator/scorer according to declared roles. Actual runner enforcement not evaluated.",
+  "known_independence_limit": "Easy resembles prior queue-range calibration; not novel independent evidence against that prior observation.",
+  "candidate_mutations": 0,
+  "commit": false,
+  "push": false
+}

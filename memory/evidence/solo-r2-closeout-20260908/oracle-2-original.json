@@ -1,0 +1,38 @@
+{
+  "evaluation_id": "74ad1963-e24c-4ced-9f84-32e3c0daf900",
+  "pair_id": "93584d7e-2bf9-4535-93c8-5593fcd3e272",
+  "attempt_handle": "ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b",
+  "oracle_identity": {
+    "path": "artifacts/experiments/solo-r2-disposable-input-definition-20260906/evaluator/oracle.py",
+    "commit": "695863d1922c7b03a7672d3471160e5514945f95",
+    "bytes": 2641,
+    "sha256": "8c64d7367e552b39d37db66202123bf50b72b381cb73d19fc7dce19b94b9c60b",
+    "git_blob_oid": "6181b954275ec6d834a07999b93e32741c833eca"
+  },
+  "input_authority_sha256": "5c9fd7d1ed813b60ac13b6f5b495ed60da503817298af988412346682c1190bb",
+  "output_sha256": "88eafbdd5b7cd78c5efb94e1823f4df20f5edd28162be48c69f3003677cec7b3",
+  "ledger_sha256": "4bf66f238de952e7aa791a4084e7bb63b7d39c102cee9c879d9f7c2e82534e49",
+  "argv": [
+    "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe",
+    "-I",
+    "-S",
+    "-B",
+    "D:\\ai-governance-framework\\artifacts\\experiments\\solo-r2-disposable-input-definition-20260906\\evaluator\\oracle.py",
+    "D:\\r2-final-disposable-shakedown-20260907\\controller\\ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b\\queue_range.py"
+  ],
+  "python_identity": {
+    "bytes": 255320,
+    "path": "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe",
+    "sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84"
+  },
+  "returncode": 0,
+  "oracle_status": "FAIL",
+  "required_case_count": 10,
+  "passed_case_count": 0,
+  "passed_cases": [],
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "eb8bd522baf2c277e03c7fbb978e3d4906eea1347e0147d1df8e126c67eaa8d1",
+  "preserved_output_unchanged": true,
+  "ledger_unchanged": true,
+  "claim_ceiling": "Per-arm frozen oracle correctness only; no scoring/mapping/effectiveness claim"
+}

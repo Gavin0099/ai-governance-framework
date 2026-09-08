@@ -1,0 +1,39 @@
+{
+  "scope": "Phase B committed-adoption/input checks, readiness wiring and in-process wait; no execution entry",
+  "baseline_commit": "10840d57d6220990ae98e0c64d4f7d6f73d0fd25",
+  "file_sha256": {
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/controller.py": "5b3131d198770701d810f088a9f09feac5ce0f3a3b54d33f7ed863d0871818b6",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/launch.ps1": "273fdd37157aa01726704d0973bbec59a37dcba75b69edacc0b25fa582f76b10",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py": "d898c690a1c09226d31dd723d13be65196b4286a8f9cf48d0035da0986ce0f6e",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/README.md": "0c29a16b61bbf5caadfec77d497302039e7d0102b29c0aa9b2456fffeaf39d9a",
+    "artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/manifest.json": "a6427ed72c1820df6f2f312b93e7b9d00393192137ff4279ffcd55e6590d3680"
+  },
+  "targeted_tests": {
+    "passed": 30,
+    "command": ".venv/Scripts/python.exe -B -m pytest artifacts/experiments/solo-r2-replacement-disposable-launcher-20260906/test_launcher.py -q -p no:cacheprovider --basetemp C:/Users/daish/AppData/Local/Temp/r2-phase-b-check-20260907b --tb=short"
+  },
+  "validation_boundary": "Synthetic repositories/custody and observations. Native constructors represented by spies in window-assembly test; actual window.run not executed on real host. Outer wrapper only check. Controller docstring changed after full run, wrapper repinned; final static check follows.",
+  "preserved_ledgers": {
+    "solo-r2-disposable-mechanism-shakedown-20260906": {
+      "sha256": "649b2d40c25460647247601ea18e7f2465a07280d58fad8ff7e96c003e0a0836",
+      "events": 5
+    },
+    "solo-r2-replacement-disposable-mechanism-shakedown-20260906": {
+      "sha256": "482f4b04fb020caf019b0334602a00e96fee8d92bca3fb784ed4c145476086bf",
+      "events": 2
+    }
+  },
+  "state_provenance": "External Phase A bytes digest-bound by committed adoption at 10840d57, not a committed state file",
+  "open_prerequisites": [
+    "Owner scope answer for guarded execution continuation entry",
+    "Dedicated replacement Codex HOME absent; separate runtime preparation before live readiness"
+  ],
+  "not_claimed": [
+    "same-process execution continuation READY",
+    "real readiness PASS",
+    "Attempt or arm execution",
+    "commit",
+    "push"
+  ],
+  "next_action": "STOP at reviewed wiring; await owner scope decision. No real Phase B until separately authorized."
+}

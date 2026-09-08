@@ -1,0 +1,33 @@
+﻿{
+    "status":  "HOST_CUSTODY_PASS",
+    "target":  "D:\\r2-final-disposable-shakedown-20260907",
+    "owner":  "S-1-5-21-4017902291-1272973841-664929404-1001",
+    "sddl":  "O:S-1-5-21-4017902291-1272973841-664929404-1001G:S-1-5-21-4017902291-1272973841-664929404-1001D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;S-1-5-21-4017902291-1272973841-664929404-1001)",
+    "inheritance_protected":  true,
+    "unexpected_root_writers":  [
+
+                                ],
+    "disk_acl_unchanged":  true,
+    "preserved_artifact_bytes_and_acls_unchanged":  true,
+    "existing_child_grants_unchanged":  true,
+    "child_inheritance_metadata_changed":  [
+                                               "D:\\r2-final-disposable-shakedown-20260907\\commitments",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\consumer",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\controller",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\execution",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\keys",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\materialization",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\scoring",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\temp",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\payload-pin.candidate.json",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\phase-a.json",
+                                               "D:\\r2-final-disposable-shakedown-20260907\\readiness-result.json"
+                                           ],
+    "metadata_effect":  "Windows converted inherited ACEs to explicit/protected on direct children, retaining access masks and propagation flags; no claim of identical child SDDL or whole-subtree hardening",
+    "appcontainer_started":  false,
+    "temporary_rx_granted":  false,
+    "projection_verifier":  "NOT_RUN",
+    "bundle_created":  false,
+    "scoring_run":  false,
+    "claim_ceiling":  "Host custody of fixed parent and existing synthetic probe root only; not full scorer isolation or real superseding-root readiness"
+}

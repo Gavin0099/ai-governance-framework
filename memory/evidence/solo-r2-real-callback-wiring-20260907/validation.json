@@ -1,0 +1,97 @@
+{
+  "baseline_commit": "8624262beeef5778ebc892e8a2f4632ad3453a00",
+  "scope": "REAL_BUNDLE_CALLBACK_WIRING_READY only; review pending",
+  "source_identities": {
+    "governance_tools/solo_r2_scoring_host_verifiers.cs": {
+      "bytes": 12606,
+      "sha256": "96d22d6fdde67940282aa15e3b3035450f6ba75299fc53048b3fb611a7e7820c"
+    },
+    "governance_tools/solo_r2_scoring_probe.cs": {
+      "bytes": 10995,
+      "sha256": "96b82476daec586083acf710a9afef51ff2b71ea77a06095fae1ac430a404a57"
+    },
+    "governance_tools/solo_r2_superseding_scoring.py": {
+      "bytes": 17767,
+      "sha256": "abab0699ec7fa1c17b62eb12f7bdd40e02257170f1cc83e495b35b781481ebe6"
+    },
+    "artifacts/experiments/solo-r2-final-disposable-launcher-20260907/scoring_callbacks.py": {
+      "bytes": 5273,
+      "sha256": "dca0e290cfbfb5a130bc685724724b44057f0aa55a269ed7427d0bb663f390bf"
+    },
+    "tests/test_solo_r2_real_scoring_callbacks.py": {
+      "bytes": 7458,
+      "sha256": "4474bc69a9e3b827c00264323b971bae98db65917bffb93fe8c7faa45f293357"
+    },
+    "tests/test_solo_r2_superseding_scoring.py": {
+      "bytes": 10337,
+      "sha256": "c11f11c6ca1828ed3a49c27a1e3f9aa859481568c9c9c755ea8400e8c76befb3"
+    },
+    "tests/solo_r2_scoring_callbacks_native.cs": {
+      "bytes": 3020,
+      "sha256": "02e7dd8f76c1be83cd929b48ee9bb613945e339b10b42d7555d0fb818e6fba34"
+    }
+  },
+  "python_tests": {
+    "command": ".venv\\Scripts\\python.exe -B -m pytest -x -q --tb=short -p no:cacheprovider --basetemp=C:\\Users\\daish\\AppData\\Local\\Temp\\solo-r2-real-callback-wiring-20260907-2 tests/test_solo_r2_real_scoring_callbacks.py tests/test_solo_r2_superseding_scoring.py",
+    "passed": 46,
+    "seconds": 39.25
+  },
+  "native_tests": {
+    "source": "tests/solo_r2_scoring_callbacks_native.cs",
+    "passed": 11,
+    "scope": "in-memory identity/ACL contracts only; no real ACL or probe"
+  },
+  "compiler": {
+    "bytes": 2569832,
+    "sha256": "46809206887326d2d24db1eff1f3064de972c3451abe766b49111450a5e08e00"
+  },
+  "build_outputs": {
+    "Probe.exe": {
+      "bytes": 22016,
+      "sha256": "efe8359af43108bd83c68000ee3c9628d81314f00cc0bc0f418b7e47b2ea2d57"
+    },
+    "Contracts.exe": {
+      "bytes": 17920,
+      "sha256": "2cd7ad88151463522090b3dab469d5ba5d47119d64f951674d3c6de942fa73f6"
+    }
+  },
+  "historical_identities": {
+    "D:\\ai-governance-framework\\artifacts\\evidence\\solo-r2-final-disposable-mechanism-shakedown-20260907\\attempt-ledger.v2.1.ndjson": {
+      "bytes": 5193,
+      "sha256": "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77"
+    },
+    "D:\\r2-final-disposable-shakedown-20260907\\scoring\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.blind-scoring-bundle.json": {
+      "bytes": 3055,
+      "sha256": "f0e8af8750182d6dc4bacd5b7f0c280f8b0acccd1dc57ea7844c2fcff5516dce"
+    },
+    "D:\\r2-final-disposable-shakedown-20260907\\controller\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.scoring-bound.sealed.json": {
+      "bytes": 3074,
+      "sha256": "243e6c2defc1272347b940e8ac20786e0e52f626216ff71a43cf34b3a5243558"
+    }
+  },
+  "new_roots_absent": true,
+  "r1": "Reviewer independently verified 7/7 source pins; changed module is not a pinned source; no refresh",
+  "not_run": [
+    "real generation",
+    "reservation",
+    "AppContainer",
+    "runtime ACL mutation",
+    "synthetic probe",
+    "scoring",
+    "unblinding",
+    "push"
+  ],
+  "runtime_prerequisites": [
+    "Real controller/scoring parent custody must independently pass before reservation; no parent ACL repair authorized here.",
+    "New compiled Probe not deployed; reviewed executable pin and exact temporary RX needed later.",
+    "Two payload digests must come from independent full semantic review, not self-hashing."
+  ],
+  "governance_cost_observation": {
+    "event": "Independent review found mkdir/inherited ACL would fail after reservation; fixed only new-instance initialization before further verification.",
+    "decision_changed": true,
+    "classification": "necessary independent confirmation",
+    "extra_time": "not measured",
+    "counterfactual": "Could consume unique reservation before predictable custody rejection; review identified code conflict, no real failure induced.",
+    "agent_waste": "Initial fixture temp choices failed before tests; isolated external temp fixed setup. Native test initially omitted automatically added Synchronize rights; corrected test expectation, not ACL policy."
+  }
+}

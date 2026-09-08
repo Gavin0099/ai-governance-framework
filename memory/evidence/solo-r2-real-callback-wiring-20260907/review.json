@@ -1,0 +1,128 @@
+{
+  "reviewer": "/root/review_real_callbacks",
+  "verdict": "APPROVED",
+  "blocking": 0,
+  "risk": "HIGH",
+  "scope": "Real callback wiring only; no real generation or anonymity claim",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_scoring_host_verifiers.cs": {
+      "bytes": 12606,
+      "sha256": "96d22d6fdde67940282aa15e3b3035450f6ba75299fc53048b3fb611a7e7820c"
+    },
+    "governance_tools/solo_r2_scoring_probe.cs": {
+      "bytes": 10995,
+      "sha256": "96b82476daec586083acf710a9afef51ff2b71ea77a06095fae1ac430a404a57"
+    },
+    "governance_tools/solo_r2_superseding_scoring.py": {
+      "bytes": 17767,
+      "sha256": "abab0699ec7fa1c17b62eb12f7bdd40e02257170f1cc83e495b35b781481ebe6"
+    },
+    "artifacts/experiments/solo-r2-final-disposable-launcher-20260907/scoring_callbacks.py": {
+      "bytes": 5273,
+      "sha256": "dca0e290cfbfb5a130bc685724724b44057f0aa55a269ed7427d0bb663f390bf"
+    },
+    "tests/test_solo_r2_real_scoring_callbacks.py": {
+      "bytes": 7458,
+      "sha256": "4474bc69a9e3b827c00264323b971bae98db65917bffb93fe8c7faa45f293357"
+    },
+    "tests/test_solo_r2_superseding_scoring.py": {
+      "bytes": 10337,
+      "sha256": "c11f11c6ca1828ed3a49c27a1e3f9aa859481568c9c9c755ea8400e8c76befb3"
+    },
+    "tests/solo_r2_scoring_callbacks_native.cs": {
+      "bytes": 3020,
+      "sha256": "02e7dd8f76c1be83cd929b48ee9bb613945e339b10b42d7555d0fb818e6fba34"
+    }
+  },
+  "inputs": [
+    "SYSTEM_PROMPT",
+    "REVIEW_CRITERIA",
+    "AGENT",
+    "ARCHITECTURE",
+    "TESTING",
+    "NATIVE-INTEROP",
+    "MEMORY_PROTOCOL",
+    "PLAN",
+    "memory/04_review_log.md",
+    "memory/03_knowledge_base.md",
+    "adopted superseding scoring policy S04-S07"
+  ],
+  "independent_validation": [
+    "14 fixture-only callback tests passed in 11.42 seconds; all subprocess calls intercepted",
+    "C# compiler succeeded; 11 native pure/in-memory ACL contracts passed; no filesystem ACL mutation or AppContainer process",
+    "Seven current R1 bound source SHA-256 values match; superseding_scoring.py is runtime participant but not a seven-source pin"
+  ],
+  "resolved_findings": [
+    {
+      "problem": "Plain mkdir could not satisfy protected per-instance custody requirements",
+      "resolution": "Required initialize_custody runs only after fixed create-once reservation and before post-create verification or labels. Native initializer validates fixed parents, owner, no reparse, exact reservation and empty scorer, then applies existing private/public ACL model to new instance only. Missing callback rejects pre-reservation; failure preserves reservation.",
+      "id": "F1",
+      "status": "resolved",
+      "location": "governance_tools/solo_r2_superseding_scoring.py:185"
+    }
+  ],
+  "carried_forward": [
+    "Actual real parent custody must pass; existing historical inherited grants are not repaired by this slice",
+    "Reviewed derivative Probe executable must be deployed and independently pinned before execution; current binary is not claimed ready",
+    "Complete semantic review must supply the exact two payload identities independently; regex/hash verification is not a semantic review",
+    "Real AppContainer projection and per-instance ACL initialization have not been executed in this review"
+  ],
+  "not_run": [
+    "real generation",
+    "AppContainer launch",
+    "filesystem ACL mutation",
+    "real output/mapping reads",
+    "scoring",
+    "unblinding",
+    "ledger mutation",
+    "commit",
+    "push"
+  ],
+  "audit": {
+    "test_integrity": "Independent fixture expected payloads; failure/replay/mismatch tests; native ACL model checked in memory",
+    "architecture": "Existing adapter/verifier reused; fixed placement and subprocess boundary",
+    "native": "Existing ABI, SID, environment, handle cleanup preserved; new ACL operations restricted to newly reserved fixed instance",
+    "thread_safety": "Synchronous fixed subprocess; no UI/async addition",
+    "history": "No historical data access or modification in review"
+  },
+  "supplemental_commit_scope_review": {
+    "verdict": "APPROVED",
+    "blocking": 0,
+    "checked_identities": {
+      "PLAN.md": {
+        "bytes": 180188,
+        "sha256": "a54e51aa2fb75558103f584920ad410d1a2d51c18275f405c848b619ef3317f9"
+      },
+      "memory/2026-09-07.md": {
+        "bytes": 29508,
+        "sha256": "50a0bc79411d744988a7b3d7d831b95da4ab8a61a943e17beb890c73be1a2cec"
+      },
+      "memory\\evidence\\solo-r2-real-callback-wiring-20260907\\validation.json": {
+        "bytes": 4577,
+        "sha256": "9f0261de0083b23e60f47ee0c50074d7a33834a59fac8dc45aa8c55b17537971"
+      },
+      "memory\\evidence\\solo-r2-real-callback-wiring-20260907\\scope-record.json": {
+        "bytes": 4865,
+        "sha256": "93dc22dcd918ac3dbaf650a93fda1a75242314a056ff020b48524b1f358891bc"
+      }
+    },
+    "allowlist": [
+      "governance_tools/solo_r2_scoring_host_verifiers.cs",
+      "governance_tools/solo_r2_scoring_probe.cs",
+      "governance_tools/solo_r2_superseding_scoring.py",
+      "artifacts/experiments/solo-r2-final-disposable-launcher-20260907/scoring_callbacks.py",
+      "tests/test_solo_r2_real_scoring_callbacks.py",
+      "tests/test_solo_r2_superseding_scoring.py",
+      "tests/solo_r2_scoring_callbacks_native.cs",
+      "PLAN.md",
+      "memory/2026-09-07.md",
+      "memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json",
+      "memory/evidence/solo-r2-real-callback-wiring-20260907/review.json",
+      "memory/evidence/solo-r2-real-callback-wiring-20260907/scope-record.json"
+    ],
+    "historical_hashes": "three exact identities independently rehashed and matched",
+    "new_roots": "both independently confirmed absent",
+    "claims": "Implementation/test scope coherent. Main-agent 46 test claim attributed to validation; independent 14 tests and 11 native in-memory contracts recorded above. Review-pending text retained as record-time status.",
+    "excluded": "Binaries, staging helper files, unrelated dirty changes excluded; review.json cannot self-hash."
+  }
+}

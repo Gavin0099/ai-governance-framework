@@ -1,0 +1,20 @@
+{
+  "scope": "P5_INSTALLATION_INTEGRITY_IMPLEMENTED after tests, independent review Blocking0, scoped local commit, real installation unchanged, STOP",
+  "local_command": ".venv/Scripts/python.exe -B -m pytest tests/test_pre_push_installation_integrity.py -q -p no:cacheprovider --basetemp memory/evidence/p5-installation-integrity-20260908/tests-3",
+  "local_result": "17 passed in 11.13s",
+  "review": "review.json",
+  "real_installation_unchanged": true,
+  "governance_cost_observation": {
+    "event": "Initial test invocation used Windows backslash paths with Git Bash; corrected test invocation only. Historical scanner object not in HEAD ancestry; exact test fixture removes clone dependency.",
+    "extra_time": "not measured",
+    "judgment": "agent test portability correction; not a governance rule change",
+    "decision_effect": "validation became portable; no production scope expansion"
+  },
+  "not_claimed": [
+    "real deployment",
+    "full production hook qualification",
+    "canonical installer adoption",
+    "P4 runtime hardening",
+    "push"
+  ]
+}

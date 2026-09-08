@@ -1,143 +1,138 @@
-<!-- ARCHIVED: active_task_20260727_003214.md (2026-07-27 00:32:14) -->
-<!-- Prior point-in-time snapshot: archive/active_task_20260727_003214.md -->
-
----
+<!-- Verified predecessor: archive/active_task_20260830_021544.md -->
+<!-- Predecessor SHA-256: 38680653be7302482a0736af7d2ab92a282bc3fa311362f7a56db90c04824d78 -->
 
 # Active Task
 
-> Refreshed 2026-08-19, after PR #76 merged. A point-in-time summary, not
-> canonical memory, and not evidence that anything below was re-verified today.
->
-> **No branch head and no commit count are written here.** Both go stale on the
-> next commit — including the one correcting them, which is how two revisions of
-> this file were wrong on landing. `origin/main..HEAD` is the authority.
->
-> Full history is in `memory/04_review_log.md`, `PLAN.md` and the commit
-> messages. Corrected claims are marked below.
+> Replacement-state candidate prepared 2026-08-30. This file is a current-state
+> retrieval index, not canonical authority and not proof that a referenced claim
+> was re-verified today. Follow the revision-bound pointers below. The exact
+> predecessor remains recoverable from the verified archive named above.
 
-## Current Focus
+## Current Gate 3 State
 
-- Gate 3 native directory-handle boundary. The Windows stdlib cannot bind a
-  directory ancestor on this interpreter, so an ancestor swapped for a junction
-  between check and use cannot be excluded by stdlib means. Built in separately
-  authorized tranches, each reviewed at exact digests before it is committed.
+- The owner adopted a closed historical/prospective source graph and a
+  63-predicate register as the frozen Gate 3 predicate and blocker-admissibility
+  decision surface. A new hostile-review finding, implementation weakness or
+  proof-mechanism limitation is not a blocker unless traceable to those adopted
+  exact identities, or the owner explicitly reopens the source set/register.
+- **Formal STOP remains:** rev9 is permanently `CHANGES_REQUESTED / HIGH`; no
+  rev10. Provider feasibility, scorer-blindness subsystem work, implementation,
+  network, rehearsal and counted execution have not started and are not
+  authorized by the adoption decisions.
+- Release-Order design is reviewed and commit-bound, but it establishes a design
+  primitive only. It does not establish a qualifying provider/principal,
+  implementation readiness, Gate 2 process integrity or counted evidence.
+- This operational memory relocation is not a Gate 3 validity predicate. After
+  successful cutover, STOP; the next separate owner decision is whether to
+  authorize bounded provider feasibility against the adopted register.
+
+## Irreversible State And Prohibitions
+
 - The consumed Gate 3 A/B pair is `NON_SUCCESS` and cannot be reused, retried or
   replaced. Credentials, preflight and live remain unauthorized.
-- F-7's update-available truth correction is complete and inactive. No further
-  F-7 expansion without a new observed consumer failure.
+- The historical Gate 2 run cannot be repaired or made countable retrospectively.
+  No existing run is counted Gate 3 evidence.
+- Existing M3-b/B-1 worktree material remains dirty and outside this slice. This
+  cutover grants no review, commit, push, implementation or cleanup authority for
+  it.
+- `memory_janitor.py --clean` and `--execute` remain fail-closed for this active
+  state. This is the one owner-authorized final manual replacement attempt under
+  the preservation finding. A semantic-fidelity blocker requires rollback and
+  STOP, not a third same-method candidate.
 
-## Where The Work Is
+## Durable Authority And Evidence Index
 
-PR #76 merged as `f802dba4`, carrying the entries through the BLOCKED-3 design
-slice below; M1 through M3-a merged earlier. Later branch work remains in the
-same inventory without encoding a branch head or ahead count. For current merge
-state, `git log --oneline origin/main..HEAD` is authoritative.
+| Surface | Exact identity | Status / use |
+| --- | --- | --- |
+| Gate 3 funding authority | commit `01e8c0b4f61b1288d80495230f5fb4d8aeed525a`; PLAN blob `d4ed290ad17b8e5e7aec83c92f2e1498ed170a63`; PLAN SHA-256 `315f7f61ec5f06fbf31675b55de98fe3464ff256c2daa8d3fb1b987be22d5f53`; section `Gate 3 first-Skill funding gate — principal before engineering`; section SHA-256 `7974b94ce78e91ee7b2d047208c22caf8ddbee52e93c34ae9d635b980477c168` | Committed owner-decision section; PIN must precede first authoritative mapping release; no retrospective repair. |
+| Release-Order design | commit `d3b28213513589cfec8b95edd4965cd631052449`; blob `58dadf63f69fefd153c1cbecb3e5df6fc1c83bfd`; SHA-256 `e010197852f491824c4cfd8ecad93821f661b67a353690e356522c4c6dd6b9bd` | Reviewed design candidate; not provider feasibility or implementation authority. |
+| Authority source-set closure | commit `0269ce9e858c161c2d425aaa442529453defecf9`; blob `0fedd18031ba1c8b6d2ecdd28224acd1fd77c625`; SHA-256 `dec86ce98bc6ab1c090c879c46649f7b28891cc51b6cf6d32fb14ad25a460614` | Owner-adopted closed extraction universe. `UNAVAILABLE_HISTORICAL_REFERENT` remains explicit. |
+| Closed-source predicate register | commit `6501d90f52c5e372fc049da34b3210fd01245fb4`; parent `0269ce9e858c161c2d425aaa442529453defecf9`; blob `cb7b9ce25d7776b5924450a81388e7219511d871`; SHA-256 `8e67c8740e9ec0036b9bae391b2f44decf0889b432d8b790112b1f96e2a07f2b` | Owner-adopted 63-predicate register: 43 historical / 20 prospective. |
+| rev9 rejected bytes | worktree SHA-256 `92004c3f59aa16dcc6152c1be61d83f7ee67e4f1be963b058d7f9e3acc481f7d` | `CHANGES_REQUESTED / HIGH`; current-state evidence cannot prove absence of an earlier authoritative publication; no rev10. This digest is not represented here as a committed blob. |
+| Memory-cutover fidelity finding | commit `885c5de79d414b08136f5a06ed0cba77c81d30c2` | Requires preservation of irreversible state, effective claim ceilings and authority reference/status; one final candidate only. |
+| Unsafe-janitor finding and containment | finding commit `d84ebf8e9ee990bcc340a327d5e44f30706b7bd9`; fail-closed fix commit `6ca4800bf6259ffede7ee02e53a37d958a0e6a92` | Destructive automatic compression prohibited; fix contains the danger but does not reduce pressure. |
 
-| Tranche | Commit |
-| --- | --- |
-| M3-b design, and its three refused amendments | `8a8dbc2c` |
-| M3-b design revision 6 | `70d62fd1` |
-| M3-b-1 closed loader and return frame | `cfa2c1ec` |
-| M3-b-1 module-audit opt-out fix | `80b2a74c` |
-| **BLOCKED-1 amendment**, allowlist widened to five | `fa10dda8` |
-| **BLOCKED-2 amendment**, two verifier checks retired | `4ea55d3e` |
-| BLOCKED-3 process-control design slice | `95838ac0` |
-| Post-merge record reconciliation | `dc71c3f9` |
-| BLOCKED-3 measured layouts and pure declarations | `fe44deb4` |
+The source-closure and predicate-register files retain candidate labels in their
+committed bytes. Their `ADOPTED` status comes from explicit 2026-08-30 owner
+decisions; it must not be inferred merely from the existence of either commit.
 
-Two of those change executable authority or the meaning of passing verification,
-and both are now in `main`: the allowlist is five modules, and two verifier
-checks are retired from the reconstruction path. **BLOCKED-3 is CLOSED** after
-acceptance of the design slice and measured-layout commit `fe44deb4`. CI had no
-failures before the PR #76 merge: twelve passed, two skipped.
+## Other Retained Workstream State
 
-Merge history: PR #72 `5d184ee6`, #73 `d7d5485c`, #75 `5204cd18`, #76
-`f802dba4`; #74 was another agent's work, merged only to clear BEHIND.
-
-## Paused And Blocked
-
-- **B-1**, the structural non-`repr` boundary, is
-  `CHANGES_REQUESTED / PAUSED_BEHIND_M4`: five files preserved complete and
-  unstaged — `gate3_private_rendering.py`, its tests, and the wiring in
-  `gate3_route_v2.py`, `gate3_route_v2_codex.py` and
-  `gate3_final_message_runner_integration.py`. Its construction-contract blockers
-  are fixed; what blocks it is that changing the first two breaks the source pin
-  the historical candidate is verified against.
-- **BLOCKED-1 and BLOCKED-2 are resolved by amendment** (`fa10dda8`,
-  `4ea55d3e`), under explicit human authorization, and both are now in `main`.
-  M3-b-3 therefore has a defined callee and a defined verification contract.
-  That is **authority, not sequence**: it runs inside the child M3-b-2 creates,
-  so it is still third. It owns the parent-side result object and the two
-  "not asserted" markers, which the BLOCKED-2 amendment requires and does not
-  build.
-- **BLOCKED-3 is CLOSED** (`95838ac0`, `fe44deb4`). The design slice is accepted;
-  the pinned package digest was verified and the oracle now covers eighteen
-  types, including seven measured process-control layouts with matching pure
-  declarations and independent fixtures. Fresh-context exact-digest review
-  approved the commit; 386 scoped tests and the canonical 201-test gate passed.
-  No symbol is bound or called, `ACTIVE` remains `False`, and M3-b-2 has not begun.
-- **Materialized-root transport is resolved as design, not implemented.** The
-  accepted `GATE3HL\0` v1 envelope carries one unchanged M3-a frame and root.
-  The full absolute base remains parent-trusted; M3-b-2 is unstarted.
-- Nothing is wired to M2, M3-a or M3-b-1. `materialize()` and `cleanup()` refuse
-  while `handle_boundary_available()` is `False`; `ACTIVE` is `False` and nothing
-  calls in. M2's verification is still not entirely handle-bound: the
-  enumeration remains a path walk.
-- **M4 is not started.** Group C candidate `20f202e1...` is on HOLD.
-
-## Next Steps
-
-1. Define and authorize bounded **M3-b-2** against the accepted launch-envelope
-   design; do not include M3-b-3.
-2. **M3-b-3**, which runs inside the child M3-b-2 creates: authority unblocked,
-   sequence not.
-3. M4: the historical candidate verified against materialized historical bytes
-   instead of the live worktree.
-4. B-1 re-review and delivery, once M4 removes the dependency its edits break.
+- M3-b-2A remains implemented but uncommitted in six scoped files. Its recorded
+  focused/M1-adjacent result is 291 passed; absolute base remains parent-trusted;
+  no `__main__`, process, native call, historical import or active caller exists;
+  `ACTIVE=False`. No action on those bytes is authorized here.
+- M3-b-2B revision 2 exact candidate `5b76d3d1...92ea` has its handoff fixes and
+  owner rulings, but no two clean-context review reports, verdict or implementation
+  authorization. M3-b-3 remains sequence-blocked; M4 is not started.
+- B-1 remains `CHANGES_REQUESTED / PAUSED_BEHIND_M4`; its preserved worktree
+  edits depend on M4 removing the historical live-source pin.
+- Effective disclosure state: the repository is PUBLIC by owner authority for
+  consumer access; severe PR #95 exposure is cleared, while known mild exposure
+  remains pending Gate 3 or a public-need re-review. Support #4691271 cleanup was
+  reported complete; Finding 33 relies on an exact untracked identity config
+  pending guard-stack integration.
+- F-7's update-available truth correction is complete and inactive. Do not
+  expand F-7 without a new observed consumer failure.
 
 ## Open Risks
 
-- Session binding is unrepaired: no envelope exists under
-  `artifacts/runtime/sessions/` for the active `session_id`, so every
-  `session_end` firing fails closed before any field is evaluated and appends one
-  more record. `memory/2026-08-16.md` grows for that reason alone.
-- The closeout parser is line-oriented — `_parse_fields` partitions on the first
-  colon, so a key whose body starts on the next line parses as empty. Diagnosed;
-  the closeout file was reformatted, the parser was not changed.
-- `03_knowledge_base.md` states a 14-day `PLAN.md` freshness threshold while
-  `governance_tools.plan_freshness` reports `Policy = Sprint (7d)`. Unreconciled.
-- The historical candidate is verified by comparing live worktree bytes against
-  `SOURCE_COMMIT`, so any slice touching `gate3_route_v2.py` or
-  `gate3_route_v2_codex.py` breaks it. B-1 is the first, not the last; M4 fixes
-  it.
+- Session binding remains unrepaired: no envelope under
+  `artifacts/runtime/sessions/` binds the active `session_id`; session-end can
+  fail closed and append another record.
+- The closeout parser remains line-oriented: a key whose body starts on the next
+  line parses as empty. The closeout file was reformatted; the parser was not.
+- `memory/03_knowledge_base.md` states a 14-day PLAN freshness threshold while
+  `governance_tools.plan_freshness` reports a 7-day Sprint policy. Unresolved.
+- Historical candidate verification still compares live worktree bytes with
+  `SOURCE_COMMIT`; edits to `gate3_route_v2.py` or
+  `gate3_route_v2_codex.py` can break it. M4 is the planned boundary change.
+
+## Next Decision Boundary
+
+1. Finish this verified archive/replacement cutover and STOP.
+2. Under a new owner authorization, evaluate a bounded provider/surface set
+   against the adopted source graph and 63-predicate register.
+
+`visualizations` relocation is no longer blocked by the hook-root pointer, but
+remains outside the Gate 3 critical path and outside this slice.
 
 ## Claim Ceiling
 
-- Cannot claim Gate 3 success, treatment effect, or Skill effectiveness.
+- Cannot claim Gate 3 success, treatment effect, Skill effectiveness, provider
+  feasibility, Gate 2 process integrity, implementation readiness or counted
+  evidence.
 - Cannot claim the native boundary is reachable: `handle_boundary_available()`
   and `ACTIVE` are both `False`, so no production path reaches it. **Corrected
-  twice:** this said no committed tranche creates, renames or deletes a
-  filesystem object, untrue since `495fe52f` (N3c-2); the replacement then
-  over-claimed the other way, since N3c-2 also touches objects it did not create.
-  Accurately, and separating the two: **every object N3c-2 creates, writes,
-  mark-deletes or deletes is one it created itself; the borrowed `base` and its
-  ancestors are only opened, pinned and revalidated, never created, marked or
-  deleted by the boundary.**
-- Cannot treat accepted design bytes as an implementation, or exact-digest review
-  approval as runtime evidence.
-- Cannot claim any committed tranche executes, spawns, compiles or imports
-  historical code.
-- **Corrected:** the mutation boundary was drawn one commit too early. The final
-  M3-b-1 state, `80b2a74c`, does carry `36 declared / 36 valid / survivors none`.
-  What is true of it is that the evidence **cannot be re-run**: the harness was
-  session-local and is not in the repository. The boundary is therefore
-  `fa10dda8` — the allowlist widening and everything after it carry **no**
-  mutation evidence.
+  twice:** every object N3c-2 creates, writes, mark-deletes or deletes is one it
+  created itself; the borrowed `base` and its ancestors are only opened, pinned
+  and revalidated, never created, marked or deleted by the boundary.
+- Cannot treat accepted design bytes as implementation, or exact-digest review
+  approval as runtime evidence. No committed tranche is claimed to execute,
+  spawn, compile or import historical code.
+- The final M3-b-1 state `80b2a74c` records `36 declared / 36 valid / survivors
+  none`, but its session-local harness is not in the repository, so that evidence
+  cannot be rerun. `fa10dda8` and later carry no mutation evidence.
 - Cannot claim a real consumer was updated or adopted, or that report-only
   behavior is enforcement.
-- Cannot claim the workspace is clean; it is NOT CLEAN by design here.
+- The canonical enforce wrapper did not complete in the executor environments
+  used for the predicate-register commit attempt. This is not evidence that the
+  owner's machine lacks Bash or Python, and no full-repository enforce-gate PASS
+  is claimed.
+- Cannot claim the workspace is clean; it remains `NOT CLEAN` by design here.
 
-- Support #4691271 cleanup reported complete; Finding 33 temporarily unblocked by an exact untracked identity config pending guard-stack integration. <!-- memory_record_projection:active-task-summary:12bbe5f61f5609e3a9395e2ce6e5f9c2ea90b5f8c66f4ffd19fb7c2b1632a601 -->
+
+- Owner adopted exact Solo R2 task/rubric bytes; enclosing local commit establishes freeze after verification. STOP; new Pair creation requires separate authorization. <!-- memory_record_projection:active-task-summary:7d9a941064f486eb6f7eb360e54e670db5d2bd15f5fa96375b29ef476da2fbb8 -->
+
+
+- Disposable inputs qualified at 695863d1: Base 4 expected failures, reference 10/10; task unchanged, rubric reused. Authority freezes subtree/oracle locally; production binding unchanged, no Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:a4e46ca16fafb26c2dc6e6eec20b9f0f0c83c6483bdcf2e8f3273e57877594dd -->
+
+- Owner adopted v2.1 amendment; see docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json. Local commit verification then STOP; D2 allocation unresolved; no production/Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:29735f39f5f0eaaddad0b69bb23506e243434a8b4a151d2fe1b2e8439f605218 -->
+
+
+- D2 allocation adopted: one extra disposable evaluation/ledger allowance. See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json. Placement unresolved; no creation/execution authority. <!-- memory_record_projection:active-task-summary:4abae7efb9b50e2e48661afa714d543781fdeb542d9b8c1e7b37fe9e81628ddc -->
+
+- Placement adopted; STOP. <!-- memory_record_projection:active-task-summary:004754f2e3577eb3d7fd277858fcc7213b3b1c3e07a0adebcef22bba0843754b -->
 
 - Repo PUBLIC by owner authority for consumer access; severe PR #95 exposure cleared, known mild exposure remains pending Gate 3 or public-need re-review. <!-- memory_record_projection:active-task-summary:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->
 

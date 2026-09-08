@@ -1,0 +1,14 @@
+﻿{
+    "status":  "PASS",
+    "builds":  2,
+    "targeted_acl_cases_passed":  5,
+    "verifier_sha256":  "7c9db92d00fca3cadaa6861bee1e3fbf8ae65d4112f1864860f0df566738f56e",
+    "bridge_sha256":  "bca291fc6ef817f34554f6f94040ec2da045c9f3ba19e3def5c27ca7d445c810",
+    "tests_sha256":  "501e6b17a856a92122195c28c8e60b9759f81050351c9ecd51144e6314162c36",
+    "compiler_sha256":  "46809206887326d2d24db1eff1f3064de972c3451abe766b49111450a5e08e00",
+    "live_evidence_sha256":  "250840b025b687e65907b41f12572ac1abada43b9ba837dc2e1b519b181380fe",
+    "live_rerun":  false,
+    "acl_mutation":  false,
+    "probe_deployed":  false,
+    "claim_ceiling":  "Build and existing pure ACL cases; previously recorded synthetic live result preserved, not rerun."
+}

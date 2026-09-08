@@ -1,0 +1,387 @@
+{
+  "function": "select_entries",
+  "defect_case": "lower_example",
+  "superficial_counterexample": "upper_endpoint",
+  "result_kind": "fresh_list",
+  "required_categories": [
+    "endpoints",
+    "order_duplicates",
+    "empty_reversed",
+    "preservation",
+    "negative_no_match"
+  ],
+  "regression_case_ids": [
+    "upper_endpoint",
+    "equal_bounds",
+    "order_duplicates",
+    "empty",
+    "reversed",
+    "negative",
+    "no_match"
+  ],
+  "oracle_cases": [
+    {
+      "id": "lower_example",
+      "args": [
+        [
+          [
+            1,
+            "a"
+          ],
+          [
+            2,
+            "b"
+          ]
+        ],
+        1,
+        3
+      ],
+      "expected": [
+        [
+          1,
+          "a"
+        ],
+        [
+          2,
+          "b"
+        ]
+      ],
+      "reason": "1 equals lower and must be retained.",
+      "categories": [
+        "endpoints"
+      ]
+    },
+    {
+      "id": "upper_endpoint",
+      "args": [
+        [
+          [
+            1,
+            "a"
+          ],
+          [
+            3,
+            "c"
+          ],
+          [
+            4,
+            "d"
+          ]
+        ],
+        1,
+        3
+      ],
+      "expected": [
+        [
+          1,
+          "a"
+        ],
+        [
+          3,
+          "c"
+        ]
+      ],
+      "reason": "3 equals upper; 4 is outside.",
+      "categories": [
+        "endpoints"
+      ]
+    },
+    {
+      "id": "equal_bounds",
+      "args": [
+        [
+          [
+            2,
+            "a"
+          ],
+          [
+            1,
+            "b"
+          ],
+          [
+            2,
+            "c"
+          ]
+        ],
+        2,
+        2
+      ],
+      "expected": [
+        [
+          2,
+          "a"
+        ],
+        [
+          2,
+          "c"
+        ]
+      ],
+      "reason": "The inclusive singleton range contains every sequence 2.",
+      "categories": [
+        "endpoints"
+      ]
+    },
+    {
+      "id": "order_duplicates",
+      "args": [
+        [
+          [
+            3,
+            "c"
+          ],
+          [
+            1,
+            "a"
+          ],
+          [
+            2,
+            "b"
+          ],
+          [
+            1,
+            "a"
+          ]
+        ],
+        1,
+        3
+      ],
+      "expected": [
+        [
+          3,
+          "c"
+        ],
+        [
+          1,
+          "a"
+        ],
+        [
+          2,
+          "b"
+        ],
+        [
+          1,
+          "a"
+        ]
+      ],
+      "reason": "Selection neither sorts nor deduplicates.",
+      "categories": [
+        "order_duplicates",
+        "preservation"
+      ]
+    },
+    {
+      "id": "empty",
+      "args": [
+        [],
+        1,
+        3
+      ],
+      "expected": [],
+      "reason": "No entries exist; result must still be a new list.",
+      "categories": [
+        "empty_reversed",
+        "preservation"
+      ]
+    },
+    {
+      "id": "reversed",
+      "args": [
+        [
+          [
+            1,
+            "a"
+          ],
+          [
+            2,
+            "b"
+          ]
+        ],
+        3,
+        1
+      ],
+      "expected": [],
+      "reason": "No integer satisfies both reversed inclusive bounds.",
+      "categories": [
+        "empty_reversed"
+      ]
+    },
+    {
+      "id": "negative",
+      "args": [
+        [
+          [
+            -3,
+            "a"
+          ],
+          [
+            -2,
+            "b"
+          ],
+          [
+            -1,
+            "c"
+          ],
+          [
+            0,
+            "d"
+          ]
+        ],
+        -3,
+        -1
+      ],
+      "expected": [
+        [
+          -3,
+          "a"
+        ],
+        [
+          -2,
+          "b"
+        ],
+        [
+          -1,
+          "c"
+        ]
+      ],
+      "reason": "Negative integers obey the same inclusive endpoints.",
+      "categories": [
+        "negative_no_match"
+      ]
+    },
+    {
+      "id": "no_match",
+      "args": [
+        [
+          [
+            0,
+            "a"
+          ],
+          [
+            4,
+            "d"
+          ]
+        ],
+        1,
+        3
+      ],
+      "expected": [],
+      "reason": "Both entries lie outside; no placeholder output.",
+      "categories": [
+        "negative_no_match"
+      ]
+    },
+    {
+      "id": "interior",
+      "args": [
+        [
+          [
+            2,
+            "b"
+          ]
+        ],
+        1,
+        3
+      ],
+      "expected": [
+        [
+          2,
+          "b"
+        ]
+      ],
+      "reason": "Strict interior selection already works.",
+      "categories": [
+        "preservation"
+      ]
+    },
+    {
+      "id": "same_sequence_payloads",
+      "args": [
+        [
+          [
+            1,
+            "x"
+          ],
+          [
+            1,
+            "y"
+          ],
+          [
+            2,
+            "z"
+          ]
+        ],
+        1,
+        1
+      ],
+      "expected": [
+        [
+          1,
+          "x"
+        ],
+        [
+          1,
+          "y"
+        ]
+      ],
+      "reason": "Different payloads with identical sequences both survive.",
+      "categories": [
+        "order_duplicates",
+        "endpoints"
+      ]
+    },
+    {
+      "id": "wide_bounds",
+      "args": [
+        [
+          [
+            -100,
+            "l"
+          ],
+          [
+            100,
+            "r"
+          ]
+        ],
+        -1000,
+        1000
+      ],
+      "expected": [
+        [
+          -100,
+          "l"
+        ],
+        [
+          100,
+          "r"
+        ]
+      ],
+      "reason": "All input elements are interior.",
+      "categories": [
+        "preservation"
+      ]
+    },
+    {
+      "id": "zero",
+      "args": [
+        [
+          [
+            0,
+            "zero"
+          ]
+        ],
+        0,
+        0
+      ],
+      "expected": [
+        [
+          0,
+          "zero"
+        ]
+      ],
+      "reason": "Zero is an ordinary inclusive singleton.",
+      "categories": [
+        "endpoints"
+      ]
+    }
+  ]
+}

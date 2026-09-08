@@ -1,0 +1,116 @@
+{
+  "result": "REAL_LITE_END_TO_END_BLOCKED",
+  "auth": "LIVE_MODEL_AUTHENTICATION_SUCCEEDED",
+  "preflight": {
+    "exit_code": 0,
+    "status": "Logged in using ChatGPT",
+    "limitation": "login status does not expose --ignore-user-config; same binary/home/environment plus explicit keyring; actual exec retains --ignore-user-config"
+  },
+  "validation": {
+    "command": "python -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/p2-lite-auth-20260908/tests-2 tests/test_skill_evaluation_lite_live.py",
+    "passed": 23,
+    "initial_run": "11 passed / 12 fixture errors: agent omitted basetemp parent directory; corrected without product changes"
+  },
+  "live": {
+    "invocations": 1,
+    "adapter_retries": 0,
+    "exit_code": 0,
+    "elapsed_ms": 29531,
+    "item_types": [
+      "error",
+      "error",
+      "error",
+      "error",
+      "agent_message"
+    ],
+    "warnings": [
+      "Configured value for `windows.sandbox` is disallowed by requirements; falling back to required value Some(Elevated). Details: invalid value for `windows.sandbox`: `None` is not in the allowed set [Elevated] (set by C:\\ProgramData\\OpenAI\\Codex\\requirements.toml)",
+      "Configured value for `windows.sandbox` is disallowed by requirements; falling back to required value Some(Elevated). Details: invalid value for `windows.sandbox`: `None` is not in the allowed set [Elevated] (set by C:\\ProgramData\\OpenAI\\Codex\\requirements.toml)",
+      "Under-development features enabled: skip_host_skill_discovery. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in C:\\Users\\daish\\.codex\\config.toml.",
+      "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`."
+    ],
+    "failure": "parse_model rejects runtime item.error as Tool access violates context boundary; no observed tool event",
+    "downstream": "TREATMENT/oracle/scorer/freeze/unblind/report NOT RUN"
+  },
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "Real Lite E2E validated",
+    "Skill efficacy",
+    "Strict equivalence",
+    "Full invocation equivalence of login status and exec"
+  ],
+  "governance_cost": {
+    "event": "Initial pytest fixture parent missing",
+    "classification": "agent own avoidable work",
+    "extra_time": "NOT_MEASURED",
+    "decision_changed": false
+  },
+  "commit": "NOT_PERFORMED",
+  "push": "NOT_PERFORMED",
+  "identities": {
+    "governance_tools\\skill_evaluation_lite_live.py": {
+      "bytes": 22628,
+      "sha256": "fed0a03cedd8903616e69e87bd9fb567d41d509dfcd0f3a5ee58b9358f5c194c"
+    },
+    "tests\\test_skill_evaluation_lite_live.py": {
+      "bytes": 9468,
+      "sha256": "b975e6c16c0dbd762b9d704fbb7aa7162ad318ca1dbae60c9bdaca08569a86bc"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\preflight\\login.request.json": {
+      "bytes": 1023,
+      "sha256": "b53781b2da1e9ea1c3700514079d32c5a8bfafee5e03bc948a39fa4ee8f33966"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\preflight\\login.result.json": {
+      "bytes": 113,
+      "sha256": "9d23f3dad2e07f9c226193b29c8c1481e9b8a5047011f85804c0c72c890e5f23"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\preflight\\login.stderr": {
+      "bytes": 24,
+      "sha256": "16118df3eb3595e44a4721878cef0f79910e6564e10ff0e78e451e7c4e478947"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\preflight\\login.stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\live\\CONTROL\\model.request.json": {
+      "bytes": 2062,
+      "sha256": "ff1d31e0d66fc5a0d6ad94a60a0380846ec3409c988030d485f866de9a50176c"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\live\\CONTROL\\model.result.json": {
+      "bytes": 4227,
+      "sha256": "4b51b042f5276dff75b8a8bb2dd817a13ec68d64c81c16789b730e31948be2f6"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\live\\CONTROL\\model.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\live\\CONTROL\\model.stdout": {
+      "bytes": 3876,
+      "sha256": "1483c5a36019917c4f9f6e215a7a10cb4a0baaf149a1b3f98f2e3e51f123480c"
+    },
+    "memory\\evidence\\p2-lite-auth-20260908\\live\\failure.json": {
+      "bytes": 142,
+      "sha256": "bfe43971384bbf5f66012b7e717fe6da91bf2170de77f628c8282d5c8ae6f89c"
+    }
+  },
+  "mode": "expanded",
+  "mode_source": "failed_or_partial",
+  "task_authority": "Owner authorized keyring override, login-status preflight, one real Lite E2E, failure preserve and STOP",
+  "scope": "bugfix: shared credential-store override only",
+  "done": {
+    "auth_override": true,
+    "real_e2e": false
+  },
+  "evidence_refs": [
+    "preflight/login.result.json",
+    "live/CONTROL/model.result.json",
+    "live/failure.json",
+    "memory-check.json"
+  ],
+  "risk": "Runtime item.error rejected; no downstream execution. Source/test/memory/PLAN edits uncommitted. Unrelated dirty work excluded.",
+  "next_action": "STOP; separate runtime warning/parser compatibility slice before any new live invocation"
+}

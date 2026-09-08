@@ -35,6 +35,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Strict read-only tests verify adopted blobs at historical commits.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -153,6 +156,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # verify_phase_gates.sh also runs the historical-blob test suite.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:

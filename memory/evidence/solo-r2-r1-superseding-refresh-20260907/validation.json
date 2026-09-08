@@ -1,0 +1,106 @@
+{
+  "mode": "implementation",
+  "mode_source": "owner-authorized R1 refresh completion",
+  "task_authority": "User: refresh R1 only after 13b895a3; scoped commit and STOP",
+  "scope": "R1 generation metadata only",
+  "done": "Targeted tests 20 PASS; real repo conformance PASS; seven committed source identities verified",
+  "claim_ceiling": "Exact R1 existing structural/freshness scope only; not complete superseding-scoring semantic proof",
+  "not_claimed": [
+    "real bundle creation",
+    "scoring",
+    "unblinding",
+    "oracle/arm rerun",
+    "ledger modification",
+    "push",
+    "full shakedown PASS"
+  ],
+  "evidence_refs": [
+    "governance_tools/solo_r2_r1_structural_conformance.py",
+    "tests/test_solo_r2_r1_structural_conformance.py",
+    "artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-13b895a3.json"
+  ],
+  "risk": "No production behavior changed; previous dirty files explicitly excluded",
+  "next_action": "STOP; separately authorize real superseding prerequisites",
+  "source_snapshot": "13b895a3e7645e55eb128011f5c3fae97e599cc8",
+  "pins": [
+    {
+      "path": "governance_tools/solo_attempt_ledger_v2.py",
+      "sha256": "639dd718b7ca265d3ef5ce4a93a004f45378daa35288a1a627777f1acacdf3cd",
+      "git_blob": "e4c0121a4a7c443832a9059e15148a4605a3d988",
+      "last_change_commit": "c763e738f754282f19c0e5b794dadaa0a44daa65",
+      "role": "atomic_genesis_publication_runtime_surface"
+    },
+    {
+      "path": "governance_tools/solo_r2_random_domains.py",
+      "sha256": "51f282432d98c9aa444eb6903d95bec544160cdae47a853314eaa7439742d597",
+      "git_blob": "b3c9442298f2aba0adcac5c48b5ea436726fc662",
+      "last_change_commit": "ed8fad34a3c9dd4c417b947b1bbc564dc1bddffc",
+      "role": "domain_separated_generators"
+    },
+    {
+      "path": "governance_tools/solo_r2_blind_scoring_bundle.py",
+      "sha256": "4b4747c2a86e57f0b5a8f27940fc425f69218fd6a49393250c90f7df82ee264b",
+      "git_blob": "d6d057216dae66e06b3c01c13f45a99834f64649",
+      "last_change_commit": "13b895a3e7645e55eb128011f5c3fae97e599cc8",
+      "role": "presentation_order_boundary"
+    },
+    {
+      "path": "governance_tools/solo_r2_bootstrap.py",
+      "sha256": "4458f0e7cd3775160a8e1300cc2089dea03978a5f0c33c2d26c9bd75ed7db927",
+      "git_blob": "fb2f50518fea27c49f671655df6433465b0c9b79",
+      "last_change_commit": "182d3965bb65dd4886d70fab003c56fc8fe58c02",
+      "role": "bootstrap_runtime_participant_and_call_site_closure"
+    },
+    {
+      "path": "governance_tools/solo_r2_controller_state.py",
+      "sha256": "58275494ac3ecd6dba422300008e0111ad6d8533298c64b7584eb3753d26087f",
+      "git_blob": "c73a5515b5024c59a5271bd6b93d11f7d7f97c37",
+      "last_change_commit": "33896f224fdf8dba50302756e53b84e82c186d6c",
+      "role": "sealed_order_revalidation"
+    },
+    {
+      "path": "governance_tools/solo_r2_lifecycle_integration.py",
+      "sha256": "74a7d7948347a9fa61f6d43e97b599ce34c3a96aa92e7d38c07f52d99090e393",
+      "git_blob": "4bff27004df6086d9fbcc50b1426128b93346b1c",
+      "last_change_commit": "de85d2f8ecf5f1ccb732e09ec4053b74456ab180",
+      "role": "production_entropy_and_generator_call_sites"
+    },
+    {
+      "path": "governance_tools/solo_r2_pair_creation.py",
+      "sha256": "6eadaa6cdc429f1d80461c48d5ee440e7951f305bcdf52617562322092e0d80b",
+      "git_blob": "b4cd9d46d4518d0cabc788b59d10f51263cea691",
+      "last_change_commit": "c763e738f754282f19c0e5b794dadaa0a44daa65",
+      "role": "pair_creation_entropy_and_arm_order_call_site_closure"
+    }
+  ],
+  "historical_artifacts_unchanged": [
+    {
+      "path": "D:\\r2-final-disposable-shakedown-20260907\\scoring\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.blind-scoring-bundle.json",
+      "bytes": 3055,
+      "sha256": "f0e8af8750182d6dc4bacd5b7f0c280f8b0acccd1dc57ea7844c2fcff5516dce"
+    },
+    {
+      "path": "D:\\r2-final-disposable-shakedown-20260907\\controller\\2a92a1fff13490d92d0f2cec26cd99016a2f82719cee9847297bf0f30b6878fb.scoring-bound.sealed.json",
+      "bytes": 3074,
+      "sha256": "243e6c2defc1272347b940e8ac20786e0e52f626216ff71a43cf34b3a5243558"
+    },
+    {
+      "path": "D:\\ai-governance-framework\\artifacts\\evidence\\solo-r2-final-disposable-mechanism-shakedown-20260907\\attempt-ledger.v2.1.ndjson",
+      "bytes": 5193,
+      "sha256": "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77"
+    }
+  ],
+  "previous_evidence_sha256": "b6bc5283dd532e2857d512d4426d861bb9726f2a7813c7c05bb982ffbda86ff9",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_r1_structural_conformance.py": "5b5d057e3ba8767e7e1a038a7bdbff009c1a21c8604f8c6837efee5c9a477bb4",
+    "tests/test_solo_r2_r1_structural_conformance.py": "5f84eac95231e2990138d6df57c40ee43cf5205418f1f3ac3c8e865aefade7b4",
+    "artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-13b895a3.json": "4d0cf252770ff1ae9205933d6ff2922b0ea30f9ae9bbfb11afd6b03fd3ff5329"
+  },
+  "validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_solo_r2_r1_structural_conformance.py -q -p no:cacheprovider",
+    "passed": 20,
+    "conformance": "STRUCTURAL_CONFORMANCE_PASS",
+    "initial_failures": "Stale fixed line numbers and missing committed namespace/import metadata corrected; one default pytest temp-root PermissionError avoided with dedicated basetemp."
+  },
+  "metadata_scope_note": "New committed superseding module listed in existing namespace/import inventory; seven source bindings unchanged in membership. Existing fixed call-detector vocabulary is not expanded; no claim of exhaustive superseding semantic inspection."
+}

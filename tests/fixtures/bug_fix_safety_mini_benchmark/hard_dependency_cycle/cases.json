@@ -1,0 +1,307 @@
+{
+  "function": "has_cycle",
+  "defect_case": "diamond_example",
+  "superficial_counterexample": "two_node_cycle",
+  "result_kind": "bool",
+  "required_categories": [
+    "sharing",
+    "self_cycle",
+    "multi_cycle",
+    "disconnected",
+    "duplicate_edges",
+    "sinks",
+    "empty_acyclic",
+    "order",
+    "repeat_preservation"
+  ],
+  "regression_case_ids": [
+    "self_loop",
+    "two_node_cycle",
+    "disconnected_cycle",
+    "duplicate_edge",
+    "sink_only",
+    "empty",
+    "diamond_reordered",
+    "chain"
+  ],
+  "oracle_cases": [
+    {
+      "id": "diamond_example",
+      "args": [
+        {
+          "a": [
+            "b",
+            "c"
+          ],
+          "b": [
+            "d"
+          ],
+          "c": [
+            "d"
+          ],
+          "d": []
+        }
+      ],
+      "expected": false,
+      "reason": "Two directed paths share d but no edge returns to an ancestor.",
+      "categories": [
+        "sharing"
+      ]
+    },
+    {
+      "id": "diamond_reordered",
+      "args": [
+        {
+          "d": [],
+          "c": [
+            "d"
+          ],
+          "b": [
+            "d"
+          ],
+          "a": [
+            "c",
+            "b"
+          ]
+        }
+      ],
+      "expected": false,
+      "reason": "Same directed edges, different key/adjacency order; still a DAG.",
+      "categories": [
+        "sharing",
+        "order"
+      ]
+    },
+    {
+      "id": "self_loop",
+      "args": [
+        {
+          "a": [
+            "a"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "Single edge returns to its starting vertex.",
+      "categories": [
+        "self_cycle"
+      ]
+    },
+    {
+      "id": "two_node_cycle",
+      "args": [
+        {
+          "a": [
+            "b"
+          ],
+          "b": [
+            "a"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "a to b to a is a directed cycle.",
+      "categories": [
+        "multi_cycle"
+      ]
+    },
+    {
+      "id": "three_node_cycle",
+      "args": [
+        {
+          "a": [
+            "b"
+          ],
+          "b": [
+            "c"
+          ],
+          "c": [
+            "a"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "a to b to c to a closes a cycle.",
+      "categories": [
+        "multi_cycle"
+      ]
+    },
+    {
+      "id": "disconnected_cycle",
+      "args": [
+        {
+          "safe": [
+            "leaf"
+          ],
+          "leaf": [],
+          "x": [
+            "y"
+          ],
+          "y": [
+            "x"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "Cycle exists outside the first acyclic component.",
+      "categories": [
+        "disconnected"
+      ]
+    },
+    {
+      "id": "duplicate_edge",
+      "args": [
+        {
+          "a": [
+            "b",
+            "b"
+          ],
+          "b": []
+        }
+      ],
+      "expected": false,
+      "reason": "Repeated a-to-b edges do not create a return path.",
+      "categories": [
+        "duplicate_edges",
+        "sharing"
+      ]
+    },
+    {
+      "id": "sink_only",
+      "args": [
+        {
+          "a": [
+            "missing"
+          ],
+          "b": [
+            "missing"
+          ]
+        }
+      ],
+      "expected": false,
+      "reason": "Missing key is a shared sink, not a cycle.",
+      "categories": [
+        "sinks",
+        "sharing"
+      ]
+    },
+    {
+      "id": "empty",
+      "args": [
+        {}
+      ],
+      "expected": false,
+      "reason": "There are no edges or cycles.",
+      "categories": [
+        "empty_acyclic"
+      ]
+    },
+    {
+      "id": "chain",
+      "args": [
+        {
+          "a": [
+            "b"
+          ],
+          "b": [
+            "c"
+          ],
+          "c": []
+        }
+      ],
+      "expected": false,
+      "reason": "A directed chain has no return edge.",
+      "categories": [
+        "empty_acyclic",
+        "repeat_preservation"
+      ]
+    },
+    {
+      "id": "isolated_nodes",
+      "args": [
+        {
+          "a": [],
+          "b": []
+        }
+      ],
+      "expected": false,
+      "reason": "Disconnected isolated vertices are acyclic.",
+      "categories": [
+        "empty_acyclic",
+        "disconnected"
+      ]
+    },
+    {
+      "id": "cycle_after_shared_branch",
+      "args": [
+        {
+          "a": [
+            "b",
+            "c"
+          ],
+          "b": [
+            "d"
+          ],
+          "c": [
+            "d",
+            "e"
+          ],
+          "d": [],
+          "e": [
+            "c"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "Valid sharing of d must not hide the c-to-e-to-c cycle.",
+      "categories": [
+        "sharing",
+        "multi_cycle"
+      ]
+    },
+    {
+      "id": "disconnected_reordered",
+      "args": [
+        {
+          "y": [
+            "x"
+          ],
+          "x": [
+            "y"
+          ],
+          "leaf": [],
+          "safe": [
+            "leaf"
+          ]
+        }
+      ],
+      "expected": true,
+      "reason": "Key order cannot hide the same disconnected cycle.",
+      "categories": [
+        "order",
+        "disconnected"
+      ]
+    },
+    {
+      "id": "transitive_dag",
+      "args": [
+        {
+          "a": [
+            "b",
+            "c"
+          ],
+          "b": [
+            "c"
+          ],
+          "c": []
+        }
+      ],
+      "expected": false,
+      "reason": "Direct and indirect paths to c do not imply a directed cycle.",
+      "categories": [
+        "sharing",
+        "repeat_preservation"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "reviewer": "review_disposable_production_binding",
+  "verdict": "APPROVED",
+  "blocking": 0,
+  "scope": "Fixed disposable creation and exact pre-Pair binding only",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_disposable_profile.py": "dc652724822d1901dfbc50936d6a769807a71ffaf35c44197e78ac1366b661f8",
+    "governance_tools/solo_r2_disposable_binding.py": "5d08d242338e56bca3f045951cdf74498338e610255a1efa5dadefd442aced47",
+    "governance_tools/solo_attempt_ledger_v2.py": "67a0b4167d55e6190b733b1d0feb27bdd9e37c3202d92b60d6270f821ddeaebf",
+    "governance_tools/solo_r2_pair_creation.py": "ad70bed4f9870c32b87a68029e821447572749ce3bd80805a0493ea15e1541b2",
+    "governance_tools/solo_r2_attempt_execution.py": "65c327d023f1d7ba179d3e7b44e145ccfbcb2bf8a87153bba6a5494ce1edfabf",
+    "tests/test_solo_r2_disposable_binding.py": "481840bcdec72fa079ff27a10930119a6942fa2c775ad53324ae922123b482c3"
+  },
+  "independent_tests": "32 passed; tests/test_solo_r2_disposable_binding.py, external synthetic roots",
+  "combined_tests": "164 passed; targeted-tests.json",
+  "not_claimed": [
+    "materializer/arm execution integration",
+    "full production admission",
+    "S2 evaluator integrity",
+    "real creation or execution authorization",
+    "commit or push"
+  ],
+  "authority": "Current owner explicitly authorized minimal production binding, positive/negative/regression tests and sub-agent review; stop when evidence ready."
+}

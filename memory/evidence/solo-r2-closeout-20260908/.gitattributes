@@ -1,0 +1,4 @@
+# Preserve copied oracle CRLF and all recorded exact-byte identities.
+*.json -text whitespace=cr-at-eol
+*.ndjson -text whitespace=cr-at-eol
+oracle-*.txt -text whitespace=cr-at-eol

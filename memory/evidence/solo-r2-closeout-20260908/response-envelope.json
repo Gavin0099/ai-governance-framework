@@ -1,0 +1,13 @@
+{
+  "mode": "expanded",
+  "mode_source": "failed_or_partial",
+  "task_authority": "Owner requests Solo R2 closeout, scoped commit and push; Python capability investigation moves to POST-GATE3.",
+  "scope": "Preserve existing results and report decision-support outcome only",
+  "done": "Closeout report and exact evidence copies prepared; delivery is verified separately by commit and remote HEAD checks",
+  "claim_ceiling": ["NON_COUNTED", "SOLO_CONTROLLED", "DECISION_SUPPORT_ONLY"],
+  "not_claimed": ["Overall quality tie or winner", "Assessable regression safety", "General Skill efficacy", "Strict OS-isolated end-to-end shakedown PASS", "Formal or counted evidence", "Python capability", "Clean overall workspace", "Full-repository validation or CI PASS"],
+  "evidence_refs": ["REPORT.md", "identities.json", "scores-frozen.json", "unblinding-result.json", "oracle-verified-summary.json", "post-gate3-timeout-audit.json", "memory-check.txt"],
+  "validation": "20 staged exact evidence identities match; git diff --cached --check passes; memory workflow guard ran and permits completion with historical warnings. No experiment rerun.",
+  "risk": "Quality outcome remains incomplete. Existing unrelated dirty work is excluded. Prior memory warnings remain. Native setup side effects are not claimed reverted.",
+  "next_action": "Commit/push only this closeout scope and stop; no new probe or evaluation allocation"
+}

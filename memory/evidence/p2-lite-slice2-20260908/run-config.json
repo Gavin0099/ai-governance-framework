@@ -1,0 +1,15 @@
+{
+  "codex": {
+    "path": "C:\\Users\\daish\\AppData\\Local\\OpenAI\\Codex\\bin\\8e5b6932251c2c1c\\codex.exe",
+    "sha256": "e5aa76d19c7c94e2e9ef9b707d590206a73ac0e97c8ddc8382181242494bef75",
+    "size": 295408944
+  },
+  "python": {
+    "path": "D:\\ai-governance-framework\\.venv\\Scripts\\python.exe",
+    "sha256": "97c3228a59dcc05a771ab4eeec8126ce3f36ebb53616b479adc9f2c8050a9e84",
+    "size": 255320
+  },
+  "model": "gpt-6-astra",
+  "codex_home": "C:\\Users\\daish\\.codex",
+  "skill_sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14"
+}

@@ -1,0 +1,3779 @@
+{
+  "result": "THREE_TASK_BENCHMARK_READY_FOR_REVIEW",
+  "failures": [],
+  "tasks": {
+    "easy_queue_range": {
+      "checks": {
+        "baseline_reproduces_named_defect": true,
+        "reference_passes_all_cases_and_invariants": true,
+        "reference_repeat_calls_stable": true,
+        "superficial_fixes_public_symptom": true,
+        "superficial_fails_predeclared_counterexample": true,
+        "reference_passes_regression_panel": true
+      },
+      "variants": {
+        "baseline": {
+          "passed": 5,
+          "total": 12,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "lower_example",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "equal_bounds",
+              "passed": false,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "order_duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "zero",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "zero",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "order_duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "equal_bounds",
+              "passed": false,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "lower_example",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "passed": 12,
+          "total": 12,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "lower_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "equal_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "order_duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "zero",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "zero",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "order_duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "equal_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "lower_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            }
+          ]
+        },
+        "superficial": {
+          "passed": 6,
+          "total": 12,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "lower_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "equal_bounds",
+              "passed": false,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "order_duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "zero",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "zero",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  "zero"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "wide_bounds",
+              "passed": true,
+              "expected": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "actual": [
+                [
+                  -100,
+                  "l"
+                ],
+                [
+                  100,
+                  "r"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_sequence_payloads",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "x"
+                ],
+                [
+                  1,
+                  "y"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "interior",
+              "passed": true,
+              "expected": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "no_match",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ],
+                [
+                  -1,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  -3,
+                  "a"
+                ],
+                [
+                  -2,
+                  "b"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "reversed",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "order_duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  3,
+                  "c"
+                ],
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ],
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "equal_bounds",
+              "passed": false,
+              "expected": [
+                [
+                  2,
+                  "a"
+                ],
+                [
+                  2,
+                  "c"
+                ]
+              ],
+              "actual": [],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "upper_endpoint",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  3,
+                  "c"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "lower_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  "a"
+                ],
+                [
+                  2,
+                  "b"
+                ]
+              ],
+              "issues": []
+            }
+          ]
+        }
+      },
+      "regression_case_ids": [
+        "upper_endpoint",
+        "equal_bounds",
+        "order_duplicates",
+        "empty",
+        "reversed",
+        "negative",
+        "no_match"
+      ],
+      "coverage_categories": [
+        "empty_reversed",
+        "endpoints",
+        "negative_no_match",
+        "order_duplicates",
+        "preservation"
+      ],
+      "required_scorer_evidence": "Shared RUBRIC.md admission + task RUBRIC.md categories",
+      "baseline_sha256": "72a20391a3b999730443025f39b90d2aa3ddbcb20215635dbe4e362154bc729c",
+      "cases_sha256": "c6e8f419b6cf50ece8701f41c2ef49b85a583b79e9b59892ca83bc88531c0354"
+    },
+    "medium_interval_merge": {
+      "checks": {
+        "baseline_reproduces_named_defect": true,
+        "reference_passes_all_cases_and_invariants": true,
+        "reference_repeat_calls_stable": true,
+        "superficial_fixes_public_symptom": true,
+        "superficial_fails_predeclared_counterexample": true,
+        "baseline_already_passes_counterexample": true,
+        "reference_passes_regression_panel": true
+      },
+      "variants": {
+        "baseline": {
+          "passed": 10,
+          "total": 13,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "nested_example",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  9,
+                  12
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_pair",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_chain",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "duplicates",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "touching_chain",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_pair",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  9,
+                  12
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "nested_example",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "passed": 13,
+          "total": 13,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "nested_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_pair",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_chain",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": true,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_chain",
+              "passed": true,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_pair",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "issues": []
+            }
+          ]
+        },
+        "superficial": {
+          "passed": 10,
+          "total": 13,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "nested_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_pair",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "touching_chain",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  4
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "bridge_touching_components",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "singleton",
+              "passed": true,
+              "expected": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "actual": [
+                [
+                  4,
+                  7
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "negative",
+              "passed": false,
+              "expected": [
+                [
+                  -5,
+                  2
+                ],
+                [
+                  2,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  -5,
+                  4
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": [],
+              "actual": [],
+              "issues": []
+            },
+            {
+              "id": "unsorted_disjoint",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  4,
+                  5
+                ],
+                [
+                  7,
+                  9
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_end",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "same_start",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "duplicates",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  4
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "touching_chain",
+              "passed": false,
+              "expected": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "touching_pair",
+              "passed": false,
+              "expected": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  3,
+                  5
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  5
+                ]
+              ],
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "transitive_chain",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  8
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_then_bridge",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  12
+                ]
+              ],
+              "issues": []
+            },
+            {
+              "id": "nested_example",
+              "passed": true,
+              "expected": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  10
+                ]
+              ],
+              "issues": []
+            }
+          ]
+        }
+      },
+      "regression_case_ids": [
+        "transitive_chain",
+        "touching_pair",
+        "duplicates",
+        "unsorted_disjoint",
+        "empty",
+        "negative",
+        "singleton"
+      ],
+      "coverage_categories": [
+        "empty_negative",
+        "nesting",
+        "preservation",
+        "sorting_duplicates",
+        "touching",
+        "transitive"
+      ],
+      "required_scorer_evidence": "Shared RUBRIC.md admission + task RUBRIC.md categories",
+      "baseline_sha256": "9c05fbb94a569178e21e0af152a53c7b45ff25602849fb159ceab5d2adc78fcf",
+      "cases_sha256": "2dbd76fed8db5bef3c7f008a878829aa0fbba2567e9a4676e5abfdf69081717d"
+    },
+    "hard_dependency_cycle": {
+      "checks": {
+        "baseline_reproduces_named_defect": true,
+        "reference_passes_all_cases_and_invariants": true,
+        "reference_repeat_calls_stable": true,
+        "superficial_fixes_public_symptom": true,
+        "superficial_fails_predeclared_counterexample": true,
+        "baseline_already_passes_counterexample": true,
+        "reference_passes_regression_panel": true
+      },
+      "variants": {
+        "baseline": {
+          "passed": 9,
+          "total": 14,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "diamond_example",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "self_loop",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "sink_only",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "transitive_dag",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "transitive_dag",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "sink_only",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "self_loop",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "diamond_example",
+              "passed": false,
+              "expected": false,
+              "actual": true,
+              "issues": [
+                "wrong_value"
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "passed": 14,
+          "total": 14,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "diamond_example",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "self_loop",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "sink_only",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "transitive_dag",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "transitive_dag",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "sink_only",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "self_loop",
+              "passed": true,
+              "expected": true,
+              "actual": true,
+              "issues": []
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "diamond_example",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            }
+          ]
+        },
+        "superficial": {
+          "passed": 8,
+          "total": 14,
+          "repeat_order_stable": true,
+          "cases": [
+            {
+              "id": "diamond_example",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "self_loop",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "sink_only",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "transitive_dag",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            }
+          ],
+          "repeated_cases": [
+            {
+              "id": "transitive_dag",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "disconnected_reordered",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "cycle_after_shared_branch",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "isolated_nodes",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "chain",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "empty",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "sink_only",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "duplicate_edge",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "disconnected_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "three_node_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "two_node_cycle",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "self_loop",
+              "passed": false,
+              "expected": true,
+              "actual": false,
+              "issues": [
+                "wrong_value"
+              ]
+            },
+            {
+              "id": "diamond_reordered",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            },
+            {
+              "id": "diamond_example",
+              "passed": true,
+              "expected": false,
+              "actual": false,
+              "issues": []
+            }
+          ]
+        }
+      },
+      "regression_case_ids": [
+        "self_loop",
+        "two_node_cycle",
+        "disconnected_cycle",
+        "duplicate_edge",
+        "sink_only",
+        "empty",
+        "diamond_reordered",
+        "chain"
+      ],
+      "coverage_categories": [
+        "disconnected",
+        "duplicate_edges",
+        "empty_acyclic",
+        "multi_cycle",
+        "order",
+        "repeat_preservation",
+        "self_cycle",
+        "sharing",
+        "sinks"
+      ],
+      "required_scorer_evidence": "Shared RUBRIC.md admission + task RUBRIC.md categories",
+      "baseline_sha256": "39070fa0a149c76a15a2a291812895654293148d3ccf55083663248d2bf72a6d",
+      "cases_sha256": "7fdbc3a3bbae273b6d9ff875c2cbf09c25542e27f4ccccacfa98820a4e6da55d"
+    }
+  },
+  "manifest_sha256": "a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34",
+  "authority": "Prospective fixture review snapshot; owner adoption NOT CLAIMED",
+  "model_executions": 0,
+  "scoring_performed": false,
+  "runner_integration": "NOT_IMPLEMENTED",
+  "not_claimed": [
+    "Calibrated difficulty",
+    "Real Skill efficacy",
+    "Future scorer evidence delivery",
+    "Formal/counted evidence"
+  ]
+}

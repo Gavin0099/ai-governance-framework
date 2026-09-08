@@ -1,0 +1,19 @@
+{
+  "changed_candidate_files": [
+    "hard_dependency_cycle/TASK.md",
+    "manifest.json"
+  ],
+  "only_text_delta": {
+    "before": "detection must remain enabled; returning False for all revisits is not sufficient.",
+    "after": "detection must remain enabled."
+  },
+  "hard_task": {
+    "bytes": 1524,
+    "sha256": "765ce65c7c9950a2d016f8341d59f53711715e1ab0e2f6b45d2ac3ff27107c37",
+    "git_blob": "bddeb16569ee555539eada38a5f2af64b721382e"
+  },
+  "other_17_manifest_entries": "UNCHANGED",
+  "oracle_regression_baselines_variants_easy_medium": "UNCHANGED",
+  "model_execution": false,
+  "independent_review": "PENDING"
+}

@@ -1,0 +1,25 @@
+{
+  "baseline_commit": "3cc8729b913bc6da09dbb84fde032b72d5c3ae86",
+  "behavior_change": "One environment literal adds LOCALAPPDATA only",
+  "baseline_probe_sha256": "7a28e8783451e4226e373021b83b977dbffe1318df53bece227b1ee8605e135d",
+  "tracking_boundary": "Probe.cs previously untracked. Full source reviewed; only one-literal change relative to preserved Probe.before.cs. No earlier ACL/setup scripts or binaries included.",
+  "external_binary_deployed": false,
+  "plan_memory_staging": {
+    "PLAN.md": {
+      "append_sha256": "cf0a15c920eaebefe8ce37fad6fac4234b9bea18e422b46ff0786f4859acbc97",
+      "staged_sha256": "b4f8a95063a75edd5f21b8c06a738db037baa849bea81035a614089f2d8325b4"
+    },
+    "memory/2026-09-07.md": {
+      "append_sha256": "d1f3f7ca4d92343fc244b49a4a2cf9768bb76838ce6dd4706fd19afc211f11be",
+      "staged_sha256": "41a6ff27f11f5360f2fa6bd9005c56f952e03f0b19fc3df6ece41b7454bad43b"
+    }
+  },
+  "not_claimed": [
+    "child entrypoint executed",
+    "filesystem isolation ready",
+    "external probe updated",
+    "scoring",
+    "unblinding",
+    "push"
+  ]
+}

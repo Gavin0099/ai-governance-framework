@@ -1,0 +1,12 @@
+{
+  "disposition": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "review_disposable_arm_integration",
+  "independent_tests": "20 passed in 4.98s",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_r1_structural_conformance.py": "a325b0872a50316e6cc6666c9f6d1aeaa6588be01e34b263eb9d14198f437c64",
+    "tests/test_solo_r2_r1_structural_conformance.py": "8433102e1bbd2d940865108e3ceff2e3c6ec89ed7b5675102a6c10d0acf107a6",
+    "artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-3b820a2c.json": "1e32693147ff9fde7f06efd77053dbab9ec0fcff3a3a5f5734f9d2b122ca1cf0"
+  },
+  "claim_ceiling": "Existing R1 structural projection only; no full v2.1 protocol or execution admission"
+}

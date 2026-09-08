@@ -1,0 +1,14 @@
+{
+  "handoff": "USERNAME_MARKER_HANDOFF_BEHAVIORALLY_CONFIRMED",
+  "scope": "Adding validated USERNAME restored intended owner ACE and ordinary owner readability; native setup progressed to runner launch preparation",
+  "command_requests": 1,
+  "retries": 0,
+  "command_completion": "NOT_RECEIVED",
+  "client_timeout_seconds": 45,
+  "server_capability": "UNKNOWN",
+  "arm_capability": "UNKNOWN",
+  "exact_internal_real_user": "NOT_OBSERVED",
+  "manual_acl_change": false,
+  "native_setup_side_effects": "Firewall/WFP configuration and native ACL/setup activity recorded; not side-effect-free",
+  "next_action": "STOP"
+}

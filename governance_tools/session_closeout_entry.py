@@ -9,12 +9,16 @@ layer decides *when* and *how* this gets triggered; this module defines *what*
 happens.
 
 Usage:
-    python -m governance_tools.session_closeout_entry --project-root .
-    python -m governance_tools.session_closeout_entry --project-root . --format json
+    python -m governance_tools.session_closeout_entry --project-root /abs/path/to/repo
+    python -m governance_tools.session_closeout_entry --project-root /abs/path/to/repo --format json
+
+`--project-root` is required and is never derived from the current directory.
 
 Exit codes:
     0  closeout executed (pipeline ran, regardless of closeout content quality)
     1  pipeline failed to run (runtime error, not closeout content failure)
+    2  CLI contract failure: argparse reports a missing required --project-root;
+       a supplied but invalid root reports a ROOT_BINDING_FAILURE: stderr prefix
 
 Closeout content quality (missing file, schema invalid, etc.) is reported in
 the output but does NOT cause a non-zero exit. The pipeline ran; the verdict
@@ -27,6 +31,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -338,7 +343,7 @@ def _extract_transcript_path_from_stop_payload(payload: dict[str, Any]) -> "Path
 
 
 def run(
-    project_root: Path,
+    project_root: Path | str,
     transcript_path: "Path | None" = None,
     hook_session_id: "str | None" = None,
     ledger_write_allowed: "bool | None" = None,
@@ -358,7 +363,13 @@ def run(
 
     hook_session_id: optional session_id from the Stop hook stdin payload.
     Used as a secondary stable ID source if .current-session-id is not present.
+
+    The explicit root is validated again at this callable boundary even when a
+    CLI caller already performed its preflight. This prevents a future direct
+    importer from bypassing root validation. RootBindingError is raised before
+    run_session_end_hook, so a rejected root cannot reach any writer.
     """
+    project_root = _validate_explicit_project_root(str(project_root))
     return run_session_end_hook(
         project_root=project_root,
         transcript_path=transcript_path,
@@ -415,6 +426,48 @@ def _apply_stale_duplicate_guard(
     return False, memory_eligibility_reason, True
 
 
+_ROOT_FILE_MARKERS = ("AGENTS.md",)
+_ROOT_DIRECTORY_MARKERS = ("governance",)
+
+
+class RootBindingError(Exception):
+    """An explicitly supplied project root is missing or unusable."""
+
+
+def _validate_explicit_project_root(raw: str) -> Path:
+    """Canonicalize and validate the explicitly supplied project root.
+
+    The canonical artifact root is an explicit contract, not an ambient
+    cwd-derived property (owner-ratified 2026-06-23, artifact-write-boundary).
+    Nothing is derived here: no cwd fallback, no Git toplevel, no parent
+    traversal. A root that cannot be validated fails closed before the first
+    artifact, receipt or memory write.
+    """
+    candidate = Path(raw).expanduser()
+    try:
+        root = candidate.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RootBindingError(f"project root cannot be resolved: {raw}") from exc
+    if not root.is_dir():
+        raise RootBindingError(f"project root is not a directory: {root}")
+    invalid_markers = [
+        marker for marker in _ROOT_FILE_MARKERS if not (root / marker).is_file()
+    ]
+    invalid_markers.extend(
+        marker
+        for marker in _ROOT_DIRECTORY_MARKERS
+        if not (root / marker).is_dir()
+    )
+    if invalid_markers:
+        raise RootBindingError(
+            "project root is missing governance markers or marker types are invalid "
+            f"{invalid_markers}: {root}"
+        )
+    if not os.access(root, os.W_OK):
+        raise RootBindingError(f"project root is not writable: {root}")
+    return root
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -426,8 +479,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--project-root",
-        default=".",
-        help="Path to the project root (default: current directory)",
+        required=True,
+        help=(
+            "Path to the project root. Required: the canonical artifact root is "
+            "an explicit contract and is never derived from the current directory."
+        ),
     )
     parser.add_argument(
         "--format",
@@ -471,7 +527,11 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    project_root = Path(args.project_root).resolve()
+    try:
+        project_root = _validate_explicit_project_root(args.project_root)
+    except RootBindingError as exc:
+        print(f"ROOT_BINDING_FAILURE: {exc}", file=sys.stderr)
+        return 2
 
     try:
         result = run(

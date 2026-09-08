@@ -1,0 +1,27 @@
+{
+  "status": "CANDIDATE_NOT_REVIEWED_NOT_ADOPTED",
+  "path": "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md",
+  "bytes": 6250,
+  "lines": 107,
+  "sha256": "bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3",
+  "git_blob_oid": "f30bd4d6e7df54c927ce5cc334ca4658b14915e9",
+  "mode": "candidate_preparation",
+  "mode_source": "Owner authorized candidate writing only",
+  "task_authority": "\u597d\u7684 \u5beb\u4e0b\u53bb; bounded candidate scope from preceding proposal",
+  "scope": "Replacement disposition/allocation/placement proposal",
+  "done": "Candidate written and exact identity calculated",
+  "claim_ceiling": "Proposal only; no normative adoption or production capability",
+  "not_claimed": [
+    "owner adoption",
+    "review acceptance",
+    "creation",
+    "execution",
+    "commit",
+    "push"
+  ],
+  "evidence_refs": [
+    "docs/governance/solo-r2-replacement-disposable-owner-decision-candidate-20260906.md"
+  ],
+  "risk": "New controller custody and authority binding remain prerequisites",
+  "next_action": "Review exact candidate; separate owner adoption before implementation"
+}

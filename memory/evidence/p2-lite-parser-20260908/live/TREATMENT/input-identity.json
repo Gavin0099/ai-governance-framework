@@ -1,0 +1,1 @@
+{"observation_origin": "LITE_HOST_ADAPTER; not Codex raw trace", "payload_sha256": "c6951e7b435b7ae54bf174c0bb66d45f1f587219a40877fae3e18d604cb2b5a0", "raw_receipts": ["oracle.result.json", "regression.result.json"], "trace_sha256": "2088a508a6f10c268d1a32e56cc29f25489b7a4f777e75c1541638a87257a115"}

@@ -1,0 +1,44 @@
+{
+  "status": "VALIDATED_NOT_COMMITTED",
+  "review": "ACCEPT",
+  "blocking": 0,
+  "reviewer": "/root/review_collector_fix",
+  "reviewed_sha256": {
+    "governance_tools/solo_r2_disposable_execution.py": "c04092235f8ff8a601aa6587be63b3a0a34c6a9e4f656e445035e6f1e18297e9",
+    "tests/test_solo_r2_disposable_execution.py": "a76cc4b414f91d14a7a88b06536506324dbe93e4cfa9fdbd536c97d52b6660cb"
+  },
+  "tests": {
+    "file": "tests/test_solo_r2_disposable_execution.py",
+    "primary_passed": 54,
+    "independent_passed": 54,
+    "command": "./.venv/Scripts/python.exe -B -m pytest tests/test_solo_r2_disposable_execution.py -q -p no:cacheprovider --basetemp <unique external temp> --tb=short",
+    "initial_test_environment_issue": "Default pytest temp permission denied before tests; fresh unique temp resolved setup."
+  },
+  "allowed_paths": [
+    "queue_range.py",
+    "test_queue_range.py"
+  ],
+  "negative_cases": [
+    "unrelated source",
+    "unrelated test",
+    "unexpected file",
+    "missing required test",
+    "ledger drift",
+    "pre-materialization wrong bytes"
+  ],
+  "untouched_file_case": "No third immutable file exists in this exact two-file snapshot; arbitrary third-file coverage is not claimed.",
+  "ledger_sha256": "33e291c2018aabaa004ca7998ee87a5cbfefefc81b53e77374ae694c1e42f3d8",
+  "ledger_events": 5,
+  "r1_bindings_match": 7,
+  "r1_refresh": "NOT_REQUIRED: changed production module not bound",
+  "not_claimed": [
+    "Historical first throw site established",
+    "UNCLASSIFIED reclassification",
+    "Complete modified-test artifact retention",
+    "Runtime admission",
+    "Retry or second arm authorization",
+    "A/B completion",
+    "Commit or push"
+  ],
+  "next_action": "STOP; any durability/launcher binding or experiment disposition requires separate scope."
+}

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-🧹 Memory Janitor - 自動記憶掃除守護程式
+🧹 Memory Janitor - 記憶壓力監控與安全守護程式
 Priority: 8 (Memory Stewardship)
 
 功能:
 1. 監控 memory/01_active_task.md 行數
-2. 當超過閾值時產出掃除建議
-3. 自動將過期內容歸檔到 archive/，原位置保留 pointer
+2. 當超過閾值時產出 fail-closed 指引
+3. 阻止未經 verified archive + replacement-state cutover 的舊 cleanup 路徑
 
 設計原則:
-- 完全自動化,無需人工介入
-- 複製（非移動）原始內容到 archive/，原位置保留 pointer 供追溯
-- 寫入 archive/manifest.json 完整 audit trail
+- 不自動壓縮或改寫 active memory
+- 未證明安全 cutover 時拒絕舊 cleanup 路徑
+- archive/manifest.json 僅供既有記錄讀寫，不代表 cleanup authority
 - 產出人類可讀的稽核報告
 """
 
@@ -21,6 +21,10 @@ import json
 from pathlib import Path
 from datetime import datetime
 from typing import Tuple, List, Dict
+
+
+class UnsafeCleanupBlocked(RuntimeError):
+    """Legacy automatic cleanup cannot prove a safe archive/cutover boundary."""
 
 
 class MemoryJanitor:
@@ -34,6 +38,12 @@ class MemoryJanitor:
     HOT_MEMORY_SOFT_SIZE_LIMIT = 8000
     HOT_MEMORY_HARD_SIZE_LIMIT = 10000
     HOT_MEMORY_CRITICAL_SIZE_LIMIT = 12000
+
+    UNSAFE_CLEANUP_MESSAGE = (
+        "自動掃除已 fail closed：目前路徑無法證明 verified archive 與 "
+        "replacement-state cutover，active memory 未修改。請另行授權並驗證 "
+        "archive + replacement-state cutover；不要重試舊的 --clean 或 --execute。"
+    )
     
     def __init__(self, memory_root: Path):
         """
@@ -43,7 +53,6 @@ class MemoryJanitor:
         self.memory_root = Path(memory_root)
         self.active_task_file = self.memory_root / "01_active_task.md"
         self.archive_dir = self.memory_root / "archive"
-        self.archive_dir.mkdir(parents=True, exist_ok=True)
         
     def check_hot_memory_status(self) -> Tuple[int, int, str]:
         """
@@ -73,11 +82,21 @@ class MemoryJanitor:
     def generate_warning_message(self, line_count: int, char_count: int, status: str) -> str:
         """產出警告訊息 (供 AI 在回應末尾顯示)"""
         if status == "EMERGENCY":
-            return f"🚨 **熱記憶緊急超限** ({line_count}/200 行, {char_count}/10000 字元) - **立即停止任務,強制執行掃除**"
+            return (
+                f"🚨 **熱記憶緊急超限** ({line_count}/200 行, {char_count}/10000 字元) - "
+                "停止增加 active memory；自動掃除已 fail closed，需另行驗證 "
+                "archive + replacement-state cutover"
+            )
         elif status == "CRITICAL":
-            return f"⚠️ **熱記憶超過硬限制** ({line_count}/200 行, {char_count}/10000 字元) - 建議執行 `python memory_janitor.py --clean`"
+            return (
+                f"⚠️ **熱記憶超過硬限制** ({line_count}/200 行, {char_count}/10000 字元) - "
+                "自動掃除已 fail closed；需另行驗證 archive + replacement-state cutover"
+            )
         elif status == "WARNING":
-            return f"⚠️ 熱記憶接近上限 ({line_count}/200 行, {char_count}/10000 字元),建議儘快掃除"
+            return (
+                f"⚠️ 熱記憶接近上限 ({line_count}/200 行, {char_count}/10000 字元)，"
+                "可在自然中斷點評估 verified archive + replacement-state cutover"
+            )
         else:
             return ""
     
@@ -163,11 +182,17 @@ class MemoryJanitor:
 
 """
         if status == "EMERGENCY":
-            report += "**立即停止當前任務** → 人工審核並執行掃除 → 重新開始對話\n"
+            report += (
+                "**停止增加 active memory**；自動掃除已 fail closed，"
+                "需另行驗證 archive + replacement-state cutover\n"
+            )
         elif status == "CRITICAL":
-            report += "建議執行: `python memory_janitor.py --execute`\n"
+            report += (
+                "自動掃除已 fail closed；需另行驗證 archive + "
+                "replacement-state cutover\n"
+            )
         elif status == "WARNING":
-            report += "建議在下一個自然中斷點執行掃除\n"
+            report += "在下一個自然中斷點評估 verified archive + replacement-state cutover\n"
         else:
             report += "目前狀態良好,無需掃除\n"
         
@@ -186,107 +211,31 @@ class MemoryJanitor:
 
     def _save_manifest(self, manifest: dict) -> None:
         """寫入 manifest.json。"""
+        self.archive_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = self.archive_dir / "manifest.json"
         with open(manifest_path, 'w', encoding='utf-8') as f:
             json.dump(manifest, f, ensure_ascii=False, indent=2)
 
     def execute_cleanup(self, dry_run: bool = True) -> str:
         """
-        執行實際掃除 (copy + pointer + manifest)
-
-        行為 (BUG-001 修正):
-          1. 複製 01_active_task.md 全文到 archive/active_task_{timestamp}.md
-          2. 將 01_active_task.md 截短為 header + Next Steps
-          3. 在截短後的 01_active_task.md 頂部插入 pointer 區塊
-          4. 將本次操作記錄到 archive/manifest.json
+        拒絕舊的自動掃除路徑，直到另行證明安全 cutover。
 
         Args:
-            dry_run: True = 僅模擬,不實際修改檔案
+            dry_run: True = 回報 blocked 狀態；不修改任何檔案
 
         Returns:
-            執行報告（str）
-        """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        dt_human = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        archive_filename = f"active_task_{timestamp}.md"
-        archive_file = self.archive_dir / archive_filename
+            不存在 active memory 時的說明，或 dry-run blocked 報告。
 
+        Raises:
+            UnsafeCleanupBlocked: 真實 cleanup 一律 fail closed。
+        """
         if not self.active_task_file.exists():
             return "⚠️ active_task.md 不存在,無需掃除"
 
-        with open(self.active_task_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        original_lines = len(content.splitlines())
-        original_chars = len(content)
-        _, _, status = self.check_hot_memory_status()
-
         if dry_run:
-            return (
-                f"[dry-run] 將執行以下操作:\n"
-                f"  1. 複製 {self.active_task_file} ({original_lines} 行) → {archive_file}\n"
-                f"  2. 截短 {self.active_task_file}，保留 header + Next Steps\n"
-                f"  3. 在原檔頂部插入 pointer 區塊\n"
-                f"  4. 記錄到 {self.archive_dir / 'manifest.json'}"
-            )
+            return f"[BLOCKED] {self.UNSAFE_CLEANUP_MESSAGE}"
 
-        # ── 步驟 1: 複製完整內容到 archive ─────────────────────────────
-        with open(archive_file, 'w', encoding='utf-8') as f:
-            f.write(content)
-
-        # ── 步驟 2: 建立截短後的內容 ──────────────────────────────────
-        lines = content.splitlines()
-        # 只取前 20 行但排除「## Next Steps」以後的部分（避免重複）
-        next_steps_match = re.search(r'##\s+Next Steps.*?(?=##|\Z)', content, re.DOTALL)
-        next_steps = next_steps_match.group(0).strip() if next_steps_match else ""
-
-        # 找出 Next Steps 開始的行號，header 只取到那之前
-        next_steps_start_line = None
-        if next_steps_match:
-            preceding = content[:next_steps_match.start()]
-            next_steps_start_line = preceding.count('\n')
-
-        header_end = min(20, next_steps_start_line if next_steps_start_line is not None else len(lines))
-        header = '\n'.join(lines[:header_end])
-
-        # ── 步驟 3: 插入 pointer 區塊 ─────────────────────────────────
-        pointer_block = (
-            f"<!-- ARCHIVED: {archive_filename} ({dt_human}) -->\n"
-            f"<!-- 完整歷史請查閱: archive/{archive_filename} -->\n"
-            f"\n"
-            f"> **[歸檔紀錄]** {dt_human} — 本檔案已歸檔至 `archive/{archive_filename}`\n"
-            f"> 歸檔原因: 記憶壓力 {status}（原始 {original_lines} 行, {original_chars} 字元）\n"
-            f"\n"
-            f"---\n\n"
-        )
-
-        new_content = pointer_block + header + "\n\n---\n\n" + next_steps + "\n"
-        new_lines = len(new_content.splitlines())
-
-        with open(self.active_task_file, 'w', encoding='utf-8') as f:
-            f.write(new_content)
-
-        # ── 步驟 4: 寫入 manifest ─────────────────────────────────────
-        manifest = self._load_manifest()
-        manifest["archives"].append({
-            "timestamp": timestamp,
-            "datetime": dt_human,
-            "archive_file": f"archive/{archive_filename}",
-            "source_file": str(self.active_task_file),
-            "original_lines": original_lines,
-            "new_lines": new_lines,
-            "reason": f"Memory pressure: {status} ({original_lines}/{self.HOT_MEMORY_HARD_LIMIT} lines, {original_chars}/{self.HOT_MEMORY_HARD_SIZE_LIMIT} chars)",
-        })
-        self._save_manifest(manifest)
-
-        return (
-            f"✅ 掃除完成\n"
-            f"  歸檔: {archive_file}\n"
-            f"  原始行數: {original_lines} → 截短後: {new_lines} 行\n"
-            f"  Pointer 已插入 {self.active_task_file}\n"
-            f"  Manifest 已更新: {self.archive_dir / 'manifest.json'} "
-            f"（共 {len(manifest['archives'])} 筆紀錄）"
-        )
+        raise UnsafeCleanupBlocked(self.UNSAFE_CLEANUP_MESSAGE)
 
 
 def main():
@@ -302,7 +251,8 @@ def main():
     parser.add_argument('--memory-root', default='./memory', help='memory/ 目錄路徑')
     parser.add_argument('--check', action='store_true', help='僅檢查狀態')
     parser.add_argument('--plan', action='store_true', help='產出掃除計畫')
-    parser.add_argument('--execute', action='store_true', help='執行實際掃除（copy+pointer+manifest）')
+    parser.add_argument('--execute', action='store_true', help='舊 cleanup 入口（安全性不足時 fail closed）')
+    parser.add_argument('--clean', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--dry-run', action='store_true', help='模擬執行 (不實際修改檔案)')
     parser.add_argument('--manifest', action='store_true', help='顯示 archive/manifest.json 內容')
     parser.add_argument('--format', choices=['human', 'json'], default='human', help='輸出格式 (預設: human)')
@@ -311,7 +261,15 @@ def main():
 
     janitor = MemoryJanitor(Path(args.memory_root))
 
-    if args.check:
+    if args.execute or args.clean:
+        try:
+            result = janitor.execute_cleanup(dry_run=args.dry_run)
+        except UnsafeCleanupBlocked as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(2) from exc
+        print(result)
+
+    elif args.check:
         line_count, char_count, status = janitor.check_hot_memory_status()
         warning = janitor.generate_warning_message(line_count, char_count, status)
         if args.format == 'json':
@@ -336,9 +294,9 @@ def main():
             line_count, char_count, status = janitor.check_hot_memory_status()
             archivable = janitor.analyze_archivable_content()
             recommendation_map = {
-                "EMERGENCY": "stop_and_manual_review",
-                "CRITICAL": "execute_cleanup_now",
-                "WARNING": "cleanup_at_next_break",
+                "EMERGENCY": "verified_archive_and_replacement_state_cutover_required",
+                "CRITICAL": "verified_archive_and_replacement_state_cutover_required",
+                "WARNING": "manual_cutover_review_at_next_break",
                 "SAFE": "no_action_needed",
             }
             print(json.dumps({
@@ -361,10 +319,6 @@ def main():
         else:
             plan = janitor.create_archive_plan()
             print(plan)
-
-    elif args.execute:
-        result = janitor.execute_cleanup(dry_run=args.dry_run)
-        print(result)
 
     elif args.manifest:
         manifest = janitor._load_manifest()

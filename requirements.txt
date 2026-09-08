@@ -1,6 +1,9 @@
-# The framework core is intentionally stdlib-first.
+# The framework core remains intentionally stdlib-first.
+# Adopted Solo R2 controller tooling is the explicit crypto exception.
 # These dependencies cover local validation and the runnable demo app.
 
+--only-binary=cryptography
+cryptography==50.0.1
 pytest>=9.0,<10.0
 pyyaml>=6.0
 jsonschema>=4.23,<5.0
@@ -9,4 +12,3 @@ uvicorn>=0.30,<1.0
 
 # Security boundary: formal TUF metadata and Rekor proof verification.
 tuf==7.0.0
-cryptography==50.0.0

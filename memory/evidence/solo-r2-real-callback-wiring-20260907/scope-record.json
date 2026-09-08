@@ -1,0 +1,58 @@
+{
+  "authority": "Latest user explicitly authorized callback wiring, targeted tests, independent review, scoped commit then STOP. No generation/reservation/live probe/scoring/unblinding/push.",
+  "allowlist": [
+    "governance_tools/solo_r2_scoring_host_verifiers.cs",
+    "governance_tools/solo_r2_scoring_probe.cs",
+    "governance_tools/solo_r2_superseding_scoring.py",
+    "artifacts/experiments/solo-r2-final-disposable-launcher-20260907/scoring_callbacks.py",
+    "tests/test_solo_r2_real_scoring_callbacks.py",
+    "tests/test_solo_r2_superseding_scoring.py",
+    "tests/solo_r2_scoring_callbacks_native.cs",
+    "PLAN.md",
+    "memory/2026-09-07.md",
+    "memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json",
+    "memory/evidence/solo-r2-real-callback-wiring-20260907/review.json",
+    "memory/evidence/solo-r2-real-callback-wiring-20260907/scope-record.json"
+  ],
+  "staged_fragments": {
+    "PLAN.md": "\r\n## Real superseding bundle callback wiring - 2026-09-07\r\n\r\nFixed-instance generator now requires reviewed semantic payload identities, new-instance custody initialization using the existing ACL model, and native verification of the persisted real bundle before its transition receipt. Validation: memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json (46 Python and 11 native contract cases). Independent review and scoped commit, then STOP. No real generation/reservation, deployment, ACL mutation, probe, scoring or unblinding. Real parent custody, reviewed deployed executable/RX and semantic payload digest custody remain runtime prerequisites; no R1 source pin changed.\r\n",
+    "memory/2026-09-07.md": "\r\n- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: Real bundle callback wiring only: fixed existing native custody/projection bridge, reviewed payload digest boundary, new-instance ACL initialization without parent changes, fail-closed persisted verification before receipt. No real generation or reservation. Independent review pending at record time.\r\n  commit: 8624262b\r\n  commit_hash: 8624262b\r\n  session_id: 2026-09-07-real-callback-wiring\r\n  memory_binding: bound\r\n  test_evidence: 46 targeted Python tests PASS; native in-memory contracts 11 PASS; two x64 builds PASS. memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json. No live probe or ACL mutation.\r\n  next_step: Finish independent review and scoped commit, STOP. Real parent custody, reviewed Probe deployment/RX and semantic payload identities remain prerequisites; no scoring or unblinding.\r\n  plan_reconciliation: updated\r\n  record_identity: b0430c8f4e2c44010c21deb2324a68af7df77e2f74fe7768cc62870b80f38fd7\r\n"
+  },
+  "partial_staging": "HEAD bytes plus only this session fragments. Other existing changes excluded. Build exe/test temp and auxiliary staging files are not committed.",
+  "done": "REAL_BUNDLE_CALLBACK_WIRING_READY after independent Blocking=0 and verified scoped local commit",
+  "not_claimed": [
+    "real bundle anonymity",
+    "runtime custody readiness",
+    "semantic full review of real outputs",
+    "scorer readiness",
+    "activation",
+    "scoring",
+    "unblinding",
+    "clean overall workspace"
+  ],
+  "next_action": "STOP; before any generation independently establish real parent custody, reviewed executable deployment/RX, and reviewed payload identities.",
+  "response_envelope": {
+    "mode": "execution",
+    "mode_source": "explicit bounded implementation authorization",
+    "task_authority": "Latest user explicitly authorized callback wiring, targeted tests, independent review, scoped commit then STOP. No generation/reservation/live probe/scoring/unblinding/push.",
+    "scope": "fixed final superseding callback wiring; scoped commit only",
+    "done": "Code/tests independent APPROVED; scoped committed identity verification required before delivery claim",
+    "claim_ceiling": "REAL_BUNDLE_CALLBACK_WIRING_READY; no runtime readiness assertion",
+    "not_claimed": [
+      "real bundle anonymity",
+      "runtime custody readiness",
+      "semantic full review of real outputs",
+      "scorer readiness",
+      "activation",
+      "scoring",
+      "unblinding",
+      "clean overall workspace"
+    ],
+    "evidence_refs": [
+      "memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json",
+      "memory/evidence/solo-r2-real-callback-wiring-20260907/review.json"
+    ],
+    "risk": "Unique generation remains unconsumed. Future parent custody/deployment/semantic identity prerequisites unresolved. Existing unrelated dirty excluded.",
+    "next_action": "STOP; before any generation independently establish real parent custody, reviewed executable deployment/RX, and reviewed payload identities."
+  }
+}

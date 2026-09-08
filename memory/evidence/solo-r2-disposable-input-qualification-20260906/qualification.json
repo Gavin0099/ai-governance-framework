@@ -1,0 +1,104 @@
+{
+  "status": "QUALIFIED_SYNTHETIC_INPUTS_ONLY",
+  "task_behavior_source": "task-packet.candidate.md exact SHA-256 13b73cf74593380685772ffe765e6478abf3c741b2fad8fc517aae6285726a65; current owner request authorizes disposable input admission",
+  "tests": [
+    {
+      "name": "base-visible",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_path": "memory/evidence/solo-r2-disposable-input-qualification-20260906/base-visible.txt",
+      "expectation_met": true
+    },
+    {
+      "name": "base-oracle",
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "output_path": "memory/evidence/solo-r2-disposable-input-qualification-20260906/base-oracle.txt",
+      "expectation_met": true
+    },
+    {
+      "name": "reference-visible",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_path": "memory/evidence/solo-r2-disposable-input-qualification-20260906/reference-visible.txt",
+      "expectation_met": true
+    },
+    {
+      "name": "reference-oracle",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_path": "memory/evidence/solo-r2-disposable-input-qualification-20260906/reference-oracle.txt",
+      "expectation_met": true
+    }
+  ],
+  "base_required_cases": {
+    "total": 10,
+    "passed": 6,
+    "failed": 4
+  },
+  "reference_required_cases": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "visible_tests_per_snapshot": 3,
+  "base_expected_failures": [
+    "test_lower_endpoint",
+    "test_upper_endpoint",
+    "test_equal_bounds",
+    "test_negative_and_zero_endpoints"
+  ],
+  "input_identities": {
+    "evaluator/oracle.py": {
+      "bytes": 2641,
+      "sha256": "8c64d7367e552b39d37db66202123bf50b72b381cb73d19fc7dce19b94b9c60b",
+      "computed_git_blob_oid": "6181b954275ec6d834a07999b93e32741c833eca"
+    },
+    "evaluator/reference_queue_range.py": {
+      "bytes": 193,
+      "sha256": "827ef2c2d341a1057692d09362f67013e37f9221857d01c87e17754336a9bb5f",
+      "computed_git_blob_oid": "b79582f6a4f069103ab4f516dee0a1a323677fb8"
+    },
+    "input-authority.candidate.json": {
+      "bytes": 2256,
+      "sha256": "3ed4f4aac1b8ad83f313463415de089d6e3acaf85445238e64eb18f4c31f3f6e",
+      "computed_git_blob_oid": "27f1e5a905c90ef39c17ca997e12496bb383f7ec"
+    },
+    "rubric.candidate.md": {
+      "bytes": 3754,
+      "sha256": "a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9",
+      "computed_git_blob_oid": "ec02a630067815d86bc782e11241e9817f2d589c"
+    },
+    "snapshot/queue_range.py": {
+      "bytes": 187,
+      "sha256": "3399735d08706f48022d3e632d3adcd73b4e17deb6ff148ae106487a4a089f86",
+      "computed_git_blob_oid": "f753d96b56029f93bc6cc75a3a97d031cae898f2"
+    },
+    "snapshot/test_queue_range.py": {
+      "bytes": 529,
+      "sha256": "c1d4fef47e2a06cc143eb1323a11990678848ea115105968bfc5265d9b18131d",
+      "computed_git_blob_oid": "18b5c7f3646cf63633ae1f8ed9ec881d866f551d"
+    },
+    "task-packet.candidate.md": {
+      "bytes": 1328,
+      "sha256": "13b73cf74593380685772ffe765e6478abf3c741b2fad8fc517aae6285726a65",
+      "computed_git_blob_oid": "729a7ebf9cc830f466014c4907d8731f7246b757"
+    }
+  },
+  "invalid_type_tests": "Not applicable: task domain explicitly restricts entries and bounds to the declared types; no additional coercion contract invented.",
+  "claim_boundary": "Input qualification only; reference solution is not a CONTROL/TREATMENT result. No production admission, Pair, Attempt, scoring or unblinding. Low task discrimination is expected; a tie neither disproves Skill benefit nor demonstrates rubric discrimination failure.",
+  "source_commit": "695863d1922c7b03a7672d3471160e5514945f95",
+  "snapshot_tree_oid": "81b97b79e32e977d716754aef514930835a2f2b2",
+  "archive_verification": {
+    "argv": [
+      "git",
+      "-c",
+      "core.autocrlf=false",
+      "archive",
+      "--format=tar",
+      "695863d1922c7b03a7672d3471160e5514945f95:artifacts/experiments/solo-r2-disposable-input-definition-20260906/snapshot"
+    ],
+    "result": "Exactly two regular files, byte-identical to qualified LF fixtures; no evaluator, oracle, repair, rubric, authority or Git history exported.",
+    "observed_default_export_difference": "Local core.autocrlf=true exported CRLF instead of qualified LF; command-local core.autocrlf=false restores exact bytes. No global Git setting changed."
+  }
+}
