@@ -136,6 +136,9 @@ relay the complete adoption summary required by `governance/F7_FULL_UPDATE.md`;
 when that summary is unavailable, preserve the protocol's
 `update_report_complete=false` and `completion_claim_allowed=false` fallback
 instead of compressing the result into the ordinary compact projection.
+This exception does not require a technical opening. Follow the plain-language
+update opening in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`, then retain the
+complete required adoption table and evidence in the same final report.
 
 Expanded output preserves every decision-relevant non-claim and the complete
 machine field meanings. A `注意：` line may replace a visible `Cannot claim`
