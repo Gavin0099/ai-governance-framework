@@ -1,0 +1,47 @@
+{
+  "mode": "implementation",
+  "mode_source": "failed_or_partial",
+  "task": "P2 Slice 2 real Lite integration",
+  "task_authority": "user_request",
+  "scope": [
+    "Lite base/live modules",
+    "new live tests",
+    "Slice2 doc",
+    "P2-only PLAN/memory/evidence"
+  ],
+  "done": [
+    "implementation tests/review passed",
+    "one failed live invocation preserved"
+  ],
+  "claim_ceiling": [
+    "NON_COUNTED",
+    "SOLO_CONTROLLED",
+    "DECISION_SUPPORT_ONLY"
+  ],
+  "not_claimed": [
+    "REAL_LITE_END_TO_END_VALIDATED",
+    "real arm/scorer functionality",
+    "actual operation cost reduction",
+    "OS isolation",
+    "Strict equivalence",
+    "general Skill effectiveness",
+    "push",
+    "whole workspace clean/completed"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "memory/evidence/p2-lite-slice2-20260908/review.json",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory/evidence/p2-lite-slice2-20260908/live/CONTROL/model.result.json",
+      "result": "FAIL"
+    }
+  ],
+  "risk": [
+    "CLI auth and configuration integration not operationally proven",
+    "generated-code admission is narrow, not a general sandbox",
+    "existing dirty work excluded"
+  ],
+  "next_action": "STOP; separately authorize diagnosing CLI auth/config compatibility before any new real invocation."
+}

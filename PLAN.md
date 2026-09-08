@@ -2861,3 +2861,11 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Validation: local 149 PASS; independent 149 PASS; Blocking 0; synthetic CLI demo PASS. Evidence: memory/evidence/p2-lite-slice1-20260908/review.json and validation.json.
 - Ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY. Real runner/scorer, OS isolation, strict equivalence and actual cost reduction are not established. Strict and historical rounds unchanged.
 - Next: STOP after scoped local commit. Real Lite integration requires its own bounded slice; no push. P1 remains closed UNKNOWN.
+
+
+## POST-GATE3 P2 Slice 2 — 2026-09-08 (blocked real validation)
+
+- Bounded real adapter implemented: fresh model patch generation, host oracle/regression, anonymous scorer input, freeze then authorized unblinding. Local and independent tests: 172 PASS; implementation review Blocking 0.
+- One live invocation stopped at first model HTTP 401 (missing auth header), process exit 1. No CONTROL output; TREATMENT/oracle/scorer/freeze/report not run. Adapter replay 0; native CLI reconnect attempts preserved. Runtime configuration warnings also remain unverified.
+- Result: REAL_LITE_END_TO_END_BLOCKED. No real Lite readiness, cost reduction, complete interactive Skill workflow, strict equivalence or general Skill efficacy claimed. P1 closed UNKNOWN; Strict/historical rounds unchanged.
+- Evidence: memory/evidence/p2-lite-slice2-20260908/review.json and validation.json. Preserve scoped implementation/failure evidence commit, then STOP; no credential change, rerun or push.

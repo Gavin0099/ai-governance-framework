@@ -66,14 +66,17 @@ def _available(row, dimension):
     return bool(row['final_response'].get('summary'))
 
 
-class SyntheticLite:
+class LiteSession:
     """In-memory synthetic coordinator; byte snapshots never expose live state.
 
     Freeze is an immutable byte snapshot within this instance. There is no
     restore/resume interface or OS isolation claim. CLI archives the snapshot
     before invoking unblind; a later real adapter needs its own durable host.
     """
-    def __init__(self, inputs_by_arm):
+    def __init__(self, inputs_by_arm, *, rubric_bytes, run_id, synthetic):
+        if type(synthetic) is not bool or type(run_id) is not str or not run_id:
+            raise LiteError('Explicit run mode and identity required')
+        self._synthetic = synthetic
         if type(inputs_by_arm) is not dict or set(inputs_by_arm) != {'CONTROL', 'TREATMENT'}:
             raise LiteError('Exactly two fixture arms required')
         # Synthetic opaque labels, deliberately unrelated to arm names or order.
@@ -81,10 +84,10 @@ class SyntheticLite:
         self._mapping = dict(zip(labels, ('CONTROL', 'TREATMENT')))
         delivery = prepare_scoring_delivery(
             inputs_by_label={key: inputs_by_arm[arm] for key, arm in self._mapping.items()},
-            evaluation_id='00000000-0000-4000-8000-000000000001',
-            pair_id='synthetic-lite-only', slot='R2-SHAKEDOWN',
-            rubric_id='synthetic-lite-rubric', rubric_bytes=RUBRIC,
-            expected_rubric_sha256=digest(RUBRIC), presentation_entropy=secrets.token_bytes(32))
+            evaluation_id=run_id,
+            pair_id='synthetic-lite-only' if synthetic else 'lite-only', slot='R2-SHAKEDOWN',
+            rubric_id='synthetic-lite-rubric' if synthetic else 'lite-rubric', rubric_bytes=rubric_bytes,
+            expected_rubric_sha256=digest(rubric_bytes), presentation_entropy=secrets.token_bytes(32))
         self._input = delivery.scorer_input_bytes
         # Consumer validates rubric/payloads. Opaque presentation keys are the
         # permitted 64-hex metadata, not free-text lifecycle identities.
@@ -146,12 +149,20 @@ class SyntheticLite:
         totals = [v['quality_total'] for v in arms.values()]
         comparison = 'NOT_DETERMINED' if NA in totals else (
             'EQUAL' if len(set(totals)) == 1 else max(arms, key=lambda a: arms[a]['quality_total']))
-        report = {'result': 'LITE_SYNTHETIC_END_TO_END_WIRING_VALIDATED',
-                  'synthetic': True, 'claim_ceiling': CLAIMS, 'not_claimed': NOT_CLAIMED,
+        report = {'result': ('LITE_SYNTHETIC_END_TO_END_WIRING_VALIDATED' if self._synthetic
+                             else 'LITE_SCORES_UNBLINDED'),
+                  'synthetic': self._synthetic, 'claim_ceiling': CLAIMS, 'not_claimed': NOT_CLAIMED,
                   'freeze_sha256': digest(self._freeze), 'arms': arms,
                   'quality_comparison': comparison}
         self._opened = True
         return encode(report)
+
+
+class SyntheticLite(LiteSession):
+    """Backwards-compatible fixture entry; never invokes a real adapter."""
+    def __init__(self, inputs_by_arm):
+        super().__init__(inputs_by_arm, rubric_bytes=RUBRIC,
+                         run_id='00000000-0000-4000-8000-000000000001', synthetic=True)
 
 
 def synthetic_inputs():
