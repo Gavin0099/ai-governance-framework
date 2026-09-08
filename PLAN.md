@@ -2848,3 +2848,8 @@ Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862
 ## R2 regression evidence projection / consumer adoption - 2026-09-07
 
 Owner adopted four exact reviewed files; independent ACCEPT / Blocking 0, 55 independent tests and 132 local tests. Evidence and version-binding states survive the future-round synthetic consumer. Authority: memory/evidence/solo-r2-regression-projection-adoption-20260907/owner-adoption.json. Scoped local commit then identity verification and STOP. Real launcher integration, Python investigation, fresh round and push are not authorized by this adoption.
+
+
+## Solo R2 decision-support closeout - 2026-09-08
+
+Execution, oracle (10/10 each), simplified score freeze and unblinding are complete. Regression safety and overall quality/tie remain undetermined. Claim ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; no strict OS-isolated shakedown PASS. Report: memory/evidence/solo-r2-closeout-20260908/REPORT.md. Python capability remains UNKNOWN and is POST-GATE3, not a closeout blocker. Scoped evidence commit/push and STOP; no new probe, scoring or allocation. Unrelated dirty work is excluded.

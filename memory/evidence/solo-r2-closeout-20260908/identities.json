@@ -1,0 +1,127 @@
+{
+  "verification": "EXACT_COPIES_MATCH",
+  "ledger_events": 9,
+  "evaluation_rerun": false,
+  "sources": [
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-simplified-blind-scoring-20260907\\result.json",
+      "copy": "scoring-result.json",
+      "bytes": 1503,
+      "sha256": "07b29e0072152863e3b2e0d4bff6f86ba92525463f29e98538104865f30f9ab7"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-unblinding-only-20260907\\result.json",
+      "copy": "unblinding-result.json",
+      "bytes": 4439,
+      "sha256": "c4fb895c45f4445851a46225dbbf712d4efe0ca0d803ffe3b2ccbb3691270914"
+    },
+    {
+      "source": "D:\\r2-final-disposable-shakedown-20260907\\controller\\superseding-scoring-1\\scores-frozen.json",
+      "copy": "scores-frozen.json",
+      "bytes": 945,
+      "sha256": "7fd6c864fc1c806bb015cfc13e234ae3766a911735e031164c6706ac0a07353e"
+    },
+    {
+      "source": "D:\\r2-final-disposable-shakedown-20260907\\controller\\superseding-scoring-1\\efed5d66fc5fa601e860b3c4014d0054086a304c26d8cd9d313f135a3b31113b.score.json",
+      "copy": "treatment-score.json",
+      "bytes": 1331,
+      "sha256": "113df0972d6dd04fc34b50b3ba9d92783d345914cb65623562edbebd37fb4c4b"
+    },
+    {
+      "source": "D:\\r2-final-disposable-shakedown-20260907\\controller\\superseding-scoring-1\\1d0d2b9a9af2940584464a26202cd52a56510f465015797d10b0984e4130b655.score.json",
+      "copy": "control-score.json",
+      "bytes": 1263,
+      "sha256": "56831fad8c02610e282f655938d68c028d32da7ee92a9e1825f45a7ce6088e65"
+    },
+    {
+      "source": "D:\\r2-final-disposable-shakedown-20260907\\controller\\superseding-scoring-1\\opening-authorization.json",
+      "copy": "opening_authorization.json",
+      "bytes": 203,
+      "sha256": "405f1048b30276ee003745f1267274086f4f0100715368749dd88eeae4d38fd8"
+    },
+    {
+      "source": "D:\\r2-final-disposable-shakedown-20260907\\controller\\superseding-scoring-1\\unblinding-receipt.json",
+      "copy": "opening_receipt.json",
+      "bytes": 473,
+      "sha256": "b3fbd7ac9fda896e6339811026b580380047b16e5e37a70fc65e7e8a68cde544"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\artifacts\\evidence\\solo-r2-final-disposable-mechanism-shakedown-20260907\\attempt-ledger.v2.1.ndjson",
+      "copy": "ledger-snapshot.ndjson",
+      "bytes": 5193,
+      "sha256": "e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\verified-summary.json",
+      "copy": "oracle-verified-summary.json",
+      "bytes": 975,
+      "sha256": "f23b0ef7fa46e73d7abc7da7b867142c3ad9d5ffe1346b695f4f976d39133e02"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\summary.json",
+      "copy": "oracle-original-summary.json",
+      "bytes": 828,
+      "sha256": "a2b6bbe7659d87230adb9045b9eada29fe31e793fd27e348e0a8678a7860afb8"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.verified-result.json",
+      "copy": "oracle-1-verified.json",
+      "bytes": 2492,
+      "sha256": "1d08d99b86f617cbfd21fc266658c003d2f5bb270447cc0ed621dfcf187539b7"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.result.json",
+      "copy": "oracle-1-original.json",
+      "bytes": 1870,
+      "sha256": "0822baff08e055c655fb4b1ed8160f0162da2c9867245725509cfff1009d6183"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.stdout.txt",
+      "copy": "oracle-1-stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07.stderr.txt",
+      "copy": "oracle-1-stderr.txt",
+      "bytes": 924,
+      "sha256": "eb8bd522baf2c277e03c7fbb978e3d4906eea1347e0147d1df8e126c67eaa8d1"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.verified-result.json",
+      "copy": "oracle-2-verified.json",
+      "bytes": 2492,
+      "sha256": "5a65872df42bc21fc883ac7d4bff1613c5737c84aae602b5c02d324186b75d88"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.result.json",
+      "copy": "oracle-2-original.json",
+      "bytes": 1870,
+      "sha256": "7c1c8de5d027f52e6a16e7e544ed887a6b769c2c47056570ed772632f63bf9d1"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.stdout.txt",
+      "copy": "oracle-2-stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\solo-r2-final-oracle-20260907\\ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b.stderr.txt",
+      "copy": "oracle-2-stderr.txt",
+      "bytes": 924,
+      "sha256": "eb8bd522baf2c277e03c7fbb978e3d4906eea1347e0147d1df8e126c67eaa8d1"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\r2-server-validated-username-probe-20260908\\verification.json",
+      "copy": "post-gate3-verification.json",
+      "bytes": 634,
+      "sha256": "68e159163e89e2b80e9ac4a13276b25256a3269463d9242da38acecd22272650"
+    },
+    {
+      "source": "D:\\ai-governance-framework\\memory\\evidence\\r2-server-validated-username-probe-20260908\\timeout-audit.json",
+      "copy": "post-gate3-timeout-audit.json",
+      "bytes": 1221,
+      "sha256": "4921eba0512a86535e9828dacdd354588a58853bee820d15b42f02f10cefc8cf"
+    }
+  ]
+}

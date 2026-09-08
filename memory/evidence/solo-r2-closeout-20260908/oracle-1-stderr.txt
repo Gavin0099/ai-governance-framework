@@ -1,0 +1,15 @@
+test_empty_input (__main__.RequiredCases.test_empty_input) ... ok
+test_equal_bounds (__main__.RequiredCases.test_equal_bounds) ... ok
+test_input_unchanged (__main__.RequiredCases.test_input_unchanged) ... ok
+test_interior_and_exterior (__main__.RequiredCases.test_interior_and_exterior) ... ok
+test_lower_endpoint (__main__.RequiredCases.test_lower_endpoint) ... ok
+test_negative_and_zero_endpoints (__main__.RequiredCases.test_negative_and_zero_endpoints) ... ok
+test_new_list_original_tuples_and_payloads (__main__.RequiredCases.test_new_list_original_tuples_and_payloads) ... ok
+test_order_and_duplicates (__main__.RequiredCases.test_order_and_duplicates) ... ok
+test_reversed_range (__main__.RequiredCases.test_reversed_range) ... ok
+test_upper_endpoint (__main__.RequiredCases.test_upper_endpoint) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.000s
+
+OK

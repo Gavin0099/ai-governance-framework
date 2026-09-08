@@ -1,0 +1,22 @@
+{
+  "classification": "ROOT_CAUSE_UNRESOLVED",
+  "confirmed_timeout_boundary": "Client 45-second whole-response timeout expired before native setup completion",
+  "native_start_utc": "2026-09-08T02:13:09.780Z",
+  "setup_complete_utc": "2026-09-08T02:13:58.974Z",
+  "setup_elapsed_seconds": 49.194,
+  "last_native_transition": "02:13:59.095 helper launch resolution: using copied command-runner path",
+  "python_process_creation": "NOT_EVIDENCED",
+  "python_exit": "NOT_EVIDENCED",
+  "pipe_state": "NOT_RECORDED",
+  "current_process_snapshot": "No matching probe command-line process or sandbox setup/copied runner found; not a historical timeout snapshot",
+  "cleanup": "Client closed stdin, waited 5 seconds, then terminated server; whole descendant-tree cleanup not attested",
+  "side_effects": "Native marker/ACL and firewall/WFP setup already recorded; no new mutation in audit",
+  "request_replayed": false,
+  "not_claimed": [
+    "COMMAND_RUNNER_STALLED",
+    "PYTHON_NOT_STARTED",
+    "PYTHON_COMPLETED_RESPONSE_LOST",
+    "historical arm equivalence"
+  ],
+  "next_action": "STOP; any later probe needs separately authorized response wait allowing setup time, not Python or sandbox repair"
+}

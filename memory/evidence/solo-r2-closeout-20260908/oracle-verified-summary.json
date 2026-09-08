@@ -1,0 +1,28 @@
+{
+  "results": [
+    {
+      "attempt_handle": "8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07",
+      "oracle_status": "PASS",
+      "passed": 10,
+      "verified_result_sha256": "1d08d99b86f617cbfd21fc266658c003d2f5bb270447cc0ed621dfcf187539b7"
+    },
+    {
+      "attempt_handle": "ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b",
+      "oracle_status": "PASS",
+      "passed": 10,
+      "verified_result_sha256": "5a65872df42bc21fc883ac7d4bff1613c5737c84aae602b5c02d324186b75d88"
+    }
+  ],
+  "supersedes_summary_sha256": "a2b6bbe7659d87230adb9045b9eada29fe31e793fd27e348e0a8678a7860afb8",
+  "reason": "CRLF parser correction from preserved raw oracle outputs; initial records retained",
+  "oracle_invocations": 2,
+  "ledger_unchanged": true,
+  "not_claimed": [
+    "quality scoring",
+    "mapping",
+    "unblinding",
+    "Skill effectiveness",
+    "full shakedown"
+  ],
+  "next_action": "STOP; separate blind-scoring authorization"
+}

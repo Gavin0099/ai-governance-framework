@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "attempt_handle": "8d2528a89c5b3fad2e89541052655bb7d674ea7abb7db726d182279093753e07",
+      "oracle_status": "FAIL",
+      "passed": 0,
+      "result_sha256": "0822baff08e055c655fb4b1ed8160f0162da2c9867245725509cfff1009d6183"
+    },
+    {
+      "attempt_handle": "ff6392838fab6bf2a1d80d10d0775d6185988c72bac82ee0f12764be700ddb7b",
+      "oracle_status": "FAIL",
+      "passed": 0,
+      "result_sha256": "7c1c8de5d027f52e6a16e7e544ed887a6b769c2c47056570ed772632f63bf9d1"
+    }
+  ],
+  "ledger_unchanged_sha256": "4bf66f238de952e7aa791a4084e7bb63b7d39c102cee9c879d9f7c2e82534e49",
+  "not_claimed": [
+    "blind scoring",
+    "unblinding",
+    "Skill effectiveness",
+    "full Solo shakedown",
+    "Formal/counted evidence"
+  ],
+  "next_action": "STOP; separate blind-scoring authorization required"
+}
