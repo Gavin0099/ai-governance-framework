@@ -116,6 +116,8 @@ def test_closed_environment_and_model_command(tmp_path,monkeypatch):
     live.model_call(binary(),'same-model',tmp_path,tmp_path,'anonymous only',{'type':'object'})
     args,cwd,env,stdin=captured[0]
     assert '--ignore-user-config' in args and '--ephemeral' in args
+    assert args.count('cli_auth_credentials_store="keyring"') == 1
+    assert args[args.index('cli_auth_credentials_store="keyring"') - 1] == '-c'
     assert 'project_doc_max_bytes=0' in args and 'shell_tool' in args
     assert 'skip_host_skill_discovery' in args
     assert cwd==tmp_path/'context' and stdin==b'anonymous only'
@@ -129,9 +131,10 @@ def test_live_coordinator_real_host_with_fake_model_transport(tmp_path,monkeypat
         if folder.name=='scorer':
             packet=json.loads(prompt.split('\n',1)[1])
             assert 'CONTROL' not in json.dumps(packet) and 'TREATMENT' not in json.dumps(packet)
+            assert 'host-warning-with-private-identity' not in json.dumps(packet)
             assert not (folder.parent/'scores-frozen.json').exists()
-            return json.loads(lite.synthetic_scorer(lite.encode(packet))),{'elapsed_ms':1}
-        return dict(source=FIXED,test_source=TEST,summary='Boundary predicates repaired; tests submitted to host.'),{'elapsed_ms':1}
+            return json.loads(lite.synthetic_scorer(lite.encode(packet))),{'elapsed_ms':1,'runtime_warnings':['host-warning-with-private-identity']}
+        return dict(source=FIXED,test_source=TEST,summary='Boundary predicates repaired; tests submitted to host.'),{'elapsed_ms':1,'runtime_warnings':['host-warning-with-private-identity']}
     monkeypatch.setattr(live,'model_call',fake_model)
     report=live.run_once(tmp_path/'new',config(),b'recipe',authorize_unblinding=True)
     assert report['result']=='REAL_LITE_END_TO_END_VALIDATED'
@@ -139,6 +142,7 @@ def test_live_coordinator_real_host_with_fake_model_transport(tmp_path,monkeypat
     assert 'Additional process guidance' not in calls[0][1] and 'Additional process guidance' in calls[1][1]
     assert report['freeze_sha256']==lite.digest((tmp_path/'new'/'scores-frozen.json').read_bytes())
     assert all(row['oracle']['passed_case_count']==10 for row in report['arms'].values())
+    assert report['runtime_warnings']==dict.fromkeys(('CONTROL','TREATMENT','scorer'),['host-warning-with-private-identity'])
     with pytest.raises(FileExistsError):live.run_once(tmp_path/'new',config(),b'recipe',authorize_unblinding=True)
     assert len(calls)==3  # no second generation
 
@@ -180,3 +184,62 @@ def test_test_file_cannot_import_host_io():
 
 def test_scorer_has_independent_task_and_baseline():
     assert b'Task contract:' in live.RUBRIC and live.BASELINE.encode() in live.RUBRIC
+
+
+# Exact warning text captured from the completed 0.153.4 live turn.
+OBSERVED_WARNINGS = ['Configured value for `windows.sandbox` is disallowed by requirements; falling back to required value Some(Elevated). Details: invalid value for `windows.sandbox`: `None` is not in the allowed set [Elevated] (set by C:\\ProgramData\\OpenAI\\Codex\\requirements.toml)', 'Under-development features enabled: skip_host_skill_discovery. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in C:\\Users\\daish\\.codex\\config.toml.', 'Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`.']
+
+
+def warning_turn(message):
+    return model_result([
+        {'type':'item.completed','item':{'id':'w','type':'error','message':message}},
+        {'type':'item.completed','item':{'type':'agent_message','text':'{"ok":true}'}},
+        {'type':'turn.completed'}])
+
+
+@pytest.mark.parametrize('message', OBSERVED_WARNINGS)
+def test_observed_warning_is_preserved_with_completed_response(message):
+    warnings=[]
+    assert live.parse_model(warning_turn(message),warnings=warnings)=={'ok':True}
+    assert len(warnings)==1 and warnings[0]['message']==message
+    assert warnings[0]['category']
+
+
+@pytest.mark.parametrize('message', ['Runtime failed', 'Access denied',
+    *[m+' unexpected extra error' for m in OBSERVED_WARNINGS]])
+def test_unknown_or_extended_error_remains_closed(message):
+    warnings=[]
+    with pytest.raises(lite.LiteError,match='Unrecognized runtime error'):
+        live.parse_model(warning_turn(message),warnings=warnings)
+    assert warnings==[]
+
+
+@pytest.mark.parametrize('kind',['command_execution','file_change','mcp_tool_call'])
+def test_warning_never_excuses_forbidden_tool_event(kind):
+    result=warning_turn(OBSERVED_WARNINGS[0])
+    result['stdout']+='\n'+json.dumps({'type':'item.completed','item':{'type':kind}})
+    with pytest.raises(lite.LiteError,match='Tool access'):
+        live.parse_model(result)
+
+
+@pytest.mark.parametrize('mutation',['nonzero','missing_completion','turn_failed','extra_field','unfinished_error'])
+def test_known_warning_never_excuses_incomplete_or_invalid_turn(mutation):
+    result=warning_turn(OBSERVED_WARNINGS[0])
+    events=[json.loads(x) for x in result['stdout'].splitlines()]
+    if mutation=='nonzero': result['exit_code']=1
+    if mutation=='missing_completion': events.pop()
+    if mutation=='turn_failed': events[-1]={'type':'turn.failed'}
+    if mutation=='extra_field': events[0]['item']['command']='forbidden command'
+    if mutation=='unfinished_error': events[0]['type']='item.started'
+    result['stdout']='\n'.join(json.dumps(e) for e in events)
+    with pytest.raises(lite.LiteError): live.parse_model(result)
+
+
+def test_model_call_durably_retains_warning_without_altering_response(tmp_path,monkeypatch):
+    original=warning_turn(OBSERVED_WARNINGS[0])
+    monkeypatch.setattr(live,'run_process',lambda *a,**k:dict(original))
+    value,result=live.model_call(binary(),'test',tmp_path,tmp_path,'anonymous',{'type':'object'})
+    assert value=={'ok':True}
+    saved=json.loads((tmp_path/'runtime-warnings.json').read_bytes())
+    assert saved==result['runtime_warnings'] and saved[0]['message']==OBSERVED_WARNINGS[0]
+    assert result['stdout']==original['stdout']

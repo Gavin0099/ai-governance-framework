@@ -104,3 +104,24 @@ Evidence: `memory/evidence/p2-lite-slice2-20260908/live/`. Implementation tests 
 review passed, but **REAL_LITE_END_TO_END_VALIDATED is not established**. Neither
 real model compatibility nor reduced real-evaluation cost has been demonstrated.
 No credential changes, second invocation, P1 probe, Strict change or push followed.
+
+## Auth and warning compatibility follow-up
+
+The subsequent owner-authorized auth slice explicitly selects the existing
+`keyring` store while retaining `--ignore-user-config`; no login or user config
+change is needed. Its one live turn completed with exit 0 and a response, but the
+parser falsely classified runtime `item.error` warnings as tool access.
+
+The parser now full-matches only the three observed 0.153.4 warning forms:
+required Elevated sandbox fallback, the specific unstable skill-discovery flag,
+and disabled Code Mode host. Unknown errors, extra error fields, unfinished error
+events, missing completion, nonzero exits and tool events still fail closed.
+This does not suppress diagnostics or assert that runtime configuration is clean.
+Raw results remain unchanged; `runtime-warnings.json` retains exact warning text,
+and a completed report includes warnings per arm/scorer. These host diagnostics
+are excluded from anonymous scorer input because they may contain local paths.
+The recognizer is deliberately version-bounded; new diagnostics require review.
+
+After targeted tests, independent review and the scoped compatibility commit,
+the owner authorizes one new real Lite invocation. Failure is preserved and stops
+the adapter; no automatic retry, historical replacement, or push is authorized.

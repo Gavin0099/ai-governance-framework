@@ -125,7 +125,27 @@ def run_process(binary, args, cwd, env, timeout, stem, stdin=None):
     return result
 
 
-def parse_model(result):
+# Observed 0.153.4 diagnostics only. Full matches prevent suffix/substring
+# acceptance of unknown errors. Host-only evidence: never add these to scoring input.
+RUNTIME_WARNING_PATTERNS = (
+    ('required_elevated_sandbox', re.compile(
+        re.escape('Configured value for `windows.sandbox` is disallowed by requirements; '
+                  'falling back to required value Some(Elevated). Details: invalid value '
+                  'for `windows.sandbox`: `None` is not in the allowed set [Elevated] '
+                  '(set by C:\\ProgramData\\OpenAI\\Codex\\requirements.toml)'))),
+    ('unstable_skill_discovery_flag', re.compile(
+        re.escape('Under-development features enabled: skip_host_skill_discovery. '
+                  'Under-development features are incomplete and may behave unpredictably. '
+                  'To suppress this warning, set `suppress_unstable_features_warning = true` in ')
+        + r'[A-Za-z]:\\(?:[^\\\r\n`]+\\)*config\.toml\.')),
+    ('code_mode_host_disabled', re.compile(
+        re.escape('Code Mode is unavailable because code-mode host is disabled. '
+                  'Code mode will fail closed; enable `features.code_mode_host` and '
+                  'install `codex-code-mode-host`.'))),
+)
+
+
+def parse_model(result, *, warnings=None):
     if result['exit_code'] != 0:
         raise lite.LiteError('Model process failed')
     events = [lite._parse(line) for line in result['stdout'].splitlines() if line.strip()]
@@ -134,14 +154,31 @@ def parse_model(result):
         raise lite.LiteError('Unexpected model event')
     if sum(e.get('type') == 'turn.completed' for e in events) != 1:
         raise lite.LiteError('No single model completion')
-    if any(e.get('item', {}).get('type') not in ('agent_message', 'reasoning')
-           for e in events if e['type'].startswith('item.')):
-        raise lite.LiteError('Tool access violates context boundary')
+    observed_warnings = []
+    for event in events:
+        if not event['type'].startswith('item.'):
+            continue
+        item = event.get('item', {})
+        if item.get('type') == 'error':
+            message = item.get('message')
+            if (event['type'] != 'item.completed'
+                    or set(item) - {'id', 'type', 'message'} or type(message) is not str):
+                raise lite.LiteError('Unrecognized runtime error')
+            category = next((name for name, pattern in RUNTIME_WARNING_PATTERNS
+                             if pattern.fullmatch(message)), None)
+            if category is None:
+                raise lite.LiteError('Unrecognized runtime error')
+            observed_warnings.append(dict(category=category, message=message))
+        elif item.get('type') not in ('agent_message', 'reasoning'):
+            raise lite.LiteError('Tool access violates context boundary')
     messages = [e['item']['text'] for e in events if e['type'] == 'item.completed'
                 and e['item']['type'] == 'agent_message']
     if not messages:
         raise lite.LiteError('Missing model response')
-    return lite._parse(messages[-1])
+    value = lite._parse(messages[-1])
+    if warnings is not None:
+        warnings.extend(observed_warnings)
+    return value
 
 
 def model_call(binary, model, home, root, prompt, schema):
@@ -152,6 +189,7 @@ def model_call(binary, model, home, root, prompt, schema):
     save(root/'prompt.txt', prompt.encode())
     args = ['exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check',
             '--sandbox', 'read-only', '--json', '--color', 'never', '-m', model,
+            '-c', 'cli_auth_credentials_store="keyring"',
             '-c', 'model_reasoning_effort="medium"', '-c', 'project_doc_max_bytes=0',
             '-c', 'web_search="disabled"', '-c', 'approval_policy="never"',
             '--output-schema', str(schema_path), '-C', str(context)]
@@ -163,7 +201,10 @@ def model_call(binary, model, home, root, prompt, schema):
     args += ['--enable', 'skip_host_skill_discovery', '-']
     result = run_process(binary, args, context, environment(home, context), 600,
                          root/'model', prompt.encode())
-    value = parse_model(result)
+    warnings = []
+    value = parse_model(result, warnings=warnings)
+    save(root/'runtime-warnings.json', lite.encode(warnings))
+    result['runtime_warnings'] = warnings
     save(root/'response.json', lite.encode(value))
     return value, result
 
@@ -350,12 +391,14 @@ def run_once(root, config, skill_bytes, *, authorize_unblinding):
     started = time.monotonic()
     try:
         inputs = {}
+        runtime_warnings = {}
         for arm in ('CONTROL','TREATMENT'):
             folder = root/arm; folder.mkdir()
             prompt = TASK
             if arm == 'TREATMENT':
                 prompt += '\nAdditional process guidance (host execution constraints above still apply):\n'+skill_bytes.decode()
             value, result = model_call(codex,config['model'],home,folder,prompt,ARM_SCHEMA)
+            runtime_warnings[arm] = result.get('runtime_warnings', [])
             inputs[arm] = collect_arm(python,home,folder,value,result)
         session = lite.LiteSession(inputs,rubric_bytes=RUBRIC,run_id=str(uuid.uuid4()),synthetic=False)
         save(root/'scorer-input.json',session.scorer_input)
@@ -364,6 +407,7 @@ def run_once(root, config, skill_bytes, *, authorize_unblinding):
             'Grade only this anonymous packet. Use no tools, files, prior sessions or identity inference.\n'
             +session.scorer_input.decode(),score_schema(session.scorer_input))
         frozen = session.freeze(lite.encode(response))
+        runtime_warnings['scorer'] = score_result.get('runtime_warnings', [])
         save(root/'scores-frozen.json',frozen)
         if (root/'scores-frozen.json').read_bytes() != frozen:
             raise lite.LiteError('Freeze mismatch')
@@ -375,6 +419,7 @@ def run_once(root, config, skill_bytes, *, authorize_unblinding):
             scorer='fresh CLI context; OS isolation NOT CLAIMED',
             elapsed_ms=round((time.monotonic()-started)*1000),
             scorer_elapsed_ms=score_result['elapsed_ms'],
+            runtime_warnings=runtime_warnings,
             human_shutdown_required=False, strict_readiness_invoked=False,
             comparative_cost_reduction='NOT_ESTABLISHED; record observations only')
         save(root/'report.json',lite.encode(report))

@@ -1,0 +1,62 @@
+{
+  "verdict": "APPROVED",
+  "blocking": 0,
+  "scope": [
+    "governance_tools/skill_evaluation_lite_live.py",
+    "tests/test_skill_evaluation_lite_live.py",
+    "docs/governance/skill-evaluation-lite-slice2.md"
+  ],
+  "reviewed_files": {
+    "governance_tools/skill_evaluation_lite_live.py": {
+      "bytes": 25058,
+      "sha256": "10a1b15ccca50f38d765a54a05298875921eeed2d6de275169a5e676bc5e9f7d",
+      "git_blob": "b9f4ceb5b6123b99bdd23037499a359784eca504"
+    },
+    "tests/test_skill_evaluation_lite_live.py": {
+      "bytes": 13273,
+      "sha256": "215deaeacabcab262652e916a56b9b52903cc1a6005e1133cfabc7aaf1e7d88c",
+      "git_blob": "d93c7b50861e24e27d9eda5b09a46bcf5e3c7cd6"
+    },
+    "docs/governance/skill-evaluation-lite-slice2.md": {
+      "bytes": 7767,
+      "sha256": "eeba5472282833c7a54ef41c6f35ac0ea5f84a1910396ed1a03f117bc2bed5ff",
+      "git_blob": "a67d7a749d1fa9f2abc8b1aca98604a9057faa34"
+    }
+  },
+  "tests": {
+    "command": ".venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/p2-lite-parser-20260908/review-tests tests/test_skill_evaluation_lite_live.py tests/test_skill_evaluation_lite.py",
+    "passed": 57,
+    "exit_code": 0
+  },
+  "historical_replay": {
+    "source": "memory\\evidence\\p2-lite-auth-20260908\\live\\CONTROL\\model.result.json",
+    "source_sha256": "4b51b042f5276dff75b8a8bb2dd817a13ec68d64c81c16789b730e31948be2f6",
+    "accepted": true,
+    "warning_count": 4,
+    "response_keys": [
+      "source",
+      "summary",
+      "test_source"
+    ],
+    "execution_performed": false
+  },
+  "findings": [],
+  "limitations": [
+    "Implementation review only; no real evaluation performed.",
+    "Known runtime warnings remain host evidence; OS isolation is not claimed."
+  ],
+  "inputs": [
+    "governance/SYSTEM_PROMPT.md",
+    "governance/AGENT.md",
+    "governance/TESTING.md",
+    "governance/REVIEW_CRITERIA.md",
+    "scoped matches memory/03_knowledge_base.md and memory/04_review_log.md"
+  ],
+  "checks": [
+    "Known complete warnings fullmatched; unknown/mixed/unfinished/nonzero/tool events reject.",
+    "Warnings preserved in raw result, separate runtime-warnings.json and final report.",
+    "Warnings excluded from scoring payload and anonymous input.",
+    "Auth override common to both arms/scorer, ignore-user-config retained.",
+    "Native safety and async changes N/A; unrelated dirty work excluded."
+  ]
+}

@@ -2869,3 +2869,16 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - One live invocation stopped at first model HTTP 401 (missing auth header), process exit 1. No CONTROL output; TREATMENT/oracle/scorer/freeze/report not run. Adapter replay 0; native CLI reconnect attempts preserved. Runtime configuration warnings also remain unverified.
 - Result: REAL_LITE_END_TO_END_BLOCKED. No real Lite readiness, cost reduction, complete interactive Skill workflow, strict equivalence or general Skill efficacy claimed. P1 closed UNKNOWN; Strict/historical rounds unchanged.
 - Evidence: memory/evidence/p2-lite-slice2-20260908/review.json and validation.json. Preserve scoped implementation/failure evidence commit, then STOP; no credential change, rerun or push.
+
+## POST-GATE3 P2 Slice 2 auth override — 2026-09-08
+
+- Shared Lite exec now explicitly selects the existing keyring store while retaining --ignore-user-config. Login status exit 0; 23 focused tests PASS. No login or credential/config mutation.
+- One authorized live replay: CONTROL model process exit 0 with response and turn.completed; parser rejects runtime item.error warnings as tool access. No observed tool event. TREATMENT/oracle/scorer/freeze/unblind not run. REAL_LITE_END_TO_END_BLOCKED; no automatic retry.
+- Evidence: memory/evidence/p2-lite-auth-20260908/result.json. Auth-only source/test edits remain uncommitted; preserve failure and STOP. Parser remediation is a separate slice. No push; historical rounds and Strict unchanged.
+
+
+## POST-GATE3 P2 Slice 2 warning parser — 2026-09-08
+
+- Known 0.153.4 runtime warnings are distinguished from forbidden tools using full-message matches. Unknown error/incomplete turn/tool events still reject; exact warnings remain host-only and are retained in reports. Prior keyring override included.
+- Local and independent targeted tests: 57 PASS each; independent APPROVED / Blocking 0, including read-only replay of the historical completed model turn. Evidence: memory/evidence/p2-lite-parser-20260908/review.json and validation.json.
+- Owner-authorized order: scoped compatibility commit, then exactly one new real Lite E2E invocation; failure preserves evidence and stops. No automatic retry, Strict changes, or push. Real E2E remains unproven before execution.
