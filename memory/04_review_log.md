@@ -5272,3 +5272,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: memory/evidence/p3-integration-20260908/review.json
 - Next action: Scoped commit, verify exact committed identities and unchanged historical evidence, STOP.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:6ff64391d9711b456adb0095272d9756a446d7407cd75743f6723591bca8e14d -->
+### Canonical memory checkpoint — 01a07273-917e-7522-ab30-f662b5622133
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `6ff64391d9711b456adb0095272d9756a446d7407cd75743f6723591bca8e14d`
+- Commit binding: `475d36644892b9768105c1f6481dbd40237b4d2d` (bound)
+- Record: P5 fixed-generation installation receipt/verifier implemented and reviewed Blocking0. Local 17 PASS; isolated hook invokes exact scanner and preserves object-closure rejection. Actual hook/scanner/config unchanged. Explicit local profile only; no canonical adoption, deployment, P4 or push. Unrelated dirty work excluded.
+- Validation boundary: memory/evidence/p5-installation-integrity-20260908/review.json
+- Next action: Make authorized scoped P5 local commit, verify identities, STOP. Real profile deployment requires separate owner authorization.
+- PLAN reconciliation: `updated`

@@ -1,0 +1,22 @@
+{
+  "base_head": "475d36644892b9768105c1f6481dbd40237b4d2d",
+  "owner_authority": "Owner Authorization - P5 Fixed-Generation Hook Installation Integrity",
+  "generation": "195a204f3e7e7d6055bc2293e0fe011c64285946",
+  "allowlist": [
+    "governance_tools/pre_push_installation_integrity.py",
+    "governance_tools/profiles/pre_push_195a204f.sh",
+    "governance_tools/profiles/.gitattributes",
+    "tests/test_pre_push_installation_integrity.py",
+    "docs/governance/p5-fixed-generation-installation-profile.md",
+    "tests/fixtures/p5_pre_push_195a204f/external_tree_inventory_guard.py",
+    "tests/fixtures/p5_pre_push_195a204f/.gitattributes"
+  ],
+  "done": "P5_INSTALLATION_INTEGRITY_IMPLEMENTED after tests, independent review Blocking0, scoped local commit, real installation unchanged, STOP",
+  "not_authorized": [
+    "real hook deployment",
+    "current config change",
+    "canonical installer migration",
+    "P4 runtime pin",
+    "push"
+  ]
+}

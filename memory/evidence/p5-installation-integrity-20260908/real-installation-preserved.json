@@ -1,0 +1,15 @@
+{
+  "before": {
+    ".git/hooks/pre-push": "42db229b0461e5bdb6bdb09da4fc0ea49a073fd63a6639a22d2888372429a807",
+    "governance_tools/external_tree_inventory_guard.py": "f80b2ae95728b1468697de02c89cf7267fdde3c16d1705b7464160012dfabcb8",
+    "governance/external-tree-inventory-guard.json": "8bea4395ef00c0b60c386edf2368877cf6b2db306f1621fa9026be1d4a32be52"
+  },
+  "after": {
+    ".git/hooks/pre-push": "42db229b0461e5bdb6bdb09da4fc0ea49a073fd63a6639a22d2888372429a807",
+    "governance_tools/external_tree_inventory_guard.py": "f80b2ae95728b1468697de02c89cf7267fdde3c16d1705b7464160012dfabcb8",
+    "governance/external-tree-inventory-guard.json": "8bea4395ef00c0b60c386edf2368877cf6b2db306f1621fa9026be1d4a32be52"
+  },
+  "unchanged": true,
+  "real_deployment": false,
+  "push": false
+}

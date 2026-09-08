@@ -2972,3 +2972,10 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Host receipts separate current source/test versions from execution errors and identify the failing submitted/host phase. Missing import or syntax with attributable exact execution, and assertion failures, require0; harness/environment/unknown/missing evidence remainNOT_ASSESSABLE. Nonzero alone insufficient. Passing receipts leave unchanged coverage-based0/1/2 judgment to scorer.
 - Scorer receives explicit import/no-symbol-injection contract and anonymous failure locations; receipt digests remain host-only. Syntax-invalid submissions compile only; no unchecked submission execution. Future adapter entry, synthetic fixtures, independent review and committed identities are recorded in memory/evidence/p3-integration-20260908/.
 - DONE limited to synthetic integration plus scoped local commit. No real model, old benchmark rerun/rescoring, Skill change, adopted rubric edit or push. STOP after commit verification; unrelated dirty work excluded.
+
+
+## P5 fixed-generation hook installation integrity - 2026-09-08
+
+- Fixed 195a204f local profile binds explicit repository/config adoption, hook/scanner/verifier identities and receipt before unchanged object-closure scanning. Missing or drifted identities stop before scan. Not a canonical installer migration.
+- Isolated real-hook/scanner tests: 17 local PASS; independent review Blocking0. Exact historical scanner stored only as a test fixture; no unreachable-object dependency. Evidence: memory/evidence/p5-installation-integrity-20260908/review.json and validation.json.
+- Scoped local implementation commit only. Actual hook/scanner/config unchanged; no deployment, P4 work or push. STOP after committed identity verification; unrelated dirty work excluded.

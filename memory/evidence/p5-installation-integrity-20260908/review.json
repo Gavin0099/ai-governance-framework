@@ -1,0 +1,101 @@
+{
+  "reviewer": "review_p5_integrity",
+  "verdict": "APPROVED",
+  "Blocking": 0,
+  "risk": "Medium",
+  "review_inputs": [
+    "governance/REVIEW_CRITERIA.md",
+    "governance/ARCHITECTURE.md (applicable boundary sections)",
+    "governance/TESTING.md (applicable scope sections)",
+    "memory/04_review_log.md (hook/installation prior findings)",
+    "memory/03_knowledge_base.md (receipt and hook correlation anti-patterns)",
+    "governance_tools/pre_push_installation_integrity.py",
+    "governance_tools/profiles/pre_push_195a204f.sh",
+    "governance_tools/profiles/.gitattributes",
+    "tests/test_pre_push_installation_integrity.py",
+    "docs/governance/p5-fixed-generation-installation-profile.md",
+    "tests/fixtures/p5_pre_push_195a204f/external_tree_inventory_guard.py",
+    "tests/fixtures/p5_pre_push_195a204f/.gitattributes"
+  ],
+  "identities": {
+    "governance_tools/pre_push_installation_integrity.py": {
+      "bytes": 9512,
+      "sha256": "962057c36972849fc0f9f770794750d903360c6307ab3b86b67ce9666d50ee7c"
+    },
+    "governance_tools/profiles/pre_push_195a204f.sh": {
+      "bytes": 6542,
+      "sha256": "42db229b0461e5bdb6bdb09da4fc0ea49a073fd63a6639a22d2888372429a807"
+    },
+    "governance_tools/profiles/.gitattributes": {
+      "bytes": 27,
+      "sha256": "1d70ef02ec0a4e5ac7681c88841b2a5a8a6c54dc5fcee7eb0a65920269419813"
+    },
+    "tests/test_pre_push_installation_integrity.py": {
+      "bytes": 8131,
+      "sha256": "2bf7316cf7a0a3a6d51e8c1321149856c08c76cdc224e7b540450d1854965c89"
+    },
+    "docs/governance/p5-fixed-generation-installation-profile.md": {
+      "bytes": 4311,
+      "sha256": "831f9fb299a4e9903638d1dd38b09b61e8dd27055ab79e4bad0ace467eba9c78"
+    },
+    "tests/fixtures/p5_pre_push_195a204f/external_tree_inventory_guard.py": {
+      "bytes": 27034,
+      "sha256": "f80b2ae95728b1468697de02c89cf7267fdde3c16d1705b7464160012dfabcb8"
+    },
+    "tests/fixtures/p5_pre_push_195a204f/.gitattributes": {
+      "bytes": 39,
+      "sha256": "dd58e178e8df69373ada0c87b11bf333de539397cb6a59b5cdc8337d238a5e72"
+    }
+  },
+  "validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_pre_push_installation_integrity.py -q -p no:cacheprovider --basetemp=memory/evidence/p5-installation-integrity-20260908/review-tests-2",
+    "exit_code": 0,
+    "passed": 17,
+    "output": "17 passed in 11.46s"
+  },
+  "required_cases": {
+    "compatible_set": "PASS",
+    "wrong_scanner_generation": "REJECT",
+    "wrong_config": "REJECT",
+    "wrong_repository": "REJECT",
+    "missing_receipt": "REJECT",
+    "stale_receipt": "REJECT",
+    "altered_hook": "REJECT",
+    "altered_scanner": "REJECT",
+    "valid_receipt_proceeds_to_actual_scanner": "PASS",
+    "closure_failure_retained": "PASS, including deleted-in-later-commit inventory"
+  },
+  "governance_audit": {
+    "architecture": "Dedicated bounded preparation/verifier; existing installer and live installation unmodified. Fixed source generation is not promoted to canonical authority.",
+    "native_safety": "N/A",
+    "thread_safety": "N/A; atomic custody/race-free guarantees explicitly not claimed",
+    "test_integrity": "Actual derived shell hook invokes exact historical scanner over committed objects in isolated repositories, not worktree-only substitutes.",
+    "baseline": "Exact historical template/scanner bound; prefix and downstream tail byte preservation tested.",
+    "scope_hygiene": "Reviewed only five explicit source paths; real installed hook/scanner/config hashes still match before snapshot. Shared PLAN/memory updates left to parent."
+  },
+  "findings": [],
+  "carried_forward": [
+    "Existing ambient shell/Python/Git executable resolution unchanged and explicitly excluded from P5; no P4 runtime-trust claim.",
+    "No real installation or push tested; downstream runtime smoke is an isolated test sentinel, not full production-hook qualification.",
+    "Prior temporary local identity config is accepted only with explicit adopted hash; this does not resolve repository-wide canonical integration."
+  ],
+  "knowledge_alignment": {
+    "anti_patterns_checked": 3,
+    "regression_notes_checked": 1,
+    "result": "Pass within declared scope"
+  },
+  "real_installation_unchanged": true,
+  "portability_delta_review": {
+    "verdict": "APPROVED",
+    "Blocking": 0,
+    "production_module_and_hook_template_unchanged": true,
+    "scanner_fixture_exact_historical_bytes": true,
+    "scope": "Test-only fixed scanner replaces unreachable git-object dependency; wrong generation synthetic bytes still reject before closure. Docs identify fixture as non-production."
+  },
+  "initial_validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_pre_push_installation_integrity.py -q -p no:cacheprovider --basetemp=memory/evidence/p5-installation-integrity-20260908/review-tests",
+    "exit_code": 0,
+    "passed": 17,
+    "output": "17 passed in 12.23s"
+  }
+}
