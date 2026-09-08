@@ -11,18 +11,18 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 950a4ea85db804ba21aab31019735976bf99871d
-framework_root: E:\BackUp\Git_EE\ai-governance-framework
-initialized_at: 2026-07-30T08:37:51Z
+source_commit: f77b6a48026389927f697d2bf17af694f5e3bb0f
+framework_root: D:\ai-governance-framework\memory\evidence\post-gate3-pr-delivery-20260908\integration
+initialized_at: 2026-09-08T10:33:55Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: canonical-LF hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
 sha256.AGENTS.base.md: 042d70027f50ceeadce24fe36d65e63af19a04076b1b0b96dd0d98670161294e
-sha256.PLAN.md: a5784f66273b9350cf1568da6aa4041e852bda5e232dd37ced14fa985d73a751
-sha256.contract.yaml: dd91f44db6d02de69b15f6e5fb43ea46b33ff5d6b00cc485c8aed6bb11cb52e9
-sha256.AGENTS.md: 0b9b814993884f4c8d60130c17b8aa1d1ebfbce40500fc843cf62e45e6807f6f
+sha256.PLAN.md: c6b734915de2af82bb69f69525af3b0752bada687298fb83c01741609d765068
+sha256.contract.yaml: f472a9284c7ceb75adcf3362cad535362d2935b102eed6e9195e2d46aef8f6b4
+sha256.AGENTS.md: 6aff2a07721cf60f9bc6c9b2c687624b224c54fdf7cc8015591c9711820fc0c1
 overridable.AGENTS.base.md: protected
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
@@ -58,3 +58,52 @@ plan_section_inventory:
   - "## Historical Milestone Index"
   - "## Definition Of Done For Current Planning Slice"
   - "## Cannot Claim From This PLAN Alone"
+  - "## Solo R2 R1 refresh after 3b820a2c (2026-09-06)"
+  - "## Solo R2 handoff committed admission review (2026-09-06)"
+  - "## Solo R2 unavailable-cost amendment owner adoption (2026-09-06)"
+  - "## Solo R2 unavailable-cost implementation (2026-09-06)"
+  - "## Solo R2 unavailable-cost R1 refresh (2026-09-06)"
+  - "## Solo R2 historical Attempt terminal closure (2026-09-06)"
+  - "## Solo R2 harness repair delivery (2026-09-06)"
+  - "## Solo R2 replacement disposable decision adoption (2026-09-06)"
+  - "## Solo R2 replacement binding proposal adoption (2026-09-06)"
+  - "## Solo R2 replacement binding implementation (2026-09-07)"
+  - "## Solo R2 replacement binding R1 refresh (2026-09-07)"
+  - "## Solo R2 replacement launcher static verification (2026-09-07)"
+  - "## Solo R2 replacement payload-pin adoption (2026-09-07)"
+  - "## Solo R2 replacement Phase B wiring (2026-09-07)"
+  - "## Solo R2 controlled EXECUTE wiring (2026-09-07)"
+  - "## Final fresh disposable allocation adoption - 2026-09-07"
+  - "## Final fresh disposable binding implementation - 2026-09-07"
+  - "## Final fresh binding R1 refresh - 2026-09-07"
+  - "## Final Pair payload-pin adoption - 2026-09-07"
+  - "## Final scoring continuation prospective adoption - 2026-09-07"
+  - "## Minimal final scoring continuation implementation - 2026-09-07"
+  - "## Superseding scoring authority adoption - 2026-09-07"
+  - "## Superseding scoring implementation - 2026-09-07"
+  - "## R1 refresh after superseding implementation - 2026-09-07"
+  - "## AppContainer minimal launch environment - 2026-09-07"
+  - "## Dedicated runtime parent custody - 2026-09-07"
+  - "## Synthetic scorer isolation durability - 2026-09-07"
+  - "## Real superseding bundle callback wiring - 2026-09-07"
+  - "## Simplified scoring claim-ceiling adoption - 2026-09-07"
+  - "## R2 regression evidence projection / consumer adoption - 2026-09-07"
+  - "## Solo R2 decision-support closeout - 2026-09-08"
+  - "## POST-GATE3 P2 Slice 1 — 2026-09-08"
+  - "## POST-GATE3 P2 Slice 2 — 2026-09-08 (blocked real validation)"
+  - "## POST-GATE3 P2 Slice 2 auth override — 2026-09-08"
+  - "## POST-GATE3 P2 Slice 2 warning parser — 2026-09-08"
+  - "## POST-GATE3 P2 Slice 2 live outcome — 2026-09-08"
+  - "## P2 Slice 2 durability — 2026-09-08"
+  - "## POST-GATE3 three-task benchmark preparation — 2026-09-08"
+  - "## Three-task benchmark independent review — 2026-09-08"
+  - "## Three-task benchmark hint removal and acceptance — 2026-09-08"
+  - "## Three-task Lite benchmark adapter — 2026-09-08"
+  - "## Lite benchmark test-harness compatibility — 2026-09-08"
+  - "## Three-task real Lite benchmark — 2026-09-08"
+  - "## Three-task Lite preserved CONTROL completion — 2026-09-08"
+  - "## P2 Lite multi-task closeout — 2026-09-08"
+  - "## P3 Regression Safety amendment owner adoption — 2026-09-08"
+  - "## P3 prospective projection / scorer integration — 2026-09-08"
+  - "## P5 fixed-generation hook installation integrity - 2026-09-08"
+  - "## PR155 delivery integration - 2026-09-08"

@@ -31,7 +31,8 @@ def submission(fixture, variant='correct'):
     function,source_name,_=fixture.interface
     rows=['import unittest',f'from {source_name[:-3]} import {function}', 'class Tests(unittest.TestCase):']
     for i,case in enumerate(lite._parse(fixture.cases)['oracle_cases']):
-        rows += [f'    def test_case_{i}(self):',f'        self.assertEqual({function}({', '.join(repr(a) for a in case["args"])}), {case["expected"]!r})']
+        arguments = ', '.join(repr(a) for a in case['args'])
+        rows += [f'    def test_case_{i}(self):',f'        self.assertEqual({function}({arguments}), {case["expected"]!r})']
     rows += ["if __name__ == '__main__':",'    unittest.main()']
     return dict(source=source,test_source='\n'.join(rows)+'\n',summary='Authored integration fixture only; no quality or Skill result claimed.')
 
