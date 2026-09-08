@@ -657,7 +657,10 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "[human_readable_adoption_summary]" in agents_text
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "expanded-report exception to the compact three-line default" not in agents_text
+    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
+    assert "before the complete adoption table" in agents_text
+    assert "Suggested actions do not grant authorization" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
     assert "full_evidence_request" in agents_text
     assert "owner_decision_required" in agents_text
@@ -754,7 +757,10 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "[human_readable_adoption_summary]" in agents_text
     assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" in agents_text
+    assert "expanded-report exception to the compact three-line default" not in agents_text
+    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
+    assert "before the complete adoption table" in agents_text
+    assert "Suggested actions do not grant authorization" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
     assert "full_evidence_request" in agents_text
     assert "owner_decision_required" in agents_text
