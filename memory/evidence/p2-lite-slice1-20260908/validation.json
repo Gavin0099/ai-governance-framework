@@ -1,0 +1,31 @@
+{
+  "status": "LITE_SYNTHETIC_END_TO_END_WIRING_VALIDATED",
+  "local_tests": 149,
+  "independent_tests": 149,
+  "blocking": 0,
+  "review": "review.json",
+  "test_command": ".venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider --basetemp=memory/evidence/p2-lite-slice1-20260908/pytest-run2 tests/test_skill_evaluation_lite.py tests/test_solo_r2_future_scoring_consumer.py tests/test_solo_r2_regression_projection.py tests/test_solo_r2_blind_scoring_bundle.py",
+  "cli_command": ".venv/Scripts/python.exe -B -m governance_tools.skill_evaluation_lite --synthetic --output memory/evidence/p2-lite-slice1-20260908/demo --authorize-synthetic-unblinding",
+  "artifacts": {
+    "report.json": {
+      "bytes": 1746,
+      "sha256": "04015870dfd7b396ee25171213c9a24dce1bfb09612bde7be1d53b887fed7a91"
+    },
+    "scorer-input.json": {
+      "bytes": 1336,
+      "sha256": "ed89caa12dd7fe79bde2b45cacabc9b421af98e80011bcf1c9bf8fc3823cedb3"
+    },
+    "scores-frozen.json": {
+      "bytes": 974,
+      "sha256": "fa7c14f4be7922308c621f5f82870e0a1af22f491fc0e2cf3293747abee8cb59"
+    }
+  },
+  "strict_changes": false,
+  "real_execution": false,
+  "governance_cost_observation": {
+    "event": "Independent review confirmed boundaries without a blocker; pytest temporary-directory access required a scoped writable basetemp.",
+    "decision_changed": false,
+    "additional_time": "not measured",
+    "interpretation": "review supplied independent confirmation; temporary-directory retries were tooling friction, not evidence of governance effectiveness or cost savings."
+  }
+}
