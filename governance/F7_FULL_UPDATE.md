@@ -82,6 +82,11 @@ Start the owner-facing report with the plain-language opening defined in
 Explain local completion, delivery state, and the important unverified behavior
 before the full table. Expanded reporting requires the complete evidence, not
 a jargon-heavy opening; it does not permit dropping table rows or limitations.
+Apply that same section's deduplication rule: opening, complete table, then
+only evidence and disclosures not already covered with their required meaning
+and binding. Do not add a duplicate technical-status checklist. Keep decisive
+limitations prominent; unrelated untouched files remain in the required
+dirty-state disclosure. Required fields and table-unavailable fallbacks remain.
 
 `adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
 build, or a framework pointer update is not a substitute for the final adoption
