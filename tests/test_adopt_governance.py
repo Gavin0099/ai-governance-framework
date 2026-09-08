@@ -151,6 +151,30 @@ def test_adopt_copies_agents_base(tmp_path):
     assert "has not followed this session" in agents_base
 
 
+def test_adopted_response_rules_remain_current_after_f7_sections(tmp_path):
+    from governance_tools.f7_full_update import (
+        _ensure_agents_keyed_sections,
+        _response_envelope_surface_conflicts,
+    )
+
+    repo = _make_git_repo(tmp_path / "response-consumer")
+    _write_plan(repo)
+    assert adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False) == 0
+    adopted = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Response envelope contract version: v0.8" in adopted
+    assert "Failed/partial work and owner decisions may remain compact" in adopted
+    assert "Keep all raw fields in canonical evidence" in adopted
+    assert "without forcing an irrelevant next action" in adopted
+    assert _response_envelope_surface_conflicts(repo) == []
+
+    _ensure_agents_keyed_sections(repo)
+
+    refreshed = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Response envelope contract version: v0.7" not in refreshed
+    assert "Response envelope contract version: v0.8" in refreshed
+    assert _response_envelope_surface_conflicts(repo) == []
+
+
 def test_adopt_creates_contract_from_template_when_missing(tmp_path):
     """contract.yaml created from template when not present."""
     repo = _make_git_repo(tmp_path / "repo")

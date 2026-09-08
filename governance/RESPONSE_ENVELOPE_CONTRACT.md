@@ -6,7 +6,12 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.7
+# Response Envelope Contract v0.8
+
+> v0.8 (2026-09-07): permits compact failed/partial and owner-decision reports
+> when decision boundaries remain explicit; raw evidence stays canonical without
+> mandatory human display. Diagnosis, review, and concept explanations retain
+> their task-adaptive shape. No machine schema or execution authority change.
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
@@ -72,11 +77,15 @@ it but may not create or upgrade it while rendering.
 
 ### Compact by default
 
-For a complete task with supporting evidence, use the current session language
-and show the existing three-line preface:
+For completion-class reports, including failed or partial work, use compact rendering when a
+short answer preserves the blocker, ability to proceed, risks, non-claims, and
+required owner decision or authorization. Select what affects the current
+decision, not the full execution log. Use the current session language and the
+existing three-line preface. Diagnosis, review, and concept requests instead
+use Engineering Explanation; do not force an irrelevant next action:
 
 ```text
-Result: <what is complete>
+Result: <what is complete, incomplete, or blocked>
 Reason: <the most important supporting result>
 Next step: <one concrete next action, or a complete sentence saying none is needed>
 ```
@@ -84,13 +93,14 @@ Next step: <one concrete next action, or a complete sentence saying none is need
 Use translated labels in the session language. In Chinese, prefer:
 
 ```text
-完成：<實際完成的成果>
+結果：<實際完成、未完成或受阻的成果>
 原因：<最重要的支持結果>
 下一步：<一個具體的下一步；沒有則用完整句子說明>
 ```
 
-Compact requires complete `done`, supporting `evidence_refs`, traceable
-`task_authority`, `claim_ceiling`, and `next_action`, plus the retained machine
+Compact requires an accurate `done` field, not a completed task, supporting
+`evidence_refs`, traceable `task_authority`, `claim_ceiling`, and `next_action`,
+plus the retained machine
 record. Keep non-decision-relevant `not_claimed` data machine-side. Structural
 `PASS` is not a semantic trust claim, and `Reason` must use existing evidence.
 
@@ -102,22 +112,24 @@ remain event-derived.
 
 ### Expanded by trigger
 
-Evaluate these three stable trigger IDs before choosing the rendering mode. Any
-matching trigger forces expanded reporting; otherwise use compact rendering.
+Evaluate these stable trigger IDs without changing their machine meaning.
+Failure or an owner decision alone does not force expanded human rendering;
+apply the conditions below. Otherwise use compact rendering.
 When more than one applies, the first row is the primary reason.
 
 | Priority | Trigger ID | Source | Required response |
 | --- | --- | --- | --- |
 | 1 | `full_evidence_request` | explicit user request | Expanded report; state the request plainly. |
-| 2 | `owner_decision_required` | current workflow decision context | Expanded report with the decision and the reply or action that resolves it. |
-| 3 | `failed_or_partial` | `done`, evidence, preservation, and rendering context | Expanded report with the incomplete, contradictory, unavailable, or unprojectable result. |
+| 2 | `owner_decision_required` | current workflow decision context | Expand only when a short answer cannot preserve the choice, consequences, and required reply or authorization. |
+| 3 | `failed_or_partial` | `done`, evidence, preservation, and rendering context | Expand when a short answer cannot preserve the blocker, ability to proceed, risks, non-claims, or authority boundary, or when the canonical record cannot be preserved. |
 
-`failed_or_partial` includes incomplete `done`, failed or unavailable required
-validation, contradictory evidence, an unavailable canonical record, or a
-claim/next-action boundary that cannot be preserved in compact form. Dirty
-worktree state, high-risk authority scope, and a decision-relevant limitation
-remain compact when one `注意：` line can state their effect without changing
-the claim. An ambiguous rendering predicate takes the failed/partial path.
+`failed_or_partial` still includes incomplete work and failed or unavailable
+validation. Compact rendering never changes that status or authorizes progress.
+Expand for conflicting evidence or decision boundaries that cannot be expressed
+honestly in a short answer. An unavailable or ambiguously preserved canonical
+record still requires expansion. Dirty state, high-risk scope, and expressible
+limitations may remain compact. If compression hides a required decision,
+changes a claim, or leaves the rendering condition ambiguous, expand.
 
 F-7 terminal results remain a dedicated expanded-report exception. They must
 relay the complete adoption summary required by `governance/F7_FULL_UPDATE.md`;
@@ -349,8 +361,9 @@ or decode project vocabulary:
 
 Then state any decision-relevant unknown, authority boundary, or candidate next
 action. Include a next action only when the question or current state calls for
-one; naming an action never grants permission. Preserve the decisive technical
-evidence after the explanation.
+one; naming an action never grants permission. Preserve decisive technical
+evidence in the canonical record; display it after the explanation only when
+needed for the current decision or requested by the owner.
 
 Before writing the explanation, separate the source into five classes:
 
@@ -428,18 +441,20 @@ identifier-shaped audit field — each surfaced token must be paired with a
 one-line plain-language meaning in the session language.
 
 Rules:
-- Do not strip evidence for readability. The raw field is the reviewer's
-  independent-recheck basis; removing it is a regression. The requirement is to
-  ADD a plain-language gloss next to the field, not to replace the field with
-  prose.
-- Lead with a plain-language conclusion (done / not done, which canonical path,
-  guard passed?, commit / push state), THEN list the evidence fields with their
-  glosses. The audit ledger and the human handoff are two layers, not one.
+- Preserve all raw fields in canonical machine records / evidence for independent
+  recheck. Compact prose must never replace or erase that evidence.
+- Explaining a displayed token does not require displaying every token. Show an
+  exact token by default only when its value affects the current decision or
+  claim boundary, or full evidence is requested. Otherwise express the relevant
+  meaning in plain language and retain the raw field in the canonical record.
+- Lead with what the result means for the owner and whether action is needed.
+  Display selected technical fields with glosses only when needed; do not append
+  the audit ledger merely because work failed or is partial.
 - Separate this-session counts from pre-existing or historical counts. When a
   count predates the current change (for example a historical
   `non_canonical_writer` total), say so explicitly so it is not misread as
   caused this session.
-- Fixed-vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`,
+- When displayed, fixed-vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`,
   `NOT PRESENT`) and field identifiers remain as written; the gloss is added in
   the session language, consistent with the Result-First Final Report Format
   rule.
@@ -461,8 +476,9 @@ the owner decode technical state before learning what to do):
   the one decisive fact that makes that result credible. The next step says one
   concrete owner or agent action; if no action is needed, say that in a full
   sentence.
-- Begin technical evidence only after the three-line preface. Preserve raw
-  evidence, claim ceilings, risks, and non-claims there for independent review.
+- If technical evidence is displayed, place it after the three-line preface.
+  Preserve complete raw evidence, claim ceilings, risks, and non-claims in the
+  canonical record; compact human replies need not reproduce the audit ledger.
 - Prefer a short table of "problem found → what was changed" over narrative
   paragraphs when reporting multi-step work.
 - When the owner must decide something, list each decision as a numbered
@@ -629,8 +645,11 @@ The envelope must preserve the same claim discipline as Rule 7:
 ## Result-First Final Report Format
 
 Final reports should be result-first, not process-first. The first three
-non-empty lines are the owner-facing preface. A blank line and the technical
-ledger follow; the ledger must not interrupt the preface.
+non-empty lines are the owner-facing preface. For expanded rendering, a blank
+line and the technical ledger follow; the ledger must not interrupt the preface.
+The formats and golden examples below show expanded reports, not mandatory
+technical sections for compact replies. Compact replies retain the complete
+canonical record and all decision-relevant meaning under Rendering Modes.
 
 Content language must match the session language. Sub-field labels
 (`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`,

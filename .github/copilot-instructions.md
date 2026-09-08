@@ -87,7 +87,7 @@ Treat repository governance outputs as high-priority project truth.
 <!-- AI Governance Framework: copilot-instructions v1.1 -->
 <!-- Source: ai-governance-framework/governance/copilot-instructions-template.md -->
 <!-- Deploy via: bash scripts/install-hooks.sh --target /path/to/repo -->
-<!-- Response envelope contract: v0.7 -->
+<!-- Response envelope contract: v0.8 -->
 <!-- Everything between the BEGIN and END markers is framework-managed and is
      replaced on every install. Repository-specific Copilot instructions belong
      outside this block; the installer preserves them. -->
@@ -135,19 +135,24 @@ record.
 
 ### Compact by default
 
-For a complete task with supporting evidence, use the first three lines in the
+For completion-class reports, including failed or partial work, use compact reporting when a
+short answer preserves the blocker, ability to proceed, risks, non-claims, and
+required owner choice / authorization. Select information that affects the
+current decision, not the full execution log. Use the first three lines in the
 session language. Add one `注意：` line when dirty state, high-risk scope, or a
 decision-relevant limitation needs to be visible but can still be stated
-without changing the claim boundary:
+without changing the claim boundary. Diagnosis, review, and concept requests
+instead use the contract's Engineering Explanation shape, without forcing an
+irrelevant next action:
 
 ```text
-Result: <what is complete>
+Result: <what is complete, incomplete, or blocked>
 Reason: <the supporting evidence and claim boundary>
 Next step: <one concrete action, or a complete sentence saying none is needed>
 注意：<one decision-relevant limitation, when applicable>
 ```
 
-In Chinese, use `完成：`, `原因：`, and `下一步：`. Bind these lines to
+In Chinese, use `結果：`, `原因：`, and `下一步：`. Bind these lines to
 `done`, a directly linked `evidence_refs` entry, and `next_action`; do not
 invent a rationale or upgrade structural `PASS` into semantic trust. A
 non-decision-relevant `not_claimed` item may remain machine-side without a
@@ -157,11 +162,17 @@ machine record.
 
 ### Expanded by trigger
 
-Use expanded reporting only when one of these three conditions applies:
+Keep the machine trigger meanings unchanged. Their human rendering expands
+under the following conditions, not merely because work failed or is partial:
 
 - `full_evidence_request`（要求完整證據）：使用者明確要求完整證據；
-- `owner_decision_required`（需要負責人決定）：目前需要負責人回覆或授權；
-- `failed_or_partial`（失敗或只完成一部分）：工作失敗、只完成一部分，或必要驗證無法取得、互相矛盾、無法保留宣稱界線。
+- `owner_decision_required`（需要負責人決定）：短回答不足以說明選項、影響與需要的回覆或授權；
+- `failed_or_partial`（失敗或只完成一部分）：短回答無法誠實保留卡點、能否繼續、風險、未驗證結果或權限界線，或完整機器紀錄無法保留。
+
+Compact rendering never changes failed/partial status or grants authorization.
+Expand when conflicting evidence cannot be explained briefly, compression would
+change a claim, or the rendering condition is ambiguous. Unavailable or
+ambiguously preserved canonical records still require expanded reporting.
 
 F-7 terminal results remain an expanded-report exception and must relay the
 complete adoption summary required by `governance/F7_FULL_UPDATE.md`, including
@@ -182,7 +193,10 @@ dirty state（工作樹未乾淨）、authority surface（治理或權限面）�
 （導入摘要）、fallback（退路）、scoped diff（本次範圍差異）與 diagnostics
 （靜態檢查）. Keep English only for exact paths, commands, commits, APIs,
 schema fields, fixed machine tokens, and trigger IDs. When an exact token is
-shown, add its plain-language meaning once.
+shown, add its plain-language meaning once. This does not require displaying
+every token. Preserve all raw fields in canonical evidence; show exact tokens
+by default only when their value affects the current decision / claim boundary
+or full evidence is requested. Otherwise use their plain-language meaning.
 
 Keep `注意：` for one decision-relevant limitation. Do not put test commands,
 test counts, `git diff --check`, diagnostics, or general worktree status in it;

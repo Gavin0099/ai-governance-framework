@@ -74,10 +74,21 @@ human_readable_adoption_summary: REPORTED | NOT REPORTED
 
 ### Response Envelope Boundary
 
-- Response envelope contract version: v0.7. Compact human responses are the
+- Response envelope contract version: v0.8. Compact human responses are the
   default.
-- Ordinary expanded reporting has exactly three triggers:
+- Ordinary expanded reporting retains three trigger IDs:
   `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`.
+- Failed/partial work and owner decisions may remain compact only when the
+  blocker, ability to proceed, risks, non-claims, and required choice or
+  authorization stay clear. Expand when a short answer cannot preserve those
+  boundaries, canonical evidence cannot be preserved, or full evidence is
+  requested. Existing F-7 expanded-report exceptions remain.
+- Keep all raw fields in canonical evidence; display exact tokens only when
+  their value affects the current decision / claim boundary or full evidence is
+  requested. Explain each displayed token in plain language.
+- The three-line preface applies to completion-class reports. Diagnosis,
+  review, and concept requests use the contract's Engineering Explanation shape
+  without forcing an irrelevant next action.
 - Keep validation commands, counts, and diagnostics under `驗證` or
   `evidence_refs`; use `注意` only for one decision-relevant limitation.
 
