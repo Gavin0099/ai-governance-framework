@@ -259,7 +259,21 @@ def validate_code(source, *, tests, benchmark_function=None):
         safe_methods |= {'get', 'add', 'remove', 'discard', 'pop', 'sort', 'items', 'values', 'keys', 'extend'}
         if not tests:
             safe_calls |= {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+    if tests and benchmark_function == 'merge_intervals':
+        safe_calls |= {'zip'}
+        safe_methods |= {'assertIsInstance'}
+    if tests and benchmark_function == 'has_cycle':
+        allowed += (ast.DictComp, ast.IfExp, ast.With, ast.withitem)
+        safe_methods |= {'subTest'}
     for node in ast.walk(tree):
+        if isinstance(node, ast.With):
+            for item in node.items:
+                call = item.context_expr
+                if (item.optional_vars is not None or not isinstance(call, ast.Call)
+                        or not isinstance(call.func, ast.Attribute)
+                        or not isinstance(call.func.value, ast.Name)
+                        or call.func.value.id != 'self' or call.func.attr != 'subTest'):
+                    raise lite.LiteError('Only self.subTest context is permitted')
         if not isinstance(node, allowed):
             raise lite.LiteError('Unsupported Python operation')
         if isinstance(node, ast.Name) and node.id.startswith('__') and node.id != '__name__':

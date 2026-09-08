@@ -95,6 +95,23 @@ def validate_submission(fixture, value):
     function = fixture.interface[0]
     live.validate_code(value['source'], tests=False, benchmark_function=function)
     live.validate_code(value['test_source'], tests=True, benchmark_function=function)
+    # A test module may use the normal guarded or unguarded final main entry.
+    # No other main call/arguments are admitted: the host owns suite execution.
+    tree = ast.parse(value['test_source'])
+    last = tree.body[-1]
+    if isinstance(last, ast.If):
+        if (ast.dump(last.test) != ast.dump(ast.parse("__name__ == '__main__'", mode='eval').body)
+                or last.orelse or len(last.body) != 1):
+            raise lite.LiteError('Unsupported unittest entry guard')
+        last = last.body[0]
+    if (not isinstance(last, ast.Expr) or not isinstance(last.value, ast.Call)
+            or ast.unparse(last.value.func) != 'unittest.main'
+            or last.value.args or last.value.keywords):
+        raise lite.LiteError('Only standard unittest.main entry permitted')
+    mains = [n for n in ast.walk(tree) if isinstance(n, ast.Call)
+             and isinstance(n.func, ast.Attribute) and ast.unparse(n.func) == 'unittest.main']
+    if len(mains) != 1:
+        raise lite.LiteError('Repeated/nested unittest.main forbidden')
     original = ast.parse(fixture.baseline).body[0].args
     candidate = ast.parse(value['source']).body
     definition = next(n for n in candidate if isinstance(n, ast.FunctionDef))
@@ -156,11 +173,13 @@ def collect(fixture, binary, home, root, value, model_result):
     correct = correctness(oracle, fixture)
     # Compile with public relative filenames: failures cannot leak workspace paths.
     # Capture a host-authored count receipt, separate from submitted diagnostics.
-    script = ("import sys, unittest, json, types; "
+    script = ("import sys, unittest, json, types, ast; "
         f"subject=types.ModuleType({source_name[:-3]!r}); sys.modules[{source_name[:-3]!r}]=subject; "
         f"exec(compile(open({source_name!r}).read(),{source_name!r},'exec'),subject.__dict__); "
         f"tests=types.ModuleType({test_name[:-3]!r}); sys.modules[{test_name[:-3]!r}]=tests; "
-        f"exec(compile(open({test_name!r}).read(),{test_name!r},'exec'),tests.__dict__); "
+        f"tree=ast.parse(open({test_name!r}).read(), filename={test_name!r}); "
+        "tree.body.pop() if isinstance(tree.body[-1],ast.Expr) else None; "
+        f"exec(compile(tree,{test_name!r},'exec'),tests.__dict__); "
         "suite=unittest.defaultTestLoader.loadTestsFromModule(tests); "
         "r=unittest.TextTestRunner(verbosity=2).run(suite); "
         "open('test-count.json','x').write(json.dumps({'tests_run':r.testsRun,'errors':len(r.errors),'failures':len(r.failures)})); "
@@ -173,6 +192,7 @@ def collect(fixture, binary, home, root, value, model_result):
                     stdout=result['stdout'],stderr=result['stderr'],exit_code=result['exit_code'],**count)
     diagnostic = ('STDOUT:\n'+result['stdout']+'\nSTDERR:\n'+result['stderr']+
         '\nHOST_COMPLETION: '+evidence['completion']+'\nINVOCATION: '+ ' '.join(evidence['invocation'])+
+        '\nTEST_LOADING: standard unittest.main entry delegated to host suite runner; test definitions unchanged'+
         '\nTESTS_RUN: '+str(count['tests_run'])+'\nEXIT_CODE: '+str(result['exit_code'])+'\n')
     projection_result = dict(result, stdout=diagnostic, stderr='')
     trace = live.host_projection(value['source'], value['test_source'], projection_result)
@@ -187,7 +207,8 @@ def collect(fixture, binary, home, root, value, model_result):
     payload = lite.encode(dict(source=value['source'],final_response={'summary':value['summary']},
         correctness=correct,cost={'tool_calls':0,'elapsed_ms':model_result['elapsed_ms']}))
     identity=dict(source_versions=versions,payload_sha256=lite.digest(payload),trace_sha256=lite.digest(trace),
-                  origin='Host-observed exact contents; legacy readback aliases, not a Codex trace')
+                  origin='Host-observed exact contents; legacy readback aliases, not a Codex trace',
+                  test_loading='Host loads module definitions; standard final unittest.main entry delegated to host suite runner; source/test bytes unchanged')
     live.save(root/'host-observation.jsonl',trace)
     live.save(root/'payload.json',payload)
     live.save(root/'input-identity.json',lite.encode(identity))

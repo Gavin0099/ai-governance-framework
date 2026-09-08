@@ -2926,3 +2926,10 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Only new bounded adapter/test and opt-in Lite AST support; Strict modules and all fixture bytes unchanged. Local 76 PASS, independent 76 PASS, review ACCEPT / Blocking 0. Evidence memory/evidence/lite-benchmark-adapter-20260908/review.json and validation.json.
 - Completed zero-test evidence remains unassessable. Regression launch/timeout/import failures preserve raw receipts and STOP rather than promising continued scoring. Host alias mapping is explicit; no OS isolation/general sandbox claim.
 - Owner authorized scoped local commit, identity verification, STOP. Separate authorization required for real three-task model runs; no scoring/freeze/unblinding, Skill/history change or push. Unrelated dirty work excluded.
+
+
+## Lite benchmark test-harness compatibility — 2026-09-08
+
+- Host now delegates a unique standard final unittest.main entry to actual suite execution; disk source/test bytes preserved. Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
+- Local91PASS, independent91PASS, ACCEPT Blocking0. Captured-output replays in separate test workspaces: Easy7tests/7NameErrors (missing import not repaired), Medium7tests pass, Hard2test methods pass. Deliberate failed assertions prove real counts/exit1. Evidence memory/evidence/lite-harness-compatibility-20260908/review.json and validation.json.
+- All original43 failure artifacts and adopted benchmark materials unchanged. No model/TREATMENT/scorer or Strict/Skill changes. Scoped compatibility commit and STOP; no second real benchmark or push without separate authorization. Unrelated dirty work and prior uncommitted live-run records excluded from this commit.
