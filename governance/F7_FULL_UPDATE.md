@@ -77,6 +77,12 @@ separate copy of the table rows or header here. Operationally, when
 `human_readable_adoption_summary` is present, relay the table rows as a table,
 not only as machine-readable status fields.
 
+Start the owner-facing report with the plain-language opening defined in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md#plain-language-opening-for-update-reports`.
+Explain local completion, delivery state, and the important unverified behavior
+before the full table. Expanded reporting requires the complete evidence, not
+a jargon-heavy opening; it does not permit dropping table rows or limitations.
+
 `adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
 build, or a framework pointer update is not a substitute for the final adoption
 status report. If `governance_maturity_summary` cannot be produced, F-7 must
