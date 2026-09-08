@@ -270,6 +270,46 @@ def _make_fixture(
     return consumer, framework, old_head, new_head
 
 
+@pytest.mark.parametrize("existing_section", [False, True])
+def test_submodule_apply_installs_plain_language_update_opening(
+    tmp_path: Path, existing_section: bool
+) -> None:
+    consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
+    baseline = Path(__file__).resolve().parents[1] / "baselines/repo-min/AGENTS.md"
+    (framework / "baselines/repo-min/AGENTS.md").write_text(
+        baseline.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    target = _commit_all(framework, "publish reporting baseline")
+    if existing_section:
+        (consumer / "AGENTS.md").write_text(
+            "# Consumer\n\n## AI Governance Update Intent Rule\n\n"
+            "STALE_TECHNICAL_FIRST_OPENING\n\n"
+            "## Repo-Specific Risk Levels\n\nPreserve this domain rule.\n",
+            encoding="utf-8",
+        )
+        _commit_all(consumer, "existing consumer instructions")
+
+    result = update_governance_submodule(
+        repo=consumer, fetch_ref="main", dry_run=False, stage=False
+    )
+
+    assert result.ok is True
+    assert result.after_head == target
+    text = (consumer / "AGENTS.md").read_text(encoding="utf-8")
+    assert "non-empty lines as 結果 / 原因 / 下一步" in text
+    assert "before the complete adoption table" in text
+    assert "suggested actions do not grant\nauthorization" in text
+    assert "Required response shape:" not in text
+    assert "STALE_TECHNICAL_FIRST_OPENING" not in text
+    example = text.split("Valid partial conclusion:", 1)[1].split("```text", 1)[1]
+    lines = [line for line in example.splitlines() if line.strip()]
+    assert [line.split("：", 1)[0] for line in lines[:3]] == ["結果", "原因", "下一步"]
+    assert "AI Governance update check: not_verified" in example
+    assert "human_readable_adoption_summary: NOT REPORTED" in example
+    if existing_section:
+        assert "Preserve this domain rule." in text
+
+
 def _make_already_current_fixture(tmp_path: Path) -> tuple[Path, Path, str]:
     framework = tmp_path / "framework"
     consumer = tmp_path / "consumer"
