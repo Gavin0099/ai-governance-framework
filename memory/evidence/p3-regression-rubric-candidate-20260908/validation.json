@@ -1,0 +1,39 @@
+{
+  "result": "P3_RUBRIC_AMENDMENT_CANDIDATE_READY_FOR_REVIEW",
+  "head": "ba7de668998ffe19922da404c0fc73abc5414cc5",
+  "identities": {
+    "docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md": {
+      "bytes": 6266,
+      "lines": 108,
+      "sha256": "9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5",
+      "git_blob": "8b60f62a20ac133a08a99cf4ea58e4831dea4fc9"
+    },
+    "tests/fixtures/p3_regression_rubric_candidate/cases.json": {
+      "bytes": 3324,
+      "lines": 74,
+      "sha256": "679db6a43fe0b8e45acc62249cad8b2bf7427362b952826ed4224989a6861b8e",
+      "git_blob": "662ec83c5d33ee251b540713d7efc26be0ece0e5"
+    },
+    "tests/test_p3_regression_rubric_candidate.py": {
+      "bytes": 4082,
+      "lines": 92,
+      "sha256": "e695ed0e25600d522df49ee76a6bd70b3844d524371de19e855a17a08171c9e3",
+      "git_blob": "3ca8a8736dce880ab7fd7f01efd5e1b94c66e2a8"
+    }
+  },
+  "validation": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/test_p3_regression_rubric_candidate.py -q -p no:cacheprovider --basetemp=memory/evidence/p3-regression-rubric-candidate-20260908/pytest-scratch",
+    "passed": 7,
+    "failed": 0,
+    "exit_code": 0,
+    "meaning": "Six synthetic evidence specimens reproduce the proposed examples; not production scoring enforcement"
+  },
+  "preserved_surfaces_unchanged": true,
+  "production_changed": false,
+  "old_scores_changed": false,
+  "adoption": false,
+  "independent_review": "NOT_RUN",
+  "commit": false,
+  "push": false,
+  "open_prerequisite": "Existing projection maps test errors to NOT_CONFIRMED; candidate does not change or establish runtime support"
+}

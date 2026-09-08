@@ -2956,3 +2956,11 @@ Execution, oracle (10/10 each), simplified score freeze and unblinding are compl
 - Owner provisional disposition KEEP_OBSERVE / OPTIONAL; no Skill packet/default-loading/config change. Hard3vs2methods does not prove greater coverage. Earlier7vs8 signal remains separate; no generalized efficacy or average-cost claim.
 - Preserve first-run failures and completed artifacts in scoped local commit. Closeout memory/evidence/p2-multitask-closeout-20260908/closeout.md. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. No models/tests rerun, no push; unrelated dirty work excluded.
 - STOP. Candidate future work: another Skill or separately scoped Lite/Strict cost-value review; neither executes automatically.
+
+
+## P3 Regression Safety amendment owner adoption — 2026-09-08
+
+- OWNER_ADOPTED: exact6266bytes/108lines SHA9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5 blob8b60f62a20ac133a08a99cf4ea58e4831dea4fc9 after independent ACCEPT/Blocking0. Candidate text retained byte-identically; adoption record memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json records new authority.
+- Future-only: complete current-version execution evidence attributing regression nonexecution to submitted content supports0; evidence gaps/harness/environment/ambiguous attribution stayNOT_ASSESSABLE. Nonzero exit alone insufficient. Historical frozen scores and closeout unchanged.
+- Projection/scorer semantics unchanged. Existing error-to-NOT_CONFIRMED remains next separately authorized implementation issue. Synthetic fixture/test sources remain uncommitted; adoption does not claim production support.
+- One scoped local adoption commit and committed identity verification, STOP. No benchmark/model execution, Skill/fixture edits, historical rescoring or push. Unrelated dirty work excluded.

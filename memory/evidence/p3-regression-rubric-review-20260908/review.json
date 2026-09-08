@@ -1,0 +1,99 @@
+{
+  "verdict": "ACCEPT",
+  "governance_verdict": "APPROVED",
+  "blocking": 0,
+  "scope": "Exact-byte amendment candidate only; five owner-specified criteria",
+  "candidate": "docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md",
+  "identity": {
+    "bytes": 6266,
+    "lines": 108,
+    "sha256": "9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5",
+    "git_blob": "8b60f62a20ac133a08a99cf4ea58e4831dea4fc9"
+  },
+  "independent_reviewer": "/root/review_p3_rubric",
+  "reviewer_mode": "Read-only; no file mutation or test rerun",
+  "checks": [
+    {
+      "criterion": "0 requires complete current-version evidence and submission attribution",
+      "result": "PASS",
+      "lines": [
+        22,
+        27,
+        33,
+        36,
+        40,
+        43
+      ]
+    },
+    {
+      "criterion": "Harness/environment failure remains NOT_ASSESSABLE",
+      "result": "PASS",
+      "lines": [
+        27,
+        29,
+        48,
+        51
+      ]
+    },
+    {
+      "criterion": "Ambiguous attribution remains NOT_ASSESSABLE",
+      "result": "PASS",
+      "lines": [
+        46,
+        53
+      ]
+    },
+    {
+      "criterion": "Nonzero exit or exception name alone never implies 0",
+      "result": "PASS",
+      "lines": [
+        31,
+        36,
+        46,
+        58
+      ]
+    },
+    {
+      "criterion": "Prospective only; no historical score rewrite",
+      "result": "PASS",
+      "lines": [
+        67,
+        71
+      ]
+    }
+  ],
+  "inputs": [
+    "governance/REVIEW_CRITERIA.md",
+    "docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md",
+    "tests/fixtures/bug_fix_safety_mini_benchmark/RUBRIC.md",
+    "tests/fixtures/p3_regression_rubric_candidate/cases.json",
+    "tests/test_p3_regression_rubric_candidate.py",
+    "memory/evidence/p3-regression-rubric-candidate-20260908/validation.json"
+  ],
+  "prior_review_crosscheck": "Scoped searches in memory/04_review_log.md and memory/03_knowledge_base.md found no overlapping unresolved P3 candidate blocker; repository notes separate evidence validation from semantic enforcement",
+  "governance_audit": {
+    "architecture": "No runtime/API change",
+    "native": "N/A",
+    "thread_safety": "N/A",
+    "baseline_build": "N/A documentation review",
+    "test_integrity": "7 prior fixture tests pass; source and exact identities inspected, not rerun; examples are not a scoring implementation",
+    "dirty_work": "Unrelated files excluded; candidate/supporting identities and preservation snapshot matched"
+  },
+  "carried_forward": [
+    {
+      "severity": "WARNING",
+      "status": "carried-forward",
+      "line": 103,
+      "issue": "Production error-to-NOT_CONFIRMED conflates execution outcome and version certainty",
+      "disposition": "Explicit future integration prerequisite; not a candidate blocker or authorization to change production"
+    }
+  ],
+  "adoption": "NOT_PERFORMED",
+  "implementation": "NOT_PERFORMED",
+  "historical_scores": "UNCHANGED",
+  "tests_rerun": 0,
+  "commit": "NOT_PERFORMED",
+  "push": "NOT_PERFORMED",
+  "head": "ba7de668998ffe19922da404c0fc73abc5414cc5",
+  "next_action": "STOP for separate exact-byte owner adoption"
+}
