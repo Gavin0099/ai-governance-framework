@@ -139,6 +139,11 @@ instead of compressing the result into the ordinary compact projection.
 This exception does not require a technical opening. Follow the plain-language
 update opening in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`, then retain the
 complete required adoption table and evidence in the same final report.
+For these update reports, apply that protocol's deduplication and limitation
+placement rules: do not add a second status list for facts already covered by
+the opening/table; preserve all remaining required evidence and disclosures
+after the table. This does not remove table rows, non-claims, or the existing
+unavailable-summary fallback, and does not change other task classes.
 
 Expanded output preserves every decision-relevant non-claim and the complete
 machine field meanings. A `注意：` line may replace a visible `Cannot claim`

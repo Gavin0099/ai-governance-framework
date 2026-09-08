@@ -266,6 +266,32 @@ references, warnings, discarded-path inventory when applicable, and non-claims
 remain in the same final report. This is ordering and wording only: it changes
 no completion criteria, authorization, schema, or F-7 expanded-report exception.
 
+For update reports, present the plain-language opening, then the complete
+required adoption table, then only the required evidence or disclosures not
+already represented. Do not insert an additional technical-status table,
+update checklist, or closing recap that merely repeats those facts. The
+opening may summarize a decisive fact that also appears in the required table;
+do not remove a required table row to avoid that necessary overlap.
+
+The required evidence shapes are coverage requirements, not a demand for a
+second field-by-field rendering. A fact already shown in the table or opening
+need not be repeated only when its required value, meaning, and evidence
+binding are preserved. Add any missing exact HEADs, paths, command/results,
+status values, evidence references, warnings, or non-claims once after the
+table. Keep the complete canonical machine evidence unchanged. Distinct or
+conflicting signals are not duplicates; preserve their difference. An explicit
+full-evidence request still receives all requested detail.
+
+Use the opening or an optional 注意 line for the limitation that changes what
+the owner may conclude or do next, such as an unverified runtime or a missing
+authorization. An unrelated, untouched backup belongs in the required
+dirty-state disclosure after the table, not in that prominent warning merely
+because it is untracked. If dirty state affects scope, validation, or safe
+delivery, keep that impact prominent. Never suppress other decision-relevant
+limits to fit one line, or omit required discarded-path or dirty-state records.
+The next action must state an action and any needed authorization, not merely
+repeat a delivery status such as "not pushed".
+
 Example openings (illustrative inputs, not claims about the current repo):
 
 - Local workflow completed, committed but not pushed; runtime not checked:
@@ -297,6 +323,17 @@ delivery state, decisive limitation, and needed owner action are understandable
 without knowing the field names. Then compare it with the source evidence:
 unknown must remain unknown, blocked must not become complete, and the full
 table must still follow. This is a human review, not a new automated gate.
+
+Also review the whole rendered report against the observed consumer case:
+local update checked, commit created but not uploaded, runtime unverified,
+and an unrelated untouched backup. The opening must make the update, delivery,
+runtime limitation, and authorization-dependent next action understandable;
+the required table remains complete; a supplemental evidence section preserves
+anything the opening/table did not cover, including the backup disposition.
+Reject an extra technical-status list that only repeats these sections.
+As counterchecks, a dirty file that blocks safe delivery must remain prominent,
+and an unavailable table must retain the existing incomplete-report fallback.
+These are presentation reviews, not new updater tests or completion criteria.
 
 ### Required Adoption Status Summary
 
