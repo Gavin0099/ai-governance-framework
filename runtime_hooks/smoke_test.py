@@ -7,8 +7,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import shutil
+from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -53,6 +58,40 @@ DEFAULT_SHARED_EXAMPLES = {
 }
 
 
+@contextmanager
+def _self_smoke_project(*explicit_inputs):
+    """Only bundled, untargeted smoke examples get a disposable governed project.
+
+    Explicit targets keep their actual PLAN/contract and normal failure policy.
+    The generated PLAN describes this test run, never framework development.
+    """
+    if (any(value is not None for value in explicit_inputs)
+            or os.environ.get("AI_GOVERNANCE_CONTRACT", "").strip()):
+        yield None
+        return
+    framework = Path(__file__).resolve().parents[1]
+    with TemporaryDirectory(prefix="ai-governance-self-smoke-") as directory:
+        root = Path(directory).resolve()
+        (root / "PLAN.md").write_text(
+            "# Isolated runtime smoke fixture\n"
+            f"> **最後更新**: {date.today().isoformat()}\n"
+            "> **Owner**: runtime-smoke-test\n"
+            "> **Freshness**: Sprint (7d)\n\n"
+            "[>] Phase 1 : Exercise runtime smoke examples\n",
+            encoding="utf-8",
+        )
+        (root / ".governance").mkdir()
+        (root / "pyproject.toml").write_text(
+            '[project]\nname = "runtime-smoke-fixture"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        shutil.copyfile(
+            framework / ".governance/version_manifest.yaml",
+            root / ".governance/version_manifest.yaml",
+        )
+        yield root
+
+
 def run_smoke(
     harness: str,
     event_type: str,
@@ -64,6 +103,14 @@ def run_smoke(
     response_file: Path | None = None,
     checks_file: Path | None = None,
 ) -> dict:
+    with _self_smoke_project(
+        payload_file, project_root, plan_path, contract_file, response_file, checks_file
+    ) as fixture_root:
+        if fixture_root is not None:
+            return run_smoke(
+                harness, event_type, project_root=fixture_root,
+                contract_file=Path(__file__).resolve().parents[1] / "contract.yaml",
+            )
     normalize_event = NORMALIZERS[harness]
     payload_path = payload_file or DEFAULT_EXAMPLES[(harness, event_type)]
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
@@ -90,6 +137,14 @@ def run_shared_smoke(
     response_file: Path | None = None,
     checks_file: Path | None = None,
 ) -> dict:
+    with _self_smoke_project(
+        payload_file, project_root, plan_path, contract_file, response_file, checks_file
+    ) as fixture_root:
+        if fixture_root is not None:
+            return run_shared_smoke(
+                event_type, project_root=fixture_root,
+                contract_file=Path(__file__).resolve().parents[1] / "contract.yaml",
+            )
     payload_path = payload_file or DEFAULT_SHARED_EXAMPLES[event_type]
     event = json.loads(payload_path.read_text(encoding="utf-8"))
     event = apply_runtime_path_overrides(
