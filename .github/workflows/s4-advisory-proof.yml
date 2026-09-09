@@ -1,0 +1,125 @@
+name: S4 temporary advisory semantics proof
+'on':
+  pull_request:
+    branches:
+    - main
+permissions:
+  contents: read
+jobs:
+  normal:
+    name: S4 proof normal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: '3.11'
+    - name: Check memory pressure
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: "if [ ! -d \"memory\" ]; then\n  echo \"memory/ not found, skipping pressure\
+        \ check\"\n  exit 0\nfi\nOUTPUT=$(python governance_tools/memory_janitor.py\
+        \ --memory-root ./memory --check --format json) || true\necho \"$OUTPUT\"\
+        \ | python3 -c \"\nimport json, sys\nr = json.load(sys.stdin)\nstatus = r['status']\n\
+        lines = r['line_count']\nhard = r.get('hard_limit', 200)\nprint(f'Memory status:\
+        \ {status} ({lines}/{hard} lines)')\nif status == 'EMERGENCY':\n    print('::error::Memory\
+        \ EMERGENCY, run: python governance_tools/memory_janitor.py --execute')\n\
+        \    sys.exit(1)\nelif status == 'CRITICAL':\n    print(f'::warning::Memory\
+        \ CRITICAL ({lines} lines). Run memory_janitor --execute soon.')\nelif status\
+        \ == 'WARNING':\n    print(f'::notice::Memory WARNING ({lines} lines). Monitor\
+        \ and plan cleanup.')\n\"\n"
+    - name: Check documentation drift
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: python governance_tools/doc_drift_checker.py --project-root . --format
+        human
+  memory_failure:
+    name: S4 proof memory_failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: '3.11'
+    - name: Check memory pressure
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: 'echo "::error::S4 controlled failure: memory_failure"
+
+        exit 1
+
+        '
+    - name: Check documentation drift
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: python governance_tools/doc_drift_checker.py --project-root . --format
+        human
+  drift_failure:
+    name: S4 proof drift_failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: '3.11'
+    - name: Check memory pressure
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: "if [ ! -d \"memory\" ]; then\n  echo \"memory/ not found, skipping pressure\
+        \ check\"\n  exit 0\nfi\nOUTPUT=$(python governance_tools/memory_janitor.py\
+        \ --memory-root ./memory --check --format json) || true\necho \"$OUTPUT\"\
+        \ | python3 -c \"\nimport json, sys\nr = json.load(sys.stdin)\nstatus = r['status']\n\
+        lines = r['line_count']\nhard = r.get('hard_limit', 200)\nprint(f'Memory status:\
+        \ {status} ({lines}/{hard} lines)')\nif status == 'EMERGENCY':\n    print('::error::Memory\
+        \ EMERGENCY, run: python governance_tools/memory_janitor.py --execute')\n\
+        \    sys.exit(1)\nelif status == 'CRITICAL':\n    print(f'::warning::Memory\
+        \ CRITICAL ({lines} lines). Run memory_janitor --execute soon.')\nelif status\
+        \ == 'WARNING':\n    print(f'::notice::Memory WARNING ({lines} lines). Monitor\
+        \ and plan cleanup.')\n\"\n"
+    - name: Check documentation drift
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: 'echo "::error::S4 controlled failure: drift_failure"
+
+        exit 1
+
+        '
+  setup_failure:
+    name: S4 proof setup_failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        python-version: s4-intentionally-unavailable-version
+    - name: Check memory pressure
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: "if [ ! -d \"memory\" ]; then\n  echo \"memory/ not found, skipping pressure\
+        \ check\"\n  exit 0\nfi\nOUTPUT=$(python governance_tools/memory_janitor.py\
+        \ --memory-root ./memory --check --format json) || true\necho \"$OUTPUT\"\
+        \ | python3 -c \"\nimport json, sys\nr = json.load(sys.stdin)\nstatus = r['status']\n\
+        lines = r['line_count']\nhard = r.get('hard_limit', 200)\nprint(f'Memory status:\
+        \ {status} ({lines}/{hard} lines)')\nif status == 'EMERGENCY':\n    print('::error::Memory\
+        \ EMERGENCY, run: python governance_tools/memory_janitor.py --execute')\n\
+        \    sys.exit(1)\nelif status == 'CRITICAL':\n    print(f'::warning::Memory\
+        \ CRITICAL ({lines} lines). Run memory_janitor --execute soon.')\nelif status\
+        \ == 'WARNING':\n    print(f'::notice::Memory WARNING ({lines} lines). Monitor\
+        \ and plan cleanup.')\n\"\n"
+    - name: Check documentation drift
+      if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+      timeout-minutes: 5
+      run: python governance_tools/doc_drift_checker.py --project-root . --format
+        human
