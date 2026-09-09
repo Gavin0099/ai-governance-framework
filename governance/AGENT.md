@@ -146,6 +146,8 @@ Review finding 產出後，依 finding 的改動性質決定是否可以立即�
 
 若省略某一步會遮蔽風險，就不能跳過。反過來，若 task 確實 bounded 且低風險，也不要硬把 ceremony 做滿。
 
+在進入正式 push、PR 或其他交付邊界前，先完成當下已知、必要且可在本地執行的直接相關驗證；需要 CI、部署或正式環境才能完成的驗證不在此限。
+
 ---
 
 ## 4. Continue / Escalate / Stop
