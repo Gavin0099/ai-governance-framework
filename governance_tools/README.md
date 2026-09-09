@@ -850,12 +850,14 @@ python governance_tools/notion_integrator.py --sync --database-id <DB_ID> --form
 
 ## CI 整合
 
-`.github/workflows/governance.yml` 和 `.gitlab-ci.yml` 已整合以下兩個自動檢查：
+GitHub Actions 與 GitLab CI 的 job 名稱分別如下：
 
-| Job | 工具 | 失敗條件 |
+| 平台 / Job | 工具 / Step | 失敗行為 |
 |-----|------|---------|
-| `plan-freshness` | plan_freshness.py | CRITICAL（擋 push） |
-| `memory-pressure` | memory_janitor.py | EMERGENCY（advisory，不擋） |
+| GitHub `plan-freshness` | plan_freshness.py | CRITICAL / ERROR 使 CI job 失敗；不是本地 pre-push 攔截 |
+| GitHub `governance-advisory` / `Governance Advisory Checks` | memory_janitor.py / `Check memory pressure`；doc_drift_checker.py / `Check documentation drift` | job-level advisory；保留各 step 結果，前項失敗仍執行後項，setup 失敗則兩項跳過 |
+| GitLab `plan-freshness` | plan_freshness.py | 依 `.gitlab-ci.yml` 的既有失敗條件 |
+| GitLab `memory-pressure` | memory_janitor.py | 維持既有 advisory 行為 |
 
 ---
 

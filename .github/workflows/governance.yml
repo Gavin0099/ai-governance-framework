@@ -274,19 +274,23 @@ jobs:
           path: artifacts/enumd-observe-probe/
           if-no-files-found: warn
 
-  memory-pressure:
-    name: Memory Pressure
+  governance-advisory:
+    name: Governance Advisory Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: '3.11'
 
       - name: Check memory pressure
+        # Keep both results after a check failure, but respect cancellation/setup failure.
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
         run: |
           if [ ! -d "memory" ]; then
             echo "memory/ not found, skipping pressure check"
@@ -309,19 +313,10 @@ jobs:
               print(f'::notice::Memory WARNING ({lines} lines). Monitor and plan cleanup.')
           "
 
-  doc-drift:
-    name: Documentation Drift
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Check documentation drift
+        # Keep both results after a check failure, but respect cancellation/setup failure.
+        if: ${{ !cancelled() && steps.setup-python.outcome == 'success' }}
+        timeout-minutes: 5
         run: python governance_tools/doc_drift_checker.py --project-root . --format human
 
   runtime-enforcement:

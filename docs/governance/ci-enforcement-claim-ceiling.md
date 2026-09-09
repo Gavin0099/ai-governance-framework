@@ -32,8 +32,10 @@ Current push-visible jobs include:
   `governance_tools.ci_memory_workflow_check` over the event's base/head range.
 - `plan-freshness` / `PLAN.md Freshness`, which exits non-zero only for
   `CRITICAL` or `ERROR` plan freshness and emits warnings for `STALE`.
-- `memory-pressure` / `Memory Pressure`, marked `continue-on-error: true`.
-- `doc-drift` / `Documentation Drift`, marked `continue-on-error: true`.
+- `governance-advisory` / `Governance Advisory Checks`, marked job-level
+  `continue-on-error: true`. Its separate `Check memory pressure` and
+  `Check documentation drift` steps retain individual results; a check failure
+  does not skip the other check, while setup failure skips both.
 - `interception-ledger-check` / `Interception Ledger Check`, run with
   `--warn-only`.
 

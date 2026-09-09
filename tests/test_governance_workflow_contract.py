@@ -165,3 +165,21 @@ def test_main_push_runs_non_required_canonical_drift_audit() -> None:
         "python governance_tools/governance_drift_checker.py "
         "--repo . --framework-root . --format human"
     ) in job_section
+
+
+def test_advisory_job_preserves_failure_visibility_and_setup_policy() -> None:
+    import yaml
+
+    jobs = yaml.safe_load(_workflow_text())["jobs"]
+    job = jobs["governance-advisory"]
+    assert "memory-pressure" not in jobs and "doc-drift" not in jobs
+    assert job["continue-on-error"] is True
+    setup = next(s for s in job["steps"] if s.get("id") == "setup-python")
+    assert setup["uses"] == "actions/setup-python@v5"
+    checks = [s for s in job["steps"] if "run" in s]
+    assert [s["name"] for s in checks] == ["Check memory pressure", "Check documentation drift"]
+    for step in checks:
+        assert step["if"] == "${{ !cancelled() && steps.setup-python.outcome == 'success' }}"
+        assert not step.get("continue-on-error", False)  # Keep failures visible in the step log.
+        assert step["timeout-minutes"] == 5
+    assert job["timeout-minutes"] > sum(s["timeout-minutes"] for s in checks)
