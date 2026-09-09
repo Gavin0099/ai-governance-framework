@@ -139,3 +139,5 @@ remains outside the Gate 3 critical path and outside this slice.
 - M3-b-2A merged by PR #108 at a59b0aef; status reconciliation is isolated, and M3-b-2B remains not started. <!-- memory_record_projection:active-task-summary:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
 
 - C1 Gate 1 admission passed and D5 was merged by PR #120 at 3351584a; randomization and A/B/C/D arms remain unauthorized and unstarted. <!-- memory_record_projection:active-task-summary:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->
+
+- Advisory Skill selection adoption documentation prepared; routing unchanged. See docs/governance/advisory-skill-selection-adoption-20260909.md. PR delivery in progress; final-head merge authority pending. <!-- memory_record_projection:active-task-summary:e3e590f863c43f831722daac3cfdd003b3be0cfb499e0026b044fb6a4f6d9fe1 -->
