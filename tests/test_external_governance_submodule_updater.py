@@ -2351,3 +2351,50 @@ def test_refresh_keeps_one_router_on_a_real_consumer_shape(tmp_path: Path) -> No
     assert read() == settled
     assert settled.count("agent-contract BEGIN") == 1
     assert "## Repo-Specific Risk Levels" in settled
+
+
+@pytest.mark.parametrize("relative", ["external", "docs", ".git"])
+@pytest.mark.parametrize("dry_run", [True, False])
+def test_nested_repo_argument_rejected_before_any_mutation(tmp_path: Path, relative: str, dry_run: bool) -> None:
+    import hashlib
+
+    consumer, _framework, _, _ = _make_fixture(tmp_path, submodule_path="external/ai-governance-framework")
+    (consumer / "docs").mkdir()
+    if relative == "docs":
+        (consumer / "keep.txt").write_text("staged content", encoding="utf-8")
+        _git(consumer, "add", "keep.txt")
+        (consumer / "keep.txt").write_text("unstaged content", encoding="utf-8")
+
+    def snapshot():
+        # Includes HEAD/refs/index, nested checkout/gitlink, receipt/lock/evidence
+        # and the remote fixture: even a fetch must not happen on rejection.
+        return {
+            str(p.relative_to(tmp_path)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in tmp_path.rglob("*") if p.is_file()
+        }
+
+    before = snapshot()
+    result = update_governance_submodule(repo=consumer / relative, dry_run=dry_run, stage=True)
+    assert not result.ok
+    assert snapshot() == before
+    assert any("Git top-level" in error for error in result.errors)
+    assert result.update_receipt["status"] == "not_written"
+
+
+def test_exact_git_toplevel_accepts_real_roots(tmp_path: Path) -> None:
+    consumer, _, _, _ = _make_fixture(tmp_path, submodule_path="external/ai-governance-framework")
+    worktree = tmp_path / "linked-worktree"
+    _git(consumer, "worktree", "add", "--detach", str(worktree), "HEAD")
+    for root in [consumer, worktree, consumer / "external/ai-governance-framework"]:
+        updater_module._require_exact_git_toplevel(root)
+
+
+def test_exact_git_toplevel_accepts_root_symlink(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    _init_repo(consumer)
+    link = tmp_path / "root-link"
+    try:
+        link.symlink_to(consumer, target_is_directory=True)
+    except OSError:
+        pytest.skip("Root symlink creation unavailable on this host")
+    updater_module._require_exact_git_toplevel(link)

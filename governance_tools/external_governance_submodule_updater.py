@@ -1533,6 +1533,25 @@ def _refresh_stage_report_after_commit(
     report["final_status"] = _final_full_update_status(report)
 
 
+def _require_exact_git_toplevel(repo: Path) -> None:
+    """Reject interior paths without guessing or changing the intended target."""
+    requested = repo.resolve()
+    result = _run_git(
+        requested, ["rev-parse", "--show-toplevel"], check=False, preserve_stdout=True
+    )
+    if result.returncode != 0 or not result.stdout:
+        raise SubmoduleUpdateError(
+            f"--repo must be an exact Git top-level: requested={requested}; "
+            f"Git could not resolve a work-tree root: {result.stderr}"
+        )
+    actual = Path(result.stdout.removesuffix("\n")).resolve()
+    if requested != actual:
+        raise SubmoduleUpdateError(
+            f"--repo must be an exact Git top-level: requested={requested}; "
+            f"actual_git_root={actual}; refusing to auto-correct the target"
+        )
+
+
 def update_governance_submodule(
     *,
     repo: Path,
@@ -1570,7 +1589,7 @@ def update_governance_submodule(
     )
 
     try:
-        _run_git(repo, ["rev-parse", "--is-inside-work-tree"])
+        _require_exact_git_toplevel(repo)
         submodule_path = _resolve_submodule_path(repo, submodule_path)
         submodule_repo = (repo / submodule_path).resolve()
         _require_initialized_git_checkout(submodule_repo)
