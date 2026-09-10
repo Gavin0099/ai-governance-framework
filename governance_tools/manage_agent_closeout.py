@@ -51,6 +51,8 @@ from __future__ import annotations
 
 import abc
 import argparse
+import base64
+import binascii
 import json
 import sys
 from pathlib import Path
@@ -742,14 +744,24 @@ class CodexCLIAdapter(AgentAdapter):
     def _is_current_hook(cls, hook: Any) -> bool:
         if not cls._is_governance_hook(hook):
             return False
+        prefix = "powershell -NoProfile -EncodedCommand "
+        windows_command = str(hook.get("commandWindows", ""))
+        if not windows_command.startswith(prefix):
+            return False
+        try:
+            windows_script = base64.b64decode(
+                windows_command[len(prefix):], validate=True
+            ).decode("utf-16-le")
+        except (ValueError, UnicodeError, binascii.Error):
+            return False
         required_tokens = (
             "--format json",
             "--agent-id codex",
             "--trigger-mode native_hook",
         )
         return all(
-            all(token in str(hook.get(field, "")) for token in required_tokens)
-            for field in ("command", "commandWindows")
+            all(token in command for token in required_tokens)
+            for command in (str(hook.get("command", "")), windows_script)
         )
 
     @staticmethod
@@ -764,17 +776,22 @@ class CodexCLIAdapter(AgentAdapter):
             f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
             f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
         )
-        windows_command = (
-            'powershell -NoProfile -Command "& { '
+        windows_entrypoint = entrypoint.as_posix().replace("'", "''")
+        windows_script = (
             '$repo = git rev-parse --show-toplevel; '
             "$candidates = @((Join-Path $repo '.venv-ci\\Scripts\\python.exe'), "
             "(Join-Path $repo '.venv\\Scripts\\python.exe')); "
             '$python = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1; '
             "if (-not $python) { $python = (Get-Command python -ErrorAction SilentlyContinue).Source }; "
             "if (-not $python) { Write-Error 'No Python interpreter found for Codex closeout'; exit 1 }; "
-            f"& $python '{entrypoint.as_posix()}' --project-root $repo --format json "
-            '--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE }"'
+            f"& $python '{windows_entrypoint}' --project-root $repo --format json "
+            '--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE'
         )
+        # Transport the literal script through the outer native-hook shell.
+        # Quoted -Command lets outer PowerShell expand our variables too early.
+        windows_command = "powershell -NoProfile -EncodedCommand " + base64.b64encode(
+            windows_script.encode("utf-16-le")
+        ).decode("ascii")
         return {
             "type": "command",
             "command": posix_command,
