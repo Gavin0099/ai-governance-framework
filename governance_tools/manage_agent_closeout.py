@@ -54,6 +54,7 @@ import argparse
 import base64
 import binascii
 import json
+import shlex
 import sys
 from pathlib import Path
 from typing import Any
@@ -273,58 +274,104 @@ class ClaudeAdapter(AgentAdapter):
             "evidence": ".claude/ directory present" if has_dir else "no .claude/ directory",
         }
 
+    @staticmethod
+    def _command(project_root: Path, framework_root: Path) -> str:
+        # Claude Stop exit 2 requests another agent turn. Ordinary closeout
+        # failures must remain visible without acquiring that control authority.
+        argv = [str((framework_root.resolve() / "governance_tools" /
+                     "session_closeout_entry.py").as_posix()),
+                "--project-root", project_root.resolve().as_posix(),
+                "--format", "json", "--agent-id", "claude",
+                "--trigger-mode", "native_hook"]
+        script = "\n".join([
+            "# governance:claude-closeout-v1",
+            "import json, subprocess, sys",
+            f"p = subprocess.run([sys.executable] + {argv!r}, input=sys.stdin.buffer.read(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)",
+            "sys.stderr.buffer.write(p.stderr)",
+            "sys.stderr.buffer.write(p.stdout)",
+            "try:",
+            "    result = json.loads(p.stdout)",
+            "except (ValueError, UnicodeError):",
+            "    result = None",
+            "ok = p.returncode == 0 and isinstance(result, dict) and result.get('ok') is True",
+            "if not ok:",
+            "    sys.stderr.write('\\nGovernance closeout failed (child exit %s); Claude may stop.\\n' % p.returncode)",
+            "sys.exit(0 if ok else 1)",
+        ])
+        return "python -c " + shlex.quote(script)
+
+    @staticmethod
+    def _is_governance_hook(hook: Any) -> bool:
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        try:
+            tokens = shlex.split(hook.get("command", ""))
+        except (ValueError, TypeError):
+            return False
+        if len(tokens) < 2 or tokens[0] not in ("python", "python3"):
+            return False
+        if len(tokens) == 3 and tokens[1] == "-c":
+            return tokens[2].startswith("# governance:claude-closeout-v1\n")
+        return tokens[1].replace("\\", "/").endswith(
+            "/governance_tools/session_closeout_entry.py")
+
+    def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
+        expected = self._command(project_root, framework_root)
+        found = []
+        for path in (project_root / ".claude/settings.json",
+                     project_root / ".claude/settings.local.json",
+                     Path.home() / ".claude/settings.json"):
+            for group in _read_json(path).get("hooks", {}).get("Stop", []):
+                if not isinstance(group, dict):
+                    continue
+                for hook in group.get("hooks", []):
+                    if self._is_governance_hook(hook):
+                        current = (hook.get("command") == expected
+                                   and not hook.get("async", False)
+                                   and not hook.get("if") and not group.get("matcher"))
+                        found.append((current, str(path)))
+        if len(found) == 1 and found[0][0]:
+            return "CORRECTLY_INSTALLED", found[0][1]
+        if found:
+            return "STALE_OR_WRONG_BINDING", found[0][1]
+        return "NOT_INSTALLED", None
+
     def _find_installed(self, project_root: Path, framework_root: Path) -> tuple[bool, str | None]:
-        candidates = [
-            project_root / ".claude" / "settings.json",
-            project_root / ".claude" / "settings.local.json",
-            Path.home() / ".claude" / "settings.json",
-        ]
-        for p in candidates:
-            data = _read_json(p)
-            for group in data.get("hooks", {}).get("Stop", []):
-                for h in (group.get("hooks", []) if isinstance(group, dict) else []):
-                    if "session_closeout_entry" in h.get("command", ""):
-                        return True, str(p)
-        return False, None
+        state, location = self._binding_state(project_root, framework_root)
+        return state == "CORRECTLY_INSTALLED", location
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        installed, loc = self._find_installed(project_root, framework_root)
-        if installed:
-            return {
-                "status": "already_installed",
-                "location": loc,
-                "message": "Governance stop hook already present.",
-            }
-        settings_path = project_root / ".claude" / "settings.json"
+        state, loc = self._binding_state(project_root, framework_root)
+        if state == "CORRECTLY_INSTALLED":
+            return {"status": "already_installed", "location": loc,
+                    "message": "Governance Stop hook matches the requested binding."}
+        settings_path = project_root / ".claude/settings.json"
+        for path in (project_root / ".claude/settings.local.json",
+                     Path.home() / ".claude/settings.json"):
+            for group in _read_json(path).get("hooks", {}).get("Stop", []):
+                if isinstance(group, dict) and any(self._is_governance_hook(h)
+                                                  for h in group.get("hooks", [])):
+                    return {"status": "blocked", "location": str(path),
+                            "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
         data = _read_json(settings_path)
-        data.setdefault("hooks", {}).setdefault("Stop", [{"hooks": []}])
-        if not data["hooks"]["Stop"]:
-            data["hooks"]["Stop"] = [{"hooks": []}]
-        if "hooks" not in data["hooks"]["Stop"][0]:
-            data["hooks"]["Stop"][0]["hooks"] = []
-        data["hooks"]["Stop"][0]["hooks"].append({
-            "type": "command",
-            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root),
-            "statusMessage": "Running governance session closeout...",
-        })
+        groups = data.setdefault("hooks", {}).setdefault("Stop", [])
+        for group in groups:
+            if isinstance(group, dict):
+                group["hooks"] = [h for h in group.get("hooks", [])
+                                  if not self._is_governance_hook(h)]
+        groups.append({"hooks": [{"type": "command",
+                                  "command": self._command(project_root, framework_root),
+                                  "statusMessage": "Running governance session closeout..."}]})
         _write_json(settings_path, data)
-        return {
-            "status": "installed",
-            "location": str(settings_path),
-            "message": f"Governance Stop hook added to {settings_path}.",
-        }
+        return {"status": "installed", "previous_binding_state": state,
+                "location": str(settings_path),
+                "message": "Governance Stop hook installed with explicit binding and non-blocking error reporting."}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        installed, loc = self._find_installed(project_root, framework_root)
-        return {
-            "installed": installed,
-            "manual_only": False,
-            "location": loc,
-            "note": (
-                f"Stop hook found in {Path(loc).name}" if installed
-                else "No governance stop hook found in .claude/settings.json or ~/.claude/settings.json"
-            ),
-        }
+        state, loc = self._binding_state(project_root, framework_root)
+        return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
+                "binding_state": state, "location": loc,
+                "note": "Configuration binding only; native execution is not verified."}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude" / "settings.json"
