@@ -39,6 +39,17 @@ class MemoryJanitor:
     HOT_MEMORY_HARD_SIZE_LIMIT = 10000
     HOT_MEMORY_CRITICAL_SIZE_LIMIT = 12000
 
+    EMERGENCY_SCOPE_GUIDANCE = (
+        "停止依賴或擴張 active-task memory 的工作；停止增加 active memory。"
+        "僅當事先固定目標、mutation scope、驗收條件，且不依賴或修改 memory、"
+        "不需要 memory writer／closeout round-trip，且本次操作不需要新的產品／硬體決策，"
+        "並保留 authorization／dirty／identity／validation guards 時，"
+        "已授權的 bounded maintenance 才可繼續。"
+        "若仍需新的產品／硬體決策，即使依據來自其他資訊，仍須 STOP，不適用此例外。"
+        "任一條件未知或失效即停止；適用性依 governance/SYSTEM_PROMPT.md §7.4，"
+        "本提示不授權執行或降低 pressure；不新增 completion／commit／push 權限。"
+    )
+
     UNSAFE_CLEANUP_MESSAGE = (
         "自動掃除已 fail closed：目前路徑無法證明 verified archive 與 "
         "replacement-state cutover，active memory 未修改。請另行授權並驗證 "
@@ -84,7 +95,8 @@ class MemoryJanitor:
         if status == "EMERGENCY":
             return (
                 f"🚨 **熱記憶緊急超限** ({line_count}/200 行, {char_count}/10000 字元) - "
-                "停止增加 active memory；自動掃除已 fail closed，需另行驗證 "
+                + self.EMERGENCY_SCOPE_GUIDANCE
+                + "自動掃除已 fail closed，需另行驗證 "
                 "archive + replacement-state cutover"
             )
         elif status == "CRITICAL":
@@ -183,7 +195,8 @@ class MemoryJanitor:
 """
         if status == "EMERGENCY":
             report += (
-                "**停止增加 active memory**；自動掃除已 fail closed，"
+                self.EMERGENCY_SCOPE_GUIDANCE
+                + "自動掃除已 fail closed，"
                 "需另行驗證 archive + replacement-state cutover\n"
             )
         elif status == "CRITICAL":
