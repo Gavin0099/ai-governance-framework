@@ -913,6 +913,8 @@ def run_f7_full_update(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
         )
+        if stages.get("hook_validator_enforcement") == BLOCKED:
+            final_status = BLOCKED
         changed_files = list(result.staged_files) + surface_changed
         if result.update_receipt.get("status") == "written":
             changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))

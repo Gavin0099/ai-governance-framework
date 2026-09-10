@@ -31,6 +31,7 @@ from governance_tools.external_tree_inventory_guard import (
     IdentityConfigError,
     load_repository_identity_values,
 )
+from governance_tools.self_smoke_capability_reader import read_self_smoke_capability
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -45,6 +46,38 @@ REQUIRED_FRAMEWORK_FILES = [
     "governance_tools/plan_freshness.py",
     "governance_tools/contract_validator.py",
 ]
+
+
+def validate_self_smoke_dependency(framework_root: Path) -> tuple[dict[str, bool], list[str]]:
+    """Check the target's declared dependency for a default self-smoke install.
+
+    Call only for installations deploying that hook, not Copilot/identity-only
+    modes. Read target bytes equally for Git and plain-directory deployments.
+    This checks installation inputs, never runtime execution or contract validity.
+    """
+    field = "default_self_smoke_contract_dependency"
+    manifest = framework_root / ".governance/version_manifest.yaml"
+    value = read_self_smoke_capability(framework_root)
+    declared = value != "UNKNOWN"
+    checks = {"self_smoke_dependency_declared": declared}
+    if not declared:
+        return checks, [
+            f"Self-smoke hook installation incomplete: UNKNOWN {field} in {manifest}; "
+            "dependency applicability is not verified"
+        ]
+    if value == "not_applicable":
+        return checks, []
+    contract = framework_root / "contract.yaml"
+    try:
+        if not contract.is_file():
+            raise OSError("not a worktree file")
+        with contract.open("rb") as stream:
+            stream.read(1)
+    except OSError:
+        checks["framework_file:contract.yaml"] = False
+        return checks, [f"Self-smoke hook installation incomplete: missing or unreadable runtime dependency: {contract}"]
+    checks["framework_file:contract.yaml"] = True
+    return checks, []
 
 
 @dataclass
@@ -444,6 +477,11 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
                     errors.append(f"framework root missing required file: {resolved_framework_root / relpath}")
     else:
         checks["framework_root_exists"] = False
+
+    if resolved_framework_root is not None and checks.get("pre_push_installed"):
+        dependency_checks, dependency_errors = validate_self_smoke_dependency(resolved_framework_root)
+        checks.update(dependency_checks)
+        errors.extend(dependency_errors)
 
     _check_copilot_instructions_projection(
         copilot_instructions,

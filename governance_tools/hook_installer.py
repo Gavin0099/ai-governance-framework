@@ -787,6 +787,12 @@ def install_governance_hooks(
             errors=errors,
         )
 
+    # Full and hooks-only installs deploy the default self-smoke pre-push.
+    # Do not promote optional validator findings or block non-hook modes.
+    from governance_tools.hook_install_validator import validate_self_smoke_dependency
+
+    _, dependency_errors = validate_self_smoke_dependency(framework_root)
+    errors.extend(dependency_errors)
     return HookInstallApplyResult(
         ok=not errors,
         repo_root=str(repo_root),

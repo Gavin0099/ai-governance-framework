@@ -95,6 +95,11 @@ def _make_consumer(
         "echo SYNTHETIC_PRE_PUSH_RUNTIME_REACHED\n"
         f"exit {runtime_exit}\n",
     )
+    # This synthetic runtime only returns runtime_exit; it never reads a contract.
+    _write(
+        framework / ".governance" / "version_manifest.yaml",
+        "default_self_smoke_contract_dependency: not_applicable\n",
+    )
     _write(
         framework / "governance_tools" / "external_tree_inventory_guard.py",
         (REPO_ROOT / "governance_tools" / "external_tree_inventory_guard.py").read_text(
