@@ -50,6 +50,7 @@ def _init_repo(repo: Path) -> None:
 
 def _make_framework(root: Path) -> None:
     _init_repo(root)
+    _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
     _write(root / "README.md", "[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)]\n")
     _write(
         root / "scripts" / "hooks" / "pre-commit",
@@ -519,7 +520,7 @@ def test_f7_submodule_backend_downgrades_completed_when_lock_consistency_is_inco
         "\tpath = ai-governance-framework\n"
         "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
     )
-    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+    _make_framework(repo / "ai-governance-framework")
 
     import governance_tools.f7_full_update as f7
 

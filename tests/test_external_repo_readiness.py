@@ -32,6 +32,7 @@ def _write(path: Path, text: str) -> None:
 
 
 def _make_framework(framework_root: Path) -> None:
+    _write(framework_root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
     _write(framework_root / "scripts/lib/python.sh", "")
     _write(framework_root / "scripts/run-runtime-governance.sh", "")
     _write(framework_root / "governance_tools/plan_freshness.py", "")

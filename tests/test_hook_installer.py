@@ -59,6 +59,8 @@ def install_governance_hooks(
 
 
 def _make_framework(root: Path) -> None:
+    # This fixture's stub pre-push does not run default self-smoke.
+    _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
     _write(root / "scripts" / "hooks" / "pre-commit", "#!/usr/bin/env bash\n# AI Governance Framework\n")
     _write(root / "scripts" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
     _write(root / "scripts/lib/python.sh", "")
@@ -85,6 +87,8 @@ def _make_framework(root: Path) -> None:
 
 def _make_push_framework(root: Path) -> None:
     """Minimal framework whose real pre-push guard can run in a consumer fixture."""
+    # The wrapper below is a stub, not the A1 default smoke implementation.
+    _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
 
     _write(root / "scripts" / "hooks" / "pre-commit", "#!/bin/bash\n# AI Governance Framework\n")
     (root / "scripts" / "hooks").mkdir(parents=True, exist_ok=True)

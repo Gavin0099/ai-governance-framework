@@ -59,6 +59,9 @@ def _reset_fixture(name: str) -> Path:
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
+    # Synthetic hooks below do not execute default self-smoke.
+    _write(path / "framework/.governance/version_manifest.yaml",
+           "default_self_smoke_contract_dependency: not_applicable\n")
     _write_identity_config(path / "target")
     return path
 
@@ -686,6 +689,8 @@ def test_validate_hook_install_resolves_common_hooks_for_linked_worktree(tmp_pat
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
     _write_identity_config(linked_worktree)
+    _write(framework_root / ".governance/version_manifest.yaml",
+           "default_self_smoke_contract_dependency: not_applicable\n")
     _write(framework_root / "scripts/lib/python.sh", "")
     _write(framework_root / "scripts/run-runtime-governance.sh", "")
     _write(framework_root / "governance_tools/plan_freshness.py", "")
