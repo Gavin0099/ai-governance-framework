@@ -151,7 +151,7 @@ replace risk-matched test evidence.
 1. 檢查 `memory/01_active_task.md` 的 line count
 2. 依第 7.4 節套用 pressure handling
 3. 若狀態是 **WARNING** 或更高，必要時附帶 warning message
-4. 若是 **EMERGENCY**，先 **STOP** 並清 memory
+4. 若是 **EMERGENCY**，先 **STOP** 依賴或擴張 active-task memory 的工作；僅可依 §7.4 的全部條件繼續 bounded maintenance
 
 ### 2.8 Governance Contract Output
 
@@ -409,7 +409,22 @@ SCOPE = ...
 | SAFE | 0-179 lines and <8000 chars | 正常繼續 |
 | WARNING | 180-199 lines or 8000+ chars | 警告，並避免低訊號更新 |
 | CRITICAL | 200-249 lines or 10000+ chars | 暫停擴張，安排或執行 memory cleanup；不要誤報為 EMERGENCY |
-| EMERGENCY | 250+ lines or 12000+ chars | 先 stop，清 memory 後再繼續 |
+| EMERGENCY | 250+ lines or 12000+ chars | 停止依賴或擴張 active-task memory 的工作；bounded maintenance 僅依下列條件判斷 |
+
+EMERGENCY 保護 context 品質與安全的 task continuation，不是所有 repo mutation 的全域禁止。
+開新功能、重新規劃產品、根據 active-task memory 做新決策或繼續增加 active memory，仍須停止。
+
+僅當以下條件**全部成立**，已授權的 bounded maintenance 才可繼續：
+- 操作目標、mutation scope 與驗收條件已事先固定，且依據可追溯至當前授權與獨立證據。
+- 不依賴高壓 active-task memory 推導操作；必要狀態已獨立核對。
+- 本次操作不需要新的產品／硬體決策；即使決策依據來自其他資訊，仍須 STOP，不適用此例外。
+- 不修改 memory，也不以完整 memory writer／closeout round-trip 作為本次操作的必要步驟。
+- authorization、dirty-state、target／identity、validation guards 全部保持有效；不得以 pressure 例外略過任何 guard。
+- 任一條件未知、失效或需要擴張範圍時，停止該操作並回報，不自行新增例外。
+
+這項判斷不降低 pressure 分級，不宣稱 memory 健康，也不授權 cleanup。
+恢復依賴 active-task memory 的工作前，仍須另行授權並驗證 archive + replacement-state cutover，
+重新量測 pressure；不得直接使用已 fail-closed 的舊自動 cleanup 路徑。
 
 ---
 

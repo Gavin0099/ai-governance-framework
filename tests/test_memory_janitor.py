@@ -118,10 +118,49 @@ class TestCheckHotMemoryStatus:
         assert 10_000 <= char_count < 12_000
         assert status == "CRITICAL"
 
+    @pytest.mark.parametrize("chars,expected", [(11999, "CRITICAL"), (12000, "EMERGENCY")])
+    def test_character_emergency_boundary_is_unchanged(self, janitor, chars, expected):
+        janitor.active_task_file.write_text("x" * chars, encoding="utf-8")
+        assert janitor.check_hot_memory_status() == (1, chars, expected)
+
 
 # ── B. generate_warning_message ───────────────────────────────────────────
 
 class TestGenerateWarningMessage:
+    @pytest.mark.parametrize("surface", ["warning", "plan"])
+    def test_emergency_guidance_bounds_maintenance_without_authorizing_it(self, janitor, surface):
+        janitor.active_task_file.write_text("x" * 12000, encoding="utf-8")
+        before = janitor.active_task_file.read_bytes()
+        report = (janitor.generate_warning_message(1, 12000, "EMERGENCY")
+                  if surface == "warning" else janitor.create_archive_plan())
+        # Output is guidance, not an executable permission decision. Each safety
+        # condition must survive in both human-facing output paths.
+        for condition in (
+            "停止依賴或擴張 active-task memory", "停止增加 active memory",
+            "事先固定目標", "mutation scope", "驗收條件", "不依賴或修改 memory",
+            "不需要 memory writer／closeout round-trip",
+            "且本次操作不需要新的產品／硬體決策",
+            "authorization／dirty／identity／validation guards",
+            "已授權", "任一條件未知或失效即停止", "本提示不授權執行或降低 pressure",
+            "不新增 completion／commit／push 權限",
+            "governance/SYSTEM_PROMPT.md §7.4", "archive + replacement-state cutover",
+        ):
+            assert condition in report
+        assert janitor.active_task_file.read_bytes() == before
+        assert janitor.check_hot_memory_status() == (1, 12000, "EMERGENCY")
+
+    @pytest.mark.parametrize("surface", ["warning", "plan"])
+    def test_case_c_other_information_does_not_exempt_product_decisions(self, janitor, surface):
+        janitor.active_task_file.write_text("x" * 12000, encoding="utf-8")
+        report = (janitor.generate_warning_message(1, 12000, "EMERGENCY")
+                  if surface == "warning" else janitor.create_archive_plan())
+        # A fixed maintenance target without memory dependency is insufficient
+        # when a new product/hardware decision is still needed. This verifies
+        # the communicated rule, not an automated task-permission classifier.
+        assert "若仍需新的產品／硬體決策，即使依據來自其他資訊，仍須 STOP，不適用此例外" in report
+        rule = (Path(__file__).resolve().parents[1] / "governance/SYSTEM_PROMPT.md").read_text(encoding="utf-8")
+        assert "\n- 本次操作不需要新的產品／硬體決策；即使決策依據來自其他資訊，仍須 STOP，不適用此例外。" in rule
+
     def test_safe_returns_empty(self, janitor):
         assert janitor.generate_warning_message(50, 50, "SAFE") == ""
 
