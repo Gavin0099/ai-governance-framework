@@ -514,8 +514,35 @@ def format_human(result: HookInstallResult) -> str:
         f"hook_dir           = {result.hook_dir}",
         f"framework_root     = {result.framework_root or '<missing>'}",
         "",
-        "[checks]",
+        "[Copilot configuration format / Copilot 配置格式]",
     ]
+    # Describe only existing format evidence. This renderer does not resolve
+    # framework bindings or infer installation/runtime success from markers.
+    for label, prefix in (
+        ("Copilot VS Code", "copilot_vscode_hooks"),
+        ("Copilot CLI/cloud", "copilot_session_end_hooks"),
+    ):
+        present = result.checks.get(f"{prefix}_present")
+        governed = result.checks.get(f"{prefix}_governed")
+        if present is False:
+            status = "NOT_PRESENT（配置不存在）"
+        elif present is True and governed is True:
+            status = "GOVERNED（符合既有配置格式）"
+        elif present is True and governed is False:
+            status = "NOT_GOVERNED（不符合既有配置格式）"
+        else:
+            status = "NOT_EVALUATED（未評估）"
+        lines.extend([
+            f"{label} configuration format = {status}",
+            f"{label} framework binding = NOT_VERIFIED_BY_THIS_CHECK（此檢查未驗證綁定）",
+            f"{label} runtime = NOT_EVALUATED_BY_THIS_CHECK（此檢查未評估實際執行）",
+        ])
+    lines.extend([
+        "配置格式符合不代表安裝完整、framework 綁定正確或 runtime 已驗證。",
+        "總體 copilot_lifecycle_installed 保留原判斷；請分別查看兩種配置的格式狀態。",
+        "",
+        "[checks]",
+    ])
     for key in sorted(result.checks):
         lines.append(f"{key:<32} = {result.checks[key]}")
 
