@@ -469,6 +469,7 @@ def _apply_copilot_lifecycle_files(
     installed: list[str],
     changed: list[str],
     backups: list[str],
+    vscode_payloads: dict[Path, bytes] | None = None,
 ) -> None:
     """Install the managed lifecycle bridge and its two hook configs.
 
@@ -484,11 +485,13 @@ def _apply_copilot_lifecycle_files(
     manifest = _read_managed_manifest(repo_root)
     wrote_any = False
     for source_rel, target_rel, _marker in COPILOT_LIFECYCLE_FILES:
+        if vscode_payloads is not None and target_rel not in vscode_payloads:
+            continue
         source = framework_root / source_rel
         if not source.is_file():
             continue
         target = repo_root / target_rel
-        payload = source.read_bytes()
+        payload = source.read_bytes() if vscode_payloads is None else vscode_payloads[target_rel]
         payload_digest = _content_digest(payload.decode("utf-8", errors="replace"))
         key = target_rel.as_posix()
 
@@ -607,6 +610,57 @@ def _apply_copilot_surface(
         errors=errors,
     )
     return mode
+
+
+def install_copilot_vscode_lifecycle(
+    repo_root: Path,
+    framework_root: Path,
+) -> HookInstallApplyResult:
+    """Deploy only the existing Stop bridge/config, bound to the supplied target.
+
+    SessionStart is not needed to reach the closeout core. Missing envelopes
+    remain core diagnostics; this entrypoint does not create or repair them.
+    Legacy CLI/cloud hooks and all instruction surfaces are intentionally left
+    alone. The normal managed-file backup and digest behavior is reused.
+    """
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+    result = HookInstallApplyResult(
+        ok=False, repo_root=str(repo_root), framework_root=str(framework_root)
+    )
+    try:
+        if not (repo_root / ".git").exists():
+            raise ValueError(f"not a git repo: {repo_root}")
+        # Prepare both files before any writes, including missing-source errors.
+        bridge_source, bridge_target, _ = COPILOT_LIFECYCLE_FILES[0]
+        config_source, config_target, _ = COPILOT_LIFECYCLE_FILES[1]
+        bridge = (framework_root / bridge_source).read_bytes()
+        config = json.loads((framework_root / config_source).read_text(encoding="utf-8"))
+        hooks = config.get("hooks", {})
+        if set(hooks) != {"Stop"} or not isinstance(hooks["Stop"], list) or not hooks["Stop"]:
+            raise ValueError("VS Code-only deployment requires the existing Stop-only template")
+        for entry in hooks["Stop"]:
+            if not isinstance(entry, dict) or entry.get("type") != "command":
+                raise ValueError("invalid VS Code Stop command entry")
+            # The bridge already resolves this variable first. A per-hook env
+            # binding overrides stale ambient/global Git hook configuration.
+            entry.setdefault("env", {})["AI_GOVERNANCE_FRAMEWORK_ROOT"] = str(framework_root)
+            entry["cwd"] = str(repo_root)
+        payloads = {
+            bridge_target: bridge,
+            config_target: (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+        }
+        _apply_copilot_lifecycle_files(
+            repo_root, framework_root,
+            installed=result.installed_files,
+            changed=result.changed_files,
+            backups=result.backups,
+            vscode_payloads=payloads,
+        )
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        result.errors.append(str(exc))
+    result.ok = not result.errors
+    return result
 
 
 def install_copilot_surface(
@@ -838,6 +892,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Install the managed Copilot surface (instructions plus lifecycle); do not touch git hooks.",
     )
+    parser.add_argument(
+        "--copilot-vscode-only", action="store_true",
+        help="Install only the VS Code Stop lifecycle bridge, bound config, and managed manifest.",
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
 
@@ -846,16 +904,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.identity_config_only,
         args.copilot_instructions_only,
         args.copilot_only,
+        args.copilot_vscode_only,
     ]
     if sum(1 for flag in exclusive if flag) > 1:
         parser.error(
-            "--hooks-only, --identity-config-only, --copilot-instructions-only and --copilot-only are mutually exclusive"
+            "--hooks-only, --identity-config-only, --copilot-instructions-only, --copilot-only and --copilot-vscode-only are mutually exclusive"
         )
 
-    if args.repository_ids and (args.copilot_only or args.copilot_instructions_only):
+    if args.repository_ids and (args.copilot_only or args.copilot_instructions_only or args.copilot_vscode_only):
         parser.error("--repository-id applies only to hook or identity-config installation")
 
-    if args.copilot_only:
+    if args.copilot_vscode_only:
+        result = install_copilot_vscode_lifecycle(args.repo, args.framework_root)
+    elif args.copilot_only:
         result = install_copilot_surface(args.repo, args.framework_root)
     elif args.copilot_instructions_only:
         result = install_copilot_instructions(args.repo, args.framework_root)
