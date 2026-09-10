@@ -146,13 +146,41 @@ if [ "$FAIL_COUNT" -gt 0 ]; then
     echo ""
 fi
 
+# Framework development worktrees smoke their own implementation. Consumers
+# continue to smoke the installed framework. Compare repository identity, not
+# filenames, remote names, or whether a directory looks like a framework.
+exact_root_common_dir() (
+    local root="$1" name top common
+    for name in $(git rev-parse --local-env-vars); do
+        unset "$name"
+    done
+    cd -- "$root" || return 1
+    root="$(pwd -P)"
+    top="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    [ "$(cd -- "$top" && pwd -P)" = "$root" ] || return 1
+    common="$(git rev-parse --git-common-dir 2>/dev/null)" || return 1
+    cd -- "$common" && pwd -P
+)
+
+SELF_SMOKE_ROOT="$FRAMEWORK_ROOT"
+if TARGET_COMMON_DIR="$(exact_root_common_dir "$TARGET_REPO_ROOT")" &&
+   FRAMEWORK_COMMON_DIR="$(exact_root_common_dir "$FRAMEWORK_ROOT")" &&
+   [ "$TARGET_COMMON_DIR" = "$FRAMEWORK_COMMON_DIR" ]; then
+    SELF_SMOKE_ROOT="$TARGET_REPO_ROOT"
+fi
+SELF_SMOKE_SCRIPT="$SELF_SMOKE_ROOT/scripts/run-runtime-governance.sh"
+if [ ! -f "$SELF_SMOKE_SCRIPT" ]; then
+    governance_error "missing selected self-smoke script: $SELF_SMOKE_SCRIPT"
+    exit 1
+fi
+
 echo "[governance] running runtime-governance enforcement before push"
 echo "[governance] runtime-governance smoke context: framework_self_smoke_advisory"
 echo "[governance]   framework_root=$FRAMEWORK_ROOT"
 echo "[governance]   target_repo_root=$TARGET_REPO_ROOT"
-echo "[governance]   smoke_project_root=$FRAMEWORK_ROOT"
-echo "[governance]   checked_plan_path=$FRAMEWORK_ROOT/PLAN.md"
-if ! (cd "$FRAMEWORK_ROOT" && /bin/bash "$RUNTIME_SCRIPT" --mode smoke); then
+echo "[governance]   smoke_project_root=$SELF_SMOKE_ROOT"
+echo "[governance]   checked_plan_path=$SELF_SMOKE_ROOT/PLAN.md"
+if ! (cd "$SELF_SMOKE_ROOT" && /bin/bash "$SELF_SMOKE_SCRIPT" --mode smoke); then
     echo ""
     echo "[governance] runtime-governance enforcement failed"
     echo "  fix the runtime governance failures before push"
