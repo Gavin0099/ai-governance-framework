@@ -62,6 +62,11 @@ def _make_framework_root(path: Path) -> Path:
 
 def _make_hook_valid_framework_root(path: Path) -> Path:
     _make_framework_root(path)
+    # Empty runtime and marker hooks below never execute default self-smoke.
+    _write(
+        path / ".governance" / "version_manifest.yaml",
+        "default_self_smoke_contract_dependency: not_applicable\n",
+    )
     _write(path / "scripts" / "lib" / "python.sh", "#!/usr/bin/env bash\n")
     _write(path / "scripts" / "run-runtime-governance.sh", "#!/usr/bin/env bash\n")
     _write(path / "governance_tools" / "plan_freshness.py", "# fixture\n")

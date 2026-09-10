@@ -38,12 +38,13 @@ def test_missing_and_unreadable_manifest_are_unknown(tmp_path, monkeypatch):
     manifest = framework / ".governance/version_manifest.yaml"
     manifest.write_text("[invalid yaml", encoding="utf-8")
     assert "UNKNOWN" in validate_self_smoke_dependency(framework)[1][0]
-    original = Path.read_text
+    manifest.write_text("default_self_smoke_contract_dependency: required\n", encoding="utf-8")
+    original = Path.read_bytes
     def unreadable(path, *args, **kwargs):
         if path == manifest:
             raise PermissionError("fixture")
         return original(path, *args, **kwargs)
-    monkeypatch.setattr(Path, "read_text", unreadable)
+    monkeypatch.setattr(Path, "read_bytes", unreadable)
     assert "UNKNOWN" in validate_self_smoke_dependency(framework)[1][0]
 
 
@@ -126,16 +127,41 @@ def test_unreadable_contract_does_not_pass_presence_check(tmp_path, monkeypatch)
     assert validate_self_smoke_dependency(framework)[0]["framework_file:contract.yaml"] is False
 
 
-def test_missing_yaml_parser_returns_unknown_without_breaking_import(tmp_path):
-    framework = target(tmp_path)
-    result = subprocess.run(
-        [sys.executable, "-S", "-c",
-         "from pathlib import Path; "
-         "from governance_tools.hook_install_validator import validate_self_smoke_dependency; "
-         "import sys; print(validate_self_smoke_dependency(Path(sys.argv[1])))",
-         str(framework)], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr
-    assert "UNKNOWN" in result.stdout
+@pytest.mark.parametrize("declaration,present,expected_ok,expected_error", [
+    ("required", True, True, None),
+    ("required", False, False, "runtime dependency"),
+    (None, True, False, "UNKNOWN"),
+    ("not_applicable", False, True, None),
+    ('"required"', True, False, "UNKNOWN"),
+    ("required\ndefault_self_smoke_contract_dependency: not_applicable", True, False, "UNKNOWN"),
+    ("required\nother_key: [unsupported]", True, False, "UNKNOWN"),
+])
+def test_actual_installer_cli_is_equivalent_without_yaml(
+    tmp_path, declaration, present, expected_ok, expected_error,
+):
+    framework = target(tmp_path, declaration)
+    if present:
+        _write(framework / "contract.yaml", "name: fixture\n")
+    results = []
+    for mode in ([], ["-S"]):
+        repo = tmp_path / ("normal" if not mode else "no_site_packages")
+        _init_repo(repo)
+        result = subprocess.run(
+            [sys.executable, *mode, "-m", "governance_tools.hook_installer",
+             "--repo", str(repo), "--framework-root", str(framework),
+             "--repository-id", "example.test/consumer", "--hooks-only", "--format", "json"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == (0 if expected_ok else 1), result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["ok"] is expected_ok
+        assert (repo / ".git/hooks/pre-push").is_file()
+        if expected_error:
+            assert any(expected_error in error for error in payload["errors"])
+        else:
+            assert payload["errors"] == []
+        results.append((payload["ok"], payload["errors"]))
+    assert results[0] == results[1]
 
 
 @pytest.mark.parametrize("declaration", [None, "required"])

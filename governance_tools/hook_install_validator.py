@@ -31,6 +31,7 @@ from governance_tools.external_tree_inventory_guard import (
     IdentityConfigError,
     load_repository_identity_values,
 )
+from governance_tools.self_smoke_capability_reader import read_self_smoke_capability
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -56,17 +57,8 @@ def validate_self_smoke_dependency(framework_root: Path) -> tuple[dict[str, bool
     """
     field = "default_self_smoke_contract_dependency"
     manifest = framework_root / ".governance/version_manifest.yaml"
-    try:
-        import yaml
-    except ImportError:
-        value = None
-    else:
-        try:
-            data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
-            value = data.get(field) if isinstance(data, dict) else None
-        except (OSError, UnicodeError, yaml.YAMLError):
-            value = None
-    declared = isinstance(value, str) and value in {"required", "not_applicable"}
+    value = read_self_smoke_capability(framework_root)
+    declared = value != "UNKNOWN"
     checks = {"self_smoke_dependency_declared": declared}
     if not declared:
         return checks, [
