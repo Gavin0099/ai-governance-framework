@@ -41,13 +41,19 @@ class MemoryJanitor:
 
     EMERGENCY_SCOPE_GUIDANCE = (
         "停止依賴或擴張 active-task memory 的工作；停止增加 active memory。"
-        "僅當事先固定目標、mutation scope、驗收條件，且不依賴或修改 memory、"
+        "僅當以下條件全部成立：事先固定目標、mutation scope、驗收條件，"
+        "且依據可追溯至當前授權與獨立證據；"
+        "不依賴高壓 active-task memory 推導操作，必要狀態已獨立核對；不修改 memory、"
         "不需要 memory writer／closeout round-trip，且本次操作不需要新的產品／硬體決策，"
-        "並保留 authorization／dirty／identity／validation guards 時，"
+        "並保留 authorization／dirty／identity／validation guards（含 target／identity），不得略過任何 guard 時，"
         "已授權的 bounded maintenance 才可繼續。"
         "若仍需新的產品／硬體決策，即使依據來自其他資訊，仍須 STOP，不適用此例外。"
-        "任一條件未知或失效即停止；適用性依 governance/SYSTEM_PROMPT.md §7.4，"
+        "任一條件未知或失效即停止；需要擴張範圍時也停止該操作並回報，不自行新增例外。"
+        "完整框架參考 governance/SYSTEM_PROMPT.md §7.4；"
         "本提示不授權執行或降低 pressure；不新增 completion／commit／push 權限。"
+        "不宣稱 memory 健康，也不授權 cleanup。恢復依賴 active-task memory 的工作前，"
+        "仍須另行授權並驗證 archive + replacement-state cutover，重新量測 pressure；"
+        "不得直接使用已 fail-closed 的舊自動 cleanup 路徑。"
     )
 
     UNSAFE_CLEANUP_MESSAGE = (

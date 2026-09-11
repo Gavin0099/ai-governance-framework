@@ -128,6 +128,45 @@ class TestCheckHotMemoryStatus:
 
 class TestGenerateWarningMessage:
     @pytest.mark.parametrize("surface", ["warning", "plan"])
+    def test_emergency_guidance_includes_evidence_and_scope_stop(self, janitor, surface):
+        janitor.active_task_file.write_text("x" * 12000, encoding="utf-8")
+        report = (janitor.generate_warning_message(1, 12000, "EMERGENCY")
+                  if surface == "warning" else janitor.create_archive_plan())
+        # Canonical §7.4 prerequisites must be in the output, not just a link.
+        for condition in (
+            "以下條件全部成立", "當前授權與獨立證據", "必要狀態已獨立核對",
+            "不依賴高壓 active-task memory 推導操作", "需要擴張範圍時",
+            "不得略過任何 guard", "不授權 cleanup",
+        ):
+            assert condition in report
+
+    def test_starter_emergency_guidance_is_self_contained(self, tmp_path):
+        root = Path(__file__).resolve().parents[1]
+        # Model a standalone Starter Pack: no full-framework reference available.
+        standalone = tmp_path / "SYSTEM_PROMPT.md"
+        standalone.write_bytes((root / "examples/starter-pack/SYSTEM_PROMPT.md").read_bytes())
+        assert not (tmp_path / "governance/SYSTEM_PROMPT.md").exists()
+        section = standalone.read_text(encoding="utf-8").split(
+            "### Check Memory Pressure", 1)[1].split("### Output Governance Contract", 1)[0]
+        assert "Stop until cleanup is done" not in section
+        # Explicit §7.4 obligations, rather than a permission classifier.
+        for condition in (
+            "only when **all** of the following hold",
+            "current authorization and independent evidence",
+            "necessary state has been independently checked",
+            "Do not derive the operation from overloaded active-task memory",
+            "No new product/hardware decisions", "stop even when",
+            "the decision basis comes from other information",
+            "Do not modify memory", "memory writer/closeout round-trip",
+            "authorization, dirty-state, target/identity, and validation guards",
+            "unknown, fails, or requires scope expansion", "stop the operation",
+            "does not lower pressure", "does not authorize cleanup",
+            "verified archive + replacement-state cutover", "remeasure pressure",
+            "no new execution, completion, commit, or push authority",
+        ):
+            assert condition in section
+
+    @pytest.mark.parametrize("surface", ["warning", "plan"])
     def test_emergency_guidance_bounds_maintenance_without_authorizing_it(self, janitor, surface):
         janitor.active_task_file.write_text("x" * 12000, encoding="utf-8")
         before = janitor.active_task_file.read_bytes()
@@ -137,7 +176,7 @@ class TestGenerateWarningMessage:
         # condition must survive in both human-facing output paths.
         for condition in (
             "停止依賴或擴張 active-task memory", "停止增加 active memory",
-            "事先固定目標", "mutation scope", "驗收條件", "不依賴或修改 memory",
+            "事先固定目標", "mutation scope", "驗收條件", "不修改 memory",
             "不需要 memory writer／closeout round-trip",
             "且本次操作不需要新的產品／硬體決策",
             "authorization／dirty／identity／validation guards",
