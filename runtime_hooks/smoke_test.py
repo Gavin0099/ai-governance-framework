@@ -58,6 +58,24 @@ DEFAULT_SHARED_EXAMPLES = {
 }
 
 
+def _environment_project_root(payload_file, project_root, plan_path, contract_file):
+    """Target bundled smoke at the env contract without overriding explicit inputs."""
+    if payload_file is not None or project_root is not None or contract_file is not None:
+        return project_root
+    env_contract = os.environ.get("AI_GOVERNANCE_CONTRACT", "").strip()
+    if env_contract:
+        path = Path(env_contract).expanduser().resolve()
+        if path.is_file():
+            if plan_path is not None:
+                # Freshness checks use project_root; an explicit PLAN wins over env.
+                return plan_path.resolve().parent
+            # Match --contract's existing same-directory PLAN condition.
+            # Leave contract resolution to the runtime so its source stays "env".
+            if (path.parent / "PLAN.md").exists():
+                return path.parent
+    return project_root
+
+
 @contextmanager
 def _self_smoke_project(*explicit_inputs):
     """Only bundled, untargeted smoke examples get a disposable governed project.
@@ -103,6 +121,7 @@ def run_smoke(
     response_file: Path | None = None,
     checks_file: Path | None = None,
 ) -> dict:
+    project_root = _environment_project_root(payload_file, project_root, plan_path, contract_file)
     with _self_smoke_project(
         payload_file, project_root, plan_path, contract_file, response_file, checks_file
     ) as fixture_root:
@@ -137,6 +156,7 @@ def run_shared_smoke(
     response_file: Path | None = None,
     checks_file: Path | None = None,
 ) -> dict:
+    project_root = _environment_project_root(payload_file, project_root, plan_path, contract_file)
     with _self_smoke_project(
         payload_file, project_root, plan_path, contract_file, response_file, checks_file
     ) as fixture_root:
