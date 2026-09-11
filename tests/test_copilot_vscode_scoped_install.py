@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from governance_tools import hook_installer as installer
+from governance_tools.hook_install_validator import _managed_copilot_hook_config
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +67,7 @@ def test_only_three_surfaces_and_preserves_legacy_and_instructions(targets):
     assert entry["command"] == "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"
     assert entry["timeout"] == 30
     assert entry["env"]["AI_GOVERNANCE_FRAMEWORK_ROOT"] == str(framework.resolve())
+    assert _managed_copilot_hook_config(repo / CONFIG, {"Stop": ("session_end", "auto")})
     assert (repo / BRIDGE).read_bytes() == (framework / "runtime_hooks/adapters/copilot/lifecycle.py").read_bytes()
 
 
@@ -132,6 +134,58 @@ def test_invalid_source_fails_before_deployment(targets, invalid):
     assert result.errors
     assert result.changed_files == []
     assert not (repo / ".github").exists()
+
+
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize("invalid", [
+    "missing_version", "wrong_version", "duplicate_stop", "missing_command",
+    "wrong_bridge", "wrong_event", "wrong_surface", "unclosed_quote",
+])
+def test_cli_rejects_validator_invalid_config_without_writes(targets, capsys, existing, invalid):
+    repo, framework = targets
+    if existing:
+        assert installer.install_copilot_vscode_lifecycle(repo, framework).ok
+    source = framework / "governance/copilot-hooks-vscode-template.json"
+    config = json.loads(source.read_text())
+    entry = config["hooks"]["Stop"][0]
+    if invalid == "missing_version":
+        config.pop("version")
+    elif invalid == "wrong_version":
+        config["version"] = 2
+    elif invalid == "duplicate_stop":
+        config["hooks"]["Stop"].append(dict(entry))
+    elif invalid == "missing_command":
+        entry.pop("command")
+    elif invalid == "wrong_bridge":
+        entry["command"] = entry["command"].replace("ai-governance-lifecycle.py", "other.py")
+    elif invalid == "wrong_event":
+        entry["command"] = entry["command"].replace("session_end", "session_start")
+    elif invalid == "wrong_surface":
+        entry["command"] = entry["command"].replace("--surface auto", "--surface other")
+    else:
+        entry["command"] += ' "'
+    source.write_text(json.dumps(config), encoding="utf-8")
+    assert not _managed_copilot_hook_config(source, {"Stop": ("session_end", "auto")})
+
+    def snapshot():
+        return {
+            p.relative_to(repo): (p.read_bytes(), p.stat().st_mtime_ns)
+            for p in repo.rglob("*") if p.is_file() and ".git" not in p.relative_to(repo).parts
+        }
+
+    before = snapshot()
+    code = installer.main([
+        "--repo", str(repo), "--framework-root", str(framework),
+        "--copilot-vscode-only", "--format", "json",
+    ])
+    result = json.loads(capsys.readouterr().out)
+    assert code != 0
+    assert result["ok"] is False
+    assert result["errors"]
+    assert result["changed_files"] == result["installed_files"] == result["backups"] == []
+    assert snapshot() == before
+    if not existing:
+        assert not (repo / ".github").exists()
 
 
 def test_public_cli_routes_to_scoped_installer(targets, capsys):

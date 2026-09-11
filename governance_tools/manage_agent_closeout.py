@@ -135,7 +135,7 @@ class AgentAdapter(abc.ABC):
         """
         Install the closeout trigger.
         Returns: {"status": str, "location": str|None, "message": str}
-        Status values: installed | already_installed | manual_only | error
+        Status values: installed | already_installed | manual_only | blocked | error
         """
 
     @abc.abstractmethod
@@ -160,7 +160,11 @@ class AgentAdapter(abc.ABC):
                 "location": v.get("location"),
             }
         result = self.install(project_root, framework_root)
-        return {"agent": self.agent_id, "repaired": True, **result}
+        return {
+            "agent": self.agent_id,
+            **result,
+            "repaired": result.get("status") == "installed",
+        }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         """
@@ -1240,6 +1244,9 @@ def main() -> int:
     if args.operation == "smoke":
         all_ok = all(r.get("status") == "pass" for r in results)
         return 0 if all_ok else 1
+    if args.operation in {"install", "repair"}:
+        failed = any(r.get("status") in {"blocked", "error", "unknown_agent"} for r in results)
+        return 1 if failed else 0
     return 0
 
 

@@ -623,6 +623,8 @@ def install_copilot_vscode_lifecycle(
     Legacy CLI/cloud hooks and all instruction surfaces are intentionally left
     alone. The normal managed-file backup and digest behavior is reused.
     """
+    from governance_tools.hook_install_validator import _managed_copilot_hook_config
+
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     result = HookInstallApplyResult(
@@ -635,13 +637,13 @@ def install_copilot_vscode_lifecycle(
         bridge_source, bridge_target, _ = COPILOT_LIFECYCLE_FILES[0]
         config_source, config_target, _ = COPILOT_LIFECYCLE_FILES[1]
         bridge = (framework_root / bridge_source).read_bytes()
+        # Reuse the validator's event/cardinality/command contract before writes.
+        if not _managed_copilot_hook_config(
+            framework_root / config_source, {"Stop": ("session_end", "auto")}
+        ):
+            raise ValueError("VS Code Stop template does not satisfy the managed hook config contract")
         config = json.loads((framework_root / config_source).read_text(encoding="utf-8"))
-        hooks = config.get("hooks", {})
-        if set(hooks) != {"Stop"} or not isinstance(hooks["Stop"], list) or not hooks["Stop"]:
-            raise ValueError("VS Code-only deployment requires the existing Stop-only template")
-        for entry in hooks["Stop"]:
-            if not isinstance(entry, dict) or entry.get("type") != "command":
-                raise ValueError("invalid VS Code Stop command entry")
+        for entry in config["hooks"]["Stop"]:
             # The bridge already resolves this variable first. A per-hook env
             # binding overrides stale ambient/global Git hook configuration.
             entry.setdefault("env", {})["AI_GOVERNANCE_FRAMEWORK_ROOT"] = str(framework_root)
