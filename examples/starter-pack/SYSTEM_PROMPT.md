@@ -71,8 +71,10 @@ Before resuming work dependent on active-task memory, obtain separate authorizat
 and a verified archive + replacement-state cutover, then remeasure pressure.
 Do not use the old automatic cleanup path that has already failed closed.
 
-These conditions are complete here; the full-framework reference, when available,
-is `governance/SYSTEM_PROMPT.md` §7.4.
+The bounded-maintenance prerequisites above are stated locally so they can be read
+without the full framework. This does not reconcile the Starter Pack's
+pressure-classification table with the full framework. The full-framework reference,
+when available, is `governance/SYSTEM_PROMPT.md` §7.4.
 
 ### Output Governance Contract
 
