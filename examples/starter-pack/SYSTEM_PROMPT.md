@@ -44,7 +44,35 @@ Count lines in `memory/01_active_task.md` if it exists:
 | 0-179 | SAFE | Proceed normally |
 | 180-199 | WARNING | Proceed and append a memory-pressure warning |
 | 200-249 | CRITICAL | Suggest `python memory_janitor.py --plan` before proceeding |
-| 250+ | EMERGENCY | Stop until cleanup is done |
+| 250+ | EMERGENCY | Stop work that depends on or expands active-task memory; apply the bounded-maintenance conditions below |
+
+EMERGENCY protects context quality and safe task continuation; it is not a blanket
+ban on all repository mutation. Stop new features, product replanning, new decisions
+based on active-task memory, and additions to active memory.
+
+Already-authorized bounded maintenance may continue only when **all** of the following hold:
+
+- The operation target, mutation scope, and acceptance criteria are fixed in advance
+  and traceable to current authorization and independent evidence.
+- Do not derive the operation from overloaded active-task memory;
+  necessary state has been independently checked.
+- No new product/hardware decisions are needed. If they are needed, stop even when
+  the decision basis comes from other information.
+- Do not modify memory or require a full memory writer/closeout round-trip for this operation.
+- Keep authorization, dirty-state, target/identity, and validation guards effective;
+  this exception must not bypass any guard.
+- If any condition is unknown, fails, or requires scope expansion, stop the operation
+  and report it; do not invent additional exceptions.
+
+This judgment does not lower pressure or claim healthy memory;
+it does not authorize cleanup. It grants
+no new execution, completion, commit, or push authority.
+Before resuming work dependent on active-task memory, obtain separate authorization
+and a verified archive + replacement-state cutover, then remeasure pressure.
+Do not use the old automatic cleanup path that has already failed closed.
+
+These conditions are complete here; the full-framework reference, when available,
+is `governance/SYSTEM_PROMPT.md` §7.4.
 
 ### Output Governance Contract
 
