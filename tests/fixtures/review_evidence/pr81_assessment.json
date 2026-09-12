@@ -1,0 +1,48 @@
+{
+  "snapshot_sha256": "a197ad3a6d0e452344d42495c1931a388b7ca4590f4043f9f62e25dc7b9c413c",
+  "review_id": 5185092363,
+  "source": "Codex root explicit fixture assessment 2026-09-12: PR 81 bodies inspected; generic review/summary are NON_FINDING, listed inline findings remain unresolved in this assessment. Not GitHub-generated classification.",
+  "sources": [
+    {
+      "key": "review:5185092363",
+      "classification": "NON_FINDING"
+    },
+    {
+      "key": "issue_comment:5643251766",
+      "classification": "NON_FINDING"
+    },
+    {
+      "key": "inline_comment:3994999882",
+      "classification": "FINDINGS",
+      "findings": [
+        {
+          "id": "github-inline-3994999882",
+          "severity": "P1",
+          "disposition": "UNRESOLVED"
+        }
+      ]
+    },
+    {
+      "key": "inline_comment:3994999888",
+      "classification": "FINDINGS",
+      "findings": [
+        {
+          "id": "github-inline-3994999888",
+          "severity": "P2",
+          "disposition": "UNRESOLVED"
+        }
+      ]
+    },
+    {
+      "key": "inline_comment:3994999891",
+      "classification": "FINDINGS",
+      "findings": [
+        {
+          "id": "github-inline-3994999891",
+          "severity": "P2",
+          "disposition": "UNRESOLVED"
+        }
+      ]
+    }
+  ]
+}

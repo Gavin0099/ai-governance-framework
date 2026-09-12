@@ -1,0 +1,77 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/80",
+        "headRefOid": "c3eab1c7aafbc56a6fb904dc653733afbfdd0024",
+        "reviews": {
+          "totalCount": 1,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpO0MjAyNi0wOS0xMVQxNzozMjoxM1q0MjAyNi0wOS0xMVQxNzozMjoxM1rPAAAAATTagRM="
+          },
+          "nodes": [
+            {
+              "databaseId": 5181702419,
+              "id": "PRR_kwDOTl7qWM8AAAABNNqBEw",
+              "state": "COMMENTED",
+              "body": "\n### 💡 Codex Review\n\nHere are some automated review suggestions for this pull request.\n\n**Reviewed commit:** `c3eab1c7aa`\n    \n\n<details> <summary>ℹ️ About Codex in GitHub</summary>\n<br/>\n\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment \"@codex review\".\n\nIf Codex has suggestions, it will comment; otherwise it will react with 👍.\n\n\n\n\nCodex can also answer questions or update the PR. Try commenting \"@codex address that feedback\".\n            \n</details>",
+              "submittedAt": "2026-09-11T17:32:13Z",
+              "commit": {
+                "oid": "c3eab1c7aafbc56a6fb904dc653733afbfdd0024"
+              },
+              "author": {
+                "login": "chatgpt-codex-connector"
+              },
+              "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/80#pullrequestreview-5181702419"
+            }
+          ]
+        },
+        "comments": {
+          "totalCount": 1,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpHPAAAAAVAQHyg="
+          },
+          "nodes": [
+            {
+              "databaseId": 5638201128,
+              "body": "<!-- codex-pull-request-review-summary -->\n\n## Codex Review Summary\n\nThis comment shows the latest Codex review activity on this pull request.\n\n| Review | Status | Commit | Review trigger |\n| --- | --- | --- | --- |\n| 📝 **Code Review** | ✅ **Completed** <relative-time datetime=\"2026-09-11T17:32:15.927953Z\">2026-09-11T17:32:15.927953Z</relative-time> | `c3eab1c` | PR opened |\n\n\n\n<details> <summary>ℹ️ About Codex in GitHub</summary>\n<br/>\n\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment \"@codex review\" or \"@codex security review\".\n\nCodex reacts with 👀 while any review is running, comments if it has suggestions, and reacts with 👍 once all reviews finish with no findings.\n\n</details>",
+              "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/80#issuecomment-5638201128"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "totalCount": 1,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMVQxNzozMjoxM1rOoZMgmw=="
+          },
+          "nodes": [
+            {
+              "id": "PRRT_kwDOTl7qWM6hkyCb",
+              "isResolved": false,
+              "comments": {
+                "totalCount": 1,
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMVQxNzozMjoxM1rO7e45DA=="
+                },
+                "nodes": [
+                  {
+                    "databaseId": 3991812364,
+                    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Bind the closeout to the reviewed implementation commit**\n\nWhen `1de27ca` is reviewed or promoted, this artifact claims the implementation is commit `24be908`, but that commit is a sibling of `1de27ca`—neither is an ancestor of the other—and this commit itself contains both the implementation and closeout changes. Review or CI evidence following this provenance can therefore validate a different tree. Split the implementation and companion closeout into separate commits and bind the companion to its actual implementation parent. [AGENTS.base.mdL74-L79](https://github.com/Gavin0099/ruiyi-life-map/blob/c3eab1c7aafbc56a6fb904dc653733afbfdd0024/AGENTS.base.md#L74-L79)\n\nUseful? React with 👍 / 👎.",
+                    "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/80#discussion_r3991812364",
+                    "pullRequestReview": {
+                      "databaseId": 5181702419
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

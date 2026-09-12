@@ -1,0 +1,126 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "number": 81,
+        "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81",
+        "state": "MERGED",
+        "headRefOid": "64027f90ef7c1b4255e9b74503e0d97869bcf348",
+        "mergedAt": "2026-09-12T03:51:53Z",
+        "reviews": {
+          "totalCount": 1,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpO0MjAyNi0wOS0xMlQwMzo1MToyN1q0MjAyNi0wOS0xMlQwMzo1MToyN1rPAAAAATUOOws="
+          },
+          "nodes": [
+            {
+              "databaseId": 5185092363,
+              "state": "COMMENTED",
+              "body": "\n### 💡 Codex Review\n\nHere are some automated review suggestions for this pull request.\n\n**Reviewed commit:** `233430f1b7`\n    \n\n<details> <summary>ℹ️ About Codex in GitHub</summary>\n<br/>\n\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment \"@codex review\".\n\nIf Codex has suggestions, it will comment; otherwise it will react with 👍.\n\n\n\n\nCodex can also answer questions or update the PR. Try commenting \"@codex address that feedback\".\n            \n</details>",
+              "submittedAt": "2026-09-12T03:51:27Z",
+              "commit": {
+                "oid": "233430f1b71de34db6fde45916dec41eb150d278"
+              },
+              "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81#pullrequestreview-5185092363"
+            }
+          ]
+        },
+        "comments": {
+          "totalCount": 1,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpHPAAAAAVBdMDY="
+          },
+          "nodes": [
+            {
+              "databaseId": 5643251766,
+              "body": "<!-- codex-pull-request-review-summary -->\n\n## Codex Review Summary\n\nThis comment shows the latest Codex review activity on this pull request.\n\n| Review | Status | Commit | Review trigger |\n| --- | --- | --- | --- |\n| 📝 **Code Review** | ✅ **Completed** <relative-time datetime=\"2026-09-12T03:51:29.856581Z\">2026-09-12T03:51:29.856581Z</relative-time> | `233430f` | PR opened |\n\n\n\n<details> <summary>ℹ️ About Codex in GitHub</summary>\n<br/>\n\n[Your team has set up Codex to review pull requests in this repo](https://chatgpt.com/codex/cloud/settings/general). Reviews are triggered when you\n- Open a pull request for review\n- Mark a draft as ready\n- Comment \"@codex review\" or \"@codex security review\".\n\nCodex reacts with 👀 while any review is running, comments if it has suggestions, and reacts with 👍 once all reviews finish with no findings.\n\n</details>",
+              "createdAt": "2026-09-12T03:45:52Z",
+              "updatedAt": "2026-09-12T03:51:30Z",
+              "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81#issuecomment-5643251766"
+            }
+          ]
+        },
+        "reviewThreads": {
+          "totalCount": 3,
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMlQwMzo1MToyN1rOobOS0g=="
+          },
+          "nodes": [
+            {
+              "id": "PRRT_kwDOTl7qWM6hs5LN",
+              "isResolved": false,
+              "comments": {
+                "totalCount": 1,
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMlQwMzo1MToyN1rO7h7cSg=="
+                },
+                "nodes": [
+                  {
+                    "databaseId": 3994999882,
+                    "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  在 CI 測試清單執行 Today Mode 測試**\n\n`package.json:13` 與 `.github/workflows/tests.yml:58-66` 都明確列舉測試檔案，卻未包含這個新檔案，因此 CI 不會執行任何 S5-A～S5-G 斷言；此外，這項「integration」測試只讀取原始碼字串，無法證明元件實際渲染或 hydration 後可操作。請把測試加入兩個 runner，並在必要的 rendered-HTML suite 中驗證可觀察行為。\n\nAGENTS.md reference: [AGENTS.md:L404-L405](https://github.com/Gavin0099/ruiyi-life-map/blob/233430f1b71de34db6fde45916dec41eb150d278/AGENTS.md#L404-L405)\n\nUseful? React with 👍 / 👎.",
+                    "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81#discussion_r3994999882",
+                    "createdAt": "2026-09-12T03:51:27Z",
+                    "updatedAt": "2026-09-12T03:51:27Z",
+                    "pullRequestReview": {
+                      "databaseId": 5185092363
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTl7qWM6hs5LQ",
+              "isResolved": false,
+              "comments": {
+                "totalCount": 1,
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMlQwMzo1MToyN1rO7h7cUA=="
+                },
+                "nodes": [
+                  {
+                    "databaseId": 3994999888,
+                    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  將日期選擇器限制在引擎真正支援的日期**\n\n使用者可選擇標示為合法的邊界日期，但 `buildMonthlyDeepReading` 實際會拒絕它們：例如 `2026-08-07` 以台北中午解析時早於 19:42 起點，之後至 9/7 的 `丙申` 又沒有 calendar/strategy，而 `2027-07-07` 中午已超過 10:48 終點。這會讓合法的原生日期輸入立即顯示「超出支援範圍」；請依 date-only/noon 語意調整 `min`、`max` 與提示文字，並加入端點回歸測試。\n\nUseful? React with 👍 / 👎.",
+                    "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81#discussion_r3994999888",
+                    "createdAt": "2026-09-12T03:51:27Z",
+                    "updatedAt": "2026-09-12T03:51:27Z",
+                    "pullRequestReview": {
+                      "databaseId": 5185092363
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTl7qWM6hs5LS",
+              "isResolved": false,
+              "comments": {
+                "totalCount": 1,
+                "pageInfo": {
+                  "hasNextPage": false,
+                  "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0wOS0xMlQwMzo1MToyN1rO7h7cUw=="
+                },
+                "nodes": [
+                  {
+                    "databaseId": 3994999891,
+                    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  在初次掛載後持續刷新即時日期**\n\n當使用者讓頁籤跨過台北午夜、朔日或立春精確切換點時，這個 effect 只在掛載時擷取一次時間，之後沒有 timer、visibility/focus refresh 或其他狀態更新，因此標示為「即時瞬間錨定」與「今天」的內容會一直停留在舊日期／舊流月，直到重新載入頁面。請至少在日期或相關天文邊界改變時重新取得 `new Date()`。\n\nUseful? React with 👍 / 👎.",
+                    "url": "https://github.com/Gavin0099/ruiyi-life-map/pull/81#discussion_r3994999891",
+                    "createdAt": "2026-09-12T03:51:27Z",
+                    "updatedAt": "2026-09-12T03:51:27Z",
+                    "pullRequestReview": {
+                      "databaseId": 5185092363
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
