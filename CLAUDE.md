@@ -94,3 +94,49 @@ NEXT    = load governance/SYSTEM_PROMPT.md, or ask the human to provide it
 Reading `governance/SYSTEM_PROMPT.md` during the session clears the notice, and
 that change to `LOADED` is itself a material contract change — emit the full
 block at that point.
+
+## Session-End Closeout (MANDATORY)
+
+The block below is a verbatim copy of the canonical block in `AGENTS.base.md`
+(Session Closeout Obligation). Do not edit it here; edit the canonical block and
+copy it to every entry file. No generator or drift check covers this block yet.
+
+<!-- ai-governance:session-end-closeout BEGIN version=1 canonical=AGENTS.base.md -->
+### Session-End Closeout Responsibility
+
+These rules apply to every agent platform (Codex, Claude, Copilot and others).
+They define when closeout is required, who is responsible, and what may be
+claimed. They do not define which lifecycle event a platform uses; that is
+platform-specific and must be qualified separately for each platform.
+
+1. **Task DONE is not session end.** Finishing a task, a review, or a milestone
+   ends that task only. Report DONE, do not expand the work, and leave the
+   session open for the next request.
+2. **Closeout at a defined session end is a duty, not new work.** A mandatory
+   closeout at session end is not scope expansion. Hard Stop After DONE forbids
+   closeout after task DONE; it does not forbid closeout at session end.
+3. **Session end must come from a defined, observable source.** Only two sources
+   count: a platform lifecycle event whose session-end meaning has been
+   confirmed for that platform, or the user explicitly asking to end the session
+   or to close out. The agent must not infer that the conversation is over. A
+   final answer, a DONE report, or a per-turn `Stop` event is not session end
+   unless that meaning has been confirmed.
+4. **Governed lifecycle hook present:** the harness is responsible for
+   triggering canonical closeout. A governed hook is one wired to the governance
+   closeout entry and confirmed to run for this platform.
+5. **No usable governed hook:** only when session end is established under
+   rule 3, the top-level agent must attempt the existing manual closeout
+   (`python -m governance_tools.manage_agent_closeout print-manual --agent <agent>`
+   prints the command). If it cannot run or its result cannot be verified,
+   report closeout as `NOT PERSISTED` or `UNKNOWN`; never claim it was persisted.
+6. **Subagent completion is not project-level session end.** A subagent
+   returning to its parent must not run project-level closeout unless it has its
+   own governed session identity and was explicitly given closeout
+   responsibility.
+
+A closeout, including the manual fallback, does not authorize commit, push,
+pull request, or a new task; each still needs its own explicit authorization.
+
+Closeout candidate, canonical record, and memory are verified separately. A
+successful closeout on one platform is not evidence for any other platform.
+<!-- ai-governance:session-end-closeout END -->
