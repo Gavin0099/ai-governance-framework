@@ -100,19 +100,22 @@ class MemoryJanitor:
         """產出警告訊息 (供 AI 在回應末尾顯示)"""
         if status == "EMERGENCY":
             return (
-                f"🚨 **熱記憶緊急超限** ({line_count}/200 行, {char_count}/10000 字元) - "
+                f"🚨 **熱記憶緊急超限** ({line_count}/{self.HOT_MEMORY_CRITICAL} 行, "
+                f"{char_count}/{self.HOT_MEMORY_CRITICAL_SIZE_LIMIT} 字元) - "
                 + self.EMERGENCY_SCOPE_GUIDANCE
                 + "自動掃除已 fail closed，需另行驗證 "
                 "archive + replacement-state cutover"
             )
         elif status == "CRITICAL":
             return (
-                f"⚠️ **熱記憶超過硬限制** ({line_count}/200 行, {char_count}/10000 字元) - "
+                f"⚠️ **熱記憶超過硬限制** ({line_count}/{self.HOT_MEMORY_HARD_LIMIT} 行, "
+                f"{char_count}/{self.HOT_MEMORY_HARD_SIZE_LIMIT} 字元) - "
                 "自動掃除已 fail closed；需另行驗證 archive + replacement-state cutover"
             )
         elif status == "WARNING":
             return (
-                f"⚠️ 熱記憶接近上限 ({line_count}/200 行, {char_count}/10000 字元)，"
+                f"⚠️ 熱記憶接近上限 ({line_count}/{self.HOT_MEMORY_SOFT_LIMIT} 行, "
+                f"{char_count}/{self.HOT_MEMORY_SOFT_SIZE_LIMIT} 字元)，"
                 "可在自然中斷點評估 verified archive + replacement-state cutover"
             )
         else:
