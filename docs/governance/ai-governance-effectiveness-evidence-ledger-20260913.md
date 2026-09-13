@@ -3,6 +3,8 @@
 > **Date**: 2026-09-13
 > **Baseline**: `main` at `75578e50`
 > **Kind**: evidence interpretation ledger. Not a policy, not a backlog.
+> **Original assessment**: `54ffb007`
+> **Reconciled**: 2026-09-13 — see *Reconciliation as of 2026-09-13*
 
 ## Purpose
 
@@ -22,6 +24,12 @@ An earlier hypothesis that `pre-push` discarded pushed-ref stdin was rejected
 before implementation, after tracing stdin consumption into
 `external_tree_inventory_guard.py`. Entries 3 and 4 record the corrected
 position. No implementation was performed on the rejected hypothesis.
+
+Entries 7 and 16 carry factual corrections to the original frozen assessment
+(`54ffb007`): the event source and the pushed lockfile mechanism in entry 7, and
+the event source and the hook claim in entry 16. These were wrong when written.
+Changes in status caused by later evidence are not corrections and are recorded
+only under *Reconciliation as of 2026-09-13*.
 
 ## Evidence classes
 
@@ -73,6 +81,8 @@ is stronger: it does not depend on sampling, and one re-read can refute it.
 - **Note**: the correct framing is completing an existing exception's
   prerequisite, not adding a new carve-out.
 
+- **Reconciliation**: status changed after this assessment; see *Reconciliation as of 2026-09-13*.
+
 ## 3. Pre-push subject binding — blocking path is bound
 
 - **Evidence class**: `DERIVED`
@@ -123,6 +133,8 @@ false-negative risk entry 3 originally claimed.
   SHA before that question is answered — doing so could convert a correct check
   into a category error.
 
+- **Reconciliation**: status changed after this assessment; see *Reconciliation as of 2026-09-13*.
+
 ## 5. Behavioral verification closes a real evidence gap
 
 - **Evidence class**: `CASE_STUDY`
@@ -161,21 +173,31 @@ false-negative risk entry 3 originally claimed.
 - **Danger signature**: everything is green. CI passes, review passes, the
   document has no defect of its own.
 
+- **Reconciliation**: status changed after this assessment; see *Reconciliation as of 2026-09-13*.
+
 ## 7. Truth bound to the wrong tool environment
 
 - **Evidence class**: `CASE_STUDY`
-- **Evidence**: `ai-governance-framework` #173. CI pins Node 22.13.0 (npm 10).
-  A lockfile regenerated locally on Node 24 (npm 11) dropped the hoisted
-  `@emnapi/core` and `@emnapi/runtime` entries; `npm ci` passed locally and
-  failed on CI with `Missing: @emnapi/core@1.10.0 from lock file`. Neither
-  `--os=linux` nor `--cpu=x64` restored them. Regenerating with `npm@10.9.2`
-  fixed it and reduced the diff from 164 insertions / 68 deletions to 111
-  insertions / 0 deletions, verified under both npm majors.
+- **Evidence**: `ruiyi-life-map` #87. CI pins Node 22.13.0 (npm 10). A lockfile
+  regenerated locally with npm 11.6.2 and pushed at `e96eace` carried the hoisted
+  `@emnapi/core` and `@emnapi/runtime` upgraded to `1.11.3`, conflicting with the
+  exact `1.10.0` that `@rolldown/binding-wasm32-wasi` requires; `npm ci` passed
+  locally and failed on CI with `Missing: @emnapi/core@1.10.0 from lock file`.
+  An intermediate local regeneration with npm 11 dropped the hoisted entries
+  instead, and neither `--os=linux` nor `--cpu=x64` restored them. Regenerating
+  with `npm@10.9.2` fixed it and reduced the diff from 164 insertions / 68
+  deletions to 111 insertions / 0 deletions, verified under both npm majors.
+- **Correction**: the original frozen ledger attributed this event to framework
+  PR #173 and described the pushed lockfile change as dropped entries.
+  Subsequent source verification established that the event was ruiyi PR #87,
+  and that pushed head `e96eace` upgraded the relevant entries to `1.11.3`.
 - **Claim ceiling**: supports a narrow conclusion — for artifacts as sensitive
   to package-manager version as a lockfile, the generating and validating
   environments must be aligned. It does not support a general toolchain identity
   framework covering OS, compiler, Python, Java or shell.
 - **Disposition**: repo-local concrete fix, `ruiyi` / consuming repos.
+
+- **Reconciliation**: status changed after this assessment; see *Reconciliation as of 2026-09-13*.
 
 ## 8. Governance also blocks legitimate work
 
@@ -251,8 +273,13 @@ false-negative risk entry 3 originally claimed.
   - *Avoided rework*: the currency check on `dc66e923` stopped a stale delivery
     before a PR and review round were spent on it. Cost was one document
     comparison.
-  - *No contribution*: for the #173 lockfile defect, the local pre-push gate
-    passed and CI caught the problem afterwards.
+  - *No contribution*: for the ruiyi #87 lockfile defect, the installed local
+    pre-push hook did not block the successful push, and CI caught the problem
+    afterwards. The exact checks the hook executed were not established.
+  - *Correction*: the original frozen ledger attributed this data point to
+    framework PR #173 and stated that the local pre-push gate passed. The event
+    was ruiyi PR #87, and a hook that did not block a push is not evidence that
+    its checks ran and passed.
 - **Method caveat**: the second data point is a **coverage gap**, not a gate
   failure. The pre-push hook never claimed to validate lockfile synchronisation.
   Scoring a gate against a failure mode outside its scope produces spurious
@@ -286,6 +313,8 @@ false-negative risk entry 3 originally claimed.
 ---
 
 ## KEEP and GAP are separate
+
+_As frozen in the original assessment `54ffb007`. The reconciled classification is under *Reconciliation as of 2026-09-13*; do not quote the GAP table below as current._
 
 **KEEP** — existing controls with evidence behind them:
 
@@ -324,3 +353,103 @@ would only group four unrelated implementations under one name.
 
 **Do not build a Truth Binding framework. Use it to ask whether two problems are
 the same problem.**
+
+## Reconciliation as of 2026-09-13
+
+This section records how evidence gathered after the original assessment
+changed the status of its entries. The original assessment above is retained as
+written, apart from the factual corrections marked in entries 7 and 16. Nothing
+here generates a task or authorizes framework modification.
+
+Every delivery or protection state below is a snapshot at this reconciliation
+point and is not maintained by this ledger. Reverify it before relying on it as
+current authority.
+
+Anchors used at this reconciliation point: framework `origin/main` `75578e50`
+and ruiyi `origin/main` `e673799`, both fetched on 2026-09-13.
+
+### Entry 2 — current-state verification path
+
+Resolved as a governance gap by the owner-adopted contract
+`docs/governance/current-state-claim-verification-20260913.md` at commit
+`8838027b`. At this reconciliation point (2026-09-13) the adopted contract is
+local and has not been incorporated into canonical main. Canonical delivery
+status is not maintained by this ledger and must be reverified before relying on
+it as current-main authority.
+
+### Entries 3 and 4 — pre-push subject binding
+
+The original blocking-subject hypothesis is invalidated, as entry 3 already
+records. 4a, the version-bump advisory describing the wrong subject, is advisory
+hygiene and deferred. 4b, the runtime-smoke subject semantics, remains a
+semantics-review question only; nothing is to be rebound before that question is
+answered.
+
+### Entry 6 — review PASS and currency
+
+Not a single gap. It separates into four statements:
+
+- **Reviewed-head currency semantics**: covered by canonical doctrine on main at
+  `75578e50` — `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, section
+  "Reviewed-head preservation", and `governance/REVIEW_CRITERIA.md` §2.2. Not a
+  governance gap.
+- **Mechanical enforcement of reviewed-head currency**: not present on main at
+  this reconciliation point (2026-09-13); no reviewed-head check was found in
+  its governance tools, scripts or workflows. Local commits `afdb60b3` and
+  `7e61e733` implement one and were not on main at that point. Whether to deliver
+  them is a delivery decision, not a governance gap, and their status must be
+  reverified.
+- **Explicit baseline dependency**: handled by the adopted contract's
+  `HISTORICAL -> CURRENT_STATE` bridge and derived-inference revalidation. The
+  `dc66e923` premise was stated explicitly in that document.
+- **Implicit or unrecorded baseline dependency**: observation only. No case has
+  been reproduced in which an unrecorded baseline moved, an old review PASS was
+  then accepted by a delivery path, and the decision was wrong as a result.
+
+### Entry 7 — tool environment
+
+- **Reproduced failure**: a lockfile generated with npm 11.6.2 and pushed at
+  `e96eace` was rejected by `npm ci` on CI (Node 22.13.0, npm 10), and a Codex
+  review reported the same rejection on npm 11.4.2. It did not reach main.
+- **Detection**: in the reproduced case the required `test` check, which runs
+  `npm ci`, detected and blocked it through the normal pull-request path.
+- **Universal enforcement**: no. At this reconciliation point (2026-09-13) ruiyi
+  branch protection required `test` and `governance-drift` with
+  `enforce_admins` false, so an administrator could bypass the required checks.
+  Protection settings are not maintained by this ledger.
+- **npm 10 lockfile breaking npm 11 contributors**: not reproduced. At the
+  anchor `e673799`, a real `npm ci` of ruiyi's lockfile passed under both npm
+  10.9.2 and npm 11.6.2.
+- **Written npm-major guidance**: absent; `dependency_pins.md` explicitly leaves
+  lockfile synchronisation to `npm ci`.
+- **Result**: an npm-major pin or binding is not justified, and knowledge-base
+  guidance is not justified yet. The reproduced case supports only that a
+  mismatched generator can produce an incompatible lockfile, which the existing
+  required `npm ci` check detected.
+
+### Entry 16 — overall ROI
+
+The source and hook wording are corrected in place. The classification of the
+second data point as a coverage gap rather than a gate failure is unchanged, and
+overall ROI remains `NEEDS_EVIDENCE`.
+
+### KEEP and GAP, reconciled
+
+**KEEP**: unchanged from the original assessment.
+
+| Original GAP | Status at this reconciliation point |
+|---|---|
+| Current-state verification path for the bounded exception | Resolved as a governance gap by the owner-adopted contract `8838027b`; local at 2026-09-13 |
+| Runtime-smoke subject semantics | Unresolved; semantics review only |
+| Review / evidence currency at delivery | Withdrawn as a single gap; see entry 6 above |
+| Tool-environment binding for version-sensitive artifacts | Withdrawn as a gap; see entry 7 above |
+
+Unresolved observations retained: runtime-smoke subject semantics; implicit
+review baseline dependency; version-bump advisory accuracy.
+
+### Truth Binding
+
+The lens is unchanged. Its listed environment remedy, pinning and verifying the
+tool version, is not supported by the entry 7 evidence: in the reproduced case
+the existing required `npm ci` check detected the incompatible lockfile, and no
+pin is recommended.
