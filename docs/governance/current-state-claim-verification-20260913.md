@@ -22,10 +22,11 @@ explicit.
 
 Provenance correction after adoption at `8838027b`: `5c5601a1` and `dc66e923`
 are unpublished local commits. They are marked as provenance locators only: they
-are not required to be fetchable and carry no authority. The evidence that case
-8b relies on is captured in this document, and the case remains `REAL`. The
-rule, the claim classification, the acceptance cases and their verdicts are
-unchanged.
+are not required to be fetchable and carry no authority. Case 8b remains `REAL`,
+because its material was actually observed during qualification, and is
+qualified `RECORDED-ONLY`, because that material is not independently
+retrievable from this repository. The rule, the claim classification, the
+acceptance cases and their verdicts are unchanged.
 
 ## The question this answers
 
@@ -149,10 +150,11 @@ content. It has never been on `origin/main`, and `origin/main`'s copy of the sam
 file does not contain it.
 
 `5c5601a1` is an unpublished local historical commit, cited as a provenance
-locator only. It is not required to be fetchable and carries no authority. The
-evidence this requalification relies on was captured here during qualification:
-the source path and branch above, the restriction's text as quoted, and the
-applicability findings below.
+locator only. It is not required to be fetchable and carries no authority. What
+was observed during qualification is recorded here: the source path and branch
+above, the restriction's text as quoted, and the applicability findings below.
+This is a record, not independently reproducible evidence; the case is
+`RECORDED-ONLY`.
 
 | Factor | Finding |
 |---|---|
@@ -400,6 +402,12 @@ material observed in this repository. `CONSTRUCTED` means the premises are
 stated for the purpose of the evaluation. A constructed case is not a reproduced
 incident and must not be cited as one.
 
+`RECORDED-ONLY` qualifies a `REAL` case whose original source is not
+independently retrievable from this repository. The case records material
+actually observed during qualification, but the record is not a substitute for
+the source: it must not be cited as repo-reproducible evidence or as independent
+audit proof.
+
 | # | Case | Claim | Evidence basis | Verdict |
 |---|---|---|---|---|
 | 1 | Confirmed direct claim carries a decision | `CURRENT_STATE` + `DIRECT` | `REAL` (instance A material) | PASS |
@@ -410,7 +418,7 @@ incident and must not be cited as one.
 | 6 | Stale remote-tracking ref not reported as remote-current | `CURRENT_STATE` + `DIRECT` | `CONSTRUCTED` | PASS |
 | 7 | Ancestry does not prove a historical effect persists | `HISTORICAL` + `DERIVED` -> `CURRENT_STATE` | `CONSTRUCTED` | PASS |
 | 8a | Valid prescription survives a surrounding state change | `PRESCRIPTIVE` + `DIRECT` | `CONSTRUCTED` | PASS |
-| 8b | Prescription without established authority is not applicable, though its subject appears to exist | `PRESCRIPTIVE` + `DIRECT` | `REAL` (local evidence captured during qualification; source commit `5c5601a1` unpublished) | PASS |
+| 8b | Prescription without established authority is not applicable, though its subject appears to exist | `PRESCRIPTIVE` + `DIRECT` | `REAL`, `RECORDED-ONLY` (observed during qualification; original source `5c5601a1` unpublished; not independently reproducible from this repository) | PASS |
 | 9 | Reading a claim without acting on it owes no verification | any | `CONSTRUCTED` | PASS |
 
 ### Case replays
@@ -481,8 +489,9 @@ content superseded on main. Expected: not applicable despite apparent subject
 existence. Result: not applicable. The staging decision it was cited for was
 correct on the independent authority of the owner's in-chat instruction.
 The case is evaluated on the restriction text and applicability findings
-captured in this document; `5c5601a1` locates their source and is not required
-to be fetchable.
+recorded in this document; `5c5601a1` locates their source and is not required
+to be fetchable. The case is `RECORDED-ONLY` and must not be cited as
+repo-reproducible evidence or as independent audit proof.
 
 **9.** Given: an agent reads the Open Risks section while loading context and
 takes no action derived from it. Rule: verification is owed only when a claim is
