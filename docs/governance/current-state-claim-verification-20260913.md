@@ -20,6 +20,13 @@ decision had independent human authority. After referent requalification, the
 Instance B state-claim verdict remains the same; the evidentiary basis is now
 explicit.
 
+Provenance correction after adoption at `8838027b`: `5c5601a1` and `dc66e923`
+are unpublished local commits. They are marked as provenance locators only: they
+are not required to be fetchable and carry no authority. The evidence that case
+8b relies on is captured in this document, and the case remains `REAL`. The
+rule, the claim classification, the acceptance cases and their verdicts are
+unchanged.
+
 ## The question this answers
 
 Not "how do we keep memory fresh?" but:
@@ -140,6 +147,12 @@ It appears in `memory/01_active_task.md` on the local branch
 compaction commit; before that it existed only as uncommitted working-tree
 content. It has never been on `origin/main`, and `origin/main`'s copy of the same
 file does not contain it.
+
+`5c5601a1` is an unpublished local historical commit, cited as a provenance
+locator only. It is not required to be fetchable and carries no authority. The
+evidence this requalification relies on was captured here during qualification:
+the source path and branch above, the restriction's text as quoted, and the
+applicability findings below.
 
 | Factor | Finding |
 |---|---|
@@ -309,6 +322,11 @@ removing it, and a rule permitting commit history while forbidding current
 source produces the symmetric failure — a commit that claims to add a safeguard
 does not prove the safeguard survives today.
 
+`dc66e923` is an unpublished local commit holding the rejected candidate, cited
+as a provenance locator only. It is not required to be fetchable and is not
+current authority. The reasoning carried forward from it, and the reason its
+proposal was rejected, are stated in full above.
+
 ## Non-goals
 
 - Not a memory freshness mechanism, and not a replacement for one.
@@ -392,7 +410,7 @@ incident and must not be cited as one.
 | 6 | Stale remote-tracking ref not reported as remote-current | `CURRENT_STATE` + `DIRECT` | `CONSTRUCTED` | PASS |
 | 7 | Ancestry does not prove a historical effect persists | `HISTORICAL` + `DERIVED` -> `CURRENT_STATE` | `CONSTRUCTED` | PASS |
 | 8a | Valid prescription survives a surrounding state change | `PRESCRIPTIVE` + `DIRECT` | `CONSTRUCTED` | PASS |
-| 8b | Prescription without established authority is not applicable, though its subject appears to exist | `PRESCRIPTIVE` + `DIRECT` | `REAL` (local branch `5c5601a1`) | PASS |
+| 8b | Prescription without established authority is not applicable, though its subject appears to exist | `PRESCRIPTIVE` + `DIRECT` | `REAL` (local evidence captured during qualification; source commit `5c5601a1` unpublished) | PASS |
 | 9 | Reading a claim without acting on it owes no verification | any | `CONSTRUCTED` | PASS |
 
 ### Case replays
@@ -462,6 +480,9 @@ established, subject imprecise, scope not established as current and subject
 content superseded on main. Expected: not applicable despite apparent subject
 existence. Result: not applicable. The staging decision it was cited for was
 correct on the independent authority of the owner's in-chat instruction.
+The case is evaluated on the restriction text and applicability findings
+captured in this document; `5c5601a1` locates their source and is not required
+to be fetchable.
 
 **9.** Given: an agent reads the Open Risks section while loading context and
 takes no action derived from it. Rule: verification is owed only when a claim is
