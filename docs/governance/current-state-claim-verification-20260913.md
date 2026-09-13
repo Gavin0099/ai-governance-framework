@@ -4,9 +4,12 @@
 > gate, schema or memory writer changes because of this document.
 > **Date**: 2026-09-13
 > **Adopted**: 2026-09-13
+> **Re-adopted**: 2026-09-14
 > **Baseline**: `main` at `75578e50`
-> **Reviewed adoption input**: commit `6d38a2548933aa4b2106ca79d6781cdfd60a5774`,
-> blob `542355717230e6417f38b3a73ae76669ba078460`
+> **Reviewed adoption input**: commit `e33ea9d4e4d621d065b35654270c65b0f9e08e6b`,
+> blob `6361296dc725c3ce2d4938a9e1dfc3383125753d`
+> **Previous adopted identity**: commit `8838027b37e695abf6047b27e295394c7c95f4a0`,
+> blob `6d3f5124606b2ebed71390bd3991dba761463d42`
 > **Previous reviewed candidate**: commit `0a3c101bb2ddfd1235bc7681247b7dd0dcbff6a5`,
 > blob `7ad0c0b5c63a731f619f4e5e8cd6ee19a4db29d5`
 > **Previous path**: `docs/governance/current-state-claim-verification-candidate-20260913.md`
