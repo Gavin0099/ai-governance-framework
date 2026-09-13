@@ -1,14 +1,19 @@
-# Current-state claim verification — candidate contract
+# Current-state claim verification — contract
 
-> **Status**: CANDIDATE. Not adopted. No governance document, validator, hook,
+> **Status**: ADOPTED by owner decision. No governance document, validator, hook,
 > gate, schema or memory writer changes because of this document.
 > **Date**: 2026-09-13
+> **Adopted**: 2026-09-13
 > **Baseline**: `main` at `75578e50`
-> **Owner decision required before any of this is applied.**
+> **Reviewed adoption input**: commit `6d38a2548933aa4b2106ca79d6781cdfd60a5774`,
+> blob `542355717230e6417f38b3a73ae76669ba078460`
+> **Previous reviewed candidate**: commit `0a3c101bb2ddfd1235bc7681247b7dd0dcbff6a5`,
+> blob `7ad0c0b5c63a731f619f4e5e8cd6ee19a4db29d5`
+> **Previous path**: `docs/governance/current-state-claim-verification-candidate-20260913.md`
 
 ## Correction note
 
-Correction from reviewed candidate `0a3c101b`: the staging restriction
+Correction from previous reviewed candidate `0a3c101b`: the staging restriction
 previously used in paper replay B was traced to a separate local-branch memory
 surface and did not establish authority or applicability. The actual staging
 decision had independent human authority. After referent requalification, the
@@ -479,7 +484,7 @@ and are recorded here without being resolved:
   authority is valid but which names no subject or scope gives the applicability
   check nothing to evaluate.
 
-## What this candidate does not establish
+## What this contract does not establish
 
 - That either instance caused a wrong decision. Neither did.
 - That failure mode D occurs in practice. It is argued from structure, not
