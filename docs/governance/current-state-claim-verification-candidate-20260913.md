@@ -6,6 +6,15 @@
 > **Baseline**: `main` at `75578e50`
 > **Owner decision required before any of this is applied.**
 
+## Correction note
+
+Correction from reviewed candidate `0a3c101b`: the staging restriction
+previously used in paper replay B was traced to a separate local-branch memory
+surface and did not establish authority or applicability. The actual staging
+decision had independent human authority. After referent requalification, the
+Instance B state-claim verdict remains the same; the evidentiary basis is now
+explicit.
+
 ## The question this answers
 
 Not "how do we keep memory fresh?" but:
@@ -71,14 +80,76 @@ Same file, two lines:
 - line 61: "M3-b-2A remains implemented but **uncommitted** in six scoped files"
 - line 139: "M3-b-2A **merged by PR #108** at `a59b0aef`"
 
-Checked against a selected anchor: `origin/main`, fetched in-session and
-resolving to `75578e50`. `a59b0aef` is an ancestor of that anchor, and PR #108
-is reported merged on 2026-08-24 by the remote PR API. Line 61 is false about
-that anchor, and the file carries no rule for deciding which of its own lines is
-current.
+"Uncommitted" is a predicate whose natural scope is one checkout's local state.
+Canonical merge evidence alone cannot refute a claim that some checkout still
+holds uncommitted changes, so the referent of line 61 is established before any
+verdict is drawn.
 
-**Status**: reproduced staleness and self-contradiction. No wrong decision
-demonstrated.
+**Referent.** Line 61 records a focused plus M1-adjacent result of 291 passed.
+The test receipt shipped in PR #108,
+`artifacts/evidence/test-results/m3b2a-in-process-20260820.json`, records 291
+passed on 2026-08-20 for a test set that includes
+`test_gate3_historical_process.py`, and links base commit `e03afc85`, in which
+neither `gate3_historical_process.py` nor its test module exists. Both files
+first appear on any ref in `ff9cdb77`, "checkpoint M3-b-2A transport". That
+commit, which `origin/main:PLAN.md` names as the implementation commit of PR #108,
+changes nine files: `.gitattributes`, the two receipt artifacts, and six files
+under `gate3-route-v2` — `gate3_historical_child.py`,
+`gate3_historical_materialize.py`, `gate3_historical_process.py` and their three
+focused test modules. The receipt's remaining test module,
+`test_gate3_historical_bootstrap.py`, is not among them. Line 61 therefore
+describes the M3-b-2A implementation checkpoint, those six files. This
+identification is itself a derived inference; every premise it rests on is
+committed evidence.
+
+An uncommitted local review-log entry names the same six-file allowlist. It
+exists only in one local working tree and has never been committed on any ref,
+so it is cited as corroboration only, not as authority.
+
+**Verdict.** Checked against a selected anchor: `origin/main`, fetched in-session
+and resolving to `75578e50`. `ff9cdb77` and the PR #108 merge `a59b0aef` are
+both contained in that anchor, and all six scoped files are present at it. The
+implementation line 61 describes is committed. The underlying checkpoint state
+was true at the 2026-08-20 receipt: the scoped implementation had not yet been
+committed. Once `ff9cdb77` was committed, that state ceased to be current. The
+stale wording was present in the 2026-08-30 cutover, the earliest committed
+history in which it can be found. It contradicts line 139, which concerns the
+same implementation.
+
+**Status**: reproduced staleness and self-contradiction, with the referent
+established from committed evidence. No wrong decision demonstrated.
+
+### Related prescriptive requalification — a real negative example
+
+This is a separate surface with its own authority chain. It is not part of
+Instance B and inherits nothing from it.
+
+A restriction was cited for a staging decision in the working session that
+examined Instance B:
+
+> the existing M3-b-2A `PLAN.md` hunk is not authorized for staging, cleanup, or
+> reconciliation here.
+
+It appears in `memory/01_active_task.md` on the local branch
+`feat/gate3-historical-materialization`, first committed in `5c5601a1`, a local
+compaction commit; before that it existed only as uncommitted working-tree
+content. It has never been on `origin/main`, and `origin/main`'s copy of the same
+file does not contain it.
+
+| Factor | Finding |
+|---|---|
+| Authority | **Not established.** The surface declares itself "a retrieval index, not normative authority". `MEMORY_PROTOCOL` states that current authorization comes "from current human instruction or an approved change, never from memory or PLAN alone". No decision or review record creating the restriction was found in this checkout's `memory/` or `docs/`. |
+| Subject | **Imprecise.** It names one hunk; the local `PLAN.md` diff holds eighteen, two of which mention M3-b-2A, and the session applied it to all eighteen. |
+| Scope | **Not established as current.** "Here" is the Gate 3 replacement-preparation slice that file describes; that branch's delivery, PR #155, merged on 2026-09-08. |
+| Conditions / expiry | None stated. |
+| Supersession | **Subject content superseded.** The local hunks describe M3-b-2A as implemented "only ... in the working tree"; `origin/main:PLAN.md` records that it "was merged by PR #108" (implementation `ff9cdb77`, merge `a59b0aef`). |
+| Revocation | None recorded. |
+
+**Result**: `NOT APPLICABLE`. The restriction does not establish applicability.
+
+This is an observed provenance and equivalence failure, and it supports the
+general identity/scope concern. It is **not** an exact match for failure mode D,
+which remains argued and not reproduced.
 
 ## Claim classification, at consumption time only
 
@@ -91,8 +162,8 @@ while "therefore the feature still exists" is about current state and derived.
 | Target | Example |
 |---|---|
 | `CURRENT_STATE` | "M3-b-2A remains uncommitted" |
-| `HISTORICAL` | "commit `a59b0aef` introduced M3-b-2A" |
-| `PRESCRIPTIVE` | "this `PLAN.md` hunk is not authorized for staging" |
+| `HISTORICAL` | "commit `ff9cdb77` introduced the M3-b-2A implementation" |
+| `PRESCRIPTIVE` | "an approved decision forbids staging file F during slice S" |
 
 **Form** — how the claim was arrived at:
 
@@ -136,11 +207,11 @@ burden.
 
 A `PRESCRIPTIVE` claim is not invalidated merely because surrounding state
 changes. Its applicability is determined by its authority, subject, scope,
-conditions, expiry, supersession and revocation status. Instance B shows why the
-distinction matters: the state line was stale while the staging restriction was
-still applicable — but that restriction was still applicable because its own
-subject and conditions still held, not because prescriptions persist until
-someone withdraws them.
+conditions, expiry, supersession and revocation status — each of these
+dimensions must be checked, not only whether its subject still appears to
+exist. The related prescriptive
+requalification above is a real case in which a restriction looked applicable
+from subject existence alone and failed on authority and supersession.
 
 ## Current observable evidence, with scope
 
@@ -258,42 +329,155 @@ fails. No task is created. Verifying only that both numbers appear would have
 confirmed the false claim, which is why premise-checking alone is insufficient
 for a derived claim.
 
-**Instance B.**
+**Instance B.** Line 61 is `CURRENT_STATE` + `DIRECT`. Its predicate,
+"uncommitted", is naturally checkout-scoped, so its referent is established
+first: the M3-b-2A implementation checkpoint, identified from the committed
+PR #108 receipt and the commit that first added the scoped files. Verified
+against the selected anchor — `origin/main`, fetched in-session, `75578e50` —
+that implementation is committed, so line 61 is false for its referent. Line 139
+is `HISTORICAL` + `DIRECT`; bound to that anchor, `merge-base --is-ancestor` and
+PR state confirm the merge occurred. Result: the stale current-state claim cannot
+carry a current decision.
 
-*Actual session.* The staging decision was correct because the independently
-applicable prescriptive constraint was still valid. This candidate was not in
-force and receives no causal credit for that outcome.
+**Related prescriptive requalification.** The local-branch restriction was
+examined separately. It does not inherit authority from Instance B, nor from
+memory merely because it appears in memory. Full applicability review rejects
+it: authority not established, subject not precise enough, governing slice not
+established as current, subject content superseded on main. The actual staging
+decision remains independently supported by the owner's current in-chat
+instruction, which authorized exactly two `PLAN.md` hunks and forbade staging,
+modifying, cleaning or reconciling any other. A correct decision does not
+validate the governance basis originally cited for it.
 
-*Paper replay.* Line 61 is `CURRENT_STATE` + `DIRECT`; line 139 is `HISTORICAL`
-+ `DIRECT`; the staging restriction is `PRESCRIPTIVE` + `DIRECT`. Line 61 is
-verified against the selected anchor — `origin/main`, fetched in-session,
-`75578e50` — using `merge-base --is-ancestor` plus PR state, and is false for
-that anchor. The staging restriction is checked for applicability rather than
-freshness: its subject, the local unstaged `PLAN.md` hunks, is still present and
-not contained in the anchor, so it still applies. Under this candidate, the
-distinction between the stale state claim and the still-applicable prescription
-would have been made explicit before the decision.
+## Adoption acceptance cases
 
-## Tests this candidate must pass before it is adopted
+This contract may be adopted only after each case below has been evaluated at
+the contract level and the rule yields the expected result.
 
-Not implemented here. Listed so that adoption is falsifiable.
+These are paper-level acceptance cases for the contract semantics. They answer
+whether the rule, applied to a given situation, reaches the correct verdict.
+They do not require a validator, hook, runtime gate, memory schema, test harness
+or any other executable governance mechanism to exist.
 
-- [ ] positive: a `CURRENT_STATE` + `DIRECT` claim confirmed by current evidence
-      carries a decision
-- [ ] negative: stale memory does not override newer direct evidence
-- [ ] negative: unbound historical evidence does not establish current state
-- [ ] negative: an incorrect derived claim is rejected even though every premise
-      is individually true — instance A
-- [ ] negative: a dirty working tree is not treated as canonical current state
-- [ ] negative: a stale remote-tracking ref is not reported as remote-current
-      state
-- [ ] negative: a historical `DERIVED` claim does not establish `CURRENT_STATE`
-      merely because its source commit is an ancestor of the selected anchor; a
-      later change or revert must cause the current-state conclusion to fail
-- [ ] a `PRESCRIPTIVE` claim is not invalidated by a state change alone, and is
-      invalidated when its subject, scope, conditions, expiry, supersession or
-      revocation status no longer supports it
-- [ ] reading a claim without acting on it triggers no verification cost
+This is a correction of the test level, not a waiver. The earlier wording left
+the qualification level ambiguous and could be read as requiring executable
+machinery that the current evidence does not justify. This amendment makes the
+intended qualification level explicit. Contract acceptance and implementation
+conformance are separate qualifications.
+
+If an executable implementation of these semantics is introduced later, that
+implementation requires its own conformance tests against these semantics.
+Adoption of this contract does not qualify any future implementation.
+
+**Stop condition.** If every case below is decidable and passes, that result
+must not be used as a reason to build a test harness, validator, hook or gate.
+
+Evidence basis is labelled per case. `REAL` means the case is evaluated on
+material observed in this repository. `CONSTRUCTED` means the premises are
+stated for the purpose of the evaluation. A constructed case is not a reproduced
+incident and must not be cited as one.
+
+| # | Case | Claim | Evidence basis | Verdict |
+|---|---|---|---|---|
+| 1 | Confirmed direct claim carries a decision | `CURRENT_STATE` + `DIRECT` | `REAL` (instance A material) | PASS |
+| 2 | Stale memory does not override newer direct evidence | `CURRENT_STATE` + `DIRECT` | `REAL` (instance B) | PASS |
+| 3 | Unbound history does not establish current state | `HISTORICAL` -> `CURRENT_STATE` | `CONSTRUCTED` | PASS |
+| 4 | Incorrect derived claim rejected though every premise holds | `CURRENT_STATE` + `DERIVED` | `REAL` (instance A) | PASS |
+| 5 | Dirty working tree is not canonical current state | `CURRENT_STATE` + `DIRECT` | `CONSTRUCTED` | PASS |
+| 6 | Stale remote-tracking ref not reported as remote-current | `CURRENT_STATE` + `DIRECT` | `CONSTRUCTED` | PASS |
+| 7 | Ancestry does not prove a historical effect persists | `HISTORICAL` + `DERIVED` -> `CURRENT_STATE` | `CONSTRUCTED` | PASS |
+| 8a | Valid prescription survives a surrounding state change | `PRESCRIPTIVE` + `DIRECT` | `CONSTRUCTED` | PASS |
+| 8b | Prescription without established authority is not applicable, though its subject appears to exist | `PRESCRIPTIVE` + `DIRECT` | `REAL` (local branch `5c5601a1`) | PASS |
+| 9 | Reading a claim without acting on it owes no verification | any | `CONSTRUCTED` | PASS |
+
+### Case replays
+
+**1.** Claim: the knowledge base states that more than 14 days without a PLAN
+update yields `CRITICAL`. About to be used to judge PLAN urgency. Verified at the
+selected anchor against `plan_freshness.py` (`sprint: 7`, CRITICAL above `2 ×`
+threshold) and the `PLAN.md` header (`Sprint (7d)`). Confirmed; the claim may
+carry the decision. Expected: carries. Result: carries.
+
+**2.** Claim, memory line 61: the M3-b-2A implementation remains uncommitted.
+Before any verdict, the referent is established from committed evidence as the
+M3-b-2A implementation checkpoint, the six scoped files, not the local state of
+some checkout. Newer evidence bound to the selected anchor (`origin/main`,
+fetched in-session, `75578e50`): `ff9cdb77` and `a59b0aef` are contained and all
+six files are present. Expected: memory does not override. Result: line 61
+rejected for that referent. Had the referent been one checkout's local diff,
+anchor evidence alone would not have sufficed; working-tree evidence for that
+checkout would have been required.
+
+**3.** Given: memory states "safeguard Y was added in commit X"; no anchor is
+selected and no containment check is performed. Claim used to conclude Y exists
+now. Rule: unbound historical evidence is context until bound to the selected
+anchor, and binding proves only containment. Expected: no current-state
+conclusion. Result: none reached; the decision is not carried.
+
+**4.** Instance A. Premises hold (14 days in the knowledge base, 7-day sprint
+threshold in code); the asserted relationship, that 14 is a competing
+threshold, fails because 14 is `2 ×` the threshold. Expected: rejected despite
+true premises. Result: rejected; no reconciliation task.
+
+**5.** Given: the selected anchor's `PLAN.md` contains text A; a local dirty
+checkout's `PLAN.md` contains A plus uncommitted text B. Claim: "B is canonical
+current state", read from the working tree. Rule: working-tree evidence
+establishes the local uncommitted state of one checkout only. Expected: reject.
+Result: rejected. The working tree establishes only local state; content at the
+selected anchor must be checked separately.
+
+**6.** Given: `origin/main` last fetched at an unknown or old time, resolving to
+commit C. Claim "main currently contains S" verified with
+`git show origin/main:<path>`. Rule: `origin/main` establishes locally known
+remote-tracking state; remote-current only when its freshness is separately
+established. Expected: not reported as remote-current. Result: the conclusion is
+limited to "at locally known `origin/main` = C"; no fetch is mandated, but the
+remote-current scope is not claimed.
+
+**7.** Given: memory states "commit X added safeguard Y, therefore Y is
+present". X is an ancestor of the anchor; a later commit Z, also an ancestor,
+removed Y. Rule: ancestry proves containment, not persistence; the derived
+inference is revalidated; the current-state conclusion is verified against
+`git show <selected-ref>:<path>`, which shows Y absent. Expected: conclusion
+fails. Result: fails.
+
+**8a.** Given: an approved decision, still in force, forbids staging file F
+during slice S; slice S is current; F still carries uncommitted changes; since
+the decision, unrelated repository state has changed — other files merged, main
+advanced. Rule: applicability depends on authority, subject, scope, conditions,
+expiry, supersession and revocation. Expected: still applicable. Result: authority
+established by the approved decision, subject present, scope current, no expiry,
+supersession or revocation; applicable. The surrounding state change alone does
+not invalidate it.
+
+**8b.** The local-branch restriction at `5c5601a1`, examined in the related
+prescriptive requalification. Its subject appears to exist: local `PLAN.md` hunks
+mentioning M3-b-2A are present. Applied in full, the rule finds authority not
+established, subject imprecise, scope not established as current and subject
+content superseded on main. Expected: not applicable despite apparent subject
+existence. Result: not applicable. The staging decision it was cited for was
+correct on the independent authority of the owner's in-chat instruction.
+
+**9.** Given: an agent reads the Open Risks section while loading context and
+takes no action derived from it. Rule: verification is owed only when a claim is
+about to change what is done. Expected: no verification owed. Result: none owed.
+
+### Residual observations, not blockers
+
+Every listed case is decidable. Three boundaries are not defined by the contract
+and are recorded here without being resolved:
+
+- **What establishes freshness** for a remote-tracking ref. Case 6 tests only the
+  negative direction, which is decidable; the positive direction — what evidence
+  suffices to claim remote-current — is unspecified.
+- **Where "about to change what is done" begins.** Case 9 covers pure reading. A
+  borderline act, such as repeating a claim in a status report, is not
+  classified.
+- **Prescriptions with established authority but no stated subject or scope.**
+  Case 8b is decidable because authority fails before subject precision matters,
+  and case 8a states its subject and scope explicitly. A prescription whose
+  authority is valid but which names no subject or scope gives the applicability
+  check nothing to evaluate.
 
 ## What this candidate does not establish
 
