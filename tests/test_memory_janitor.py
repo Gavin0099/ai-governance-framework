@@ -127,6 +127,23 @@ class TestCheckHotMemoryStatus:
 # ── B. generate_warning_message ───────────────────────────────────────────
 
 class TestGenerateWarningMessage:
+    @pytest.mark.parametrize(
+        "status,line_limit,char_limit",
+        [
+            ("WARNING", "180", "8000"),
+            ("CRITICAL", "200", "10000"),
+            ("EMERGENCY", "250", "12000"),
+        ],
+    )
+    def test_message_reports_its_own_level_thresholds(
+        self, janitor, status, line_limit, char_limit
+    ):
+        # Every level used to print WARNING/CRITICAL's 200 and 10000, so an
+        # operator at EMERGENCY was shown thresholds it was not judged against.
+        message = janitor.generate_warning_message(1, 1, status)
+        assert f"/{line_limit} 行" in message
+        assert f"/{char_limit} 字元" in message
+
     @pytest.mark.parametrize("surface", ["warning", "plan"])
     def test_emergency_guidance_includes_evidence_and_scope_stop(self, janitor, surface):
         janitor.active_task_file.write_text("x" * 12000, encoding="utf-8")
