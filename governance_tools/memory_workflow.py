@@ -545,6 +545,17 @@ def format_human(result: MemoryWorkflowDispatchResult) -> str:
         f"canonical_writer_path={result.canonical_writer_path or 'NOT FOUND'}",
         f"authority_guard_path={result.authority_guard_path or 'NOT FOUND'}",
     ]
+    if not result.guard_ran:
+        lines.append("Memory authority has not been checked.")
+    elif not result.blockers:
+        lines.append("Memory authority check ran and found no blocking item.")
+    else:
+        lines.append("Memory authority check ran; blocking items are listed under [blockers].")
+    if result.completion_claim_allowed:
+        lines.append("completion_claim_allowed=True means this workflow currently does not block a completion claim.")
+    else:
+        lines.append("completion_claim_allowed=False means this workflow does not allow a completion claim.")
+    lines.append("This does not prove that all completed work has canonical memory.")
     if result.memory_files_in_diff:
         lines.append("[memory_files_in_diff]")
         lines.extend(result.memory_files_in_diff)

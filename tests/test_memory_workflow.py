@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from dataclasses import asdict
 from pathlib import Path
+
+import pytest
 
 from governance_tools.memory_policy_attestation import (
     DISABLE_RECEIPT_INVALID,
@@ -11,7 +14,62 @@ from governance_tools.memory_policy_attestation import (
     POLICY_DELETED_WITHOUT_ATTESTATION,
     POLICY_DISABLED_WITHOUT_ATTESTATION,
 )
-from governance_tools.memory_workflow import assess_memory_workflow, format_human
+from governance_tools.memory_workflow import (
+    MemoryWorkflowDispatchResult,
+    assess_memory_workflow,
+    format_human,
+)
+
+
+@pytest.mark.parametrize(
+    ("guard_ran", "blockers", "allowed", "explanation"),
+    [
+        (False, [], True, "Memory authority has not been checked."),
+        (True, [], True, "Memory authority check ran and found no blocking item."),
+        (True, ["first_blocker", "second_blocker"], False,
+         "Memory authority check ran; blocking items are listed under [blockers]."),
+        (False, ["authority_guard_not_run"], False,
+         "Memory authority has not been checked."),
+    ],
+)
+def test_human_completion_explanation_preserves_authority_boundary(
+    guard_ran: bool, blockers: list[str], allowed: bool, explanation: str,
+) -> None:
+    result = MemoryWorkflowDispatchResult(
+        status="test", repo_root="test-repo", repo_root_resolved=True,
+        guard_ran=guard_ran, blockers=blockers, completion_claim_allowed=allowed,
+    )
+    before = asdict(result)
+
+    human = format_human(result)
+
+    assert explanation in human
+    assert "This does not prove that all completed work has canonical memory." in human
+    assert f"completion_claim_allowed={allowed}" in human
+    if allowed:
+        assert "currently does not block a completion claim" in human
+    else:
+        assert "does not allow a completion claim." in human
+    if blockers:
+        assert human.split("[blockers]\n", 1)[1].splitlines() == blockers
+        assert "found no blocking item" not in human
+    if not guard_ran:
+        assert "Memory authority check ran" not in human
+    assert asdict(result) == before
+
+
+def test_unchecked_memory_diff_does_not_point_to_absent_blockers(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    result = assess_memory_workflow(tmp_path, changed_files=["memory/2026-09-14.md"])
+
+    assert result.guard_ran is False
+    assert result.completion_claim_allowed is False
+    assert result.blockers == []
+    human = format_human(result)
+    assert "Memory authority has not been checked." in human
+    assert "does not allow a completion claim." in human
+    assert "[blockers]" not in human
+    assert "This does not prove that all completed work has canonical memory." in human
 
 
 def _write(path: Path, text: str) -> None:
