@@ -327,13 +327,40 @@ boundary.
 
 ## Definition Of Done
 
-A change is done when:
-1. session done-condition is met;
+This section defines delivery completion under the canonical memory workflow,
+not a universal task-completion or session-end trigger. Memory updates, session
+closeout, and Git delivery are separate events:
+
+- Memory updates follow the existing triggers in `SYSTEM_PROMPT.md` section 6.1
+  and this protocol, including review records and PLAN/milestone updates. Task
+  completion does not remove those obligations. L0 fast-track is not a memory
+  exemption.
+- Session closeout follows the defined session-end conditions in root
+  `AGENTS.md`. Task completion alone is not session end, and session closeout
+  does not authorize commit, push, or a pull request.
+- Git delivery follows the applicable delivery workflow and the existing
+  authorization boundaries. The delivery steps in this protocol, including
+  PLAN sync and the consuming-repo sequence below, do not grant commit or push
+  authority.
+
+When a completed implementation is being delivered under this canonical
+memory workflow, delivery is complete when:
+1. the agreed done-condition for the bounded implementation is met;
 2. the bounded implementation is validated and committed;
 3. one canonical memory entry bound to that local implementation commit is
    written before the separate closeout companion commit;
-4. the implementation and closeout commits are pushed;
+4. the implementation and closeout companion commits exist and have been pushed
+   with the required authorization;
 5. the intended remote ref is verified.
+
+Report the completed local scope, delivery state, and push authorization
+separately. If the bounded implementation has been validated and committed but
+push is not authorized, report that implementation as complete locally and
+delivery as not completed, with push authorization not granted. Lack of push
+authorization does not undo completed local work or permit an unauthorized
+push. This distinction does not waive applicable memory obligations, pending
+companion work, or dirty-workspace reporting requirements; do not claim the
+overall task is complete while its required work remains unfinished.
 
 `PLAN.md` sync and structured memory refresh are required when a phase or
 milestone transition happened.
