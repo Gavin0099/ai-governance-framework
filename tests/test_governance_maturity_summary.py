@@ -329,6 +329,32 @@ def test_lock_consistency_reports_clean_lock_matching_checkout(tmp_path: Path) -
     assert "版本帳實一致性（Lock vs checkout consistency）" in rendered
 
 
+@pytest.mark.parametrize("staged", [False, True])
+def test_aligned_dirty_lock_explains_pending_commit_without_promoting_state(tmp_path: Path, staged: bool) -> None:
+    repo = _make_repo(tmp_path / "lock_pending")
+    framework = _make_git_framework(repo / "ai-governance-framework")
+    old_head = _run_git(["rev-parse", "HEAD"], framework)
+    _write_framework_lock(repo, old_head)
+    _commit_path(repo, "governance/framework.lock.json", "record old lock")
+    _write(framework / "SECOND.txt", "second\n")
+    _run_git(["add", "SECOND.txt"], framework)
+    _run_git(["commit", "-m", "framework B"], framework)
+    _write_framework_lock(repo, _run_git(["rev-parse", "HEAD"], framework))
+    if staged:
+        _run_git(["add", "governance/framework.lock.json"], repo)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    payload = summary_to_dict(summary)
+    rendered = format_human(summary)
+    assert payload["lock_consistency"]["value"] == "inconsistent"
+    assert "framework_lock_consistency" in payload["missing_surfaces"]
+    assert "framework lock matches the checked-out framework commit" in payload["cannot_claim"]
+    assert "lock_consistency         = inconsistent" in rendered
+    assert "| 版本帳實一致性（Lock vs checkout consistency） | 已對齊，版本帳本待提交 |" in rendered
+    assert "版本帳本與 checkout 已對齊，但版本帳本尚未提交" in summary.human_readable_adoption_summary[5]
+    assert "版本帳本尚未和目前 framework 對齊" not in summary.human_readable_adoption_summary[5]
+
+
 def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "lock_dirty")
     framework = _make_git_framework(repo / "ai-governance-framework")
@@ -356,6 +382,8 @@ def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> Non
     assert "framework lock matches the checked-out framework commit" in summary.cannot_claim
     assert "lock_consistency         = inconsistent" in rendered
     assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" in rendered
+    assert "版本帳本尚未和目前 framework 對齊" in summary.human_readable_adoption_summary[5]
+    assert "版本帳本待提交" not in rendered
 
 
 def test_lock_consistency_reports_legacy_lock_schema_without_adopted_commit(tmp_path: Path) -> None:
@@ -380,6 +408,7 @@ def test_lock_consistency_reports_legacy_lock_schema_without_adopted_commit(tmp_
     )
     assert "lock_consistency         = legacy_lock_schema" in rendered
     assert "| 版本帳實一致性（Lock vs checkout consistency） | 舊版格式 |" in rendered
+    assert "版本帳本待提交" not in rendered
 
 
 def test_self_hosting_framework_lock_is_not_consumer_lock_consistency(tmp_path: Path) -> None:
