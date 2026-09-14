@@ -1,0 +1,121 @@
+{
+  "purpose": "Verify additive recovery of preexisting historical daily records; not runtime or historical prose validation",
+  "base_commit": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+  "restoration_commit": "5607f15bee99747fe284f1f18afaae239af71efd",
+  "files": [
+    {
+      "path": "memory/2026-08-19.md",
+      "restored_records": 3,
+      "base_sha256": "1d0a4543391d261e93bda44e558958fc98d93b75791f134f5ce640abf02ffd57",
+      "committed_sha256": "307823db04cc00846cd3df473eac3161b54bd76a416c65842c1dae767916f3ff",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-08-20.md",
+      "restored_records": 3,
+      "base_sha256": "913d81e5c3f0d1fcdedfa27e82ada9a3e7deb58798140958ac3e9f229d1a540e",
+      "committed_sha256": "c7e78facd103a2f2d64f389a97405859d0726dfbb49a9e94016064202d3a56da",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-08-21.md",
+      "restored_records": 6,
+      "base_sha256": "75faa447f11b9d8aac6fba012251065145b4bf58d521d24c9c230b452ff80ad1",
+      "committed_sha256": "14cd7f033e5a4fc820596e96575c3cf2b7a1bf58438aaa74c1a9109bf4bd3173",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-08-24.md",
+      "restored_records": 2,
+      "base_sha256": "c965bab29f6cf992aa3970e731fb1e442d8e23dddad7b3ecffbd78323d9f02f1",
+      "committed_sha256": "634643758465cd2ac86043321d2301e01b26c58ddbba76cfea8f9ba79684313f",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-08-27.md",
+      "restored_records": 1,
+      "base_sha256": "5f7f539a06683142901784cd8af473759b99182927928b835d131383e69a92ff",
+      "committed_sha256": "d0a986e5ddf4ec6bb6b44eb8a96a45ee671b33e7b1745254e162f3661f278291",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-08-31.md",
+      "restored_records": 2,
+      "base_sha256": "c5dc41ed8b91f8024dee391286e256b1eeeacbd7a6e86111cedaaa36c2f10510",
+      "committed_sha256": "125c50fa45b381300da1a07a8f84b183fdd94d770061f42963b48c50a29968bc",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-02.md",
+      "restored_records": 1,
+      "base_sha256": "136efb45b23ba85a5bae67597117d25c14dceb61e81794c6582fc52e9772610d",
+      "committed_sha256": "de571ed9ae9435a90163690694e439d03ba5a5d67b288c811c77f2c58e5008c2",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-04.md",
+      "restored_records": 1,
+      "base_sha256": "61a76d6159a2c36816b44f2b5b7a8620b27f136c50d53d8af2eb05bba2308576",
+      "committed_sha256": "d5c06e77a7aed6e097be3c56e0a0193862a70d173e201a7337ef2f88cb15b911",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-07.md",
+      "restored_records": 1,
+      "base_sha256": "67ca9186332c117ab486f197d18ceabc05e6be30987088a71cdbb4f56137b9eb",
+      "committed_sha256": "7e7a27bd55aab19bd44d590155d4862f6886d8c6cffd4eb1b336bf8b83bfe862",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-08.md",
+      "restored_records": 2,
+      "base_sha256": "2e2a25823bc221bebe4d281d6d2897fdc298f401faeb19367b5595aa41e2107b",
+      "committed_sha256": "8f49c73ad1e86d08d086a5e80429c023fdd65b9a95c548a4102fd85dc5a7c664",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-09.md",
+      "restored_records": 2,
+      "base_sha256": "5c64f0eea0932069554525f23aef825c3262a16303296fe2fd130b89ce89745b",
+      "committed_sha256": "aead6095d7b77b6881a08305c93458ca74afcc205337d5ec3d6154689531bdf8",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    },
+    {
+      "path": "memory/2026-09-12.md",
+      "restored_records": 1,
+      "base_sha256": "7d81041139d32e362573e3513f59e22436dce329ff19855aeaf32184196e1289",
+      "committed_sha256": "fd3999ebad6ade09b476b74fa31917e9b716a805a7ee5c769e8d18fd9ced6789",
+      "main_prefix_preserved": true,
+      "original_record_text_preserved": true
+    }
+  ],
+  "restored_record_total": 25,
+  "diff": {
+    "insertions": 348,
+    "deletions": 0
+  },
+  "normalization": "Original committed main bytes unchanged; restored record CRLF normalized to LF only. Byte-exact original backups remain local and excluded from publication.",
+  "excluded": [
+    "unrelated local modifications",
+    "local recovery backups",
+    "unadopted memory authority amendment"
+  ],
+  "not_claimed": [
+    "historical record assertions reverified",
+    "memory authority promotion",
+    "runtime tests",
+    "G4 outcomes",
+    "merge or remote delivery"
+  ]
+}
