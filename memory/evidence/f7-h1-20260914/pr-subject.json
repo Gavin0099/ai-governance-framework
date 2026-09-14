@@ -1,0 +1,16 @@
+{
+  "implementation_commit": "c2198010c6bb181d250aa0161125b861051fdcab",
+  "base_commit": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+  "git_blob_sha256": {
+    "docs/governance/canonical-composed-hook-support.md": "5e6636ac3c7d650d5f5cbc0a69e9d3e6359a62c3fc5999a4dd8938b9a6dc1eef",
+    "governance_tools/composed_hook.py": "917d994f7bf3857299afac6e8716e7f0da488bccdecc92bc62ecef58cc121e09",
+    "governance_tools/external_governance_submodule_updater.py": "68a122d868d0448160319f3541ec988ef7352e25e1cd3d1fabdb1ad1c33dec43",
+    "governance_tools/hook_installer.py": "bfaea4178d34df5732e0c9fe50ce8ee099b00db532c42fcae127fc667732f275",
+    "tests/fixtures/lenovo_composed_hook/.gitattributes": "03fbcb87f35f21ae91880802cfa9593eeab3d2112de342bbad2823cec50273e0",
+    "tests/fixtures/lenovo_composed_hook/install-governance-hooks.ps1": "1769131bc7994f7883acd443dc5606cb243cb6c4831a0fd5bb0002ca289f4227",
+    "tests/fixtures/lenovo_composed_hook/pre-push.memory-quality.fragment.sh": "c24d1cd2d3c99b9a4e1de04de8db4c5031a5ec728bf4a11189a5006704ad3e85",
+    "tests/fixtures/lenovo_composed_hook/wire-pre-push-memory-quality.ps1": "2b66d6b9a716f7290e10dc655a5cc843837af2b34527a2d593797ba3de50f685",
+    "tests/test_composed_hook.py": "65eb9d452c4a2ace1945c9651a082a0096692062a8ee6cd013489c3552ddca16"
+  },
+  "prior_validation_boundary": "Production and test bytes match the previous reviewed candidate modulo Git newline normalization; only fixture .gitattributes added for exact LF preservation."
+}

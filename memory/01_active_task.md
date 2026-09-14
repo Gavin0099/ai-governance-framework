@@ -141,3 +141,5 @@ remains outside the Gate 3 critical path and outside this slice.
 - C1 Gate 1 admission passed and D5 was merged by PR #120 at 3351584a; randomization and A/B/C/D arms remain unauthorized and unstarted. <!-- memory_record_projection:active-task-summary:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->
 
 - Advisory Skill selection adoption documentation prepared; routing unchanged. See docs/governance/advisory-skill-selection-adoption-20260909.md. PR delivery in progress; final-head merge authority pending. <!-- memory_record_projection:active-task-summary:e3e590f863c43f831722daac3cfdd003b3be0cfb499e0026b044fb6a4f6d9fe1 -->
+
+- H1 implementation committed; canonical Lenovo composed-hook compatibility verified locally; separate PR review pending, no merge authority. <!-- memory_record_projection:active-task-summary:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->

@@ -1,0 +1,10 @@
+{
+  "exit_code": 1,
+  "hook_bytes_unchanged": true,
+  "hook_mtime_unchanged": true,
+  "ok": false,
+  "f7_final_status": "blocked",
+  "errors": [
+    "consuming repo has pre-existing dirty files overlapping the F-7 apply allowlist; refusing to overwrite unknown governance work: ['governance/.update-receipt.json']"
+  ]
+}

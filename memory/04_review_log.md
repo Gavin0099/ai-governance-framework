@@ -5315,3 +5315,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PR #120 exact head 1ced27d08e0330ca5ebe21ed241f0074ec500958; GitHub checks 11 SUCCESS and 1 expected SKIPPED; merge commit 3351584aa7988504316f46decdbdc50f877ca697 preserves reviewed-head ancestry. Fresh core.autocrlf=true checkout focused pytest: 19 passed; canonical precommit before push: 201 passed.
 - Next action: Review this isolated status-reconciliation commit, then push it under separate authority; only after it is merged may the owner separately authorize create-once randomization bound to reviewed D5 admission commit 1ced27d08e0330ca5ebe21ed241f0074ec500958.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->
+### Canonical memory checkpoint — 2026-09-14-h1-pr-review
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9`
+- Commit binding: `c2198010c6bb181d250aa0161125b861051fdcab` (bound)
+- Record: H1 accepts only the existing committed Lenovo declaration, wiring and extension fingerprints and compares the complete composed pre-push. Unknown mutations and missing extensions remain rejected. Base updates preserve the extension through per-file atomic replacement. Author review fixed declaration-removal downgrade and restored missing-source handling. Canonical fixture bytes are preserved by scoped Git attributes. This records the earlier H1 work and current PR preparation; no generic plugin, M1, R1 or consumer delivery claim.
+- Validation boundary: 63 passed: tests/test_composed_hook.py, tests/test_hook_installer.py and the missing-source updater regression; evidence memory/evidence/f7-h1-20260914/final-targeted.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-h1-20260914/pr-precommit.log. Disposable F7 and repeat-hook checks are documented in memory/evidence/f7-h1-20260914/PR_REVIEW.md; full F7 repeat remains receipt-blocked.
+- Next action: Commit this canonical companion, publish the separate H1 PR and review its exact head and checks; merge remains unauthorized.
+- PLAN reconciliation: `not_applicable`
