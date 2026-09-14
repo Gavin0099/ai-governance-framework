@@ -5315,3 +5315,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PR #120 exact head 1ced27d08e0330ca5ebe21ed241f0074ec500958; GitHub checks 11 SUCCESS and 1 expected SKIPPED; merge commit 3351584aa7988504316f46decdbdc50f877ca697 preserves reviewed-head ancestry. Fresh core.autocrlf=true checkout focused pytest: 19 passed; canonical precommit before push: 201 passed.
 - Next action: Review this isolated status-reconciliation commit, then push it under separate authority; only after it is merged may the owner separately authorize create-once randomization bound to reviewed D5 admission commit 1ced27d08e0330ca5ebe21ed241f0074ec500958.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
+### Canonical memory checkpoint — 2026-09-14-s2-pr-review
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67`
+- Commit binding: `e4d1f002698e7c5b376d1c17a1ec671b4f0db3e8` (bound)
+- Record: S2 changes only the human adoption missing-surface sentence and lock consistency table row when existing canonical diagnostics say the lock matches checkout HEAD but is uncommitted. Machine inconsistent status, missing_surfaces, cannot_claim and gate behavior remain unchanged. Genuine SHA mismatch retains its old presentation. This records the earlier S2 implementation and current author review; no new state model, R1, M1 or consumer prerequisite repair.
+- Validation boundary: 51 passed: python -m pytest tests/test_governance_maturity_summary.py -q; evidence memory/evidence/f7-s2-20260914/tests.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-s2-20260914/pr-precommit.log. Read-only Bookstore replay changed exactly two rendered lines while structured input and consumer status stayed unchanged: memory/evidence/f7-s2-20260914/bookstore-replay.json.
+- Next action: Commit this canonical companion, publish the separate S2 PR and review its exact head and checks; merge remains unauthorized.
+- PLAN reconciliation: `not_applicable`
