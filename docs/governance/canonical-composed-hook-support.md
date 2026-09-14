@@ -1,0 +1,59 @@
+# Canonical composed-hook support (H1)
+
+This is a bounded compatibility adapter for the Lenovo consumer's existing
+install-time composition. It is not a hook plugin interface or a generic
+composition declaration format.
+
+## Accepted declaration
+
+The reviewed source is `lenoveo-isp-tool-avalonia` commit
+`3a4278c4bd2a18548b4920f2e999372be1834d44`:
+
+- `scripts/hooks/install-governance-hooks.ps1`
+- `wire-pre-push-memory-quality.ps1`
+- `scripts/hooks/pre-push.memory-quality.fragment.sh`
+
+The adapter pins the LF-normalized SHA-256 of these three files. Fixture copies
+under `tests/fixtures/lenovo_composed_hook/` preserve their complete reviewed
+content. All three, and the referenced `validate-memory-quality.ps1`, must be
+regular in-repository files whose worktree and index content match HEAD. The
+gate script remains consumer-owned; this change neither rewrites it nor
+certifies its behavior. Unsupported declaration revisions fail closed and need
+a separate compatibility review, not an automatic plugin discovery path.
+
+No consumer script is executed while recognizing the declaration. In a repo
+without the declaration, the existing raw-framework-hook path remains valid.
+
+## Comparison and installation
+
+Before F-7 changes the framework checkout, its mutation guard reconstructs the
+expected pre-push from the **current base** plus the committed fragment. It
+compares the entire installed content, ignoring CRLF versus LF only. A marker
+alone is never sufficient; missing extensions and unknown extra content fail.
+
+After the checkout advances, both F-7's internal hook writer and the standalone
+installer construct the **new base** plus the same declared fragment. The
+complete file is written to a sibling temporary file and replaced atomically.
+The old hook remains if preparing or replacing the file fails. No intermediate
+raw pre-push is installed. This is a per-hook-file guarantee, not a transaction
+over the entire F-7 update or all configuration files.
+
+The declared insertion is before the unique structured-memory anchor. A
+standalone terminal `exit 0` is the supported fallback; an ambiguous or absent
+insertion point is rejected rather than guessing a place that may skip gates.
+
+Repeated install leaves an already identical hook untouched. Existing F-7
+receipt, dirty-tree, authorization and parent-commit gates still apply to a
+second F-7 run; H1 does not make an uncommitted update globally idempotent.
+
+## Evidence boundaries
+
+The focused tests check full payload matching, missing/unknown changes,
+declaration provenance, base updates, unchanged repeat install and replacement
+failure. Shell replay checks independent framework and extension rejection;
+the PowerShell stand-in is explicitly a fixture and does not certify the
+consumer's memory-quality validator internals.
+
+Formal disposable-consumer replay additionally exercises F-7 and the original
+tracked installer. Passing those checks does not establish fleet-wide adoption,
+M1 completion-state behavior, or permission to push a consumer.

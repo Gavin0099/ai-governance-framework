@@ -1,0 +1,5 @@
+# Preserve the reviewed LF fixture bytes on Windows checkouts.
+*.ps1 text eol=lf
+*.sh text eol=lf
+# This trailing blank line belongs to the pinned canonical consumer source.
+pre-push.memory-quality.fragment.sh whitespace=-blank-at-eof

@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from governance_tools.hook_installer import _framework_root_config_value
+from governance_tools.composed_hook import (
+    CompositionError, atomic_write_hook, declared_fragment, expected_hook, normalized,
+)
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     summary_to_dict as governance_maturity_summary_to_dict,
@@ -1215,12 +1218,18 @@ def _preexisting_unmanaged_hook_overlaps(
     source_hook_dir = submodule_repo / "scripts" / "hooks"
     hook_dir = _git_hook_dir(repo)
     overlapping: list[str] = []
+    try:
+        fragment = declared_fragment(repo)
+    except (CompositionError, OSError) as exc:
+        raise SubmoduleUpdateError(str(exc)) from exc
 
     for hook_name in ("pre-commit", "pre-push"):
         target = hook_dir / hook_name
         try:
             target_stat = target.lstat()
         except FileNotFoundError:
+            if hook_name == "pre-push" and fragment is not None:
+                overlapping.append(f".git/hooks/{hook_name}")
             continue
         except OSError as exc:
             raise SubmoduleUpdateError(
@@ -1231,7 +1240,12 @@ def _preexisting_unmanaged_hook_overlaps(
             continue
         source = source_hook_dir / hook_name
         try:
-            source_matches = source.is_file() and target.read_bytes() == source.read_bytes()
+            if source.is_file() and hook_name == "pre-push" and fragment is not None:
+                source_matches = normalized(target.read_bytes()) == expected_hook(repo, hook_name, source.read_bytes())
+            else:
+                source_matches = source.is_file() and target.read_bytes() == source.read_bytes()
+        except CompositionError as exc:
+            raise SubmoduleUpdateError(str(exc)) from exc
         except OSError as exc:
             raise SubmoduleUpdateError(
                 f"cannot inspect pre-existing hook {target}: {exc}"
@@ -1310,14 +1324,30 @@ def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
             "errors": [f"missing framework hooks source: {source_hook_dir}"],
         }
 
+    try:
+        fragment = declared_fragment(repo)
+        payloads = {}
+        for name in ("pre-commit", "pre-push"):
+            source = source_hook_dir / name
+            if source.is_file():
+                payloads[name] = expected_hook(repo, name, source.read_bytes())
+            elif fragment is not None:
+                return {"status": "missing", "changed_files": [], "errors": [f"missing source hook: {source}"]}
+    except (CompositionError, OSError) as exc:
+        return {"status": "missing", "changed_files": [], "errors": [str(exc)]}
+
     for hook_name in ("pre-commit", "pre-push"):
         source = source_hook_dir / hook_name
         target = hook_dir / hook_name
         if not source.is_file():
             errors.append(f"missing source hook: {source}")
             continue
-        if _write_bytes_if_changed(target, source.read_bytes()):
-            changed.append(str(target))
+        try:
+            if atomic_write_hook(target, payloads[hook_name]):
+                changed.append(str(target))
+        except OSError as exc:
+            errors.append(f"could not install complete hook {target}: {exc}")
+            break
 
     config = hook_dir / "ai-governance-framework-root"
     if _write_text_if_changed(config, f"{_framework_root_config_value(submodule_repo)}\n"):
