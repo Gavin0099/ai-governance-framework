@@ -31,6 +31,12 @@ qualified `RECORDED-ONLY`, because that material is not independently
 retrievable from this repository. The rule, the claim classification, the
 acceptance cases and their verdicts are unchanged.
 
+Semantic amendment after re-adoption at `e33ea9d4`: a selected ref is movable, so
+it is now resolved once to an immutable commit OID, and every subsequent check
+uses that OID. Remote-current freshness is scoped to the moment of resolution.
+This changes step 2 of the rule, the current-evidence table and its guidance, and
+the replays of cases 6 and 7. Every case verdict is unchanged.
+
 ## The question this answers
 
 Not "how do we keep memory fresh?" but:
@@ -243,9 +249,9 @@ answers a different question and must carry its scope:
 
 | Evidence | Scope it establishes |
 |---|---|
-| `git show <selected-ref>:<path>` | content of that file at the exact locally resolved selected ref |
-| `git rev-parse <selected-ref>` | exact commit identity of that current-state anchor |
-| `git merge-base --is-ancestor X <selected-ref>` | whether historical commit X is contained in the selected anchor |
+| `git rev-parse <selected-ref>^{commit}`, run once | the immutable commit OID of the current-state anchor, `<anchor-oid>` |
+| `git show <anchor-oid>:<path>` | content of that file at the anchor commit |
+| `git merge-base --is-ancestor X <anchor-oid>` | whether historical commit X is contained in the anchor commit |
 | PR state (open / merged / current head) | remote pull-request lifecycle state, as reported at query time |
 | current configuration files | declared policy, not effective behaviour |
 | working-tree diff / status | **local, uncommitted** state of one checkout only |
@@ -258,13 +264,25 @@ ref and reporting the result as current state would reproduce the very failure
 this contract addresses. A fetch is not always required; claiming more scope than
 the evidence supports is never allowed.
 
+**Resolve the anchor once.** A selected ref such as `origin/main` is movable: a
+concurrent fetch or commit can advance it between two commands. Resolve it once
+to an immutable commit OID and run every subsequent check against that OID, never
+against the ref again. Reporting one resolution as the anchor's identity while
+inspecting content or ancestry through a later resolution binds the claim to a
+commit that was not inspected.
+
+The OID is a fixed snapshot. A claim that the evidence reflects remote-current
+state requires freshness to be established at the moment the OID is resolved.
+When the ref moves afterwards, the evidence keeps its identity but is no longer
+remote-current: it is evidence about that commit, not about the ref.
+
 Two further consequences:
 
 - A working-tree observation is never automatically canonical. It describes one
   checkout, possibly dirty, possibly not the pushed subject.
 - Historical evidence becomes usable toward current state only once it is
   **bound to the selected current anchor**. The defect is unbound history, not
-  history. `git merge-base --is-ancestor X <selected-ref>` is historical evidence
+  history. `git merge-base --is-ancestor X <anchor-oid>` is historical evidence
   that is usable for exactly what it establishes — that X is contained in the
   anchor — and not for whether X's effect survives later commits.
 
@@ -279,8 +297,9 @@ When such a claim is about to influence a decision, task, finding, remediation
 or implementation:
 
   1. classify the claim on both axes: target and form
-  2. verify it against evidence bound to a selected current anchor, stating that
-     anchor's identity and the freshness actually established for it
+  2. resolve a selected current anchor once to an immutable commit OID, and
+     verify the claim against evidence bound to that OID, stating the OID and the
+     freshness actually established when it was resolved
   3. only then let it carry the decision
 
 Current evidence validates premises. A CURRENT_STATE + DERIVED claim
@@ -461,18 +480,20 @@ Result: rejected. The working tree establishes only local state; content at the
 selected anchor must be checked separately.
 
 **6.** Given: `origin/main` last fetched at an unknown or old time, resolving to
-commit C. Claim "main currently contains S" verified with
-`git show origin/main:<path>`. Rule: `origin/main` establishes locally known
-remote-tracking state; remote-current only when its freshness is separately
+commit C. Claim "main currently contains S" verified by resolving `origin/main`
+once to C and running `git show C:<path>`. Rule: `origin/main` establishes locally
+known remote-tracking state; remote-current only when its freshness is separately
 established. Expected: not reported as remote-current. Result: the conclusion is
 limited to "at locally known `origin/main` = C"; no fetch is mandated, but the
-remote-current scope is not claimed.
+remote-current scope is not claimed. If a concurrent fetch then advances
+`origin/main` to D, the checks already run remain bound to C, and the conclusion
+is still stated for C, not for D.
 
 **7.** Given: memory states "commit X added safeguard Y, therefore Y is
 present". X is an ancestor of the anchor; a later commit Z, also an ancestor,
 removed Y. Rule: ancestry proves containment, not persistence; the derived
 inference is revalidated; the current-state conclusion is verified against
-`git show <selected-ref>:<path>`, which shows Y absent. Expected: conclusion
+`git show <anchor-oid>:<path>`, which shows Y absent. Expected: conclusion
 fails. Result: fails.
 
 **8a.** Given: an approved decision, still in force, forbids staging file F
