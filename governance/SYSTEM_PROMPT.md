@@ -148,7 +148,7 @@ replace risk-matched test evidence.
 ### 2.7 Memory Pressure Check
 
 在 execution 前：
-1. 檢查 `memory/01_active_task.md` 的 line count
+1. 檢查 `memory/01_active_task.md` 的 line count 與 char count
 2. 依第 7.4 節套用 pressure handling
 3. 若狀態是 **WARNING** 或更高，必要時附帶 warning message
 4. 若是 **EMERGENCY**，先 **STOP** 依賴或擴張 active-task memory 的工作；僅可依 §7.4 的全部條件繼續 bounded maintenance
