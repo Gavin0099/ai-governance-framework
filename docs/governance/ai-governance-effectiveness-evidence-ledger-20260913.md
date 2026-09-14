@@ -5,6 +5,7 @@
 > **Kind**: evidence interpretation ledger. Not a policy, not a backlog.
 > **Original assessment**: `54ffb007`
 > **Reconciled**: 2026-09-13 — see *Reconciliation as of 2026-09-13*
+> **Subsequent reconciliation**: 2026-09-14 — see *Reconciliation as of 2026-09-14*
 
 ## Purpose
 
@@ -29,7 +30,34 @@ Entries 7 and 16 carry factual corrections to the original frozen assessment
 (`54ffb007`): the event source and the pushed lockfile mechanism in entry 7, and
 the event source and the hook claim in entry 16. These were wrong when written.
 Changes in status caused by later evidence are not corrections and are recorded
-only under *Reconciliation as of 2026-09-13*.
+only under the dated reconciliation sections below.
+
+## Provenance precision (2026-09-14)
+
+Throughout this ledger, `dc66e923` denotes a **local unpublished historical
+candidate**. It is a provenance locator only: not remotely retrievable from the
+repository and not authority. Its references preserve the recorded historical
+case; they do not supply an independently retrievable review or a current-state
+verification result.
+
+`afdb60b3` and `7e61e733` are **local historical commit identities**. The
+following remote counterparts are **patch-equivalent**, not the same commits
+and not identity-equivalent. The mapping was mechanically rechecked on
+2026-09-14 with `git show --pretty=format: --no-ext-diff <commit> | git patch-id --stable`;
+each pair produced the stable patch-id shown below.
+
+| Local historical commit | Remotely retrievable patch-equivalent commit | Stable patch-id |
+|---|---|---|
+| `afdb60b38c63941758a47668f3585045c1923761` | `678850c7e5f4e2ce63aa0040c44ef85af1844488` | `b2f63c38636529d6c6591847f7d6e72225aec1d5` |
+| `7e61e733518956d2f2cbe85a8f3115926a001dd8` | `f18860b32b5e11932faca36ba92239ea5d0a12a0` | `70c006b5ee50893f50ae656f7345a8b245f2837f` |
+
+Remote availability was checked through GitHub's commit API and
+`git ls-remote origin refs/heads/codex/review-delivery-integration`, which
+resolved to `f18860b32b5e11932faca36ba92239ea5d0a12a0`; both remote
+counterparts are reachable from that anchor. Patch equivalence does not transfer
+commit identity, review coverage, adoption or delivery authority. This
+clarifies provenance only; it does not reassess S2, S3 or S4, or change the
+2026-09-13 delivery snapshot.
 
 ## Evidence classes
 
@@ -453,3 +481,49 @@ The lens is unchanged. Its listed environment remedy, pinning and verifying the
 tool version, is not supported by the entry 7 evidence: in the reproduced case
 the existing required `npm ci` check detected the incompatible lockfile, and no
 pin is recommended.
+
+
+## Reconciliation as of 2026-09-14
+
+This is a subsequent dated observation, not a rewrite of the 2026-09-13
+reconciliation. S1 was owner-adopted locally at `8838027b` on 2026-09-13 and
+was not canonical on main at that reconciliation point; that snapshot remains
+unchanged.
+
+S1 subsequently underwent evidence/provenance, anchor-OID and lifecycle
+amendments. The unpublished-source clarification and `REAL`, `RECORDED-ONLY`
+qualification were followed by owner re-adoption; the current-state anchor was
+then bound once to an immutable OID, followed by a further owner re-adoption.
+Those intervening amendments are retained in the commit history and the
+canonical contract's correction note and adoption metadata.
+
+### S1 canonical delivery
+
+[PR #174](https://github.com/Gavin0099/ai-governance-framework/pull/174) was
+merged at `2026-09-14T02:19:39Z`.
+
+| Identity | Verified value |
+|---|---|
+| Reviewed exact head | `407406dadcbcafaa51b752da07eaf699ed886e5a` |
+| Merge commit | `1b212de77f6ced71e50a57c8f43bbe80c393264c` |
+| Canonical blob | `98a993115bd717ac9f46756c2df1805b71978407` |
+| Canonical path | `docs/governance/current-state-claim-verification-20260913.md` |
+
+At this reconciliation point, the current-state verification contract is
+**owner-adopted + canonical on main**.
+
+The checks were bound to the remote `main` OID
+`1b212de77f6ced71e50a57c8f43bbe80c393264c`, resolved on 2026-09-14:
+PR #174 reports `MERGED` with the exact head and merge commit above; its
+completed Codex review identifies `407406dadc`; `git merge-base --is-ancestor`
+confirms the full reviewed head is reachable from that main OID; and
+`git ls-tree` at that OID returns the canonical path and blob above. The
+contract's owner re-adoption metadata and the owner's 2026-09-14 reconciliation
+instruction establish adoption; merge status alone is not adoption authority.
+
+Current delivery state is a dated observation and must be reverified before
+being relied on as present-day repository state.
+
+This update completes S0's provenance and subsequent-state account only. It
+does not reopen S1-S4 analysis, reassess S2/S3/S4, create a task or governance
+rule, change memory, or decide S0 delivery.
