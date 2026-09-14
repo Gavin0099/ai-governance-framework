@@ -110,6 +110,10 @@ is stronger: it does not depend on sampling, and one re-read can refute it.
   prerequisite, not adding a new carve-out.
 
 - **Reconciliation**: status changed after this assessment; see *Reconciliation as of 2026-09-13*.
+- **Factual correction (2026-09-14)**: the exclusivity inference above is
+  withdrawn; see *Entry 2 — correction of the original authorization premise*
+  in the 2026-09-14 reconciliation. Retained wording is historical, not a
+  supported current conclusion.
 
 ## 3. Pre-push subject binding — blocking path is bound
 
@@ -496,6 +500,24 @@ qualification were followed by owner re-adoption; the current-state anchor was
 then bound once to an immutable OID, followed by a further owner re-adoption.
 Those intervening amendments are retained in the commit history and the
 canonical contract's correction note and adoption metadata.
+
+### Entry 2 — correction of the original authorization premise
+
+The original assessment incorrectly treated the memory-synchronization list in
+`governance/SYSTEM_PROMPT.md` §2.2 at `75578e50` as an exclusive authorization
+boundary. It lists required synchronization inputs; it does not prohibit reading
+other repository sources. The same baseline's §2.3 addresses proportionate
+exploration, and `AGENTS.md` permits reading and exploring repository files.
+The absence of the word `git` therefore does not establish that independent
+verification was unauthorized.
+
+The entry 2 inference that the exception "never authorizes" verification, and
+its `DERIVED` authorization-gap conclusion on that basis, are withdrawn as
+unsupported from the outset. This is a factual correction, not a claim that the
+rule changed later. The original wording and the 2026-09-13 reconciliation
+remain historical records; neither should be used to assert an exclusive-read
+restriction. This correction does not reassess S1's separately evidenced
+current-state claim contract, its adoption or delivery, or S2/S3/S4.
 
 ### S1 canonical delivery
 
