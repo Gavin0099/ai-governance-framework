@@ -72,6 +72,12 @@ session. Other providers' existing fallback behavior is retained; callers must
 not intentionally disguise a Codex invocation as another provider. Existing
 receipt schema and historical records are unchanged.
 
+Codex synthetic smoke creates a unique `codex-smoke-*` envelope and passes that
+identity explicitly. It cannot consume an existing session's candidate. Like
+the existing envelope writer, it advances the repository's convenience marker;
+run smoke in an isolated test repo. Its receipt proves synthetic pipeline
+execution, not a real session's valid content or native lifecycle activation.
+
 Official hook documentation distinguishes SessionStart from turn Stop and
 session SessionEnd: <https://learn.chatgpt.com/docs/hooks>.
 Changing closeout from Stop to SessionEnd is a separate decision. This slice

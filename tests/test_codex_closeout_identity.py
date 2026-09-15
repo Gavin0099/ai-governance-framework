@@ -107,3 +107,25 @@ def test_manual_codex_command_requires_explicit_identity(tmp_path):
     from governance_tools.manage_agent_closeout import _manual_closeout_cmd
     assert '--session-id <SESSION_ID>' in _manual_closeout_cmd(tmp_path, 'codex')
     assert '--session-id' not in _manual_closeout_cmd(tmp_path, 'claude')
+
+
+def test_codex_synthetic_smoke_owns_identity_and_generates_receipt(repo):
+    result = subprocess.run([
+        sys.executable, '-m', 'governance_tools.manage_agent_closeout',
+        '--project-root', str(repo), '--format', 'json', 'smoke', '--agent', 'codex',
+    ], capture_output=True, text=True, encoding='utf-8',
+        env={**os.environ, 'PYTHONIOENCODING':'utf-8',
+             'AI_GOVERNANCE_FRAMEWORK_ROOT':str(ENTRY.parent.parent)}, timeout=45)
+    assert result.returncode == 0, result.stderr + result.stdout
+    data = json.loads(result.stdout)
+    row = data[0] if isinstance(data, list) else data
+    assert row['evidence_recorded'] is True
+    assert row['receipt_recorded'] is True
+    assert row['receipt_artifact_exists'] is True
+    receipt = json.loads(Path(row['receipt_path']).read_text())
+    assert receipt['session_id'].startswith('codex-smoke-')
+    assert receipt['trigger_mode'] == 'synthetic_smoke'
+    assert receipt['linked_head_commit'] == subprocess.check_output(
+        ['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
+    assert not (repo/'artifacts/runtime/closeout-completions/session-A.json').exists()
+    assert not (repo/'artifacts/runtime/closeout-completions/session-B.json').exists()

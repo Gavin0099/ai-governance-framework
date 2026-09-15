@@ -1013,6 +1013,15 @@ def _run_synthetic_smoke(project_root: Path, framework_root: Path, agent_id: str
         "--trigger-mode",
         "synthetic_smoke",
     ]
+    if agent_id == "codex":
+        from uuid import uuid4
+        from runtime_hooks.core._canonical_closeout import write_session_envelope
+
+        # Synthetic execution owns a fresh identity; never consume a live
+        # session candidate through the repository-wide fallback pointer.
+        session_id = f"codex-smoke-{uuid4().hex}"
+        write_session_envelope(session_id, project_root, provider="codex")
+        cmd.extend(["--session-id", session_id])
     proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
     stdout = proc.stdout.strip()
     payload: dict[str, Any] = {}
