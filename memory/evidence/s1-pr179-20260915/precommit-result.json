@@ -1,0 +1,11 @@
+{
+  "command": [
+    "C:/Program Files/Git/bin/bash.exe",
+    "scripts/run-runtime-governance.sh",
+    "--mode",
+    "enforce"
+  ],
+  "framework_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s1-pr179-20260915",
+  "python": "C:\\Users\\reiko\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "exit_code": 0
+}

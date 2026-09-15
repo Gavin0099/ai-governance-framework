@@ -1,0 +1,41 @@
+{
+  "fixed_main": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+  "original_pr_head": "774bda1ee017b0e919a8546d7f4a594981137cc8",
+  "common_base": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+  "memory_resolution": [
+    {
+      "path": "memory/04_review_log.md",
+      "base_sha256": "ee987614c8a4497605c3d1d4be0d7ffba6a7d9b34d0f44ef43bc36ff84c74c13",
+      "main_sha256": "0d081e518a04229eb1eaae7f726376aa8ab5f37e9a0acc02d8d6eecabfb7ffa0",
+      "pr_sha256": "b122caa6df3b464bf5136d7968fdd6e5607b33cf828014e7629a792c9274dbce",
+      "resolved_sha256": "cd2ca59b7df3586522ada5b66be5bf38cfec88da9f636c4541efe24deefced69",
+      "method": "main bytes + exact PR-only append; LF normalized",
+      "main_preserved_as_prefix": true,
+      "pr_only_append_preserved": true,
+      "new_session_records_authored": false
+    },
+    {
+      "path": "memory/2026-09-14.md",
+      "base_sha256": "850ed55763d055f8d217064cd143fd07167e74642f2ddcc13986d38e5d82f2a2",
+      "main_sha256": "67cc1932c8e07b527a6d54d89416b85284f03b671e298d0e5d58df9bf9770704",
+      "pr_sha256": "dde554708992213127f0f334179c50a7506116277c749c65bad9fc37277cbf52",
+      "resolved_sha256": "f416b31c70643ec6b6b8fd6c86440ef11d2cfc234220f734e0fcb380bfbc9084",
+      "method": "main bytes + exact PR-only append; LF normalized",
+      "main_preserved_as_prefix": true,
+      "pr_only_append_preserved": true,
+      "new_session_records_authored": false
+    }
+  ],
+  "preserved_implementation": [
+    {
+      "path": "governance_tools/governance_maturity_summary.py",
+      "sha256": "4eae418e05a57a45e5efcbb951a4e1cd1cb7809cb6dec0cc784865dd3a834a66",
+      "unchanged_from_original_pr": true
+    },
+    {
+      "path": "tests/test_governance_maturity_summary.py",
+      "sha256": "31af7ff786c8a7e533aaabaf20bd73a8a06cdde708793a0ab89ff50d4d9c9266",
+      "unchanged_from_original_pr": true
+    }
+  ]
+}
