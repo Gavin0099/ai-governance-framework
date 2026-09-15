@@ -1,0 +1,8 @@
+{
+  "base_commit": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+  "non_formatter_ast_unchanged": true,
+  "files": {
+    "governance_tools/memory_workflow.py": "edcf0e5717b633a3d8b53b7864b80de8af76f9c2ad524e4eccd20561323381f5",
+    "tests/test_memory_workflow.py": "ab4656207735ae7b737f7312103be6a9cbbeb470c8cfa81c760db7fdd645ea36"
+  }
+}

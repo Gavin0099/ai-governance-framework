@@ -5316,6 +5316,28 @@ boundary from which future accepted-design edits can be diffed.
 - Next action: Review this isolated status-reconciliation commit, then push it under separate authority; only after it is merged may the owner separately authorize create-once randomization bound to reviewed D5 admission commit 1ced27d08e0330ca5ebe21ed241f0074ec500958.
 - PLAN reconciliation: `updated`
 
+<!-- memory_record_projection:review-log:b3cec019418664f59e9577c4f4c37feae4d9d306c65745e4d7d673ca7b11aa87 -->
+### Canonical memory checkpoint — 2026-09-14-mc-w1-wording
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `b3cec019418664f59e9577c4f4c37feae4d9d306c65745e4d7d673ca7b11aa87`
+- Commit binding: `UNCOMMITTED` (unbound)
+- Record: MC-W1 local candidate: clarify completion_claim_allowed human explanation for unchecked authority, checked without blockers, and blocking items. All retain the canonical-memory completeness non-claim. AI self-review found no blocking wording issue. No schema, state, gate, companion detector or session-end changes. H1/S2 historical omission confirmed, later repaired.
+- Validation boundary: PASS: python -m pytest tests/test_memory_workflow.py -q: 29 passed; git diff --check; AST unchanged outside format_human. Evidence: memory/evidence/mc-w1-20260914/tests.xml, subject.json, REVIEW.md. Not independent review or consumer adoption proof.
+- Next action: Stop at reviewed uncommitted candidate per owner scope. Commit, push and PR require separate authorization.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:a644ea8bed7fb04fabf9c38425efdf7cfe06e72dab95cd39e3a5a6ea576d6155 -->
+### Canonical memory checkpoint — 2026-09-14-mc-w1-pr-delivery
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `a644ea8bed7fb04fabf9c38425efdf7cfe06e72dab95cd39e3a5a6ea576d6155`
+- Commit binding: `6e547958b562b399f21087eaf0c5443af5e7615d` (bound)
+- Record: MC-W1 implementation committed: human explanation separates unchecked memory authority, completed check without blockers, and actual blockers; all disclaim full canonical coverage. Independent reviewer found introduced P2 dangling blockers pointer; fixed within wording scope and added real-assessor regression. Final PR HEAD independent review pending. Owner authorized PR review then conditional merge.
+- Validation boundary: PASS: 30 targeted tests; git diff --check; AST outside format_human unchanged. Pre-correction precommit smoke and 201 tests passed with explicit Git Bash/Python313. Evidence memory/evidence/mc-w1-20260914/tests.xml, pr-subject.json, PR_REVIEW.md, precommit.txt. No memory completeness or consumer qualification claim.
+- Next action: Publish implementation and memory companion, independently review exact PR HEAD, verify required checks and exact-head owner attestation before merge.
+- PLAN reconciliation: `not_applicable`
+
 <!-- memory_record_projection:review-log:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
 ### Canonical memory checkpoint — 2026-09-14-s2-pr-review
 
