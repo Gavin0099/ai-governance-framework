@@ -231,6 +231,74 @@ def test_unrelated_branch_cannot_authorize_prior_base(layout):
     assert target.read_bytes() == expected(other)
 
 
+def test_replacement_ref_cannot_authorize_unrelated_base(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '--orphan', 'unrelated-replacement')
+    other = BASE + b'# untrusted replacement base\n'
+    write(framework / 'scripts/hooks/pre-push', other)
+    commit_framework(framework)
+    unrelated = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '--detach', original)
+    git(framework, 'replace', original, unrelated)
+    target = repo / '.git/hooks/pre-push'
+    write(target, expected(other))
+    assert git(framework, 'rev-parse', 'HEAD').decode().strip() == original
+    assert not install(repo, framework).ok
+    assert target.read_bytes() == expected(other)
+
+
+def test_merged_side_history_can_authorize_prior_base(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '-b', 'side')
+    side = BASE + b'# legitimate side base\n'
+    write(framework / 'scripts/hooks/pre-push', side)
+    commit_framework(framework)
+    side_commit = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '-b', 'destination', original)
+    current = BASE + b'# selected merge base\n'
+    write(framework / 'scripts/hooks/pre-push', current)
+    commit_framework(framework)
+    git(framework, 'merge', '-s', 'ours', 'side', '-m', 'preserve destination tree')
+    git(framework, 'merge-base', '--is-ancestor', side_commit, 'HEAD')
+    target = repo / '.git/hooks/pre-push'
+    write(target, expected(side))
+    result = install(repo, framework)
+    assert result.ok, result.errors
+    assert target.read_bytes() == expected(current)
+
+
+def test_unsupported_installer_only_profile_is_rejected(layout):
+    repo, framework = layout
+    git(repo, 'rm', composition.WIRE, composition.FRAGMENT)
+    write(repo / composition.DECLARATION, b'# unsupported installer revision\n')
+    git(repo, 'add', '.')
+    git(repo, 'commit', '-m', 'unsupported incomplete profile')
+    with pytest.raises(SubmoduleUpdateError):
+        _preexisting_unmanaged_hook_overlaps(repo, framework)
+    assert not install(repo, framework).ok
+    assert not (repo / '.git/hooks/pre-push').exists()
+
+
+def test_consumer_replacement_cannot_hide_uncommitted_declaration(layout):
+    repo, framework = layout
+    original = git(repo, 'rev-parse', 'HEAD').decode().strip()
+    write(repo / composition.DECLARATION, b'# committed unsupported declaration\n')
+    git(repo, 'add', '.')
+    git(repo, 'commit', '-m', 'unsupported declaration')
+    actual_head = git(repo, 'rev-parse', 'HEAD').decode().strip()
+    # Index/worktree contain the pinned profile but the actual HEAD does not.
+    git(repo, 'checkout', original, '--', composition.DECLARATION)
+    git(repo, 'replace', actual_head, original)
+    with pytest.raises(SubmoduleUpdateError):
+        _preexisting_unmanaged_hook_overlaps(repo, framework)
+    assert not install(repo, framework).ok
+    assert not (repo / '.git/hooks/pre-push').exists()
+
+
 def test_atomic_replace_failure_keeps_old_complete_hook(layout, monkeypatch):
     repo, framework = layout
     assert install(repo, framework).ok

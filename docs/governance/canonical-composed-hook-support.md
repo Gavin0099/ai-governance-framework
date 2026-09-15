@@ -20,6 +20,11 @@ regular in-repository files whose worktree and index content match HEAD. The
 gate script remains consumer-owned; this change neither rewrites it nor
 certifies its behavior. Unsupported declaration revisions fail closed and need
 a separate compatibility review, not an automatic plugin discovery path.
+Presence of any of the three profile paths enters this validation, including
+an unrecognized installer without its wire or fragment; it cannot fall back to
+raw hook installation.
+Consumer HEAD/index comparison also disables replacement objects; a local
+replacement ref cannot hide a declaration that is uncommitted against real HEAD.
 
 No consumer script is executed while recognizing the declaration. In a repo
 without the declaration, the existing raw-framework-hook path remains valid.
@@ -47,6 +52,8 @@ writer first. Missing history (for example a source archive or shallow clone
 without the old blob) remains a refusal; obtain the matching framework history
 before retrying. Unknown edits, removed extensions and dirty declarations are
 still rejected before hook installation begins.
+Historical traversal includes merged side histories and disables Git replacement
+objects, so local replacement refs cannot substitute unrelated content for HEAD.
 
 The declared insertion is before the unique structured-memory anchor. A
 standalone terminal `exit 0` is the supported fallback; an ambiguous or absent

@@ -42,3 +42,19 @@ Author-process review found no remaining blocker in this correction. Independent
 review and remote checks must target the final pushed HEAD before merge. Exact
 HEAD owner merge attestation remains a separate gate. Original dirty workspace,
 managed SessionStart integration, S3 disposition and S4 cleanup are excluded.
+
+## Current correction after independent review of 323b2af7
+
+Three introduced P2 findings block the prior candidate: replacement refs could
+authorize unrelated framework objects; simplified history missed a merged side
+base; installer-only unsupported profiles could fall back to raw installation.
+All three were reproduced (`round2-reproduction.log`) and corrected together.
+The adjacent consumer HEAD check also reproduced replacement-ref masking of an
+uncommitted declaration (`consumer-replacement-reproduction.log`) and now ignores
+replacement objects. The changes preserve full-content matching and pinned
+declaration validation.
+
+Latest complete-source run: the same targeted command above passed **74 tests**
+(`final-tests.xml`); candidate-root precommit passed smoke and **201 tests**
+(`final-precommit.log`). The earlier 70-test run and 323b2af7 CI are historical.
+Independent re-review and CI must target the new final pushed HEAD.
