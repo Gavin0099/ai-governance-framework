@@ -54,11 +54,42 @@ def _committed_source(repo: Path, relative: str) -> bytes:
     return work
 
 
+def _tracked_profile_present(repo: Path) -> bool:
+    """A missing worktree file does not erase HEAD or index declarations."""
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
+        )
+
+    try:
+        # Preserve raw installation into non-Git fixture/source directories.
+        if git("rev-parse", "--git-dir").returncode != 0:
+            return False
+        index = git("ls-files", "--cached", "-z", "--", *FINGERPRINTS)
+        if index.returncode:
+            raise CompositionError("cannot inspect composition index inventory")
+        if index.stdout:
+            return True
+        head = git("rev-parse", "--verify", "--quiet", "HEAD")
+        if head.returncode == 1:  # unborn repository
+            return False
+        if head.returncode:
+            raise CompositionError("cannot inspect composition HEAD")
+        tree = git("ls-tree", "-r", "--name-only", "-z", "HEAD", "--", *FINGERPRINTS)
+        if tree.returncode:
+            raise CompositionError("cannot inspect composition HEAD inventory")
+        return bool(tree.stdout)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise CompositionError("cannot inspect tracked composition profile") from exc
+
+
 def declared_fragment(repo: Path) -> bytes | None:
     """Recognize only the existing tracked Lenovo profile. Partial profiles fail."""
     if not any((repo / name).exists() or (repo / name).is_symlink()
                for name in FINGERPRINTS):
-        return None
+        if not _tracked_profile_present(repo):
+            return None
     try:
         sources = {name: _committed_source(repo, name) for name in FINGERPRINTS}
         for name, data in sources.items():
@@ -113,6 +144,8 @@ def matches_prior_composition(framework: Path, installed: bytes, fragment: bytes
             return False
         revisions = git("log", "--full-history", "--format=%H", "HEAD", "--", "scripts/hooks/pre-push").splitlines()
         for revision in revisions:
+            if not git("ls-tree", "-z", revision.decode("ascii"), "--", "scripts/hooks/pre-push"):
+                continue  # deletion commits have no hook candidate
             base = git("show", revision.decode("ascii") + ":scripts/hooks/pre-push")
             try:
                 if normalized(installed) == compose(base, fragment):

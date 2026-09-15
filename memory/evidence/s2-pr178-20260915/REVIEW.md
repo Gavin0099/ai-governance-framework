@@ -58,3 +58,20 @@ Latest complete-source run: the same targeted command above passed **74 tests**
 (`final-tests.xml`); candidate-root precommit passed smoke and **201 tests**
 (`final-precommit.log`). The earlier 70-test run and 323b2af7 CI are historical.
 Independent re-review and CI must target the new final pushed HEAD.
+
+## Current correction after independent review of caeed219
+
+The next two P2s were reproduced in `round3-reproduction.log`: worktree-only
+absence missed a profile still tracked by HEAD/index; deletion commits aborted
+the historical search before an older valid blob. The installer now inventories
+index and HEAD before classifying absence, and skips tree revisions without the
+hook path. Staged and unstaged full-profile removals reject fresh installation.
+The existing removed-profile test now expects the earlier explicit declaration
+error instead of an overlap list; both reject and preserve the installed hook.
+
+Final current-source validation: **77 passed** in `round3-final-tests.xml` using
+the same complete targeted command; runtime smoke and **201 passed** in
+`round3-precommit.log`. The intermediate run had 76 passes and the old assertion
+failure; after correcting that expectation the complete suite was rerun green.
+Earlier 74-test evidence and caeed219 CI are historical. Fresh independent review
+and CI are required for this new candidate; no consumer qualification is added.

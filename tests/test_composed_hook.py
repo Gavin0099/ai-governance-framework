@@ -127,7 +127,9 @@ def test_removed_declaration_cannot_downgrade_installed_composition(layout):
         (repo / relative).unlink()
     assert not install(repo, framework).ok
     assert target.read_bytes() == before
-    assert ".git/hooks/pre-push" in _preexisting_unmanaged_hook_overlaps(repo, framework)
+    # Tracked-but-missing declarations fail before the overlap list is built.
+    with pytest.raises(SubmoduleUpdateError, match='incomplete composition declaration'):
+        _preexisting_unmanaged_hook_overlaps(repo, framework)
 
 
 def test_update_base_preserves_extension_and_second_refresh_is_stable(layout):
@@ -297,6 +299,33 @@ def test_consumer_replacement_cannot_hide_uncommitted_declaration(layout):
         _preexisting_unmanaged_hook_overlaps(repo, framework)
     assert not install(repo, framework).ok
     assert not (repo / '.git/hooks/pre-push').exists()
+
+
+@pytest.mark.parametrize('staged_removal', [False, True])
+def test_missing_tracked_profile_cannot_downgrade_fresh_install(layout, staged_removal):
+    repo, framework = layout
+    for name in composition.FINGERPRINTS:
+        (repo / name).unlink()
+    if staged_removal:
+        git(repo, 'add', '-u')
+    with pytest.raises(SubmoduleUpdateError):
+        _preexisting_unmanaged_hook_overlaps(repo, framework)
+    assert not install(repo, framework).ok
+    assert not (repo / '.git/hooks/pre-push').exists()
+
+
+def test_hook_deletion_and_readdition_preserves_prior_history(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    assert install(repo, framework).ok
+    git(framework, 'rm', 'scripts/hooks/pre-push')
+    commit_framework(framework)
+    newer = BASE + b'# reintroduced hook\n'
+    write(framework / 'scripts/hooks/pre-push', newer)
+    commit_framework(framework)
+    result = install(repo, framework)
+    assert result.ok, result.errors
+    assert (repo / '.git/hooks/pre-push').read_bytes() == expected(newer)
 
 
 def test_atomic_replace_failure_keeps_old_complete_hook(layout, monkeypatch):

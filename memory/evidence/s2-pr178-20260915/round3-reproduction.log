@@ -1,0 +1,61 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_____ test_missing_tracked_profile_cannot_downgrade_fresh_install[False] ______
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_missing_tracked_profile_c0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_missing_tracked_profile_c0/framework'))
+staged_removal = False
+
+    @pytest.mark.parametrize('staged_removal', [False, True])
+    def test_missing_tracked_profile_cannot_downgrade_fresh_install(layout, staged_removal):
+        repo, framework = layout
+        for name in composition.FINGERPRINTS:
+            (repo / name).unlink()
+        if staged_removal:
+            git(repo, 'add', '-u')
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:309: Failed
+______ test_missing_tracked_profile_cannot_downgrade_fresh_install[True] ______
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_missing_tracked_profile_c1/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_missing_tracked_profile_c1/framework'))
+staged_removal = True
+
+    @pytest.mark.parametrize('staged_removal', [False, True])
+    def test_missing_tracked_profile_cannot_downgrade_fresh_install(layout, staged_removal):
+        repo, framework = layout
+        for name in composition.FINGERPRINTS:
+            (repo / name).unlink()
+        if staged_removal:
+            git(repo, 'add', '-u')
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:309: Failed
+__________ test_hook_deletion_and_readdition_preserves_prior_history __________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_hook_deletion_and_readdit0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-947/test_hook_deletion_and_readdit0/framework'))
+
+    def test_hook_deletion_and_readdition_preserves_prior_history(layout):
+        repo, framework = layout
+        commit_framework(framework)
+        assert install(repo, framework).ok
+        git(framework, 'rm', 'scripts/hooks/pre-push')
+        commit_framework(framework)
+        newer = BASE + b'# reintroduced hook\n'
+        write(framework / 'scripts/hooks/pre-push', newer)
+        commit_framework(framework)
+        result = install(repo, framework)
+>       assert result.ok, result.errors
+E       AssertionError: ['declared composed pre-push differs from expected hook; refusing overwrite']
+E       assert False
+E        +  where False = HookInstallApplyResult(ok=False, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-947\\test_..., errors=['declared composed pre-push differs from expected hook; refusing overwrite'], copilot_instructions_mode=None).ok
+
+tests\test_composed_hook.py:325: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_composed_hook.py::test_missing_tracked_profile_cannot_downgrade_fresh_install[False]
+FAILED tests/test_composed_hook.py::test_missing_tracked_profile_cannot_downgrade_fresh_install[True]
+FAILED tests/test_composed_hook.py::test_hook_deletion_and_readdition_preserves_prior_history
+3 failed, 27 deselected in 7.02s

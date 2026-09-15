@@ -25,6 +25,8 @@ an unrecognized installer without its wire or fragment; it cannot fall back to
 raw hook installation.
 Consumer HEAD/index comparison also disables replacement objects; a local
 replacement ref cannot hide a declaration that is uncommitted against real HEAD.
+HEAD and index are also checked when the worktree profile is absent. Sparse or
+unstaged/staged removals cannot silently downgrade a tracked profile to raw hooks.
 
 No consumer script is executed while recognizing the declaration. In a repo
 without the declaration, the existing raw-framework-hook path remains valid.
@@ -54,6 +56,8 @@ before retrying. Unknown edits, removed extensions and dirty declarations are
 still rejected before hook installation begins.
 Historical traversal includes merged side histories and disables Git replacement
 objects, so local replacement refs cannot substitute unrelated content for HEAD.
+Deletion commits contain no hook candidate and are skipped; earlier reachable
+blobs remain eligible after a delete/re-add cycle.
 
 The declared insertion is before the unique structured-memory anchor. A
 standalone terminal `exit 0` is the supported fallback; an ambiguous or absent
