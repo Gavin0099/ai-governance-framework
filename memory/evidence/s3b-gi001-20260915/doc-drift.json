@@ -1,0 +1,90 @@
+{
+  "ok": true,
+  "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915",
+  "plan_path": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\PLAN.md",
+  "readme_paths": [
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\codeburn\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\examples\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\governance_tools\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\memory\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\memory_pipeline\\README.md",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\runtime_hooks\\README.md"
+  ],
+  "surface": {
+    "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915",
+    "app_route_count": 0,
+    "api_route_count": 0,
+    "migration_count": 0,
+    "app_routes": [],
+    "api_routes": [],
+    "migrations": []
+  },
+  "plan_phases": [
+    2
+  ],
+  "readme_phases": {
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\codeburn\\README.md": [
+      1,
+      2,
+      3
+    ],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\examples\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\governance_tools\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\memory\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\memory_pipeline\\README.md": [],
+    "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915\\runtime_hooks\\README.md": []
+  },
+  "checks": [
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "phase-sync:README.md",
+      "ok": true,
+      "detail": "phase markers are not obviously behind"
+    },
+    {
+      "name": "feature-doc-coverage:routes",
+      "ok": true,
+      "detail": "0 route keywords are not mentioned in PLAN/README"
+    },
+    {
+      "name": "feature-doc-coverage:migrations",
+      "ok": true,
+      "detail": "0 migration keywords are not mentioned in PLAN/README"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "undocumented_routes": [],
+  "undocumented_migrations": []
+}
