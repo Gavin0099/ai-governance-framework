@@ -1,0 +1,144 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+______________ test_graft_cannot_authorize_unrelated_base[False] ______________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un0/framework'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A9E88F1810>
+external_graft = False
+
+    @pytest.mark.parametrize('external_graft', [False, True])
+    def test_graft_cannot_authorize_unrelated_base(layout, monkeypatch, external_graft):
+        repo, framework = layout
+        commit_framework(framework)
+        original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--orphan', 'unrelated-graft')
+        other = BASE + b'# untrusted graft base\n'
+        write(framework / 'scripts/hooks/pre-push', other)
+        commit_framework(framework)
+        unrelated = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--detach', original)
+        graft = framework / ('.git/info/grafts' if not external_graft else 'external-grafts')
+        write(graft, f'{original} {unrelated}\n'.encode())
+        if external_graft:
+            monkeypatch.setenv('GIT_GRAFT_FILE', str(graft))
+        assert unrelated.encode() in git(framework, '--no-replace-objects', 'log', '--format=%H')
+        target = repo / '.git/hooks/pre-push'
+        write(target, expected(other))
+>       assert not install(repo, framework).ok
+E       AssertionError: assert not True
+E        +  where True = HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-955\\test_g...rize_un0\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None).ok
+E        +    where HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-955\\test_g...rize_un0\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None) = install(WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un0/framework'))
+
+tests\test_composed_hook.py:272: AssertionError
+______________ test_graft_cannot_authorize_unrelated_base[True] _______________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un1/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un1/framework'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A9E88F0C30>
+external_graft = True
+
+    @pytest.mark.parametrize('external_graft', [False, True])
+    def test_graft_cannot_authorize_unrelated_base(layout, monkeypatch, external_graft):
+        repo, framework = layout
+        commit_framework(framework)
+        original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--orphan', 'unrelated-graft')
+        other = BASE + b'# untrusted graft base\n'
+        write(framework / 'scripts/hooks/pre-push', other)
+        commit_framework(framework)
+        unrelated = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--detach', original)
+        graft = framework / ('.git/info/grafts' if not external_graft else 'external-grafts')
+        write(graft, f'{original} {unrelated}\n'.encode())
+        if external_graft:
+            monkeypatch.setenv('GIT_GRAFT_FILE', str(graft))
+        assert unrelated.encode() in git(framework, '--no-replace-objects', 'log', '--format=%H')
+        target = repo / '.git/hooks/pre-push'
+        write(target, expected(other))
+>       assert not install(repo, framework).ok
+E       AssertionError: assert not True
+E        +  where True = HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-955\\test_g...rize_un1\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None).ok
+E        +    where HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-955\\test_g...rize_un1\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None) = install(WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un1/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_graft_cannot_authorize_un1/framework'))
+
+tests\test_composed_hook.py:272: AssertionError
+______ test_committed_symlink_mode_cannot_authorize_regular_gate[index] _______
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca0/framework'))
+state = 'index'
+
+    @pytest.mark.parametrize('state', ['index', 'head', 'both'])
+    def test_committed_symlink_mode_cannot_authorize_regular_gate(layout, state):
+        repo, framework = layout
+        write(repo / composition.GATE, b'exit 0')
+        git(repo, 'add', composition.GATE)
+        git(repo, 'commit', '-m', 'regular gate fixture')
+        blob = git(repo, 'rev-parse', ':' + composition.GATE).decode().strip()
+        # Build the committed symlink mode without requiring OS symlink privilege.
+        git(repo, 'update-index', '--cacheinfo', f'120000,{blob},{composition.GATE}')
+        if state != 'index':
+            git(repo, 'commit', '-m', 'symlink gate fixture')
+        if state == 'head':
+            git(repo, 'update-index', '--cacheinfo', f'100644,{blob},{composition.GATE}')
+        assert (repo / composition.GATE).is_file()
+        assert not (repo / composition.GATE).is_symlink()
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:291: Failed
+_______ test_committed_symlink_mode_cannot_authorize_regular_gate[head] _______
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca1/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca1/framework'))
+state = 'head'
+
+    @pytest.mark.parametrize('state', ['index', 'head', 'both'])
+    def test_committed_symlink_mode_cannot_authorize_regular_gate(layout, state):
+        repo, framework = layout
+        write(repo / composition.GATE, b'exit 0')
+        git(repo, 'add', composition.GATE)
+        git(repo, 'commit', '-m', 'regular gate fixture')
+        blob = git(repo, 'rev-parse', ':' + composition.GATE).decode().strip()
+        # Build the committed symlink mode without requiring OS symlink privilege.
+        git(repo, 'update-index', '--cacheinfo', f'120000,{blob},{composition.GATE}')
+        if state != 'index':
+            git(repo, 'commit', '-m', 'symlink gate fixture')
+        if state == 'head':
+            git(repo, 'update-index', '--cacheinfo', f'100644,{blob},{composition.GATE}')
+        assert (repo / composition.GATE).is_file()
+        assert not (repo / composition.GATE).is_symlink()
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:291: Failed
+_______ test_committed_symlink_mode_cannot_authorize_regular_gate[both] _______
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca2/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-955/test_committed_symlink_mode_ca2/framework'))
+state = 'both'
+
+    @pytest.mark.parametrize('state', ['index', 'head', 'both'])
+    def test_committed_symlink_mode_cannot_authorize_regular_gate(layout, state):
+        repo, framework = layout
+        write(repo / composition.GATE, b'exit 0')
+        git(repo, 'add', composition.GATE)
+        git(repo, 'commit', '-m', 'regular gate fixture')
+        blob = git(repo, 'rev-parse', ':' + composition.GATE).decode().strip()
+        # Build the committed symlink mode without requiring OS symlink privilege.
+        git(repo, 'update-index', '--cacheinfo', f'120000,{blob},{composition.GATE}')
+        if state != 'index':
+            git(repo, 'commit', '-m', 'symlink gate fixture')
+        if state == 'head':
+            git(repo, 'update-index', '--cacheinfo', f'100644,{blob},{composition.GATE}')
+        assert (repo / composition.GATE).is_file()
+        assert not (repo / composition.GATE).is_symlink()
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:291: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_composed_hook.py::test_graft_cannot_authorize_unrelated_base[False]
+FAILED tests/test_composed_hook.py::test_graft_cannot_authorize_unrelated_base[True]
+FAILED tests/test_composed_hook.py::test_committed_symlink_mode_cannot_authorize_regular_gate[index]
+FAILED tests/test_composed_hook.py::test_committed_symlink_mode_cannot_authorize_regular_gate[head]
+FAILED tests/test_composed_hook.py::test_committed_symlink_mode_cannot_authorize_regular_gate[both]
+5 failed, 32 deselected in 14.59s

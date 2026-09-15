@@ -1,0 +1,20 @@
+{
+  "initial_targeted": {
+    "command": "python -m pytest tests/test_composed_hook.py -q --basetemp C:/Users/reiko/AppData/Local/Temp/f7-h1-pytest-01",
+    "passed": 15
+  },
+  "related_regression_before_final_fix": {
+    "command": "python -m pytest tests/test_hook_installer.py tests/test_external_governance_submodule_updater.py tests/test_f7_full_update.py -q --basetemp C:/Users/reiko/AppData/Local/Temp/f7-h1-regression-01",
+    "passed": 150,
+    "failed": 1,
+    "skipped": 1,
+    "failure": "test_apply_does_not_complete_when_hook_advisory_source_missing: missing source hook diagnostic replaced by FileNotFoundError text",
+    "disposition": "Restored baseline missing-source handling and message; existing test passes in final-targeted.xml"
+  },
+  "final_targeted": {
+    "command": "python -m pytest tests/test_composed_hook.py tests/test_hook_installer.py tests/test_external_governance_submodule_updater.py::test_apply_does_not_complete_when_hook_advisory_source_missing -q --basetemp C:/Users/reiko/AppData/Local/Temp/f7-h1-final-02 --junitxml memory/evidence/f7-h1-20260914/final-targeted.xml",
+    "passed": 63,
+    "failed": 0
+  },
+  "review": "same-agent source and regression review; not independent certification"
+}

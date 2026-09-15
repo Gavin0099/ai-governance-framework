@@ -5359,3 +5359,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: 51 passed: python -m pytest tests/test_governance_maturity_summary.py -q; memory/evidence/s1-pr179-20260915/targeted-tests.xml. Smoke and 201 passed: bash scripts/run-runtime-governance.sh --mode enforce; memory/evidence/s1-pr179-20260915/precommit.log. Parent-record preservation and original implementation identities: memory/evidence/s1-pr179-20260915/resolution.json. Author review: memory/evidence/s1-pr179-20260915/AUTHOR_REVIEW.md. No new consumer replay or independent approval claimed.
 - Next action: Publish this separate canonical companion with the resolution to PR179; independently review exact current HEAD, check required CI and mergeability, then report disposition. Merge needs exact-head owner attestation; S1.5 remains a recommendation requiring separate diagnosis authorization.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->
+### Canonical memory checkpoint — 2026-09-14-h1-pr-review
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9`
+- Commit binding: `c2198010c6bb181d250aa0161125b861051fdcab` (bound)
+- Record: H1 accepts only the existing committed Lenovo declaration, wiring and extension fingerprints and compares the complete composed pre-push. Unknown mutations and missing extensions remain rejected. Base updates preserve the extension through per-file atomic replacement. Author review fixed declaration-removal downgrade and restored missing-source handling. Canonical fixture bytes are preserved by scoped Git attributes. This records the earlier H1 work and current PR preparation; no generic plugin, M1, R1 or consumer delivery claim.
+- Validation boundary: 63 passed: tests/test_composed_hook.py, tests/test_hook_installer.py and the missing-source updater regression; evidence memory/evidence/f7-h1-20260914/final-targeted.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-h1-20260914/pr-precommit.log. Disposable F7 and repeat-hook checks are documented in memory/evidence/f7-h1-20260914/PR_REVIEW.md; full F7 repeat remains receipt-blocked.
+- Next action: Commit this canonical companion, publish the separate H1 PR and review its exact head and checks; merge remains unauthorized.
+- PLAN reconciliation: `not_applicable`

@@ -21,6 +21,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Sequence
 
+from governance_tools.composed_hook import (
+    MARKER, CompositionError, atomic_write_hook, declared_fragment, expected_hook,
+    matches_prior_composition, normalized,
+)
 from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_REL,
     IDENTITY_CONFIG_SCHEMA,
@@ -786,6 +790,26 @@ def install_governance_hooks(
         errors.append(f"not a git repo: {repo_root}")
     if not source_hook_dir.is_dir():
         errors.append(f"missing framework hooks source: {source_hook_dir}")
+    payloads: dict[str, bytes] = {}
+    try:
+        fragment = declared_fragment(repo_root)
+        for hook_name in HOOK_NAMES:
+            source = source_hook_dir / hook_name
+            if source.is_file():
+                payloads[hook_name] = expected_hook(repo_root, hook_name, _shell_hook_payload(source))
+            elif fragment is not None:
+                errors.append(f"missing source hook: {source}")
+        target = hook_dir / "pre-push"
+        if fragment is None and target.is_file() and MARKER in target.read_bytes():
+            errors.append("installed consumer extension has no valid declaration; refusing overwrite")
+        if fragment is not None and (target.exists() or target.is_symlink()):
+            if target.is_symlink() or (
+                normalized(target.read_bytes()) != payloads.get("pre-push")
+                and not matches_prior_composition(framework_root, target.read_bytes(), fragment)
+            ):
+                errors.append("declared composed pre-push differs from expected hook; refusing overwrite")
+    except (CompositionError, OSError) as exc:
+        errors.append(str(exc))
     if errors:
         return HookInstallApplyResult(
             ok=False,
@@ -819,8 +843,12 @@ def install_governance_hooks(
             errors.append(f"missing source hook: {source}")
             continue
         _backup_unmanaged(target, FRAMEWORK_MARKER, backups)
-        payload_changed = _write_bytes_if_changed(target, _shell_hook_payload(source))
-        mode_changed = _ensure_managed_hook_executable(target)
+        try:
+            payload_changed = atomic_write_hook(target, payloads[hook_name])
+            mode_changed = _ensure_managed_hook_executable(target)
+        except OSError as exc:
+            errors.append(f"could not install complete hook {target}: {exc}")
+            break
         if payload_changed or mode_changed:
             changed.append(str(target))
         installed.append(str(target))

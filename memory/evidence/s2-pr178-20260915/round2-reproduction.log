@@ -1,0 +1,74 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+____________ test_replacement_ref_cannot_authorize_unrelated_base _____________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_replacement_ref_cannot_au0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_replacement_ref_cannot_au0/framework'))
+
+    def test_replacement_ref_cannot_authorize_unrelated_base(layout):
+        repo, framework = layout
+        commit_framework(framework)
+        original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--orphan', 'unrelated-replacement')
+        other = BASE + b'# untrusted replacement base\n'
+        write(framework / 'scripts/hooks/pre-push', other)
+        commit_framework(framework)
+        unrelated = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '--detach', original)
+        git(framework, 'replace', original, unrelated)
+        target = repo / '.git/hooks/pre-push'
+        write(target, expected(other))
+        assert git(framework, 'rev-parse', 'HEAD').decode().strip() == original
+>       assert not install(repo, framework).ok
+E       AssertionError: assert not True
+E        +  where True = HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-942\\test_r...nnot_au0\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None).ok
+E        +    where HookInstallApplyResult(ok=True, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-942\\test_r...nnot_au0\\consumer\\.git\\hooks\\ai-governance-framework-root'], backups=[], errors=[], copilot_instructions_mode=None) = install(WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_replacement_ref_cannot_au0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_replacement_ref_cannot_au0/framework'))
+
+tests\test_composed_hook.py:248: AssertionError
+______________ test_merged_side_history_can_authorize_prior_base ______________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_merged_side_history_can_a0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_merged_side_history_can_a0/framework'))
+
+    def test_merged_side_history_can_authorize_prior_base(layout):
+        repo, framework = layout
+        commit_framework(framework)
+        original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '-b', 'side')
+        side = BASE + b'# legitimate side base\n'
+        write(framework / 'scripts/hooks/pre-push', side)
+        commit_framework(framework)
+        side_commit = git(framework, 'rev-parse', 'HEAD').decode().strip()
+        git(framework, 'checkout', '-b', 'destination', original)
+        current = BASE + b'# selected merge base\n'
+        write(framework / 'scripts/hooks/pre-push', current)
+        commit_framework(framework)
+        git(framework, 'merge', '-s', 'ours', 'side', '-m', 'preserve destination tree')
+        git(framework, 'merge-base', '--is-ancestor', side_commit, 'HEAD')
+        target = repo / '.git/hooks/pre-push'
+        write(target, expected(side))
+        result = install(repo, framework)
+>       assert result.ok, result.errors
+E       AssertionError: ['declared composed pre-push differs from expected hook; refusing overwrite']
+E       assert False
+E        +  where False = HookInstallApplyResult(ok=False, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-942\\test_..., errors=['declared composed pre-push differs from expected hook; refusing overwrite'], copilot_instructions_mode=None).ok
+
+tests\test_composed_hook.py:270: AssertionError
+_____________ test_unsupported_installer_only_profile_is_rejected _____________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_unsupported_installer_onl0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-942/test_unsupported_installer_onl0/framework'))
+
+    def test_unsupported_installer_only_profile_is_rejected(layout):
+        repo, framework = layout
+        git(repo, 'rm', composition.WIRE, composition.FRAGMENT)
+        write(repo / composition.DECLARATION, b'# unsupported installer revision\n')
+        git(repo, 'add', '.')
+        git(repo, 'commit', '-m', 'unsupported incomplete profile')
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:280: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_composed_hook.py::test_replacement_ref_cannot_authorize_unrelated_base
+FAILED tests/test_composed_hook.py::test_merged_side_history_can_authorize_prior_base
+FAILED tests/test_composed_hook.py::test_unsupported_installer_only_profile_is_rejected
+3 failed, 23 deselected in 12.44s

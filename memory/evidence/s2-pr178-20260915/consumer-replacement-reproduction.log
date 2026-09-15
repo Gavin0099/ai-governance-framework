@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_consumer_replacement_cannot_hide_uncommitted_declaration ________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-944/test_consumer_replacement_cann0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-944/test_consumer_replacement_cann0/framework'))
+
+    def test_consumer_replacement_cannot_hide_uncommitted_declaration(layout):
+        repo, framework = layout
+        original = git(repo, 'rev-parse', 'HEAD').decode().strip()
+        write(repo / composition.DECLARATION, b'# committed unsupported declaration\n')
+        git(repo, 'add', '.')
+        git(repo, 'commit', '-m', 'unsupported declaration')
+        actual_head = git(repo, 'rev-parse', 'HEAD').decode().strip()
+        # Index/worktree contain the pinned profile but the actual HEAD does not.
+        git(repo, 'checkout', original, '--', composition.DECLARATION)
+        git(repo, 'replace', actual_head, original)
+>       with pytest.raises(SubmoduleUpdateError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'governance_tools.external_governance_submodule_updater.SubmoduleUpdateError'>
+
+tests\test_composed_hook.py:296: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_composed_hook.py::test_consumer_replacement_cannot_hide_uncommitted_declaration
+1 failed, 26 deselected in 4.33s

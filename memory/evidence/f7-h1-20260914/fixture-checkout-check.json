@@ -1,0 +1,11 @@
+{
+  "command": "git -c core.autocrlf=true checkout-index --prefix=<disposable>/ -- <three canonical fixture paths>",
+  "linked_commit": "c2198010c6bb181d250aa0161125b861051fdcab",
+  "fixture_bytes_match_git_blobs": {
+    "tests/fixtures/lenovo_composed_hook/install-governance-hooks.ps1": true,
+    "tests/fixtures/lenovo_composed_hook/wire-pre-push-memory-quality.ps1": true,
+    "tests/fixtures/lenovo_composed_hook/pre-push.memory-quality.fragment.sh": true
+  },
+  "all_match": true,
+  "claim_boundary": "fixture checkout byte preservation only"
+}
