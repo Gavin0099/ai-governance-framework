@@ -294,6 +294,21 @@ def test_committed_symlink_mode_cannot_authorize_regular_gate(layout, state):
     assert not (repo / '.git/hooks/pre-push').exists()
 
 
+@pytest.mark.parametrize('override', ['GIT_INDEX_FILE', 'GIT_DIR'])
+def test_git_environment_cannot_hide_real_index_mode(layout, monkeypatch, override):
+    repo, framework = layout
+    clean_git = repo.parent / 'clean-git'
+    shutil.copytree(repo / '.git', clean_git)
+    blob = git(repo, 'rev-parse', ':' + composition.GATE).decode().strip()
+    git(repo, 'update-index', '--cacheinfo', f'120000,{blob},{composition.GATE}')
+    assert git(repo, 'ls-files', '--stage', composition.GATE).startswith(b'120000 ')
+    monkeypatch.setenv(override, str(clean_git / 'index' if override == 'GIT_INDEX_FILE' else clean_git))
+    with pytest.raises(composition.CompositionError):
+        composition.declared_fragment(repo)
+    assert not install(repo, framework).ok
+    assert not (repo / '.git/hooks/pre-push').exists()
+
+
 def test_merged_side_history_can_authorize_prior_base(layout):
     repo, framework = layout
     commit_framework(framework)

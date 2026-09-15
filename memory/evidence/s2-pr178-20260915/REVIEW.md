@@ -111,6 +111,25 @@ passed 5969 tests (41 skips, 33 deselected), including the two OS symlink cases;
 that result does not qualify the new source changes. Fresh final-HEAD review
 and CI remain required.
 
-Complete current-source targeted run: **82 passed, 2 Windows OS-symlink skips**
+Complete source validation for e8184933: **82 passed, 2 Windows OS-symlink skips**
 in `graft-mode-tests.xml`; runtime smoke and **201 tests passed** in
 `graft-mode-precommit.log`. The five new graft/mode cases actually executed.
+
+## Correction after independent review of e8184933
+
+P2 4013829911 exposed inherited `GIT_INDEX_FILE` substituting a clean alternate
+index for the actual symlink-mode entry. Attribution: introduced; impact: yes;
+disposition: fix now. The adjacent `GIT_DIR` substitution also reproduced.
+`git-env-reproduction.log` records both pre-fix failures. Local provenance
+queries now clear inherited Git environment overrides, retain explicit -C
+selection and disabled replacement objects, and set the graft file to the null
+device. Both corrections pass through the standalone installer; the earlier
+graft regressions also remain green (`git-env-focused.xml`).
+
+Historical e8184933 Linux CI passed 5974 tests (41 skipped, 33 deselected), but
+independent review identified this P2, so that HEAD was not approved for merge.
+Fresh CI and independent review are required for the new correction HEAD.
+
+Complete current-source targeted run: **84 passed, 2 Windows OS-symlink skips**
+in `git-env-tests.xml`; runtime smoke and **201 tests passed** in
+`git-env-precommit.log`. Both environment override cases executed successfully.

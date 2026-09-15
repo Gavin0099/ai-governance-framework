@@ -34,6 +34,14 @@ def normalized(data: bytes) -> bytes:
     return data.replace(b"\r\n", b"\n")
 
 
+def _git_environment() -> dict[str, str]:
+    """Bind local provenance reads to -C, not inherited Git repository overrides."""
+    env = {key: value for key, value in os.environ.items()
+           if not key.upper().startswith("GIT_")}
+    env["GIT_GRAFT_FILE"] = os.devnull
+    return env
+
+
 def _regular_source(repo: Path, relative: str) -> bytes:
     path = repo / relative
     if not path.resolve().is_relative_to(repo.resolve()) or not stat.S_ISREG(path.lstat().st_mode):
@@ -50,6 +58,7 @@ def _committed_source(repo: Path, relative: str) -> bytes:
         entry = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), *args],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+            env=_git_environment(),
         )
         records = entry.stdout.rstrip(b"\0").split(b"\0")
         if (entry.returncode or len(records) != 1
@@ -60,6 +69,7 @@ def _committed_source(repo: Path, relative: str) -> bytes:
         result = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), "show", revision + relative],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+            env=_git_environment(),
         )
         if result.returncode or normalized(result.stdout) != work:
             raise CompositionError(f"composition source missing, uncommitted or dirty: {relative}")
@@ -72,6 +82,7 @@ def _tracked_profile_present(repo: Path) -> bool:
         return subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), *args],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
+            env=_git_environment(),
         )
 
     try:
@@ -148,7 +159,7 @@ def matches_prior_composition(framework: Path, installed: bytes, fragment: bytes
         return subprocess.run(
             ["git", "--no-replace-objects", "-C", str(framework), *args], check=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
-            env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
+            env=_git_environment(),
         ).stdout
 
     try:

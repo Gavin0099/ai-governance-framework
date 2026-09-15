@@ -61,6 +61,10 @@ objects, so local replacement refs cannot substitute unrelated content for HEAD.
 It also ignores legacy graft files, including an inherited `GIT_GRAFT_FILE`.
 Committed sources must have regular-file modes in both HEAD and the stage-zero
 index; equal blob bytes do not authorize a symlink-to-regular-file type change.
+Local provenance queries clear inherited `GIT_*` environment overrides and use
+the explicitly selected repository, so alternate indexes or Git directories
+cannot substitute another source of authority. Git still uses the selected
+checkout's own on-disk repository data and ordinary configuration.
 Deletion commits contain no hook candidate and are skipped; earlier reachable
 blobs remain eligible after a delete/re-add cycle.
 
