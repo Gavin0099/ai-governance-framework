@@ -1,0 +1,59 @@
+{
+  "status": "memory_workflow_required",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\s3b-gi001-20260915",
+  "repo_root_resolved": true,
+  "memory_files_in_diff": [
+    "memory/2026-09-15.md",
+    "memory/evidence/s3b-gi001-20260915/doc-drift.json",
+    "memory/evidence/s3b-gi001-20260915/memory-check.json"
+  ],
+  "changed_files": [
+    "memory/2026-09-15.md",
+    "memory/evidence/s3b-gi001-20260915/doc-drift.json",
+    "memory/evidence/s3b-gi001-20260915/memory-check.json"
+  ],
+  "canonical_writer_required": true,
+  "memory_protocol_path": "E:/BackUp/Git_EE/ai-governance-framework/governance/MEMORY_PROTOCOL.md",
+  "canonical_writer_path": "E:/BackUp/Git_EE/ai-governance-framework/governance_tools/memory_record.py",
+  "authority_guard_path": "E:/BackUp/Git_EE/ai-governance-framework/governance_tools/memory_authority_guard.py",
+  "recommended_workflow": [
+    "Stop editing memory/ files directly.",
+    "Use canonical writer for session-derived memory.",
+    "Run memory authority guard after memory changes.",
+    "Do not claim memory DONE until guard result is reported."
+  ],
+  "task_classification": "governed_memory_task",
+  "guard_ran": true,
+  "guard_summary": {
+    "non_canonical_writer": 86,
+    "active_non_canonical_writer": 0,
+    "missing_canonical_memory": 12,
+    "unbound_memory": 312,
+    "test_evidence_provenance_not_found": 551,
+    "session_like_non_session_memory_type": 0,
+    "non_daily_session_shaped_memory_entry": 0,
+    "authority_override_rejected": 0,
+    "test_evidence_artifact_metadata_missing": 32,
+    "test_evidence_artifact_metadata_invalid": 25,
+    "test_evidence_exit_code_contradicts_claim": 3,
+    "test_evidence_linked_commit_mismatch": 33,
+    "test_evidence_artifact_not_durable": 0,
+    "authority_override_used_current_diff": 0,
+    "repo_state_b0_blocker_count": 0,
+    "current_diff_b0_blocker_count": 0
+  },
+  "completion_claim_allowed": true,
+  "warnings": [
+    "missing_canonical_memory",
+    "unbound_memory",
+    "test_evidence_provenance_not_found",
+    "test_evidence_artifact_metadata_missing",
+    "test_evidence_artifact_metadata_invalid",
+    "test_evidence_exit_code_contradicts_claim"
+  ],
+  "background_warnings": [
+    "test_evidence_linked_commit_mismatch"
+  ],
+  "blockers": [],
+  "mixed_scope_findings": []
+}
