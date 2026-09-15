@@ -1,0 +1,8 @@
+{
+  "implementation_commit": "e4d1f002698e7c5b376d1c17a1ec671b4f0db3e8",
+  "base_commit": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+  "git_blob_sha256": {
+    "governance_tools/governance_maturity_summary.py": "4eae418e05a57a45e5efcbb951a4e1cd1cb7809cb6dec0cc784865dd3a834a66",
+    "tests/test_governance_maturity_summary.py": "31af7ff786c8a7e533aaabaf20bd73a8a06cdde708793a0ab89ff50d4d9c9266"
+  }
+}

@@ -551,12 +551,15 @@ def _plain_use_now(status: object) -> str:
     return messages.get(str(status), "目前不能判定是否可依賴 AI Governance，需要人工確認。")
 
 
-def _plain_missing_surfaces(missing_surfaces: list[str]) -> str:
+def _plain_missing_surfaces(missing_surfaces: list[str], *, lock_commit_pending: bool = False) -> str:
     meanings = {
         "runtime_self_contained_governance": "尚未證明 repo 內可自行執行 runtime 治理",
         "static_self_contained_framework": "靜態 framework 檔案不完整",
         "framework_pin_freshness": "本地 framework 版本可能落後",
-        "framework_lock_consistency": "版本帳本尚未和目前 framework 對齊",
+        "framework_lock_consistency": (
+            "版本帳本與 checkout 已對齊，但版本帳本尚未提交"
+            if lock_commit_pending else "版本帳本尚未和目前 framework 對齊"
+        ),
         "repo_specific_agents_rules": "缺少本 repo 的操作規則",
         "domain_contract": "缺少領域合約",
         "validator_surface": "尚未宣告 repo 專屬自動檢查",
@@ -583,13 +586,21 @@ def _derive_human_readable_adoption_summary(
     missing_surfaces: list[str],
     cannot_claim: list[str],
 ) -> list[str]:
+    # Render the existing diagnostic; do not promote the machine status or
+    # infer parent/index alignment, delivery completion, or push authority.
+    lock_commit_pending = (
+        lock_consistency.value == "inconsistent"
+        and lock_consistency.source == "governance_maturity_summary.lock_consistency"
+        and "lock_file_dirty=true" in lock_consistency.reasons
+        and "working-tree lock matches checkout HEAD but is not committed" in lock_consistency.reasons
+    )
     lines = [
         "[human_readable_adoption_summary]",
         "用途：這段用人類可讀的方式說明 AI Governance 更新後，目前哪些功能已導入、哪些尚未導入或尚未驗證。",
         "先看結論：",
         "這份檢查做了什麼：檢查 framework、版本帳本、repo 規則、hooks、領域合約、自動檢查與記憶工作流的可見狀態。",
         f"現在能不能用：{_plain_use_now(user_facing_status.value)}",
-        f"還差什麼：{_plain_missing_surfaces(missing_surfaces)}",
+        f"還差什麼：{_plain_missing_surfaces(missing_surfaces, lock_commit_pending=lock_commit_pending)}",
         (
             f"整體導入狀態：{user_facing_status.value} - "
             f"{_plain_status_meaning(user_facing_status.value)}."
@@ -603,7 +614,7 @@ def _derive_human_readable_adoption_summary(
     lines.append(
         _capability_row(
             "版本帳實一致性（Lock vs checkout consistency）",
-            _capability_status(
+            "已對齊，版本帳本待提交" if lock_commit_pending else _capability_status(
                 lock_consistency.value,
                 present_values={"consistent", "not_applicable"},
             ),

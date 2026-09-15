@@ -5337,3 +5337,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PASS: 30 targeted tests; git diff --check; AST outside format_human unchanged. Pre-correction precommit smoke and 201 tests passed with explicit Git Bash/Python313. Evidence memory/evidence/mc-w1-20260914/tests.xml, pr-subject.json, PR_REVIEW.md, precommit.txt. No memory completeness or consumer qualification claim.
 - Next action: Publish implementation and memory companion, independently review exact PR HEAD, verify required checks and exact-head owner attestation before merge.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
+### Canonical memory checkpoint — 2026-09-14-s2-pr-review
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67`
+- Commit binding: `e4d1f002698e7c5b376d1c17a1ec671b4f0db3e8` (bound)
+- Record: S2 changes only the human adoption missing-surface sentence and lock consistency table row when existing canonical diagnostics say the lock matches checkout HEAD but is uncommitted. Machine inconsistent status, missing_surfaces, cannot_claim and gate behavior remain unchanged. Genuine SHA mismatch retains its old presentation. This records the earlier S2 implementation and current author review; no new state model, R1, M1 or consumer prerequisite repair.
+- Validation boundary: 51 passed: python -m pytest tests/test_governance_maturity_summary.py -q; evidence memory/evidence/f7-s2-20260914/tests.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-s2-20260914/pr-precommit.log. Read-only Bookstore replay changed exactly two rendered lines while structured input and consumer status stayed unchanged: memory/evidence/f7-s2-20260914/bookstore-replay.json.
+- Next action: Commit this canonical companion, publish the separate S2 PR and review its exact head and checks; merge remains unauthorized.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:24cad669f97dce708d4d57a833b6776e6d8c011820fe1a2cf7602b97664c4b44 -->
+### Canonical memory checkpoint — 2026-09-15-s1-pr179-resolution
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `24cad669f97dce708d4d57a833b6776e6d8c011820fe1a2cf7602b97664c4b44`
+- Commit binding: `6a901c66718d229405b97fa601f0ac3cce057405` (bound)
+- Record: S1 PR179 resolution merged fixed main beecfd8d into original PR head774bda1e at6a901c66. Both append-only memory conflict files preserve complete main content and the original PR-only records. Original governance_maturity_summary and test bytes remain unchanged. Owner accepted S0 as this work cycles decision source and directed PR179 resolution/revalidation/review/disposition. No installer, closeout bridge, memory architecture, PLAN or original dirty workspace changes. Author-process review found no blocker; independent review and checks for the final PR HEAD remain pending. No exact-head merge attestation is inferred.
+- Validation boundary: 51 passed: python -m pytest tests/test_governance_maturity_summary.py -q; memory/evidence/s1-pr179-20260915/targeted-tests.xml. Smoke and 201 passed: bash scripts/run-runtime-governance.sh --mode enforce; memory/evidence/s1-pr179-20260915/precommit.log. Parent-record preservation and original implementation identities: memory/evidence/s1-pr179-20260915/resolution.json. Author review: memory/evidence/s1-pr179-20260915/AUTHOR_REVIEW.md. No new consumer replay or independent approval claimed.
+- Next action: Publish this separate canonical companion with the resolution to PR179; independently review exact current HEAD, check required CI and mergeability, then report disposition. Merge needs exact-head owner attestation; S1.5 remains a recommendation requiring separate diagnosis authorization.
+- PLAN reconciliation: `not_applicable`
