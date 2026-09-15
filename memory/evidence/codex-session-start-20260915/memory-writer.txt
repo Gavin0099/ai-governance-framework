@@ -1,0 +1,13 @@
+[memory_record] Written: E:\BackUp\Git_EE\ai-governance-framework-worktrees\codex-session-start-20260915\memory\2026-09-15.md (surface identity=ab0c7d6ca7ff65aa0bb54909cba88b24491e191e0047d97900bbaf47290c2771)
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: Implemented bounded Codex SessionStart adapter and explicit installer in isolated worktree. Existing envelope writer and Stop handlers unchanged. Startup/clear create identity, repeated existing startup/resume/compact preserve original envelope and consumption state; missing resume/compact envelope is rejected rather than fabricated. Installer preserves consumer hooks and rejects conflicting owned bindings. Actual original repo hook configuration not changed; implementation candidate only, no commit/push.
+  commit: UNCOMMITTED
+  commit_hash: UNCOMMITTED
+  session_id: 2026-09-15-codex-session-start
+  memory_binding: unbound
+  test_evidence: python -m pytest tests/test_codex_session_start.py tests/test_codex_windows_hook_command.py -q; memory/evidence/codex-session-start-20260915/tests.xml. Covers native Windows stdin/quoting, identity/root invariants, consumed state and formal closeout handoff.
+  next_step: Review this bounded implementation candidate before commit/push and native activation. Stop/SessionEnd disposition, other memory observations and S2 remain separate.
+  plan_reconciliation: not_applicable
+  record_identity: ab0c7d6ca7ff65aa0bb54909cba88b24491e191e0047d97900bbaf47290c2771

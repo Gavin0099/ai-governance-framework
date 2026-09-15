@@ -1,0 +1,14 @@
+[memory_record] advisory: test_evidence claims success without an existing artifacts/ path; the memory authority guard will flag this entry as test_evidence_provenance_not_found. Wrap the validation command in governance_tools.test_evidence_receipt_writer and cite the receipt path inside --test-evidence.
+[memory_record] Written: E:\BackUp\Git_EE\ai-governance-framework-worktrees\codex-session-start-20260915\memory\2026-09-15.md (surface identity=1221b0beca37ac19614fea49d6bb7c61400c00292faf1c8d66f7a0a7ec18c598)
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: Prepared independent SessionStart PR. Implementation commit 6c4dc9a4 adds only Codex identity adapter/installer, focused tests and documentation. Candidate tests rerun in current implementation checkout: 27 passed; canonical precommit smoke and 201 focused tests passed. Lenovo Sep15 failure records observed; only discovered success smoke is Sep09 on a6a2d622, not this candidate. Owner-reported current Lenovo smoke remains unverified pending artifact location. No real consumer activation or Stop migration.
+  commit: 6c4dc9a4
+  commit_hash: 6c4dc9a4
+  session_id: 2026-09-15-codex-session-start-pr
+  memory_binding: bound
+  test_evidence: memory/evidence/codex-session-start-20260915/tests.xml: 27 passed; precommit.log: smoke pass, 201 tests pass; PR_EVIDENCE.md separates current candidate, historical Lenovo evidence, and unverified owner-reported smoke.
+  next_step: Push this bounded branch and open independent PR for review. Do not merge or activate native hooks without the applicable next authorization.
+  plan_reconciliation: not_applicable
+  record_identity: 1221b0beca37ac19614fea49d6bb7c61400c00292faf1c8d66f7a0a7ec18c598
