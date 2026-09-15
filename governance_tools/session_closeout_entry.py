@@ -497,6 +497,10 @@ def main() -> int:
         help="Agent identifier for trigger evidence logging (default: unknown)",
     )
     parser.add_argument(
+        "--session-id",
+        help="Explicit session identity for manual closeout; must match stdin identity when both are present",
+    )
+    parser.add_argument(
         "--trigger-mode",
         default="unknown",
         choices=sorted(ALLOWED_TRIGGER_MODES),
@@ -526,6 +530,27 @@ def main() -> int:
         pass  # fail-silent — closeout must not fail if stdin is malformed
 
     args = parser.parse_args()
+
+    # Codex native and manual closeout must not borrow another session's
+    # repository-wide fallback marker. Reject before the pipeline or writers.
+    explicit_session_id = args.session_id.strip() if args.session_id else None
+    identity_error = None
+    if explicit_session_id and _hook_session_id and explicit_session_id != _hook_session_id:
+        identity_error = "CLI session_id conflicts with native payload session_id"
+    if explicit_session_id:
+        _hook_session_id = explicit_session_id
+    if args.agent_id.strip().lower() == "codex":
+        import re
+        if (not _hook_session_id
+                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", _hook_session_id)
+                or re.fullmatch(r"CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]", _hook_session_id, re.IGNORECASE)):
+            identity_error = "Codex closeout requires a valid explicit session_id; shared fallback is forbidden"
+    if identity_error:
+        if args.format == "json":
+            print(json.dumps({"ok": False, "error": identity_error}))
+        else:
+            print(f"[session_closeout_entry] {identity_error}", file=sys.stderr)
+        return 1
 
     try:
         project_root = _validate_explicit_project_root(args.project_root)
