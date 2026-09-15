@@ -96,6 +96,36 @@ def expected_hook(repo: Path, name: str, base: bytes) -> bytes:
     return compose(base, fragment) if fragment is not None else base
 
 
+def matches_prior_composition(framework: Path, installed: bytes, fragment: bytes) -> bool:
+    """Admit exact compositions from this checkout's reachable hook history.
+
+    No arbitrary refs, consumer-supplied base, or marker-only comparison. A
+    source archive or shallow checkout without the old blob cannot prove it.
+    The caller must have validated the committed consumer declaration first.
+    """
+    def git(*args: str) -> bytes:
+        return subprocess.run(
+            ["git", "-C", str(framework), *args], check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
+        ).stdout
+
+    try:
+        root = Path(os.fsdecode(git("rev-parse", "--show-toplevel")).strip())
+        if root.resolve() != framework.resolve():
+            return False
+        revisions = git("log", "--format=%H", "HEAD", "--", "scripts/hooks/pre-push").splitlines()
+        for revision in revisions:
+            base = git("show", revision.decode("ascii") + ":scripts/hooks/pre-push")
+            try:
+                if normalized(installed) == compose(base, fragment):
+                    return True
+            except CompositionError:
+                continue
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+    return False
+
+
 def atomic_write_hook(path: Path, payload: bytes) -> bool:
     """Prepare the complete hook beside the target, then replace once.
 

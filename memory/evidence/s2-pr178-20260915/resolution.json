@@ -1,0 +1,22 @@
+{
+  "base": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+  "main": "a743d2e19a4101cbbb82ea33bff95286f721b358",
+  "pr": "663d13d2a5bb5e241e7879f864b9d2ebff26ff14",
+  "records": [
+    {
+      "path": "memory/01_active_task.md",
+      "main_preserved": true,
+      "pr_append_preserved": true
+    },
+    {
+      "path": "memory/04_review_log.md",
+      "main_preserved": true,
+      "pr_append_preserved": true
+    },
+    {
+      "path": "memory/2026-09-14.md",
+      "main_preserved": true,
+      "pr_append_preserved": true
+    }
+  ]
+}

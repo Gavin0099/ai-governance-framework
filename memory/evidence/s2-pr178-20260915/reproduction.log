@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_standalone_upgrade_accepts_exact_prior_composition ___________
+
+layout = (WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-938/test_standalone_upgrade_accept0/consumer'), WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-938/test_standalone_upgrade_accept0/framework'))
+
+    def test_standalone_upgrade_accepts_exact_prior_composition(layout):
+        repo, framework = layout
+        commit_framework(framework)
+        assert install(repo, framework).ok
+        newer = BASE.replace(b'# AI Governance Framework', b'# AI Governance Framework\n# new base')
+        write(framework / 'scripts/hooks/pre-push', newer)
+        commit_framework(framework)
+        # No updater/advisory pre-step: exercise the standalone installer itself.
+        result = install(repo, framework)
+>       assert result.ok, result.errors
+E       AssertionError: ['declared composed pre-push differs from expected hook; refusing overwrite']
+E       assert False
+E        +  where False = HookInstallApplyResult(ok=False, repo_root='C:\\Users\\reiko\\AppData\\Local\\Temp\\pytest-of-reiko\\pytest-938\\test_..., errors=['declared composed pre-push differs from expected hook; refusing overwrite'], copilot_instructions_mode=None).ok
+
+tests\test_composed_hook.py:165: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_composed_hook.py::test_standalone_upgrade_accepts_exact_prior_composition
+1 failed, 16 deselected in 7.85s

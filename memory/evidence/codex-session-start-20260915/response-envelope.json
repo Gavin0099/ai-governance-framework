@@ -1,0 +1,39 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "focused_tests",
+  "task_authority": "Owner authorized proceeding with independent PR preparation and evidence verification after the bounded implementation.",
+  "scope": [
+    "runtime_hooks/adapters/codex/session_start.py",
+    "tests/test_codex_session_start.py",
+    "docs/governance/codex-session-start-identity.md",
+    "memory/2026-09-15.md",
+    "memory/evidence/codex-session-start-20260915/"
+  ],
+  "done": "Implementation committed at 6c4dc9a47d265bb44cf36e659aa751b262c02b89; current-checkout scoped validation passed; preparing memory companion and PR.",
+  "claim_ceiling": "Isolated native command execution and formal closeout boundary validation; no real Codex lifecycle qualification or historical repair",
+  "not_claimed": [
+    "PR independently approved",
+    "Merged",
+    "Original repo hook activated",
+    "End-to-end session closeout fixed",
+    "Current candidate Lenovo consumer smoke verified",
+    "Stop migrated to SessionEnd",
+    "S2 started"
+  ],
+  "evidence_refs": [
+    "tests.xml:27 passed in current implementation checkout",
+    "precommit.log:smoke pass and 201 focused tests",
+    "PR_EVIDENCE.md:separate candidate and Lenovo evidence",
+    "memory-workflow-check.json",
+    "pr-memory-writer.txt"
+  ],
+  "risk": [
+    "Missing resume/compact envelope is deliberately rejected rather than backfilled",
+    "Abnormally killed startup may leave exclusive lock requiring diagnosis",
+    "Installed handler binds checkout and Windows Python path; do not deploy a disposable checkout",
+    "SessionStart still does not produce a closeout candidate",
+    "Real Stop behavior remains unresolved and unchanged",
+    "Owner-reported Lenovo success artifact not located; Sep09 smoke is historical and does not qualify this candidate"
+  ],
+  "next_action": "Push bounded branch and create independent PR; await review. No merge or native activation authorized."
+}

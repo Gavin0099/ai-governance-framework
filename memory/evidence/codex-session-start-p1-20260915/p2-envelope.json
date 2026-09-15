@@ -1,0 +1,40 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "focused_tests",
+  "task_authority": "Owner authorized P1 closeout identity remediation after conditional PR review and merge request.",
+  "scope": [
+    "governance_tools/session_end_hook.py",
+    "governance_tools/session_closeout_entry.py",
+    "governance_tools/manage_agent_closeout.py",
+    "tests/test_codex_closeout_identity.py",
+    "docs/governance/codex-session-start-identity.md",
+    "memory/2026-09-15.md",
+    "memory/evidence/codex-session-start-p1-20260915/"
+  ],
+  "done": "P1 and P2 remediation committed; latest targeted suite 63 passed and precommit 201 passed. New HEAD independent review and CI pending.",
+  "claim_ceiling": "Isolated native command execution and formal closeout boundary validation; no real Codex lifecycle qualification or historical repair",
+  "not_claimed": [
+    "PR independently approved",
+    "Merged",
+    "Original repo hook activated",
+    "End-to-end session closeout fixed",
+    "Current candidate Lenovo consumer smoke verified",
+    "Stop migrated to SessionEnd",
+    "S2 started"
+  ],
+  "evidence_refs": [
+    "memory/evidence/codex-session-start-p1-20260915/p2-tests.xml",
+    "memory/evidence/codex-session-start-p1-20260915/p2-precommit.log",
+    "memory/evidence/codex-session-start-p1-20260915/p2-memory-check.json",
+    "https://github.com/Gavin0099/ai-governance-framework/pull/181#discussion_r4012674887"
+  ],
+  "risk": [
+    "Missing resume/compact envelope is deliberately rejected rather than backfilled",
+    "Abnormally killed startup may leave exclusive lock requiring diagnosis",
+    "Installed handler binds checkout and Windows Python path; do not deploy a disposable checkout",
+    "SessionStart still does not produce a closeout candidate",
+    "Real Stop behavior remains unresolved and unchanged",
+    "Owner-reported Lenovo success artifact not located; Sep09 smoke is historical and does not qualify this candidate"
+  ],
+  "next_action": "Push updated PR181 and obtain independent review and CI for exact new HEAD; apply exact-head owner merge attestation requirement before merge."
+}

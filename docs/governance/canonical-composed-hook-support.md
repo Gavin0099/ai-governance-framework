@@ -38,6 +38,16 @@ The old hook remains if preparing or replacing the file fails. No intermediate
 raw pre-push is installed. This is a per-hook-file guarantee, not a transaction
 over the entire F-7 update or all configuration files.
 
+The standalone installer also accepts an older complete composition only when
+it exactly matches a pre-push blob reachable from the selected framework
+checkout's `HEAD`, composed with the currently verified fragment. It does not
+search unrelated branches, execute historical hooks, or accept a consumer's
+claim about its old base. This allows direct upgrades without running F-7's
+writer first. Missing history (for example a source archive or shallow clone
+without the old blob) remains a refusal; obtain the matching framework history
+before retrying. Unknown edits, removed extensions and dirty declarations are
+still rejected before hook installation begins.
+
 The declared insertion is before the unique structured-memory anchor. A
 standalone terminal `exit 0` is the supported fallback; an ambiguous or absent
 insertion point is rejected rather than guessing a place that may skip gates.

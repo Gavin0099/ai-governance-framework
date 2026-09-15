@@ -1,0 +1,29 @@
+{
+  "consumer_head": "3ae80c56dbc7a5b3c4f7b71c209f50633ebea8ea",
+  "consumer_status_unchanged": true,
+  "structured_input_unchanged": true,
+  "lock_consistency": {
+    "value": "inconsistent",
+    "source": "governance_maturity_summary.lock_consistency",
+    "reasons": [
+      "lock_file_dirty=true",
+      "lock_adopted_commit=85adb41cf9151762909d37c3e1e801d8e3c311fa",
+      "framework_head=85adb41cf9151762909d37c3e1e801d8e3c311fa",
+      "no fetch was performed; this is a local lock-vs-checkout comparison",
+      "working-tree lock matches checkout HEAD but is not committed"
+    ]
+  },
+  "before_missing_line": "還差什麼：版本帳本尚未和目前 framework 對齊。",
+  "after_missing_line": "還差什麼：版本帳本與 checkout 已對齊，但版本帳本尚未提交。",
+  "changed_lines": [
+    {
+      "before": "還差什麼：版本帳本尚未和目前 framework 對齊。",
+      "after": "還差什麼：版本帳本與 checkout 已對齊，但版本帳本尚未提交。"
+    },
+    {
+      "before": "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 | 比對 governance/framework.lock.json 的 adopted_commit 與本地 framework checkout HEAD；不做 fetch，也不宣稱真實遠端最新版。 |",
+      "after": "| 版本帳實一致性（Lock vs checkout consistency） | 已對齊，版本帳本待提交 | 比對 governance/framework.lock.json 的 adopted_commit 與本地 framework checkout HEAD；不做 fetch，也不宣稱真實遠端最新版。 |"
+    }
+  ],
+  "claim_boundary": "read-only rendering of current disposable Bookstore B; no adoption commit, runtime or index alignment claim"
+}

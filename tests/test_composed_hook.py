@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 import shutil
 import subprocess
+import sys
+import json
 
 import pytest
 
@@ -142,6 +144,91 @@ def test_update_base_preserves_extension_and_second_refresh_is_stable(layout):
     before = target.stat().st_mtime_ns
     assert _ensure_hook_advisory(repo, framework)["status"] == "verified"
     assert target.stat().st_mtime_ns == before
+
+
+def commit_framework(framework):
+    if not (framework / '.git').exists():
+        git(framework, 'init')
+        git(framework, 'config', 'user.email', 'fixture@example.invalid')
+        git(framework, 'config', 'user.name', 'Fixture')
+    git(framework, 'add', '.')
+    git(framework, 'commit', '-m', 'framework fixture')
+
+
+def test_standalone_upgrade_accepts_exact_prior_composition(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    assert install(repo, framework).ok
+    newer = BASE.replace(b'# AI Governance Framework', b'# AI Governance Framework\n# new base')
+    write(framework / 'scripts/hooks/pre-push', newer)
+    commit_framework(framework)
+    # No updater/advisory pre-step: exercise the standalone installer itself.
+    result = install(repo, framework)
+    assert result.ok, result.errors
+    target = repo / '.git/hooks/pre-push'
+    assert target.read_bytes() == expected(newer)
+    before = (target.read_bytes(), target.stat().st_mtime_ns)
+    assert install(repo, framework).ok
+    assert (target.read_bytes(), target.stat().st_mtime_ns) == before
+
+
+def test_standalone_cli_upgrade_preserves_extension(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    assert install(repo, framework).ok
+    newer = BASE.replace(b'# AI Governance Framework', b'# AI Governance Framework\n# CLI upgrade')
+    write(framework / 'scripts/hooks/pre-push', newer)
+    commit_framework(framework)
+    result = subprocess.run([
+        sys.executable, '-m', 'governance_tools.hook_installer', '--repo', str(repo),
+        '--framework-root', str(framework), '--hooks-only', '--repository-id',
+        'example.invalid/consumer', '--format', 'json',
+    ], capture_output=True, text=True, encoding='utf-8',
+        env={**os.environ, 'PYTHONIOENCODING':'utf-8'}, timeout=45)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)['ok'] is True
+    assert (repo / '.git/hooks/pre-push').read_bytes() == expected(newer)
+
+
+@pytest.mark.parametrize('bad', [BASE, expected() + b'echo unknown\n',
+                               expected().replace(b'exit 41', b'exit 0')])
+def test_history_does_not_authorize_mutated_prior_composition(layout, bad):
+    repo, framework = layout
+    commit_framework(framework)
+    assert install(repo, framework).ok
+    newer = BASE.replace(b'# AI Governance Framework', b'# AI Governance Framework\n# newer')
+    write(framework / 'scripts/hooks/pre-push', newer)
+    commit_framework(framework)
+    target = repo / '.git/hooks/pre-push'
+    target.write_bytes(bad)
+    assert not install(repo, framework).ok
+    assert target.read_bytes() == bad
+
+
+def test_prior_base_without_history_is_refused(layout):
+    repo, framework = layout
+    assert install(repo, framework).ok
+    target = repo / '.git/hooks/pre-push'
+    before = target.read_bytes()
+    write(framework / 'scripts/hooks/pre-push', BASE + b'# new base\n')
+    # A source archive carries no old-base authority.
+    assert not install(repo, framework).ok
+    assert target.read_bytes() == before
+
+
+def test_unrelated_branch_cannot_authorize_prior_base(layout):
+    repo, framework = layout
+    commit_framework(framework)
+    original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '-b', 'unrelated')
+    other = BASE + b'# unrelated base\n'
+    write(framework / 'scripts/hooks/pre-push', other)
+    commit_framework(framework)
+    git(framework, 'checkout', '--detach', original)
+    target = repo / '.git/hooks/pre-push'
+    write(target, expected(other))
+    assert not install(repo, framework).ok
+    assert target.read_bytes() == expected(other)
 
 
 def test_atomic_replace_failure_keeps_old_complete_hook(layout, monkeypatch):

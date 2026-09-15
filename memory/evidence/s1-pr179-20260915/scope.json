@@ -1,0 +1,25 @@
+{
+  "task": "S1 PR179 resolution/revalidation/current-HEAD review/disposition",
+  "owner_authority": "User explicitly adopted S0 as current decision source and directed S1 PR179. No exact future-HEAD merge attestation yet.",
+  "done": "Resolve only memory conflicts against fixed main, preserve original PR behavior/claim ceiling, revalidate, publish updated PR HEAD for fresh review, report merge disposition.",
+  "allowlist": [
+    "memory/04_review_log.md",
+    "memory/2026-09-14.md",
+    "memory/2026-09-15.md",
+    "memory/evidence/s1-pr179-20260915/"
+  ],
+  "upstream_integration": "exact fixed main changes retained, no extra substantive edits",
+  "non_goals": [
+    "S1.5 reproduction",
+    "PR178",
+    "old PR disposition",
+    "original workspace cleanup",
+    "PLAN rewrite",
+    "schema/gate/state changes",
+    "consumer mutation",
+    "GitLab delivery of unmerged branch"
+  ],
+  "gate": "Engineering review, no Qualification claim",
+  "authoring_agent": "root in thread 01a0a2de-2b6d-73d2-9b45-5071e33f6360",
+  "s0_source": "original workspace memory/evidence/s0-state-reconciliation-20260915/CURRENT_DECISION_TABLE.md, owner-adopted in this turn"
+}

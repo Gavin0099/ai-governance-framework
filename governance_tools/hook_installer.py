@@ -22,7 +22,8 @@ from pathlib import Path
 from typing import Sequence
 
 from governance_tools.composed_hook import (
-    MARKER, CompositionError, atomic_write_hook, declared_fragment, expected_hook, normalized,
+    MARKER, CompositionError, atomic_write_hook, declared_fragment, expected_hook,
+    matches_prior_composition, normalized,
 )
 from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_REL,
@@ -802,7 +803,10 @@ def install_governance_hooks(
         if fragment is None and target.is_file() and MARKER in target.read_bytes():
             errors.append("installed consumer extension has no valid declaration; refusing overwrite")
         if fragment is not None and target.exists():
-            if target.is_symlink() or normalized(target.read_bytes()) != payloads.get("pre-push"):
+            if target.is_symlink() or (
+                normalized(target.read_bytes()) != payloads.get("pre-push")
+                and not matches_prior_composition(framework_root, target.read_bytes(), fragment)
+            ):
                 errors.append("declared composed pre-push differs from expected hook; refusing overwrite")
     except (CompositionError, OSError) as exc:
         errors.append(str(exc))

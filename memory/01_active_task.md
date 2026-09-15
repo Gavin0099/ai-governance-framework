@@ -142,4 +142,6 @@ remains outside the Gate 3 critical path and outside this slice.
 
 - Advisory Skill selection adoption documentation prepared; routing unchanged. See docs/governance/advisory-skill-selection-adoption-20260909.md. PR delivery in progress; final-head merge authority pending. <!-- memory_record_projection:active-task-summary:e3e590f863c43f831722daac3cfdd003b3be0cfb499e0026b044fb6a4f6d9fe1 -->
 
+- S2 presentation committed: aligned lock is shown as pending commit; structured states unchanged; separate PR review pending. <!-- memory_record_projection:active-task-summary:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
+
 - H1 implementation committed; canonical Lenovo composed-hook compatibility verified locally; separate PR review pending, no merge authority. <!-- memory_record_projection:active-task-summary:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->
