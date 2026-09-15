@@ -75,3 +75,20 @@ the same complete targeted command; runtime smoke and **201 passed** in
 failure; after correcting that expectation the complete suite was rerun green.
 Earlier 74-test evidence and caeed219 CI are historical. Fresh independent review
 and CI are required for this new candidate; no consumer qualification is added.
+
+## Current correction after independent review of e794dba2
+
+P2 in issue comment 5677100462: a dangling pre-push symlink bypassed the
+existence check and could be replaced without preservation. Attribution:
+introduced; current-decision impact: yes; disposition: fix now. The declared
+profile guard now checks symlink identity independently of target existence.
+Both existing and dangling links must be refused and left untouched.
+
+Local targeted validation: **77 passed, 2 skipped** (`symlink-tests.xml`).
+Windows lacks symlink creation privilege, so these two new cases did not run
+locally; the local pre-fix attempt is not reproduction evidence. The external
+reviewer's exact-head finding supplies the observed failure. Linux tests raise
+on symlink creation failure rather than skipping, so fresh Linux CI must pass
+before these cases can be claimed verified. Runtime smoke and **201 tests**
+passed (`symlink-precommit.log`). Prior e794dba2 CI is historical. Independent
+review and CI must qualify the final pushed correction HEAD.

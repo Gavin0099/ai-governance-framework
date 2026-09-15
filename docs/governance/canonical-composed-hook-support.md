@@ -54,6 +54,8 @@ writer first. Missing history (for example a source archive or shallow clone
 without the old blob) remains a refusal; obtain the matching framework history
 before retrying. Unknown edits, removed extensions and dirty declarations are
 still rejected before hook installation begins.
+For a declared profile, existing pre-push symlinks, including dangling links,
+are refused and left untouched rather than replaced by the installer.
 Historical traversal includes merged side histories and disables Git replacement
 objects, so local replacement refs cannot substitute unrelated content for HEAD.
 Deletion commits contain no hook candidate and are skipped; earlier reachable

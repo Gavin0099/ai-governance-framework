@@ -802,7 +802,7 @@ def install_governance_hooks(
         target = hook_dir / "pre-push"
         if fragment is None and target.is_file() and MARKER in target.read_bytes():
             errors.append("installed consumer extension has no valid declaration; refusing overwrite")
-        if fragment is not None and target.exists():
+        if fragment is not None and (target.exists() or target.is_symlink()):
             if target.is_symlink() or (
                 normalized(target.read_bytes()) != payloads.get("pre-push")
                 and not matches_prior_composition(framework_root, target.read_bytes(), fragment)

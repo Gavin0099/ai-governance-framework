@@ -328,6 +328,29 @@ def test_hook_deletion_and_readdition_preserves_prior_history(layout):
     assert (repo / '.git/hooks/pre-push').read_bytes() == expected(newer)
 
 
+@pytest.mark.parametrize('dangling', [False, True])
+def test_standalone_preserves_pre_push_symlinks(layout, dangling):
+    repo, framework = layout
+    target = repo / '.git/hooks/pre-push'
+    destination = repo / 'consumer-hook.sh'
+    if not dangling:
+        write(destination, expected())
+    try:
+        target.symlink_to(destination)
+    except OSError as exc:
+        if os.name != 'nt':
+            raise  # Linux CI must execute this case, never turn it into a skip.
+        pytest.skip(f'symlink creation unavailable: {exc}')
+    result = install(repo, framework)
+    assert not result.ok
+    assert target.is_symlink()
+    assert target.readlink() == destination
+    if not dangling:
+        assert destination.read_bytes() == expected()
+    else:
+        assert not destination.exists()
+
+
 def test_atomic_replace_failure_keeps_old_complete_hook(layout, monkeypatch):
     repo, framework = layout
     assert install(repo, framework).ok
