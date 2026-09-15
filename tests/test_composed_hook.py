@@ -251,6 +251,49 @@ def test_replacement_ref_cannot_authorize_unrelated_base(layout):
     assert target.read_bytes() == expected(other)
 
 
+@pytest.mark.parametrize('external_graft', [False, True])
+def test_graft_cannot_authorize_unrelated_base(layout, monkeypatch, external_graft):
+    repo, framework = layout
+    commit_framework(framework)
+    original = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '--orphan', 'unrelated-graft')
+    other = BASE + b'# untrusted graft base\n'
+    write(framework / 'scripts/hooks/pre-push', other)
+    commit_framework(framework)
+    unrelated = git(framework, 'rev-parse', 'HEAD').decode().strip()
+    git(framework, 'checkout', '--detach', original)
+    graft = framework / ('.git/info/grafts' if not external_graft else 'external-grafts')
+    write(graft, f'{original} {unrelated}\n'.encode())
+    if external_graft:
+        monkeypatch.setenv('GIT_GRAFT_FILE', str(graft))
+    assert unrelated.encode() in git(framework, '--no-replace-objects', 'log', '--format=%H')
+    target = repo / '.git/hooks/pre-push'
+    write(target, expected(other))
+    assert not install(repo, framework).ok
+    assert target.read_bytes() == expected(other)
+
+
+@pytest.mark.parametrize('state', ['index', 'head', 'both'])
+def test_committed_symlink_mode_cannot_authorize_regular_gate(layout, state):
+    repo, framework = layout
+    write(repo / composition.GATE, b'exit 0')
+    git(repo, 'add', composition.GATE)
+    git(repo, 'commit', '-m', 'regular gate fixture')
+    blob = git(repo, 'rev-parse', ':' + composition.GATE).decode().strip()
+    # Build the committed symlink mode without requiring OS symlink privilege.
+    git(repo, 'update-index', '--cacheinfo', f'120000,{blob},{composition.GATE}')
+    if state != 'index':
+        git(repo, 'commit', '-m', 'symlink gate fixture')
+    if state == 'head':
+        git(repo, 'update-index', '--cacheinfo', f'100644,{blob},{composition.GATE}')
+    assert (repo / composition.GATE).is_file()
+    assert not (repo / composition.GATE).is_symlink()
+    with pytest.raises(SubmoduleUpdateError):
+        _preexisting_unmanaged_hook_overlaps(repo, framework)
+    assert not install(repo, framework).ok
+    assert not (repo / '.git/hooks/pre-push').exists()
+
+
 def test_merged_side_history_can_authorize_prior_base(layout):
     repo, framework = layout
     commit_framework(framework)

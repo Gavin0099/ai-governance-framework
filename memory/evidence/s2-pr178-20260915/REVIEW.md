@@ -92,3 +92,25 @@ on symlink creation failure rather than skipping, so fresh Linux CI must pass
 before these cases can be claimed verified. Runtime smoke and **201 tests**
 passed (`symlink-precommit.log`). Prior e794dba2 CI is historical. Independent
 review and CI must qualify the final pushed correction HEAD.
+
+## Correction after independent review of 042afd8b
+
+Two P2 findings affect the frozen decision: legacy grafts could add unrelated
+ancestors despite replacement objects being disabled (4013694229, introduced);
+byte-only provenance accepted symlink modes in HEAD/index when the worktree held
+a regular file with identical bytes (4013694241, introduced). Impact: yes for
+both. Disposition: fix now. `graft-mode-reproduction.log` records five pre-fix
+failures, covering default/environment graft files and HEAD/index/both modes.
+The five cases passed after the fix (`graft-mode-focused.xml`).
+
+Ancestry queries now force the graft source to the platform null device. Source
+validation requires regular-file modes in HEAD and the stage-zero index before
+comparing content. The mode fixtures use Git index construction, so these cases
+run on Windows without OS symlink privilege. Linux CI on historical 042afd8b
+passed 5969 tests (41 skips, 33 deselected), including the two OS symlink cases;
+that result does not qualify the new source changes. Fresh final-HEAD review
+and CI remain required.
+
+Complete current-source targeted run: **82 passed, 2 Windows OS-symlink skips**
+in `graft-mode-tests.xml`; runtime smoke and **201 tests passed** in
+`graft-mode-precommit.log`. The five new graft/mode cases actually executed.

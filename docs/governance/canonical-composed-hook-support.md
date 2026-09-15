@@ -58,6 +58,9 @@ For a declared profile, existing pre-push symlinks, including dangling links,
 are refused and left untouched rather than replaced by the installer.
 Historical traversal includes merged side histories and disables Git replacement
 objects, so local replacement refs cannot substitute unrelated content for HEAD.
+It also ignores legacy graft files, including an inherited `GIT_GRAFT_FILE`.
+Committed sources must have regular-file modes in both HEAD and the stage-zero
+index; equal blob bytes do not authorize a symlink-to-regular-file type change.
 Deletion commits contain no hook candidate and are skipped; earlier reachable
 blobs remain eligible after a delete/re-add cycle.
 

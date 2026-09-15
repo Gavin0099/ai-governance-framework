@@ -44,6 +44,18 @@ def _regular_source(repo: Path, relative: str) -> bytes:
 def _committed_source(repo: Path, relative: str) -> bytes:
     """HEAD, index and worktree must agree; a dirty declaration is not authority."""
     work = _regular_source(repo, relative)
+    # Blob bytes alone cannot distinguish a committed symlink from a script.
+    for args in (("ls-tree", "-z", "HEAD", "--", relative),
+                 ("ls-files", "--stage", "-z", "--", relative)):
+        entry = subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(repo), *args],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        records = entry.stdout.rstrip(b"\0").split(b"\0")
+        if (entry.returncode or len(records) != 1
+                or records[0].split(b" ", 1)[0] not in (b"100644", b"100755")
+                or (args[0] == "ls-files" and records[0].split(b"\t", 1)[0].split()[-1] != b"0")):
+            raise CompositionError(f"composition source must be regular in HEAD and index: {relative}")
     for revision in ("HEAD:", ":"):
         result = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repo), "show", revision + relative],
@@ -136,6 +148,7 @@ def matches_prior_composition(framework: Path, installed: bytes, fragment: bytes
         return subprocess.run(
             ["git", "--no-replace-objects", "-C", str(framework), *args], check=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10,
+            env={**os.environ, "GIT_GRAFT_FILE": os.devnull},
         ).stdout
 
     try:
