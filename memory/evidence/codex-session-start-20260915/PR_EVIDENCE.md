@@ -36,8 +36,25 @@ fixed. A current-candidate successful consumer smoke remains unverified here.
 
 ## Delivery boundary
 
-This PR adds a separately invoked SessionStart installer and adapter only.
-Existing Stop handlers, closeout writer, guard and canonical schema are unchanged.
+This PR adds a separately invoked SessionStart installer and adapter, plus the
+owner-authorized P1 repair requiring explicit Codex closeout identity. The core
+also rejects shared fallback pointing at a Codex envelope. Existing Stop event
+routing, canonical writer/schema and historical receipt criteria are unchanged.
 No real consumer activation, framework upgrade, Stop/SessionEnd migration,
 automatic envelope backfill, or S2 work is included.
 Missing resume/compact identity deliberately remains an error.
+
+## P1 remediation evidence (supersedes original merge eligibility)
+
+Review of `bcdf866d` found that concurrent Codex sessions can overwrite the shared
+pointer, allowing missing-ID closeout to consume the other session. The owner
+explicitly authorized expanding this PR to reject that fallback. The isolated
+reproduction and remediation evidence are stored in
+`memory/evidence/codex-session-start-p1-20260915/`.
+
+- Current focused run: **62 tests passed**, including invalid/missing/conflicting
+  IDs, zero side effects on rejection, explicit native/manual A while pointer
+  selects B, receipt linked to the actual fixture HEAD, and non-Codex compatibility.
+- Original 27 tests remain a separate earlier candidate run; they are not Lenovo
+  consumer qualification and do not alone validate this later repair.
+- New exact-HEAD independent review and CI must be obtained after pushing.

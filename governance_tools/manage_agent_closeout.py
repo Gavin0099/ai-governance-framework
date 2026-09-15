@@ -236,6 +236,8 @@ _CLOSEOUT_CMD_BARE = (
 
 def _manual_closeout_cmd(framework_root: Path, agent_id: str, trigger_mode: str = "manual_fallback") -> str:
     base = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root, _MANUAL_ROOT_PLACEHOLDER)
+    if agent_id == "codex":
+        base += " --session-id <SESSION_ID>"
     return f"{base} --agent-id {agent_id} --trigger-mode {trigger_mode}"
 
 

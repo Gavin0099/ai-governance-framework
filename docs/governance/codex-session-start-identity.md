@@ -1,8 +1,10 @@
 # Codex SessionStart identity
 
 This bounded adapter establishes identity for Codex native SessionStart events.
-It uses the existing envelope writer. It does not run session closeout, create
-closeout candidates, or modify the canonical schema, guard, or Stop handler.
+It uses the existing envelope writer. It does not itself run session closeout or
+create closeout candidates. The PR also rejects ambiguous Codex closeout fallback
+identity, following the separately authorized P1 repair; canonical schema,
+envelope writer and Stop event routing remain unchanged.
 
 ## Install
 
@@ -49,6 +51,27 @@ is preserved. Completed sessions remain consumed.
 
 ## Event boundary and evidence
 
+### Concurrent-session closeout identity
+
+The repository-wide current-session marker remains a convenience pointer, not
+authority to consume a Codex candidate. Codex native integrations must pass
+`--agent-id codex` and a valid `session_id` in stdin. Missing, malformed, unsafe,
+or conflicting identity fails before the pipeline. Exit 1 reports a failed hook;
+it does not request a new Codex turn via exit 2.
+
+Manual Codex closeout must name the intended session explicitly:
+
+```powershell
+python governance_tools/session_closeout_entry.py --project-root E:/path/to/consumer --agent-id codex --session-id actual-session-id --trigger-mode manual_fallback --format json
+```
+
+CLI and stdin identities must agree when both are supplied. The core closeout
+hook also rejects an untagged/manual fallback pointing at a Codex envelope,
+so the previously reproduced missing-ID path cannot consume another Codex
+session. Other providers' existing fallback behavior is retained; callers must
+not intentionally disguise a Codex invocation as another provider. Existing
+receipt schema and historical records are unchanged.
+
 Official hook documentation distinguishes SessionStart from turn Stop and
 session SessionEnd: <https://learn.chatgpt.com/docs/hooks>.
 Changing closeout from Stop to SessionEnd is a separate decision. This slice
@@ -59,6 +82,12 @@ Validation:
 
 ```powershell
 python -m pytest tests/test_codex_session_start.py tests/test_codex_windows_hook_command.py -q
+```
+
+P1 regression and receipt compatibility:
+
+```powershell
+python -m pytest tests/test_codex_closeout_identity.py tests/test_codex_session_start.py tests/test_codex_windows_hook_command.py tests/test_agent_closeout_receipt.py tests/test_session_closeout_entry_no_ledger_write.py -q
 ```
 
 Tests exercise JSON stdin, Windows native PowerShell command transport,

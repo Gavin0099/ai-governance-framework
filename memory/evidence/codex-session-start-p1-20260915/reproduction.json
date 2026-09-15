@@ -1,0 +1,12 @@
+{
+  "reviewed_head": "bcdf866d668cb9f82142b5104455fe66c4f15699",
+  "triggering_session_in_scenario": "session-A",
+  "provided_hook_session_id": null,
+  "fallback_before": "session-B",
+  "selected_session": "session-B",
+  "closeout_status": "valid",
+  "B_completion_exists": true,
+  "A_completion_exists": false,
+  "root": "E:\\BackUp\\Git_EE\\ai-governance-framework-worktrees\\codex-session-start-20260915\\memory\\evidence\\codex-session-start-p1-20260915\\concurrent-mjykhttc",
+  "limitation": "Isolated formal hook/manual fallback reproduction, not an actual concurrent Codex client capture."
+}

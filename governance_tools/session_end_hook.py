@@ -1869,6 +1869,17 @@ def run_session_end_hook(
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
     current_session_id = read_current_session_id(project_root)
+    # A repository-wide pointer is not evidence of which concurrent Codex
+    # session requested closeout. Never consume its candidate via fallback.
+    fallback_envelope = (
+        read_session_envelope(current_session_id, project_root)
+        if current_session_id else None
+    )
+    if (
+        not (hook_session_id and hook_session_id.strip())
+        and (fallback_envelope or {}).get("provider") == "codex"
+    ):
+        raise ValueError("Codex closeout requires an explicit session_id; shared fallback is ambiguous")
     session_id = (
         hook_session_id
         or current_session_id
