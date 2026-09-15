@@ -1,0 +1,40 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "focused_tests",
+  "task_authority": "Owner authorized proceeding in the proposed sequence, starting with bounded S2 PR178 resolution and standalone upgrade correction.",
+  "scope": [
+    "PR178",
+    "governance_tools/composed_hook.py",
+    "governance_tools/hook_installer.py",
+    "tests/test_composed_hook.py",
+    "docs/governance/canonical-composed-hook-support.md",
+    "three memory conflict resolutions and canonical companion"
+  ],
+  "done": "Graft and source-mode fixes committed at e0d0802c; five pre-fix failures reproduced, complete targeted suite 82 passed and 2 Windows symlink privilege skips; smoke and 201 precommit tests passed. New-HEAD review and CI pending.",
+  "claim_ceiling": "Scoped engineering validation of declared Lenovo composition installation and update; no production consumer or fleet qualification.",
+  "not_claimed": [
+    "Independent approval",
+    "Merged",
+    "Real consumer update",
+    "Fresh full F-7 consumer qualification",
+    "Full F-7 repeat-success",
+    "Managed SessionStart integration",
+    "S3 disposition",
+    "Workspace cleanup",
+    "Linux symlink cases verified"
+  ],
+  "evidence_refs": [
+    "memory/evidence/s2-pr178-20260915/REVIEW.md",
+    "memory/evidence/s2-pr178-20260915/graft-mode-tests.xml",
+    "memory/evidence/s2-pr178-20260915/graft-mode-precommit.log",
+    "memory/evidence/s2-pr178-20260915/graft-mode-reproduction.log",
+    "memory/evidence/s2-pr178-20260915/graft-mode-memory-check.json"
+  ],
+  "risk": [
+    "Missing historical hook evidence remains a refusal",
+    "Atomicity is per hook file, not the whole update",
+    "Memory provenance advisories remain",
+    "Original dirty workspace is excluded"
+  ],
+  "next_action": "Push to original PR178 branch, obtain independent review and CI for exact final HEAD, then apply exact-HEAD owner merge attestation gate."
+}
