@@ -5,7 +5,12 @@ description: Draft a candidate closeout for the current session and write it to 
 
 # Wrap-Up — Candidate Closeout Drafting Surface
 
-This skill drafts a **candidate closeout** and writes it to disk.
+This skill explicitly prepares a **candidate closeout** and matching shared text
+for a registered submodule consumer using R1 identity and R2 ownership.
+
+Invoke only for explicit wrap-up or preparation for a defined session end.
+Task DONE and per-turn Stop are not session end and do not automatically invoke
+this skill. The Agent supplies meaning; the runtime does not infer a summary.
 
 **Role**: quality-of-input tool only. This skill does NOT:
 - Determine `closeout_status` (that is done by `session_end_hook`)
@@ -72,46 +77,81 @@ Passing this checklist does NOT guarantee `closeout_status = "valid"`.
 
 If any checklist item fails, revise the field before writing.
 
-### Step 3 — Write the candidate file
+### Step 3 — Prepare through the registered submodule entry
 
-Run the following Python command from the project root:
+Use the existing native session ID and existing Codex v1.1 envelope. Do not
+invent an ID, recreate identity for a historical session, or upgrade a v1.0
+envelope. Consumer root and framework root are different absolute paths.
 
-```python
-python -c "
-import json, sys
-from pathlib import Path
-sys.path.insert(0, '.')
-from runtime_hooks.core._canonical_closeout import write_candidate
+Prerequisites checked before payload writes:
 
-SESSION_ID = '<session_id>'  # replace with actual session_id
-PROJECT_ROOT = Path('.')
+- consumer `.gitmodules` and `governance/framework.lock.json` are tracked,
+  committed, unchanged regular files;
+- framework path equals the registered submodule path, its index gitlink is
+  committed, and gitlink OID = checkout HEAD = lock `adopted_commit`;
+- framework checkout is clean and the entry executes from that checkout;
+- no inherited `GIT_*` overrides (these could change the index/root seen by
+  R1/R2); invoke from an ordinary environment, not an inherited Git hook;
+- existing v1.1 envelope binds the target consumer; session is not consumed.
 
-candidate = {
-    'task_intent': '<task_intent>',
-    'work_summary': '<work_summary>',
-    'tools_used': [<tools_used>],
-    'artifacts_referenced': [<artifacts_referenced>],
-    'open_risks': [<open_risks>],
-}
+Supply the five fields as a UTF-8 JSON object, plus these optional legacy-text
+fields when known: `checks_run`, `not_done`, `recommended_memory_update`.
+Report actual checks/results; `tools_used` alone is not test evidence. Omitted
+legacy fields become `NOT PROVIDED`, which does not qualify closeout or a gate.
+Use `NONE` only when the Agent can honestly assert none. Use `NO_UPDATE` only
+when that is the actual memory recommendation.
 
-path = write_candidate(SESSION_ID, PROJECT_ROOT, candidate)
-print(f'candidate written: {path}')
-"
+All strings must be nonempty single lines. List items must not contain commas
+or equal `NONE`: the existing legacy parser cannot represent those items
+unambiguously. Empty lists represent none. Rephrase honestly or report the
+representation limit; never silently drop an item.
+
+Example invocation (replace roots and ID with independently verified values):
+
+```powershell
+python -B "E:/consumer/SubModule/ai-governance-framework/governance_tools/prepare_closeout_candidate.py" --consumer-root "E:/consumer" --framework-root "E:/consumer/SubModule/ai-governance-framework" --session-id "<existing-session-id>" --input "E:/consumer/preparation-input.json"
 ```
 
-The file is written to:
+The JSON can instead arrive on stdin by omitting `--input`. Do not embed summary
+text in shell code. The input file is only a transport file, not a candidate or
+proof of preparation.
+
+Outputs are under the **consumer**, never the framework submodule:
+
 ```
 artifacts/runtime/closeout_candidates/{session_id}/{YYYYmmddTHHMMSSffffffZ}.json
+artifacts/session-closeout.txt
 ```
 
-Calling `/wrap-up` twice creates two timestamped files. The system picks the latest
-at session end. This is append-only — earlier candidates are preserved.
+The pure builder fixes generated time, path and UTF-8 LF bytes before R2 reserves
+their digests. The same input renders both outputs. Under the existing R2 OS
+lock, preparation reserves HOLD, writes both payloads, reads them back exactly,
+then confirms OWNED. It does not release ownership or run closeout.
+
+Repeated explicit preparation of the same unconsumed session appends a newer
+candidate and refreshes matching text. A clock/path collision rejects. Another
+session cannot replace an active owner. Owner missing + legacy shared text
+already present rejects as `AMBIGUOUS_LEGACY_STATE`; do not delete historical
+text or invent ownership to get past it.
+
+Partial writes remain under HOLD. Explicit retry appends a new candidate;
+never edit/delete the previous partial candidate or reset consumption. Latest
+invalid candidate does not fall back to an older valid one. R2 release-only
+reconciliation remains a separate operation, not a preparation retry.
+
+These are cooperative correctness checks, not protection against hostile local
+code, arbitrary filesystem writers or concurrent Git mutations. Preparation
+does not install SessionStart, upgrade consumers, enable automatic invocation,
+change promotion or restore successful `manual_fallback` closeout.
 
 ---
 
 ## Output Expectations
 
-- Confirm the candidate was written and show the path.
+- Report PREPARED / OWNED only on exit 0; show the candidate path, generation,
+  candidate SHA256 and text digest from the returned JSON.
+- On failure, report rejection and any observed HOLD/partial payloads; do not
+  claim rollback, successful closeout, or retry success without verification.
 - State `closeout_status` is NOT determined here — that happens at session end.
 - If any checklist item could not be satisfied, say so explicitly.
 - Do not claim the candidate will produce `closeout_status = "valid"`.
@@ -120,10 +160,13 @@ at session end. This is append-only — earlier candidates are preserved.
 
 ## What Happens Next
 
-At session end, `run_session_end()` will:
+In a separately qualified lifecycle, the R2-protected formal closeout entry will:
 1. Call `pick_latest_candidate()` to load this file
 2. Call `build_canonical_closeout()` to validate and normalize it
 3. Write the canonical artifact to `artifacts/runtime/closeouts/{session_id}.json`
 
 The canonical `closeout_status` depends on validation results, not on this skill.
 `closeout_status = "valid"` requires schema + semantic checks to pass.
+Preparation PASS is not Consumer Memory E2E PASS. Full E2E additionally needs
+the actual lifecycle trigger, receipt, real test evidence, gate and daily memory.
+Do not change trigger mode to make that qualification pass.
