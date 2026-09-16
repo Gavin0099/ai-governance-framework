@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.test_shared_closeout_ownership import prepare
+
 from governance_tools.manage_agent_closeout import CodexCLIAdapter, _manual_closeout_cmd, op_status
 from governance_tools.memory_record import (
     append_session_derived_entry_with_outcome,
@@ -24,6 +26,27 @@ from governance_tools.session_closeout_entry import (
 def _mark_governance_root(root: Path) -> None:
     (root / "AGENTS.md").write_text("# test governance root\n", encoding="utf-8")
     (root / "governance").mkdir()
+
+
+def _prepared_main_fixture(root: Path, sid: str) -> Path:
+    _mark_governance_root(root)
+    subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "-c", "user.name=Fixture", "-c",
+                    "user.email=fixture@example.invalid", "commit", "--quiet",
+                    "--allow-empty", "-m", "fixture"], check=True)
+    (root / "evidence.txt").write_text("fixture", encoding="utf-8")
+    prepare(root, sid)
+    return root / "artifacts/session-closeout.txt"
+
+
+def _consumed_result(root: Path, result: dict):
+    def run(*args, **kwargs):
+        path = root / "artifacts/runtime/closeout-completions" / (result["session_id"] + ".json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"session_id": result["session_id"],
+            "required_artifacts": ["artifacts/session-closeout.txt"]}), encoding="utf-8")
+        return result
+    return run
 
 
 def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) -> None:
@@ -64,10 +87,7 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
 
 
 def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> None:
-    _mark_governance_root(tmp_path)
-    artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    artifact.write_text('{"ok": true}\n', encoding="utf-8")
+    artifact = _prepared_main_fixture(tmp_path, "session-20260610T000000-mwtest")
 
     hook_result = {
         "canonical_closeout_artifact": str(artifact),
@@ -91,7 +111,7 @@ def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> Non
         },
     }
 
-    with patch("governance_tools.session_closeout_entry.run", return_value=hook_result):
+    with patch("governance_tools.session_closeout_entry.run", side_effect=_consumed_result(tmp_path, hook_result)):
         with patch.object(
             sys,
             "argv",
@@ -101,10 +121,11 @@ def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> Non
                 str(tmp_path),
                 "--format",
                 "json",
+                "--session-id", hook_result["session_id"],
                 "--agent-id",
                 "test-agent",
                 "--trigger-mode",
-                "manual_fallback",
+                "synthetic_smoke",
             ],
         ):
             with patch.object(sys, "stdin", io.StringIO("")):
@@ -128,10 +149,7 @@ def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> Non
 def test_main_persists_exact_written_outcome_without_promotion_dependency(
     tmp_path: Path,
 ) -> None:
-    _mark_governance_root(tmp_path)
-    artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    artifact.write_text('{"ok": true}\n', encoding="utf-8")
+    artifact = _prepared_main_fixture(tmp_path, "session-receipt-written")
     record = build_session_derived_record(
         what_changed="receipt integration",
         commit="abc1234",
@@ -162,7 +180,7 @@ def test_main_persists_exact_written_outcome_without_promotion_dependency(
         "memory_workflow": {},
     }
 
-    with patch("governance_tools.session_closeout_entry.run", return_value=hook_result):
+    with patch("governance_tools.session_closeout_entry.run", side_effect=_consumed_result(tmp_path, hook_result)):
         with patch.object(
             sys,
             "argv",
@@ -172,6 +190,7 @@ def test_main_persists_exact_written_outcome_without_promotion_dependency(
                 str(tmp_path),
                 "--format",
                 "json",
+                "--session-id", hook_result["session_id"],
                 "--agent-id",
                 "test-agent",
                 "--trigger-mode",

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from tests.test_shared_closeout_ownership import repo as protected_repo, prepare
 
 from runtime_hooks.adapters.codex.session_start import run as start
 from runtime_hooks.core._canonical_closeout import write_candidate, write_session_envelope
@@ -71,8 +72,12 @@ def test_legacy_core_fallback_cannot_consume_B(repo):
 
 
 @pytest.mark.parametrize('manual', [False, True])
-def test_explicit_A_ignores_B_pointer_and_links_receipt_to_HEAD(repo, manual):
-    select_content(repo, 'session-A')
+def test_explicit_A_ignores_B_pointer_and_links_receipt_to_HEAD(protected_repo, manual):
+    repo = protected_repo
+    prepare(repo, 'session-A')
+    start({'hook_event_name':'SessionStart', 'source':'startup', 'session_id':'session-B', 'cwd':str(repo)}, repo)
+    write_candidate('session-B', repo, {'task_intent':'B', 'work_summary':'B',
+        'tools_used':[], 'artifacts_referenced':[], 'open_risks':[]})
     # The pointer still selects B; explicit A must be the only consumed session.
     result = invoke(repo, '' if manual else '{"session_id":"session-A"}',
                     *(['--session-id', 'session-A'] if manual else []))
@@ -109,23 +114,16 @@ def test_manual_codex_command_requires_explicit_identity(tmp_path):
     assert '--session-id' not in _manual_closeout_cmd(tmp_path, 'claude')
 
 
-def test_codex_synthetic_smoke_owns_identity_and_generates_receipt(repo):
+def test_unprepared_codex_smoke_is_not_R2_activation(repo):
     result = subprocess.run([
         sys.executable, '-m', 'governance_tools.manage_agent_closeout',
         '--project-root', str(repo), '--format', 'json', 'smoke', '--agent', 'codex',
     ], capture_output=True, text=True, encoding='utf-8',
         env={**os.environ, 'PYTHONIOENCODING':'utf-8',
              'AI_GOVERNANCE_FRAMEWORK_ROOT':str(ENTRY.parent.parent)}, timeout=45)
-    assert result.returncode == 0, result.stderr + result.stdout
-    data = json.loads(result.stdout)
-    row = data[0] if isinstance(data, list) else data
-    assert row['evidence_recorded'] is True
-    assert row['receipt_recorded'] is True
-    assert row['receipt_artifact_exists'] is True
-    receipt = json.loads(Path(row['receipt_path']).read_text())
-    assert receipt['session_id'].startswith('codex-smoke-')
-    assert receipt['trigger_mode'] == 'synthetic_smoke'
-    assert receipt['linked_head_commit'] == subprocess.check_output(
-        ['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
+    # The legacy smoke authors no R2 ownership; deployment requires a separate
+    # preparation/activation slice. It must not silently bypass protected main.
+    assert result.returncode != 0, result.stdout
+    assert not (repo/'artifacts/runtime/shared-closeout/owner.json').exists()
     assert not (repo/'artifacts/runtime/closeout-completions/session-A.json').exists()
     assert not (repo/'artifacts/runtime/closeout-completions/session-B.json').exists()
