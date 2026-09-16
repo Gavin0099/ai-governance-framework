@@ -18,8 +18,6 @@ import threading
 from typing import Any
 import uuid
 
-from jsonschema import Draft202012Validator, ValidationError
-
 from runtime_hooks.core._canonical_closeout import (
     _consumer_worktree_root, assess_session_closeout_binding,
     pick_latest_candidate, read_session_envelope,
@@ -320,11 +318,73 @@ def _receipt_relative(o: dict) -> str:
 
 
 def _receipt_schema(data: dict) -> None:
+    """Validate this receipt schema's bounded vocabulary without core extras.
+
+    Unknown schema keywords fail closed. JSON Schema format remains annotation,
+    matching the previous validator without an opt-in format checker.
+    """
     schema = _json(Path(__file__).resolve().parents[1] / "schemas/closeout_receipt.schema.json")
-    try:
-        Draft202012Validator(schema).validate(data)
-    except ValidationError as exc:
-        raise OwnershipError("RELEASE_PROOF_INVALID", "receipt schema invalid") from exc
+    allowed = {"$schema", "$id", "title", "description", "format", "type",
+               "required", "properties", "additionalProperties", "items", "enum",
+               "const", "minLength", "minimum", "pattern", "allOf", "if", "then"}
+
+    def supported(node):
+        _require(isinstance(node, dict) and not (set(node) - allowed),
+                 "RELEASE_PROOF_INVALID", "unsupported receipt schema keyword")
+        _require(node.get("type") in {None, "object", "array", "string", "integer", "boolean"},
+                 "RELEASE_PROOF_INVALID", "unsupported receipt schema type")
+        _require(type(node.get("additionalProperties", True)) is bool,
+                 "RELEASE_PROOF_INVALID", "unsupported additionalProperties schema")
+        for child in node.get("properties", {}).values():
+            supported(child)
+        for key in ("items", "if", "then"):
+            if key in node:
+                supported(node[key])
+        for child in node.get("allOf", []):
+            supported(child)
+
+    def equal(a, b):
+        # Python treats True == 1; JSON Schema does not.
+        return a == b and (isinstance(a, bool) == isinstance(b, bool))
+
+    def matches(value, node):
+        kind = node.get("type")
+        checks = {"object": isinstance(value, dict), "array": isinstance(value, list),
+                  "string": isinstance(value, str),
+                  "integer": type(value) is int or (type(value) is float and value.is_integer()),
+                  "boolean": type(value) is bool}
+        if kind is not None and not checks[kind]:
+            return False
+        if "const" in node and not equal(value, node["const"]):
+            return False
+        if "enum" in node and not any(equal(value, x) for x in node["enum"]):
+            return False
+        if isinstance(value, dict):
+            props = node.get("properties", {})
+            if not set(node.get("required", [])).issubset(value):
+                return False
+            if node.get("additionalProperties") is False and set(value) - set(props):
+                return False
+            if any(not matches(value[k], v) for k, v in props.items() if k in value):
+                return False
+        if isinstance(value, list) and "items" in node:
+            if any(not matches(item, node["items"]) for item in value):
+                return False
+        if isinstance(value, str):
+            if len(value) < node.get("minLength", 0):
+                return False
+            if "pattern" in node and re.search(node["pattern"], value) is None:
+                return False
+        if type(value) in (int, float) and "minimum" in node and value < node["minimum"]:
+            return False
+        if any(not matches(value, child) for child in node.get("allOf", [])):
+            return False
+        if "if" in node and matches(value, node["if"]):
+            return matches(value, node.get("then", {}))
+        return True
+
+    supported(schema)
+    _require(matches(data, schema), "RELEASE_PROOF_INVALID", "receipt schema invalid")
 
 
 def publish_receipt(lease: Lease, receipt: dict) -> Path:
@@ -362,6 +422,7 @@ def _release_record(o: dict, sha: str) -> dict:
 
 
 def _verify_release(lease: Lease, o: dict) -> None:
+    _payloads(lease, o)
     sha = _receipt_proof(lease, o)
     release = _json(_path(lease.root, f'{AREA}/releases/{o["generation"]}.json'))
     _require(release == _release_record(o, sha), "RELEASE_PROOF_INVALID")

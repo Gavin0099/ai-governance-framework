@@ -80,7 +80,7 @@ def invoke(root, monkeypatch, sid='session-A'):
 
 def subprocess_code(code, *args):
     return subprocess.run([sys.executable, '-B', '-c', code, *map(str, args)],
-        cwd=FRAMEWORK, capture_output=True, text=True, timeout=45,
+        cwd=FRAMEWORK, capture_output=True, text=True, encoding="utf-8", timeout=45,
         env={**os.environ, 'PYTHONIOENCODING':'utf-8'})
 
 
@@ -453,3 +453,95 @@ def test_candidate_containment_rejects_before_owner_mutation(repo, candidate_pat
             own.acquire_owner(lease, 'session-A', {'relative_path':candidate_path, 'sha256':'a'*64}, 'b'*64)
     assert not (repo/own.AREA/'owner.json').exists()
     assert not (repo/own.TEXT).exists()
+
+
+def test_R2_helper_imports_with_site_packages_disabled():
+    result = subprocess.run([sys.executable, '-S', '-B', '-c',
+        'from governance_tools import shared_closeout_ownership'], cwd=FRAMEWORK,
+        capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+
+
+def test_protected_main_does_not_require_jsonschema(repo):
+    prepare(repo)
+    # Existing core imports PyYAML; isolate the NEW dependency without pretending
+    # this slice has made that pre-existing core entirely dependency-free.
+    result = subprocess_code("""
+import builtins,sys
+original=builtins.__import__
+def without_jsonschema(name,*args,**kwargs):
+    if name == 'jsonschema' or name.startswith('jsonschema.'):
+        raise ModuleNotFoundError('jsonschema intentionally unavailable')
+    return original(name,*args,**kwargs)
+builtins.__import__=without_jsonschema
+from governance_tools import session_closeout_entry as entry
+sys.argv=['closeout','--project-root',sys.argv[1],'--session-id','session-A',
+          '--agent-id','codex','--format','json','--no-ledger-write']
+raise SystemExit(entry.main())
+""", repo)
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert json.loads(result.stdout)['closeout_status'] == 'valid'
+    assert owner(repo)['state'] == 'RELEASED'
+
+
+@pytest.mark.parametrize('payload_kind', ['text', 'candidate'])
+def test_released_owner_requires_retained_payloads_before_reconcile_or_acquire(repo, monkeypatch, payload_kind):
+    prepare(repo)
+    assert invoke(repo, monkeypatch) == 0
+    held = owner(repo)
+    target = repo/(own.TEXT if payload_kind == 'text' else held['candidate_identity']['relative_path'])
+    target.write_bytes(b'corrupted after release')
+    owner_before = (repo/own.AREA/'owner.json').read_bytes()
+    with pytest.raises(own.OwnershipError, match='PAYLOAD_MISMATCH'):
+        own.reconcile_release(repo, 'session-A', held['generation'], held['receipt_identity'])
+    start_session(repo, 'session-B')
+    ci, _, text = inputs(repo, 'session-B')
+    with own.execution_exclusion(repo) as lease:
+        with pytest.raises(own.OwnershipError, match='PAYLOAD_MISMATCH'):
+            own.acquire_owner(lease, 'session-B', ci, sha(text))
+    assert (repo/own.AREA/'owner.json').read_bytes() == owner_before
+    assert not (repo/ci['relative_path']).exists()
+
+
+def test_stdlib_receipt_validation_matches_schema_matrix(repo, monkeypatch, capsys):
+    prepare(repo)
+    assert invoke(repo, monkeypatch) == 0
+    result = json.loads(capsys.readouterr().out)
+    receipt = json.loads(Path(result['closeout_receipt_artifact']).read_text(encoding='utf-8'))
+    schema = json.loads((FRAMEWORK/'schemas/closeout_receipt.schema.json').read_text(encoding='utf-8'))
+    validator = Draft202012Validator(schema)
+    own._receipt_schema(receipt)
+    cases = []
+    for key in schema['required']:
+        invalid = copy.deepcopy(receipt); del invalid[key]; cases.append(invalid)
+    for key in receipt['r2_binding']:
+        invalid = copy.deepcopy(receipt); del invalid['r2_binding'][key]; cases.append(invalid)
+    for key in receipt:
+        invalid = copy.deepcopy(receipt); invalid[key] = None; cases.append(invalid)
+    for status in ['written', 'already_present', 'failed']:
+        invalid = copy.deepcopy(receipt); invalid['daily_memory_write_status'] = status; cases.append(invalid)
+    for field, value in [('generation',True),('expected_text_digest','bad'),
+                         ('receipt_identity','../bad'),('candidate_identity',{'relative_path':'x','sha256':'bad'}),
+                         ('unexpected',True)]:
+        invalid = copy.deepcopy(receipt); invalid['r2_binding'][field] = value; cases.append(invalid)
+    for field, value in [('schema_version','1.4'),('trigger_mode','manual_fallback'),
+                         ('exit_code',True),('unexpected',True),('memory_unbound_count',-1),
+                         ('memory_workflow_warning_codes',[1])]:
+        invalid = copy.deepcopy(receipt); invalid[field] = value; cases.append(invalid)
+    numeric = copy.deepcopy(receipt)
+    numeric['exit_code'] = 0.0
+    numeric['memory_unbound_count'] = 0.0
+    numeric['r2_binding']['generation'] = 1.0
+    assert validator.is_valid(numeric)
+    cases.append(numeric)
+    assert sum(not validator.is_valid(case) for case in cases) > 50
+    for case in cases:
+        if validator.is_valid(case):
+            own._receipt_schema(case)
+        else:
+            with pytest.raises(own.OwnershipError, match='RELEASE_PROOF_INVALID'):
+                own._receipt_schema(case)
+    schema['allOf'].append({'if':{'required':['never-present']},'then':{'unknownKeyword':True}})
+    monkeypatch.setattr(own, '_json', lambda path: schema)
+    with pytest.raises(own.OwnershipError, match='unsupported receipt schema keyword'):
+        own._receipt_schema(receipt)
