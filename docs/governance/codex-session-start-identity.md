@@ -25,6 +25,26 @@ required. Do not install from a temporary checkout that will be removed.
 
 ## Identity contract
 
+New Codex sessions use envelope version `1.1`. Its `repo_binding.consumer_root`
+is the resolved consumer Git worktree root checked against the native cwd and
+installed root at SessionStart; `repo_binding.source=codex_session_start` is a
+provenance label, not authentication. The shared reader validates the complete
+binding, provider and contained session path. Same HEAD does not make two
+worktrees the same consumer. This is correctness binding, not a security boundary.
+
+The shared reader supports both `1.0` and `1.1` before the adapter emits `1.1`.
+Existing `1.0` envelopes remain byte-preserved and usable by existing closeout;
+they have no qualified root binding and must not be treated as root-bound by a
+future preparation entry. Resume/compact never backfill old identities. New `1.1`
+envelopes are published atomically; malformed, copied-to-wrong-root or unknown
+versions reject without rebinding. Existing consumed sessions are never reset.
+
+Deploy reader support before enabling the new writer on any formal path. A
+SessionStart hook using this version paired with an older closeout reader is
+not qualified: inspect the actual framework locations bound by both commands
+before activation. Do not downgrade written envelopes to make an old reader pass.
+This change neither activates consumers nor implements candidate preparation.
+
 The native payload must contain SessionStart, a supported source, a safe
 explicit session_id, and cwd within the installed Git root. No ID is generated
 and no root is taken from a prior session's pointer.

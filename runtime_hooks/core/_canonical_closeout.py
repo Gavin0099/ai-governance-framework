@@ -20,6 +20,7 @@ Same inputs → same canonical output. Enables replay, audit re-run, dry-run tes
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import uuid
 from datetime import datetime, timezone
@@ -57,6 +58,21 @@ _CURRENT_SESSION_ID_FILE = ".current-session-id"
 _RUNTIME_CURRENT_SESSION_ID_FILE = Path("artifacts/runtime/.current-session-id")
 _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 _SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
+_ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
+
+
+def _consumer_worktree_root(path: Path) -> Path:
+    """Resolve an existing Git worktree root, not merely a path spelling."""
+    if not path.is_absolute():
+        raise ValueError("Consumer root must be absolute")
+    resolved = path.resolve(strict=True)
+    result = subprocess.run(
+        ["git", "-C", str(resolved), "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, check=True, timeout=5,
+    )
+    if Path(result.stdout.strip()).resolve(strict=True) != resolved:
+        raise ValueError("Consumer root must be the Git worktree root")
+    return resolved
 
 
 def _parse_aware_utc(value: str) -> datetime | None:
@@ -103,8 +119,13 @@ def write_session_envelope(
     provider: str = "unknown",
     started_at: str | None = None,
     repo_head_before: str | None = None,
+    bound_consumer_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Create the session-start identity envelope used by closeout binding."""
+    """Create an envelope; only qualified Codex SessionStart supplies a bound root.
+
+    Unqualified/legacy callers retain v1.0. The provenance label is not an
+    authentication mechanism. A bound envelope is never used to migrate history.
+    """
     normalized_session_id = session_id.strip()
     if not normalized_session_id:
         raise ValueError("session_id is required")
@@ -113,9 +134,35 @@ def write_session_envelope(
         raise ValueError("started_at must be a timezone-aware ISO-8601 timestamp")
 
     path = _session_envelope_path(normalized_session_id, project_root)
+    if bound_consumer_root is None and path.is_file():
+        # Inspect the version directly: an invalid binding must not make an
+        # existing v1.1 eligible for legacy downgrade either.
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            existing = None
+        if isinstance(existing, dict) and existing.get("schema_version") == _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION:
+            raise ValueError("Legacy writer cannot overwrite a root-bound envelope")
+    binding = None
+    if bound_consumer_root is not None:
+        root = _consumer_worktree_root(project_root)
+        if provider != "codex" or _consumer_worktree_root(bound_consumer_root) != root:
+            raise ValueError("Bound envelope requires matching Codex consumer root")
+        if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", normalized_session_id)
+                or path.resolve() != root / "artifacts/runtime/sessions" / normalized_session_id / "session-envelope.json"):
+            raise ValueError("Bound envelope path must remain in the session directory")
+        marker = root / _RUNTIME_CURRENT_SESSION_ID_FILE
+        if marker.resolve() != marker:
+            raise ValueError("Session pointer must remain in the consumer root")
+        if path.exists():
+            raise ValueError("Existing envelope must not be overwritten or rebound")
+        if (root / "artifacts/runtime/closeout-completions" / f"{normalized_session_id}.json").exists():
+            raise ValueError("Completion marker exists; identity cannot be recreated")
+        binding = {"consumer_root": str(root), "source": "codex_session_start"}
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "schema_version": _SESSION_ENVELOPE_SCHEMA_VERSION,
+        "schema_version": (_ROOT_BOUND_ENVELOPE_SCHEMA_VERSION if binding is not None
+                           else _SESSION_ENVELOPE_SCHEMA_VERSION),
         "session_id": normalized_session_id,
         "started_at": normalized_started_at,
         "provider": provider.strip() or "unknown",
@@ -126,10 +173,17 @@ def write_session_envelope(
         ),
         "closeout_path": "artifacts/session-closeout.txt",
     }
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    if binding is not None:
+        payload["repo_binding"] = binding
+        temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            with temporary.open("x", encoding="utf-8") as stream:
+                stream.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
+    else:
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _write_current_session_id_payload(
         normalized_session_id,
         project_root / _RUNTIME_CURRENT_SESSION_ID_FILE,
@@ -148,12 +202,35 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
         return None
     if not isinstance(payload, dict):
         return None
-    if payload.get("schema_version") != _SESSION_ENVELOPE_SCHEMA_VERSION:
+    version = payload.get("schema_version")
+    if version not in (_SESSION_ENVELOPE_SCHEMA_VERSION, _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION):
         return None
     if str(payload.get("session_id") or "") != session_id:
         return None
     if _parse_aware_utc(str(payload.get("started_at") or "")) is None:
         return None
+    if version == _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", session_id):
+            return None
+        binding = payload.get("repo_binding")
+        if payload.get("provider") != "codex" or not isinstance(binding, dict):
+            return None
+        raw_root = binding.get("consumer_root")
+        if (binding.get("source") != "codex_session_start"
+                or not isinstance(raw_root, str) or not raw_root.strip()):
+            return None
+        try:
+            root = _consumer_worktree_root(project_root)
+            if _consumer_worktree_root(Path(raw_root)) != root:
+                return None
+            # A relocated/symlinked envelope is not evidence for this target.
+            expected = root / "artifacts/runtime/sessions" / session_id / "session-envelope.json"
+            if (not expected.is_relative_to(root / "artifacts/runtime/sessions")
+                    or path.resolve(strict=True) != expected
+                    or expected.resolve(strict=True) != expected):
+                return None
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+            return None
     return {**payload, "artifact_path": str(path)}
 
 

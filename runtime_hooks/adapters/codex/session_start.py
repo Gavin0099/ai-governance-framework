@@ -55,8 +55,15 @@ def run(payload: dict, project_root: Path) -> dict:
         raise ValueError("Envelope path escapes project root")
     if not envelope_path.exists() and source in {"resume", "compact"}:
         raise ValueError("Existing envelope required for resume/compact; no start time invented")
+    # Reject known invalid/wrong-root identity before even creating a lock.
+    # Re-read under exclusion below so this preflight is not a TOCTOU authority.
+    if envelope_path.exists() and read_session_envelope(sid, expected) is None:
+        raise ValueError("Existing envelope is invalid; refusing to overwrite")
+    if (not envelope_path.exists()
+            and (expected / "artifacts/runtime/closeout-completions" / f"{sid}.json").exists()):
+        raise ValueError("Completion marker exists without envelope")
     session_dir.mkdir(parents=True, exist_ok=True)
-    # Serialize repeated native events without changing the canonical schema/writer.
+    # Serialize creation; existing v1.0/v1.1 identity is never migrated or rebound.
     lock = session_dir / ".codex-start.lock"
     try:
         fd = lock.open("x", encoding="utf-8")
@@ -71,7 +78,9 @@ def run(payload: dict, project_root: Path) -> dict:
                 # Completion without identity is inconsistent, never repair it implicitly.
                 if (expected / "artifacts/runtime/closeout-completions" / f"{sid}.json").exists():
                     raise ValueError("Completion marker exists without envelope")
-                envelope = write_session_envelope(sid, expected, provider="codex")
+                envelope = write_session_envelope(
+                    sid, expected, provider="codex", bound_consumer_root=expected,
+                )
                 status = "created"
             else:
                 _write_current_session_id_payload(sid, marker)

@@ -1,0 +1,66 @@
+{
+  "review_snapshot": "remediation-source-snapshot.json",
+  "review_snapshot_sha256": "5988a42932da81e05baf4733504d7ce3fa188e7293d224f39a4a9a139aa105a5",
+  "base": "e5d819b47be58384eeda1a2d7672f9de16e1b63b",
+  "index_tree": "60e79f99f08acce864e418bb0e0428bffddf75aa",
+  "staging_allowlist": "PASS",
+  "cached_diff_check": "PASS",
+  "files": [
+    {
+      "path": "runtime_hooks/core/_canonical_closeout.py",
+      "reviewed_worktree_hash": "53206e8784d091e7c22ec46d5a28dd811e20c763f0c266d3aec746f2fb0ad22a",
+      "normalization": "CRLF_TO_LF_ONLY",
+      "crlf_pairs_replaced": 612,
+      "normalized_reviewed_sha256": "40a699d43a0c52cf4618a38ef5fecaf306ee4b4bffb0d90611c81602c9db753b",
+      "staged_sha256": "40a699d43a0c52cf4618a38ef5fecaf306ee4b4bffb0d90611c81602c9db753b",
+      "staged_git_blob": "e35f61d916049a547aad11e7d1e8576bc3e2ba8c",
+      "exact_equality": true,
+      "unexpected_byte_delta": 0,
+      "semantic_delta": "NONE"
+    },
+    {
+      "path": "runtime_hooks/adapters/codex/session_start.py",
+      "reviewed_worktree_hash": "7087bb346f73dd761f2514184b24e1fea4ec61a8e14a463c7af31593ae9d02ea",
+      "normalization": "CRLF_TO_LF_ONLY",
+      "crlf_pairs_replaced": 139,
+      "normalized_reviewed_sha256": "0043af9565b1810a7f3f8a313f5fcec0714ec2f97dd13e777341514062094044",
+      "staged_sha256": "0043af9565b1810a7f3f8a313f5fcec0714ec2f97dd13e777341514062094044",
+      "staged_git_blob": "e7fb101bb8e64ea58d95811888bb5ee046a225cf",
+      "exact_equality": true,
+      "unexpected_byte_delta": 0,
+      "semantic_delta": "NONE"
+    },
+    {
+      "path": "tests/test_session_root_binding.py",
+      "reviewed_worktree_hash": "4dcdf1cab38484ab208d0149a225caa773a7f728d1f9670a914d1d806343f253",
+      "normalization": "CRLF_TO_LF_ONLY",
+      "crlf_pairs_replaced": 0,
+      "normalized_reviewed_sha256": "4dcdf1cab38484ab208d0149a225caa773a7f728d1f9670a914d1d806343f253",
+      "staged_sha256": "4dcdf1cab38484ab208d0149a225caa773a7f728d1f9670a914d1d806343f253",
+      "staged_git_blob": "b256e5e42da68bb2fb61a8c4bbd476150b9ee394",
+      "exact_equality": true,
+      "unexpected_byte_delta": 0,
+      "semantic_delta": "NONE"
+    },
+    {
+      "path": "docs/governance/codex-session-start-identity.md",
+      "reviewed_worktree_hash": "e5bc2a39a732a53cbcf3b54abbbd11d678bc75b9f4a7e5dad0c9084ab62c16ac",
+      "normalization": "CRLF_TO_LF_ONLY",
+      "crlf_pairs_replaced": 100,
+      "normalized_reviewed_sha256": "f8ccc1cd7ee5c942d6d2be1089e27d4abf9e37d6ff31fac486f08fcf23da232b",
+      "staged_sha256": "f8ccc1cd7ee5c942d6d2be1089e27d4abf9e37d6ff31fac486f08fcf23da232b",
+      "staged_git_blob": "177eb0f9e39568e90de1e67a05684dfce630ce09",
+      "exact_equality": true,
+      "unexpected_byte_delta": 0,
+      "semantic_delta": "NONE"
+    }
+  ],
+  "independent_review": {
+    "verdict": "APPROVED",
+    "reviewer": "/root/r1_independent_review",
+    "scope": "CRLF_TO_LF_ONLY continuity; no code review or test rerun",
+    "index_tree": "60e79f99f08acce864e418bb0e0428bffddf75aa",
+    "unexpected_byte_delta": 0
+  },
+  "commit": "NOT_CREATED"
+}
