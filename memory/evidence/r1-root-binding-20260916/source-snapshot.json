@@ -1,0 +1,10 @@
+{
+  "base": "e5d819b47be58384eeda1a2d7672f9de16e1b63b",
+  "commit": "UNCOMMITTED",
+  "sha256": {
+    "runtime_hooks/core/_canonical_closeout.py": "26a50a3a02a216f01280dc4cd06ae9cb74f308058705a33ebcd0e193160c67ab",
+    "runtime_hooks/adapters/codex/session_start.py": "63dae875ca7d19f8195a14e85927526a9baa0c11b64071c13eb73c1990cc99d6",
+    "tests/test_session_root_binding.py": "d27e80cf37844d78aa39f2c8c0a67b43e3d73780eda0fe86cf36ff7097277692",
+    "docs/governance/codex-session-start-identity.md": "e5bc2a39a732a53cbcf3b54abbbd11d678bc75b9f4a7e5dad0c9084ab62c16ac"
+  }
+}
