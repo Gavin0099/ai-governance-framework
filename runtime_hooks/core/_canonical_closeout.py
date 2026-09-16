@@ -507,6 +507,27 @@ def candidate_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
 
 
+def build_candidate_artifact(
+    session_id: str,
+    candidate: dict[str, Any],
+    *,
+    timestamp: str,
+    generated_at: str,
+) -> tuple[Path, dict[str, Any], bytes]:
+    """Render a candidate without clock reads or filesystem mutation.
+
+    The caller fixes identity/time first. Bytes are UTF-8 with LF; the legacy
+    text writer retains its existing platform newline translation.
+    This helper does not add validation or change candidate selection.
+    """
+    relative = Path("artifacts/runtime/closeout_candidates") / session_id / f"{timestamp}.json"
+    payload = dict(candidate)
+    payload.setdefault("session_id", session_id)
+    payload.setdefault("generated_at", generated_at)
+    data = (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    return relative, payload, data
+
+
 def write_candidate(
     session_id: str,
     project_root: Path,
@@ -520,15 +541,13 @@ def write_candidate(
     Called by /wrap-up, not by session_end.
     """
     ts = timestamp or candidate_timestamp()
-    candidate_dir = (
-        project_root / "artifacts" / "runtime" / "closeout_candidates" / session_id
+    relative, _, data = build_candidate_artifact(
+        session_id, candidate, timestamp=ts,
+        generated_at=datetime.now(timezone.utc).isoformat(),
     )
-    candidate_dir.mkdir(parents=True, exist_ok=True)
-    path = candidate_dir / f"{ts}.json"
-    payload = dict(candidate)
-    payload.setdefault("session_id", session_id)
-    payload.setdefault("generated_at", datetime.now(timezone.utc).isoformat())
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path = project_root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(data.decode("utf-8"), encoding="utf-8")
     return path
 
 
