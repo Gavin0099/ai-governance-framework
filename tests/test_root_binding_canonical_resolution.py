@@ -26,6 +26,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from tests.test_shared_closeout_ownership import repo as protected_repo, prepare
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -84,10 +85,11 @@ def test_supplied_root_resolves_identically_from_any_cwd(tmp_path, monkeypatch):
 
 
 def test_main_writes_to_explicit_root_when_invoked_from_nested_cwd(
-    tmp_path, monkeypatch
+    protected_repo, monkeypatch
 ):
     """The real outer entrypoint must not write canonical evidence under cwd."""
-    root = _make_valid_root(tmp_path)
+    root = protected_repo
+    prepare(root, "session-root-binding-regression")
     nested = root / ".qualification_tmp" / "solo-20260830"
     nested.mkdir(parents=True)
     monkeypatch.chdir(nested)
@@ -98,6 +100,9 @@ def test_main_writes_to_explicit_root_when_invoked_from_nested_cwd(
             "session_closeout_entry.py",
             "--project-root",
             str(root),
+            "--session-id",
+            "session-root-binding-regression",
+            "--no-ledger-write",
             "--format",
             "json",
             "--agent-id",
@@ -107,19 +112,7 @@ def test_main_writes_to_explicit_root_when_invoked_from_nested_cwd(
         ],
     )
     monkeypatch.setattr(sys, "stdin", io.StringIO(""))
-    hook_result = {
-        "canonical_closeout_artifact": None,
-        "memory_closeout": {"decision": "pass", "candidate_signals": []},
-        "promoted": True,
-        "gate_verdict": "PASS",
-        "session_id": "session-root-binding-regression",
-        "daily_memory_write_status": "skipped",
-        "memory_authority": {},
-        "memory_workflow": {},
-    }
-
-    with patch("governance_tools.session_closeout_entry.run", return_value=hook_result):
-        assert main() == 0
+    assert main() == 0
 
     assert (root / "artifacts" / "runtime" / "closeout-trigger-evidence.ndjson").is_file()
     assert len(list((root / "artifacts" / "runtime" / "closeout-receipts").glob("*.json"))) == 1

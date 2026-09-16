@@ -41,6 +41,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
+from governance_tools import shared_closeout_ownership as ownership
 from governance_tools.memory_record import (
     WRITER_ID as MEMORY_WRITER_ID,
     daily_memory_contains_record_identity,
@@ -260,6 +261,7 @@ def _write_closeout_receipt(
     memory_workflow_warning_codes: "list[str] | None" = None,
     memory_workflow_blocker_codes: "list[str] | None" = None,
     memory_workflow_guard_summary: "dict[str, Any] | None" = None,
+    r2_lease: ownership.Lease | None = None,
 ) -> Path:
     artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -310,6 +312,10 @@ def _write_closeout_receipt(
         **_load_runtime_binding(project_root, session_id),
         "sample_origin": _SAMPLE_ORIGIN_BY_TRIGGER.get(normalized_trigger, "unknown"),
     }
+    if r2_lease is not None:
+        owner = ownership._matching(r2_lease, session_id)
+        receipt["r2_binding"] = ownership.receipt_binding(owner)
+        return ownership.publish_receipt(r2_lease, receipt)
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path
 
@@ -558,6 +564,27 @@ def main() -> int:
         print(f"ROOT_BINDING_FAILURE: {exc}", file=sys.stderr)
         return 2
 
+    # The existing writer cannot satisfy the v1.5 manual-fallback requirements.
+    # Reject before consumption rather than strand a session without release proof.
+    if args.trigger_mode == "manual_fallback":
+        print(json.dumps({"ok": False, "error":
+            "RELEASE_PROOF_INVALID: manual_fallback receipt production is not qualified for R2"}))
+        return 1
+
+    # R2 protects only this receipt-producing CLI, never run()/direct hooks.
+    exclusion = ownership.execution_exclusion(project_root)
+    try:
+        lease = exclusion.__enter__()
+    except (ValueError, OSError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}))
+        return 1
+    try:
+        ownership.begin_closeout(lease, _hook_session_id)
+    except Exception as exc:
+        exclusion.__exit__(None, None, None)
+        print(json.dumps({"ok": False, "error": str(exc)}))
+        return 1
+
     try:
         result = run(
             project_root,
@@ -672,7 +699,9 @@ def main() -> int:
             memory_workflow_warning_codes=_mw.get("memory_workflow_warning_codes") or [],
             memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
             memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
+            r2_lease=lease,
         )
+        ownership.finalize_release(lease, receipt_path)
         result["trigger_evidence_artifact"] = str(evidence_path)
         result["closeout_receipt_artifact"] = str(receipt_path)
     except Exception as exc:
@@ -714,6 +743,9 @@ def main() -> int:
         else:
             print(f"[session_closeout_entry] runtime error: {exc}", file=sys.stderr)
         return 1
+    finally:
+        # Execution exclusion ends; persistent HOLD survives any failure.
+        exclusion.__exit__(None, None, None)
 
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))

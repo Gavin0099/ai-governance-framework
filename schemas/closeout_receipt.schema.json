@@ -19,6 +19,62 @@
     "memory_eligibility_reason"
   ],
   "properties": {
+    "r2_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "consumer_root",
+        "session_id",
+        "generation",
+        "candidate_identity",
+        "expected_text_digest",
+        "receipt_identity"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "consumer_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidate_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "relative_path",
+            "sha256"
+          ],
+          "properties": {
+            "relative_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "expected_text_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "receipt_identity": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{12}Z_r2_[0-9a-f]{32}$"
+        }
+      }
+    },
     "schema_version": {
       "type": "string",
       "enum": ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5"]
@@ -263,6 +319,7 @@
   },
 
   "allOf": [
+    {"if": {"required": ["r2_binding"], "properties": {}}, "then": {"properties": {"schema_version": {"const": "1.5"}}}},
     {
       "if": {
         "properties": { "trigger_mode": { "const": "manual_fallback" } }
