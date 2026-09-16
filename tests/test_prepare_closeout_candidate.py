@@ -30,7 +30,7 @@ INPUT = dict(task_intent="Check summary delivery", work_summary="Inspected evide
 
 def environment():
     return {**{k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")},
-            "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"}
+            "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
 
 
 def git(root, *args):
@@ -54,8 +54,8 @@ def framework_source(tmp_path_factory):
 
 
 @pytest.fixture
-def consumer(tmp_path, framework_source):
-    root = tmp_path / "consumer with spaces"
+def consumer(tmp_path, framework_source, request):
+    root = tmp_path / getattr(request, "param", "consumer with spaces")
     root.mkdir()
     git(root, "init", "--quiet")
     git(root, "-c", "protocol.file.allow=always", "submodule", "add", "--quiet",
@@ -371,3 +371,38 @@ def test_builder_is_pure_and_legacy_writer_preserves_existing_serialization(tmp_
     assert list(tmp_path.iterdir()) == []
     path = write_candidate("session-A", tmp_path, candidate, timestamp="fixed")
     assert path.read_bytes() == expected.replace(b"\n", os.linesep.encode())
+
+
+@pytest.mark.parametrize("consumer", ["consumer 測試 with spaces"], indirect=True)
+def test_ascii_stdout_reports_success_after_owned(consumer):
+    result = invoke(consumer, env={**environment(), "PYTHONIOENCODING": "ascii"})
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["status"] == "PREPARED" and report["state"] == "OWNED"
+    assert report["consumer_root"] == str(consumer)
+    assert owner(consumer)["state"] == "OWNED"
+
+
+@pytest.mark.parametrize("consumer", ["consumer 測試 with spaces"], indirect=True)
+def test_ascii_stdout_reports_unicode_rejection_as_json(consumer):
+    before = runtime_bytes(consumer)
+    result = invoke(consumer, env={**environment(), "PYTHONIOENCODING": "ascii",
+                                   "GIT_TEST_測試": "1"})
+    assert result.returncode == 1
+    assert "GIT_TEST_測試" in json.loads(result.stdout)["error"]
+    assert "Traceback" not in result.stderr
+    assert runtime_bytes(consumer) == before
+
+
+@pytest.mark.parametrize("lock_value", [[], 42, "not an object", None, True])
+def test_non_object_lock_returns_json_rejection_before_mutation(consumer, lock_value):
+    path = consumer / "governance/framework.lock.json"
+    path.write_text(json.dumps(lock_value), encoding="utf-8")
+    git(consumer, "add", "governance/framework.lock.json")
+    git(consumer, "commit", "-qm", "malformed lock fixture")
+    before = runtime_bytes(consumer)
+    result = invoke(consumer)
+    assert result.returncode == 1
+    assert json.loads(result.stdout)["status"] == "REJECTED"
+    assert "Traceback" not in result.stderr
+    assert runtime_bytes(consumer) == before

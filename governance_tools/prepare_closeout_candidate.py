@@ -95,7 +95,10 @@ def validate_framework_binding(consumer_root: Path, framework_root: Path) -> tup
     _require(_git(framework, "rev-parse", "HEAD") == oid, "checkout HEAD differs from index gitlink")
     _require(not _git(framework, "status", "--porcelain=v1", "--untracked-files=all"),
              "dirty framework checkout")
-    lock = load_framework_lock(consumer)
+    try:
+        lock = load_framework_lock(consumer)
+    except TypeError as exc:
+        raise PreparationError("framework lock must be a JSON object") from exc
     _require(isinstance(lock, dict) and lock.get("adopted_commit") == oid,
              "framework lock adopted_commit differs from index gitlink")
     return consumer, framework
@@ -200,11 +203,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         raw = args.input.read_text(encoding="utf-8-sig") if args.input else sys.stdin.read()
         result = prepare(args.consumer_root, args.framework_root, args.session_id, json.loads(raw))
-        print(json.dumps(result, ensure_ascii=False))
+        print(json.dumps(result, ensure_ascii=True))
         return 0
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
         print(json.dumps({"status": "REJECTED", "error": str(exc),
-                          "partial_preparation_may_remain": True}, ensure_ascii=False))
+                          "partial_preparation_may_remain": True}, ensure_ascii=True))
         return 1
 
 
