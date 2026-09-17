@@ -6,6 +6,7 @@ Direct hook/core callers and arbitrary filesystem writers are not protected.
 from __future__ import annotations
 
 import argparse
+import errno
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -88,12 +89,13 @@ def _lease(lease: Lease) -> Path:
 
 
 @contextmanager
-def execution_exclusion(consumer_root: Path):
+def execution_exclusion(consumer_root: Path, *, create: bool = True):
     """Nonblocking OS exclusion; no process-local fallback or lock-file deletion."""
     root = _consumer_worktree_root(Path(consumer_root))
     path = _path(root, AREA + "/execution.lock")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    if create:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_RDWR | (os.O_CREAT if create else 0), 0o600)
     locked = False
     lease = Lease(root, os.getpid(), threading.get_ident())
     try:
@@ -109,7 +111,11 @@ def execution_exclusion(consumer_root: Path):
                 raise OSError("unsupported OS lock backend")
             locked = True
         except (OSError, ImportError) as exc:
-            raise OwnershipError("R2_BUSY", "OS exclusion unavailable") from exc
+            # Diagnostic callers must distinguish contention from an unavailable
+            # backend. Default execution preserves its existing fail-closed code.
+            busy = isinstance(exc, OSError) and exc.errno in {errno.EACCES, errno.EAGAIN}
+            code = "R2_BUSY" if create or busy else "R2_LOCK_UNKNOWN"
+            raise OwnershipError(code, "OS exclusion unavailable") from exc
         _LIVE[id(lease)] = lease
         yield lease
     finally:
