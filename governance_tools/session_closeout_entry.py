@@ -474,6 +474,145 @@ def _validate_explicit_project_root(raw: str) -> Path:
     return root
 
 
+def _run_protected_closeout_with_lease(
+    lease, *, session_id, transcript_path=None, agent_id="codex",
+    trigger_mode="wrapper", entrypoint="governance_tools.session_closeout_entry",
+    ledger_write_allowed=None, after_begin=None, after_run=None,
+) -> dict:
+    """Run under the caller's uninterrupted R2 lease; never acquire another lock.
+
+    The after-begin callback durably binds a handoff attempt to the reservation.
+    Failure leaves HOLD intact and must not replay the core.
+    """
+    project_root = ownership._lease(lease)
+    ownership._require(trigger_mode in ALLOWED_TRIGGER_MODES
+                       and trigger_mode != "manual_fallback", "RELEASE_PROOF_INVALID")
+    reserved = ownership.begin_closeout(lease, session_id)
+    if after_begin is not None:
+        after_begin(reserved)
+    result = run(
+        project_root,
+        transcript_path=transcript_path,
+        hook_session_id=session_id,
+        ledger_write_allowed=ledger_write_allowed,
+    )
+    if after_run is not None:
+        after_run(result)
+    closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
+    eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
+    daily_memory_write_attempted = bool(
+        result.get("daily_memory_write_attempted", False)
+    )
+    daily_memory_write_status = str(
+        result.get("daily_memory_write_status") or "skipped"
+    )
+    daily_memory_state_status = str(
+        result.get("daily_memory_state_status") or "not_required"
+    )
+    daily_memory_path = str(result.get("daily_memory_path") or "")
+    daily_memory_record_identity = str(
+        result.get("daily_memory_record_identity") or ""
+    )
+    daily_memory_writer = str(
+        result.get("daily_memory_writer") or MEMORY_WRITER_ID
+    )
+    daily_memory_write_error = str(
+        result.get("daily_memory_write_error") or ""
+    )
+    memory_write_performed = daily_memory_write_status == "written"
+
+    # ── Stale-duplicate guard ─────────────────────────────────────────────
+    # This post-pipeline guard only adjusts receipt eligibility when the
+    # closeout content is unchanged; it cannot suppress earlier side effects.
+    (
+        memory_write_required,
+        memory_eligibility_reason,
+        stale_detected,
+    ) = _apply_stale_duplicate_guard(
+        project_root=project_root,
+        closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
+        memory_write_required=memory_write_required,
+        memory_eligibility_reason=memory_eligibility_reason,
+    )
+    if stale_detected:
+        print(
+            "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
+            "is unchanged from the previous session (SHA256 match). "
+            "Stale duplicate was detected after pipeline execution; this guard "
+            "adjusts receipt eligibility only and does not prove that promotion "
+            "or another earlier side effect was suppressed. "
+            "Update artifacts/session-closeout.txt before ending the session "
+            "(see AGENTS.md: MANDATORY CLOSEOUT OBLIGATION).",
+            file=sys.stderr,
+        )
+    # E1: verify memory write claim against daily memory file.
+    _sid = str(result.get("session_id", ""))
+    _claim_verified, _claim_reason = _verify_memory_write_claim(
+        project_root,
+        write_status=daily_memory_write_status,
+        daily_memory_path=daily_memory_path,
+        record_identity=daily_memory_record_identity,
+        writer=daily_memory_writer,
+        write_error=daily_memory_write_error,
+    )
+
+    # E2: extract memory authority guard surface from hook result.
+    _ma = result.get("memory_authority") or {}
+    # E3: extract memory workflow dispatch surface from hook result.
+    _mw = result.get("memory_workflow") or {}
+
+    evidence_path = _append_trigger_evidence(
+        project_root,
+        agent_id=agent_id,
+        trigger_mode=trigger_mode,
+        entrypoint=entrypoint,
+        exit_code=0,
+        closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
+    )
+    receipt_path = _write_closeout_receipt(
+        project_root,
+        agent_id=agent_id,
+        trigger_mode=trigger_mode,
+        entrypoint=entrypoint,
+        exit_code=0,
+        closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
+        memory_eligibility_evaluated=eligibility_evaluated,
+        memory_write_required=memory_write_required,
+        memory_write_performed=memory_write_performed,
+        memory_eligibility_reason=memory_eligibility_reason,
+        daily_memory_write_attempted=daily_memory_write_attempted,
+        daily_memory_write_status=daily_memory_write_status,
+        daily_memory_state_status=daily_memory_state_status,
+        daily_memory_path=daily_memory_path,
+        daily_memory_record_identity=daily_memory_record_identity,
+        daily_memory_writer=daily_memory_writer,
+        daily_memory_write_error=daily_memory_write_error,
+        session_id=_sid,
+        memory_write_claim_verified=_claim_verified,
+        memory_write_claim_verification_reason=_claim_reason,
+        memory_authority_guard_ran=bool(_ma.get("memory_authority_guard_ran", False)),
+        memory_authority_scope=str(_ma.get("memory_authority_scope", "")),
+        memory_authority_warning_codes=_ma.get("memory_authority_warning_codes") or [],
+        memory_unbound_count=int(_ma.get("memory_unbound_count", 0)),
+        memory_authority_baseline_id=str(_ma.get("memory_authority_baseline_id", "")),
+        memory_authority_new_since_baseline=int(_ma.get("memory_authority_new_since_baseline", 0)),
+        memory_authority_suppressed_by_baseline=int(_ma.get("memory_authority_suppressed_by_baseline", 0)),
+        memory_authority_new_warning_codes=_ma.get("memory_authority_new_warning_codes") or [],
+        memory_workflow_dispatch_ran=bool(_mw.get("memory_workflow_dispatch_ran", False)),
+        memory_workflow_status=str(_mw.get("memory_workflow_status", "")),
+        memory_task_classification=str(_mw.get("memory_task_classification", "")),
+        memory_completion_claim_allowed=bool(_mw.get("memory_completion_claim_allowed", False)),
+        memory_workflow_warning_codes=_mw.get("memory_workflow_warning_codes") or [],
+        memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
+        memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
+        r2_lease=lease,
+    )
+    ownership.finalize_release(lease, receipt_path)
+    result["trigger_evidence_artifact"] = str(evidence_path)
+    result["closeout_receipt_artifact"] = str(receipt_path)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -578,133 +717,22 @@ def main() -> int:
     except (ValueError, OSError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 1
-    try:
-        ownership.begin_closeout(lease, _hook_session_id)
-    except Exception as exc:
-        exclusion.__exit__(None, None, None)
-        print(json.dumps({"ok": False, "error": str(exc)}))
-        return 1
+    begun = False
+    def mark_begun(_reserved):
+        nonlocal begun
+        begun = True
 
     try:
-        result = run(
-            project_root,
-            transcript_path=_transcript_path,
-            hook_session_id=_hook_session_id,
+        result = _run_protected_closeout_with_lease(
+            lease, session_id=_hook_session_id, transcript_path=_transcript_path,
+            agent_id=args.agent_id, trigger_mode=args.trigger_mode,
             ledger_write_allowed=resolve_ledger_write_allowed_from_no_write_flag(args.no_ledger_write),
+            after_begin=mark_begun,
         )
-        closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
-        eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
-        daily_memory_write_attempted = bool(
-            result.get("daily_memory_write_attempted", False)
-        )
-        daily_memory_write_status = str(
-            result.get("daily_memory_write_status") or "skipped"
-        )
-        daily_memory_state_status = str(
-            result.get("daily_memory_state_status") or "not_required"
-        )
-        daily_memory_path = str(result.get("daily_memory_path") or "")
-        daily_memory_record_identity = str(
-            result.get("daily_memory_record_identity") or ""
-        )
-        daily_memory_writer = str(
-            result.get("daily_memory_writer") or MEMORY_WRITER_ID
-        )
-        daily_memory_write_error = str(
-            result.get("daily_memory_write_error") or ""
-        )
-        memory_write_performed = daily_memory_write_status == "written"
-
-        # ── Stale-duplicate guard ─────────────────────────────────────────────
-        # This post-pipeline guard only adjusts receipt eligibility when the
-        # closeout content is unchanged; it cannot suppress earlier side effects.
-        (
-            memory_write_required,
-            memory_eligibility_reason,
-            stale_detected,
-        ) = _apply_stale_duplicate_guard(
-            project_root=project_root,
-            closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
-            memory_write_required=memory_write_required,
-            memory_eligibility_reason=memory_eligibility_reason,
-        )
-        if stale_detected:
-            print(
-                "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
-                "is unchanged from the previous session (SHA256 match). "
-                "Stale duplicate was detected after pipeline execution; this guard "
-                "adjusts receipt eligibility only and does not prove that promotion "
-                "or another earlier side effect was suppressed. "
-                "Update artifacts/session-closeout.txt before ending the session "
-                "(see AGENTS.md: MANDATORY CLOSEOUT OBLIGATION).",
-                file=sys.stderr,
-            )
-        # E1: verify memory write claim against daily memory file.
-        _sid = str(result.get("session_id", ""))
-        _claim_verified, _claim_reason = _verify_memory_write_claim(
-            project_root,
-            write_status=daily_memory_write_status,
-            daily_memory_path=daily_memory_path,
-            record_identity=daily_memory_record_identity,
-            writer=daily_memory_writer,
-            write_error=daily_memory_write_error,
-        )
-
-        # E2: extract memory authority guard surface from hook result.
-        _ma = result.get("memory_authority") or {}
-        # E3: extract memory workflow dispatch surface from hook result.
-        _mw = result.get("memory_workflow") or {}
-
-        evidence_path = _append_trigger_evidence(
-            project_root,
-            agent_id=args.agent_id,
-            trigger_mode=args.trigger_mode,
-            entrypoint="governance_tools.session_closeout_entry",
-            exit_code=0,
-            closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
-        )
-        receipt_path = _write_closeout_receipt(
-            project_root,
-            agent_id=args.agent_id,
-            trigger_mode=args.trigger_mode,
-            entrypoint="governance_tools.session_closeout_entry",
-            exit_code=0,
-            closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
-            memory_eligibility_evaluated=eligibility_evaluated,
-            memory_write_required=memory_write_required,
-            memory_write_performed=memory_write_performed,
-            memory_eligibility_reason=memory_eligibility_reason,
-            daily_memory_write_attempted=daily_memory_write_attempted,
-            daily_memory_write_status=daily_memory_write_status,
-            daily_memory_state_status=daily_memory_state_status,
-            daily_memory_path=daily_memory_path,
-            daily_memory_record_identity=daily_memory_record_identity,
-            daily_memory_writer=daily_memory_writer,
-            daily_memory_write_error=daily_memory_write_error,
-            session_id=_sid,
-            memory_write_claim_verified=_claim_verified,
-            memory_write_claim_verification_reason=_claim_reason,
-            memory_authority_guard_ran=bool(_ma.get("memory_authority_guard_ran", False)),
-            memory_authority_scope=str(_ma.get("memory_authority_scope", "")),
-            memory_authority_warning_codes=_ma.get("memory_authority_warning_codes") or [],
-            memory_unbound_count=int(_ma.get("memory_unbound_count", 0)),
-            memory_authority_baseline_id=str(_ma.get("memory_authority_baseline_id", "")),
-            memory_authority_new_since_baseline=int(_ma.get("memory_authority_new_since_baseline", 0)),
-            memory_authority_suppressed_by_baseline=int(_ma.get("memory_authority_suppressed_by_baseline", 0)),
-            memory_authority_new_warning_codes=_ma.get("memory_authority_new_warning_codes") or [],
-            memory_workflow_dispatch_ran=bool(_mw.get("memory_workflow_dispatch_ran", False)),
-            memory_workflow_status=str(_mw.get("memory_workflow_status", "")),
-            memory_task_classification=str(_mw.get("memory_task_classification", "")),
-            memory_completion_claim_allowed=bool(_mw.get("memory_completion_claim_allowed", False)),
-            memory_workflow_warning_codes=_mw.get("memory_workflow_warning_codes") or [],
-            memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
-            memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
-            r2_lease=lease,
-        )
-        ownership.finalize_release(lease, receipt_path)
-        result["trigger_evidence_artifact"] = str(evidence_path)
-        result["closeout_receipt_artifact"] = str(receipt_path)
     except Exception as exc:
+        if not begun:
+            print(json.dumps({"ok": False, "error": str(exc)}))
+            return 1
         _append_trigger_evidence(
             project_root,
             agent_id=args.agent_id,

@@ -260,8 +260,21 @@ def _payloads(lease: Lease, o: dict) -> None:
              "PAYLOAD_MISMATCH")
 
 
+def _closeout_request_slot(root: Path, session_id: str) -> Path:
+    """Existence alone freezes preparation; R2 deliberately does not parse requests."""
+    _require(isinstance(session_id, str) and bool(_ID.fullmatch(session_id)),
+             "INVALID_OWNER", "unsafe session")
+    return _path(root, f"artifacts/runtime/closeout-requests/{session_id}/request.json")
+
+
+def _require_unrequested(lease: Lease, session_id: str) -> None:
+    slot = _closeout_request_slot(_lease(lease), session_id)
+    _require(not slot.exists(), "CLOSEOUT_REQUESTED", "preparation is frozen")
+
+
 def acquire_owner(lease: Lease, session_id: str, candidate_identity: dict, text_digest: str) -> dict:
     root = _lease(lease)
+    _require_unrequested(lease, session_id)
     _identity(root, session_id)
     _require(not _completion(root, session_id), "CONSUMED_SESSION")
     _candidate(root, session_id, candidate_identity)
@@ -274,6 +287,12 @@ def acquire_owner(lease: Lease, session_id: str, candidate_identity: dict, text_
         generation = 1
     else:
         if o["state"] == "RELEASED":
+            if _closeout_request_slot(root, o["session_id"]).exists():
+                # Bounded handoff integration: validate the full immutable proof,
+                # never treat finalized.json existence as permission to advance.
+                # Lazy import keeps ordinary preparation independent of handoff.
+                from governance_tools.closeout_handoff import validate_finalization
+                validate_finalization(lease, o["session_id"], expected_owner=o)
             _verify_release(lease, o)
         else:
             _require(o["session_id"] == session_id, "OWNER_CONFLICT")
@@ -286,6 +305,7 @@ def acquire_owner(lease: Lease, session_id: str, candidate_identity: dict, text_
 
 
 def confirm_prepared(lease: Lease, session_id: str, generation: int) -> dict:
+    _require_unrequested(lease, session_id)
     o = _matching(lease, session_id, generation)
     _require(o["state"] == "HOLD" and o["hold_reason"] == "preparation_pending", "INVALID_OWNER")
     _require(not _completion(lease.root, session_id), "CONSUMED_SESSION")
