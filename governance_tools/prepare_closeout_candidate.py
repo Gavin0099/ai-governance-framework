@@ -41,8 +41,9 @@ def _require(condition: bool, message: str) -> None:
 
 
 def _git(root: Path, *args: str) -> str:
+    child_env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
     result = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", *args], check=True,
-                            capture_output=True, encoding="utf-8", timeout=15)
+                            capture_output=True, encoding="utf-8", timeout=15, env=child_env)
     return result.stdout.strip()
 
 

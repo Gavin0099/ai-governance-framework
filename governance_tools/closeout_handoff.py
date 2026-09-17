@@ -660,7 +660,7 @@ def _checkpoint_receipt_material(lease, request, receipt):
     _require(_read(path) == material, "RECEIPT_MATERIAL_READBACK")
 
 
-def _recover_receipt_material(lease, request, attempt, receipt_path):
+def _validate_receipt_material(lease, request, attempt, receipt_path):
     path = _receipt_material_path(lease.root, request, attempt)
     _require(path.is_file(), "FAILED_HOLD: no receipt; core replay forbidden")
     material = _read(path)
@@ -670,9 +670,29 @@ def _recover_receipt_material(lease, request, attempt, receipt_path):
     exact = r2._bytes(material["receipt"])
     if receipt_path.exists():
         _require(receipt_path.read_bytes() == exact, "RECEIPT_MATERIAL_CONFLICT")
-    else:
-        r2.publish_receipt(lease, material["receipt"])
-    _require(receipt_path.read_bytes() == exact, "RECEIPT_MATERIAL_READBACK")
+    return material["receipt"]
+
+
+def _recover_receipt_material(lease, request, attempt, receipt_path):
+    receipt = _validate_receipt_material(lease, request, attempt, receipt_path)
+    if not receipt_path.exists():
+        r2.publish_receipt(lease, receipt)
+    _require(receipt_path.read_bytes() == r2._bytes(receipt), "RECEIPT_MATERIAL_READBACK")
+
+
+def _validate_final_receipt(root, b, attempt, receipt_bytes):
+    expected = {"schema_version": "1.0", "consumer_root": str(root), "session_id": b["session_id"],
+                "generation": b["generation"], "candidate_identity": b["candidate_identity"],
+                "expected_text_digest": b["text_digest"], "receipt_identity": attempt["receipt_identity"]}
+    receipt = json.loads(receipt_bytes)
+    r2._receipt_schema(receipt)
+    _require(receipt_bytes == r2._bytes(receipt), "NONCANONICAL_RECEIPT")
+    _require(receipt.get("r2_binding") == expected and receipt.get("exit_code") == 0
+             and receipt.get("schema_version") == "1.5" and receipt.get("session_id") == b["session_id"]
+             and receipt.get("trigger_mode") == "wrapper" and receipt.get("entrypoint") == ENTRYPOINT
+             and receipt.get("checksum_of_cleaned_path") == b["text_digest"]
+             and receipt.get("closeout_artifact_path") == str(root / r2.TEXT), "RECEIPT_PROOF_MISMATCH")
+    return expected
 
 
 def _finalization_record(root, request):
@@ -682,19 +702,9 @@ def _finalization_record(root, request):
     _require(len(attempts) == 1, "MISSING_RESERVED_ATTEMPT")
     attempt_path, attempt = attempts[0]
     ingestion_path = _ingestion_proof(root, request, attempt)
-    expected = {"schema_version": "1.0", "consumer_root": str(root), "session_id": b["session_id"],
-                "generation": b["generation"], "candidate_identity": b["candidate_identity"],
-                "expected_text_digest": b["text_digest"], "receipt_identity": attempt["receipt_identity"]}
     receipt_path = r2._path(root, f'artifacts/runtime/closeout-receipts/closeout_receipt_{attempt["receipt_identity"]}.json')
     receipt_bytes = receipt_path.read_bytes()
-    receipt = json.loads(receipt_bytes)
-    r2._receipt_schema(receipt)
-    _require(receipt_bytes == r2._bytes(receipt), "NONCANONICAL_RECEIPT")
-    _require(receipt.get("r2_binding") == expected and receipt.get("exit_code") == 0
-             and receipt.get("schema_version") == "1.5" and receipt.get("session_id") == b["session_id"]
-             and receipt.get("trigger_mode") == "wrapper" and receipt.get("entrypoint") == ENTRYPOINT
-             and receipt.get("checksum_of_cleaned_path") == b["text_digest"]
-             and receipt.get("closeout_artifact_path") == str(root / r2.TEXT), "RECEIPT_PROOF_MISMATCH")
+    expected = _validate_final_receipt(root, b, attempt, receipt_bytes)
     release_path = _release_path(root, b)
     release_bytes = release_path.read_bytes()
     _require(release_bytes == r2._bytes({**expected, "receipt_sha256": _sha(receipt_bytes), "state": "RELEASED"}),
@@ -756,6 +766,63 @@ def _finalize(lease, request):
             "execution_origin": ORIGIN, "fixture_only": request["schema_version"] == "1.0"}
 
 
+def _validate_recovery_owner(lease, request, owner):
+    """Read-only proof chain shared by status and recovery; never binds attempts."""
+    root, b = r2._lease(lease), request["binding"]
+    if owner["state"] == "RELEASED":
+        r2._verify_release(lease, owner)
+        final = _finalization_record(root, request)
+        _require(owner["receipt_identity"] == final["receipt_identity"]
+                 and owner["receipt_sha256"] == final["receipt_sha256"], "OWNER_FINALIZATION_MISMATCH")
+        return {"status": "RECOVERABLE", "recovery_kind": "finalization"}
+    if owner["state"] != "HOLD":
+        return {"status": "UNKNOWN", "reason": "NO_RECOVERY_PENDING"}
+    if owner["hold_reason"] not in {"closeout_pending", "failed"}:
+        return {"status": "UNKNOWN", "reason": "PREPARATION_HOLD"}
+    linked = [(p, a) for p, a in _attempts(root, request) if a["receipt_identity"] is not None]
+    receipt_path = r2._path(root, r2._receipt_relative(owner))
+    if not linked:
+        _require(not receipt_path.exists(), "MISSING_RESERVED_ATTEMPT")
+        return {"status": "EARLY_HOLD_UNKNOWN", "reason": "NO_BOUND_ATTEMPT"}
+    _require(len(linked) == 1 and linked[0][1]["receipt_identity"] == owner["receipt_identity"],
+             "RECEIPT_RESERVATION_CONFLICT")
+    attempt = linked[0][1]
+    material = _receipt_material_path(root, request, attempt)
+    if not receipt_path.exists() and not material.exists():
+        return {"status": "EARLY_HOLD_UNKNOWN", "reason": "NO_RECEIPT_OR_CHECKPOINT"}
+    _ingestion_proof(root, request, attempt)
+    if material.exists():
+        receipt = _validate_receipt_material(lease, request, attempt, receipt_path)
+        receipt_bytes = r2._bytes(receipt)
+    else:
+        receipt_bytes = receipt_path.read_bytes()
+    expected = _validate_final_receipt(root, b, attempt, receipt_bytes)
+    sha = _sha(receipt_bytes)
+    _require(owner["receipt_sha256"] in (None, sha), "RELEASE_PROOF_INVALID")
+    _require(r2._completion(root, b["session_id"]), "RELEASE_PROOF_INVALID")
+    if receipt_path.exists():
+        r2._receipt_proof(lease, owner)
+    else:
+        # Existing R2 publisher cannot publish into a failed HOLD.
+        _require(owner["hold_reason"] == "closeout_pending", "RELEASE_PROOF_INVALID")
+    release = _release_path(root, b)
+    if release.exists():
+        _require(release.read_bytes() == r2._bytes({**expected, "receipt_sha256": sha, "state": "RELEASED"}),
+                 "RELEASE_PROOF_MISMATCH")
+    return {"status": "RECOVERABLE", "recovery_kind": "release" if receipt_path.exists() else "tail_receipt"}
+
+
+def validate_recovery_readiness(lease, request, provider):
+    """Inspect existing proofs only. PASS is not execution authorization."""
+    root = r2._lease(lease)
+    b = _validate_request(request, root)
+    if _finalized_path(root, b).exists():
+        validate_finalization(lease, b["session_id"])
+        return {"status": "FINALIZED"}
+    owner, _ = _live(lease, request, provider)
+    return _validate_recovery_owner(lease, request, owner)
+
+
 def _verify_ingestion(root, sid, transcript):
     """Verify actual persisted ingestor rows, not the fail-silent bridge return."""
     db = r2._path(root, "artifacts/codeburn_closeout_ingest.db")
@@ -782,6 +849,7 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
             return _finalize(lease, request)
         owner, transcript = _live(lease, request, provider)
         if owner["state"] == "RELEASED":
+            _validate_recovery_owner(lease, request, owner)
             return _finalize(lease, request)
         attempts = _attempts(root, request)
         reserved = [(p, a) for p, a in attempts if a["receipt_identity"] is not None]
@@ -798,6 +866,8 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
             linked = [(p, a) for p, a in _attempts(root, request) if a["receipt_identity"] is not None]
             _require(len(linked) == 1, "MISSING_RESERVED_ATTEMPT")
             _ingestion_proof(root, request, linked[0][1])
+            readiness = _validate_recovery_owner(lease, request, owner)
+            _require(readiness["status"] == "RECOVERABLE", "FAILED_HOLD: no receipt; core replay forbidden")
             receipt = r2._path(root, r2._receipt_relative(owner))
             material_path = _receipt_material_path(root, request, linked[0][1])
             if not receipt.is_file() or material_path.exists():
