@@ -545,3 +545,29 @@ def test_stdlib_receipt_validation_matches_schema_matrix(repo, monkeypatch, caps
     monkeypatch.setattr(own, '_json', lambda path: schema)
     with pytest.raises(own.OwnershipError, match='unsupported receipt schema keyword'):
         own._receipt_schema(receipt)
+
+
+@pytest.mark.parametrize('content', [b'{}', b'broken json', b'{"request_id":"conflicting"}'])
+@pytest.mark.parametrize('operation', ['acquire', 'confirm'])
+def test_request_final_slot_freezes_all_preparation(repo, content, operation):
+    start_session(repo)
+    ci, data, text = inputs(repo)
+    with own.execution_exclusion(repo) as lease:
+        reserved = own.acquire_owner(lease, 'session-A', ci, sha(text))
+        path = repo / ci['relative_path']
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        (repo / own.TEXT).write_bytes(text)
+        before = (repo / own.AREA / 'owner.json').read_bytes()
+        slot = own._closeout_request_slot(repo, 'session-A')
+        slot.parent.mkdir(parents=True)
+        slot.write_bytes(content)
+        with pytest.raises(own.OwnershipError, match='CLOSEOUT_REQUESTED'):
+            if operation == 'confirm':
+                own.confirm_prepared(lease, 'session-A', reserved['generation'])
+            else:
+                ci2, _, _ = inputs(repo, version=2)
+                own.acquire_owner(lease, 'session-A', ci2, sha(text))
+        assert (repo / own.AREA / 'owner.json').read_bytes() == before
+        assert (repo / own.TEXT).read_bytes() == text
+        assert path.read_bytes() == data

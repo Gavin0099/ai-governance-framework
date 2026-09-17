@@ -735,3 +735,51 @@ def test_human_output_and_receipt_session_id_match(tmp_path: Path) -> None:
     assert payload["session_id"] == session_id
     # explicit equality proof: both ends of the authority chain carry the same id
     assert payload["session_id"] == result["session_id"]
+
+
+def test_protected_seam_uses_caller_lease_and_deferred_receipt(tmp_path, monkeypatch):
+    import pytest
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import shared_closeout_ownership as own
+    _prepared_main_fixture(tmp_path, 'seam-session')
+    observed = []
+    real_run = entry.run
+    def run(*args, **kwargs):
+        with pytest.raises(own.OwnershipError, match='R2_BUSY'):
+            with own.execution_exclusion(tmp_path):
+                pass
+        assert observed
+        return real_run(*args, **kwargs)
+    monkeypatch.setattr(entry, 'run', run)
+    with own.execution_exclusion(tmp_path) as lease:
+        result = entry._run_protected_closeout_with_lease(
+            lease, session_id='seam-session', agent_id='codex', trigger_mode='wrapper',
+            entrypoint='governance_tools.closeout_handoff', ledger_write_allowed=False,
+            after_begin=lambda owner: observed.append(owner['receipt_identity']))
+        assert own._lease(lease) == tmp_path.resolve()
+        assert own._owner(lease)['state'] == 'RELEASED'
+    receipt = json.loads(Path(result['closeout_receipt_artifact']).read_bytes())
+    assert receipt['trigger_mode'] == 'wrapper'
+    assert receipt['entrypoint'] == 'governance_tools.closeout_handoff'
+    assert receipt['r2_binding']['receipt_identity'] == observed[0]
+    assert receipt['linked_head_commit'] == subprocess.check_output(
+        ['git', '-C', str(tmp_path), 'rev-parse', 'HEAD'], text=True).strip()
+    assert 'execution_origin' not in receipt
+
+
+def test_after_begin_failure_keeps_reservation_and_never_runs_core(tmp_path, monkeypatch):
+    import pytest
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import shared_closeout_ownership as own
+    _prepared_main_fixture(tmp_path, 'callback-failure')
+    def fail(_):
+        raise OSError('attempt publication interrupted')
+    monkeypatch.setattr(entry, 'run', lambda *a, **k: pytest.fail('core ran'))
+    with own.execution_exclusion(tmp_path) as lease:
+        with pytest.raises(OSError, match='interrupted'):
+            entry._run_protected_closeout_with_lease(
+                lease, session_id='callback-failure', after_begin=fail)
+        owner = own._owner(lease)
+        assert owner['state'] == 'HOLD'
+        assert owner['receipt_identity']
+    assert not (tmp_path / 'artifacts/runtime/closeout-completions/callback-failure.json').exists()
