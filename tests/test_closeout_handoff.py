@@ -221,7 +221,7 @@ def test_direct_finalization_rejects_HOLD_even_with_release_record(queued, monke
     assert owner(root)['state'] == 'RELEASED'
 
 
-@pytest.mark.parametrize('phase', ['claim', 'begin', 'receipt', 'release', 'released', 'finalized'])
+@pytest.mark.parametrize('phase', ['claim', 'begin', 'tail', 'receipt', 'release', 'released', 'finalized'])
 def test_real_process_crash_recovery(queued, phase):
     import os
     import subprocess
@@ -249,6 +249,7 @@ def rp(lease,relative,value,**kw):
 def hp(lease,relative,value,**kw):
     result=hpub(lease,relative,value,**kw)
     if (phase=='claim' and '/attempts/' in relative and value.get('receipt_identity') is None
+        or phase=='tail' and '/receipt-material/' in relative
         or phase=='finalized' and relative.endswith('/finalized.json')): os._exit(86)
     return result
 r._publish=rp; h._publish=hp
@@ -731,3 +732,143 @@ print('REDIRECT_REJECTED_BEFORE_REQUEST')
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.rstrip().endswith('REDIRECT_REJECTED_BEFORE_REQUEST')
+
+
+
+def _tail_crash(queued, monkeypatch):
+    def crash(*args, **kwargs):
+        raise OSError('tail before receipt publication')
+    with monkeypatch.context() as m:
+        m.setattr(r2, 'publish_receipt', crash)
+        with pytest.raises(OSError, match='tail before receipt'):
+            consume(queued)
+    root = queued[0]
+    directory = r2._closeout_request_slot(root, 'session-A').parent
+    paths = list((directory / 'receipt-material').glob('*.json'))
+    assert len(paths) == 1
+    assert owner(root)['state'] == 'HOLD'
+    return paths[0], h._read(paths[0])
+
+
+def test_tail_checkpoint_recovery_only_publishes_exact_receipt(queued, monkeypatch):
+    from governance_tools import session_closeout_entry as entry
+    from runtime_hooks.core import session_end as core
+    root = queued[0]
+    checkpoint, material = _tail_crash(queued, monkeypatch)
+    before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    calls = []
+    def forbidden(*a, **k):
+        calls.append('forbidden')
+        pytest.fail('tail recovery replayed an effect or rebuilt receipt')
+    for module, name in [(entry, 'run'), (entry, '_build_closeout_receipt'),
+                         (entry, '_append_trigger_evidence'), (hook, '_ingest_transcript_for_closeout'),
+                         (core, 'promote_candidate'), (core, '_append_daily_memory_entry')]:
+        monkeypatch.setattr(module, name, forbidden)
+    assert consume(queued)['status'] == 'FINALIZED'
+    assert calls == []
+    assert (root / material['receipt_relative_path']).read_bytes() == r2._bytes(material['receipt'])
+    for path, data in before.items():
+        if path == root / r2.AREA / 'owner.json':
+            continue
+        assert path.read_bytes() == data, str(path)
+    assert owner(root)['state'] == 'RELEASED'
+    assert try_next(root)['generation'] == 2
+    # A duplicate must not depend on B's new text/owner, nor rebuild material.
+    monkeypatch.setattr(h, '_receipt_material_record', forbidden)
+    assert consume(queued)['status'] == 'ALREADY_FINALIZED'
+
+
+@pytest.mark.parametrize('damage', ['missing', 'partial', 'extra', 'request_sha256',
+    'attempt_sha256', 'generation', 'ingestion_sha256', 'receipt_identity',
+    'text_digest', 'receipt_sha256', 'artifact_proofs', 'daily_claim_proof'])
+def test_tail_checkpoint_damage_keeps_hold_and_blocks_B(queued, monkeypatch, damage):
+    root = queued[0]
+    path, material = _tail_crash(queued, monkeypatch)
+    if damage == 'missing':
+        path.unlink()
+    elif damage == 'partial':
+        path.write_bytes(b'{')
+    else:
+        if damage == 'generation':
+            material[damage] += 1
+        elif damage in {'artifact_proofs', 'daily_claim_proof'}:
+            material[damage] = {}
+        else:
+            material[damage] = 'conflict'
+        path.write_bytes(h.canonical_bytes(material))
+    before = (root / r2.AREA / 'owner.json').read_bytes()
+    with pytest.raises((ValueError, OSError)):
+        consume(queued)
+    assert (root / r2.AREA / 'owner.json').read_bytes() == before
+    assert not (root / r2._receipt_relative(owner(root))).exists()
+    with pytest.raises(ValueError):
+        try_next(root)
+    assert not final_path(root).exists()
+
+
+@pytest.mark.parametrize('change', ['append', 'alter', 'remove', 'duplicate'])
+def test_tail_daily_claim_is_record_scoped(queued, monkeypatch, change):
+    root = queued[0]
+    _, material = _tail_crash(queued, monkeypatch)
+    proof = material['daily_claim_proof']
+    assert proof is not None
+    path = root / proof['relative_path']
+    data = path.read_bytes()
+    if change == 'append':
+        path.write_bytes(data + b'\n- memory_type: session-derived\n  what_changed: unrelated\n')
+        assert consume(queued)['status'] == 'FINALIZED'
+    else:
+        if change == 'alter':
+            path.write_bytes(data.replace(b'  session_id:', b'  extra_field: changed\n  session_id:', 1))
+        elif change == 'remove':
+            path.write_bytes(b'# record removed\n')
+        else:
+            path.write_bytes(data + b'\n' + data)
+        with pytest.raises((ValueError, OSError)):
+            consume(queued)
+        assert owner(root)['state'] == 'HOLD'
+
+
+def test_tail_checkpoint_publication_failure_does_not_publish_receipt(queued, monkeypatch):
+    original = h._publish
+    def fail(lease, relative, value, **kw):
+        if '/receipt-material/' in relative:
+            raise OSError('checkpoint failure')
+        return original(lease, relative, value, **kw)
+    with monkeypatch.context() as m:
+        m.setattr(h, '_publish', fail)
+        with pytest.raises(OSError, match='checkpoint failure'):
+            consume(queued)
+    root = queued[0]
+    assert not (root / r2._receipt_relative(owner(root))).exists()
+    with pytest.raises(h.HandoffError, match='core replay forbidden'):
+        consume(queued)
+    assert owner(root)['state'] == 'HOLD'
+
+
+def test_tail_conflicting_existing_receipt_rejected(queued, monkeypatch):
+    root = queued[0]
+    _, material = _tail_crash(queued, monkeypatch)
+    receipt = dict(material['receipt'], timestamp='2000-01-01T00:00:00Z')
+    path = root / material['receipt_relative_path']
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(r2._bytes(receipt))
+    with pytest.raises(h.HandoffError, match='CONFLICT'):
+        consume(queued)
+    assert owner(root)['state'] == 'HOLD'
+
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_tail_existing_exact_receipt_recovery_compatibility(queued, monkeypatch, legacy):
+    root = queued[0]
+    path, material = _tail_crash(queued, monkeypatch)
+    receipt = root / material['receipt_relative_path']
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    receipt.write_bytes(r2._bytes(material['receipt']))
+    if legacy:
+        path.unlink()  # Delivered pre-checkpoint attempts have no material file.
+    from governance_tools import session_closeout_entry as entry
+    monkeypatch.setattr(entry, 'run', lambda *a, **k: pytest.fail('replay'))
+    assert consume(queued)['status'] == 'FINALIZED'
+    assert receipt.read_bytes() == r2._bytes(material['receipt'])
