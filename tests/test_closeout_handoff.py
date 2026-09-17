@@ -389,6 +389,7 @@ def handoff_framework_source(tmp_path_factory):
     with zipfile.ZipFile(archive) as z: z.extractall(source)
     for relative in ['governance_tools/closeout_handoff.py',
                      'governance_tools/shared_closeout_ownership.py',
+                     'governance_tools/native_closeout_publisher.py',
                      'governance_tools/session_closeout_entry.py']:
         shutil.copyfile(framework/relative,source/relative)
     git(source,'init','--quiet')
@@ -482,3 +483,251 @@ def test_missing_ingestion_blocks_initial_finalization_and_next_owner(queued, mo
     with pytest.raises(h.HandoffError,match='INGESTION_UNCONFIRMED'): consume(queued)
     with pytest.raises(h.HandoffError): try_next(root)
     assert not final_path(root).exists()
+
+
+# These payloads exercise the native provider contract, not native hook firing.
+from tests.test_native_closeout_publisher import ready
+
+
+def test_native_request_consumption_and_late_duplicate(ready):
+    from governance_tools import native_closeout_publisher as publisher
+    root, source, payload = ready
+    result = publisher.publish(root, payload, deadline_ms=30000)
+    request_id = result['request_id']
+    provider = h.NativeTranscriptProvider(root)
+    result = h.consume_exact_request(root, request_id, session_id='session-A', provider=provider)
+    assert result['status'] == 'FINALIZED'
+    assert result['fixture_only'] is False
+    assert result['transcript_ingestion'] == 'VERIFIED'
+    assert owner(root)['state'] == 'RELEASED'
+    try_next(root)
+    source.unlink()
+    assert publisher.publish(root, payload, deadline_ms=30000)['status'] == 'ALREADY_FINALIZED'
+    assert owner(root)['session_id'] == 'session-B'
+
+
+@pytest.mark.parametrize('change', ['version','publisher','ref_version','authority','path','extra'])
+def test_native_mixed_version_and_authority_rejected(ready, change):
+    from governance_tools import native_closeout_publisher as publisher
+    root, _, payload = ready
+    publisher.publish(root, payload, deadline_ms=30000)
+    req = h._read(r2._closeout_request_slot(root,'session-A'))
+    if change == 'version': req['schema_version']='1.0'
+    elif change == 'publisher': req['publication']['publisher_version']='core-v1-fixture'
+    elif change == 'ref_version': req['binding']['transcript']['schema_version']='1.1'
+    elif change == 'authority': req['binding']['transcript']['completeness']='qualified'
+    elif change == 'path': req['binding']['transcript']['immutable_locator']='../outside.jsonl'
+    else: req['binding']['transcript']['complete']=True
+    req['request_id']=h._sha(h.canonical_bytes(req['binding']))
+    with pytest.raises(h.HandoffError): h._validate_request(req,root)
+
+
+def test_native_ingestion_remains_required(ready, monkeypatch):
+    from governance_tools import native_closeout_publisher as publisher
+    root, _, payload = ready
+    result = publisher.publish(root,payload,deadline_ms=30000)
+    monkeypatch.setattr(hook,'_ingest_transcript_for_closeout',lambda *a,**k:None)
+    with pytest.raises(h.HandoffError,match='INGESTION_UNCONFIRMED'):
+        h.consume_exact_request(root,result['request_id'],session_id='session-A',provider=h.NativeTranscriptProvider(root))
+    assert owner(root)['state']=='HOLD'
+    assert not final_path(root).exists()
+
+
+def test_native_publisher_registered_submodule_command(tmp_path, handoff_framework_source, record_property):
+    import subprocess
+    import sys
+    import time
+    from tests.test_prepare_closeout_candidate import git, environment, SUBMODULE
+    root = tmp_path / 'publisher consumer'
+    root.mkdir()
+    git(root, 'init', '--quiet')
+    git(root, '-c', 'protocol.file.allow=always', 'submodule', 'add', '--quiet',
+        str(handoff_framework_source), SUBMODULE)
+    (root / 'governance').mkdir()
+    (root / 'AGENTS.md').write_text('# disposable\n', encoding='utf-8')
+    (root / 'evidence.txt').write_text('fixture', encoding='utf-8')
+    (root / 'governance/framework.lock.json').write_text(json.dumps({
+        'adopted_commit': git(root / SUBMODULE, 'rev-parse', 'HEAD')}), encoding='utf-8')
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'disposable registered publisher fixture')
+    setup = r'''
+import sys,json
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from governance_tools.prepare_closeout_candidate import prepare
+from runtime_hooks.adapters.codex.session_start import run
+root=Path(sys.argv[2]);sid='publisher-session'
+run(dict(hook_event_name='SessionStart',source='startup',session_id=sid,cwd=str(root)),root)
+prepare(root,Path(sys.argv[1]),sid,dict(task_intent='Publisher fixture',
+ work_summary='Inspected evidence.txt for publisher integration.',tools_used=['read'],
+ artifacts_referenced=['evidence.txt'],open_risks=[],checks_run='NONE',not_done='NONE',
+ recommended_memory_update='NO_UPDATE'))
+(root/'source.jsonl').write_text(json.dumps(dict(type='session_meta',payload=dict(id=sid,cwd=str(root))))+'\n',encoding='utf-8')
+'''
+    result = subprocess.run([sys.executable, '-B', '-c', setup, str(root / SUBMODULE), str(root)],
+                            cwd=root, env=environment(), capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = dict(hook_event_name='SessionEnd', session_id='publisher-session', cwd=str(root),
+                   transcript_path=str(root / 'source.jsonl'), reason='other')
+    command = [sys.executable, '-B', str(root / SUBMODULE / 'governance_tools/native_closeout_publisher.py'),
+               '--consumer-root', str(root), '--deadline-ms', '30000']
+    # Functional qualification only. A measured 3000ms attempt returned
+    # UNCONFIRMED; this larger explicit test budget is NOT a hook configuration
+    # or SessionEnd timeout qualification. Preserve timing as separate evidence.
+    # Real registration validation before any request/artifact write.
+    lock = root / 'governance/framework.lock.json'
+    original = lock.read_bytes()
+    lock.write_bytes(original + b' ')
+    bad = subprocess.run(command, input=json.dumps(payload), cwd=root, env=environment(),
+                         capture_output=True, text=True, timeout=15)
+    assert bad.returncode != 0
+    assert not (root / h.NATIVE_AREA).exists()
+    lock.write_bytes(original)
+    started = time.perf_counter()
+    result = subprocess.run(command, input=json.dumps(payload), cwd=root, env=environment(),
+                            capture_output=True, text=True, timeout=45)
+    wall = time.perf_counter() - started
+    record_property('publisher_process_wall_seconds', wall)
+    record_property('publisher_process_within_three_seconds', wall < 3)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)['status'] == 'REQUESTED'
+    req = h._read(r2._closeout_request_slot(root, 'publisher-session'))
+    assert req['schema_version'] == '1.1'
+    assert owner(root)['state'] == 'OWNED'
+    assert not (root / 'artifacts/runtime/closeout-completions/publisher-session.json').exists()
+    # This fixture measures startup through exit; it is not a native event.
+
+    # Real Git drift checks, in this disposable clone only. Every mutation is
+    # restored before the next qualification; no publisher/core files are edited.
+    drift = r'''
+import sys,json,subprocess
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from governance_tools import closeout_handoff as h
+from governance_tools import shared_closeout_ownership as r2
+root=Path(sys.argv[2]);fw=Path(sys.argv[1])
+def git(where,*args):
+ return subprocess.check_output(['git','-C',str(where),*args],text=True).strip()
+def rejected(lease,context):
+ try:h._check_framework_drift(lease,context)
+ except h.HandoffError: return
+ raise AssertionError('drift accepted')
+with r2.execution_exclusion(root) as lease:
+ for path in [root/'.gitmodules',root/'governance/framework.lock.json',
+              fw/'governance_tools/native_closeout_publisher.py']:
+  before=path.read_bytes()
+  with h._qualified_framework(lease) as context:
+   try:
+    path.write_bytes(before+b'\n# diagnostic drift\n')
+    rejected(lease,context)
+   finally:path.write_bytes(before)
+ with h._qualified_framework(lease) as context:
+  path=fw/'untracked_drift.py'
+  try:
+   path.write_text('diagnostic=True\n')
+   rejected(lease,context)
+  finally:path.unlink()
+ with h._qualified_framework(lease) as context:
+  try:
+   git(root,'update-index','--chmod=+x','.gitmodules')
+   rejected(lease,context)
+  finally:git(root,'update-index','--chmod=-x','.gitmodules')
+ with h._qualified_framework(lease) as context:
+  old=git(fw,'rev-parse','HEAD')
+  try:
+   git(fw,'-c','core.hooksPath=NUL','-c','user.name=Fixture','-c','user.email=fixture@example.invalid',
+       'commit','--allow-empty','-qm','disposable HEAD drift')
+   rejected(lease,context)
+  finally:git(fw,'checkout','--quiet','--detach',old)
+ with h._qualified_framework(lease) as context:h._check_framework_drift(lease,context)
+assert not h._QUALIFIED
+print('REAL_DRIFT_CASES_PASS')
+'''
+    checked = subprocess.run([sys.executable, '-B', '-c', drift, str(root / SUBMODULE), str(root)],
+                             cwd=root, env=environment(), capture_output=True, text=True, timeout=60)
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert checked.stdout.rstrip().endswith('REAL_DRIFT_CASES_PASS')
+
+
+def test_deferred_native_consumer_still_fully_qualifies(ready, monkeypatch):
+    from governance_tools import native_closeout_publisher as publisher
+    root, _, payload = ready
+    result = publisher.publish(root, payload, deadline_ms=30000)
+    calls = []
+    def reject(root):
+        calls.append(root)
+        raise h.HandoffError('DEFERRED_FULL_VALIDATION')
+    monkeypatch.setattr(h, '_framework_identity', reject)
+    with pytest.raises(h.HandoffError, match='DEFERRED_FULL_VALIDATION'):
+        h.consume_exact_request(root, result['request_id'], session_id='session-A',
+                                provider=h.NativeTranscriptProvider(root))
+    assert calls == [root]
+    assert not (r2._closeout_request_slot(root, 'session-A').parent / 'attempts').exists()
+
+
+def test_qualified_context_cannot_bypass_fixture_validation(ready):
+    root = ready[0]
+    with r2.execution_exclusion(root) as lease:
+        with h._qualified_framework(lease) as context:
+            with pytest.raises(h.HandoffError, match='INVALID_QUALIFIED_CONTEXT'):
+                h._publish_request_with_lease(lease, 'session-A', {}, h.FixtureTranscriptProvider(root),
+                                              qualified_context=context)
+
+
+
+def test_native_publication_rejects_actual_worktree_redirect(tmp_path, handoff_framework_source):
+    import subprocess
+    import sys
+    from tests.test_prepare_closeout_candidate import git, environment, SUBMODULE
+    root = tmp_path / 'redirect consumer'
+    root.mkdir()
+    git(root, 'init', '--quiet')
+    git(root, '-c', 'protocol.file.allow=always', 'submodule', 'add', '--quiet',
+        str(handoff_framework_source), SUBMODULE)
+    (root / 'governance').mkdir()
+    (root / 'AGENTS.md').write_text('# disposable\n')
+    (root / 'evidence.txt').write_text('fixture')
+    (root / 'governance/framework.lock.json').write_text(json.dumps({
+        'adopted_commit': git(root / SUBMODULE, 'rev-parse', 'HEAD')}))
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'disposable redirect regression')
+    other = tmp_path / 'same HEAD clean worktree'
+    git(root, 'clone', '--quiet', str(handoff_framework_source), str(other))
+    code = r"""
+import json,sys,subprocess
+from pathlib import Path
+fw,root,other=map(Path,sys.argv[1:]);sys.path.insert(0,str(fw))
+from governance_tools import native_closeout_publisher as p, closeout_handoff as h, shared_closeout_ownership as r2
+from governance_tools.prepare_closeout_candidate import prepare
+from runtime_hooks.adapters.codex.session_start import run
+sid='redirect-regression'
+run(dict(hook_event_name='SessionStart',source='startup',session_id=sid,cwd=str(root)),root)
+prepare(root,fw,sid,dict(task_intent='Redirect regression',work_summary='Verify actual worktree binding.',tools_used=['read'],artifacts_referenced=['evidence.txt'],open_risks=[],checks_run='NONE',not_done='NONE',recommended_memory_update='NO_UPDATE'))
+source=root/'source.jsonl'
+source.write_text(json.dumps(dict(type='session_meta',payload=dict(id=sid,cwd=str(root))))+'\n')
+original=p._capture
+calls=[]
+def redirected(*args):
+ ref=original(*args)
+ subprocess.run(['git','-C',str(fw),'config','core.worktree',str(other)],check=True)
+ path=fw/'governance_tools/native_closeout_publisher.py'
+ path.write_bytes(path.read_bytes()+b'\n# source changed after qualification\n')
+ calls.append(True)
+ return ref
+p._capture=redirected
+try:
+ p.publish(root,dict(hook_event_name='SessionEnd',session_id=sid,cwd=str(root),transcript_path=str(source),reason='other'),deadline_ms=30000)
+except h.HandoffError as exc:
+ assert str(exc)=='FRAMEWORK_WORKTREE_BINDING_DRIFT',str(exc)
+else:raise AssertionError('redirected worktree allowed request publication')
+assert calls==[True]
+assert not r2._closeout_request_slot(root,sid).exists()
+assert list((root/h.NATIVE_AREA).glob('*/refs/*.json'))
+assert not h._QUALIFIED
+print('REDIRECT_REJECTED_BEFORE_REQUEST')
+"""
+    result = subprocess.run([sys.executable, '-B', '-c', code, str(root / SUBMODULE),
+                             str(root), str(other)], cwd=root, env=environment(),
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.rstrip().endswith('REDIRECT_REJECTED_BEFORE_REQUEST')
