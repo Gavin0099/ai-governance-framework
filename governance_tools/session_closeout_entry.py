@@ -220,7 +220,7 @@ def _verify_memory_write_claim(
     return True, "daily_memory_record_identity_verified"
 
 
-def _write_closeout_receipt(
+def _build_closeout_receipt(
     project_root: Path,
     *,
     agent_id: str,
@@ -262,11 +262,8 @@ def _write_closeout_receipt(
     memory_workflow_blocker_codes: "list[str] | None" = None,
     memory_workflow_guard_summary: "dict[str, Any] | None" = None,
     r2_lease: ownership.Lease | None = None,
-) -> Path:
-    artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    receipt_path = artifact_dir / f"closeout_receipt_{ts}.json"
+) -> dict:
+    """Capture all dynamic receipt observations exactly once; do not publish."""
     closeout_path_obj = Path(closeout_artifact_path).resolve() if closeout_artifact_path else None
     linked_head = _resolve_head_commit(project_root)
     normalized_trigger = trigger_mode if trigger_mode in ALLOWED_TRIGGER_MODES else "unknown"
@@ -315,7 +312,29 @@ def _write_closeout_receipt(
     if r2_lease is not None:
         owner = ownership._matching(r2_lease, session_id)
         receipt["r2_binding"] = ownership.receipt_binding(owner)
-        return ownership.publish_receipt(r2_lease, receipt)
+    return receipt
+
+
+def _write_closeout_receipt(project_root: Path, *, before_receipt_material=None, **kwargs) -> Path:
+    receipt = _build_closeout_receipt(project_root, **kwargs)
+    lease = kwargs.get("r2_lease")
+    if lease is not None:
+        ownership._receipt_schema(receipt)
+        exact = ownership._bytes(receipt)
+        if before_receipt_material is not None:
+            detached = json.loads(exact)
+            before_receipt_material(detached)
+            ownership._require(ownership._bytes(detached) == exact,
+                               "RELEASE_PROOF_INVALID", "receipt callback mutated material")
+        path = ownership.publish_receipt(lease, receipt)
+        ownership._require(path.read_bytes() == exact, "RELEASE_PROOF_INVALID", "receipt read-back")
+        return path
+    if before_receipt_material is not None:
+        raise ValueError("receipt-material callback requires protected lease")
+    artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    receipt_path = artifact_dir / f"closeout_receipt_{ts}.json"
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path
 
@@ -477,7 +496,7 @@ def _validate_explicit_project_root(raw: str) -> Path:
 def _run_protected_closeout_with_lease(
     lease, *, session_id, transcript_path=None, agent_id="codex",
     trigger_mode="wrapper", entrypoint="governance_tools.session_closeout_entry",
-    ledger_write_allowed=None, after_begin=None, after_run=None,
+    ledger_write_allowed=None, after_begin=None, after_run=None, before_receipt_material=None,
 ) -> dict:
     """Run under the caller's uninterrupted R2 lease; never acquire another lock.
 
@@ -606,6 +625,7 @@ def _run_protected_closeout_with_lease(
         memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
         memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
         r2_lease=lease,
+        before_receipt_material=before_receipt_material,
     )
     ownership.finalize_release(lease, receipt_path)
     result["trigger_evidence_artifact"] = str(evidence_path)

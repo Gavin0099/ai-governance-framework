@@ -783,3 +783,34 @@ def test_after_begin_failure_keeps_reservation_and_never_runs_core(tmp_path, mon
         assert owner['state'] == 'HOLD'
         assert owner['receipt_identity']
     assert not (tmp_path / 'artifacts/runtime/closeout-completions/callback-failure.json').exists()
+
+
+
+def test_protected_receipt_material_callback_exactness(tmp_path, monkeypatch):
+    import pytest
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import shared_closeout_ownership as r2
+    sid = 'tail-callback'
+    text = _prepared_main_fixture(tmp_path, sid)
+    kwargs = dict(agent_id='codex', trigger_mode='wrapper', entrypoint='test', exit_code=0,
+        closeout_artifact_path=str(text), memory_eligibility_evaluated=False,
+        memory_write_required=False, memory_write_performed=False, memory_eligibility_reason='test',
+        session_id=sid)
+    with r2.execution_exclusion(tmp_path) as lease:
+        r2.begin_closeout(lease, sid)
+        def mutate(receipt):
+            receipt['timestamp'] = 'changed'
+        with pytest.raises(ValueError, match='mutated material'):
+            entry._write_closeout_receipt(tmp_path, r2_lease=lease,
+                before_receipt_material=mutate, **kwargs)
+        captured = []
+        build = entry._build_closeout_receipt
+        count = []
+        def once(*a, **k):
+            count.append(1)
+            return build(*a, **k)
+        monkeypatch.setattr(entry, '_build_closeout_receipt', once)
+        path = entry._write_closeout_receipt(tmp_path, r2_lease=lease,
+            before_receipt_material=lambda receipt: captured.append(r2._bytes(receipt)), **kwargs)
+        assert len(count) == 1
+        assert path.read_bytes() == captured[0]

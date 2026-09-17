@@ -567,6 +567,114 @@ def _ingestion_proof(root, request, attempt):
     return path
 
 
+
+def _receipt_material_path(root, request, attempt):
+    return r2._path(root, _base(root, request["binding"]["session_id"])
+                    + "/receipt-material/" + attempt["attempt_id"] + ".json")
+
+
+def _daily_claim_proof(root, receipt):
+    """Bind the relevant record bytes, not the appendable daily file."""
+    from governance_tools.memory_record import (
+        _iter_session_derived_records, build_record_identity, MEMORY_TYPE_SESSION_DERIVED)
+    if (not receipt["memory_write_claim_verified"]
+            or receipt["daily_memory_write_status"] not in {"written", "already_present"}):
+        return None  # Preserve negative/skipped historical claims; never upgrade them.
+    path = Path(receipt["daily_memory_path"])
+    _require(path.is_absolute(), "DAILY_CLAIM_PATH")
+    try:
+        relative = path.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise HandoffError("DAILY_CLAIM_PATH") from exc
+    path = r2._path(root, relative)
+    _require(path.is_relative_to(root / "memory"), "DAILY_CLAIM_PATH")
+    # Canonical writer emits a top-level memory_type line followed by indented
+    # fields. Preserve those exact bytes, including unknown/duplicate fields.
+    blocks = []
+    current = None
+    for line in path.read_bytes().splitlines(keepends=True):
+        if line.startswith(b"- memory_type:"):
+            if current is not None:
+                blocks.append(b"".join(current))
+            current = [line]
+        elif current is not None and line.startswith(b"  "):
+            current.append(line)
+        elif current is not None:
+            blocks.append(b"".join(current))
+            current = None
+    if current is not None:
+        blocks.append(b"".join(current))
+    matches = []
+    for block in blocks:
+        records = _iter_session_derived_records(block.decode("utf-8"))
+        if (len(records) == 1 and records[0].get("memory_type") == MEMORY_TYPE_SESSION_DERIVED
+                and build_record_identity(records[0]) == receipt["daily_memory_record_identity"]):
+            matches.append(block)
+    _require(len(matches) == 1, "DAILY_CLAIM_MISSING_OR_AMBIGUOUS")
+    return {"relative_path": relative, "record_identity": receipt["daily_memory_record_identity"],
+            "record_sha256": _sha(matches[0])}
+
+
+def _receipt_material_record(lease, request, attempt, receipt):
+    """Validate and bind a fully built receipt; never rebuild its observations."""
+    root = r2._lease(lease)
+    b = request["binding"]
+    owner = r2._matching(lease, b["session_id"], b["generation"])
+    _check_owner(owner, b)
+    _require(owner["state"] == "HOLD" and owner["hold_reason"] in {"closeout_pending", "failed"},
+             "RECEIPT_MATERIAL_OWNER")
+    r2._receipt_schema(receipt)
+    _require(receipt.get("r2_binding") == r2.receipt_binding(owner)
+             and receipt["session_id"] == b["session_id"]
+             and receipt["trigger_mode"] == "wrapper" and receipt["entrypoint"] == ENTRYPOINT
+             and receipt["exit_code"] == 0
+             and receipt["checksum_of_cleaned_path"] == b["text_digest"]
+             and receipt["closeout_artifact_path"] == str(root / r2.TEXT)
+             and attempt["receipt_identity"] == owner["receipt_identity"], "RECEIPT_MATERIAL_BINDING")
+    _require(r2._completion(root, b["session_id"]), "RECEIPT_MATERIAL_COMPLETION")
+    completion = r2._path(root, "artifacts/runtime/closeout-completions/" + b["session_id"] + ".json")
+    required = json.loads(completion.read_bytes())["required_artifacts"]
+    proofs = {relative: _sha(r2._path(root, relative).read_bytes()) for relative in required}
+    proofs[completion.relative_to(root).as_posix()] = _sha(completion.read_bytes())
+    ingestion = _ingestion_proof(root, request, attempt)
+    attempt_path = r2._path(root, _base(root, b["session_id"]) + "/attempts/" + attempt["attempt_id"] + ".json")
+    exact = r2._bytes(receipt)
+    return {"schema_version": "1.0", "consumer_root": str(root), "session_id": b["session_id"],
+            "generation": b["generation"], "request_id": request["request_id"],
+            "request_sha256": _sha(canonical_bytes(request)), "attempt_id": attempt["attempt_id"],
+            "attempt_sha256": _sha(attempt_path.read_bytes()), "receipt_identity": owner["receipt_identity"],
+            "receipt_relative_path": r2._receipt_relative(owner),
+            "ingestion_relative_path": ingestion.relative_to(root).as_posix(),
+            "ingestion_sha256": _sha(ingestion.read_bytes()), "candidate_identity": b["candidate_identity"],
+            "text_digest": b["text_digest"], "receipt": receipt, "receipt_sha256": _sha(exact),
+            "artifact_proofs": proofs, "daily_claim_proof": _daily_claim_proof(root, receipt)}
+
+
+def _checkpoint_receipt_material(lease, request, receipt):
+    linked = [(p, a) for p, a in _attempts(lease.root, request) if a["receipt_identity"] is not None]
+    _require(len(linked) == 1, "MISSING_RESERVED_ATTEMPT")
+    attempt = linked[0][1]
+    material = _receipt_material_record(lease, request, attempt, receipt)
+    path = _receipt_material_path(lease.root, request, attempt)
+    _publish(lease, path.relative_to(lease.root).as_posix(), material)
+    _require(_read(path) == material, "RECEIPT_MATERIAL_READBACK")
+
+
+def _recover_receipt_material(lease, request, attempt, receipt_path):
+    path = _receipt_material_path(lease.root, request, attempt)
+    _require(path.is_file(), "FAILED_HOLD: no receipt; core replay forbidden")
+    material = _read(path)
+    _require(type(material) is dict and type(material.get("receipt")) is dict, "RECEIPT_MATERIAL_INVALID")
+    expected = _receipt_material_record(lease, request, attempt, material["receipt"])
+    _require(canonical_bytes(material) == canonical_bytes(expected), "RECEIPT_MATERIAL_MISMATCH")
+    exact = r2._bytes(material["receipt"])
+    if receipt_path.exists():
+        _require(receipt_path.read_bytes() == exact, "RECEIPT_MATERIAL_CONFLICT")
+    else:
+        r2.publish_receipt(lease, material["receipt"])
+    _require(receipt_path.read_bytes() == exact, "RECEIPT_MATERIAL_READBACK")
+
+
 def _finalization_record(root, request):
     """Rebuild deterministic finalization from immutable A proofs only."""
     b = _validate_request(request, root)
@@ -691,7 +799,9 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
             _require(len(linked) == 1, "MISSING_RESERVED_ATTEMPT")
             _ingestion_proof(root, request, linked[0][1])
             receipt = r2._path(root, r2._receipt_relative(owner))
-            _require(receipt.is_file(), "FAILED_HOLD: no receipt; core replay forbidden")
+            material_path = _receipt_material_path(root, request, linked[0][1])
+            if not receipt.is_file() or material_path.exists():
+                _recover_receipt_material(lease, request, linked[0][1], receipt)
             r2.finalize_release(lease, receipt)
             return _finalize(lease, request)
         _require(owner["state"] == "OWNED" and not reserved
@@ -709,6 +819,7 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
             lease, session_id=session_id, transcript_path=transcript, agent_id="codex",
             trigger_mode="wrapper", entrypoint=ENTRYPOINT, ledger_write_allowed=False,
             after_begin=lambda o: _bind_attempt(lease, path, attempt, o),
-            after_run=verify_before_receipt)
+            after_run=verify_before_receipt,
+            before_receipt_material=lambda receipt: _checkpoint_receipt_material(lease, request, receipt))
         final = _finalize(lease, request)
         return {**final, "transcript_ingestion": "VERIFIED", "closeout_result": result}
