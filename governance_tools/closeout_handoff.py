@@ -1,12 +1,14 @@
-"""Explicit durable handoff core, with fixture-only transcript retention.
+"""Explicit durable handoff core with versioned transcript providers.
 
-No native publisher, background transport or timeout guarantee is provided.
+No background transport or timeout guarantee is provided by this core.
 All cooperating state transitions use R2 OS exclusion. Local filesystem/Git
 identity is a correctness boundary, not protection from hostile local writers.
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from contextlib import contextmanager
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -170,6 +172,126 @@ class FixtureTranscriptProvider:
         return path
 
 
+MAX_SNAPSHOT_BYTES = 128 * 1024 * 1024
+NATIVE_AREA = "artifacts/runtime/handoff-transcripts"
+AUTHORITY = dict(source_semantics="sessionend_observed_snapshot",
+                 completeness="unqualified", decision_authority="none")
+_NATIVE_REF = _REF | {"schema_version", "size_bytes", "manifest_locator",
+                       "manifest_sha256", "ref_locator", *AUTHORITY}
+
+
+def _validate_native_ref(ref, sid):
+    _keys(ref, _NATIVE_REF)
+    _require(type(sid) is str and bool(r2._ID.fullmatch(sid)), "INVALID_SESSION")
+    _require(ref["schema_version"] == "1.0" and ref["session_id"] == sid
+             and ref["source_kind"] == "codex_sessionend_observed_snapshot"
+             and ref["retention_contract"] == "owned-sessionend-snapshot"
+             and ref["retention_version"] == "1.0" and ref["readable_after_hook"] is True,
+             "INVALID_NATIVE_REF")
+    _require(all(ref[k] == v for k, v in AUTHORITY.items()), "INVALID_SNAPSHOT_AUTHORITY")
+    _require(type(ref["size_bytes"]) is int and 0 <= ref["size_bytes"] <= MAX_SNAPSHOT_BYTES,
+             "INVALID_SNAPSHOT_SIZE")
+    _hash(ref["sha256"])
+    _hash(ref["manifest_sha256"])
+    base = f"{NATIVE_AREA}/{sid}"
+    for key, expected in {
+        "immutable_locator": f'{base}/snapshots/{ref["sha256"]}.jsonl',
+        "manifest_locator": f'{base}/manifests/{ref["manifest_sha256"]}.json',
+        "ref_locator": f'{base}/refs/{ref["manifest_sha256"]}.json',
+    }.items():
+        _relative(ref[key])
+        _require(ref[key] == expected, "TRANSCRIPT_IDENTITY_MISMATCH")
+
+
+def _read_native_metadata(path, limit=131072):
+    with path.open("rb") as stream:
+        data = stream.read(limit + 1)
+    _require(len(data) <= limit, "NATIVE_METADATA_TOO_LARGE")
+    return data
+
+
+def _validate_native_snapshot(path, sid, root, check):
+    # Supported JSONL identity only. No last-record/completeness heuristic.
+    with path.open("rb") as stream:
+        total = 0
+        first = True
+        while line := stream.readline(MAX_SNAPSHOT_BYTES + 1):
+            check()
+            total += len(line)
+            _require(total <= MAX_SNAPSHOT_BYTES, "SNAPSHOT_CAP_EXCEEDED")
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if first:
+                _require(type(record) is dict and type(record.get("payload")) is dict
+                         and record.get("type") == "session_meta"
+                         and record.get("payload", {}).get("id") == sid
+                         and record.get("payload", {}).get("cwd") == str(root), "TRANSCRIPT_SESSION_MISMATCH")
+                first = False
+        _require(not first, "EMPTY_TRANSCRIPT")
+
+
+class NativeTranscriptProvider:
+    """Owned observed bytes; neither completeness nor anti-forgery authority."""
+
+    def __init__(self, consumer_root, *, check=lambda: None):
+        self.root = Path(consumer_root).resolve()
+        self.check = check
+
+    def validate(self, root, ref):
+        self.check()
+        _require(root == self.root, "TRANSCRIPT_ROOT_MISMATCH")
+        _validate_native_ref(ref, ref["session_id"])
+        _require(_decode(_read_native_metadata(r2._path(root, ref["ref_locator"]))) == ref, "REF_BYTES_MISMATCH")
+        data = _read_native_metadata(r2._path(root, ref["manifest_locator"]))
+        _require(_sha(data) == ref["manifest_sha256"], "MANIFEST_HASH_MISMATCH")
+        m = _decode(data)
+        _keys(m, {"schema_version", "provider", "provider_version", "binding", "snapshot",
+                  "source", "native_payload", "captured_at", "platform", *AUTHORITY})
+        _require(m["schema_version"] == "1.0" and m["provider"] == "owned-sessionend-snapshot"
+                 and m["provider_version"] == "1.0"
+                 and all(m[k] == v for k, v in AUTHORITY.items()), "INVALID_MANIFEST")
+        _keys(m["binding"], _BINDING - {"transcript"})
+        # Reuse strict request binding validation even for an orphan ref.
+        bound = {**m["binding"], "transcript": ref}
+        _validate_request(dict(schema_version="1.1", binding=bound,
+                               request_id=_sha(canonical_bytes(bound)),
+                               publication=dict(first_published_at=m["captured_at"],
+                                                publisher_version="native-publisher-v1")), root)
+        _require(m["binding"]["session_id"] == ref["session_id"]
+                 and m["binding"]["consumer_root"] == str(root), "MANIFEST_BINDING_MISMATCH")
+        _require(m["snapshot"] == {k: ref[k] for k in ("immutable_locator", "sha256", "size_bytes")},
+                 "SNAPSHOT_BINDING_MISMATCH")
+        _keys(m["source"], {"path", "before", "after"})
+        _require(m["source"]["before"] == m["source"]["after"], "SNAPSHOT_UNSTABLE")
+        _keys(m["source"]["before"], {"dev", "ino", "size", "mtime_ns", "ctime_ns"})
+        _require(all(type(v) is int for v in m["source"]["before"].values())
+                 and m["source"]["before"]["size"] == ref["size_bytes"], "INVALID_SOURCE_STAT")
+        payload = m["native_payload"]
+        _require(type(payload) is dict and payload.get("hook_event_name") == "SessionEnd"
+                 and payload.get("session_id") == ref["session_id"]
+                 and payload.get("reason") == m["binding"]["native_event"]["reason"]
+                 and str(Path(payload.get("cwd", "")).resolve()) == str(root)
+                 and payload.get("transcript_path") == m["source"]["path"],
+                 "INVALID_NATIVE_PAYLOAD")
+        _require(datetime.fromisoformat(m["captured_at"]).tzinfo is not None, "INVALID_TIMESTAMP")
+        _keys(m["platform"], {"os", "python", "codex_version"})
+        for value in m["platform"].values():
+            _string(value)
+        path = r2._path(root, ref["immutable_locator"])
+        _require(path.stat().st_size == ref["size_bytes"], "TRANSCRIPT_BYTES_MISMATCH")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                self.check()
+                digest.update(chunk)
+        _require(digest.hexdigest() == ref["sha256"], "TRANSCRIPT_BYTES_MISMATCH")
+        _validate_native_snapshot(path, ref["session_id"], root, self.check)
+        self.manifest = m
+        self.check()
+        return path
+
+
 def _framework_identity(root):
     consumer, framework = validate_framework_binding(root, FRAMEWORK)
     relative = framework.relative_to(consumer).as_posix()
@@ -181,9 +303,98 @@ def _framework_identity(root):
             "lock_blob": _git(root, "rev-parse", ":governance/framework.lock.json")}
 
 
+def _framework_preflight(root):
+    """Structural rejection only; registration authority is established in-lease."""
+    _require(not any(k.upper().startswith("GIT_") for k in os.environ), "GIT_OVERRIDE")
+    framework = FRAMEWORK.resolve(strict=True)
+    _require(framework != root and framework.is_relative_to(root), "FRAMEWORK_ROOT_MISMATCH")
+    _require(r2._path(root, framework.relative_to(root).as_posix()) == framework,
+             "FRAMEWORK_ROOT_MISMATCH")
+    for rel in (".gitmodules", "governance/framework.lock.json"):
+        _require(r2._path(root, rel).is_file(), "FRAMEWORK_CONTROL_MISSING")
+    _require((framework / ".git").exists(), "FRAMEWORK_METADATA_MISSING")
+
+
+def _control_hashes(root):
+    return tuple((rel, r2._digest(r2._path(root, rel)))
+                 for rel in (".gitmodules", "governance/framework.lock.json"))
+
+
+@dataclass(frozen=True, eq=False)
+class _QualifiedFrameworkContext:
+    lease: object
+    root: Path
+    framework: Path
+    identity_bytes: bytes
+    controls: tuple
+
+
+# Transient scope membership, not a cache or a persistent authority source.
+_QUALIFIED = {}
+
+
+@contextmanager
+def _qualified_framework(lease):
+    root = r2._lease(lease)
+    _framework_preflight(root)
+    before = _control_hashes(root)
+    identity = _framework_identity(root)  # The sole full native qualification.
+    _require(_control_hashes(root) == before, "FRAMEWORK_CONTROL_DRIFT")
+    framework = r2._path(root, identity["relative_path"])
+    _require(framework == FRAMEWORK.resolve(strict=True), "FRAMEWORK_ROOT_MISMATCH")
+    context = _QualifiedFrameworkContext(lease, root, framework, canonical_bytes(identity), before)
+    _QUALIFIED[id(context)] = context
+    try:
+        yield context
+    finally:
+        _QUALIFIED.pop(id(context), None)
+
+
+def _qualified_identity(lease, context):
+    root = r2._lease(lease)
+    _require(type(context) is _QualifiedFrameworkContext
+             and _QUALIFIED.get(id(context)) is context
+             and context.lease is lease and context.root == root, "INVALID_QUALIFIED_CONTEXT")
+    return _decode(context.identity_bytes)  # Fresh value, immutable captured bytes.
+
+
+def _check_framework_drift(lease, context, check=lambda: None):
+    identity = _qualified_identity(lease, context)
+    root = r2._lease(lease)
+    check()
+    _framework_preflight(root)
+    _require(root.resolve(strict=True) == root and FRAMEWORK.resolve(strict=True) == context.framework,
+             "FRAMEWORK_ROOT_DRIFT")
+    actual_top = Path(_git(context.framework, "rev-parse", "--show-toplevel")).resolve(strict=True)
+    _require(actual_top == context.framework, "FRAMEWORK_WORKTREE_BINDING_DRIFT")
+    check()
+    relative = identity["relative_path"]
+    expected = {relative: ("160000", identity["gitlink_oid"], "0"),
+                ".gitmodules": ("100644", identity["registration_blob"], "0"),
+                "governance/framework.lock.json": ("100644", identity["lock_blob"], "0")}
+    raw = _git(root, "ls-files", "--stage", "-z", "--", *expected)
+    actual = {}
+    for entry in raw.rstrip("\0").split("\0"):
+        header, sep, path = entry.partition("\t")
+        _require(sep and path not in actual, "FRAMEWORK_INDEX_DRIFT")
+        actual[path] = tuple(header.split())
+    _require(actual == expected, "FRAMEWORK_INDEX_DRIFT")
+    check()
+    _require(_git(root, "rev-parse", "--verify", "HEAD:" + relative) == identity["gitlink_oid"],
+             "FRAMEWORK_ADOPTION_DRIFT")
+    check()
+    status = _git(context.framework, "status", "--porcelain=v2", "--branch", "--untracked-files=all")
+    lines = status.splitlines()
+    heads = [line.removeprefix("# branch.oid ") for line in lines if line.startswith("# branch.oid ")]
+    _require(heads == [identity["checkout_head"]] and all(line.startswith("# ") for line in lines),
+             "FRAMEWORK_WORKTREE_DRIFT")
+    _require(_control_hashes(root) == context.controls, "FRAMEWORK_CONTROL_DRIFT")
+    check()
+
+
 def _validate_request(request, root):
     _keys(request, {"schema_version", "request_id", "binding", "publication"})
-    _require(request["schema_version"] == "1.0", "UNKNOWN_REQUEST_VERSION")
+    _require(request["schema_version"] in ("1.0", "1.1"), "UNKNOWN_REQUEST_VERSION")
     _hash(request["request_id"])
     b = request["binding"]
     _keys(b, _BINDING)
@@ -204,9 +415,10 @@ def _validate_request(request, root):
     _keys(e, {"provider", "event", "reason"})
     _require(e["provider"] == "codex" and e["event"] == "SessionEnd", "INVALID_EVENT")
     _string(e["reason"])
-    _validate_ref(b["transcript"], sid)
+    native = request["schema_version"] == "1.1"
+    (_validate_native_ref if native else _validate_ref)(b["transcript"], sid)
     _keys(request["publication"], {"first_published_at", "publisher_version"})
-    _require(request["publication"]["publisher_version"] == "core-v1-fixture", "INVALID_PUBLISHER")
+    _require(request["publication"]["publisher_version"] == ("native-publisher-v1" if native else "core-v1-fixture"), "INVALID_PUBLISHER")
     timestamp = datetime.fromisoformat(request["publication"]["first_published_at"])
     _require(timestamp.tzinfo is not None, "INVALID_TIMESTAMP")
     _require(_sha(canonical_bytes(b)) == request["request_id"], "REQUEST_ID_MISMATCH")
@@ -222,15 +434,23 @@ def _check_owner(owner, binding):
         _require(owner[key] == binding[key], "OWNER_REQUEST_MISMATCH: " + key)
 
 
-def _live(lease, request, provider):
+def _live(lease, request, provider, *, qualified_context=None):
     root = r2._lease(lease)
     b = _validate_request(request, root)
     r2._identity(root, b["session_id"])
     envelope = r2._path(root, f'artifacts/runtime/sessions/{b["session_id"]}/session-envelope.json')
     _require(r2._digest(envelope) == b["envelope_sha256"], "ENVELOPE_DRIFT")
-    _require(_framework_identity(root) == b["framework"], "FRAMEWORK_DRIFT")
-    _require(type(provider) is FixtureTranscriptProvider, "TRANSCRIPT_RETENTION_UNQUALIFIED")
+    if qualified_context is None:
+        identity = _framework_identity(root)
+    else:
+        _require(request["schema_version"] == "1.1", "INVALID_QUALIFIED_CONTEXT")
+        identity = _qualified_identity(lease, qualified_context)
+    _require(identity == b["framework"], "FRAMEWORK_DRIFT")
+    expected_provider = NativeTranscriptProvider if request["schema_version"] == "1.1" else FixtureTranscriptProvider
+    _require(type(provider) is expected_provider, "TRANSCRIPT_RETENTION_UNQUALIFIED")
     transcript = provider.validate(root, b["transcript"])
+    if request["schema_version"] == "1.1":
+        _require(provider.manifest["binding"] == {k: v for k, v in b.items() if k != "transcript"}, "MANIFEST_BINDING_MISMATCH")
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
     r2._payloads(lease, owner)
@@ -241,33 +461,49 @@ def publish_request(consumer_root: Path, session_id: str, transcript_ref: dict,
                     provider: FixtureTranscriptProvider, *, reason="fixture-normal-quit") -> dict:
     """Explicit fixture core API. Does not consume, start a worker or touch text."""
     with r2.execution_exclusion(consumer_root) as lease:
-        root = r2._lease(lease)
-        slot = r2._closeout_request_slot(root, session_id)
-        if slot.exists():
-            existing = _read(slot)
-            b = _validate_request(existing, root)
-            _require(b["session_id"] == session_id and b["transcript"] == transcript_ref
-                     and b["native_event"]["reason"] == reason, "REQUEST_CONFLICT")
-            if _finalized_path(root, b).exists():
-                return _finalize(lease, existing)
-            _live(lease, existing, provider)
-            return {"status": "ALREADY_REQUESTED", "request_id": existing["request_id"]}
-        r2._identity(root, session_id)
-        _require(not r2._completion(root, session_id), "CONSUMED_WITHOUT_REQUEST")
-        o = r2._matching(lease, session_id)
-        _require(o["state"] == "OWNED", "PREPARED_OWNER_REQUIRED")
-        envelope = r2._path(root, f"artifacts/runtime/sessions/{session_id}/session-envelope.json")
-        b = {k: o[k] for k in ("consumer_root", "session_id", "generation", "candidate_identity", "text_digest")}
-        b.update(envelope_sha256=r2._digest(envelope), framework=_framework_identity(root),
-                 transcript=transcript_ref, native_event={"provider": "codex", "event": "SessionEnd", "reason": reason})
-        request = {"schema_version": "1.0", "request_id": _sha(canonical_bytes(b)), "binding": b,
-                   "publication": {"first_published_at": datetime.now(timezone.utc).isoformat(),
-                                   "publisher_version": "core-v1-fixture"}}
-        _live(lease, request, provider)
-        _publish(lease, slot.relative_to(root).as_posix(), request)
-        _validate_request(_read(slot), root)
-        return {"status": "REQUESTED", "request_id": request["request_id"]}
+        return _publish_request_with_lease(lease, session_id, transcript_ref, provider, reason=reason)
 
+
+def _publish_request_with_lease(lease, session_id, transcript_ref, provider, *,
+                                reason="fixture-normal-quit", check=lambda: None, qualified_context=None):
+    native = type(provider) is NativeTranscriptProvider
+    check()
+    root = r2._lease(lease)
+    if qualified_context is not None:
+        _require(native, "INVALID_QUALIFIED_CONTEXT")
+        _qualified_identity(lease, qualified_context)
+    slot = r2._closeout_request_slot(root, session_id)
+    if slot.exists():
+        existing = _read(slot)
+        b = _validate_request(existing, root)
+        _require(b["session_id"] == session_id and b["transcript"] == transcript_ref
+                 and b["native_event"]["reason"] == reason, "REQUEST_CONFLICT")
+        if _finalized_path(root, b).exists():
+            return _finalize(lease, existing)
+        _live(lease, existing, provider)
+        return {"status": "ALREADY_REQUESTED", "request_id": existing["request_id"]}
+    r2._identity(root, session_id)
+    _require(not r2._completion(root, session_id), "CONSUMED_WITHOUT_REQUEST")
+    o = r2._matching(lease, session_id)
+    _require(o["state"] == "OWNED", "PREPARED_OWNER_REQUIRED")
+    envelope = r2._path(root, f"artifacts/runtime/sessions/{session_id}/session-envelope.json")
+    b = {k: o[k] for k in ("consumer_root", "session_id", "generation", "candidate_identity", "text_digest")}
+    identity = (_framework_identity(root) if qualified_context is None
+                else _qualified_identity(lease, qualified_context))
+    b.update(envelope_sha256=r2._digest(envelope), framework=identity,
+             transcript=transcript_ref, native_event={"provider": "codex", "event": "SessionEnd", "reason": reason})
+    request = {"schema_version": "1.1" if native else "1.0", "request_id": _sha(canonical_bytes(b)), "binding": b,
+               "publication": {"first_published_at": datetime.now(timezone.utc).isoformat(),
+                               "publisher_version": "native-publisher-v1" if native else "core-v1-fixture"}}
+    _live(lease, request, provider, qualified_context=qualified_context)
+    if qualified_context is not None:
+        _check_framework_drift(lease, qualified_context, check)
+    check()
+    _publish(lease, slot.relative_to(root).as_posix(), request)
+    check()
+    _validate_request(_read(slot), root)
+    check()
+    return {"status": "REQUESTED", "request_id": request["request_id"]}
 
 def _attempts(root, request):
     b = request["binding"]
@@ -409,7 +645,7 @@ def _finalize(lease, request):
         _publish(lease, final_path.relative_to(root).as_posix(), final)
         validate_finalization(lease, b["session_id"], expected_owner=owner)
     return {"status": "ALREADY_FINALIZED" if exists else "FINALIZED", "request_id": request["request_id"],
-            "execution_origin": ORIGIN, "fixture_only": True}
+            "execution_origin": ORIGIN, "fixture_only": request["schema_version"] == "1.0"}
 
 
 def _verify_ingestion(root, sid, transcript):
