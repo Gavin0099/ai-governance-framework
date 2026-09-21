@@ -146,15 +146,45 @@ downstream consumer（例如 `session_start`、`closeout_audit`）必須知道�
 
 ### `tools_executed`：可驗工具 signal
 
-`runtime_signals["tools_executed"]` 來自 `event_log` 中帶有 `"tool"` 欄位的事件。
+目前 implementation 從 `event_log` 中帶有 `"tool"` 欄位的事件建立
+`runtime_signals["tools_executed"]`。這是資料擷取行為，不代表任意帶有
+`tool` 的事件都具備下列證據資格。
+
+#### Q1：最低 invocation evidence（owner 已採納，2026-09-21）
+
+對 PreToolUse / PostToolUse 平台事件，只有兩者的 session、actor、turn、
+tool-call identity 及 platform tool name 全部一致，才符合最低 invocation
+evidence。它只建立「該平台工具呼叫已到達 PostToolUse」這一項主張。
+
+Actor identity 必須在 Pre 與 Post 各自由明確的平台證據建立，且指向同一
+actor。身分缺失、衝突或只能推測時，一律為 `UNPROVEN`（證據不足）：
+
+- 兩邊都沒有 `agent_id` 不構成 actor 相等。
+- `agent_type` 相同不足以識別同一 actor。
+- 不得因缺少 `agent_id` 而推定為 main agent。
+
+只有 PreToolUse 表示 attempt observed，不得據此填入 `tools_executed`。
+任一配對身分缺失、衝突或無法確認，也不得據此填入；candidate 自述或
+結果 artifact 不能替代平台配對證據。`UNPROVEN` 不表示工具沒有執行。
+
+此規則只規定最低證據資格，不授權 collector 或 canonical mapping，
+也不改變可驗工具 taxonomy。既有 implementation 尚未執行這套配對驗證；
+文件採納不代表 runtime enforcement 已完成，也不追溯重寫既有紀錄。
 
 **它能證明：**
-- session 中記錄到某個 tool invocation
+- 在符合 Q1 的平台事件證據下，該 session / actor 的工具呼叫到達 PostToolUse
 
 **它不能證明：**
 - invocation 一定成功
 - 這次 invocation 與當前 candidate 一定相關
 - tool 的執行上下文一定和 `work_summary` 相符
+- subprocess 已啟動或 executable 已解析
+- exit code 為零、測試實際執行或結果有效
+
+**Q2 不在本次授權範圍：** `tool_name = Bash` 搭配命令文字 `pytest ...`，
+即使符合 Q1，也只支持 Bash 平台呼叫到達 PostToolUse，不得因此產生
+`tools_executed = ["pytest"]`。是否可映射平台工具本身，仍須符合欄位
+適用的工具類型並另行授權。命令的 syntactic target 不等於巢狀工具的執行證據。
 
 ### 可驗工具 taxonomy（凍結）
 
@@ -165,7 +195,9 @@ _VERIFIABLE_TOOLS = frozenset({"pytest", "build", "lint", "test", "make"})
 ```
 
 比對採 **case-insensitive**，但**不做 normalization**。  
-因此 `"python -m pytest"` 不會自動等同於 `"pytest"`。如果 caller 需要模糊匹配，應在將 `event_log` 傳入前先自行正規化工具名稱。
+因此 `"python -m pytest"` 不會自動等同於 `"pytest"`。名稱正規化若有需要，
+屬於 caller 的另行契約；這個責任歸屬不授權提升證據強度，也不授權
+Q2 的 `Bash` 命令內容轉換成 `pytest` 身分。
 
 **這是刻意的設計取捨：**
 - 低 recall
