@@ -675,11 +675,15 @@ def _run_semantic_validation(
         if artifact and artifact not in existing_artifacts:
             return "inconsistent"
 
-    # inconsistent: verifiable tool claimed but no runtime signal present
+    # Every verifiable claim needs a matching runtime name (case-insensitive).
+    # Command parsing and alias normalization remain the caller's responsibility.
     claimed_verifiable = {t.lower() for t in tools_used} & _VERIFIABLE_TOOLS
     if claimed_verifiable:
-        tool_signals = set(runtime_signals.get("tools_executed") or [])
-        if not tool_signals:
+        tool_signals = {
+            tool.lower() for tool in (runtime_signals.get("tools_executed") or [])
+            if isinstance(tool, str)
+        }
+        if not claimed_verifiable.issubset(tool_signals):
             return "inconsistent"
 
     return "valid"

@@ -7,6 +7,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from runtime_hooks.core._canonical_closeout import (
@@ -82,6 +84,29 @@ class TestBuildCanonicalCloseout:
     def test_verifiable_tool_with_runtime_signal_gives_valid(self):
         candidate = {**_VALID_CANDIDATE, "tools_used": ["pytest"], "artifacts_referenced": []}
         assert self._build(candidate, artifacts=[], signals={"tools_executed": ["pytest"]})["closeout_status"] == "valid"
+
+    @pytest.mark.parametrize("claimed,observed,expected", [
+        (["pytest"], [], "inconsistent"),
+        (["pytest"], ["git"], "inconsistent"),
+        (["pytest"], ["pytest"], "valid"),
+        (["pytest", "lint"], ["pytest"], "inconsistent"),
+        (["pytest", "lint"], ["pytest", "lint"], "valid"),
+        (["PyTest", "LINT"], ["PYTEST", "lint"], "valid"),
+        (["pytest", "pytest"], ["pytest", "git"], "valid"),
+        (["pytest", "git"], ["pytest"], "valid"),
+        (["git", "curl"], [], "valid"),
+        (["pytest"], ["python -m pytest"], "inconsistent"),
+        (["pytest"], ["python3 -m pytest"], "inconsistent"),
+        (["pytest"], [" pytest "], "inconsistent"),
+        (["python -m pytest"], [], "valid"),
+        (["build", "lint", "test", "make"], ["build", "lint", "test"], "inconsistent"),
+        (["build", "lint", "test", "make"], ["make", "test", "lint", "build"], "valid"),
+    ])
+    def test_all_verifiable_claims_require_matching_runtime_names(self, claimed, observed, expected):
+        # Non-taxonomy names and command aliases remain outside this check.
+        candidate = {**_VALID_CANDIDATE, "tools_used": claimed, "artifacts_referenced": []}
+        result = self._build(candidate, signals={"tools_executed": observed})
+        assert result["closeout_status"] == expected
 
     def test_valid_candidate_gives_valid(self):
         result = self._build(_VALID_CANDIDATE, artifacts=["src/x.py"])
