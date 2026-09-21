@@ -196,10 +196,29 @@ actor。身分缺失、衝突或只能推測時，一律為 `UNPROVEN`（證據�
 - subprocess 已啟動或 executable 已解析
 - exit code 為零、測試實際執行或結果有效
 
-**Q2 不在本次授權範圍：** `tool_name = Bash` 搭配命令文字 `pytest ...`，
-即使符合 Q1，也只支持 Bash 平台呼叫到達 PostToolUse，不得因此產生
-`tools_executed = ["pytest"]`。是否可映射平台工具本身，仍須符合欄位
-適用的工具類型並另行授權。命令的 syntactic target 不等於巢狀工具的執行證據。
+#### Q2：Bash → pytest 證據轉換（owner 已採納 NO，2026-09-21）
+
+即使 actor 明確、Pre/Post 符合 Q1、shell 已確認且命令符合窄 grammar，
+`tool_name = Bash` 搭配指向 pytest 的命令文字，仍只支持「Bash 平台呼叫
+到達 PostToolUse」及「command syntax 指向 pytest」。它不足以建立
+pytest 本身 `actually invoked during the session` 的主張。
+
+因此不得僅憑這組證據宣稱 `tools_used = ["pytest"]`，也不得據此產生
+`tools_executed = ["pytest"]`。把 syntactic target 當成 actual invocation
+會改變既有 trust semantics，不是單純名稱正規化。是否可映射平台工具
+本身，仍須符合欄位適用的工具類型並另行授權。
+
+本研究線到此結束：不為這條轉換開發 collector，不追求 process
+instrumentation，不放寬 canonical，也不改寫既有 finalized evidence。
+Q2 = NO 是現有證據在現行語義下不足的決策，不表示 pytest 沒有執行，
+也不是所有未來平台或其他 evidence source 都不可能建立其 invocation。
+
+Q1 的 actor 規則不變：main-agent actor identity 無法明確建立時仍為
+`UNPROVEN`；command identity 契約另外要求明確的 shell identity，不能
+將 shell 不明的命令套用窄 grammar。Memory write / snapshot / promotion 的既有
+成果與工具證據資格分開；本決策不宣告 native pytest evidence 或整體
+Memory qualification 通過。Parser、collector、canonical mapping、schema
+及 runtime 均不因本次文件決策而變更。
 
 ### 可驗工具 taxonomy（凍結）
 
