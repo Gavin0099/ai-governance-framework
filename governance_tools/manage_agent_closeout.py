@@ -466,54 +466,149 @@ class CopilotAdapter(AgentAdapter):
     def _hook_path(self, project_root: Path) -> Path:
         return project_root / self.HOOKS_DIR / self.HOOK_FILE
 
-    def _is_hook_installed(self, project_root: Path) -> bool:
-        p = self._hook_path(project_root)
-        if not p.exists():
+    @staticmethod
+    def _is_governance_hook(hook: Any) -> bool:
+        if not isinstance(hook, dict):
             return False
-        data = _read_json(p)
-        hooks = data.get("hooks", {}).get("sessionEnd", [])
-        return any("session_closeout_entry" in h.get("bash", "") for h in hooks)
+
+        def recognized(tokens: list[str]) -> bool:
+            if len(tokens) < 2 or not all(isinstance(t, str) for t in tokens):
+                return False
+            # Deliberately narrow: python/python3 (optionally a path), then
+            # optional -B, then the entrypoint. No wrapper or shell grammar.
+            interpreter = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
+            if interpreter not in ("python", "python3"):
+                return False
+            index = 2 if tokens[1] == "-B" else 1
+            return len(tokens) > index and tokens[index].replace("\\", "/").endswith(
+                "/governance_tools/session_closeout_entry.py")
+
+        args = hook.get("args", [])
+        if isinstance(hook.get("exec"), str) and isinstance(args, list):
+            if recognized([hook["exec"], *args]):
+                return True
+        for field in ("bash", "powershell", "command"):
+            command = hook.get(field)
+            if not isinstance(command, str):
+                continue
+            try:
+                tokens = shlex.split(command)
+            except ValueError:
+                continue
+            if recognized(tokens):
+                return True
+        return False
+
+    @staticmethod
+    def _hook_payload(project_root: Path, framework_root: Path) -> dict[str, Any]:
+        entry = (framework_root.resolve() / "governance_tools" /
+                 "session_closeout_entry.py").as_posix()
+        root = project_root.resolve().as_posix()
+        # Quote each shell independently. Preserve the existing failure policy.
+        bash = (f"python {shlex.quote(entry)} --project-root {shlex.quote(root)} "
+                "2>/dev/null || true")
+        quote_ps = lambda value: "'" + value.replace("'", "''") + "'"
+        powershell = (f"python {quote_ps(entry)} --project-root {quote_ps(root)} "
+                      "2>$null || true")
+        return {"type": "command", "bash": bash, "powershell": powershell,
+                "timeoutSec": 30}
+
+    def _configuration_blockers(self, project_root: Path) -> list[str]:
+        """Read only the managed file and repository hook-directory conflicts.
+
+        This is not a check of user, policy, plugin or inline settings sources.
+        """
+        managed = self._hook_path(project_root)
+        blockers = []
+        for path in sorted(managed.parent.glob("*.json")):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError, UnicodeError):
+                if path == managed:
+                    blockers.append(f"Unreadable configuration: {path}")
+                continue
+            if not isinstance(data, dict):
+                if path == managed:
+                    blockers.append(f"Invalid configuration object: {path}")
+                continue
+            if data.get("disableAllHooks") is True:
+                if path == managed:
+                    blockers.append(f"Hooks explicitly disabled: {path}")
+                continue
+            events = data.get("hooks", {})
+            if (not isinstance(events, dict)
+                    or any(not isinstance(value, list) for value in events.values())):
+                if path == managed:
+                    blockers.append(f"Invalid event-list structure: {path}")
+                continue
+            # Structurally invalid sibling files are rejected independently by
+            # the platform. Never repair or delete those files here.
+            if path == managed or type(data.get("version")) is not int or data["version"] != 1:
+                continue
+            if any(self._is_governance_hook(h) for h in events.get("sessionEnd", [])):
+                blockers.append(f"Additional governance sessionEnd hook: {path}")
+        return blockers
+
+    def _binding_state(self, project_root: Path, framework_root: Path) -> str:
+        if self._configuration_blockers(project_root):
+            return "STALE_OR_WRONG_BINDING"
+        path = self._hook_path(project_root)
+        if not path.exists():
+            return "NOT_INSTALLED"
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict) or not isinstance(data.get("hooks"), dict):
+                return "STALE_OR_WRONG_BINDING"
+            hooks = data["hooks"].get("sessionEnd", [])
+            if (type(data.get("version")) is not int or data["version"] != 1
+                    or not isinstance(hooks, list)):
+                return "STALE_OR_WRONG_BINDING"
+        except (OSError, ValueError, UnicodeError):
+            return "STALE_OR_WRONG_BINDING"
+        found = [h for h in hooks if self._is_governance_hook(h)]
+        if not found:
+            return "NOT_INSTALLED"
+        expected = self._hook_payload(project_root, framework_root)
+        if len(found) == 1 and found[0] == expected:
+            return "CORRECTLY_INSTALLED"
+        return "STALE_OR_WRONG_BINDING"
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        if self._is_hook_installed(project_root):
-            return {
-                "status": "already_installed",
-                "location": str(self._hook_path(project_root)),
-                "message": "Copilot sessionEnd hook already present.",
-            }
         hook_path = self._hook_path(project_root)
-        data = _read_json(hook_path)
-        data.setdefault("hooks", {}).setdefault("sessionEnd", [])
-        bash_cmd = _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root)
-        ps_cmd = bash_cmd.replace("2>/dev/null", "2>$null")
-        data["hooks"]["sessionEnd"].append({
-            "type": "command",
-            "bash": bash_cmd,
-            "powershell": ps_cmd,
-            "timeoutSec": 30,
-        })
+        blockers = self._configuration_blockers(project_root)
+        if blockers:
+            return {"status": "error", "location": str(hook_path),
+                    "message": "; ".join(blockers)}
+        if self._binding_state(project_root, framework_root) == "CORRECTLY_INSTALLED":
+            return {"status": "already_installed", "location": str(hook_path),
+                    "message": "Copilot sessionEnd hook already present."}
+        # Do not discard unreadable or structurally ambiguous user configuration.
+        try:
+            data = json.loads(hook_path.read_text(encoding="utf-8")) if hook_path.exists() else {}
+            if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
+                raise ValueError("expected a hook configuration object")
+            hooks = data.get("hooks", {}).get("sessionEnd", [])
+            if not isinstance(hooks, list):
+                raise ValueError("sessionEnd must be a list")
+        except (OSError, ValueError, UnicodeError) as exc:
+            return {"status": "error", "location": str(hook_path),
+                    "message": f"Cannot safely repair Copilot hook configuration: {exc}"}
+        data["version"] = 1
+        data.setdefault("hooks", {})["sessionEnd"] = [
+            h for h in hooks if not self._is_governance_hook(h)
+        ] + [self._hook_payload(project_root, framework_root)]
         _write_json(hook_path, data)
-        return {
-            "status": "installed",
-            "location": str(hook_path),
-            "message": (
-                f"Copilot sessionEnd hook written to {hook_path}. "
-                "Fires automatically when Copilot CLI / cloud agent session ends."
-            ),
-        }
+        return {"status": "installed", "location": str(hook_path),
+                "message": f"Copilot sessionEnd hook written to {hook_path}."}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        installed = self._is_hook_installed(project_root)
-        hook_path = self._hook_path(project_root)
-        return {
-            "installed": installed,
-            "manual_only": False,
-            "location": str(hook_path) if installed else None,
-            "note": (
-                f"sessionEnd hook found in {self.HOOK_FILE}" if installed
-                else f"No governance hook found in {self.HOOKS_DIR}/{self.HOOK_FILE}"
-            ),
-        }
+        state = self._binding_state(project_root, framework_root)
+        return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
+                "binding_state": state,
+                "location": str(self._hook_path(project_root)) if state != "NOT_INSTALLED" else None,
+                "note": (f"Managed binding and recognized repository sessionEnd invocation check: {state}; "
+                         "runtime and other configuration sources not verified. "
+                         + "; ".join(self._configuration_blockers(project_root)))}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
