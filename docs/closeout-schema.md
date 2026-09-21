@@ -152,6 +152,21 @@ downstream consumer（例如 `session_start`、`closeout_audit`）必須知道�
 
 #### Q1：最低 invocation evidence（owner 已採納，2026-09-21）
 
+**已觀察到的觸發問題與來源：** 2026-09-21 的 Codex
+`0.154.0-alpha.6.2` disposable probe 中，被 PreToolUse 拒絕的命令仍有
+Pre 事件但沒有 Post；main 事件缺少 `agent_id`，而 subagent 與 main
+共用 session ID；成功與非零退出命令都有 Post，且沒有獨立 exit-code 欄位。
+因此把任意 tool event 當成已執行工具，會混淆被拒絕的 attempt、actor
+歸屬與成功結果。這是已觀察到的證據授權歧義，不是已部署 collector 的事故。
+原始觀察保留於本地 `memory/evidence/native-tool-probe-20260921/report.md`、
+`event-inventory.json` 及 `events/`（本 PR 不發布這些原始 evidence）。
+可公開核對的接點是 [runtime producer](../runtime_hooks/core/session_end.py)
+對 `event_log` 的 `tool` 擷取，以及
+[canonical tests](../tests/test_canonical_closeout.py) 的名稱清單驗證；
+兩者都沒有建立事件生命週期／actor 配對資格。
+未來只有新增明確的平台 actor／lifecycle 證據及另行 owner 決策，才重審
+此最低門檻；coverage 不足本身不構成放寬理由。
+
 對 PreToolUse / PostToolUse 平台事件，只有兩者的 session、actor、turn、
 tool-call identity 及 platform tool name 全部一致，才符合最低 invocation
 evidence。它只建立「該平台工具呼叫已到達 PostToolUse」這一項主張。
