@@ -261,6 +261,7 @@ def _build_closeout_receipt(
     memory_workflow_warning_codes: "list[str] | None" = None,
     memory_workflow_blocker_codes: "list[str] | None" = None,
     memory_workflow_guard_summary: "dict[str, Any] | None" = None,
+    hook_outcome: "dict[str, Any] | None" = None,
     r2_lease: ownership.Lease | None = None,
 ) -> dict:
     """Capture all dynamic receipt observations exactly once; do not publish."""
@@ -309,6 +310,10 @@ def _build_closeout_receipt(
         **_load_runtime_binding(project_root, session_id),
         "sample_origin": _SAMPLE_ORIGIN_BY_TRIGGER.get(normalized_trigger, "unknown"),
     }
+    if hook_outcome is not None:
+        receipt["hook_outcome"] = {
+            **hook_outcome, "errors": list(hook_outcome["errors"]),
+        }
     if r2_lease is not None:
         owner = ownership._matching(r2_lease, session_id)
         receipt["r2_binding"] = ownership.receipt_binding(owner)
@@ -493,6 +498,23 @@ def _validate_explicit_project_root(raw: str) -> Path:
     return root
 
 
+def _capture_hook_outcome(result: dict[str, Any], session_id: str) -> dict[str, Any] | None:
+    """Capture the outer hook result, never infer success from derived signals.
+
+    Missing/malformed outcomes stay absent rather than changing pipeline or R2
+    behavior. The caller captures before downstream callbacks; no result is
+    recomputed during receipt publication or recovery.
+    """
+    gate = result.get("gate_policy")
+    errors = result.get("errors")
+    if (result.get("session_id") != session_id
+            or type(result.get("ok")) is not bool
+            or not isinstance(gate, dict) or type(gate.get("blocked")) is not bool
+            or not isinstance(errors, list) or any(not isinstance(e, str) for e in errors)):
+        return None
+    return {"ok": result["ok"], "gate_blocked": gate["blocked"], "errors": list(errors)}
+
+
 def _run_protected_closeout_with_lease(
     lease, *, session_id, transcript_path=None, agent_id="codex",
     trigger_mode="wrapper", entrypoint="governance_tools.session_closeout_entry",
@@ -515,6 +537,7 @@ def _run_protected_closeout_with_lease(
         hook_session_id=session_id,
         ledger_write_allowed=ledger_write_allowed,
     )
+    hook_outcome = _capture_hook_outcome(result, session_id)
     if after_run is not None:
         after_run(result)
     closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
@@ -624,6 +647,7 @@ def _run_protected_closeout_with_lease(
         memory_workflow_warning_codes=_mw.get("memory_workflow_warning_codes") or [],
         memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
         memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
+        hook_outcome=hook_outcome,
         r2_lease=lease,
         before_receipt_material=before_receipt_material,
     )

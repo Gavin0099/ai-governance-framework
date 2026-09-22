@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from tests.test_shared_closeout_ownership import prepare
 
 from governance_tools.manage_agent_closeout import CodexCLIAdapter, _manual_closeout_cmd, op_status
@@ -764,7 +766,53 @@ def test_protected_seam_uses_caller_lease_and_deferred_receipt(tmp_path, monkeyp
     assert receipt['r2_binding']['receipt_identity'] == observed[0]
     assert receipt['linked_head_commit'] == subprocess.check_output(
         ['git', '-C', str(tmp_path), 'rev-parse', 'HEAD'], text=True).strip()
+    assert receipt['hook_outcome'] == {
+        'ok': result['ok'], 'gate_blocked': result['gate_policy']['blocked'],
+        'errors': result['errors'],
+    }
     assert 'execution_origin' not in receipt
+
+
+@pytest.mark.parametrize('patch_result', [
+    {}, {'ok': True}, {'ok': 'true', 'gate_policy': {'blocked': False}, 'errors': []},
+    {'ok': True, 'gate_policy': {'blocked': 0}, 'errors': []},
+    {'ok': True, 'gate_policy': {}, 'errors': []},
+    {'ok': True, 'gate_policy': None, 'errors': []},
+    {'ok': True, 'gate_policy': {'blocked': False}, 'errors': ''},
+    {'ok': True, 'gate_policy': {'blocked': False}, 'errors': [None]},
+])
+def test_incomplete_hook_outcome_remains_absent_without_changing_release(tmp_path, monkeypatch, patch_result):
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import shared_closeout_ownership as own
+
+    sid = 'unproven-outcome'
+    artifact = _prepared_main_fixture(tmp_path, sid)
+    result = dict(patch_result, session_id=sid, canonical_closeout_artifact=str(artifact))
+    monkeypatch.setattr(entry, 'run', _consumed_result(tmp_path, result))
+    with own.execution_exclusion(tmp_path) as lease:
+        emitted = entry._run_protected_closeout_with_lease(lease, session_id=sid)
+        assert own._owner(lease)['state'] == 'RELEASED'
+    receipt = json.loads(Path(emitted['closeout_receipt_artifact']).read_bytes())
+    assert 'hook_outcome' not in receipt
+    own._receipt_schema(receipt)  # Legacy receipts still validate.
+
+
+def test_hook_outcome_is_captured_before_downstream_callback(tmp_path, monkeypatch):
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import shared_closeout_ownership as own
+
+    sid = 'captured-outcome'
+    artifact = _prepared_main_fixture(tmp_path, sid)
+    result = {'ok': False, 'gate_policy': {'blocked': False}, 'errors': ['original'],
+              'session_id': sid, 'canonical_closeout_artifact': str(artifact)}
+    monkeypatch.setattr(entry, 'run', _consumed_result(tmp_path, result))
+    def mutate(observation):
+        observation['ok'] = True
+        observation['errors'].clear()
+    with own.execution_exclusion(tmp_path) as lease:
+        emitted = entry._run_protected_closeout_with_lease(lease, session_id=sid, after_run=mutate)
+    receipt = json.loads(Path(emitted['closeout_receipt_artifact']).read_bytes())
+    assert receipt['hook_outcome'] == {'ok': False, 'gate_blocked': False, 'errors': ['original']}
 
 
 def test_after_begin_failure_keeps_reservation_and_never_runs_core(tmp_path, monkeypatch):
