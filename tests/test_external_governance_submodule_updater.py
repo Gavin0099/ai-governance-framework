@@ -491,7 +491,6 @@ def test_dry_run_uses_fresh_remote_before_stale_local_tracking(tmp_path: Path) -
 
     result = update_governance_submodule(
         repo=consumer,
-        target_ref="origin/main",
         fetch_remote="origin",
         fetch_ref="main",
         dry_run=True,
@@ -516,7 +515,6 @@ def test_dry_run_reports_local_tracking_fallback_when_remote_unavailable(tmp_pat
 
     result = update_governance_submodule(
         repo=consumer,
-        target_ref="origin/main",
         fetch_remote="origin",
         fetch_ref="main",
         dry_run=True,
@@ -580,10 +578,102 @@ def test_dry_run_explicit_target_ref_overrides_fetch_remote_tracking_ref(tmp_pat
 
     assert result.ok is True
     assert result.target_head == old_head
-    assert result.target_source == "local_tracking_ref_fallback"
+    assert result.target_source == "explicit_target_ref"
     assert result.full_update_stage_report["details"]["target_resolution"]["target_ref"] == (
         "origin/main"
     )
+
+
+@pytest.mark.parametrize("dry_run", [True, False], ids=["preview", "apply"])
+@pytest.mark.parametrize("ref_kind", ["sha", "branch", "annotated_tag"])
+def test_explicit_target_wins_over_reachable_remote_main(
+    tmp_path: Path, dry_run: bool, ref_kind: str
+) -> None:
+    consumer, framework, old_head, requested_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    if ref_kind == "branch":
+        _git(submodule, "branch", "requested-release", requested_head)
+        target_ref = "requested-release"
+    elif ref_kind == "annotated_tag":
+        _git(
+            submodule, "-c", "user.name=Test User", "-c",
+            "user.email=test@example.invalid", "tag", "-a", "requested-release",
+            requested_head, "-m", "requested release",
+        )
+        target_ref = "requested-release"
+    else:
+        target_ref = requested_head
+    (framework / "README.md").write_text("v3 must not be adopted\n", encoding="utf-8")
+    remote_head = _commit_all(framework, "advance unrequested main")
+    assert remote_head != requested_head
+    assert _git(submodule, "ls-remote", "origin", "refs/heads/main").split()[0] == remote_head
+
+    lock_path = consumer / "governance/framework.lock.json"
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text(json.dumps({"adopted_commit": old_head}) + "\n", encoding="utf-8")
+    _commit_all(consumer, "record original framework pin")
+
+    result = update_governance_submodule(
+        repo=consumer, target_ref=target_ref, dry_run=dry_run, stage=not dry_run
+    )
+
+    assert result.ok is True, result.errors
+    assert result.target_head == requested_head
+    assert result.target_source == "explicit_target_ref"
+    expected_head = old_head if dry_run else requested_head
+    assert result.after_head == expected_head
+    assert _git(submodule, "rev-parse", "HEAD") == expected_head
+    assert _git(consumer, "ls-files", "--stage", "ai-governance-framework").split()[1] == expected_head
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_commit"] == expected_head
+    assert result.committed is False
+    report = result.full_update_stage_report
+    assert report["target_fresh_upstream_verified"] is False
+    assert report["framework_pointer"] == "not_verified"
+    assert "latest-framework freshness was not verified" in report["target_claim_boundary"]
+    assert report["details"]["target_resolution"]["target_ref"] == target_ref
+    if dry_run:
+        assert _git(consumer, "status", "--short") == ""
+        assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+
+
+@pytest.mark.parametrize("dry_run", [True, False], ids=["preview", "apply"])
+@pytest.mark.parametrize("ref_kind", ["missing", "blob"])
+def test_invalid_explicit_target_never_falls_back_to_remote_main(
+    tmp_path: Path, dry_run: bool, ref_kind: str
+) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    target_ref = (
+        "missing-release" if ref_kind == "missing"
+        else _git(submodule, "rev-parse", "HEAD:README.md")
+    )
+    assert _git(submodule, "ls-remote", "origin", "refs/heads/main").split()[0] == new_head
+    original_status = _git(consumer, "status", "--short")
+    original_index = _git(consumer, "ls-files", "--stage")
+    original_files = {
+        path.relative_to(consumer).as_posix(): path.read_bytes()
+        for path in consumer.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(consumer).parts
+    }
+
+    result = update_governance_submodule(
+        repo=consumer, target_ref=target_ref, dry_run=dry_run
+    )
+
+    assert result.ok is False
+    assert result.update_mode == "failed"
+    assert result.errors
+    assert result.target_head == ""
+    assert result.after_head == old_head
+    assert _git(submodule, "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "ls-files", "--stage") == original_index
+    assert _git(consumer, "status", "--short") == original_status
+    assert {
+        path.relative_to(consumer).as_posix(): path.read_bytes()
+        for path in consumer.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(consumer).parts
+    } == original_files
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
 
 
 def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tmp_path: Path) -> None:
@@ -671,7 +761,6 @@ def test_dry_run_local_tracking_fallback_cannot_claim_already_current(
 
     result = update_governance_submodule(
         repo=consumer,
-        target_ref="origin/main",
         fetch_remote="origin",
         fetch_ref="main",
         dry_run=True,
@@ -704,7 +793,6 @@ def test_dry_run_reports_unknown_fast_forward_when_fresh_target_not_local(
 
     result = update_governance_submodule(
         repo=consumer,
-        target_ref="origin/main",
         fetch_remote="origin",
         fetch_ref="main",
         dry_run=True,
