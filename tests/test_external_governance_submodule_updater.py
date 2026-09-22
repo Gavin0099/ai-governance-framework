@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from dataclasses import asdict
 from pathlib import Path
@@ -674,6 +675,91 @@ def test_invalid_explicit_target_never_falls_back_to_remote_main(
         if path.is_file() and ".git" not in path.relative_to(consumer).parts
     } == original_files
     assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+
+
+@pytest.mark.skipif(shutil.which("pwsh") is None, reason="PowerShell 7 is required for wrapper integration")
+@pytest.mark.parametrize("apply", [False, True], ids=["preview", "apply"])
+@pytest.mark.parametrize("target_kind", ["default", "sha", "tracking_ref", "missing"])
+def test_powershell_wrapper_preserves_explicit_target_intent(
+    tmp_path: Path, apply: bool, target_kind: str,
+) -> None:
+    """Exercise the shipped PowerShell entrypoint, Python CLI and local Git unchanged."""
+    consumer, framework, old_head, target_x = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    (framework / "README.md").write_text("remote main Y\n", encoding="utf-8")
+    target_y = _commit_all(framework, "advance remote main beyond cached X")
+    assert target_y != target_x
+    assert _git(submodule, "rev-parse", "origin/main") == target_x
+    assert _git(submodule, "ls-remote", "origin", "refs/heads/main").split()[0] == target_y
+
+    lock_path = consumer / "governance/framework.lock.json"
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text(json.dumps({"adopted_commit": old_head}) + "\n", encoding="utf-8")
+    consumer_head = _commit_all(consumer, "record original framework pin")
+    before_lock = lock_path.read_bytes()
+    project_root = Path(__file__).resolve().parents[1]
+    command = [
+        shutil.which("pwsh"), "-NoProfile", "-NonInteractive", "-File",
+        str(project_root / "scripts/update-governance-submodule.ps1"),
+        "-Repo", str(consumer), "-ProjectRoot", str(project_root), "-Format", "json",
+    ]
+    explicit_ref = {
+        "sha": target_x,
+        "tracking_ref": "origin/main",
+        "missing": "refs/heads/missing-explicit-target",
+    }.get(target_kind)
+    if explicit_ref is not None:
+        command.extend(["-TargetRef", explicit_ref])
+    if apply:
+        command.append("-Apply")
+    completed = subprocess.run(
+        command, cwd=project_root, env=_git_env(), text=True,
+        encoding="utf-8", errors="replace", capture_output=True, check=False,
+        timeout=60,
+    )
+    assert completed.stdout.strip(), completed.stderr
+    result = json.loads(completed.stdout)
+
+    if target_kind == "missing":
+        assert completed.returncode == 1, completed.stderr
+        assert result["ok"] is False
+        assert result["errors"]
+        assert result["target_head"] == ""
+        assert result["after_head"] == old_head
+        assert _git(submodule, "rev-parse", "HEAD") == old_head
+        assert lock_path.read_bytes() == before_lock
+        assert _git(consumer, "status", "--porcelain") == ""
+        assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+        return
+
+    assert completed.returncode == 0, completed.stderr
+    assert result["ok"] is True, result["errors"]
+    expected_target = target_y if target_kind == "default" else target_x
+    expected_head = expected_target if apply else old_head
+    assert result["target_head"] == expected_target
+    assert result["after_head"] == expected_head
+    assert _git(submodule, "rev-parse", "HEAD") == expected_head
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_commit"] == expected_head
+    assert _git(consumer, "rev-parse", "HEAD") == consumer_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+    assert result["committed"] is False
+    expected_source = (
+        "explicit_target_ref" if explicit_ref is not None
+        else "fresh_remote_fetch_head" if apply else "fresh_remote_ls_remote"
+    )
+    assert result["target_source"] == expected_source
+    resolution = result["full_update_stage_report"]["details"]["target_resolution"]
+    assert resolution["target_fresh_upstream_verified"] is (target_kind == "default")
+    if explicit_ref is not None:
+        assert resolution["target_ref"] == explicit_ref
+    if apply:
+        receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+        assert receipt["framework_after"] == expected_target
+        assert receipt["lock_adopted_commit"] == expected_target
+        assert receipt["remote_evidence"]["target_source"] == expected_source
+    else:
+        assert _git(consumer, "status", "--porcelain") == ""
+        assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
 
 
 def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tmp_path: Path) -> None:

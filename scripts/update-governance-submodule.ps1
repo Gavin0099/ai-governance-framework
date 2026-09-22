@@ -3,7 +3,7 @@ param(
     [string]$Repo,
     [string]$ProjectRoot = ".",
     [string]$SubmodulePath = "ai-governance-framework",
-    [string]$TargetRef = "origin/main",
+    [string]$TargetRef,
     [string]$FetchRemote = "origin",
     [string]$FetchRef = "main",
     [switch]$Apply,
@@ -31,12 +31,15 @@ try {
         "-m", "governance_tools.external_governance_submodule_updater",
         "--repo", $Repo,
         "--submodule-path", $SubmodulePath,
-        "--target-ref", $TargetRef,
         "--fetch-remote", $FetchRemote,
         "--fetch-ref", $FetchRef,
         "--format", $Format
     )
 
+    # Preserve the distinction between a caller-selected ref and fetch defaults.
+    if ($PSBoundParameters.ContainsKey("TargetRef")) {
+        $args += @("--target-ref", $TargetRef)
+    }
     if ($Apply) {
         $args += "--apply"
     }
