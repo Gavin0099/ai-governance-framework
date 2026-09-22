@@ -145,3 +145,5 @@ remains outside the Gate 3 critical path and outside this slice.
 - S2 presentation committed: aligned lock is shown as pending commit; structured states unchanged; separate PR review pending. <!-- memory_record_projection:active-task-summary:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
 
 - H1 implementation committed; canonical Lenovo composed-hook compatibility verified locally; separate PR review pending, no merge authority. <!-- memory_record_projection:active-task-summary:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->
+
+- Early-HOLD disposition: P1 OPEN; v1 owner-accepted limitation. See memory/2026-09-22.md (Early-HOLD disposition record); no reset/replay, no SLA, no future implementation authority. <!-- memory_record_projection:active-task-summary:7c2b2b8e8662be2202427b566c95063a239b0163c90f5396b181e5d2a95f8220 -->
