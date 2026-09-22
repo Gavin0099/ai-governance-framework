@@ -108,6 +108,17 @@
       "type": "integer",
       "minimum": 0
     },
+    "hook_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok", "gate_blocked", "errors"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "gate_blocked": { "type": "boolean" },
+        "errors": { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "Optional captured outer run_session_end_hook outcome for this receipt's session, HEAD and artifact. Unlike exit_code (pipeline ran), this records hook success and gate state directly. Absent on legacy or incomplete results: success is unproven, never inferred. Part of the exact receipt bytes preserved by tail recovery; does not change ownership/release eligibility."
+    },
     "linked_head_commit": {
       "type": "string"
     },
