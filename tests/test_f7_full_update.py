@@ -8,6 +8,9 @@ from datetime import date as _date
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
+from governance_tools import external_governance_submodule_updater as updater_module
 from governance_tools import f7_full_update
 from governance_tools.external_governance_submodule_updater import UpdateResult
 from governance_tools.f7_full_update import (
@@ -28,6 +31,7 @@ def _git(repo: Path, *args: str) -> str:
         errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=updater_module._git_env(),
         check=False,
     )
     if completed.returncode != 0:
@@ -111,6 +115,117 @@ def _make_external_contract_repo(repo: Path) -> None:
         "rule_roots:\n  - rules\n"
         "validators:\n  - validators/checker.py\n",
     )
+
+
+def _make_f7_target_fixture(tmp_path: Path, monkeypatch) -> tuple[Path, Path, str, str, str]:
+    """Real local Git transport; only unrelated post-update reporting is stubbed."""
+    remote = tmp_path / "framework-remote"
+    _make_framework(remote)
+    _write(remote / "baselines/repo-min/AGENTS.base.md", "# Framework baseline\n")
+    _write(
+        remote / "baselines/repo-min/AGENTS.md",
+        "# Agent rules\n\n## AI Governance Update Intent Rule\n\n"
+        "Use F-7.\n\n## Repo-Specific Risk Levels\n\nN/A\n",
+    )
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "complete local fixture")
+    before_head = _git(remote, "rev-parse", "HEAD")
+    _write(remote / "README.md", "explicit target X\n")
+    _git(remote, "commit", "-am", "target X")
+    target_x = _git(remote, "rev-parse", "HEAD")
+    _write(remote / "README.md", "remote main Y\n")
+    _git(remote, "commit", "-am", "main Y")
+    target_y = _git(remote, "rev-parse", "HEAD")
+
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _git(
+        repo, "-c", "protocol.file.allow=always", "submodule", "add",
+        str(remote), "ai-governance-framework",
+    )
+    checkout = repo / "ai-governance-framework"
+    _git(checkout, "checkout", before_head)
+    _write(
+        repo / "governance/framework.lock.json",
+        json.dumps({"adopted_commit": before_head}) + "\n",
+    )
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "pin original framework")
+
+    # Target resolution, clean-state guards, Git mutation, lock and receipt
+    # persistence remain real. Hook deployment and maturity are separate scopes.
+    monkeypatch.setattr(
+        f7_full_update, "install_governance_hooks",
+        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[])),
+    )
+    for module in (f7_full_update, updater_module):
+        monkeypatch.setattr(module, "_governance_maturity_stage", lambda *_args: {})
+    return repo, checkout, before_head, target_x, target_y
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+@pytest.mark.parametrize("explicit_target", [True, False], ids=["explicit_X", "implicit_main_Y"])
+def test_f7_real_submodule_target_identity(tmp_path: Path, monkeypatch, apply, explicit_target) -> None:
+    repo, checkout, before_head, target_x, target_y = _make_f7_target_fixture(tmp_path, monkeypatch)
+    assert _git(checkout, "ls-remote", "origin", "main").split()[0] == target_y
+    expected_head = target_x if explicit_target else target_y
+    before_lock = (repo / "governance/framework.lock.json").read_bytes()
+
+    # Deliberately retain F-7's default fetch_ref="main" in both modes.
+    result = run_f7_full_update(
+        repo_root=repo, framework_root=checkout, apply=apply,
+        target_ref=target_x if explicit_target else None,
+    )
+
+    backend = result.details["submodule_backend"]
+    assert result.ok, result.errors
+    assert result.repo_role == "submodule_consumer"
+    assert backend["target_head"] == expected_head
+    assert backend["before_head"] == before_head
+    assert backend["after_head"] == (expected_head if apply else before_head)
+    assert _git(checkout, "rev-parse", "HEAD") == (expected_head if apply else before_head)
+    assert backend["target_source"] == (
+        "explicit_target_ref" if explicit_target
+        else "fresh_remote_fetch_head" if apply else "fresh_remote_ls_remote"
+    )
+    resolution = backend["full_update_stage_report"]["details"]["target_resolution"]
+    assert resolution["target_fresh_upstream_verified"] is (not explicit_target)
+    assert _git(repo, "diff", "--cached", "--name-only") == ""
+    if apply:
+        lock = json.loads((repo / "governance/framework.lock.json").read_text(encoding="utf-8"))
+        receipt = json.loads((repo / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+        assert lock["adopted_commit"] == expected_head
+        assert receipt["framework_after"] == expected_head
+        assert receipt["lock_adopted_commit"] == expected_head
+        assert receipt["remote_evidence"]["target_head"] == expected_head
+        assert receipt["remote_evidence"]["target_fresh_upstream_verified"] is (not explicit_target)
+    else:
+        assert (repo / "governance/framework.lock.json").read_bytes() == before_lock
+        assert not (repo / RECEIPT_RELATIVE_PATH).exists()
+        assert _git(repo, "status", "--porcelain") == ""
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_real_submodule_invalid_explicit_target_fails_without_fallback(
+    tmp_path: Path, monkeypatch, apply,
+) -> None:
+    repo, checkout, before_head, _target_x, target_y = _make_f7_target_fixture(tmp_path, monkeypatch)
+    assert _git(checkout, "ls-remote", "origin", "main").split()[0] == target_y
+    before_lock = (repo / "governance/framework.lock.json").read_bytes()
+
+    result = run_f7_full_update(
+        repo_root=repo, framework_root=checkout, apply=apply,
+        target_ref="refs/heads/missing-explicit-target",
+    )
+
+    assert result.ok is False
+    assert result.errors
+    assert result.details["submodule_backend"]["target_head"] == ""
+    assert _git(checkout, "rev-parse", "HEAD") == before_head
+    assert (repo / "governance/framework.lock.json").read_bytes() == before_lock
+    assert not (repo / RECEIPT_RELATIVE_PATH).exists()
+    assert _git(repo, "status", "--porcelain") == ""
+    f7_full_update.install_governance_hooks.assert_not_called()
 
 
 def test_classify_repo_detects_external_contract_repo(tmp_path: Path) -> None:

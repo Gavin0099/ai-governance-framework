@@ -433,12 +433,19 @@ def _resolve_target_head(
     submodule_repo: Path,
     *,
     target_ref: str,
+    explicit_target: bool,
     fetch_remote: str,
     fetch_ref: str,
     dry_run: bool,
 ) -> tuple[str, str]:
-    if not fetch_ref:
-        return _resolve_head(submodule_repo, target_ref), "explicit_target_ref"
+    if explicit_target or not fetch_ref:
+        # An explicit ref selects the version; fetch defaults must not replace it.
+        # Resolve to a commit once, including annotated tags, before any mutation.
+        target_head = _run_git(
+            submodule_repo,
+            ["rev-parse", "--verify", "--end-of-options", f"{target_ref}^{{commit}}"],
+        ).stdout
+        return target_head, "explicit_target_ref"
 
     if dry_run:
         fetch_result = _run_git(
@@ -1596,6 +1603,7 @@ def update_governance_submodule(
     commit_message: str = "chore(governance): update ai governance submodule",
 ) -> UpdateResult:
     repo = repo.resolve()
+    explicit_target = target_ref is not None
     if target_ref is None:
         target_ref = f"{fetch_remote}/{fetch_ref}" if fetch_ref else "origin/main"
     submodule_repo = (repo / submodule_path).resolve()
@@ -1645,6 +1653,7 @@ def update_governance_submodule(
         target_head, target_source = _resolve_target_head(
             submodule_repo,
             target_ref=target_ref,
+            explicit_target=explicit_target,
             fetch_remote=fetch_remote,
             fetch_ref=fetch_ref,
             dry_run=dry_run,
