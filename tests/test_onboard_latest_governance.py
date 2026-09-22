@@ -282,7 +282,7 @@ def acceptance_repo(tmp_path: Path, monkeypatch):
     artifact.write_text("WORK_COMPLETED: Fixed the bounded parser bug.\n", encoding="utf-8")
     now = datetime.now(timezone.utc)
     receipt = {
-        "schema_version": "1.3",
+        "schema_version": "1.5",
         "timestamp": now.isoformat(),
         "agent_id": "codex",
         "session_id": "session-a",
@@ -296,6 +296,19 @@ def acceptance_repo(tmp_path: Path, monkeypatch):
         "memory_write_required": False,
         "memory_write_performed": False,
         "memory_eligibility_reason": "no durable update required",
+        "hook_outcome": {"ok": True, "gate_blocked": False, "errors": []},
+        "runtime_detection_status": "unknown", "sample_origin": "natural_task",
+        "daily_memory_write_attempted": False, "daily_memory_write_status": "skipped",
+        "daily_memory_state_status": "not_required", "daily_memory_path": "",
+        "daily_memory_record_identity": "", "daily_memory_writer": "governance_tools.memory_record",
+        "daily_memory_write_error": "",
+    }
+    receipt["r2_binding"] = {
+        "schema_version": "1.0", "consumer_root": str(repo.resolve()),
+        "session_id": receipt["session_id"], "generation": 1,
+        "candidate_identity": {"sha256": "c" * 64, "relative_path": "artifacts/runtime/closeout_candidates/session-a.json"},
+        "expected_text_digest": receipt["checksum_of_cleaned_path"],
+        "receipt_identity": "20260922T000000000000Z_r2_" + "a" * 32,
     }
     audit = {
         "timestamp": (now - timedelta(seconds=1)).isoformat(),
@@ -303,13 +316,19 @@ def acceptance_repo(tmp_path: Path, monkeypatch):
         "linked_head_commit": receipt["linked_head_commit"],
         "gate_blocked": False,
     }
-    receipt_path = receipts / "closeout_receipt_current.json"
+    receipt_path = receipts / f'closeout_receipt_{receipt["r2_binding"]["receipt_identity"]}.json'
     audit_path = repo / "artifacts/runtime/canonical-audit-log.jsonl"
+    release_path = repo / "artifacts/runtime/shared-closeout/releases/1.json"
+    release_path.parent.mkdir(parents=True)
 
     def write():
         receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
         audit_path.write_text(json.dumps(audit) + "\n", encoding="utf-8")
+        if "r2_binding" in receipt:
+            release_path.write_text(json.dumps({**receipt["r2_binding"], "state": "RELEASED",
+                "receipt_sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest()}), encoding="utf-8")
 
+    onboard._receipt_schema(receipt)
     write()
     monkeypatch.setattr(onboard, "_signal_hooks", lambda root: (True, onboard._signal("Y")))
     monkeypatch.setattr(onboard, "_run_powershell_command", lambda command, root: (0, "a" * 40, ""))
@@ -320,10 +339,33 @@ def _accept(fixture):
     return onboard._compute_acceptance(fixture[0], 7)
 
 
+@pytest.mark.parametrize("outcome", [
+    None,
+    {"ok": False, "gate_blocked": False, "errors": []},
+    {"ok": True, "gate_blocked": True, "errors": []},
+    {"ok": True, "gate_blocked": False, "errors": ["failed evidence"]},
+    {"ok": "true", "gate_blocked": False, "errors": []},
+    {"ok": True, "gate_blocked": 0, "errors": []},
+    {"ok": True, "gate_blocked": False},
+    {"ok": True, "gate_blocked": False, "errors": ""},
+    {"ok": True, "gate_blocked": False, "errors": [None]},
+])
+def test_acceptance_requires_captured_successful_hook_outcome(acceptance_repo, outcome):
+    _, receipt, _, _, _, write = acceptance_repo
+    if outcome is None:
+        receipt.pop("hook_outcome")  # A legacy receipt cannot prove hook success.
+    else:
+        receipt["hook_outcome"] = outcome
+    write()
+    assert _accept(acceptance_repo)["repo_native_verified"] is False
+
+
 @pytest.mark.parametrize("version", ["1.3", "1.5"])
 def test_acceptance_valid_receipt_and_matching_gate_observation(acceptance_repo, version):
     repo, receipt, _, _, _, write = acceptance_repo
     receipt["schema_version"] = version
+    if version == "1.3":
+        receipt.pop("r2_binding")  # Adding an outcome cannot upgrade unbound legacy evidence.
     if version == "1.5":
         receipt.update(
             runtime_detection_status="unknown", sample_origin="natural_task",
@@ -338,8 +380,44 @@ def test_acceptance_valid_receipt_and_matching_gate_observation(acceptance_repo,
     result = _accept(acceptance_repo)
     after = {str(p.relative_to(repo)): (p.read_bytes(), p.stat().st_mtime_ns)
              for p in repo.rglob("*") if p.is_file()}
-    assert result["repo_native_verified"] is True
+    assert result["repo_native_verified"] is (version == "1.5")
     assert before == after
+
+
+@pytest.mark.parametrize("damage", ["outcome_edit", "format_edit", "missing_release",
+                                    "release_hash", "release_session", "release_generation",
+                                    "foreign_root", "renamed_receipt"])
+def test_acceptance_requires_immutable_receipt_release_binding(acceptance_repo, damage):
+    repo, receipt, _, receipt_path, _, write = acceptance_repo
+    if damage == "outcome_edit":
+        receipt["hook_outcome"]["ok"] = False
+        write()  # A real failure was sealed; changing only the receipt cannot rescue it.
+        assert _accept(acceptance_repo)["repo_native_verified"] is False
+        receipt["hook_outcome"]["ok"] = True
+        receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    elif damage == "format_edit":
+        receipt_path.write_bytes(receipt_path.read_bytes() + b" ")
+    elif damage == "renamed_receipt":
+        receipt_path.rename(receipt_path.with_name("closeout_receipt_unbound.json"))
+    elif damage == "foreign_root":
+        receipt["r2_binding"]["consumer_root"] = str(repo.parent)
+        write()
+    else:
+        release_path = repo / "artifacts/runtime/shared-closeout/releases/1.json"
+        if damage == "missing_release":
+            release_path.unlink()
+        else:
+            release = json.loads(release_path.read_text(encoding="utf-8"))
+            release[{"release_hash": "receipt_sha256", "release_session": "session_id",
+                     "release_generation": "generation"}[damage]] = {
+                         "release_hash": "d" * 64, "release_session": "other",
+                         "release_generation": 2}[damage]
+            release_path.write_text(json.dumps(release), encoding="utf-8")
+    before = {str(p.relative_to(repo)): (p.read_bytes(), p.stat().st_mtime_ns)
+              for p in repo.rglob("*") if p.is_file()}
+    assert _accept(acceptance_repo)["repo_native_verified"] is False
+    assert before == {str(p.relative_to(repo)): (p.read_bytes(), p.stat().st_mtime_ns)
+                      for p in repo.rglob("*") if p.is_file()}
 
 
 @pytest.mark.parametrize("exit_code", [1, None, False, "0"])
@@ -445,9 +523,9 @@ def test_report_does_not_keep_snapshot_verified_after_current_evidence_fails(acc
     assert result["classification_after"] != "repo_native_verified"
 
 
-@pytest.mark.parametrize("exit_code,blocked,expected", [(0, False, True), (0, True, False), (1, False, False)])
+@pytest.mark.parametrize("exit_code,blocked,expected", [(0, False, False), (0, True, False), (1, False, False)])
 @pytest.mark.parametrize("entrypoint", ["governance_tools.session_closeout_entry", "governance_tools.closeout_handoff"])
-def test_acceptance_with_existing_receipt_and_audit_producers(acceptance_repo, monkeypatch, exit_code, blocked, expected, entrypoint):
+def test_standalone_receipt_and_audit_do_not_prove_release(acceptance_repo, monkeypatch, exit_code, blocked, expected, entrypoint):
     from governance_tools import session_closeout_entry as entry
     from governance_tools import session_end_hook as hook
 
@@ -468,5 +546,6 @@ def test_acceptance_with_existing_receipt_and_audit_producers(acceptance_repo, m
         closeout_artifact_path=str(repo / "artifacts/session-closeout.txt"),
         memory_eligibility_evaluated=True, memory_write_required=False,
         memory_write_performed=False, memory_eligibility_reason="no durable update required",
+        hook_outcome={"ok": True, "gate_blocked": blocked, "errors": []},
     )
     assert _accept(acceptance_repo)["repo_native_verified"] is expected

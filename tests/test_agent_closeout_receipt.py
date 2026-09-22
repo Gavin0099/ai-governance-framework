@@ -773,6 +773,59 @@ def test_protected_seam_uses_caller_lease_and_deferred_receipt(tmp_path, monkeyp
     assert 'execution_origin' not in receipt
 
 
+@pytest.mark.parametrize('entrypoint', [
+    'governance_tools.session_closeout_entry', 'governance_tools.closeout_handoff',
+])
+@pytest.mark.parametrize('ok,blocked,errors,verified', [
+    (True, False, [], True),
+    (False, False, [], False),
+    (False, True, ['gate rejected'], False),
+    (True, False, ['conflicting error'], False),
+])
+def test_protected_receipt_binds_hook_outcome_for_onboarding(
+    tmp_path, monkeypatch, entrypoint, ok, blocked, errors, verified,
+):
+    from governance_tools import onboard_latest_governance as onboard
+    from governance_tools import session_closeout_entry as entry
+    from governance_tools import session_end_hook as hook
+    from governance_tools import shared_closeout_ownership as own
+
+    sid = 'outcome-session'
+    artifact = _prepared_main_fixture(tmp_path, sid)
+    (tmp_path / 'governance/framework.lock.json').write_text('{}', encoding='utf-8')
+    hook_result = {
+        'ok': ok, 'gate_policy': {'blocked': blocked}, 'errors': errors,
+        'session_id': sid, 'canonical_closeout_artifact': str(artifact),
+        'gate_verdict': hook._compute_gate_verdict(ok, blocked, [], errors),
+    }
+    hook._append_canonical_audit_log(
+        tmp_path, session_id=sid, artifact_state='ok', canonical_path_audit={},
+        gate_blocked=blocked, policy_source='repo', policy_path='',
+        fallback_used=False, repo_policy_present=True,
+    )
+    monkeypatch.setattr(entry, 'run', _consumed_result(tmp_path, hook_result))
+    captured = []
+    with own.execution_exclusion(tmp_path) as lease:
+        result = entry._run_protected_closeout_with_lease(
+            lease, session_id=sid, entrypoint=entrypoint,
+            before_receipt_material=lambda receipt: captured.append(own._bytes(receipt)),
+        )
+        assert own._owner(lease)['state'] == 'RELEASED'
+    path = Path(result['closeout_receipt_artifact'])
+    receipt = json.loads(path.read_bytes())
+    assert path.read_bytes() == captured[0]
+    assert receipt['exit_code'] == 0  # Pipeline exit semantics stay unchanged.
+    assert receipt['hook_outcome'] == {'ok': ok, 'gate_blocked': blocked, 'errors': errors}
+    own._receipt_schema(receipt)
+    import jsonschema
+    schema = json.loads((Path(entry.__file__).parents[1] / 'schemas/closeout_receipt.schema.json').read_text(encoding='utf-8'))
+    jsonschema.validate(receipt, schema)
+    monkeypatch.setattr(onboard, '_signal_hooks', lambda root: (True, onboard._signal('Y')))
+    head = receipt['linked_head_commit']
+    monkeypatch.setattr(onboard, '_run_powershell_command', lambda *a: (0, head, ''))
+    assert onboard._compute_acceptance(tmp_path, 7)['repo_native_verified'] is verified
+
+
 @pytest.mark.parametrize('patch_result', [
     {}, {'ok': True}, {'ok': 'true', 'gate_policy': {'blocked': False}, 'errors': []},
     {'ok': True, 'gate_policy': {'blocked': 0}, 'errors': []},

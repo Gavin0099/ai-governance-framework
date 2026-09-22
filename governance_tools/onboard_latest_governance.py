@@ -18,7 +18,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from governance_tools.shared_closeout_ownership import _receipt_schema
+from governance_tools.shared_closeout_ownership import _receipt_schema, _path as _ownership_path, AREA
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -155,15 +155,17 @@ def _signal_agents(repo_path: Path) -> tuple[bool, dict[str, Any]]:
     return False, _signal("N", reason="agents_missing", remediation="add repo-specific AGENTS.md")
 
 
-def _load_latest_closeout_receipt(repo_path: Path) -> dict[str, Any] | None:
-    receipts_dir = repo_path / "artifacts" / "runtime" / "closeout-receipts"
+def _load_latest_closeout_receipt(repo_path: Path) -> tuple[Path, bytes, dict[str, Any]] | None:
+    receipts_dir = _ownership_path(repo_path.resolve(), "artifacts/runtime/closeout-receipts")
     if not receipts_dir.is_dir():
         return None
     files = sorted(receipts_dir.glob("closeout_receipt_*.json"))
     if not files:
         return None
     latest = max(files, key=lambda p: p.stat().st_mtime)
-    return _load_json(latest)
+    latest = _ownership_path(repo_path.resolve(), latest.relative_to(repo_path.resolve()).as_posix())
+    raw = latest.read_bytes()
+    return latest, raw, json.loads(raw.decode("utf-8-sig"))
 
 
 def _aware_timestamp(value: Any) -> datetime:
@@ -175,7 +177,8 @@ def _aware_timestamp(value: Any) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
-def _receipt_evidence_error(repo_path: Path, receipt: dict[str, Any], window_days: int) -> str:
+def _receipt_evidence_error(repo_path: Path, receipt: dict[str, Any], window_days: int,
+                            receipt_path: Path, receipt_bytes: bytes) -> str:
     """Check the selected receipt; never fall back to an older successful one.
 
     Reuse the existing receipt schema and fleet gate-blocked exclusion. Audit
@@ -185,6 +188,36 @@ def _receipt_evidence_error(repo_path: Path, receipt: dict[str, Any], window_day
     _receipt_schema(receipt)
     if type(receipt.get("exit_code")) is not int or receipt["exit_code"] != 0:
         return "closeout_receipt_failed"
+    # Pipeline exit 0 and an unblocked audit do not establish hook success.
+    # Older receipts remain readable, but cannot supply the missing outcome.
+    outcome = receipt.get("hook_outcome")
+    if outcome is None:
+        return "closeout_hook_outcome_unconfirmed"
+    if outcome["ok"] is not True or outcome["gate_blocked"] is not False or outcome["errors"]:
+        return "closeout_hook_failed"
+    # An outcome object alone is editable text. Require the existing immutable
+    # release to attest to these exact bytes, without touching today's owner or
+    # taking a lease. This remains historical evidence, not recovery authority.
+    binding = receipt.get("r2_binding")
+    if not isinstance(binding, dict):
+        return "closeout_release_binding_unconfirmed"
+    root = repo_path.resolve()
+    if (binding["consumer_root"] != str(root)
+            or binding["session_id"] != receipt.get("session_id")
+            or type(binding["generation"]) is not int
+            or binding["expected_text_digest"] != receipt.get("checksum_of_cleaned_path")
+            or receipt_path != _ownership_path(root,
+                f'artifacts/runtime/closeout-receipts/closeout_receipt_{binding["receipt_identity"]}.json')):
+        return "closeout_release_binding_conflict"
+    release_path = _ownership_path(root, f'{AREA}/releases/{binding["generation"]}.json')
+    if not release_path.is_file():
+        return "closeout_release_missing"
+    release = _load_json(release_path)
+    expected_release = {**binding, "state": "RELEASED",
+                        "receipt_sha256": hashlib.sha256(receipt_bytes).hexdigest()}
+    if (not isinstance(release, dict) or type(release.get("generation")) is not int
+            or release != expected_release):
+        return "closeout_release_proof_conflict"
     if receipt.get("entrypoint") not in {
         "governance_tools.session_closeout_entry", "governance_tools.closeout_handoff",
     }:
@@ -231,8 +264,10 @@ def _receipt_evidence_error(repo_path: Path, receipt: dict[str, Any], window_day
 def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, bool, bool, dict[str, dict[str, Any]]]:
     details: dict[str, dict[str, Any]] = {}
     try:
-        receipt = _load_latest_closeout_receipt(repo_path)
-        error = _receipt_evidence_error(repo_path, receipt, window_days) if receipt is not None else ""
+        selected = _load_latest_closeout_receipt(repo_path)
+        receipt = selected[2] if selected is not None else None
+        error = (_receipt_evidence_error(repo_path, receipt, window_days, selected[0], selected[1])
+                 if selected is not None else "")
     except (OSError, ValueError, TypeError):
         details["evidence"] = _signal(
             "DETECTOR_ERROR", reason="closeout_evidence_invalid_or_unreadable",
@@ -254,7 +289,7 @@ def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, b
         return False, False, False, details
 
     evidence_ok = True
-    details["evidence"] = _signal("Y", reason="closeout_receipt_and_gate_observation_valid")
+    details["evidence"] = _signal("Y", reason="closeout_receipt_hook_outcome_and_gate_observation_valid")
     linked_head = str(receipt.get("linked_head_commit", "")).strip()
     if not linked_head:
         details["evidence"] = _signal("N", reason="linked_head_missing", remediation="re-run session_closeout_entry")
