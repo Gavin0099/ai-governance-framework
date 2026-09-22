@@ -10,6 +10,7 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -17,6 +18,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from governance_tools.shared_closeout_ownership import _receipt_schema
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -164,17 +166,95 @@ def _load_latest_closeout_receipt(repo_path: Path) -> dict[str, Any] | None:
     return _load_json(latest)
 
 
+def _aware_timestamp(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("timestamp must be a string")
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("timestamp must include a timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def _receipt_evidence_error(repo_path: Path, receipt: dict[str, Any], window_days: int) -> str:
+    """Check the selected receipt; never fall back to an older successful one.
+
+    Reuse the existing receipt schema and fleet gate-blocked exclusion. Audit
+    observations support adoption reporting only: they neither recompute nor
+    override the authoritative runtime result, and alone cannot verify a repo.
+    """
+    _receipt_schema(receipt)
+    if type(receipt.get("exit_code")) is not int or receipt["exit_code"] != 0:
+        return "closeout_receipt_failed"
+    if receipt.get("entrypoint") not in {
+        "governance_tools.session_closeout_entry", "governance_tools.closeout_handoff",
+    }:
+        return "closeout_entrypoint_unconfirmed"
+    session_id = receipt.get("session_id")
+    if not isinstance(session_id, str) or not session_id.strip():
+        return "closeout_session_unconfirmed"
+    receipt_time = _aware_timestamp(receipt["timestamp"])
+    raw_path = receipt.get("closeout_artifact_path")
+    if not raw_path:
+        return "closeout_artifact_missing"
+    artifact = Path(raw_path)
+    artifact = (artifact if artifact.is_absolute() else repo_path / artifact).resolve()
+    if not artifact.is_relative_to(repo_path.resolve()) or not artifact.is_file():
+        return "closeout_artifact_unavailable"
+    if hashlib.sha256(artifact.read_bytes()).hexdigest() != receipt.get("checksum_of_cleaned_path"):
+        return "closeout_checksum_mismatch"
+
+    audit_path = repo_path / "artifacts/runtime/canonical-audit-log.jsonl"
+    if not audit_path.is_file():
+        return "closeout_gate_observation_missing"
+    matched = False
+    for line in audit_path.read_text(encoding="utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        observation = json.loads(line)
+        if not isinstance(observation, dict):
+            return "closeout_gate_observation_invalid"
+        if (observation.get("session_id") != session_id
+                or observation.get("linked_head_commit") != receipt.get("linked_head_commit")):
+            continue
+        # A foreign session's success and a later observation cannot attest to
+        # this receipt. Conflicting records for this identity stay unverified.
+        age = (receipt_time - _aware_timestamp(observation.get("timestamp"))).total_seconds()
+        if not 0 <= age <= window_days * 86400:
+            return "closeout_gate_observation_conflict"
+        if observation.get("gate_blocked") is not False:
+            return ("closeout_gate_blocked" if observation.get("gate_blocked") is True
+                    else "closeout_gate_observation_unconfirmed")
+        matched = True
+    return "" if matched else "closeout_gate_observation_missing"
+
+
 def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, bool, bool, dict[str, dict[str, Any]]]:
-    receipt = _load_latest_closeout_receipt(repo_path)
     details: dict[str, dict[str, Any]] = {}
+    try:
+        receipt = _load_latest_closeout_receipt(repo_path)
+        error = _receipt_evidence_error(repo_path, receipt, window_days) if receipt is not None else ""
+    except (OSError, ValueError, TypeError):
+        details["evidence"] = _signal(
+            "DETECTOR_ERROR", reason="closeout_evidence_invalid_or_unreadable",
+            remediation="inspect the selected receipt and its linked evidence; do not infer gate success",
+        )
+        details["head_ok"] = _signal("UNKNOWN", reason="receipt_evidence_unconfirmed")
+        details["ts_ok"] = _signal("UNKNOWN", reason="receipt_evidence_unconfirmed")
+        return False, False, False, details
     if not receipt:
         details["evidence"] = _signal("N", reason="closeout_receipt_missing", remediation="run session_closeout_entry")
         details["head_ok"] = _signal("UNKNOWN", reason="receipt_missing")
         details["ts_ok"] = _signal("UNKNOWN", reason="receipt_missing")
         return False, False, False, details
 
+    if error:
+        details["evidence"] = _signal("N", reason=error, remediation="inspect the bound closeout evidence")
+        details["head_ok"] = _signal("UNKNOWN", reason="receipt_evidence_unconfirmed")
+        details["ts_ok"] = _signal("UNKNOWN", reason="receipt_evidence_unconfirmed")
+        return False, False, False, details
+
     evidence_ok = True
-    details["evidence"] = _signal("Y", reason="closeout_receipt_present")
+    details["evidence"] = _signal("Y", reason="closeout_receipt_and_gate_observation_valid")
     linked_head = str(receipt.get("linked_head_commit", "")).strip()
     if not linked_head:
         details["evidence"] = _signal("N", reason="linked_head_missing", remediation="re-run session_closeout_entry")
@@ -210,16 +290,16 @@ def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, b
         return evidence_ok, head_ok, False, details
 
     try:
-        dt = datetime.fromisoformat(ts_text.replace("Z", "+00:00"))
+        dt = _aware_timestamp(ts_text)
     except ValueError:
         details["ts_ok"] = _signal("DETECTOR_ERROR", reason="timestamp_parse_error", remediation="fix receipt timestamp format")
         return evidence_ok, head_ok, False, details
     age_days = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds() / 86400.0
-    ts_ok = age_days <= float(window_days)
+    ts_ok = 0 <= age_days <= float(window_days)
     if ts_ok:
         details["ts_ok"] = _signal("Y", reason="timestamp_in_window")
     else:
-        details["ts_ok"] = _signal("N", reason="timestamp_stale", remediation="refresh closeout receipt")
+        details["ts_ok"] = _signal("N", reason="timestamp_outside_window", remediation="inspect closeout receipt timestamp")
     return evidence_ok, head_ok, ts_ok, details
 
 
@@ -537,6 +617,10 @@ def run(argv: list[str]) -> int:
     acceptance_after = _compute_acceptance(repo_path, window_days)
     if acceptance_after["repo_native_verified"] and classification_after != "repo_native_verified":
         classification_after = "repo_native_verified"
+    elif not acceptance_after["repo_native_verified"] and classification_after == "repo_native_verified":
+        # A historical matrix classification cannot rescue current failed or
+        # unproven evidence. Preserve it separately in classification_before.
+        classification_after = "repo_native_candidate"
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
