@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
+import yaml
 
 
 WORKFLOW = Path(".github/workflows/governance.yml")
@@ -64,6 +70,46 @@ def test_governance_workflow_runs_selective_memory_blocker() -> None:
     assert "python -m governance_tools.ci_memory_workflow_check" in job_section
     assert '--base-ref "$BASE_REF"' in job_section
     assert '--head-ref "$HEAD_REF"' in job_section
+
+
+@pytest.mark.parametrize(
+    ("event_name", "before", "expected"),
+    [
+        ("workflow_dispatch", "", "HEAD~1|HEAD"),
+        ("push", "previous-sha", "previous-sha|current-sha"),
+        ("push", "0" * 40, "HEAD~1|HEAD"),
+        ("pull_request", "", "base-sha|head-sha"),
+    ],
+)
+def test_selective_memory_blocker_uses_valid_base_for_each_event(
+    event_name: str, before: str, expected: str
+) -> None:
+    steps = yaml.safe_load(_workflow_text())["jobs"]["memory-workflow-selective"]["steps"]
+    script = next(step["run"] for step in steps if step.get("name") == "Block current-diff non-canonical memory writer")
+    selection = script.split("python -m governance_tools.ci_memory_workflow_check", 1)[0]
+    for expression, value in {
+        "github.event_name": event_name,
+        "github.event.before": before,
+        "github.event.pull_request.base.sha": "base-sha",
+        "github.event.pull_request.head.sha": "head-sha",
+        "github.sha": "current-sha",
+    }.items():
+        selection = selection.replace("${{ " + expression + " }}", value)
+    assert "${{" not in selection
+    git_executable = shutil.which("git")
+    assert git_executable is not None
+    bash_executable = (
+        Path(git_executable).resolve().parent.parent / "bin" / "bash.exe"
+        if os.name == "nt"
+        else "bash"
+    )
+    completed = subprocess.run(
+        [str(bash_executable), "-c", selection + '\nprintf "%s|%s\\n" "$BASE_REF" "$HEAD_REF"'],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.stdout.strip() == expected
 
 
 def test_runtime_enforcement_fails_closed_on_inventory_enumeration_and_guard_failures() -> None:
