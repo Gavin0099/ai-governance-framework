@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-09-08
+> **最後更新**: 2026-09-23
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -91,6 +91,17 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-09-23 (bounded correctness findings delivery):
+
+- Onboarding false-positive and F-7 explicit-target corrections are merged
+  through PR #195 and PR #196. Their delivery does not qualify consumer runtime.
+- Runtime smoke cwd correction is in PR #197, not merged. Its two-file candidate
+  passed focused local validation; hosted CI is blocked by this PLAN's expired
+  freshness state and a dispatcher test that consumes the same stale PLAN.
+- Manual CI empty base-ref remains open and has not entered implementation.
+- Keep these findings as separate slices. This planning refresh does not add a
+  governance capability, authorize a consumer rollout, or claim #197 delivery.
 
 Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation active):
 
