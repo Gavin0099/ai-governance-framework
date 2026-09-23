@@ -3,12 +3,41 @@ import sys
 from datetime import date as _date
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from runtime_hooks.smoke_test import format_human_envelope
 from runtime_hooks.smoke_test import run_shared_smoke
 from runtime_hooks.smoke_test import run_smoke
 from runtime_hooks.smoke_test import write_outputs
+
+
+@pytest.mark.parametrize("harness", [None, "claude_code"])
+def test_bundled_session_start_smoke_works_outside_framework_cwd(tmp_path, monkeypatch, harness):
+    monkeypatch.chdir(tmp_path)
+    if harness is None:
+        envelope = run_shared_smoke("session_start")
+    else:
+        envelope = run_smoke(harness, "session_start")
+
+    assert envelope["result"]["ok"] is True
+    assert Path(envelope["payload_file"]).is_file()
+
+
+def test_explicit_payload_remains_relative_to_caller_cwd(tmp_path, monkeypatch):
+    (tmp_path / "custom.json").write_text("{invalid", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(json.JSONDecodeError):
+        run_shared_smoke("session_start", payload_file=Path("custom.json"))
+
+
+def test_bundled_post_task_fixture_works_outside_framework_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    envelope = run_smoke("codex", "post_task", project_root=tmp_path)
+
+    assert envelope["result"]["ok"] is True
+    assert Path(envelope["payload_file"]).is_file()
 
 
 def test_smoke_test_claude_pre_runs():
