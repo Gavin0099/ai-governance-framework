@@ -58,6 +58,17 @@ DEFAULT_SHARED_EXAMPLES = {
 }
 
 
+def _resolve_bundled_example_paths(value):
+    """Bind paths inside bundled examples to this framework checkout only."""
+    if isinstance(value, str) and value.startswith("runtime_hooks/examples/"):
+        return str(Path(__file__).resolve().parents[1] / value)
+    if isinstance(value, list):
+        return [_resolve_bundled_example_paths(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _resolve_bundled_example_paths(item) for key, item in value.items()}
+    return value
+
+
 def _environment_project_root(payload_file, project_root, plan_path, contract_file):
     """Target bundled smoke at the env contract without overriding explicit inputs."""
     if payload_file is not None or project_root is not None or contract_file is not None:
@@ -131,8 +142,13 @@ def run_smoke(
                 contract_file=Path(__file__).resolve().parents[1] / "contract.yaml",
             )
     normalize_event = NORMALIZERS[harness]
-    payload_path = payload_file or DEFAULT_EXAMPLES[(harness, event_type)]
+    payload_path = (
+        payload_file if payload_file is not None
+        else Path(__file__).resolve().parents[1] / DEFAULT_EXAMPLES[(harness, event_type)]
+    )
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    if payload_file is None:
+        payload = _resolve_bundled_example_paths(payload)
     payload = apply_runtime_path_overrides(
         payload,
         project_root=project_root,
@@ -165,8 +181,13 @@ def run_shared_smoke(
                 event_type, project_root=fixture_root,
                 contract_file=Path(__file__).resolve().parents[1] / "contract.yaml",
             )
-    payload_path = payload_file or DEFAULT_SHARED_EXAMPLES[event_type]
+    payload_path = (
+        payload_file if payload_file is not None
+        else Path(__file__).resolve().parents[1] / DEFAULT_SHARED_EXAMPLES[event_type]
+    )
     event = json.loads(payload_path.read_text(encoding="utf-8"))
+    if payload_file is None:
+        event = _resolve_bundled_example_paths(event)
     event = apply_runtime_path_overrides(
         event,
         project_root=project_root,
