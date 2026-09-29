@@ -15,7 +15,6 @@ Use this skill when one review pass is not enough confidence for the change.
    - architecture, risk, and missing evidence
 3. Consolidate overlap instead of duplicating the same finding.
 4. Preserve disagreements instead of averaging them away.
-5. Escalate to `seek-verdict` only when the dispute is real and consequential.
 
 ## Review Priorities
 
