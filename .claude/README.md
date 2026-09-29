@@ -36,6 +36,10 @@ This directory contains Claude-facing local skills for the AI Governance Framewo
   - Use when validating runtime governance entrypoints without doing a full release/reviewer flow.
   - Covers `quickstart_smoke.py`, shared runtime smoke, dispatcher replay, and shell wrapper smoke paths.
 
+- `wrap-up`
+  - Use at a defined session end to draft a candidate closeout for the current session.
+  - Writes an untrusted candidate under `artifacts/runtime/closeout_candidates/`; canonical validation happens at session end.
+
 ## Design Notes
 
 - These skills are intentionally narrow and workflow-oriented.
