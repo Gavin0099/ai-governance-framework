@@ -13,6 +13,8 @@ Use `--contract /path/to/contract.yaml` when discovery is ambiguous.
 Use this when the consuming repo cannot reach the canonical GitLab server and
 the framework and domain-contract repositories were delivered as clean local
 Git repositories. Run the command without `--apply` first.
+Set `--domain-path` to the destination for this contract in the consumer repo;
+the CLI default is specific to the USB hub contract.
 
 ```bash
 python governance_tools/offline_submodule_onboarding.py \
@@ -22,7 +24,8 @@ python governance_tools/offline_submodule_onboarding.py \
   --framework-canonical-url <canonical-framework-gitlab-url> \
   --domain-source /path/to/domain-contract \
   --domain-head <domain-contract-commit> \
-  --domain-canonical-url <canonical-domain-contract-gitlab-url>
+  --domain-canonical-url <canonical-domain-contract-gitlab-url> \
+  --domain-path .governance/domain-contracts/<contract-name>
 ```
 
 Repeat the same command with `--apply` to add and stage the submodules. The
