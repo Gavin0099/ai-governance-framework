@@ -330,6 +330,50 @@ def test_echoed_marker_without_checker_invocation_does_not_register(tmp_path):
     assert not (repo / "memory" / ".pending_memory_obligations").exists()
 
 
+@pytest.mark.parametrize("command", [
+    "Write-Output 'ready'; # & .\\verify-prereq.ps1",
+    "# & .\\verify-prereq.ps1\nWrite-Output 'ready'",
+    "Write-Output 'ready'; <# & .\\verify-prereq.ps1 #>",
+    "<# comment\n& .\\verify-prereq.ps1\n#>\nWrite-Output 'ready'",
+])
+def test_commented_checker_is_not_an_invocation(tmp_path, command):
+    repo = _repo(tmp_path)
+    actual = subprocess.run(
+        ["pwsh", "-NoProfile", "-NonInteractive", "-Command", command],
+        cwd=repo, capture_output=True, text=True, timeout=15,
+    )
+    assert actual.returncode == 0, actual.stderr
+    assert actual.stdout.strip() == "ready"
+    assert not actual.stderr
+    event = _blocked_tool_event()
+    event["tool_input"]["command"] = command
+    event["tool_response"] = actual.stdout
+    assert _invoke(repo, "post-tool-use", event) == {}
+    assert not (repo / "memory" / ".memory_obligation_observations").exists()
+    assert not (repo / "memory" / ".pending_memory_obligations").exists()
+    assert _invoke(repo, "stop", _stop_event()) == {}
+
+
+@pytest.mark.parametrize("command", [
+    "# & .\\verify-prereq.ps1\n& .\\verify-prereq.ps1",
+    "Write-Output 'literal #'; <# & .\\verify-prereq.ps1 #>\n& .\\verify-prereq.ps1",
+])
+def test_checker_after_comment_still_registers(tmp_path, command):
+    repo = _repo(tmp_path)
+    actual = subprocess.run(
+        ["pwsh", "-NoProfile", "-NonInteractive", "-Command", command],
+        cwd=repo, capture_output=True, text=True, timeout=15,
+    )
+    assert actual.returncode != 0, actual.stderr
+    assert "GOVERNANCE_EVENT_V1 " in actual.stdout
+    event = _blocked_tool_event()
+    event["tool_input"]["command"] = command
+    event["tool_response"] = actual.stdout
+    feedback = _invoke(repo, "post-tool-use", event)
+    assert "MEM-OBL-" in feedback["hookSpecificOutput"]["additionalContext"]
+    assert _invoke(repo, "stop", _stop_event())["decision"] == "block"
+
+
 def test_changed_approved_checker_fails_closed(tmp_path):
     repo = _repo(tmp_path)
     trusted_sha = hashlib.sha256((repo / "verify-prereq.ps1").read_bytes()).hexdigest()

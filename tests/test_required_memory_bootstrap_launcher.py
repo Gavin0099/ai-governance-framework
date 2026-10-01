@@ -161,7 +161,7 @@ def test_rendered_windows_hook_command_handles_spaces_and_quotes(deployment, eve
 def test_frozen_v5_stop_dispatch_allows_no_obligation(deployment):
     root, binding = deployment
     source = (ROOT / "governance_tools/required_memory_obligation.py").read_bytes()
-    assert sha(source) == "8FBB4A3DDC40A34ED5F3283C35C01BB34EB77862C3477672A4EABEC11900E6A2"
+    assert sha(source) == "CF02BD37D68C12F6C27ED8041002234083073F7C54FC0DE069BDF1E174E8DBF4"
     (root / "handler.py").write_bytes(source)
     binding["handler"]["sha256"] = sha(source)
     assert execute(binding) == {}

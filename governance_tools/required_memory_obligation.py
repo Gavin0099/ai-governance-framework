@@ -162,15 +162,44 @@ def _recognized_event(response: str, contract: dict[str, Any]) -> bool:
 
 def _shell_segments(command: str) -> list[str]:
     segments = []
-    start = 0
+    current: list[str] = []
     quote = None
-    for index, char in enumerate(command):
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if quote is None and command.startswith("<#", index):
+            # PowerShell block comments end at the first #>, including across
+            # lines. Keep a token boundary where the comment was removed.
+            end = command.find("#>", index + 2)
+            current.append(" ")
+            index = len(command) if end < 0 else end + 2
+            continue
+        if quote is None and char == "#" and (
+            not current or current[-1].isspace() or current[-1] in "(){}'\""
+        ):
+            # Do not split a commented ampersand into a checker invocation.
+            # A hash inside an unquoted path/token is literal PowerShell text.
+            end = command.find("\n", index)
+            index = len(command) if end < 0 else end
+            continue
+        if char == "`" and quote != "'" and index + 1 < len(command):
+            current.extend(command[index:index + 2])
+            index += 2
+            continue
         if char in ("'", '"'):
+            if quote == char and command[index:index + 2] == char * 2:
+                current.extend(command[index:index + 2])
+                index += 2
+                continue
             quote = None if quote == char else char if quote is None else quote
         elif char in (";", "\n", "|", "&") and quote is None:
-            segments.append(command[start:index].strip())
-            start = index + 1
-    segments.append(command[start:].strip())
+            segments.append("".join(current).strip())
+            current.clear()
+            index += 1
+            continue
+        current.append(char)
+        index += 1
+    segments.append("".join(current).strip())
     return [segment for segment in segments if segment]
 
 
