@@ -1,0 +1,12 @@
+{
+  "source": "current_human_instruction",
+  "owner_acceptance_text": "我接受 candidate SHA `61db7bbb…80df4` 對應的既有 patch 與 review，授權將 M3-b-2A 舊 claim 退為 historical，其餘範圍不變。  ]",
+  "accepted_at_local_date": "2026-10-01",
+  "recorded_at_utc": "2026-10-01T08:10:49.420681+00:00",
+  "candidate_sha256": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+  "patch_sha256": "b76293f8bb0c51e9cadeeda996b1da12a763ee1fffc6a25144681c9301e144c9",
+  "review_artifact": "review.md",
+  "interpretation": "Owner accepts this exact bounded current interpretation; not an agent-generated human approval",
+  "scope": "Only M3-b-2A legacy L61-L64 historical retirement; existing canonical checkpoint unchanged",
+  "formal_memory_diary_update": "Not authorized; this is an operational acceptance record, not a canonical daily entry"
+}

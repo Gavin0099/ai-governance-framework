@@ -1,0 +1,69 @@
+{
+  "body": "## Summary\n\nCheckpoint the bounded M3-b-2A in-process transport slice on base `dd190b914e9f791c0bb1fd77bf953e6a5bb656ec`.\n\nThis PR contains exactly:\n\n- six M3-b-2A implementation/test files: the child codec, materializer transport helpers, inert parent adapter, and their three focused test modules;\n- two `report_only` test receipts;\n- two exact-path `.gitattributes` rules preserving the receipt bytes.\n\n## Validation\n\n- Focused M3-b-2A suite: `251 passed`.\n- Bootstrap-adjacent suite: `292 passed`.\n- Canonical local precommit: shared smoke passed and `201 passed`.\n- Commit diff check passed.\n- The committed JSON and TXT receipt blobs match the primary raw source byte-for-byte:\n  - JSON: 1,060 bytes, SHA-256 `a61ae57adeda8473571b67317013edda5122444ab6db7342fa59f41028faa472`.\n  - TXT: 426 bytes, SHA-256 `a7bee1a9ebe5142a0deb7d9508f1952a3ff43244aaa663bd465a7ee842af92d4`.\n\nThe real-byte validation and exact-commit review were performed independently after the checkpoint was created.\n\n## Boundaries\n\nThe receipts do not prove authenticity or semantic correctness; they explicitly remain `report_only` artifacts.\n\nThis PR excludes PLAN, root memory, B-1/private-rendering work, historical A/B evidence, and the temporary compatibility config.\n\nIt does not start or authorize M3-b-2B, M3-b-3, Gate 1, A/B execution, or attempt-05. It does not establish Gate 3 effectiveness.",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "additions": 2,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "artifacts/evidence/test-results/m3b2a-in-process-20260820.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "artifacts/evidence/test-results/m3b2a-in-process-20260820.txt",
+      "additions": 6,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_child.py",
+      "additions": 156,
+      "deletions": 12,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_materialize.py",
+      "additions": 41,
+      "deletions": 6,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_process.py",
+      "additions": 48,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_child.py",
+      "additions": 372,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_materialize.py",
+      "additions": 101,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_process.py",
+      "additions": 222,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefOid": "62073d25c4d02c7148007f6ae06bae459246a6a3",
+  "mergeCommit": {
+    "oid": "a59b0aef93753630f9949233d03be555bad165c5"
+  },
+  "mergedAt": "2026-08-24T10:59:42Z",
+  "number": 108,
+  "reviews": [],
+  "state": "MERGED",
+  "title": "Gate 3: checkpoint M3-b-2A transport",
+  "url": "https://github.com/Gavin0099/ai-governance-framework/pull/108"
+}

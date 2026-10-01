@@ -1,0 +1,318 @@
+{
+  "status": "ISOLATED_PREFLIGHT_PASSED_UNCOMMITTED",
+  "baseline_commit": "7dd78070e6ea462fe218837832026d53b9120db8",
+  "workspace": "C:\\Users\\reiko\\.codex\\worktrees\\m3b2a-adoption-delivery\\ai-governance-framework",
+  "task_authority": "current_user_DONE",
+  "original_workspace": {
+    "head": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+    "index_sha": "a97153ba8b1bec61c7b9df2cf9b2e3e797cc16ffda685718aacb6e15fa233b53",
+    "active_sha": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4"
+  },
+  "original_protected_sha256": {
+    "PLAN.md": "c6b734915de2af82bb69f69525af3b0752bada687298fb83c01741609d765068",
+    "memory/04_review_log.md": "dc263e18d1ae7c485fb117cea9938ba9cc4b397111635b31249b83139c82b2d8",
+    "memory/03_knowledge_base.md": "513ac8584c699bfd5ced8b3b6f94da40ee93a10bfb2dc30698e7b2dfd72bc1ca",
+    "governance_tools/memory_record.py": "c2b58d0e8d7a618a7324bd23133858f650bede2df6990e226adcbce1f100b58e",
+    "memory_pipeline/active_task_supersession.py": "d893e0b2ad32f17138ef4f6e2ba24949744c48ff26be48c9ee442e9ade056cad"
+  },
+  "accepted_local_candidate_sha256": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+  "accepted_patch_sha256": "b76293f8bb0c51e9cadeeda996b1da12a763ee1fffc6a25144681c9301e144c9",
+  "baseline_active_sha256": "463184eac2f9e49cc85316598b2e61559721ed404c40850233678bf71320e32b",
+  "isolated_active_sha256": "29cd1ebde2a95987ee45758975da599f8c35b701b625da4d61b055a238d6dcd1",
+  "semantic_delta_exact": true,
+  "copied_artifacts_sha256": {
+    "adoption-application.json": "20e9569810389b07f637df95c4f7fbfb61687d2f26ed531555245627b625e3ca",
+    "adoption-guard-after.json": "b4f0c0be182518b20110ddaadc6757dcb295f0788ad2b330b444b8b0bc301a05",
+    "adoption-guard-before.json": "b4f0c0be182518b20110ddaadc6757dcb295f0788ad2b330b444b8b0bc301a05",
+    "adoption-result.json": "2897e944985d89b8eb05212b5b50e3a33ed457639bdc8ce782bfa684a536edba",
+    "authority-resolution-result.json": "5d8c01f172bfc7d587981bfaaf963f5dfc75b35ac66666c5753de052c662622b",
+    "authority-resolution.md": "153dd4c479b9c7a877381d8d581e59c451a1e6a280964d6516753ca52f27b1b4",
+    "committed-active-task.md": "f9c2b0cfde1aa9a61e3acc4943221bbc08c3edd8ad3958b9754f06c667305a7d",
+    "committed-plan.md": "e9cea5f242633437e586de65bf98e4adf2a38d534cd02af1e1a84fd1a68588b0",
+    "committed-prior-analysis.md": "c51f6553242d1d805a8bda09a6c8373e1100b2490f9e74db93065d9007a23d6f",
+    "main-head.json": "98c6d9db2d7bc8bf82973750ae2d56efb7934686c9c9e9a7ffb312db69059086",
+    "manifest.json": "b463da754d45b63d359dc8e1312b70b6802dd1108c114dcf9f45cdc4d8a8346b",
+    "owner-acceptance.json": "85a51f7a51650562eabf67858d54c1bc1e9a639efe9b15ba967cac63d91e2e02",
+    "pr108.json": "f92dfb54b8299e84f5b413d32778d0baf03685d0889e4c21bbd924ff175ef542",
+    "pre-adoption-active-task.md": "806a92ca2b6a0a9b2023ee0dad16a5e71d1bbaaaea33c6f809f38bc5a66e8547",
+    "proposed-active-task.md": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+    "proposed-change.patch": "b76293f8bb0c51e9cadeeda996b1da12a763ee1fffc6a25144681c9301e144c9",
+    "receipt.json": "a61ae57adeda8473571b67317013edda5122444ab6db7342fa59f41028faa472",
+    "result.json": "92a7e30504e38066d5ae06613dfde7680b42c4cd48c64b1cced893c8d3199f09",
+    "review.md": "6ece9993d1bc5dbe191d131ebac826f183c457fba385621bd5c7261000d7cda3",
+    "workflow-check.json": "0dd14c4fc917c40bd0fabf0d60445c26128d5d4d0055e349c6879fd6c7611df3"
+  },
+  "allowlist": [
+    "memory/01_active_task.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-application.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-after.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-before.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-result.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution-result.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/committed-active-task.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/committed-plan.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/committed-prior-analysis.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/main-head.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/manifest.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/owner-acceptance.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/pr108.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-change.patch",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/receipt.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/result.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/review.md",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/workflow-check.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/delivery-preflight.json",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/.gitattributes"
+  ],
+  "not_claimed": [
+    "commit",
+    "push",
+    "PR",
+    "clean original workspace",
+    "exact whole-file candidate identity on a different baseline",
+    "memory pressure recovery",
+    "canonical daily or session closeout"
+  ],
+  "size": {
+    "lines": 146,
+    "chars": 11902
+  },
+  "packaging_adjustments": [
+    {
+      "observed_issue": "Git add would normalize frozen artifact line endings",
+      "fix": "Evidence-directory-only * -text; no root attributes changed"
+    },
+    {
+      "observed_issue": "Frozen unified patch context-only blank lines flagged as trailing whitespace",
+      "fix": "Only proposed-change.patch whitespace=-blank-at-eol; patch exact SHA and reverse apply check remain mandatory",
+      "initial_diff_check_exit": 2
+    },
+    {
+      "observed_issue": "Preserved CRLF blobs are reported by default whitespace checking as trailing CR",
+      "fix": "Evidence-local cr-at-eol, preserving normal whitespace checks; only frozen patch excludes blank-at-eol"
+    }
+  ],
+  "packaging_validation": {
+    "frozen_patch_reverse_apply_check_exit": 0
+  },
+  "preflight_validation": {
+    "command": "python -X utf8 -m governance_tools.memory_workflow --check --repo . --run-guard --fail-on-blocker --format json",
+    "cwd": "C:\\Users\\reiko\\.codex\\worktrees\\m3b2a-adoption-delivery\\ai-governance-framework",
+    "exit_code": 0,
+    "raw_result": {
+      "status": "memory_workflow_required",
+      "repo_root": "C:\\Users\\reiko\\.codex\\worktrees\\m3b2a-adoption-delivery\\ai-governance-framework",
+      "repo_root_resolved": true,
+      "memory_files_in_diff": [
+        "memory/01_active_task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/.gitattributes",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-application.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-after.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-before.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution-result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-plan.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-prior-analysis.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/delivery-preflight.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/main-head.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/manifest.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/owner-acceptance.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/pr108.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-change.patch",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/receipt.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/review.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/workflow-check.json"
+      ],
+      "changed_files": [
+        "memory/01_active_task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/.gitattributes",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-application.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-after.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-before.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution-result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-plan.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/committed-prior-analysis.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/delivery-preflight.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/main-head.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/manifest.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/owner-acceptance.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/pr108.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-change.patch",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/receipt.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/result.json",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/review.md",
+        "memory/evidence/m3-b-2a-adoption-review-20261001/workflow-check.json"
+      ],
+      "canonical_writer_required": true,
+      "memory_protocol_path": "E:/BackUp/Git_EE/ai-governance-framework/governance/MEMORY_PROTOCOL.md",
+      "canonical_writer_path": "E:/BackUp/Git_EE/ai-governance-framework/governance_tools/memory_record.py",
+      "authority_guard_path": "E:/BackUp/Git_EE/ai-governance-framework/governance_tools/memory_authority_guard.py",
+      "recommended_workflow": [
+        "Stop editing memory/ files directly.",
+        "Use canonical writer for session-derived memory.",
+        "Run memory authority guard after memory changes.",
+        "Do not claim memory DONE until guard result is reported."
+      ],
+      "task_classification": "governed_memory_task",
+      "guard_ran": true,
+      "guard_summary": {
+        "non_canonical_writer": 86,
+        "active_non_canonical_writer": 0,
+        "missing_canonical_memory": 12,
+        "unbound_memory": 313,
+        "test_evidence_provenance_not_found": 553,
+        "session_like_non_session_memory_type": 0,
+        "non_daily_session_shaped_memory_entry": 0,
+        "authority_override_rejected": 0,
+        "test_evidence_artifact_metadata_missing": 32,
+        "test_evidence_artifact_metadata_invalid": 25,
+        "test_evidence_exit_code_contradicts_claim": 3,
+        "test_evidence_linked_commit_mismatch": 33,
+        "test_evidence_artifact_not_durable": 0,
+        "authority_override_used_current_diff": 0,
+        "repo_state_b0_blocker_count": 0,
+        "current_diff_b0_blocker_count": 0
+      },
+      "completion_claim_allowed": true,
+      "warnings": [
+        "missing_canonical_memory",
+        "test_evidence_artifact_metadata_missing",
+        "test_evidence_artifact_metadata_invalid",
+        "test_evidence_exit_code_contradicts_claim"
+      ],
+      "background_warnings": [
+        "unbound_memory",
+        "test_evidence_provenance_not_found",
+        "test_evidence_linked_commit_mismatch"
+      ],
+      "blockers": [],
+      "mixed_scope_findings": []
+    },
+    "stderr": "",
+    "staged_allowlist_exact_before_guard": true,
+    "frozen_staged_blob_matches": {
+      "adoption-application.json": true,
+      "adoption-guard-after.json": true,
+      "adoption-guard-before.json": true,
+      "adoption-result.json": true,
+      "authority-resolution-result.json": true,
+      "authority-resolution.md": true,
+      "committed-active-task.md": true,
+      "committed-plan.md": true,
+      "committed-prior-analysis.md": true,
+      "main-head.json": true,
+      "manifest.json": true,
+      "owner-acceptance.json": true,
+      "pr108.json": true,
+      "pre-adoption-active-task.md": true,
+      "proposed-active-task.md": true,
+      "proposed-change.patch": true,
+      "receipt.json": true,
+      "result.json": true,
+      "review.md": true,
+      "workflow-check.json": true
+    },
+    "git_diff_cached_check_exit": 0
+  },
+  "original_workspace_preserved": true,
+  "all_frozen_source_and_target_bytes_preserved": true,
+  "canonical_checkpoint_preserved": true,
+  "historical_pointer_resolves": true,
+  "preflight_selection": "Markdown/evidence-only scope: canonical memory_workflow gate + exact patch/blob checks; broad runtime smoke and tests not applicable",
+  "response_envelope": {
+    "mode": "VALIDATION",
+    "mode_source": "validation_command",
+    "task": "M3-b-2A isolated delivery preparation",
+    "task_authority": "user_request",
+    "scope": [
+      "memory/01_active_task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-application.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-after.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-guard-before.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-result.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution-result.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/authority-resolution.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/committed-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/committed-plan.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/committed-prior-analysis.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/main-head.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/manifest.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/owner-acceptance.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/pr108.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-change.patch",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/receipt.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/result.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/review.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/workflow-check.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/delivery-preflight.json",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/.gitattributes"
+    ],
+    "done": [
+      "Accepted patch isolated on frozen committed baseline",
+      "20 frozen artifacts preserved in both disk and staged blob bytes",
+      "Only explicit 23-path allowlist staged",
+      "Scoped whitespace and memory authority validation passed",
+      "Original working-tree content and index preserved"
+    ],
+    "claim_ceiling": [
+      "Authorized preparation complete locally; no committed delivery or overall-clean claim"
+    ],
+    "not_claimed": [
+      "commit",
+      "push",
+      "PR",
+      "clean original workspace",
+      "exact whole-file candidate identity on a different baseline",
+      "memory pressure recovery",
+      "canonical daily or session closeout",
+      "full regression",
+      "CI",
+      "new canonical daily record"
+    ],
+    "evidence_refs": [
+      {
+        "command": "python -X utf8 -m governance_tools.memory_workflow --check --repo . --run-guard --fail-on-blocker --format json",
+        "result": "PASS",
+        "exit_code": 0
+      },
+      {
+        "command": "git diff --cached --check",
+        "result": "PASS",
+        "exit_code": 0
+      },
+      {
+        "artifact": "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-change.patch",
+        "result": "PASS",
+        "sha256": "b76293f8bb0c51e9cadeeda996b1da12a763ee1fffc6a25144681c9301e144c9",
+        "reverse_apply_check_exit": 0
+      },
+      {
+        "artifact": "memory/evidence/m3-b-2a-adoption-review-20261001/delivery-preflight.json",
+        "result": "PASS",
+        "details": "Allowlist and 20 frozen staged blob hashes verified"
+      }
+    ],
+    "risk": [
+      "Existing historical guard warning debt retained",
+      "Original workspace dirty; isolated changes staged but uncommitted",
+      "Pressure remains CRITICAL",
+      "Evidence-directory attributes preserve frozen bytes; patch format-specific whitespace setting does not alter frozen patch"
+    ],
+    "next_action": "Stop after authorized preparation; scoped commit requires separate authorization"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "command": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "governance_tools.memory_workflow",
+    "--check",
+    "--repo",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "--format",
+    "json",
+    "--changed-file",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/review.md",
+    "--changed-file",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+    "--changed-file",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md"
+  ],
+  "exit_code": 0,
+  "report": {
+    "status": "memory_workflow_required",
+    "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "repo_root_resolved": true,
+    "memory_files_in_diff": [
+      "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/review.md"
+    ],
+    "changed_files": [
+      "memory/evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/proposed-active-task.md",
+      "memory/evidence/m3-b-2a-adoption-review-20261001/review.md"
+    ],
+    "canonical_writer_required": true,
+    "memory_protocol_path": "governance/MEMORY_PROTOCOL.md",
+    "canonical_writer_path": "governance_tools/memory_record.py",
+    "authority_guard_path": "governance_tools/memory_authority_guard.py",
+    "recommended_workflow": [
+      "Stop editing memory/ files directly.",
+      "Use canonical writer for session-derived memory.",
+      "Run memory authority guard after memory changes.",
+      "Do not claim memory DONE until guard result is reported."
+    ],
+    "task_classification": "governed_memory_task",
+    "guard_ran": false,
+    "guard_summary": {},
+    "completion_claim_allowed": false,
+    "warnings": [],
+    "background_warnings": [],
+    "blockers": [],
+    "mixed_scope_findings": []
+  },
+  "claim_boundary": "Report-only dispatch; official memory not mutated or claimed complete"
+}

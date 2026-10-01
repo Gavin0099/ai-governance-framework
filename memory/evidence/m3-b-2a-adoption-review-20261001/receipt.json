@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m pytest -p no:cacheprovider --basetemp D:\\ai-governance-framework\\.tmp\\m3b2a-receipt artifacts\\experiments\\prepush-bugfix-20260724\\gate3-route-v2\\test_gate3_historical_bootstrap.py artifacts\\experiments\\prepush-bugfix-20260724\\gate3-route-v2\\test_gate3_historical_child.py artifacts\\experiments\\prepush-bugfix-20260724\\gate3-route-v2\\test_gate3_historical_materialize.py artifacts\\experiments\\prepush-bugfix-20260724\\gate3-route-v2\\test_gate3_historical_process.py -q",
+  "exit_code": 0,
+  "started_at": "2026-08-20T08:11:35Z",
+  "finished_at": "2026-08-20T08:11:37Z",
+  "runner": "codex",
+  "linked_commit": "e03afc852ac136dc0198bab69536e73683f4b3ba",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/m3b2a-in-process-20260820.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
