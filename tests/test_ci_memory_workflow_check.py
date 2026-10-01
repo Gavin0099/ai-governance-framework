@@ -1,10 +1,20 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
-from governance_tools.ci_memory_workflow_check import check
-from governance_tools.memory_provenance import _is_closeout_companion_path
+import pytest
+
+from governance_tools.ci_memory_workflow_check import check, main
+from governance_tools.memory_provenance import (
+    _is_closeout_companion_path,
+    resolve_memory_binding,
+)
+from governance_tools.memory_record import (
+    append_session_derived_entry,
+    build_session_derived_record,
+)
 
 
 def _write(path: Path, text: str) -> None:
@@ -126,7 +136,7 @@ def test_closeout_companion_allowlist_is_narrow() -> None:
     )
 
 
-def test_blocks_current_diff_active_non_canonical_writer(tmp_path: Path) -> None:
+def test_blocks_current_diff_active_non_canonical_writer(tmp_path: Path, capsys) -> None:
     _write(
         tmp_path / "memory" / "2026-06-12.md",
         "- memory_type: session-derived\n"
@@ -145,6 +155,12 @@ def test_blocks_current_diff_active_non_canonical_writer(tmp_path: Path) -> None
             "reason": "session_derived_entry_not_written_by_memory_record",
         }
     ]
+    assert main([
+        "--project-root", str(tmp_path),
+        "--changed-file", "memory/2026-06-12.md",
+        "--format", "json",
+    ]) == 2
+    assert json.loads(capsys.readouterr().out)["blockers"] == result.blockers
 
 
 def test_historical_active_debt_does_not_block_unrelated_diff(tmp_path: Path) -> None:
@@ -258,3 +274,160 @@ def test_ci_accepts_product_commit_then_memory_closeout_commit(tmp_path: Path) -
     assert "mixed_scope_memory_binding=1" not in result.warnings
     assert result.mixed_scope_memory_binding_count == 0
     assert result.mixed_scope_findings == []
+    assert "closeout_companion_not_observed=1" not in result.warnings
+    assert result.closeout_companion_not_observed_count == 0
+    assert result.closeout_companion_findings == []
+
+
+def test_ci_reports_product_range_without_new_closeout_companion(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    seed = _init_git_repo(tmp_path)
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(seed),
+    )
+    base = _commit_all(tmp_path, "existing daily memory")
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change without closeout")
+
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+        base_ref=base,
+        head_ref=product_commit,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" in result.warnings
+    assert result.closeout_companion_not_observed_count == 1
+    assert result.closeout_companion_findings == [
+        {
+            "code": "closeout_companion_not_observed",
+            "enforcement": "report_only",
+            "scope_ref": f"{base}..{product_commit}",
+            "non_closeout_commits": [product_commit],
+            "non_closeout_paths": ["governance_tools/product_change.py"],
+            "observed_bound_commits": [],
+            "reason": (
+                "the inspected commit range changes non-closeout paths, but no "
+                "added canonical memory entry binds a non-closeout commit in "
+                "that range"
+            ),
+        }
+    ]
+    assert main([
+        "--project-root", str(tmp_path),
+        "--base-ref", base,
+        "--head-ref", product_commit,
+        "--format", "json",
+    ]) == 0
+    cli_result = json.loads(capsys.readouterr().out)
+    assert cli_result["closeout_companion_not_observed_count"] == 1
+    assert cli_result["blockers"] == []
+
+
+@pytest.mark.parametrize("sha_form", ["lower", "upper", "mixed", "upper_short"])
+def test_ci_accepts_canonical_writer_companion_sha_identity(
+    tmp_path: Path, monkeypatch, capsys, sha_form: str,
+) -> None:
+    # Fixed Git dates keep the identity fixture deterministic; use the real
+    # canonical producer and CLI consumer rather than imitating their logic.
+    monkeypatch.setenv("GIT_AUTHOR_DATE", "2026-07-27T12:00:00+00:00")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2026-07-27T12:00:00+00:00")
+    monkeypatch.setattr(
+        "governance_tools.memory_record._current_local_date", lambda: "2026-07-27",
+    )
+    seed = _init_git_repo(tmp_path)
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change")
+    binding = {
+        "lower": product_commit,
+        "upper": product_commit.upper(),
+        "mixed": product_commit[:12].upper() + product_commit[12:],
+        "upper_short": product_commit[:12].upper(),
+    }[sha_form]
+    if sha_form != "lower":
+        assert binding != binding.lower()
+    memory_binding = resolve_memory_binding(
+        tmp_path, binding, "sha-identity-regression", allow_session_fallback=False,
+    )
+    assert memory_binding == "bound"
+    record = build_session_derived_record(
+        what_changed="product closeout identity regression",
+        commit=binding,
+        session_id="sha-identity-regression",
+        memory_binding=memory_binding,
+        test_evidence="NOT RUN: isolated identity fixture",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+    daily_path = append_session_derived_entry(project_root=tmp_path, record=record)
+    assert f"  commit_hash: {binding}\n" in daily_path.read_text(encoding="utf-8")
+    closeout_commit = _commit_all(tmp_path, "canonical memory companion")
+
+    assert main([
+        "--project-root", str(tmp_path),
+        "--base-ref", seed,
+        "--head-ref", closeout_commit,
+        "--format", "json",
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["clean"] is True
+    assert result["blockers"] == []
+    assert result["closeout_companion_not_observed_count"] == 0
+    assert result["closeout_companion_findings"] == []
+    assert "closeout_companion_not_observed=1" not in result["warnings"]
+
+
+def test_changed_file_list_without_refs_does_not_infer_closeout_gap(
+    tmp_path: Path,
+) -> None:
+    result = check(
+        tmp_path,
+        changed_files=["governance_tools/product_change.py"],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" not in result.warnings
+    assert result.closeout_companion_not_observed_count == 0
+    assert result.closeout_companion_findings == []
+
+
+@pytest.mark.parametrize("uppercase", [False, True])
+def test_ci_does_not_accept_closeout_entry_bound_outside_range(
+    tmp_path: Path, uppercase: bool,
+) -> None:
+    seed = _init_git_repo(tmp_path)
+    binding = seed.upper() if uppercase else seed
+    _write(tmp_path / "governance_tools" / "product_change.py", "VALUE = 1\n")
+    product_commit = _commit_all(tmp_path, "product change")
+    _write(
+        tmp_path / "memory" / "2026-07-27.md",
+        _canonical_bound_entry(binding),
+    )
+    closeout_commit = _commit_all(tmp_path, "misbound memory closeout")
+
+    result = check(
+        tmp_path,
+        changed_files=[
+            "governance_tools/product_change.py",
+            "memory/2026-07-27.md",
+        ],
+        base_ref=seed,
+        head_ref=closeout_commit,
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "closeout_companion_not_observed=1" in result.warnings
+    assert result.closeout_companion_not_observed_count == 1
+    assert result.closeout_companion_findings[0]["non_closeout_commits"] == [
+        product_commit
+    ]
+    assert result.closeout_companion_findings[0]["observed_bound_commits"] == [
+        binding
+    ]
