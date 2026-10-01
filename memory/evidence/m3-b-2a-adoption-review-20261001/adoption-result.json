@@ -1,0 +1,70 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "validation_command",
+  "task": "M3-b-2A owner-accepted bounded local adoption",
+  "task_authority": "user_request",
+  "scope": [
+    "memory/01_active_task.md legacy lines 61-64 only",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/adoption-*",
+    "memory/evidence/m3-b-2a-adoption-review-20261001/owner-acceptance.json"
+  ],
+  "status": "APPLIED_VALIDATED_UNCOMMITTED",
+  "done": [
+    "Owner exact candidate acceptance recorded from current human instruction",
+    "Exact accepted legacy-retirement candidate applied to formal local entry",
+    "Original canonical checkpoint identity/bytes and all other work-item bytes preserved",
+    "Full historical source retained and pointer resolves",
+    "Before/after scoped guard results allow completion with zero blockers and unchanged warning summaries"
+  ],
+  "claim_ceiling": [
+    "One bounded local current-state correction accepted and applied; no committed or clean delivery claim"
+  ],
+  "not_claimed": [
+    "All repo current state repaired",
+    "Memory pressure recovered",
+    "Automatic synchronization or R1 integration",
+    "Historical warning debt repaired",
+    "Canonical new daily record created",
+    "Committed clean delivery",
+    "Push or session closeout"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "owner-acceptance.json",
+      "result": "Actual human acceptance binds frozen candidate SHA and existing patch/review"
+    },
+    {
+      "artifact": "adoption-application.json",
+      "result": "Exact before/after identity and byte preservation"
+    },
+    {
+      "artifact": "adoption-guard-before.json",
+      "result": "Exit 0; guard ran; blockers 0"
+    },
+    {
+      "artifact": "adoption-guard-after.json",
+      "result": "Exit 0; guard ran; blockers 0; guard summary and warnings unchanged"
+    }
+  ],
+  "risk": [
+    "Pressure remains CRITICAL at 144 lines / 11664 characters",
+    "Original unrelated dirty work retained; adoption not committed"
+  ],
+  "next_action": "Stop; retain this local adoption until a separately authorized delivery action",
+  "other_protected_files_unchanged": {
+    "PLAN.md": true,
+    "memory/04_review_log.md": true,
+    "memory/03_knowledge_base.md": true,
+    "governance_tools/memory_record.py": true,
+    "memory_pipeline/active_task_supersession.py": true
+  },
+  "workspace_state": {
+    "staged": 1,
+    "tracked_unstaged": 26,
+    "untracked_entries": 159,
+    "enumeration_warnings": true,
+    "unrelated_dirty_scope": "EXPLICITLY_EXCLUDED",
+    "overall_clean_delivery": "NOT_CLAIMED"
+  },
+  "existing_guard_warnings_unchanged": true
+}

@@ -1,0 +1,25 @@
+{
+  "status": "APPLIED_VALIDATED_UNCOMMITTED",
+  "before_sha256": "806a92ca2b6a0a9b2023ee0dad16a5e71d1bbaaaea33c6f809f38bc5a66e8547",
+  "after_sha256": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+  "exact_accepted_candidate_applied": true,
+  "outside_legacy_paragraph_bytes_unchanged": true,
+  "canonical_projection_identity_and_bytes_unchanged": true,
+  "full_historical_source_preserved": true,
+  "other_protected_files_unchanged": {
+    "PLAN.md": true,
+    "memory/04_review_log.md": true,
+    "memory/03_knowledge_base.md": true,
+    "governance_tools/memory_record.py": true,
+    "memory_pipeline/active_task_supersession.py": true
+  },
+  "size": {
+    "before_lines": 147,
+    "before_chars": 11731,
+    "after_lines": 144,
+    "after_chars": 11664
+  },
+  "pressure_after": "CRITICAL",
+  "commit_push": "NOT_AUTHORIZED_NOT_RUN",
+  "post_guard_evidence": "adoption-guard-after.json"
+}

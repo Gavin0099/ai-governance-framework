@@ -1,0 +1,3302 @@
+# PLAN.md - AI Governance Framework
+
+## Canonical Planning Surface
+
+> **最後更新**: 2026-09-23
+> **Owner**: GavinWu
+> **Freshness**: Sprint (7d)
+> **Created**: 2026-04-10
+> **Risk tier**: L2
+> **Planning window**: 2026-03 through 2026-09
+> **Encoding status**: UTF-8 reviewer-readable canonical replacement
+
+Purpose:
+
+- Maintain portable AI governance contracts and reviewer-facing evidence.
+- Define runtime observation, closeout, claim ceiling, and evidence surfaces.
+- Preserve repo-local memory / state authority and traceability.
+- Support external repo adoption, readiness, framework version, and source audit.
+- Keep governance docs and static validators aligned with observed failures.
+
+Non-goals:
+
+- Not a full execution harness.
+- Not a machine-authoritative semantic advisory system.
+- Not a generic multi-agent orchestration platform.
+- Not an OS sandbox, RBAC system, or enterprise AIMS replacement.
+
+## Encoding Repair Notice - 2026-06-10
+
+This file previously contained a large historical body with mojibake / corrupted
+text. That made `PLAN.md` a reviewer-surface defect even though a readable
+snapshot existed at the top.
+
+Repair decision:
+
+- Replace the corrupted historical body with this UTF-8 canonical planning
+  surface.
+- Preserve current phase status, claim boundaries, active work, completed
+  milestones, and pending work in readable form.
+- Treat detailed historical line-by-line content as recoverable from git history,
+  committed artifacts, and canonical memory records rather than from corrupted
+  inline text.
+
+Claim ceiling for this repair:
+
+- CLAIMED: reviewer readability of the active `PLAN.md` planning surface.
+- NOT CLAIMED: roadmap semantic change, historical evidence migration, artifact
+  cleanup, validator behavior change, hook behavior change, or enforcement
+  change.
+
+## Phase Overview
+
+- [x] Phase A: Core governance tooling and baseline.
+- [x] Phase B: Adoption, validators, freshness, and memory foundations.
+- [x] Phase C: Runtime governance, DBL, and observation surfaces.
+- [x] Phase D: Session workflow, external adoption, and reviewer entrypoints.
+- [>] Phase E: Failure decision boundary, exclusion governance, and usage enforcement.
+
+## Work Item Glossary
+
+Use this short decoder when reading historical or current PLAN labels.  A code
+preserves traceability; the phrase states its purpose.  The checkbox and
+nearby status text remain the authority for whether an item is complete.
+
+| Label | Plain-language purpose |
+| --- | --- |
+| Phase A--E | Major work periods: core baseline; adoption/memory foundations; runtime observation; external adoption/reviewer workflow; and the current failure-boundary/exclusion/usage-enforcement line. |
+| P0 / P1 / P2 | Priority groups; the letter identifies a work item within that group. |
+| P1-C | First external F-7 verification for `meiandraybook`; the natural-session closeout-receipt check completed read-only on 2026-07-22, while its separate consumer memory blocker remains outside P1-C. |
+| P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
+| P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
+| P1-F | Decision about stronger declaration enforcement. Decided 2026-07-18: keep advisory and do not add a current-diff blocker; reopen only after a natural post-Option-B `not_declared` failure. |
+| P1-G / P1-H | Reproducible fleet-matrix generator / future decision about fleet-update freshness. |
+| P2-E | Rules for public-facing release surfaces such as topics, badges, and release notes. |
+| F-7 | Governed full framework update for a consumer repository, with staged evidence; a pointer update alone is not F-7 completion. |
+| E2 | Retrospective external-engineer adoption evidence. It is usability/adoption evidence, not runtime-effectiveness proof. |
+| Gate 3 | Frozen learning-loop unpause gate; it opens only under its documented criteria and explicit owner approval. |
+| E1-B, E8A, CE-1C/1D, R49.x, Round A/B | Historical experiment, claim-enforcement, or retrieval/cache study labels. Read their linked artifact before treating them as active work. |
+| v1 / v2 / v3 | Versions of the no-governance baseline experiment; their individual status and claim boundary are recorded in the current task and status artifacts. |
+
+Phase D completion note:
+
+- Reviewer closeout artifact was signed by Gavin0099 on 2026-04-28.
+- Later Phase C / runtime reconciliation gaps were tracked as follow-up work,
+  not as a reason to inflate current Phase D claims.
+
+Phase E posture:
+
+- Validity before expansion.
+- Failure-driven governance only.
+- No broad enforcement upgrade without observed failure and scoped evidence.
+
+## Current Sprint - 2026-06-10
+
+Current refresh - 2026-09-23 (bounded correctness findings delivery):
+
+- Onboarding false-positive and F-7 explicit-target corrections are merged
+  through PR #195 and PR #196. Their delivery does not qualify consumer runtime.
+- Runtime smoke cwd correction is in PR #197, not merged. Its two-file candidate
+  passed focused local validation; hosted CI is blocked by this PLAN's expired
+  freshness state and a dispatcher test that consumes the same stale PLAN.
+- Manual CI empty base-ref remains open and has not entered implementation.
+- Keep these findings as separate slices. This planning refresh does not add a
+  governance capability, authorize a consumer rollout, or claim #197 delivery.
+
+Current refresh - 2026-09-02 (Memory Runtime R0 exact round-trip implementation active):
+
+- [x] Define one bounded exact round-trip specification for one
+  caller-authorized canonical session-derived record and logical `active_task`
+  surface.
+- DONE: the reviewed specification reuses the canonical writer's public
+  outcome, `build_record_identity()`, `render_active_task_projection()`, and
+  `memory_pipeline.memory_layout.resolve_memory_file()`; keeps writer-owned
+  identity continuity separate from exact content continuity; requires the
+  writer outcome path to equal the resolver snapshot before retrieval; treats
+  missing surfaces, malformed or ambiguous persisted markers, path drift,
+  invalid UTF-8, invalid inputs, and ordinary dependency exceptions as
+  fail-closed; binds the caller-admitted M-1 observation to the exact query,
+  logical surface, and canonical record identity; preserves M-1 non-resolved
+  states without context rendering; permits structurally valid historical
+  non-target identities while requiring exactly one byte-matching target
+  payload; accepts only LF or CRLF persisted framing and renders the verified
+  payload through the public writer's canonical LF line; requires a resolved
+  authority observation to match both record identity and the SHA-256 of that
+  public renderer's exact UTF-8 bytes while leaving legacy digest-less
+  observations parseable but non-resolving;
+  forbids silent drop, injection, and duplicate rendering; and freezes the
+  focused evidence-case inventory without implementing runtime behavior.
+- Claim ceiling: specification for one caller-authorized active-task exact
+  round trip only. No authority-policy creation, writer or identity redesign,
+  MRCSP detector invocation or runtime integration, semantic retrieval, RAG,
+  update, supersession, freshness, deletion, Runtime public result transport or
+  schema, API versioning, hook, CI, gate, blocker, enforcement, Memory Runtime
+  R1, or Gate 3 behavior is authorized.
+- Implementation-readiness acceptance requires an owner merge attestation
+  recorded for the exact candidate HEAD before merge, technical review
+  approving that same HEAD with no unresolved P0/P1, green required checks,
+  reviewed-head preservation, and merge. A later merge action cannot
+  retroactively establish the owner-attestation predicate. Acceptance
+  does not activate a governance authority. Runtime implementation requires a
+  separate owner authorization after specification acceptance.
+- Implementation-readiness predicates were satisfied for exact reviewed head
+  `b2cc43bc5e7e9032d55aa49f5e820220a792eb43`, merged through PR #139 at
+  `ee44240f` after owner attestation, zero unresolved P0/P1, green checks, and
+  reviewed-head preservation.
+- [x] Implement the smallest active-task Runtime vertical slice over one
+  caller-authorized canonical record and one caller-admitted M-1 observation.
+- DONE: the Runtime calls the canonical active-task writer, snapshots the
+  logical resolver path and exact persisted bytes, independently parses every
+  projection-looking active-task line fail closed, permits well-formed
+  historical non-target identities, requires exactly one target identity and
+  exact canonical payload, binds `resolved` to both writer-owned identity and
+  the SHA-256 of public-renderer UTF-8 bytes, preserves the four M-1
+  non-resolved states with zero context bytes, and returns the public
+  renderer's canonical LF bytes only after the entire bounded chain succeeds;
+  every frozen R0 evidence case has executable focused coverage.
+- Claim ceiling: one active-task exact write-resolve-read-verify-render path
+  only. No writer, resolver, authority, identity, MRCSP, schema, hook, CI, gate,
+  enforcement, RAG, semantic retrieval, update, supersession, deletion, crash
+  safety, Runtime R1, or Gate 3 behavior is changed or authorized.
+- Delivery predicates were satisfied for exact independently reviewed head
+  `966dbbb3f4f8e8c987e286396a032d9230dc2940`, merged through PR #140 at
+  `ae926fc7b877c413036ba37cc0655cf62fbda75c` after owner authorization, zero
+  unresolved P0/P1, green pre-merge checks, reviewed-head preservation, and a
+  successful post-merge Governance Check whose Canonical Drift Post-Merge Audit
+  passed. External delivery evidence is the
+  [PR #140 pre-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819)
+  and the
+  [PR #140 post-merge Governance Check](https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801).
+  This one-time reconciliation records that earlier delivery event; its later
+  closeout commit does not imply that the PLAN or memory record existed in merge
+  commit `ae926fc7`.
+
+Current refresh - 2026-09-04 (Memory Runtime R1 specification and implementation delivered):
+
+- [x] Define one non-authoritative technical specification for exactly one
+  append-only `active_task` supersession edge from distinct v1 and v2 canonical
+  record identities.
+- DONE: the specification keeps `build_record_identity()` and
+  `memory_layout.py` unchanged; binds each version through the existing record
+  identity plus the SHA-256 of public-renderer bytes; preserves v1 as history;
+  defines exactly three dispositions where v1-only is the base current, one
+  exact v1-to-v2 relation makes v2 the superseding current, and every partial or
+  ambiguous state yields zero context; permits only one relation-only retry for
+  the exact v1-plus-v2 missing-edge partial state when exactly one currently
+  M-1-resolved authorization binds the persisted endpoint pairs;
+  requires a caller-admitted M-1-resolved semantic authorization binding the
+  supersede decision and both endpoint identity/digest pairs; requires complete
+  immutable pre-write snapshot validation before either writer invocation;
+  fails closed without mutation on every other pre-existing missing, malformed,
+  duplicate, conflicting, cyclic, self-referential, or content-mismatched
+  lineage state; and defines a focused evidence plan without implementing
+  Runtime behavior.
+- Claim ceiling: one proposed two-version, one-edge `active_task` supersession
+  contract only. No implementation, writer/identity/layout semantic change,
+  authority-policy creation, longer lineage, migration, deletion, expiry,
+  atomicity, crash/concurrency qualification, RAG, semantic retrieval, hook,
+  CI, gate, blocker, enforcement, Gate 3, or governance authority is authorized.
+- Specification acceptance requires exact-head technical review with no
+  unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
+  owner merge authorization. Acceptance does not authorize the implementation
+  tranche or any RAG work.
+- Specification acceptance predicates were satisfied for exact reviewed head
+  `c56bef21f4993cdedd6dc41f92b2ada88ff6d5c8`, merged through PR #144 at
+  `c751644be56439ec8ea910de0cfaebc3c078f4ad` after owner authorization, zero
+  unresolved P0/P1, green checks, and reviewed-head preservation.
+- [x] Implement the bounded two-version `active_task` supersession vertical
+  slice defined by the accepted R1 specification.
+- DONE: from a fully validated immutable pre-write snapshot, a canonical v1
+  plus one content-bound resolved supersession authorization can append the
+  canonical v2 projection and one exact v1-to-v2 relation; the verified final
+  snapshot returns only v2 as current while retaining v1 as history; a complete
+  retry performs zero writes; a v2-written/relation-missing partial state
+  returns zero context and permits only a fresh authorized relation-only retry;
+  every pre-existing invalid state fails before either writer invocation with
+  bytes unchanged; and the four valid M-1 non-resolved states preserve their
+  disposition with zero context and zero writes.
+- Claim ceiling: one two-version, one-edge active-task supersession path only.
+  No longer lineage or graph engine, RAG, semantic retrieval, delete, expiry,
+  rollback, crash atomicity, general concurrency control, writer-owned record
+  identity redesign, R0 parser change, memory-layout change, authority-policy
+  creation, hook, CI, gate, blocker, enforcement, or Gate 3 behavior is
+  authorized.
+- Delivery requires exact-head technical review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
+- Implementation delivery predicates were satisfied for exact reviewed head
+  `6b441071c794ac38f69403919ce969eb205abcc7`, merged through PR #145 at
+  `c6e5d9e14ddba7ec1d7543f1808c98c946d297ee` after owner authorization,
+  zero unresolved P0/P1, green required and post-merge checks, and
+  reviewed-head preservation.
+- Known non-blocking P2 carried forward: daily-only versus multi-surface CLI
+  invocation can derive different daily record identities from otherwise
+  identical whitespace-bearing inputs. This delivery does not change
+  daily-only identity normalization semantics.
+- This records bounded R1 implementation delivery only. It does not establish
+  R1 qualification or authorize RAG or any later lifecycle slice.
+
+Current refresh - 2026-09-04 (Natural Session Integration N0 feasibility decision delivered):
+
+- [x] Record the bounded NSI-N0 feasibility result without defining an
+  implementation-ready persisted-session reader grammar.
+- Delivery evidence: PR #147; exact reviewed head
+  `f1530182d65c4cbd4ab24bfd75e6e5af0ce343fc`; merge commit
+  `10044277b99e68973130d23ce97697418de59d21`.
+- DONE: current persisted logical `active_task` and `review_log` surfaces can
+  reconstruct record plus summary, but current repository state cannot
+  mechanically establish cross-session authority freshness; resolved Natural
+  Session replay is therefore `BLOCKED` with zero context;
+  `current_human_instruction` cannot be replayed as resolved without an
+  independently comparable persisted instruction-state identity;
+  `approved_change` cannot be replayed as resolved from repository HEAD equality
+  alone, and a pre-write HEAD is self-invalidating across the
+  attachment-containing commit; this decision does not define reader grammar,
+  attachment cardinality, historical precedence, standalone-v2 admission, or
+  R1 edge-selection semantics.
+- Next candidate: one separately authorized minimal technical spike to determine
+  the smallest persisted freshness evidence capable of mechanically classifying
+  Session B as same, changed, or unverifiable relative to Session A. The spike
+  may conclude that no safe bounded representation exists.
+- Claim ceiling: feasibility and representation decision only. No reader,
+  adapter, attachment writer, schema, instruction ledger, bootstrap, migration,
+  Session A/B pilot, RAG, lifecycle expansion, Runtime change, governance
+  authority, enforcement, or merge is authorized.
+- Acceptance requires exact-head independent review with no unresolved P0/P1,
+  green scope-matched checks, reviewed-head preservation, and separate owner
+  merge authorization.
+
+Current refresh - 2026-09-02 (MRCSP M1b-3 active):
+
+- [x] Add one deterministic report-only detector for one caller-admitted
+  `memory_root` directory and one logical name defined by
+  `MEMORY_FILE_ALIASES`.
+- DONE: resolution reuses
+  `memory_pipeline.memory_layout.resolve_memory_file()`; an existing canonical
+  or secondary alias produces zero findings; all configured aliases missing
+  produces exactly one `missing_logical_memory_surface` warning; repeated
+  unchanged input produces byte-stable JSON; invalid roots, logical names,
+  argument types, and ordinary resolver exceptions fail closed with
+  `ValueError`.
+- Claim ceiling: one caller-specified logical surface at one filesystem
+  observation only. No repository-wide completeness, parsing, repair,
+  creation, deletion, alias inference, normalization, semantic identity,
+  freshness, supersession, reader, projection, writer, schema, runtime, hook,
+  CI, gate, blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #137 at merge commit
+  `bf07acc6`.
+
+Current refresh - 2026-08-24 (MRCSP M1b-2 active):
+
+- [x] Add one deterministic report-only namespaced knowledge-identity collision
+  detector over exactly two caller-admitted `KnowledgeIdentityObservation`
+  values.
+- DONE: two distinct record identities with the same exact case-sensitive
+  `knowledge_id` produce exactly one `knowledge_identity_collision` finding;
+  different identifiers produce zero findings; input order does not change the
+  result; repeated input produces byte-stable JSON; invalid input fails closed
+  with `ValueError`.
+- Claim ceiling: exact caller-supplied knowledge-identifier equality only. No
+  Markdown parsing, normalization, semantic identity, missing logical surface,
+  reader, projection, supersession, schema, runtime, hook, CI, gate, blocker,
+  enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #107 at merge commit
+  `3d335e26`.
+
+Current refresh - 2026-08-24 (MRCSP M1b-1 active):
+
+- [x] Add one deterministic report-only encoding-integrity detector for one
+  caller-admitted `MemoryRecordBytes` value.
+- DONE: invalid UTF-8 produces exactly one
+  `memory_encoding_integrity_anomaly` finding; valid UTF-8 containing U+FFFD
+  produces exactly one finding; clean valid UTF-8 produces zero findings;
+  repeated input produces byte-stable JSON; non-record and empty-content input
+  fail closed with `ValueError`.
+- Claim ceiling: strict UTF-8 decode failure and literal U+FFFD presence only.
+  No heuristic mojibake detection, repair, identity collision, missing logical
+  surface, reader, projection, supersession, schema, runtime, hook, CI, gate,
+  blocker, enforcement, or M2 behavior is authorized.
+- Activation requires exact-head owner merge attestation, independent technical
+  review, green required checks, reviewed-head preservation, and merge.
+- Activation predicates were satisfied through merged PR #105 at merge commit
+  `13577288ec63e4a86bbd490fc02666be20469831`.
+
+Current refresh - 2026-08-24 (owner-authorized solo-owner merge authority correction):
+
+- [>] Replace the unsupported claim that a solo-owner repository requires a
+  GitHub `APPROVED` review with a canonical conjunctive merge decision:
+  exact-head owner merge attestation, exact-head independent technical review,
+  green required checks, and preservation of the reviewed head.
+- DONE: contract cases and mutation tests prove that all four predicates are
+  required, while GitHub `APPROVED` is optional additional evidence and cannot
+  substitute for a missing predicate.
+- Claim ceiling: merge authority and reviewer-facing reporting semantics only.
+  No GitHub setting, branch protection, ruleset, CI, runtime, hook, schema,
+  gate, blocker, enforcement, or M1b work is authorized.
+- Observed failure: PR #103's final body required a human GitHub `APPROVED`
+  review, but its GitHub review list was empty when the PR was merged. This
+  correction is prospective and does not retroactively satisfy that prose gate.
+
+Current refresh - 2026-08-24 (owner-authorized MRCSP M1a candidate):
+
+- [x] Implement one deterministic report-only exact-byte duplicate detector
+  over exactly two independently identified, caller-admitted memory record byte
+  payloads.
+- DONE: equal raw bytes produce exactly one `duplicate_memory_entry` warning;
+  a one-byte mutation produces zero findings; identical logical input produces
+  byte-stable JSON.
+- Claim ceiling: raw-byte SHA-256 equality only. No fixture admission,
+  normalization, semantic reconciliation, reader, projection, writer, public
+  schema, runtime, hook, CI, gate, blocker, enforcement, historical scan, or
+  memory mutation is authorized.
+- Completed through independently reviewed merge `3d859c95` (PR #103). The
+  detector is active at its report-only claim ceiling. PR #103's separate prose
+  requirement for a GitHub approving review was not satisfied; that process
+  discrepancy triggered the solo-owner authority correction above.
+
+Current refresh - 2026-08-24 (owner-authorized MRCSP M0 candidate):
+
+- [x] Define the M0 fixture-admissibility contract and one synthetic redacted
+  exact-byte-duplicate test fixture with provenance, a complete redaction
+  boundary, pinned SHA-256, and fail-closed tests for byte mismatch, missing
+  provenance, missing digest, and incomplete redaction.
+- Claim ceiling: contract and one test-only fixture only. No reader, M1a,
+  writer/runtime, public schema, hook, CI, gate, enforcement, reconciliation,
+  consumer replay, or historical normalization is authorized.
+- Completed through independently reviewed merge `82e504f7` (PR #101). The M0
+  fixture remains test-only and does not itself prove detector correctness.
+
+Current refresh - 2026-08-14:
+
+Theme:
+
+- Restore the canonical planning surface to current repository truth.
+- Finish existing review, disposition, publication and consumer-transfer work
+  before adding governance surface.
+- Keep reviewer-facing narrative drift observation-only.
+
+Ordered next work:
+
+- Owner adjudicates the 14 `undetermined` entries in the maintenance queue
+  ledger. Each already carries a recommended disposition; what is undetermined
+  is whether a script can confirm the surface exists, not what to do with it.
+  The owner decides whether to accept each disposition, name the canonical
+  target where the recommendation is `merge`, and authorise any change.
+- Publish the three reviewed weekly-report corrections: PR #26 narrowed to
+  structural session-binding rejections only, all G4 maturity percentages
+  removed, and the consumer-surface claim narrowed from "consumer repos" to the
+  single submodule consumer that exercised the path.
+- Run CFU transfer verification against a deliberately selected framework
+  checkpoint, in a clean isolated worktree via F-7. The selected checkpoint is
+  not "latest" and must not be described as such; CFU's own worktree carries
+  unrelated modifications and must not be updated in place.
+
+Observation only:
+
+- The pre-push freshness gate checks the wrong subject. `scripts/hooks/pre-push`
+  runs the smoke as `cd "$FRAMEWORK_ROOT"`, and `pre_task_check` reads
+  `project_root / "PLAN.md"` from the working tree. Neither the pushing
+  worktree nor the pushed commit is passed in, so a PASS means "the primary
+  checkout's uncommitted PLAN.md was fresh at the moment the hook ran" — not
+  that the PLAN being pushed is fresh. Editing that one file satisfies the
+  gate. Same wrong-subject shape as a provenance field naming a revision that
+  did not produce the report. Recorded, not fixed here.
+- Reviewer-facing body drift has now occurred three times: PR #57, PR #60, and
+  this PR's original description. In each case the branch content was corrected
+  while the pull request description continued to publish withdrawn claims, and
+  every instance was caught by external review, none by CI. This is a
+  manual-copy failure, and the honest response is to stop retyping numbers that
+  already exist in an artifact. The third occurrence admits an owner decision
+  only; it does not authorise a gate, generator or new surface. Any
+  implementation still requires separate owner approval and must first
+  disposition PR #28.
+- This file is 1875 lines with 183 checked and 15 unchecked boxes, and roughly
+  two thirds of the unchecked ones are standing constraints written as tasks
+  ("Do not claim...", "Keep ... separate", "Wait for a real consumer"). A
+  constraint cannot be ticked, so the unchecked count never reaches zero and
+  carries no signal, while every refresh must re-read all of them to find the
+  few that are actionable. The line counts and the constraint/task split are
+  checkable facts; that this cost is what delayed the refresh is an owner
+  observation, not something a script or census established. Separating
+  standing constraints from current intent, and completed history from both,
+  is a candidate slice — not started, and not authorised here.
+- Any lifecycle restructuring must first disposition PR #28, which already
+  carries a fleet census, a lifecycle contract spec, heading decision tables
+  and a rollover proposal with open items. Reuse, supersede or explicitly
+  reject those inputs; do not create a second, parallel PLAN lifecycle
+  contract beside it.
+
+Anti-goals:
+
+- No Graphiti work without a reproducible retrieval failure.
+- No plugin-framework expansion without a capability-extraction case.
+- No Gate 3 expansion while Gate 2 process integrity remains NOT_ESTABLISHED.
+- No `.tmp_*` worktree cleanup in this slice.
+
+Current refresh - 2026-07-30:
+
+Theme:
+
+- Close the F-7 update-available truth correction after PR #12 merged.
+- Preserve the distinction between backend update availability and the
+  conservative full-adoption verdict.
+- Stop framework expansion unless a later consumer replay exposes a distinct
+  failure.
+
+Completed in this slice:
+
+- [x] PR #12 merged to `main` at `85f45018`. The F-7 report envelope now
+  preserves backend `framework_update_status=update_available` when a fresh
+  verified target is ahead of the current pin, while
+  `f7_final_status=not_verified` remains conservative.
+- [x] A disposable post-merge consumer replay from merged `main` observed the
+  old pin `66e1c614`, fresh target `85f45018`, fast-forward availability, the
+  complete three-column adoption table, and no consumer mutation in
+  report-only mode.
+- [x] The replay did not change writer, promotion, receipt schema, runtime
+  enforcement, or consumer files.
+
+Next milestone:
+
+- Run F-7 against a named real consumer only when the owner explicitly selects
+  that consumer and authorizes the applicable report-only or update boundary.
+- Treat a new observed consumer failure as the prerequisite for further F-7
+  framework changes.
+
+Claim ceiling:
+
+- CAN CLAIM: PR #12 is merged and the bounded disposable post-merge replay
+  preserved truthful `update_available` reporting and the full adoption table.
+- CANNOT CLAIM: any real consumer is updated, full adoption is verified,
+  report-only is enforcement, or the framework has reached G4 maturity.
+
+Current refresh - 2026-07-24:
+
+Theme:
+
+- Record the Evidence-Backed Engineering Skill Program as a review-only plan
+  before any Engineering Skill exists. The program is a method for studying
+  whether mature engineering methods change agent outcomes; it does not assert
+  that any method works.
+
+Completed in this slice:
+
+- [x] `docs/governance/evidence-backed-engineering-skill-program-2026-07-24.md`
+  records the Skill / Harness / External Validator / Governance responsibility
+  boundary, the Bug Fix four-arm experiment, natural task sourcing, independent
+  oracle, blind post-hoc scoring separated from Arm D treatment-time validator
+  feedback, outcome and cost metrics, commit and receipt evidence anchoring
+  (`linked_commit` vs `linked_head_commit`), Gates 0-5, and
+  INVALID / NEGATIVE / INSUFFICIENT stop outcomes.
+- [x] The candidate-method appendix classifies further methods as priority
+  study, cross-cutting methods, or deferred study. Every appendix entry is a
+  deferred candidate, not an implementation commitment or a roadmap.
+- [x] Gate 1 freezes the experimental Skill treatment packet as an experiment
+  input only; a repo-visible provisional Skill may exist no earlier than
+  Gate 3, and Gate 3 is a screening decision, not a powered inference.
+- [x] No Engineering Skill was created or modified, no experiment was run, and
+  no validator, schema, runtime, hook, CI, gate, or enforcement changed.
+
+Current refresh - 2026-07-22:
+
+Theme:
+
+- Keep Phase E in validity-before-expansion posture while reducing governance
+  noise and surfacing which defenses actually change decisions.
+- Treat the 2026-07-06 test-signal quality line as report-only visibility for
+  consumer/domain-contract test evidence, not as a readiness gate.
+- Use decision-change and context-cost artifacts to decide what to keep,
+  merge, downgrade, or investigate before adding more governance surface.
+- Preserve the 2026-06 cache-aware / AUTHORITY_MANIFEST line as candidate-only
+  unless a named harness consumer and evidence contract are separately scoped.
+
+Completed in latest committed scope:
+
+- [x] Validator-delegation census plan was published to canonical main at
+  `6a20d0a6`, then the bounded fixed-snapshot artifact was published at
+  `a89ee202` with closeout recorded at `63462432`.
+- [x] The published census artifact is intentionally frozen to base
+  `e737572e`, `population_count=197`, and normalized hash
+  `b590fb5fef8dc1a921655877091447a44f42232219c8d91c3a413f467e74da6f`.
+  This remains a historical fixed snapshot only; it does not claim coverage
+  of any later tip, and it does not authorize delegation implementation,
+  retirement, migration, or external adoption.
+- [x] No further census action is currently authorized. The fixed-snapshot
+  claim boundary remains in force until a separate owner-approved slice
+  explicitly authorizes refresh or downstream use.
+
+- [x] No-governance baseline experiment Slice A pre-registered one fixed task,
+  two matched arms, four mechanical metrics, and pre-committed dispositions;
+  correction `7a3f906d` accurately distinguishes older round2b evidence from
+  the current protocol.
+- [x] Stale self-audit carriers were dispositioned and current task authority
+  was synchronized through `ecc17c58` / `8dac8c82`.
+
+- [x] Cache-aware docs phase collected the harness/repo/enforcement boundary:
+  prompt cache, compaction control, deferred tool loading, and mode-as-tool-call
+  remain HARNESS-only; repo-feasible work is limited to reviewer-facing
+  detection/accountability artifacts.
+- [x] Cache-aware receipt alignment clarified that `REVIEW_RECEIPT`,
+  mode/auth, tool-denial, and compaction receipts remain candidate/PENDING
+  evidence unless a later adopted contract changes their authority.
+- [x] Operator prompt playbook now records daily rules that keep sub-agent
+  receipts evidence-only and keep push, memory write, and cross-repo write under
+  main-thread gates plus explicit authorization.
+- [x] Runtime adoption review packet closed the cache-aware docs phase and
+  identified the first feasible implementation tranche:
+  `AUTHORITY_MANIFEST` generator plus authority-change invalidation signal.
+- [x] AUTHORITY_MANIFEST implementation tech spec narrowed the tranche:
+  derive from or extend `.governance/baseline.yaml`, summarize
+  `governance_drift_checker.py` semantics, and do not create a parallel
+  authority map.
+- [x] Read-only `AUTHORITY_MANIFEST v1` candidate generator implemented with
+  focused tests. It derives authority file membership from `.governance`
+  `baseline.yaml`, summarizes `governance_drift_checker.py`, and emits
+  base/head authority-change invalidation signals.
+- [x] Read-only AUTHORITY_MANIFEST preflight consumer simulation implemented
+  with focused tests. It emits reviewer-facing `reuse_candidate`,
+  `reload_required`, `cache_unsafe`, and `not_checked` decisions without
+  provider cache integration or enforcement.
+- [x] CHANGELOG Unreleased entries record both AUTHORITY_MANIFEST candidate
+  generator and preflight consumer surfaces without version bump, release
+  publish, prompt-cache behavior, runtime hooks, CI/pre-push/gates, or
+  enforcement claims.
+- [x] Hermes no_agent local observer claim ledger updated to
+  `observed_six_scheduled_runs` for job `025890509ebf`, based on six
+  scheduled artifacts from 2026-06-25 through 2026-06-30 while preserving
+  non-claims for reliability, SLA, provider-free runtime, governance authority,
+  enforcement, and future scheduled success.
+- [x] Report-only `test_signal_quality_audit` tooling reached v0.2: domain
+  contract repos can be scanned for validator fixture pairing, fixture-manifest
+  expected-result mapping, placeholder validator labeling, fixture-runner
+  presence, lexical weak-test signals, and explicit cannot-claim boundaries.
+- [x] Consumer-facing update instructions now surface semantic test-quality
+  expectations: no happy-path-only tests for non-trivial changes, independent
+  expected values, regression tests for reproducible bugs when feasible,
+  mock-only weakness, and validator pass/fail fixture expectations.
+- [x] Retrieval Authority Round A and Cache-Aware Round B design clusters were
+  consolidated into summary/index docs with source-note pointer banners and
+  classification metadata. Source notes remain preserved; they were not
+  archived, invalidated, or reclassified by the pointer update.
+- [x] `docs/governance/decision-change-ledger.seed.json` was added as a seed
+  artifact for classifying recent governance outputs by decision effect,
+  including the distinction between output-line evidence and future
+  inventory-line zombie-defense visibility.
+- [x] `docs/governance/context-cost-budget-design-2026-07-06.md` separated
+  per-slice context-read budgeting from the decision-change ledger so
+  agent-read telemetry does not pollute defense-output classification.
+
+Current next candidate:
+
+- [x] This bookkeeping alignment slice is complete once `PLAN.md` and
+  `memory/01_active_task.md` are reconciled against the published census
+  history. No new framework implementation slice is active at this commit.
+- [x] A plain-language response failure has already been observed rather than
+  remaining hypothetical: two comprehension failures required a report rewrite
+  before an engineer or the owner could act. This satisfies the
+  failure-driven eligibility condition for a separate response-quality slice;
+  it does not authorize implementation by itself.
+- [x] Owner-authorized on 2026-07-17 and implemented at `61673ca9`: mechanical
+  plain-language final-report validation exists as opt-in
+  `--check-response-quality` in `response_envelope_validator.py`, requiring
+  `conclusion`, `recommended_action`, and `next_action` to be non-empty and
+  positioned before `evidence_refs`. Default validator behavior is unchanged,
+  and no hook, CI, gate, or default invocation enables the check; enabling it
+  anywhere remains a separate owner decision. The slice stayed separate from
+  census refresh, delegation implementation, module retirement, consumer
+  migration, and release preparation.
+- [x] Second failure-driven response-quality slice (owner-authorized
+  2026-07-18): direct owner feedback showed a report passing the v0.4
+  structural check was still unreadable — field presence does not equal
+  comprehension. Added opt-in `--check-plain-summary`: `conclusion`,
+  `reason`, `next_action` exactly once before `evidence_refs`, each a
+  sentence rather than a bare machine token (tokens need a plain-language
+  gloss; `next_action: none` rejected). The observed unreadable reply is a
+  must-fail regression fixture; the owner's three-line plain version is a
+  must-pass fixture. Contract v0.5 records the honest boundary: structural
+  proxy only — it raises the probability of readable reports and cannot
+  prove comprehension; the real success signal remains direct reader
+  feedback. Default behavior unchanged; no hook/CI/gate enables either
+  check.
+- [x] Third failure-driven owner-summary refinement (owner-authorized
+  2026-07-22): a real completion report still made the owner decode technical
+  state before finding the result and next move. Contract v0.6 now makes the
+  literal first three non-empty lines `Result / Reason / Next step` (translated
+  to the session language), moves technical evidence after that preface, and
+  uses actual reader understanding as acceptance. The existing opt-in
+  validator remains unchanged; no hook, CI, gate, or default enforcement was
+  added.
+- [x] G4 manual work-item case 001 records that response-readability line as one
+  self-hosted early outcome signal rather than counting its sessions, commits,
+  validation, and memory events as separate samples. It binds the natural
+  failure, v0.6 response, owner replay acceptance, four owner interventions,
+  observable delivery cost, recurrence boundary, and absent transfer evidence
+  in `docs/status/g4-work-item-case-001-owner-summary-2026-07-22.md`. G4 remains
+  unclaimed; no independent consumer, non-author, cross-repo, sustained, or
+  benefit-over-cost conclusion follows from this case.
+- [x] The first cross-consumer G4 observation checkpoint groups five natural
+  work-item candidates across `Bookstore-Scraper`, `meiandraybook`, and
+  `Enumd-private-vault` without counting sessions or commits as samples. It
+  records two qualifying cases, one Bookstore zero-effect / owner-corrected
+  case, and two insufficient-evidence Mei candidates in
+  `docs/status/g4-cross-consumer-observation-checkpoint-2026-07-22.md`.
+  This is early multi-consumer outcome evidence only: G4, sustained outcomes,
+  non-author independence, and benefit-over-cost remain unclaimed.
+- [x] The 2026-07-24 successor checkpoint preserves the 2026-07-22 snapshot
+  and adds one distinct Bookstore slow-source / Grimm work item, producing
+  three qualifying cases, one zero-effect case, and two insufficient-evidence
+  Mei candidates in
+  `docs/status/g4-cross-consumer-observation-checkpoint-2026-07-24.md`.
+  The new Bookstore case retains its `linked_commit=e478409` receipt-anchor
+  warning; canonical memory binds the product correction to `c9cd494`.
+  Enumd Phase I-R remains one continuing private-vault case, and Mei PR #9
+  does not become a new sample from PR volume alone. Qualifying breadth remains
+  two consumers; G4, sustained outcomes, independent review, comparable cost,
+  and benefit-over-cost remain unclaimed.
+- [ ] For every other framework-expansion direction, wait for a real consumer
+  failure or a new product need before opening a slice.
+
+- [x] Slice B voided under owner-approved Pre-Run Amendment 2 (FINAL).
+  The first A1 attempt is excluded as a protocol-fidelity failure: its
+  writes/validation were blocked by the effective Codex sandbox/policy
+  despite the frozen `workspace-write` spec, and it produced no scoreable
+  output (scratch repo unchanged at seed `dd34ac3`); receipts are retained.
+  The observed voluntary `AGENTS.md` read is handled intent-to-treat: Arm A
+  is defined as no harness-injected governance, and voluntary governance-doc
+  reads are recorded per run as an observed variable. The Arm B entrypoint
+  is now frozen (hook_installer --hooks-only + hook_install_validator
+  valid=true). The required write-capability probe in a disposable non-task
+  repo failed under the same Codex configuration: the model reported a
+  read-only workspace, policy rejected the write, `write-probe.txt` was
+  absent, and the repo remained clean at seed `a619e13`. This is the further
+  protocol gap named by the hard lock, so Slice B is void. No valid baseline
+  run or score exists; continuation requires a separate v2 pre-registration.
+
+- [x] v2 Pre-0 execution-surface qualification passed on the final authorized
+  attempt. The v2 experiment is void before Run 1; see
+  `docs/status/no-governance-baseline-v2-void-2026-07-10.md`. Its first fresh
+  Arm A scratch root was not eligible (no copied task file or seed commit), and
+  the freeze did not bind seed construction/tree hash. Under v2's zero-amendment
+  rule, no replacement scratch may be improvised. No Codex session, OpenAI API
+  transmission, run, score, metric, or attribution conclusion occurred. The first attempt failed before
+  helper launch because nested `.sandbox-bin` Codex lacked package identity.
+  The second used the correct package-context launcher but reused a scratch
+  root owned by `CodexSandboxOffline`, so write-ACE setup failed. The final,
+  capped attempt used a fresh disposable repo whose root was created by
+  launcher user `daish`, plus the identical `Invoke-CommandInDesktopPackage`
+  launcher, PFN `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`,
+  `-PreventBreakaway`, package `26.707.3748.0`, native `elevated`, and
+  `workspace-write`. Helper setup completed with `errors=[]`; `apply_patch`
+  created the sole changed file, whose exact bytes are
+  `workspace-write-ok\n`, and readback/status succeeded. Future v2 scratch
+  repos must be created by the launcher user outside sandbox context;
+  qualification does not transfer across launcher or package version.
+  v2 locks the successful ICIDP launcher/PFN/AppId/`-PreventBreakaway`, native
+  `elevated`, `workspace-write`, and package `26.707.3748.0`; every run must
+  retain a matching package check. Scratch roots must be created outside the
+  sandbox by launcher user `daish`; no amendment is allowed after the v2 freeze.
+
+- [x] v3 offline dress rehearsal completed without an API call. It demonstrated
+  fresh scratch construction, literal JSON seed mutation, mutation-probe
+  behavior (8 fixtures / 7 matched / 1 named mismatch), clean post-probe state,
+  seed-tree hash `27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71`, and assembled
+  package-context launcher arguments. v3 is not preregistered or authorized to
+  run; see `docs/status/no-governance-baseline-v3-offline-dress-rehearsal-2026-07-10.md`.
+
+- [x] v3 Arm B offline rehearsal completed without an API call. A fresh clone
+  matched the Arm A seed tree hash; `hook_installer --hooks-only` reported
+  `ok=true`, `hook_install_validator` reported `valid=true`, and a local commit
+  trace showed `.git/hooks/pre-commit` invocation with a clean poststate. The
+  package-context hook path remains untested. v3 is not preregistered or
+  authorized to run; see
+  `docs/status/no-governance-baseline-v3-arm-b-offline-dress-rehearsal-2026-07-10.md`.
+
+- [x] v3 preregistration frozen from both rehearsed arms at
+  `docs/governance/no-governance-baseline-v3-preregistration-2026-07-10.md`.
+  It binds the baseline/seed/task hashes, launcher/package/provenance locks,
+  both arm procedures, and a pre-declared zero-scoreable-output exclusion rule
+  for package-context Arm B hook-environment failure. The owner subsequently
+  authorized task-prompt and scratch-content transmission for Run 1 only. Arm
+  A Run 1 completed through the owner-executed launcher and is archived at
+  `docs/status/no-governance-baseline-v3-a1-archive-2026-07-11.md`; its raw
+  evidence and poststate are retained, but no metrics, blind review, ledger,
+  or attribution conclusion has been created.
+
+- [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
+  candidate-only state until a named real harness consumer and evidence
+  contract are separately scoped:
+  `docs/governance/authority-manifest-preflight-evidence-decision-2026-07-02.md`.
+- [x] Decision note defines the evidence boundary for v1.3.0 release-prep:
+  release-surface consistency and consumer-side proof are required before any
+  release-prep slice can start:
+  `docs/governance/v1.3.0-release-prep-evidence-boundary-2026-07-02.md`.
+- [ ] Do not start v1.3.0 release-prep until the scoped release-surface
+  consistency packet and named consumer-side proof packet are collected and
+  reviewed.
+- [x] Read-only decision-change ledger inventory-line pass completed at
+  `e30b1576` (`docs/governance/decision-change-ledger.inventory.v0.1.json`).
+  All 193 `governance_tools` modules were compared against wiring and output
+  evidence; 40 candidates were escalated, 4 were marked retire_candidate, and
+  the retire-candidate line was later fully dispositioned.
+- [ ] Use the completed inventory-line results as historical input only. Do
+  not merge, downgrade, or retire any governance surface without a separate
+  authorized slice and evidence for the specific change.
+- [ ] Keep any context-cost companion record as a future candidate only until
+  there is evidence that per-slice summaries change review, implementation, or
+  consolidation decisions without becoming their own governance overhead.
+
+Claim ceiling for this sprint:
+
+- CLAIMED: cache-aware planning and the first repo-feasible implementation
+  tranche are documented and implemented as read-only candidate tooling:
+  AUTHORITY_MANIFEST generation, authority-change invalidation, and preflight
+  consumer simulation.
+- CLAIMED: report-only test-signal quality audit visibility exists for domain
+  contract repos, with v0.2 fixture-manifest and fixture-runner reporting.
+- CLAIMED: governance-overhead analysis has seed artifacts for decision-change
+  classification and context-cost design.
+- CLAIMED: a bounded validator-delegation census fixed snapshot was published
+  as a historical artifact pinned to `e737572e` / 197 modules, with no
+  delegation, retirement, migration, or adoption authority attached.
+- NOT CLAIMED: prompt cache implementation, cache hit/miss monitoring,
+  compaction control, mode/auth/tool-denial receipt tooling, runtime hook/CI
+  wiring, enforcement, canonical authority promotion, external harness
+  adoption, v1.3.0 release readiness, cross-repo writes, automatic test-quality
+  enforcement, industry-grade test proof, noisy-surface retirement, measured
+  token savings, context-cost compliance, current-tip census coverage, or any
+  actionability derived solely from the census artifact.
+
+Latest milestone commits:
+
+- `8a98df2e chore(memory): record P1-F publication`
+- `ba50b0f4 docs(governance): close P1-F as advisory`
+- `c8c06f3e feat(governance): add opt-in plain-summary validation`
+- `63462432 chore(memory): record validator census publication`
+- `a89ee202 docs(governance): add validator census e737 snapshot`
+- `a3dbf022 feat: add fail-closed offline submodule onboarding`
+
+- `470b95a docs(governance): add cache-aware runtime adoption packet`
+- `2974840 docs(governance): specify authority manifest implementation tranche`
+- `36dc391 docs(memory): record authority manifest tech spec push`
+- `454391c feat(governance): add authority manifest candidate generator`
+- `88f1bdf feat(governance): add authority manifest preflight consumer`
+- `0d5f1bd docs(changelog): record authority manifest generator`
+- `8e9754b docs(changelog): record authority manifest preflight consumer`
+- `58f8a30 docs(hermes): update no-agent recurrence ledger`
+- `8090517 docs(hermes): record sixth no-agent observation`
+- `6e6d059 docs(memory): record Hermes observed-six ledger update`
+- `1c9abeff fix(governance): harden test signal manifest parsing and surface fixture runners`
+- `a5ae276e feat(governance): surface semantic test quality guidance`
+- `2ac950bc docs(governance): classify design note surfaces`
+- `d4173978 docs(governance): consolidate retrieval authority round a summary`
+- `f3b2b1ee docs(governance): add cache-aware round b summary`
+- `7d952d35 docs(governance): sync cache-aware classification metadata`
+- `5ce59b81 docs(governance): add consolidation pointers to source notes`
+- `023c65c0 docs(governance): seed decision-change ledger`
+- `5add91e5 docs(governance): design context cost budget`
+- `86257f97 docs(memory): record context cost budget design`
+
+Latest scoped evidence:
+
+- `.venv\Scripts\python.exe -m governance_tools.governance_drift_checker
+  --repo . --format json` reports `ok=true`, `severity=ok`,
+  `plan_inventory_current=true`, and `plan_freshness=true` before this
+  bookkeeping refresh.
+- `python -B -m pytest tests/test_authority_manifest.py -p no:cacheprovider`
+  passed focused generator coverage before commit.
+- `python -B -m pytest tests/test_authority_manifest_preflight.py
+  --basetemp .tmp_pytest_authority_manifest_preflight_review -p no:cacheprovider`
+  passed 6/6 before commit.
+- `python -m pytest tests/test_test_signal_quality_audit.py --basetemp
+  .tmp_tsqa` passed 19 tests for the v0.2 test-signal audit surface before the
+  2026-07-06 hardening memory record.
+- `git diff --check` passed for the decision-change ledger seed and
+  context-cost design notes before their source commits.
+- Hermes read-only observation inspected `jobs.json`, six output artifacts,
+  and `agent.log` under `C:\tmp\hermes-noagent-checklist-deploy-20260623`,
+  supporting `observed_six_scheduled_runs` but not reliability.
+- 2026-06-28 through 2026-07-06 canonical memory records bind the cache-aware
+  receipt alignment, operator rules, runtime adoption packet, baseline
+  analysis, authority manifest implementation, preflight consumer simulation,
+  changelog dispositions, Hermes observed-six ledger update, test-signal audit
+  v0.2, design-note consolidation, decision-change seed, and context-cost
+  design.
+
+Historical sprint context - 2026-06-10:
+
+Theme:
+
+- Convert repeated instruction-level failures into deterministic dispatch,
+  evidence, and reviewer-readable state without overclaiming enforcement.
+
+Completed in latest committed scope:
+
+- [x] MEM-DISPATCH framework-side implementation completed.
+- [x] `governance_tools.memory_workflow` added as deterministic dispatcher for
+  memory tasks.
+- [x] `memory/**` diffs classify as `governed_memory_task`.
+- [x] `--run-guard` integrates memory authority guard summary into dispatcher
+  output.
+- [x] `--fail-on-blocker` provides opt-in selective blocking for current
+  completion blockers.
+- [x] `session_end_hook` exposes advisory `memory_workflow` surface.
+- [x] `session_closeout_entry` persists `memory_workflow` fields in closeout
+  receipt schema `1.2`.
+- [x] Managed `pre-commit` hook surfaces memory workflow as advisory only.
+- [x] `MEMORY_PROTOCOL.md` documents dispatcher, guard, selective blocking,
+  hook advisory, and receipt evidence semantics.
+- [x] F-7 framework-side role-aware orchestrator skeleton added.
+- [x] F-7 submodule pointer update is demoted to a backend stage, not
+  full-update completion.
+- [x] External contract repo apply path scaffolded for framework lock, hooks,
+  Copilot instructions, and AGENTS keyed-section calibration.
+- [x] Windows-safe governance hook installer added with no-BOM framework-root
+  config handling.
+- [x] Self-hosted canonical memory evidence recorded for MEM-DISPATCH milestone.
+- [x] Response Envelope Contract v0.2: added Evidence Term Glossing
+  (plain-language requirement) as an advisory reviewer-facing convention;
+  registered the contract in `governance/AUTHORITY.md` and routed glossing in
+  `AGENTS.md` router #2. Advisory only; `response_envelope_validator.py`
+  unchanged; no gate, no enforcement claim. v0.3 adds the Next-Step Judgment
+  required closing section (status / basis / recommended action / cannot-claim)
+  for decision-readability; still advisory, validator still unchanged.
+- [x] Consumer .gitignore hygiene: `adopt_governance.py` now ships a managed,
+  idempotent, non-destructive artifact/pyc ignore block to consuming repos on
+  adopt and `--refresh`, so a consumer no longer goes permanently dirty from
+  regenerated runtime artifacts / tracked `.pyc` (root-caused from
+  gl_electron_tool F-7 evidence). Memory is intentionally not ignored. Covers
+  the adopt/refresh path only; already-adopted repos must re-run refresh + a
+  one-time `git rm --cached`.
+- [x] F-7 updater hygiene: `external_governance_submodule_updater.py` now also
+  ensures the same managed `.gitignore` block on the managed-updater path
+  (dry-run reports a `gitignore_hygiene` field; apply writes + stages
+  `.gitignore`), reusing the canonical block from `adopt_governance` (single
+  source, no drift). Reported as an advisory field, intentionally NOT folded
+  into `final_status` (the 5-layer contract is unchanged). Both adopt/refresh
+  and the F-7 updater now carry hygiene; already-dirty repos still need a
+  one-time `git rm --cached`.
+
+Latest milestone commits:
+
+- `0a28633 feat(governance): add memory workflow dispatch`
+- `20a2353 docs(memory): record memory workflow milestone`
+
+Latest scoped evidence:
+
+- `python -X utf8 -m pytest tests/test_memory_workflow.py tests/test_session_end_hook_memory_workflow_surface.py tests/test_closeout_receipt_memory_surface.py tests/test_agent_closeout_receipt.py tests/test_pre_commit_memory_workflow_advisory.py tests/test_f7_full_update.py tests/test_hook_installer.py tests/test_hook_install_validator.py tests/test_external_governance_submodule_updater.py --basetemp .tmp-pytest/memory-workflow-commit -o cache_dir=.tmp-pytest/cache` -> 68 passed.
+- `python -X utf8 -m governance_tools.memory_workflow --check --repo . --run-guard --fail-on-blocker --format json` -> `active_non_canonical_writer=0`, `blockers=[]`, `completion_claim_allowed=true`.
+
+Completed 2026-06-12 (reviewed per-slice, pushed to gitlab/main and
+origin/main, all heads = `9f7fa1e`):
+
+- [x] P1-A selective CI blocker: CI-only current-diff
+  `active_non_canonical_writer` blocker with `memory/**` workflow triggers
+  and anti-bypass tests (`5deb8bb`).
+- [x] Pre-commit memory advisory reporting clarity: guard-not-run vs
+  completion-denied disambiguation (`5642134`).
+- [x] Runtime ledger no-write mode: `AI_GOVERNANCE_NO_LEDGER_WRITE` /
+  `--no-ledger-write`; smoke path no longer writes tracked ledgers; skipped
+  writes observable as `skipped_no_write_mode` (`9f7fa1e`).
+- [x] Cross-remote sync: local HEAD = gitlab/main = origin/main verified.
+
+Completed 2026-06-17 -> 2026-06-18 (reviewed per-slice, pushed; latest
+head = `7942572`):
+
+- [x] OQ-2 resolved: learning-loop terminus is advisory-only (record ->
+  taxonomy/memory/eval/claim-boundary linkage -> warning signal); no re-run
+  gate / CI / completion blocker.
+- [x] OQ-1 ratified: layered taxonomy framework -- `semantic_failure`
+  (SF-code) is the primary reviewer-finding taxonomy; `scenario_type` is a
+  separate replay-shape axis; `FAILURE_KINDS` is `result_disposition` only;
+  cross-walks read-only, no flat merge, no fourth taxonomy.
+- [x] Gate 3 opening criteria + schema-prep boundary defined in
+  `docs/LEARNING_LOOP_CONSOLIDATION_SPEC_2026-06-16.md`. Gate 3 is NOT opened
+  (5 conditions unmet; binding = repeated drift trigger + owner unpause).
+- [x] Taxonomy-alignment prep advisory implemented (`483b920`) and hardened
+  for missing/malformed/BOM input (`7472cb2`): advisory-only, exit 0 unless
+  `--strict`.
+- [x] Option B ledger untrack implemented (`ffd9609`): the two runtime ledgers
+  are ignored + `git rm --cached`, local files kept; readers verified to
+  tolerate absence.
+- [x] Runtime ledger milestone export, manifest-only (`bf798d4`): BOM-safe,
+  advisory by default, `--strict` / `--include-raw` opt-in; export bundles
+  are committable.
+
+Claim ceiling for the above: learning-loop implementation remains paused and
+advisory-only; OQ-1/OQ-2 resolved does NOT open Gate 3; no banking, replay
+runner, CI/completion gate, or enforcement exists.
+
+Completed 2026-06-21 (reviewed per-slice, pushed to origin/main):
+
+- [x] Hermes adapter line reached mock-backend smoke coverage:
+  adapter scaffold, accepted-input interface doc, deterministic stub runner,
+  standard smoke registration, input-driven mock backend fixture, fail-closed
+  parse / allowlist behavior, and fixture disclaimer were committed with
+  focused tests.
+- [x] CI enforcement claim ceiling documented in
+  `docs/governance/ci-enforcement-claim-ceiling.md`: push checks are
+  post-facto detection/accountability; PR coverage is stronger; prevention
+  claims require verified required checks / branch protection outside the
+  workflow file.
+
+Claim ceiling for 2026-06-21 updates: Hermes remains mock-backend /
+accepted-input smoke only; no real Hermes model, hosted/local backend,
+general code-writing runtime, model reliability, or non-bypassable governance
+wrapping is claimed. CI claim-ceiling work is documentation-only; it does not
+change workflow behavior, hooks, branch protection, or enforcement level.
+
+## Active Claim Boundaries
+
+Test-signal quality audit line (2026-07-06):
+
+- CLAIMED: report-only domain-contract test-signal audit tooling exists in
+  `governance_tools/test_signal_quality_audit.py` and can surface validator
+  fixture pairing, fixture-manifest expected-result mapping, fixture-runner
+  presence, placeholder labeling, and weak lexical test-signal candidates.
+- CLAIMED: consumer-facing update instructions now state semantic test-quality
+  expectations for non-trivial work and validator fixture pairs.
+- NOT CLAIMED: the framework proves any consumer repo has industry-grade tests,
+  validates fixture truth, enforces test quality, changes readiness gates,
+  rewrites consumer tests, or semantically proves behavior protection.
+
+Decision-change / context-cost line (2026-07-06):
+
+- CLAIMED: `docs/governance/decision-change-ledger.seed.json` provides a seed
+  classification model and recent evidence-backed examples for whether
+  governance outputs changed later decisions.
+- CLAIMED: `docs/governance/context-cost-budget-design-2026-07-06.md`
+  separates per-slice context-read accounting from defense-output
+  classification.
+- CLAIMED: the read-only inventory-line pass was run at `e30b1576` and
+  produced a bounded historical inventory artifact.
+- NOT CLAIMED: the inventory artifact by itself retires or downgrades any
+  defense, proves the dispositions are globally complete beyond the recorded
+  retire-candidate line, measures context savings, creates context-cost
+  companion records, or enforces context-budget rules.
+
+Cache-aware / AUTHORITY_MANIFEST line (2026-06-28 -> 2026-06-29):
+
+- CLAIMED: cache-aware governance surfaces have been classified into
+  HARNESS-only, REPO-feasible, and ENFORCEMENT-limited boundaries.
+- CLAIMED: the first repo-feasible implementation tranche exists as read-only
+  candidate tooling: `AUTHORITY_MANIFEST v1` generator, base/head
+  authority-change invalidation signal, and AUTHORITY_MANIFEST preflight
+  consumer simulation.
+- CLAIMED: generator semantics derive from existing `.governance/baseline.yaml`
+  and `governance_drift_checker.py` surfaces instead of creating a competing
+  authority map.
+- NOT CLAIMED: prompt cache is implemented, cache hit/miss is monitored,
+  compaction is controlled by this repo, candidate receipts are authoritative,
+  CI/runtime/pre-push/gate enforcement is wired, external harnesses have
+  adopted the cache-aware specs, or v1.3.0 release-prep is justified.
+
+Mutation enforcement:
+
+- CLAIMED: canonical mandate that mutation enforcement claims require an
+  explicit mutation contract.
+- Rule: No mutation contract = No enforcement claim.
+- A tool, workflow, hook, or validator may not claim mutation enforcement
+  unless its mutation contract is explicitly documented, scoped, and testable.
+- NOT CLAIMED: mutation enforcement is implemented for every mutation surface,
+  mutation contracts are complete, or mutation catalog presence is enforcement
+  by itself.
+MEM-DISPATCH:
+
+- CLAIMED: framework-side implementation, tests, docs, hook advisory, session-end
+  surface, and closeout receipt persistence.
+- NOT CLAIMED: fleet-wide enforcement, all external repos governed, historical
+  memory debt resolved, or CI / hook blocking rollout.
+
+F-7:
+
+- CLAIMED: framework-side role-aware orchestrator skeleton and external contract
+  apply-path scaffold; submodule consumer apply path refreshes repo-local
+  instructions, memory workflow router coverage, and managed hook advisory
+  coverage.
+- NOT CLAIMED: fleet rollout, all repo roles verified, all external repos
+  upgraded, external readiness completion, validators changed, artifact schema
+  changed, or existing memory normalized.
+
+Memory authority:
+
+- CLAIMED: canonical writer, active-window guard summary, dispatcher routing,
+  and opt-in blocker path.
+- NOT CLAIMED: historical debt cleanup, blocking threshold readiness, semantic
+  correctness of memory content, or global enforcement closure.
+
+Hermes executor-adapter line (2026-06-21):
+
+- CLAIMED: Hermes accepted-input adapter surface, interface documentation,
+  deterministic stub runner, standard smoke registration, and input-driven
+  mock-backend fixture path with focused tests for fail-closed parse /
+  allowlist behavior and response-file contract.
+- CLAIMED: the separate Hermes no_agent local observer line has
+  `observed_six_scheduled_runs` for job `025890509ebf`, with six scheduled
+  output artifacts from 2026-06-25 through 2026-06-30 and observation-only
+  claim ceiling.
+- NOT CLAIMED: verified external Hermes governance compliance, true Hermes
+  model integration, hosted/local backend reliability, model-generated
+  tool-call reliability, general-purpose code-writing runtime completion,
+  provider-free runtime, future scheduled success, or non-bypassable governance
+  wrapping.
+
+CI enforcement claim ceiling (2026-06-21):
+
+- CLAIMED: documentation of the current in-repo GitHub Actions boundary:
+  push-triggered checks are post-facto detection/accountability; four heavier
+  jobs are PR-only; branch protection / required-check settings are outside
+  the workflow file and were not verified here.
+- NOT CLAIMED: prevention-grade enforcement, verified GitHub branch protection,
+  required status checks enabled, local hooks installed everywhere, adapters as
+  runtime sandboxes, or CI proof of framework correctness.
+
+Selective CI enforcement (P1-A, 2026-06-12):
+
+- CLAIMED: CI-only current-diff `active_non_canonical_writer` blocker
+  implemented (`5deb8bb`); hooks remain advisory; historical memory debt
+  remains warning-only; reviewed and pushed to both remotes.
+- NOT CLAIMED: full memory workflow enforcement, full mutation protection,
+  blocker class expansion, or fleet CI rollout.
+
+Runtime ledger no-write mode (2026-06-12):
+
+- CLAIMED: runtime smoke path supports no-write mode for tracked ledgers;
+  skipped writes are observable as `skipped_no_write_mode`; explicit
+  `session_end` default ledger writes preserved.
+- NOT CLAIMED: runtime ledger side-effect root redesign, workspace clean
+  guarantee, tracked ledgers untracked/ignored/deleted, or elimination of
+  all hook / pre-push side effects.
+
+Structured PLAN Reconciliation Declaration (advisory implemented, 2026-06-12):
+
+- CLAIMED: writer-level `--plan-reconciliation` field with taxonomy
+  validation implemented in `governance_tools.memory_record`; missing
+  declarations recorded as `not_declared` with advisory; malformed
+  declarations rejected at write time; pre-push advisory reports
+  undeclared records; the gate target is silent drift, not deferred
+  drift.
+- NOT CLAIMED: blocking enforcement (P1-F, separate OP-HC decision),
+  deferred-debt report, P1-E FP/FN window completed, PLAN auto-sync,
+  retroactive declaration coverage for historical records, or that a
+  deferred declaration equals reconciliation.
+
+Scope taxonomy (P1-I, 2026-06-12):
+
+- CLAIMED: four scope sets defined by evidence duty with membership
+  criteria; meiandraybook classified (f7_consumer + submodule_consumer,
+  not fleet); hardcoded fleet enumeration explicitly accepted with a
+  named re-evaluation trigger; manifest-driven generator deferred,
+  failure-driven.
+- NOT CLAIMED: fleet coverage complete, all consumers monitored,
+  copy-based consumer update path solved, scope manifest implemented,
+  or repo-class freshness SLA defined.
+
+Fleet freshness (P1-H, 2026-06-12):
+
+- CLAIMED: event-driven freshness policy adopted; refresh via the
+  registered generator required before rollout / release / external
+  claims citing fleet state; `required_verified` ratio defined as
+  freshness-window evidence.
+- NOT CLAIMED: fleet health restored, continuous monitoring, weekly
+  cadence, repo-class SLA, or that idle-period decay is a defect.
+
+Adoption model (P2-C, 2026-06-12):
+
+- CLAIMED: consumer role taxonomy canonicalized in
+  `docs/ADOPTION_MODEL.md` (submodule consumer, F-7 consumer, external
+  contract repo, copy-based audit-only, unsupported/unknown), each with
+  required evidence, allowed claims, prohibited claims, and upgrade
+  path; copy-based consumers classified audit-only (classification and
+  audit wording supported); classification-precedes-tooling rule.
+- NOT CLAIMED: copy-based update automation (unsupported; ceiling: not
+  solved), any new tooling, fleet rollout, F-7 generality, or that
+  classification of a class equals evidence of a consumer in it.
+
+Publish surfaces (P2-E, 2026-06-13):
+
+- CLAIMED: per-surface publish decision checkpoint canonicalized —
+  description and topics allowed only after exact-text ratification
+  under a mechanism-only ceiling; badge deferred until the first gated
+  release; release publish remains gated; prohibited wording classes
+  recorded; publish text may never claim above the README capability
+  table.
+- NOT CLAIMED: any publish surface edited, any release published, any
+  badge added, promotion readiness, or that P2 core documentation
+  completion equals public-promotion ready.
+
+Reviewer polling:
+
+- CLAIMED: reviewer polling is manual / resume-triggered only; bounded
+  polling exists only as a behavior constraint in `.agent` role templates.
+- NOT CLAIMED: automatic reviewer polling, daemon behavior, or automated
+  reviewer handoff.
+- Observed confusion (2026-06-12): thread append can create contradictory
+  pending/final review states; reviewer protocols must use explicit FINAL
+  verdict blocks or read-only extraction.
+
+CodeBurn / token observation:
+
+- CLAIMED: Class C observation-only surfaces and same-provider visible I/O token
+  summaries where explicitly enabled.
+- NOT CLAIMED: billing truth, efficiency inference, cross-provider comparability,
+  or decision-safe cost analysis.
+
+## Pending Work - Ordered
+
+P0 - composite workspace census evidence closeout (completed 2026-07-14):
+
+- [x] Independently review and approve the eToken-only composite workspace
+  authority tech spec while preserving repository sovereignty, discovery-only
+  IDE evidence, and repo-local F-7 completion semantics.
+- [x] Implement the report-only census in `6e4e5439` with an explicit
+  coordinator root and sibling allowlist; keep every valid membership
+  `unratified` and prohibit consumer writes, F-7 invocation, commit, and push.
+- [x] Run the census against isolated copies of the three eToken repositories;
+  confirm the four-line human conclusion and JSON agree with
+  `E2-CONSUMER-03`, with the original consumer repositories unchanged.
+- [x] Reconcile the tech spec and E2 packet to the implementation checkpoint
+  and isolated validation result.
+
+Claim ceiling: the report-only census exists and exposes per-repository gaps.
+It does not establish bilateral membership, workspace governance authority,
+workspace-wide F-7, G4 operator value, or general fleet demand. The live eToken
+census JSON was not retained as a durable tracked receipt.
+
+Deferred follow-up: observe normal-user census use before claiming G4 value,
+then request a separate owner decision on any bilateral membership endpoint.
+Do not expand F-7 from this completed tranche.
+
+P0 - cache-aware authority manifest implementation readiness:
+
+- [x] Close cache-aware docs phase with implementation readiness packet and
+  claim ceilings.
+- [x] Record that `AUTHORITY_MANIFEST v1` must reuse or extend the existing
+  `.governance/baseline.yaml` plus `governance_drift_checker.py` path.
+- [x] Write the docs-only implementation tech spec for the first tranche.
+- [x] Before implementation, confirm high-rigor review boundary for a read-only
+  authority manifest generator plus focused tests.
+- [x] Implement the generator as a separate read-only tooling slice.
+- [x] Implement the AUTHORITY_MANIFEST preflight consumer simulation as a
+  separate read-only tooling slice.
+- [x] Record CHANGELOG Unreleased dispositions for the generator and preflight
+  consumer simulation.
+- [x] Document that the preflight path remains Unreleased candidate-only until
+  a named real harness consumer and evidence contract are separately scoped.
+
+Non-goals for this pending work:
+
+- Do not implement prompt cache, runtime hooks, CI/pre-push/gate enforcement,
+  baseline rewrites, memory behavior, release publishing, or cross-repo writes
+  as part of the first tranche.
+
+P0 - reviewer surface / trust repair:
+
+- [x] Repair `PLAN.md` encoding / mojibake reviewer-surface defect.
+- [x] Run scoped diff check for `PLAN.md` repair.
+- [x] Commit `PLAN.md` repair separately from runtime ledgers.
+- [x] Record canonical memory evidence for the `PLAN.md` repair commit.
+
+P1-B - canonical status reconciliation after 2026-06-12 push:
+
+- [x] `PLAN.md` reflects pushed reality (P1-A, advisory clarity, no-write
+  mode, cross-remote sync recorded with claim boundaries).
+- [x] P1-A selective enforcement status no longer stale in pending work.
+- [x] Runtime ledger no-write mode claim boundary recorded.
+- [x] Reviewer polling recorded as explicitly manual / resume-triggered.
+- [x] Inventory refresh passes or reports exact drift: refresh trued-up
+  stale overridable hashes (`PLAN.md`, `contract.yaml`, `AGENTS.md`);
+  drift checker `severity=ok`, no warnings, no errors.
+- [x] No F-7 rollout performed in this slice.
+
+P1-C0 - canonicalize silent-drift findings before F-7 verification
+(completed 2026-06-12; no implementation, no F-7 run, no debt claimed
+resolved):
+
+- [x] P1-C gains fleet snapshot refresh as verification evidence.
+- [x] P1-C gains memory_layout alias verification note.
+- [x] E2 retrospective adoption evidence collection entered canonical
+  tracker as P1 evidence-class item.
+- [x] README capability table caveats entered canonical tracker (P2).
+- [x] English reviewer-facing docs entered canonical tracker (P2).
+
+P1-C - F-7 external rollout verification with manual PLAN reconciliation
+fixture (scoped to `meiandraybook` only; one slice one evidence; do not
+claim rollout complete):
+
+Re-scope note (2026-06-12, ratified): P1-C may accept prior
+clean-remediation-worktree F-7 apply evidence when the primary consumer
+worktree is stale/dirty and re-running apply would create duplicate or
+misleading verification evidence. In that case, P1-C scope becomes
+post-apply evidence verification, not re-application. Acceptable evidence
+sources: meiandraybook origin/main, the 2026-06-11 memory records
+(`678c4c9` / `3ddff9d`), framework-side fleet snapshot, and read-only
+checks against current remote state. Not acceptable: pull/merge/apply on
+the stale primary dirty worktree, bundling stale-worktree cleanup into
+P1-C, or re-running the completed apply to manufacture new evidence.
+
+- [x] Use F-7 external apply path to distribute `memory_workflow` to a
+  consuming repo: satisfied by the prior clean-remediation-worktree apply
+  (2026-06-11, recorded at meiandraybook origin/main `678c4c9`/`3ddff9d`,
+  `f7_final_status=full_update_completed`). Accepted per the re-scope
+  note; NOT executed in this slice.
+- [x] Verify hook installer carries managed pre-commit memory workflow advisory:
+  satisfied by accepted apply evidence (`memory_workflow_hook_advisory=verified`,
+  `hook_validator_enforcement=verified` in `3ddff9d` record).
+- [x] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
+  memory completion claims: verified read-only against origin/main
+  (`governance:key=memory_workflow` keyed section, AGENTS.md:583).
+- [x] Verify external repo closeout receipts persist the pinned writer schema
+  and memory-workflow fields: completed by read-only adjudication on 2026-07-22.
+  The qualifying natural-session artifact is meiandraybook receipt
+  `closeout_receipt_20260722T062442354802Z.json`. The consumer gitlink and
+  nested framework HEAD are `8a98df2e`, whose writer emits schema `1.4`; the
+  receipt has `schema_version="1.4"` and persists all six close-condition
+  surfaces in the same artifact: `memory_workflow_dispatch_ran`,
+  `memory_workflow_status`, `memory_workflow_warning_codes`,
+  `memory_workflow_blocker_codes`, and `memory_workflow_guard_summary`, plus
+  the pinned schema match.
+  Natural Stop-hook provenance is external to the receipt's `unknown` identity
+  fields: meiandraybook `.claude/settings.json` routes `Stop` to the pinned
+  `session_closeout_entry.py`, and the matching Claude session transcript
+  records `attachment_type=hook_success`, `hookName=Stop`, `hookEvent=Stop`,
+  `cwd=D:\meiandraybook`, and the same session UUID approximately 19 ms after
+  receipt creation. No manual receipt was created or replayed for this verdict.
+  Separate consumer memory state remains explicit: the receipt reports
+  `active_non_canonical_writer=1` and `memory_completion_claim_allowed=false`.
+  That blocker prevents a clean consumer memory-completion claim but does not
+  invalidate P1-C schema/field persistence or natural Stop-hook provenance;
+  its correction requires a separately authorized consumer-memory slice.
+- [x] Keep submodule pointer update reported as stage success only, not F-7
+  completion: accepted evidence shows `full_update_completed` came from full
+  surface verification, not pointer-only.
+- [x] Closeout: seven-field reconciliation checklist filled manually in the
+  2026-06-12 closeout memory record (the P1-D design fixture).
+- [x] Memory record explicitly declares `plan_reconciliation: updated`
+  (PLAN re-scoped and reconciled before the record was written).
+- [x] Reviewer verdict, push status, and not-claimed boundary recorded as
+  separate fields in the closeout record.
+- [x] No blocking validator added in this slice.
+
+P1-C claim ceiling (locked 2026-06-12 before execution):
+
+- CAN CLAIM: meiandraybook used as first external F-7 verification target;
+  selected F-7 update surfaces verified or explicitly failed; fleet snapshot
+  refreshed as evidence; memory_layout alias behavior observed; rollback
+  expectation observed; manual reconciliation fixture produced; the 2026-07-22
+  natural Stop-hook receipt matches pinned schema `1.4` and persists the P1-C
+  memory-workflow close-condition fields.
+- CANNOT CLAIM: F-7 works for all consumers; fleet rollout complete;
+  copy-based consumers solved; rollback procedure implemented; blocking
+  validator added; automatic PLAN reconciliation solved; primary
+  meiandraybook worktree updated; stale dirty worktree resolved; the F-7
+  apply was originally executed in this slice; the 2026-07-22 consumer
+  closeout gate passed; consumer memory completion was allowed; the separate
+  `active_non_canonical_writer` blocker was corrected.
+- Hard limit: on unexpected dirty state, destructive update behavior, or
+  ambiguous repo role, stop at diagnosis and report; do not push through
+  remaining checklist items. A verification slice must not silently become
+  a remediation slice.
+- [x] Refresh fleet matrix snapshot as part of F-7 verification evidence:
+  `governance_repo_matrix_snapshot_20260612_173313` generated. Findings:
+  required_verified dropped 9/10 -> 1/10 (ratio 0.9 -> 0.1) from two weeks
+  of evidence decay under the 7d window; freshness_blocked_count=6;
+  meiandraybook is NOT in fleet scope (snapshot does not cover the P1-C
+  target); the generator exists only as a session artifact
+  (`artifacts/session/governance_repo_matrix_20260525.ps1`), not a
+  registered tool.
+- [x] Verify memory file naming against `memory_layout` aliases during F-7
+  application: meiandraybook uses `memory/02_tech_stack.md`, compatible with
+  both `F7_GOVERNANCE_ALLOWLIST` and `memory_layout` aliases. Divergence
+  seed remains latent for consumers using `02_workflow.md`; NOT claimed
+  resolved.
+- [x] Observe and record rollback path expectation: submodule pointer chain
+  on origin/main is `da1d4f3 -> 0eafe10 -> 554607f -> b14c15b`; rollback =
+  checkout previous known-good pointer (`554607f`) inside the submodule and
+  commit on a clean worktree. Observation only; no procedure implemented.
+
+P1 - update rollback documentation (P1-C follow-up; do not start before
+the P1-C rollback observation exists):
+
+- [x] Document rollback procedure for a failed F-7 update / failed smoke
+  after governance update. Updating governance is itself a trust-surface
+  change and must be reversible per the core principle (expensive,
+  explicit, reversible). (Closed 2026-06-13:
+  `docs/fleet/governance-update-rollback.md` — what can / must not be
+  auto-rolled-back, pre-rollback evidence capture, execution order with
+  clean-worktree stop-at-diagnosis gate, post-rollback verification
+  (behind-latest is the correct post-rollback state), and claim ceiling
+  after rollback. Grade caveat recorded in the doc: derived from the
+  P1-C read-only observation, never execution-tested; the first real
+  rollback is its own evidence-producing slice. No rollback executed,
+  no updater/F-7/hook/validator change, no consumer repo touched.)
+
+P1-D - Structured PLAN Reconciliation Declaration (design agreed 2026-06-12;
+do not start before the P1-C fixture exists):
+
+- Goal: every completion-oriented memory record must declare whether it has
+  been reconciled with PLAN, and if not, why not. The gate target is silent
+  drift, not deferred drift. This is NOT PLAN auto-sync and must not induce
+  agents to edit canonical PLAN to legalize their own completion claims.
+- [x] Add `--plan-reconciliation` field to `governance_tools.memory_record`
+  (2026-06-12): `updated` | `not_applicable` | `deferred:<reason>`;
+  at that time, omission was recorded as `not_declared` with a writer
+  advisory (never blocks), while malformed values were rejected as input
+  errors (exit 2). This historical writer behavior was superseded by P1-F
+  Option B at `c06014c4`: the canonical writer now requires an explicit
+  declaration and rejects omission with exit 2 before any memory write.
+  Historical parsing can still represent older omitted declarations as
+  `not_declared`; the writer contract does not make omission a current-diff
+  blocker.
+- [x] Deferred reasons validated against the reason taxonomy
+  (`requires-human-plan-review`, `awaiting-reviewer-verdict`,
+  `scope-split-next-slice`, `canonical-update-not-authorized`,
+  `dirty-workspace-prevents-safe-edit`); empty or vacuous reasons
+  (`later` / `todo` / `pending` / `soon` / `TBD`) rejected. Taxonomy
+  extension is PR-only.
+- [x] Pre-push advisory implemented on the current-date memory gate seam:
+  reports session-derived records in today's memory file lacking a
+  declaration; advisory only, never blocks. 11 focused tests added
+  (validation, render, CLI rejection, CLI advisory).
+- [x] P1-E: collect 2-4 weeks of false-positive / false-negative samples
+  before any blocking decision (window started 2026-06-12; first data
+  point: 14 of 15 same-day records pre-date the field).
+  Final checkpoint 2026-07-17 (day 35; window complete):
+  `docs/governance/p1e-plan-reconciliation-final-checkpoint-2026-07-17.md`
+  with machine-readable snapshot alongside. All 44 `not_declared` records
+  are classified: 14 absent-field on the introduction day plus 30
+  advisory-era literal `not_declared` produced by the pre-Option-B
+  canonical writer's omission normalization; every one is canonical-writer
+  output legal at write time, and the last is dated 2026-07-10 — the day
+  before Option B (`c06014c4`) made the CLI declaration mandatory. Zero
+  `not_declared` growth in the sample from 2026-07-11 onward; `deferred`
+  flat at 7 (all `scope-split-next-slice`, none after 2026-06-24);
+  `malformed` 0 across the window. FP/FN conclusion (corrected 2026-07-18
+  after review): treating advisory-era literals as violations would be
+  false positives; no false negatives observed in the sample, but Option B
+  covers the CLI entry point only — `build_session_derived_record()` still
+  defaults to `not_declared` and the runtime `session_end` hook calls it
+  without a declaration, so that path can still emit `not_declared` and is
+  unobserved, not eliminated. As of this checkpoint there is no observed
+  failure driver for a current-diff blocker; the Option B CLI contract is
+  sufficient for the CLI path observed in this window. Whether the runtime
+  path needs the same treatment is a separate failure-driven,
+  owner-authorized question. This closes P1-E collection only. P1-F was
+  subsequently decided on 2026-07-18: maintain advisory and add no
+  current-diff blocker; reopen only after a natural post-Option-B
+  `not_declared` failure.
+  Checkpoint 2026-06-27: two-week observation evidence recorded in
+  `docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md`.
+  Report output after the 2026-06-27 canonical memory record exists:
+  updated=34, not_applicable=110,
+  deferred=7, not_declared=24, pre_field=249, malformed=0; all deferred
+  records use `scope-split-next-slice`, oldest deferred sample is 10d old
+  (2026-06-17), oldest not_declared sample is 15d old (2026-06-12), and
+  no deferred/not_declared records appeared after 2026-06-24 in the checked
+  June daily files. Focused validation passed
+  (`tests/test_deferred_debt_report.py`: 12 passed), and an independent
+  read-only reviewer thread approved the conclusion as Low risk.
+  Snapshot boundary: these counts are an observation of this worktree /
+  commit-state memory tree; future canonical memory records are expected to
+  change the live report totals without invalidating this checkpoint.
+  Claim ceiling: observation-class evidence only; this checkpoint may inform
+  reviewer judgment about whether to open a separate P1-F OP-HC /
+  mutation-contract slice, but it does not authorize a blocker, prove memory
+  semantic correctness, complete the full 2-4 week window, or add any hook /
+  CI / pre-push / gate / enforcement behavior.
+
+P1-G - registered reproducible fleet matrix generator (completed
+2026-06-12):
+
+- [x] Generator promoted from session artifact to
+  `scripts/governance_repo_matrix.ps1`; framework root parameterized
+  (`AI_GOVERNANCE_FRAMEWORK_ROOT` override, script-relative default);
+  output path policy documented in the tool header.
+- [x] Reproducibility metadata emitted: `matrix_generated_at` (UTC),
+  `generation_tool`, `generation_tool_commit`, `source_repo_set`
+  (definition=hardcoded-in-tool, company/private repo lists, scope file
+  used for classification), `evidence_window_days`.
+- [x] `governance_tools/fleet_matrix_snapshot_validator.py` validates
+  snapshot metadata; 6 focused tests including legacy-shape rejection
+  and generator static checks.
+- [x] Reproduction verified: registered tool regenerated the fleet matrix
+  output type (snapshot `20260612_180253`) and passes the validator.
+- Claim boundary — CLAIMED: fleet matrix generation is reproducible
+  through a registered, attributable tool. NOT CLAIMED: fleet evidence
+  fresh, refresh cadence solved, monitored repo set correct, fleet
+  health restored, or meiandraybook in scope.
+
+P1-H - fleet freshness cadence decision (decided 2026-06-12):
+
+Decision: event-driven (Option A adopted now; Option C repo-class SLA
+deferred; Option B weekly scheduler rejected for now).
+
+- [x] Observed freshness behavior recorded: required_verified 9/10
+  (2026-05-29) -> 1/10 (2026-06-12 refresh after 14 idle days) -> 2/10
+  (after same-day framework pushes). Decay and recovery both track real
+  activity; the 7d window operated as designed — this was evidence
+  decay, not regression.
+- [x] Semantics defined: `required_verified` ratio is freshness-window
+  evidence (a time-window observation), NOT a permanent health score.
+  A low ratio after an idle period is expected decay.
+- [x] Policy adopted: fleet freshness is event-driven. A fleet matrix
+  refresh via the registered generator is REQUIRED before rollout,
+  release, or any external presentation claim that cites fleet state.
+- [x] Weekly scheduler explicitly rejected for now: ritual-refresh risk,
+  background-execution claim burden, and missed-run semantics cost —
+  the same boundary class as manual/resume-triggered reviewer polling.
+- [x] No new automation or background execution claim introduced.
+- [x] Repo-class freshness SLA (Option C) deferred until the scope
+  taxonomy slice defines which repos belong to which policy.
+
+P1-I - scope taxonomy for governance repo sets (decided 2026-06-12):
+
+Each scope is defined by what a member repo's evidence must prove, not by
+where the repo happens to live:
+
+- `fleet_scope`: repos whose governance state feeds the freshness matrix.
+  Membership criteria: locally checked out where the registered generator
+  runs; governance surfaces adopted or onboarding-tracked; cited by
+  release / rollout / external claims. Evidence duty: freshness-window
+  matrix (event-driven per P1-H).
+- `submodule_consumer_scope`: any repo consuming the framework through a
+  git submodule. Evidence duty: framework.lock / submodule pointer
+  currentness only.
+- `f7_consumer_scope`: subset of submodule_consumer_scope receiving
+  managed F-7 full updates (AGENTS keyed sections, managed hooks, memory
+  workflow router). Evidence duty: per-update F-7 apply / verification
+  evidence, event-driven.
+- `external_contract_repo_scope`: repos providing domain contracts that
+  the framework consumes. Evidence duty: contract validation evidence,
+  event-driven.
+
+Set relations: f7_consumer is a subset of submodule_consumer; fleet may
+intersect any other set (observed today: Kernel-Driver-Contract,
+verilog-domain-contract, and writing-contract are simultaneously fleet
+members and contract repos). Membership in one set does not inherit the
+evidence duties of another.
+
+Decisions:
+
+- [x] meiandraybook classified: f7_consumer_scope and
+  submodule_consumer_scope; NOT fleet_scope — and the taxonomy does not
+  require it there, because its claims are update-evidence-based
+  (pointer currentness + F-7 verification), not freshness-matrix-based.
+  No automatic fleet addition performed.
+- [x] hardcoded-in-tool repo set: ACCEPTED for now as the operational
+  enumeration of fleet_scope (single operator environment; set stable
+  since 2026-05-25; self-declared in snapshot metadata). Re-evaluation
+  trigger: the first taxonomy-driven membership change request, or a
+  second operator environment.
+- [x] Scope manifest decision recorded: a manifest extending
+  `governance/fleet/governance_scope.yaml` (which today classifies tiers
+  but does not enumerate members) is the correct long-term single
+  source; migrating the generator to manifest-driven enumeration is
+  DEFERRED until the first real membership change requires it
+  (failure-driven; no tool change in this slice).
+- [x] Repo-class freshness SLA (P1-H Option C) remains deferred until
+  this taxonomy survives at least one real membership decision.
+- [x] No repo-set mutation performed; generator untouched.
+- [x] P1-F decided 2026-07-18 by owner: maintain advisory and do not add a
+  current-diff blocker. Option B at `c06014c4` addressed the observed CLI
+  omission path, with zero sample growth after 2026-07-11. The runtime
+  `session_end` path can still emit `not_declared`, but no natural
+  post-Option-B failure has been observed; a current-diff blocker is not a
+  substitute for a writer-path fix. Reopen a separate failure-driven slice
+  only if a natural post-Option-B `not_declared` record appears. This
+  decision does not claim the runtime writer path is fixed.
+- [x] Add a non-blocking deferred-debt report (deferred count by reason,
+  oldest deferred age, PLAN-touched records without `updated` status) to
+  prevent acknowledged-drift from becoming a landfill.
+  (Implemented 2026-06-13 exactly per the checkpoint below:
+  `governance_tools/deferred_debt_report.py`, read-only, deterministic
+  given `--as-of`, json/human stdout, optional `--output`; the four
+  checkpoint observables only; pre_field guard verified by a dedicated
+  test; historical non-UTF-8 daily files (2026-04-10, 2026-05-04)
+  surfaced as `files_with_decode_errors` via lossy decode — observed,
+  not repaired. 12 focused tests passed; adjacent memory_record /
+  memory_workflow 23 tests passed. First real-repo run as-of
+  2026-06-13: updated=18, deferred=0, not_declared=14 (oldest
+  2026-06-12, matching the P1-E first data point), pre_field=249,
+  malformed=0. No CI wiring, no thresholds, no gate semantics, no
+  historical record rewritten.)
+
+Deferred-debt report implementation checkpoint (decided 2026-06-13;
+no code written in this slice):
+
+- Report scope (exactly four observables, all machine-decidable from
+  record fields):
+  1. count of session-derived records by `plan_reconciliation` value
+     (`updated` / `not_applicable` / `deferred:<reason>` /
+     `not_declared`);
+  2. deferred breakdown by taxonomy reason;
+  3. oldest age per deferred reason (days since record's file date);
+  4. `not_declared` count and oldest age (the silent class the gate
+     targets).
+- Explicitly OUT of report scope: semantic detection of "PLAN-touched
+  records without `updated`". Whether a record's work touched PLAN is
+  not machine-decidable from record fields; `not_declared` and
+  `deferred` are the observable proxies. The original PLAN wording is
+  narrowed to these proxies; semantic detection would require content
+  analysis and is not claimed.
+- Input source: canonical daily memory files `memory/YYYY-MM-DD.md`
+  only, parsed with the same record format the memory workflow uses.
+  Records pre-dating the field (before 2026-06-12) are bucketed as
+  `pre_field` and are NOT debt — they are expected history, consistent
+  with the P1-E first data point (14 of 15 same-day records pre-dated
+  the field).
+- Output format: read-only tool, `--format json|human` to stdout,
+  optional `--output <path>`; deterministic given the same inputs; no
+  ledger append, no artifact mutation by default (no-write discipline).
+- Claim ceiling: observation-class only. A deferred declaration with a
+  taxonomy reason is a legal honest state, not a failure; a
+  `not_declared` is advisory-era data, not a violation; the report has
+  no thresholds, no pass/fail, and is not a gate input. It may later be
+  cited as evidence by the P1-F decision but cannot close P1-E or
+  authorize blocking by itself.
+- Implementation slice (when opened): `governance_tools/`
+  read-only tool plus focused tests; non-goals pre-declared — no
+  validator change, no CI wiring, no blocking semantics, no thresholds,
+  no auto-cleanup, no rewriting or reclassifying historical records.
+
+P1 - selective enforcement decision (closed 2026-06-12 by P1-A, `5deb8bb`):
+
+- [x] Decide whether any CI or hook path should opt into `--fail-on-blocker`:
+  CI workflow path only, current-diff scope.
+- [x] Preserve default advisory mode unless current-diff blocker false-positive
+  rate is acceptable: hooks remain advisory.
+- [x] Do not upgrade historical `missing_canonical_memory` or `unbound_memory`
+  warnings into blockers without separate approval: preserved, warning-only.
+P1 - structured memory freshness:
+
+- [x] Define freshness / rollover policy for structured canonical memory files
+  such as `memory/01_active_task.md`. (Policy v1 canonicalized 2026-06-13:
+  `docs/structured-memory-freshness-policy.md` — staleness defined as
+  event-driven contradiction against PLAN at HEAD, not age; rollover is
+  event-driven with no SLA and no scheduled refresh; repair only in a
+  dedicated bookkeeping slice derived from PLAN plus the latest closure
+  record, never from session narrative; mandatory pre-repair comparison
+  surfaces with stop-at-diagnosis on PLAN/closure disagreement;
+  post-repair claim ceiling is point-in-time consistency only.
+  Policy-only slice: no writer, hook, validator, or automation change.)
+- [x] Define whether `PLAN.md` to structured-memory consistency should become
+  a validator-backed self-check. (Decided 2026-06-13 in policy v1 §6:
+  manual event-driven comparison now; advisory tooling deferred
+  failure-driven; blocking enforcement remains a separate OP-HC-class
+  decision with its own mutation contract. Not a validator today.)
+- [ ] Do not claim structured memory sync is solved by daily memory writer
+  completion alone. (Standing constraint; restated in policy v1 §5.)
+- [x] Follow-up (gated on policy v1 being canonical, which it now is):
+  apply the policy to refresh the currently-stale
+  `memory/01_active_task.md` in a dedicated bookkeeping slice per policy
+  §3-§5. Policy definition and policy application must not share a
+  slice. (Applied 2026-06-13: pre-repair comparison ran per §4 — PLAN
+  at HEAD `ce6de50` vs closure record 2026-06-13, no disagreement, stop
+  rule not triggered; file rewritten from PLAN + closure record only,
+  with refresh provenance header; claim recorded as point-in-time
+  consistency with PLAN as of `ce6de50` only. Not claimed: freshness
+  solved, sync automated, future staleness prevented, writer compliance
+  enforced.)
+
+P1 - adoption evidence collection (E2-relevant; evidence class, not
+presentation class):
+
+- [ ] Collect retrospective E2 adoption evidence from the two engineer
+  onboardings: onboarding artifacts from their environments, friction log
+  (time to green smoke, walls hit, remediation source), and author
+  intervention count declaration.
+- [ ] Record evidence grade explicitly as retrospective / self-reported.
+- [ ] Do not claim sustained lifecycle, E2 closure, or low framework
+  friction from this evidence alone.
+
+P2 - adoption model:
+
+- [x] Classify whether copy-based consumers are supported, audit-only, or
+  unsupported for automated update. Current claim ceiling: not solved.
+  Classification first; do not design support tooling before P1-C
+  consumer evidence exists. (P2-C 2026-06-12: classified **audit-only**
+  for classification/audit wording; automated update **unsupported**
+  (zero copy-based consumer evidence). Canonical taxonomy in
+  `docs/ADOPTION_MODEL.md`: five consumer classes each with required
+  evidence, allowed claims, prohibited claims, upgrade path; sole
+  upgrade path to managed updates is migration to submodule consumer;
+  classification-precedes-tooling rule stated; aligned to P1-I scope
+  sets with PLAN-wins precedence. No tooling designed or changed.)
+
+P2 - external presentation:
+
+- [x] Refresh GitHub repository description. (P2-G closed 2026-06-13:
+  ratified C3 string applied manually by the user in the GitHub web UI —
+  no authorized agent-side metadata write path existed and none was
+  created; agent verification via unauthenticated GET
+  /repos/Gavin0099/ai-governance-framework returned exact_match=True
+  against the PLAN-recorded string, em dash intact, repo
+  updated_at=2026-06-12T16:44:24Z. Agent metadata mutation: none.)
+- [ ] Add relevant topics. (Gated by P2-E: allowed only after exact-list
+  ratification; descriptive taxonomy nouns only.)
+- [ ] Align README badge with current release state. (P2-E decision:
+  DEFERRED until the first gated release exists; no badge before that.)
+- [x] Align README capability table with current reality: mutation topology
+  caveat on the fail-closed gate row, audit-framework-not-security-boundary
+  positioning sentence, and MEM-DISPATCH capability row. (P2-A 2026-06-12:
+  table gained a Claim class axis — Enforced / Advisory / Observation /
+  Cannot claim — with definitions; MEM-DISPATCH row added as Advisory +
+  selective Enforced scoped to current-diff `active_non_canonical_writer`;
+  stale "10 required repos verified" wording removed; positioning sentence
+  now present in both ZH and EN sections.)
+- [x] State in README that the fleet freshness ratio is time-window
+  evidence under an event-driven refresh policy, not a permanent health
+  score (prevents idle-period decay being read as regression). (P2-A
+  2026-06-12: freshness-semantics paragraph added to both Fleet sections
+  per P1-H semantics; idle-period decay stated as designed behavior.)
+- [x] Prepare English reviewer-facing docs (README, starter-pack,
+  onboarding SOP). Split (P2-B 2026-06-12). (Parent closed 2026-06-13
+  once all four sub-items carry evidence. Closure scope: this closes the
+  README English review pass only — English readability + claim-class
+  consistency. NOT claimed: bilingual content parity. The English README
+  half contains sections newer/more complete than the Chinese half
+  (Agent Runtime Governance Profile, Governance Artifact Discipline Index,
+  f7 Key-Documents row, one-line apply prompt); that asymmetry is a
+  bilingual-content gap, not an English-readability failure, and any
+  parity repair is a separate slice.)
+  - [x] Reviewer entry doc `docs/REVIEWER_ENTRYPOINT.md` created: claims /
+    non-claims / evidence required for done / advisory-vs-enforcement
+    reading rules; linked from README Key Documents (ZH+EN). Bounded by
+    PLAN Active Claim Boundaries with explicit PLAN-wins precedence.
+  - [x] Starter-pack English review pass. (P2-D 2026-06-12: full English
+    mirror section added to `examples/starter-pack/README.md`; adoption
+    model alignment note added in both languages — copying starter-pack
+    files does not make a repo a governed consumer; upgrade path is
+    submodule adoption.)
+  - [x] Onboarding SOP English review pass. (P2-D 2026-06-12: SOP scoped
+    to the submodule-consumer path; Step 0 classification gate added per
+    `docs/ADOPTION_MODEL.md` with copy-based stop rule; internal GitLab
+    hostname replaced with `<framework-remote-url>` placeholder; claim
+    ceiling section added — onboarding evidence only, no fleet or
+    currentness claims.)
+  - [x] README English review pass. (Done 2026-06-13. Dedicated English
+    readability + claim-class consistency pass over the README English
+    half: ten-row capability table reviewed — Status / Claim class
+    identical across both language halves, no claim drift; all claim
+    ceilings intact (audit-not-security-boundary, single-point E1-B
+    Phase 2 / mutation protection not claimed, copy-based unsupported,
+    Agent Runtime Profile not-X clauses, freshness not-a-health-score).
+    One claim-neutral readability edit applied: "claim tasks are
+    complete" -> "claim that tasks are complete" (README.md). NOT
+    claimed: all English docs reviewed, bilingual parity completed,
+    README perfect, content symmetry achieved. Residual originally
+    identified 2026-06-13 is now evidenced by this slice.)
+  - [x] README bilingual content parity. (Done 2026-06-13. Commits
+    2493af9 + 6301918. Four English-only sections mirrored to Chinese
+    half: one-line apply prompt, f7 key-documents row, Agent Runtime
+    Governance Profile with all seven claim-ceiling clauses, Governance
+    Artifact Discipline Index. Commit 2493af9 additionally calibrated
+    Chinese intro claim text (removed 'enforceable' / 'auditable'
+    overloading) and added trust model paragraph missing from Chinese
+    half. Mixed-commit (a402122) identified during remediation; split
+    into two clean boundary commits. Verdict: ACCEPT_WITH_CAVEATS.
+    Workspace: clean for review/commit purposes after excluding two
+    declared runtime ledger side effects. NOT claimed: full bilingual
+    symmetry, complete content parity, or any runtime guarantee
+    expansion.)
+- [ ] Publish a release only after release notes and claim ceiling are
+  accurate. (P2-E adds: release notes must use the Claim class taxonomy
+  and link `docs/REVIEWER_ENTRYPOINT.md`.)
+
+P2-E - publish-surface decision checkpoint (decided 2026-06-13; no
+publish surface edited in this slice):
+
+Governing rule: publish surfaces (GitHub description, topics, badges,
+release notes) are claim amplifiers — they are read as first-impression
+self-claims with no Claim class column attached. No publish-surface text
+may claim above the README capability table; on conflict, the table and
+the Active Claim Boundaries win.
+
+Prohibited wording classes on any publish surface: "solved", "fully
+automated", "production-ready", "secure" / "security boundary",
+"fleet-ready" / "fleet rollout complete", "supports all repos",
+"automatic adoption" / "automatic updates", and any wording that
+contradicts the audit-framework-not-security-boundary positioning or
+the copy-based audit-only classification.
+
+Per-surface decisions:
+
+- [x] GitHub description: ALLOWED, gated on exact-string ratification.
+  Ceiling: mechanism description only (contract-bound execution,
+  artifact-backed verification, fail-closed decisions); no outcome
+  claims. The exact string is the deliverable of its own slice and must
+  be recorded in PLAN before applying.
+- [x] GitHub topics: ALLOWED, gated on exact-list ratification. Ceiling:
+  descriptive taxonomy nouns only; no maturity-, guarantee-, or
+  scale-implying topics.
+- [x] README badge: DEFERRED. A badge must reflect a real, gated release
+  state; no release currently passes release-notes gating, so any badge
+  now is decoration or inflation. Revisit at the first gated release.
+- [x] Release publish: remains GATED by the existing canonical rule
+  (accurate release notes and claim ceiling first), plus the Claim class
+  taxonomy / reviewer-entrypoint linkage requirement above.
+
+Activation rule: each ALLOWED surface still requires its own slice whose
+deliverable is the exact text or list, checked against this ceiling and
+user-ratified before the edit is applied. "P2 core documentation
+calibration complete" does not equal "public promotion ready".
+
+P2-F - GitHub description candidate strings (proposed 2026-06-13;
+RATIFIED 2026-06-13: C3 selected by user):
+
+Ratified final GitHub description (exact string):
+
+    Audit framework for AI-assisted engineering: contract-bound
+    execution, artifact-backed verification, fail-closed decisions
+    — not a security boundary.
+
+(Single line when applied; wrapped here for PLAN readability.)
+
+Ratified claim ceiling: mechanism-only. The description may describe
+the framework's audit/governance mechanisms but must not imply security
+coverage, fleet readiness, automatic adoption, or production
+completeness. Ratification rationale recorded: C2 rejected for
+deflationary mismatch (real Enforced rows exist); C3 is zero-increment
+relative to README canonical text.
+
+Candidate history:
+
+- C1: "AI-agent governance framework for claim calibration, evidence
+  discipline, and reviewer-facing adoption boundaries."
+  Ceiling check: no prohibited wording; "framework" matches the repo
+  name itself, so it adds no claim beyond the name.
+- C2: "Documentation-first controls for AI-agent claim calibration,
+  evidence discipline, and adoption boundaries."
+  Ceiling check: no prohibited wording, but flagged for
+  under-claiming: the capability table contains real Enforced rows
+  (fail-closed gate, selective CI blocker, runtime hooks are code, not
+  docs). "Documentation-first" invites readers to expect zero runtime
+  enforcement, creating a deflationary mismatch with the table.
+  Calibration means accurate, not minimal.
+- C3 (recommended): "Audit framework for AI-assisted engineering:
+  contract-bound execution, artifact-backed verification, fail-closed
+  decisions - not a security boundary."
+  Ceiling check: zero-increment claim - the mechanism triple is the
+  README first line verbatim and the trailing clause is the canonical
+  positioning sentence; it claims exactly what the README already
+  claims, nothing more.
+
+Ratification rule (satisfied 2026-06-13): exactly one candidate
+(possibly amended) must be ratified by the user; the ratified string is
+recorded above as final. The description metadata edit slice (P2-G) is
+now unblocked for the exact ratified string only. Topics remain a
+separate slice (P2-H) — they are not bundled, because topic words like
+"security" / "automation" / "ci" can re-amplify claims independently.
+
+P2 - historical debt / evidence disposition:
+
+- [ ] Maintain historical `missing_canonical_memory` / `unbound_memory` debt as
+  warning evidence unless a scoped cleanup is approved.
+- [ ] Keep CE-1D historical raw packet disposition separate from current runtime
+  dirty ledgers.
+- [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
+  scope.
+
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 process integrity not established; Skill effectiveness not claimed):
+
+- [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
+  (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
+- [x] Gate 1 pre-registration frozen values (`2c02c074`) then narrowed and
+  hash-frozen (amendment v1, `61b285b2`).
+- [x] **Gate 1 COMPLETE** — amendment v2 (verified named-ref bundle isolation;
+  producer-safe vs designer-only validator split; unified status) owner re-signed
+  2026-07-24 and confirmed by a read-only re-review.
+- [x] Gate 2 preflight answer-safe setup (Gate 2 preflight manifest 2026-07-24):
+  baseline bundle artifact built + verified (designer-side rebuild source only;
+  the producer receives a sanitized allowlist export in a fresh object DB — tree
+  36c346fa, 0 meta objects — NOT the raw bundle), execution order frozen [D,C,A,B]
+  from seed 20260724, packet hashes re-verified, validator pins confirmed real,
+  producer receipt template prepared.
+- [x] Scorer-handoff v3 reason-code remediation independently approved and owner
+  re-signed 2026-07-27 at exact manifest SHA-256
+  `7104b2e03da9e61c8191430fd337b7b73effb41eb787b55e3364a21d1ac2147c`
+  (commit `b596153b`). The signature is append-only; canonical promotion remains
+  a separate slice and Gate 2 execution remains 0.
+- [x] **Canonical promotion slice — DONE 2026-07-27.** The Gate 2 preflight
+  manifest's scorer-handoff pointers and authority line were updated to the
+  re-signed v3 packets (`scorer-handoff-contract-v3.json` `16bf661b…`,
+  `scorer_handoff_v3.py` `77360e8f…`, `scorer_packet_v2.py` `a9671133…`).
+  Nothing was recomputed. Departing from the amendment v3 precedent, the
+  amendment v4 status line was **not** edited: amendment v4's own sha256 is
+  recorded as `files[1]` in the owner-signed candidate manifest, so editing it
+  would invalidate the signature it carries (amendment v4 Section E). Owner
+  chose the append-only method. Signed bytes verified UNCHANGED and
+  `verify-candidate` re-run post-promotion at 15/15 PASS
+  (`artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-promotion-20260727.json`).
+  Promotion supersedes scorer-handoff v2 only; producer treatments, arm order,
+  budgets, validators and scoring release gates are unchanged. Gate 2 execution
+  remains 0 and resource admission is NOT performed.
+- [x] Gate 2 experiment-local runner admission completed 2026-07-27 on the exact pinned image.
+  Commit `3acd2659` adds only the experiment-local bounded runner, hash-pinned
+  offline pytest payload, producer adapter/policies and admission evidence.
+  Fresh live admission `gate2-arm-runner-admission-20260727-214036` passed fixed
+  input read, 4/4 frozen tests, signed Arm D validator exits
+  (shellcheck=1/ruff=1/mypy=0), negative and positive pushed-ref reproduction,
+  one commit receipt and clean final status. Canonical focused precommit passed
+  runtime smoke plus 187/187 tests.
+- [x] Four answer-blind producer containers and two mapping-blind scorer slots
+  were provisioned under `gate2-formal-20260727-213336`; the fail-closed
+  resource audit passed exact image, network-none/read-only/cap-drop/no-new-
+  privileges, tree/head/clean status, packet/payload digests, fresh contexts and
+  scorer-slot mapping absence. This proves local resource provisioning, not the
+  still-required live admission of two scorer model contexts. The first admitted set
+  (`gate2-formal-20260727-212713`) was superseded before any adapter/model call
+  because its run/container identifiers encoded arm letters that canonical v3
+  source attestation would have exposed to scorers. The replacement uses opaque
+  `OUTRUN-*` identifiers.
+- [x] Owner granted destination-specific authorization and two independent live
+  scorer contexts passed admission before formal execution. Formal arms then ran
+  in the frozen `D -> C -> A -> B` order on the exact pinned image. D, C and A
+  completed with verified producer packets; B reached the frozen 1800-second
+  wall-clock cap without a clean output commit or producer `result.json` and is
+  recorded as `failed_timeout`. The runbook treats inability to complete as a
+  legitimate result, so B was not retried and no synthetic scorer packet was
+  created. With only three scorable arms, both pre-mapping scorer submissions,
+  mapping release and the preregistered process-integrity decision remain not
+  run. The claim-limited terminal record is
+  `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260727-213336/blocked-summary.json`.
+- [x] **Terminal-timeout amendment admitted for a new run — 2026-07-28.**
+  Commit `1c8dcc79` preserves the blocked run, adds a separate strict
+  `terminal_timeout_v1` packet, and fixes only the experiment-local Windows
+  process-tree timeout cleanup. The exact amendment-set manifest is
+  `dd2b97eb1a47796b5320d0581b299b5f123ab5b8416736690a6cf93d93bf09df`.
+  Focused runner/packet tests passed, the real Windows tree-kill smoke passed,
+  and canonical focused precommit passed 187/187. A new formal run has not
+  started at this checkpoint; it still requires fresh resource/scorer
+  admission. The old run is not salvageable or reinterpreted by this amendment.
+- [ ] **Gate 2 execution artifacts preserved; process integrity
+  `NOT_ESTABLISHED`, corrected 2026-07-28.** Fresh master
+  `gate2-formal-20260728-115533` passed resource and scorer admission on the
+  exact pinned image. Producer arms ran once in frozen `D -> C -> A -> B`
+  order with `D=complete`, `C=terminal_timeout_complete`, `A=complete`, and
+  `B=complete`; the preserved external-rate-limit B attempt was non-counted
+  and the fresh B replacement alone supplied the counted outcome. Both
+  independent Haiku scorers submitted scores, acceptance judgments,
+  completion-claim/evidence consistency judgments, and treatment guesses with
+  confidence. Mapping release and all four packet/handoff reverifications are
+  preserved, but the retained evidence has no create-once timestamp, digest,
+  or receipt chain that independently proves both submissions preceded mapping
+  release. The earlier process-integrity `PASS` is therefore withdrawn.
+  Sanitized evidence is
+  committed at `1d12f6d1` under
+  `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/execution-evidence/gate2-formal-20260728-115533/`.
+  The corrected decision records process integrity as `NOT_ESTABLISHED` and
+  Skill effectiveness as `NOT_CLAIMED`.
+  - **Admission state recorded 2026-07-27 (owner-accepted scope).** The
+    2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
+    report for **producer-channel** admission, including nine isolation checks
+    (network none, read-only rootfs, all capabilities dropped, no-new-privileges,
+    non-root uid, no host bind mount, tmpfs workspace, no docker socket, pinned
+    image). Its recorded execution paths are under a `D:` root; this checkout does not
+    contain that live JSON evidence and the run was **not reproduced locally**
+    (Docker daemon not running at record time). **Scorer-side is NOT RUN**:
+    `admission-canary/evidence-live/` contains `capture_scorer_packet.py`,
+    `verify_scorer_packet.py` and tests, but zero execution artifacts — tool
+    presence is not execution evidence. Therefore **resource admission is NOT
+    complete**, Gate 2 has not started, and arm execution remains 0.
+    Receipt: `artifacts/evidence/test-results/receipt-gate2-admission-state-20260727.json`.
+    Claimable: a historical producer-channel admission report exists.
+    This historical note is superseded for current admission status by the two
+    completed items above. It remains valid historical evidence about what had
+    not yet run at that earlier checkpoint.
+
+Claim ceiling: formal master `gate2-formal-20260728-115533` preserves four
+scorable outcomes, two scorer submissions, mapping release, a corrected
+decision, and successful packet/handoff reverification. It does not
+independently establish that both submissions preceded mapping release, so Gate
+2 process integrity is not established. The product pre-push hook, frozen
+baseline, shared runtime, CI, gates, and enforcement are unchanged. This one
+pilot does not establish treatment or Skill effectiveness, does not constitute
+independent consumer evidence, and does not establish framework-level G4.
+Judge engineering-method / external-tool value only in the separately governed
+Gate 3 analysis; do not begin bulk tool replacement from this result.
+
+- [x] **Gate 3 NON_SUCCESS pair-final manifest promoted 2026-08-11.** The
+  offline integrity fix is bound to source commit `204965c9`; exact candidate
+  manifest SHA-256
+  `db86a97b36a2e80e43e9e0765f07f20cb00e07aa813cbf54bea2b587f3c02baa`
+  received an independent read-only approval with zero blocking findings. Owner
+  promotion commit `8da68734` pins contract-manifest SHA-256
+  `fd6c75eb7e3bb7f36f85804b7b2398a07d5647d948691f2d9ff64ea094998440`.
+  Candidate reconstruction passed, focused Gate 3 tests passed 51/51, and the
+  canonical precommit passed runtime smoke plus 197/197. Fresh credential-free
+  zero-session preflight receipt SHA-256
+  `6bd5a72e0f2b6b4ed508fafff3645a4eff4808614c132ee854e9a67bc00af586`
+  passed byte-exact reconstruction review in commit `84849892`. A separate
+  independent read-only review authorized one exact non-counted live pair at
+  HEAD `7d035c1d`, using the bundled-Python command contract `faa5344d…` only.
+  The one authorized pair ran once on 2026-08-11 and terminated `NON_SUCCESS`:
+  both arms exited zero but produced no final message and left the calibrated
+  workspace unchanged. Public pair-final SHA-256 is
+  `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
+  the public bytes in evidence commit `53fc93f7` were internally coherent, but
+  independent review found that its exact Git tree omitted three contract-
+  required empty runtime directories. Repair commit `230679cf` adds a checkout
+  materializer that restores only those empty directories before delegating to
+  the unchanged frozen verifier. Exact `git archive 53fc93f7` reconstruction,
+  58/58 focused tests and a separate independent read-only review all passed;
+  the live evidence, promoted contract and owner pin were not changed. Public
+  evidence confirms task-execution failure in both arms because `result.txt`
+  stayed at the `PENDING\n` baseline. The nearer cause of the absent final
+  message remains unresolved between CLI final-output production and model
+  completion because raw NDJSON event types were not published. Retry,
+  replacement, counted execution, other interpreters, and any treatment or
+  Skill-effect conclusion remain unauthorized.
+
+- [x] **Gate 3 final-message diagnostic offline tranche completed
+  2026-08-12.** Implementation commit `7c1c42e0` adds only the pure in-memory
+  synthetic classifier and its focused tests. The exact module SHA-256 is
+  `4cb72ccc7b901be65d28c17fb3d7563e7ea82b541bea82bf06f4d89357e55e71`;
+  the exact test SHA-256 is
+  `ed32358e23b69f2751775ddafb9cc8c12bca0897a6c6274ab2b59b39f3d320f2`.
+  Focused offline validation passed 62/62, and an independent byte-exact
+  read-only review returned `APPROVED` with no open findings. This tranche
+  does not integrate a lifecycle observer or evidence publication, does not
+  use credentials or authorize preflight/live, does not reuse the consumed
+  pair, and does not change its `NON_SUCCESS` result or establish Gate 3 or
+  treatment effectiveness.
+
+- [x] **Gate 3 final-message diagnostic integration design accepted
+  2026-08-12.** Design commit `23bbe0c3` records the independently approved
+  lifecycle-observer, pre-cleanup seal/cleanup/receipt, recovery-state,
+  public-schema, verifier, privacy, crash and TOCTOU candidate at exact
+  SHA-256
+  `5d6c735c1bcb030de2a6a1facb3cac19bb97b1942482e594910c12188bc18bb2`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The canonical precommit completed with runtime smoke passing and
+  197/197 focused tests. This checkpoint accepts design bytes only: no
+  lifecycle integration is implemented, no credentials or preflight/live were
+  used or authorized, the consumed pair is not reused/retried/replaced, and no
+  Gate 3 success or treatment/Skill effectiveness is established.
+
+- [x] **Gate 3 final-message diagnostic offline integration completed
+  2026-08-13.** Implementation commit `e3b70173` adds the synthetic retained-
+  fixture lifecycle observer, create-once store, pre-cleanup seal/cleanup/
+  receipt chain, route and external recovery profiles, privacy verifier, and
+  crash/TOCTOU fail-closed behavior. The exact implementation SHA-256 is
+  `a9d17a16ee6f21a1ed3d7a113a23a827e9812e70ff313516ae306d364a857367`;
+  the exact test SHA-256 is
+  `1213541126ebf49a3a4804a431442a5ce053e21b6946c3b4d836bcd4ccc10e1e`.
+  Independent exact-byte read-only review returned `APPROVED` with zero open
+  findings, and focused offline validation passed 185/185. This milestone is
+  synthetic and offline only: no credentials, preflight, live execution, old-
+  pair reuse, retry, or replacement occurred or is authorized; the consumed
+  pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
+  conclusion is established.
+
+- [x] **Gate 3 actual-capture adapter design accepted 2026-08-13.** Design
+  commit `420a7f42` records the independently approved private-stdout parser
+  ACL, privacy-safe lifecycle projection, create-once capture evidence links,
+  crash/TOCTOU fail-closed plan, and minimal offline implementation tranche at
+  exact SHA-256
+  `6d52ecda73c542e300c1612a712beb38c4ce7b44a66e5335965d254052905a34`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings. The public claim ceiling is limited to internally linked adapter
+  reports and `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; it does not
+  prove correspondence to private stdout, executable provenance, lifecycle
+  truth, model completion, or final-answer production. This checkpoint accepts
+  design bytes only: implementation, credentials, preflight, live execution,
+  old-pair reuse, retry, and replacement remain unauthorized; the consumed pair
+  remains `NON_SUCCESS`, and Gate 3 success or treatment/Skill effectiveness is
+  not established.
+
+- [x] **Gate 3 actual-capture adapter minimal offline tranche completed
+  2026-08-13.** Implementation commit `25a9da65` adds only the pure private
+  NDJSON parser ACL, privacy-safe lifecycle projector, closed public capture
+  artifacts, create-once synthetic publisher/verifier behavior, and focused
+  offline tests. Exact implementation SHA-256 is
+  `67d098138d2442f1c68aae462d350a7a461e191d831b8bea8799d3498ee1d99d`;
+  exact test SHA-256 is
+  `8e85f607cdb5493b2a53ccf6aa801152e2a99f0e7c81cf77a561c3d5bf56f1a5`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings, and the three focused offline suites passed 448/448. This tranche
+  does not wire `CodexExecRunner`, prove correspondence between private stdout
+  and public markers, use credentials, run preflight/live, or reuse, retry, or
+  replace the consumed pair. The public positive claim remains
+  `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
+
+- [x] **Gate 3 runner/capture integration minimal offline tranche completed
+  2026-08-13.** Implementation commit `854fef93` adds only the injected
+  contained-process runner seam, authorization-consumed launch ordinal, single
+  stdout handoff, private runtime TOCTOU checks, mutually exclusive evidence
+  profiles, seal-before-cleanup chain, create-once cleanup continuation, and
+  focused synthetic regressions. Exact implementation SHA-256 is
+  `c2bc090b1a53dac44610dfa37a4eb3db9d62a6e52f27308be63eb6b585b9befa`;
+  exact test SHA-256 is
+  `71fe98ec433d33a53339c0ccedbd40d9287a0ec5f091911daeff0e6ff2f95bf6`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings; four adjacent Gate 3 offline suites passed 497/497. The reviewed
+  design basis is preserved retrospectively in commit `dc76c293` at exact
+  SHA-256 `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`;
+  this does not establish that the design was repository-available or committed
+  authority before implementation commit `854fef93`.
+  This tranche uses injected synthetic results only: it does not wire or launch
+  the real runner, prove private-stdout correspondence or execution provenance,
+  use credentials, run preflight/live, or reuse, retry, or replace the consumed
+  pair. The public claim ceiling remains
+  `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill success is not established.
+
+- [x] **Gate 3 real-runner contained-result bridge design accepted 2026-08-13.**
+  Design commit `013f227a` records the `_ContainedResult` to
+  `InjectedContainedResult` mapping, the single stdout handoff, stderr exclusion,
+  non-interference with `CodexExecRunner.__call__` and `TrustedLiveRunner`, the
+  launch-authority/TOCTOU/capture ordering, the fail-closed disposition mapping,
+  and a mapping-only offline tranche, at exact SHA-256
+  `5e0279c9115f9f4eb47f3e2fd713091c58e8028be9bc6760ca5f462a21e7a015`.
+  Exact-digest read-only review returned `APPROVED` with zero open findings after
+  three earlier revisions were rejected; the superseded digests `ed7807d6…`,
+  `71a6943d…` and `6c3552e2…` are not approval targets. No GitHub review record
+  exists for the pull request; this acceptance is the owner's.
+  The accepted design explicitly does not solve five production-wiring
+  preconditions: bridge-source runtime binding, pre-seal credential-residue
+  recovery, a structural non-`repr` boundary, machine-enforced exclusivity
+  between the runner call path and the bridge, and a workspace-baseline
+  authority. Two of those reopen the integration contract digest pinned by the
+  runner/capture integration milestone.
+  This checkpoint accepts design bytes only. Implementation, credentials,
+  preflight, live execution, old-pair reuse, retry and replacement remain
+  unauthorized at this checkpoint; the consumed pair remains `NON_SUCCESS`, and
+  Gate 3 or treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 Group A runner integration contract v2 completed 2026-08-14.**
+  Delivered as three reviewed commits on one branch, because A1 and A2 are
+  transitional states that must not be recorded as mainline milestones: `38991f35`
+  freezes the v1 contract as a literal and identifies contract version from exact
+  bytes before any authority validation; `7c0ee75e` adds the v2 contract literal,
+  `RuntimeAuthorityV2`, `bridge_blob`, `bridge_source`, `workspace_baseline_sha256`
+  and per-version validator dispatch while leaving v2 unverifiable; `3ca52b49`
+  activates v2, moves workspace observation from the bridge to the coordinator and
+  implements the claim ladder. Exact SHA-256 values are
+  `2e087618749c8e9f2025523d8fb4374c0f631113253cb7bbfd9ed0e308345542`
+  (integration), `9ea1d51c1a7d56f2d3e9c52e770c1a4aefa82360177297cf6bcf66583e2ddf75`
+  (integration tests), `72c2bd1aeca986c80b170280bdf100dd6ca5950b418eb04086210b091912191a`
+  (bridge), `39604c36ce39808a81f81bf45e1c5bbfcf9b86d256829b54811fe57d2182de7c`
+  (bridge tests), `626339e3003b3cdf381206feb643b5a79ebc1ed766614eb100200a93fee88917`
+  (oracle) and `714424848e16e96f42367a1c7ec024266fd1b705cede7b8dbf8d0181647e498b`
+  (oracle worksheet), under design authority
+  `a720624920ee402a6e490077f806229879929bbc9ba37bb84fd95eb551979e74`.
+  Each step passed independent exact-digest review; five focused Gate 3 offline
+  suites pass 570/570.
+  Backward compatibility is evidenced by a frozen pre-A1 package captured from the
+  module at `c2bc090b…`, the digest this plan already pins, verified without
+  running any coordinator.
+  Claim ceiling: v2 admits `evidence_class = SYNTHETIC` and rejects `PRODUCTION`,
+  because `invoke` is an injected callable and a declared class would be caller
+  intent rather than execution provenance. Public v2 bytes reach only
+  `BASELINE_DIGEST_DECLARED`; a matching private map supplied out of band reaches
+  `SUPPLIED_BASELINE_MAP_MATCHES_DECLARED_DIGEST`. **No arrangement of inputs
+  establishes that a run performed the baseline comparison**, and no artifact,
+  claim token, plan entry or memory record may say so. The oracle fixture is
+  runtime-independent of the production modules and its values were independently
+  re-derived; serializer reuse is not detectable and is not claimed to be.
+  Group A closes two of the five production-wiring preconditions — bridge-source
+  runtime binding and workspace-baseline authority. The remaining three are a
+  pre-seal credential-residue recovery contract, a structural non-`repr` boundary
+  and machine-enforced path exclusivity. This tranche does not wire or launch the
+  real runner, use credentials, run preflight or live, or reuse, retry or replace
+  the consumed pair; the consumed pair remains `NON_SUCCESS`, and Gate 3 or
+  treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 mapping-only runner bridge tranche completed 2026-08-14.**
+  Implementation commit `b399cb7f` adds only a new bridge module and its focused
+  test file. Exact implementation SHA-256 is
+  `9ec1ba63e3a58e3bca4eab9570871e9d2584f4c7742cc6ec660f418fbd708c33`; exact test
+  SHA-256 is
+  `b85eca62c3edf6c6d2112b3abf91b805264b1b648d774109d85eca9a30420993`.
+  Independent exact-digest read-only review returned `APPROVED` with zero open
+  findings after one warning on test-claim scope was closed; focused tests
+  passed 23/23 and five adjacent Gate 3 offline suites passed 520/520.
+  The tranche maps `_ContainedResult` to `InjectedContainedResult`, drops
+  `returncode` on the timeout path because a non-`EXITED` disposition requires a
+  null exit code, sets `stderr` empty rather than forwarding it, treats
+  incomplete process-tree termination as a closed error rather than a
+  `TERMINATED` row, and refuses to claim `START_FAILED` from an unattributable
+  failure, accepting a consumed launch ordinal instead.
+  Claim ceiling: mapping characterization only. The bridge source is not a
+  `RUNTIME_SUBJECTS` member and claims no runtime authority; the workspace
+  baseline is a caller-supplied synthetic fixture, so its `CHANGED`/`UNCHANGED`
+  verdict is not public evidence about a real workspace; and the preparation
+  test asserts only that an in-memory fake ran, which is not credential-write
+  detection. Both the contained call and private preparation are injected fakes.
+  This tranche does not wire or launch the real runner, use credentials, run
+  preflight or live, or reuse, retry or replace the consumed pair. Production
+  wiring remains blocked on the five preconditions named in the accepted design;
+  the consumed pair remains `NON_SUCCESS`, and Gate 3 or treatment/Skill
+  effectiveness is not established.
+
+- [x] **Gate 3 historical materialization M1 completed 2026-08-15.**
+  Implementation commit `896bc64c` adds only the bootstrap authority chain
+  module and its focused test file. M1 establishes which authority a historical
+  reconstruction may derive from; it materializes nothing and reads no
+  credentials. M2 (read-only materialization of `SOURCE_COMMIT`) is written but
+  remains `CHANGES_REQUESTED` and is uncommitted, gated behind an interim
+  fail-closed refusal, so no materialization path is reachable.
+
+- [x] **Gate 3 native handle-boundary design, ADR-0001 and ABI
+  characterization accepted 2026-08-15.** Design commit `1c78de39` records why
+  the Windows standard library cannot bind a directory ancestor: this CPython
+  reports `os.supports_dir_fd == []` and offers no `O_NOFOLLOW`, no
+  `O_DIRECTORY` and no directory file descriptor, so an ancestor replaced by a
+  junction between check and use cannot be excluded by stdlib means. ADR-0001
+  exact SHA-256 is
+  `ec6d9acaca40b90502d099938680a3d0789bf3f37eaa4f7119310ca2e332dc58`; it
+  records the `ARCHITECTURE.md` §6.2 conflict check, decisions D1-D9, eight
+  owner rulings verbatim, and a four-row deviation register including the
+  slice-specific `NATIVE-INTEROP.md` §4.1 exception. The owner ruling for that
+  exception is recorded in ADR-0001 and is not generalized to other native
+  slices.
+
+- [x] **Gate 3 native ABI expected-layout oracle completed 2026-08-15.**
+  Commit `c4c7e14e` adds an extractor that derives the expected structure
+  layout from pinned Windows SDK headers rather than from the running
+  interpreter, so the measurement it checks is not also its own oracle. Exact
+  extractor SHA-256 is
+  `877e7fee5f7b382e3e3fe1331b1112cd1e2b24f4e1d3c09f6f570aecef6e64c0`; exact
+  artifact SHA-256 is
+  `503e29ffd7c7ab3d5f05612288b73f14378d7cace9484f31cbdf256503fe616b`. The
+  package digest is verified before the archive is opened, a closed nine-entry
+  header inventory and a closed fourteen-key provenance schema are enforced,
+  and the artifact declares `measurement_class = computed-not-compiled` because
+  no compiler ran. Coverage differs by stage and must not be collapsed: the
+  SDK artifact derives eleven layouts; the earlier characterization measured
+  nine of them, so `EXCEPTION_RECORD` and `OSVERSIONINFOEXW` are values the
+  oracle supplied rather than values it confirmed; and it is the N1 layout gate
+  that later checked all eleven ctypes declarations against the artifact. The
+  nine measured types agreed with the artifact.
+
+- [x] **Gate 3 native boundary tranches N1, N2, N3a and N3b completed
+  2026-08-15/16.** Commits `62c3488b` (N1 ctypes declarations plus the
+  expected-layout gate, and N2 the System32 loader and signature binding that
+  calls no bound export),
+  `ce43bb56` (fail-fast exit for post-bind faults) and `8b04c2d8` (runtime
+  facts behind that exit). Exact implementation SHA-256 at `8b04c2d8` is
+  `dbe848ed7510e95deac3c6a488b99649636a2d5270388a3b67480db34dc1fa21`; exact
+  test SHA-256 is
+  `41e37af239f6f6e54e2ba2ad9fb3a9422ddf0b314446fcf1881f98bc4dd62fe4`. Each
+  tranche passed independent exact-digest review. `SUPPORTED_MACHINES` admits
+  `AMD64` only, because ARM64 was never verified and admitting it would have
+  been an unverified claim. No handle is opened by any committed tranche.
+
+- [x] **Gate 3 native boundary N3c-1 completed 2026-08-16.** Implementation
+  commit `1486fdb5` pins every component from the volume root down to `base`,
+  each open handle-relative to the one above it, so no component is ever
+  re-resolved by name. Exact implementation SHA-256 is
+  `c8f40027dbc2900e4b370e6a7fc6dcbc144897b418dbc972b50fd0470adbfca5`; exact
+  test SHA-256 is
+  `9b27a2dd9a081e53372f9a1865ab6d93947812dcea4d42e4aa2926f833f96817`. Focused
+  tests passed 169/169. Across the surrounding Gate 3 suites 1073 passed and 7
+  failed. Those seven were originally reported as pre-existing failures that
+  this tranche did not touch; that attribution was wrong and is corrected in the
+  entry below. They are caused by the uncommitted B-1 worktree divergence, not
+  by anything at `HEAD`, and N3c-1 neither caused nor could have fixed them.
+  Three rounds of independent exact-digest review preceded the commit.
+  The pin comes from omitting `FILE_SHARE_DELETE`, not from requesting `DELETE`
+  on a borrowed directory, and revision 17's role-1 mask is what makes the
+  required reparse-tag check possible at all.
+  Three review findings were failures of claim rather than of code, and each
+  test passed while proving nothing: the guard-bypass check inspected a
+  hand-written list of two functions and so missed two direct `CloseHandle`
+  calls; the "creates nothing" check searched for call text that the compliant
+  call shape never produces, leaving it blind to violation and compliance
+  alike; and evidence 19w asserted only that a query failed, which any failure
+  satisfies. All three were widened, and a fourth finding — `NULL`-only handle
+  validation letting the truthy `INVALID_HANDLE_VALUE` through — was closed.
+  Suppressing the original error took three passes to remove: `_anchor` and
+  `open_chain` first, then both `__exit__` methods, where `return False` only
+  ran if `close()` returned.
+  Claim ceiling: this tranche opens and holds directory handles and does
+  nothing else. It creates, renames and removes nothing;
+  `NtCreateFile`, `SetFileInformationByHandle`, `WriteFile` and
+  `GetVolumeInformationByHandleW` remain bound and uncalled, asserted
+  structurally. `handle_boundary_available()` and `ACTIVE` are both `False`, so
+  no production path reaches it. N3c-2 — creation, deletion and the absence
+  probe — was not authorized at that point and did not follow from this
+  approval; it was authorized separately, designed and delivered afterwards,
+  recorded below. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
+  treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 M3-b blockers taken 2026-08-19.** Merged to `main` as `f802dba4`
+  (PR #76): BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`,
+  after the record reconciliation `09597ace`. Two are amendments made under
+  explicit human authorization. The third is not an amendment: **merging did not
+  close BLOCKED-3**, which was in `main` and still OPEN at that checkpoint; it
+  was later closed after acceptance of `95838ac0` and measured layouts in
+  `fe44deb4`.
+  **BLOCKED-1 — executable authority widens by one module.**
+  `RUNTIME_MODULE_ALLOWLIST` is five in both frozen copies, adding
+  `gate3_route_v2_ab_candidate.py`: the module whose execution *is* the
+  reconstruction, since `build_contract_manifest()` and `build_candidate_set()`
+  live in it. Loading it from the pinned commit rather than calling the present
+  one is the difference between reconstructing history and re-running the
+  present. Checked before amending rather than assumed: it is in the retained
+  eleven-file set at `8c044400…`, 7251 bytes, so the amendment is
+  implementable and not merely authorized.
+  The finding the amendment produced about itself is the part worth keeping.
+  **Nothing failed when the fifth entry was added.** Every allowlist test
+  compared the module against itself — the runtime inventory equals
+  `RUNTIME_MODULE_ALLOWLIST`, and the child's copy equals the bootstrap's, which
+  stays true when both copies grow together. Executable authority could widen
+  with a green suite. A literal pin outside the module now fixes the five paths,
+  the count, their uniqueness and the sorted order the wire depends on, so a
+  sixth requires an edit a reviewer reads. Focused tests 178/178. The
+  36-mutation battery from `cfa2c1ec` was **not** re-run: that harness was
+  session-local and is not in the repository, so this carries no mutation
+  evidence.
+  **BLOCKED-2 — two checks are retired, and that is a contract change.** The
+  amendment is made in its own authority document, the historical evidence
+  materialization design, now revision 11, as step 9:
+  `_verify_source_commit_inputs` and `_verify_byte_preservation_attributes` are
+  not part of the reconstruction path and are not reimplemented on it. Three
+  readings were followed to their ends first — the parent comparing the live
+  worktree is the original function unchanged and fails today for the B-1
+  divergence; the parent comparing materialized files to the same git blobs is a
+  tautology, since M2 materialized those bytes from those blobs through a held
+  handle; supersession by the M1/M2 chain is the correct one. What must not be
+  claimed downstream is that the reconstruction performs these checks or an
+  equivalent; it performs neither and relies on an earlier link. The parent-side
+  result object carrying the two "not asserted" markers is **not** written —
+  that is M3-b-3.
+  **BLOCKED-3 — at this checkpoint the slice is written and the blocker stays
+  open.** No
+  authorization closes it, because it asks for a design, not an amendment. The
+  slice closes ownership per resource, the unwind matrix and error translation —
+  twelve closed codes replacing three, with timeout distinct from wait failure —
+  and specifies the sensitivity evidence. It does **not** close the layouts. The
+  oracle extractor reads a digest-pinned SDK package that is not in this
+  environment and no Windows SDK include directory is installed either, both
+  checked; writing sizes and offsets from recollection would put a third
+  authority beside the declarations and the oracle and make an assumption
+  indistinguishable from a measurement, which is what "measured rather than
+  assumed" exists to forbid. Two findings came out of following the requirement
+  to its end: the surface is **fourteen calls and four owned resources**, not
+  eight and three, because bounding what the child inherits needs
+  `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` and its attribute list — the one resource
+  whose leak is silent; and the obvious shortcut, `bInheritHandles = FALSE` with
+  handles set in `STARTUPINFOW`, produces a child with no usable stdin.
+  Claim ceiling: BLOCKED-1 authorizes a fifth module to be loaded and loads
+  nothing. BLOCKED-2 changes what a passing verification means and touches no
+  code. BLOCKED-3 binds no symbol, starts no process and creates no job.
+  `ACTIVE` stays `False`, no availability predicate moved, nothing calls in, and
+  no committed tranche executes historical code. Canonical precommit returned
+  exit 0 with 201 passing against each of the three states. The consumed pair
+  remains `NON_SUCCESS`.
+
+- [x] **Gate 3 M3-b design and M3-b-1 delivered 2026-08-19.** Merged to `main` as
+  `f802dba4` (PR #76): design `8a8dbc2c` with its revision 6 in `70d62fd1`,
+  implementation `cfa2c1ec`, and the audit fix `80b2a74c`. Exact design SHA-256 is
+  `ff0099e57f8ad5e999d9ef664a7918460b81e7b95083abf111747e8c955a4ef8`; exact
+  implementation SHA-256 is
+  `0f82201b05086d5fc4e01168c1fdadd7970cc29727cad2770ad8d9e8ff9566c6`; exact
+  test SHA-256 is
+  `cb13f458c200aaa4cbe50105c87404f17149e4ab1519fec0784556451bd99ea1`. Focused
+  tests pass 137/137, the mutation battery is 36 declared, 36 valid, zero
+  survivors, and canonical precommit returned exit 0 with 201 passing against
+  the exact state.
+  The design's main output is arguably not its mechanism but the three places
+  where it found it could not proceed on its own authority, each recorded as a
+  blocker rather than absorbed. **BLOCKED-1**: the reconstruction entrypoint is
+  not in the runtime allowlist, and the literal amendment widening executable
+  authority by one module is written out to be reviewed as that. **BLOCKED-2**:
+  two of the current verifier's checks are retired rather than moved — against
+  the materialized tree they compare a git blob to bytes materialized from that
+  blob, which the M1/M2 chain already asserts more strongly, and retiring a
+  check changes what verification means. **BLOCKED-3**: the process-control
+  surface is a second native boundary, and naming its Win32 calls is not
+  specifying it; `NATIVE-INTEROP` requires layouts, ownership, unwind and error
+  translation first, for a surface with eight calls, three kinds of handle and
+  at least six ways to fail.
+  M3-b-1 is therefore only the machinery the other two tranches sit on, built
+  where nothing executes it: the closed loader over the verified buffer map and
+  the `GATE3HR\0` return frame, in-process, no spawn, no native call, no
+  historical import. The loader is a `MetaPathFinder` returning `None` for every
+  name outside its inventory, so the standard library resolves normally; a
+  stdlib allowlist is deliberately absent, because it would have to be
+  maintained against a standard library older than the code importing from it.
+  The return frame is deliberately not the inbound format, carries four
+  required labels and no paths, and both its digest labels are recomputed
+  rather than trusted.
+  The findings that generalize, all from hostile probes against a green suite.
+  **Metadata a module can grant itself is not authority**: loader ownership
+  accepted any loader the finder had made, and a module can read its own
+  `__loader__` and put it on another module's spec. **Position is not what puts
+  a module in scope; having loaded it is** — the audit gated its whole check on
+  the module's current `__file__` being under the materialized root, so a
+  module body that reassigned `__file__` skipped the object-identity,
+  expected-origin and exact-loader checks together, and the one module the
+  audit exists for was the one able to leave its scope. **A specified evidence
+  item can be impossible**, the same shape M3-a already produced. **A redundant
+  check reads as load-bearing**, deletable with the suite green. **A
+  specification that does not retire beside the thing replacing it specifies
+  neither.** **A setting can read as a guarantee and provide nothing**:
+  `PYTHONHASHSEED=0` is ignored under `-I`, measured, and the determinism claim
+  it supported was withdrawn rather than re-explained. Six of the defects here
+  survived a green suite before their tests existed, which is why the mutation
+  harness now fails closed on an anchor that misses or matches twice.
+  Revision 6 corrected the design against its own implementation rather than
+  the reverse: revision 5 had excluded f26 and f27 to BLOCKED-2 with f28, but
+  the frame's label set and its internal digest consistency are decisions the
+  decoder must make before returning anything. The implementation had them
+  because they cannot be left out, and the authority was wrong.
+  Claim ceiling: nothing here executes, spawns, compiles or imports anything
+  historical. `ACTIVE` stays `False`, no availability predicate moved, nothing
+  calls in, and canonical precommit passing proves the repository gate still
+  passes with these files present and proves nothing about whether the loader is
+  right. Deliberately absent: the parent-side result object and its two "not
+  asserted" markers (BLOCKED-2), the spawn and process control (BLOCKED-3 and
+  M3-b-2), and how the child receives the materialized root — which argv, the
+  environment and the inbound frame all have no field for, recorded in the code
+  as an open dependency rather than defaulted to something convenient. The
+  runner's trust root and its TOCTOU window remain accepted assumptions of M3.
+  At this checkpoint M3-b-2 waits on BLOCKED-3; M3-b-3 waits on BLOCKED-1 and
+  BLOCKED-2; M4 is not started; the consumed pair remains `NON_SUCCESS`.
+
+- [x] **Gate 3 M3 design and M3-a delivered 2026-08-19.** Merged to `main` as
+  `5204cd18` (PR #75), carrying design commit `a51cd4be` and implementation
+  commit `daf4ec5e`. Exact implementation SHA-256 is
+  `4c47710923f951c474e4c332850e9aa31b6ee9015886b3efaa617a96fe6cdd86`; exact
+  test SHA-256 is
+  `189588b4da91bd626ca993f05533e9e2cd31cdd66faf8d4b0913cfc3b4918b89`. Focused
+  tests passed 96/96, eighteen injected defects were each caught with none
+  surviving, canonical precommit returned exit 0, and all twelve CI checks
+  passed before the merge.
+  One measurement decided the shape of everything else. A child started with
+  `-I -S -B` has exactly four `sys.path` entries, all under the interpreter's
+  own installation, with `site-packages` absent and **the runner's own
+  directory absent too**. The isolation that stops historical modules resolving
+  by path stops the trusted ones resolving by path in the same way, because it
+  is one mechanism and it does not take sides — so the child can import neither
+  the transport decoder nor `gate3_historical_bootstrap`. The transport is
+  therefore one self-contained stdlib-only file that the parent imports for its
+  encoder and the child will later execute as `__main__`, which is what makes
+  the encoder and the decoder *share* the wire grammar instead of agreeing
+  about it.
+  That measurement also falsified a clause in this work item's own authority.
+  Revision 8 required the child to apply "the same grammar the parent applied";
+  the parent's check asks whether a path can escape a materialized root when
+  joined to it, the child never joins a path, and it cannot import the module
+  the check lives in. Rather than assert a stricter grammar in the subordinate
+  document, the design was marked blocked and the authority was amended:
+  revision 10 specifies a wire grammar defined once and applied by both sides,
+  accepting a subset of what the containment check accepts, with that direction
+  bound by a test over a named corpus and the reverse inclusion recorded as
+  false with named witnesses.
+  Seven review rounds: five on the design, two on the implementation. An
+  earlier draft of this entry said five and five; the implementation went
+  through one `CHANGES_REQUESTED` and one `APPROVED`, which is two, and
+  `daf4ec5e`'s own message says so. Two findings generalize. **A specified evidence item can be impossible**: an ordering case
+  asked for a legal path whose code-point order and UTF-8 byte order differ,
+  and a round-trip case asked for bytes that decode strictly but do not
+  re-encode to themselves. Neither exists — measured, 3,275,520 scalar pairs
+  with zero order disagreements, and every 1-, 2- and 3-byte sequence with zero
+  round-trip failures. Both were tests named after invariants they could not
+  check, and the rationale in the document was rewritten beside each test,
+  because fixing only the test would leave the design asserting a reason the
+  test no longer had. **A redundant check reads as though it were
+  load-bearing**: the record loop compared the running total against both the
+  global bound and the header's declaration, and a mutation showed the global
+  comparison could be deleted with the suite still green, since the header
+  already refuses a declaration above the bound. It was removed rather than
+  kept.
+  Claim ceiling: `ACTIVE = False`, no production caller, no spawn, nothing
+  compiled and no historical module imported. The trusted computing base is
+  named rather than assumed — the runner is executed by path and nothing
+  verifies those bytes first, so "defends against a corrupted parent" covers
+  the parent's transport and data state and explicitly **not** the spawn
+  target, and runner identity and its TOCTOU window are accepted trust
+  assumptions rather than deferred work. The child's re-derivation is not
+  independent verification in the strong sense: both copies come from one
+  author and one design. M3-b and M4 are not started; the consumed pair remains
+  `NON_SUCCESS`.
+
+- [x] **Gate 3 held-handle read implemented 2026-08-18.** Commit `6e7393e2`
+  adds `read_all(leaf)` to the boundary. Exact implementation SHA-256 is
+  `f705a215085a99d713fdb8da1f7b3eb81044507b0c02a2f45304cc919401c117`; exact
+  test SHA-256 is
+  `620ad4709c9726e7b5c3121deb77e7cf46ef579cdbb16ae4a0e3fbab4b75a9b7`. Focused
+  tests passed 267/267 and canonical precommit returned exit 0 against the
+  exact diff.
+  The read takes no length: it is sealed into the `Leaf` at creation, so "how
+  many bytes should be here" is not answerable by whoever is asking. All four
+  `ReadFile` outcomes are mapped, including a count larger than the request —
+  a broken call rather than a changed file, and refused rather than trusted,
+  because a fake binding can return it and treating it as a short read would
+  advance past what was written. Every read rewinds first and checks the
+  returned position, not only the boolean.
+  Two review rounds. The findings were a stale authority pointer and an export
+  count carried in prose rather than derived from `BOUND`; two untested failure
+  paths, a failed rewind and a failed end-of-file probe, both of whose
+  mutations survived; and an ABI assertion that only checked `argtypes` was
+  non-empty, which passes for a wrong order, a pointer where a value belongs,
+  or a wrong return type. The last now compares against an independent ctypes
+  oracle with five sensitivity cases proving it rejects a wrong declaration.
+  Claim ceiling: a read surface. It moved no availability flag, and the share
+  mask it reads under is not total exclusion — measured, a native reader
+  sharing read, write and delete does open a held role 3 file.
+
+- [x] **Gate 3 M2 completed 2026-08-18.** Commit `5a04ec79` rebuilds
+  historical materialization on the handle boundary. Exact implementation
+  SHA-256 is
+  `31f6a0f104847b049302766c7be3c58ee232ddc5c7789b6dcddec24b232157c7`; exact
+  test SHA-256 is
+  `f89bf78cc294bed31e746337e2a217d8c5b0b66b2bc567657eb4eb156ab5723e`. Focused
+  tests passed 68/68 and canonical precommit returned exit 0.
+  Every filesystem operation is handle-relative; the path-based versions are
+  deleted rather than kept as a fallback. `base` is borrowed and is never
+  created, deleted or marked. The phase order is the security property: blobs
+  are read and verified while no handle is open, and only then is the base
+  pinned. Cleanup is a per-object transaction — mark, close, confirm absent —
+  where deletion stops at the first object that will not confirm gone while
+  handle release continues through everything deletion did not reach.
+  Four review rounds, and two findings are worth carrying forward. A record
+  could be forged by recombining valid parts: two trees from the same commit
+  under different bases produced records with identical labels and
+  correctly-typed handles, and swapping one bundle into the other's record made
+  cleanup delete the tree the record did not describe. The fix was structural —
+  the tree became a façade over one authority object, so there is nothing left
+  to recombine. An intermediate fix, a seal indexing a global registry, was
+  itself wrong: the registry's strong references kept handles alive after the
+  tree they belonged to was collected. Separately, removing `verify`'s byte
+  read removed a second obligation nobody noticed it was carrying, and a
+  `verify` comparing path names alone accepted a map whose every digest was
+  wrong.
+  Claim ceiling: `materialize()` and `cleanup()` still refuse.
+  `handle_boundary_available()` forwards to the boundary, which reports `False`
+  while no admission record and no capability probe exist — this module does
+  not decide its own availability. **Verification is not entirely
+  handle-bound:** the enumeration comparing the observed file set against the
+  record is still a path walk, and the adapter offers no handle-bound directory
+  enumeration to replace it. That limit is in the module docstring, in
+  `verify`'s docstring, and in a test that fails if a later revision deletes the
+  caveat while leaving the walk. Nothing is wired to M2; M3 and M4 are not
+  started; the consumed pair remains `NON_SUCCESS`.
+
+- [x] **Gate 3 held-handle read design amendment accepted 2026-08-18.**
+  Design-only, across three documents: the native handle-boundary design at
+  revision 21, the N3c-2 tranche design at revision 7, and the historical
+  evidence materialization design at revision 8. Exact SHA-256 values are
+  `f1d7d8160c307ad656ec96d6089e9eb216272d9faf9068e923eb41bac01714df`,
+  `4000b95dc7487976bbcf3b700bc2f475a733fbdda33fe88437d2c630ac38638e` and
+  `efa07ce87bc829bfeb643bbac7a9dcd52ba80ae1d4f9a113eba45daa65a0514f`.
+  The amendment exists because revision 17 left the materialized bytes
+  unreadable by anything, including this design's own consumers: role 3 holds
+  each created file until it removes it, so `verify` could not re-read what it
+  had written and M3's child could not load it. Role 3 gains `FILE_READ_DATA`
+  and the adapter gains `read_all(leaf)`, whose expected length is sealed at
+  creation rather than supplied by whoever is asking.
+  Eight review rounds, and the recurring finding was not a defect in the new
+  mechanism but the old specification failing to retire beside it: a
+  path-based `verify`, a materialized `sys.path`, a superseded framing
+  paragraph and a child row that read two ways all survived the change that
+  invalidated them, so the documents specified two ways to do one thing.
+  Two claims were withdrawn against measurement. A held created file does
+  **not** admit no other opener — a native reader sharing read, write and
+  delete succeeds, while one sharing less is refused — so the reason for
+  reading through the creating handle is that it resolves no name and adds no
+  second ownership path, not exclusivity. And byte immutability rests on three
+  things together: the share mask, the opaque handle, and a call census showing
+  no `WriteFile` after creation.
+  Claim ceiling: design bytes. No implementation, no availability change, and
+  the directory enumeration in `verify` is still path-based — M2 may not claim
+  that all verification is handle-bound.
+
+- [x] **Gate 3 N3c-2 design accepted 2026-08-17.** Design-only commit
+  `520cc306`, exact SHA-256
+  `25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`
+  (20,180 bytes), subordinate to revision 17 and restating none of it. It
+  carries the owner ruling that `base` must pre-exist and stay a borrowed
+  ancestor, with the reasoning that generalizes: a created object owes a
+  deletion and a borrowed one owes never deleting, so an object made to carry
+  both obligations can discharge neither.
+  Four review rounds, closing defects of three different kinds. A safety-scope
+  defect: `_contained` was to be deleted as structurally unnecessary while
+  `verify` still resolved by path and still called it, and a digest comparison
+  does not cover for it — it says nothing when an external location happens to
+  hold exactly the expected bytes. A behavioural contradiction: cleanup control
+  flow required both "attempt every object" and "stop at the first failure"
+  within three lines. An unreachable specification: the observation point after
+  creation and before the first write does not exist, because `create_file`
+  takes the payload and returns a held leaf. And one evidence defect proper:
+  the born-read-only check was confounded by role 3's share mask, so it would
+  have passed against an implementation that never requested the attribute.
+  Claim ceiling: design bytes. Approval moved no availability flag and
+  authorized no filesystem operation.
+
+- [x] **Gate 3 native boundary N3c-2 completed 2026-08-17.** Implementation
+  commit `495fe52f` adds role 2 directory creation, role 3 file creation with
+  the payload written through the held handle, handle-bound deletion with its
+  fallback, and the absence probe. Exact implementation SHA-256 is
+  `9142f2c6480be610cc4c064c18fb2e1b599c1ba98d3bcaca8763acb9664cfab5`; exact test
+  SHA-256 is
+  `a044c35b9c994bbb81e1cc496b46b4953b46f5315a976bfe0104008ed8715e84`. Focused
+  tests passed 245/245. Canonical precommit was run against this exact diff
+  through Git Bash at `/usr/bin/bash` and returned exit 0 with 201 passed; it
+  covers `tests/` and not the experiment suites, which were run separately.
+  `BASE_NOT_FOUND` and `BASE_NOT_ADMISSIBLE` are appended at 11 and 12 with
+  every earlier ordinal asserted individually, so `HANDLE_BOUNDARY_UNAVAILABLE`
+  now means only that the boundary cannot be used on this platform rather than
+  also answering for a path the caller could fix.
+  Three review rounds, and the five blocking findings split two ways. Three
+  were production defects that no test had caught: a failure between
+  `FILE_CREATE` and the returned ownership object left the name on disk with
+  nothing holding it; a close during removal reported `CLOSE_FAILED` and so
+  named the wrong problem; and every creation failure was reported as a taken
+  name. Two were defects in the evidence itself: the read-only check would have
+  passed against an implementation that never requested the attribute, and its
+  sensitivity case asserted the recorded value differed from a literal — which
+  is precisely what a broken implementation produces. A later round added a
+  third of that kind, the removal-state ordering test that let the mark succeed
+  and so could not separate the two orderings, and a fourth, the disposition
+  matrix that never distinguished preferred from fallback and never covered
+  both failing.
+  Claim ceiling: this tranche creates and deletes real filesystem objects, all
+  of them under a `base` the caller supplies and this code never creates,
+  deletes or marks. `handle_boundary_available()` and `ACTIVE` are both `False`,
+  so no production path reaches it; M2 is not wired; the consumed pair remains
+  `NON_SUCCESS`, and Gate 3 or treatment/Skill effectiveness is not
+  established.
+
+- [x] **Gate 3 native handle-boundary design revision 17 accepted 2026-08-16.**
+  Design-only commit `0d95023d`, exact SHA-256
+  `83ca5282c632d65ad34961467359b7c846a1cdc58a5d353b5cd350063feecbb3`
+  (91,393 bytes, diff `+65 / -3`). Revision 16 required a reparse-tag check on
+  every pinned ancestor while granting an access mask that cannot perform one;
+  measured on the volume root, `GetFileInformationByHandleEx` with
+  `FileAttributeTagInfo` failed with `ERROR_ACCESS_DENIED` under
+  `FILE_LIST_DIRECTORY | SYNCHRONIZE`. All three roles now request
+  `FILE_READ_ATTRIBUTES`, because an audit found none exempt.
+  `FILE_WRITE_ATTRIBUTES` is explicitly rejected as a justification for
+  reading: the two are independent rights.
+
+Current blocking relationships for this work item:
+
+- N3c-1 (pin the ancestor chain) is complete and delivered in `1486fdb5`; see
+  the milestone entry above. It is the first tranche that opens a handle.
+- N3c-2 is complete and delivered in `495fe52f`, with its design in
+  `520cc306`. It is the first tranche that creates and deletes real filesystem
+  objects.
+- The held-handle read (N3c-3) is complete and delivered in `6e7393e2`. It is
+  what makes a materialized file readable at all: role 3 holds each file it
+  creates, and its share mask refuses every opener unwilling to tolerate our
+  write and delete access.
+- M2 is complete and delivered in `5a04ec79`. `_contained` went with it: it
+  guarded a path-based read that no longer exists, since `verify` now reads
+  through the creating handle.
+- M3-a is complete and delivered in `daf4ec5e`, with its design in `a51cd4be`
+  and the authority amendment those two required in the same commit. It is the
+  framed transport and the child's own derivation of the expected inventory.
+- M3-b has its design in `8a8dbc2c`, revised in `70d62fd1`, and its first
+  tranche delivered in `cfa2c1ec` with the audit fix `80b2a74c`. M3-b-1 is the
+  closed loader over the verified buffer map and the `GATE3HR ` return frame,
+  built in-process where nothing executes it: no spawn, no native call, no
+  historical import, `ACTIVE` still `False` and no caller. **It is still true
+  that no committed tranche executes historical code.**
+- **BLOCKED-3 is CLOSED.** The process-control design slice in `95838ac0` was
+  accepted after `fe44deb4` committed the digest-pinned SDK provenance, seven
+  measured process-control layouts, their pure `ctypes` declarations and the
+  independent fixtures. Exact-digest fresh-context review approved the tranche;
+  386 scoped tests and the canonical 201-test gate passed. No symbol is bound or
+  called and `ACTIVE` remains `False`. The bounded M3-b-2A materialized-root
+  transport was merged by PR #108: implementation commit `ff9cdb77`, merge
+  commit `a59b0aef`. It adds the in-process `GATE3HL\0` version-1 codec,
+  verified-inner refactor, live-tree authority helper and sole parent adapter.
+  M3-b-2B still owns native process/job/scratch/pipe integration and has not
+  begun.
+- M3-b-3, the reconstruction call, is **unblocked as authority**, and that
+  authority is now in `main`: BLOCKED-1 (`fa10dda8`) gave it a defined callee and
+  BLOCKED-2 (`4ea55d3e`) a defined verification contract. What remains is that it
+  be written and reviewed — and it owns the parent-side result object with the
+  two "not asserted" markers, which the BLOCKED-2 amendment requires and does
+  not build.
+- M3-b-2A binds one live `MaterializedTree` authority to one launch envelope
+  containing the unchanged M3-a frame and root. The child validates syntax and
+  the deterministic leaf; the full absolute base remains parent-trusted. It has
+  no `__main__`, process, native call, historical import or active caller.
+  Focused 251, adjacent 292 and canonical precommit 201 passed before merge.
+- M4 follows, and is what lets a historical candidate be verified against
+  materialized historical bytes instead of against the live worktree — which is
+  what B-1 is waiting for.
+- The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and
+  `test_gate3_route_v2_ab_checkout.py` are caused by the uncommitted B-1
+  worktree divergence. At `HEAD`, `gate3_route_v2.py` and
+  `gate3_route_v2_codex.py` are byte-identical to `SOURCE_COMMIT`
+  `204965c94bd843d599986d9f9d0fd552ea053dff`; only the worktree differs. The
+  historical candidate is verified by comparing live worktree bytes against
+  that commit, which holds only while the implementing source never moves.
+- B-1, the structural non-`repr` boundary, is therefore
+  `CHANGES_REQUESTED / PAUSED_BEHIND_M4` and preserved complete and unstaged as
+  five files. Its dependency is `N3c-2 -> M2 -> M3 -> M4 -> B-1`: M4 is what
+  lets a historical candidate be verified against materialized historical bytes
+  instead of against the live worktree. Splitting B-1 to land only the unpinned
+  consumer was considered and rejected by the owner, because it would narrow
+  the census from three consumers to one and leave the two actually under pin
+  unprotected.
+- No manifest is repinned, no pair evidence is rewritten, and the consumed
+  `NON_SUCCESS` pair does not regain usability through any of this.
+
+#### Historical branch record (09248cb4)
+
+- M4 is not started, and M3 is delivered only as M3-a plus M3-b-1. Nothing is
+  wired to M2 or to M3-a, nothing calls M3-b-1, and no availability flag moved:
+  `handle_boundary_available()` and `ACTIVE` are both `False`.
+- **2026-09-04 current-state reconciliation.** The active-state cutover is
+  complete: `memory/01_active_task.md` points by exact SHA-256
+  `3c255c2bc72988464afbefd13731691a244f6de84a8e7e8e7d32a4d799801bc5`
+  to `memory/05_authority_index.md`. The index is retrieval-only, not new
+  authority or independent proof.
+- R2 sandbox/custody qualification and both V2 wrappers are frozen. The first
+  production `codex exec --json` reached the service but failed HTTP 401 before
+  tool execution; Attempt and Grimm exposure stayed zero. Frozen keyring V2
+  `-Mode Status` then returned `AUTHENTICATED` for
+  `C:\Users\daish\.codex-r2-canary` under explicit keyring/no fallback, with no
+  `auth.json` and no Login. The qualification-home authentication sub-blocker
+  is cleared; production runner explicit keyring wiring and runtime
+  requalification remain required.
+- Current order: commit the staged runner keyring wiring, refresh R1 generation
+  8, rebound only the dry-run wrapper HEAD/runner pins, then separately
+  authorize the second real non-exposure dry-run. This reconciliation authorizes
+  no Login, credential read/copy/mutation, live execution, Attempt, or Gate 3
+  success claim.
+
+### Gate 3 first-Skill funding gate — principal before engineering
+
+The goal remains to complete Gate 3 and test the first Bug Fix Engineering
+Skill. The owner now reconciles the natural pilot's eight-step card with the
+later nine-step program method as program Section 3 steps 1–7 and 9; step 8 is
+omitted only because it governs Arm-D-only validator treatment and a natural
+pilot has no experimental arms. This is a 2026-08-20 owner decision, not a
+claim that the later program text caused the 2026-07-17 pilot record.
+
+No scorer-before-mapping implementation is funded until a separately controlled
+external-pin authority is shown feasible for this repository. The decision must
+name the chain writer, a genuinely independent pin controller, the durable
+append-only surface, pin timing and contents, the mapping-release check, and
+inadmissible sources. A second account controlled by the same natural person or
+automation agent is not a different principal. The protection state that keeps
+the coordinator from modifying, deleting, merging or force-updating the surface
+must be checked and retained at pin time.
+
+External-record absence, timeout, stale or mismatched bytes, unknown or changed
+protection state, a non-independent controller, or a pin created after mapping
+release all fail closed. There is no temporary release and no retrospective
+pin. If no qualifying principal and surface exist, this work stops with Gate 2
+process integrity still `NOT_ESTABLISHED`; a local chain, another file in the
+same output tree, same-agent memory or caller-supplied digest cannot replace the
+missing authority.
+
+Only after that feasibility gate passes may the owner consider one bounded
+tranche: the six create-once previous-digest events from randomization seal
+through two scorer submissions and mapping release, plus one non-counted
+rehearsal. That is the complete cost ceiling before a new owner decision. It
+authorizes no counted pair, Skill promotion or broader runtime/native surface.
+The historical Gate 2 run cannot be repaired retrospectively. A first counted
+pair would begin, not complete, Gate 3; completion still requires at least three
+separately originated natural bugs across two consumer repositories under the
+accepted repeat rules.
+
+#### Historical main record (a6a2d622)
+
+- M4 is not started, and M3 is delivered only as M3-a, M3-b-1 and bounded
+  M3-b-2A. Nothing is wired to M2 or to M3-a, nothing calls M3-b-1 or M3-b-2A,
+  and no availability flag moved: `handle_boundary_available()` and `ACTIVE`
+  are both `False`.
+- Credentials, preflight and live remain unauthorized.
+
+
+Claim ceiling: this work item has produced design authority, an independent
+ABI oracle, declaration, loader, fail-fast and runtime-fact tranches, a
+committed tranche that opens and holds directory handles (N3c-1), and one that
+creates, writes, deletes and probes for absence (N3c-2). The sentence that
+stood here until 2026-08-18 — that no committed tranche creates or deletes a
+filesystem object — was true when written and was contradicted by `495fe52f`
+the same week. What remains true is narrower and is the part that matters:
+every object N3c-2 creates or deletes is one it created itself, under a `base`
+supplied by the caller that this code never creates, deletes or marks.
+`handle_boundary_available()` and
+`ACTIVE` are both `False`, so the boundary is not reachable from any production
+path. Accepted design bytes are not an implementation, exact-digest review
+approval is not runtime evidence, and none of this reuses, retries or replaces
+the consumed A/B pair. The consumed pair remains `NON_SUCCESS`, and Gate 3 or
+treatment/Skill effectiveness is not established.
+
+- [x] **Gate 3 common-harness non-counted synthetic rehearsal completed
+  2026-07-29.** Implementation commit `d9f48148` produced two clean synthetic
+  A/B output commits and a complete seven-event chain through
+  `mapping_released`. The durable summary SHA-256 is
+  `30cb88b9475d075bcf25e704f965ae8a5957c764b4f7e4eba9cf4e88f4434405`;
+  chain head SHA-256 is
+  `47272ba7d3518cd375eb1896466bad6c1602270be5189da5021e403adc483a27`.
+  Retained bytes, baseline/output commits, exact diffs, receipts, mappings and
+  structured writes replayed successfully; named mutations failed. Focused
+  tests passed 45/45, canonical precommit passed 190/190 and a
+  `core.autocrlf=true` checkout preserved all 55 claimed exact-byte paths.
+  This rehearsal is synthetic and non-counted; its scorer fixtures are not
+  independent judgments and it does not approve, sign, promote or start Gate 3.
+
+- [x] **C1 Gate 1 preregistration and pre-randomization admission completed
+  2026-08-26.** The preregistration freeze is in merge commit `4f0eefb9`
+  (PR #113). Rekor provider verification and the proof-bearing write path are
+  in merge commits `26552169` through `5a0da107` (PRs #114-#117). The
+  client-side identity amendment is in `830577ef` (PR #118), and the integrated
+  admission gate is in `90227e36` (PR #119). The separate final-head
+  countability decision was frozen in reviewed commit `1ced27d0` and merged as
+  `3351584a` by PR #120. Its terminal is
+  `ARM_EXECUTION_ADMISSION_PASSED_NOT_RANDOMIZED`: event 7 remains a mandatory
+  proof-bearing external pin before event 8 mapping release; an additional
+  event-9-style external final-head receipt is not required for this internal
+  Skill-funding experiment. Randomization has not been created, A/B/C/D arms
+  have not executed, and both remain unauthorized pending separate explicit
+  owner authority bound to the reviewed D5 admission commit.
+
+Claim ceiling for this checkpoint: the experimental rules, validator path,
+external pin provider, client identity boundary and pre-randomization admission
+are available and reviewed. This does not establish Gate 3 readiness,
+treatment effect, governance effectiveness, validator-feedback effectiveness
+or Skill effectiveness, and it does not authorize randomization, producer or
+scorer execution, mapping release, or any A/B/C/D arm.
+
+## Canonical Memory Provenance Tranche 1 (completed 2026-07-27)
+
+- [x] Canonical memory CLI writer, runtime session-end writer, authority guard,
+  and checkpoint baseline reader share one local Git commit-object provenance
+  decision.
+- [x] Hash-shaped text alone no longer creates `memory_binding: bound`;
+  explicit invalid Git-worktree commits fail before memory mutation, while
+  auto-detect failure and non-Git paths remain writable as unbound.
+- [x] `mixed_scope_memory_binding` reports staged or commit-range closeout
+  scopes that combine bound canonical memory with non-closeout paths. The
+  signal remains report-only and is absent from hook, CI blocker, pre-push, and
+  memory blocking policy.
+- [x] Focused replay covers the CFU release-artifact mixed-scope must-fail case
+  and the product-commit then memory-closeout-commit must-pass case.
+- [x] Read-only scoped review findings were resolved before commit.
+- [x] Separate Memory quality measurement slice: retrospectively classified the
+  most recent 20 canonical entries, then causally reclassified the 15
+  non-immediate cases under four real work items.
+- [x] The causal audit found zero confirmed avoidable memory defects. Three
+  apparent stale-at-write cases were `record_commit_artifact` false positives:
+  `git blame` identifies when a prewritten record was committed, not when it was
+  authored.
+- [x] The admission gate was not met. Stop without adding an advisory prompt,
+  fresh-session replay harness, `governance_tools` validator, hook, CI, schema,
+  or blocker.
+
+Claim ceiling: Tranche 1 establishes local commit provenance consistency and a
+report-only mixed-scope observation. It does not prove remote delivery, memory
+prose truth, Memory quality improvement, consumer replay outcomes, or G4 value.
+
+Memory quality measurement claim ceiling: the recent-20 baseline and causal
+audit are single-annotator, retrospective observations. Reviewer agreement
+remains pending; the sample is concentrated in four work items and is not G4
+outcome evidence.
+
+## Dirty Workspace Policy
+
+Known unrelated dirty runtime ledgers at the time of this PLAN repair:
+
+- `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson`
+- `artifacts/session-index.ndjson`
+
+Generated compatibility snapshot boundary:
+
+- `artifacts/governance/version_compatibility.json` is a generated
+  compatibility snapshot, not the canonical source of version truth.
+- Source of truth: rerun `governance_tools.governance_version_check` /
+  session-start version compatibility logic when reviewer-facing evidence is
+  needed.
+- The generated snapshot is ignored so runtime smoke / session-start
+  regeneration does not create tracked dirty state.
+- Ignoring the snapshot does not remove the need to verify version
+  compatibility when a task claims version compatibility evidence.
+
+Known local EOL/status residual:
+
+- `tests/test_governance_drift_checker.py` may appear modified on this Windows
+  workspace because of local Git EOL/status behavior.
+- Latest evidence: working hash equals the HEAD blob
+  (`4de281e3acecad47b4e23c16cbb58187e78e0bb2`); `git diff --raw` reports no
+  content diff; `git ls-files --eol` reports `i/lf w/lf`.
+- Treat this as a local hygiene residual, not a source diff, unless new evidence
+  shows a real content change.
+
+Policy:
+
+- Do not stage these files with documentation, memory workflow, or F-7 commits.
+- Treat them as runtime side effects unless explicitly audited for promotion.
+- Overall workspace remains NOT CLEAN while these files are dirty.
+- Do not claim workspace clean while the EOL/status residual remains visible.
+
+2026-06-18 owner-ratified ledger policy direction:
+
+- Option B selected: these two ledgers should become ignored-by-default runtime
+  artifacts.
+- Durable reviewer-facing evidence must come from explicit audit / reviewer
+  milestone export, not accidental runtime append commits.
+- Implemented 2026-06-18: ledgers untracked + ignored (`ffd9609`, local files
+  kept); manifest-only milestone export tool added (`bf798d4`). No runtime
+  writer / hook / validator / closeout change.
+- NOT CLAIMED: raw-snapshot export refinement, reviewer-handoff export
+  integration (separate slices), historical evidence migration, workspace
+  clean, or Gate 3 opening.
+
+## Historical Milestone Index
+
+This index preserves reviewer orientation without reintroducing corrupted inline
+history.
+
+- Core closeout receipt and evidence chain: operational.
+- Claim-enforcement compact receipt boundary CE-1C / CE-1D: implemented with
+  historical raw packet disposition still separated from current runtime ledgers.
+- Response Envelope Contract and validator: implemented as structural reporting
+  convention, not semantic enforcement.
+- Fleet governance scope and required-tier verification: implemented with
+  prior 10/10 required verified evidence, not a permanent future guarantee.
+- F-7 submodule deterministic updater: implemented as a backend stage; full
+  update semantics require role-aware orchestration.
+- Memory canonical writer and memory authority guard: implemented with active
+  sentinel and warning-mode historical debt.
+- CodeBurn observation surfaces: implemented as Class C observation-only, not
+  billing truth.
+- External onboarding SOP: proven in prior repos, but current F-7 external
+  rollout remains pending for memory workflow distribution.
+
+## Definition Of Done For Current Planning Slice
+
+The P0b required-drift-gate slice is done when:
+
+- the existing canonical drift checker executes inside the required pull
+  request `Phase Gate Verification` path and fails closed on critical drift;
+- protected and baseline-only changes trigger the governance workflow;
+- a main-push `Canonical Drift Post-Merge Audit` rechecks merged state without
+  being added to branch-protection required contexts;
+- regression tests prove that an unrefreshed protected-file change is critical
+  and that canonical refresh restores bookkeeping consistency;
+- the workflow and reviewer language state that hash consistency is not proof
+  of owner authorization for a protected-file change;
+- canonical drift, focused workflow tests, Bash syntax, and the scoped
+  precommit gate pass;
+- runtime hooks, schemas, memory writer behavior, gate policy, branch
+  protection configuration, F-7 behavior, and G4 claims remain unchanged;
+- the scoped implementation is committed separately from its canonical memory
+  closeout companion.
+
+## Cannot Claim From This PLAN Alone
+
+- Cannot claim that all historical evidence was migrated into this file.
+- Cannot claim that external repos are updated.
+- Cannot claim fleet enforcement completion.
+- Cannot claim memory historical debt cleanup.
+- Cannot claim semantic verification of every historical milestone.
+- Cannot claim GitHub release / README / topics are current.
+- Cannot claim workspace clean while runtime ledgers remain dirty.
+- Cannot claim that a refreshed baseline hash proves owner authorization for
+  future protected-file changes.
+
+
+### Solo R2 exact task/rubric owner adoption — 2026-09-06
+
+Owner adopts the exact reviewed task/rubric identities in
+`artifacts/experiments/solo-r2-input-definition-20260906/input-authority.owner-adopted.json`.
+This prospectively supersedes the earlier candidate-input-review next step only.
+The task and rubric bytes remain unchanged. The enclosing local commit supplies
+the durable freeze identity after its tree is verified. All other P07 inputs and
+Pair/readiness admission remain separate prerequisites. No retrospective binding
+to an existing Pair, new Pair, Attempt, execution, or push is authorized.
+Next: STOP; owner separately authorizes new Pair creation before further admission.
+
+
+### Solo R2 disposable input identity freeze — 2026-09-06
+
+Owner adopts the unchanged disposable task and reuses the existing exact rubric.
+Source commit `695863d1922c7b03a7672d3471160e5514945f95` pins the snapshot subtree,
+evaluator-only oracle and reference repair. The adopted binding is
+`artifacts/experiments/solo-r2-disposable-input-definition-20260906/input-authority.owner-adopted.json`.
+Base has four expected endpoint failures out of ten cases; reference repair
+passes ten, with three visible tests passing on each. Export pins LF bytes via
+command-local core.autocrlf=false. This supersedes candidate-only input status,
+not production admission: current materializer Base/export bindings remain
+incompatible and unchanged. Grimm stays reserved. STOP after local authority
+commit verification; separate owner authorization is required for production
+binding, remaining P07 admission, new Pair, Attempt and execution. No push.
+
+
+### Solo R2 v2.1 schema amendment owner adoption - 2026-09-06
+
+Owner adopts exact amendment ced964f9166aa59a878faa3afdd96c19fe8accaf60a2788c4aaf5a8dbb4680ab.
+Authority record: docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json.
+Binding spec is preserved subordinate design provenance, not implementation authority.
+D2 ledger placement/evaluation allocation remains an unresolved separate owner decision.
+One scoped local commit and exact committed-byte verification only; then STOP.
+No production, qualification rerun, new ledger/evaluation, Pair, Attempt or push.
+
+
+### Solo R2 D2 allocation owner decision - 2026-09-06
+
+D2 allocation is adopted: preserve one replacement evaluation and allow one
+additional disposable mechanism-shakedown evaluation with one dedicated ledger.
+See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json.
+This supersedes only the earlier unresolved allocation status; exact placement
+and identity remain unresolved. No ledger/ID creation, production, Pair, Attempt,
+qualification rerun or push is authorized.
+
+
+### Solo R2 disposable placement owner adoption - 2026-09-06
+
+Owner adopts exact placement contract 7300ab4c958d1569a64f3574cf26a3c9ac8489ed1ad1df89afea70429a689246.
+See docs/governance/solo-r2-disposable-placement-owner-adoption-20260906.json.
+Placement/identity definition is adopted; no evaluation ID or genesis exists from this action.
+One scoped local durability commit then STOP. Production implementation, ledger/Pair/Attempt
+creation, execution, qualification rerun and push remain unauthorized.
+
+### Solo R2 disposable production binding - local implementation 2026-09-06
+
+Owner-authorized fixed-placement genesis creation and pre-Pair binding implemented
+in the local worktree; six code/test files reviewed, Blocking=0, 164 targeted tests.
+Evidence: memory/evidence/solo-r2-disposable-binding-20260906/.
+Not committed or pushed. This supersedes implementation-not-started only for this
+bounded creation/pre-Pair slice; materializer/arm integration and full production
+admission are not established. No real evaluation, ledger, Pair or Attempt created.
+STOP with implementation/test/review evidence ready; future actions need their own scope.
+
+Local commit checkpoint: 9bcd7ffc (2026-09-06) now durably contains the six
+reviewed creation/pre-Pair implementation files. This supersedes the uncommitted
+status above. Evidence companion preserves review/test identities; no push.
+Materializer/arm integration remains NOT DONE and separately scoped. STOP.
+
+### Solo R2 disposable materializer / arm integration - 2026-09-06
+
+Owner-authorized seven-file integration implemented in the local worktree.
+Exact subtree and packet binding, durable exposure-before-dispatch, per-arm runtime
+freeze and retained source/runtime evidence are covered by 28 passing new tests.
+Independent review APPROVED, Blocking=0; evidence in
+memory/evidence/solo-r2-disposable-integration-20260906/.
+All-Solo: 478 passed / 11 historical R1 fingerprint failures; the same 11 fail
+on baseline fd772498 (R1: 8 passed / 11 failed). No new failure names observed;
+not an all-green or production-admission claim. Frozen inputs unchanged.
+Implementation UNCOMMITTED; no real evaluation/ledger/Pair/Attempt, no task run,
+no oracle/scoring/unblinding, no qualification rerun, no push. STOP.
+
+### Solo R2 pre-commit evidence correction - 2026-09-06
+
+Owner authorizes evidence/scope reconciliation and one reviewed implementation
+commit, then STOP. Prior failure-name comparison did not establish unchanged R1:
+9bcd7ffc introduced ledger_v2 + pair_creation drift; the integration slice adds
+lifecycle_integration drift. Three bound modules require the next separate
+post-implementation-commit R1 generation refresh against exact committed bytes.
+R1 remains FAIL. See memory/evidence/solo-r2-disposable-integration-20260906/
+scope-reconciliation.md and regression-comparison.json. External inventory guard,
+its tests/configuration and workflow changes remain excluded. No refresh, execution
+or push in this slice. Implementation commit verification is the stopping point.
+
+## Solo R2 R1 refresh after 3b820a2c (2026-09-06)
+
+- Three committed source pins refreshed; four disposable namespace members included without changing validator functions.
+- Evidence: `memory/evidence/solo-r2-r1-refresh-20260906/`; 490 Solo tests passed, independent R1 review 20 passed / Blocking 0.
+- Scope: structural evidence only; no real evaluation, ledger, Pair, Attempt, admission, or push. Stop after scoped local commit verification.
+
+## Solo R2 handoff committed admission review (2026-09-06)
+
+- Handoff implementation: `3e1674ab`; A1 resolved.
+- Production wiring and committed identity: READY, supported by `memory/evidence/solo-r2-readiness-handoff-20260906/committed-admission-review.json`.
+- No real evaluation, ledger, Pair, Attempt or arm execution. Next: separate owner creation authorization; no push.
+
+## Solo R2 unavailable-cost amendment owner adoption (2026-09-06)
+
+- Owner adopted exact 14824-byte amendment SHA-256 c9829c719c5a73736559819c6f8c6fac257c1ae012eda47a4e505aa064f12fad after independent four-point ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-v2.1-unavailable-cost-owner-adoption-20260906.json; preserves existing disposable genesis and four-event prefix.
+- Current Attempt remains initiated and exposed, without terminal; this supersedes earlier pre-execution status only. No ledger mutation in this adoption.
+- Next: separate minimal implementation authorization, then separately authorized historical terminal append. No retry, Attempt 2, new Pair, A1-A6 or push authority. Stop after scoped local commit and exact committed-byte verification.
+
+## Solo R2 unavailable-cost implementation (2026-09-06)
+
+- Minimal v2.1 cost representation implemented; numeric v2 unchanged. Extended append requires exact adoption and durable controller evidence verified against the retained trace.
+- Targeted 138 PASS; independent 42 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-unavailable-cost-implementation-20260906/review.json.
+- New R1 drift affects ledger_v2 and lifecycle; refresh follows this implementation commit immediately. Real ledger remains four events; no historical append, retry, Attempt 2 or push.
+
+## Solo R2 unavailable-cost R1 refresh (2026-09-06)
+
+- Implementation committed at `0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab`; targeted 138 PASS and independent 42 PASS / Blocking 0.
+- R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
+- New create-once evidence: `artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-0c48594a.json`; R1 targeted tests 20 PASS. Previous generation preserved.
+- Separate refresh commit follows independent review. STOP after committed identity verification; historical terminal append still requires separate authorization. Ledger remains four events; no retry, execution or push.
+
+## Solo R2 historical Attempt terminal closure (2026-09-06)
+
+- Owner-authorized historical append completed: fifth event EXECUTION_TERMINAL / HARNESS_FAILURE; original four-event prefix preserved byte-for-byte.
+- Initiated count remains 1; terminal count is 1. elapsed_ms UNAVAILABLE, tool_calls 7; optional tokens_total omitted with raw components retained in controller custody.
+- Evidence: memory/evidence/solo-r2-historical-terminal-20260906/result.json. No output sealing, correctness evaluation, retry, Attempt 2 or push. STOP; later bug-fix/retry decisions remain separate.
+
+## Solo R2 harness repair delivery (2026-09-06)
+
+- Two-mode repair reviewed: direct 77 PASS, independent 10 PASS / Blocking 0.
+- Outer launcher check and tamper rejection: 6 PASS; five known module pins and wrapper digests updated, prior manifest preserved.
+- Scope is local committed repair and static import binding only. Existing Phase A state is not migrated; readiness and execution admission remain unverified.
+- No real ledger change, Pair/Attempt, retry or push. STOP after committed identity verification.
+
+## Solo R2 replacement disposable decision adoption (2026-09-06)
+
+- Owner adopted exact6250byte decision SHA bbc12627300df01f0145ba0b76aa75191291b3974ccf95dd1255fb4f031bafd3 after independent ACCEPT / Blocking 0.
+- Old evaluation FAILED_MECHANISM_SHAKEDOWN / PRESERVED / NO_FURTHER_ARM; existing five-event ledger unchanged.
+- Exactly one additional replacement allocation and distinct fixed placement adopted; IDs and ledger remain uncreated.
+- Authority: docs/governance/solo-r2-replacement-disposable-owner-adoption-20260906.json. New custody/binding prerequisites remain open.
+- STOP after local adoption commit verification; no implementation, migration, retry, creation, execution or push.
+
+## Solo R2 replacement binding proposal adoption (2026-09-06)
+
+- Owner adopted unchanged 16452-byte proposal SHA e3e593376f0c4ead5a837f5127393d55e625f09aa9399c2778801f71395227f9; independent full review ACCEPT / Blocking 0.
+- Authority: docs/governance/solo-r2-replacement-binding-owner-adoption-20260906.json. Attempt ceilings are per-ledger; cross-evaluation allocation is owner-bound, not a schema-global counter.
+- Replacement append requires binding + genesis + evaluation + exact path; path membership alone is insufficient.
+- Old five-event ledger and consumed Attempt preserved; no production edits, migration, new experiment, execution or push.
+- STOP after scoped local commit and exact identity verification; implementation remains separately authorized.
+
+## Solo R2 replacement binding implementation (2026-09-07)
+
+- Fixed replacement create/append APIs bind exact adopted authority, genesis, evaluation and placement; old cost authority is not transferred.
+- Directly affected regression 239 PASS; independent 66 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-binding-implementation-20260907/review.json.
+- Old ledger remains five events; no real evaluation, Pair, Attempt or runtime executed. Outer launcher/admission is not verified.
+- New R1 drift affects ledger_v2, pair_creation and lifecycle; refresh immediately after this implementation commit, then STOP. No push.
+
+## Solo R2 replacement binding R1 refresh (2026-09-07)
+
+- Implementation committed at de85d2f8ecf5f1ccb732e09ec4053b74456ab180; reviewed source bytes verified 9/9. Regression239PASS and independent66PASS.
+- R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics. New evidence: artifacts/evidence/solo-evaluation-20260831/r2-r1-structural-conformance-de85d2f8.json. Previous generation preserved.
+- R1 structural check and targeted20tests PASS. Independent refresh review precedes separate local commit.
+- STOP after refresh commit verification; no real evaluation/ledger/Pair/Attempt or push. Outer launcher and real admission remain unverified.
+
+## Solo R2 replacement launcher static verification (2026-09-07)
+
+- Replacement-only external launcher offers check and Phase A creation-to-candidate STOP; no readiness/execution/adoption modes.
+- Targeted 16 PASS; independent 16 PASS / Blocking 0. Evidence: memory/evidence/solo-r2-replacement-launcher-20260907/review.json.
+- Owner authorized scoped local delivery of the five reviewed launcher files and required records; committed identity verification follows. Existing production and old five-event ledger unchanged; no real replacement allocation, Pair, Attempt or payload-pin adoption.
+- Static wiring is verified; real-host creation and admission are not. STOP after local commit verification; real creation requires separate authorization. No push.
+
+## Solo R2 replacement payload-pin adoption (2026-09-07)
+
+- External Phase A created evaluation 8e3fb9fe-d94b-45d5-897c-3a3e75849bd8 and Pair eef1c2f5-91d7-4d8d-b765-251340f35d67; verified ledger contains only GENESIS and PAIR_CREATED.
+- Owner adopted exact 319-byte pin SHA256 0edfdabdb50094e0fa72eb6edd6ab9c17987c917bd2f530908920cf7f2ef99e8. Exact copy and conversation-sourced adoption: memory/evidence/solo-r2-replacement-payload-pin-adoption-20260907/owner-adoption.json.
+- Owner authorized scoped Git durability of the exact adopted bytes and adoption record; committed identity verification follows. Attempt 0, exposure NONE. No readiness, execution, payload regeneration or old-pin reuse.
+- STOP after scoped commit and identity verification. Replacement Phase B wiring and later runtime readiness require separate authorization.
+
+## Solo R2 replacement Phase B wiring (2026-09-07)
+
+- Added committed-adoption/external-state verification, replacement-only readiness object assembly, and live in-process wait. Blank input and EOF do not return; explicit ABORT discards live handoff.
+- Targeted 30 tests PASS. Native runtime observations remain simulated; no real Phase B or Attempt executed. Evidence: memory/evidence/solo-r2-replacement-phase-b-20260907/validation.json.
+- Execution entry remains disabled pending owner scope answer; do not claim executable continuation READY. Dedicated replacement Codex HOME is absent and requires separate runtime preparation.
+- Uncommitted, no production/frozen-input/ledger changes. STOP after independent review; no real readiness or push.
+
+## Solo R2 controlled EXECUTE wiring (2026-09-07)
+
+- Owner separately authorized the final one-use live execution transition; this supersedes the preceding pending-scope note only.
+- Exact evaluation/Pair/nonce authorization revalidates current adoption/state/ledger/payload and original live objects, then calls the existing execution API once. No second readiness run or cross-process resume.
+- Targeted 47 tests PASS with isolated execution substitute; evidence: memory/evidence/solo-r2-replacement-controlled-execute-20260907/validation.json. Independent review required before this slice stops.
+- Owner authorized scoped local commit after 47 targeted and 47 independent PASS / Blocking 0. R1 source pins 7/7 MATCH; no refresh needed. Verify committed identities then STOP. No real readiness, Attempt, exposure, arm, scoring or push. Dedicated HOME remains a later runtime prerequisite; launcher logic frozen.
+
+
+## Final fresh disposable allocation adoption - 2026-09-07
+
+Owner adopted exact candidate 33dd6dd663d32add60cad9462f8bcac0b389c7b379d010ac679777395f400eb2. Authority: docs/governance/solo-r2-final-fresh-allocation-owner-adoption-20260907.json. One final evaluation/ledger/Pair and two fresh arms as allocation only; all creation and execution require separate authorization. Historical runs preserved, no further automatic replacement. Current slice: scoped local adoption durability then STOP.
+
+## Final fresh disposable binding implementation - 2026-09-07
+
+Final-only typed production binding and dedicated launcher implemented under dc2a3a98. Validation: memory/evidence/solo-r2-final-binding-implementation-20260907/validation.json. Lifecycle unchanged; historical ledgers/frozen inputs preserved. Independent review precedes scoped implementation commit; ledger/pair R1 source refresh immediately follows in a separate commit. No real final allocation, readiness or arm execution. STOP after committed binding and R1 identity verification.
+
+## Final fresh binding R1 refresh - 2026-09-07
+
+Implementation c763e738 committed after full 15-file scope ACCEPT. Refresh binds exact committed ledger/pair bytes; five other pins unchanged. R1 --check PASS and 20 tests PASS. Evidence: memory/evidence/solo-r2-final-binding-implementation-20260907/r1-closeout.json. No final allocation or runtime created. STOP after separate refresh commit verification.
+
+## Final Pair payload-pin adoption - 2026-09-07
+
+Owner adopted exact 319-byte pin ee27ce5e92f948320ad0e2fb81bb29f34e8bfc8934296a63d18c6b3418f8d8af for final Pair 93584d7e-2bf9-4535-93c8-5593fcd3e272. Authority: memory/evidence/solo-r2-final-disposable-mechanism-shakedown-20260907/owner-adoption.json. Preserve Phase A identity; ledger two events, Attempt 0, exposure NONE. Scoped local adoption commit then STOP; no readiness or execution authorized.
+
+## Final scoring continuation prospective adoption - 2026-09-07
+
+Owner adopts exact preserved scoring inputs as new prospective authority; historical ATTEMPT_BOUND digest custody remains ABSENT. Authority: memory/evidence/solo-r2-final-scoring-continuation-adoption-20260907/owner-adoption.json. Eight ledger events, outputs and oracle provenance unchanged. Scoped local adoption commit and verify, then STOP; no continuation, bundle, scoring, sealing append or unblinding.
+
+## Minimal final scoring continuation implementation - 2026-09-07
+
+Final-only consumer verifies prospective adoption and 22 exact artifacts before existing scoring preparation. Two changed code/test files; no real continuation. Validation: memory/evidence/solo-r2-final-scoring-continuation-implementation-20260907/validation.json. Scoped commit after independent review, STOP. Separate owner execution authorization required for bundle/checkpoint and ninth sealing event; prior eight ledger events remain unchanged.
+
+## Superseding scoring authority adoption - 2026-09-07
+
+Owner adopted exact 18168-byte authority SHA256 10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c. Record: memory/evidence/solo-r2-superseding-scoring-adoption-20260907/owner-adoption.json. Historical nine-event ledger and rejected bundle/checkpoint preserved. One prospective detached supersession only; implementation, artifact activation, fresh scoring and unblinding require separate authorization. Earlier closeout/push draft remains paused. Local adoption commit and verify, STOP; no push.
+
+## Superseding scoring implementation - 2026-09-07
+
+Four-file fixed-instance implementation validated with 109 targeted tests. Evidence: memory/evidence/solo-r2-superseding-scoring-implementation-20260907/validation.json. Independent review before scoped commit; no real generation/activation/scorer/opening, historical ledger unchanged. Fresh scorer/host custody remains execution prerequisite. R1 bundle binding now drifts; separate post-commit refresh required before execution. Commit this implementation then STOP, no push.
+
+
+## R1 refresh after superseding implementation - 2026-09-07
+
+R1 refreshed against exact 13b895a3 sources: seven pins verified; 20 targeted tests and real repo structural check PASS. Evidence: memory/evidence/solo-r2-r1-superseding-refresh-20260907/validation.json. Only R1 metadata refreshed; historical ledger/bundle/checkpoint unchanged. Scoped local commit and verify, then STOP; no bundle generation, scoring, unblinding or push.
+
+## AppContainer minimal launch environment - 2026-09-07
+
+Only LOCALAPPDATA added to the existing sanitized Probe.cs environment. Suspended-process verification: three variables create the process with the exact existing token SID; removing LOCALAPPDATA reproduces 203. No child entrypoint/read probes, ACL changes, scoring, historical writes or push. Evidence: memory/evidence/solo-r2-appcontainer-env-fix-20260907/validation.json. Corrected source compiled; external Probe.exe remains historical and has not been redeployed. Independent review and scoped local commit, then STOP; isolation read probes remain a separate next slice.
+
+## Dedicated runtime parent custody - 2026-09-07
+
+Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/SYSTEM/Administrators only. Host verify_custody PASS. Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical. Disk ACL and preserved ledger/bundle/checkpoint bytes and ACLs unchanged. Evidence: memory/evidence/solo-r2-parent-custody-acl-20260907/result.json. No AppContainer child/RX/scoring; STOP. Next separately authorized action is projection/read-denial verification, not bundle creation.
+
+## Synthetic scorer isolation durability - 2026-09-07
+
+Fixed native verifier and split probe source preserved with synthetic live evidence (host custody, AppContainer projection, eight forbidden read denials, temporary RX restored). Current build and five pure ACL cases PASS; no live rerun. Scope: memory/evidence/solo-r2-isolation-capability-commit-20260907/scope-record.json. Real bundle anonymity, Python consumer integration and scorer execution remain unclaimed. Local scoped commit then STOP; no ACL/environment changes, bundle/scoring/unblinding or push.
+
+## Real superseding bundle callback wiring - 2026-09-07
+
+Fixed-instance generator now requires reviewed semantic payload identities, new-instance custody initialization using the existing ACL model, and native verification of the persisted real bundle before its transition receipt. Validation: memory/evidence/solo-r2-real-callback-wiring-20260907/validation.json (46 Python and 11 native contract cases). Independent review and scoped commit, then STOP. No real generation/reservation, deployment, ACL mutation, probe, scoring or unblinding. Real parent custody, reviewed deployed executable/RX and semantic payload digest custody remain runtime prerequisites; no R1 source pin changed.
+
+## Simplified scoring claim-ceiling adoption - 2026-09-07
+
+Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03 (7170 bytes, 73 lines). Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged. Record: memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json. Scoped adoption commit and identity verification then STOP; actual fresh-context scoring/freeze and later unblinding require separate authorizations.
+
+
+## R2 regression evidence projection / consumer adoption - 2026-09-07
+
+Owner adopted four exact reviewed files; independent ACCEPT / Blocking 0, 55 independent tests and 132 local tests. Evidence and version-binding states survive the future-round synthetic consumer. Authority: memory/evidence/solo-r2-regression-projection-adoption-20260907/owner-adoption.json. Scoped local commit then identity verification and STOP. Real launcher integration, Python investigation, fresh round and push are not authorized by this adoption.
+
+
+## Solo R2 decision-support closeout - 2026-09-08
+
+Execution, oracle (10/10 each), simplified score freeze and unblinding are complete. Regression safety and overall quality/tie remain undetermined. Claim ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; no strict OS-isolated shakedown PASS. Report: memory/evidence/solo-r2-closeout-20260908/REPORT.md. Python capability remains UNKNOWN and is POST-GATE3, not a closeout blocker. Scoped evidence commit/push and STOP; no new probe, scoring or allocation. Unrelated dirty work is excluded.
+
+
+## POST-GATE3 P2 Slice 1 — 2026-09-08
+
+- Synthetic Lite flow implemented: anonymous input -> fixture scoring -> freeze -> explicitly authorized unblinding -> report. Existing future scoring consumer reused unchanged.
+- Validation: local 149 PASS; independent 149 PASS; Blocking 0; synthetic CLI demo PASS. Evidence: memory/evidence/p2-lite-slice1-20260908/review.json and validation.json.
+- Ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY. Real runner/scorer, OS isolation, strict equivalence and actual cost reduction are not established. Strict and historical rounds unchanged.
+- Next: STOP after scoped local commit. Real Lite integration requires its own bounded slice; no push. P1 remains closed UNKNOWN.
+
+
+## POST-GATE3 P2 Slice 2 — 2026-09-08 (blocked real validation)
+
+- Bounded real adapter implemented: fresh model patch generation, host oracle/regression, anonymous scorer input, freeze then authorized unblinding. Local and independent tests: 172 PASS; implementation review Blocking 0.
+- One live invocation stopped at first model HTTP 401 (missing auth header), process exit 1. No CONTROL output; TREATMENT/oracle/scorer/freeze/report not run. Adapter replay 0; native CLI reconnect attempts preserved. Runtime configuration warnings also remain unverified.
+- Result: REAL_LITE_END_TO_END_BLOCKED. No real Lite readiness, cost reduction, complete interactive Skill workflow, strict equivalence or general Skill efficacy claimed. P1 closed UNKNOWN; Strict/historical rounds unchanged.
+- Evidence: memory/evidence/p2-lite-slice2-20260908/review.json and validation.json. Preserve scoped implementation/failure evidence commit, then STOP; no credential change, rerun or push.
+
+## POST-GATE3 P2 Slice 2 auth override — 2026-09-08
+
+- Shared Lite exec now explicitly selects the existing keyring store while retaining --ignore-user-config. Login status exit 0; 23 focused tests PASS. No login or credential/config mutation.
+- One authorized live replay: CONTROL model process exit 0 with response and turn.completed; parser rejects runtime item.error warnings as tool access. No observed tool event. TREATMENT/oracle/scorer/freeze/unblind not run. REAL_LITE_END_TO_END_BLOCKED; no automatic retry.
+- Evidence: memory/evidence/p2-lite-auth-20260908/result.json. Auth-only source/test edits remain uncommitted; preserve failure and STOP. Parser remediation is a separate slice. No push; historical rounds and Strict unchanged.
+
+
+## POST-GATE3 P2 Slice 2 warning parser — 2026-09-08
+
+- Known 0.153.4 runtime warnings are distinguished from forbidden tools using full-message matches. Unknown error/incomplete turn/tool events still reject; exact warnings remain host-only and are retained in reports. Prior keyring override included.
+- Local and independent targeted tests: 57 PASS each; independent APPROVED / Blocking 0, including read-only replay of the historical completed model turn. Evidence: memory/evidence/p2-lite-parser-20260908/review.json and validation.json.
+- Owner-authorized order: scoped compatibility commit, then exactly one new real Lite E2E invocation; failure preserves evidence and stops. No automatic retry, Strict changes, or push. Real E2E remains unproven before execution.
+
+## POST-GATE3 P2 Slice 2 live outcome — 2026-09-08
+
+- Compatibility implementation committed at 85dcfa7456957d943a621bb7ddd2c9c746ee5978; one subsequent authorized Lite E2E completed in 87,015 ms of adapter time. Real model generation + host oracle/regression + fresh scorer + freeze + authorized unblinding/report completed.
+- Both oracles 10/10; CONTROL regression 6/6, TREATMENT 7/7. Frozen quality CONTROL 7/8, TREATMENT 8/8 (causal explanation difference). One bounded pipeline fixture only; no general Skill efficacy, measured cost reduction, OS isolation or Strict equivalence.
+- Four known warnings per model preserved; no tool event observed. Exact artifact/freeze/report linkage verified. Result REAL_LITE_END_TO_END_VALIDATED; report memory/evidence/p2-lite-parser-20260908/live/report.json. Live evidence remains uncommitted; no push or additional run. STOP.
+
+
+## P2 Slice 2 durability — 2026-09-08
+
+- Owner authorized one scoped local evidence/PLAN/memory commit and STOP. Preserve the real flow report, frozen scores, raw model/host receipts and exact identity verification; historical precommit snapshots remain unchanged. No production changes, rerun, rescoring, benchmark or push.
+- Adapter total was 87,015 ms, not per model: CONTROL 29,344 ms; TREATMENT 34,687 ms; scorer 21,734 ms. The single-task 7/8 vs 8/8 observation does not establish general Skill efficacy or average cost reduction.
+- Evidence inventory: memory/evidence/p2-lite-parser-20260908/durability-manifest.json. After committed bytes verification, P2 Slice 2 durability is closed; any mini benchmark is future scope, not an automatic continuation.
+
+
+## POST-GATE3 three-task benchmark preparation — 2026-09-08
+
+- THREE_TASK_BENCHMARK_READY_FOR_REVIEW: exactly Easy queue-range, Medium strict half-open interval merge, Hard directed dependency-cycle misclassification. Specifications/baselines/literal oracles/regression panels/rubrics fixed in tests/fixtures/bug_fix_safety_mini_benchmark/manifest.json before validation and any model execution.
+- Local authored-fixture validation: reference repairs 12/12, 13/13, 14/14; baselines fail 7, 3, 5 cases; plausible wrong repairs fix public symptoms but fail 6, 3, 6 cases. Source/test evidence and current-version completion requirements declared before scoring; missing evidence stays NOT_ASSESSABLE.
+- No runner/Skill/scorer change, model execution, scoring/unblinding, historical mutation, commit or push. Existing Lite adapter remains task-specific; integration and difficulty calibration not claimed. Evidence: memory/evidence/bugfix-mini-benchmark-prep-20260908/preparation-report.json and validation.json.
+- STOP for independent review. Candidate identity is not owner adoption or authorization for real benchmark runs. Unrelated dirty work excluded.
+
+
+## Three-task benchmark independent review — 2026-09-08
+
+- CHANGES_REQUESTED / Blocking 1: Hard TASK.md line14 names the precise ignore-revisits superficial repair, hinting away the trap intended for measurement. Preserve behavioral cycle requirements but remove mutation-specific guidance in a separately authorized revision. Candidate bytes remain unchanged.
+- Baseline reproduction, prospective expected-case snapshot, oracle discrimination and concrete Regression Safety criteria otherwise pass review. Independent fixture validation: references12/12,13/13,14/14; wrong repairs rejected. Evidence memory/evidence/bugfix-mini-benchmark-review-20260908/review.json.
+- STOP. No owner adoption, runner integration, model execution, scoring, difficulty calibration, commit or push. No new tasks or governance scope.
+
+
+## Three-task benchmark hint removal and acceptance — 2026-09-08
+
+- Removed only the Hard public TASK implementation-specific ignore-revisits hint; functional cycle detection requirement remains. Manifest updates only that TASK identity; other 17 entries unchanged.
+- Local fixture validation PASS: correct repairs 12/12, 13/13, 14/14; all intended baseline defects and superficial-repair counterexamples retained. Independent re-review ACCEPT / Blocking 0; prior full review remains applicable.
+- Owner authorized this narrow correction followed by adoption/scoped commit after Blocking 0. Accepted pack manifest SHA256 a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34. Exact snapshot and historical review evidence retained; no claim that earlier candidate snapshots were adopted.
+- STOP after scoped local commit and identity verification. Runner integration/difficulty calibration/model evaluation remain unverified; no runner/Skill/scorer or historical-result changes, no push. Unrelated dirty work excluded.
+
+
+## Three-task Lite benchmark adapter — 2026-09-08
+
+- BENCHMARK_LITE_INTEGRATION_READY: three adopted fixtures verify manifest/bytes, materialize separate two-arm workspaces, use their own oracle cases and rubric, preserve host source/test versions and regression diagnostics through the existing anonymous consumer. No real model/scorer execution.
+- Only new bounded adapter/test and opt-in Lite AST support; Strict modules and all fixture bytes unchanged. Local 76 PASS, independent 76 PASS, review ACCEPT / Blocking 0. Evidence memory/evidence/lite-benchmark-adapter-20260908/review.json and validation.json.
+- Completed zero-test evidence remains unassessable. Regression launch/timeout/import failures preserve raw receipts and STOP rather than promising continued scoring. Host alias mapping is explicit; no OS isolation/general sandbox claim.
+- Owner authorized scoped local commit, identity verification, STOP. Separate authorization required for real three-task model runs; no scoring/freeze/unblinding, Skill/history change or push. Unrelated dirty work excluded.
+
+
+## Lite benchmark test-harness compatibility — 2026-09-08
+
+- Host now delegates a unique standard final unittest.main entry to actual suite execution; disk source/test bytes preserved. Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
+- Local91PASS, independent91PASS, ACCEPT Blocking0. Captured-output replays in separate test workspaces: Easy7tests/7NameErrors (missing import not repaired), Medium7tests pass, Hard2test methods pass. Deliberate failed assertions prove real counts/exit1. Evidence memory/evidence/lite-harness-compatibility-20260908/review.json and validation.json.
+- All original43 failure artifacts and adopted benchmark materials unchanged. No model/TREATMENT/scorer or Strict/Skill changes. Scoped compatibility commit and STOP; no second real benchmark or push without separate authorization. Unrelated dirty work and prior uncommitted live-run records excluded from this commit.
+
+
+## Three-task real Lite benchmark — 2026-09-08
+
+- One authorized invocation per task completed its terminal disposition: 0 complete comparisons / 3 blocked at CONTROL. All three model turns exit0; TREATMENT/scorer/freeze/unblind not run. Easy oracle12/12, regression exit5/Ran0/no count receipt. Medium unsupported call; Hard unsupported Python operation.
+- No retry or runner/fixture/Skill changes; next tasks used independent contexts and unchanged frozen materials. Total126375ms. Evidence memory/evidence/three-task-real-lite-20260908/benchmark-report.md, summary.json and verification.json. No Skill quality conclusion.
+- STOP after aggregation. Separate owner scope needed for compatibility repair; no automatic rerun, commit or push. Prior frozen results preserved.
+
+
+## Three-task Lite preserved CONTROL completion — 2026-09-08
+
+- Completed three fresh TREATMENT calls and three fresh anonymous scorer calls; no CONTROL model rerun. Original single-run CONTROL bytes recollected under 983d5fad committed harness, no import/fixture/Skill changes.
+- All oracle results PASS12/12,13/13,14/14 for both arms. Easy C7/T9 NameErrors: Regression Safety and total NOT_ASSESSABLE; Medium C7/T7 tests pass,8/8 both; Hard C2/T3 methods pass,8/8 both. No Treatment quality advantage established; no aggregate tie/general Skill efficacy claim.
+- Scores durably frozen before authorized unblinding. Verification covers153 new task artifacts,43 unchanged historical artifacts,unchanged bound production/fixtures. Evidence memory/evidence/three-task-treatment-completion-20260908/benchmark-report.md and verification.json.
+- 199500ms this slice, no automatic retry/manual execution repair, no shutdown/Strict setup. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. STOP; no commit/push, unrelated dirty work excluded.
+
+
+## P2 Lite multi-task closeout — 2026-09-08
+
+- REAL_LITE_MULTI_TASK_BENCHMARK_VALIDATED: three preserved CONTROL + three fresh TREATMENT comparisons completed, scores frozen then unblinded. Easy regression/total NOT_ASSESSABLE both; Medium/Hard8vs8. No stable Treatment advantage established.
+- Owner provisional disposition KEEP_OBSERVE / OPTIONAL; no Skill packet/default-loading/config change. Hard3vs2methods does not prove greater coverage. Earlier7vs8 signal remains separate; no generalized efficacy or average-cost claim.
+- Preserve first-run failures and completed artifacts in scoped local commit. Closeout memory/evidence/p2-multitask-closeout-20260908/closeout.md. NON_COUNTED/SOLO_CONTROLLED/DECISION_SUPPORT_ONLY. No models/tests rerun, no push; unrelated dirty work excluded.
+- STOP. Candidate future work: another Skill or separately scoped Lite/Strict cost-value review; neither executes automatically.
+
+
+## P3 Regression Safety amendment owner adoption — 2026-09-08
+
+- OWNER_ADOPTED: exact6266bytes/108lines SHA9ffa3492be26c822c53b53ecc5b7fbd3dce8782ed473b838806378954153bfc5 blob8b60f62a20ac133a08a99cf4ea58e4831dea4fc9 after independent ACCEPT/Blocking0. Candidate text retained byte-identically; adoption record memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json records new authority.
+- Future-only: complete current-version execution evidence attributing regression nonexecution to submitted content supports0; evidence gaps/harness/environment/ambiguous attribution stayNOT_ASSESSABLE. Nonzero exit alone insufficient. Historical frozen scores and closeout unchanged.
+- Projection/scorer semantics unchanged. Existing error-to-NOT_CONFIRMED remains next separately authorized implementation issue. Synthetic fixture/test sources remain uncommitted; adoption does not claim production support.
+- One scoped local adoption commit and committed identity verification, STOP. No benchmark/model execution, Skill/fixture edits, historical rescoring or push. Unrelated dirty work excluded.
+
+
+## P3 prospective projection / scorer integration — 2026-09-08
+
+- Explicit p3=True future Lite adapter uses adopted amendment9ffa3492 and owner recordb22c8300. Existing default Lite and Strict sources remain unchanged except additive selection; frozen fixture/rubric and historical scores are preserved.
+- Host receipts separate current source/test versions from execution errors and identify the failing submitted/host phase. Missing import or syntax with attributable exact execution, and assertion failures, require0; harness/environment/unknown/missing evidence remainNOT_ASSESSABLE. Nonzero alone insufficient. Passing receipts leave unchanged coverage-based0/1/2 judgment to scorer.
+- Scorer receives explicit import/no-symbol-injection contract and anonymous failure locations; receipt digests remain host-only. Syntax-invalid submissions compile only; no unchecked submission execution. Future adapter entry, synthetic fixtures, independent review and committed identities are recorded in memory/evidence/p3-integration-20260908/.
+- DONE limited to synthetic integration plus scoped local commit. No real model, old benchmark rerun/rescoring, Skill change, adopted rubric edit or push. STOP after commit verification; unrelated dirty work excluded.
+
+
+## P5 fixed-generation hook installation integrity - 2026-09-08
+
+- Fixed 195a204f local profile binds explicit repository/config adoption, hook/scanner/verifier identities and receipt before unchanged object-closure scanning. Missing or drifted identities stop before scan. Not a canonical installer migration.
+- Isolated real-hook/scanner tests: 17 local PASS; independent review Blocking0. Exact historical scanner stored only as a test fixture; no unreachable-object dependency. Evidence: memory/evidence/p5-installation-integrity-20260908/review.json and validation.json.
+- Scoped local implementation commit only. Actual hook/scanner/config unchanged; no deployment, P4 work or push. STOP after committed identity verification; unrelated dirty work excluded.
+
+## PR155 delivery integration - 2026-09-08
+
+- Owner authorized continuous push / PR / review / conditional merge delivery. Integrate main a6a2d622 with feature 09248cb4 without rewriting either history. Preserve both branches' canonical memory records and historical claim boundaries.
+- Bounded delivery repairs: exact-byte checkout attributes, two unchanged preserved historical public ledger test inputs, and six read-only tests using their checkout root. No production trust pin, model invocation, historical score, or P4 change.
+- Evidence: memory/evidence/post-gate3-delivery-repair-20260908. Runtime smoke plus 201 tests and Lite/P3/P5 129 tests passed; final Strict rerun and GitHub current-head review / CI remain required before merge.
+- Original dirty workspace and local P5 installation remain separate; deployment compatibility does not establish a canonical or portable installer. Results remain NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY.

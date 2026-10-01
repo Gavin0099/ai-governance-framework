@@ -1,0 +1,55 @@
+{
+  "status": "CANDIDATE_NOT_ADOPTED",
+  "checked_at_utc": "2026-10-01T07:10:10.944348+00:00",
+  "source_main": "7dd78070e6ea462fe218837832026d53b9120db8",
+  "merge_commit": "a59b0aef93753630f9949233d03be555bad165c5",
+  "pr_state": "MERGED",
+  "merge_is_main_ancestor": true,
+  "six_implementation_test_files_unchanged_from_merge": {
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_child.py": true,
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_materialize.py": true,
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_process.py": true,
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_child.py": true,
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_materialize.py": true,
+    "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_process.py": true
+  },
+  "later_mentioning_commits": [
+    "6d38a254 docs(governance): correct S1 adoption semantics and evidence scope",
+    "0a3c101b docs(governance): add current-state claim verification candidate",
+    "54823ad7 Merge pull request #109 from Gavin0099/codex/m3b2a-status",
+    "7d750039 docs(gate3): record M3-b-2A merge status"
+  ],
+  "formal_file_sha256": {
+    "PLAN.md": "c6b734915de2af82bb69f69525af3b0752bada687298fb83c01741609d765068",
+    "memory/01_active_task.md": "806a92ca2b6a0a9b2023ee0dad16a5e71d1bbaaaea33c6f809f38bc5a66e8547",
+    "memory/04_review_log.md": "dc263e18d1ae7c485fb117cea9938ba9cc4b397111635b31249b83139c82b2d8",
+    "memory/03_knowledge_base.md": "513ac8584c699bfd5ced8b3b6f94da40ee93a10bfb2dc30698e7b2dfd72bc1ca",
+    "governance_tools/memory_record.py": "c2b58d0e8d7a618a7324bd23133858f650bede2df6990e226adcbce1f100b58e",
+    "memory_pipeline/active_task_supersession.py": "d893e0b2ad32f17138ef4f6e2ba24949744c48ff26be48c9ee442e9ade056cad"
+  },
+  "raw_source_sha256": "806a92ca2b6a0a9b2023ee0dad16a5e71d1bbaaaea33c6f809f38bc5a66e8547",
+  "proposed_active_sha256": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+  "candidate_size": {
+    "before_lines": 147,
+    "before_chars": 11731,
+    "after_lines": 144,
+    "after_chars": 11664
+  },
+  "unchanged_prefix_and_suffix": true,
+  "canonical_projection_line_unchanged": true,
+  "scope": "legacy lines 61-64 only; preserved exact full source; no R1 identity fabricated",
+  "unknown_boundary": "No claim about uncommitted local implementation, downstream readiness, or later off-repo evidence",
+  "artifact_sha256": {
+    "committed-active-task.md": "f9c2b0cfde1aa9a61e3acc4943221bbc08c3edd8ad3958b9754f06c667305a7d",
+    "committed-plan.md": "e9cea5f242633437e586de65bf98e4adf2a38d534cd02af1e1a84fd1a68588b0",
+    "committed-prior-analysis.md": "c51f6553242d1d805a8bda09a6c8373e1100b2490f9e74db93065d9007a23d6f",
+    "main-head.json": "98c6d9db2d7bc8bf82973750ae2d56efb7934686c9c9e9a7ffb312db69059086",
+    "pr108.json": "f92dfb54b8299e84f5b413d32778d0baf03685d0889e4c21bbd924ff175ef542",
+    "pre-adoption-active-task.md": "806a92ca2b6a0a9b2023ee0dad16a5e71d1bbaaaea33c6f809f38bc5a66e8547",
+    "proposed-active-task.md": "61db7bbb3494c0ad5b2af156e39cdfbd9b72e9301a4d86c0207b670d6fd80df4",
+    "proposed-change.patch": "b76293f8bb0c51e9cadeeda996b1da12a763ee1fffc6a25144681c9301e144c9",
+    "receipt.json": "a61ae57adeda8473571b67317013edda5122444ab6db7342fa59f41028faa472",
+    "review.md": "6ece9993d1bc5dbe191d131ebac826f183c457fba385621bd5c7261000d7cda3",
+    "workflow-check.json": "0dd14c4fc917c40bd0fabf0d60445c26128d5d4d0055e349c6879fd6c7611df3"
+  }
+}

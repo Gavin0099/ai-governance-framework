@@ -1,0 +1,54 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "validation_command",
+  "task": "M3-b-2A bounded adoption review",
+  "task_authority": "user_request",
+  "scope": [
+    "memory/evidence/m3-b-2a-adoption-review-20261001/**"
+  ],
+  "done": [
+    "PR #108 live merge and main containment confirmed",
+    "Same legacy checkpoint referent and bounded later evidence reviewed",
+    "Exact source preserved and one legacy-paragraph retirement patch produced",
+    "All formal file hashes unchanged"
+  ],
+  "claim_ceiling": [
+    "Engineering merge interpretation supported; adoption remains candidate pending reviewer authority"
+  ],
+  "not_claimed": [
+    "Formal current projection adopted",
+    "Full memory integrity verified",
+    "Dirty checkout implementation committed",
+    "M3-b-2B or Gate 3 qualification",
+    "Clean workspace",
+    "Commit/push"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "review.md",
+      "result": "Five conditions dispositioned; reviewer authority incomplete"
+    },
+    {
+      "artifact": "manifest.json",
+      "result": "Source/patch bytes pinned; protected formal file hashes unchanged"
+    },
+    {
+      "artifact": "workflow-check.json",
+      "result": "Report-only dispatch exit 0; guard not run; no formal-memory completion claim"
+    }
+  ],
+  "risk": [
+    "Exact candidate current-adoption reviewer authority not established",
+    "No mutation before conditional owner requirements hold",
+    "Original unrelated dirty work excluded"
+  ],
+  "next_action": "Keep candidate and stop; obtain authority-qualified current-adoption review for the exact bounded patch",
+  "formal_files_unchanged": {
+    "PLAN.md": true,
+    "memory/01_active_task.md": true,
+    "memory/04_review_log.md": true,
+    "memory/03_knowledge_base.md": true,
+    "governance_tools/memory_record.py": true,
+    "memory_pipeline/active_task_supersession.py": true
+  }
+}

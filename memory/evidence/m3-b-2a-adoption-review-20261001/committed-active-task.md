@@ -58,7 +58,10 @@ decisions; it must not be inferred merely from the existence of either commit.
 
 ## Other Retained Workstream State
 
-- Historical M3-b-2A pre-merge claim: [exact source](evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md#L61-L64). Current engineering delivery is the PR #108 / a59b0aef checkpoint below; this grants no M3-b-2B authority.
+- M3-b-2A remains implemented but uncommitted in six scoped files. Its recorded
+  focused/M1-adjacent result is 291 passed; absolute base remains parent-trusted;
+  no `__main__`, process, native call, historical import or active caller exists;
+  `ACTIVE=False`. No action on those bytes is authorized here.
 - M3-b-2B revision 2 exact candidate `5b76d3d1...92ea` has its handoff fixes and
   owner rulings, but no two clean-context review reports, verdict or implementation
   authorization. M3-b-3 remains sequence-blocked; M4 is not started.
