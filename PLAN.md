@@ -14,7 +14,8 @@
 - Allowed: `governance_tools/external_tree_inventory_guard.py`, managed
   `scripts/hooks/pre-push`, directly related tests, policy documentation,
   evidence and canonical closeout companion. Observed PR gates also require
-  preserving protected `safe.directory` configuration and retiring nine
+  preserving protected `safe.directory` configuration (including operator
+  environment-selected global/system and command sources) and retiring nine
   expired test exclusions whose local fixtures now pass (no expiry renewal).
   No ancestry exclusion, threshold
   relaxation, history rewriting, production imports or unrelated roadmap work.

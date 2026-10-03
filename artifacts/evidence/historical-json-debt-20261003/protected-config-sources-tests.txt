@@ -1,0 +1,15 @@
+2026-10-03 local Windows requirements-isolated Python
+python -m pytest tests/test_guard_safe_directory.py tests/test_historical_json_debt.py tests/test_external_tree_inventory_guard.py tests/test_hook_memory_policy.py -q
+96 passed, 10 skipped in 87.69s
+The ten skips are POSIX outer-CLI cases; current-head Linux CI must execute them.
+Real-Git ownership fixtures assert outer cat-file approval/rejection before
+asserting scanner behavior. Repository selector/replace and strict debt cases
+remain in the same executed suite.
+
+Failure-first controls:
+Selected protected global/system files with previous helper: 2 failed.
+Command pairs/parameters with previous helper and outer cat-file controls:
+2 failed, 20 deselected (scanner 4 != expected 0; outer approvals succeed).
+
+Prior head 3f3f86c7 Linux CI passed 6476 tests but is not current-head evidence.
+Self-reported local output summary, not authenticated process attestation.

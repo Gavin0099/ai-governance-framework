@@ -73,10 +73,13 @@ status acknowledges those same exact bytes if later reused; it does not authoriz
 other malformed bytes. A policy-baseline mismatch on a force-pushed branch fails
 closed rather than silently dropping the policy.
 
-Git object reads disable replacement objects and remove inherited `GIT_*`
-selectors, so an ambient repository selector or replace ref cannot change the
-OID/baseline being assessed. Standard global/system protected configuration is
-preserved, including the operator's approved `safe.directory` exceptions for
+Git object reads disable replacement objects and remove inherited Git
+repository/object selectors, so an ambient repository selector or replace ref cannot change the
+OID/baseline being assessed. Operator-controlled protected configuration is
+preserved, including `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM` and
+`GIT_CONFIG_NOSYSTEM` selecting global/system sources, and command-scope
+`GIT_CONFIG_PARAMETERS` / `GIT_CONFIG_COUNT` with numbered KEY/VALUE pairs.
+These are Git's protected configuration inputs, including approved `safe.directory` exceptions for
 shared repositories; no automatic wildcard or new safety approval is added.
 See [Git's protected safe.directory configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory).
 Executable names, PATH, shell/Python launchers and

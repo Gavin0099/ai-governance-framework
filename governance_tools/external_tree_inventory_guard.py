@@ -518,9 +518,17 @@ def _git_object_exists(repository_root: Path, oid: str) -> bool:
 def _git_environment() -> dict[str, str]:
     # Explicit -C must select the repository; ambient Git selectors and object
     # replacement must not supply a different baseline or blob for a debt entry.
-    env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
+    protected_config_sources = {"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_CONFIG_NOSYSTEM",
+                                "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
+    env = {key: value for key, value in os.environ.items()
+           if not key.upper().startswith("GIT_") or key.upper() in protected_config_sources
+           or re.fullmatch(r"GIT_CONFIG_(?:KEY|VALUE)_\d+", key.upper())}
     # Preserve the operator's standard protected config, including explicit
-    # safe.directory approvals for shared/mounted repositories. Do not invent
+    # safe.directory approvals for shared/mounted repositories, including
+    # environment-selected global/system files, intentional system opt-out,
+    # and the outer command's protected runtime configuration.
+    # These are trusted operator config sources, not repository/object selectors.
+    # Do not invent
     # an approval, or discard the approval that let the outer push run.
     env.update(GIT_NO_REPLACE_OBJECTS="1", GIT_TERMINAL_PROMPT="0")
     return env

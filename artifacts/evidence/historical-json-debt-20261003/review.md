@@ -38,6 +38,12 @@ evidence. Verdict: no unresolved P0/P1. Independent isolated validation:
 39 passed, 2 skipped (POSIX outer-CLI cases on Windows). The policy digest
 above remains unchanged. Current-head Linux CI/Codex review is still required.
 
+Successor protected-source repair: reviewer inspected complete final diff,
+including environment-selected global/system and command configurations,
+real-Git outer approval/rejection controls and evidence. No unresolved P0/P1.
+Independent isolated narrow suite: 35 passed, 10 skipped in 37.49s; the ten
+POSIX outer-CLI cases still require successor-head Linux CI. Policy unchanged.
+
 ## Delivery authority boundary
 
 The session owner expressly delegated sequential PR review and conditional
