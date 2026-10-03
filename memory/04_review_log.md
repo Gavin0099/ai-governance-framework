@@ -5370,3 +5370,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: 63 passed: tests/test_composed_hook.py, tests/test_hook_installer.py and the missing-source updater regression; evidence memory/evidence/f7-h1-20260914/final-targeted.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-h1-20260914/pr-precommit.log. Disposable F7 and repeat-hook checks are documented in memory/evidence/f7-h1-20260914/PR_REVIEW.md; full F7 repeat remains receipt-blocked.
 - Next action: Commit this canonical companion, publish the separate H1 PR and review its exact head and checks; merge remains unauthorized.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:c4c6e82a82431520ae86ee9ab5d213aebb62910b11c403669761a12be9debe83 -->
+### Canonical memory checkpoint — 2026-10-03-02
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c4c6e82a82431520ae86ee9ab5d213aebb62910b11c403669761a12be9debe83`
+- Commit binding: `e80f3fa3` (bound)
+- Record: Implemented exact-OID private historical JSON parse-debt policy preserving full per-ref inventory scanning. Independent reviewer approved implementation and exact eight-blob Bookstore policy SHA256494f26ec467f0dcef848d71f428370ab06af92ae938347d0f84abd477591cab0. Real consumer closure321: strict8UNREADABLE/313PASS, policy8ACKNOWLEDGED_UNREADABLE/313PASS. No policy installed or production execution.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/producer-receipt.json
+- Next action: Open framework PR, obtain current-head GitHub review and green required checks; deploy only independently reviewed consumer policy after framework delivery, then retry ordinary product push.
+- PLAN reconciliation: `updated`

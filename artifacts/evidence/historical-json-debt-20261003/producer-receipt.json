@@ -1,0 +1,23 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_external_tree_inventory_guard.py tests/test_historical_json_debt.py tests/test_hook_memory_policy.py tests/test_hook_install_validator.py tests/test_hook_installer.py -q; python -m pytest tests/test_historical_json_debt.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-03T02:06:41.024791+00:00",
+  "finished_at": "2026-10-03T02:07:45.198983+00:00",
+  "runner": "Codex root via local exec_command; Windows Python/pytest",
+  "linked_commit": "e80f3fa38614e8788a3ce5a12018b634b401a3e3",
+  "output_artifacts": [
+    "artifacts/evidence/historical-json-debt-20261003/targeted-tests.txt",
+    "artifacts/evidence/historical-json-debt-20261003/debt-policy-tests.txt"
+  ],
+  "observed_results": [
+    "168 passed in 82.02s",
+    "23 passed in 25.04s"
+  ],
+  "cannot_claim": [
+    "Receipt authenticity: self-reported fields are fabricatable.",
+    "Timestamps come from retained output file creation/modification, not process attestation.",
+    "Framework PR/CI/merge, installed consumer policy and production execution are not proven."
+  ]
+}
