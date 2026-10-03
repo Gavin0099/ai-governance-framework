@@ -5392,3 +5392,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: artifacts/evidence/historical-json-debt-20261003/pr204-gate-repair-tests.txt; independent 39 passed/2 skipped; exclusion-retirement.md 59 passed/20 deselected. Current-head Linux CI and Codex review still pending.
 - Next action: Push final companion head; obtain exact-head Codex review and all substantive CI, merge under existing conditional owner delegation, then install reviewed hook/policy and retry normal Bookstore push.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:f727f1c8bd6e8d71a015c5fe062832b11d290f9b10f0075661a77ce886946a41 -->
+### Canonical memory checkpoint — 2026-10-03-02-pr204-protected-sources
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `f727f1c8bd6e8d71a015c5fe062832b11d290f9b10f0075661a77ce886946a41`
+- Commit binding: `123a53af` (bound)
+- Record: Fixed current-head PR204 P1 for environment-selected protected Git config, including reproduced command-scope approvals. Global/system/NOSYSTEM and command PARAMETERS/COUNT/numbered KEY/VALUE retained as trusted operator config; repository/object selectors stripped and replacements disabled. Independent final diff review has no unresolved P0/P1; candidate policy unchanged/not installed.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/protected-config-sources-tests.txt; 96 passed/10 POSIX skipped locally, independent 35 passed/10 skipped; failure-first outer Git approval succeeds but previous scanner fails. Successor Linux CI/Codex pending.
+- Next action: Push successor companion head; wait current-head Codex and all substantive CI, merge repair, install exact reviewed hook/policy, then retry original normal Bookstore push.
+- PLAN reconciliation: `updated`
