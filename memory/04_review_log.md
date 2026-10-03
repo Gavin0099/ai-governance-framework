@@ -5381,3 +5381,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: artifacts/evidence/historical-json-debt-20261003/producer-receipt.json
 - Next action: Open framework PR, obtain current-head GitHub review and green required checks; deploy only independently reviewed consumer policy after framework delivery, then retry ordinary product push.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:f814a8bbe7efed151b5a84950e2c9a094074821d87337ed646a4c10438db8c62 -->
+### Canonical memory checkpoint — 2026-10-03-02-pr204-convergence
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `f814a8bbe7efed151b5a84950e2c9a094074821d87337ed646a4c10438db8c62`
+- Commit binding: `2bc4dd8d` (bound)
+- Record: Repaired PR204 P1 by preserving standard protected safe.directory config while retaining selector stripping and no-replace scanning. Retired nine expired name exclusions after independent local fixture revalidation; kept historical expiry/owner. Independent complete diff review reports no unresolved P0/P1. Consumer policy bytes unchanged; not installed.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/pr204-gate-repair-tests.txt; independent 39 passed/2 skipped; exclusion-retirement.md 59 passed/20 deselected. Current-head Linux CI and Codex review still pending.
+- Next action: Push final companion head; obtain exact-head Codex review and all substantive CI, merge under existing conditional owner delegation, then install reviewed hook/policy and retry normal Bookstore push.
+- PLAN reconciliation: `updated`
