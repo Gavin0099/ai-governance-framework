@@ -1,0 +1,16 @@
+{
+  "schema": "external-tree-historical-json-debt.v1",
+  "repository_id": "Gavin0099/Bookstore-Scraper",
+  "baseline_commit": "37ef050b086da7d8b73db5bb9bff18658ca0b1e7",
+  "review_reference": "framework PR historical-json-debt-20261003; exact policy review in consumer-reproduction.txt and review.md",
+  "blobs": [
+    {"oid": "61432da6804b624ffc6ece63fc5b973a56548c6b", "path": "exports/latest/acmebook.json"},
+    {"oid": "ad5ae9135ea8e3735d7e727cbacc4d74d9702a8c", "path": "exports/latest/chinglin.json"},
+    {"oid": "7497d3a0cb7cfa7274263bde6bad63e04e8933c5", "path": "exports/latest/grimm.json"},
+    {"oid": "4e9ce1d31816906fff0b8d7d49c257718bdd40ff", "path": "exports/latest/holiu.json"},
+    {"oid": "a223d80f52665fe68a9791a44a79bb35955ee744", "path": "exports/latest/hsinyi.json"},
+    {"oid": "944286d184cee41b5f987ee49ddb995924c6a9d2", "path": "exports/latest/suncolor.json"},
+    {"oid": "94c0bad11c0b60f8782a63af564869028a117b29", "path": "exports/latest/tienwei.json"},
+    {"oid": "74f798f084580f39afceb9be82831e4a33a9e0c9", "path": "exports/latest/weesing.json"}
+  ]
+}

@@ -553,7 +553,7 @@ def test_scanner_uses_one_cat_file_batch_and_never_materializes_blob(
 
     assert scan.assessments[0].result.status == STATUS_BLOCKED
     assert [command for command in calls if "--batch" in command] == [
-        ["git", "-C", str(repo), "cat-file", "--batch"]
+        ["git", "--no-replace-objects", "-C", str(repo), "cat-file", "--batch"]
     ]
 
 

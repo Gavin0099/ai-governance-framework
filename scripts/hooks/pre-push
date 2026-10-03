@@ -97,19 +97,25 @@ if [ ! -f "$EXTERNAL_TREE_GUARD" ]; then
 fi
 
 echo "[governance] scanning pre-push newly-reachable JSON object closure"
-set +e
-"${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" \
-    --pre-push-updates \
-    --repo-root "$TARGET_REPO_ROOT" \
-    --identity-config "$EXTERNAL_TREE_IDENTITY_CONFIG" \
+EXTERNAL_TREE_GUARD_ARGS=(
+    --pre-push-updates
+    --repo-root "$TARGET_REPO_ROOT"
+    --identity-config "$EXTERNAL_TREE_IDENTITY_CONFIG"
     --format human
+)
+HISTORICAL_JSON_DEBT_POLICY="$HOOK_DIR/external-tree-json-debt.json"
+if [ -e "$HISTORICAL_JSON_DEBT_POLICY" ] || [ -L "$HISTORICAL_JSON_DEBT_POLICY" ]; then
+    EXTERNAL_TREE_GUARD_ARGS+=(--historical-json-debt-policy "$HISTORICAL_JSON_DEBT_POLICY")
+fi
+set +e
+"${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" "${EXTERNAL_TREE_GUARD_ARGS[@]}"
 EXTERNAL_TREE_GUARD_STATUS=$?
 set -e
 if [ "$EXTERNAL_TREE_GUARD_STATUS" -ne 0 ]; then
     governance_error "pre-push external tree inventory guard blocked the push"
     case "$EXTERNAL_TREE_GUARD_STATUS" in
         1|2|3)
-            echo "  the reported blob is already present in your unpushed history" >&2
+            echo "  the reported blob is present in the updated-ref object history" >&2
             echo "  deleting the file in a later commit does not remove that blob" >&2
             echo "  amend, rebase, or filter the introducing history, then retry" >&2
             ;;
