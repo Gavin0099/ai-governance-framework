@@ -1,0 +1,21 @@
+2026-10-03 local Windows requirements-isolated Python environment
+D:/Codex-Task-Envs/bookstore-governance-repair-20261003/Scripts/python.exe
+
+Focused guard, policy, hook and registry suite:
+python -m pytest tests/test_guard_safe_directory.py tests/test_historical_json_debt.py tests/test_external_tree_inventory_guard.py tests/test_hook_memory_policy.py tests/test_hook_installer.py tests/test_exclusion_registry.py -q
+157 passed, 2 skipped in 99.49s
+Skipped: two POSIX outer-CLI ownership fixtures; Linux CI required.
+
+Registry and canonical filtered runner:
+python -m pytest tests/test_run_filtered_tests.py tests/test_exclusion_registry.py -q
+35 passed in 1.73s
+Counts overlap on registry tests; do not add them as unique test counts.
+
+Failure-first controls:
+Real registry before retirement: 1 failed, all nine active entries expired.
+Prior environment helper with new approved-global fixture: 1 failed, 5 deselected;
+scanner returned 4 instead of expected 0.
+
+Independent fixture retirement evidence: exclusion-retirement.md.
+Current-head full Linux CI and review are required separately; local tests alone
+do not authorize merge. Self-reported output summary, not process attestation.

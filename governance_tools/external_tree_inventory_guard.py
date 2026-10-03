@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import codecs
 import json
+import os
 import re
 import subprocess
 import sys
@@ -30,6 +31,9 @@ from urllib.parse import urlparse
 STATUS_PASS = "PASS"
 STATUS_BLOCKED = "BLOCKED"
 STATUS_UNREADABLE = "UNREADABLE"
+STATUS_ACKNOWLEDGED_UNREADABLE = "ACKNOWLEDGED_UNREADABLE"
+HISTORICAL_DEBT_SCHEMA = "external-tree-historical-json-debt.v1"
+HISTORICAL_DEBT_FILENAME = "external-tree-json-debt.json"
 STATUS_UNATTRIBUTED_BULK_INVENTORY = "UNATTRIBUTED_BULK_INVENTORY"
 DEFAULT_ENTRY_THRESHOLD = 100
 IDENTITY_CONFIG_SCHEMA = "external-tree-inventory-guard-identities.v1"
@@ -103,6 +107,13 @@ class PrePushScanResult:
     update_count: int
     json_blob_count: int
     assessments: tuple[BlobAssessment, ...]
+
+
+@dataclass(frozen=True)
+class HistoricalJsonDebt:
+    baseline_commit: str
+    review_reference: str
+    blobs: tuple[tuple[str, str], ...]
 
 
 class IdentityConfigError(ValueError):
@@ -495,12 +506,89 @@ def parse_pre_push_updates(stream: TextIO) -> tuple[PrePushUpdate, ...]:
 
 def _git_object_exists(repository_root: Path, oid: str) -> bool:
     completed = subprocess.run(
-        ["git", "-C", str(repository_root), "cat-file", "-e", f"{oid}^{{object}}"],
+        ["git", "--no-replace-objects", "-C", str(repository_root), "cat-file", "-e", f"{oid}^{{object}}"],
+        env=_git_environment(),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         check=False,
     )
     return completed.returncode == 0
+
+
+def _git_environment() -> dict[str, str]:
+    # Explicit -C must select the repository; ambient Git selectors and object
+    # replacement must not supply a different baseline or blob for a debt entry.
+    protected_config_sources = {"GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_CONFIG_NOSYSTEM",
+                                "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT"}
+    env = {key: value for key, value in os.environ.items()
+           if not key.upper().startswith("GIT_") or key.upper() in protected_config_sources
+           or re.fullmatch(r"GIT_CONFIG_(?:KEY|VALUE)_\d+", key.upper())}
+    # Preserve the operator's standard protected config, including explicit
+    # safe.directory approvals for shared/mounted repositories, including
+    # environment-selected global/system files, intentional system opt-out,
+    # and the outer command's protected runtime configuration.
+    # These are trusted operator config sources, not repository/object selectors.
+    # Do not invent
+    # an approval, or discard the approval that let the outer push run.
+    env.update(GIT_NO_REPLACE_OBJECTS="1", GIT_TERMINAL_PROMPT="0")
+    return env
+
+
+def load_historical_json_debt(
+    policy_path: Path, *, repository_root: Path,
+    expected_repository_identities: Sequence[str],
+) -> HistoricalJsonDebt:
+    """Read an operator-installed policy, never an allowance from pushed files.
+
+    Publication and independent review are installation prerequisites, not
+    inferred from fields inside the document. The hook's private policy is a
+    trusted local operator input, just like its framework-root configuration.
+    """
+    completed = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repository_root), "rev-parse",
+         "--path-format=absolute", "--git-common-dir"],
+        env=_git_environment(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if completed.returncode:
+        raise PrePushScanError("cannot resolve private Git hook policy directory")
+    common = Path(completed.stdout.decode("utf-8", errors="strict").strip())
+    expected = (common / "hooks" / HISTORICAL_DEBT_FILENAME).resolve()
+    if policy_path.is_symlink() or policy_path.resolve() != expected:
+        raise PrePushScanError("historical JSON debt policy must be the fixed private hook file")
+    try:
+        document = decode_json_bytes(policy_path.read_bytes())
+    except (OSError, ValueError) as exc:
+        raise PrePushScanError(f"historical JSON debt policy is unreadable: {exc}") from exc
+    if not isinstance(document, dict) or set(document) != {
+        "schema", "repository_id", "baseline_commit", "review_reference", "blobs"
+    } or document["schema"] != HISTORICAL_DEBT_SCHEMA:
+        raise PrePushScanError("invalid historical JSON debt policy schema")
+    identity = document["repository_id"]
+    expected_ids = {_normalize_repository_identity(item) for item in expected_repository_identities}
+    if not isinstance(identity, str) or not _normalize_repository_identity(identity) or _normalize_repository_identity(identity) not in expected_ids:
+        raise PrePushScanError("historical JSON debt policy repository identity mismatch")
+    baseline = document["baseline_commit"]
+    reference = document["review_reference"]
+    entries = document["blobs"]
+    if not isinstance(baseline, str) or not _OID_PATTERN.fullmatch(baseline) or _is_zero_oid(baseline):
+        raise PrePushScanError("invalid historical JSON debt baseline commit")
+    if not isinstance(reference, str) or not reference.strip():
+        raise PrePushScanError("historical JSON debt policy requires a review reference")
+    if not isinstance(entries, list) or not entries or len(entries) > 100:
+        raise PrePushScanError("historical JSON debt policy requires 1..100 exact blob entries")
+    blobs: list[tuple[str, str]] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"oid", "path"}:
+            raise PrePushScanError("invalid historical JSON debt blob entry")
+        oid, path = entry["oid"], entry["path"]
+        if not isinstance(oid, str) or not _OID_PATTERN.fullmatch(oid) or _is_zero_oid(oid):
+            raise PrePushScanError("invalid historical JSON debt blob object ID")
+        if not isinstance(path, str) or not path.casefold().endswith(".json") or "\\" in path or path.startswith("/") or any(part in ("", ".", "..") for part in path.split("/")):
+            raise PrePushScanError("invalid historical JSON debt blob path")
+        if any(item[0] == oid.lower() for item in blobs):
+            raise PrePushScanError("duplicate historical JSON debt blob object ID")
+        blobs.append((oid.lower(), path))
+    return HistoricalJsonDebt(baseline.lower(), reference.strip(), tuple(blobs))
 
 
 def _enumerate_json_blob_candidates(
@@ -518,6 +606,7 @@ def _enumerate_json_blob_candidates(
 
         command = [
             "git",
+            "--no-replace-objects",
             "-C",
             str(repository_root),
             "rev-list",
@@ -535,6 +624,7 @@ def _enumerate_json_blob_candidates(
 
         completed = subprocess.run(
             command,
+            env=_git_environment(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
@@ -574,7 +664,8 @@ def _read_blob_batch(repository_root: Path, oids: Sequence[str]) -> dict[str, by
     if not oids:
         return {}
     process = subprocess.Popen(
-        ["git", "-C", str(repository_root), "cat-file", "--batch"],
+        ["git", "--no-replace-objects", "-C", str(repository_root), "cat-file", "--batch"],
+        env=_git_environment(),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -627,10 +718,41 @@ def scan_pre_push_updates(
     *,
     expected_repository_identities: Sequence[str],
     entry_threshold: int = DEFAULT_ENTRY_THRESHOLD,
+    historical_debt: HistoricalJsonDebt | None = None,
 ) -> PrePushScanResult:
     """Assess JSON blobs in the per-ref newly-reachable object union."""
 
     candidates = _enumerate_json_blob_candidates(repository_root, updates)
+    if historical_debt is not None:
+        baseline_type = subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(repository_root), "cat-file",
+             "-t", historical_debt.baseline_commit],
+            env=_git_environment(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+        )
+        if baseline_type.returncode or baseline_type.stdout.strip() != b"commit":
+            raise PrePushScanError("historical JSON debt baseline must be an available commit object")
+        for update in updates:
+            if _is_zero_oid(update.local_oid):
+                continue
+            completed = subprocess.run(
+                ["git", "--no-replace-objects", "-C", str(repository_root), "merge-base",
+                 "--is-ancestor", historical_debt.baseline_commit, update.local_oid],
+                env=_git_environment(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+            )
+            if completed.returncode:
+                raise PrePushScanError("historical JSON debt baseline is not an available ancestor of every pushed tip")
+        baseline_candidates = _enumerate_json_blob_candidates(repository_root, (
+            PrePushUpdate("approved-baseline", historical_debt.baseline_commit,
+                          "approved-baseline", "0" * len(historical_debt.baseline_commit)),
+        ))
+        for oid, path in historical_debt.blobs:
+            if path not in baseline_candidates.get(oid, set()):
+                raise PrePushScanError(f"historical JSON debt blob/path is absent from baseline history: {oid} {path}")
+        debt_bytes = _read_blob_batch(repository_root, [oid for oid, _ in historical_debt.blobs])
+        for oid, _path in historical_debt.blobs:
+            if assess_bytes(debt_bytes[oid], expected_repository_identities=expected_repository_identities,
+                            entry_threshold=entry_threshold).status != STATUS_UNREADABLE:
+                raise PrePushScanError(f"historical JSON debt entry is not UNREADABLE: {oid}")
     ordered_oids = sorted(candidates)
     blobs = _read_blob_batch(repository_root, ordered_oids)
     assessments = tuple(
@@ -645,6 +767,15 @@ def scan_pre_push_updates(
         )
         for oid in ordered_oids
     )
+    if historical_debt is not None:
+        debt_oids = {oid for oid, _path in historical_debt.blobs}
+        assessments = tuple(
+            BlobAssessment(item.oid, item.path, GuardResult(
+                STATUS_ACKNOWLEDGED_UNREADABLE, item.result.threshold, (),
+                f"historical_parse_failure; baseline={historical_debt.baseline_commit}; review={historical_debt.review_reference}",
+            )) if item.oid in debt_oids and item.result.status == STATUS_UNREADABLE else item
+            for item in assessments
+        )
     return PrePushScanResult(
         update_count=len(updates),
         json_blob_count=len(ordered_oids),
@@ -703,6 +834,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Shared repository identity configuration used by CI and pre-push.",
     )
     parser.add_argument("--repo-root", type=Path, default=Path("."))
+    parser.add_argument("--historical-json-debt-policy", type=Path,
+                        help="Operator-installed private hook policy for exact historical unreadable blobs.")
     parser.add_argument(
         "--pre-push-updates",
         action="store_true",
@@ -727,11 +860,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("file paths cannot be combined with --pre-push-updates")
         try:
             updates = parse_pre_push_updates(sys.stdin)
+            debt = load_historical_json_debt(
+                args.historical_json_debt_policy, repository_root=args.repo_root,
+                expected_repository_identities=repository_ids,
+            ) if args.historical_json_debt_policy is not None else None
             scan = scan_pre_push_updates(
                 args.repo_root,
                 updates,
                 expected_repository_identities=repository_ids,
                 entry_threshold=args.entry_threshold,
+                historical_debt=debt,
             )
         except PrePushScanError as exc:
             print(f"status: ERROR\nreason: {exc}", file=sys.stderr)
@@ -739,6 +877,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         exit_code = _result_exit_code(item.result for item in scan.assessments)
         if exit_code == 0:
+            for item in scan.assessments:
+                if item.result.status == STATUS_ACKNOWLEDGED_UNREADABLE:
+                    print(f"blob: {item.oid}\n" + _format_human(Path(item.path), item.result))
             print(
                 "pre-push external tree inventory guard passed: "
                 f"updates={scan.update_count} json_blobs={scan.json_blob_count}"
@@ -762,6 +903,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         return exit_code
 
+    if args.historical_json_debt_policy is not None:
+        parser.error("historical JSON debt policy is only allowed with --pre-push-updates")
     if not args.files:
         parser.error("at least one JSON file is required unless --pre-push-updates is used")
 

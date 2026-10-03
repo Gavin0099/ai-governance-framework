@@ -352,7 +352,7 @@ def test_external_consumer_install_allows_clean_push_and_blocks_external_invento
     )
     assert blocked_push.returncode != 0, blocked_push.stdout
     assert "status: BLOCKED" in blocked_push.stdout
-    assert "already present in your unpushed history" in blocked_push.stdout
+    assert "present in the updated-ref object history" in blocked_push.stdout
     assert "deleting the file in a later commit does not remove" in blocked_push.stdout
     assert "amend, rebase, or filter" in blocked_push.stdout
     assert "run git fetch" not in blocked_push.stdout

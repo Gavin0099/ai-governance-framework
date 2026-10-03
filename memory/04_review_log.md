@@ -5370,3 +5370,36 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: 63 passed: tests/test_composed_hook.py, tests/test_hook_installer.py and the missing-source updater regression; evidence memory/evidence/f7-h1-20260914/final-targeted.xml. Smoke and 201 passed: scripts/run-runtime-governance.sh --mode enforce; evidence memory/evidence/f7-h1-20260914/pr-precommit.log. Disposable F7 and repeat-hook checks are documented in memory/evidence/f7-h1-20260914/PR_REVIEW.md; full F7 repeat remains receipt-blocked.
 - Next action: Commit this canonical companion, publish the separate H1 PR and review its exact head and checks; merge remains unauthorized.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:c4c6e82a82431520ae86ee9ab5d213aebb62910b11c403669761a12be9debe83 -->
+### Canonical memory checkpoint — 2026-10-03-02
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `c4c6e82a82431520ae86ee9ab5d213aebb62910b11c403669761a12be9debe83`
+- Commit binding: `e80f3fa3` (bound)
+- Record: Implemented exact-OID private historical JSON parse-debt policy preserving full per-ref inventory scanning. Independent reviewer approved implementation and exact eight-blob Bookstore policy SHA256494f26ec467f0dcef848d71f428370ab06af92ae938347d0f84abd477591cab0. Real consumer closure321: strict8UNREADABLE/313PASS, policy8ACKNOWLEDGED_UNREADABLE/313PASS. No policy installed or production execution.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/producer-receipt.json
+- Next action: Open framework PR, obtain current-head GitHub review and green required checks; deploy only independently reviewed consumer policy after framework delivery, then retry ordinary product push.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:f814a8bbe7efed151b5a84950e2c9a094074821d87337ed646a4c10438db8c62 -->
+### Canonical memory checkpoint — 2026-10-03-02-pr204-convergence
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `f814a8bbe7efed151b5a84950e2c9a094074821d87337ed646a4c10438db8c62`
+- Commit binding: `2bc4dd8d` (bound)
+- Record: Repaired PR204 P1 by preserving standard protected safe.directory config while retaining selector stripping and no-replace scanning. Retired nine expired name exclusions after independent local fixture revalidation; kept historical expiry/owner. Independent complete diff review reports no unresolved P0/P1. Consumer policy bytes unchanged; not installed.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/pr204-gate-repair-tests.txt; independent 39 passed/2 skipped; exclusion-retirement.md 59 passed/20 deselected. Current-head Linux CI and Codex review still pending.
+- Next action: Push final companion head; obtain exact-head Codex review and all substantive CI, merge under existing conditional owner delegation, then install reviewed hook/policy and retry normal Bookstore push.
+- PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:f727f1c8bd6e8d71a015c5fe062832b11d290f9b10f0075661a77ce886946a41 -->
+### Canonical memory checkpoint — 2026-10-03-02-pr204-protected-sources
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `f727f1c8bd6e8d71a015c5fe062832b11d290f9b10f0075661a77ce886946a41`
+- Commit binding: `123a53af` (bound)
+- Record: Fixed current-head PR204 P1 for environment-selected protected Git config, including reproduced command-scope approvals. Global/system/NOSYSTEM and command PARAMETERS/COUNT/numbered KEY/VALUE retained as trusted operator config; repository/object selectors stripped and replacements disabled. Independent final diff review has no unresolved P0/P1; candidate policy unchanged/not installed.
+- Validation boundary: artifacts/evidence/historical-json-debt-20261003/protected-config-sources-tests.txt; 96 passed/10 POSIX skipped locally, independent 35 passed/10 skipped; failure-first outer Git approval succeeds but previous scanner fails. Successor Linux CI/Codex pending.
+- Next action: Push successor companion head; wait current-head Codex and all substantive CI, merge repair, install exact reviewed hook/policy, then retry original normal Bookstore push.
+- PLAN reconciliation: `updated`

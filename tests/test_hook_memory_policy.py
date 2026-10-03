@@ -426,6 +426,55 @@ def test_pre_push_object_guard_identity_config_failures_block(
     assert "repository identity config" in completed.stdout
 
 
+def test_actual_new_ref_push_acknowledges_only_installed_historical_json_debt(tmp_path: Path) -> None:
+    repo, _framework = _make_consumer(tmp_path)
+    _write(repo / "old.json", '{"title":\n<<<<<<< HEAD\n')
+    _run_git(repo, "add", "old.json")
+    # Fixture construction, before the measured push. The actual push uses all hooks.
+    _run_git(repo, "commit", "--no-verify", "-m", "historical conflict")
+    debt_oid = _run_git(repo, "rev-parse", "HEAD:old.json")
+    _write(repo / "old.json", '{"title":"repaired"}\n')
+    _run_git(repo, "add", "old.json")
+    _run_git(repo, "commit", "--no-verify", "-m", "repair current JSON")
+    baseline = _run_git(repo, "rev-parse", "HEAD")
+    remote = _make_bare_remote(tmp_path)
+    # Model the already-published baseline without disabling the measured hook.
+    _run_git(remote, "fetch", str(repo), f"{baseline}:refs/heads/published")
+    _run_git(repo, "remote", "add", "origin", str(remote))
+    hook = repo / ".git" / "hooks" / "pre-push"
+    hook.chmod(hook.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    env = os.environ.copy()
+    env.pop("AI_GOVERNANCE_FRAMEWORK_ROOT", None)
+
+    def push(name: str):
+        return subprocess.run([str(_git_executable()), "push", "origin", f"HEAD:refs/heads/{name}"],
+            cwd=repo, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", check=False)
+
+    rejected = push("new")
+    assert rejected.returncode != 0 and "status: UNREADABLE" in rejected.stdout
+    policy_text = json.dumps({
+        "schema": "external-tree-historical-json-debt.v1", "repository_id": "example/consumer",
+        "baseline_commit": baseline, "review_reference": "independent-review:fixture-policy",
+        "blobs": [{"oid": debt_oid, "path": "old.json"}],
+    })
+    # A pushed-tree declaration cannot opt itself into the allowance.
+    _write(repo / "external-tree-json-debt.json", policy_text)
+    still_rejected = push("new")
+    assert still_rejected.returncode != 0 and "status: UNREADABLE" in still_rejected.stdout
+    _write(repo / ".git" / "hooks" / "external-tree-json-debt.json", policy_text)
+    accepted = push("new")
+    assert accepted.returncode == 0, accepted.stdout
+    assert "ACKNOWLEDGED_UNREADABLE" in accepted.stdout and debt_oid in accepted.stdout
+    assert f"{baseline}\trefs/heads/new" in _bare_remote_refs(remote)
+    _write(repo / "new.json", "{new-malformed-json")
+    _run_git(repo, "add", "new.json")
+    _run_git(repo, "commit", "--no-verify", "-m", "new malformed JSON")
+    rejected_new = push("second-new")
+    assert rejected_new.returncode != 0 and "status: UNREADABLE" in rejected_new.stdout
+    assert "refs/heads/second-new" not in _bare_remote_refs(remote)
+
+
 def test_pre_push_object_guard_missing_remote_old_requests_fetch(
     tmp_path: Path,
 ) -> None:

@@ -2,7 +2,31 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-09-23
+### Authorized observed-failure repair — 2026-10-03
+
+- Owner instruction: repair Bookstore-Scraper's pre-push publication blocker
+  before resuming its sequential reviewed product slices.
+- DONE: a reviewed framework PR supports a private, exact-blob historical JSON
+  parse-debt policy; real Git push proves known historical failures can be
+  acknowledged while newly introduced parse failures and inventory findings
+  still block. After framework delivery, deploy only the separately reviewed
+  eight-blob consumer policy and retry the ordinary product push.
+- Allowed: `governance_tools/external_tree_inventory_guard.py`, managed
+  `scripts/hooks/pre-push`, directly related tests, policy documentation,
+  evidence and canonical closeout companion. Observed PR gates also require
+  preserving protected `safe.directory` configuration (including operator
+  environment-selected global/system and command sources) and retiring nine
+  expired test exclusions whose local fixtures now pass (no expiry renewal).
+  No ancestry exclusion, threshold
+  relaxation, history rewriting, production imports or unrelated roadmap work.
+- State: implementation and focused validation pass; independent review has
+  approved the implementation and exact eight-blob policy. Framework PR gates,
+  consumer installation and product publication are not yet complete.
+  PR204 P1 and the expired-registry CI failure are being repaired; current-head
+  independent review, Codex review and complete CI must pass before delivery.
+- Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
+
+> **最後更新**: 2026-10-03
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
