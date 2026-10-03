@@ -13,11 +13,16 @@
   eight-blob consumer policy and retry the ordinary product push.
 - Allowed: `governance_tools/external_tree_inventory_guard.py`, managed
   `scripts/hooks/pre-push`, directly related tests, policy documentation,
-  evidence and canonical closeout companion. No ancestry exclusion, threshold
+  evidence and canonical closeout companion. Observed PR gates also require
+  preserving protected `safe.directory` configuration and retiring nine
+  expired test exclusions whose local fixtures now pass (no expiry renewal).
+  No ancestry exclusion, threshold
   relaxation, history rewriting, production imports or unrelated roadmap work.
 - State: implementation and focused validation pass; independent review has
   approved the implementation and exact eight-blob policy. Framework PR gates,
   consumer installation and product publication are not yet complete.
+  PR204 P1 and the expired-registry CI failure are being repaired; current-head
+  independent review, Codex review and complete CI must pass before delivery.
 - Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
 
 > **最後更新**: 2026-10-03

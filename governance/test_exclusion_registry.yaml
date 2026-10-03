@@ -30,6 +30,9 @@ schema_version: "1"
 generated_hint: "Do not edit the filtered_suite_pytest_k field manually. Run exclusion_registry_tool.py --generate-filter to regenerate."
 
 exclusions:
+  # EX-001..009 retired 2026-10-03 after local-fixture revalidation:
+  # 59 passed, 20 integration deselected. Preserve original metadata/expiry.
+  # Evidence: artifacts/evidence/historical-json-debt-20261003/exclusion-retirement.md
   - id: EX-001
     pattern: "trust_signal"
     scope: "test_name_contains"
@@ -45,7 +48,7 @@ exclusions:
     revalidation_trigger: >
       When release pipeline is available in CI, or when the trust signal
       publication surface is refactored to support local fixtures.
-    active: true
+    active: false
 
   - id: EX-002
     pattern: "reviewer_handoff_summary"
@@ -59,7 +62,7 @@ exclusions:
     expiry: "2026-10-01"
     revalidation_trigger: >
       When reviewer handoff snapshot generation is automated in CI fixtures.
-    active: true
+    active: false
 
   - id: EX-003
     pattern: "reviewer_handoff_reader"
@@ -71,7 +74,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "Same as EX-002"
-    active: true
+    active: false
 
   - id: EX-004
     pattern: "reviewer_handoff_snapshot"
@@ -84,7 +87,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "When artifact store isolation is available."
-    active: true
+    active: false
 
   - id: EX-005
     pattern: "session_start_can_load_domain_contract"
@@ -97,7 +100,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "When a local fixture for external contracts is added."
-    active: true
+    active: false
 
   - id: EX-006
     pattern: "session_start_can_auto_discover"
@@ -108,7 +111,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "Same as EX-005"
-    active: true
+    active: false
 
   - id: EX-007
     pattern: "version_audit"
@@ -121,7 +124,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "When version audit is pinned to a local fixture snapshot."
-    active: true
+    active: false
 
   - id: EX-008
     pattern: "governance_auditor"
@@ -134,7 +137,7 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "When auditor can run against local fixture repos."
-    active: true
+    active: false
 
   - id: EX-009
     pattern: "publication_reader"
@@ -147,4 +150,4 @@ exclusions:
     added_at: "2026-04-01"
     expiry: "2026-10-01"
     revalidation_trigger: "When local mock bundles are available for publication reader."
-    active: true
+    active: false

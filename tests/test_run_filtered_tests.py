@@ -58,11 +58,13 @@ def test_dry_run_exits_zero(capsys):
     assert rc == 0
 
 
-def test_dry_run_human_output_shows_k_expression(capsys):
-    main(["--dry-run"])
+def test_dry_run_human_output_shows_fixture_k_expression(tmp_path, capsys):
+    registry = tmp_path / "exclusions.yaml"
+    registry.write_text('exclusions:\n  - id: EX-FIXTURE\n    pattern: trust_signal\n    justification: isolated fixture\n    owner: Test\n    expiry: "2099-01-01"\n    revalidation_trigger: fixture only\n    active: true\n', encoding="utf-8")
+    main(["--registry", str(registry), "--dry-run"])
     out = capsys.readouterr().out
     assert "k_expression" in out
-    assert "trust_signal" in out  # real registry has trust_signal exclusion
+    assert "trust_signal" in out
 
 
 def test_dry_run_json_output_is_parseable(capsys):
@@ -72,7 +74,7 @@ def test_dry_run_json_output_is_parseable(capsys):
     data = json.loads(out)
     assert "command" in data
     assert "k_expression" in data
-    assert data["active_exclusions"] >= 9
+    assert data["active_exclusions"] == 0
 
 
 def test_dry_run_command_matches_registry_output(capsys):
@@ -104,13 +106,15 @@ def test_missing_registry_exits_2(tmp_path):
     assert rc == 2
 
 
-# ── k_expression is never empty for real registry ─────────────────────────────
+# ── retired registry restores unfiltered default command ──────────────────────
 
-def test_real_registry_produces_non_empty_k_in_dry_run(capsys):
+def test_retired_real_registry_produces_no_k_in_dry_run(capsys):
     main(["--dry-run", "--format", "json"])
     out = capsys.readouterr().out
     data = json.loads(out)
-    assert data["k_expression"], "k_expression must not be empty — registry has active entries"
+    assert data["k_expression"] == ""
+    assert data["active_exclusions"] == 0
+    assert "-k" not in data["command"]
 
 
 # ── enforcement contract ──────────────────────────────────────────────────────

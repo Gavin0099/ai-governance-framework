@@ -28,3 +28,24 @@ of installed policy, consumer push, framework merge or production execution.
 
 Only the separately reviewed historical parse failures may be installed after
 framework PR gates. No pending product file supplies policy approval.
+
+## PR204 gate repair convergence review
+
+The same independent readonly reviewer inspected the complete subsequent
+uncommitted repair: protected safe.directory preservation, real-Git ownership
+fixtures, retirement of EX-001..009, registry/runner regressions, PLAN and
+evidence. Verdict: no unresolved P0/P1. Independent isolated validation:
+39 passed, 2 skipped (POSIX outer-CLI cases on Windows). The policy digest
+above remains unchanged. Current-head Linux CI/Codex review is still required.
+
+## Delivery authority boundary
+
+The session owner expressly delegated sequential PR review and conditional
+merge: "每一個slice做完就PR review沒問題再MR 然後在做下一個slice",
+then instructed "先修復" for this publication blocker. Delivery follows that
+existing conditional delegation after all substantive current-head gates pass.
+The literal per-head human attestation required by the local solo-owner
+contract is absent; this record does not mark it present or claim its canonical
+eligible conjunction. The higher-priority session instruction resolves that
+conflict. Independent review, current-head Codex, CI and mergeability still
+remain required; no failed gate is bypassed.

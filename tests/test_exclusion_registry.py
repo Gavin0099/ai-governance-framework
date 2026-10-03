@@ -132,11 +132,15 @@ def test_generate_filter_uses_not_prefix():
     assert k.startswith("not ")
 
 
-def test_real_registry_generates_non_empty_filter():
+def test_retired_real_registry_preserves_history_without_excluding_tests():
     entries = load_registry(REAL_REGISTRY)
-    k = generate_filter(entries, warn_expired=False)
-    assert k, "Real registry should produce a non-empty k expression"
-    assert "trust_signal" in k
+    assert {e.id for e in entries} == {f"EX-{number:03}" for number in range(1, 10)}
+    assert all(not e.active for e in entries)
+    assert all(e.expiry == "2026-10-01" for e in entries)
+    assert generate_filter(entries, warn_expired=False) == ""
+    result = audit_registry(entries)
+    assert result.ok
+    assert (result.active, result.inactive, result.expired) == (0, 9, [])
 
 
 # ── audit_registry ────────────────────────────────────────────────────────────

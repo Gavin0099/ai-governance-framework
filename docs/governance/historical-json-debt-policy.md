@@ -75,7 +75,11 @@ closed rather than silently dropping the policy.
 
 Git object reads disable replacement objects and remove inherited `GIT_*`
 selectors, so an ambient repository selector or replace ref cannot change the
-OID/baseline being assessed. Executable names, PATH, shell/Python launchers and
+OID/baseline being assessed. Standard global/system protected configuration is
+preserved, including the operator's approved `safe.directory` exceptions for
+shared repositories; no automatic wildcard or new safety approval is added.
+See [Git's protected safe.directory configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory).
+Executable names, PATH, shell/Python launchers and
 repository-local Git config still have ambient trust roots. This patch does not
 claim authenticated executable bindings or protection from a malicious local
 operator. Publication and review remain explicit installation prerequisites.

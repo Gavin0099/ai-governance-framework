@@ -519,8 +519,10 @@ def _git_environment() -> dict[str, str]:
     # Explicit -C must select the repository; ambient Git selectors and object
     # replacement must not supply a different baseline or blob for a debt entry.
     env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
-    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
-               GIT_NO_REPLACE_OBJECTS="1", GIT_TERMINAL_PROMPT="0")
+    # Preserve the operator's standard protected config, including explicit
+    # safe.directory approvals for shared/mounted repositories. Do not invent
+    # an approval, or discard the approval that let the outer push run.
+    env.update(GIT_NO_REPLACE_OBJECTS="1", GIT_TERMINAL_PROMPT="0")
     return env
 
 
