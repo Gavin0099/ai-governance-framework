@@ -591,6 +591,7 @@ def load_historical_json_debt(
     return HistoricalJsonDebt(baseline.lower(), reference.strip(), tuple(blobs))
 
 
+_REMOTE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _LEGACY_REV_LIST_LINE = re.compile(
     rb"^([0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?)(?: (.*))?$", re.DOTALL
 )
@@ -688,7 +689,11 @@ def _verify_legacy_object_ids(
 def _enumerate_json_blob_candidates(
     repository_root: Path,
     updates: Sequence[PrePushUpdate],
+    *,
+    published_remote: str | None = None,
 ) -> dict[str, set[str]]:
+    if published_remote is not None and not _REMOTE_NAME_PATTERN.fullmatch(published_remote):
+        raise PrePushScanError(f"invalid published remote name: {published_remote!r}")
     candidates: dict[str, set[str]] = {}
     for update in updates:
         if _is_zero_oid(update.local_oid):
@@ -706,6 +711,9 @@ def _enumerate_json_blob_candidates(
                     f"{update.remote_oid} ({update.remote_ref}); run git fetch before pushing"
                 )
             revisions.append(f"^{update.remote_oid}")
+        elif published_remote is not None:
+            # A new ref has no old OID; objects already under the target remote's tracking refs are published.
+            revisions.extend(["--not", f"--remotes={published_remote}"])
 
         command_prefix = [
             "git",
@@ -787,10 +795,13 @@ def scan_pre_push_updates(
     expected_repository_identities: Sequence[str],
     entry_threshold: int = DEFAULT_ENTRY_THRESHOLD,
     historical_debt: HistoricalJsonDebt | None = None,
+    published_remote: str | None = None,
 ) -> PrePushScanResult:
     """Assess JSON blobs in the per-ref newly-reachable object union."""
 
-    candidates = _enumerate_json_blob_candidates(repository_root, updates)
+    candidates = _enumerate_json_blob_candidates(
+        repository_root, updates, published_remote=published_remote
+    )
     if historical_debt is not None:
         baseline_type = subprocess.run(
             ["git", "--no-replace-objects", "-C", str(repository_root), "cat-file",
@@ -909,6 +920,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Read pre-push updated-ref pairs from stdin and scan raw Git object bytes.",
     )
+    parser.add_argument(
+        "--published-remote",
+        help="Configured remote being pushed to; its remote-tracking refs are treated as already published for new refs.",
+    )
     parser.add_argument("--entry-threshold", type=int, default=DEFAULT_ENTRY_THRESHOLD)
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
@@ -938,6 +953,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 expected_repository_identities=repository_ids,
                 entry_threshold=args.entry_threshold,
                 historical_debt=debt,
+                published_remote=args.published_remote,
             )
         except PrePushScanError as exc:
             print(f"status: ERROR\nreason: {exc}", file=sys.stderr)

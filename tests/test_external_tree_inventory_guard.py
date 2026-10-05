@@ -664,3 +664,74 @@ def test_legacy_rev_list_path_with_newline_cannot_forge_records(
 
     with pytest.raises(PrePushScanError, match="legacy output is ambiguous"):
         _enumerate_json_blob_candidates(repo, [update])
+
+
+def _scan_new_ref(repo: Path, tip: str, **kwargs):
+    return scan_pre_push_updates(
+        repo,
+        (PrePushUpdate("refs/heads/topic", tip, "refs/heads/topic", ZERO_OID),),
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+        **kwargs,
+    )
+
+
+def _published_unreadable_history(tmp_path: Path) -> tuple[Path, str]:
+    repo = _repository(tmp_path)
+    published = _commit_bytes(repo, "vendor/commented.json", b'{ // note\n"a": 1}\n', "published")
+    _git(repo, "update-ref", "refs/remotes/origin/main", published)
+    return repo, published
+
+
+def test_new_ref_without_published_remote_still_scans_full_history(tmp_path: Path) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "src/new.txt", b"x\n", "new work")
+
+    scan = _scan_new_ref(repo, tip)
+
+    assert scan.assessments[0].result.status == STATUS_UNREADABLE
+
+
+def test_new_ref_excludes_objects_already_on_target_remote(tmp_path: Path) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "src/new.txt", b"x\n", "new work")
+
+    scan = _scan_new_ref(repo, tip, published_remote="origin")
+
+    assert scan.json_blob_count == 0
+
+
+def test_new_ref_still_blocks_unpublished_json_with_published_remote(tmp_path: Path) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "evidence/leak.json", _inventory_bytes(), "add inventory")
+
+    scan = _scan_new_ref(repo, tip, published_remote="origin")
+
+    assert scan.json_blob_count == 1
+    assert scan.assessments[0].result.status == STATUS_BLOCKED
+
+
+def test_other_remotes_tracking_refs_do_not_exclude_objects(tmp_path: Path) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "src/new.txt", b"x\n", "new work")
+
+    scan = _scan_new_ref(repo, tip, published_remote="upstream")
+
+    assert scan.assessments[0].result.status == STATUS_UNREADABLE
+
+
+@pytest.mark.parametrize("name", ["", "--all", "origin*", "a/b", "../x", "https://example.com/r.git"])
+def test_invalid_published_remote_name_fails_closed(tmp_path: Path, name: str) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "src/new.txt", b"x\n", "new work")
+
+    with pytest.raises(PrePushScanError, match="published remote"):
+        _scan_new_ref(repo, tip, published_remote=name)
+
+
+def test_published_remote_cli_option_is_parsed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, _published = _published_unreadable_history(tmp_path)
+    tip = _commit_bytes(repo, "src/new.txt", b"x\n", "new work")
+    monkeypatch.setattr("sys.stdin", io.StringIO(f"refs/heads/topic {tip} refs/heads/topic {ZERO_OID}\n"))
+
+    assert main(["--pre-push-updates", "--repo-root", str(repo),
+                 "--repository-id", EXPECTED_REPOSITORY, "--published-remote", "origin"]) == 0
