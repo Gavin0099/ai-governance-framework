@@ -931,13 +931,17 @@ class CodexCLIAdapter(AgentAdapter):
             # plus our generated shell invocations. A textual mention alone
             # does not give the installer ownership of a custom hook.
             if len(tokens) >= 2 and tokens[0].replace("\\", "/").rsplit("/", 1)[-1] in python_names:
-                if tokens[1].replace("\\", "/").rsplit("/", 1)[-1] == "session_closeout_entry.py":
+                entry = tokens[1].replace("\\", "/")
+                # Keep the exact historical bare command, but a same-named
+                # custom executable elsewhere is not owned by Governance.
+                if (entry.split("/")[-2:] == ["governance_tools", "session_closeout_entry.py"]
+                        or (len(tokens) == 2 and entry == "session_closeout_entry.py")):
                     return True
                 if len(tokens) == 3 and tokens[1] == "-c" and tokens[2].startswith("# governance:claude-closeout-v1\n"):
                     return True
             native_posix = command.startswith('repo_root="$(git rev-parse --show-toplevel)" && ')
             for index in range(2, len(tokens)):
-                if tokens[index].replace("\\", "/").rsplit("/", 1)[-1] != "session_closeout_entry.py":
+                if tokens[index].replace("\\", "/").split("/")[-2:] != ["governance_tools", "session_closeout_entry.py"]:
                     continue
                 if windows_script and tokens[index - 2:index] == ["&", "$python"]:
                     return True

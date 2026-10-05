@@ -162,7 +162,18 @@ def test_duplicate_governance_hooks_repair_to_one_binding(tmp_path, duplicate_is
     "echo session_closeout_entry.py",
     'echo "{entry}"',
     'echo python "{entry}"',
-], ids=["filename-mention", "path-mention", "python-mention"])
+    "python C:/custom-tools/session_closeout_entry.py --custom-purpose",
+    "python session_closeout_entry.py --custom-purpose",
+    "powershell -NoProfile -EncodedCommand " + base64.b64encode(
+        "& $python 'C:/custom-tools/session_closeout_entry.py' --custom-purpose".encode("utf-16-le")
+    ).decode("ascii"),
+    'repo_root="$(git rev-parse --show-toplevel)" && '
+    'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" '
+    'C:/custom-tools/session_closeout_entry.py --custom-purpose; else python3 '
+    'C:/custom-tools/session_closeout_entry.py --custom-purpose; fi',
+], ids=["filename-mention", "path-mention", "python-mention",
+        "custom-executable-path", "custom-executable-relative",
+        "custom-executable-windows", "custom-executable-posix"])
 def test_closeout_text_in_custom_hook_is_preserved(tmp_path, operation, custom_command):
     adapter = CodexCLIAdapter()
     framework = tmp_path / "framework"
