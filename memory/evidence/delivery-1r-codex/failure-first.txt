@@ -1,0 +1,34 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+__ test_closeout_text_in_custom_hook_is_preserved[filename-mention-install] ___
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+___ test_closeout_text_in_custom_hook_is_preserved[filename-mention-repair] ___
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+____ test_closeout_text_in_custom_hook_is_preserved[path-mention-install] _____
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_____ test_closeout_text_in_custom_hook_is_preserved[path-mention-repair] _____
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+___ test_closeout_text_in_custom_hook_is_preserved[python-mention-install] ____
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+____ test_closeout_text_in_custom_hook_is_preserved[python-mention-repair] ____
+tests\test_codex_windows_hook_command.py:178: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+=========================== short test summary info ===========================
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[filename-mention-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[filename-mention-repair]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[path-mention-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[path-mention-repair]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[python-mention-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[python-mention-repair]
+6 failed in 0.68s

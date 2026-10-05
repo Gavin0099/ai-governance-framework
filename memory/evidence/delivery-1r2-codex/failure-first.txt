@@ -1,0 +1,44 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-path-install] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-path-repair] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-relative-install] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-relative-repair] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-windows-install] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-windows-repair] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-posix-install] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+_ test_closeout_text_in_custom_hook_is_preserved[custom-executable-posix-repair] _
+tests\test_codex_windows_hook_command.py:189: in test_closeout_text_in_custom_hook_is_preserved
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+E   assert False is True
+=========================== short test summary info ===========================
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-path-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-path-repair]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-relative-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-relative-repair]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-windows-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-windows-repair]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-posix-install]
+FAILED tests/test_codex_windows_hook_command.py::test_closeout_text_in_custom_hook_is_preserved[custom-executable-posix-repair]
+8 failed, 20 deselected in 0.78s
