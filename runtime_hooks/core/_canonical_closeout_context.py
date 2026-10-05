@@ -79,10 +79,10 @@ def _load_latest_canonical(project_root: Path) -> dict[str, Any] | None:
             if not isinstance(data, dict):
                 return None
             closed_at = data.get("closed_at")
-            if closed_at is not None and not isinstance(closed_at, str):
+            if not isinstance(closed_at, str) or not closed_at:
+                # An unorderable record may be newer than every dated one.
                 return None
-            if closed_at:
-                candidates.append((closed_at, data))
+            candidates.append((closed_at, data))
         except Exception:
             # Without a readable timestamp, an older result cannot be trusted
             # to represent the latest state. Degrade the entire context.

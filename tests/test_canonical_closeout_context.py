@@ -230,13 +230,21 @@ class TestLatestSelection:
         assert result["task_intent"] == "newer task"
         assert result["session_id"] == "new-session"
 
-    def test_ignores_files_with_no_closed_at(self):
-        repo = _reset_fixture("ignores_no_closed_at")
+    @pytest.mark.parametrize("timestamp", ["missing", "null", "empty"])
+    def test_unusable_timestamp_degrades_without_older_fallback_or_writes(self, timestamp):
+        repo = _reset_fixture("unusable_timestamp")
         d = repo / "artifacts" / "runtime" / "closeouts"
         d.mkdir(parents=True)
-        (d / "no-date.json").write_text(json.dumps({"session_id": "x", "closeout_status": "valid"}), encoding="utf-8")
-        _write_closeout(repo, "dated", "valid", closed_at="2026-04-08T00:00:00+00:00", task_intent="the one with a date")
-        assert load_closeout_context(repo)["session_id"] == "dated"
+        damaged = {"session_id": "latest", "closeout_status": "valid", "work_summary": "latest summary"}
+        if timestamp != "missing":
+            damaged["closed_at"] = None if timestamp == "null" else ""
+        (d / "latest.json").write_text(json.dumps(damaged), encoding="utf-8")
+        _write_closeout(repo, "older", "valid", closed_at="2026-04-07T00:00:00+00:00", work_summary="older summary")
+        paths = list(d.glob("*.json"))
+        before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+
+        assert load_closeout_context(repo) == _NO_CONTEXT
+        assert {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths} == before
 
     def test_session_id_and_closed_at_present_in_result(self):
         repo = _reset_fixture("session_id_and_closed_at")
