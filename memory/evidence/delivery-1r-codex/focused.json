@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_codex_windows_hook_command.py -q --tb=short --basetemp memory/evidence/delivery-1r-codex/tmp-focused",
+  "exit_code": 0,
+  "started_at": "2026-10-05T09:52:49Z",
+  "finished_at": "2026-10-05T09:52:53Z",
+  "runner": "codex-delivery-1r",
+  "linked_commit": "e9fb20b39285d6032666b601639b3569b76bc48c",
+  "output_artifacts": [
+    "memory/evidence/delivery-1r-codex/focused.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
