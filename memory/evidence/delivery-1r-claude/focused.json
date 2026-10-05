@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_claude_hook_binding_visibility.py -q --tb=short --basetemp memory/evidence/delivery-1r-claude/tmp-focused",
+  "exit_code": 0,
+  "started_at": "2026-10-05T09:52:49Z",
+  "finished_at": "2026-10-05T09:52:51Z",
+  "runner": "codex-delivery-1r",
+  "linked_commit": "ffd33082b8ba4203cadfd68f4db2072e532bd51b",
+  "output_artifacts": [
+    "memory/evidence/delivery-1r-claude/focused.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
