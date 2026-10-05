@@ -568,3 +568,99 @@ def test_json_named_tree_is_rejected_as_unsupported_object(tmp_path: Path) -> No
 
     with pytest.raises(PrePushScanError, match="unsupported Git object type tree"):
         _scan(repo, old, tip)
+
+
+def _fake_rev_list(
+    monkeypatch: pytest.MonkeyPatch, with_z: bytes, names_free: bytes
+) -> None:
+    original_run = subprocess.run
+
+    def fake_run(command, *args, **kwargs):
+        if "rev-list" in command:
+            stdout = names_free if "--no-object-names" in command else with_z
+            return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(
+        "governance_tools.external_tree_inventory_guard.subprocess.run", fake_run
+    )
+
+
+def _rev_list_fixture(tmp_path: Path) -> tuple[Path, PrePushUpdate, str, str]:
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    tip = _commit_bytes(repo, "data/a.json", b'{"safe": true}\n', "safe")
+    blob = _git(repo, "rev-parse", f"{tip}:data/a.json")
+    return repo, PrePushUpdate("refs/heads/x", tip, "refs/heads/x", old), tip, blob
+
+
+def test_legacy_rev_list_format_without_nul_is_parsed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from governance_tools.external_tree_inventory_guard import (
+        _enumerate_json_blob_candidates,
+    )
+
+    repo, update, tip, blob = _rev_list_fixture(tmp_path)
+    _fake_rev_list(
+        monkeypatch,
+        f"{tip}\n{blob} data/a.json\n".encode(),
+        f"{tip}\n{blob}\n".encode(),
+    )
+
+    assert _enumerate_json_blob_candidates(repo, [update]) == {blob: {"data/a.json"}}
+
+
+def test_nul_path_rev_list_format_is_parsed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from governance_tools.external_tree_inventory_guard import (
+        _enumerate_json_blob_candidates,
+    )
+
+    repo, update, tip, blob = _rev_list_fixture(tmp_path)
+    _fake_rev_list(
+        monkeypatch,
+        f"{tip}\0{blob}\0path=data/a.json\0".encode(),
+        b"",
+    )
+
+    assert _enumerate_json_blob_candidates(repo, [update]) == {blob: {"data/a.json"}}
+
+
+@pytest.mark.parametrize(
+    "with_z",
+    [b"not-an-oid\n", b"zzzz\0", b"path=orphan.json\0", b"\xff\xfe\0"],
+)
+def test_malformed_rev_list_output_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, with_z: bytes
+) -> None:
+    from governance_tools.external_tree_inventory_guard import (
+        _enumerate_json_blob_candidates,
+    )
+
+    repo, update, _tip, _blob = _rev_list_fixture(tmp_path)
+    _fake_rev_list(monkeypatch, with_z, b"")
+
+    with pytest.raises(PrePushScanError, match="git rev-list emitted"):
+        _enumerate_json_blob_candidates(repo, [update])
+
+
+def test_legacy_rev_list_path_with_newline_cannot_forge_records(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from governance_tools.external_tree_inventory_guard import (
+        _enumerate_json_blob_candidates,
+    )
+
+    repo, update, tip, blob = _rev_list_fixture(tmp_path)
+    forged = "f" * 40
+    # A path "x\n<forged-oid> y.json" would otherwise hide the real blob.
+    _fake_rev_list(
+        monkeypatch,
+        f"{tip}\n{blob} x\n{forged} y.json\n".encode(),
+        f"{tip}\n{blob}\n".encode(),
+    )
+
+    with pytest.raises(PrePushScanError, match="legacy output is ambiguous"):
+        _enumerate_json_blob_candidates(repo, [update])

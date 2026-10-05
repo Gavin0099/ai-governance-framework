@@ -591,6 +591,100 @@ def load_historical_json_debt(
     return HistoricalJsonDebt(baseline.lower(), reference.strip(), tuple(blobs))
 
 
+_LEGACY_REV_LIST_LINE = re.compile(
+    rb"^([0-9a-fA-F]{40}(?:[0-9a-fA-F]{24})?)(?: (.*))?$", re.DOTALL
+)
+
+
+def _parse_nul_rev_list(stdout: bytes) -> list[tuple[str, str | None]]:
+    """Parse ``rev-list --objects -z`` from Git versions with ``path=`` records."""
+
+    entries: list[tuple[str, str | None]] = []
+    current_oid: str | None = None
+    for record in stdout.split(b"\0"):
+        if not record:
+            continue
+        if record.startswith(b"path="):
+            if current_oid is None:
+                raise PrePushScanError("git rev-list emitted a path without an object ID")
+            entries.append((current_oid, record[5:].decode("utf-8", errors="surrogateescape")))
+            current_oid = None
+            continue
+
+        try:
+            token = record.decode("ascii", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise PrePushScanError("git rev-list emitted a non-ASCII object ID record") from exc
+        if not _OID_PATTERN.fullmatch(token):
+            raise PrePushScanError("git rev-list emitted an invalid object ID record")
+        current_oid = token.lower()
+    return entries
+
+
+def _parse_legacy_rev_list(stdout: bytes) -> list[tuple[str, str | None]]:
+    """Parse older Git output where ``-z`` is ignored: ``<oid>[ <path>]`` per line."""
+
+    entries: list[tuple[str, str | None]] = []
+    lines = stdout.split(b"\n")
+    if lines and lines[-1] == b"":
+        lines.pop()
+    for line in lines:
+        match = _LEGACY_REV_LIST_LINE.fullmatch(line)
+        if match is None:
+            raise PrePushScanError("git rev-list emitted an invalid object ID record")
+        path = match.group(2)
+        entries.append(
+            (
+                match.group(1).decode("ascii").lower(),
+                None if path is None else path.decode("utf-8", errors="surrogateescape"),
+            )
+        )
+    return entries
+
+
+def _run_rev_list(command: Sequence[str], remote_ref: str) -> bytes:
+    completed = subprocess.run(
+        list(command),
+        env=_git_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise PrePushScanError(
+            f"git rev-list failed for {remote_ref}: {detail or 'no diagnostic'}"
+        )
+    return completed.stdout
+
+
+def _verify_legacy_object_ids(
+    command_prefix: Sequence[str],
+    revisions: Sequence[str],
+    update: PrePushUpdate,
+    parsed: Sequence[tuple[str, str | None]],
+) -> None:
+    # Legacy output is newline-delimited, so a path containing a newline could
+    # forge records. The name-free listing cannot be forged and must match.
+    stdout = _run_rev_list([*command_prefix, "--no-object-names", *revisions], update.remote_ref)
+    lines = stdout.split(b"\n")
+    if lines and lines[-1] == b"":
+        lines.pop()
+    expected: list[str] = []
+    for line in lines:
+        try:
+            token = line.decode("ascii", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise PrePushScanError("git rev-list emitted a non-ASCII object ID record") from exc
+        if not _OID_PATTERN.fullmatch(token):
+            raise PrePushScanError("git rev-list emitted an invalid object ID record")
+        expected.append(token.lower())
+    if expected != [oid for oid, _ in parsed]:
+        raise PrePushScanError(
+            "git rev-list legacy output is ambiguous: object ID sequence mismatch"
+        )
+
+
 def _enumerate_json_blob_candidates(
     repository_root: Path,
     updates: Sequence[PrePushUpdate],
@@ -604,59 +698,33 @@ def _enumerate_json_blob_candidates(
                 f"local object is unavailable: {update.local_oid} ({update.local_ref})"
             )
 
-        command = [
-            "git",
-            "--no-replace-objects",
-            "-C",
-            str(repository_root),
-            "rev-list",
-            "--objects",
-            "-z",
-            update.local_oid,
-        ]
+        revisions = [update.local_oid]
         if not _is_zero_oid(update.remote_oid):
             if not _git_object_exists(repository_root, update.remote_oid):
                 raise PrePushScanError(
                     "remote old object is unavailable locally: "
                     f"{update.remote_oid} ({update.remote_ref}); run git fetch before pushing"
                 )
-            command.append(f"^{update.remote_oid}")
+            revisions.append(f"^{update.remote_oid}")
 
-        completed = subprocess.run(
-            command,
-            env=_git_environment(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        if completed.returncode != 0:
-            detail = completed.stderr.decode("utf-8", errors="replace").strip()
-            raise PrePushScanError(
-                f"git rev-list failed for {update.remote_ref}: {detail or 'no diagnostic'}"
-            )
+        command_prefix = [
+            "git",
+            "--no-replace-objects",
+            "-C",
+            str(repository_root),
+            "rev-list",
+            "--objects",
+        ]
+        stdout = _run_rev_list([*command_prefix, "-z", *revisions], update.remote_ref)
+        if b"\0" in stdout:
+            parsed = _parse_nul_rev_list(stdout)
+        else:
+            parsed = _parse_legacy_rev_list(stdout)
+            _verify_legacy_object_ids(command_prefix, revisions, update, parsed)
 
-        current_oid: str | None = None
-        for record in completed.stdout.split(b"\0"):
-            if not record:
-                continue
-            if record.startswith(b"path="):
-                if current_oid is None:
-                    raise PrePushScanError("git rev-list emitted a path without an object ID")
-                path = record[5:].decode("utf-8", errors="surrogateescape")
-                if path.casefold().endswith(".json"):
-                    candidates.setdefault(current_oid, set()).add(path)
-                current_oid = None
-                continue
-
-            try:
-                token = record.decode("ascii", errors="strict")
-            except UnicodeDecodeError as exc:
-                raise PrePushScanError(
-                    "git rev-list emitted a non-ASCII object ID record"
-                ) from exc
-            if not _OID_PATTERN.fullmatch(token):
-                raise PrePushScanError("git rev-list emitted an invalid object ID record")
-            current_oid = token.lower()
+        for oid, path in parsed:
+            if path is not None and path.casefold().endswith(".json"):
+                candidates.setdefault(oid, set()).add(path)
     return candidates
 
 
