@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import stat
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +23,11 @@ except ImportError:
         is_unbound_commit_token,
         resolve_memory_binding,
     )
+
+try:
+    from governance_tools.memory_janitor import MemoryJanitor
+except ImportError:
+    from memory_janitor import MemoryJanitor  # type: ignore[no-redef]
 
 WRITER_ID = "governance_tools.memory_record"
 RECORD_FORMAT_VERSION = "1.0"
@@ -135,6 +142,34 @@ def validate_plan_reconciliation(value: str | None) -> tuple[str, str | None]:
 
 def _current_local_date() -> str:
     return datetime.now().astimezone().date().isoformat()
+
+
+def _require_non_emergency_memory_write(project_root: Path) -> None:
+    memory_root = project_root / "memory"
+    active_path = memory_root / "01_active_task.md"
+    try:
+        memory_info = memory_root.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(memory_info.st_mode) or not stat.S_ISDIR(memory_info.st_mode):
+        raise ValueError("ordinary memory write refused: memory root must be a real directory")
+    try:
+        active_before = active_path.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(active_before.st_mode) or not stat.S_ISREG(active_before.st_mode):
+        raise ValueError("ordinary memory write refused: active-task source must be a regular file")
+    _, _, status = MemoryJanitor(memory_root).check_hot_memory_status()
+    active_after = active_path.lstat()
+    identity_before = (active_before.st_dev, active_before.st_ino, active_before.st_size, active_before.st_mtime_ns)
+    identity_after = (active_after.st_dev, active_after.st_ino, active_after.st_size, active_after.st_mtime_ns)
+    if identity_before != identity_after:
+        raise ValueError("ordinary memory write refused: active-task source changed during pressure check")
+    if status == "EMERGENCY":
+        raise ValueError(
+            "EMERGENCY pressure blocks ordinary memory writes; use the explicit "
+            "canonical Emergency Event Journal for one append-only daily event"
+        )
 
 
 def build_session_derived_record(
@@ -329,6 +364,7 @@ def append_active_task_supersession_relation_with_outcome(
     this writer independently refuses missing/mismatched endpoints, malformed
     structured lines, and a conflicting relation involving either endpoint.
     """
+    _require_non_emergency_memory_write(project_root)
 
     rendered = render_active_task_supersession_relation(
         predecessor_record_identity=predecessor_record_identity,
@@ -546,6 +582,8 @@ def append_projection_with_outcome(
     active_task_summary: str | None = None,
 ) -> MemoryWriteOutcome:
     """Append to one of the two fixed non-daily memory projection surfaces."""
+    _require_non_emergency_memory_write(project_root)
+
     record = prepare_projection_record(record)
     identity = record["record_identity"]
 
@@ -608,6 +646,7 @@ def append_session_derived_entry_with_outcome(
     project_root: Path,
     record: dict[str, str],
 ) -> MemoryWriteOutcome:
+    _require_non_emergency_memory_write(project_root)
     normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
     if evidence_error is not None:
         raise ValueError(evidence_error)
@@ -778,20 +817,31 @@ def main() -> int:
             "session-derived memory writes."
         ),
     )
+    parser.add_argument(
+        "--emergency-event",
+        action="store_true",
+        help="Append one bounded, append-only Emergency Event Journal entry to daily memory",
+    )
+    parser.add_argument("--emergency-authorization-ref", default=None)
+    parser.add_argument("--emergency-not-done", default=None)
+    parser.add_argument("--emergency-evidence-path", default=None)
     args = parser.parse_args()
 
     surfaces = list(dict.fromkeys(args.surface or [SURFACE_DAILY]))
-    if SURFACE_ACTIVE_TASK_SUMMARY in surfaces:
-        try:
-            _validate_active_task_summary(args.active_task_summary)
-        except ValueError as exc:
-            print(f"[memory_record] error: {exc}")
+    emergency_values = (
+        args.emergency_authorization_ref,
+        args.emergency_not_done,
+        args.emergency_evidence_path,
+    )
+    if args.emergency_event:
+        if surfaces != [SURFACE_DAILY]:
+            print("[memory_record] error: Emergency Event Journal only supports the daily surface")
             return 2
-    elif args.active_task_summary is not None:
-        print(
-            "[memory_record] error: --active-task-summary requires "
-            "--surface active-task-summary"
-        )
+        if any(value is None for value in emergency_values):
+            print("[memory_record] error: Emergency Event Journal requires authorization, not-done, and evidence fields")
+            return 2
+    elif any(value is not None for value in emergency_values):
+        print("[memory_record] error: emergency fields require --emergency-event")
         return 2
 
     plan_reconciliation, plan_error = validate_plan_reconciliation(args.plan_reconciliation)
@@ -860,6 +910,27 @@ def main() -> int:
         next_step=args.next_step,
         plan_reconciliation=plan_reconciliation,
     )
+    if args.emergency_event:
+        try:
+            from memory_emergency_event import append_emergency_event_with_outcome
+        except ImportError:
+            from memory_emergency_event import append_emergency_event_with_outcome  # type: ignore[no-redef]
+        try:
+            outcome = append_emergency_event_with_outcome(
+                project_root=project_root,
+                record=record,
+                authorization_ref=args.emergency_authorization_ref,
+                not_done=args.emergency_not_done,
+                evidence_path=args.emergency_evidence_path,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"[memory_record] error: Emergency Event Journal refused: {exc}")
+            return 2
+        print(
+            f"[memory_record] Emergency event written: {outcome.path} "
+            f"(record identity={outcome.record_identity}; pressure remains EMERGENCY)"
+        )
+        return 0
     if any(surface != SURFACE_DAILY for surface in surfaces):
         projection_record = dict(record)
         projection_record.pop("record_identity", None)
@@ -869,23 +940,27 @@ def main() -> int:
             print(f"[memory_record] error: {exc}")
             return 2
     outcomes: list[MemoryWriteOutcome] = []
-    for surface in surfaces:
-        if surface == SURFACE_DAILY:
-            outcomes.append(
-                append_session_derived_entry_with_outcome(
-                    project_root=project_root,
-                    record=record,
+    try:
+        for surface in surfaces:
+            if surface == SURFACE_DAILY:
+                outcomes.append(
+                    append_session_derived_entry_with_outcome(
+                        project_root=project_root,
+                        record=record,
+                    )
                 )
-            )
-        else:
-            outcomes.append(
-                append_projection_with_outcome(
-                    project_root=project_root,
-                    record=record,
-                    surface=surface,
-                    active_task_summary=args.active_task_summary,
+            else:
+                outcomes.append(
+                    append_projection_with_outcome(
+                        project_root=project_root,
+                        record=record,
+                        surface=surface,
+                        active_task_summary=args.active_task_summary,
+                    )
                 )
-            )
+    except (OSError, ValueError) as exc:
+        print(f"[memory_record] error: memory write refused: {exc}")
+        return 2
     for outcome in outcomes:
         status_label = (
             "Written"

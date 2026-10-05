@@ -71,6 +71,8 @@ Before resuming work dependent on active-task memory, obtain separate authorizat
 and a verified archive + replacement-state cutover, then remeasure pressure.
 Do not use the old automatic cleanup path that has already failed closed.
 
+The sole memory-write exception is a separately owner-authorized Emergency Event Journal append through `governance_tools.memory_record --emergency-event`. It may append one bounded session-derived event to the canonical daily file only, with an existing `artifacts/evidence/` file hash and current authorization reference. It must not change `01_active_task.md`, projections, archives, PLAN, or pressure; it does not resume work dependent on active-task memory, authorize cleanup/cutover, or grant commit/push authority. All ordinary writers remain blocked at EMERGENCY, and any failed validation must refuse the event.
+
 The bounded-maintenance prerequisites above are stated locally so they can be read
 without the full framework. This does not reconcile the Starter Pack's
 pressure-classification table with the full framework. The full-framework reference,

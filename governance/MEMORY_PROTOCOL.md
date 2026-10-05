@@ -133,6 +133,26 @@ Violation code: `non_canonical_writer` warning in `memory_authority_guard`.
 Historical violations before the cutoff are not to be backfilled unless a
 separate scoped cleanup is approved.
 
+### Emergency Event Journal exception
+
+`SYSTEM_PROMPT.md` §7.4 authorizes one narrowly bounded canonical daily event append during measured EMERGENCY pressure, but does not authorize ordinary memory writes or active-state recovery. The only entry point is:
+
+```text
+python -m governance_tools.memory_record \
+  --emergency-event \
+  --emergency-authorization-ref <current-owner-authorization-reference> \
+  --emergency-not-done "<unfinished outcome>" \
+  --emergency-evidence-path artifacts/evidence/<existing-file> \
+  --what-changed "<event>" --next-step "<next action>" \
+  --commit <local-commit-or-UNCOMMITTED> --session-id <session-id> \
+  --test-evidence "NOT CLAIMED: emergency event capture only" \
+  --plan-reconciliation not_applicable --project-root .
+```
+
+The writer remeasures EMERGENCY at call time and fails closed unless the active source is a stable regular file, the evidence target is a stable non-symlink regular file under `artifacts/evidence/`, the evidence is at most 10 MiB, all required fields are single-line and bounded, and no event already exists for the same active-source SHA-256. It appends only to the canonical daily file, under a same-directory lock, with a 4 KiB event limit. The event binds the active-source hash/pressure counts, UTC timestamp, authorization reference, evidence path/hash, unresolved/not-done state, and standard record identity. It does not write `01_active_task.md`, projections, archives, PLAN, or arbitrary paths; it does not clean memory, alter pressure, authorize further work, or establish semantic truth. Unsupported locking/platform or any failed validation refuses the write.
+
+After a successful Emergency Event Journal append, run `memory_workflow --check --repo . --run-guard` and report warnings/blockers. This exception does not authorize a cutover, replacement candidate, pressure reduction, commit, or push. Active-state recovery remains separately governed and requires its own approved design and cutover authorization.
+
 ## Memory Workflow Dispatch Rule
 
 Repo memory tasks are governed operations, not normal markdown edits.

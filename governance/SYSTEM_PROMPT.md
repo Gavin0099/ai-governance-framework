@@ -295,7 +295,7 @@ Agent 輸出應以 **繁體中文** 為主；只有 source code 或必要 techni
 ### 4.3 Red Lines
 
 以下任一條件成立 -> **STOP**：
-- 有 implicit tech debt 卻沒有 removal condition
+- 有 implicit tech debt 卩沒有 removal condition
 - logic leakage（`Domain` 直接碰 OS / I/O / UI / Time）
 - intent 模糊
 - governance document 間有衝突
@@ -418,11 +418,17 @@ EMERGENCY 保護 context 品質與安全的 task continuation，不是所有 rep
 - 操作目標、mutation scope 與驗收條件已事先固定，且依據可追溯至當前授權與獨立證據。
 - 不依賴高壓 active-task memory 推導操作；必要狀態已獨立核對。
 - 本次操作不需要新的產品／硬體決策；即使決策依據來自其他資訊，仍須 STOP，不適用此例外。
-- 不修改 memory，也不以完整 memory writer／closeout round-trip 作為本次操作的必要步驟。
+- 不修改 memory，也不以完整 memory writer／closeout round-trip 作為 bounded maintenance 的必要步驟。
 - authorization、dirty-state、target／identity、validation guards 全部保持有效；不得以 pressure 例外略過任何 guard。
 - 任一條件未知、失效或需要擴張範圍時，停止該操作並回報，不自行新增例外。
 
-這項判斷不降低 pressure 分級，不宣稱 memory 健康，也不授權 cleanup。
+### Emergency Event Journal exception
+
+本例外是明確、有限的 policy exception，不屬於 bounded maintenance，也不降低 EMERGENCY pressure。只有當前 owner 對該事件明確授權時，才可使用 canonical `governance_tools.memory_record --emergency-event` 追加一筆 `memory/YYYY-MM-DD.md` session-derived event。Writer 必須在寫入時重新量測 pressure 為 EMERGENCY，記錄 active-task source SHA-256、行數與字元數、時間、授權引用、未完成事項，以及 repo 內既有 `artifacts/evidence/` regular file 的路徑與 SHA-256；event 不得超過 4 KiB，且每個 active-task source digest 至多一筆。
+
+本例外只允許 append 到 daily event record。不得改寫 `memory/01_active_task.md`、active-task-summary、review log、archive、PLAN 或其他任意路徑；不得 cleanup、壓縮、替換 active state、降低 pressure、宣稱 active-state recovery 完成，或取得 commit/push 權限。成功追加後仍須顯示 EMERGENCY 並執行 memory workflow guard。任何 identity、evidence、quota、size、authorization 或 filesystem check 失敗，都必須 fail closed、不寫入。若需要新的產品／硬體決策，仍須 STOP，不得用本例外記錄並繼續該決策。
+
+這項判斷不降低 pressure，不宣稱 memory 健康，也不授權 cleanup。
 恢復依賴 active-task memory 的工作前，仍須另行授權並驗證 archive + replacement-state cutover，
 重新量測 pressure；不得直接使用已 fail-closed 的舊自動 cleanup 路徑。
 

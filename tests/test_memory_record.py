@@ -22,6 +22,10 @@ from governance_tools.memory_record import (
     daily_memory_contains_record_identity,
     validate_test_evidence,
 )
+from governance_tools.memory_janitor import MemoryJanitor
+
+# Make governance_tools importable without installation
+import governance_tools
 
 
 def test_build_session_derived_record_includes_canonical_fields() -> None:
@@ -83,6 +87,30 @@ def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> N
     assert f"record_identity: {record['record_identity']}" in text
 
 
+def test_normal_daily_writer_refuses_during_emergency_pressure(tmp_path: Path) -> None:
+    active_task = tmp_path / "memory" / "01_active_task.md"
+    active_task.parent.mkdir(parents=True)
+    active_task.write_text("x" * 12_000, encoding="utf-8")
+    record = build_session_derived_record(
+        what_changed="ordinary daily write",
+        commit="UNCOMMITTED",
+        session_id="session-emergency-refusal",
+        memory_binding="unbound",
+        test_evidence="NOT CLAIMED: emergency refusal test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="EMERGENCY.*Event Journal"):
+        append_session_derived_entry_with_outcome(
+            project_root=tmp_path,
+            record=record,
+        )
+
+    assert not (active_task.parent / "2026-10-01.md").exists()
+    assert active_task.read_text(encoding="utf-8") == "x" * 12_000
+
+
 def test_outcome_distinguishes_written_from_already_present(tmp_path: Path) -> None:
     record_a = build_session_derived_record(
         what_changed="changed (session=session-a)",
@@ -138,6 +166,30 @@ def test_append_session_derived_entry_rejects_handcrafted_blank_evidence(tmp_pat
     with pytest.raises(ValueError, match="test_evidence must be non-empty"):
         append_session_derived_entry(project_root=tmp_path, record=record)
     assert not (tmp_path / "memory").exists()
+
+
+def test_normal_writer_rejects_symlinked_active_task_source(tmp_path: Path) -> None:
+    memory = tmp_path / "memory"
+    memory.mkdir()
+    outside = tmp_path / "active-source.md"
+    outside.write_text("x" * 12_000, encoding="utf-8")
+    active = memory / "01_active_task.md"
+    active.symlink_to(outside)
+    record = build_session_derived_record(
+        what_changed="ordinary write",
+        commit="UNCOMMITTED",
+        session_id="session-symlink-pressure",
+        memory_binding="unbound",
+        test_evidence="NOT CLAIMED: symlink pressure test",
+        next_step="none",
+        plan_reconciliation="not_applicable",
+    )
+
+    with pytest.raises(ValueError, match="active-task source must be a regular file"):
+        append_session_derived_entry_with_outcome(project_root=tmp_path, record=record)
+
+    assert not list(memory.glob("[0-9][0-9][0-9][0-9]-??-??.md"))
+    assert outside.read_text(encoding="utf-8") == "x" * 12_000
 
 
 def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
@@ -826,3 +878,75 @@ def test_cli_success_evidence_with_receipt_has_no_advisory(tmp_path: Path) -> No
     )
     assert result.returncode == 0
     assert "test_evidence_provenance_not_found" not in result.stdout
+
+
+def test_cli_emergency_event_journal_is_explicit_and_daily_only(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    active = tmp_path / "memory" / "01_active_task.md"
+    active.parent.mkdir(exist_ok=True)
+    active.write_text("x" * 12_000, encoding="utf-8")
+    active_before = active.read_bytes()
+    evidence = tmp_path / "artifacts" / "evidence" / "l2-attempt.md"
+    evidence.parent.mkdir(parents=True)
+    evidence.write_text("L2 attempt result; install rc=3, update success not established.\n", encoding="utf-8")
+
+    command = [
+        sys.executable,
+        "governance_tools/memory_record.py",
+        "--what-changed", "record the failed L2 attempt",
+        "--next-step", "do not repeat a firmware write without renewed authorization",
+        "--commit", head,
+        "--session-id", "test-emergency-event",
+        "--test-evidence", "NOT CLAIMED: event capture only",
+        "--plan-reconciliation", "not_applicable",
+        "--project-root", str(tmp_path),
+        "--emergency-event",
+        "--emergency-authorization-ref", "owner instruction test fixture",
+        "--emergency-not-done", "L2 update success is not established",
+        "--emergency-evidence-path", "artifacts/evidence/l2-attempt.md",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    daily_files = list((tmp_path / "memory").glob("[0-9][0-9][0-9][0-9]-??-??.md"))
+    assert len(daily_files) == 1
+    daily_text = daily_files[0].read_text(encoding="utf-8")
+    assert "emergency_event_marker: EMERGENCY_EVENT" in daily_text
+    assert "emergency_event_authorization_ref: owner instruction test fixture" in daily_text
+    assert "emergency_evidence_path: artifacts/evidence/l2-attempt.md" in daily_text
+    assert active.read_bytes() == active_before
+    assert MemoryJanitor(tmp_path / "memory").check_hot_memory_status()[2] == "EMERGENCY"
+
+    rejected = subprocess.run(
+        command + ["--surface", "active-task-summary", "--active-task-summary", "must not write"],
+        capture_output=True,
+        text=True,
+    )
+    assert rejected.returncode == 2
+    assert "only supports the daily surface" in rejected.stdout
+    assert active.read_bytes() == active_before
+
+
+def test_cli_ordinary_writer_refuses_during_emergency(tmp_path: Path) -> None:
+    head = _init_git_repo(tmp_path)
+    active = tmp_path / "memory" / "01_active_task.md"
+    active.parent.mkdir(exist_ok=True)
+    active.write_text("x" * 12_000, encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "ordinary write must be blocked",
+            "--next-step", "none",
+            "--commit", head,
+            "--session-id", "test-emergency-normal-deny",
+            "--test-evidence", "NOT CLAIMED: emergency deny test",
+            "--plan-reconciliation", "not_applicable",
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "EMERGENCY pressure blocks ordinary memory writes" in result.stdout
+    assert not list((tmp_path / "memory").glob("[0-9][0-9][0-9][0-9]-??-??.md"))
+    assert active.read_text(encoding="utf-8") == "x" * 12_000

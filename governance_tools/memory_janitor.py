@@ -43,8 +43,10 @@ class MemoryJanitor:
         "停止依賴或擴張 active-task memory 的工作；停止增加 active memory。"
         "僅當以下條件全部成立：事先固定目標、mutation scope、驗收條件，"
         "且依據可追溯至當前授權與獨立證據；"
-        "不依賴高壓 active-task memory 推導操作，必要狀態已獨立核對；不修改 memory、"
-        "不需要 memory writer／closeout round-trip，且本次操作不需要新的產品／硬體決策，"
+        "不依賴高壓 active-task memory 推導操作，必要狀態已獨立核對；"
+        "bounded maintenance 不修改 memory、不需要 memory writer／closeout round-trip，"
+        "Emergency Event Journal 僅在 §7.4 明確條件下允許一筆 append-only daily event，"
+        "且不修改 active state、不降低 pressure、不授權後續操作；本次操作不需要新的產品／硬體決策，"
         "並保留 authorization／dirty／identity／validation guards（含 target／identity），不得略過任何 guard 時，"
         "已授權的 bounded maintenance 才可繼續。"
         "若仍需新的產品／硬體決策，即使依據來自其他資訊，仍須 STOP，不適用此例外。"
@@ -58,8 +60,9 @@ class MemoryJanitor:
 
     UNSAFE_CLEANUP_MESSAGE = (
         "自動掃除已 fail closed：目前路徑無法證明 verified archive 與 "
-        "replacement-state cutover，active memory 未修改。請另行授權並驗證 "
-        "archive + replacement-state cutover；不要重試舊的 --clean 或 --execute。"
+        "replacement-state cutover，active memory 未修改。Emergency Event Journal "
+        "只可依 §7.4 追加一筆 daily event，不會降低 pressure 或授權 cutover。"
+        "請勿重試舊的 --clean 或 --execute。"
     )
     
     def __init__(self, memory_root: Path):
