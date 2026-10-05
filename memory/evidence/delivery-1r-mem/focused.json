@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_canonical_closeout_context.py -q --tb=short --basetemp memory/evidence/delivery-1r-mem/tmp-focused",
+  "exit_code": 0,
+  "started_at": "2026-10-05T09:52:49Z",
+  "finished_at": "2026-10-05T09:52:50Z",
+  "runner": "codex-delivery-1r",
+  "linked_commit": "fa2b12ef8df19da05d01d1ce7fc5f55073367d87",
+  "output_artifacts": [
+    "memory/evidence/delivery-1r-mem/focused.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

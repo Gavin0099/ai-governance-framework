@@ -1,0 +1,46 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ TestLatestSelection.test_unusable_timestamp_degrades_without_older_fallback_or_writes[missing] _
+tests\test_canonical_closeout_context.py:246: in test_unusable_timestamp_degrades_without_older_fallback_or_writes
+    assert load_closeout_context(repo) == _NO_CONTEXT
+E   AssertionError: assert {'closed_at':...t': True, ...} == {'closed_at':...': False, ...}
+E     
+E     Omitting 3 identical items, use -vv to show
+E     Differing items:
+E     {'closeout_status': 'valid'} != {'closeout_status': None}
+E     {'closed_at': '2026-04-07T00:00:00+00:00'} != {'closed_at': None}
+E     {'session_id': 'older'} != {'session_id': None}
+E     {'inject': True} != {'inject': False}...
+E     
+E     ...Full output truncated (3 lines hidden), use '-vv' to show
+_ TestLatestSelection.test_unusable_timestamp_degrades_without_older_fallback_or_writes[null] _
+tests\test_canonical_closeout_context.py:246: in test_unusable_timestamp_degrades_without_older_fallback_or_writes
+    assert load_closeout_context(repo) == _NO_CONTEXT
+E   AssertionError: assert {'closed_at':...t': True, ...} == {'closed_at':...': False, ...}
+E     
+E     Omitting 3 identical items, use -vv to show
+E     Differing items:
+E     {'closeout_status': 'valid'} != {'closeout_status': None}
+E     {'closed_at': '2026-04-07T00:00:00+00:00'} != {'closed_at': None}
+E     {'session_id': 'older'} != {'session_id': None}
+E     {'inject': True} != {'inject': False}...
+E     
+E     ...Full output truncated (3 lines hidden), use '-vv' to show
+_ TestLatestSelection.test_unusable_timestamp_degrades_without_older_fallback_or_writes[empty] _
+tests\test_canonical_closeout_context.py:246: in test_unusable_timestamp_degrades_without_older_fallback_or_writes
+    assert load_closeout_context(repo) == _NO_CONTEXT
+E   AssertionError: assert {'closed_at':...t': True, ...} == {'closed_at':...': False, ...}
+E     
+E     Omitting 3 identical items, use -vv to show
+E     Differing items:
+E     {'closeout_status': 'valid'} != {'closeout_status': None}
+E     {'closed_at': '2026-04-07T00:00:00+00:00'} != {'closed_at': None}
+E     {'session_id': 'older'} != {'session_id': None}
+E     {'inject': True} != {'inject': False}...
+E     
+E     ...Full output truncated (3 lines hidden), use '-vv' to show
+=========================== short test summary info ===========================
+FAILED tests/test_canonical_closeout_context.py::TestLatestSelection::test_unusable_timestamp_degrades_without_older_fallback_or_writes[missing]
+FAILED tests/test_canonical_closeout_context.py::TestLatestSelection::test_unusable_timestamp_degrades_without_older_fallback_or_writes[null]
+FAILED tests/test_canonical_closeout_context.py::TestLatestSelection::test_unusable_timestamp_degrades_without_older_fallback_or_writes[empty]
+3 failed in 0.42s
