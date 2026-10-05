@@ -1,0 +1,47 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_________ test_settings_parser_recursion_error_blocked_without_writes _________
+tests\test_claude_hook_binding_visibility.py:135: in test_settings_parser_recursion_error_blocked_without_writes
+    result = adapter.install(tmp_path, tmp_path / "framework")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+governance_tools\manage_agent_closeout.py:373: in install
+    data = self._read_settings_for_install(settings_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+governance_tools\manage_agent_closeout.py:356: in _read_settings_for_install
+    data = json.loads(content)
+           ^^^^^^^^^^^^^^^^^^^
+tests\test_claude_hook_binding_visibility.py:131: in parser_failure
+    raise RecursionError("settings nesting exceeds parser limit")
+E   RecursionError: settings nesting exceeds parser limit
+______ test_deep_settings_cli_returns_structured_failure_without_writes _______
+tests\test_claude_hook_binding_visibility.py:157: in test_deep_settings_cli_returns_structured_failure_without_writes
+    assert result.stdout, result.stderr
+E   AssertionError: Traceback (most recent call last):
+E       File "<frozen runpy>", line 198, in _run_module_as_main
+E       File "<frozen runpy>", line 88, in _run_code
+E       File "C:\Users\reiko\.codex\worktrees\claude-cfg-1-delivery\ai-governance-framework\governance_tools\manage_agent_closeout.py", line 1385, in <module>
+E         raise SystemExit(main())
+E                          ~~~~^^
+E       File "C:\Users\reiko\.codex\worktrees\claude-cfg-1-delivery\ai-governance-framework\governance_tools\manage_agent_closeout.py", line 1353, in main
+E         r = adapter.install(project_root, framework_root)
+E       File "C:\Users\reiko\.codex\worktrees\claude-cfg-1-delivery\ai-governance-framework\governance_tools\manage_agent_closeout.py", line 373, in install
+E         data = self._read_settings_for_install(settings_path)
+E       File "C:\Users\reiko\.codex\worktrees\claude-cfg-1-delivery\ai-governance-framework\governance_tools\manage_agent_closeout.py", line 356, in _read_settings_for_install
+E         data = json.loads(content)
+E       File "C:\Users\reiko\AppData\Local\Programs\Python\Python313\Lib\json\__init__.py", line 346, in loads
+E         return _default_decoder.decode(s)
+E                ~~~~~~~~~~~~~~~~~~~~~~~^^^
+E       File "C:\Users\reiko\AppData\Local\Programs\Python\Python313\Lib\json\decoder.py", line 345, in decode
+E         obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+E                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+E       File "C:\Users\reiko\AppData\Local\Programs\Python\Python313\Lib\json\decoder.py", line 361, in raw_decode
+E         obj, end = self.scan_once(s, idx)
+E                    ~~~~~~~~~~~~~~^^^^^^^^
+E     RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+E     
+E   assert ''
+E    +  where '' = CompletedProcess(args=['C:\\Users\\reiko\\AppData\\Local\\Programs\\Python\\Python313\\python.exe', '-B', '-m', 'gover...~~~~~~~^^^^^^^^\nRecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string\n').stdout
+=========================== short test summary info ===========================
+FAILED tests/test_claude_hook_binding_visibility.py::test_settings_parser_recursion_error_blocked_without_writes
+FAILED tests/test_claude_hook_binding_visibility.py::test_deep_settings_cli_returns_structured_failure_without_writes
+2 failed in 0.58s

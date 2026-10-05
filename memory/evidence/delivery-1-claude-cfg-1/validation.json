@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_claude_hook_binding_visibility.py tests/test_agent_closeout_results.py tests/test_agent_closeout_receipt.py tests/test_codex_windows_hook_command.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-05T08:44:54Z",
+  "finished_at": "2026-10-05T08:45:27Z",
+  "runner": "codex-delivery-1",
+  "linked_commit": "c480934721545c371920c8d61f7a0ee5f5131287",
+  "output_artifacts": [
+    "memory/evidence/delivery-1-claude-cfg-1/validation.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

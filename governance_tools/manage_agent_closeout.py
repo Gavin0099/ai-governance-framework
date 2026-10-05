@@ -346,12 +346,38 @@ class ClaudeAdapter(AgentAdapter):
         state, location = self._binding_state(project_root, framework_root)
         return state == "CORRECTLY_INSTALLED", location
 
+    @staticmethod
+    def _read_settings_for_install(path: Path) -> dict[str, Any]:
+        """Read the settings to be rewritten without treating errors as empty data."""
+        try:
+            content = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return {}
+        data = json.loads(content)
+        if not isinstance(data, dict):
+            raise ValueError("settings must contain a JSON object")
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("settings hooks must be an object")
+        groups = hooks.get("Stop", [])
+        if not isinstance(groups, list):
+            raise ValueError("settings hooks.Stop must be a list")
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
+                raise ValueError("settings Stop groups must be objects with hook lists")
+        return data
+
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        settings_path = project_root / ".claude/settings.json"
+        try:
+            data = self._read_settings_for_install(settings_path)
+        except (OSError, ValueError, RecursionError) as exc:
+            return {"status": "blocked", "location": str(settings_path),
+                    "message": f"Unable to safely read Claude settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
         if state == "CORRECTLY_INSTALLED":
             return {"status": "already_installed", "location": loc,
                     "message": "Governance Stop hook matches the requested binding."}
-        settings_path = project_root / ".claude/settings.json"
         for path in (project_root / ".claude/settings.local.json",
                      Path.home() / ".claude/settings.json"):
             for group in _read_json(path).get("hooks", {}).get("Stop", []):
@@ -359,10 +385,9 @@ class ClaudeAdapter(AgentAdapter):
                                                   for h in group.get("hooks", [])):
                     return {"status": "blocked", "location": str(path),
                             "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
-        data = _read_json(settings_path)
         groups = data.setdefault("hooks", {}).setdefault("Stop", [])
         for group in groups:
-            if isinstance(group, dict):
+            if "hooks" in group:
                 group["hooks"] = [h for h in group.get("hooks", [])
                                   if not self._is_governance_hook(h)]
         groups.append({"hooks": [{"type": "command",
