@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_canonical_closeout_context.py -q --tb=short --basetemp memory/evidence/delivery-1r-mem/tmp-validation",
+  "exit_code": 0,
+  "started_at": "2026-10-05T09:58:21Z",
+  "finished_at": "2026-10-05T09:58:22Z",
+  "runner": "codex-delivery-1r",
+  "linked_commit": "d29c9b20a135575f9298fa9dbe684644e0dacd09",
+  "output_artifacts": [
+    "memory/evidence/delivery-1r-mem/validation.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
