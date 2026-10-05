@@ -107,6 +107,11 @@ HISTORICAL_JSON_DEBT_POLICY="$HOOK_DIR/external-tree-json-debt.json"
 if [ -e "$HISTORICAL_JSON_DEBT_POLICY" ] || [ -L "$HISTORICAL_JSON_DEBT_POLICY" ]; then
     EXTERNAL_TREE_GUARD_ARGS+=(--historical-json-debt-policy "$HISTORICAL_JSON_DEBT_POLICY")
 fi
+# Git passes the remote name as $1; a bare URL is not a configured remote and gets a full scan.
+PUSH_REMOTE_NAME="${1:-}"
+if [ -n "$PUSH_REMOTE_NAME" ] && git -C "$TARGET_REPO_ROOT" remote get-url -- "$PUSH_REMOTE_NAME" >/dev/null 2>&1; then
+    EXTERNAL_TREE_GUARD_ARGS+=(--published-remote "$PUSH_REMOTE_NAME")
+fi
 set +e
 "${PYTHON_CMD[@]}" "$EXTERNAL_TREE_GUARD" "${EXTERNAL_TREE_GUARD_ARGS[@]}"
 EXTERNAL_TREE_GUARD_STATUS=$?
