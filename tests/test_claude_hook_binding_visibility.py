@@ -23,6 +23,103 @@ def write_hook(repo, command, name="settings.json"):
     return path
 
 
+def test_missing_settings_creates_governance_stop_hook(adapter, tmp_path):
+    path = tmp_path / ".claude/settings.json"
+    framework = tmp_path / "framework"
+    assert not path.exists()
+
+    assert adapter.install(tmp_path, framework)["status"] == "installed"
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    hooks = [hook for group in data["hooks"]["Stop"] for hook in group["hooks"]]
+    assert len(hooks) == 1
+    assert hooks[0]["command"] == adapter._command(tmp_path, framework)
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+
+
+@pytest.mark.parametrize("original", [
+    pytest.param({"permissions": {"allow": ["Read"], "deny": ["Bash(private)"]}},
+                 id="permissions"),
+    pytest.param({"hooks": {
+        "Stop": [{"matcher": "", "custom_group_key": {"keep": True}, "hooks": [
+            {"type": "command", "command": "echo custom-stop", "timeout": 17},
+        ]}],
+        "PreToolUse": [{"hooks": [{"type": "command", "command": "echo custom-pre"}]}],
+    }}, id="custom_hooks"),
+    pytest.param({"unknown_key": {"nested": [False, None, {"keep": "unchanged"}]},
+                  "env": {"CUSTOM_SETTING": "preserved"}}, id="unknown_top_level"),
+])
+def test_valid_utf8_settings_preserved_and_install_idempotent(adapter, tmp_path, original):
+    path = tmp_path / ".claude/settings.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps(original), encoding="utf-8")
+    framework = tmp_path / "framework"
+
+    assert adapter.install(tmp_path, framework)["status"] == "installed"
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for key, value in original.items():
+        if key != "hooks":
+            assert data[key] == value
+    for event, groups in original.get("hooks", {}).items():
+        if event == "Stop":
+            assert data["hooks"][event][:-1] == groups
+        else:
+            assert data["hooks"][event] == groups
+    governance_hooks = [hook for group in data["hooks"]["Stop"] for hook in group["hooks"]
+                        if adapter._is_governance_hook(hook)]
+    assert len(governance_hooks) == 1
+    assert governance_hooks[0]["command"] == adapter._command(tmp_path, framework)
+    before_retry = path.read_bytes()
+    assert adapter.install(tmp_path, framework)["status"] == "already_installed"
+    assert path.read_bytes() == before_retry
+
+
+@pytest.mark.parametrize("payload", [
+    pytest.param(b'\xef\xbb\xbf{"permissions":{"deny":["Bash(private)"]}}', id="utf8_bom"),
+    pytest.param(b'{"permissions":{"deny":["Bash(private)"]}', id="malformed_json"),
+    pytest.param(b'{"unknown_key":"\xff"}', id="invalid_utf8"),
+    pytest.param(b'[]', id="non_object_settings"),
+    pytest.param(b'{"hooks":[]}', id="non_object_hooks"),
+    pytest.param(b'{"hooks":{"Stop":{}}}', id="non_list_stop"),
+    pytest.param(b'{"hooks":{"Stop":[null]}}', id="non_object_stop_group"),
+    pytest.param(b'{"hooks":{"Stop":[{"hooks":{}}]}}', id="non_list_group_hooks"),
+])
+def test_invalid_existing_settings_blocked_without_writes(adapter, tmp_path, payload):
+    path = tmp_path / ".claude/settings.json"
+    path.parent.mkdir()
+    path.write_bytes(payload)
+
+    result = adapter.install(tmp_path, tmp_path / "framework")
+
+    assert (result["status"], path.read_bytes()) == ("blocked", payload)
+    assert result["location"] == str(path)
+    assert "settings" in result["message"].lower()
+    assert "not modified" in result["message"].lower()
+    assert list(path.parent.iterdir()) == [path]
+
+
+def test_settings_read_error_blocked_without_writes(adapter, tmp_path, monkeypatch):
+    path = tmp_path / ".claude/settings.json"
+    path.parent.mkdir()
+    original = b'{"permissions":{"deny":["Bash(private)"]}}'
+    path.write_bytes(original)
+    read_text = Path.read_text
+
+    def fail_target_read(candidate, *args, **kwargs):
+        if candidate == path:
+            raise PermissionError("settings read denied")
+        return read_text(candidate, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", fail_target_read)
+    result = adapter.install(tmp_path, tmp_path / "framework")
+
+    assert result["status"] == "blocked"
+    assert "settings read denied" in result["message"]
+    assert path.read_bytes() == original
+    assert list(path.parent.iterdir()) == [path]
+
+
 def test_correct_binding_is_idempotent(adapter, tmp_path):
     assert adapter.install(tmp_path, tmp_path / "fw")["status"] == "installed"
     path = tmp_path / ".claude/settings.json"
