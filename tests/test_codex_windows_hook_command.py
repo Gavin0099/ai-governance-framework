@@ -157,6 +157,41 @@ def test_duplicate_governance_hooks_repair_to_one_binding(tmp_path, duplicate_is
     assert path.read_bytes() == before_retry
 
 
+@pytest.mark.parametrize("operation", ["install", "repair"])
+@pytest.mark.parametrize("custom_command", [
+    "echo session_closeout_entry.py",
+    'echo "{entry}"',
+    'echo python "{entry}"',
+], ids=["filename-mention", "path-mention", "python-mention"])
+def test_closeout_text_in_custom_hook_is_preserved(tmp_path, operation, custom_command):
+    adapter = CodexCLIAdapter()
+    framework = tmp_path / "framework"
+    entry = (framework / "governance_tools/session_closeout_entry.py").as_posix()
+    custom = {"type": "command", "command": custom_command.format(entry=entry), "timeout": 7}
+    current = adapter._hook_payload(framework)
+    path = tmp_path / ".codex/hooks.json"
+    path.parent.mkdir()
+    data = {"hooks": {"Stop": [{"hooks": [current, custom]}]}}
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    before = path.read_bytes()
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+    expected = "already_installed" if operation == "install" else "no_repair_needed"
+    assert getattr(adapter, operation)(tmp_path, framework)["status"] == expected
+    assert path.read_bytes() == before
+
+    data["hooks"]["Stop"][0]["hooks"][0] = adapter._hook_payload(tmp_path / "old-framework")
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert adapter.verify(tmp_path, framework)["installed"] is False
+    assert getattr(adapter, operation)(tmp_path, framework)["status"] == "installed"
+    hooks = json.loads(path.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"]
+    assert hooks == [custom, current]
+    assert adapter.verify(tmp_path, framework)["installed"] is True
+    before_retry = path.read_bytes()
+    assert getattr(adapter, operation)(tmp_path, framework)["status"] == expected
+    assert path.read_bytes() == before_retry
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Windows native shell regression")
 @pytest.mark.parametrize("exit_code", [0, 7])
 def test_outer_powershell_reaches_python_with_space_paths(tmp_path, exit_code):

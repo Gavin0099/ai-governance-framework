@@ -883,10 +883,43 @@ class CodexCLIAdapter(AgentAdapter):
 
     @staticmethod
     def _is_governance_hook(hook: Any) -> bool:
-        return isinstance(hook, dict) and any(
-            "session_closeout_entry" in str(hook.get(field, ""))
-            for field in ("command", "commandWindows")
-        )
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        python_names = {"python", "python3", "python.exe", "python3.exe"}
+        for field in ("command", "commandWindows"):
+            command = hook.get(field, "")
+            if not isinstance(command, str):
+                continue
+            try:
+                tokens = shlex.split(command)
+                windows_script = len(tokens) == 4 and tokens[:2] == ["powershell", "-NoProfile"]
+                if windows_script and tokens[2] == "-EncodedCommand":
+                    tokens = shlex.split(base64.b64decode(tokens[3], validate=True).decode("utf-16-le"))
+                elif windows_script and tokens[2] == "-Command":
+                    tokens = shlex.split(tokens[3])
+                else:
+                    windows_script = False
+            except (ValueError, TypeError, UnicodeError, binascii.Error):
+                continue
+
+            # Recognize the direct legacy entry and marked Claude wrapper,
+            # plus our generated shell invocations. A textual mention alone
+            # does not give the installer ownership of a custom hook.
+            if len(tokens) >= 2 and tokens[0].replace("\\", "/").rsplit("/", 1)[-1] in python_names:
+                if tokens[1].replace("\\", "/").rsplit("/", 1)[-1] == "session_closeout_entry.py":
+                    return True
+                if len(tokens) == 3 and tokens[1] == "-c" and tokens[2].startswith("# governance:claude-closeout-v1\n"):
+                    return True
+            native_posix = command.startswith('repo_root="$(git rev-parse --show-toplevel)" && ')
+            for index in range(2, len(tokens)):
+                if tokens[index].replace("\\", "/").rsplit("/", 1)[-1] != "session_closeout_entry.py":
+                    continue
+                if windows_script and tokens[index - 2:index] == ["&", "$python"]:
+                    return True
+                if (native_posix and tokens[index - 2] in ("then", "else")
+                        and tokens[index - 1].replace("\\", "/").rsplit("/", 1)[-1] in python_names):
+                    return True
+        return False
 
     @classmethod
     def _is_current_hook(cls, hook: Any, framework_root: Path) -> bool:
