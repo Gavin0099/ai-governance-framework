@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_codex_windows_hook_command.py tests/test_agent_closeout_results.py tests/test_agent_closeout_receipt.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-05T08:46:01Z",
+  "finished_at": "2026-10-05T08:46:34Z",
+  "runner": "codex-delivery-1",
+  "linked_commit": "63dff4e402371ceef8ea0804c3851e18cce4fb2b",
+  "output_artifacts": [
+    "memory/evidence/delivery-1-codex-bind-1/validation.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

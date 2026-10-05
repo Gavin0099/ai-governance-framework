@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_codex_windows_hook_command.py -q --tb=short -k custom-executable --basetemp memory\\evidence\\delivery-1r2-codex\\tmp-red",
+  "exit_code": 1,
+  "started_at": "2026-10-05T10:51:36.853278+00:00",
+  "finished_at": "2026-10-05T10:51:38.722329+00:00",
+  "runner": "codex-delivery-1r2",
+  "linked_commit": "164a8a4bc2b9a2c41279f911a71aa82d9703a122",
+  "output_artifacts": [
+    "memory/evidence/delivery-1r2-codex/failure-first.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

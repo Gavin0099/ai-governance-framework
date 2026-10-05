@@ -908,33 +908,57 @@ class CodexCLIAdapter(AgentAdapter):
 
     @staticmethod
     def _is_governance_hook(hook: Any) -> bool:
-        return isinstance(hook, dict) and any(
-            "session_closeout_entry" in str(hook.get(field, ""))
-            for field in ("command", "commandWindows")
-        )
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        python_names = {"python", "python3", "python.exe", "python3.exe"}
+        for field in ("command", "commandWindows"):
+            command = hook.get(field, "")
+            if not isinstance(command, str):
+                continue
+            try:
+                tokens = shlex.split(command)
+                windows_script = len(tokens) == 4 and tokens[:2] == ["powershell", "-NoProfile"]
+                if windows_script and tokens[2] == "-EncodedCommand":
+                    tokens = shlex.split(base64.b64decode(tokens[3], validate=True).decode("utf-16-le"))
+                elif windows_script and tokens[2] == "-Command":
+                    tokens = shlex.split(tokens[3])
+                else:
+                    windows_script = False
+            except (ValueError, TypeError, UnicodeError, binascii.Error):
+                continue
+
+            # Recognize the direct legacy entry and marked Claude wrapper,
+            # plus our generated shell invocations. A textual mention alone
+            # does not give the installer ownership of a custom hook.
+            if len(tokens) >= 2 and tokens[0].replace("\\", "/").rsplit("/", 1)[-1] in python_names:
+                entry = tokens[1].replace("\\", "/")
+                # Keep the exact historical bare command, but a same-named
+                # custom executable elsewhere is not owned by Governance.
+                if (entry.split("/")[-2:] == ["governance_tools", "session_closeout_entry.py"]
+                        or (len(tokens) == 2 and entry == "session_closeout_entry.py")):
+                    return True
+                if len(tokens) == 3 and tokens[1] == "-c" and tokens[2].startswith("# governance:claude-closeout-v1\n"):
+                    return True
+            native_posix = command.startswith('repo_root="$(git rev-parse --show-toplevel)" && ')
+            for index in range(2, len(tokens)):
+                if tokens[index].replace("\\", "/").split("/")[-2:] != ["governance_tools", "session_closeout_entry.py"]:
+                    continue
+                if windows_script and tokens[index - 2:index] == ["&", "$python"]:
+                    return True
+                if (native_posix and tokens[index - 2] in ("then", "else")
+                        and tokens[index - 1].replace("\\", "/").rsplit("/", 1)[-1] in python_names):
+                    return True
+        return False
 
     @classmethod
-    def _is_current_hook(cls, hook: Any) -> bool:
+    def _is_current_hook(cls, hook: Any, framework_root: Path) -> bool:
         if not cls._is_governance_hook(hook):
             return False
-        prefix = "powershell -NoProfile -EncodedCommand "
-        windows_command = str(hook.get("commandWindows", ""))
-        if not windows_command.startswith(prefix):
-            return False
-        try:
-            windows_script = base64.b64decode(
-                windows_command[len(prefix):], validate=True
-            ).decode("utf-16-le")
-        except (ValueError, UnicodeError, binascii.Error):
-            return False
-        required_tokens = (
-            "--format json",
-            "--agent-id codex",
-            "--trigger-mode native_hook",
-        )
-        return all(
-            all(token in command for token in required_tokens)
-            for command in (str(hook.get("command", "")), windows_script)
+        expected = cls._hook_payload(framework_root)
+        return (
+            hook.get("type") == expected["type"]
+            and all(hook.get(field) == expected[field]
+                    for field in ("command", "commandWindows"))
         )
 
     @staticmethod
@@ -973,23 +997,25 @@ class CodexCLIAdapter(AgentAdapter):
             "statusMessage": "Running governance session closeout...",
         }
 
-    def _find_current_hook(self, project_root: Path) -> bool:
+    def _find_current_hook(self, project_root: Path, framework_root: Path) -> bool:
         data = _read_json(self._hook_path(project_root))
+        governance_hooks = []
         for group in data.get("hooks", {}).get("Stop", []):
             if not isinstance(group, dict):
                 continue
             for hook in group.get("hooks", []):
-                if self._is_current_hook(hook):
-                    return True
-        return False
+                if self._is_governance_hook(hook):
+                    governance_hooks.append(hook)
+        return (len(governance_hooks) == 1
+                and self._is_current_hook(governance_hooks[0], framework_root))
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        if self._find_current_hook(project_root):
+        if self._find_current_hook(project_root, framework_root):
             return {
                 "status": "already_installed",
                 "location": str(hook_path),
-                "message": "Governance Codex Stop hook already present.",
+                "message": "Governance Codex Stop hook already matches the requested framework binding.",
             }
 
         data = _read_json(hook_path)
@@ -1021,15 +1047,16 @@ class CodexCLIAdapter(AgentAdapter):
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        installed = self._find_current_hook(project_root)
+        installed = self._find_current_hook(project_root, framework_root)
         return {
             "installed": installed,
             "manual_only": False,
             "location": str(hook_path) if installed else None,
             "note": (
-                "Codex Stop hook found in .codex/hooks.json" if installed
-                else "No current governance Codex Stop hook found in .codex/hooks.json"
-            ),
+                f"Single governance Codex Stop hook matches requested framework root {framework_root}."
+                if installed else
+                f"Governance Codex Stop hook is missing, stale, or duplicated for requested framework root {framework_root}."
+            ) + " Configuration binding only; native execution is not verified.",
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:

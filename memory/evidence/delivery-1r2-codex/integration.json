@@ -1,0 +1,12 @@
+{
+  "file": "memory/2026-10-05.md",
+  "resolution": "preserve main canonical blocks, followed by Codex canonical blocks, verbatim",
+  "ours_head": "2415f9e0b4a659860b318017a12a7962fb125285",
+  "main_head": "9fb77488b45353bfcdc3257d51154f1b67e019d9",
+  "original_blocks_sha256": {
+    "codex": "a0661c308f5477b6f8fbb003399d016619723992548b39d75c976b5f7efe9303",
+    "claude": "6755cc7f49d9ee379cd47866676cba74e4772d5dc73695e8843d9b0b860f3f9f"
+  },
+  "all_original_block_bytes_preserved": true,
+  "canonical_records": 4
+}
