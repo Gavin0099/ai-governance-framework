@@ -47,10 +47,14 @@ def load_closeout_context(project_root: Path) -> dict[str, Any]:
             "diagnostic": str | None,           # message for warning_only or none
         }
     """
-    canonical = _load_latest_canonical(project_root)
-    if canonical is None:
+    try:
+        canonical = _load_latest_canonical(project_root)
+        if canonical is None:
+            return _no_context()
+        return _build_context(canonical)
+    except Exception:
+        # Context is optional; reader failures must not break session_start.
         return _no_context()
-    return _build_context(canonical)
 
 
 # ---------------------------------------------------------------------------
@@ -72,11 +76,17 @@ def _load_latest_canonical(project_root: Path) -> dict[str, Any] | None:
     for path in closeouts_dir.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            closed_at = data.get("closed_at") or ""
-            if closed_at and isinstance(closed_at, str):
+            if not isinstance(data, dict):
+                return None
+            closed_at = data.get("closed_at")
+            if closed_at is not None and not isinstance(closed_at, str):
+                return None
+            if closed_at:
                 candidates.append((closed_at, data))
         except Exception:
-            continue
+            # Without a readable timestamp, an older result cannot be trusted
+            # to represent the latest state. Degrade the entire context.
+            return None
 
     if not candidates:
         return None
@@ -93,16 +103,28 @@ def _build_context(canonical: dict[str, Any]) -> dict[str, Any]:
     session_id = canonical.get("session_id")
     closed_at = canonical.get("closed_at")
 
+    if any(value is not None and not isinstance(value, str) for value in (status, session_id, closed_at)):
+        return _no_context()
+
     if status == "valid":
+        task_intent = canonical.get("task_intent")
+        work_summary = canonical.get("work_summary")
+        open_risks = canonical.get("open_risks", [])
+        if (
+            any(value is not None and not isinstance(value, str) for value in (task_intent, work_summary))
+            or not isinstance(open_risks, list)
+            or any(not isinstance(risk, str) for risk in open_risks)
+        ):
+            return _no_context()
         return {
             "inject": True,
             "closeout_status": status,
             "session_id": session_id,
             "closed_at": closed_at,
             "injection_level": "full",
-            "task_intent": canonical.get("task_intent"),
-            "work_summary": canonical.get("work_summary"),
-            "open_risks": list(canonical.get("open_risks") or []),
+            "task_intent": task_intent,
+            "work_summary": work_summary,
+            "open_risks": list(open_risks),
             "diagnostic": None,
         }
 

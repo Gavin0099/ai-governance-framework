@@ -2,6 +2,7 @@
 Tests for runtime_hooks/core/_canonical_closeout_context.py
 """
 
+import hashlib
 import json
 import shutil
 import sys
@@ -14,6 +15,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from runtime_hooks.core._canonical_closeout_context import load_closeout_context
 
 _FIXTURE_ROOT = Path(__file__).parent / "_tmp_canonical_closeout_context"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_fixture_root(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "_FIXTURE_ROOT", tmp_path)
 
 
 def _reset_fixture(name: str) -> Path:
@@ -40,6 +46,97 @@ def _write_closeout(repo_root, session_id, status, closed_at="2026-04-08T00:00:0
         "open_risks": extra.get("open_risks", []),
     }
     (d / f"{session_id}.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+_NO_CONTEXT = {
+    "inject": False,
+    "closeout_status": None,
+    "session_id": None,
+    "closed_at": None,
+    "injection_level": "none",
+    "task_intent": None,
+    "work_summary": None,
+    "open_risks": [],
+    "diagnostic": None,
+}
+
+
+class TestMalformedLatestCloseout:
+    @pytest.mark.parametrize(
+        "open_risks",
+        [7, "risk", {"a": "b"}, [1, "valid"]],
+        ids=["integer", "string", "object", "mixed-list"],
+    )
+    def test_invalid_risks_degrade_without_older_fallback_or_writes(self, open_risks):
+        repo = _reset_fixture("invalid_risks")
+        _write_closeout(repo, "older", "valid", closed_at="2026-04-07T00:00:00+00:00", task_intent="older task", work_summary="older summary", open_risks=["older risk"])
+        _write_closeout(repo, "latest", "valid", task_intent="latest task", work_summary="latest summary", open_risks=open_risks)
+        paths = list((repo / "artifacts" / "runtime" / "closeouts").glob("*.json"))
+        before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+
+        assert load_closeout_context(repo) == _NO_CONTEXT
+        assert {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths} == before
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("task_intent", ["task"]),
+            ("work_summary", {"summary": "text"}),
+            ("session_id", ["latest"]),
+            ("closed_at", 7),
+            ("closeout_status", {"status": "valid"}),
+        ],
+    )
+    def test_invalid_context_field_degrades_without_older_fallback(self, field, value):
+        repo = _reset_fixture("invalid_context_field")
+        _write_closeout(repo, "older", "valid", closed_at="2026-04-07T00:00:00+00:00", work_summary="older summary")
+        _write_closeout(repo, "latest", "valid", task_intent="latest task", work_summary="latest summary")
+        latest = repo / "artifacts" / "runtime" / "closeouts" / "latest.json"
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+        payload[field] = value
+        latest.write_text(json.dumps(payload), encoding="utf-8")
+        before = latest.read_bytes()
+
+        assert load_closeout_context(repo) == _NO_CONTEXT
+        assert latest.read_bytes() == before
+
+    @pytest.mark.parametrize("raw", [b"{invalid JSON", b"\xff\xfe", b"[1, 2]"], ids=["bad-json", "bad-utf8", "non-object"])
+    def test_unreadable_or_non_object_record_does_not_expose_older_summary(self, raw):
+        repo = _reset_fixture("unreadable_record")
+        _write_closeout(repo, "older", "valid", closed_at="2026-04-07T00:00:00+00:00", work_summary="older summary")
+        damaged = repo / "artifacts" / "runtime" / "closeouts" / "damaged.json"
+        damaged.write_bytes(raw)
+
+        assert load_closeout_context(repo) == _NO_CONTEXT
+        assert damaged.read_bytes() == raw
+
+    def test_directory_read_error_returns_exact_no_context(self, monkeypatch):
+        repo = _reset_fixture("directory_read_error")
+
+        def unreadable(_path):
+            raise OSError("directory inaccessible")
+
+        monkeypatch.setattr(Path, "is_dir", unreadable)
+        assert load_closeout_context(repo) == _NO_CONTEXT
+
+    def test_normal_payload_is_fully_compatible_and_read_only(self):
+        repo = _reset_fixture("normal_payload")
+        _write_closeout(repo, "latest", "valid", task_intent="latest task", work_summary="latest summary", open_risks=["risk A", "risk B"])
+        path = repo / "artifacts" / "runtime" / "closeouts" / "latest.json"
+        before = path.read_bytes()
+
+        assert load_closeout_context(repo) == {
+            "inject": True,
+            "closeout_status": "valid",
+            "session_id": "latest",
+            "closed_at": "2026-04-08T00:00:00+00:00",
+            "injection_level": "full",
+            "task_intent": "latest task",
+            "work_summary": "latest summary",
+            "open_risks": ["risk A", "risk B"],
+            "diagnostic": None,
+        }
+        assert path.read_bytes() == before
 
 
 class TestGracefulDegradation:
