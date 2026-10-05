@@ -371,7 +371,7 @@ class ClaudeAdapter(AgentAdapter):
         settings_path = project_root / ".claude/settings.json"
         try:
             data = self._read_settings_for_install(settings_path)
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, RecursionError) as exc:
             return {"status": "blocked", "location": str(settings_path),
                     "message": f"Unable to safely read Claude settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
