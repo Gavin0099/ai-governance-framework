@@ -1,0 +1,275 @@
+{
+  "archived_on": "2026-10-07",
+  "base_main_commit": "fb8f6abb09d6419923247183a2ce744d75e65b29",
+  "source_workspace_head": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+  "record_count": 5,
+  "bound_original_records": 3,
+  "unbound_original_records": 2,
+  "source_file_sha256": {
+    "memory/2026-08-20.md": "56e497c3df70beeffc877130366c95546ee47ca8bc7e86218f28f1f30121560a",
+    "memory/2026-09-08.md": "feb11289de58b4d236b71efa0afd81141737f38cfa78bfc723aae505704ae3ba",
+    "memory/2026-09-09.md": "4ab0022492c4a286a85f502571b40c6aee0b3eed4fab7afbf1889f79d382ea78",
+    "memory/2026-09-14.md": "5de15471f345d62f911a74d21a03bf1624494a36f216f09718dea608848c5b1e",
+    "memory/2026-09-15.md": "245671c9e99e20058df9d4c06f1a65c95488f1c41839c8ee7b2695a701267e10",
+    "docs/governance/risk-adaptive-governance-compatibility-review-20260913.md": "bd1f245b997cb28c02bf233c90d4f58433c115ae72e1e409d9d6632b28cb3b65",
+    "memory/evidence/memory-companion-review-20260914/companion-present.json": "dd6edbce92b67a0092bd0bdf49c387da22bffc9c9e976ce0766f4657bc263956",
+    "memory/evidence/memory-companion-review-20260914/memory-check.json": "f6590329a7a466a651b32c95f5a4f673f08cb73447641dcf017136ad80397a89",
+    "memory/evidence/memory-companion-review-20260914/not-run-rendering.txt": "b40333450d651dd4e175686483872bb8ee31085d499bc6de048e8d0a0df846eb",
+    "memory/evidence/memory-companion-review-20260914/REPORT.md": "9682fb9d135cef875315143e04a1d7836a4917dd0765c307149ffdc163e7c1a6",
+    "memory/evidence/memory-companion-review-20260914/response-envelope.json": "7f1e2320a431886392b4bcd6bd3524d465029fad83834dee8d5d427838b5fe42",
+    "memory/evidence/memory-companion-review-20260914/subject.json": "a9b2a05865f5dd10e76a4523d535f52bfe82ba2cc4c1e192cc51f8617c054464",
+    "memory/evidence/memory-companion-review-20260914/tests.txt": "84e54ea5c97f8b515d6a3604b19473450f81594ede2dd282e771aeb1e9b6a090",
+    "memory/evidence/memory-companion-review-20260914/tests.xml": "6e588c31adcaae83e7ba5776a298192c6cd3ed4dd33a0968c4a654ca96128973",
+    "memory/evidence/memory-companion-review-20260914/zero-companion.json": "95f6fc868b2f87ac540d1c70a0758df170f8e2fb056ebc87a83169f772270d97",
+    "memory/evidence/s0-state-reconciliation-20260915/anchor.json": "b2e3515d4a6ed540eaa4a84682c85faf0e8f0ff37068e5da05f89234e6f6a9d2",
+    "memory/evidence/s0-state-reconciliation-20260915/artifact-manifest.json": "f5259a03436243d2bdc4e95ea243a9c2692e005c6dd7b17804cea4adc56b0a96",
+    "memory/evidence/s0-state-reconciliation-20260915/closeout-priority-evidence.json": "11b116fd4df87e0913a9e1366bb1b39532855c4ef03365b415ea09abddadd773",
+    "memory/evidence/s0-state-reconciliation-20260915/CURRENT_DECISION_TABLE.md": "d2fe106bbbb2e72172d7d15245af69c1c3c8af72dcdbd9135bbd5ef6cc3e40ec",
+    "memory/evidence/s0-state-reconciliation-20260915/dirty-inventory.json": "296ee4f27b94c72599ef9e6c4f26f6b305d776f556415ecfbe2440550dcd484c",
+    "memory/evidence/s0-state-reconciliation-20260915/memory-workflow-check.json": "18e60b81a8b3530f19c557a1c65df96d6a99cd624927c9b0454d95f97646e3d5",
+    "memory/evidence/s0-state-reconciliation-20260915/memory-workflow-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "memory/evidence/s0-state-reconciliation-20260915/memory-writer-result.json": "c0fb82d423e7afa2bd7c5579a35ac317b25b749fa90575e964d1314243e82553",
+    "memory/evidence/s0-state-reconciliation-20260915/pr-176-merge-tree.txt": "ef95b83533e0c846342c7088e0711feff9123257d317bb6d347d1ea7fad93834",
+    "memory/evidence/s0-state-reconciliation-20260915/pr-178-merge-tree.txt": "2af4df91ceac1a70883fb5d26408e9189b0c55de3d33a9126d158ceab3412275",
+    "memory/evidence/s0-state-reconciliation-20260915/pr-179-merge-tree.txt": "58fd5b0fd7d4e62f8b6b6167c166dbed5f629139b142a73ad75d52aa01e74b40",
+    "memory/evidence/s0-state-reconciliation-20260915/pr-80-merge-tree.txt": "0a60c02ac184ba8dabe4395997339c711d5118a890161ab86f60b672b5cba0a1",
+    "memory/evidence/s0-state-reconciliation-20260915/pr-88-merge-tree.txt": "0486752cf55ac513e38017383c49f95263e29ea57dc398d785b9dec3cc5709e4",
+    "memory/evidence/s0-state-reconciliation-20260915/prs.json": "8e84cecf411dc7988dfec19da02499f51d3b8a0fe45ba8ac952bf54624ca74fa",
+    "memory/evidence/s0-state-reconciliation-20260915/response-envelope.json": "4ad6a5ad25581cd390169eefd2ee54056389a4e7c2d6676b9368716038c4761c",
+    "memory/evidence/s0-state-reconciliation-20260915/review-threads.json": "e875703d5842c96b6db00e45b170bb20636790c683db5af3835e6a2b114e3b62",
+    "memory/evidence/s0-state-reconciliation-20260915/state-claims.json": "8fee8ddef7c1d34335f7a349599afd1dec9174e1b075a24e633c7c3c3b248e39",
+    "memory/evidence/s0-state-reconciliation-20260915/status-before.txt": "0dfae87f3017f7e88c3a52e3633d49c13d8e52937c1c453a7ae47c4a8f5d9558",
+    "memory/evidence/s0-state-reconciliation-20260915/supersession-evidence.json": "3e93d96065d7218f0e4e51214469ebcc330ab7b974379c7ec2f15e143bf5bad9",
+    "memory/evidence/s0-state-reconciliation-20260915/verification.json": "bbec348120ea1c1d2d6870ca5742bc28ae53b78f54d87c52a7fe76500eb216f9"
+  },
+  "copied_files": [
+    {
+      "path": "docs/governance/risk-adaptive-governance-compatibility-review-20260913.md",
+      "sha256": "bd1f245b997cb28c02bf233c90d4f58433c115ae72e1e409d9d6632b28cb3b65",
+      "bytes": 17651,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/companion-present.json",
+      "sha256": "dd6edbce92b67a0092bd0bdf49c387da22bffc9c9e976ce0766f4657bc263956",
+      "bytes": 2844,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/memory-check.json",
+      "sha256": "f6590329a7a466a651b32c95f5a4f673f08cb73447641dcf017136ad80397a89",
+      "bytes": 2114,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/not-run-rendering.txt",
+      "sha256": "b40333450d651dd4e175686483872bb8ee31085d499bc6de048e8d0a0df846eb",
+      "bytes": 525,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/REPORT.md",
+      "sha256": "9682fb9d135cef875315143e04a1d7836a4917dd0765c307149ffdc163e7c1a6",
+      "bytes": 4779,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/response-envelope.json",
+      "sha256": "7f1e2320a431886392b4bcd6bd3524d465029fad83834dee8d5d427838b5fe42",
+      "bytes": 2035,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/subject.json",
+      "sha256": "a9b2a05865f5dd10e76a4523d535f52bfe82ba2cc4c1e192cc51f8617c054464",
+      "bytes": 692,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/tests.txt",
+      "sha256": "84e54ea5c97f8b515d6a3604b19473450f81594ede2dd282e771aeb1e9b6a090",
+      "bytes": 183,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/tests.xml",
+      "sha256": "6e588c31adcaae83e7ba5776a298192c6cd3ed4dd33a0968c4a654ca96128973",
+      "bytes": 11250,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/zero-companion.json",
+      "sha256": "95f6fc868b2f87ac540d1c70a0758df170f8e2fb056ebc87a83169f772270d97",
+      "bytes": 1643,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/anchor.json",
+      "sha256": "b2e3515d4a6ed540eaa4a84682c85faf0e8f0ff37068e5da05f89234e6f6a9d2",
+      "bytes": 613,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/artifact-manifest.json",
+      "sha256": "f5259a03436243d2bdc4e95ea243a9c2692e005c6dd7b17804cea4adc56b0a96",
+      "bytes": 3159,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/closeout-priority-evidence.json",
+      "sha256": "11b116fd4df87e0913a9e1366bb1b39532855c4ef03365b415ea09abddadd773",
+      "bytes": 2559,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/CURRENT_DECISION_TABLE.md",
+      "sha256": "d2fe106bbbb2e72172d7d15245af69c1c3c8af72dcdbd9135bbd5ef6cc3e40ec",
+      "bytes": 12962,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/dirty-inventory.json",
+      "sha256": "296ee4f27b94c72599ef9e6c4f26f6b305d776f556415ecfbe2440550dcd484c",
+      "bytes": 58565,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/memory-workflow-check.json",
+      "sha256": "18e60b81a8b3530f19c557a1c65df96d6a99cd624927c9b0454d95f97646e3d5",
+      "bytes": 4392,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/memory-workflow-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/memory-writer-result.json",
+      "sha256": "c0fb82d423e7afa2bd7c5579a35ac317b25b749fa90575e964d1314243e82553",
+      "bytes": 4420,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/pr-176-merge-tree.txt",
+      "sha256": "ef95b83533e0c846342c7088e0711feff9123257d317bb6d347d1ea7fad93834",
+      "bytes": 277,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/pr-178-merge-tree.txt",
+      "sha256": "2af4df91ceac1a70883fb5d26408e9189b0c55de3d33a9126d158ceab3412275",
+      "bytes": 669,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/pr-179-merge-tree.txt",
+      "sha256": "58fd5b0fd7d4e62f8b6b6167c166dbed5f629139b142a73ad75d52aa01e74b40",
+      "bytes": 669,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/pr-80-merge-tree.txt",
+      "sha256": "0a60c02ac184ba8dabe4395997339c711d5118a890161ab86f60b672b5cba0a1",
+      "bytes": 277,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/pr-88-merge-tree.txt",
+      "sha256": "0486752cf55ac513e38017383c49f95263e29ea57dc398d785b9dec3cc5709e4",
+      "bytes": 780,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/prs.json",
+      "sha256": "8e84cecf411dc7988dfec19da02499f51d3b8a0fe45ba8ac952bf54624ca74fa",
+      "bytes": 11661,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/response-envelope.json",
+      "sha256": "4ad6a5ad25581cd390169eefd2ee54056389a4e7c2d6676b9368716038c4761c",
+      "bytes": 3525,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/review-threads.json",
+      "sha256": "e875703d5842c96b6db00e45b170bb20636790c683db5af3835e6a2b114e3b62",
+      "bytes": 4409,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/state-claims.json",
+      "sha256": "8fee8ddef7c1d34335f7a349599afd1dec9174e1b075a24e633c7c3c3b248e39",
+      "bytes": 2213,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/status-before.txt",
+      "sha256": "0dfae87f3017f7e88c3a52e3633d49c13d8e52937c1c453a7ae47c4a8f5d9558",
+      "bytes": 3205,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/supersession-evidence.json",
+      "sha256": "3e93d96065d7218f0e4e51214469ebcc330ab7b974379c7ec2f15e143bf5bad9",
+      "bytes": 12598,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    },
+    {
+      "path": "memory/evidence/s0-state-reconciliation-20260915/verification.json",
+      "sha256": "bbec348120ea1c1d2d6870ca5742bc28ae53b78f54d87c52a7fe76500eb216f9",
+      "bytes": 6263,
+      "role": "historical_report_or_supporting_evidence",
+      "preservation": "exact_byte_copy"
+    }
+  ],
+  "not_claimed": [
+    "current authorization",
+    "current product state",
+    "fresh test execution",
+    "memory completeness",
+    "G4 achievement",
+    "consumer acceptance",
+    "source or runtime changes"
+  ],
+  "excluded": [
+    "58 auto-closeout records",
+    "temporary checkout and Git copies",
+    "generated release/status snapshots",
+    "stale source/test replacements",
+    "fwupd installation candidate",
+    "member guide refresh",
+    "PLAN and active-task edits"
+  ]
+}

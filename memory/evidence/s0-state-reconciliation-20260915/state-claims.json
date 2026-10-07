@@ -1,0 +1,68 @@
+{
+  "anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+  "commits": [
+    {
+      "oid": "ff9cdb77db9133fa734bae461b71319f97d23292",
+      "ancestor_of_anchor": true
+    },
+    {
+      "oid": "a59b0aef93753630f9949233d03be555bad165c5",
+      "ancestor_of_anchor": true
+    },
+    {
+      "oid": "f788e2b0e0a825e19f267fee42eb8519f329fd64",
+      "ancestor_of_anchor": true
+    },
+    {
+      "oid": "bb0f33331bed93f70399dc38c31248eea5df1860",
+      "ancestor_of_anchor": true
+    },
+    {
+      "oid": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+      "ancestor_of_anchor": true
+    },
+    {
+      "oid": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+      "ancestor_of_anchor": true
+    }
+  ],
+  "m3b2a_checkpoint_paths": [
+    {
+      "path": ".gitattributes",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/evidence/test-results/m3b2a-in-process-20260820.json",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/evidence/test-results/m3b2a-in-process-20260820.txt",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_child.py",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_materialize.py",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/gate3_historical_process.py",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_child.py",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_materialize.py",
+      "present_at_anchor": true
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/gate3-route-v2/test_gate3_historical_process.py",
+      "present_at_anchor": true
+    }
+  ],
+  "meaning": "Ancestry confirms delivery history; path presence confirms the checkpoint files remain. Neither proves active native execution or current behavior."
+}

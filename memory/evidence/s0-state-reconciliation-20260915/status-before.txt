@@ -1,0 +1,144 @@
+ M docs/releases/generated/README.md
+M  docs/status/engineering-skill-pilot-plan.md
+ M governance/MEMORY_PROTOCOL.md
+ M governance_tools/ci_memory_workflow_check.py
+ M governance_tools/memory_provenance.py
+ M memory/01_active_task.md
+ M memory/04_review_log.md
+ M memory/2026-08-14.md
+ M memory/2026-08-17.md
+ M memory/2026-08-18.md
+ M memory/2026-08-19.md
+ M memory/2026-08-20.md
+ M memory/2026-08-21.md
+ M memory/2026-08-24.md
+ M memory/2026-08-27.md
+ M memory/2026-08-31.md
+ M memory/2026-09-02.md
+ M memory/2026-09-04.md
+ M memory/2026-09-07.md
+ M memory/2026-09-08.md
+ M memory/2026-09-09.md
+ M memory/2026-09-12.md
+ M tests/test_ci_memory_workflow_check.py
+?? .playwright-mcp/
+?? .tmp_ad1/
+?? .tmp_ad2/
+?? .tmp_ad3/
+?? .tmp_ad4/
+?? .tmp_ad5/
+?? .tmp_ad6/
+?? .tmp_ad7/
+?? .tmp_ad8/
+?? .tmp_ad9/
+?? .tmp_ada/
+?? .tmp_adb/
+?? .tmp_adc/
+?? .tmp_add/
+?? .tmp_ade/
+?? .tmp_adf/
+?? .tmp_adg/
+?? .tmp_base1/
+?? .tmp_base2/
+?? .tmp_bg1/
+?? .tmp_candidate_validation/
+?? .tmp_cb1/
+?? .tmp_ce1/
+?? .tmp_ce2/
+?? .tmp_ci1/
+?? .tmp_ci2/
+?? .tmp_dog/
+?? .tmp_dup/
+?? .tmp_dup2/
+?? .tmp_dup3/
+?? .tmp_ev1/
+?? .tmp_ev2/
+?? .tmp_ev3/
+?? .tmp_ev4/
+?? .tmp_ext/
+?? .tmp_f14/
+?? .tmp_f14b/
+?? .tmp_f7_policy/
+?? .tmp_f7_policy_all/
+?? .tmp_f7_policy_conflict/
+?? .tmp_f7_policy_conflict_fix/
+?? .tmp_f7_policy_heading/
+?? .tmp_f7_policy_history/
+?? .tmp_f7_single_failure/
+?? .tmp_f7c/
+?? .tmp_f7d/
+?? .tmp_f7e/
+?? .tmp_f7f/
+?? .tmp_f7g/
+?? .tmp_final/
+?? .tmp_framework_consumer_boundary_final/
+?? .tmp_framework_consumer_boundary_final2/
+?? .tmp_full1/
+?? .tmp_full2/
+?? .tmp_full3/
+?? .tmp_full4/
+?? .tmp_hk/
+?? .tmp_j2/
+?? .tmp_k3/
+?? .tmp_k4/
+?? .tmp_l3/
+?? .tmp_m3/
+?? .tmp_mw1/
+?? .tmp_p0v/
+?? .tmp_p1a/
+?? .tmp_p1b/
+?? .tmp_p1f/
+?? .tmp_p1v/
+?? .tmp_p1v2/
+?? .tmp_p2a/
+?? .tmp_p3a/
+?? .tmp_p3b/
+?? .tmp_p4/
+?? .tmp_p5t/
+?? .tmp_p6/
+?? .tmp_p6b/
+?? .tmp_prov/
+?? .tmp_prov2/
+?? .tmp_prov3/
+?? .tmp_prov5/
+?? .tmp_prov7/
+?? .tmp_prov8/
+?? .tmp_rel5/
+?? .tmp_restore/
+?? .tmp_review_v07/
+?? .tmp_tsqa/
+?? .tmp_tsqa2/
+?? .tmp_v07/
+?? .tmp_verify/
+?? .tmp_verify2/
+?? .tmp_verify3/
+?? .worktrees/
+?? artifacts/memory-audit/
+?? artifacts/workspace-cleanup/
+?? docs/ai-governance-member-briefing-guide.html
+?? docs/ai-governance-member-briefing-guide.md
+?? docs/governance/risk-adaptive-governance-compatibility-review-20260913.md
+?? docs/releases/generated/PUBLICATION_INDEX.md
+?? docs/releases/generated/PUBLICATION_MANIFEST.json
+?? docs/releases/generated/latest.json
+?? docs/releases/generated/latest.md
+?? docs/releases/generated/v1.3.0/
+?? docs/status/generated/PUBLICATION_INDEX.md
+?? docs/status/generated/PUBLICATION_MANIFEST.json
+?? docs/status/generated/README.md
+?? docs/status/generated/bundle/
+?? docs/status/generated/site/
+?? memory/2026-08-25.md
+?? memory/2026-09-01.md
+?? memory/2026-09-03.md
+?? memory/2026-09-10.md
+?? memory/2026-09-11.md
+?? memory/2026-09-14.md
+?? memory/2026-09-15.md
+?? memory/evidence/agent-read-policy-20260914/
+?? memory/evidence/f7-slice-factcheck-20260914/
+?? memory/evidence/full-required-doc-load-20260914/
+?? memory/evidence/m1-bookstore-ab-20260914/
+?? memory/evidence/m1-consumer-probe-20260914/
+?? memory/evidence/memory-companion-review-20260914/
+?? memory/recovery/

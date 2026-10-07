@@ -1,0 +1,13 @@
+e195c1418a50b2829df0cdd373108f8b02a770ef
+100644 3c74ba5e260662ece555b23d27d73b3acd6b1976 1	governance/MEMORY_AUTHORITY_CONTRACT.md
+100644 1d69e8ed811784dcbf688363024389efaa9708e5 2	governance/MEMORY_AUTHORITY_CONTRACT.md
+100644 1ac1fa79da6c9402b26ff7ae2eb80056cdc44578 3	governance/MEMORY_AUTHORITY_CONTRACT.md
+100644 a647cea2f6287d4b48f796ffc8f2e06869c21826 2	memory/2026-08-21.md
+100644 f094aa5665200ab8a2f68bf893c86d6d1e6ce4e3 3	memory/2026-08-21.md
+
+Auto-merging .github/workflows/governance.yml
+Auto-merging governance/MEMORY_AUTHORITY_CONTRACT.md
+CONFLICT (content): Merge conflict in governance/MEMORY_AUTHORITY_CONTRACT.md
+Auto-merging memory/2026-08-21.md
+CONFLICT (add/add): Merge conflict in memory/2026-08-21.md
+Auto-merging tests/test_governance_workflow_contract.py

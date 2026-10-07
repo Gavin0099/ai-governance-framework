@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "C:\\Users\\reiko\\AppData\\Local\\Programs\\Python\\Python313\\python.exe -c \"\nimport hashlib, json, pathlib, subprocess, sys, xml.etree.ElementTree as ET\nroot=pathlib.Path.cwd(); source=pathlib.Path(r'E:/BackUp/Git_EE/ai-governance-framework')\nbase='fb8f6abb09d6419923247183a2ce744d75e65b65b29'\nbase='fb8f6abb09d6419923247183a2ce744d75e65b29'\nhead='48d4cf1a86bd3d2a35893db63c3e20886286060e'\nrun=lambda *a: subprocess.check_output(a, cwd=root)\nassert run('git','rev-parse','HEAD').decode().strip()==head\nmanifest=json.loads((root/'memory/evidence/historical-delivery-20261007/manifest.json').read_text(encoding='utf-8-sig'))\nfor path, expected in manifest['source_file_sha256'].items():\n    assert hashlib.sha256((source/path).read_bytes()).hexdigest()==expected, path\nfor item in manifest['copied_files']:\n    assert hashlib.sha256(run('git','show',head+':'+item['path'])).hexdigest()==item['sha256'], item['path']\nrecords=json.loads((root/'memory/evidence/historical-delivery-20261007/records.json').read_text(encoding='utf-8-sig'))['records']\nassert len(records)==5\nassert sum(r['original_memory_binding']=='bound' for r in records)==3\nassert sum(r['original_memory_binding']=='unbound' for r in records)==2\nfor item in records:\n    raw=item['record_text_utf8'].encode('utf-8')\n    assert hashlib.sha256(raw).hexdigest()==item['record_sha256']\n    assert raw in (source/item['source_path']).read_bytes()\npaths=run('git','diff','--name-only',base,head).decode().splitlines()\nassert len(paths)==40\nfor path in paths:\n    content=run('git','show',head+':'+path)\n    if path.endswith('.json'): json.loads(content.decode('utf-8-sig'))\n    if path.endswith('.xml'): ET.fromstring(content)\nfor path in ['PLAN.md','memory/01_active_task.md']:\n    assert run('git','show',base+':'+path)==run('git','show',head+':'+path), path\nsubprocess.run(['git','diff','--check',base,head],check=True)\nargs=[sys.executable,'-m','governance_tools.memory_workflow','--check','--run-guard','--fail-on-blocker','--format','json']\nfor path in paths: args+=['--changed-file',path]\ncheck=subprocess.run(args,text=True,encoding='utf-8',capture_output=True,check=True)\npayload=json.loads(check.stdout)\nassert payload['blockers']==[]\nassert payload['guard_summary']['current_diff_b0_blocker_count']==0\nprint(json.dumps({'reviewed_head':head,'source_hashes_verified':len(manifest['source_file_sha256']),'committed_copy_hashes_verified':len(manifest['copied_files']),'raw_record_snapshots_verified':len(records),'changed_files':len(paths),'parse_checks':'JSON/XML passed','unchanged_surfaces':['PLAN.md','memory/01_active_task.md'],'memory_workflow':payload},ensure_ascii=False,indent=2))\n\"",
+  "exit_code": 0,
+  "started_at": "2026-10-07T10:33:59Z",
+  "finished_at": "2026-10-07T10:34:16Z",
+  "runner": "codex-root-scoped-review-validation",
+  "linked_commit": "48d4cf1a86bd3d2a35893db63c3e20886286060e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/historical-memory-review-20261007.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

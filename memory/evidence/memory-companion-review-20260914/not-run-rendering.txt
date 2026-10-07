@@ -1,0 +1,11 @@
+[memory_workflow]
+status=no_memory_workflow_required
+repo_root=E:\BackUp\Git_EE\lenoveo-isp-tool-avalonia
+repo_root_resolved=True
+canonical_writer_required=False
+task_classification=not_memory_task
+guard_ran=False
+completion_claim_allowed=True
+memory_protocol_path=external/ai-governance-framework/governance/MEMORY_PROTOCOL.md
+canonical_writer_path=external/ai-governance-framework/governance_tools/memory_record.py
+authority_guard_path=external/ai-governance-framework/governance_tools/memory_authority_guard.py

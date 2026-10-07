@@ -1,0 +1,390 @@
+[
+  {
+    "baseRefName": "main",
+    "baseRefOid": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+    "headRefName": "codex/f7-s2-state-presentation-20260914",
+    "headRefOid": "774bda1ee017b0e919a8546d7f4a594981137cc8",
+    "isDraft": false,
+    "mergeStateStatus": "DIRTY",
+    "mergeable": "CONFLICTING",
+    "number": 179,
+    "statusCheckRollup": [
+      {
+        "name": "Full Test Suite",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Workflow Selective Blocker",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "PLAN.md Freshness",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Canonical Drift Post-Merge Audit",
+        "status": "COMPLETED",
+        "conclusion": "SKIPPED"
+      },
+      {
+        "name": "Phase Gate Verification",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Reviewer Handoff Policy Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Governance Advisory Checks",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Runtime Governance Enforcement",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Bash 3.2 Runtime Compatibility (report-only)",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Interception Ledger Check",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Violation Triage Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "title": "fix(reporting): clarify aligned lock pending commit",
+    "url": "https://github.com/Gavin0099/ai-governance-framework/pull/179",
+    "current_anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+    "merge_base_with_anchor": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+    "merge_tree_exit": 1,
+    "conflict_messages": [
+      "CONFLICT (content): Merge conflict in memory/04_review_log.md",
+      "CONFLICT (content): Merge conflict in memory/2026-09-14.md"
+    ]
+  },
+  {
+    "baseRefName": "main",
+    "baseRefOid": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+    "headRefName": "codex/f7-h1-composed-hooks-20260914",
+    "headRefOid": "663d13d2a5bb5e241e7879f864b9d2ebff26ff14",
+    "isDraft": false,
+    "mergeStateStatus": "DIRTY",
+    "mergeable": "CONFLICTING",
+    "number": 178,
+    "statusCheckRollup": [
+      {
+        "name": "Full Test Suite",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Workflow Selective Blocker",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "PLAN.md Freshness",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Canonical Drift Post-Merge Audit",
+        "status": "COMPLETED",
+        "conclusion": "SKIPPED"
+      },
+      {
+        "name": "Phase Gate Verification",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Reviewer Handoff Policy Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Governance Advisory Checks",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Runtime Governance Enforcement",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Bash 3.2 Runtime Compatibility (report-only)",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Interception Ledger Check",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Violation Triage Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "title": "fix(f7): preserve canonical Lenovo hook composition",
+    "url": "https://github.com/Gavin0099/ai-governance-framework/pull/178",
+    "current_anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+    "merge_base_with_anchor": "85adb41cf9151762909d37c3e1e801d8e3c311fa",
+    "merge_tree_exit": 1,
+    "conflict_messages": [
+      "CONFLICT (content): Merge conflict in memory/04_review_log.md",
+      "CONFLICT (content): Merge conflict in memory/2026-09-14.md"
+    ]
+  },
+  {
+    "baseRefName": "main",
+    "baseRefOid": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+    "headRefName": "codex/restore-preserved-daily-memory-20260914",
+    "headRefOid": "4245db94dc6fd1ad91a0afd5eff20633b7ec7dfe",
+    "isDraft": true,
+    "mergeStateStatus": "DIRTY",
+    "mergeable": "CONFLICTING",
+    "number": 176,
+    "statusCheckRollup": [
+      {
+        "name": "Full Test Suite",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Workflow Selective Blocker",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "PLAN.md Freshness",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Canonical Drift Post-Merge Audit",
+        "status": "COMPLETED",
+        "conclusion": "SKIPPED"
+      },
+      {
+        "name": "Phase Gate Verification",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Reviewer Handoff Policy Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Governance Advisory Checks",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Runtime Governance Enforcement",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Bash 3.2 Runtime Compatibility (report-only)",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Interception Ledger Check",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Violation Triage Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "title": "docs(memory): restore 25 preserved historical daily records",
+    "url": "https://github.com/Gavin0099/ai-governance-framework/pull/176",
+    "current_anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+    "merge_base_with_anchor": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+    "merge_tree_exit": 1,
+    "conflict_messages": [
+      "CONFLICT (add/add): Merge conflict in memory/2026-09-14.md"
+    ]
+  },
+  {
+    "baseRefName": "main",
+    "baseRefOid": "4b84b8d477639a4ea258275c51ad4bc199ee7545",
+    "headRefName": "codex/memory-closeout-observation",
+    "headRefOid": "c6a8976bc13360d155af4df7f7eb4cef9afc7c75",
+    "isDraft": true,
+    "mergeStateStatus": "DIRTY",
+    "mergeable": "CONFLICTING",
+    "number": 88,
+    "statusCheckRollup": [
+      {
+        "name": "Full Test Suite",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Workflow Selective Blocker",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "PLAN.md Freshness",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Canonical Drift Post-Merge Audit",
+        "status": "COMPLETED",
+        "conclusion": "SKIPPED"
+      },
+      {
+        "name": "Phase Gate Verification",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Reviewer Handoff Policy Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Pressure",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Documentation Drift",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Runtime Governance Enforcement",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Bash 3.2 Runtime Compatibility (report-only)",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Interception Ledger Check",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Violation Triage Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "title": "fix(governance): observe terminal memory closeout state",
+    "url": "https://github.com/Gavin0099/ai-governance-framework/pull/88",
+    "current_anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+    "merge_base_with_anchor": "6fedb405531bbe920b7f267cfa49b5d00bc841ad",
+    "merge_tree_exit": 1,
+    "conflict_messages": [
+      "CONFLICT (content): Merge conflict in governance/MEMORY_AUTHORITY_CONTRACT.md",
+      "CONFLICT (add/add): Merge conflict in memory/2026-08-21.md"
+    ]
+  },
+  {
+    "baseRefName": "main",
+    "baseRefOid": "9772f840fa750c15514f685414f7c3b87bb70240",
+    "headRefName": "codex/gi001-cross-repo-recurrence",
+    "headRefOid": "b1639e3f07db369e82f8503fec22b083b8b56ae1",
+    "isDraft": false,
+    "mergeStateStatus": "DIRTY",
+    "mergeable": "CONFLICTING",
+    "number": 80,
+    "statusCheckRollup": [
+      {
+        "name": "Full Test Suite",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Workflow Selective Blocker",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "PLAN.md Freshness",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Canonical Drift Post-Merge Audit",
+        "status": "COMPLETED",
+        "conclusion": "SKIPPED"
+      },
+      {
+        "name": "Phase Gate Verification",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Reviewer Handoff Policy Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Memory Pressure",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Documentation Drift",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Runtime Governance Enforcement",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Bash 3.2 Runtime Compatibility (report-only)",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Interception Ledger Check",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "Violation Triage Gate",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "title": "docs(governance): record GI-001 cross-repo recurrence",
+    "url": "https://github.com/Gavin0099/ai-governance-framework/pull/80",
+    "current_anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+    "merge_base_with_anchor": "9772f840fa750c15514f685414f7c3b87bb70240",
+    "merge_tree_exit": 1,
+    "conflict_messages": [
+      "CONFLICT (add/add): Merge conflict in memory/2026-08-21.md"
+    ]
+  }
+]

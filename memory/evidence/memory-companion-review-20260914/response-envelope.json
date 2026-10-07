@@ -1,0 +1,53 @@
+{
+  "mode": "VALIDATION",
+  "mode_source": "validation_command",
+  "task": "Review existing companion candidate and completion allowance wording",
+  "task_authority": "user_request",
+  "scope": [
+    "existing uncommitted companion detector and its CI caller",
+    "memory_workflow human rendering",
+    "canonical review memory only"
+  ],
+  "done": [
+    "84 existing tests passed",
+    "Formal zero/present companion inputs replayed",
+    "No-guard true allowance reproduced with explicitly overridden non-memory input",
+    "Review recorded through canonical writer; guard ran with no blockers"
+  ],
+  "claim_ceiling": "Report-only zero-gap observation and P2 presentation finding; no full coverage or merge approval",
+  "not_claimed": [
+    "candidate implementation or delivery",
+    "per-work memory completeness",
+    "overall closeout false-positive",
+    "new schema, lifecycle or blocking policy",
+    "absence of all authority/provenance warnings"
+  ],
+  "evidence_refs": [
+    {
+      "artifact": "memory\\evidence\\memory-companion-review-20260914\\tests.xml",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\memory-companion-review-20260914\\zero-companion.json",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\memory-companion-review-20260914\\companion-present.json",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\memory-companion-review-20260914\\not-run-rendering.txt",
+      "result": "PASS"
+    },
+    {
+      "artifact": "memory\\evidence\\memory-companion-review-20260914\\memory-check.json",
+      "result": "PASS"
+    }
+  ],
+  "risk": [
+    "Candidate remains pre-existing uncommitted work",
+    "Review memory and evidence are local and uncommitted",
+    "Provenance and historical metadata warnings remain; no blockers is not full validity"
+  ],
+  "next_action": "Consider only a conditional human-wording amendment; preserve existing machine fields and non-blocking behavior."
+}

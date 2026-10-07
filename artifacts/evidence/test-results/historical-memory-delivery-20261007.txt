@@ -1,0 +1,1 @@
+{"canonical_identities_unchanged": 5, "raw_records_preserved": 5, "source_sha256_preserved": 35, "committed_report_blobs_preserved": 30, "committed_scope_paths": 35, "diff_check_exit": 0, "json_xml_and_readme_links": "valid", "historical_program_tests_rerun": false, "current_product_acceptance_claimed": false}

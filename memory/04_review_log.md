@@ -5403,3 +5403,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: artifacts/evidence/historical-json-debt-20261003/protected-config-sources-tests.txt; 96 passed/10 POSIX skipped locally, independent 35 passed/10 skipped; failure-first outer Git approval succeeds but previous scanner fails. Successor Linux CI/Codex pending.
 - Next action: Push successor companion head; wait current-head Codex and all substantive CI, merge repair, install exact reviewed hook/policy, then retry original normal Bookstore push.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:ae7f1dc3758f514776f44a9eb745f8a64990dfc85e288350f629967db26ba9df -->
+### Canonical memory checkpoint — codex-20261007-historical-memory-delivery
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `ae7f1dc3758f514776f44a9eb745f8a64990dfc85e288350f629967db26ba9df`
+- Commit binding: `dcf19013a3fe8783a563a41d23be1b0fc6a822fd` (bound)
+- Record: Archived five previously undelivered substantive historical record snapshots and 30 scoped reports or supporting artifacts on latest GitHub main. Preserved original identities, full raw text, three bound and two unbound states, and exact report bytes in Git. Local attributes preserve historical CRLF only. This archive does not promote historical recommendations, test output, PR state, or consumer claims to current authority. Original dirty workspace, old daily logs, PLAN and active-task summary are preserved. The user authorized this bounded first batch to be committed and pushed to an independent GitLab branch.
+- Validation boundary: PASS: five canonical identities and raw records unchanged; 35 original source SHA-256 values and 30 committed report blob hashes match; JSON/XML and README links valid; 35-path allowlist and git diff HEAD^ HEAD --check passed. Formal validation receipt: artifacts/evidence/test-results/historical-memory-delivery-20261007.json; raw output: artifacts/evidence/test-results/historical-memory-delivery-20261007.txt. Memory dispatcher with --run-guard --fail-on-blocker passed without blockers; historical and background warnings remain. NOT CLAIMED: historical program tests rerun, complete memory coverage, current product acceptance, push or merge.
+- Next action: Push this archive and its canonical delivery record to the authorized GitLab branch and verify the exact remote ref. Remaining candidate files are outside this first batch.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:695b828149f5e00f8229a3b995932535d703d26abbeaf203019e67f28b026a3e -->
+### Canonical memory checkpoint — codex-20261007-historical-memory-review
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `695b828149f5e00f8229a3b995932535d703d26abbeaf203019e67f28b026a3e`
+- Commit binding: `48d4cf1a86bd3d2a35893db63c3e20886286060e` (bound)
+- Record: Independent reviewer /root/archive_independent_review approved exact range fb8f6abb09d6419923247183a2ce744d75e65b29..48d4cf1a86bd3d2a35893db63c3e20886286060e (40 archival files), with no introduced or worsened current-decision blocker and low risk. Full review: memory/evidence/historical-delivery-20261007/INDEPENDENT_REVIEW.md. Preserved WARNING pre-existing memory provenance/metadata debt; impact no because new source bytes and delivery evidence were independently checked and no historical evidence is promoted to current authority; disposition carried-forward, not fixed. User clarified delivery through a GitHub PR into GitHub main followed by GitLab branch backup, without GitLab MR. Original dirty workspace remains excluded. PLAN and CRITICAL active-task summary remain unchanged; no new anti-pattern, implementation, policy or qualification scope.
+- Validation boundary: PASS: author replay confirmed 35 source SHA-256 values, 30 committed-copy hashes, five raw records, three bound/two unbound states, JSON/XML parsing, unchanged PLAN/active-task blobs, exact-range diff check and complete 40-path memory workflow with no blockers/current B0. Formal scoped replay receipt: artifacts/evidence/test-results/historical-memory-review-20261007.json; raw output: artifacts/evidence/test-results/historical-memory-review-20261007.txt. Independent review evidence is separately identified in memory/evidence/historical-delivery-20261007/INDEPENDENT_REVIEW.md; author replay is not independent review. Existing background warnings remain. NOT CLAIMED: successor-head review, current-head CI, owner exact-head attestation, merge eligibility, merge/backup completion or current historical program/product acceptance.
+- Next action: Commit this mandatory review companion before creating the single GitHub PR. Obtain final-head independent delta review and green configured checks, satisfy current owner merge authority, then merge GitHub main and back up that exact merged HEAD to a GitLab branch.
+- PLAN reconciliation: `not_applicable`
