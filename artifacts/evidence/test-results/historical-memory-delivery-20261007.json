@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "C:\\Users\\reiko\\AppData\\Local\\Programs\\Python\\Python313\\python.exe -X utf8 -c \"\nimport json,hashlib,pathlib,re,subprocess,xml.etree.ElementTree as ET\nfrom governance_tools.memory_record import build_record_identity\nroot=pathlib.Path.cwd(); source=pathlib.Path(r'E:\\BackUp\\Git_EE\\ai-governance-framework'); archive=root/'memory/evidence/historical-delivery-20261007'\ncommit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()\nassert commit=='dcf19013a3fe8783a563a41d23be1b0fc6a822fd'\nm=json.loads((archive/'manifest.json').read_text(encoding='utf-8')); records=json.loads((archive/'records.json').read_text(encoding='utf-8'))['records']; assert len(records)==5\nfor path,sha in m['source_file_sha256'].items(): assert hashlib.sha256((source/path).read_bytes()).hexdigest()==sha,path\nfor f in m['copied_files']:\n    blob=subprocess.check_output(['git','show',commit+':'+f['path']]); assert hashlib.sha256(blob).hexdigest()==f['sha256'],f['path']\n    if f['path'].endswith('.json'): json.loads(blob)\n    if f['path'].endswith('.xml'): ET.fromstring(blob)\nfor rec in records:\n    data=rec['record_text_utf8'].encode('utf-8'); assert hashlib.sha256(data).hexdigest()==rec['record_sha256'] and data in (source/rec['source_path']).read_bytes()\n    fields={}\n    for line in rec['record_text_utf8'].splitlines():\n        match=re.match(r'^\\s*(?:-\\s+)?([a-z_]+):\\s*(.*)$',line)\n        if match: fields[match[1]]=match[2]\n    assert build_record_identity(fields)==rec['record_identity']\nfor target in re.findall(r'\\]\\(([^)]+)\\)',(archive/'README.md').read_text(encoding='utf-8')): assert (archive/target).resolve().is_file(),target\ncheck=subprocess.run(['git','diff',commit+'^',commit,'--check'],capture_output=True,text=True); assert check.returncode==0,check.stdout\npaths=subprocess.check_output(['git','diff','--name-only',commit+'^',commit],text=True).splitlines(); allowed=['docs/governance/risk-adaptive-governance-compatibility-review-20260913.md','memory/evidence/historical-delivery-20261007/','memory/evidence/memory-companion-review-20260914/','memory/evidence/s0-state-reconciliation-20260915/']\nassert len(paths)==35 and all(any(p==a or p.startswith(a) for a in allowed) for p in paths)\nprint(json.dumps({'canonical_identities_unchanged':5,'raw_records_preserved':5,'source_sha256_preserved':35,'committed_report_blobs_preserved':30,'committed_scope_paths':35,'diff_check_exit':0,'json_xml_and_readme_links':'valid','historical_program_tests_rerun':False,'current_product_acceptance_claimed':False}))\n\"",
+  "exit_code": 0,
+  "started_at": "2026-10-07T10:05:40Z",
+  "finished_at": "2026-10-07T10:05:42Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "dcf19013a3fe8783a563a41d23be1b0fc6a822fd",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/historical-memory-delivery-20261007.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
