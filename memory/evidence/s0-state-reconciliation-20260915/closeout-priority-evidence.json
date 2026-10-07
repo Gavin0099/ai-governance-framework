@@ -1,0 +1,47 @@
+{
+  "scope": "local terminal observations only; no runtime input or code-level root cause proof",
+  "owner_report": {
+    "unbound_memory_4": "USER_REPORTED_NOT_BOUND_TO_LOCAL_REPLAY",
+    "consumer_at_85adb41": "USER_REPORTED_REPOSITORY_UNSPECIFIED",
+    "task_intent_summary_loss": "HYPOTHESIS_TO_REPRODUCE",
+    "version_upgrade_is_not_fix": "beecfd8 changes only memory completion boundaries and explanation; no closeout bridge repair in that delta"
+  },
+  "local_observations": [
+    {
+      "path": "memory/2026-09-14.md",
+      "sha256_before_s0_record": "5de15471f345d62f911a74d21a03bf1624494a36f216f09718dea608848c5b1e",
+      "hits": [
+        {
+          "line": 7,
+          "text": "  what_changed: session_end auto-closeout recorded for `session` (session=9502bdd4-c45a-4f37-bbc3-88249bfcc2df, decision=FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED, snapshot_created=False, promoted=False). Summary: Session closeout recorded without an explicit summary."
+        },
+        {
+          "line": 12,
+          "text": "  test_evidence: `session_end` => closeout_status=stale_or_mismatched, canonical_closeout_status=missing, snapshot_created=False, promoted=False, open_risk_count=0"
+        },
+        {
+          "line": 20,
+          "text": "  what_changed: session_end auto-closeout recorded for `session` (session=01a09df1-6d54-7c41-99ad-f78ce3c1d935, decision=FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED, snapshot_created=False, promoted=False). Summary: Session closeout recorded without an explicit summary."
+        },
+        {
+          "line": 25,
+          "text": "  test_evidence: `session_end` => closeout_status=stale_or_mismatched, canonical_closeout_status=missing, snapshot_created=False, promoted=False, open_risk_count=0"
+        }
+      ]
+    },
+    {
+      "path": "memory/2026-09-15.md",
+      "sha256_before_s0_record": "56b769715120fad0c6908ceb84fbe4ee486648cfea8b95c043e3308cc6cd64f8",
+      "hits": [
+        {
+          "line": 7,
+          "text": "  what_changed: session_end auto-closeout recorded for `session` (session=01a0a2de-2b6d-73d2-9b45-5071e33f6360, decision=FAIL_CLOSED_CLOSEOUT_STALE_OR_MISMATCHED, snapshot_created=False, promoted=False). Summary: Session closeout recorded without an explicit summary."
+        },
+        {
+          "line": 12,
+          "text": "  test_evidence: `session_end` => closeout_status=stale_or_mismatched, canonical_closeout_status=missing, snapshot_created=False, promoted=False, open_risk_count=0"
+        }
+      ]
+    }
+  ]
+}

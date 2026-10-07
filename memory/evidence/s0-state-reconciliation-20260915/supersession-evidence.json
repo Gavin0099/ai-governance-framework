@@ -1,0 +1,220 @@
+[
+  {
+    "pr": 179,
+    "path": "governance_tools/governance_maturity_summary.py",
+    "diff_anchor_to_pr": [
+      "--- \n",
+      "+++ \n",
+      "@@ -551,12 +551,15 @@\n",
+      "     return messages.get(str(status), \"目前不能判定是否可依賴 AI Governance，需要人工確認。\")",
+      " ",
+      " ",
+      "-def _plain_missing_surfaces(missing_surfaces: list[str]) -> str:",
+      "+def _plain_missing_surfaces(missing_surfaces: list[str], *, lock_commit_pending: bool = False) -> str:",
+      "     meanings = {",
+      "         \"runtime_self_contained_governance\": \"尚未證明 repo 內可自行執行 runtime 治理\",",
+      "         \"static_self_contained_framework\": \"靜態 framework 檔案不完整\",",
+      "         \"framework_pin_freshness\": \"本地 framework 版本可能落後\",",
+      "-        \"framework_lock_consistency\": \"版本帳本尚未和目前 framework 對齊\",",
+      "+        \"framework_lock_consistency\": (",
+      "+            \"版本帳本與 checkout 已對齊，但版本帳本尚未提交\"",
+      "+            if lock_commit_pending else \"版本帳本尚未和目前 framework 對齊\"",
+      "+        ),",
+      "         \"repo_specific_agents_rules\": \"缺少本 repo 的操作規則\",",
+      "         \"domain_contract\": \"缺少領域合約\",",
+      "         \"validator_surface\": \"尚未宣告 repo 專屬自動檢查\",",
+      "@@ -583,13 +586,21 @@\n",
+      "     missing_surfaces: list[str],",
+      "     cannot_claim: list[str],",
+      " ) -> list[str]:",
+      "+    # Render the existing diagnostic; do not promote the machine status or",
+      "+    # infer parent/index alignment, delivery completion, or push authority.",
+      "+    lock_commit_pending = (",
+      "+        lock_consistency.value == \"inconsistent\"",
+      "+        and lock_consistency.source == \"governance_maturity_summary.lock_consistency\"",
+      "+        and \"lock_file_dirty=true\" in lock_consistency.reasons",
+      "+        and \"working-tree lock matches checkout HEAD but is not committed\" in lock_consistency.reasons",
+      "+    )",
+      "     lines = [",
+      "         \"[human_readable_adoption_summary]\",",
+      "         \"用途：這段用人類可讀的方式說明 AI Governance 更新後，目前哪些功能已導入、哪些尚未導入或尚未驗證。\",",
+      "         \"先看結論：\",",
+      "         \"這份檢查做了什麼：檢查 framework、版本帳本、repo 規則、hooks、領域合約、自動檢查與記憶工作流的可見狀態。\",",
+      "         f\"現在能不能用：{_plain_use_now(user_facing_status.value)}\",",
+      "-        f\"還差什麼：{_plain_missing_surfaces(missing_surfaces)}\",",
+      "+        f\"還差什麼：{_plain_missing_surfaces(missing_surfaces, lock_commit_pending=lock_commit_pending)}\",",
+      "         (",
+      "             f\"整體導入狀態：{user_facing_status.value} - \"",
+      "             f\"{_plain_status_meaning(user_facing_status.value)}.\"",
+      "@@ -603,7 +614,7 @@\n",
+      "     lines.append(",
+      "         _capability_row(",
+      "             \"版本帳實一致性（Lock vs checkout consistency）\",",
+      "-            _capability_status(",
+      "+            \"已對齊，版本帳本待提交\" if lock_commit_pending else _capability_status(",
+      "                 lock_consistency.value,",
+      "                 present_values={\"consistent\", \"not_applicable\"},",
+      "             ),"
+    ],
+    "superseded_by": "NOT_ESTABLISHED; #177/#180 modify memory completion, not this lock-state display"
+  },
+  {
+    "pr": 178,
+    "path": "docs/governance/canonical-composed-hook-support.md",
+    "anchor_exists": false,
+    "pr_exists": true,
+    "declared_support": "# Canonical composed-hook support (H1)\n\nThis is a bounded compatibility adapter for the Lenovo consumer's existing\ninstall-time composition. It is not a hook plugin interface or a generic\ncomposition declaration format.\n\n## Accepted declaration\n\nThe reviewed source is `lenoveo-isp-tool-avalonia` commit\n`3a4278c4bd2a18548b4920f2e999372be1834d44`:\n\n- `scripts/hooks/install-governance-hooks.ps1`\n- `wire-pre-push-memory-quality.ps1`\n- `scripts/hooks/pre-push.memory-quality.fragment.sh`\n\nThe adapter pins the LF-normalized SHA-256 of these three files. Fixture copies\nunder `tests/fixtures/lenovo_composed_hook/` preserve their complete reviewed\ncontent. All three, and the referenced `validate-memory-quality.ps1`, must be\nregular in-repository files whose worktree and index content match HEAD. The\ngate script remains consumer-owned; this change neither rewrites it nor\ncertifies its behavior. Unsupported declaration revisions fail closed and need\na separate compatibility review, not an automatic plugin discovery path.\n\nNo consumer script is executed while recognizing the declaration. In a repo\nwithout the declaration, the existing raw-framework-hook path remains valid.\n\n## Comparison and installation\n\nBefore F-7 changes the framework checkout, its mutation guard reconstructs the\nexpected pre-push from the **current base** plus the committed fragment. It\ncompares the entire installed content, ignoring CRLF versus LF only. A marker\nalone is never sufficient; missing extensions and unknown extra content fail.\n\nAfter the checkout advances, both F-7's internal hook writer and the standalone\ninstaller construct the **new base** plus the same declared fragment. The\ncomplete file is written to a sibling temporary file and replaced atomically.\nThe old hook remains if preparing or replacing the file fails. No intermediate\nraw pre-push is installed. This is a per-hook-file guarantee, not a transaction\nover the entire F-7 update or all configuration files.\n\nThe declared insertion is before the unique structured-memory anchor. A\nstandalone terminal `exit 0` is the supported fallback; an ambiguous or absent\ninsertion point is rejected rather than guessing a place that may skip gates.\n\nRepeated install leaves an already identical hook untouched. Existing F-7\nreceipt, dirty-tree, authorization and parent-commit gates still apply to a\nsecond F-7 run; H1 does not make an uncommitted update globally idempotent.\n\n## Evidence boundaries\n\nThe focused tests check full payload matching, missing/unknown changes,\ndeclaration provenance, base updates, unchanged repeat install and replacement\nfailure. Shell replay checks independent framework and extension rejection;\nthe PowerShell stand-in is explicitly a fixture and does not certify the\nconsumer's memory-quality validator internals.\n\nFormal disposable-consumer replay additionally exercises F-7 and the original\ntracked installer. Passing those checks does not establish fleet-wide adoption,\nM1 completion-state behavior, or permission to push a consumer.\n",
+    "superseded_by": "NOT_ESTABLISHED; equivalent complete behavior not demonstrated"
+  },
+  {
+    "pr": 176,
+    "method": "record_identity set of historical daily additions, excluding PR companion daily file; proves identity presence only, not prose truth",
+    "details": [
+      {
+        "path": "memory/2026-08-19.md",
+        "added_identity_count": 3,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "469996d60fbe64c3d213f1937f11a6df94ca23bab65803c066a24ac06b907847",
+          "7c2f56127937c54dc440d38c8f0d4d784d4e4bd24d98fd84d7fb130aab73cb10",
+          "92b461c8875fd92975bd82275899c56008cb3ff02f1fe44a81034fd8fd97d652"
+        ]
+      },
+      {
+        "path": "memory/2026-08-20.md",
+        "added_identity_count": 3,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "469996d60fbe64c3d213f1937f11a6df94ca23bab65803c066a24ac06b907847",
+          "7c2f56127937c54dc440d38c8f0d4d784d4e4bd24d98fd84d7fb130aab73cb10",
+          "e3fd555ee9b3d52e02e7877f481c049e21367016ce95d6dfc1aa326f02be3753"
+        ]
+      },
+      {
+        "path": "memory/2026-08-21.md",
+        "added_identity_count": 6,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "111f2825fb84995f7ca8ddfbfa36df9499716d818708654039ec225d7ac0eae7",
+          "2defdf59a09e76be55b21cdf4b3543ab1fd48bd61e5ef988fdcaa17eed0fabde",
+          "469996d60fbe64c3d213f1937f11a6df94ca23bab65803c066a24ac06b907847",
+          "478fbd7989f9edd846c2ba5cb488566dbdba47045eba18fde8ee394a170826dc",
+          "53d231ae710be6e6ed9bb2e409798626298560b000815cfa96aa797beb6080a4",
+          "7c2f56127937c54dc440d38c8f0d4d784d4e4bd24d98fd84d7fb130aab73cb10"
+        ]
+      },
+      {
+        "path": "memory/2026-08-24.md",
+        "added_identity_count": 2,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "2defdf59a09e76be55b21cdf4b3543ab1fd48bd61e5ef988fdcaa17eed0fabde",
+          "478fbd7989f9edd846c2ba5cb488566dbdba47045eba18fde8ee394a170826dc"
+        ]
+      },
+      {
+        "path": "memory/2026-08-27.md",
+        "added_identity_count": 1,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "478fbd7989f9edd846c2ba5cb488566dbdba47045eba18fde8ee394a170826dc"
+        ]
+      },
+      {
+        "path": "memory/2026-08-31.md",
+        "added_identity_count": 2,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "478fbd7989f9edd846c2ba5cb488566dbdba47045eba18fde8ee394a170826dc",
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-02.md",
+        "added_identity_count": 1,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-04.md",
+        "added_identity_count": 1,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-07.md",
+        "added_identity_count": 1,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-08.md",
+        "added_identity_count": 2,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "3f1c160877149cb8e1872aff70da16e206de0c7b53ed1f610728838a3397e308",
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-09.md",
+        "added_identity_count": 2,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "2e9b0f901425c62cd41643cbdf69ccf44faeef172671274f1422cc32dddf30fb",
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      },
+      {
+        "path": "memory/2026-09-12.md",
+        "added_identity_count": 1,
+        "present_in_anchor": [],
+        "absent_from_anchor": [
+          "83f637e27a663be8a2b364ecf0ae0daacba46b05fb8bbde61bba39ea0b84f5db"
+        ]
+      }
+    ]
+  },
+  {
+    "pr": 88,
+    "path": "governance_tools/memory_provenance.py",
+    "symbol_presence": {
+      "terminal_closeout_not_observed": {
+        "anchor": false,
+        "pr_head": true,
+        "workspace": false
+      },
+      "detect_commit_range_terminal_closeout_gap": {
+        "anchor": false,
+        "pr_head": true,
+        "workspace": false
+      },
+      "closeout_companion_not_observed": {
+        "anchor": false,
+        "pr_head": false,
+        "workspace": true
+      },
+      "detect_commit_range_closeout_companion_gap": {
+        "anchor": false,
+        "pr_head": false,
+        "workspace": true
+      }
+    },
+    "superseded_by": "NOT_ESTABLISHED; local range-any and PR terminal-state differ; no retirement decision"
+  },
+  {
+    "pr": 80,
+    "path": "governance/fleet/known_incidents.md",
+    "anchor_sha256": "b13e489c88a2b3119925d94440766b8cdd29373dd65786d5513914011723c320",
+    "pr_sha256": "16ff6de67cce13c98b7d00817dfeffc9da67b46128e771c80d42576fc3addb50",
+    "anchor_contains_occurrence_2": false,
+    "pr_contains_occurrence_2": true,
+    "superseded_by": "NOT_ESTABLISHED; the second incident account is not in the canonical incident file; no claim about private facts independently reproduced"
+  }
+]

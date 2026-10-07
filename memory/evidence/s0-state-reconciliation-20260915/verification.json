@@ -1,0 +1,255 @@
+{
+  "captured_at": "2026-09-15T10:49:46.588751+08:00",
+  "checks": [
+    {
+      "path": "docs/releases/generated/README.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/status/engineering-skill-pilot-plan.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "governance/MEMORY_PROTOCOL.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "governance_tools/ci_memory_workflow_check.py",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "governance_tools/memory_provenance.py",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/01_active_task.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/04_review_log.md",
+      "check": "old bytes preserved as prefix",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-14.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-17.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-18.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-19.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-20.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-21.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-24.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-27.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-31.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-02.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-04.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-07.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-08.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-09.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-12.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "tests/test_ci_memory_workflow_check.py",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/ai-governance-member-briefing-guide.html",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/ai-governance-member-briefing-guide.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/governance/risk-adaptive-governance-compatibility-review-20260913.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/releases/generated/PUBLICATION_INDEX.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/releases/generated/PUBLICATION_MANIFEST.json",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/releases/generated/latest.json",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/releases/generated/latest.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/status/generated/PUBLICATION_INDEX.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/status/generated/PUBLICATION_MANIFEST.json",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "docs/status/generated/README.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-08-25.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-01.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-03.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-10.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-11.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-14.md",
+      "check": "bytes unchanged",
+      "passed": true
+    },
+    {
+      "path": "memory/2026-09-15.md",
+      "check": "old bytes preserved as prefix",
+      "passed": true
+    },
+    {
+      "check": "original HEAD unchanged",
+      "passed": true
+    },
+    {
+      "check": "original index tree unchanged",
+      "passed": true
+    },
+    {
+      "check": "baseline HEAD anchored",
+      "passed": true
+    },
+    {
+      "check": "baseline worktree clean",
+      "passed": true
+    },
+    {
+      "check": "all five PR identities in table",
+      "passed": true
+    },
+    {
+      "check": "all expected merge conflicts observed",
+      "passed": true
+    },
+    {
+      "check": "every status path classified",
+      "passed": true
+    },
+    {
+      "check": "six denied directories explicitly unknown",
+      "passed": true
+    },
+    {
+      "check": "PR HEADs unchanged at final query",
+      "passed": true
+    },
+    {
+      "check": "origin main unchanged at final query",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "commands": [
+    "git merge-tree --write-tree <anchor> <pr-head>",
+    "git ls-remote origin refs/heads/main",
+    "gh pr list --repo Gavin0099/ai-governance-framework --state open --json number,headRefOid",
+    "SHA256 of original file bytes or pre-writer prefixes",
+    "git write-tree",
+    "git -C <baseline> status --porcelain"
+  ],
+  "scope": "Evidence identity/completeness and allowed-mutation preservation only; no program tests or closeout replay"
+}

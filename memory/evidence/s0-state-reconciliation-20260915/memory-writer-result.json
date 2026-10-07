@@ -1,0 +1,28 @@
+{
+  "command": [
+    "C:\\Users\\reiko\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "-m",
+    "governance_tools.memory_record",
+    "--project-root",
+    "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "--commit",
+    "UNCOMMITTED",
+    "--session-id",
+    "2026-09-15-s0-state-reconciliation",
+    "--surface",
+    "daily",
+    "--surface",
+    "review-log",
+    "--what-changed",
+    "Produced one S0 current decision table anchored to beecfd8d in a clean detached checkout. Verified five PR heads, API bases, common ancestors, exact merge-tree conflict paths and unresolved review threads; classified 144 preexisting dirty path units with directory/access limits. Main absorbs the local MEMORY_PROTOCOL semantic delta, but supersession of PR176/88/80 is not established. Owner freezes new capabilities and orders S0/S1-179/S2-178/S3-disposition/S4-cleanup. Added an AI proposal for a bounded closeout reproduction after179 before178; terminal anomalies are observed, code-level root cause and the owners unbound_memory=4 consumer context remain unverified. No PR implementation, cleanup, PLAN edit, commit, push or reproduction. Artifacts remain uncommitted; baseline commit is not artifact delivery proof.",
+    "--test-evidence",
+    "NOT CLAIMED: implementation correctness, merge approval, full dirty-directory audit or closeout root cause. Fixed-source observations: memory/evidence/s0-state-reconciliation-20260915/anchor.json, prs.json, review-threads.json, dirty-inventory.json, supersession-evidence.json and closeout-priority-evidence.json. Final preservation and completeness checks are recorded separately in verification.json.",
+    "--plan-reconciliation",
+    "deferred:scope-split-next-slice",
+    "--next-step",
+    "Stop after S0 evidence verification. PR179 is the first delivery target for a subsequent bounded slice; owner adoption of the proposed closeout reproduction insertion remains pending. PR176/88/80 retain-or-retire decisions and workspace/PLAN changes remain later scope."
+  ],
+  "exit_code": 0,
+  "stdout": "[memory_record] Written: E:\\BackUp\\Git_EE\\ai-governance-framework\\memory\\2026-09-15.md (surface identity=8ebc079b50f8c1b2affcbb4bdb5b89c663d90f48a53d7f26b6df300ef25dfc97)\r\n[memory_record] Written: E:\\BackUp\\Git_EE\\ai-governance-framework\\memory\\04_review_log.md (surface identity=8ebc079b50f8c1b2affcbb4bdb5b89c663d90f48a53d7f26b6df300ef25dfc97)\r\n- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: Produced one S0 current decision table anchored to beecfd8d in a clean detached checkout. Verified five PR heads, API bases, common ancestors, exact merge-tree conflict paths and unresolved review threads; classified 144 preexisting dirty path units with directory/access limits. Main absorbs the local MEMORY_PROTOCOL semantic delta, but supersession of PR176/88/80 is not established. Owner freezes new capabilities and orders S0/S1-179/S2-178/S3-disposition/S4-cleanup. Added an AI proposal for a bounded closeout reproduction after179 before178; terminal anomalies are observed, code-level root cause and the owners unbound_memory=4 consumer context remain unverified. No PR implementation, cleanup, PLAN edit, commit, push or reproduction. Artifacts remain uncommitted; baseline commit is not artifact delivery proof.\r\n  commit: UNCOMMITTED\r\n  commit_hash: UNCOMMITTED\r\n  session_id: 2026-09-15-s0-state-reconciliation\r\n  memory_binding: unbound\r\n  test_evidence: NOT CLAIMED: implementation correctness, merge approval, full dirty-directory audit or closeout root cause. Fixed-source observations: memory/evidence/s0-state-reconciliation-20260915/anchor.json, prs.json, review-threads.json, dirty-inventory.json, supersession-evidence.json and closeout-priority-evidence.json. Final preservation and completeness checks are recorded separately in verification.json.\r\n  next_step: Stop after S0 evidence verification. PR179 is the first delivery target for a subsequent bounded slice; owner adoption of the proposed closeout reproduction insertion remains pending. PR176/88/80 retain-or-retire decisions and workspace/PLAN changes remain later scope.\r\n  plan_reconciliation: deferred:scope-split-next-slice\r\n  record_identity: 8ebc079b50f8c1b2affcbb4bdb5b89c663d90f48a53d7f26b6df300ef25dfc97\r\n\r\n",
+  "stderr": ""
+}

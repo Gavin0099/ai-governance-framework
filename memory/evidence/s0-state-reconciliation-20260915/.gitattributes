@@ -1,0 +1,2 @@
+# Preserve original bytes and recognize CRLF in historical evidence snapshots.
+* -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

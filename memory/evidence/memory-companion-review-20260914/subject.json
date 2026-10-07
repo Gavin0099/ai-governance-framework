@@ -1,0 +1,11 @@
+{
+  "head": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+  "candidate_is_uncommitted": true,
+  "file_sha256": {
+    "governance_tools/memory_provenance.py": "59869b771d823a71b55ed4128f83f59a097b0872997a3f632bc5ada5f69d4cbf",
+    "governance_tools/ci_memory_workflow_check.py": "b51b65a0d852da156bb662dee5e9fc1b435a3bbc3fd0eed4893e12b48d41b46f",
+    "tests/test_ci_memory_workflow_check.py": "6750d445ec1f7f04b85cc2a327d98277b5b8a321df6b197ced47d490d7436816",
+    "governance_tools/memory_workflow.py": "d3a2f981ba8832d6ed711ac11a3c537795d3fbcab9b2277dff4ac682dd87a6b3",
+    "governance_tools/memory_record.py": "c2b58d0e8d7a618a7324bd23133858f650bede2df6990e226adcbce1f100b58e"
+  }
+}

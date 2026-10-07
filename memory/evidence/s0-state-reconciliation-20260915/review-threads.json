@@ -1,0 +1,97 @@
+{
+  "captured_from": "GitHub connector list_pull_request_review_threads",
+  "prs": [
+    {
+      "number": 176,
+      "result": {
+        "review_threads": []
+      }
+    },
+    {
+      "number": 178,
+      "result": {
+        "review_threads": [
+          {
+            "id": "PRRT_kwDORv_6oM6iDgZs",
+            "is_resolved": false,
+            "is_outdated": false,
+            "path": "governance_tools/hook_installer.py",
+            "line": 806,
+            "diff_side": "RIGHT",
+            "start_line": 804,
+            "start_diff_side": "RIGHT",
+            "original_line": 806,
+            "original_start_line": 804,
+            "resolved_by": null,
+            "comments": [
+              {
+                "id": "PRRC_kwDORv_6oM7upenJ",
+                "database_id": 4003850697,
+                "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Permit standalone updates of an older composed hook**\n\nWhen the Lenovo declaration is unchanged but the framework's `pre-push` source advances, the installed hook still contains the previous valid base and therefore necessarily differs from `payloads[\"pre-push\"]`; this guard returns an error before `atomic_write_hook` can install the new base. Consequently, rerunning the documented standalone installer after a framework upgrade leaves the old hook installed—the included test only exercises an upgrade through `_ensure_hook_advisory` first, which masks this path. Distinguish a valid prior composition from an unknown consumer mutation so the standalone end-to-end update remains usable.\n\nAGENTS.md reference: [AGENTS.md:L169-L175](https://github.com/Gavin0099/ai-governance-framework/blob/663d13d2a5bb5e241e7879f864b9d2ebff26ff14/AGENTS.md#L169-L175)\n\nUseful? React with 👍 / 👎.",
+                "created_at": "2026-09-14T09:29:53Z",
+                "updated_at": "2026-09-14T09:29:53Z",
+                "author": {
+                  "login": "chatgpt-codex-connector",
+                  "name": "chatgpt-codex-connector",
+                  "email": null,
+                  "avatar_url": "https://avatars.githubusercontent.com/in/1144995?v=4",
+                  "id": null
+                },
+                "viewer_did_author": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "number": 179,
+      "result": {
+        "review_threads": []
+      }
+    },
+    {
+      "number": 88,
+      "result": {
+        "review_threads": []
+      }
+    },
+    {
+      "number": 80,
+      "result": {
+        "review_threads": [
+          {
+            "id": "PRRT_kwDORv_6oM6bA5TL",
+            "is_resolved": false,
+            "is_outdated": false,
+            "path": "memory/2026-08-21.md",
+            "line": 9,
+            "diff_side": "RIGHT",
+            "start_line": 8,
+            "start_diff_side": "RIGHT",
+            "original_line": 9,
+            "original_start_line": 8,
+            "resolved_by": null,
+            "comments": [
+              {
+                "id": "PRRC_kwDORv_6oM7kF1Jw",
+                "database_id": 3826733680,
+                "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Anchor the memory record to reachable history**\n\nWhen this commit is fetched without the local `work` branch, the recorded `688b3a69` object is unavailable: it is not an ancestor of `8b3c2b9` (`git merge-base --is-ancestor` returns 1), and the only current ref containing it is `refs/heads/work`. Consequently, a fresh checkout cannot resolve this supposedly `bound` memory record or its receipt’s matching `linked_commit`, defeating the durable provenance that these fields are meant to provide; preserve the implementation commit in the published history or add a corrective record anchored to a reachable commit.\n\nUseful? React with 👍 / 👎.",
+                "created_at": "2026-08-21T02:03:16Z",
+                "updated_at": "2026-08-21T02:03:16Z",
+                "author": {
+                  "login": "chatgpt-codex-connector",
+                  "name": "chatgpt-codex-connector",
+                  "email": null,
+                  "avatar_url": "https://avatars.githubusercontent.com/in/1144995?v=4",
+                  "id": null
+                },
+                "viewer_did_author": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

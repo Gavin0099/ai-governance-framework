@@ -1,0 +1,48 @@
+{
+  "repo_root": "E:\\BackUp\\Git_EE\\lenoveo-isp-tool-avalonia",
+  "mode": "ci_selective_current_diff",
+  "changed_files": [
+    "AGENTS.base.md",
+    "AGENTS.md",
+    "external/ai-governance-framework",
+    "governance/.update-receipt.json",
+    "governance/baseline.yaml",
+    "governance/framework.lock.json",
+    "scripts/hooks/install-governance-hooks.ps1"
+  ],
+  "changed_memory_files": [],
+  "active_non_canonical_writer_count": 0,
+  "current_diff_active_non_canonical_writer_count": 0,
+  "repo_state_b0_blocker_count": 0,
+  "current_diff_b0_blocker_count": 0,
+  "blockers": [],
+  "warnings": [
+    "closeout_companion_not_observed=1"
+  ],
+  "mixed_scope_memory_binding_count": 0,
+  "mixed_scope_findings": [],
+  "closeout_companion_not_observed_count": 1,
+  "closeout_companion_findings": [
+    {
+      "code": "closeout_companion_not_observed",
+      "enforcement": "report_only",
+      "scope_ref": "e4060b8^..3a4278c",
+      "non_closeout_commits": [
+        "3a4278c4bd2a18548b4920f2e999372be1834d44",
+        "e4060b84f3ac2a570905ba60fb4ca5473989622f"
+      ],
+      "non_closeout_paths": [
+        "AGENTS.base.md",
+        "AGENTS.md",
+        "external/ai-governance-framework",
+        "governance/.update-receipt.json",
+        "governance/baseline.yaml",
+        "governance/framework.lock.json",
+        "scripts/hooks/install-governance-hooks.ps1"
+      ],
+      "observed_bound_commits": [],
+      "reason": "the inspected commit range changes non-closeout paths, but no added canonical memory entry binds a non-closeout commit in that range"
+    }
+  ],
+  "clean": true
+}

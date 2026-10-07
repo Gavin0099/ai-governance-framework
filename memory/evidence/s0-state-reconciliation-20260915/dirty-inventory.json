@@ -1,0 +1,1476 @@
+{
+  "captured_at": "2026-09-15T10:41:55.042956+08:00",
+  "anchor": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482",
+  "unit": "git status --untracked-files=normal path; directories remain aggregate units",
+  "discovery_warnings": "warning: could not open directory '.pytest-pr8-expanded-basetemp/': Permission denied\nwarning: could not open directory '.pytest-pr8-merge-basetemp/': Permission denied\nwarning: could not open directory '.tmp_f7b_boundary/': Permission denied\nwarning: could not open directory '.tmp_f7b_boundary_new/': Permission denied\nwarning: could not open directory '.tmp_review_2c3536cc_cache/': Permission denied\nwarning: could not open directory '.tmp_review_2c3536cc_focus/': Permission denied\n",
+  "counts": {
+    "generated": 11,
+    "unknown": 95,
+    "superseded": 1,
+    "retained candidate": 37
+  },
+  "items": [
+    {
+      "path": "docs/releases/generated/README.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "37ca283979c6de03c831c73b4c26d1b319109c928abe07409faae0a708b71119",
+      "size": 428,
+      "anchor_sha256": "b969ebe04d1d31714973c59a92765195494e2ed5f75bae082ace069aba24032f",
+      "head_sha256": "b969ebe04d1d31714973c59a92765195494e2ed5f75bae082ace069aba24032f",
+      "index_sha256": "b969ebe04d1d31714973c59a92765195494e2ed5f75bae082ace069aba24032f",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/status/engineering-skill-pilot-plan.md",
+      "status": "M ",
+      "kind": "file",
+      "classification": "unknown",
+      "reason": "相對 main 少了 2026-08-20 owner amendment 確認行，且已 staged；未建立刪除該授權記錄的意圖，保持 unknown，S4 處置。",
+      "deletion_authorized": false,
+      "sha256": "11d7f1e164903517cfc4667625d505846feadb9514aba3b5af2a53778db1c9a3",
+      "size": 5970,
+      "anchor_sha256": "cd7f51b4b080754cd48738dee195e8b694a88dee5e292daa4662cfb129bd1ef6",
+      "head_sha256": "cd7f51b4b080754cd48738dee195e8b694a88dee5e292daa4662cfb129bd1ef6",
+      "index_sha256": "3aa33dc381e6523a7309ea4d25c1eb547e9a98cb4aaa27ff16ce0ba11998fb06",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "governance/MEMORY_PROTOCOL.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "superseded",
+      "reason": "目前內容與固定 main 相同（僅忽略 BOM/CRLF）；不含獨有語義修改。",
+      "deletion_authorized": false,
+      "sha256": "6497e1974417a85ef4ac940e4774f3bb85b89b427621bdfca2a1e6f976733c07",
+      "size": 17600,
+      "anchor_sha256": "e8f8b6c89eb111669339da46b9b577a2d82795ed657fc77070d495f36e4e8339",
+      "head_sha256": "0269a47744db898087aeaff43e1bc662d75dc8a3105afddc79e058bb5755c295",
+      "index_sha256": "0269a47744db898087aeaff43e1bc662d75dc8a3105afddc79e058bb5755c295",
+      "matches_anchor_after_bom_crlf_normalization": true,
+      "superseded_by": "beecfd8d36f83dbb6c2dc04010f0c8f19c71c482"
+    },
+    {
+      "path": "governance_tools/ci_memory_workflow_check.py",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地 range-any companion 候選；與 PR88 末端記錄觀察不同，S3 決定唯一保留路線。",
+      "deletion_authorized": false,
+      "sha256": "b51b65a0d852da156bb662dee5e9fc1b435a3bbc3fd0eed4893e12b48d41b46f",
+      "size": 11879,
+      "anchor_sha256": "f0dce568ac164a0406b9e28fcd7271640f87b080d0712a3607ce6409abf073a4",
+      "head_sha256": "f0dce568ac164a0406b9e28fcd7271640f87b080d0712a3607ce6409abf073a4",
+      "index_sha256": "f0dce568ac164a0406b9e28fcd7271640f87b080d0712a3607ce6409abf073a4",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "governance_tools/memory_provenance.py",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地 range-any companion 候選；與 PR88 末端記錄觀察不同，S3 決定唯一保留路線。",
+      "deletion_authorized": false,
+      "sha256": "59869b771d823a71b55ed4128f83f59a097b0872997a3f632bc5ada5f69d4cbf",
+      "size": 15571,
+      "anchor_sha256": "2141594f7c2f8880b93a69c8fd2b518380dc8fec6316ffd3366f9a6f4eef8418",
+      "head_sha256": "2141594f7c2f8880b93a69c8fd2b518380dc8fec6316ffd3366f9a6f4eef8418",
+      "index_sha256": "2141594f7c2f8880b93a69c8fd2b518380dc8fec6316ffd3366f9a6f4eef8418",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/01_active_task.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "40a225aad6ede7826f40340004e849aa8523a112b5423de6ceac75ebbc76f79c",
+      "size": 11572,
+      "anchor_sha256": "6d9e67cb5a276516f2e950f1ea6991acebd8d88f179a46523e06922aa9fe6a9d",
+      "head_sha256": "6d9e67cb5a276516f2e950f1ea6991acebd8d88f179a46523e06922aa9fe6a9d",
+      "index_sha256": "6d9e67cb5a276516f2e950f1ea6991acebd8d88f179a46523e06922aa9fe6a9d",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/04_review_log.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "8819e70d0462bfc8add76604c81d81d28bab9d3f7206c8ae304b56e99c4a945f",
+      "size": 325268,
+      "anchor_sha256": "0d081e518a04229eb1eaae7f726376aa8ab5f37e9a0acc02d8d6eecabfb7ffa0",
+      "head_sha256": "ee987614c8a4497605c3d1d4be0d7ffba6a7d9b34d0f44ef43bc36ff84c74c13",
+      "index_sha256": "ee987614c8a4497605c3d1d4be0d7ffba6a7d9b34d0f44ef43bc36ff84c74c13",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-14.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "b6291d86c7ed0dad9cd85bcbdb643353ad9fd98b6fceb619865ce2ebb9e9714f",
+      "size": 5893,
+      "anchor_sha256": "b4ed43fef2ff1f85f2be5ec8e8884c30cabe911ee8f12d6e9a2c0e46853047f1",
+      "head_sha256": "b4ed43fef2ff1f85f2be5ec8e8884c30cabe911ee8f12d6e9a2c0e46853047f1",
+      "index_sha256": "b4ed43fef2ff1f85f2be5ec8e8884c30cabe911ee8f12d6e9a2c0e46853047f1",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-17.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "99b10162802f42bebb6782773582d1d59ecda35be76fa80abb0149226d2098ec",
+      "size": 1016,
+      "anchor_sha256": "69f4d5ad090eaeeeba2eae20f2847d05234f7dc83b0308e8009781f12b1bf42b",
+      "head_sha256": "69f4d5ad090eaeeeba2eae20f2847d05234f7dc83b0308e8009781f12b1bf42b",
+      "index_sha256": "69f4d5ad090eaeeeba2eae20f2847d05234f7dc83b0308e8009781f12b1bf42b",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-18.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "91b47bab676510cf885d7b18abbe46fdc70216d15e3d941628a60bff33996d9c",
+      "size": 2893,
+      "anchor_sha256": "4dc41a4fc4d8f277caaad5416d8eb3af336d724d3b294f033c0d4367a04805fd",
+      "head_sha256": "4dc41a4fc4d8f277caaad5416d8eb3af336d724d3b294f033c0d4367a04805fd",
+      "index_sha256": "4dc41a4fc4d8f277caaad5416d8eb3af336d724d3b294f033c0d4367a04805fd",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-19.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "aadc342ec235ee2a1ee6505773324f5e1342c46af241ad56ad9a858a4c959a55",
+      "size": 40174,
+      "anchor_sha256": "1d0a4543391d261e93bda44e558958fc98d93b75791f134f5ce640abf02ffd57",
+      "head_sha256": "1d0a4543391d261e93bda44e558958fc98d93b75791f134f5ce640abf02ffd57",
+      "index_sha256": "1d0a4543391d261e93bda44e558958fc98d93b75791f134f5ce640abf02ffd57",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-20.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "56e497c3df70beeffc877130366c95546ee47ca8bc7e86218f28f1f30121560a",
+      "size": 18719,
+      "anchor_sha256": "913d81e5c3f0d1fcdedfa27e82ada9a3e7deb58798140958ac3e9f229d1a540e",
+      "head_sha256": "913d81e5c3f0d1fcdedfa27e82ada9a3e7deb58798140958ac3e9f229d1a540e",
+      "index_sha256": "913d81e5c3f0d1fcdedfa27e82ada9a3e7deb58798140958ac3e9f229d1a540e",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-21.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "3b7a0d8747a3cb60f0fe06df8ed7646778034795973ec927d4b3b8c177dae4f8",
+      "size": 6905,
+      "anchor_sha256": "75faa447f11b9d8aac6fba012251065145b4bf58d521d24c9c230b452ff80ad1",
+      "head_sha256": "75faa447f11b9d8aac6fba012251065145b4bf58d521d24c9c230b452ff80ad1",
+      "index_sha256": "75faa447f11b9d8aac6fba012251065145b4bf58d521d24c9c230b452ff80ad1",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-24.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "70dd4d50c2d85d52391c5a4b169abe8309e80f939801974e44d2049ef9b7d757",
+      "size": 15621,
+      "anchor_sha256": "c965bab29f6cf992aa3970e731fb1e442d8e23dddad7b3ecffbd78323d9f02f1",
+      "head_sha256": "c965bab29f6cf992aa3970e731fb1e442d8e23dddad7b3ecffbd78323d9f02f1",
+      "index_sha256": "c965bab29f6cf992aa3970e731fb1e442d8e23dddad7b3ecffbd78323d9f02f1",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-27.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "51c67f4f91d549d7b676fed5a5fffab37e5a40af95bb6b989837c94f18c8cd9c",
+      "size": 2724,
+      "anchor_sha256": "5f7f539a06683142901784cd8af473759b99182927928b835d131383e69a92ff",
+      "head_sha256": "5f7f539a06683142901784cd8af473759b99182927928b835d131383e69a92ff",
+      "index_sha256": "5f7f539a06683142901784cd8af473759b99182927928b835d131383e69a92ff",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-08-31.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "854231311c9814c31ccf563f73639e320eb60fb7b8c35d5110260b3fd5c86d80",
+      "size": 12463,
+      "anchor_sha256": "c5dc41ed8b91f8024dee391286e256b1eeeacbd7a6e86111cedaaa36c2f10510",
+      "head_sha256": "c5dc41ed8b91f8024dee391286e256b1eeeacbd7a6e86111cedaaa36c2f10510",
+      "index_sha256": "c5dc41ed8b91f8024dee391286e256b1eeeacbd7a6e86111cedaaa36c2f10510",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-02.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "fd70eed1b9fe1ae7e2299579ba0fc79d3b2e59230cf74840e5d9dd1c8d7deff7",
+      "size": 3422,
+      "anchor_sha256": "136efb45b23ba85a5bae67597117d25c14dceb61e81794c6582fc52e9772610d",
+      "head_sha256": "136efb45b23ba85a5bae67597117d25c14dceb61e81794c6582fc52e9772610d",
+      "index_sha256": "136efb45b23ba85a5bae67597117d25c14dceb61e81794c6582fc52e9772610d",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-04.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "c1c45abfad04a15679389eabdb0c8000bcaa5e4b0a8353b6efc3cb41f875249d",
+      "size": 2853,
+      "anchor_sha256": "61a76d6159a2c36816b44f2b5b7a8620b27f136c50d53d8af2eb05bba2308576",
+      "head_sha256": "61a76d6159a2c36816b44f2b5b7a8620b27f136c50d53d8af2eb05bba2308576",
+      "index_sha256": "61a76d6159a2c36816b44f2b5b7a8620b27f136c50d53d8af2eb05bba2308576",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-07.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "5eb0eafc304173fc272dfa9b737541c41507e7be8c7fdf437b52cfd04f7f65bd",
+      "size": 37790,
+      "anchor_sha256": "67ca9186332c117ab486f197d18ceabc05e6be30987088a71cdbb4f56137b9eb",
+      "head_sha256": "67ca9186332c117ab486f197d18ceabc05e6be30987088a71cdbb4f56137b9eb",
+      "index_sha256": "67ca9186332c117ab486f197d18ceabc05e6be30987088a71cdbb4f56137b9eb",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-08.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "feb11289de58b4d236b71efa0afd81141737f38cfa78bfc723aae505704ae3ba",
+      "size": 48290,
+      "anchor_sha256": "2e2a25823bc221bebe4d281d6d2897fdc298f401faeb19367b5595aa41e2107b",
+      "head_sha256": "2e2a25823bc221bebe4d281d6d2897fdc298f401faeb19367b5595aa41e2107b",
+      "index_sha256": "2e2a25823bc221bebe4d281d6d2897fdc298f401faeb19367b5595aa41e2107b",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-09.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "4ab0022492c4a286a85f502571b40c6aee0b3eed4fab7afbf1889f79d382ea78",
+      "size": 13565,
+      "anchor_sha256": "5c64f0eea0932069554525f23aef825c3262a16303296fe2fd130b89ce89745b",
+      "head_sha256": "5c64f0eea0932069554525f23aef825c3262a16303296fe2fd130b89ce89745b",
+      "index_sha256": "5c64f0eea0932069554525f23aef825c3262a16303296fe2fd130b89ce89745b",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-12.md",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "8dc19f6b5e6874c8a0f59e5fe6c577adaecd3be277cfb639a8f458decc578f8f",
+      "size": 9187,
+      "anchor_sha256": "7d81041139d32e362573e3513f59e22436dce329ff19855aeaf32184196e1289",
+      "head_sha256": "7d81041139d32e362573e3513f59e22436dce329ff19855aeaf32184196e1289",
+      "index_sha256": "7d81041139d32e362573e3513f59e22436dce329ff19855aeaf32184196e1289",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "tests/test_ci_memory_workflow_check.py",
+      "status": " M",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地 range-any companion 候選；與 PR88 末端記錄觀察不同，S3 決定唯一保留路線。",
+      "deletion_authorized": false,
+      "sha256": "6750d445ec1f7f04b85cc2a327d98277b5b8a321df6b197ced47d490d7436816",
+      "size": 11443,
+      "anchor_sha256": "78af3823797ed192c2134083f1455e830bfb5d56743b6df3d124631ebe9c4f61",
+      "head_sha256": "78af3823797ed192c2134083f1455e830bfb5d56743b6df3d124631ebe9c4f61",
+      "index_sha256": "78af3823797ed192c2134083f1455e830bfb5d56743b6df3d124631ebe9c4f61",
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": ".playwright-mcp/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "未判定內容價值；S4 前保留。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad4/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad5/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad6/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad7/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad8/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ad9/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ada/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_adb/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_adc/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_add/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ade/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_adf/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_adg/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_base1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_base2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_bg1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_candidate_validation/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_cb1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ce1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ce2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ci1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ci2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_dog/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_dup/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_dup2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_dup3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ev1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ev2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ev3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ev4/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_ext/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f14/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f14b/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy_all/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy_conflict/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy_conflict_fix/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy_heading/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_policy_history/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7_single_failure/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7c/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7d/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7e/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7f/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7g/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_final/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_framework_consumer_boundary_final/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_framework_consumer_boundary_final2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_full1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_full2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_full3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_full4/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_hk/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_j2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_k3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_k4/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_l3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_m3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_mw1/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p0v/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p1a/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p1b/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p1f/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p1v/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p1v2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p2a/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p3a/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p3b/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p4/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p5t/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p6/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_p6b/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov5/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov7/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_prov8/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_rel5/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_restore/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_review_v07/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_tsqa/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_tsqa2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_v07/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_verify/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_verify2/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_verify3/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "名稱像測試暫存仍不足以判定可刪除；內容與歸屬未審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".worktrees/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "內含其他工作樹；不是可丟棄暫存，S0 不逐一審查或移除。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "artifacts/memory-audit/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "未判定內容價值；S4 前保留。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "artifacts/workspace-cleanup/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "unknown",
+      "reason": "未判定內容價值；S4 前保留。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "docs/ai-governance-member-briefing-guide.html",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "未追蹤文件候選；僅保留，不代表已採用或核准發布。",
+      "deletion_authorized": false,
+      "sha256": "6fa1956cd9994e5142a442b095e0af9fe12e422c5d39001bc22678fded3e618b",
+      "size": 252225,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/ai-governance-member-briefing-guide.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "未追蹤文件候選；僅保留，不代表已採用或核准發布。",
+      "deletion_authorized": false,
+      "sha256": "5a650bd7209af5ae233108cfc45e968712d06d933ea0c8708f2bfadf33913903",
+      "size": 49022,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/governance/risk-adaptive-governance-compatibility-review-20260913.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "未追蹤文件候選；僅保留，不代表已採用或核准發布。",
+      "deletion_authorized": false,
+      "sha256": "bd1f245b997cb28c02bf233c90d4f58433c115ae72e1e409d9d6632b28cb3b65",
+      "size": 17651,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/releases/generated/PUBLICATION_INDEX.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "680422b7762b5ee7fdedbc99a4b90fdf87ea241893ee3fc3d24fbc82b5d8dd52",
+      "size": 379,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/releases/generated/PUBLICATION_MANIFEST.json",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "721075f343e4052305ca4d4b002a18b75bed13485521986684847805c9c2cb08",
+      "size": 868,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/releases/generated/latest.json",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "f26ece9264c62f5e65da50e37486e4b4f95043e52a2c82af7f8cc2405c0b650a",
+      "size": 255,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/releases/generated/latest.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "9bf9cc1dab170f96395b0bf195390fe0129b3fd738820208eb993f65037b751a",
+      "size": 275,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/releases/generated/v1.3.0/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "generated",
+      "reason": "發布／狀態輸出目錄；未授權刪除或發布。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "docs/status/generated/PUBLICATION_INDEX.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "92a4a3a65e8ebf6d1e51463392ddfae15f22c966126881838bf4c6779a4df68d",
+      "size": 2066,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/status/generated/PUBLICATION_MANIFEST.json",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "c59e3ed85884b2348cc201b645bcab76f2fd2b366dfc4c96066f1f855b260025",
+      "size": 2844,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/status/generated/README.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "generated",
+      "reason": "發布／狀態輸出樹；不構成發布證據，未授權刪除或發布。",
+      "deletion_authorized": false,
+      "sha256": "0c59787cac10e15072f05144f122eb943b8689f064f8e6fd2b084a04b8dc497e",
+      "size": 810,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "docs/status/generated/bundle/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "generated",
+      "reason": "發布／狀態輸出目錄；未授權刪除或發布。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "docs/status/generated/site/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "generated",
+      "reason": "發布／狀態輸出目錄；未授權刪除或發布。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/2026-08-25.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "380957262b8bfbdd8bd46bc57a70bacbd97404ac79edc4eadd565ed33f04f394",
+      "size": 1881,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-01.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "0ecac6d86e3a241b2087d4447993f466c18693020cadaa4b93116380c0df9ce6",
+      "size": 881,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-03.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "53ac3cd12523c23a0ffa9a5d8ccf51de4d9bdd31bf9815c8c7c9c0ae732245ec",
+      "size": 881,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-10.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "c11604a8419498ef0dc12b3b4b6eb88665607bf8e30e73919243c9bbd7ac5c83",
+      "size": 893,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-11.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "25e27b2446caf07efe4e919f4fa14bb140d72ccdfedee41a46b854e64fa0e1da",
+      "size": 893,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-14.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "5de15471f345d62f911a74d21a03bf1624494a36f216f09718dea608848c5b1e",
+      "size": 3658,
+      "anchor_sha256": "67cc1932c8e07b527a6d54d89416b85284f03b671e298d0e5d58df9bf9770704",
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/2026-09-15.md",
+      "status": "??",
+      "kind": "file",
+      "classification": "retained candidate",
+      "reason": "本地歷史／操作記錄仍有差異；保留候選，不表示文字真實、已審查或應合併。",
+      "deletion_authorized": false,
+      "sha256": "56b769715120fad0c6908ceb84fbe4ee486648cfea8b95c043e3308cc6cd64f8",
+      "size": 893,
+      "anchor_sha256": null,
+      "head_sha256": null,
+      "index_sha256": null,
+      "matches_anchor_after_bom_crlf_normalization": false
+    },
+    {
+      "path": "memory/evidence/agent-read-policy-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/evidence/f7-slice-factcheck-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/evidence/full-required-doc-load-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/evidence/m1-bookstore-ab-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/evidence/m1-consumer-probe-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/evidence/memory-companion-review-20260914/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    },
+    {
+      "path": "memory/recovery/",
+      "status": "??",
+      "kind": "directory",
+      "classification": "retained candidate",
+      "reason": "本地證據或復原目錄；保留整個目錄，未宣告每個內含檔案都經審查。",
+      "deletion_authorized": false
+    }
+  ],
+  "classification_boundary": "superseded means the local file content matches anchor under the declared normalization, not deletion permission. retained candidate means preserve only. generated is supported by generated-output directory README; no release or remote publication claim.",
+  "generated_provenance": [
+    {
+      "path": "docs/releases/generated/README.md",
+      "sha256": "37ca283979c6de03c831c73b4c26d1b319109c928abe07409faae0a708b71119",
+      "header": [
+        "# Generated Release Packages",
+        "",
+        "This directory contains repo-local generated release-package snapshots.",
+        "",
+        "- Latest version: `v1.3.0`",
+        "- Latest summary: `ok=True | release_docs=5/5 | status_docs=5/5`",
+        "",
+        "## Latest Entry Points"
+      ]
+    },
+    {
+      "path": "docs/status/generated/README.md",
+      "sha256": "0c59787cac10e15072f05144f122eb943b8689f064f8e6fd2b084a04b8dc497e",
+      "header": [
+        "# Generated Trust Signal Status",
+        "",
+        "- Summary: `summary=ok=True | release=v1.3.0 | bundle=True | published=True | contract=contract.yaml`",
+        "- Generated at: `2026-08-05T06:06:38.191451+00:00`",
+        "- Release version: `v1.3.0`",
+        "- External contract profiles: `none`",
+        "",
+        "This directory is the stable root for generated trust-signal publication outputs."
+      ]
+    }
+  ],
+  "unreadable_directory_items": [
+    {
+      "path": ".pytest-pr8-expanded-basetemp/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".pytest-pr8-merge-basetemp/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7b_boundary/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_f7b_boundary_new/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_review_2c3536cc_cache/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    },
+    {
+      "path": ".tmp_review_2c3536cc_focus/",
+      "classification": "unknown",
+      "reason": "git status could not open directory: Permission denied",
+      "deletion_authorized": false
+    }
+  ]
+}

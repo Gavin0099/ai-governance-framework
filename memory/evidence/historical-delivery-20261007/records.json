@@ -1,0 +1,72 @@
+{
+  "archived_on": "2026-10-07",
+  "base_main_commit": "fb8f6abb09d6419923247183a2ce744d75e65b29",
+  "claim": "Exact historical source snapshots; not a new validation or authority decision",
+  "records": [
+    {
+      "topic": "RA8M2 硬體案例觀察",
+      "source_path": "memory/2026-08-20.md",
+      "source_line": 187,
+      "source_file_sha256": "56e497c3df70beeffc877130366c95546ee47ca8bc7e86218f28f1f30121560a",
+      "record_identity": "e3fd555ee9b3d52e02e7877f481c049e21367016ce95d6dfc1aa326f02be3753",
+      "record_text_utf8": "- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: Recorded the RA8M2 J-Link CFU 3000-to-3001 effort across zephyr_cfu_fwupd and zephyr-wip-ra as one owner-operated natural consumer work-item candidate for later G4 adjudication. The bounded observation is likely qualifying because governance changed agent actions around OFFER-before-CONTENT, CONTENT-versus-apply, live post-replug GET_VERSION, exact SHA/build identity, and committed-versus-dirty dependency separation. Retained disagreement: the outcome succeeded on hardware, but the Zephyr teardown worktree remains dirty, governance did not prevent an earlier stale-build diagnosis, observable governance cost is high, and independent non-author transfer, sustained recurrence, comparable before/after cost, false-positive/negative rates, and benefit-over-cost are absent. G4 remains NOT ACHIEVED.\r\n  commit: UNCOMMITTED\r\n  commit_hash: UNCOMMITTED\r\n  session_id: codex-20260820-ra8m2-g4-candidate\r\n  memory_binding: unbound\r\n  test_evidence: OBSERVED LOCAL: zephyr_cfu_fwupd history places product bootstrap at 13e8ccd on 2026-08-06 and governance adoption at 712d449 on 2026-08-07; cfbb96d and memory/2026-08-20.md record OFFER ACCEPT, CONTENT 949/949, forceReset, live post-replug version 1.3001.139, and operator Windows confirmation. OBSERVED LOCAL: zephyr-wip-ra HEAD d577625 has 7 committed UHC files while 10 tracked USB host files plus 2 teardown/leftover headers remain dirty. NOT RUN: new builds, native tests, hardware replay, or independent customer reproduction. NOT CLAIMED: formal qualifying verdict, independent transfer, productivity gain, benefit over cost, or G4 achieved.\r\n  next_step: Analyze uvm-agent-lab as a separate read-only repository task; if later authorized, produce a reviewer-facing formal G4 case report for this RA8M2 work item without splitting the two repositories into separate samples.\r\n  plan_reconciliation: not_applicable\r\n  record_identity: e3fd555ee9b3d52e02e7877f481c049e21367016ce95d6dfc1aa326f02be3753\r\n",
+      "record_sha256": "7fafe5dbe41c01d9d615d90b17e62c52be35382aa1c8ec5d5747b97faf0cefa0",
+      "original_commit": "UNCOMMITTED",
+      "original_memory_binding": "unbound",
+      "projection_status": "historical",
+      "review_status": "not_reassessed"
+    },
+    {
+      "topic": "Mei & Ray 治理成本分析",
+      "source_path": "memory/2026-09-08.md",
+      "source_line": 446,
+      "source_file_sha256": "feb11289de58b4d236b71efa0afd81141737f38cfa78bfc723aae505704ae3ba",
+      "record_identity": "3f1c160877149cb8e1872aff70da16e206de0c7b53ed1f610728838a3397e308",
+      "record_text_utf8": "- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: 使用者明確要求記錄治理 friction 分析及如何修改；本次授權僅限記憶，不含規則實作、commit、push 或政策生效。討論原則：按任務中的可觀察表現調整最小執行提示，不按模型名稱或總能力等級分層；共用授權、安全、必要驗證、獨立驗收與 claim ceiling 不放寬，可檢查固定操作程序是否仍必要。沿用真實工作記錄，觀察 pause、重複授權、重讀/reconciliation、過廣或重複驗證、scope expansion、額外 artifact 與治理返工；不新增 capability test、score、gate、每-session qualification 或 Astra Profile。事件出現時考慮是否值得記錄，不強制每次填表；回顧時補可比較的工作機會，避免把事件/turn 數當獨立樣本。提示下成功不證明移除提示仍成功；長期未失敗可能是提示有效或未再遇同類情境。G4 仍需持續、可比較的工程結果、成本與非作者/跨案例證據；本次不宣稱效能退化、模型特有效應、G4 達成或提示可安全移除。\r\n來源為使用者本輪貼入的 meiandraybook 唯讀分析，本代理尚未逐項核對原始事件。來源 repo E:/BackUp/meiandraybook；原始記錄 C:/Users/reiko/.codex/sessions/2026/09/07/rollout-2026-09-07T13-59-22-01a07a73-294d-7e93-96ca-3928a629bcfc.jsonl。來源報告稱 PR126 在本地 tsc 未收斂時已 push/開 PR，型別修正再觸發 push、治理檢查、memory 與最終 head review（R6885,6902,6936,6958,6967,7002）；TS2589/TS2345 由獨立 tsc 找到，修正 commit b934fc5，不能以 build 取代型別檢查。最強歸因是 Agent 交付排程，治理放大重複成本，未見規則要求先推未收斂版本。四套 Claude/Codex/Gemini/shared smoke 是 harness 輸出，不是四個模型審查；用途及獨立攔截價值尚未完整追查。memory guard 兩次間輸入有變，首筆 provenance advisory 有實際追溯價值，不能稱同輸入無用重跑。正式操作精確帳號、限定訂單、受控通知授權與 API 接受/實際收到的分別驗收有具體用途，保留。工具 approval justification 不等於真實人工中斷，壓縮後重讀及遠端等待不能自動算浪費。來源報告稱 52 筆 Astra turn_context；本代理較早快照曾數到 51 筆，屬不同觀測快照，未核對差異，不作樣本或模型比較依据；子代理/reviewer 模型未核實。\r\n修改候選 C1（優先，尚未實作）：在適用的交付提示中明列「進入正式 push/PR 前，先收斂已知、直接相關、可本地完成的必要驗證；通過且無新修改/失敗/未解疑慮就不重跑」。先核對 PR126 原始時序及當時權威規則；若既有條文已涵蓋，改善執行或合併提示，不新增 gate。需遠端才可完成的檢查另列例外與未完成狀態，不要求全部 CI 在 push 前完成。保留 focused tests、必要 tsc、最終 head CI/review、merge 授權及正式驗收。\r\n修改候選 C2（待用途證據）：只讀追查 consumer push hook 的四套 harness smoke 呼叫者、輸出消費者、不同故障覆蓋與治理/adapter 變更觸發。僅在證明等效覆蓋後，另行提案對純產品變更縮小執行面；現階段不移除或跳過任何 required check。\r\n修改候選 C3（待依賴證據）：只讀追查 memory guard 是否為每次 hook 的必要依賴，區分新記錄缺陷與既有歷史問題；評估能否集中在 memory 完成宣稱節點。保留已要求的 push 記錄、來源引用及新記錄缺陷攔截；不得僅因未改變產品決策就判為無用。\r\n修改路徑：先在 originating consumer 核對事件及最小提示效果；consumer 操作/提示屬 consumer 決策，共用 canonical 規則或 hook 變更屬 framework 決策，須另行限定檔案與授權，不直接改投影或跨 repo 實作。以低風險、可回復的可比較工作觀察漏驗證、返工、人工提醒、額外動作與實際攔截；有可歸屬資料才計時間/token。必要檢查及驗收維持，結果變差即恢復提示。未證明共同缺口前不擴成 framework 政策；記憶 next_step 不是後續修改授權。\r\n  commit: 337a3f6e\r\n  commit_hash: 337a3f6e\r\n  session_id: 01a08082-765e-7af2-b279-c926c0331bfe\r\n  memory_binding: bound\r\n  test_evidence: NOT CLAIMED: 本次為使用者提供案例與討論方向的正式記錄；未逐項重驗 meiandraybook 原始事件、b934fc5 或 artifact 消費鏈，未執行產品測試。來源：本 session 01a08082-765e-7af2-b279-c926c0331bfe 使用者貼入分析；consumer 原始 JSONL 路徑及行號保存於 what_changed。\r\n  next_step: 待使用者另行授權後，唯讀核對 meiandraybook PR126 時序與當時交付規則，確認 C1 最小提示的落點；C2/C3 先查依賴與覆蓋，不直接移除檢查。\r\n  plan_reconciliation: not_applicable\r\n  record_identity: 3f1c160877149cb8e1872aff70da16e206de0c7b53ed1f610728838a3397e308\r\n",
+      "record_sha256": "a0f22bb571786f187758a626b247c43d01dbec9f6b7a472ea212d4a15a73ebc7",
+      "original_commit": "337a3f6e",
+      "original_memory_binding": "bound",
+      "projection_status": "historical",
+      "review_status": "not_reassessed"
+    },
+    {
+      "topic": "Solo R2 治理成本分析",
+      "source_path": "memory/2026-09-09.md",
+      "source_line": 96,
+      "source_file_sha256": "4ab0022492c4a286a85f502571b40c6aee0b3eed4fab7afbf1889f79d382ea78",
+      "record_identity": "2e9b0f901425c62cd41643cbdf69ccf44faeef172671274f1422cc32dddf30fb",
+      "record_text_utf8": "- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: 延續使用者要求記錄治理 friction 與修改方法，補充 Solo R2 session 的使用者提供回溯分析。來源附件 C:/Users/reiko/.codex/attachments/70bd5b7b-123a-46c1-b4f2-ad8ef4fe35f8/pasted-text.txt；報告引用另一主機 C:/Users/daish/.codex/sessions/2026/09/05/rollout-2026-09-05T15-43-09-01a07085-7550-7a51-9f4c-097d65dfe0da.jsonl。本代理只讀附件，未核驗該主機原始紀錄或 commits，來源 repo 根目錄未確認，不據此跨 repo 修改。來源稱主代理 Astra/medium，被測 child 為 Sol，不能把 child 行為歸因於 Astra；三個工作片段仍是同一 session，非三個獨立樣本。\r\n報告最強候選：Gen16/17 人工 refresh（R314,397,735,747；f71de95c,9883d911）增加 snapshot、generation 常數/測試及 commit，但 Gen16 到17 只變 inspector blob/SHA 與 repository commit，未增加本次 schema 修改行為證據。當時為使用者授權且混有不準確覆蓋推論，未找到每次修改必須升代的通用規則。另一候選為 frozen identity 多處手填，artifact/launcher 重綁後測試殘留舊 runner identity（R314-504，尤476），造成測試自身 stale binding 返工。報告稱本機 manifest 前置詢問（R2690,2718,2723,2736）可由有界唯讀搜尋取代，但後續 missing-authority STOP 仍必要。\r\n修改候選 S1：先追查 generation 的下游消費者與獨立安全語義；若只有連續性 metadata 且相關結構未變，提案省去人工升代、相應 snapshot 與 refresh commit。保留適用 R1 AST/結構檢查、production focused tests、exact HEAD/module pins、delta review 及單次執行授權；不升代不等於 R1 不跑。來源稱後來已選擇不做 Gen18，尚未本地核實，不升為全域政策。\r\n修改候選 S2：盤點 driver/launcher/test 真正重複的 identity 與獨立信任根，再提案從 reviewed authority 統一產生或同步重複資料。保留各層獨立 exact comparison、負向測試、舊 bytes；expected identity 不可由受測檔案現算並自我接受。需證明不會讓 implementation 與測試共享同一錯誤，不能直接刪 gate 或測試。\r\n修改候選 S3：有明確範圍與讀取權限時，先搜尋本機允許的 authority 索引/路徑，再詢問真正缺失的資訊；不讀 oracle/secret，不生造或自行採納 authority，找不到仍停止依賴工作。它只省已具備搜尋條件下的一次前置問答，不放寬 owner decision。\r\n其他邊界：schema shaping 有限證明 schema/API 接受，未證明工具執行；無 tool item 不等於模型未嘗試，須分辨 sandbox/setup 日誌層次。safe-capture 資訊損失值得查，但不能直接取消保密設計。exact bytes 單次授權、失敗 STOP、quiescence 與 owner 執行是當時明確條件，不算重複授權浪費。平台 verifier 誤拒是成本，針對新修補重驗仍必要。readiness 不等於完成 Solo A/B，過早階段結論造成的返工需與使用者主動 Formal 查詢分開。四次壓縮可解釋部分重讀；memory/artifact 消費鏈不完整，不判全無用；不估造工時/token。\r\n與 2026-09-08 meiandraybook 記錄並列：前者重點是 Agent 送審時序，Solo R2 重點是人工 metadata 維護與診斷/查詢順序。兩份使用者報告提示不同可縮短成本，不構成同一缺陷的兩次獨立復現、Astra 特有效應、治理整體有害或 G4 達成證據。後續按原始來源核實與最小 consumer 修改分開處理，不新增 capability table/schema/gate，不改既有驗收。此次只補記憶，未實作規則、commit 或 push；沒有 phase/PLAN 轉換。\r\n  commit: 337a3f6e\r\n  commit_hash: 337a3f6e\r\n  session_id: 01a08082-765e-7af2-b279-c926c0331bfe\r\n  memory_binding: bound\r\n  test_evidence: NOT CLAIMED: 使用者提供的 Solo R2 回溯報告，僅核對附件內容；原始紀錄在另一主機，未重驗事件、commit 或下游依賴。附件路徑已保存於 what_changed。\r\n  next_step: 待另行限定分析範圍，先核對 Solo R2 generation 消費依賴及 frozen identity 信任根；在等效證據建立前不移除檢查。meiandraybook 交付順序候選保持獨立。\r\n  plan_reconciliation: not_applicable\r\n  record_identity: 2e9b0f901425c62cd41643cbdf69ccf44faeef172671274f1422cc32dddf30fb\r\n",
+      "record_sha256": "47756e347bfd6d9f7e955497ae282cfeb541168afcc6d218ab0171b58c0ef242",
+      "original_commit": "337a3f6e",
+      "original_memory_binding": "bound",
+      "projection_status": "historical",
+      "review_status": "not_reassessed"
+    },
+    {
+      "topic": "記憶 companion 候選審查",
+      "source_path": "memory/2026-09-14.md",
+      "source_line": 30,
+      "source_file_sha256": "5de15471f345d62f911a74d21a03bf1624494a36f216f09718dea608848c5b1e",
+      "record_identity": "2afbb19c3c7c719ea17d6f09d2618a77f89df2fc339299c7611e3ec95443dfc1",
+      "record_text_utf8": "- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: Reviewed existing uncommitted memory companion candidate and completion_claim_allowed wording. Candidate detects zero matching companion bindings in a supplied commit range but cannot prove per-work completeness; zero finding count also occurs without refs. UNCOMMITTED writer compatibility is preserved. Found a presentation caveat: completion_claim_allowed=true can coexist with guard_ran=false, so universal guard-found-no-blocker wording is inaccurate. Recommended only conditional human wording, not new schema/lifecycle/blocking enforcement. This commit binds the review baseline only; candidate file hashes are in memory/evidence/memory-companion-review-20260914/subject.json, not claimed committed. H1/S2 historical omissions have since been recorded in their separate PR memory companions.\r\n  commit: be5734cc8d1ba1a4f68f84e6752f08ff58488ecd\r\n  commit_hash: be5734cc8d1ba1a4f68f84e6752f08ff58488ecd\r\n  session_id: 2026-09-14-memory-companion-review\r\n  memory_binding: bound\r\n  test_evidence: 84 passed: tests/test_ci_memory_workflow_check.py, tests/test_memory_workflow.py, tests/test_memory_record.py; memory/evidence/memory-companion-review-20260914/tests.xml. Formal Lenovo zero-companion replay produced warning count 1 with clean=true and exit 0; H1 companion-present range produced count 0. Findings and limits: memory/evidence/memory-companion-review-20260914/REPORT.md. No runtime closeout false-positive or complete coverage claim.\r\n  next_step: Review a bounded human-wording amendment that distinguishes guard-not-run, no blocking finding and coverage-not-proven; no implementation or delivery authorized by this review.\r\n  plan_reconciliation: not_applicable\r\n  record_identity: 2afbb19c3c7c719ea17d6f09d2618a77f89df2fc339299c7611e3ec95443dfc1\r\n",
+      "record_sha256": "70a22391f632bfd0ef8e7bfb6a6016d7ba934e2a519b9e92ef454ba952350656",
+      "original_commit": "be5734cc8d1ba1a4f68f84e6752f08ff58488ecd",
+      "original_memory_binding": "bound",
+      "projection_status": "historical",
+      "review_status": "not_reassessed"
+    },
+    {
+      "topic": "S0 狀態核對",
+      "source_path": "memory/2026-09-15.md",
+      "source_line": 17,
+      "source_file_sha256": "245671c9e99e20058df9d4c06f1a65c95488f1c41839c8ee7b2695a701267e10",
+      "record_identity": "8ebc079b50f8c1b2affcbb4bdb5b89c663d90f48a53d7f26b6df300ef25dfc97",
+      "record_text_utf8": "- memory_type: session-derived\r\n  record_format_version: 1.0\r\n  writer: governance_tools.memory_record\r\n  what_changed: Produced one S0 current decision table anchored to beecfd8d in a clean detached checkout. Verified five PR heads, API bases, common ancestors, exact merge-tree conflict paths and unresolved review threads; classified 144 preexisting dirty path units with directory/access limits. Main absorbs the local MEMORY_PROTOCOL semantic delta, but supersession of PR176/88/80 is not established. Owner freezes new capabilities and orders S0/S1-179/S2-178/S3-disposition/S4-cleanup. Added an AI proposal for a bounded closeout reproduction after179 before178; terminal anomalies are observed, code-level root cause and the owners unbound_memory=4 consumer context remain unverified. No PR implementation, cleanup, PLAN edit, commit, push or reproduction. Artifacts remain uncommitted; baseline commit is not artifact delivery proof.\r\n  commit: UNCOMMITTED\r\n  commit_hash: UNCOMMITTED\r\n  session_id: 2026-09-15-s0-state-reconciliation\r\n  memory_binding: unbound\r\n  test_evidence: NOT CLAIMED: implementation correctness, merge approval, full dirty-directory audit or closeout root cause. Fixed-source observations: memory/evidence/s0-state-reconciliation-20260915/anchor.json, prs.json, review-threads.json, dirty-inventory.json, supersession-evidence.json and closeout-priority-evidence.json. Final preservation and completeness checks are recorded separately in verification.json.\r\n  next_step: Stop after S0 evidence verification. PR179 is the first delivery target for a subsequent bounded slice; owner adoption of the proposed closeout reproduction insertion remains pending. PR176/88/80 retain-or-retire decisions and workspace/PLAN changes remain later scope.\r\n  plan_reconciliation: deferred:scope-split-next-slice\r\n  record_identity: 8ebc079b50f8c1b2affcbb4bdb5b89c663d90f48a53d7f26b6df300ef25dfc97\r\n",
+      "record_sha256": "094f8f786c0fd595e5ae39b26960474ea4674761803cb5a966ccf3d2cad24f59",
+      "original_commit": "UNCOMMITTED",
+      "original_memory_binding": "unbound",
+      "projection_status": "historical",
+      "review_status": "not_reassessed"
+    }
+  ]
+}
