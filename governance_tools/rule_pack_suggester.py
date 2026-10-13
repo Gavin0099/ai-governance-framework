@@ -16,7 +16,7 @@ from governance_tools.rule_classifier import load_rule_registry
 from governance_tools.rule_pack_loader import DEFAULT_RULES_ROOT, available_rule_packs
 
 
-LANGUAGE_ORDER = ("csharp", "swift", "objective-c", "cpp", "python")
+LANGUAGE_ORDER = ("csharp", "swift", "objective-c", "cpp", "python", "gdscript")
 
 LANGUAGE_STRONG_PATH_PATTERNS = {
     "csharp": [r"\.csproj$"],
@@ -24,6 +24,9 @@ LANGUAGE_STRONG_PATH_PATTERNS = {
     "objective-c": [],
     "cpp": [r"\.vcxproj$"],
     "python": [r"(?:^|/)pyproject\.toml$", r"(?:^|/)requirements\.txt$"],
+    # project.godot identifies the engine, which can also use C#; only .gd
+    # product sources establish GDScript under the existing confidence rules.
+    "gdscript": [],
 }
 
 LANGUAGE_SOURCE_PATTERNS = {
@@ -32,6 +35,7 @@ LANGUAGE_SOURCE_PATTERNS = {
     "objective-c": [r"\.m$", r"\.mm$"],
     "cpp": [r"\.cpp$", r"\.cc$", r"\.cxx$", r"\.hpp$"],
     "python": [r"\.py$"],
+    "gdscript": [r"\.gd$"],
 }
 
 _SOLUTION_PROJECT_RE = re.compile(
