@@ -38,6 +38,7 @@ Operational rules:
 | `cpp` | implemented | framework | context-aware | C and C++ rules |
 | `csharp` | implemented | framework | context-aware | C# rules |
 | `python` | implemented | framework | context-aware | Python rules |
+| `gdscript` | implemented | framework | explicit-only | GDScript context; native checks belong to the consumer contract |
 | `swift` | implemented | framework | context-aware | Swift rules |
 | `avalonia` | implemented | framework | context-aware | Avalonia UI rules |
 | `refactor` | implemented | framework | context-aware | Refactoring rules |
@@ -117,6 +118,19 @@ repo_type: [service, tooling]
 task_type: [all]
 risk_level: [all]
 description: "Python coding standards for service and tooling repos"
+```
+
+### gdscript
+
+```yaml
+name: gdscript
+artifact_state: implemented
+ownership: framework
+activation_mode: explicit_only
+repo_type: [all]
+task_type: [all]
+risk_level: [all]
+description: "GDScript context selected explicitly; consumer contracts own native validation"
 ```
 
 ### electron

@@ -75,6 +75,19 @@ def test_pre_task_check_blocks_unknown_rule_pack(local_tmp_dir, monkeypatch):
     assert result["rule_packs"]["missing"] == ["unknown-pack"]
 
 
+def test_pre_task_check_loads_explicit_gdscript_without_product_source(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir, rules="common,gdscript", risk="medium",
+        oversight="review-required", memory_mode="candidate",
+    )
+    assert result["ok"] is True
+    gdscript = next(pack for pack in result["active_rules"]["active_rules"] if pack["name"] == "gdscript")
+    assert gdscript["category"] == "language"
+    assert gdscript["files"]
+
+
 def test_pre_task_check_exposes_cpp_active_rules(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
     (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
