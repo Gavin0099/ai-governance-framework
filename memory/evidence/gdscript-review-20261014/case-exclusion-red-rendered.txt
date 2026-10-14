@@ -1,0 +1,180 @@
+FFFFFFFF.                                                                [100%]
+================================== FAILURES ===================================
+______ test_case_varied_non_product_roots_do_not_trigger_language[Tests] ______
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r0')
+location = 'Tests'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Tests/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+______ test_case_varied_non_product_roots_do_not_trigger_language[DOCS] _______
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r1')
+location = 'DOCS'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['DOCS/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+____ test_case_varied_non_product_roots_do_not_trigger_language[Fixtures] _____
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r2')
+location = 'Fixtures'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Fixtures/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+____ test_case_varied_non_product_roots_do_not_trigger_language[Examples] _____
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r3')
+location = 'Examples'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Examples/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+_____ test_case_varied_non_product_roots_do_not_trigger_language[Archive] _____
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r4')
+location = 'Archive'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Archive/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+____ test_case_varied_non_product_roots_do_not_trigger_language[Artifacts] ____
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r5')
+location = 'Artifacts'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Artifacts/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+_ test_case_varied_non_product_roots_do_not_trigger_language[AI-Governance-Framework] _
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r6')
+location = 'AI-Governance-Framework'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['AI-Governance-Framework/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+_ test_case_varied_non_product_roots_do_not_trigger_language[Runtime/FiXtUrEs] _
+
+tmp_path = WindowsPath('C:/Users/reiko/AppData/Local/Temp/pytest-of-reiko/pytest-1131/test_case_varied_non_product_r7')
+location = 'Runtime/FiXtUrEs'
+
+    @pytest.mark.parametrize("location", [
+        "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+        "AI-Governance-Framework", "Runtime/FiXtUrEs",
+    ])
+    def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+        root = _reset_fixture(tmp_path, "case_varied_non_product")
+        _write(root / location / "example.gd", "extends Node\n")
+        _write(root / location / "example.py", "print('example')\n")
+        result = suggest_rule_packs(root)
+>       assert result["language_packs"] == []
+E       AssertionError: assert [{'category':...example.gd']}] == []
+E
+E         Left contains 2 more items, first extra item: {'category': 'language', 'confidence': 'medium', 'name': 'python', 'reasons': ['Runtime/FiXtUrEs/example.py']}
+E         Use -v to get more diff
+
+tests\test_rule_pack_suggester.py:80: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Tests]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[DOCS]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Fixtures]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Examples]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Archive]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Artifacts]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[AI-Governance-Framework]
+FAILED tests/test_rule_pack_suggester.py::test_case_varied_non_product_roots_do_not_trigger_language[Runtime/FiXtUrEs]
+8 failed, 1 passed, 31 deselected in 0.80s

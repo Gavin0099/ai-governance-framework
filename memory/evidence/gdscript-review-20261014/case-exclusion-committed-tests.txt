@@ -1,0 +1,5 @@
+........................................................................ [ 96%]
+...                                                                      [100%]
+75 passed in 5.13s
+[test_evidence_receipt] receipt=memory/evidence/gdscript-review-20261014/case-exclusion-committed-tests.json exit_code=0
+  test_evidence: PASS: memory/evidence/gdscript-review-20261014/case-exclusion-committed-tests.json -> exit_code=0
