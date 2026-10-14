@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_rule_pack_suggester.py tests/test_runtime_pre_task_check.py -q -p no:cacheprovider --junitxml=memory/evidence/gdscript-review-20261014/case-exclusion-committed-tests.xml",
+  "exit_code": 0,
+  "started_at": "2026-10-14T02:24:55Z",
+  "finished_at": "2026-10-14T02:25:01Z",
+  "runner": "codex",
+  "linked_commit": "88824c4db3533221ff7b75ee5c6d8a7c25ac1d33",
+  "output_artifacts": [
+    "memory/evidence/gdscript-review-20261014/case-exclusion-committed-tests.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

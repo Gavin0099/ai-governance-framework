@@ -4,6 +4,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 
 
@@ -31,6 +33,88 @@ def _language_item(result: dict, name: str) -> dict:
 
 def _framework_item(result: dict, name: str) -> dict:
     return next(item for item in result["framework_packs"] if item["name"] == name)
+
+
+def test_product_gdscript_source_is_recommended_and_loadable(tmp_path):
+    root = _reset_fixture(tmp_path, "gdscript_product")
+    _write(root / "project.godot", "config_version=5\n")
+    _write(root / "scripts" / "main.gd", "extends Node\n")
+    result = suggest_rule_packs(root)
+    gdscript = _language_item(result, "gdscript")
+    assert gdscript["confidence"] == "medium"
+    assert gdscript["reasons"] == ["scripts/main.gd"]
+    assert "gdscript" in result["suggested_rules"]
+    assert "gdscript" not in result["unloadable_signals"]
+
+
+def test_godot_project_with_csharp_does_not_imply_gdscript(tmp_path):
+    root = _reset_fixture(tmp_path, "godot_csharp")
+    _write(root / "project.godot", "config_version=5\n")
+    _write(root / "Game.csproj", "<Project />\n")
+    result = suggest_rule_packs(root)
+    assert "csharp" in result["suggested_rules"]
+    assert all(pack["name"] != "gdscript" for pack in result["language_packs"])
+
+
+def test_godot_only_or_non_product_gdscript_does_not_trigger_language(tmp_path):
+    root = _reset_fixture(tmp_path, "gdscript_non_product")
+    _write(root / "project.godot", "config_version=5\n")
+    for location in ("tests", "docs", "fixtures", ".godot", ".ai-governance-framework"):
+        _write(root / location / "example.gd", "extends Node\n")
+    _write(root / "scripts" / "main.gd.uid", "uid://placeholder\n")
+    _write(root / "scripts" / "effect.gdshader", "shader_type canvas_item;\n")
+    result = suggest_rule_packs(root)
+    assert all(pack["name"] != "gdscript" for pack in result["language_packs"])
+    assert "gdscript" not in result["suggested_rules_preview"]
+
+
+@pytest.mark.parametrize("location", [
+    "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+    "AI-Governance-Framework", "Runtime/FiXtUrEs",
+])
+def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+    root = _reset_fixture(tmp_path, "case_varied_non_product")
+    _write(root / location / "example.gd", "extends Node\n")
+    _write(root / location / "example.py", "print('example')\n")
+    result = suggest_rule_packs(root)
+    assert result["language_packs"] == []
+    assert "gdscript" not in result["suggested_rules_preview"]
+    assert "python" not in result["suggested_rules_preview"]
+
+
+def test_case_varied_product_roots_remain_language_signals(tmp_path):
+    root = _reset_fixture(tmp_path, "case_varied_product")
+    _write(root / "Scripts" / "main.gd", "extends Node\n")
+    _write(root / "TestsRunner" / "main.gd", "extends Node\n")
+    result = suggest_rule_packs(root)
+    assert _language_item(result, "gdscript")["reasons"] == [
+        "Scripts/main.gd", "TestsRunner/main.gd",
+    ]
+    assert "gdscript" in result["suggested_rules"]
+
+
+def test_gdscript_and_python_mixed_sources_keep_existing_confidence_rules(tmp_path):
+    root = _reset_fixture(tmp_path, "gdscript_python_mixed")
+    for index in range(3):
+        _write(root / "scripts" / f"feature_{index}.gd", "extends Node\n")
+        _write(root / "tools" / f"helper_{index}.py", "print('ok')\n")
+    result = suggest_rule_packs(root)
+    assert _language_item(result, "gdscript")["confidence"] == "medium"
+    assert _language_item(result, "python")["confidence"] == "medium"
+    assert result["suggested_rules"] == ["common", "python", "gdscript"]
+
+
+def test_sparse_gdscript_source_remains_advisory_only(tmp_path):
+    root = _reset_fixture(tmp_path, "gdscript_sparse")
+    _write(root / "scripts" / "single.gd", "extends Node\n")
+    for index in range(24):
+        _write(root / "src" / f"helper_{index}.py", "print('ok')\n")
+    result = suggest_rule_packs(root)
+    gdscript = _language_item(result, "gdscript")
+    assert gdscript["confidence"] == "low"
+    assert gdscript["advisory_only"] is True
+    assert "gdscript" not in result["suggested_rules"]
+    assert "gdscript" in result["suggested_rules_preview"]
 
 
 def test_rule_pack_suggester_detects_csharp_and_avalonia(tmp_path):

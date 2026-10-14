@@ -17,10 +17,14 @@
   post-task/memory CI coverage using the existing extension interfaces.
 - Allowed framework scope: language enum, validator, rule-pack metadata/content,
   language suggestion, checkpoint projections and directly related tests.
-- State: S1 implementation committed as 6cd672cb; its bound record and Draft
-  delivery are being prepared. S2 locally validated candidate is held separately
-  for the stacked follow-up; it is not part of S1 implementation. Consumer S3/S4
-  candidates remain local/uncommitted; pin adoption and hosted checks are pending.
+- State: S1 PR #209 merged at 06b98906 after independent review and green CI.
+  S2 PR #210 now targets main. Its original final tree passed review and CI,
+  but external P2 review exposed case-varied non-product root false positives;
+  repair 88824c4d normalizes the existing exclusion without threshold changes.
+  Final repaired-head review and CI remain pending before conditional merge.
+  Owner authorized CI restoration and review followed by conditional merge.
+  Consumer S3/S4 candidates remain local/uncommitted;
+  pin adoption and hosted checks are pending framework review and delivery.
 - Claim ceiling: scoped implementation, tests and authorized Draft delivery.
   Merge, hosted CI, consumer pin adoption, owner classification acceptance and
   full adoption remain separate authorization/evidence gates.
