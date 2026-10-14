@@ -103,7 +103,7 @@ def _is_non_product_signal_path(path: Path, project_root: Path) -> bool:
     # framework. Dot-prefixed directories are tool metadata or scratch space,
     # not product source; `.git` is included by that same boundary.
     return any(
-        part in _NON_PRODUCT_SIGNAL_ROOTS
+        part.casefold() in _NON_PRODUCT_SIGNAL_ROOTS
         or part.startswith(".")
         for part in relative_parts
     )

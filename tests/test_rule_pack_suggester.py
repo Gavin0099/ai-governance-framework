@@ -4,6 +4,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 
 
@@ -64,6 +66,31 @@ def test_godot_only_or_non_product_gdscript_does_not_trigger_language(tmp_path):
     result = suggest_rule_packs(root)
     assert all(pack["name"] != "gdscript" for pack in result["language_packs"])
     assert "gdscript" not in result["suggested_rules_preview"]
+
+
+@pytest.mark.parametrize("location", [
+    "Tests", "DOCS", "Fixtures", "Examples", "Archive", "Artifacts",
+    "AI-Governance-Framework", "Runtime/FiXtUrEs",
+])
+def test_case_varied_non_product_roots_do_not_trigger_language(tmp_path, location):
+    root = _reset_fixture(tmp_path, "case_varied_non_product")
+    _write(root / location / "example.gd", "extends Node\n")
+    _write(root / location / "example.py", "print('example')\n")
+    result = suggest_rule_packs(root)
+    assert result["language_packs"] == []
+    assert "gdscript" not in result["suggested_rules_preview"]
+    assert "python" not in result["suggested_rules_preview"]
+
+
+def test_case_varied_product_roots_remain_language_signals(tmp_path):
+    root = _reset_fixture(tmp_path, "case_varied_product")
+    _write(root / "Scripts" / "main.gd", "extends Node\n")
+    _write(root / "TestsRunner" / "main.gd", "extends Node\n")
+    result = suggest_rule_packs(root)
+    assert _language_item(result, "gdscript")["reasons"] == [
+        "Scripts/main.gd", "TestsRunner/main.gd",
+    ]
+    assert "gdscript" in result["suggested_rules"]
 
 
 def test_gdscript_and_python_mixed_sources_keep_existing_confidence_rules(tmp_path):
