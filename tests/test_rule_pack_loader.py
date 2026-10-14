@@ -42,6 +42,16 @@ def test_describe_rule_selection_reports_missing():
     assert description["missing"] == ["missing-pack"]
 
 
+def test_gdscript_pack_is_loadable_as_language_context():
+    loaded = load_rule_content(["common", "gdscript"])
+    assert loaded["valid"] is True
+    gdscript = next(pack for pack in loaded["active_rules"] if pack["name"] == "gdscript")
+    assert gdscript["category"] == "language"
+    assert gdscript["files"]
+    assert all(file["content"] for file in gdscript["files"])
+    assert describe_rule_selection(["gdscript"])["missing"] == []
+
+
 def test_load_rule_content_returns_file_metadata_and_content():
     loaded = load_rule_content(["common"])
     assert loaded["valid"] is True

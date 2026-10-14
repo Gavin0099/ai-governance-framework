@@ -15,7 +15,7 @@ then regenerate:
 python -m governance_tools.copilot_instructions_projection --framework-root . --write
 ```
 
-<!-- ai-governance:checkpoint-projection BEGIN version=1.1 source=governance/SYSTEM_PROMPT.md#2.8 sha256=0829946513494089ed95b333733572a03666060dfabd10eca36c4ab662b4888f -->
+<!-- ai-governance:checkpoint-projection BEGIN version=1.1 source=governance/SYSTEM_PROMPT.md#2.8 sha256=bde31e2dbdfbb3b07421248db57e202f52cf9f20523094ea390b8913817a80bf -->
 ### 2.8 Governance Contract Output
 
 在以下時點輸出此 block：
@@ -42,7 +42,7 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 ```
 
 欄位規則：
-- `LANG`: 取自 `C | C++ | C# | ObjC | Swift | JS | Python | Verilog | SystemVerilog`。
+- `LANG`: 取自 `C | C++ | C# | ObjC | Swift | JS | Python | Verilog | SystemVerilog | GDScript`。
   單一語言直接填該值；跨語言任務以逗號分隔，每個元素都必須是上列值之一（例：`C, C++`）。
   不得把多個語言寫成單一 token（例：`C/C++`）：`/` 已是 `SCOPE` 的 `I/O` 值的一部分，
   在同一個 block 內不能再兼作清單分隔符。分隔符與 `LOADED` 一致。

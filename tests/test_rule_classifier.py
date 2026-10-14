@@ -24,6 +24,16 @@ from governance_tools.rule_classifier import (
 
 # ---------------------------------------------------------------------------
 # _parse_yaml_block
+
+
+def test_gdscript_registry_requires_explicit_selection():
+    registry = load_rule_registry()
+    gdscript = next(pack for pack in registry if pack["name"] == "gdscript")
+    assert gdscript["artifact_state"] == "implemented"
+    assert gdscript["ownership"] == "framework"
+    assert gdscript["activation_mode"] == "explicit_only"
+    for repo_type in ("firmware", "product", "service", "tooling"):
+        assert "gdscript" not in filter_rule_packs(registry, repo_type=repo_type)
 # ---------------------------------------------------------------------------
 
 class TestParseYamlBlock:
@@ -72,7 +82,7 @@ class TestLoadRuleRegistry:
 
     def test_loads_from_default_path(self):
         registry = load_rule_registry()
-        assert len(registry) == 13
+        assert len(registry) == 14
 
     def test_all_packs_have_name(self):
         registry = load_rule_registry()

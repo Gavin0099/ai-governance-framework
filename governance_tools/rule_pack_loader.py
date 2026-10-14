@@ -23,6 +23,7 @@ RULE_PACK_CATEGORIES = {
     "release": "scope",
     "cpp": "language",
     "python": "language",
+    "gdscript": "language",
     "csharp": "language",
     "swift": "language",
     "objective-c": "language",

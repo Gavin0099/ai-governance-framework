@@ -2,6 +2,30 @@
 
 ## Canonical Planning Surface
 
+### Authorized GDScript support — 2026-10-13
+
+- Observed consumer: DiceMercenaries DM-00 cannot declare GDScript in the
+  canonical language contract; its native checker is not bound as a validator.
+- Owner confirmed sequential S1–S4 implementation after scope analysis.
+- Owner additionally authorized separate S1/S2 commits, pushes and Draft PRs
+  on 2026-10-13; merge and consumer pin adoption remain separate gates.
+- S1 DONE: explicit GDScript contracts and non-empty rule loading work;
+  checkpoint projections agree and existing language behavior remains valid.
+- S2 DONE: product `.gd` signals are suggested without using test, document,
+  framework-copy or Godot-only signals as product-language proof.
+- S3/S4 belong to DiceMercenaries: bind its existing native checker and add
+  post-task/memory CI coverage using the existing extension interfaces.
+- Allowed framework scope: language enum, validator, rule-pack metadata/content,
+  language suggestion, checkpoint projections and directly related tests.
+- State: S1 implementation committed as 6cd672cb; its bound record and Draft
+  delivery are being prepared. S2 locally validated candidate is held separately
+  for the stacked follow-up; it is not part of S1 implementation. Consumer S3/S4
+  candidates remain local/uncommitted; pin adoption and hosted checks are pending.
+- Claim ceiling: scoped implementation, tests and authorized Draft delivery.
+  Merge, hosted CI, consumer pin adoption, owner classification acceptance and
+  full adoption remain separate authorization/evidence gates.
+- Evidence: `memory/evidence/gdscript-support-20261013/`.
+
 ### Authorized observed-failure repair — 2026-10-03
 
 - Owner instruction: repair Bookstore-Scraper's pre-push publication blocker

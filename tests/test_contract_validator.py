@@ -112,9 +112,20 @@ class TestValidateContractInvalid:
 
 
 class TestValidateContractCompliant:
-    @pytest.mark.parametrize("lang", ["C", "C++", "C#", "ObjC", "Swift", "JS", "Python", "Verilog", "SystemVerilog"])
+    @pytest.mark.parametrize("lang", ["C", "C++", "C#", "ObjC", "Swift", "JS", "Python", "Verilog", "SystemVerilog", "GDScript"])
     def test_all_valid_langs(self, lang):
         assert validate_contract(_make_contract(LANG=lang)).compliant
+
+    def test_gdscript_contract_with_explicit_pack(self):
+        result = validate_contract(_make_contract(LANG="GDScript", RULES="common,gdscript"))
+        assert result.compliant
+        assert result.errors == []
+
+    def test_gdscript_and_python_use_comma_separated_languages(self):
+        assert validate_contract(_make_contract(LANG="GDScript, Python")).compliant
+        result = validate_contract(_make_contract(LANG="GDScript/Python"))
+        assert not result.compliant
+        assert any("LANG invalid" in error for error in result.errors)
 
     @pytest.mark.parametrize("level", ["L0", "L1", "L2"])
     def test_all_valid_levels(self, level):

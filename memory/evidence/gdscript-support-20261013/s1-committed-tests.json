@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_contract_validator.py tests/test_rule_pack_loader.py tests/test_rule_classifier.py tests/test_runtime_pre_task_check.py tests/test_copilot_instructions_projection.py -q --basetemp .tmp_gdscript_s1_commit --junitxml memory/evidence/gdscript-support-20261013/s1-committed-tests.xml",
+  "exit_code": 0,
+  "started_at": "2026-10-13T11:05:53Z",
+  "finished_at": "2026-10-13T11:05:57Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "6cd672cb0b1c0334458c7afdfd47b59687f560fb",
+  "output_artifacts": [
+    "memory/evidence/gdscript-support-20261013/s1-committed-tests.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
