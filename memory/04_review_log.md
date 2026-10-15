@@ -5458,3 +5458,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: Current observation: memory/evidence/gdscript-review-20261014/case-exclusion-committed-tests.json and XML/TXT record75 passed at implementation88824c4d; case-exclusion-precommit.txt records shared smoke/207 passed. Independent working review also75 passed. Formal memory evidence-root provenance qualification NOT CLAIMED.
 - Next action: Commit the separate canonical repair companion, publish PR210 repaired head, independently review that exact head and complete CI. Require current owner exact-head authority before normal merge.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:5464b03c9a9d3e32600c4312d548166fda1e2129b1173cafa794b0c0b0d613e7 -->
+### Canonical memory checkpoint — 2026-10-15-01
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `5464b03c9a9d3e32600c4312d548166fda1e2129b1173cafa794b0c0b0d613e7`
+- Commit binding: `6f097eb893890f0d850624fe6dcf045ed249c5d2` (bound)
+- Record: Implemented bounded VS Code Stop wiring retirement in 6f097eb8 (9 scoped files). New installs register no Stop closeout; upgrades preserve custom hooks and fail without overwrite on unknown commands or duplicate keys. Genuine sessionEnd and single SessionStart remain unchanged. Six focused test files: 210 passed. Independent reviewer /root/stop_wiring_review APPROVED exact 6f097eb8; duplicate-key loss, data-marker false positives and shell-expression false negatives were resolved. Owner authority is Draft PR delivery only; no merge, consumer update, receipt/schema or memory-policy change. PLAN adds this bounded maintenance entry only.
+- Validation boundary: NOT CLAIMED: receipt-backed provenance. Local scoped pytest: 210 passed. Independent reviewer: 42 passed and 10 direct probes. Results are recorded in the authoring transcript and Draft PR; no new receipt is introduced.
+- Next action: Finish the companion commit, verify authorized remote branch and Draft PR delivery, then stop for Owner review; merge and consumer updates remain unauthorized.
+- PLAN reconciliation: `updated`
