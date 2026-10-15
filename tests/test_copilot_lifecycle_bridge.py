@@ -250,11 +250,9 @@ def test_hook_templates_use_independent_surface_event_names() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    # VS Code loads both files and normalizes the Copilot config's lowerCamelCase
-    # names, so `sessionStart` is already VS Code's only start handler. The VS
-    # Code config must therefore declare `Stop` alone — adding `SessionStart`
-    # would register a second handler for the same boundary.
-    assert set(vscode["hooks"]) == {"Stop"}
+    # Local Stop is not a session end. The compatibility config registers
+    # neither closeout nor a duplicate SessionStart.
+    assert vscode["hooks"] == {}
     assert set(copilot["hooks"]) == {"sessionStart", "sessionEnd"}
     normalized_copilot = {name[0].upper() + name[1:] for name in copilot["hooks"]}
     assert not set(vscode["hooks"]) & normalized_copilot
@@ -282,9 +280,9 @@ def test_cross_loader_event_normalization_executes_each_boundary_once() -> None:
         for name, entries in combined.items()
     }
     assert len(vscode_normalized["SessionStart"]) == 1
-    assert len(vscode_normalized["Stop"]) == 1
+    assert "Stop" not in vscode_normalized
     assert "session_start" in vscode_normalized["SessionStart"][0]["command"]
-    assert "session_end" in vscode_normalized["Stop"][0]["command"]
+    assert "session_end" in vscode_normalized["SessionEnd"][0]["command"]
 
     assert len(combined["sessionStart"]) == 1
     assert len(combined["sessionEnd"]) == 1

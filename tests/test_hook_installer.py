@@ -77,7 +77,7 @@ def _make_framework(root: Path) -> None:
     )
     _write(
         root / "governance/copilot-hooks-vscode-template.json",
-        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+        '{"version":1,"hooks":{}}\n',
     )
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
@@ -844,18 +844,19 @@ def test_edited_lifecycle_bridge_is_backed_up_before_replacement(tmp_path: Path)
     assert "CFU: dynamic memory pressure" in kept.read_text(encoding="utf-8")
 
 
-def test_edited_vscode_hook_config_is_backed_up_before_replacement(tmp_path: Path) -> None:
+def test_custom_vscode_hook_config_is_preserved_without_replacement(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = _managed_framework(tmp_path / "framework")
     (repo / ".git" / "hooks").mkdir(parents=True)
     install_governance_hooks(repo, framework)
     _write(_vscode_config(repo), '{"version":1,"hooks":{"UserPromptSubmit":[]}}\n')
 
+    before = _vscode_config(repo).read_bytes()
     result = install_governance_hooks(repo, framework)
 
-    assert any(
-        Path(item).name.startswith("ai-governance-vscode.json.bak.") for item in result.backups
-    )
+    assert result.ok, result.errors
+    assert _vscode_config(repo).read_bytes() == before
+    assert not any(Path(item).name.startswith("ai-governance-vscode.json.bak.") for item in result.backups)
 
 
 def test_unmodified_lifecycle_files_are_not_backed_up_on_reinstall(tmp_path: Path) -> None:
@@ -940,10 +941,11 @@ def test_installed_configs_register_each_session_boundary_exactly_once(tmp_path:
 
     assert len(starts) == 1, merged
     assert "SessionStart" in merged
-    # Stop and SessionEnd are distinct VS Code / Copilot CLI end boundaries; each
-    # surface fires only its own, so one entry apiece is correct.
-    assert len(ends) == 2, merged
-    assert {"Stop", "SessionEnd"} <= set(merged)
+    # Stop ends one execution, not the session. Only the genuine sessionEnd
+    # registration may reach closeout.
+    assert len(ends) == 1, merged
+    assert "SessionEnd" in merged
+    assert "Stop" not in merged
 
 
 def test_shell_installer_backs_up_edited_lifecycle_file_end_to_end() -> None:

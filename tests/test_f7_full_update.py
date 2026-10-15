@@ -1174,6 +1174,45 @@ def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> Non
     assert result.stages.get("hook_validator_enforcement") in {"updated", "verified"}
 
 
+@pytest.mark.parametrize("role", ["external", "submodule"])
+def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_path: Path, role: str) -> None:
+    """Exercise both actual F-7 installer call sites; only network update is stubbed."""
+    import shutil
+
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework" if role == "submodule" else tmp_path / "framework"
+    if role == "external":
+        _make_external_contract_repo(repo)
+    else:
+        _init_repo(repo)
+        _write(repo / "AGENTS.md", "# AGENTS\n")
+        _write(repo / ".gitmodules", '[submodule "framework"]\n\tpath = ai-governance-framework\n\turl = https://example.invalid/framework.git\n')
+    _make_framework(framework)
+    root = Path(__file__).resolve().parents[1]
+    for rel in ("runtime_hooks/adapters/copilot/lifecycle.py", "governance/copilot-hooks-vscode-template.json",
+                "governance/copilot-hooks-session-end-template.json"):
+        (framework / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / rel, framework / rel)
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    custom = {"type": "command", "command": "echo consumer-stop"}
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [
+        {"type": "command", "command": "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}, custom,
+    ]}}))
+    with mock.patch.object(f7_full_update, "update_governance_submodule", side_effect=lambda **kwargs: _update_result(repo, ok=True)):
+        first = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True,
+                                   submodule_path="ai-governance-framework")
+        assert first.stages["hook_validator_enforcement"] == "updated", first.errors
+        assert json.loads(config.read_text())["hooks"] == {"Stop": [custom]}
+        copilot = repo / ".github/hooks/ai-governance-copilot.json"
+        assert set(json.loads(copilot.read_text())["hooks"]) == {"sessionStart", "sessionEnd"}
+        paths = [config, copilot, repo / ".github/hooks/ai-governance-lifecycle.py", repo / ".github/hooks/.ai-governance-managed.json"]
+        before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+        second = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True,
+                                    submodule_path="ai-governance-framework")
+        assert second.stages["hook_validator_enforcement"] == "verified", second.errors
+        assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+
+
 def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
     """The guard also required the bare word to be absent.
 

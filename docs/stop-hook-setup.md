@@ -67,12 +67,14 @@ Windows 通常位於：`C:\Users\<you>\.claude\settings.json`
 - `.github/hooks/ai-governance-vscode.json`
 - `.github/hooks/ai-governance-copilot.json`
 
-兩份 JSON 分開宣告平台事件，並避免同一個 session boundary 被重複註冊：
+兩份 JSON 的職責如下：
 
-- VS Code 專用設定只宣告 `Stop`
+- VS Code 專用設定的框架範本為空 `hooks`，不註冊 closeout
 - GitHub Copilot 相容設定宣告 `sessionStart`、`sessionEnd`
 
-VS Code 會讀取 `.github/hooks/*.json`，並把 Copilot lowerCamelCase event 名稱轉成 PascalCase，因此 `sessionStart` 同時提供 VS Code 的唯一 start handler；額外在 VS Code 設定重複宣告 `SessionStart` 會造成 envelope 被寫兩次。兩份設定都呼叫同一個 `ai-governance-lifecycle.py`，由 payload 欄位格式判斷實際 surface。start event 只建立 session-bound envelope；end event 會把同一個 `cwd` 與 `session_id` 傳入 canonical `session_end`。wrapper 不重新實作 writer、promotion 或 receipt schema。
+VS Code 的 [`Stop`](https://code.visualstudio.com/docs/agents/reference/hooks-reference#_stop) 只表示目前 agent execution 停止，不表示 session 結束。Local harness 沒有經確認的 session-end 事件時，需在明確的 session 結束使用既有手動 closeout；本修復不新增替代事件。支援真正 `sessionEnd` 的 Copilot 平台仍使用原有 bridge。不得在 VS Code 設定重複註冊框架 `SessionStart`；它會與 Copilot 相容設定重複。
+
+正常安裝、`--copilot-only`、`--copilot-vscode-only` 與 F-7 apply 共用退役流程：只移除 VS Code 設定中可辨識的舊框架 `Stop`／重複 `SessionStart` 項目，保留同檔的自訂 hook 與其他欄位。修改前依既有規則備份；無需修改的自訂檔保留原始 bytes。無法辨識的 bridge 命令或損壞配置會回報錯誤並保留原檔，須人工處理，不以範本覆蓋。`--copilot-vscode-only` 保留為相容的退役入口，不再提供 VS Code 自動 closeout。
 
 可用 validator 檢查 repo-local wiring：
 
@@ -80,7 +82,7 @@ VS Code 會讀取 `.github/hooks/*.json`，並把 Copilot lowerCamelCase event �
 python -m governance_tools.hook_install_validator --repo .
 ```
 
-`copilot_lifecycle_installed=true` 只表示 wrapper 與兩份設定檔存在且 routing marker 可辨識；它不證明 VS Code/Copilot 已載入設定，也不證明 stop/sessionEnd 事件真的觸發。
+`copilot_lifecycle_installed=true` 只表示 bridge、真正 `sessionEnd` 配置與可選 VS Code 配置的靜態檢查成立。VS Code 配置可不存在、為空或只保留自訂 hook；殘留框架 lifecycle 項目會使 validator 回報不合規。這不證明平台已載入配置或 sessionEnd 實際觸發，也不評估自訂 hook 的業務正確性。
 
 ---
 
