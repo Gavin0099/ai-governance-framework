@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -189,7 +191,7 @@ def test_required_phase_gate_executes_canonical_drift_checker() -> None:
     script = _phase_gate_script_text()
 
     assert "name: Phase Gate Verification" in phase_gate_job
-    assert "if: github.event_name != 'push'" in phase_gate_job
+    assert "github.event_name != 'push'" in phase_gate_job
     assert "run: bash scripts/verify_phase_gates.sh" in phase_gate_job
     assert "governance_tools/governance_drift_checker.py" in script
     assert "--repo ." in script
@@ -229,3 +231,173 @@ def test_advisory_job_preserves_failure_visibility_and_setup_policy() -> None:
         assert not step.get("continue-on-error", False)  # Keep failures visible in the step log.
         assert step["timeout-minutes"] == 5
     assert job["timeout-minutes"] > sum(s["timeout-minutes"] for s in checks)
+
+
+def _bash_command(script: str, *, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    git_executable = shutil.which("git")
+    assert git_executable is not None
+    bash = (
+        Path(git_executable).resolve().parent.parent / "bin" / "bash.exe"
+        if os.name == "nt"
+        else "bash"
+    )
+    return subprocess.run(
+        [str(bash), "-c", script], cwd=cwd, env=env, capture_output=True,
+        text=True, encoding="utf-8", errors="replace", timeout=30,
+    )
+
+
+@pytest.fixture
+def phase_gate_environment(tmp_path: Path) -> tuple[Path, dict[str, str], Path]:
+    """Execute the real shell orchestration with synthetic downstream checks."""
+    def write(relative: str, text: str) -> Path:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+        return path
+
+    write("scripts/verify_phase_gates.sh", _phase_gate_script_text())
+    write("scripts/lib/python.sh", Path("scripts/lib/python.sh").read_text(encoding="utf-8"))
+    write("scripts/run-runtime-governance.sh", "#!/bin/bash\nexit 0\n")
+    for name in (
+        "SYSTEM_PROMPT", "AGENT", "ARCHITECTURE", "HUMAN-OVERSIGHT",
+        "REVIEW_CRITERIA", "TESTING", "NATIVE-INTEROP", "PLAN",
+    ):
+        write(f"governance/{name}.md", "synthetic presence fixture\n")
+    write("PLAN.md", "synthetic presence fixture\n")
+    calls = tmp_path / "python-calls.jsonl"
+    stub = write("python_stub.py", '''\
+import json, os, sys
+from pathlib import Path
+args = sys.argv[1:]
+with Path(os.environ["PYTHON_CALLS"]).open("a", encoding="utf-8") as stream:
+    stream.write(json.dumps(args) + "\\n")
+if args[:2] == ["-m", "pytest"]:
+    print("SYNTHETIC PYTEST RESULT")
+    sys.exit(int(os.environ.get("PYTEST_EXIT", "0")))
+if args[:1] == ["-c"]:
+    exec(args[1])
+elif args and args[0] == "governance_tools/plan_freshness.py":
+    print(json.dumps({"status": "FRESH", "days_since_update": 0}))
+elif args and args[0] == "governance_tools/governance_drift_checker.py":
+    sys.exit(int(os.environ.get("DRIFT_EXIT", "0")))
+''')
+    python = write("bin/python", '#!/bin/bash\nexec "$REAL_PYTHON" "$PYTHON_STUB" "$@"\n')
+    python.chmod(0o755)
+    env = dict(os.environ)
+    env.update(
+        REAL_PYTHON=Path(sys.executable).as_posix(),
+        PYTHON_STUB=stub.as_posix(), PYTHON_CALLS=calls.as_posix(),
+        AI_GOVERNANCE_PYTHON=python.as_posix(),
+        PATH=str(python.parent) + os.pathsep + env.get("PATH", ""),
+        PYTEST_EXIT="0", DRIFT_EXIT="0",
+    )
+    return tmp_path, env, calls
+
+
+def _pytest_calls(path: Path) -> list[list[str]]:
+    calls = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    return [args for args in calls if args[:2] == ["-m", "pytest"]]
+
+
+@pytest.mark.parametrize("pytest_exit", [0, 1])
+def test_standalone_phase_gate_runs_pytest_and_propagates_failure(
+    phase_gate_environment: tuple[Path, dict[str, str], Path], pytest_exit: int,
+) -> None:
+    root, env, calls = phase_gate_environment
+    env["PYTEST_EXIT"] = str(pytest_exit)
+    result = _bash_command("bash scripts/verify_phase_gates.sh", cwd=root, env=env)
+    assert result.returncode == pytest_exit, result.stdout + result.stderr
+    assert _pytest_calls(calls) == [["-m", "pytest", "tests/", "-q", "--tb=short"]]
+    assert ("Phase 完成條件滿足" in result.stdout) is (pytest_exit == 0)
+
+
+def test_non_pytest_mode_does_not_rerun_tests_or_claim_all_gates_passed(
+    phase_gate_environment: tuple[Path, dict[str, str], Path],
+) -> None:
+    root, env, calls = phase_gate_environment
+    env["PYTEST_EXIT"] = "1"
+    result = _bash_command("bash scripts/verify_phase_gates.sh --non-pytest-only", cwd=root, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _pytest_calls(calls) == []
+    assert "非 pytest" in result.stdout
+    assert "不代表全部 Gate 通過" in result.stdout
+    assert "Phase 完成條件滿足" not in result.stdout
+
+
+@pytest.mark.parametrize("failure", ["drift", "missing_document"])
+def test_other_phase_gate_failures_are_not_hidden_by_non_pytest_mode(
+    phase_gate_environment: tuple[Path, dict[str, str], Path], failure: str,
+) -> None:
+    root, env, _ = phase_gate_environment
+    if failure == "drift":
+        env["DRIFT_EXIT"] = "1"
+    else:
+        (root / "governance/ARCHITECTURE.md").unlink()
+    result = _bash_command("bash scripts/verify_phase_gates.sh --non-pytest-only", cwd=root, env=env)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "未通過" in result.stdout
+
+
+def test_phase_gate_rejects_unknown_options_before_running_checks(
+    phase_gate_environment: tuple[Path, dict[str, str], Path],
+) -> None:
+    root, env, calls = phase_gate_environment
+    result = _bash_command("bash scripts/verify_phase_gates.sh --skip-tests", cwd=root, env=env)
+    assert result.returncode == 2
+    assert not calls.exists()
+
+
+def test_phase_gate_reuses_only_its_workflow_run_and_same_checkout_settings() -> None:
+    jobs = yaml.safe_load(_workflow_text())["jobs"]
+    full, phase = jobs["full-test-suite"], jobs["phase-gates"]
+    assert phase["needs"] == "full-test-suite"
+    assert phase["if"] == "${{ always() && github.event_name != 'push' }}"
+    assert full["runs-on"] == phase["runs-on"] == "ubuntu-latest"
+    assert not full.get("continue-on-error", False)
+    assert not phase.get("continue-on-error", False)
+    for job in (full, phase):
+        checkout = next(s for s in job["steps"] if s.get("uses") == "actions/checkout@v4")
+        assert checkout["with"]["ref"] == "${{ github.sha }}"
+        assert checkout["with"]["fetch-depth"] == 0
+        setup = next(s for s in job["steps"] if s.get("uses") == "actions/setup-python@v5")
+        assert setup["with"]["python-version"] == "3.11"
+        assert next(s for s in job["steps"] if s.get("name") == "Install documented dependencies")["run"] == "pip install -r requirements.txt"
+    guard = phase["steps"][0]
+    assert guard["env"]["FULL_TEST_SUITE_RESULT"] == "${{ needs.full-test-suite.result }}"
+    assert not guard.get("continue-on-error", False)
+    assert "if" not in guard
+    verify = next(s for s in phase["steps"] if s.get("name") == "Verify phase gates")
+    assert verify["run"] == "bash scripts/verify_phase_gates.sh --non-pytest-only"
+    assert not verify.get("continue-on-error", False)
+    test_step = next(s for s in full["steps"] if s.get("name") == "Run full test suite")
+    assert "if" not in test_step
+    assert not test_step.get("continue-on-error", False)
+
+
+@pytest.mark.parametrize("upstream", ["success", "failure", "skipped", "cancelled", "", "neutral"])
+def test_required_phase_gate_rejects_every_non_success_upstream(
+    tmp_path: Path, upstream: str,
+) -> None:
+    phase = yaml.safe_load(_workflow_text())["jobs"]["phase-gates"]
+    guard = phase["steps"][0]
+    env = dict(os.environ, FULL_TEST_SUITE_RESULT=upstream)
+    result = _bash_command(guard["run"], cwd=tmp_path, env=env)
+    assert (result.returncode == 0) is (upstream == "success")
+
+
+def test_ci_runs_the_complete_suite_once_and_preserves_other_gate_failures(
+    phase_gate_environment: tuple[Path, dict[str, str], Path],
+) -> None:
+    root, env, calls = phase_gate_environment
+    jobs = yaml.safe_load(_workflow_text())["jobs"]
+    full_test = next(s for s in jobs["full-test-suite"]["steps"] if s.get("name") == "Run full test suite")
+    phase = jobs["phase-gates"]
+    verify = next(s for s in phase["steps"] if s.get("name") == "Verify phase gates")
+    assert _bash_command(full_test["run"], cwd=root, env=env).returncode == 0
+    env["FULL_TEST_SUITE_RESULT"] = "success"
+    assert _bash_command(phase["steps"][0]["run"], cwd=root, env=env).returncode == 0
+    env["DRIFT_EXIT"] = "1"
+    result = _bash_command(verify["run"], cwd=root, env=env)
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert len(_pytest_calls(calls)) == 1
