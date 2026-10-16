@@ -37,6 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           # Strict read-only tests verify adopted blobs at historical commits.
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -151,13 +152,26 @@ jobs:
 
   phase-gates:
     name: Phase Gate Verification
+    needs: full-test-suite
     runs-on: ubuntu-latest
-    if: github.event_name != 'push'
+    # A skipped dependent job can look successful to branch protection.
+    # Always evaluate the upstream result instead of relying on needs alone.
+    if: ${{ always() && github.event_name != 'push' }}
     timeout-minutes: 20
     steps:
+      - name: Require successful full test suite
+        env:
+          FULL_TEST_SUITE_RESULT: ${{ needs.full-test-suite.result }}
+        run: |
+          if [ "${FULL_TEST_SUITE_RESULT:-}" != "success" ]; then
+            echo "::error::Full Test Suite did not succeed in this workflow run (${FULL_TEST_SUITE_RESULT:-missing})."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
         with:
-          # verify_phase_gates.sh also runs the historical-blob test suite.
+          # Match the actual tested commit, including pull_request merge commits.
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -168,7 +182,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Verify phase gates
-        run: bash scripts/verify_phase_gates.sh
+        # This job has already required the full suite for this workflow's SHA.
+        run: bash scripts/verify_phase_gates.sh --non-pytest-only
 
       - name: Verify strict example runtime readiness
         run: python governance_tools/example_readiness.py --strict-runtime --format human

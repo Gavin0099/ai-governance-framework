@@ -3,16 +3,27 @@
 #
 # 用法:
 #   bash scripts/verify_phase_gates.sh
+#   bash scripts/verify_phase_gates.sh --non-pytest-only
+#     僅驗非 pytest 項目；呼叫端必須另外承接完整測試結果。
 #
 # 退出碼:
-#   0 = 全部 Gate 通過
+#   0 = 所選檢查通過（非 pytest 模式不代表全部 Gate 通過）
 #   1 = 至少一項 Gate 未通過
+#   2 = 不支援的參數
 #
 # 用途:
 #   讓 Phase 完成的宣告從「人工 [✓]」變成「機器可驗證」。
 #   建議在 git push 前或 CI 中執行。
 
 set -euo pipefail
+
+RUN_PYTEST=true
+if [ "$#" -eq 1 ] && [ "$1" = "--non-pytest-only" ]; then
+    RUN_PYTEST=false
+elif [ "$#" -ne 0 ]; then
+    echo "Usage: bash scripts/verify_phase_gates.sh [--non-pytest-only]" >&2
+    exit 2
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/python.sh"
@@ -46,12 +57,16 @@ REVIEWER_HANDOFF_ROOT="$PHASE_GATE_ARTIFACT_ROOT/reviewer-handoff"
 TRUST_SIGNAL_ROOT="$PHASE_GATE_ARTIFACT_ROOT/trust-signals"
 
 # ── Gate 1: 單元測試 ─────────────────────────────────────────
-info "Gate 1 / 單元測試"
-if "${PYTHON_CMD[@]}" -m pytest tests/ -q --tb=short 2>&1; then
-    ok "pytest 通過"
-    PASS=$((PASS + 1))
+if [ "$RUN_PYTEST" = true ]; then
+    info "Gate 1 / 單元測試"
+    if "${PYTHON_CMD[@]}" -m pytest tests/ -q --tb=short 2>&1; then
+        ok "pytest 通過"
+        PASS=$((PASS + 1))
+    else
+        fail "pytest 失敗 — 請修復後再宣告 Phase 完成"
+    fi
 else
-    fail "pytest 失敗 — 請修復後再宣告 Phase 完成"
+    info "僅驗證非 pytest 項目；本次腳本未執行完整測試"
 fi
 
 # ── Gate 2: PLAN.md 新鮮度 ───────────────────────────────────
@@ -275,7 +290,11 @@ TOTAL=$((PASS + FAIL))
 echo "  結果: ${PASS}/${TOTAL} Gates 通過"
 
 if [ "$FAIL" -eq 0 ]; then
-    echo "  🎉 全部通過 — Phase 完成條件滿足"
+    if [ "$RUN_PYTEST" = true ]; then
+        echo "  🎉 全部通過 — Phase 完成條件滿足"
+    else
+        echo "  非 pytest 檢查通過；完整測試須由呼叫端確認，不代表全部 Gate 通過"
+    fi
     exit 0
 else
     echo "  🚨 $FAIL 項未通過 — 請修復後再宣告 Phase 完成"
