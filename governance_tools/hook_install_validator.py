@@ -114,6 +114,62 @@ def _command_option(tokens: list[str], option: str) -> str | None:
     return tokens[index + 1]
 
 
+def _read_vscode_hook_config(path: Path) -> dict:
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate hook config key: {key}")
+            result[key] = value
+        return result
+
+    payload = json.loads(path.read_text(encoding="utf-8-sig"), object_pairs_hook=unique_object)
+    if not isinstance(payload, dict) or type(payload.get("version")) is not int or payload["version"] != 1:
+        raise ValueError("hook config must have version 1")
+    hooks = payload.get("hooks")
+    if not isinstance(hooks, dict) or not all(
+        isinstance(entries, list) and all(isinstance(entry, dict) for entry in entries)
+        for entries in hooks.values()
+    ):
+        raise ValueError("invalid hook entries")
+    return payload
+
+
+def _references_copilot_bridge(entry: dict) -> bool:
+    """Inspect executable fields, never metadata, env values or working paths."""
+    def references(value):
+        if isinstance(value, list):
+            return any(references(item) for item in value)
+        if not isinstance(value, str) or COPILOT_HOOK_COMMAND_MARKER not in value:
+            return False
+        # Only unquoted literal display text is exempt. Do not try to parse
+        # shell expressions: (), process substitution, redirects and expansion
+        # may execute the bridge even behind a display command.
+        if re.fullmatch(r"(?:echo|printf|write-output)[ \t]+[\w .:/\\-]+", value, re.IGNORECASE):
+            return False
+        return True
+
+    return any(references(entry.get(key)) for key in (
+        "command", "windows", "linux", "osx", "bash", "powershell", "exec", "args",
+    ))
+
+
+def _vscode_hook_config_safe(path: Path) -> bool:
+    """The retired VS Code surface is optional and may retain consumer hooks.
+
+    No framework lifecycle registration belongs here: Stop is not session end,
+    and SessionStart would duplicate the existing Copilot registration.
+    """
+    if not path.exists():
+        return True
+    try:
+        payload = _read_vscode_hook_config(path)
+    except (OSError, ValueError):
+        return False
+    return not any(_references_copilot_bridge(entry)
+                   for entries in payload["hooks"].values() for entry in entries)
+
+
 def _managed_copilot_hook_config(
     path: Path,
     expected_events: dict[str, tuple[str, str]],
@@ -133,8 +189,10 @@ def _managed_copilot_hook_config(
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
+    if not isinstance(payload, dict):
+        return False
     hooks = payload.get("hooks")
-    if payload.get("version") != 1 or not isinstance(hooks, dict):
+    if type(payload.get("version")) is not int or payload["version"] != 1 or not isinstance(hooks, dict):
         return False
     if set(hooks) != set(expected_events):
         return False
@@ -410,12 +468,7 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
         COPILOT_LIFECYCLE_MARKER,
     )
     vscode_hooks_present = vscode_hooks.is_file()
-    # VS Code's start handler comes from the Copilot config's `sessionStart`
-    # after name normalization; declaring it here too would double-register.
-    vscode_hooks_governed = _managed_copilot_hook_config(
-        vscode_hooks,
-        {"Stop": ("session_end", "auto")},
-    )
+    vscode_hooks_governed = _vscode_hook_config_safe(vscode_hooks)
     copilot_hooks_present = copilot_hooks.is_file()
     copilot_hooks_governed = _managed_copilot_hook_config(
         copilot_hooks,
@@ -430,6 +483,11 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     checks["copilot_vscode_hooks_governed"] = vscode_hooks_governed
     checks["copilot_session_end_hooks_present"] = copilot_hooks_present
     checks["copilot_session_end_hooks_governed"] = copilot_hooks_governed
+    if vscode_hooks_present and not vscode_hooks_governed:
+        errors.append(
+            f"unsafe VS Code hook config (Stop is not session end): {vscode_hooks}; "
+            "retire legacy managed entries or resolve custom wiring manually"
+        )
     checks["copilot_lifecycle_installed"] = all(
         (
             lifecycle_bridge_governed,
@@ -440,11 +498,10 @@ def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -
     if not checks["copilot_lifecycle_installed"]:
         warnings.append(
             "Copilot lifecycle hooks are not fully installed; expected managed "
-            ".github/hooks lifecycle bridge plus VS Code Stop and Copilot sessionEnd configs. "
-            "Note that the VS Code config declares Stop only: VS Code loads every *.json under "
-            ".github/hooks and normalizes the Copilot config's sessionStart to SessionStart, so "
-            "adding SessionStart to the VS Code config registers a second start handler and "
-            "writes the session envelope twice"
+            ".github/hooks lifecycle bridge and genuine Copilot sessionEnd config. "
+            "The optional VS Code config must not register the framework lifecycle bridge: "
+            "Stop is not session end; adding SessionStart writes the session envelope twice. "
+            "Retire legacy managed entries with hook_installer; resolve custom wiring manually"
         )
 
     resolved_framework_root = framework_root.resolve() if framework_root is not None else None

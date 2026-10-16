@@ -577,7 +577,7 @@ def test_managed_copilot_lifecycle_surface_is_observable_and_advisory() -> None:
     )
     _write(
         repo_root / ".github" / "hooks" / "ai-governance-vscode.json",
-        '{"version":1,"hooks":{"Stop":[{"type":"command","command":"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n',
+        '{"version":1,"hooks":{}}\n',
     )
     _write(
         repo_root / ".github" / "hooks" / "ai-governance-copilot.json",
@@ -666,7 +666,7 @@ def test_invalid_lifecycle_routing_never_reports_installed(
 
     result = validate_hook_install(repo_root)
 
-    assert result.valid is True
+    assert result.valid is False
     assert result.checks["copilot_lifecycle_installed"] is False
 
 
@@ -738,27 +738,30 @@ _VSCODE_GOVERNED = (
     '{"version":1,"hooks":{"Stop":[{"type":"command","command":'
     '"python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"}]}}\n'
 )
+_VSCODE_RETIRED = '{"version":1,"hooks":{}}\n'
 
 
-def test_vscode_stop_only_config_is_governed() -> None:
+def test_vscode_stop_closeout_config_is_rejected() -> None:
     repo_root, _ = _checkpoint_fixture("vscode_stop_only")
     _lifecycle_surface(repo_root, _VSCODE_GOVERNED)
 
     result = validate_hook_install(repo_root)
 
-    assert result.checks["copilot_vscode_hooks_governed"] is True
-    assert result.checks["copilot_lifecycle_installed"] is True
+    assert result.checks["copilot_vscode_hooks_governed"] is False
+    assert result.checks["copilot_lifecycle_installed"] is False
+    assert result.valid is False
+    assert any("Stop is not session end" in error for error in result.errors)
 
 
 @pytest.mark.parametrize("wrong_binding", [False, True])
 def test_human_format_does_not_claim_binding_from_governed_config(wrong_binding: bool) -> None:
     repo_root, framework_root = _checkpoint_fixture(f"report_binding_{wrong_binding}")
-    config = json.loads(_VSCODE_GOVERNED)
-    config["hooks"]["Stop"][0]["env"] = {
-        "AI_GOVERNANCE_FRAMEWORK_ROOT": str(
-            framework_root / "unrelated" if wrong_binding else framework_root
-        ),
-    }
+    config = json.loads(_VSCODE_RETIRED)
+    config["hooks"]["UserPromptSubmit"] = [{
+        "type": "command", "command": "echo consumer", "env": {
+            "AI_GOVERNANCE_FRAMEWORK_ROOT": str(framework_root / "unrelated" if wrong_binding else framework_root)
+        },
+    }]
     _lifecycle_surface(repo_root, json.dumps(config))
     result = validate_hook_install(repo_root)
     original_json = format_json(result)
@@ -778,12 +781,11 @@ def test_human_format_does_not_claim_binding_from_governed_config(wrong_binding:
 @pytest.mark.parametrize("missing", ["vscode", "copilot"])
 def test_human_format_separates_absent_copilot_config_without_changing_warning(missing: str) -> None:
     repo_root, _ = _checkpoint_fixture(f"report_absent_{missing}")
-    _lifecycle_surface(repo_root, _VSCODE_GOVERNED)
+    _lifecycle_surface(repo_root, _VSCODE_RETIRED)
     (repo_root / ".github/hooks" / f"ai-governance-{missing}.json").unlink()
     result = validate_hook_install(repo_root)
     original_json = format_json(result)
-    assert result.checks["copilot_lifecycle_installed"] is False
-    overall_warning = next(w for w in result.warnings if "lifecycle hooks are not fully installed" in w)
+    assert result.checks["copilot_lifecycle_installed"] is (missing == "vscode")
 
     rendered = format_human(result)
 
@@ -791,13 +793,13 @@ def test_human_format_separates_absent_copilot_config_without_changing_warning(m
     assert f"{absent} configuration format = NOT_PRESENT" in rendered
     assert f"{present} configuration format = GOVERNED" in rendered
     assert f"{present} configuration format = NOT_GOVERNED" not in rendered
-    assert overall_warning in rendered
+    assert any("lifecycle hooks are not fully installed" in w for w in result.warnings) is (missing == "copilot")
     assert format_json(result) == original_json
 
 
 def test_human_format_distinguishes_malformed_from_absent_config() -> None:
     repo_root, _ = _checkpoint_fixture("report_malformed")
-    _lifecycle_surface(repo_root, '{"version":1,"hooks":{}}')
+    _lifecycle_surface(repo_root, '{"version":1,"hooks":[]}')
     rendered = format_human(validate_hook_install(repo_root))
     assert "Copilot VS Code configuration format = NOT_GOVERNED" in rendered
     assert "Copilot CLI/cloud configuration format = GOVERNED" in rendered
@@ -835,13 +837,14 @@ def test_vscode_config_declaring_session_start_is_not_governed() -> None:
     assert any("writes the session envelope twice" in w for w in result.warnings)
 
 
-def test_vscode_config_missing_stop_is_not_governed() -> None:
+def test_vscode_config_without_framework_events_is_governed() -> None:
     repo_root, _ = _checkpoint_fixture("vscode_missing_stop")
     _lifecycle_surface(repo_root, '{"version":1,"hooks":{}}\n')
 
     result = validate_hook_install(repo_root)
 
-    assert result.checks["copilot_vscode_hooks_governed"] is False
+    assert result.checks["copilot_vscode_hooks_governed"] is True
+    assert result.checks["copilot_lifecycle_installed"] is True
 
 
 def test_vscode_config_with_wrong_event_wiring_is_not_governed() -> None:

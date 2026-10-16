@@ -473,6 +473,7 @@ def _apply_copilot_lifecycle_files(
     installed: list[str],
     changed: list[str],
     backups: list[str],
+    errors: list[str],
     vscode_payloads: dict[Path, bytes] | None = None,
 ) -> None:
     """Install the managed lifecycle bridge and its two hook configs.
@@ -481,11 +482,22 @@ def _apply_copilot_lifecycle_files(
     older framework fixtures remain installable and the validator reports an
     absent lifecycle surface as advisory.
 
-    These are replaced whole — the bridge has to stay in step with the framework
-    — so anything that is not byte-for-byte what this installer last wrote is
-    backed up first. A marker check is not enough: an edited file still carries
-    the marker, and its edits would be lost silently.
+    The bridge and Copilot config retain their whole-file backup semantics.
+    The VS Code compatibility config retires known framework entries only and
+    keeps consumer hooks active. Edited files are backed up before rewriting.
     """
+    # Prepare retirement before writing lifecycle files. An unknown or malformed
+    # consumer config must remain untouched, not be replaced by the template.
+    config_source, config_target, _ = COPILOT_LIFECYCLE_FILES[1]
+    vscode_payload = None
+    if (framework_root / config_source).is_file():
+        try:
+            vscode_payload = _retired_vscode_payload(
+                repo_root / config_target, framework_root / config_source
+            )
+        except (OSError, ValueError) as exc:
+            errors.append(f"cannot retire {repo_root / config_target}: {exc}")
+            return
     manifest = _read_managed_manifest(repo_root)
     wrote_any = False
     for source_rel, target_rel, _marker in COPILOT_LIFECYCLE_FILES:
@@ -496,6 +508,9 @@ def _apply_copilot_lifecycle_files(
             continue
         target = repo_root / target_rel
         payload = source.read_bytes() if vscode_payloads is None else vscode_payloads[target_rel]
+        if target_rel == config_target:
+            payload = vscode_payload
+            assert payload is not None
         payload_digest = _content_digest(payload.decode("utf-8", errors="replace"))
         key = target_rel.as_posix()
 
@@ -512,6 +527,47 @@ def _apply_copilot_lifecycle_files(
 
     if wrote_any:
         _write_managed_manifest(repo_root, manifest, changed, installed)
+
+
+def _retired_vscode_payload(target: Path, source: Path) -> bytes:
+    """Remove only recognized old framework entries; retain consumer settings.
+
+    The empty template is intentional: VS Code has no confirmed session-end
+    event here. Unknown bridge invocations require manual resolution.
+    """
+    from governance_tools.hook_install_validator import (
+        _read_vscode_hook_config, _references_copilot_bridge,
+    )
+
+    if _read_vscode_hook_config(source)["hooks"]:
+        raise ValueError("VS Code template must have version 1 and empty hooks")
+    if not target.exists():
+        return source.read_bytes()
+    original = target.read_bytes()
+    config = _read_vscode_hook_config(target)
+    hooks = config["hooks"]
+    changed = False
+    for event, entries in list(hooks.items()):
+        kept = []
+        for entry in entries:
+            if not _references_copilot_bridge(entry):
+                kept.append(entry)
+                continue
+            event_type = {"Stop": "session_end", "SessionStart": "session_start"}.get(event)
+            expected = f"python .github/hooks/ai-governance-lifecycle.py --event-type {event_type} --surface auto"
+            if (event_type is None or entry.get("type") != "command" or entry.get("command") != expected
+                    or set(entry) - {"type", "command", "timeout", "env", "cwd"}
+                    or not isinstance(entry.get("env", {}), dict)
+                    or set(entry.get("env", {})) - {"AI_GOVERNANCE_FRAMEWORK_ROOT"}):
+                raise ValueError("unrecognized framework bridge wiring; preserve custom config and resolve manually")
+            changed = True
+        if kept or not entries:
+            hooks[event] = kept
+        else:
+            del hooks[event]
+    if not changed:
+        return original
+    return (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def _apply_agent_contract_surfaces(
@@ -604,6 +660,7 @@ def _apply_copilot_surface(
         installed=installed,
         changed=changed,
         backups=backups,
+        errors=errors,
     )
     _apply_agent_contract_surfaces(
         repo_root,
@@ -620,15 +677,13 @@ def install_copilot_vscode_lifecycle(
     repo_root: Path,
     framework_root: Path,
 ) -> HookInstallApplyResult:
-    """Deploy only the existing Stop bridge/config, bound to the supplied target.
+    """Retire the old VS Code registrations, preserving consumer hooks.
 
     SessionStart is not needed to reach the closeout core. Missing envelopes
     remain core diagnostics; this entrypoint does not create or repair them.
     Legacy CLI/cloud hooks and all instruction surfaces are intentionally left
     alone. The normal managed-file backup and digest behavior is reused.
     """
-    from governance_tools.hook_install_validator import _managed_copilot_hook_config
-
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     result = HookInstallApplyResult(
@@ -641,26 +696,17 @@ def install_copilot_vscode_lifecycle(
         bridge_source, bridge_target, _ = COPILOT_LIFECYCLE_FILES[0]
         config_source, config_target, _ = COPILOT_LIFECYCLE_FILES[1]
         bridge = (framework_root / bridge_source).read_bytes()
-        # Reuse the validator's event/cardinality/command contract before writes.
-        if not _managed_copilot_hook_config(
-            framework_root / config_source, {"Stop": ("session_end", "auto")}
-        ):
-            raise ValueError("VS Code Stop template does not satisfy the managed hook config contract")
-        config = json.loads((framework_root / config_source).read_text(encoding="utf-8"))
-        for entry in config["hooks"]["Stop"]:
-            # The bridge already resolves this variable first. A per-hook env
-            # binding overrides stale ambient/global Git hook configuration.
-            entry.setdefault("env", {})["AI_GOVERNANCE_FRAMEWORK_ROOT"] = str(framework_root)
-            entry["cwd"] = str(repo_root)
+        config = _retired_vscode_payload(repo_root / config_target, framework_root / config_source)
         payloads = {
             bridge_target: bridge,
-            config_target: (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+            config_target: config,
         }
         _apply_copilot_lifecycle_files(
             repo_root, framework_root,
             installed=result.installed_files,
             changed=result.changed_files,
             backups=result.backups,
+            errors=result.errors,
             vscode_payloads=payloads,
         )
     except (OSError, ValueError, TypeError, AttributeError) as exc:
@@ -924,7 +970,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument(
         "--copilot-vscode-only", action="store_true",
-        help="Install only the VS Code Stop lifecycle bridge, bound config, and managed manifest.",
+        help="Retire legacy VS Code lifecycle registrations, preserving custom hooks and the managed manifest.",
     )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)

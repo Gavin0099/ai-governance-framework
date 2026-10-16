@@ -2,6 +2,19 @@
 
 ## Canonical Planning Surface
 
+### Authorized VS Code Stop wiring repair — 2026-10-15
+
+- Owner authorized a bounded fix from `main@2a09d54`, independent review and
+  one Draft PR; stop after delivery. Merge and consumer updates are not authorized.
+- DONE: fresh install and managed upgrade do not wire VS Code Stop to closeout;
+  preserve custom hooks, reject ambiguous configurations, keep genuine sessionEnd
+  and single SessionStart registration, and remain idempotent through F-7.
+- Implementation `6f097eb8`: 210 focused tests passed; independent review APPROVED
+  that exact implementation commit. Draft delivery is the claim ceiling.
+- Scope: existing VS Code template, installer, validator, related tests and docs.
+  No memory semantics, authority, lifecycle event, gate, schema or receipt changes.
+- Other planning entries below retain their own historical evidence boundaries.
+
 ### Authorized GDScript support — 2026-10-13
 
 - Observed consumer: DiceMercenaries DM-00 cannot declare GDScript in the
@@ -54,7 +67,7 @@
   independent review, Codex review and complete CI must pass before delivery.
 - Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
 
-> **最後更新**: 2026-10-03
+> **最後更新**: 2026-10-15
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
