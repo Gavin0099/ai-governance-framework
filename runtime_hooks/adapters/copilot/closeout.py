@@ -75,7 +75,11 @@ def prepare(root: Path, sid: str, provider: str, inputs: dict[str, Any]) -> dict
     with execution_exclusion(root):
         validate_session(root, sid, provider)
         binding = assess_session_closeout_binding(sid, root, None)
-        if binding["status"] == "already_consumed":
+        state_path = _session_path(root, sid, "copilot-closeout-state.json")
+        state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+        marker = root / "artifacts/runtime/closeout-completions" / f"{sid}.json"
+        if (binding["status"] == "already_consumed" or marker.exists()
+                or state.get("closeout_eligibility") == "completed"):
             raise ValueError("Completed Copilot session cannot prepare another closeout")
         now = datetime.now(timezone.utc)
         relative, payload, encoded = build_candidate_artifact(
@@ -97,7 +101,11 @@ def prepare(root: Path, sid: str, provider: str, inputs: dict[str, Any]) -> dict
 
 def run(root: Path, sid: str, provider: str, transcript_path: Path | None) -> dict[str, Any]:
     from governance_tools.session_end_hook import run_session_end_hook
-    from governance_tools.memory_record import daily_memory_contains_record_identity, render_session_derived_entry
+    from governance_tools.memory_record import (
+        daily_memory_contains_record_identity, render_session_derived_entry,
+        _iter_session_derived_records, build_record_identity,
+    )
+    from runtime_hooks.core._canonical_closeout import write_closeout_completion_marker
 
     with execution_exclusion(root):
         validate_session(root, sid, provider)
@@ -110,9 +118,12 @@ def run(root: Path, sid: str, provider: str, transcript_path: Path | None) -> di
             + (transport.read_bytes() if transport.exists() else b"NO_TEXT")
         ).hexdigest()
         binding = assess_session_closeout_binding(sid, root, None)
-        if binding["status"] == "already_consumed":
+        marker = root / "artifacts/runtime/closeout-completions" / f"{sid}.json"
+        if (binding["status"] == "already_consumed" or marker.exists()
+                or state.get("closeout_eligibility") == "completed"):
             canonical_path = root / "artifacts/runtime/closeouts" / f"{sid}.json"
-            if (state.get("closeout_eligibility") != "completed"
+            if (binding["status"] != "already_consumed"
+                    or state.get("closeout_eligibility") != "completed"
                     or not state.get("result", {}).get("ok")
                     or hashlib.sha256(canonical_path.read_bytes()).hexdigest() != state.get("canonical_sha256")):
                 raise ValueError("Copilot completion has no matching accepted lifecycle result; recovery required")
@@ -148,9 +159,26 @@ def run(root: Path, sid: str, provider: str, transcript_path: Path | None) -> di
             canonical_path = Path(result["canonical_closeout_artifact"])
             state["canonical_sha256"] = hashlib.sha256(canonical_path.read_bytes()).hexdigest()
             runtime_summary = json.loads((root / "artifacts/runtime/summaries" / f"{sid}.json").read_text(encoding="utf-8"))
-            entry = render_session_derived_entry(runtime_summary["daily_memory_record"])
-            if entry not in Path(result["daily_memory_path"]).read_text(encoding="utf-8"):
+            record = runtime_summary["daily_memory_record"]
+            entry = render_session_derived_entry(record)
+            daily_text = Path(result["daily_memory_path"]).read_text(encoding="utf-8")
+            if result["daily_memory_write_status"] == "already_present":
+                # The writer deliberately ignores session identity when deduping.
+                # Reuse its actual record, but preserve exact work/evidence content.
+                for existing in _iter_session_derived_records(daily_text):
+                    if build_record_identity(existing) == result["daily_memory_record_identity"]:
+                        entry = render_session_derived_entry({**record,
+                            "session_id": existing.get("session_id", ""),
+                            "memory_binding": existing.get("memory_binding", ""),
+                        })
+                        if entry in daily_text:
+                            break
+            if entry not in daily_text:
                 raise ValueError("Copilot work memory could not be read back exactly")
             state["daily_memory_entry"] = entry
         _write_json(state_path, state)
+        if success:
+            # Consume only after the writer result and durable replay state verify.
+            write_closeout_completion_marker(
+                sid, root, [Path(p) for p in result["completion_artifacts"]])
         return result

@@ -164,6 +164,90 @@ def test_case_d_success_replay_preserves_authoritative_bytes(repo: Path) -> None
     assert after == before
 
 
+def test_same_day_equivalent_sessions_reuse_writer_record_and_both_complete(repo):
+    first, second = "first-native-context", "second-native-context"
+    start(repo, first)
+    prepare(repo, first)
+    accepted = close(repo, first)
+    daily = Path(accepted["daily_memory_path"])
+    before = daily.read_bytes()
+    start(repo, second)
+    prepare(repo, second)
+    reused = close(repo, second)
+    assert reused["ok"] and reused["closeout_eligibility"] == "completed"
+    assert reused["daily_memory_write_status"] == "already_present"
+    assert reused["daily_memory_record_identity"] == accepted["daily_memory_record_identity"]
+    assert daily.read_bytes() == before
+    for sid in (first, second):
+        replay = close(repo, sid)
+        assert replay["ok"] and replay["replayed"]
+    assert daily.read_bytes() == before
+
+
+def test_state_publication_failure_does_not_consume_session(repo, monkeypatch):
+    from runtime_hooks.adapters.copilot import closeout
+    start(repo)
+    prepare(repo)
+    original = closeout._write_json
+    with monkeypatch.context() as scoped:
+        scoped.setattr(closeout, "_write_json", lambda *args: (_ for _ in ()).throw(OSError("state publication failed")))
+        with pytest.raises(OSError, match="state publication failed"):
+            close(repo)
+    assert not (repo / "artifacts/runtime/closeout-completions/copilot-context.json").exists()
+    assert closeout._write_json is original
+    retried = close(repo)
+    assert retried["ok"] and retried["daily_memory_write_status"] == "already_present"
+    assert close(repo)["replayed"]
+
+
+def test_dedup_does_not_accept_different_work_as_equivalent(repo):
+    start(repo, "first")
+    prepare(repo, "first")
+    assert close(repo, "first")["ok"]
+    start(repo, "second")
+    prepare(repo, "second", {**summary(), "work_summary":
+        "Reviewed review.md; documented another unresolved boundary without changing its authority."})
+    with pytest.raises(ValueError, match="read back exactly"):
+        close(repo, "second")
+    assert not (repo / "artifacts/runtime/closeout-completions/second.json").exists()
+    prepare(repo, "second")
+    assert close(repo, "second")["ok"]
+
+
+@pytest.mark.parametrize("damage", [
+    "canonical", "verdict", "marker", "changed_canonical_missing_verdict", "missing_state_and_verdict",
+])
+def test_completed_integrity_failure_never_reexecutes_or_prepares(repo, damage):
+    start(repo)
+    prepare(repo)
+    accepted = close(repo)
+    canonical = Path(accepted["canonical_closeout_artifact"])
+    verdict = Path(accepted["verdict_artifact"])
+    if damage == "canonical":
+        canonical.unlink()
+    elif damage == "verdict":
+        verdict.unlink()
+    elif damage == "marker":
+        (repo / "artifacts/runtime/closeout-completions/copilot-context.json").unlink()
+    elif damage == "changed_canonical_missing_verdict":
+        content = json.loads(canonical.read_text(encoding="utf-8"))
+        content["work_summary"] = "changed accepted work"
+        canonical.write_text(json.dumps(content), encoding="utf-8")
+        verdict.unlink()
+    else:
+        Path(accepted["lifecycle_state_path"]).unlink()
+        verdict.unlink()
+    before = {str(p.relative_to(repo)): hashlib.sha256(p.read_bytes()).hexdigest()
+              for area in (repo / "artifacts", repo / "memory") for p in area.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError, match="recovery required"):
+        close(repo)
+    with pytest.raises(ValueError, match="Completed"):
+        prepare(repo)
+    after = {str(p.relative_to(repo)): hashlib.sha256(p.read_bytes()).hexdigest()
+             for area in (repo / "artifacts", repo / "memory") for p in area.rglob("*") if p.is_file()}
+    assert after == before
+
+
 def test_native_session_end_uses_same_contract(repo: Path) -> None:
     payload = {"sessionId": "native-cli", "cwd": str(repo), "reason": "complete"}
     lifecycle.run_lifecycle_event(payload, event_type="session_start", surface="copilot")
@@ -284,6 +368,39 @@ def test_canonical_tool_evidence_rejection_is_durable_and_retryable(repo: Path) 
     assert not (repo / "artifacts/runtime/closeout-completions/copilot-context.json").exists()
     prepare(repo)
     assert close(repo)["ok"]
+
+
+@pytest.mark.parametrize("checks", [
+    "After CI failed, I ran pytest -q.",
+    "Using supplied fixtures, I ran pytest -q.",
+])
+def test_contextual_own_execution_requires_runner_before_work_projection(repo, checks):
+    start(repo)
+    prepare(repo, inputs={**summary(), "checks_run": checks})
+    rejected = close(repo)
+    assert not rejected["ok"]
+    assert rejected["closeout_classification"]["evidence_consistency"] == "inconsistent"
+    assert not work_records(repo)
+    assert not (repo / "artifacts/runtime/closeout-completions/copilot-context.json").exists()
+    (repo / ".pytest_cache").mkdir()
+    accepted = close(repo)
+    assert accepted["ok"]
+    assert close(repo)["replayed"]
+
+
+def test_compact_command_list_does_not_skip_missing_hook_evidence(repo):
+    start(repo)
+    (repo / ".pytest_cache").mkdir()
+    prepare(repo, inputs={**summary(), "checks_run": "pytest -q, session_end_hook"})
+    rejected = close(repo)
+    assert not rejected["ok"]
+    assert rejected["closeout_classification"]["evidence_consistency"] == "inconsistent"
+    assert not work_records(repo)
+    assert not (repo / "artifacts/runtime/closeout-completions/copilot-context.json").exists()
+    # The failed closeout emits a verdict through the existing runtime. It is
+    # available on retry; the first call must still reject the missing input.
+    assert close(repo)["ok"]
+    assert close(repo)["replayed"]
 
 
 @pytest.mark.parametrize("target", ["canonical", "daily"])

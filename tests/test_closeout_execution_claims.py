@@ -24,6 +24,8 @@ def evidence(root: Path, checks: str):
     "The report states 'I ran pytest -q'.",
     'The report states "I ran pytest -q".',
     "The supplied report says I ran pytest -q.",
+    "The supplied report says, I ran pytest -q.",
+    'The report states "I ran pytest -q, session_end_hook".',
     "Read pytest documentation in review.md.",
     "未執行 pytest；僅查閱外部 JUnit 結果。",
 ])
@@ -49,6 +51,8 @@ def test_nonexecution_mentions_do_not_require_local_runner_artifacts(tmp_path, s
     "I did not run pytest earlier; I later ran pytest -q.",
     "Supplied pytest evidence was not run by me; I ran pytest -q afterwards.",
     "I ran pytest using supplied fixtures.",
+    "After CI failed, I ran pytest -q.",
+    "Using supplied fixtures, I ran pytest -q.",
 ])
 def test_positive_claim_still_requires_existing_local_artifact_signals(tmp_path, statement):
     status, problems, refs = evidence(tmp_path, statement)
@@ -121,6 +125,22 @@ def test_shell_chaining_cannot_hide_a_positive_execution_claim(tmp_path):
     assert status == EVIDENCE_INCONSISTENT
     assert any("'pytest' claimed" in p for p in problems)
     assert any("'session_end_hook' claimed" in p for p in problems)
+
+
+@pytest.mark.parametrize("checks", [
+    "pytest -q, session_end_hook",
+    "python -m pytest -q, session_end_hook",
+    "pytest, session_end_hook",
+])
+def test_comma_separated_commands_each_require_their_own_footprint(tmp_path, checks):
+    (tmp_path / ".pytest_cache").mkdir()
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_INCONSISTENT
+    assert any("'session_end_hook' claimed" in p for p in problems)
+    (tmp_path / "artifacts/runtime/verdicts").mkdir(parents=True)
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert {r["tool"] for r in refs if "tool" in r} >= {"pytest", "session_end_hook"}
 
 
 @pytest.mark.parametrize(("statement", "requires_runner"), [

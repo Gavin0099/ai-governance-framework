@@ -293,19 +293,29 @@ def _execution_claim_tools(text: str) -> list[str]:
             for occurrence in re.finditer(r"(?<![\w])" + re.escape(tool) + r"(?![\w])", visible, re.IGNORECASE):
                 prefix = visible[:occurrence.start()]
                 assertions = list(own.finditer(prefix))
-                if (assertions and not external.search(prefix[:assertions[-1].start()])
+                source_prefix = prefix[:assertions[-1].start()] if assertions else ""
+                # An after/using clause describes context, not a third-party
+                # attribution of the following explicit first-person action.
+                if re.fullmatch(r"\s*(?:after|using)\b[^,]*,\s*", source_prefix, re.IGNORECASE):
+                    source_prefix = ""
+                if (assertions and not external.search(source_prefix)
                         and not negative.search(prefix[assertions[-1].end():])):
                     claims.add(tool)
                     continue
-                module_command = re.match(
+                start = visible.rfind(",", 0, occurrence.start()) + 1
+                end = visible.find(",", occurrence.end())
+                command_entry = visible[start:end if end >= 0 else None]
+                module_pattern = (
                     r'^\s*(?:"[^"\n]*(?:python[\d.]*|py)\.exe"|(?:python[\d.]*|py)(?:\.exe)?)\s+'
                     r'(?:(?:-[BbEIOqSsuvx]+|-X\s+\S+|-W\s+\S+)\s+)*-m\s+(?:\w+\.)*'
-                    + re.escape(tool) + r'(?=\s|$)', clause, re.IGNORECASE,
+                    + re.escape(tool) + r'(?=\s|$)'
                 )
+                module_command = (re.match(module_pattern, clause, re.IGNORECASE)
+                                  or re.match(module_pattern, command_entry, re.IGNORECASE))
                 if module_command and not negative.search(visible) and not external.search(visible):
                     claims.add(tool)
                     continue
-                compact = re.match(r"^\s*`?" + re.escape(tool) + r"\b(.*)$", visible, re.IGNORECASE)
+                compact = re.match(r"^\s*`?" + re.escape(tool) + r"\b(.*)$", command_entry, re.IGNORECASE)
                 if not compact or negative.search(visible) or external.search(visible):
                     continue
                 tail = compact.group(1).strip().strip("` .")
@@ -2303,17 +2313,13 @@ def run_session_end_hook(
     memory_authority = _collect_memory_authority_surface(project_root)
     memory_workflow = _collect_memory_workflow_surface(project_root)
 
-    if copilot_closeout and base_ok:
-        from runtime_hooks.core._canonical_closeout import write_closeout_completion_marker
-        write_closeout_completion_marker(session_id, project_root,
-                                        [Path(p) for p in result["completion_artifacts"]])
-
     return {
         "ok": base_ok,
         "session_id": session_id,
         "closeout_trigger_mode": closeout_trigger_mode,
         **({"canonical_closeout": result["canonical_closeout"],
-            "canonical_closeout_artifact": result["canonical_closeout_artifact"]} if copilot_closeout else {}),
+            "canonical_closeout_artifact": result["canonical_closeout_artifact"],
+            "completion_artifacts": result["completion_artifacts"]} if copilot_closeout else {}),
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
         **daily_memory_surface,
