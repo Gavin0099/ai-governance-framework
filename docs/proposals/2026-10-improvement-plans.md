@@ -530,29 +530,33 @@ non_claims:
   git show "${BASE_SHA}:governance/pr_scope_contract.yaml" > "$RUNNER_TEMP/trusted_contract.yaml"
   ```
   `BASE_SHA` 取自 `github.event.pull_request.base.sha`；只有在 base branch 被保護時，這份 contract 才算 trusted，gate 啟動時要檢查保護狀態，沒有保護就降為 advisory 並在 summary 說明。workflow 用 `on: pull_request`（不用 `pull_request_target`），也不執行 PR 裡的程式碼來解析 contract：框架工具固定從 base 端的 submodule commit 讀取。
-- **Contract 變更核准路徑**（第二輪審查意見 1：明確的獨立核准路徑）：PR 若修改 contract 檔（`governance/pr_scope_contract.yaml`）：
-  1. **混合 PR**（contract 加上其他檔案）→ `BLOCKED: contract_change_mixed_with_other_files`，即使已核准也一樣。
-  2. **只改 contract 的 PR** → 不拿新 contract 評估本 PR，狀態改為 `NEEDS_APPROVAL`。只有透過 API 驗證到以下條件時才轉為 `PASS`：
-     - `GET /repos/{owner}/{repo}/pulls/{number}/reviews` 中，每位 reviewer 取**最後一次**具決定性的 review（APPROVED / CHANGES_REQUESTED / DISMISSED）；
-     - 該 review 為 `APPROVED`，且 `commit_id == PR head SHA`（舊 commit 上的核准不算）；
-     - reviewer 列在 **base 端** `.github/CODEOWNERS` 對 contract 路徑的 owner 中（例如 `/governance/pr_scope_contract.yaml @Gavin0099`），而且不是 PR 作者；
-     - base 端 CODEOWNERS 沒有 contract 路徑的 owner → `BLOCKED: no_codeowners_for_contract_path`。
-  3. workflow 除了 `pull_request`，也要訂閱 `pull_request_review: [submitted, dismissed]`，核准後重新評估；權限只需要 `pull-requests: read`。
-  4. branch protection 另外開啟 *Require review from Code Owners*，作為 GitHub 端的第二道防線（gate 的判斷不依賴它）。
-  5. **已知限制（待 owner 決定）**：GitHub 不允許作者核准自己的 PR，所以單一 owner 的 repo 裡，owner 自己開的 contract PR 會一直停在 `NEEDS_APPROVAL`。可選方案：(a) 增加第二位 code owner；(b) contract PR 由 bot 帳號開立、owner 核准；(c) 由 owner 以 admin 權限 bypass，並在 closeout 記錄為 `manual_override`。這一點列為**未決**，在 owner 選定之前，單一 owner 的 repo 只能使用 advisory 模式。
+- **Contract 變更核准路徑（已決定：bot 開立、Gavin 以 CODEOWNER 核准；2026-10-21 owner 決策）**
+  - **Bot 身分**：採用 **GitHub App**（例如 `agov-contract-bot`，PR 作者顯示為 `agov-contract-bot[bot]`），**不使用 machine user**。原因：App 使用短期 installation token、可以限定安裝的 repo、身分可由 user id 加上 `type: Bot` 驗證，也不佔用一個需要另外保管密碼和 2FA 的人類帳號。
+    - App 權限最小化：`contents: write`（用途只限推送 `governance/contract-change/*` 分支）、`pull_requests: write`、`metadata: read`。**不給** `administration`、`workflows`、`checks:write`、`members`；只安裝在需要的 repo。
+    - GitHub REST 的權限是 repo 層級，無法限制「只能寫某個分支或路徑」，所以「只能改 contract 路徑」由下面的 gate 規則和 branch protection 來保證，不依賴 App 權限本身。
+    - Bot **不得**列入 `.github/CODEOWNERS`（gate 偵測到就 BLOCKED）。Bot 不能 approve：它不是 CODEOWNER，gate 也排除 bot 的 review。
+  - **提出變更的方式**：由 `workflow_dispatch`（輸入 contract 變更內容或 patch），或帶 `contract-change` label 的 issue（issue 開立者必須是 repo collaborator）觸發 workflow。workflow 用 App token（`actions/create-github-app-token`）建立 `governance/contract-change/<issue#>` 分支，只寫入 contract 檔，再開出 **只改 contract 的 PR**。產生 contract 內容的步驟**不執行 PR 或 issue 內的程式碼**，只做 YAML 解析與 `validate_contract` 檢查。
+  - **Gate 規則**（contract、CODEOWNERS、bot 身分設定一律取自 BASE_SHA）：
+    1. **作者必須是 bot**：`GET /repos/{o}/{r}/pulls/{n}` 的 `user.login == "<slug>[bot]"`、`user.type == "Bot"`，而且 `user.id` 與 base 端設定的 bot user id 相同（設定時以 `GET /users/<slug>[bot]` 取得）。不能只比 login 字串。
+    2. **PR 內所有 commit 都必須由 bot 撰寫和提交**：`GET /pulls/{n}/commits` 每筆的 `author` 與 `committer` 都要通過規則 1 的身分比對，有任何一筆不是 → `BLOCKED: non_bot_commit_in_bot_pr`。這可以防止有人把 commit 推進 bot 分支來搭便車。
+    3. **Bot PR 只能動 contract 路徑**：有任何非 contract 檔 → `BLOCKED: bot_pr_touches_non_contract_files`。這是防止 bot token 被濫用的主要防線。
+    4. **核准**：每位 reviewer 取最後一次具決定性的 review（APPROVED / CHANGES_REQUESTED / DISMISSED），必須是 `APPROVED`、`commit_id == head SHA`、reviewer 列在 base 端 CODEOWNERS 的 contract 路徑 owner 中，而且不是 bot、不是 PR 作者。符合 → `PASS`，否則 `NEEDS_APPROVAL`。
+    5. **人寫的 contract PR**：維持 `NEEDS_APPROVAL`。唯一例外是存在第二位 owner：作者本身是 owner，而且由**另一位** owner 核准（兩人規則）。非 owner 開的 contract PR，即使 Gavin 核准也不 PASS，一律要走 bot 流程。
+    6. 混合 PR（contract 加其他檔）→ `BLOCKED`；bot 被列入 CODEOWNERS → `BLOCKED: bot_listed_in_codeowners`；base 端沒有 contract owner → `BLOCKED`。
+  - **GitHub 端設定**：`.github/CODEOWNERS` 加 `/governance/pr_scope_contract.yaml @Gavin0099`；branch protection 開啟 *Require review from Code Owners*，並建議 `enforce_admins=true`（目前 fleet 只有 uvm-agent-lab 這樣設定）。workflow 除了 `pull_request`，也訂閱 `pull_request_review: [submitted, dismissed]`，核准後重新評估。gate 只需要 `pull-requests: read`、`contents: read`。
+  - **已知限制**：bot 的 private key 外洩時，攻擊者可以開 contract PR，但仍然需要 Gavin 在 head SHA 上核准，所以最多只能「提出」變更。key 存在 repo／environment secret，限 `workflow_dispatch` 所在的 environment 使用，並定期輪替。
 - **Fail-closed 欄位規則**：trusted contract 缺失、無法解析、缺少 `allowed_scope` 或 `forbidden_scope` 欄位、`allowed_scope` 為空 list、glob 含 `..` 或絕對路徑 → `BLOCKED`（附原因代碼）。**不提供 `["**"]` 預設值**。上一版建議以 `allowed_scope: ["**"]` 讓導入即綠燈，已撤回：那等於沒有 scope 檢查。
 - **模式**：預設 `advisory`（只寫 summary，exit 0）。只有在 (a) trusted contract 存在且通過欄位檢查、(b) base branch 受保護、(c) CODEOWNERS 已涵蓋 contract 路徑，三者同時成立時，`adopt_governance --pr-gate-mode enforce` 才允許設為 enforce；任一條件不成立就拒絕並說明。
 
 **要改的檔案**：新增 `governance_tools/pr_scope_gate.py`、`baselines/repo-min/.github/workflows/governance-pr-gate.yml`、`baselines/repo-min/governance/pr_scope_contract.example.yaml`（範例，**不會自動成為 trusted contract**）；修改 `governance_tools/adopt_governance.py`（`--pr-gate-mode {advisory,enforce}`、`--no-pr-gate`）；測試 `tests/test_pr_scope_gate.py`、擴充 `tests/test_adopt_governance.py`。
 
-**評估核心**（stdlib；`git diff -z` 各版本 git 都支援；contract 與 owners 一律取自 BASE_SHA）：
+**評估核心**（stdlib；`git diff -z` 各版本 git 都支援；contract、owners、bot 設定一律取自 BASE_SHA）：
 ```python
 import re
 REQUIRED = ("allowed_scope", "forbidden_scope")
 
 def _match(path, glob):
-    rx = ""
-    i = 0
+    rx, i = "", 0
     while i < len(glob):
         if glob.startswith("**/", i): rx += "(?:.*/)?"; i += 3
         elif glob.startswith("**", i): rx += ".*"; i += 2
@@ -570,60 +574,82 @@ def validate_contract(c):
             errs.append(f"unsafe_glob:{g}")
     return errs
 
-def codeowner_approval(reviews, head_sha, owners, pr_author):
-    """reviews: GET /repos/{o}/{r}/pulls/{n}/reviews（依時間排序）。
-    每位 reviewer 只取最後一次具決定性的 review（APPROVED/CHANGES_REQUESTED/DISMISSED）。"""
+def _is_bot(user, bot):
+    """bot = {"login": "<app-slug>[bot]", "id": <bot user id>}，取自 base 端設定，並用 GET /users/{login} 核對 id。"""
+    return bool(user) and user.get("type") == "Bot" and user.get("id") == bot["id"] \
+        and user.get("login", "").lower() == bot["login"].lower()
+
+def owner_approvals(reviews, head_sha, owners, pr_author, bot):
     latest = {}
-    for rv in reviews:
+    for rv in reviews:                                   # GET /pulls/{n}/reviews，依時間排序
         if rv["state"] in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
             latest[rv["user"]["login"].lower()] = rv
-    ok = [u for u, rv in latest.items()
-          if u in owners and u != pr_author.lower()
-          and rv["state"] == "APPROVED" and rv["commit_id"] == head_sha]
-    return ok
+    return [u for u, rv in latest.items()
+            if u in owners and u != pr_author.lower() and u != bot["login"].lower()
+            and rv["state"] == "APPROVED" and rv["commit_id"] == head_sha]
 
-def evaluate(files, contract, contract_paths, *, head_sha, owners, pr_author, reviews):
-    """contract / owners 一律來自 BASE_SHA（受保護 ref），不得來自 PR checkout。"""
+def evaluate(files, contract, contract_paths, *, pr, commits, reviews, owners, bot):
+    """contract / owners / bot 設定一律來自 BASE_SHA；pr = GET /pulls/{n}；commits = GET /pulls/{n}/commits。"""
     if errs := validate_contract(contract):
         return {"decision": "BLOCKED", "reason": errs}
+    if bot["login"].lower() in owners:
+        return {"decision": "BLOCKED", "reason": ["bot_listed_in_codeowners"]}
+    head_sha, author = pr["head"]["sha"], pr["user"]
     touched = [f for f in files if f in contract_paths]
-    if touched:
-        if len(touched) != len(files):                       # mixed PR
-            return {"decision": "BLOCKED", "reason": ["contract_change_mixed_with_other_files"],
-                    "files": touched}
-        if not owners:
-            return {"decision": "BLOCKED", "reason": ["no_codeowners_for_contract_path"]}
-        approvers = codeowner_approval(reviews, head_sha, owners, pr_author)
-        if approvers:
-            return {"decision": "PASS", "reason": ["contract_only_pr_codeowner_approved"],
-                    "approved_by": approvers, "head_sha": head_sha}
-        return {"decision": "NEEDS_APPROVAL", "reason": ["contract_only_pr_awaiting_codeowner_review"],
-                "required_owners": sorted(owners), "head_sha": head_sha}
-    forbidden = [f for f in files if any(_match(f, g) for g in contract["forbidden_scope"])]
-    outside = [f for f in files if not any(_match(f, g) for g in contract["allowed_scope"])]
-    return {"decision": "BLOCKED" if forbidden else "FAIL" if outside else "PASS",
-            "forbidden_hits": forbidden, "outside_scope": outside}
+    bot_pr = _is_bot(author, bot)
+    if bot_pr:
+        # 防止 bot token 被拿來改非 contract 檔：bot PR 只能動 contract 路徑
+        if len(touched) != len(files):
+            return {"decision": "BLOCKED", "reason": ["bot_pr_touches_non_contract_files"],
+                    "files": sorted(set(files) - set(touched))}
+        foreign = [c["sha"] for c in commits
+                   if not (_is_bot(c.get("author"), bot) and _is_bot(c.get("committer"), bot))]
+        if foreign:
+            return {"decision": "BLOCKED", "reason": ["non_bot_commit_in_bot_pr"], "commits": foreign}
+    if not touched:                                       # 一般 PR：照 scope 評估
+        forbidden = [f for f in files if any(_match(f, g) for g in contract["forbidden_scope"])]
+        outside = [f for f in files if not any(_match(f, g) for g in contract["allowed_scope"])]
+        return {"decision": "BLOCKED" if forbidden else "FAIL" if outside else "PASS",
+                "forbidden_hits": forbidden, "outside_scope": outside}
+    if len(touched) != len(files):
+        return {"decision": "BLOCKED", "reason": ["contract_change_mixed_with_other_files"]}
+    if not owners:
+        return {"decision": "BLOCKED", "reason": ["no_codeowners_for_contract_path"]}
+    approvers = owner_approvals(reviews, head_sha, owners, author["login"], bot)
+    if not bot_pr:
+        # 人寫的 contract PR：作者本身必須是 owner，且另一位 owner 核准（兩人規則）
+        if author["login"].lower() in owners and approvers:
+            return {"decision": "PASS", "reason": ["human_contract_pr_second_owner_approved"],
+                    "approved_by": approvers}
+        return {"decision": "NEEDS_APPROVAL", "reason": ["human_authored_contract_pr_requires_second_owner"]}
+    if approvers:
+        return {"decision": "PASS", "reason": ["bot_contract_pr_codeowner_approved"],
+                "approved_by": approvers, "head_sha": head_sha}
+    return {"decision": "NEEDS_APPROVAL", "reason": ["bot_contract_pr_awaiting_codeowner_review"]}
 ```
-**已實際執行驗證**（2026-10-21 00:55 台北時間，Python 3.13，`run_cases.py` 共 10 個案例，rc=0）：
+**已實際執行驗證**（2026-10-21 01:02 台北時間，Python 3.13，`run_cases.py` 共 14 個案例，rc=0；bot 範例設定為 `agov-contract-bot[bot]` / id `900001`）：
 
 | 案例 | 結果 |
 |---|---|
-| 只改 contract，CODEOWNER 在 head SHA 上核准 | PASS |
-| 只改 contract，沒有 review | NEEDS_APPROVAL |
-| 只改 contract，核准在舊 commit 上 | NEEDS_APPROVAL |
-| 只改 contract，由非 owner 核准 | NEEDS_APPROVAL |
-| 只改 contract，owner 核准後又 request changes | NEEDS_APPROVAL |
-| 只改 contract，作者自己核准 | NEEDS_APPROVAL |
-| 混合 PR（即使已核准） | BLOCKED |
+| bot 開立，owner 在 head SHA 上核准 | PASS |
+| 人寫 contract PR（Gavin 自己開） | NEEDS_APPROVAL |
+| bot 開立，未核准 | NEEDS_APPROVAL |
+| bot 開立，核准在舊 commit 上 | NEEDS_APPROVAL |
+| bot 開立，owner 核准後又 request changes | NEEDS_APPROVAL |
+| bot PR 含非 contract 檔 | BLOCKED |
+| bot PR 中有非 bot 的 commit | BLOCKED |
+| 冒名 bot（login 相同，id／type 不符） | NEEDS_APPROVAL（視為人寫 PR） |
+| bot 被列入 CODEOWNERS | BLOCKED |
+| 人寫 contract PR，由第二位 owner 核准 | PASS |
+| 非 owner 人寫 contract PR，Gavin 核准 | NEEDS_APPROVAL |
+| 人寫混合 PR | BLOCKED |
 | 一般 PR，在 scope 內 | PASS |
 | 一般 PR，碰到 forbidden 路徑 | BLOCKED |
-| 一般 PR，超出 scope | FAIL |
-| `allowed_scope` 為空 | BLOCKED |
 
 `NEEDS_APPROVAL` 在 CI 上是非零 exit（check 失敗），所以未核准的 contract PR 不會被 merge。
 上面的 `_match` 已明確定義 `**` 語意（轉成 regex：`*` 不跨越 `/`，`**` 可以跨越），不使用 `fnmatch`（`fnmatch` 的 `*` 會跨越 `/`）。
 
-**測試**：PR 端修改 contract 時 gate 仍用 base 版本；上表 10 個案例移入 `tests/test_pr_scope_gate.py`；reviews API 用 fixture JSON 模擬；缺欄位／空 `allowed_scope`／unsafe glob → BLOCKED；base branch 未保護 → advisory 降級並在 summary 說明；`**` 匹配語意測試。
+**測試**：PR 端修改 contract 時 gate 仍用 base 版本；上表 14 個案例移入 `tests/test_pr_scope_gate.py`；pulls、commits、reviews API 用 fixture JSON 模擬；缺欄位／空 `allowed_scope`／unsafe glob → BLOCKED；base branch 未保護 → advisory 降級並在 summary 說明；`**` 匹配語意測試。
 **驗收**：上面全部測試綠；在一個 fixture consumer 上以 advisory 模式試跑一週，看誤擋率後，由 owner 決定是否轉 enforce。
 **工作量**：粗估 2–3 天（不含 contract 內容設計）。**實作前需要 owner 確認 contract 檔路徑、欄位 schema、CODEOWNERS 人選。**
 
@@ -795,7 +821,7 @@ def check_lock_consistency(repo: Path) -> list[dict]:
 3. **以下每一項都要先確認 contract，才能開始實作**：
    - B-3 lock 一致性：`frozen` 欄位 schema、warning→error 時程。
    - B-2 升級拉力：tag 策略、`known_defects.json` 格式、落後門檻。
-   - B-1 PR scope gate：trusted contract 路徑與 schema、CODEOWNERS、base branch 保護要求；確認前只能以 advisory 存在。
+   - B-1 PR scope gate：contract 核准模式已決定（GitHub App bot 開立，加上 Gavin 以 CODEOWNER 核准）；仍待確認 trusted contract 路徑與 schema、App 名稱與安裝範圍、base branch 保護要求；確認前只能以 advisory 存在。
    - B-4 導入深度 L0–L4：等級定義與「已設定／執行成功／擋 merge」三層判定的證據來源（需要 API 權限時要另外說明）。
 4. 計畫 1、計畫 2 其餘部分（README、skipif、Python 分層）、計畫 3、計畫 4 可以平行排程，不阻塞上面幾項。
 
@@ -822,3 +848,11 @@ def check_lock_consistency(repo: Path) -> list[dict]:
 | 1 | （blocking）只改 contract 的 PR 在範例程式碼中一律 BLOCKED，與 CODEOWNERS 核准路徑矛盾 | 改成明確的獨立核准路徑：只改 contract → `NEEDS_APPROVAL`；透過 reviews API 驗證到 base 端 CODEOWNER、非作者、在 head SHA 上的最後一次 review 為 APPROVED 時才 PASS；混合 PR 仍然 BLOCKED。範例程式碼實際執行 10 個案例全部符合預期（已核准 → PASS，未核准／舊 commit／非 owner／作者自核 → NEEDS_APPROVAL）。單一 owner 無法自我核准的限制列為未決。 | B-1「Contract 變更核准路徑」、「評估核心」 |
 | 2 | （blocking）舊 git 兩案的驗收條件混在一起 | 拆成兩組：相容路徑案 = git 2.47 完整掃描、覆蓋範圍不縮小、原有 43 個測試不修改就全綠；最低版本案 = git 2.47 明確拒絕且無副作用、新版正常，並標明只是診斷改善，**不恢復舊 git 的 push 能力**。 | 附錄 A「C 的根因」驗收 |
 | 3 | Branch protection 證據 | 00:48–00:50（台北時間）重新查詢 21 個 repo：記錄 branch、三個 endpoint 與回應摘錄、admin 權限與 token scope；rulesets 全部為空。結論更正：治理 required check 2 個，對 admin 也強制的只有 1 個（uvm-agent-lab）。本次沒有權限受限的回應，並寫明遇到時要標為 unknown。 | 附錄 B「Branch protection 證據」 |
+
+### 第三輪（owner 決策，基準 f1235cf）
+
+| # | 決策／要求 | 處理 | 位置 |
+|---|---|---|---|
+| 1 | contract PR 由 bot 開立、Gavin 以 CODEOWNER 核准 | 原本三個選項的「未決」段落換成定案設計：採用 GitHub App（不用 machine user）、最小權限、不列入 CODEOWNERS、不能核准；以 workflow_dispatch 或 issue 觸發 bot 開出只改 contract 的 PR | B-1「Contract 變更核准路徑」 |
+| 2 | Gate 規則 | 作者必須是 bot（login、type、user id 都要比對）；PR 內所有 commit 的 author 與 committer 都必須是 bot；bot PR 只能動 contract 路徑；核准者必須是 base 端 CODEOWNER、不是 bot、在 head SHA 上、而且是最後一次 review；人寫的 contract PR 只有在兩人規則下才 PASS | 同上，以及「評估核心」 |
+| 3 | 範例執行驗證 | 範例程式碼改寫，14 個案例全部符合預期，包含要求的 5 個案例，另加冒名 bot、bot 被列入 CODEOWNERS、非 owner 人寫 PR 等 | 「評估核心」驗證表 |
