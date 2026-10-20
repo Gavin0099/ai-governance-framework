@@ -18,11 +18,11 @@
 **步驟**
 1. 第 5 行改為：
    ```markdown
-   **Version 1.3.0 candidate** · Python 3.9+（runtime 核心 stdlib-only；部分工具有選用依賴，見下）· 6,500+ tests · Windows / Git Bash 主驗證，Linux CI
+   **Version 1.3.0 candidate** · Python 3.9+ runtime（需 pyyaml；完整測試需 3.10+）· 6,500+ tests · Windows / Git Bash 主驗證，Linux CI
    ```
 2. 第 59 行改為依賴分層說明：
    ```markdown
-   - **核心 runtime（hooks / gate / contract / memory_record）**：stdlib-only
+   - **核心 runtime（hooks / gate / contract / memory_record）**：除 `pyyaml` 外為 stdlib（實測 `governance_tools/runtime_phase_policy.py:9 import yaml`，至少 5 個模組在 top-level import yaml/jsonschema；修正前不得宣稱 stdlib-only）
    - **選用工具依賴**（`requirements.txt`）：
      - `cryptography`、`tuf`：Solo R2 controller 與 TUF/Rekor 驗證（security boundary 工具）
      - `pyyaml`、`jsonschema`：contract / schema 驗證
@@ -122,11 +122,26 @@
              PYTHONUTF8: '1'
            run: python -m pytest tests/ -q --tb=short
    ```
-   並把 Linux job 改成 matrix `python-version: ['3.9', '3.13']`（README 宣稱 3.9+，目前只測 3.11）。
+   Python 版本拆成兩層（審查意見 4）：
+   - **完整測試環境**：`python-version: ['3.10', '3.13']`。`requirements.txt` 釘 `pytest>=9.0,<10.0`，pytest 9 需要 Python ≥3.10，所以 3.9 跑不了完整套件。
+   - **3.9 runtime smoke**（另開一個 job，不裝 `requirements.txt`）：只裝 runtime 實際需要的依賴，跑 README 路徑 A 的指令。實測（Python 3.9.25、不裝任何套件）：`governance_drift_checker.py` 可以執行；`quickstart_smoke.py` 和 `runtime_hooks.smoke_test` 會因為 `governance_tools/runtime_phase_policy.py:9 import yaml` 直接 `ModuleNotFoundError`。也就是說，README「不需安裝任何依賴」的說法與程式碼不符（併入計畫 1 修正），3.9 smoke job 至少要 `pip install "pyyaml>=6.0,<7"`。另外 `governance_tools/` 和 `runtime_hooks/` 在 3.9 上 `compileall` 全部通過（沒有 3.10+ 語法）。
+     ```yaml
+       runtime-smoke-py39:
+         runs-on: ubuntu-latest
+         steps:
+           - uses: actions/checkout@v4
+           - uses: actions/setup-python@v5
+             with: { python-version: '3.9' }
+           - run: pip install "pyyaml>=6.0,<7"     # 之後改成 requirements-runtime.txt
+           - run: python -m compileall -q governance_tools runtime_hooks
+           - run: python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
+           - run: python governance_tools/governance_drift_checker.py --repo . --framework-root .
+     ```
+     新增 `requirements-runtime.txt`（只放 `pyyaml`），`requirements.txt` 改成 `-r requirements-runtime.txt` 再加上測試和 demo 依賴。README 改寫為「runtime 支援 3.9+（需要 pyyaml）；完整測試需要 3.10+」。
 8. 加一個「skip 不可悄悄變多」的守門：CI 中 `pytest -rs` 輸出，若 Linux job skip 數超過基線（例如 80）就 fail，避免 skipif 被濫用來藏紅燈。
 
 **風險**：Windows runner 慢、可能暴露更多既有問題（第一次先設 `continue-on-error: true` 觀察一週再轉 blocking）；skipif 會降低 Linux 上的覆蓋率，所以第 8 步是必要的。
-**驗收**：Linux shallow clone + 無 pwsh：0 failed（skip 有明確原因）；full clone：C/D 類通過；Windows job 綠；3.9 與 3.13 都綠。
+**驗收**：Linux shallow clone + 無 pwsh：0 failed（skip 有明確原因）；full clone：C/D 類通過；Windows job 綠；完整測試 3.10 與 3.13 都綠；3.9 runtime smoke 綠。
 **工作量**：1.5–3 天（C、E 類 debug 是主要不確定性）。
 
 ---
@@ -299,112 +314,168 @@ non_claims:
 | D（Solo R2，3 檔） | 4 failed | **0 failed** | shallow clone 造成，加 `requires_full_history` 即可 |
 | E（stale_or_mismatched，3 檔） | 9 failed | **9 failed** | **真 bug：mtime 精度造成的時間比較誤判** |
 
+
 ### C 的根因：`git rev-list -z` 需要 git ≥ 2.50
-- `governance_tools/external_tree_inventory_guard.py` L607–658 用 `git rev-list --objects -z <oid>`，並以 NUL 切 `<OID>\0path=<path>\0` 格式解析。
-- `-z`（NUL 分隔 + `path=` token）是 `jt/rev-list-z` 分支，2025-04-16 merge，在 **Git 2.50.0** release notes 才出現（[RelNotes 2.50.0](https://github.com/git/git/blob/e9019fca/Documentation/RelNotes/2.50.0.adoc)、[merge commit](https://github.com/dscho/git/commit/1a1661bd41697a106481e9e2467d0f5a0697349a)、[git-rev-list 文件](https://git-scm.com/docs/git-rev-list)）。
-- 在 git 2.47.3 上實測：`-z` **不報錯、被靜默忽略**，輸出仍是換行分隔的 `<oid> <path>\n`。整段輸出沒有 NUL，被當成一個 record，`_OID_PATTERN` 比對失敗 → `PrePushScanError("git rev-list emitted an invalid object ID record")`。
-- **影響**：
-  - 導入的 repo 只要本機或 CI 的 git < 2.50（Debian 13 / Ubuntu 24.04 內建 git、許多企業映像檔都是 2.4x）就會中，**跟 shallow clone 或 `fetch-depth: 1` 無關**。
-  - pre-push hook 會回傳 `status: ERROR`（returncode 4），因為 fail-closed，**push 會被擋下**；`test_hook_memory_policy.py` 預期的是 `BLOCKED`，但拿到的是 `ERROR`。
-  - GitHub Actions 的 ubuntu-latest 和 Windows 的 Git for Windows 通常比較新，所以框架自己的 CI 和作者機器都沒看到這個問題。
-  - shallow clone 另有一個風險：`--objects ^<remote_oid>` 碰到 shallow 邊界時，`_git_object_exists` 可能提早報 `remote old object is unavailable`。這是另一條路徑，這次沒觀察到，也沒驗證。
-- **修正方案**（建議 A＋B 都做）：
-  - A. 不依賴 `-z`，改成兩段式、各版本都穩定的做法：
-    ```python
-    # 1) 只取 OID（--no-object-names 從 git 2.20 起就有）
-    oids = subprocess.run([... "rev-list", "--objects", "--no-object-names", update.local_oid, *excl],
-                          stdout=PIPE, check=True).stdout.split()
-    # 2) 用 cat-file batch 查型別，只留 blob
-    #    git cat-file --batch-check='%(objectname) %(objecttype)'
-    # 3) 需要路徑時，用 ls-tree -r -z 對新 commit 取 blob→path（-z 在 ls-tree 很早就支援）
-    #    git ls-tree -r -z --full-tree <commit>  → "<mode> blob <oid>\t<path>\0"
-    ```
-    或保留現有 parser，再加一個 legacy fallback：
-    ```python
-    def _git_supports_rev_list_z(root) -> bool:
-        out = subprocess.run(["git", "version"], capture_output=True, text=True).stdout
-        m = re.search(r"(\d+)\.(\d+)", out)
-        return bool(m) and (int(m[1]), int(m[2])) >= (2, 50)
+- `governance_tools/external_tree_inventory_guard.py` L607–658 用 `git rev-list --objects -z <local> ^<remote>`，並以 NUL 切 `<OID>\0path=<path>\0` 格式解析。
+- `-z`（`jt/rev-list-z`）在 2025-04-16 merge，列在 **Git 2.50.0** release notes（[RelNotes 2.50.0](https://github.com/git/git/blob/e9019fca/Documentation/RelNotes/2.50.0.adoc)、[merge commit](https://github.com/dscho/git/commit/1a1661bd41697a106481e9e2467d0f5a0697349a)）。
+- git 2.47.3 實測：`-z` **不報錯、被靜默忽略**，輸出仍是換行分隔 → 整段被當成一個 record → L658 `invalid object ID record`。
+- **影響**：本機或 CI 的 git < 2.50 時，pre-push 一律 `status: ERROR`（rc=4）並擋下 push；跟 shallow clone 無關。
 
-    if b"\0" not in completed.stdout and completed.stdout.strip():
-        # legacy newline 格式："<oid>[ <path>]\n"
-        for line in completed.stdout.splitlines():
-            oid, _, path = line.decode("utf-8", "surrogateescape").partition(" ")
-            if not _OID_PATTERN.fullmatch(oid):
-                raise PrePushScanError("git rev-list emitted an invalid object ID record")
-            if path.casefold().endswith(".json"):
-                candidates.setdefault(oid.lower(), set()).add(path)
-    ```
-    （legacy 格式的路徑如果含換行會被 git 改寫，屬於已知限制，要在 non-claims 註明。）
-  - B. 至少在入口明確 fail-closed 並提示：git < 2.50 時回報 `status: ERROR, reason: git>=2.50 required for rev-list -z (found X.Y)`，不要再出現讓人看不懂的 invalid OID 訊息；README 的前置需求也要寫 git 版本。
-  - C. CI 加一個舊版 git 的 job（例如 `container: debian:trixie`，git 2.47），守住相容性。
-- **驗收**：在 git 2.47 下，`test_external_tree_inventory_guard.py`、`test_historical_json_debt.py`、`test_hook_memory_policy.py`、`test_hook_installer.py`、`test_guard_safe_directory.py` 全綠，新舊兩種 git 的 CI job 都綠。**工作量**：0.5–1 天。
+#### 修正（審查意見 1：移除換行路徑 fallback）
+上一版的「換行格式 fallback」**已刪除**。換行格式的 `rev-list --objects` 每個物件只給一個路徑名，而且路徑含換行時 git 會改寫，會靜默縮小 JSON 掃描範圍。這屬於被跳過的檢查，不能用 non-claim 帶過。改成以下兩條路徑，**掃描覆蓋範圍不得小於現行 `-z` 路徑**：
 
-### E 的根因：檔案 mtime 精度比 `datetime.now()` 粗
-- `governance_tools/session_end_hook.py` L1908–1925：`if closeout_mtime < started_at: pre_binding_status = "closeout_before_session_start"` → 走 `_fail_closed_session_binding_classification` → `stale_or_mismatched`。
-- 我在本機 clone 暫時加了 log（之後已 `git checkout` 還原），13 筆實測資料都是 closeout 檔案在 session 開始**之後**寫入，但 mtime 反而比 `started_at` 早 **1–4 ms**。例：`started_at 15:56:57.166251`、`mtime 15:56:57.164788`（UTC）。
-- 原因：Linux 的檔案時間戳來自 kernel 的粗粒度時鐘（per-tick，約 4ms），`started_at` 則是高精度的 wall clock。兩者一比，剛寫的檔案就會「早於」session 開始。NTFS 和 Windows 上不容易出現，所以作者機器上測試是綠的。
-- **影響**：真實使用時 session 開始後幾毫秒內就寫 closeout 的機率很低，所以主要表現為 **Linux CI 上的 flaky／確定性失敗**。但在自動化 agent（hook 快速連續觸發）的情境下，也可能把合法的 closeout 誤判成 fail-closed（false positive，不是安全漏洞）。
-- **修正**：
+1. **版本偵測**（不靠輸出格式猜測，因為舊版 git 會靜默忽略 `-z`）：
+   ```python
+   _MIN_REV_LIST_Z = (2, 50)
+   def _git_version(repository_root) -> tuple[int, int, int]:
+       out = subprocess.run(["git", "--version"], env=_git_environment(),
+                            capture_output=True, text=True, check=True).stdout
+       m = re.search(r"(\d+)\.(\d+)(?:\.(\d+))?", out)
+       if not m:
+           raise PrePushScanError(f"cannot determine git version from {out.strip()!r}")
+       return tuple(int(x or 0) for x in m.groups())
+   ```
+   另外加一個防呆：走 `-z` 路徑時，若 stdout 非空卻不含 `\0`，直接 `PrePushScanError("rev-list -z output is not NUL-delimited; refusing to scan")`，不得改用其他解析方式。
+2. **git ≥ 2.50**：維持現行 `-z` 邏輯（不改）。
+3. **git < 2.50，相容路徑（完整覆蓋）**：
+   ```python
+   def _collect_json_candidates_compat(repo, local_oid, remote_oid) -> dict[str, set[str]]:
+       excl = [f"^{remote_oid}"] if not _is_zero_oid(remote_oid) else []
+       # (a) 新增的全部物件 OID，不靠路徑名稱（--no-object-names 自 git 2.20 起）
+       objs = _git(repo, "rev-list", "--objects", "--no-object-names", local_oid, *excl).split()
+       # (b) 用 cat-file batch-check 查型別，只保留 blob
+       types = _git_batch_check(repo, objs)          # {oid: "blob"|"tree"|"commit"|"tag"}
+       new_blobs = {o for o, t in types.items() if t == "blob"}
+       # (c) 新 commit 集合，每個 commit 用 ls-tree -r -z 取出全部 (blob, path)
+       commits = _git(repo, "rev-list", local_oid, *excl).split()
+       paths: dict[str, set[str]] = {}
+       for c in commits:
+           for rec in _git_bytes(repo, "ls-tree", "-r", "-z", "--full-tree", c).split(b"\0"):
+               if not rec: continue
+               meta, path = rec.split(b"\t", 1)
+               mode, otype, oid = meta.split()
+               if otype == b"blob" and oid.decode() in new_blobs:
+                   paths.setdefault(oid.decode(), set()).add(path.decode("utf-8", "surrogateescape"))
+       # (d) 完整性斷言：每個新 blob 都要找得到至少一個路徑，否則 fail-closed
+       orphan = new_blobs - paths.keys()
+       if orphan:
+           raise PrePushScanError(f"compat scan could not attribute {len(orphan)} new blob(s) to a path; refusing to pass")
+       return {oid: {p for p in ps if p.casefold().endswith(".json")}
+               for oid, ps in paths.items() if any(p.casefold().endswith(".json") for p in ps)}
+   ```
+   - **覆蓋性論證**：新物件集合中的 blob，一定出現在某個新 commit 的 tree 裡（rev-list `--objects` 的定義）。`ls-tree -r` 列出每個新 commit 的**全部**路徑，所以每個新 blob 拿到的路徑集合是 `-z` 路徑的**超集**（`-z` 每個物件只給一個名稱）。步驟 (d) 保證沒有任何 blob 被靜默略過。
+   - 代價：commit 多時 `ls-tree` 成本是 O(commits × tree size)。可接受，因為只掃 push 的增量 commit。另外設上限（例如 >5,000 個 commit）→ fail-closed，並提示 `git >= 2.50 recommended`，不做部分掃描。
+4. **替代方案（若不想維護相容路徑）**：git < 2.50 直接 fail-closed：
+   `status: ERROR, reason: external_tree_inventory_guard requires git >= 2.50 (found 2.47.3) for NUL-delimited rev-list; upgrade git` → README 前置需求寫明 `git >= 2.50`。**兩案擇一，不做靜默降級。**
+
+- **測試**：
+  - `tests/test_external_tree_inventory_guard.py` 加參數化：`monkeypatch` `_git_version` 分別回傳 `(2,47,3)` 與 `(2,50,0)`，兩條路徑對同一個 fixture repo（含 `a/b.json`、同一個 blob 出現在兩個路徑、檔名含空白和換行的 json）得到的 candidates，必須讓相容路徑 ⊇ `-z` 路徑。
+  - 加一個 orphan 斷言測試：人為讓 `ls-tree` 少回一筆 → 必須 `PrePushScanError`。
+  - CI 加 git 2.47 container job（見附註 1）真實跑一次，不只靠 monkeypatch。
+- **驗收**：git 2.47 下 C 類 5 個檔案（43 個測試）全綠；git ≥2.50 下行為不變；不存在「掃描範圍變小卻回 PASS」的路徑。
+- **工作量**：相容路徑 1–1.5 天；只做 fail-closed 0.25 天。
+
+### E 的根因：檔案 mtime 精度與 `started_at` 不同時鐘域（**獨立驗證項目，不併入下一個 slice**）
+**現象**（暫時加 log 實測，已還原）：13 筆資料中，closeout 都在 session 開始之後寫入，但 `st_mtime` 比 envelope 的 `started_at` 早 1–4 ms，例如 `started_at 15:56:57.166251Z`、`mtime 15:56:57.164788Z`。
+
+**相關程式碼（`governance_tools/session_end_hook.py` L1880–1962、`runtime_hooks/core/_canonical_closeout.py`）**：binding 依序有四層檢查：
+1. **Session identity**（L1880–1902）：`session_id` 來源優先順序是 hook payload > current session file > generated；Codex 沒有明確 id 時 `ValueError`；記錄 `current_session_id_conflict`。
+2. **時間先後**（L1908–1927）：只在「共用 closeout 檔存在、但 session 的 canonical closeout 還不存在」時才檢查。envelope 缺少 → `session_envelope_missing`；`closeout_mtime < started_at` → `closeout_before_session_start`；解析錯誤 → `session_envelope_invalid`。
+3. **Candidate／consume-once**（L1929–1945）：`pick_latest_candidate` 取 `artifacts/runtime/closeout_candidates/<sid>/*.json` 最新一筆；`assess_session_closeout_binding` 檢查 `closeout-completions/<sid>.json`，已消耗 → `already_consumed`。
+4. **內容綁定**（L1946–1955，`_assess_candidate_content_binding`）：共用 closeout 的 TASK_INTENT / WORK_COMPLETED / FILES_TOUCHED / OPEN_RISKS 必須與 session 自己的 candidate 一致。
+
+第 2 層的用途是**拒絕在本 session 開始前就存在的舊共用 closeout 檔**（防重放）。問題出在拿「kernel 粗粒度檔案時鐘」去比「高精度 wall clock」。
+
+**為什麼不只加 2 秒 tolerance**：tolerance 會讓「session 開始前 2 秒內寫的舊檔」通過第 2 層。這在 hook 快速重啟的情境正是要防的重放窗口；雖然第 3、4 層多半還擋得住，但等於把第 2 層的保證降級，而且沒有證明。
+
+**修正：讓第 2 層兩邊用同一個時鐘域**
+- `write_session_envelope` 在建立 envelope 時，同時以 `O_CREAT|O_EXCL` 建立 session 起始標記檔 `artifacts/runtime/sessions/<sid>.start`（只建一次，不覆寫），並在 envelope 記錄 `start_clock: "fs_marker"`。
+- 第 2 層比較改成：
   ```python
-  MTIME_TOLERANCE = timedelta(seconds=2)   # 涵蓋 FAT/SMB 2s 精度與 kernel tick
-  if closeout_mtime + MTIME_TOLERANCE < started_at:
-      pre_binding_status = "closeout_before_session_start"
+  marker = _session_start_marker(session_id, project_root)
+  if session_envelope.get("start_clock") == "fs_marker" and marker.is_file():
+      start_ns = marker.stat().st_mtime_ns          # 與 closeout 同一個 FS 時鐘
+      closeout_ns = closeout_path.stat().st_mtime_ns
+      if closeout_ns < start_ns:
+          pre_binding_status = "closeout_before_session_start"
+  else:
+      # 舊 envelope 或呼叫端自帶 started_at：維持現行 wall-clock 比較（只會更嚴、不會更鬆）
+      ...現行邏輯不變...
   ```
-  並在 `pre_binding_detail` 記錄 tolerance，寫入 non-claims：「2 秒內的先後順序不做判斷」。加一個測試，人為把 mtime 設成 `started_at - 3ms`，應判為 eligible；設成 `- 5s`，仍應判為 `closeout_before_session_start`。
-- **驗收**：`test_gate_input_validation.py`、`test_codex_closeout_identity.py`、`test_memory_significance_v02.py` 在 Linux 全綠。**工作量**：0.25 天。
+- **保留性論證**：
+  - 第 1、3、4 層**完全不修改**，程式碼路徑和輸入都不變。
+  - 第 2 層：在同一個時鐘域裡，「closeout 在 marker 之後才寫」⇒ `closeout_ns >= start_ns`（單調時間戳的檔案系統上成立），所以合法 closeout 不再被誤擋；「closeout 在 marker 之前就寫好」⇒ `closeout_ns <= start_ns`。只有**同一個 tick 內**（≤ 一個 kernel tick）先寫的舊檔會得到 `==`，可能通過第 2 層。這個殘餘窗口必須由第 3 層（session 自己的 candidate）和第 4 層（內容一致）擋下，所以要有測試證明它被擋。
+  - 沒有 marker 時退回現行比較，對舊資料不放寬。
+- **必要測試（新增 `tests/test_session_end_binding_clock_domain.py`）**：
+  1. 合法：marker 建立後才寫 closeout，closeout 的 mtime 設為 `start_ns + 1_000_000` → eligible，`closeout_status == valid`（取代現在 E 類 9 個失敗）。
+  2. 舊檔重放：`os.utime(closeout, ns=start_ns - 1_000_000)` → `closeout_before_session_start`。
+  3. 同 tick 重放：`closeout_ns == start_ns`，但內容與 candidate 不符 → 第 4 層 `mismatched_fields`，**不得 valid**。
+  4. 同 tick，但 session 沒有 candidate → 不得 valid（證明第 3 層仍然生效）。
+  5. 已消耗：存在 `closeout-completions/<sid>.json` → `already_consumed` → `stale_or_mismatched`（不變）。
+  6. Session identity：hook payload 與 current session 衝突時，行為和現在相同（snapshot 比對）。
+  7. 舊 envelope（沒有 `start_clock`）：行為與現行完全相同（回歸測試）。
+- **驗收**：E 類 9 個測試在 Linux 上通過，而且是靠第 1 個測試的情境通過，**不是放寬比較**；第 2–7 個測試全綠；`tests/test_session_end_hook_*` 既有測試不退步。
+- **工作量**：1–1.5 天（含測試）。**列為獨立驗證項目**：需要 owner 確認 marker 檔是否符合 `artifacts/runtime` 的 authority／cleanup 規則後才實作。
 
 ### 對計畫 2 的修正
-- 原本「C 類先 fetch --unshallow 再決定 skip」的步驟作廢：**C 不能 skip，必須修**。
-- D 類維持用 `requires_full_history` skip；Linux CI 已經是 `fetch-depth: 0`，不受影響。
-- E 類不能用 xfail，直接修。
-- 計畫 2 的總工作量修正為 **2–3 天**，其中 C 修正約 0.5–1 天、E 約 0.25 天。
+- 原本「C 類先 fetch --unshallow 再決定 skip」作廢：**C 不能 skip**，依上面的 C 修正處理。
+- D 類維持 `requires_full_history` skip；框架 CI 已經是 `fetch-depth: 0`，不受影響。
+- E 類不能用 xfail，也不能只加 tolerance，依上面的 E 修正（獨立驗證項目）處理。
+- Python 3.9 改為 runtime smoke job，見計畫 2 第 7 步。
 
 ---
 
-## 附錄 B：Fleet 導入盤點（2026-10-21 00:08 台北時間）
+## 附錄 B：Fleet 導入盤點（2026-10-21 00:08 台北時間；00:40 依審查意見重算並補上執行與保護資料）
 
-**方法**：GitHub API 列出 Gavin0099 的 32 個公開 repo（含 6 個 fork），逐一 blobless 淺 clone（唯讀），檢查 tree、workflow、submodule gitlink、`framework.lock.json`、2026-09-20 之後的 commit 數。bug 曝露以框架 git 歷史判斷：guard `rev-list -z` 自 `67764bdf`（8/24）起，mtime 判斷自 `a0683a5c`（7/29）起，看 consumer 釘住的 commit 是否包含。**private repo 不可見；本機 `.git/hooks`、使用者層 agent 設定也看不到。**
+**方法**：GitHub API 列出 Gavin0099 的 32 個公開 repo（含 6 個 fork），逐一 blobless 淺 clone（唯讀），檢查 default branch 的 tree、workflow、submodule gitlink、`governance/framework.lock.json`、2026-09-20 後的 commit 數。另外用 `gh api`（唯讀）查詢：(1) default branch 上名稱含 "govern" 的最近一次 workflow run 的 conclusion；(2) branch protection 的 required status checks。bug 曝露以框架 git 歷史判斷：guard `-z` 自 `67764bdf`（8/24）起，mtime 判斷自 `a0683a5c`（7/29）起，看 consumer 釘住的 commit 是否包含。**private repo 不可見；本機 `.git/hooks`、使用者層 agent 設定也看不到。**
 
-| Repo | 模式 | 釘住／落後 HEAD e8e6779 | CI 實際執行 | Hooks（已 commit） | guard bug | mtime bug | 9/20 後 commits | 價值判斷 |
-|---|---|---|---|---|---|---|---|---|
-| campaign-forge | submodule | e8e6779 / 0 | **無 CI** | – | 是 | 是 | 13 | 最新但未接 gate |
-| DiceMercenaries | submodule | 2a09d54 / 5 | drift + **memory blocker** | Copilot | 是 | 是 | 18 | **最完整** |
-| TacticalGo | submodule | 2a09d54 / 5，**無 lock** | drift | Copilot | 是 | 是 | 97（≥103 AI 標記） | 最需要但只有 drift |
-| BeatLab | submodule | 15722da / 38 | drift | – | 是 | 是 | 6 | 低中 |
-| fwupd（fork） | submodule | 24ba84c / 76 | drift | Copilot | 是 | 是 | 40 | ⚠️ 上游 fork 污染風險 |
-| wasteland-chronicles | submodule | 3709097 / 83，**無 lock** | drift | – | 是 | 是 | 118 | 活躍、深度淺 |
-| ai-assisted-ssdlc-docs | submodule | 46b2574 / 86 | drift + readiness | – | 是 | 是 | 83 | 中 |
-| crystal-bracelet-studio | submodule | 1d213ba / 92 | drift | – | 是 | 是 | 0 | 已停 |
-| uvm-agent-lab | submodule | 1b85e29 / 362 | drift + quickstart_smoke | Copilot | 是 | 是 | 9 | 中（有 domain contract） |
-| usb-logic-trace-correlator | copy | 1004427 / 373 | drift | Claude/Gemini/Copilot | 是 | 是 | 0 | 已停 |
-| spec-reference-kit | submodule | a694ddb / 819 | drift + memory CI + hook validator | Copilot lifecycle | 否 | 是 | 0 | 接線完整但已停 |
-| zephyr（fork） | submodule | da71729 / 861 | drift | Copilot lifecycle | 否 | 是 | 0 | ⚠️ fork 污染風險 |
-| usb-if-hub-spec-reference | submodule | 61111f5 / 885 | 無治理工具呼叫 | Claude | 否 | 是 | 0 | 已停 |
-| AI-Slide-Design-System-Repo | submodule | 84077ee / 959 | drift wf 未偵測到 checker、`submodules: false` | – | 否 | 否 | 0 | 疑似空轉（待人工確認） |
-| verilog-domain-contract | submodule | 80e5ec5 / 1721，**lock≠submodule SHA** | drift + smoke + readiness | Claude | 否 | 否 | 0 | 帳實不符 |
-| ZoneTruth | copy | 6f0ca32 / 2075 | drift | – | 否 | 否 | 0 | 已停 |
-| Ashfall | copy | 8a4262a / 2144 | drift + janitor 等 | – | 否 | 否 | 0 | 已停 |
-| financial-pdf-reader | copy | ca5d26d / 2184 | drift + pytest | Claude | 否 | 否 | 0 | 已停 |
-| Hearth | submodule | 57db6c1 / 2270，**lock=9b0e6b7 ≠ submodule** | drift | Claude/Gemini/Copilot | 否 | 否 | 0 | 帳實不符 |
-| usb-if-hid-spec-reference | copy | 737fcd4 / 1952 | 無治理 CI | – | 否 | 否 | 0 | 殘留 |
-| lecroy-vse-toolkit | copy，**無 lock** | 無法判定 | drift | – | ? | ? | 62 | 活躍但無法追版 |
+欄位定義（審查意見 5）：
+- **repo 內已設定**：workflow 檔案裡出現的治理工具呼叫（只代表「有寫」）。
+- **最近執行結果**：default branch 上最近一次治理 workflow 的 conclusion（代表「有跑、結果如何」）。
+- **擋 merge**：branch protection 是否把治理 check 列為 required（代表「真的會擋」）。
 
-未導入：DeviceTraceKit、SnackBuddies（空）、KidsCharacterKit、sprout-space、wordtreegarden-site；fork：hermes-agent、ulani-epaper、crosspoint-reader、FinancialAdvisorGPT、Windows-driver-samples。
+| Repo | 模式 | 釘住／落後 e8e6779 | repo 內已設定 | 最近執行結果 | 擋 merge | Hooks（已 commit） | guard bug | mtime bug | 9/20 後 commits |
+|---|---|---|---|---|---|---|---|---|---|
+| campaign-forge | submodule | e8e6779 / 0 | 無治理 workflow | – | 否 | – | 是 | 是 | 13 |
+| DiceMercenaries | submodule | 2a09d54 / 5 | drift + memory blocker | success（10-14） | **否**（未設保護） | Copilot | 是 | 是 | 18 |
+| TacticalGo | submodule | 2a09d54 / 5，**無 lock** | drift | 查無 run | 否 | Copilot | 是 | 是 | 97 |
+| BeatLab | submodule | 15722da / 38 | drift | 查無 run（default branch 為 `codex/bl-001-app-foundation`） | 否 | – | 是 | 是 | 6 |
+| fwupd（fork） | submodule | 24ba84c / 76 | drift | **failure**（10-01） | 否 | Copilot | 是 | 是 | 40 |
+| wasteland-chronicles | submodule | 3709097 / 83，**無 lock** | drift | success（10-05） | 否 | – | 是 | 是 | 118 |
+| ai-assisted-ssdlc-docs | submodule | 46b2574 / 86 | drift + readiness | success（10-02） | **是**（`governance-drift`、`ssdlc-validators`） | – | 是 | 是 | 83 |
+| crystal-bracelet-studio | submodule | 1d213ba / 92 | drift | **failure**（09-17） | 否 | – | 是 | 是 | 0（9/20 後無 commit） |
+| uvm-agent-lab | submodule | 1b85e29 / 362 | drift + quickstart_smoke | success（10-12） | **是**（`Comprehensive Verification & AI Governance Gate`） | Copilot | 是 | 是 | 9 |
+| usb-logic-trace-correlator | copy | 1004427 / 373 | drift | **failure**（09-07） | 否 | Claude/Gemini/Copilot | 是 | 是 | 0（9/20 後無 commit） |
+| spec-reference-kit | submodule | a694ddb / 819 | drift + memory CI + hook validator | success（08-10） | 否 | Copilot lifecycle | 否 | 是 | 0（9/20 後無 commit） |
+| zephyr（fork） | submodule | da71729 / 861 | drift | 查無 run | 否 | Copilot lifecycle | 否 | 是 | 0（9/20 後無 commit） |
+| usb-if-hub-spec-reference | submodule | 61111f5 / 885 | Governance Validation（未呼叫 governance_tools） | success（08-03） | **是**（`Fixture Smoke (Required)`，非治理工具） | Claude | 否 | 是 | 0（9/20 後無 commit） |
+| AI-Slide-Design-System-Repo | submodule | 84077ee / 959 | drift workflow（未偵測到 checker 呼叫，`submodules: false`） | success（07-28） | 否 | – | 否 | 否 | 0（9/20 後無 commit） |
+| verilog-domain-contract | submodule | 80e5ec5 / 1721，**lock≠gitlink** | drift + smoke + readiness | **failure**（07-03） | 否 | Claude | 否 | 否 | 0（9/20 後無 commit） |
+| ZoneTruth | copy | 6f0ca32 / 2075 | drift | **failure**（06-18） | 否 | – | 否 | 否 | 0（9/20 後無 commit） |
+| Ashfall | copy | 8a4262a / 2144 | drift + janitor 等 | success（06-12） | 否 | – | 否 | 否 | 0（9/20 後無 commit） |
+| financial-pdf-reader | copy | ca5d26d / 2184 | drift + pytest | **failure**（06-11） | 否 | Claude | 否 | 否 | 0（9/20 後無 commit） |
+| Hearth | submodule | 57db6c1 / 2270，**lock=9b0e6b7≠gitlink** | drift | success（06-16） | 否 | Claude/Gemini/Copilot | 否 | 否 | 0（9/20 後無 commit） |
+| usb-if-hid-spec-reference | copy | 737fcd4 / 1952 | 無治理 workflow | – | 否 | – | 否 | 否 | 0（9/20 後無 commit） |
+| lecroy-vse-toolkit | copy，**無 lock** | 無法判定 | drift | **failure**（10-02） | 否 | – | ? | ? | 62 |
+
+**計數（由上表逐列重算）**：guard bug 涵蓋 **10** 個 repo（上一版誤寫為 12）；mtime bug 涵蓋 **13** 個（上一版誤寫為 15）；lecroy-vse-toolkit 因為沒有 lock，無法判定。
+
+未導入：DeviceTraceKit、SnackBuddies（空 repo）、KidsCharacterKit、sprout-space、wordtreegarden-site；fork：hermes-agent、ulani-epaper、crosspoint-reader、FinancialAdvisorGPT、Windows-driver-samples。
 
 ### 發現
-1. **只有 2 個 repo（DiceMercenaries、spec-reference-kit）在 CI 有 blocking enforce**（memory workflow fail-on-blocker）。其餘只跑 `governance_drift_checker`，它檢查的是治理檔本身的漂移，**不檢查 agent 有沒有越界或宣稱膨脹**。task contract / claim ceiling 在 fleet 的 CI 裡幾乎沒接上。
-2. **版本分裂**：1 個最新、7 個落後 5–92、其餘落後 300–2,270 commit；3 個無 lock、2 個 lock 與 submodule SHA 不一致。框架自己的 lock 一致性功能就在抓這種問題，但它只是 report-only。
-3. **bug 曝露**：guard bug 涵蓋 12 個 repo，但只在本機 pre-push 且 git<2.50 時觸發（CI 沒有呼叫 guard）；mtime bug 涵蓋 15 個 repo，主要在 Linux 或快速連續觸發 hook 時發生。對 Windows 為主的作者機器影響低，對其他使用者或 Linux 容器影響高。
-4. **價值錯配**：最活躍、AI 參與最多的 repo（TacticalGo、wasteland-chronicles、ai-assisted-ssdlc-docs、lecroy-vse-toolkit）都只有 drift 檢查；治理最完整的 spec-reference-kit 已停更。
-5. **fork 污染**：fwupd、zephyr 是上游大專案的 fork，治理 submodule、hooks、檔案很容易被帶進往上游送的 PR。
+1. **「已設定」≠「有跑通」≠「會擋」**：有治理 workflow 的 19 個 repo 中，最近一次 default branch 執行結果為 failure 的有 **7 個**（fwupd、crystal-bracelet-studio、usb-logic-trace-correlator、verilog-domain-contract、ZoneTruth、financial-pdf-reader、lecroy-vse-toolkit），查無 run 的有 3 個。**把治理 check 設為 required 的只有 ai-assisted-ssdlc-docs 和 uvm-agent-lab 兩個**；usb-if-hub-spec-reference 的 required check 不是治理工具。上一版說 DiceMercenaries「真的有 enforce」不正確：它的 memory blocker 有設定也執行成功，但 branch 沒有保護，**不會擋 merge**。
+2. CI 設定大多只到 `governance_drift_checker`，它檢查治理檔本身的漂移，不檢查 agent 是否越界或宣稱膨脹。
+3. **版本分裂**：1 個最新、7 個落後 5–92 個 commit、其餘落後 300–2,270 個；3 個沒有 lock、2 個 lock 與 gitlink 不一致。
+4. **bug 曝露**：guard bug（10 個 repo）只在本機 pre-push 且 git < 2.50 時觸發，CI 沒有呼叫 guard；mtime bug（13 個 repo）主要在 Linux 或快速連續觸發 hook 時發生。
+5. **活躍度與深度錯配**：9/20 後 commit 數最多的四個 repo（wasteland-chronicles 118、TacticalGo 97、ai-assisted-ssdlc-docs 83、lecroy-vse-toolkit 62）中，只有 ai-assisted-ssdlc-docs 會擋 merge。TacticalGo 和 lecroy-vse-toolkit 沒有 lock，lecroy-vse-toolkit 最近一次執行是 failure。
+6. **fork 污染風險**：fwupd、zephyr 是上游大專案的 fork。
 
 ### 建議（fleet 側，依優先順序）
-1. 活躍的 4 個 repo：補 lock（或改 submodule），CI 照 DiceMercenaries 加 memory blocker，再加一個 PR scope gate（見 B-1）。
-2. verilog-domain-contract、Hearth：跑 `f7_full_update.py` dry-run，再決定更新或降級成 audit-only。
-3. 已停更的 repo 標記 `frozen`（lock 加欄位），排除在 fleet 報告與升級推送之外。
-4. fork（fwupd、zephyr）：治理檔移到 `governance/*` 分支，或改用不進 repo 的本機設定。
-5. 框架先出 v1.3.x patch 修兩個 bug，再用 F-7 推到受影響的 repo。
+1. 先讓已設定的治理 workflow 執行成功（處理 failure 的 7 個，或標記 frozen 後移除），再談加 gate。
+2. 活躍 repo：補 lock，並把治理 check 設為 branch protection required（DiceMercenaries、wasteland-chronicles、TacticalGo）。
+3. verilog-domain-contract、Hearth：跑 `f7_full_update.py` dry-run，處理 lock／gitlink 不一致。
+4. 9/20 後無 commit 的 repo：由 owner 決定是否標記 `frozen`。frozen 只停止升級提醒，仍然要報告 lock／gitlink 不一致（見 B-3）。
+5. fork（fwupd、zephyr）：治理檔移到 `governance/*` 分支，或改用本機設定。
 
 ---
 
@@ -412,69 +483,59 @@ non_claims:
 
 > 盤點顯示問題不在個別 repo 偷懶，而在**框架的預設值**：導入預設只到 drift check、沒有升級拉力、lock 不一致不會擋、fleet 工具看不出深度。下面四項是在框架端修，讓每個 consumer 都受益。
 
-### B-1. 導入預設只到 drift check → `adopt_governance` 預設產生 blocking PR gate（可 opt-out）
+### B-1. 導入預設只到 drift check → PR scope gate（**先 advisory，contract 定義完成後才可轉 enforce**）
 
-**根因**：`governance_tools/adopt_governance.py` L21、L838–839 只複製 `baselines/repo-min/.github/workflows/governance-drift.yml`。沒有任何預設 workflow 檢查 PR diff 是否落在 task contract 範圍內。
+**根因**：`governance_tools/adopt_governance.py` L21、L838–839 只複製 `baselines/repo-min/.github/workflows/governance-drift.yml`，沒有任何預設 workflow 比對 PR diff 與 task contract。
 
-**要改的檔案**
-- 新增 `governance_tools/pr_scope_gate.py`（stdlib-only）
-- 新增 `baselines/repo-min/.github/workflows/governance-pr-gate.yml`
-- 修改 `governance_tools/adopt_governance.py`（複製新 workflow，加 `--no-pr-gate`、`--pr-gate-mode {enforce,advisory}`）
-- 新增 `tests/test_pr_scope_gate.py`、擴充 `tests/test_adopt_governance.py`
-- `docs/ADOPTION_MODEL.md`、README「路徑 B」補說明
+**前置條件（需要 owner 先確認 contract，審查意見 2）**
+- **Trusted contract 來源**：gate 只能讀 **base 端（受保護 ref）** 的 contract，**不得讀 PR checkout 的版本**，否則 PR 可以自己放寬 scope。具體做法：
+  ```bash
+  git fetch --no-tags origin "${BASE_SHA}"
+  git show "${BASE_SHA}:governance/pr_scope_contract.yaml" > "$RUNNER_TEMP/trusted_contract.yaml"
+  ```
+  `BASE_SHA` 取自 `github.event.pull_request.base.sha`；只有在 base branch 被保護時，這份 contract 才算 trusted，gate 啟動時要檢查保護狀態，沒有保護就降為 advisory 並在 summary 說明。workflow 用 `on: pull_request`（不用 `pull_request_target`），也不執行 PR 裡的程式碼來解析 contract：框架工具固定從 base 端的 submodule commit 讀取。
+- **Contract 變更核准路徑**：PR 若修改 `governance/pr_scope_contract.yaml`（或任何 contract 檔）：
+  1. gate 一律判 `BLOCKED: contract_change_requires_separate_approval`，不拿新 contract 評估本 PR；
+  2. `.github/CODEOWNERS` 加 `/governance/pr_scope_contract.yaml @Gavin0099`，branch protection 開啟 *Require review from Code Owners*；
+  3. contract 變更必須是**單獨的 PR**（同一個 PR 混有其他檔案 → BLOCKED），由 code owner 核准、merge 後，後續 PR 才會依新 contract 評估。
+- **Fail-closed 欄位規則**：trusted contract 缺失、無法解析、缺少 `allowed_scope` 或 `forbidden_scope` 欄位、`allowed_scope` 為空 list、glob 含 `..` 或絕對路徑 → `BLOCKED`（附原因代碼）。**不提供 `["**"]` 預設值**。上一版建議以 `allowed_scope: ["**"]` 讓導入即綠燈，已撤回：那等於沒有 scope 檢查。
+- **模式**：預設 `advisory`（只寫 summary，exit 0）。只有在 (a) trusted contract 存在且通過欄位檢查、(b) base branch 受保護、(c) CODEOWNERS 已涵蓋 contract 路徑，三者同時成立時，`adopt_governance --pr-gate-mode enforce` 才允許設為 enforce；任一條件不成立就拒絕並說明。
 
-**步驟**
-1. `pr_scope_gate.py`：讀 contract（`contract.yaml` 或 `.governance/task_contract.yaml`）的 `allowed_scope` / `forbidden_scope`（glob），比對 `git diff --name-only <base>...<head>`：
-   ```python
-   import fnmatch, json, subprocess, sys, argparse
-   def changed_files(base, head):
-       out = subprocess.run(["git", "diff", "--name-only", "-z", f"{base}...{head}"],
-                            capture_output=True, check=True).stdout
-       return [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
-   def evaluate(files, allowed, forbidden):
-       hit_forbidden = [f for f in files if any(fnmatch.fnmatch(f, g) for g in forbidden)]
-       outside = [f for f in files if allowed and not any(fnmatch.fnmatch(f, g) for g in allowed)]
-       decision = "BLOCKED" if hit_forbidden else ("FAIL" if outside else "PASS")
-       return {"decision": decision, "forbidden_hits": hit_forbidden, "outside_scope": outside,
-               "non_claims": ["scope PASS 不代表變更正確或安全"]}
-   # 沒有 contract → decision=BLOCKED, reason=contract_missing（fail-closed），除非 --mode advisory
-   ```
-   exit code：PASS=0、FAIL/BLOCKED=1（advisory 模式一律 0，但輸出 summary）。
-   註：`git diff -z` 在所有現行 git 版本都支援，不受 B-附註的 git 版本問題影響。
-2. Workflow 範本：
-   ```yaml
-   name: Governance PR Gate
-   on:
-     pull_request:
-   permissions:
-     contents: read
-   jobs:
-     scope-gate:
-       runs-on: ubuntu-latest
-       timeout-minutes: 5
-       steps:
-         - uses: actions/checkout@v4
-           with:
-             fetch-depth: 0
-             submodules: recursive
-         - uses: actions/setup-python@v5
-           with: { python-version: '3.11' }
-         - name: Scope diff vs task contract
-           run: |
-             python {{FRAMEWORK_ROOT}}/governance_tools/pr_scope_gate.py \
-               --repo . --base "${{ github.event.pull_request.base.sha }}" \
-               --head "${{ github.sha }}" --mode {{PR_GATE_MODE}} \
-               --format human | tee "$GITHUB_STEP_SUMMARY"
-   ```
-   `adopt_governance` 依 consumer 的 framework 路徑（`ai-governance-framework`、`.ai-governance-framework`、`additional/ai-governance-framework`，實際三種都有）填入 `{{FRAMEWORK_ROOT}}`。
-3. 預設 `enforce`；`--pr-gate-mode advisory` 給第一次導入時試跑，`--no-pr-gate` 完全不產生。dry-run 輸出要列出這個 workflow。
-4. contract 範本（`examples/starter-pack/`）加 `allowed_scope` 預設值（例如 `["**"]` 加 `forbidden_scope: [".governance/**", ".github/workflows/**"]`），讓導入當下就是綠燈，只擋高風險路徑。
+**要改的檔案**：新增 `governance_tools/pr_scope_gate.py`、`baselines/repo-min/.github/workflows/governance-pr-gate.yml`、`baselines/repo-min/governance/pr_scope_contract.example.yaml`（範例，**不會自動成為 trusted contract**）；修改 `governance_tools/adopt_governance.py`（`--pr-gate-mode {advisory,enforce}`、`--no-pr-gate`）；測試 `tests/test_pr_scope_gate.py`、擴充 `tests/test_adopt_governance.py`。
 
-**風險**：`allowed_scope` 太窄會讓開發卡關，導致使用者整個關掉 gate → 預設寬鬆加 forbidden 黑名單，逐步收緊。fnmatch 的 `**` 語意與 gitignore 不同 → 文件要寫清楚，或另做 glob 轉換。
-**驗收**：新導入的 repo 預設有 `governance-pr-gate.yml`；PR 改到 forbidden 路徑 → check 失敗；沒有 contract → 失敗並寫明原因；`--no-pr-gate` 不產生檔案；README claim class 表新增一列「PR scope gate — Enforced（wired 時）」。
-**工作量**：1.5–2 天。
+**評估核心**（stdlib；`git diff -z` 各版本 git 都支援）：
+```python
+REQUIRED = ("allowed_scope", "forbidden_scope")
+def validate_contract(c: dict) -> list[str]:
+    errs = [f"missing_field:{k}" for k in REQUIRED if k not in c]
+    if not errs and not c["allowed_scope"]:
+        errs.append("empty_allowed_scope")
+    for g in c.get("allowed_scope", []) + c.get("forbidden_scope", []):
+        if g.startswith("/") or ".." in g.split("/"):
+            errs.append(f"unsafe_glob:{g}")
+    return errs
+
+def evaluate(files, contract, contract_paths):
+    if errs := validate_contract(contract):
+        return {"decision": "BLOCKED", "reason": errs}
+    touched_contract = [f for f in files if f in contract_paths]
+    if touched_contract:
+        return {"decision": "BLOCKED", "reason": ["contract_change_requires_separate_approval"],
+                "files": touched_contract}
+    forbidden = [f for f in files if any(_match(f, g) for g in contract["forbidden_scope"])]
+    outside = [f for f in files if not any(_match(f, g) for g in contract["allowed_scope"])]
+    return {"decision": "BLOCKED" if forbidden else "FAIL" if outside else "PASS",
+            "forbidden_hits": forbidden, "outside_scope": outside}
+```
+`_match` 要明確定義 `**` 語意（例如轉成 regex），不要直接用 `fnmatch`（`fnmatch` 的 `*` 會跨越 `/`）。
+
+**測試**：PR 端修改 contract 時 gate 仍用 base 版本；contract 變更混在一般 PR → BLOCKED；缺欄位／空 `allowed_scope`／unsafe glob → BLOCKED；base branch 未保護 → advisory 降級並在 summary 說明；`**` 匹配語意測試。
+**驗收**：上面全部測試綠；在一個 fixture consumer 上以 advisory 模式試跑一週，看誤擋率後，由 owner 決定是否轉 enforce。
+**工作量**：粗估 2–3 天（不含 contract 內容設計）。**實作前需要 owner 確認 contract 檔路徑、欄位 schema、CODEOWNERS 人選。**
 
 ### B-2. 沒有升級拉力 → release tag + reusable Action + drift checker 版本落後升級警告
+
+> **實作前需要 owner 確認**：tag／版本策略、`known_defects.json` 格式、落後門檻。lock 路徑為 `governance/framework.lock.json`；`frozen` 只抑制本項的升級提醒（見 B-3）。
 
 **根因**：consumer 釘住 submodule commit 後，沒有任何機制提醒落後。fleet 有 13 個 repo 落後超過 300 個 commit。v1.x 的 release notes 存在（`docs/releases/`），但 README 自己說 tag/Release 是否發布需另外查證。
 
@@ -523,44 +584,53 @@ non_claims:
 **驗收**：GitHub 上有 `v1.3.x` tag 與 Release；consumer 用 `@v1` 可以跑；落後 >200 commit 出現 warning；釘在 `known_defects` 受影響範圍內 → error，並在訊息裡附修正版號。
 **工作量**：2 天（tag/Release 0.5、action 0.5、lag 加 known_defects 1）。
 
-### B-3. lock 一致性只是 report-only → CI 在「缺 lock」或「lock≠submodule SHA」時 fail
+### B-3. lock 一致性只是 report-only → CI 在「缺 lock」或「lock≠gitlink」時 fail（**需先確認 contract**）
 
-**根因**：README 能力表把「Lock 帳實一致性」標為 Report-only；fleet 有 3 個無 lock、2 個 SHA 不一致的 repo，都沒有被擋。
-
-**要改的檔案**
-- `governance_tools/governance_drift_checker.py`（新增 `lock_consistency` 檢查，severity=error）
-- `governance_tools/f7_full_update.py`（共用比對邏輯，避免兩份實作）
-- `README.md` 能力表：Lock 帳實一致性 → `Enforced（CI，submodule consumer）`
-- `tests/test_governance_drift_checker.py`
+**實際路徑與既有邏輯（審查意見 3）**：lock 位於 **`governance/framework.lock.json`**（`framework_versioning.py:113`、`external_governance_submodule_updater.py:45 FRAMEWORK_LOCK_RELATIVE_PATH`、`guard_enforcement_census.py:355`、`governance_maturity_summary.py:255`、`update_receipt.py:37`）。上一版寫的根目錄 `framework.lock.json` 有誤，已更正。實作要**重用**下列既有函式，不另寫解析：
+- 讀 lock：`governance_tools/framework_versioning.py::load_framework_lock(repo_root)`（`utf-8-sig`，回傳 dict 或 `None`）。
+- 讀 gitlink：`governance_tools/external_governance_submodule_updater.py::_tracked_gitlinks(repo)`（`git ls-files --stage -z`，只取 mode `160000`、stage 0），加上 `_governance_submodule_paths_from_gitmodules(repo)` / `_resolve_submodule_path` 決定框架 submodule 路徑（實測 consumer 有 `ai-governance-framework`、`.ai-governance-framework`、`additional/ai-governance-framework` 三種）。
+- 建議把 `_tracked_gitlinks` 與 submodule path 解析提升為公開 helper（例如移到 `framework_versioning.py`），drift checker 和 updater 共用，避免兩份實作。
 
 **步驟**
 ```python
-def check_lock_consistency(repo, framework_rel) -> list[dict]:
-    lock = repo / "framework.lock.json"   # 或 .governance/framework.lock.json，依現有慣例
+# governance_tools/governance_drift_checker.py（新增檢查）
+from governance_tools.framework_versioning import load_framework_lock
+from governance_tools.external_governance_submodule_updater import (
+    _tracked_gitlinks, _governance_submodule_paths_from_gitmodules)   # 之後改成公開 helper
+
+def check_lock_consistency(repo: Path) -> list[dict]:
+    lock = load_framework_lock(repo)
+    sub_paths = _governance_submodule_paths_from_gitmodules(repo)
+    gitlinks = dict(_tracked_gitlinks(repo))
+    is_submodule = any(p in gitlinks for p in sub_paths)
     issues = []
-    gitlink = subprocess.run(["git", "-C", str(repo), "ls-tree", "HEAD", framework_rel],
-                             capture_output=True, text=True).stdout.split()
-    is_submodule = len(gitlink) >= 3 and gitlink[1] == "commit"
-    if not lock.is_file():
-        issues.append({"id": "lock_missing", "severity": "error" if is_submodule else "warning"})
-        return issues
-    data = json.loads(lock.read_text(encoding="utf-8"))
-    if data.get("status") == "frozen":
-        return [{"id": "lock_frozen", "severity": "info"}]
-    if is_submodule and data.get("adopted_commit") != gitlink[2]:
-        issues.append({"id": "lock_submodule_mismatch", "severity": "error",
-                       "lock": data.get("adopted_commit"), "gitlink": gitlink[2],
-                       "fix": "python governance_tools/f7_full_update.py --apply"})
+    if lock is None:
+        return [{"id": "lock_missing", "path": "governance/framework.lock.json",
+                 "severity": "error" if is_submodule else "warning"}]
+    frozen = lock.get("status") == "frozen"
+    if is_submodule:
+        actual = next(gitlinks[p] for p in sub_paths if p in gitlinks)
+        if lock.get("adopted_commit") != actual:
+            # frozen 也不豁免：帳實不符一律報告
+            issues.append({"id": "lock_gitlink_mismatch", "severity": "error",
+                           "lock": lock.get("adopted_commit"), "gitlink": actual})
+    if frozen:
+        issues.append({"id": "upgrade_reminders_suppressed", "severity": "info",
+                       "reason": lock.get("frozen_reason")})
     return issues
 ```
-- copy-based consumer：缺 lock 只給 warning（符合 audit-only 定位），但要在報告寫明「無法追蹤版本」。
-- lock schema 加 `status: active|frozen` 與 `frozen_reason`。
+- **`frozen` 語意**：只抑制 B-2 的版本落後／升級提醒；**不會**抑制 `lock_missing`、`lock_gitlink_mismatch` 或 `known_defects` 的報告。上一版寫的「frozen → pass」已撤回。
+- copy-based consumer：缺 lock 給 warning（維持 audit-only 定位）；沒有 gitlink 可比對時，報告寫明 `actual_sha: not_applicable(copy)`，不得當成一致。
+- lock schema（`schemas/`）加 `status: active|frozen`、`frozen_reason`，需要 owner 確認欄位名稱。
 
-**風險**：直接改成 error 會讓 verilog-domain-contract、Hearth、TacticalGo、wasteland-chronicles 的 CI 立刻變紅 → 這次 release 先 warning，並在 release notes 預告下一版改成 error；同時提供 `f7_full_update --apply` 一鍵修。
-**驗收**：在 fixture repo 上，缺 lock（submodule）→ CI fail；SHA 不一致 → fail，並印出兩個 SHA 和修正指令；`frozen` → pass 加 info；README claim class 已更新。
-**工作量**：1 天。
+**rollout**：第一個 release 只給 warning，並在 release notes 預告；下一個 release 轉 error。受影響的已知 repo：verilog-domain-contract、Hearth（不一致）；TacticalGo、wasteland-chronicles（submodule 但沒有 lock）。
+**測試**：用 fixture 覆蓋：submodule 缺 lock → error；lock≠gitlink → error，並印出兩個 SHA；frozen 且不一致 → 仍然 error 加 info；frozen 且一致 → 只有 info；copy 缺 lock → warning；三種 submodule 路徑都要能解析。
+**驗收**：上面全部綠；對 fleet 實跑時，verilog-domain-contract、Hearth 被標出不一致。
+**工作量**：粗估 1–1.5 天。**實作前需要 owner 確認 frozen 欄位 schema 與 warning→error 的時程。**
 
 ### B-4. Fleet 7 訊號看不出深度 → 導入深度 L0–L4
+
+> **實作前需要 owner 確認**：等級定義，以及「已設定／執行成功／擋 merge」三層的證據來源。後兩層需要 Actions 與 branch protection 的讀取權限；沒有權限時一律標 `unknown`，不得往上判級。
 
 **根因**：fleet 掃描（`scripts/governance_repo_matrix.ps1`、`governance_tools/governance_maturity_summary.py`）只看訊號「有沒有存在」。「只有 drift check」和「有 blocking gate」在報告上看起來差不多，這次盤點只能人工逐一讀 workflow 才分得出來。
 
@@ -590,25 +660,25 @@ def check_lock_consistency(repo, framework_rel) -> list[dict]:
 **驗收**：用這次的 21 個 repo 實跑，結果與附錄 B 的人工判斷一致（DiceMercenaries 為 L3、TacticalGo 為 L1–L2、campaign-forge 為 L2 但沒有 CI → L1）；每一級都附證據路徑。
 **工作量**：2–3 天。
 
-### 附註 1：CI matrix 缺口（舊版 git、Windows）
-- 兩個真 bug 都是因為 CI 只跑 `ubuntu-latest` 加新版 git 才沒被抓到：guard 需要 git ≥2.50，mtime 是 Linux 時間戳精度問題，作者在 Windows 機器上看不到。
-- 在 `.github/workflows/governance.yml` 加：
+### 附註 1：CI matrix 缺口（舊版 git、Windows、Python 版本分層）
+- 兩個真 bug 都是因為 CI 只跑 `ubuntu-latest` 加新版 git 才沒被抓到。
+- 在 `.github/workflows/governance.yml` 加（Python 版本依審查意見 4 分層：完整測試 ≥3.10，3.9 只跑 runtime smoke，見計畫 2 第 7 步）：
   ```yaml
     compat-matrix:
       strategy:
         fail-fast: false
         matrix:
           include:
-            - { os: ubuntu-latest,  python: '3.9',  container: 'debian:trixie' }  # 舊 git（2.47）
-            - { os: ubuntu-latest,  python: '3.13', container: '' }
-            - { os: windows-latest, python: '3.11', container: '' }
+            - { name: old-git,  os: ubuntu-latest,  container: 'debian:trixie' }  # git 2.47，Python 3.13
+            - { name: py310,    os: ubuntu-latest,  container: '', python: '3.10' }
+            - { name: windows,  os: windows-latest, container: '', python: '3.11' }
       runs-on: ${{ matrix.os }}
       container: ${{ matrix.container || null }}
-      steps: [ ... checkout(fetch-depth: 0) / setup-python 或 apt 安裝 python3 / pip install / pytest ... ]
+      steps: [ ... checkout(fetch-depth: 0) / setup-python 或 apt 安裝 python3 / pip install -r requirements.txt / pytest ... ]
   ```
-  （container job 要用 `apt-get install -y git python3 python3-venv` 取代 setup-python；Windows job 見計畫 2。）
-- 外加：`governance_tools/` 啟動時檢查 git 版本，低於需求就明確 fail-closed 並說明原因（見附錄 A 的 C 修正 B 案）。
-- **工作量**：0.5–1 天（不含修掉第一次跑出來的失敗）。
+  container job 要用 `apt-get install -y git python3 python3-venv`，並在 venv 內安裝依賴；Windows job 見計畫 2。
+- old-git job 是 C 修正的**驗收條件**，不是選配。
+- **工作量**：粗估 0.5–1 天（不含修掉第一次跑出來的失敗）。
 
 ### 附註 2：導入流程偵測 fork
 - `adopt_governance.py` 在套用前先偵測：
@@ -625,12 +695,28 @@ def check_lock_consistency(repo, framework_rel) -> list[dict]:
 - fleet 盤點中的 fwupd、zephyr 是這項的實例。
 - **工作量**：0.5 天。
 
-### 建議實作順序
-1. 附錄 A 兩個 bug 修正 → 打 tag 出 **v1.3.1**
-2. B-3（lock 一致性，先 warning）、附註 1（CI matrix）
-3. B-2（reusable action + version lag + known_defects）→ 用 F-7 推送 v1.3.1
-4. B-1（PR scope gate，預設 enforce，可 opt-out）
-5. B-4（L0–L4），再重跑 fleet 盤點驗收
-6. 附註 2（fork 偵測）可以和 B-1 一起做
+### 建議實作順序（依審查意見重新排列）
+1. **下一步只做一件事：old-git 相容 slice**。依附錄 A 的 C 修正：版本偵測，加上相容路徑（完整覆蓋）或明確 fail-closed（擇一），附 old-git CI job 和覆蓋性測試。這是唯一不需要額外 contract 決策、而且會讓使用者 push 被擋的問題。完成後出 patch release。
+2. **mtime（E）是獨立驗證項目**：先由 owner 確認 session start marker 是否符合 `artifacts/runtime` 的 authority 規則，再實作同時鐘域修正與 7 個 binding 保留測試。不與第 1 步合併。
+3. **以下每一項都要先確認 contract，才能開始實作**：
+   - B-3 lock 一致性：`frozen` 欄位 schema、warning→error 時程。
+   - B-2 升級拉力：tag 策略、`known_defects.json` 格式、落後門檻。
+   - B-1 PR scope gate：trusted contract 路徑與 schema、CODEOWNERS、base branch 保護要求；確認前只能以 advisory 存在。
+   - B-4 導入深度 L0–L4：等級定義與「已設定／執行成功／擋 merge」三層判定的證據來源（需要 API 權限時要另外說明）。
+4. 計畫 1、計畫 2 其餘部分（README、skipif、Python 分層）、計畫 3、計畫 4 可以平行排程，不阻塞上面幾項。
 
-合計約 8–11 人天。
+**工作量**：全部合計約 8–11 人天，為**粗估**，contract 確認後要重估。B-1 加上 contract 設計、E 的驗證，可能明顯超出。
+
+---
+
+## Review response（回應 PR #214 審查，基準 ea64db73）
+
+| # | 審查意見 | 處理 | 位置 |
+|---|---|---|---|
+| 1 | old-git fallback 會靜默縮小掃描範圍（原 L329–338） | 刪除換行路徑 fallback。改為版本偵測，加上相容路徑（`--no-object-names` + `cat-file --batch-check` + `ls-tree -r -z`，附覆蓋性論證與 orphan blob fail-closed 斷言），或明確 fail-closed 要求 git ≥2.50（擇一）。刪除用 non-claim 帶過的寫法。 | 附錄 A「C 的根因」 |
+| 2 | PR scope gate 的 contract 來源與核准路徑（原 L427–471） | contract 只從 base（受保護 ref）讀取；contract 變更必須單獨 PR 加 CODEOWNERS 核准，混在一般 PR 中 → BLOCKED；缺欄位、空 `allowed_scope`、unsafe glob → BLOCKED；撤回 `["**"]` 預設值；contract 定義完成前只能 advisory。 | B-1 |
+| 3 | lock 路徑與 frozen 語意（原 L539–550） | 改用 `governance/framework.lock.json`；重用 `load_framework_lock`、`_tracked_gitlinks`、`_governance_submodule_paths_from_gitmodules`；frozen 只抑制升級提醒，仍然報告 lock／gitlink 不一致。 | B-3 |
+| 4 | Python 3.9 matrix 與 pytest 9 衝突（原 L125） | 完整測試改為 3.10 / 3.13；3.9 另開 runtime smoke job（只裝 pyyaml）。實測發現 quickstart_smoke 在無依賴環境下需要 pyyaml，與 README 不符，已列入計畫 1。 | 計畫 2 第 7 步、附註 1 |
+| 5 | Fleet 計數與用詞（原 L369–398） | 依表格重算：guard 10、mtime 13（上一版的 12 / 15 有誤）。欄位拆成「repo 內已設定／最近執行結果／擋 merge」，並用 `gh api` 補上 run conclusion 與 branch protection：只有 2 個 repo 把治理 check 設為 required，7 個最近一次執行為 failure。「已停」改為「9/20 後無 commit」。更正 DiceMercenaries「真的有 enforce」的說法。 | 附錄 B |
+| + | mtime 修正不只加 tolerance（原 L350–354） | 分析四層 binding（identity / 時間先後 / candidate consume-once / 內容綁定），改成以 session start marker 做同時鐘域比較，其餘三層不修改，並附 7 個保留性測試；列為獨立驗證項目。 | 附錄 A「E 的根因」 |
+| + | Roadmap | 下一步只做 old-git slice；mtime 獨立；B-1～B-4 每項都要先確認 contract；8–11 人天標為粗估。 | 建議實作順序 |
