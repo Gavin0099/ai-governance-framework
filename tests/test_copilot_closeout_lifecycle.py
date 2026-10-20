@@ -403,6 +403,21 @@ def test_compact_command_list_does_not_skip_missing_hook_evidence(repo):
     assert close(repo)["replayed"]
 
 
+def test_quoted_module_in_command_list_requires_runner_before_projection(repo):
+    start(repo)
+    (repo / "artifacts/runtime/verdicts").mkdir(parents=True)
+    prepare(repo, inputs={**summary(), "checks_run":
+        r'session_end_hook, "C:\Program Files\Python313\python.exe" -m pytest -q'})
+    rejected = close(repo)
+    assert not rejected["ok"]
+    assert rejected["closeout_classification"]["evidence_consistency"] == "inconsistent"
+    assert not work_records(repo)
+    assert not (repo / "artifacts/runtime/closeout-completions/copilot-context.json").exists()
+    (repo / ".pytest_cache").mkdir()
+    assert close(repo)["ok"]
+    assert close(repo)["replayed"]
+
+
 @pytest.mark.parametrize("target", ["canonical", "daily"])
 def test_changed_accepted_content_fails_closed_on_replay(repo: Path, target: str) -> None:
     start(repo)

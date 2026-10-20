@@ -281,6 +281,9 @@ def _execution_claim_tools(text: str) -> list[str]:
     quotes = re.compile(r'''"[^"\n]*"|(?<!\w)'[^'\n]*'(?!\w)|“[^”\n]*”|「[^」\n]*」''')
     claims: set[str] = set()
     for clause in re.split(r"[;；\n。]|&&|\|\||\bbut\b|\bhowever\b|\b(?:and|then)\s+(?=(?:I|we)\s)|但(?:是)?|然而", text, flags=re.IGNORECASE):
+        # Preserve quoted executable paths (including commas) for module
+        # commands; narrative visibility below still controls admissible claims.
+        raw_commands = re.findall(r'''(?:[^,"'\n]+|"[^"\n]*"|'[^'\n]*')+''', clause)
         # A quoted command may follow an explicit own execution assertion.
         # Quoted narrative alone cannot turn someone else's 'I ran' into ours.
         def unquote(match: re.Match[str]) -> str:
@@ -310,8 +313,8 @@ def _execution_claim_tools(text: str) -> list[str]:
                     r'(?:(?:-[BbEIOqSsuvx]+|-X\s+\S+|-W\s+\S+)\s+)*-m\s+(?:\w+\.)*'
                     + re.escape(tool) + r'(?=\s|$)'
                 )
-                module_command = (re.match(module_pattern, clause, re.IGNORECASE)
-                                  or re.match(module_pattern, command_entry, re.IGNORECASE))
+                module_command = any(re.match(module_pattern, command, re.IGNORECASE)
+                                     for command in raw_commands)
                 if module_command and not negative.search(visible) and not external.search(visible):
                     claims.add(tool)
                     continue

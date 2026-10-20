@@ -26,6 +26,7 @@ def evidence(root: Path, checks: str):
     "The supplied report says I ran pytest -q.",
     "The supplied report says, I ran pytest -q.",
     'The report states "I ran pytest -q, session_end_hook".',
+    'The report states \'session_end_hook, "C:\\Program Files\\Python313\\python.exe" -m pytest -q\'.',
     "Read pytest documentation in review.md.",
     "未執行 pytest；僅查閱外部 JUnit 結果。",
 ])
@@ -138,6 +139,24 @@ def test_comma_separated_commands_each_require_their_own_footprint(tmp_path, che
     assert status == EVIDENCE_INCONSISTENT
     assert any("'session_end_hook' claimed" in p for p in problems)
     (tmp_path / "artifacts/runtime/verdicts").mkdir(parents=True)
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert {r["tool"] for r in refs if "tool" in r} >= {"pytest", "session_end_hook"}
+
+
+@pytest.mark.parametrize("executable", [
+    r'"C:\Program Files\Python313\python.exe"',
+    r'"C:\Tools, Python\python.exe"',
+])
+@pytest.mark.parametrize("module_first", [False, True])
+def test_command_list_preserves_quoted_module_executable(tmp_path, executable, module_first):
+    module = executable + " -m pytest -q"
+    checks = module + ", session_end_hook" if module_first else "session_end_hook, " + module
+    (tmp_path / "artifacts/runtime/verdicts").mkdir(parents=True)
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_INCONSISTENT
+    assert any("'pytest' claimed" in p for p in problems)
+    (tmp_path / ".pytest_cache").mkdir()
     status, problems, refs = evidence(tmp_path, checks)
     assert status == EVIDENCE_CONSISTENT and not problems
     assert {r["tool"] for r in refs if "tool" in r} >= {"pytest", "session_end_hook"}
