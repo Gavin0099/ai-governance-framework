@@ -22,6 +22,34 @@ Do NOT automatically continue into:
 
 Report next options only. Wait for explicit instruction.
 
+### Copilot closeout responsibility
+
+Task DONE and `Stop` / `agentStop` are not session end. On an explicit owner
+closeout request, or before a platform-qualified session-end event, the work
+Agent must prepare its actual work, checks, unfinished work, risks and next step
+through the Copilot v1.0 preparation path. See
+`docs/copilot-closeout-contract.md` under the adopted framework root.
+Use `prepare_closeout`, then the real `session_end` event or authorized
+`explicit_closeout`; never use Stop as preparation/closeout authority. Runtime
+does not generate the work summary. Preparation failure returns to the Agent
+for correction/retry. Missing input must remain a visible recoverable failure,
+without projecting daily work memory. Do not upgrade a Copilot identity to Codex.
+
+Before preparing the candidate, distinguish completed work, completed verification,
+remaining project work and one future action. `next_step` must come from actual
+remaining work after the closeout, never the current closeout's own prepare,
+retry, verify or replay commands. If nothing remains, say so. Do not claim future
+verification passed in a recommended memory update. Runtime must not invent a
+replacement continuation when producer validation rejects it.
+
+In `checks_run`, distinguish own execution, supplied artifact evidence and an
+explicit denial of own execution. Cite the actual supplied artifact path; for
+example `supplied pytest evidence was not run by me` is not an execution claim.
+Do not rename a tool to evade validation. Own execution still needs the existing
+evidence signals. Keep qualification failure, closeout input failure, policy gate
+block, test failure and runtime failure distinct. Missing summary is a closeout
+input failure; call it a policy gate block only when `gate_policy.blocked=true`.
+
 ### Rule 2: Scope-Matched Validation
 
 Run targeted validation first (the test file for the changed module only).

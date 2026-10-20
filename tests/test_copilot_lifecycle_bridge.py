@@ -187,7 +187,7 @@ def test_session_end_invokes_canonical_hook_with_same_identity(
 
     result = lifecycle.run_lifecycle_event(
         {
-            "hook_event_name": "Stop",
+            "hook_event_name": "SessionEnd",
             "session_id": "vscode-session-3",
             "cwd": str(tmp_path),
             "transcript_path": str(transcript),

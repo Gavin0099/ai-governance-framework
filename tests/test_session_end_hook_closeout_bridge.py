@@ -99,6 +99,10 @@ def test_session_end_hook_accepts_closeout_metadata_lines_when_closeout_present(
     touched = repo / "src" / "main.cpp"
     touched.parent.mkdir(parents=True, exist_ok=True)
     touched.write_text("int main(){return 0;}\n", encoding="utf-8")
+    # This metadata fixture declares a prior session_end_hook invocation. Supply
+    # its existing footprint instead of relying on the old ';' tokenization bug
+    # to silently omit that positive execution claim from evidence checking.
+    (repo / "artifacts/runtime/verdicts").mkdir(parents=True, exist_ok=True)
 
     closeout.write_text(
         "\n".join(

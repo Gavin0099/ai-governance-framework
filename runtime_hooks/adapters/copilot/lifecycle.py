@@ -28,6 +28,7 @@ FRAMEWORK_CANDIDATES = (
     Path("ai-governance-framework"),
     Path("additional/ai-governance-framework"),
 )
+EVENT_TYPES = ("session_start", "turn_stop", "prepare_closeout", "session_end", "explicit_closeout")
 
 
 def _first_text(payload: dict[str, Any], *keys: str) -> str:
@@ -65,7 +66,7 @@ def normalize_lifecycle_payload(
     event_type: str,
     surface: str,
 ) -> dict[str, Any]:
-    if event_type not in {"session_start", "session_end"}:
+    if event_type not in EVENT_TYPES:
         raise ValueError(f"unsupported lifecycle event_type: {event_type}")
     resolved_surface = _resolve_surface(payload, surface)
 
@@ -90,6 +91,7 @@ def normalize_lifecycle_payload(
         "transcript_path": Path(transcript).expanduser().resolve() if transcript else None,
         "hook_event_name": _first_text(payload, "hook_event_name", "hookEventName"),
         "stop_hook_active": bool(payload.get("stop_hook_active", False)),
+        "stop_reason": _first_text(payload, "stop_reason", "stopReason"),
         "reason": _first_text(payload, "reason"),
     }
 
@@ -168,9 +170,16 @@ def _write_session_envelope(
     *,
     provider: str,
 ) -> dict[str, Any]:
-    from runtime_hooks.core._canonical_closeout import write_session_envelope
+    from runtime_hooks.core._canonical_closeout import read_session_envelope, write_session_envelope
+    from governance_tools.shared_closeout_ownership import execution_exclusion
 
-    return write_session_envelope(session_id, project_root, provider=provider)
+    with execution_exclusion(project_root):
+        previous = read_session_envelope(session_id, project_root)
+        if previous is not None:
+            if previous.get("schema_version") != "1.0" or previous.get("provider") != provider:
+                raise ValueError("Copilot SessionStart conflicts with existing session identity")
+            return previous
+        return write_session_envelope(session_id, project_root, provider=provider)
 
 
 def _run_session_end(
@@ -179,13 +188,11 @@ def _run_session_end(
     session_id: str,
     transcript_path: Path | None,
 ) -> dict[str, Any]:
-    from governance_tools.session_end_hook import run_session_end_hook
+    from runtime_hooks.adapters.copilot.closeout import run
+    from runtime_hooks.core._canonical_closeout import read_session_envelope
 
-    return run_session_end_hook(
-        project_root,
-        hook_session_id=session_id,
-        transcript_path=transcript_path,
-    )
+    envelope = read_session_envelope(session_id, project_root) or {}
+    return run(project_root, session_id, str(envelope.get("provider") or ""), transcript_path)
 
 
 def run_lifecycle_event(
@@ -194,6 +201,7 @@ def run_lifecycle_event(
     event_type: str,
     surface: str,
     dry_run: bool = False,
+    summary_input: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized = normalize_lifecycle_payload(
         payload,
@@ -213,13 +221,27 @@ def run_lifecycle_event(
         "project_root": str(normalized["project_root"]),
         "framework_root": str(framework_root),
     }
+    native_event = normalized["hook_event_name"]
+    # Defense for already-installed legacy Stop -> session_end commands. Presence
+    # of a summary never makes a turn boundary into a session-end authorization.
+    if (event_type == "turn_stop" or normalized["stop_reason"] == "end_turn"
+            or native_event in {"Stop", "agentStop", "SubagentStop", "subagentStop"}):
+        return {**common, "ok": True, "status": "turn_observed",
+                "closeout_eligibility": "not_yet_eligible", "would_invoke_session_end": False}
+    allowed_native = {"session_start": {"SessionStart", "sessionStart"},
+                      "session_end": {"SessionEnd", "sessionEnd"}}
+    if native_event and native_event not in allowed_native.get(event_type, set()):
+        raise ValueError("Native Copilot event conflicts with the requested lifecycle action")
+    if (event_type == "session_end" and not native_event
+            and normalized["reason"] not in {"complete", "error", "abort", "timeout", "user_exit"}):
+        raise ValueError("Copilot session_end needs a native end event/reason; use explicit_closeout for owner closeout")
     if dry_run:
         return {
             **common,
             "ok": True,
             "status": "dry_run",
             "would_write_session_envelope": event_type == "session_start",
-            "would_invoke_session_end": event_type == "session_end",
+            "would_invoke_session_end": event_type in {"session_end", "explicit_closeout"},
         }
 
     if event_type == "session_start":
@@ -235,14 +257,17 @@ def run_lifecycle_event(
             "session_envelope_path": envelope.get("artifact_path"),
         }
 
+    if event_type == "prepare_closeout":
+        from runtime_hooks.adapters.copilot.closeout import prepare
+        return {**common, **prepare(normalized["project_root"], normalized["session_id"],
+                                    normalized["provider"], summary_input)}
     result = _run_session_end(
         normalized["project_root"],
         session_id=normalized["session_id"],
         transcript_path=normalized["transcript_path"],
     )
     return {
-        **common,
-        "ok": bool(result.get("ok")),
+        **common, **result,
         "status": "session_end_invoked",
         "closeout_status": result.get("closeout_status"),
         "decision": result.get("decision"),
@@ -254,7 +279,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Bridge VS Code/Copilot lifecycle payloads to canonical AI Governance runtime."
     )
-    parser.add_argument("--event-type", required=True, choices=("session_start", "session_end"))
+    parser.add_argument("--event-type", required=True, choices=EVENT_TYPES)
+    parser.add_argument("--summary-input", type=Path, help="Agent-authored JSON for explicit prepare_closeout only.")
     parser.add_argument(
         "--surface",
         required=True,
@@ -278,6 +304,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             event_type=args.event_type,
             surface=args.surface,
             dry_run=args.dry_run,
+            summary_input=(json.loads(args.summary_input.read_text(encoding="utf-8"))
+                           if args.summary_input else None),
         )
     except Exception as exc:  # noqa: BLE001
         result = {
