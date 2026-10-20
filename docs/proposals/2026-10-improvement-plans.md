@@ -372,7 +372,9 @@ non_claims:
   - `tests/test_external_tree_inventory_guard.py` 加參數化：`monkeypatch` `_git_version` 分別回傳 `(2,47,3)` 與 `(2,50,0)`，兩條路徑對同一個 fixture repo（含 `a/b.json`、同一個 blob 出現在兩個路徑、檔名含空白和換行的 json）得到的 candidates，必須讓相容路徑 ⊇ `-z` 路徑。
   - 加一個 orphan 斷言測試：人為讓 `ls-tree` 少回一筆 → 必須 `PrePushScanError`。
   - CI 加 git 2.47 container job（見附註 1）真實跑一次，不只靠 monkeypatch。
-- **驗收**：git 2.47 下 C 類 5 個檔案（43 個測試）全綠；git ≥2.50 下行為不變；不存在「掃描範圍變小卻回 PASS」的路徑。
+- **驗收（兩案分開，第二輪審查意見 2）**：
+  - **相容路徑案**：git 2.47 上掃描**完整跑完**，覆蓋範圍不縮小：C 類原有 5 個檔案（43 個測試）在 git 2.47 上**不修改測試就全綠**；新增的覆蓋性測試（相容路徑 ⊇ `-z` 路徑、orphan blob → `PrePushScanError`）全綠；git ≥2.50 上行為與現行相同。完成後可以宣稱「恢復 git < 2.50 的 push 能力」。
+  - **最低版本案**：git 2.47 被**明確拒絕**：`status: ERROR`、訊息含 `requires git >= 2.50 (found 2.47.x)`，而且**沒有副作用**（不寫任何 artifact、ledger、receipt；測試對執行前後的 repo 狀態做 snapshot 比對）；git ≥2.50 上原有測試全綠。C 類那 43 個測試在 2.47 上要改成「預期明確拒絕」，或標記 `requires_git_2_50`。**這只是診斷訊息的改善，不會恢復舊版 git 的 push 能力**，不得宣稱已修好 C。
 - **工作量**：相容路徑 1–1.5 天；只做 fail-closed 0.25 天。
 
 ### E 的根因：檔案 mtime 精度與 `started_at` 不同時鐘域（**獨立驗證項目，不併入下一個 slice**）
@@ -427,7 +429,7 @@ non_claims:
 
 ## 附錄 B：Fleet 導入盤點（2026-10-21 00:08 台北時間；00:40 依審查意見重算並補上執行與保護資料）
 
-**方法**：GitHub API 列出 Gavin0099 的 32 個公開 repo（含 6 個 fork），逐一 blobless 淺 clone（唯讀），檢查 default branch 的 tree、workflow、submodule gitlink、`governance/framework.lock.json`、2026-09-20 後的 commit 數。另外用 `gh api`（唯讀）查詢：(1) default branch 上名稱含 "govern" 的最近一次 workflow run 的 conclusion；(2) branch protection 的 required status checks。bug 曝露以框架 git 歷史判斷：guard `-z` 自 `67764bdf`（8/24）起，mtime 判斷自 `a0683a5c`（7/29）起，看 consumer 釘住的 commit 是否包含。**private repo 不可見；本機 `.git/hooks`、使用者層 agent 設定也看不到。**
+**方法**：GitHub API 列出 Gavin0099 的 32 個公開 repo（含 6 個 fork），逐一 blobless 淺 clone（唯讀），檢查 default branch 的 tree、workflow、submodule gitlink、`governance/framework.lock.json`、2026-09-20 後的 commit 數。另外用 `gh api`（唯讀）查詢：(1) default branch 上名稱含 "govern" 的最近一次 workflow run 的 conclusion；(2) branch protection、rulesets、branch rules（查詢時間與回應摘錄見「Branch protection 證據」一節）。bug 曝露以框架 git 歷史判斷：guard `-z` 自 `67764bdf`（8/24）起，mtime 判斷自 `a0683a5c`（7/29）起，看 consumer 釘住的 commit 是否包含。**private repo 不可見；本機 `.git/hooks`、使用者層 agent 設定也看不到。**
 
 欄位定義（審查意見 5）：
 - **repo 內已設定**：workflow 檔案裡出現的治理工具呼叫（只代表「有寫」）。
@@ -442,7 +444,7 @@ non_claims:
 | BeatLab | submodule | 15722da / 38 | drift | 查無 run（default branch 為 `codex/bl-001-app-foundation`） | 否 | – | 是 | 是 | 6 |
 | fwupd（fork） | submodule | 24ba84c / 76 | drift | **failure**（10-01） | 否 | Copilot | 是 | 是 | 40 |
 | wasteland-chronicles | submodule | 3709097 / 83，**無 lock** | drift | success（10-05） | 否 | – | 是 | 是 | 118 |
-| ai-assisted-ssdlc-docs | submodule | 46b2574 / 86 | drift + readiness | success（10-02） | **是**（`governance-drift`、`ssdlc-validators`） | – | 是 | 是 | 83 |
+| ai-assisted-ssdlc-docs | submodule | 46b2574 / 86 | drift + readiness | success（10-02） | **是，但 admin 可略過**（`governance-drift`、`ssdlc-validators`；`enforce_admins=false`） | – | 是 | 是 | 83 |
 | crystal-bracelet-studio | submodule | 1d213ba / 92 | drift | **failure**（09-17） | 否 | – | 是 | 是 | 0（9/20 後無 commit） |
 | uvm-agent-lab | submodule | 1b85e29 / 362 | drift + quickstart_smoke | success（10-12） | **是**（`Comprehensive Verification & AI Governance Gate`） | Copilot | 是 | 是 | 9 |
 | usb-logic-trace-correlator | copy | 1004427 / 373 | drift | **failure**（09-07） | 否 | Claude/Gemini/Copilot | 是 | 是 | 0（9/20 後無 commit） |
@@ -462,8 +464,42 @@ non_claims:
 
 未導入：DeviceTraceKit、SnackBuddies（空 repo）、KidsCharacterKit、sprout-space、wordtreegarden-site；fork：hermes-agent、ulani-epaper、crosspoint-reader、FinancialAdvisorGPT、Windows-driver-samples。
 
+
+### Branch protection 證據（第二輪審查意見 3）
+- **查詢時間**：2026-10-21 00:48–00:50（台北時間），在 box 上以 `gh api` 唯讀查詢；原始輸出存於 `/workspace/branch-protection-2026-10-21.txt`（box 上，未 commit）。
+- **身分與權限**：`gh` 以 `Gavin0099` 登入，token scopes `gist, read:org, repo, workflow`；21 個 repo 的 `GET /repos/Gavin0099/{repo}` 都回傳 `permissions.admin=true`。因此 404 的 `"Branch not protected"` 是**可驗證的「未設保護」**，不是權限不足造成的 404。本次沒有遇到 403 或權限受限的回應；若日後遇到，應標記為「unknown / 無法驗證」，不得寫成「未設保護」。
+- **查詢分支**：各 repo 的 `default_branch`（BeatLab 為 `codex/bl-001-app-foundation`，其餘為 `main`）。
+- **Endpoint**：`GET /repos/Gavin0099/{repo}/branches/{branch}/protection`、`GET /repos/Gavin0099/{repo}/rulesets`、`GET /repos/Gavin0099/{repo}/rules/branches/{branch}`。
+- 所有 repo 的 rulesets 和 branch rules 都回傳 200 `[]`（沒有 ruleset），所以保護狀態完全由 classic branch protection 決定。
+
+| Repo | 查詢分支 | `branches/{b}/protection` | `rulesets` | `rules/branches/{b}` | 判定 |
+|---|---|---|---|---|---|
+| AI-Slide-Design-System-Repo | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| Ashfall | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| BeatLab | `codex/bl-001-app-foundation` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| DiceMercenaries | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| Hearth | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| TacticalGo | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| ZoneTruth | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| ai-assisted-ssdlc-docs | `main` | 200：`contexts=["governance-drift","ssdlc-validators"]`, `strict=false`, `enforce_admins=false`, 無 PR review 要求 | 200 `[]` | 200 `[]` | 治理 check 為 required；**admin 可略過**（`enforce_admins=false`） |
+| campaign-forge | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| crystal-bracelet-studio | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| financial-pdf-reader | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| fwupd | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| lecroy-vse-toolkit | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| spec-reference-kit | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| usb-if-hid-spec-reference | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| usb-if-hub-spec-reference | `main` | 200：`contexts=["Fixture Smoke (Required)"]`, `strict=true`, `enforce_admins=true`, 無 PR review 要求 | 200 `[]` | 200 `[]` | 有 required check，但不是治理工具 |
+| usb-logic-trace-correlator | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| uvm-agent-lab | `main` | 200：`contexts=["Comprehensive Verification & AI Governance Gate"]`, `strict=true`, `enforce_admins=true`, 無 PR review 要求 | 200 `[]` | 200 `[]` | 治理 check 為 required，admin 也受限 |
+| verilog-domain-contract | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| wasteland-chronicles | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+| zephyr | `main` | 404：`{"message":"Branch not protected"}` | 200 `[]` | 200 `[]` | 未設保護（已驗證） |
+
+**更正後的結論**：會擋 merge 的治理 required check 只有 2 個 repo：ai-assisted-ssdlc-docs、uvm-agent-lab。其中 **ai-assisted-ssdlc-docs 的 `enforce_admins=false`**，身為 admin 的 owner 可以略過，對 owner 自己的 push／merge 不構成強制；**對 admin 也強制的只有 uvm-agent-lab 1 個**。usb-if-hub-spec-reference 有保護，但 required check 不是治理工具。其餘 18 個 repo 已驗證為未設保護。
+
 ### 發現
-1. **「已設定」≠「有跑通」≠「會擋」**：有治理 workflow 的 19 個 repo 中，最近一次 default branch 執行結果為 failure 的有 **7 個**（fwupd、crystal-bracelet-studio、usb-logic-trace-correlator、verilog-domain-contract、ZoneTruth、financial-pdf-reader、lecroy-vse-toolkit），查無 run 的有 3 個。**把治理 check 設為 required 的只有 ai-assisted-ssdlc-docs 和 uvm-agent-lab 兩個**；usb-if-hub-spec-reference 的 required check 不是治理工具。上一版說 DiceMercenaries「真的有 enforce」不正確：它的 memory blocker 有設定也執行成功，但 branch 沒有保護，**不會擋 merge**。
+1. **「已設定」≠「有跑通」≠「會擋」**：有治理 workflow 的 19 個 repo 中，最近一次 default branch 執行結果為 failure 的有 **7 個**（fwupd、crystal-bracelet-studio、usb-logic-trace-correlator、verilog-domain-contract、ZoneTruth、financial-pdf-reader、lecroy-vse-toolkit），查無 run 的有 3 個。**把治理 check 設為 required 的只有 ai-assisted-ssdlc-docs 和 uvm-agent-lab 兩個**，其中只有 uvm-agent-lab 對 admin 也強制（ai-assisted-ssdlc-docs 為 `enforce_admins=false`，證據見上節）；usb-if-hub-spec-reference 的 required check 不是治理工具。上一版說 DiceMercenaries「真的有 enforce」不正確：它的 memory blocker 有設定也執行成功，但 branch 沒有保護，**不會擋 merge**。
 2. CI 設定大多只到 `governance_drift_checker`，它檢查治理檔本身的漂移，不檢查 agent 是否越界或宣稱膨脹。
 3. **版本分裂**：1 個最新、7 個落後 5–92 個 commit、其餘落後 300–2,270 個；3 個沒有 lock、2 個 lock 與 gitlink 不一致。
 4. **bug 曝露**：guard bug（10 個 repo）只在本機 pre-push 且 git < 2.50 時觸發，CI 沒有呼叫 guard；mtime bug（13 個 repo）主要在 Linux 或快速連續觸發 hook 時發生。
@@ -494,19 +530,38 @@ non_claims:
   git show "${BASE_SHA}:governance/pr_scope_contract.yaml" > "$RUNNER_TEMP/trusted_contract.yaml"
   ```
   `BASE_SHA` 取自 `github.event.pull_request.base.sha`；只有在 base branch 被保護時，這份 contract 才算 trusted，gate 啟動時要檢查保護狀態，沒有保護就降為 advisory 並在 summary 說明。workflow 用 `on: pull_request`（不用 `pull_request_target`），也不執行 PR 裡的程式碼來解析 contract：框架工具固定從 base 端的 submodule commit 讀取。
-- **Contract 變更核准路徑**：PR 若修改 `governance/pr_scope_contract.yaml`（或任何 contract 檔）：
-  1. gate 一律判 `BLOCKED: contract_change_requires_separate_approval`，不拿新 contract 評估本 PR；
-  2. `.github/CODEOWNERS` 加 `/governance/pr_scope_contract.yaml @Gavin0099`，branch protection 開啟 *Require review from Code Owners*；
-  3. contract 變更必須是**單獨的 PR**（同一個 PR 混有其他檔案 → BLOCKED），由 code owner 核准、merge 後，後續 PR 才會依新 contract 評估。
+- **Contract 變更核准路徑**（第二輪審查意見 1：明確的獨立核准路徑）：PR 若修改 contract 檔（`governance/pr_scope_contract.yaml`）：
+  1. **混合 PR**（contract 加上其他檔案）→ `BLOCKED: contract_change_mixed_with_other_files`，即使已核准也一樣。
+  2. **只改 contract 的 PR** → 不拿新 contract 評估本 PR，狀態改為 `NEEDS_APPROVAL`。只有透過 API 驗證到以下條件時才轉為 `PASS`：
+     - `GET /repos/{owner}/{repo}/pulls/{number}/reviews` 中，每位 reviewer 取**最後一次**具決定性的 review（APPROVED / CHANGES_REQUESTED / DISMISSED）；
+     - 該 review 為 `APPROVED`，且 `commit_id == PR head SHA`（舊 commit 上的核准不算）；
+     - reviewer 列在 **base 端** `.github/CODEOWNERS` 對 contract 路徑的 owner 中（例如 `/governance/pr_scope_contract.yaml @Gavin0099`），而且不是 PR 作者；
+     - base 端 CODEOWNERS 沒有 contract 路徑的 owner → `BLOCKED: no_codeowners_for_contract_path`。
+  3. workflow 除了 `pull_request`，也要訂閱 `pull_request_review: [submitted, dismissed]`，核准後重新評估；權限只需要 `pull-requests: read`。
+  4. branch protection 另外開啟 *Require review from Code Owners*，作為 GitHub 端的第二道防線（gate 的判斷不依賴它）。
+  5. **已知限制（待 owner 決定）**：GitHub 不允許作者核准自己的 PR，所以單一 owner 的 repo 裡，owner 自己開的 contract PR 會一直停在 `NEEDS_APPROVAL`。可選方案：(a) 增加第二位 code owner；(b) contract PR 由 bot 帳號開立、owner 核准；(c) 由 owner 以 admin 權限 bypass，並在 closeout 記錄為 `manual_override`。這一點列為**未決**，在 owner 選定之前，單一 owner 的 repo 只能使用 advisory 模式。
 - **Fail-closed 欄位規則**：trusted contract 缺失、無法解析、缺少 `allowed_scope` 或 `forbidden_scope` 欄位、`allowed_scope` 為空 list、glob 含 `..` 或絕對路徑 → `BLOCKED`（附原因代碼）。**不提供 `["**"]` 預設值**。上一版建議以 `allowed_scope: ["**"]` 讓導入即綠燈，已撤回：那等於沒有 scope 檢查。
 - **模式**：預設 `advisory`（只寫 summary，exit 0）。只有在 (a) trusted contract 存在且通過欄位檢查、(b) base branch 受保護、(c) CODEOWNERS 已涵蓋 contract 路徑，三者同時成立時，`adopt_governance --pr-gate-mode enforce` 才允許設為 enforce；任一條件不成立就拒絕並說明。
 
 **要改的檔案**：新增 `governance_tools/pr_scope_gate.py`、`baselines/repo-min/.github/workflows/governance-pr-gate.yml`、`baselines/repo-min/governance/pr_scope_contract.example.yaml`（範例，**不會自動成為 trusted contract**）；修改 `governance_tools/adopt_governance.py`（`--pr-gate-mode {advisory,enforce}`、`--no-pr-gate`）；測試 `tests/test_pr_scope_gate.py`、擴充 `tests/test_adopt_governance.py`。
 
-**評估核心**（stdlib；`git diff -z` 各版本 git 都支援）：
+**評估核心**（stdlib；`git diff -z` 各版本 git 都支援；contract 與 owners 一律取自 BASE_SHA）：
 ```python
+import re
 REQUIRED = ("allowed_scope", "forbidden_scope")
-def validate_contract(c: dict) -> list[str]:
+
+def _match(path, glob):
+    rx = ""
+    i = 0
+    while i < len(glob):
+        if glob.startswith("**/", i): rx += "(?:.*/)?"; i += 3
+        elif glob.startswith("**", i): rx += ".*"; i += 2
+        elif glob[i] == "*": rx += "[^/]*"; i += 1
+        elif glob[i] == "?": rx += "[^/]"; i += 1
+        else: rx += re.escape(glob[i]); i += 1
+    return re.fullmatch(rx, path) is not None
+
+def validate_contract(c):
     errs = [f"missing_field:{k}" for k in REQUIRED if k not in c]
     if not errs and not c["allowed_scope"]:
         errs.append("empty_allowed_scope")
@@ -515,21 +570,60 @@ def validate_contract(c: dict) -> list[str]:
             errs.append(f"unsafe_glob:{g}")
     return errs
 
-def evaluate(files, contract, contract_paths):
+def codeowner_approval(reviews, head_sha, owners, pr_author):
+    """reviews: GET /repos/{o}/{r}/pulls/{n}/reviews（依時間排序）。
+    每位 reviewer 只取最後一次具決定性的 review（APPROVED/CHANGES_REQUESTED/DISMISSED）。"""
+    latest = {}
+    for rv in reviews:
+        if rv["state"] in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+            latest[rv["user"]["login"].lower()] = rv
+    ok = [u for u, rv in latest.items()
+          if u in owners and u != pr_author.lower()
+          and rv["state"] == "APPROVED" and rv["commit_id"] == head_sha]
+    return ok
+
+def evaluate(files, contract, contract_paths, *, head_sha, owners, pr_author, reviews):
+    """contract / owners 一律來自 BASE_SHA（受保護 ref），不得來自 PR checkout。"""
     if errs := validate_contract(contract):
         return {"decision": "BLOCKED", "reason": errs}
-    touched_contract = [f for f in files if f in contract_paths]
-    if touched_contract:
-        return {"decision": "BLOCKED", "reason": ["contract_change_requires_separate_approval"],
-                "files": touched_contract}
+    touched = [f for f in files if f in contract_paths]
+    if touched:
+        if len(touched) != len(files):                       # mixed PR
+            return {"decision": "BLOCKED", "reason": ["contract_change_mixed_with_other_files"],
+                    "files": touched}
+        if not owners:
+            return {"decision": "BLOCKED", "reason": ["no_codeowners_for_contract_path"]}
+        approvers = codeowner_approval(reviews, head_sha, owners, pr_author)
+        if approvers:
+            return {"decision": "PASS", "reason": ["contract_only_pr_codeowner_approved"],
+                    "approved_by": approvers, "head_sha": head_sha}
+        return {"decision": "NEEDS_APPROVAL", "reason": ["contract_only_pr_awaiting_codeowner_review"],
+                "required_owners": sorted(owners), "head_sha": head_sha}
     forbidden = [f for f in files if any(_match(f, g) for g in contract["forbidden_scope"])]
     outside = [f for f in files if not any(_match(f, g) for g in contract["allowed_scope"])]
     return {"decision": "BLOCKED" if forbidden else "FAIL" if outside else "PASS",
             "forbidden_hits": forbidden, "outside_scope": outside}
 ```
-`_match` 要明確定義 `**` 語意（例如轉成 regex），不要直接用 `fnmatch`（`fnmatch` 的 `*` 會跨越 `/`）。
+**已實際執行驗證**（2026-10-21 00:55 台北時間，Python 3.13，`run_cases.py` 共 10 個案例，rc=0）：
 
-**測試**：PR 端修改 contract 時 gate 仍用 base 版本；contract 變更混在一般 PR → BLOCKED；缺欄位／空 `allowed_scope`／unsafe glob → BLOCKED；base branch 未保護 → advisory 降級並在 summary 說明；`**` 匹配語意測試。
+| 案例 | 結果 |
+|---|---|
+| 只改 contract，CODEOWNER 在 head SHA 上核准 | PASS |
+| 只改 contract，沒有 review | NEEDS_APPROVAL |
+| 只改 contract，核准在舊 commit 上 | NEEDS_APPROVAL |
+| 只改 contract，由非 owner 核准 | NEEDS_APPROVAL |
+| 只改 contract，owner 核准後又 request changes | NEEDS_APPROVAL |
+| 只改 contract，作者自己核准 | NEEDS_APPROVAL |
+| 混合 PR（即使已核准） | BLOCKED |
+| 一般 PR，在 scope 內 | PASS |
+| 一般 PR，碰到 forbidden 路徑 | BLOCKED |
+| 一般 PR，超出 scope | FAIL |
+| `allowed_scope` 為空 | BLOCKED |
+
+`NEEDS_APPROVAL` 在 CI 上是非零 exit（check 失敗），所以未核准的 contract PR 不會被 merge。
+上面的 `_match` 已明確定義 `**` 語意（轉成 regex：`*` 不跨越 `/`，`**` 可以跨越），不使用 `fnmatch`（`fnmatch` 的 `*` 會跨越 `/`）。
+
+**測試**：PR 端修改 contract 時 gate 仍用 base 版本；上表 10 個案例移入 `tests/test_pr_scope_gate.py`；reviews API 用 fixture JSON 模擬；缺欄位／空 `allowed_scope`／unsafe glob → BLOCKED；base branch 未保護 → advisory 降級並在 summary 說明；`**` 匹配語意測試。
 **驗收**：上面全部測試綠；在一個 fixture consumer 上以 advisory 模式試跑一週，看誤擋率後，由 owner 決定是否轉 enforce。
 **工作量**：粗估 2–3 天（不含 contract 內容設計）。**實作前需要 owner 確認 contract 檔路徑、欄位 schema、CODEOWNERS 人選。**
 
@@ -720,3 +814,11 @@ def check_lock_consistency(repo: Path) -> list[dict]:
 | 5 | Fleet 計數與用詞（原 L369–398） | 依表格重算：guard 10、mtime 13（上一版的 12 / 15 有誤）。欄位拆成「repo 內已設定／最近執行結果／擋 merge」，並用 `gh api` 補上 run conclusion 與 branch protection：只有 2 個 repo 把治理 check 設為 required，7 個最近一次執行為 failure。「已停」改為「9/20 後無 commit」。更正 DiceMercenaries「真的有 enforce」的說法。 | 附錄 B |
 | + | mtime 修正不只加 tolerance（原 L350–354） | 分析四層 binding（identity / 時間先後 / candidate consume-once / 內容綁定），改成以 session start marker 做同時鐘域比較，其餘三層不修改，並附 7 個保留性測試；列為獨立驗證項目。 | 附錄 A「E 的根因」 |
 | + | Roadmap | 下一步只做 old-git slice；mtime 獨立；B-1～B-4 每項都要先確認 contract；8–11 人天標為粗估。 | 建議實作順序 |
+
+### 第二輪審查（基準 dc2a415）
+
+| # | 審查意見 | 處理 | 位置 |
+|---|---|---|---|
+| 1 | （blocking）只改 contract 的 PR 在範例程式碼中一律 BLOCKED，與 CODEOWNERS 核准路徑矛盾 | 改成明確的獨立核准路徑：只改 contract → `NEEDS_APPROVAL`；透過 reviews API 驗證到 base 端 CODEOWNER、非作者、在 head SHA 上的最後一次 review 為 APPROVED 時才 PASS；混合 PR 仍然 BLOCKED。範例程式碼實際執行 10 個案例全部符合預期（已核准 → PASS，未核准／舊 commit／非 owner／作者自核 → NEEDS_APPROVAL）。單一 owner 無法自我核准的限制列為未決。 | B-1「Contract 變更核准路徑」、「評估核心」 |
+| 2 | （blocking）舊 git 兩案的驗收條件混在一起 | 拆成兩組：相容路徑案 = git 2.47 完整掃描、覆蓋範圍不縮小、原有 43 個測試不修改就全綠；最低版本案 = git 2.47 明確拒絕且無副作用、新版正常，並標明只是診斷改善，**不恢復舊 git 的 push 能力**。 | 附錄 A「C 的根因」驗收 |
+| 3 | Branch protection 證據 | 00:48–00:50（台北時間）重新查詢 21 個 repo：記錄 branch、三個 endpoint 與回應摘錄、admin 權限與 token scope；rulesets 全部為空。結論更正：治理 required check 2 個，對 admin 也強制的只有 1 個（uvm-agent-lab）。本次沒有權限受限的回應，並寫明遇到時要標為 unknown。 | 附錄 B「Branch protection 證據」 |
