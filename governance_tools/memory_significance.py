@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from runtime_hooks.core._canonical_closeout import validate_session_id
+
 
 L3_EVENT_TYPES = {
     "architecture_contract_change",
@@ -143,6 +145,7 @@ def write_candidate_and_advisory(
     task_intent: str,
     checks: dict[str, Any],
 ) -> dict[str, str]:
+    validate_session_id(session_id)
     candidate = build_candidate(
         repo_root=repo_root,
         session_id=session_id,
