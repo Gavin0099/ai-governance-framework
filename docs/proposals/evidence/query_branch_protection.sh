@@ -6,6 +6,8 @@
 # NOTE: a 403/404 from an identity WITHOUT admin on the repo means "unknown / not verifiable",
 #       not "unprotected". Only a 404 "Branch not protected" seen with permissions.admin=true is
 #       evidence of no classic branch protection.
+# Overall absence also requires successful, empty ruleset and branch-rules responses.
+# Applicable branch rules establish protection even when classic protection is absent.
 set -euo pipefail
 OWNER="${OWNER:-Gavin0099}"
 QUERIED_AT="$(TZ=Asia/Taipei date '+%Y-%m-%dT%H:%M:%S+08:00')"
@@ -35,18 +37,34 @@ def split(v):
     except ValueError: data = None
     return int(st or 0), data
 ps, pd = split(os.environ["PROT"]); rs, rd = split(os.environ["RS"]); bs, bd = split(os.environ["RB"])
+# A 200 alone is not evidence: require a decoded protection payload. The
+# enabled boolean is a response-shape check; either value still means protected.
+classic_protected = (
+    ps == 200 and isinstance(pd, dict) and "message" not in pd
+    and isinstance(pd.get("enforce_admins"), dict)
+    and isinstance(pd["enforce_admins"].get("enabled"), bool)
+    and (pd.get("required_status_checks") is None
+         or isinstance(pd["required_status_checks"], dict))
+)
 prot = {"http_status": ps}
 if isinstance(pd, dict) and "message" in pd:
     prot["message"] = pd["message"]
-elif isinstance(pd, dict):
+elif classic_protected:
     rsc = pd.get("required_status_checks") or {}
     prot.update({"required_status_checks": {"contexts": rsc.get("contexts", []), "strict": rsc.get("strict")},
                  "enforce_admins": (pd.get("enforce_admins") or {}).get("enabled"),
                  "required_pull_request_reviews": pd.get("required_pull_request_reviews") is not None})
 admin = os.environ["ADMIN"] == "true"
-if ps == 200: verdict = "protected"
-elif ps == 404 and admin and prot.get("message") == "Branch not protected": verdict = "unprotected_verified"
-else: verdict = "unknown_not_verifiable"
+applicable_rules = bs == 200 and isinstance(bd, list) and any(
+    isinstance(rule, dict) and rule.get("type") for rule in bd
+)
+if classic_protected or applicable_rules:
+    verdict = "protected"
+elif (ps == 404 and admin and prot.get("message") == "Branch not protected"
+      and rs == 200 and rd == [] and bs == 200 and bd == []):
+    verdict = "unprotected_verified"
+else:
+    verdict = "unknown_not_verifiable"
 print(json.dumps({
   "queried_at": os.environ["QUERIED_AT"], "viewer": os.environ["VIEWER"],
   "repo": f'{os.environ["OWNER"]}/{os.environ["REPO"]}', "branch": os.environ["BRANCH"],
