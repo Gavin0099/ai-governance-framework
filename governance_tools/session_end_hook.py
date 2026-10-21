@@ -48,6 +48,7 @@ from runtime_hooks.core._canonical_closeout import (
     pick_latest_candidate,
     read_current_session_id,
     read_session_envelope,
+    validate_session_id,
 )
 from governance_tools.gate_policy import (
     load_policy,
@@ -1885,6 +1886,10 @@ def run_session_end_hook(
         or current_session_id
         or _generate_session_id()
     )
+    # Fail closed before any artifact path is derived from session_id.  An unsafe
+    # .current-session-id is already ignored by read_current_session_id(); an
+    # unsafe hook payload id is an explicit identity claim and is rejected.
+    validate_session_id(session_id)
     session_id_source = (
         "hook_payload"
         if hook_session_id

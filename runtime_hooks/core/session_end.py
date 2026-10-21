@@ -46,6 +46,7 @@ from runtime_hooks.core._canonical_closeout import (
     build_canonical_closeout,
     classify_binding_status,
     pick_latest_candidate,
+    validate_session_id,
     write_canonical_closeout,
     write_closeout_completion_marker,
 )
@@ -878,6 +879,10 @@ def run_session_end(
     daily_memory_write_required: bool | None = None,
     enforce_session_binding: bool = False,
 ) -> dict[str, Any]:
+    # session_id becomes a path component below (closeouts/{id}.json, ...), so an
+    # unsafe or empty id must stop here: the old "session_id is required" error
+    # was recorded but the run still wrote artifacts named ".json".
+    validate_session_id(session_id)
     if ledger_write_allowed is None:
         ledger_write_allowed = not _ledger_write_disabled_from_env()
     contract = _normalize_runtime_contract(runtime_contract)
