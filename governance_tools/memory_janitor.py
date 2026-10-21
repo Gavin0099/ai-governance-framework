@@ -96,6 +96,42 @@ class MemoryJanitor:
         else:
             return line_count, char_count, "SAFE"
     
+    def describe_pressure(self, line_count: int, char_count: int, status: str) -> Dict[str, object]:
+        """
+        說明 status 是由哪個維度、對照哪個門檻觸發（行數或字元數任一達標即升級）。
+
+        Returns:
+            {"line_threshold", "char_threshold", "triggered_by", "summary"}
+            triggered_by 是 ["lines", "chars"] 的子集（SAFE 時為空）。
+        """
+        thresholds = {
+            "EMERGENCY": (self.HOT_MEMORY_CRITICAL, self.HOT_MEMORY_CRITICAL_SIZE_LIMIT),
+            "CRITICAL": (self.HOT_MEMORY_HARD_LIMIT, self.HOT_MEMORY_HARD_SIZE_LIMIT),
+            "WARNING": (self.HOT_MEMORY_SOFT_LIMIT, self.HOT_MEMORY_SOFT_SIZE_LIMIT),
+        }
+        line_threshold, char_threshold = thresholds.get(
+            status, (self.HOT_MEMORY_SOFT_LIMIT, self.HOT_MEMORY_SOFT_SIZE_LIMIT)
+        )
+        triggered_by: List[str] = []
+        if status in thresholds:
+            if line_count >= line_threshold:
+                triggered_by.append("lines")
+            if char_count >= char_threshold:
+                triggered_by.append("chars")
+        summary = (
+            f"Memory status: {status} ({line_count}/{line_threshold} lines, "
+            f"{char_count}/{char_threshold} chars"
+        )
+        if triggered_by:
+            summary += f"; triggered by {' + '.join(triggered_by)}"
+        summary += ")"
+        return {
+            "line_threshold": line_threshold,
+            "char_threshold": char_threshold,
+            "triggered_by": triggered_by,
+            "summary": summary,
+        }
+
     def generate_warning_message(self, line_count: int, char_count: int, status: str) -> str:
         """產出警告訊息 (供 AI 在回應末尾顯示)"""
         if status == "EMERGENCY":
@@ -295,6 +331,7 @@ def main():
         line_count, char_count, status = janitor.check_hot_memory_status()
         warning = janitor.generate_warning_message(line_count, char_count, status)
         if args.format == 'json':
+            pressure = janitor.describe_pressure(line_count, char_count, status)
             print(json.dumps({
                 "status": status,
                 "line_count": line_count,
@@ -305,6 +342,8 @@ def main():
                 "soft_size_limit": janitor.HOT_MEMORY_SOFT_SIZE_LIMIT,
                 "hard_size_limit": janitor.HOT_MEMORY_HARD_SIZE_LIMIT,
                 "critical_size_limit": janitor.HOT_MEMORY_CRITICAL_SIZE_LIMIT,
+                "triggered_by": pressure["triggered_by"],
+                "summary": pressure["summary"],
             }, ensure_ascii=False))
         else:
             print(f"狀態: {status} ({line_count} 行, {char_count} 字元)")

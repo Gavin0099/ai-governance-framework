@@ -108,16 +108,17 @@ memory-pressure:
       import json, sys
       r = json.load(sys.stdin)
       status = r['status']
-      lines  = r['line_count']
-      hard   = r.get('hard_limit', 200)
-      print(f'Memory status: {status} ({lines}/{hard} lines)')
+      summary = r.get('summary') or ('Memory status: %s (%s lines, %s chars)' % (status, r['line_count'], r['char_count']))
+      plan = 'python governance_tools/memory_janitor.py --memory-root ./memory --plan'
+      note = 'Actual archive + replacement-state cutover needs separate authorization; --execute fails closed (exit 2).'
+      print(summary)
       if status == 'EMERGENCY':
-          print('ERROR: Memory EMERGENCY — run: python governance_tools/memory_janitor.py --execute')
+          print(f'ERROR: {summary}. Inspect with: {plan}. {note}')
           sys.exit(1)
       elif status == 'CRITICAL':
-          print(f'WARNING: Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.')
+          print(f'WARNING: {summary}. Plan cleanup with: {plan}. {note}')
       elif status == 'WARNING':
-          print(f'NOTICE: Memory WARNING ({lines} lines). Monitor and plan cleanup.')
+          print(f'NOTICE: {summary}. Monitor and plan cleanup.')
       "
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
