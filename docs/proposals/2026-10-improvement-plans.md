@@ -466,7 +466,7 @@ non_claims:
 
 
 ### Branch protection 證據（第二輪審查意見 3）
-- **查詢時間**：2026-10-21 00:48–00:50（台北時間），在 box 上以 `gh api` 唯讀查詢；原始輸出存於 `/workspace/branch-protection-2026-10-21.txt`（box 上，未 commit）。
+- **查詢時間**：2026-10-21 00:48–00:50（台北時間），以 `gh api` 唯讀查詢；10:14 用重跑腳本再查一次，結果一致。去敏後的原始輸出：[`evidence/branch-protection-2026-10-21.txt`](evidence/branch-protection-2026-10-21.txt)；重跑腳本：[`evidence/query_branch_protection.sh`](evidence/query_branch_protection.sh)。沒有 admin 權限的人重跑時，403/404 代表「無法驗證」，不代表「未設保護」。
 - **身分與權限**：`gh` 以 `Gavin0099` 登入，token scopes `gist, read:org, repo, workflow`；21 個 repo 的 `GET /repos/Gavin0099/{repo}` 都回傳 `permissions.admin=true`。因此 404 的 `"Branch not protected"` 是**可驗證的「未設保護」**，不是權限不足造成的 404。本次沒有遇到 403 或權限受限的回應；若日後遇到，應標記為「unknown / 無法驗證」，不得寫成「未設保護」。
 - **查詢分支**：各 repo 的 `default_branch`（BeatLab 為 `codex/bl-001-app-foundation`，其餘為 `main`）。
 - **Endpoint**：`GET /repos/Gavin0099/{repo}/branches/{branch}/protection`、`GET /repos/Gavin0099/{repo}/rulesets`、`GET /repos/Gavin0099/{repo}/rules/branches/{branch}`。
@@ -856,3 +856,10 @@ def check_lock_consistency(repo: Path) -> list[dict]:
 | 1 | contract PR 由 bot 開立、Gavin 以 CODEOWNER 核准 | 原本三個選項的「未決」段落換成定案設計：採用 GitHub App（不用 machine user）、最小權限、不列入 CODEOWNERS、不能核准；以 workflow_dispatch 或 issue 觸發 bot 開出只改 contract 的 PR | B-1「Contract 變更核准路徑」 |
 | 2 | Gate 規則 | 作者必須是 bot（login、type、user id 都要比對）；PR 內所有 commit 的 author 與 committer 都必須是 bot；bot PR 只能動 contract 路徑；核准者必須是 base 端 CODEOWNER、不是 bot、在 head SHA 上、而且是最後一次 review；人寫的 contract PR 只有在兩人規則下才 PASS | 同上，以及「評估核心」 |
 | 3 | 範例執行驗證 | 範例程式碼改寫，14 個案例全部符合預期，包含要求的 5 個案例，另加冒名 bot、bot 被列入 CODEOWNERS、非 owner 人寫 PR 等 | 「評估核心」驗證表 |
+
+### 第四輪（owner 核准：附上 branch protection 原始證據，基準 f452a33）
+
+| # | 要求 | 處理 | 位置 |
+|---|---|---|---|
+| 1 | 附上去敏後的原始輸出 | 新增 [`evidence/branch-protection-2026-10-21.txt`](evidence/branch-protection-2026-10-21.txt)：檔頭寫明查詢時間（台北時間）、gh 身分 Gavin0099、使用的 endpoint、重跑指令，以及「沒有 admin 權限時 403/404 = 無法驗證」的判讀規則。內容包含 [A] 00:48 原始快照、[B] 00:50 enforce_admins 補查、[C] 10:14 重跑的 JSON Lines | 附錄 B「Branch protection 證據」 |
+| 2 | 可重跑的腳本 | 新增 [`evidence/query_branch_protection.sh`](evidence/query_branch_protection.sh)：唯讀 GET，輸出不含 header 或 token；依 admin 權限與回應判定 `protected` / `unprotected_verified` / `unknown_not_verifiable` | 同上 |
