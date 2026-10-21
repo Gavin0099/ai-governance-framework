@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -31,6 +30,8 @@ from governance_tools.memory_provenance import (
     detect_commit_range_closeout_companion_gap,
     detect_commit_range_mixed_scope_memory_bindings,
     detect_staged_mixed_scope_memory_bindings,
+    git_changed_paths,
+    normalize_repo_path,
 )
 
 
@@ -57,28 +58,15 @@ class CiMemoryWorkflowCheckResult:
     clean: bool = True
 
 
-def _run_git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
-    completed = subprocess.run(
-        ["git", "-C", str(repo), *args],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
-
-
 def _normalize(path_text: str) -> str:
-    return path_text.strip().replace("\\", "/").lstrip("./")
+    return normalize_repo_path(path_text)
 
 
 def _changed_files_from_refs(repo: Path, base_ref: str, head_ref: str) -> list[str]:
-    code, stdout, stderr = _run_git(repo, ["diff", "--name-only", f"{base_ref}..{head_ref}"])
+    code, paths, stderr = git_changed_paths(repo, ["diff", "--name-only", f"{base_ref}..{head_ref}"])
     if code != 0:
         raise RuntimeError(f"git diff failed for {base_ref}..{head_ref}: {stderr}")
-    return sorted({_normalize(line) for line in stdout.splitlines() if _normalize(line)})
+    return sorted(set(paths))
 
 
 def _is_memory_file(path_text: str) -> bool:
