@@ -153,6 +153,18 @@ def test_codex_start_cannot_adopt_a_vscode_session_identity(repo):
     assert envelope_path(repo).read_bytes() == before
 
 
+def test_codex_hook_reports_non_git_cwd_as_system_message(tmp_path, monkeypatch, capsys):
+    import io
+    from runtime_hooks.adapters.codex import session_start as codex_hook
+    elsewhere = tmp_path / "not a repo"
+    elsewhere.mkdir()
+    payload = dict(hook_event_name="SessionStart", source="startup", session_id="codex-a", cwd=str(elsewhere))
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    monkeypatch.setattr("sys.argv", ["session_start.py", "--project-root", str(elsewhere)])
+    assert codex_hook.main() == 1
+    assert "Governance SessionStart failed" in json.loads(capsys.readouterr().out)["systemMessage"]
+
+
 def test_git_toplevel_decodes_utf8_regardless_of_console_codepage(repo, monkeypatch):
     from runtime_hooks.core import _bound_session_start as bound
     seen = {}
