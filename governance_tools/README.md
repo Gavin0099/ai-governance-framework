@@ -83,8 +83,10 @@ python governance_tools/memory_janitor.py --check
 # 查看歸檔計畫（唯讀）
 python governance_tools/memory_janitor.py --plan
 
-# 舊 cleanup 入口：一律 fail closed（exit 2），不修改任何檔案；
+# 舊 cleanup 入口：active memory 存在時 fail closed（exit 2），不修改任何檔案；
 # 加 --dry-run 只印出 [BLOCKED] 說明（exit 0）。不要用它來降低 pressure。
+# 例外：memory/01_active_task.md 不存在（例如新 repo）時只印出「無需掃除」並 exit 0，
+# 有無 --dry-run 皆同，不會印出 [BLOCKED]。
 python governance_tools/memory_janitor.py --execute
 
 # 查看既有歸檔紀錄（memory/archive/manifest.json）
@@ -94,7 +96,7 @@ python governance_tools/memory_janitor.py --manifest
 python governance_tools/memory_janitor.py --check --format json
 ```
 
-**歸檔行為**：janitor 目前沒有可用的自動歸檔路徑。`--execute`（以及舊的 `--clean`）已 fail closed，
+**歸檔行為**：janitor 目前沒有可用的自動歸檔路徑。active memory 存在時，`--execute`（以及舊的 `--clean`）已 fail closed，
 因為它無法證明 verified archive 與 replacement-state cutover。降低 pressure 需要 owner 另行授權的
 archive + cutover，並驗證：搬出的內容仍可找回、不可逆決策與授權邊界仍留在 active memory 或可追溯位置；
 完成後重新量測。`--manifest` 只顯示過去留下的紀錄，janitor 現在不會新增紀錄。

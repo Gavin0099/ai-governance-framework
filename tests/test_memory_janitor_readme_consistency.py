@@ -9,7 +9,11 @@ runs.
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
 
 from governance_tools.memory_janitor import MemoryJanitor as J
 
@@ -62,3 +66,35 @@ def test_archive_behaviour_does_not_describe_a_working_execute_archive():
     assert "copy+pointer" not in section
     assert "fail closed" in section
     assert "不會自動歸檔或修改" in section
+
+
+def _janitor(memory_root: Path, *flags: str) -> subprocess.CompletedProcess:
+    script = README.parent / "memory_janitor.py"
+    return subprocess.run(
+        [sys.executable, "-X", "utf8", str(script), "--memory-root", str(memory_root), *flags],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+    )
+
+
+@pytest.mark.parametrize("flags, with_active, exit_code, blocked", [
+    (("--execute",), True, 2, False),
+    (("--execute", "--dry-run"), True, 0, True),
+    (("--execute",), False, 0, False),
+    (("--execute", "--dry-run"), False, 0, False),
+])
+def test_documented_execute_exit_codes_hold(tmp_path, flags, with_active, exit_code, blocked):
+    memory = tmp_path / "memory"
+    memory.mkdir()
+    if with_active:
+        (memory / "01_active_task.md").write_text("x\n", encoding="utf-8")
+    done = _janitor(memory, *flags)
+    assert done.returncode == exit_code, done.stdout + done.stderr
+    assert ("[BLOCKED]" in done.stdout) is blocked
+    if with_active:
+        assert (memory / "01_active_task.md").read_text(encoding="utf-8") == "x\n"
+
+
+def test_readme_states_the_missing_active_file_exception():
+    section = _section()
+    assert "active memory 存在時 fail closed（exit 2）" in section
+    assert "01_active_task.md 不存在" in section and "exit 0" in section
