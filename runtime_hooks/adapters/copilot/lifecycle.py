@@ -219,35 +219,69 @@ def _write_session_envelope(
             _require_installed_root(project_root, installed_root)
         try:
             from runtime_hooks.core._bound_session_start import establish_bound_session
-        except ImportError:
-            # Only a framework that lacks the root-bound API takes this path: it
-            # can neither write nor read a VS Code v1.1 envelope, so keep its
-            # legacy envelope rather than fail with no envelope at all.  Event,
-            # project and session checks above and in the framework still apply.
-            establish_bound_session = None
-        if establish_bound_session is not None:
-            # VS Code keeps its own identity but gets the same worktree binding as Codex.
-            anchor = installed_root or project_root
-            started = establish_bound_session(
-                session_id, anchor, str(project_root),
-                provider=provider, lock_name=".vscode-start.lock",
-                require_existing=require_existing,
+        except ModuleNotFoundError as exc:
+            # Only the root-bound module itself being absent means "framework too
+            # old".  A broken dependency inside it, or a module without the
+            # function, is a real error and propagates instead of downgrading.
+            if exc.name != _BOUND_SESSION_MODULE:
+                raise
+            return _legacy_vscode_envelope(
+                session_id, project_root, provider=provider, require_existing=require_existing,
             )
-            return {
-                "artifact_path": started["session_envelope_path"],
-                "schema_version": started["envelope_schema_version"],
-                "envelope_status": started["status"],
-            }
-        legacy_reason = "framework_without_root_bound_support"
-    else:
-        legacy_reason = None
+        # VS Code keeps its own identity but gets the same worktree binding as Codex.
+        anchor = installed_root or project_root
+        started = establish_bound_session(
+            session_id, anchor, str(project_root),
+            provider=provider, lock_name=".vscode-start.lock",
+            require_existing=require_existing,
+        )
+        return {
+            "artifact_path": started["session_envelope_path"],
+            "schema_version": started["envelope_schema_version"],
+            "envelope_status": started["status"],
+        }
 
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
+    return write_session_envelope(session_id, project_root, provider=provider)
+
+
+_BOUND_SESSION_MODULE = "runtime_hooks.core._bound_session_start"
+_LEGACY_REASON = "framework_without_root_bound_support"
+
+
+def _legacy_vscode_envelope(
+    session_id: str,
+    project_root: Path,
+    *,
+    provider: str,
+    require_existing: bool,
+) -> dict[str, Any]:
+    """A framework without root-bound support: its legacy v1.0 envelope, under
+    the same identity rules as the bound path.  An existing identity is
+    preserved, never rewritten; one owned by another provider is refused; and
+    resume/compact never invents an identity."""
+    session_dir = project_root / "artifacts/runtime/sessions" / session_id
+    path = session_dir / "session-envelope.json"
+    if session_dir.is_symlink() or path.is_symlink():
+        raise ValueError("Envelope path escapes project root")
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            existing = None
+        if not isinstance(existing, dict) or existing.get("session_id") != session_id:
+            raise ValueError("Existing envelope is invalid; refusing to overwrite")
+        if existing.get("provider") != provider:
+            raise ValueError("Session identity belongs to another provider; refusing to adopt it")
+        return {**existing, "artifact_path": str(path), "envelope_status": "preserved",
+                "binding_reason": _LEGACY_REASON}
+    if require_existing:
+        raise ValueError("Existing envelope required for resume/compact; no start time invented")
+    from runtime_hooks.core._canonical_closeout import write_session_envelope
+
     envelope = write_session_envelope(session_id, project_root, provider=provider)
-    if legacy_reason:
-        envelope = {**envelope, "binding_reason": legacy_reason}
-    return envelope
+    return {**envelope, "binding_reason": _LEGACY_REASON}
 
 
 def _run_session_end(

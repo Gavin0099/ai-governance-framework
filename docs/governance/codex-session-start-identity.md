@@ -59,10 +59,13 @@ session id one provider created is never adopted by the other.
   envelope; the bridge keeps that framework's legacy `1.0` envelope and reports
   `session_envelope_binding=legacy` with
   `session_envelope_binding_reason=framework_without_root_bound_support`. This
-  is the only downgrade: the event and installed-root checks run in the bridge
-  before the framework import, so a wrong event, a foreign or subdirectory cwd,
-  or an unsafe session id is rejected with nothing written, whatever the
-  framework version.
+  is the only downgrade, and it keeps the identity rules: the event and
+  installed-root checks run in the bridge before the framework import; an
+  existing identity is preserved, never rewritten; one owned by another
+  provider is refused; and `resume`/`compact` without an identity is refused.
+  Only an absent `runtime_hooks.core._bound_session_start` counts as "too old" —
+  a broken dependency inside it, or a module without `establish_bound_session`,
+  is reported as an error with nothing written.
 - **Supported harness: VS Code Local only.** The installed hook file is
   Copilot-format (`sessionStart` in `.github/hooks/ai-governance-copilot.json`,
   `--surface auto`). VS Code's Local harness maps that configuration and sends

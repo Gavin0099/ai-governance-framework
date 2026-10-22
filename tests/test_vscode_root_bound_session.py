@@ -494,3 +494,62 @@ def test_installed_bridge_subdirectory_cwd_fails_closed(repo):
                          {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(sub)}, cwd=repo)
     assert result["ok"] is False and "do not match" in result["error"]
     assert _runtime(repo) == []
+
+
+# ── legacy fallback keeps the identity rules; only a missing module downgrades ──
+
+def _legacy_envelope(root, provider="github-copilot-vscode", sid=SID):
+    path = envelope_path(root, sid)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": "1.0", "session_id": sid, "provider": provider,
+                                "started_at": "2026-10-01T00:00:00+00:00"}), encoding="utf-8")
+    return path.read_bytes()
+
+
+@pytest.mark.parametrize("source", ["resume", "compact"])
+def test_older_framework_resume_without_identity_is_refused(repo, tmp_path, source):
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "source": source, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "no start time invented" in result["error"]
+    assert _runtime(repo) == []
+
+
+@pytest.mark.parametrize("source", ["new", "resume"])
+def test_older_framework_preserves_an_existing_identity(repo, tmp_path, source):
+    before = _legacy_envelope(repo)
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "source": source, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is True, result
+    assert result["status"] == "session_envelope_preserved"
+    assert result["session_envelope_binding_reason"] == "framework_without_root_bound_support"
+    assert envelope_path(repo).read_bytes() == before  # not rewritten with a new start time
+
+
+def test_older_framework_does_not_adopt_another_providers_identity(repo, tmp_path):
+    before = _legacy_envelope(repo, provider="codex")
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "another provider" in result["error"]
+    assert envelope_path(repo).read_bytes() == before
+
+
+@pytest.mark.parametrize("module_source, expected", [
+    ("import governance_nonexistent_dependency_xyz\n", "governance_nonexistent_dependency_xyz"),
+    ("VALUE = 1\n", "establish_bound_session"),
+])
+def test_broken_root_bound_module_is_an_error_not_a_downgrade(repo, tmp_path, module_source, expected):
+    """Only an absent _bound_session_start means "framework too old"."""
+    framework = _older_framework(tmp_path)
+    (framework / "runtime_hooks/core/_bound_session_start.py").write_text(module_source, encoding="utf-8")
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=framework)
+    assert result["ok"] is False and expected in result["error"]
+    assert _runtime(repo) == []
