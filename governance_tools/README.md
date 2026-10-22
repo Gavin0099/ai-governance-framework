@@ -79,7 +79,8 @@ python governance_tools/memory_janitor.py --check
 # 查看歸檔計畫
 python governance_tools/memory_janitor.py --plan
 
-# 執行歸檔（copy+pointer 模式，原檔保留 pointer）
+# --execute 已 fail closed（exit 2，不修改 active memory）；
+# 實際 archive + replacement-state cutover 需另行授權並驗證
 python governance_tools/memory_janitor.py --execute
 
 # 查看歸檔紀錄
