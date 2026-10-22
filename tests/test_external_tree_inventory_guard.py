@@ -818,3 +818,24 @@ def test_pre_push_hook_does_not_narrow_scan_by_remote_name() -> None:
         encoding="utf-8")
     assert "--published-remote" not in hook
     assert "--remotes=" not in hook
+
+
+def test_installed_git_finds_newline_named_json_without_forcing_a_version(
+    awkward_paths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """No monkeypatching: whatever git runs this test picks its own path.
+
+    On Git >= 2.50 this exercises `rev-list -z`; on an older runner (e.g. a
+    distro Git 2.43) it is the only test that runs the compat path for real.
+    The chosen path is printed so CI logs show which one was exercised.
+    """
+    from governance_tools.external_tree_inventory_guard import _MIN_REV_LIST_Z, _git_version
+
+    repo, old, new, blobs = awkward_paths
+    version = _git_version()
+    with capsys.disabled():
+        print(f"\n[guard] git {'.'.join(map(str, version))} -> "
+              f"{'rev-list -z' if version >= _MIN_REV_LIST_Z else 'compat ls-tree'} path")
+    found = _candidates(repo, old, new)
+    assert found[blobs[NEWLINE_JSON]] == {NEWLINE_JSON}
+    assert found[blobs["a/b.json"]] == {"a/b.json"}
