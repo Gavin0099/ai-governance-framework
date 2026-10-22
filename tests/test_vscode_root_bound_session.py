@@ -174,7 +174,9 @@ def test_legacy_vscode_envelope_is_rejected_and_never_migrated(consumer):
     result = invoke(consumer, sid="vscode-A")
     assert result.returncode == 1 and "INVALID_OWNER" in result.stdout
     restart = _start_in(consumer)
-    assert (restart["binding"], restart["identity_status"]) == ("root_bound", "preserved")
+    # Review on #226: a preserved v1.0 identity must not be reported as root-bound.
+    assert (restart["binding"], restart["identity_status"], restart["binding_reason"]) == (
+        "legacy_unbound", "preserved", "existing_legacy_envelope_preserved")
     assert _envelope_path(consumer, "vscode-A").read_bytes() == legacy  # no migration
     assert invoke(consumer, sid="vscode-A").returncode == 1
 
@@ -336,3 +338,48 @@ def test_only_listed_providers_can_bind(repo, provider):
             session_id="session-a", cwd=str(repo), installed_root=repo, provider=provider,
             require_existing=False, lock_name=".x-start.lock")
     assert _runtime(repo) == []
+
+
+# ── review on #226 ──────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("provider", [["codex"], {"codex": 1}, 7, None])
+def test_non_string_provider_reads_as_unreadable_not_crash(repo, provider):
+    core.write_session_envelope("session-a", repo, provider=PROVIDER, bound_consumer_root=repo)
+    path = _envelope_path(repo, "session-a")
+    payload = json.loads(path.read_bytes())
+    payload["provider"] = provider
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    assert core.read_session_envelope("session-a", repo) is None
+
+
+def _start_raw(root: Path, payload: dict, framework: Path) -> dict:
+    result = subprocess.run(
+        [sys.executable, "-B", str(root / INSTALLED_BRIDGE),
+         "--event-type", "session_start", "--surface", "auto"],
+        input=json.dumps(payload), cwd=root, capture_output=True, text=True,
+        encoding="utf-8", timeout=60,
+        env={**environment(), "AI_GOVERNANCE_FRAMEWORK_ROOT": str(framework)},
+    )
+    return json.loads(result.stdout)
+
+
+def test_documented_vscode_local_payload_reaches_root_binding(repo):
+    """The installed hook config is Copilot-format (sessionStart), but VS Code
+    Local "maps the configuration and then sends the payloads documented here"
+    (code.visualstudio.com/docs/agents/reference/hooks-reference): snake_case
+    common fields, SessionStart source "new".  This is that exact shape."""
+    payload = {"timestamp": "2026-10-22T03:00:00.000Z", "cwd": str(repo),
+               "session_id": "vscode-documented", "hook_event_name": "SessionStart",
+               "transcript_path": str(repo / "t.jsonl"), "source": "new"}
+    result = _start_raw(repo, payload, FRAMEWORK)
+    assert (result["surface"], result["provider"]) == ("vscode", PROVIDER)
+    assert (result["binding"], result["identity_status"]) == ("root_bound", "created")
+
+
+def test_copilot_camelcase_payload_stays_on_the_copilot_surface(repo):
+    """Copilot sessions send camelCase; that surface is not approved for binding."""
+    payload = {"sessionId": "copilot-1", "hookEventName": "sessionStart", "cwd": str(repo)}
+    result = _start_raw(repo, payload, FRAMEWORK)
+    assert (result["surface"], result["provider"]) == ("copilot", "github-copilot")
+    assert "binding" not in result
+    assert json.loads(_envelope_path(repo, "copilot-1").read_bytes())["schema_version"] == "1.0"

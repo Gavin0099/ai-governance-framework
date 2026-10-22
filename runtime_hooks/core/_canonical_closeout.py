@@ -228,7 +228,10 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
         if not _ROOT_BOUND_SESSION_ID.fullmatch(session_id):
             return None
         binding = payload.get("repo_binding")
-        expected_source = ROOT_BOUND_SOURCES.get(payload.get("provider"))
+        provider = payload.get("provider")
+        # A list/dict provider is unhashable; a corrupt envelope must read as
+        # unreadable (None), never raise out of the identity check.
+        expected_source = ROOT_BOUND_SOURCES.get(provider) if isinstance(provider, str) else None
         if expected_source is None or not isinstance(binding, dict):
             return None
         raw_root = binding.get("consumer_root")

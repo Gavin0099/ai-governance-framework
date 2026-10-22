@@ -201,8 +201,10 @@ def _start_vscode_session(
     """
     try:
         from runtime_hooks.core._canonical_closeout import (
+            _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION,
             _ROOT_BOUND_SESSION_ID,
             establish_root_bound_session,
+            read_session_envelope,
         )
     except ImportError:
         # Bridge newer than the framework it resolved: that framework cannot
@@ -231,8 +233,19 @@ def _start_vscode_session(
             require_existing=payload.get("source") in {"resume", "compact"},
             lock_name=".vscode-start.lock",
         )
+        # A preserved identity keeps its original version; an existing v1.0
+        # envelope is never migrated, so report what the envelope really is.
+        envelope = read_session_envelope(session_id, installed_root) or {}
+        if (envelope.get("schema_version") == _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION
+                and isinstance(envelope.get("repo_binding"), dict)):
+            return {
+                "binding": "root_bound",
+                "identity_status": bound["status"],
+                "session_envelope_path": bound["session_envelope_path"],
+            }
         return {
-            "binding": "root_bound",
+            "binding": "legacy_unbound",
+            "binding_reason": "existing_legacy_envelope_preserved",
             "identity_status": bound["status"],
             "session_envelope_path": bound["session_envelope_path"],
         }
