@@ -134,6 +134,38 @@ def test_vscode_provider_cannot_be_written_as_codex_and_vice_versa(repo):
     assert payload["repo_binding"]["source"] == "codex_session_start"
 
 
+def test_vscode_start_cannot_adopt_a_codex_session_identity(repo):
+    codex_start(dict(hook_event_name="SessionStart", source="startup", session_id="codex-a", cwd=str(repo)), repo)
+    before = envelope_path(repo, "codex-a").read_bytes()
+    pointer = repo / "artifacts/runtime/.current-session-id"
+    pointer_before = pointer.read_bytes() if pointer.exists() else None
+    with pytest.raises(ValueError, match="another provider"):
+        vscode_start(repo, sid="codex-a")
+    assert envelope_path(repo, "codex-a").read_bytes() == before
+    assert (pointer.read_bytes() if pointer.exists() else None) == pointer_before
+
+
+def test_codex_start_cannot_adopt_a_vscode_session_identity(repo):
+    vscode_start(repo)
+    before = envelope_path(repo).read_bytes()
+    with pytest.raises(ValueError, match="another provider"):
+        codex_start(dict(hook_event_name="SessionStart", source="startup", session_id=SID, cwd=str(repo)), repo)
+    assert envelope_path(repo).read_bytes() == before
+
+
+def test_git_toplevel_decodes_utf8_regardless_of_console_codepage(repo, monkeypatch):
+    from runtime_hooks.core import _bound_session_start as bound
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(repo) + "\n", stderr="")
+
+    monkeypatch.setattr(bound.subprocess, "run", fake_run)
+    assert bound.git_toplevel(str(repo)) == repo
+    assert seen.get("encoding") == "utf-8"
+
+
 def test_codex_and_vscode_identities_are_not_interchangeable(repo):
     vscode_start(repo)
     path = envelope_path(repo)

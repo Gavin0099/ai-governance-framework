@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from runtime_hooks.core._canonical_closeout import (
+    _ROOT_BOUND_SOURCE_BY_PROVIDER,
     _write_current_session_id_payload,
     read_session_envelope,
     write_session_envelope,
@@ -20,7 +21,7 @@ def git_toplevel(value: str) -> Path:
     if not path.is_absolute() or not path.is_dir():
         raise ValueError("An existing absolute project root is required")
     result = subprocess.run(["git", "-C", str(path), "rev-parse", "--show-toplevel"],
-                            capture_output=True, text=True, check=True, timeout=5)
+                            capture_output=True, text=True, encoding="utf-8", check=True, timeout=5)
     return Path(result.stdout.strip()).resolve()
 
 
@@ -79,6 +80,9 @@ def establish_bound_session(
                 )
                 status = "created"
             else:
+                existing = envelope.get("provider")
+                if existing in _ROOT_BOUND_SOURCE_BY_PROVIDER and existing != provider:
+                    raise ValueError("Session identity belongs to another provider; refusing to adopt it")
                 _write_current_session_id_payload(sid, marker)
                 status = "preserved"
     finally:
