@@ -568,3 +568,328 @@ def test_json_named_tree_is_rejected_as_unsupported_object(tmp_path: Path) -> No
 
     with pytest.raises(PrePushScanError, match="unsupported Git object type tree"):
         _scan(repo, old, tip)
+
+
+GUARD = "governance_tools.external_tree_inventory_guard"
+NEWLINE_JSON = "prefix\nleak.json"
+
+
+def _force_git_version(monkeypatch: pytest.MonkeyPatch, version: tuple[int, int, int]) -> None:
+    monkeypatch.setattr(f"{GUARD}._git_version", lambda: version)
+
+
+def _mktree(repo: Path, files: dict[bytes, str]) -> str:
+    """Build nested trees from {b"dir/name": blob}; one mktree call per directory."""
+    here: dict[bytes, str] = {}
+    below: dict[bytes, dict[bytes, str]] = {}
+    for path, blob in files.items():
+        head, slash, rest = path.partition(b"/")
+        if slash:
+            below.setdefault(head, {})[rest] = blob
+        else:
+            here[head] = blob
+    records = [b"100644 blob " + blob.encode("ascii") + b"\t" + name for name, blob in here.items()]
+    records += [b"040000 tree " + _mktree(repo, sub).encode("ascii") + b"\t" + name
+                for name, sub in below.items()]
+    return _git(repo, "mktree", "-z", input_bytes=b"".join(r + b"\0" for r in records))
+
+
+def _commit_tree(repo: Path, parent: str, entries: list[tuple[str, str]], message: str) -> str:
+    """Commit (path, blob) pairs on top of parent via plumbing.
+
+    ``git mktree -z`` accepts names Git for Windows refuses in the index, such
+    as a path containing a newline, so the fixture works on every platform.
+    """
+    files: dict[bytes, str] = {}
+    listing = subprocess.run(["git", "ls-tree", "-r", "-z", parent], cwd=repo,
+                             stdout=subprocess.PIPE, check=True).stdout
+    for record in listing.split(b"\0"):
+        if record:
+            meta, _, name = record.partition(b"\t")
+            files[name] = meta.split()[2].decode("ascii")
+    for path, blob in entries:
+        files[path.encode("utf-8")] = blob
+    return _git(repo, "commit-tree", _mktree(repo, files), "-p", parent, "-m", message)
+
+
+def _blob(repo: Path, raw: bytes) -> str:
+    return _git(repo, "hash-object", "-w", "--stdin", input_bytes=raw)
+
+
+def _candidates(repo: Path, old: str, new: str) -> dict[str, set[str]]:
+    from governance_tools.external_tree_inventory_guard import _enumerate_json_blob_candidates
+
+    return _enumerate_json_blob_candidates(
+        repo, [PrePushUpdate("refs/heads/x", new, "refs/heads/x", old)])
+
+
+@pytest.fixture
+def awkward_paths(tmp_path: Path) -> tuple[Path, str, str, dict[str, str]]:
+    """A push range with a newline-named JSON, a spaced JSON, and one blob at two paths."""
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    blobs = {
+        NEWLINE_JSON: _blob(repo, b'{"leak": 1}\n'),
+        "dir with space/b c.json": _blob(repo, b'{"spaced": 1}\n'),
+        "a/b.json": _blob(repo, b'{"shared": 1}\n'),
+    }
+    first = _commit_tree(repo, old, [(NEWLINE_JSON, blobs[NEWLINE_JSON]),
+                                     ("dir with space/b c.json", blobs["dir with space/b c.json"])],
+                         "awkward names")
+    second = _commit_tree(repo, first, [("a/b.json", blobs["a/b.json"]),
+                                        ("copy/b.txt", blobs["a/b.json"])], "same blob twice")
+    return repo, old, second, blobs
+
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 47, 3)])
+def test_compat_path_finds_newline_named_json(
+    awkward_paths, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    """Review on #228: newline-delimited rev-list output reports this blob as
+    'prefix' and the .json is lost; the compat path must still find it."""
+    repo, old, new, blobs = awkward_paths
+    _force_git_version(monkeypatch, version)
+    found = _candidates(repo, old, new)
+    assert found[blobs[NEWLINE_JSON]] == {NEWLINE_JSON}
+    assert found[blobs["dir with space/b c.json"]] == {"dir with space/b c.json"}
+    assert found[blobs["a/b.json"]] == {"a/b.json"}
+
+
+def _skip_unless_real_git_supports_rev_list_z() -> None:
+    """Forcing the -z path is only meaningful on a git that honours -z; an older
+    git ignores it and the guard (correctly) refuses the non-NUL output."""
+    from governance_tools.external_tree_inventory_guard import _MIN_REV_LIST_Z, _git_version
+
+    if _git_version() < _MIN_REV_LIST_Z:
+        pytest.skip("installed git < 2.50 ignores rev-list -z; the -z path cannot run here")
+
+
+def test_compat_path_covers_everything_the_nul_path_finds(
+    awkward_paths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _skip_unless_real_git_supports_rev_list_z()
+    repo, old, new, _blobs = awkward_paths
+    _force_git_version(monkeypatch, (2, 50, 0))
+    nul = _candidates(repo, old, new)
+    _force_git_version(monkeypatch, (2, 47, 3))
+    compat = _candidates(repo, old, new)
+    assert nul  # this checkout's git is >= 2.50, so the -z path is real here
+    for oid, names in nul.items():
+        assert names <= compat.get(oid, set())
+
+
+def test_newline_named_json_is_scanned_end_to_end_on_compat_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    blob = _blob(repo, _inventory_bytes())
+    new = _commit_tree(repo, old, [(NEWLINE_JSON, blob)], "hidden inventory")
+    _force_git_version(monkeypatch, (2, 43, 0))
+    result = _scan(repo, old, new)
+    assert result.json_blob_count == 1
+    assert result.assessments[0].path == NEWLINE_JSON
+    assert result.assessments[0].result.status == STATUS_BLOCKED
+
+
+def test_old_git_never_uses_rev_list_z(awkward_paths, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dispatch is by version, not by guessing from the output format."""
+    repo, old, new, _blobs = awkward_paths
+    _force_git_version(monkeypatch, (2, 43, 0))
+    seen: list[list[str]] = []
+    original_run = subprocess.run
+
+    def spy(command, *args, **kwargs):
+        if isinstance(command, list):
+            seen.append([str(part) for part in command])
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(f"{GUARD}.subprocess.run", spy)
+    _candidates(repo, old, new)
+    rev_lists = [cmd for cmd in seen if "rev-list" in cmd]
+    assert rev_lists and all("-z" not in cmd for cmd in rev_lists)
+
+
+def test_nul_path_refuses_output_without_nul(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A git that claims >= 2.50 but ignores -z must not be parsed any other way."""
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    tip = _commit_bytes(repo, "data/a.json", b'{"safe": true}\n', "safe")
+    blob = _git(repo, "rev-parse", f"{tip}:data/a.json")
+    _force_git_version(monkeypatch, (2, 50, 0))
+    original_run = subprocess.run
+
+    def fake_run(command, *args, **kwargs):
+        if isinstance(command, list) and "rev-list" in command:
+            return subprocess.CompletedProcess(command, 0, stdout=f"{tip}\n{blob} data/a.json\n".encode(),
+                                               stderr=b"")
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(f"{GUARD}.subprocess.run", fake_run)
+    with pytest.raises(PrePushScanError, match="not NUL-delimited"):
+        _candidates(repo, old, tip)
+
+
+@pytest.mark.parametrize("with_z", [b"zzzz\0", b"path=orphan.json\0", b"\xff\xfe\0"])
+def test_malformed_nul_rev_list_output_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, with_z: bytes
+) -> None:
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    tip = _commit_bytes(repo, "data/a.json", b'{"safe": true}\n', "safe")
+    _force_git_version(monkeypatch, (2, 50, 0))
+    original_run = subprocess.run
+
+    def fake_run(command, *args, **kwargs):
+        if isinstance(command, list) and "rev-list" in command:
+            return subprocess.CompletedProcess(command, 0, stdout=with_z, stderr=b"")
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(f"{GUARD}.subprocess.run", fake_run)
+    with pytest.raises(PrePushScanError, match="git rev-list emitted"):
+        _candidates(repo, old, tip)
+
+
+def test_compat_path_refuses_more_commits_than_its_limit(
+    awkward_paths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, old, new, _blobs = awkward_paths
+    _force_git_version(monkeypatch, (2, 43, 0))
+    monkeypatch.setattr(f"{GUARD}._COMPAT_MAX_COMMITS", 1)
+    with pytest.raises(PrePushScanError, match="refusing a partial scan"):
+        _candidates(repo, old, new)
+
+
+def test_compat_path_fails_closed_when_a_new_blob_has_no_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A ref pointing straight at a blob has no commit tree to name it."""
+    repo = _repository(tmp_path)
+    blob = _blob(repo, _inventory_bytes())
+    _force_git_version(monkeypatch, (2, 43, 0))
+    with pytest.raises(PrePushScanError):
+        _candidates(repo, ZERO_OID, blob)
+
+
+def test_git_version_parses_vendor_suffixes(monkeypatch: pytest.MonkeyPatch) -> None:
+    from governance_tools.external_tree_inventory_guard import _git_version
+
+    original_run = subprocess.run
+
+    def fake_run(command, *args, **kwargs):
+        if command == ["git", "--version"]:
+            return subprocess.CompletedProcess(command, 0, stdout=b"git version 2.50.0.windows.1\n",
+                                               stderr=b"")
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(f"{GUARD}.subprocess.run", fake_run)
+    assert _git_version() == (2, 50, 0)
+
+
+# Review on #228 (P1): remote-tracking refs are not proof of what the push
+# destination holds.  New refs are scanned in full, whatever the tracking refs say.
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 50, 0)])
+def test_new_ref_scan_ignores_tracking_refs_of_a_different_push_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
+    repo = _repository(tmp_path)
+    tip = _commit_bytes(repo, "data/inventory.json", _inventory_bytes(), "inventory")
+    # origin fetches from A (whose tracking ref already contains the blob)
+    # but pushes to an empty B.
+    _git(repo, "remote", "add", "origin", "https://example.invalid/A.git")
+    _git(repo, "remote", "set-url", "--push", "origin", "https://example.invalid/B.git")
+    _git(repo, "update-ref", "refs/remotes/origin/main", tip)
+    _force_git_version(monkeypatch, version)
+    result = scan_pre_push_updates(
+        repo, (PrePushUpdate("refs/heads/new", tip, "refs/heads/new", ZERO_OID),),
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+    )
+    assert [a.result.status for a in result.assessments] == [STATUS_BLOCKED]
+
+
+def test_new_ref_scan_ignores_stale_tracking_refs(tmp_path: Path) -> None:
+    repo = _repository(tmp_path)
+    tip = _commit_bytes(repo, "data/inventory.json", _inventory_bytes(), "inventory")
+    # A tracking ref left behind after the branch was deleted upstream.
+    _git(repo, "remote", "add", "origin", "https://example.invalid/A.git")
+    _git(repo, "update-ref", "refs/remotes/origin/deleted-upstream", tip)
+    result = scan_pre_push_updates(
+        repo, (PrePushUpdate("refs/heads/new", tip, "refs/heads/new", ZERO_OID),),
+        expected_repository_identities=[EXPECTED_REPOSITORY],
+    )
+    assert [a.result.status for a in result.assessments] == [STATUS_BLOCKED]
+
+
+def test_pre_push_hook_does_not_narrow_scan_by_remote_name() -> None:
+    hook = (Path(__file__).resolve().parents[1] / "scripts" / "hooks" / "pre-push").read_text(
+        encoding="utf-8")
+    assert "--published-remote" not in hook
+    assert "--remotes=" not in hook
+
+
+def test_installed_git_finds_newline_named_json_without_forcing_a_version(
+    awkward_paths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """No monkeypatching: whatever git runs this test picks its own path.
+
+    On Git >= 2.50 this exercises `rev-list -z`; on an older runner (e.g. a
+    distro Git 2.43) it is the only test that runs the compat path for real.
+    The chosen path is printed so CI logs show which one was exercised.
+    """
+    from governance_tools.external_tree_inventory_guard import _MIN_REV_LIST_Z, _git_version
+
+    repo, old, new, blobs = awkward_paths
+    version = _git_version()
+    with capsys.disabled():
+        print(f"\n[guard] git {'.'.join(map(str, version))} -> "
+              f"{'rev-list -z' if version >= _MIN_REV_LIST_Z else 'compat ls-tree'} path")
+    found = _candidates(repo, old, new)
+    assert found[blobs[NEWLINE_JSON]] == {NEWLINE_JSON}
+    assert found[blobs["a/b.json"]] == {"a/b.json"}
+
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 50, 0)])
+def test_json_named_tree_fails_closed_on_both_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    """Found by the real Git 2.43 CI run: the compat path only named blobs, so a
+    directory called folder.json passed silently while the -z path refused it."""
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    (repo / "folder.json").mkdir()
+    (repo / "folder.json" / "item.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "folder.json/item.txt")
+    _git(repo, "commit", "-m", "json named tree")
+    tip = _git(repo, "rev-parse", "HEAD")
+    _force_git_version(monkeypatch, version)
+    with pytest.raises(PrePushScanError, match="unsupported Git object type tree"):
+        _scan(repo, old, tip)
+
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 50, 0)])
+def test_pure_rename_to_json_directory_is_treated_alike_on_both_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    """A pure rename reuses the subtree object, so nothing named *.json is new:
+    neither path scans or refuses it (parity, not an exemption of the compat path)."""
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
+    repo = _repository(tmp_path)
+    (repo / "folder").mkdir()
+    (repo / "folder" / "item.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "folder/item.txt")
+    _git(repo, "commit", "-m", "plain directory")
+    old = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "mv", "folder", "folder.json")
+    _git(repo, "commit", "-m", "rename to json")
+    tip = _git(repo, "rev-parse", "HEAD")
+    assert _git(repo, "rev-parse", f"{old}:folder") == _git(repo, "rev-parse", f"{tip}:folder.json")
+    _force_git_version(monkeypatch, version)
+    assert _scan(repo, old, tip).json_blob_count == 0
