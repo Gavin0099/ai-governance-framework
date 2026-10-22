@@ -700,10 +700,12 @@ def _compat_json_blob_candidates(
     Git cuts an object name at its first newline, so ``prefix\\nleak.json``
     would be reported as ``prefix`` and silently drop out of the JSON scan.
     Instead: (a) the new object IDs (no names), (b) their types, (c) every
-    (blob, path) pair from ``ls-tree -r -z`` of each new commit's tree, and
-    (d) fail closed if any new blob cannot be attributed to a path.  Every new
-    blob is in some new commit's tree, so the path set is a superset of the
-    one name ``rev-list -z`` would give.
+    (blob or tree, path) pair from ``ls-tree -r -t -z`` of each new commit's
+    tree, and (d) fail closed if any new blob cannot be attributed to a path.
+    Every new blob is in some new commit's tree, so the path set is a superset
+    of the one name ``rev-list -z`` would give.  New trees are named too, so a
+    directory named ``*.json`` becomes a candidate and fails closed as an
+    unsupported object type, exactly as on the ``-z`` path.
     """
 
     git = ["git", "--no-replace-objects", "-C", str(repository_root)]
@@ -711,7 +713,8 @@ def _compat_json_blob_candidates(
         [*git, "rev-list", "--objects", "--no-object-names", *revisions], update.remote_ref))
     types = _object_types(repository_root, new_objects)
     new_blobs = {oid for oid, kind in types.items() if kind == "blob"}
-    if not new_blobs:
+    new_named = {oid for oid, kind in types.items() if kind in ("blob", "tree")}
+    if not new_named:
         return {}
     # One root tree per new commit, in one call (no commit list on the command line).
     commit_trees = _oid_lines(_run_rev_list(
@@ -724,7 +727,7 @@ def _compat_json_blob_candidates(
     trees = sorted(set(commit_trees))
     paths: dict[str, set[str]] = {}
     for tree in trees:
-        listing = _run_rev_list([*git, "ls-tree", "-r", "-z", "--full-tree", tree], update.remote_ref)
+        listing = _run_rev_list([*git, "ls-tree", "-r", "-t", "-z", "--full-tree", tree], update.remote_ref)
         for record in listing.split(b"\0"):
             if not record:
                 continue
@@ -732,10 +735,10 @@ def _compat_json_blob_candidates(
             fields = meta.split()
             if not separator or len(fields) != 3:
                 raise PrePushScanError("git ls-tree emitted an invalid record")
-            if fields[1] != b"blob":
+            if fields[1] not in (b"blob", b"tree"):
                 continue
             oid = fields[2].decode("ascii", errors="replace").lower()
-            if oid in new_blobs:
+            if oid in new_named:
                 paths.setdefault(oid, set()).add(raw_path.decode("utf-8", errors="surrogateescape"))
     orphans = new_blobs - paths.keys()
     if orphans:

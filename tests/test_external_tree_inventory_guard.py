@@ -655,9 +655,19 @@ def test_compat_path_finds_newline_named_json(
     assert found[blobs["a/b.json"]] == {"a/b.json"}
 
 
+def _skip_unless_real_git_supports_rev_list_z() -> None:
+    """Forcing the -z path is only meaningful on a git that honours -z; an older
+    git ignores it and the guard (correctly) refuses the non-NUL output."""
+    from governance_tools.external_tree_inventory_guard import _MIN_REV_LIST_Z, _git_version
+
+    if _git_version() < _MIN_REV_LIST_Z:
+        pytest.skip("installed git < 2.50 ignores rev-list -z; the -z path cannot run here")
+
+
 def test_compat_path_covers_everything_the_nul_path_finds(
     awkward_paths, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    _skip_unless_real_git_supports_rev_list_z()
     repo, old, new, _blobs = awkward_paths
     _force_git_version(monkeypatch, (2, 50, 0))
     nul = _candidates(repo, old, new)
@@ -785,6 +795,8 @@ def test_git_version_parses_vendor_suffixes(monkeypatch: pytest.MonkeyPatch) -> 
 def test_new_ref_scan_ignores_tracking_refs_of_a_different_push_url(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
 ) -> None:
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
     repo = _repository(tmp_path)
     tip = _commit_bytes(repo, "data/inventory.json", _inventory_bytes(), "inventory")
     # origin fetches from A (whose tracking ref already contains the blob)
@@ -839,3 +851,45 @@ def test_installed_git_finds_newline_named_json_without_forcing_a_version(
     found = _candidates(repo, old, new)
     assert found[blobs[NEWLINE_JSON]] == {NEWLINE_JSON}
     assert found[blobs["a/b.json"]] == {"a/b.json"}
+
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 50, 0)])
+def test_json_named_tree_fails_closed_on_both_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    """Found by the real Git 2.43 CI run: the compat path only named blobs, so a
+    directory called folder.json passed silently while the -z path refused it."""
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
+    repo = _repository(tmp_path)
+    old = _git(repo, "rev-parse", "HEAD")
+    (repo / "folder.json").mkdir()
+    (repo / "folder.json" / "item.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "folder.json/item.txt")
+    _git(repo, "commit", "-m", "json named tree")
+    tip = _git(repo, "rev-parse", "HEAD")
+    _force_git_version(monkeypatch, version)
+    with pytest.raises(PrePushScanError, match="unsupported Git object type tree"):
+        _scan(repo, old, tip)
+
+
+@pytest.mark.parametrize("version", [(2, 43, 0), (2, 50, 0)])
+def test_pure_rename_to_json_directory_is_treated_alike_on_both_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, version
+) -> None:
+    """A pure rename reuses the subtree object, so nothing named *.json is new:
+    neither path scans or refuses it (parity, not an exemption of the compat path)."""
+    if version >= (2, 50, 0):
+        _skip_unless_real_git_supports_rev_list_z()
+    repo = _repository(tmp_path)
+    (repo / "folder").mkdir()
+    (repo / "folder" / "item.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "folder/item.txt")
+    _git(repo, "commit", "-m", "plain directory")
+    old = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "mv", "folder", "folder.json")
+    _git(repo, "commit", "-m", "rename to json")
+    tip = _git(repo, "rev-parse", "HEAD")
+    assert _git(repo, "rev-parse", f"{old}:folder") == _git(repo, "rev-parse", f"{tip}:folder.json")
+    _force_git_version(monkeypatch, version)
+    assert _scan(repo, old, tip).json_blob_count == 0
