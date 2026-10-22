@@ -1,12 +1,16 @@
-# Claude Code session lifecycle：接線盤點與最小修復規格（2026-10-22）
+# Claude Code session lifecycle：接線盤點與最小修復規格（2026-10-22，修訂 1）
 
 狀態：**規格草案，未實作**。本文件只做唯讀盤點與修復規格；不修改任何 hook 設定、不重裝 consumer、不啟動付費 Claude session。每一項實作與驗收都需 owner 另行授權。
 
-## 目標（只有一個）
+修訂 1（#231 審查後）：SessionEnd 改為**可恢復的 checkpoint**，不再寫不可逆的 completion marker；`trigger_mode` 沿用既有的 `native_hook`；明定誰負責預先保存摘要；讀回改為附上經驗證的摘要內容；`cwd` 改為比對 Git worktree root；補上 resume／fork 與「SessionEnd 沒跑」的語意；第六節列出審查建議的預設值。
 
-讓**一次真正的 Claude Code 工作階段**可以可靠地：開始（有可信身分）→ 保存（摘要屬於這個 session／worktree）→ 結束（正式結案只發生一次，失敗可查）→ 下一次開始時讀得回來。
+## 目標（第一階段，只有一個）
 
-不在目標內：新增治理規則、改 memory 架構、處理 Copilot／Codex。
+**Claude 不會因為退出程式而忘記進度，也不會把未完成的工作誤認為完成。**
+
+具體來說，一次真正的 Claude Code 工作階段可以：開始（有可信身分）→ 保存進度（摘要屬於這個 session／worktree）→ 退出時留下可恢復的 checkpoint → 之後 `resume` 或新 session 時讀得回最新進度。
+
+不在第一階段：每次退出都做不可逆的正式結案、新增治理規則、改 memory 架構、處理 Copilot／Codex。
 
 ## 一、實測證據（本 repo，唯讀）
 
@@ -24,7 +28,7 @@
 
 `E:\BackUp\meiandraybook` 本機副本：hook 指向不存在的 `D:/meiandraybook/...`，且 `2>/dev/null || true` 隱藏錯誤 → 本機靜默失效（0 張 receipt）。這只證明本機副本接線無效，不否定其他機器 2026-07-22 的觸發證據。
 
-## 二、框架現況（`main@de9beeba`）
+## 二、框架現況（`main`，引用檔案自 `de9beeba` 起未變）
 
 - `governance_tools/manage_agent_closeout.py` 的 `ClaudeAdapter`：
   - docstring 與說明寫「Stop hook that fires at session end」「Fires automatically at every session end」——**與平台語意不符**。
@@ -33,53 +37,85 @@
   - 本 repo 與 meiandraybook 的實際安裝都是舊格式，從未用新 installer 重裝。
 - `runtime_hooks/adapters/claude_code/{pre_task,post_task,normalize_event}.py` 存在，但**沒有任何 installer 把它們接到 Claude hooks**（只有 census 文件提到）。
 - root-bound 身分（`_ROOT_BOUND_SOURCE_BY_PROVIDER`）目前只有 `codex`、`github-copilot-vscode`；Claude 沒有。
+- `session_closeout_entry.py:51` 的 `ALLOWED_TRIGGER_MODES` = `native_hook`、`manual_fallback`、`wrapper`、`synthetic_smoke`、`unknown`（receipt schema 同）。
+- 一旦寫入 completion marker，`prepare_closeout_candidate._preflight_session` 會以 `consumed session cannot prepare` 拒絕同一 session 的後續摘要。
 
 ## 三、平台事實（Claude Code 官方 hooks 文件）
 
 - `Stop`：「When Claude finishes responding」——**每回合**。exit 2 會阻止停止、讓對話繼續（最多連續 8 次）。input 含 `stop_hook_active`、`last_assistant_message`。
-- `SessionStart`：開始或恢復 session 時。`source` ∈ `startup`／`resume`／`clear`／`compact`／`fork`。可用 `additionalContext`（或純文字 stdout）把內容注入 Claude 的 context。
-- `SessionEnd`：reason ∈ `clear`／`resume`／`logout`／`prompt_input_exit`／`other`；**不能阻止結束**；所有 SessionEnd hooks **共用 1.5 秒預算**，設定較長的 per-hook `timeout` 可提高到最多 60 秒。
-- command hook 預設 timeout 600 秒（SessionEnd 除外，受上述預算限制）。
+- `SessionStart`：開始或恢復 session 時。`source` ∈ `startup`／`resume`／`clear`／`compact`／`fork`（`fork` = 從既有 session 分出的新 session，例如 `--fork-session`、`/branch`）。「SessionStart hooks run again on resume with `source` set to `"resume"`」。可用 `additionalContext`（或純文字 stdout）把內容注入 Claude 的 context。
+- `SessionEnd`：reason ∈ `clear`／`resume`（以互動式 `/resume` 切換 session）／`logout`／`prompt_input_exit`／`other`；**不能阻止結束**，JSON 輸出會被丟棄。預設 timeout **1.5 秒**；per-hook `timeout` 可把整體預算提高到最多 **60 秒**，或以 `CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` 明確覆寫。
+- 平台**不保證** SessionEnd 一定執行（例如程序被強制終止）。
+- 審查者另指出：v2.1.214 以前的 Claude Code 可能把 `fork` 回報成 `resume`。**目前官方頁面未找到此說明**，列為未驗證，設計上以保守方式處理（見 4.1）。
 
 ## 四、最小修復規格
 
 ### 4.1 SessionStart：建立可信身分（需 owner 核准，屬信任結構變更）
 
-- 新增 Claude SessionStart hook，走既有 `establish_bound_session`（與 Codex／VS Code 同一實作），provider 維持真實身分 `claude`，source label `claude_session_start`。
-- 安裝根目錄錨點：installer 把 `--project-root` 寫進 hook 命令（同 Codex），payload `cwd` 必須等於該根目錄。
-- `resume`／`compact` 需既存身分；`startup`／`clear` 建新身分；`fork` 視為新 session（新 `session_id`），不繼承舊身分。
-- 只用 `additionalContext` 注入**上一次已結案 session 的摘要指標**（有大小上限、只讀），作為「下次讀回」的正式管道；不注入整份 memory。
+- 新增 Claude SessionStart hook，走既有 `establish_bound_session`（與 Codex／VS Code 同一實作），provider 維持真實身分 `claude`，source label `claude_session_start`；不可接管其他 provider 的身分（沿用既有檢查）。
+- **工作目錄**：installer 把 `--project-root`（Git worktree root）寫進 hook 命令，比照 Codex 比對 `git toplevel(cwd)` 與該 root——Claude 可以從子目錄啟動，不要求路徑字串完全相同。
+- `startup`／`clear`／`fork`：建立新身分。
+- `resume`／`compact`：需既存身分，沿用既有身分，不重建。
+- `resume` 但**沒有**既存身分（可能是舊版把 `fork` 回報成 `resume`，也可能是不可信的 payload）：**不憑空建立**，此 session 維持未綁定並回報 `UNKNOWN`；不推定為任何既有 session。
+- 讀回（4.4）也在這裡注入。
 
-### 4.2 Stop：降為觀察，不再結案
+### 4.2 Stop：移除治理結案
 
-- `Stop` 不執行 canonical closeout、不消費摘要、不寫 daily memory。
-- 可保留輕量回合紀錄（例如：回合時間、`stop_hook_active`），明確標示 `not_a_session_end`。
-- 永遠不回傳 exit 2（避免逼 Claude 繼續）；錯誤寫入可查的紀錄，而不是 `; exit 0` 或 `|| true`。
+- 移除 governance 的 Stop closeout hook：`Stop` 不執行 closeout、不消費摘要、不寫 daily memory。
+- 使用者自訂的非治理 Stop hook 保持不動。
+- 不新增 Stop 的替代紀錄；若日後需要回合觀察，另案處理，且永遠不得回傳 exit 2。
 
-### 4.3 SessionEnd：在預算內完成「已準備好的」結案
+### 4.3 摘要的保存責任（MVP）
 
-- SessionEnd 只做有界工作：消費**已由 `prepare_closeout_candidate` 保存**的摘要、寫 completion marker。不得在 SessionEnd 內做摘要生成或大範圍掃描。
-- hook 設定明確 `timeout`（建議 ≤ 30 秒，須在 60 秒上限內；具體值由 owner 決定）。
-- 未完成（逾時、被中止、失敗）時留下 `closeout_incomplete` 標記與原因；**下一次 SessionStart** 偵測到未完成的前一個 session 時，回報並補完或明確標示無法補完——因為 SessionEnd 可能根本沒跑（當機、強制關閉）。
-- 結果必須可查：不得以 exit code 0 掩蓋失敗；receipt 記錄 `agent_id=claude`、`trigger_mode=session_end`。
+- **由 Claude 在工作過程中呼叫既有的 `prepare_closeout_candidate`** 保存摘要（里程碑時、退出前）；這是 agent 的明確動作，由 agent contract（`CLAUDE.md`）要求。
+- MVP **不宣稱**自動生成摘要；hook 不負責寫摘要內容。
+- 沒有保存過摘要的 session，checkpoint 會明確標示「無摘要」，不以空內容冒充進度。
 
-### 4.4 Installer 與文件
+### 4.4 SessionEnd：可恢復的 checkpoint，不是正式結案
 
-- `ClaudeAdapter` 安裝 SessionStart + SessionEnd（+ 降級後的 Stop 或移除 Stop，由 owner 決定），修正 docstring／說明。
-- 驗證器（`verify`）能辨識舊格式並回報需要重裝；**重裝各 repo 的 hook 是獨立的授權動作**。
+- SessionEnd 只做有界的輕量工作：記錄「此 session 在此時退出」以及**目前最新有效摘要**的參照（candidate 識別與雜湊）。
+- SessionEnd **不寫 completion marker**、不消費摘要；因此 `claude --resume` 之後仍可繼續 `prepare_closeout_candidate` 與再次退出。
+- 正式、不可逆的結案維持**明確的完成操作**（例如手動執行 formal closeout），不由退出觸發。若日後要「每次退出都正式結案、恢復後再結案」，需另行設計 generation／execution identity，不在本階段。
+- hook 設定明確 `timeout`（審查建議 5 秒，見第六節）；不得在退出時做大型掃描。
+- receipt 沿用 `trigger_mode=native_hook`、`agent_id=claude`，另以 payload 的 `hook_event_name=SessionEnd` 與 `reason` 作為實際來源證據；**不擴大 receipt schema**。
+- 結果必須可查：失敗不得以 exit 0 掩蓋（SessionEnd 無法阻止結束，但要留下紀錄）。
+
+### 4.5 「SessionEnd 沒跑」與下一次讀回
+
+- 下一次 SessionStart（`resume` 或新 session）**不依賴** SessionEnd 有沒有跑，而是從同一 worktree 的 envelope、最新有效 candidate、checkpoint、completion marker 推導前一次的狀態：
+  - 有 checkpoint：上次正常退出。
+  - 有 candidate 但無 checkpoint：上次可能沒跑到 SessionEnd，標示為「未確認退出」。
+  - 都沒有或資料矛盾：`UNKNOWN`，**不推定成功**。
+- 讀回內容透過 `additionalContext` 注入：**最多 800 字的經驗證摘要內容**（來自同一 worktree 最近有效的 candidate／checkpoint，內容雜湊相符才使用），加上狀態與可追溯的來源路徑。
+- 注入內容明確標示為**資料、不是指令**；不載入整份 memory，也不注入其他 worktree 或其他 provider 的內容。
+
+### 4.6 Installer 與文件
+
+- `ClaudeAdapter` 安裝 SessionStart + SessionEnd，移除 governance Stop closeout；修正 docstring 與說明。
+- `verify` 能辨識舊格式（含 `; exit 0`、`|| true`、只有 Stop）並回報需要重裝；**重裝各 repo 的 hook 是獨立的授權動作**。
 
 ## 五、驗收（需付費 session，另行授權）
 
-在一個拋棄式 consumer 以新 installer 安裝後，執行兩次真實 Claude Code session：
+先在拋棄式 consumer 以新 installer 安裝，再逐一導入正式專案。
 
-1. 第一次：SessionStart 建立 v1.1 身分 → 多回合工作中 Stop 不產生 closeout → `prepare_closeout_candidate` 保存摘要 → 結束時 SessionEnd 完成結案，receipt 為 `agent_id=claude`、`trigger_mode=session_end`、一次。
-2. 第二次（`resume` 或新 session）：SessionStart 的 `additionalContext` 帶出上一次摘要指標；若上一次 SessionEnd 未完成，可看到明確的未完成狀態。
-3. 負向：故意讓 SessionEnd 逾時／失敗，確認留下可查結果且下一次 SessionStart 會回報。
+1. **開始與保存**：`startup` 建立 v1.1 身分；多回合工作中**沒有**任何 closeout；Claude 呼叫 `prepare_closeout_candidate` 保存摘要。
+2. **退出 → 恢復 → 繼續 → 再退出 → 讀回最新**：退出（SessionEnd 寫 checkpoint、無 completion marker）→ `claude --resume` 同一 session（沿用身分、`additionalContext` 帶回摘要）→ 繼續修改並再次 `prepare_closeout_candidate` → 再退出 → 下一次開始時讀回的是**第二次**的摘要。
+3. **新 session 交接**：新 `startup` session 讀回前一個 session 的最新有效摘要，狀態正確。
+4. **負向**：
+   - 強制結束程序使 SessionEnd 未執行 → 下一次 SessionStart 標示「未確認退出」或 `UNKNOWN`，不推定成功。
+   - 讓 SessionEnd 逾時／失敗 → 留下可查的紀錄。
+   - `resume` 但無既存身分 → 不建立身分、回報 `UNKNOWN`。
+   - 從子目錄啟動 → 正常綁定到 worktree root。
+5. **正式結案**：在明確的完成操作後才寫 completion marker；之後同一 session 不能再準備摘要（沿用既有規則）。
 
-## 六、需要 owner 決定的事
+## 六、需要 owner 決定的事（附審查建議的預設值）
 
-1. 是否核准 `claude` 成為 root-bound provider（信任結構變更）。
-2. `Stop` 要保留為輕量觀察，還是完全移除。
-3. SessionEnd 的 `timeout` 值（≤ 60 秒）。
-4. SessionStart 注入讀回內容的範圍與大小上限。
-5. 何時重裝本 repo 與其他 consumer 的 hook；何時執行付費驗收 session。
+| 決策 | 審查建議 | 狀態 |
+|---|---|---|
+| 1. `claude` 成為 root-bound provider | 原則同意：`claude → claude_session_start`，沿用 Codex 的專案綁定檢查，不可接管其他 provider | 待 owner 核准（信任結構變更） |
+| 2. Stop 如何處理 | 移除 governance 的 Stop 結案 hook；保留非治理用途的自訂 hook | 待決定 |
+| 3. SessionEnd timeout | 先設 5 秒，只做輕量 checkpoint；實測不足再調整 | 待決定 |
+| 4. 讀回內容 | 最多 800 字經驗證摘要 + 來源指標，只讀同一 worktree 最近有效摘要／checkpoint | 待決定 |
+| 5. 安裝與付費驗收 | 先拋棄式專案，再逐一導入；真實 Claude 驗收與正式專案重裝另外授權 | 待決定 |
+
+以上是建議採納的設計選項，不是修改本機 hook 或執行付費 session 的授權。
