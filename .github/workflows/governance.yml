@@ -28,6 +28,11 @@ concurrency:
   group: governance-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Least privilege for GITHUB_TOKEN (#219). No job writes to the repository,
+# pull requests or issues; artifact uploads use the runner's own token.
+permissions:
+  contents: read
+
 jobs:
   full-test-suite:
     name: Full Test Suite
