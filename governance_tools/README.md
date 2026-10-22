@@ -61,36 +61,46 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 
 ## memory_janitor.py
 
-記憶壓力監控工具。分析 `memory/` 目錄中的熱記憶體行數，判斷是否需要歸檔。
+記憶壓力監控工具。量測 `memory/01_active_task.md` 的行數與字元數，判斷 active memory 的壓力等級。
+它只做量測與產出計畫，**不會自動歸檔或修改 `memory/`**。
 
-**狀態閾值**:
+**狀態閾值**（行數**或**字元數任一達標即升到該級，取最高者；完整規則見 `governance/SYSTEM_PROMPT.md` §7.4）：
 
-| 狀態 | 行數 | 行動 |
-|------|------|------|
-| SAFE | ≤ 150 | 無需動作 |
-| WARNING | 151–180 | 計畫清理 |
-| CRITICAL | 181–200 | 盡快執行 `--execute` |
-| EMERGENCY | > 200 | 立即停止並手動整理 |
+| 狀態 | 行數 | 字元數 | 行動 |
+|------|------|--------|------|
+| SAFE | < 180 | < 8,000 | 無需動作 |
+| WARNING | ≥ 180 | ≥ 8,000 | 避免低訊號更新；在自然中斷點評估 verified archive + replacement-state cutover |
+| CRITICAL | ≥ 200 | ≥ 10,000 | 暫停擴張 active memory；用 `--plan` 檢視；實際 cutover 需另行授權並驗證 |
+| EMERGENCY | ≥ 250 | ≥ 12,000 | 停止依賴或擴張 active-task memory；用 `--plan` 檢視；實際 cutover 需另行授權並驗證 |
+
+`--check --format json` 的 `triggered_by` 與 `summary` 欄位會指出是行數還是字元數觸發。
+CI 的 memory pressure 步驟在 EMERGENCY 時讓 advisory job 失敗，CRITICAL 只發警告。
 
 ```bash
-# 檢查狀態
+# 檢查狀態（唯讀）
 python governance_tools/memory_janitor.py --check
 
-# 查看歸檔計畫
+# 查看歸檔計畫（唯讀）
 python governance_tools/memory_janitor.py --plan
 
-# --execute 已 fail closed（exit 2，不修改 active memory）；
-# 實際 archive + replacement-state cutover 需另行授權並驗證
+# 舊 cleanup 入口：一律 fail closed（exit 2），不修改任何檔案；
+# 加 --dry-run 只印出 [BLOCKED] 說明（exit 0）。不要用它來降低 pressure。
 python governance_tools/memory_janitor.py --execute
 
-# 查看歸檔紀錄
+# 查看既有歸檔紀錄（memory/archive/manifest.json）
 python governance_tools/memory_janitor.py --manifest
 
 # JSON 輸出（CI/dashboard 用）
 python governance_tools/memory_janitor.py --check --format json
 ```
 
-**歸檔行為**: `--execute` 採用 copy+pointer 模式 — 內容複製到 `memory/archive/`，原位置留下 pointer 區塊，`manifest.json` 記錄每次操作。
+**歸檔行為**：janitor 目前沒有可用的自動歸檔路徑。`--execute`（以及舊的 `--clean`）已 fail closed，
+因為它無法證明 verified archive 與 replacement-state cutover。降低 pressure 需要 owner 另行授權的
+archive + cutover，並驗證：搬出的內容仍可找回、不可逆決策與授權邊界仍留在 active memory 或可追溯位置；
+完成後重新量測。`--manifest` 只顯示過去留下的紀錄，janitor 現在不會新增紀錄。
+
+**`--plan` 的限制**：可歸檔統計只靠四種標記判斷（含 `[x]` 的 `##` 標題、`~~刪除線~~`、`(Superseded …)`、`ADR-NNNN` 引用）。
+回報 0 不代表內容都必須留在 active memory，哪些是每次工作都需要的狀態、哪些是可改用索引查的歷史，仍需人工盤點。
 
 ---
 
