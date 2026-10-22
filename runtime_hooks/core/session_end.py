@@ -279,12 +279,21 @@ def _build_daily_memory_record(
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
     observed_closeout_status: str | None = None,
+    work_memory: dict[str, str] | None = None,
 ) -> dict[str, str]:
     open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(project_root, commit, session_id)
     canonical_closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
+    if work_memory is not None:
+        if canonical_closeout_status != "valid" or observed_closeout_status != "valid":
+            raise ValueError("Work memory requires a valid, bound canonical closeout")
+        return build_session_derived_record(
+            what_changed=work_memory["what_changed"], commit=commit, session_id=session_id,
+            memory_binding=memory_binding, test_evidence=work_memory["test_evidence"],
+            next_step=work_memory["next_step"],
+        )
     normalized_observed_status = str(observed_closeout_status or "").strip().lower()
     closeout_status = (
         normalized_observed_status
@@ -346,6 +355,7 @@ def _append_daily_memory_entry(
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
     observed_closeout_status: str | None = None,
+    work_memory: dict[str, str] | None = None,
 ) -> MemoryWriteOutcome:
     record = _build_daily_memory_record(
         project_root=project_root,
@@ -357,6 +367,7 @@ def _append_daily_memory_entry(
         snapshot_created=snapshot_created,
         canonical_closeout=canonical_closeout,
         observed_closeout_status=observed_closeout_status,
+        work_memory=work_memory,
     )
     return append_session_derived_entry_with_outcome(
         project_root=project_root,
@@ -878,6 +889,8 @@ def run_session_end(
     observed_closeout_status: str | None = None,
     daily_memory_write_required: bool | None = None,
     enforce_session_binding: bool = False,
+    work_memory: dict[str, str] | None = None,
+    defer_closeout_completion: bool = False,
 ) -> dict[str, Any]:
     # session_id becomes a path component below (closeouts/{id}.json, ...), so an
     # unsafe or empty id must stop here: the old "session_id is required" error
@@ -1127,6 +1140,11 @@ def run_session_end(
         existing_artifacts=_existing_artifacts,
         runtime_signals=_runtime_signals,
     )
+    if work_memory is not None and canonical_closeout["closeout_status"] != "valid":
+        # Qualification can reject an otherwise structurally bound candidate.
+        # Preserve that canonical failure for correction, without a work record.
+        daily_memory_write_expected = False
+        work_memory = None
     if daily_memory_write_expected:
         daily_memory_record = _build_daily_memory_record(
             project_root=project_root,
@@ -1138,6 +1156,7 @@ def run_session_end(
             snapshot_created=snapshot_result is not None,
             canonical_closeout=canonical_closeout,
             observed_closeout_status=observed_closeout_status,
+            work_memory=work_memory,
         )
 
     candidate_artifact, curated_artifact, summary_artifact, verdict_artifact_dir, trace_artifact_dir = _ensure_runtime_artifact_dirs(project_root)
@@ -1204,6 +1223,7 @@ def run_session_end(
                 snapshot_created=snapshot_result is not None,
                 canonical_closeout=canonical_closeout,
                 observed_closeout_status=observed_closeout_status,
+                work_memory=work_memory,
             )
             daily_memory_path = daily_memory_outcome.path
             daily_memory_write_status = daily_memory_outcome.status
@@ -1348,7 +1368,7 @@ def run_session_end(
         # (`session_candidate_content_mismatch`) still reaches here with a
         # structurally valid binding and still consumes the id; that is
         # Tranche 1b, not this change.
-        if binding_valid:
+        if binding_valid and not defer_closeout_completion:
             write_closeout_completion_marker(
                 session_id,
                 project_root,
@@ -1419,6 +1439,8 @@ def run_session_end(
         "warnings": warnings,
         "errors": errors,
     }
+    if defer_closeout_completion:
+        result["completion_artifacts"] = [str(p) for p in required_completion_artifacts] if not errors else []
     safe_append_observation_event(
         project_root,
         RECOVERY_LOG,

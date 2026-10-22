@@ -211,8 +211,7 @@ def _check_schema(fields: dict[str, str]) -> tuple[str, list[str]]:
 def _has_observable_anchor(value: str) -> bool:
     if _FILENAME_PATTERN.search(value):
         return True
-    tokens = set(re.split(r"[\s,/\-]+", value.lower()))
-    return bool(tokens & _TOOL_ANCHORS)
+    return bool(_extract_tool_names(value))
 
 
 def _is_vague(value: str) -> bool:
@@ -255,8 +254,79 @@ def _check_content(fields: dict[str, str]) -> tuple[str, list[dict[str, str]]]:
 
 def _extract_tool_names(text: str) -> list[str]:
     """Extract known tool names mentioned in a field value."""
-    tokens = set(re.split(r"[\s,/()\-]+", text.lower()))
-    return [t for t in _TOOL_ANCHORS if t in tokens]
+    return sorted(t for t in _TOOL_ANCHORS if re.search(
+        r"(?<![\w])" + re.escape(t) + r"(?![\w])", text, re.IGNORECASE))
+
+
+def _execution_claim_tools(text: str) -> list[str]:
+    """Recognize execution assertions, separately from names used as anchors.
+
+    Supported forms are own past-tense assertions and legacy compact command /
+    result entries. Negative, quoted and third-party statements do not assert
+    own execution. This does not verify an external result or alter artifact
+    admissibility: explicit referenced files are still checked independently.
+    """
+    own = re.compile(
+        r"\b(?:i|we)\s+(?:(?:have|had|later|just|also|actually|successfully|personally)\s+)*"
+        r"(?:ran|executed|invoked|used)\b|^\s*(?:ran|executed|invoked)\b|已(?:經)?(?:執行|运行|運行|跑過)"
+        r"|我(?:執行了|跑了|有執行)",
+        re.IGNORECASE,
+    )
+    negative = re.compile(
+        r"\b(?:did\s+not|didn't|have\s+not|haven't|was\s+not|were\s+not|not|never)\s+"
+        r"(?:(?:personally|actually)\s+)?(?:run|ran|execute|executed|invoke|invoked|use|used)\b"
+        r"|\bnot\s+run\b|未(?:曾)?(?:執行|运行|運行|跑過)|沒有(?:執行|运行|運行)",
+        re.IGNORECASE,
+    )
+    external = re.compile(r"\b(?:supplied|provided|external|ci|third.party|report|quoted)\b|外部|引用", re.IGNORECASE)
+    quotes = re.compile(r'''"[^"\n]*"|(?<!\w)'[^'\n]*'(?!\w)|“[^”\n]*”|「[^」\n]*」''')
+    claims: set[str] = set()
+    for clause in re.split(r"[;；\n。]|&&|\|\||\bbut\b|\bhowever\b|\b(?:and|then)\s+(?=(?:I|we)\s)|但(?:是)?|然而", text, flags=re.IGNORECASE):
+        # Preserve quoted executable paths (including commas) for module
+        # commands; narrative visibility below still controls admissible claims.
+        raw_commands = re.findall(r'''(?:[^,"'\n]+|"[^"\n]*"|'[^'\n]*')+''', clause)
+        # A quoted command may follow an explicit own execution assertion.
+        # Quoted narrative alone cannot turn someone else's 'I ran' into ours.
+        def unquote(match: re.Match[str]) -> str:
+            prefix = clause[:match.start()]
+            return match.group()[1:-1] if own.search(prefix) and re.search(
+                r"(?:ran|executed|invoked|used)\s*$", prefix, re.IGNORECASE) else " " * len(match.group())
+
+        visible = quotes.sub(unquote, clause)
+        for tool in _TOOL_ANCHORS:
+            for occurrence in re.finditer(r"(?<![\w])" + re.escape(tool) + r"(?![\w])", visible, re.IGNORECASE):
+                prefix = visible[:occurrence.start()]
+                assertions = list(own.finditer(prefix))
+                source_prefix = prefix[:assertions[-1].start()] if assertions else ""
+                # An after/using clause describes context, not a third-party
+                # attribution of the following explicit first-person action.
+                if re.fullmatch(r"\s*(?:after|using)\b[^,]*,\s*", source_prefix, re.IGNORECASE):
+                    source_prefix = ""
+                if (assertions and not external.search(source_prefix)
+                        and not negative.search(prefix[assertions[-1].end():])):
+                    claims.add(tool)
+                    continue
+                start = visible.rfind(",", 0, occurrence.start()) + 1
+                end = visible.find(",", occurrence.end())
+                command_entry = visible[start:end if end >= 0 else None]
+                module_pattern = (
+                    r'^\s*(?:"[^"\n]*(?:python[\d.]*|py)\.exe"|(?:python[\d.]*|py)(?:\.exe)?)\s+'
+                    r'(?:(?:-[BbEIOqSsuvx]+|-X\s+\S+|-W\s+\S+)\s+)*-m\s+(?:\w+\.)*'
+                    + re.escape(tool) + r'(?=\s|$)'
+                )
+                module_command = any(re.match(module_pattern, command, re.IGNORECASE)
+                                     for command in raw_commands)
+                if module_command and not negative.search(visible) and not external.search(visible):
+                    claims.add(tool)
+                    continue
+                compact = re.match(r"^\s*`?" + re.escape(tool) + r"\b(.*)$", command_entry, re.IGNORECASE)
+                if not compact or negative.search(visible) or external.search(visible):
+                    continue
+                tail = compact.group(1).strip().strip("` .")
+                if (not tail or re.match(r"^(?:-|[\w./\\-]+\.[\w]+\b|tests?[/\\]|\()", tail)
+                        or re.match(r"^(?::|->|=>)?\s*(?:\d+\s+)?(?:pass(?:ed)?|fail(?:ed)?|success)\b", tail, re.IGNORECASE)):
+                    claims.add(tool)
+    return sorted(claims)
 
 
 def _check_evidence(
@@ -291,11 +361,11 @@ def _check_evidence(
                     f"FILES_TOUCHED: '{claimed}' not found on filesystem"
                 )
 
-    # CHECKS_RUN: extract tool names, check for corresponding artifacts
+    # CHECKS_RUN: check own execution claims, not every mentioned tool name.
     checks_run = fields.get("CHECKS_RUN", "").strip()
     if checks_run and checks_run.upper() not in {"NONE", ""}:
-        has_checkable = True
-        found_tools = _extract_tool_names(checks_run)
+        found_tools = _execution_claim_tools(checks_run)
+        has_checkable = has_checkable or bool(found_tools)
         for tool in found_tools:
             signals = _TOOL_ARTIFACT_SIGNALS.get(tool, [])
             artifact_found = any(
@@ -1866,8 +1936,14 @@ def run_session_end_hook(
     transcript_path: Path | None = None,
     hook_session_id: str | None = None,
     ledger_write_allowed: bool | None = None,
+    copilot_closeout: bool = False,
 ) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
+    if copilot_closeout:
+        from runtime_hooks.adapters.copilot.closeout import validate_session, _session_path
+        envelope = read_session_envelope(hook_session_id or "", project_root) or {}
+        validate_session(project_root, hook_session_id or "", str(envelope.get("provider") or ""))
+        closeout_path = _session_path(project_root, hook_session_id, "session-closeout.txt")
     closeout_trigger_mode = "manual"
     current_session_id = read_current_session_id(project_root)
     # A repository-wide pointer is not evidence of which concurrent Codex
@@ -1958,6 +2034,21 @@ def run_session_end_hook(
                 pre_binding_detail = {
                     "mismatched_fields": content_binding["mismatched_fields"],
                 }
+    if copilot_closeout and pre_binding_status == "eligible" and session_candidate is not None:
+        # Copilot's private transport carries its agent-authored continuation;
+        # leave the shared legacy parser and seven required fields unchanged.
+        next_lines = [line.partition(":")[2].strip() for line in closeout_path.read_text(encoding="utf-8").splitlines()
+                      if line.partition(":")[0].strip() == "NEXT_STEP"]
+        if len(next_lines) == 1:
+            clf["fields"]["NEXT_STEP"] = next_lines[0]
+        for candidate_key, text_key in (("checks_run", "CHECKS_RUN"), ("not_done", "NOT_DONE"),
+                                        ("next_step", "NEXT_STEP")):
+            if (not _normalize_binding_text(session_candidate.get(candidate_key))
+                    or _normalize_binding_text(session_candidate.get(candidate_key))
+                    != _normalize_binding_text(clf["fields"].get(text_key))):
+                pre_binding_status = "session_candidate_content_mismatch"
+                pre_binding_detail = {"mismatched_fields": [candidate_key]}
+                break
     if pre_binding_status != "eligible":
         clf = _fail_closed_session_binding_classification(
             status=pre_binding_status,
@@ -2008,6 +2099,22 @@ def run_session_end_hook(
         else ""
     )
 
+    # Copilot projection is qualified by the existing gate, never by an audit
+    # policy's ability to tolerate a missing *required* agent summary.
+    if copilot_closeout:
+        policy = load_policy(project_root=project_root)
+        artifact_result = classify_artifact(project_root / _TEST_RESULT_ARTIFACT, policy)
+        gate = evaluate_gate(artifact_result, policy)
+        project_work = closeout_status == STATUS_VALID and not gate.blocked
+        # This tranche owns daily work projection only, not automatic reusable
+        # memory promotion. The explicit daily-write flag below is independent.
+        runtime_contract = {**runtime_contract, "memory_mode": "stateless"}
+        work_memory = ({
+            "what_changed": (fields["WORK_COMPLETED"] + "; Not done: " + fields["NOT_DONE"]
+                             + "; Open risks (agent declared): " + fields["OPEN_RISKS"]),
+            "test_evidence": fields["CHECKS_RUN"], "next_step": fields["NEXT_STEP"],
+        } if project_work else None)
+
     result = run_session_end(
         project_root=project_root,
         session_id=session_id,
@@ -2024,8 +2131,10 @@ def run_session_end_hook(
             STATUS_VALID: "valid",
             STATUS_STALE_OR_MISMATCHED: "stale_or_mismatched",
         }.get(closeout_status),
-        daily_memory_write_required=True if memory_tier == MEMORY_TIER_NONE else None,
+        daily_memory_write_required=(project_work if copilot_closeout else
+                                     True if memory_tier == MEMORY_TIER_NONE else None),
         enforce_session_binding=True,
+        **({"work_memory": work_memory, "defer_closeout_completion": True} if copilot_closeout else {}),
     )
 
     # Gate evaluation — policy-driven, not hardcoded.
@@ -2039,10 +2148,11 @@ def run_session_end_hook(
         memory_tier = MEMORY_TIER_NONE
         fields = {}
 
-    policy = load_policy(project_root=project_root)
-    artifact_path = project_root / _TEST_RESULT_ARTIFACT
-    artifact_result = classify_artifact(artifact_path, policy)
-    gate = evaluate_gate(artifact_result, policy)
+    if not copilot_closeout:
+        policy = load_policy(project_root=project_root)
+        artifact_path = project_root / _TEST_RESULT_ARTIFACT
+        artifact_result = classify_artifact(artifact_path, policy)
+        gate = evaluate_gate(artifact_result, policy)
 
     failure_disposition_data = artifact_result.failure_disposition
 
@@ -2062,6 +2172,9 @@ def run_session_end_hook(
     closeout_ok = closeout_status == STATUS_VALID or closeout_eval["ok_effect"] == "pass"
 
     base_ok = result["ok"] and closeout_ok and not gate.blocked
+    if copilot_closeout:
+        base_ok = (base_ok and closeout_status == STATUS_VALID
+                   and result.get("canonical_closeout", {}).get("closeout_status") == "valid")
     gate_errors: list[str] = list(result["errors"]) + gate.errors
     gate_warnings: list[str] = list(result["warnings"]) + gate.warnings
 
@@ -2212,6 +2325,9 @@ def run_session_end_hook(
         "ok": base_ok,
         "session_id": session_id,
         "closeout_trigger_mode": closeout_trigger_mode,
+        **({"canonical_closeout": result["canonical_closeout"],
+            "canonical_closeout_artifact": result["canonical_closeout_artifact"],
+            "completion_artifacts": result["completion_artifacts"]} if copilot_closeout else {}),
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
         **daily_memory_surface,
