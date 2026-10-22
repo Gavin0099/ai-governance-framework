@@ -533,7 +533,7 @@ def test_standalone_receipt_and_audit_do_not_prove_release(acceptance_repo, monk
     receipt_path.unlink()
     audit_path.unlink()
     monkeypatch.setattr(entry, "_resolve_head_commit", lambda root: "a" * 40)
-    monkeypatch.setattr(hook, "_get_repo_head", lambda root: "a" * 40)
+    monkeypatch.setattr(hook, "_resolve_repo_head", lambda root: ("a" * 40, "ok", ""))
     hook._append_canonical_audit_log(
         repo, session_id="session-a", artifact_state="ok",
         canonical_path_audit={}, gate_blocked=blocked, policy_source="repo",

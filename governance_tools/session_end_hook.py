@@ -793,21 +793,58 @@ def _fail_closed_session_binding_classification(
 _CANONICAL_AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 
 
+# linked_head_commit_status values.  An empty linked_head_commit is never a
+# "match"; the status records why it is empty so audit readers can tell a
+# non-git checkout from a broken or slow git invocation.
+HEAD_STATUS_OK = "ok"
+HEAD_STATUS_NOT_A_GIT_REPO = "not_a_git_repo"
+HEAD_STATUS_GIT_ERROR = "git_error"
+HEAD_STATUS_GIT_UNAVAILABLE = "git_unavailable"
+HEAD_STATUS_TIMEOUT = "timeout"
+_HEAD_DETAIL_MAX_CHARS = 200
+
+
+def _git_head_probe(project_root: Path, args: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
+        cwd=str(project_root),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=5,
+    )
+
+
+def _resolve_repo_head(project_root: Path) -> tuple[str, str, str]:
+    """Return (head, status, detail) for project_root.
+
+    head is the full HEAD hash, or "" when it cannot be resolved; status is one
+    of the HEAD_STATUS_* values; detail is the first stderr line (truncated)
+    when status is not "ok", else "".  Git's stderr may be localised, so the
+    status is derived from exit codes and exceptions, never from message text.
+    """
+    try:
+        result = _git_head_probe(project_root, ["rev-parse", "HEAD"])
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip(), HEAD_STATUS_OK, ""
+        detail = (result.stderr or "").strip().splitlines()[:1]
+        # rev-parse HEAD also fails in a repo without commits; ask git whether
+        # this is a repository at all before calling it "not a git repo".
+        inside = _git_head_probe(project_root, ["rev-parse", "--git-dir"])
+        status = HEAD_STATUS_GIT_ERROR if inside.returncode == 0 else HEAD_STATUS_NOT_A_GIT_REPO
+        return "", status, (detail[0] if detail else "")[:_HEAD_DETAIL_MAX_CHARS]
+    except FileNotFoundError as exc:
+        return "", HEAD_STATUS_GIT_UNAVAILABLE, str(exc)[:_HEAD_DETAIL_MAX_CHARS]
+    except subprocess.TimeoutExpired:
+        return "", HEAD_STATUS_TIMEOUT, "git rev-parse timed out after 5s"
+    except Exception as exc:  # observability only; never block session end
+        return "", HEAD_STATUS_GIT_ERROR, f"{type(exc).__name__}: {exc}"[:_HEAD_DETAIL_MAX_CHARS]
+
+
 def _get_repo_head(project_root: Path) -> str:
     """Return the current HEAD commit hash of project_root, or '' on failure."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(project_root),
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return ""
+    return _resolve_repo_head(project_root)[0]
 
 # Maximum number of entries retained in the log before rotation.
 # Oldest entries are removed when this limit is exceeded, so the log
@@ -969,6 +1006,7 @@ def _append_canonical_audit_log(
     writes during rotation are transactional via a temp-file swap.
     """
     log_path = project_root / _CANONICAL_AUDIT_LOG_RELPATH
+    linked_head, linked_head_status, linked_head_detail = _resolve_repo_head(project_root)
 
     entry: dict = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -976,7 +1014,9 @@ def _append_canonical_audit_log(
         # repo_name is an observability hint, not a canonical repo identifier.
         # project_root.resolve().name avoids any subprocess / git dependency.
         "repo_name": project_root.resolve().name,
-        "linked_head_commit": _get_repo_head(project_root),
+        "linked_head_commit": linked_head,
+        "linked_head_commit_status": linked_head_status,
+        **({"linked_head_commit_detail": linked_head_detail} if linked_head_detail else {}),
         "artifact_state": artifact_state,
         "signals": canonical_path_audit.get("signals", []),
         "audit_note": canonical_path_audit.get("audit_note", ""),

@@ -223,7 +223,9 @@ def test_advisory_job_preserves_failure_visibility_and_setup_policy() -> None:
     assert "memory-pressure" not in jobs and "doc-drift" not in jobs
     assert job["continue-on-error"] is True
     setup = next(s for s in job["steps"] if s.get("id") == "setup-python")
-    assert setup["uses"] == "actions/setup-python@v5"
+    # Pinned to a SHA (#219); the pin itself is checked in
+    # test_workflow_supply_chain_hardening so Dependabot bumps don't break this.
+    assert setup["uses"].startswith("actions/setup-python@")
     checks = [s for s in job["steps"] if "run" in s]
     assert [s["name"] for s in checks] == ["Check memory pressure", "Check documentation drift"]
     for step in checks:
@@ -356,13 +358,16 @@ def test_phase_gate_reuses_only_its_workflow_run_and_same_checkout_settings() ->
     assert full["runs-on"] == phase["runs-on"] == "ubuntu-latest"
     assert not full.get("continue-on-error", False)
     assert not phase.get("continue-on-error", False)
+    pins = []
     for job in (full, phase):
-        checkout = next(s for s in job["steps"] if s.get("uses") == "actions/checkout@v4")
+        checkout = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/checkout@"))
         assert checkout["with"]["ref"] == "${{ github.sha }}"
         assert checkout["with"]["fetch-depth"] == 0
-        setup = next(s for s in job["steps"] if s.get("uses") == "actions/setup-python@v5")
+        setup = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/setup-python@"))
         assert setup["with"]["python-version"] == "3.11"
+        pins.append((checkout["uses"], setup["uses"]))
         assert next(s for s in job["steps"] if s.get("name") == "Install documented dependencies")["run"] == "pip install -r requirements.txt"
+    assert pins[0] == pins[1]  # same action versions in both jobs
     guard = phase["steps"][0]
     assert guard["env"]["FULL_TEST_SUITE_RESULT"] == "${{ needs.full-test-suite.result }}"
     assert not guard.get("continue-on-error", False)
