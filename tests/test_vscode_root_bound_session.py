@@ -18,6 +18,7 @@ Acceptance (issue #225):
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -383,3 +384,76 @@ def test_copilot_camelcase_payload_stays_on_the_copilot_surface(repo):
     assert (result["surface"], result["provider"]) == ("copilot", "github-copilot")
     assert "binding" not in result
     assert json.loads(_envelope_path(repo, "copilot-1").read_bytes())["schema_version"] == "1.0"
+
+
+# ── formal install entry (#226 final acceptance) ────────────────────────────
+
+@pytest.fixture
+def installed_consumer(tmp_path):
+    """A consumer set up by the real installer CLI, as a user would run it."""
+    root = tmp_path / "installed consumer"
+    root.mkdir()
+    git(root, "init", "--quiet")
+    env = {k: v for k, v in environment().items() if k != "AI_GOVERNANCE_FRAMEWORK_ROOT"}
+    done = subprocess.run(
+        [sys.executable, "-m", "governance_tools.hook_installer", "--repo", str(root),
+         "--framework-root", str(FRAMEWORK), "--repository-id", "example/installed-consumer"],
+        cwd=FRAMEWORK, capture_output=True, text=True, encoding="utf-8", timeout=120, env=env,
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    return root.resolve()
+
+
+def _installed_session_start_command(root: Path) -> str:
+    config = json.loads((root / ".github/hooks/ai-governance-copilot.json").read_text(encoding="utf-8"))
+    (entry,) = config["hooks"]["sessionStart"]
+    return entry["command"]
+
+
+def _run_installed(root: Path, payload: dict) -> dict:
+    """Run the configured command verbatim through the shell, framework found
+    only through what the installer configured (no AI_GOVERNANCE_FRAMEWORK_ROOT)."""
+    env = {k: v for k, v in environment().items() if k != "AI_GOVERNANCE_FRAMEWORK_ROOT"}
+    env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    done = subprocess.run(_installed_session_start_command(root), shell=True, cwd=root,
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          encoding="utf-8", timeout=120, env=env)
+    return json.loads(done.stdout)
+
+
+def test_installer_wires_session_start_through_the_bridge(installed_consumer):
+    command = _installed_session_start_command(installed_consumer)
+    assert command == ("python .github/hooks/ai-governance-lifecycle.py "
+                       "--event-type session_start --surface auto")
+    assert (installed_consumer / INSTALLED_BRIDGE).is_file()
+    vscode = json.loads((installed_consumer / ".github/hooks/ai-governance-vscode.json")
+                        .read_text(encoding="utf-8"))
+    assert vscode["hooks"] == {}  # no duplicate framework SessionStart (retired 2026-10-15)
+
+
+def test_installed_entry_local_harness_payload_is_root_bound(installed_consumer):
+    from governance_tools import shared_closeout_ownership as ownership
+
+    payload = {"timestamp": "2026-10-22T03:00:00.000Z", "cwd": str(installed_consumer),
+               "session_id": "vscode-local", "hook_event_name": "SessionStart",
+               "transcript_path": str(installed_consumer / "t.jsonl"), "source": "new"}
+    result = _run_installed(installed_consumer, payload)
+    assert result["ok"] is True, result
+    assert (result["surface"], result["binding"]) == ("vscode", "root_bound")
+    ownership._identity(installed_consumer, "vscode-local")  # what prepare's preflight requires
+
+
+def test_installed_entry_copilot_harness_payload_is_not_root_bound(installed_consumer):
+    """VS Code's Copilot harness sends the camelCase Copilot payload.  #225/#226
+    approve root binding for the VS Code Local harness only; this surface keeps
+    the unbound v1.0 envelope and cannot prepare a summary."""
+    from governance_tools import shared_closeout_ownership as ownership
+
+    payload = {"sessionId": "copilot-harness", "hookEventName": "sessionStart",
+               "cwd": str(installed_consumer)}
+    result = _run_installed(installed_consumer, payload)
+    assert result["ok"] is True, result
+    assert (result["surface"], result["provider"]) == ("copilot", "github-copilot")
+    assert "binding" not in result
+    with pytest.raises(ownership.OwnershipError, match="INVALID_OWNER"):
+        ownership._identity(installed_consumer, "copilot-harness")

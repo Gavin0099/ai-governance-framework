@@ -44,8 +44,22 @@ in that location, the resolved framework predates root-bound support, the
 payload has no SessionStart event name, or the session_id is outside the
 root-bound format — it writes the legacy `1.0` envelope exactly as before and
 reports `binding=legacy_unbound` with the reason; such a session cannot prepare
-a summary. A wrong event name or any failed check writes nothing. VS Code
-closeout consumption (manual fallback) is out of scope and unchanged.
+a summary. An existing `1.0` envelope is preserved and also reported as
+`legacy_unbound` (`existing_legacy_envelope_preserved`). A wrong event name or
+any failed check writes nothing. VS Code closeout consumption (manual fallback)
+is out of scope and unchanged.
+
+Supported harness: **VS Code Local only.** The installed hook file is
+Copilot-format (`sessionStart` in `.github/hooks/ai-governance-copilot.json`,
+`--surface auto`). VS Code's Local harness maps that configuration and sends its
+own snake_case payload (`session_id`, `hook_event_name`), which the bridge
+routes to `vscode` and may bind. VS Code's Copilot harness sends the camelCase
+Copilot payload (`sessionId`), which is routed to the `copilot` surface
+(`provider=github-copilot`): it keeps the unbound `1.0` envelope and cannot
+prepare a summary. Binding the Copilot surface is not approved and would be a
+separate trust decision. Both payload shapes are tested through the real
+installer and the installed command; neither has been verified in a running
+editor.
 
 The shared reader supports both `1.0` and `1.1` before the adapter emits `1.1`.
 Existing `1.0` envelopes remain byte-preserved and usable by existing closeout;
