@@ -32,6 +32,21 @@ provenance label, not authentication. The shared reader validates the complete
 binding, provider and contained session path. Same HEAD does not make two
 worktrees the same consumer. This is correctness binding, not a security boundary.
 
+VS Code uses the same contract (#225): `provider=github-copilot-vscode`,
+`repo_binding.source=vscode_session_start`. Both providers go through
+`establish_root_bound_session` in `runtime_hooks/core/_canonical_closeout.py`, so
+the checks above are one implementation, not two copies. Only the pairs in
+`ROOT_BOUND_SOURCES` are accepted on write and on read; relabelling one
+provider's envelope as the other's makes it unreadable. VS Code's installed root
+is the location of the installed bridge (`<root>/.github/hooks/ai-governance-lifecycle.py`),
+not the payload. When the bridge cannot prove a root-bound identity — it is not
+in that location, the resolved framework predates root-bound support, the
+payload has no SessionStart event name, or the session_id is outside the
+root-bound format — it writes the legacy `1.0` envelope exactly as before and
+reports `binding=legacy_unbound` with the reason; such a session cannot prepare
+a summary. A wrong event name or any failed check writes nothing. VS Code
+closeout consumption (manual fallback) is out of scope and unchanged.
+
 The shared reader supports both `1.0` and `1.1` before the adapter emits `1.1`.
 Existing `1.0` envelopes remain byte-preserved and usable by existing closeout;
 they have no qualified root binding and must not be treated as root-bound by a
