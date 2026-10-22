@@ -168,6 +168,20 @@ def _write_session_envelope(
     *,
     provider: str,
 ) -> dict[str, Any]:
+    if provider == "github-copilot-vscode":
+        # VS Code keeps its own identity but gets the same worktree binding as Codex.
+        from runtime_hooks.core._bound_session_start import establish_bound_session
+
+        started = establish_bound_session(
+            session_id, project_root, str(project_root),
+            provider=provider, lock_name=".vscode-start.lock",
+        )
+        return {
+            "artifact_path": started["session_envelope_path"],
+            "schema_version": started["envelope_schema_version"],
+            "envelope_status": started["status"],
+        }
+
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
     return write_session_envelope(session_id, project_root, provider=provider)
@@ -231,8 +245,15 @@ def run_lifecycle_event(
         return {
             **common,
             "ok": True,
-            "status": "session_envelope_written",
+            "status": (
+                "session_envelope_preserved"
+                if envelope.get("envelope_status") == "preserved"
+                else "session_envelope_written"
+            ),
             "session_envelope_path": envelope.get("artifact_path"),
+            "session_envelope_binding": (
+                "root_bound" if envelope.get("schema_version") == "1.1" else "legacy"
+            ),
         }
 
     result = _run_session_end(

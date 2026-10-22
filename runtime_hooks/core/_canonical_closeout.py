@@ -59,6 +59,11 @@ _RUNTIME_CURRENT_SESSION_ID_FILE = Path("artifacts/runtime/.current-session-id")
 _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 _SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
 _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
+# Each host keeps its own identity; a source label is never valid for another provider.
+_ROOT_BOUND_SOURCE_BY_PROVIDER = {
+    "codex": "codex_session_start",
+    "github-copilot-vscode": "vscode_session_start",
+}
 
 
 def _consumer_worktree_root(path: Path) -> Path:
@@ -122,7 +127,7 @@ def write_session_envelope(
     repo_head_before: str | None = None,
     bound_consumer_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Create an envelope; only qualified Codex SessionStart supplies a bound root.
+    """Create an envelope; only qualified Codex or VS Code SessionStart supplies a bound root.
 
     Unqualified/legacy callers retain v1.0. The provenance label is not an
     authentication mechanism. A bound envelope is never used to migrate history.
@@ -147,8 +152,8 @@ def write_session_envelope(
     binding = None
     if bound_consumer_root is not None:
         root = _consumer_worktree_root(project_root)
-        if provider != "codex" or _consumer_worktree_root(bound_consumer_root) != root:
-            raise ValueError("Bound envelope requires matching Codex consumer root")
+        if provider not in _ROOT_BOUND_SOURCE_BY_PROVIDER or _consumer_worktree_root(bound_consumer_root) != root:
+            raise ValueError("Bound envelope requires a Codex or VS Code provider and matching consumer root")
         if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", normalized_session_id)
                 or path.resolve() != root / "artifacts/runtime/sessions" / normalized_session_id / "session-envelope.json"):
             raise ValueError("Bound envelope path must remain in the session directory")
@@ -159,7 +164,7 @@ def write_session_envelope(
             raise ValueError("Existing envelope must not be overwritten or rebound")
         if (root / "artifacts/runtime/closeout-completions" / f"{normalized_session_id}.json").exists():
             raise ValueError("Completion marker exists; identity cannot be recreated")
-        binding = {"consumer_root": str(root), "source": "codex_session_start"}
+        binding = {"consumer_root": str(root), "source": _ROOT_BOUND_SOURCE_BY_PROVIDER[provider]}
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": (_ROOT_BOUND_ENVELOPE_SCHEMA_VERSION if binding is not None
@@ -216,10 +221,12 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", session_id):
             return None
         binding = payload.get("repo_binding")
-        if payload.get("provider") != "codex" or not isinstance(binding, dict):
+        provider = payload.get("provider")
+        expected_source = _ROOT_BOUND_SOURCE_BY_PROVIDER.get(provider) if isinstance(provider, str) else None
+        if expected_source is None or not isinstance(binding, dict):
             return None
         raw_root = binding.get("consumer_root")
-        if (binding.get("source") != "codex_session_start"
+        if (binding.get("source") != expected_source
                 or not isinstance(raw_root, str) or not raw_root.strip()):
             return None
         try:
