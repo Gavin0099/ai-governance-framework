@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -163,6 +164,25 @@ def test_codex_hook_reports_non_git_cwd_as_system_message(tmp_path, monkeypatch,
     monkeypatch.setattr("sys.argv", ["session_start.py", "--project-root", str(elsewhere)])
     assert codex_hook.main() == 1
     assert "Governance SessionStart failed" in json.loads(capsys.readouterr().out)["systemMessage"]
+
+
+def test_vscode_start_works_in_non_ascii_project_path_without_utf8_mode(tmp_path):
+    root = tmp_path / "專案 consumer"
+    subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+    git(root, "commit", "--allow-empty", "-qm", "fixture")
+    code = (
+        "import json, sys\n"
+        "from runtime_hooks.adapters.copilot.lifecycle import run_lifecycle_event\n"
+        "root = sys.argv[1]\n"
+        "r = run_lifecycle_event({'session_id': 'cjk-a', 'cwd': root, 'hook_event_name': 'SessionStart'},"
+        " event_type='session_start', surface='vscode')\n"
+        "print(json.dumps({'ok': r['ok'], 'binding': r['session_envelope_binding']}))\n"
+    )
+    env = {**os.environ, "PYTHONUTF8": "0", "PYTHONIOENCODING": "utf-8"}
+    done = subprocess.run([sys.executable, "-c", code, str(root)], env=env, cwd=Path(__file__).parents[1],
+                          capture_output=True, text=True, encoding="utf-8")
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout.strip().splitlines()[-1]) == {"ok": True, "binding": "root_bound"}
 
 
 def test_git_toplevel_decodes_utf8_regardless_of_console_codepage(repo, monkeypatch):

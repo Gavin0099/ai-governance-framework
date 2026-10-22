@@ -73,7 +73,7 @@ def _consumer_worktree_root(path: Path) -> Path:
     resolved = path.resolve(strict=True)
     result = subprocess.run(
         ["git", "-C", str(resolved), "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, check=True, timeout=5,
+        capture_output=True, text=True, encoding="utf-8", check=True, timeout=5,
     )
     if Path(result.stdout.strip()).resolve(strict=True) != resolved:
         raise ValueError("Consumer root must be the Git worktree root")
