@@ -162,29 +162,92 @@ def resolve_framework_root(project_root: Path) -> Path:
     )
 
 
+def _installed_project_root() -> Path | None:
+    """The consumer root this bridge was installed into, independent of any payload.
+
+    hook_installer copies this file to <root>/.github/hooks/ai-governance-lifecycle.py,
+    and that installed copy is what VS Code runs.  Anywhere else (e.g. run from the
+    framework source in development or tests) there is no install anchor: None.
+    """
+    here = Path(__file__).resolve()
+    if here.parent.name == "hooks" and here.parent.parent.name == ".github":
+        return here.parents[2]
+    return None
+
+
+def _require_installed_root(project_root: Path, installed_root: Path) -> None:
+    """The payload root must be the installed root itself, before anything else.
+
+    Checked in the bridge (not only in the framework) so it also holds when the
+    resolved framework is too old to bind; a subdirectory fails closed, as for
+    payload-derived roots.
+    """
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--show-toplevel"],
+        text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=5,
+    )
+    toplevel = (completed.stdout or "").strip()
+    expected = os.path.normcase(str(installed_root.resolve()))
+    if (completed.returncode != 0 or not toplevel
+            or os.path.normcase(str(Path(toplevel).resolve())) != expected
+            or os.path.normcase(str(project_root.resolve())) != expected):
+        raise ValueError("Payload cwd and installed project root do not match")
+
+
 def _write_session_envelope(
     session_id: str,
     project_root: Path,
     *,
     provider: str,
+    hook_event_name: str = "",
+    source: object = None,
 ) -> dict[str, Any]:
     if provider == "github-copilot-vscode":
-        # VS Code keeps its own identity but gets the same worktree binding as Codex.
-        from runtime_hooks.core._bound_session_start import establish_bound_session
-
-        started = establish_bound_session(
-            session_id, project_root, str(project_root),
-            provider=provider, lock_name=".vscode-start.lock",
-        )
-        return {
-            "artifact_path": started["session_envelope_path"],
-            "schema_version": started["envelope_schema_version"],
-            "envelope_status": started["status"],
-        }
+        # Same payload rules as Codex SessionStart, checked before any write:
+        # only a SessionStart event may establish an identity, and resume or
+        # compact never invents one that does not already exist.
+        if hook_event_name != "SessionStart":
+            raise ValueError("Expected a SessionStart payload")
+        require_existing = source in {"resume", "compact"}
+        # Like Codex's install-time --project-root, the installed bridge's own
+        # location is the root the payload cwd must match (project_root itself is
+        # derived from that payload).  Checked before the framework import so a
+        # wrong project is never treated as a version-compatibility case.
+        installed_root = _installed_project_root()
+        if installed_root is not None:
+            _require_installed_root(project_root, installed_root)
+        try:
+            from runtime_hooks.core._bound_session_start import establish_bound_session
+        except ImportError:
+            # Only a framework that lacks the root-bound API takes this path: it
+            # can neither write nor read a VS Code v1.1 envelope, so keep its
+            # legacy envelope rather than fail with no envelope at all.  Event,
+            # project and session checks above and in the framework still apply.
+            establish_bound_session = None
+        if establish_bound_session is not None:
+            # VS Code keeps its own identity but gets the same worktree binding as Codex.
+            anchor = installed_root or project_root
+            started = establish_bound_session(
+                session_id, anchor, str(project_root),
+                provider=provider, lock_name=".vscode-start.lock",
+                require_existing=require_existing,
+            )
+            return {
+                "artifact_path": started["session_envelope_path"],
+                "schema_version": started["envelope_schema_version"],
+                "envelope_status": started["status"],
+            }
+        legacy_reason = "framework_without_root_bound_support"
+    else:
+        legacy_reason = None
 
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
-    return write_session_envelope(session_id, project_root, provider=provider)
+    envelope = write_session_envelope(session_id, project_root, provider=provider)
+    if legacy_reason:
+        envelope = {**envelope, "binding_reason": legacy_reason}
+    return envelope
 
 
 def _run_session_end(
@@ -241,6 +304,8 @@ def run_lifecycle_event(
             normalized["session_id"],
             normalized["project_root"],
             provider=normalized["provider"],
+            hook_event_name=normalized["hook_event_name"],
+            source=payload.get("source"),
         )
         return {
             **common,
@@ -254,6 +319,8 @@ def run_lifecycle_event(
             "session_envelope_binding": (
                 "root_bound" if envelope.get("schema_version") == "1.1" else "legacy"
             ),
+            **({"session_envelope_binding_reason": envelope["binding_reason"]}
+               if envelope.get("binding_reason") else {}),
         }
 
     result = _run_session_end(
