@@ -32,6 +32,52 @@ provenance label, not authentication. The shared reader validates the complete
 binding, provider and contained session path. Same HEAD does not make two
 worktrees the same consumer. This is correctness binding, not a security boundary.
 
+### VS Code
+
+VS Code uses the same contract with its own identity (#225, #227):
+`provider=github-copilot-vscode`, `repo_binding.source=vscode_session_start`,
+created through `establish_bound_session` in
+`runtime_hooks/core/_bound_session_start.py` with `.vscode-start.lock`. A
+session id one provider created is never adopted by the other.
+
+- **Installed root.** Codex checks the payload cwd against the `--project-root`
+  written at install time. For VS Code the equivalent anchor is the installed
+  bridge's own location, `<root>/.github/hooks/ai-governance-lifecycle.py`: a
+  payload whose cwd resolves to a different worktree is rejected and nothing is
+  written. When the bridge runs from anywhere else (the framework source, in
+  development or tests) there is no install anchor and the root comes from the
+  payload.
+- **Payload rules (as for Codex).** Only `hook_event_name=SessionStart` may
+  establish or preserve an identity; any other or missing event is rejected
+  before any write. VS Code's Local harness currently always sends
+  `source=new`; Codex's `resume`/`compact` sources are not claimed as VS Code
+  features. The bridge only guards against them: if a payload ever says
+  `resume` or `compact`, an existing identity is required and no start time is
+  invented.
+- **Bridge newer than framework.** If the framework the bridge resolves has no
+  `_bound_session_start`, it can neither write nor read a VS Code `1.1`
+  envelope; the bridge keeps that framework's legacy `1.0` envelope and reports
+  `session_envelope_binding=legacy` with
+  `session_envelope_binding_reason=framework_without_root_bound_support`. This
+  is the only downgrade, and it keeps the identity rules: the event and
+  installed-root checks run in the bridge before the framework import; an
+  existing identity is preserved, never rewritten; one owned by another
+  provider is refused; and `resume`/`compact` without an identity is refused.
+  Only an absent `runtime_hooks.core._bound_session_start` counts as "too old" —
+  a broken dependency inside it, or a module without `establish_bound_session`,
+  is reported as an error with nothing written.
+- **Supported harness: VS Code Local only.** The installed hook file is
+  Copilot-format (`sessionStart` in `.github/hooks/ai-governance-copilot.json`,
+  `--surface auto`). VS Code's Local harness maps that configuration and sends
+  its own snake_case payload (`session_id`, `hook_event_name`), routed to
+  `vscode` and bound. VS Code's Copilot harness sends the camelCase Copilot
+  payload (`sessionId`), routed to `copilot` (`provider=github-copilot`): it
+  keeps the unbound `1.0` envelope and cannot prepare a summary. Binding that
+  surface is not approved and would be a separate trust decision.
+
+Both payload shapes are tested through the real installer and the installed
+`sessionStart` command. Neither harness has been verified in a running editor.
+
 The shared reader supports both `1.0` and `1.1` before the adapter emits `1.1`.
 Existing `1.0` envelopes remain byte-preserved and usable by existing closeout;
 they have no qualified root binding and must not be treated as root-bound by a

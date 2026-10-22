@@ -121,11 +121,14 @@ def test_session_start_writes_envelope_with_native_identity(
     observed: dict[str, object] = {}
     monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
 
-    def _capture(session_id: str, project_root: Path, *, provider: str) -> dict[str, str]:
+    def _capture(session_id: str, project_root: Path, *, provider: str,
+                 hook_event_name: str = "", source: object = None) -> dict[str, str]:
         observed.update(
             session_id=session_id,
             project_root=project_root,
             provider=provider,
+            hook_event_name=hook_event_name,
+            source=source,
         )
         return {
             "artifact_path": "artifacts/runtime/sessions/vscode-session-2/session-envelope.json"
@@ -153,6 +156,8 @@ def test_session_start_writes_envelope_with_native_identity(
         "session_id": "vscode-session-2",
         "project_root": tmp_path.resolve(),
         "provider": "github-copilot-vscode",
+        "hook_event_name": "SessionStart",
+        "source": None,
     }
 
 

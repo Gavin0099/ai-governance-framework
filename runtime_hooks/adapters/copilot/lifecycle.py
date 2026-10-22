@@ -162,19 +162,78 @@ def resolve_framework_root(project_root: Path) -> Path:
     )
 
 
+def _installed_project_root() -> Path | None:
+    """The consumer root this bridge was installed into, independent of any payload.
+
+    hook_installer copies this file to <root>/.github/hooks/ai-governance-lifecycle.py,
+    and that installed copy is what VS Code runs.  Anywhere else (e.g. run from the
+    framework source in development or tests) there is no install anchor: None.
+    """
+    here = Path(__file__).resolve()
+    if here.parent.name == "hooks" and here.parent.parent.name == ".github":
+        return here.parents[2]
+    return None
+
+
+def _require_installed_root(project_root: Path, installed_root: Path) -> None:
+    """The payload root must be the installed root itself, before anything else.
+
+    Checked in the bridge (not only in the framework) so it also holds when the
+    resolved framework is too old to bind; a subdirectory fails closed, as for
+    payload-derived roots.
+    """
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--show-toplevel"],
+        text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=5,
+    )
+    toplevel = (completed.stdout or "").strip()
+    expected = os.path.normcase(str(installed_root.resolve()))
+    if (completed.returncode != 0 or not toplevel
+            or os.path.normcase(str(Path(toplevel).resolve())) != expected
+            or os.path.normcase(str(project_root.resolve())) != expected):
+        raise ValueError("Payload cwd and installed project root do not match")
+
+
 def _write_session_envelope(
     session_id: str,
     project_root: Path,
     *,
     provider: str,
+    hook_event_name: str = "",
+    source: object = None,
 ) -> dict[str, Any]:
     if provider == "github-copilot-vscode":
+        # Same payload rules as Codex SessionStart, checked before any write:
+        # only a SessionStart event may establish an identity, and resume or
+        # compact never invents one that does not already exist.
+        if hook_event_name != "SessionStart":
+            raise ValueError("Expected a SessionStart payload")
+        require_existing = source in {"resume", "compact"}
+        # Like Codex's install-time --project-root, the installed bridge's own
+        # location is the root the payload cwd must match (project_root itself is
+        # derived from that payload).  Checked before the framework import so a
+        # wrong project is never treated as a version-compatibility case.
+        installed_root = _installed_project_root()
+        if installed_root is not None:
+            _require_installed_root(project_root, installed_root)
+        try:
+            from runtime_hooks.core._bound_session_start import establish_bound_session
+        except ModuleNotFoundError as exc:
+            # Only the root-bound module itself being absent means "framework too
+            # old".  A broken dependency inside it, or a module without the
+            # function, is a real error and propagates instead of downgrading.
+            if exc.name != _BOUND_SESSION_MODULE:
+                raise
+            return _legacy_vscode_envelope(
+                session_id, project_root, provider=provider, require_existing=require_existing,
+            )
         # VS Code keeps its own identity but gets the same worktree binding as Codex.
-        from runtime_hooks.core._bound_session_start import establish_bound_session
-
+        anchor = installed_root or project_root
         started = establish_bound_session(
-            session_id, project_root, str(project_root),
+            session_id, anchor, str(project_root),
             provider=provider, lock_name=".vscode-start.lock",
+            require_existing=require_existing,
         )
         return {
             "artifact_path": started["session_envelope_path"],
@@ -185,6 +244,44 @@ def _write_session_envelope(
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
     return write_session_envelope(session_id, project_root, provider=provider)
+
+
+_BOUND_SESSION_MODULE = "runtime_hooks.core._bound_session_start"
+_LEGACY_REASON = "framework_without_root_bound_support"
+
+
+def _legacy_vscode_envelope(
+    session_id: str,
+    project_root: Path,
+    *,
+    provider: str,
+    require_existing: bool,
+) -> dict[str, Any]:
+    """A framework without root-bound support: its legacy v1.0 envelope, under
+    the same identity rules as the bound path.  An existing identity is
+    preserved, never rewritten; one owned by another provider is refused; and
+    resume/compact never invents an identity."""
+    session_dir = project_root / "artifacts/runtime/sessions" / session_id
+    path = session_dir / "session-envelope.json"
+    if session_dir.is_symlink() or path.is_symlink():
+        raise ValueError("Envelope path escapes project root")
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            existing = None
+        if not isinstance(existing, dict) or existing.get("session_id") != session_id:
+            raise ValueError("Existing envelope is invalid; refusing to overwrite")
+        if existing.get("provider") != provider:
+            raise ValueError("Session identity belongs to another provider; refusing to adopt it")
+        return {**existing, "artifact_path": str(path), "envelope_status": "preserved",
+                "binding_reason": _LEGACY_REASON}
+    if require_existing:
+        raise ValueError("Existing envelope required for resume/compact; no start time invented")
+    from runtime_hooks.core._canonical_closeout import write_session_envelope
+
+    envelope = write_session_envelope(session_id, project_root, provider=provider)
+    return {**envelope, "binding_reason": _LEGACY_REASON}
 
 
 def _run_session_end(
@@ -241,6 +338,8 @@ def run_lifecycle_event(
             normalized["session_id"],
             normalized["project_root"],
             provider=normalized["provider"],
+            hook_event_name=normalized["hook_event_name"],
+            source=payload.get("source"),
         )
         return {
             **common,
@@ -254,6 +353,8 @@ def run_lifecycle_event(
             "session_envelope_binding": (
                 "root_bound" if envelope.get("schema_version") == "1.1" else "legacy"
             ),
+            **({"session_envelope_binding_reason": envelope["binding_reason"]}
+               if envelope.get("binding_reason") else {}),
         }
 
     result = _run_session_end(

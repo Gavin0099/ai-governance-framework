@@ -264,3 +264,292 @@ def vscode_start_result(root):
         return vscode_start(root)
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
+
+
+# ── installed bridge: independent anchor, older framework, formal install entry ──
+
+FRAMEWORK = Path(__file__).resolve().parents[1]
+BRIDGE_SOURCE = FRAMEWORK / "runtime_hooks/adapters/copilot/lifecycle.py"
+INSTALLED_BRIDGE = Path(".github/hooks/ai-governance-lifecycle.py")
+LOCAL_HARNESS_PAYLOAD = {"hook_event_name": "SessionStart", "source": "new",
+                         "timestamp": "2026-10-22T03:00:00.000Z"}
+
+
+def _clean_env(**extra):
+    env = {k: v for k, v in os.environ.items()
+           if not k.upper().startswith("GIT_") and k != "AI_GOVERNANCE_FRAMEWORK_ROOT"}
+    env.update(PYTHONUTF8="1", PYTHONDONTWRITEBYTECODE="1", **extra)
+    return env
+
+
+def _install_bridge(root):
+    (root / INSTALLED_BRIDGE).parent.mkdir(parents=True, exist_ok=True)
+    (root / INSTALLED_BRIDGE).write_bytes(BRIDGE_SOURCE.read_bytes())
+
+
+def _run_bridge(bridge, payload, *, cwd, framework=FRAMEWORK):
+    done = subprocess.run([sys.executable, "-B", str(bridge), "--event-type", "session_start",
+                           "--surface", "auto"], input=json.dumps(payload), cwd=cwd,
+                          capture_output=True, text=True, encoding="utf-8", timeout=120,
+                          env=_clean_env(AI_GOVERNANCE_FRAMEWORK_ROOT=str(framework)))
+    return json.loads(done.stdout)
+
+
+def _runtime(root):
+    base = root / "artifacts"
+    return sorted(p.relative_to(root).as_posix() for p in base.rglob("*")) if base.exists() else []
+
+
+def test_installed_bridge_binds_its_own_root(repo):
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)}, cwd=repo)
+    assert result["ok"] is True, result
+    assert result["session_envelope_binding"] == "root_bound"
+    assert core.read_session_envelope(SID, repo)["repo_binding"]["consumer_root"] == str(repo)
+
+
+def test_installed_bridge_rejects_payload_cwd_of_another_repo(repo, tmp_path):
+    """The installed copy, not the payload, decides which root may be bound."""
+    other = tmp_path / "other repo"
+    subprocess.run(["git", "init", "--quiet", str(other)], check=True)
+    other = other.resolve()
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(other)}, cwd=repo)
+    assert result["ok"] is False and "do not match" in result["error"]
+    assert _runtime(repo) == [] and _runtime(other) == []
+
+
+_OLDER_CORE = '''
+import json
+from datetime import datetime, timezone
+
+
+def write_session_envelope(session_id, project_root, *, provider="unknown", **_):
+    path = project_root / "artifacts/runtime/sessions" / session_id / "session-envelope.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"schema_version": "1.0", "session_id": session_id, "provider": provider,
+               "started_at": datetime.now(timezone.utc).isoformat()}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return {**payload, "artifact_path": str(path)}
+'''
+
+
+def test_bridge_newer_than_framework_keeps_legacy_envelope(repo, tmp_path):
+    """Reader before writer: an older framework cannot read a VS Code v1.1
+    envelope, so the bridge keeps that framework's legacy path instead of
+    failing with no envelope."""
+    older = tmp_path / "older framework"
+    (older / "runtime_hooks/core").mkdir(parents=True)
+    (older / "runtime_hooks/core/_canonical_closeout.py").write_text(_OLDER_CORE, encoding="utf-8")
+    (older / "governance_tools").mkdir()
+    (older / "governance_tools/session_end_hook.py").write_text("", encoding="utf-8")
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=older)
+    assert result["ok"] is True, result
+    assert result["session_envelope_binding"] == "legacy"
+    assert result["session_envelope_binding_reason"] == "framework_without_root_bound_support"
+    assert json.loads(envelope_path(repo).read_bytes())["schema_version"] == "1.0"
+
+
+@pytest.fixture
+def installed_consumer(tmp_path):
+    """A consumer set up by the real installer CLI, as a user would run it."""
+    root = tmp_path / "installed consumer"
+    subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+    done = subprocess.run(
+        [sys.executable, "-m", "governance_tools.hook_installer", "--repo", str(root),
+         "--framework-root", str(FRAMEWORK), "--repository-id", "example/installed-consumer"],
+        cwd=FRAMEWORK, capture_output=True, text=True, encoding="utf-8", timeout=120,
+        env=_clean_env(),
+    )
+    assert done.returncode == 0, done.stdout + done.stderr
+    return root.resolve()
+
+
+def _installed_session_start_command(root):
+    config = json.loads((root / ".github/hooks/ai-governance-copilot.json").read_text(encoding="utf-8"))
+    (entry,) = config["hooks"]["sessionStart"]
+    return entry["command"]
+
+
+def _run_installed(root, payload):
+    """Run the configured command verbatim; the framework is found only through
+    what the installer configured (no AI_GOVERNANCE_FRAMEWORK_ROOT)."""
+    env = _clean_env()
+    env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    done = subprocess.run(_installed_session_start_command(root), shell=True, cwd=root,
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          encoding="utf-8", timeout=120, env=env)
+    return json.loads(done.stdout)
+
+
+def test_installer_wires_session_start_through_the_bridge(installed_consumer):
+    assert _installed_session_start_command(installed_consumer) == (
+        "python .github/hooks/ai-governance-lifecycle.py --event-type session_start --surface auto")
+    assert (installed_consumer / INSTALLED_BRIDGE).is_file()
+
+
+def test_installed_entry_local_harness_payload_is_root_bound(installed_consumer):
+    """VS Code Local maps the Copilot-format config and sends its own snake_case
+    payload (code.visualstudio.com/docs/agents/reference/hooks-reference)."""
+    from governance_tools import shared_closeout_ownership as ownership
+
+    result = _run_installed(installed_consumer, {**LOCAL_HARNESS_PAYLOAD, "session_id": "vscode-local",
+                                                 "cwd": str(installed_consumer)})
+    assert result["ok"] is True, result
+    assert (result["surface"], result["session_envelope_binding"]) == ("vscode", "root_bound")
+    assert Path(result["framework_root"]).resolve() == FRAMEWORK.resolve()
+    ownership._identity(installed_consumer, "vscode-local")  # prepare's identity preflight
+
+
+def test_installed_entry_copilot_harness_payload_is_not_root_bound(installed_consumer):
+    """VS Code's Copilot harness sends the camelCase Copilot payload: copilot
+    surface, unbound, cannot prepare a summary.  Binding it is not approved."""
+    from governance_tools import shared_closeout_ownership as ownership
+
+    result = _run_installed(installed_consumer, {"sessionId": "copilot-harness",
+                                                 "hookEventName": "sessionStart",
+                                                 "cwd": str(installed_consumer)})
+    assert result["ok"] is True, result
+    assert (result["surface"], result["provider"]) == ("copilot", "github-copilot")
+    assert result["session_envelope_binding"] == "legacy"
+    with pytest.raises(ownership.OwnershipError, match="INVALID_OWNER"):
+        ownership._identity(installed_consumer, "copilot-harness")
+
+
+# ── same SessionStart payload rules as Codex (review on main@fea3e918) ──────
+
+@pytest.mark.parametrize("event", ["Stop", "UserPromptSubmit", "", None])
+def test_only_a_session_start_event_establishes_identity(repo, event):
+    payload = {"session_id": SID, "cwd": str(repo), "hook_event_name": event}
+    payload = {k: v for k, v in payload.items() if v is not None}
+    with pytest.raises(ValueError, match="SessionStart"):
+        run_lifecycle_event(payload, event_type="session_start", surface="vscode")
+    assert _runtime(repo) == []
+
+
+@pytest.mark.parametrize("source", ["resume", "compact"])
+def test_resume_or_compact_never_invents_an_identity(repo, source):
+    payload = {"session_id": SID, "cwd": str(repo), "hook_event_name": "SessionStart",
+               "source": source}
+    with pytest.raises(ValueError, match="no start time invented"):
+        run_lifecycle_event(payload, event_type="session_start", surface="vscode")
+    assert _runtime(repo) == []
+
+
+@pytest.mark.parametrize("source", ["resume", "compact"])
+def test_resume_or_compact_preserves_an_existing_identity(repo, source):
+    first = vscode_start(repo)
+    before = envelope_path(repo).read_bytes()
+    again = run_lifecycle_event({"session_id": SID, "cwd": str(repo), "hook_event_name": "SessionStart",
+                                 "source": source}, event_type="session_start", surface="vscode")
+    assert again["status"] == "session_envelope_preserved"
+    assert envelope_path(repo).read_bytes() == before
+    assert again["session_envelope_path"] == first["session_envelope_path"]
+
+
+# ── the legacy fallback covers only a missing framework API (second review) ──
+
+def _older_framework(tmp_path):
+    older = tmp_path / "older framework"
+    (older / "runtime_hooks/core").mkdir(parents=True)
+    (older / "runtime_hooks/core/_canonical_closeout.py").write_text(_OLDER_CORE, encoding="utf-8")
+    (older / "governance_tools").mkdir()
+    (older / "governance_tools/session_end_hook.py").write_text("", encoding="utf-8")
+    return older
+
+
+def test_older_framework_does_not_downgrade_a_foreign_project(repo, tmp_path):
+    other = tmp_path / "other repo"
+    subprocess.run(["git", "init", "--quiet", str(other)], check=True)
+    other = other.resolve()
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(other)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "do not match" in result["error"]
+    assert _runtime(repo) == [] and _runtime(other) == []
+
+
+@pytest.mark.parametrize("event", ["Stop", None])
+def test_older_framework_does_not_downgrade_a_wrong_event(repo, tmp_path, event):
+    _install_bridge(repo)
+    payload = {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo), "hook_event_name": event}
+    payload = {k: v for k, v in payload.items() if v is not None}
+    result = _run_bridge(repo / INSTALLED_BRIDGE, payload, cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "SessionStart" in result["error"]
+    assert _runtime(repo) == []
+
+
+def test_installed_bridge_subdirectory_cwd_fails_closed(repo):
+    """Same as for payload-derived roots (#227): the cwd must be the root itself."""
+    sub = repo / "src"
+    sub.mkdir()
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(sub)}, cwd=repo)
+    assert result["ok"] is False and "do not match" in result["error"]
+    assert _runtime(repo) == []
+
+
+# ── legacy fallback keeps the identity rules; only a missing module downgrades ──
+
+def _legacy_envelope(root, provider="github-copilot-vscode", sid=SID):
+    path = envelope_path(root, sid)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": "1.0", "session_id": sid, "provider": provider,
+                                "started_at": "2026-10-01T00:00:00+00:00"}), encoding="utf-8")
+    return path.read_bytes()
+
+
+@pytest.mark.parametrize("source", ["resume", "compact"])
+def test_older_framework_resume_without_identity_is_refused(repo, tmp_path, source):
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "source": source, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "no start time invented" in result["error"]
+    assert _runtime(repo) == []
+
+
+@pytest.mark.parametrize("source", ["new", "resume"])
+def test_older_framework_preserves_an_existing_identity(repo, tmp_path, source):
+    before = _legacy_envelope(repo)
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "source": source, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is True, result
+    assert result["status"] == "session_envelope_preserved"
+    assert result["session_envelope_binding_reason"] == "framework_without_root_bound_support"
+    assert envelope_path(repo).read_bytes() == before  # not rewritten with a new start time
+
+
+def test_older_framework_does_not_adopt_another_providers_identity(repo, tmp_path):
+    before = _legacy_envelope(repo, provider="codex")
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=_older_framework(tmp_path))
+    assert result["ok"] is False and "another provider" in result["error"]
+    assert envelope_path(repo).read_bytes() == before
+
+
+@pytest.mark.parametrize("module_source, expected", [
+    ("import governance_nonexistent_dependency_xyz\n", "governance_nonexistent_dependency_xyz"),
+    ("VALUE = 1\n", "establish_bound_session"),
+])
+def test_broken_root_bound_module_is_an_error_not_a_downgrade(repo, tmp_path, module_source, expected):
+    """Only an absent _bound_session_start means "framework too old"."""
+    framework = _older_framework(tmp_path)
+    (framework / "runtime_hooks/core/_bound_session_start.py").write_text(module_source, encoding="utf-8")
+    _install_bridge(repo)
+    result = _run_bridge(repo / INSTALLED_BRIDGE,
+                         {**LOCAL_HARNESS_PAYLOAD, "session_id": SID, "cwd": str(repo)},
+                         cwd=repo, framework=framework)
+    assert result["ok"] is False and expected in result["error"]
+    assert _runtime(repo) == []
