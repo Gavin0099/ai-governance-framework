@@ -591,11 +591,174 @@ def load_historical_json_debt(
     return HistoricalJsonDebt(baseline.lower(), reference.strip(), tuple(blobs))
 
 
+_MIN_REV_LIST_Z = (2, 50)
+# Compat enumeration cost is O(new commits x tree size); above this, refuse
+# rather than scan partially (docs/proposals/2026-10-improvement-plans.md).
+_COMPAT_MAX_COMMITS = 5000
+
+
+def _git_version() -> tuple[int, int, int]:
+    """Version-based dispatch: Git < 2.50 silently ignores ``rev-list -z``,
+    so the output format cannot be trusted to reveal which parser applies."""
+
+    completed = subprocess.run(
+        ["git", "--version"], env=_git_environment(), stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
+    )
+    text = completed.stdout.decode("utf-8", errors="replace").strip()
+    match = re.search(r"(\d+)\.(\d+)(?:\.(\d+))?", text)
+    if completed.returncode != 0 or match is None:
+        raise PrePushScanError(f"cannot determine git version from {text!r}")
+    return tuple(int(part or 0) for part in match.groups())  # type: ignore[return-value]
+
+
+def _parse_nul_rev_list(stdout: bytes) -> list[tuple[str, str | None]]:
+    """Parse ``rev-list --objects -z`` (Git >= 2.50) ``<oid>\\0path=<path>\\0`` records."""
+
+    entries: list[tuple[str, str | None]] = []
+    current_oid: str | None = None
+    for record in stdout.split(b"\0"):
+        if not record:
+            continue
+        if record.startswith(b"path="):
+            if current_oid is None:
+                raise PrePushScanError("git rev-list emitted a path without an object ID")
+            entries.append((current_oid, record[5:].decode("utf-8", errors="surrogateescape")))
+            current_oid = None
+            continue
+
+        try:
+            token = record.decode("ascii", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise PrePushScanError("git rev-list emitted a non-ASCII object ID record") from exc
+        if not _OID_PATTERN.fullmatch(token):
+            raise PrePushScanError("git rev-list emitted an invalid object ID record")
+        current_oid = token.lower()
+    return entries
+
+
+def _run_rev_list(command: Sequence[str], remote_ref: str) -> bytes:
+    completed = subprocess.run(
+        list(command),
+        env=_git_environment(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise PrePushScanError(
+            f"git rev-list failed for {remote_ref}: {detail or 'no diagnostic'}"
+        )
+    return completed.stdout
+
+
+def _oid_lines(stdout: bytes) -> list[str]:
+    oids: list[str] = []
+    for line in stdout.split(b"\n"):
+        if not line:
+            continue
+        try:
+            token = line.decode("ascii", errors="strict")
+        except UnicodeDecodeError as exc:
+            raise PrePushScanError("git emitted a non-ASCII object ID record") from exc
+        if not _OID_PATTERN.fullmatch(token):
+            raise PrePushScanError("git emitted an invalid object ID record")
+        oids.append(token.lower())
+    return oids
+
+
+def _object_types(repository_root: Path, oids: Sequence[str]) -> dict[str, str]:
+    if not oids:
+        return {}
+    completed = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(repository_root), "cat-file", "--batch-check"],
+        input=b"".join(oid.encode("ascii") + b"\n" for oid in oids),
+        env=_git_environment(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise PrePushScanError(f"git cat-file --batch-check failed: {detail or 'no diagnostic'}")
+    types: dict[str, str] = {}
+    lines = completed.stdout.decode("ascii", errors="replace").splitlines()
+    if len(lines) != len(oids):
+        raise PrePushScanError("git cat-file --batch-check returned an unexpected record count")
+    for requested, line in zip(oids, lines):
+        parts = line.split()
+        if len(parts) != 3 or parts[0].lower() != requested:
+            raise PrePushScanError(f"git cat-file --batch-check returned an invalid record: {line}")
+        types[requested] = parts[1]
+    return types
+
+
+def _compat_json_blob_candidates(
+    repository_root: Path, revisions: Sequence[str], update: PrePushUpdate,
+) -> dict[str, set[str]]:
+    """Git < 2.50: lossless enumeration without ``rev-list -z``.
+
+    Newline-delimited ``rev-list --objects`` output is not used for names:
+    Git cuts an object name at its first newline, so ``prefix\\nleak.json``
+    would be reported as ``prefix`` and silently drop out of the JSON scan.
+    Instead: (a) the new object IDs (no names), (b) their types, (c) every
+    (blob or tree, path) pair from ``ls-tree -r -t -z`` of each new commit's
+    tree, and (d) fail closed if any new blob cannot be attributed to a path.
+    Every new blob is in some new commit's tree, so the path set is a superset
+    of the one name ``rev-list -z`` would give.  New trees are named too, so a
+    directory named ``*.json`` becomes a candidate and fails closed as an
+    unsupported object type, exactly as on the ``-z`` path.
+    """
+
+    git = ["git", "--no-replace-objects", "-C", str(repository_root)]
+    new_objects = _oid_lines(_run_rev_list(
+        [*git, "rev-list", "--objects", "--no-object-names", *revisions], update.remote_ref))
+    types = _object_types(repository_root, new_objects)
+    new_blobs = {oid for oid, kind in types.items() if kind == "blob"}
+    new_named = {oid for oid, kind in types.items() if kind in ("blob", "tree")}
+    if not new_named:
+        return {}
+    # One root tree per new commit, in one call (no commit list on the command line).
+    commit_trees = _oid_lines(_run_rev_list(
+        [*git, "rev-list", "--format=%T", "--no-commit-header", *revisions], update.remote_ref))
+    if len(commit_trees) > _COMPAT_MAX_COMMITS:
+        raise PrePushScanError(
+            f"{len(commit_trees)} new commits exceed the compat scan limit of {_COMPAT_MAX_COMMITS} "
+            f"for {update.remote_ref}; refusing a partial scan (git >= 2.50 recommended)"
+        )
+    trees = sorted(set(commit_trees))
+    paths: dict[str, set[str]] = {}
+    for tree in trees:
+        listing = _run_rev_list([*git, "ls-tree", "-r", "-t", "-z", "--full-tree", tree], update.remote_ref)
+        for record in listing.split(b"\0"):
+            if not record:
+                continue
+            meta, separator, raw_path = record.partition(b"\t")
+            fields = meta.split()
+            if not separator or len(fields) != 3:
+                raise PrePushScanError("git ls-tree emitted an invalid record")
+            if fields[1] not in (b"blob", b"tree"):
+                continue
+            oid = fields[2].decode("ascii", errors="replace").lower()
+            if oid in new_named:
+                paths.setdefault(oid, set()).add(raw_path.decode("utf-8", errors="surrogateescape"))
+    orphans = new_blobs - paths.keys()
+    if orphans:
+        raise PrePushScanError(
+            f"compat scan could not attribute {len(orphans)} new blob(s) to a path "
+            f"for {update.remote_ref}; refusing to pass"
+        )
+    return {
+        oid: {path for path in names if path.casefold().endswith(".json")}
+        for oid, names in paths.items()
+        if any(path.casefold().endswith(".json") for path in names)
+    }
+
+
 def _enumerate_json_blob_candidates(
     repository_root: Path,
     updates: Sequence[PrePushUpdate],
 ) -> dict[str, set[str]]:
     candidates: dict[str, set[str]] = {}
+    use_nul_rev_list: bool | None = None
     for update in updates:
         if _is_zero_oid(update.local_oid):
             continue
@@ -604,59 +767,34 @@ def _enumerate_json_blob_candidates(
                 f"local object is unavailable: {update.local_oid} ({update.local_ref})"
             )
 
-        command = [
-            "git",
-            "--no-replace-objects",
-            "-C",
-            str(repository_root),
-            "rev-list",
-            "--objects",
-            "-z",
-            update.local_oid,
-        ]
+        revisions = [update.local_oid]
         if not _is_zero_oid(update.remote_oid):
             if not _git_object_exists(repository_root, update.remote_oid):
                 raise PrePushScanError(
                     "remote old object is unavailable locally: "
                     f"{update.remote_oid} ({update.remote_ref}); run git fetch before pushing"
                 )
-            command.append(f"^{update.remote_oid}")
+            revisions.append(f"^{update.remote_oid}")
 
-        completed = subprocess.run(
-            command,
-            env=_git_environment(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        if completed.returncode != 0:
-            detail = completed.stderr.decode("utf-8", errors="replace").strip()
-            raise PrePushScanError(
-                f"git rev-list failed for {update.remote_ref}: {detail or 'no diagnostic'}"
+        if use_nul_rev_list is None:
+            use_nul_rev_list = _git_version() >= _MIN_REV_LIST_Z
+        if use_nul_rev_list:
+            stdout = _run_rev_list(
+                ["git", "--no-replace-objects", "-C", str(repository_root),
+                 "rev-list", "--objects", "-z", *revisions],
+                update.remote_ref,
             )
+            if stdout and b"\0" not in stdout:
+                raise PrePushScanError("rev-list -z output is not NUL-delimited; refusing to scan")
+            found = {}
+            for oid, path in _parse_nul_rev_list(stdout):
+                if path is not None and path.casefold().endswith(".json"):
+                    found.setdefault(oid, set()).add(path)
+        else:
+            found = _compat_json_blob_candidates(repository_root, revisions, update)
 
-        current_oid: str | None = None
-        for record in completed.stdout.split(b"\0"):
-            if not record:
-                continue
-            if record.startswith(b"path="):
-                if current_oid is None:
-                    raise PrePushScanError("git rev-list emitted a path without an object ID")
-                path = record[5:].decode("utf-8", errors="surrogateescape")
-                if path.casefold().endswith(".json"):
-                    candidates.setdefault(current_oid, set()).add(path)
-                current_oid = None
-                continue
-
-            try:
-                token = record.decode("ascii", errors="strict")
-            except UnicodeDecodeError as exc:
-                raise PrePushScanError(
-                    "git rev-list emitted a non-ASCII object ID record"
-                ) from exc
-            if not _OID_PATTERN.fullmatch(token):
-                raise PrePushScanError("git rev-list emitted an invalid object ID record")
-            current_oid = token.lower()
+        for oid, names in found.items():
+            candidates.setdefault(oid, set()).update(names)
     return candidates
 
 

@@ -511,3 +511,42 @@ jobs:
           name: violation-triage
           path: artifacts/triage/
           if-no-files-found: warn
+
+  # Report-only evidence for #228: run the external-tree guard on a real
+  # distro Git 2.43 (Ubuntu 24.04), where `rev-list -z` is ignored and the
+  # guard must take its lossless compat path.  ubuntu-latest has Git >= 2.50,
+  # so without this job the compat path is only ever exercised by emulation.
+  # Keep or drop after the result is reviewed.
+  guard-git-243-compat:
+    name: External tree guard on distro Git 2.43 (report)
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install distro Git and Python
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git ca-certificates python3 python3-venv bash
+      - name: Require Git 2.43.x
+        run: |
+          git --version
+          git --version | grep -E '^git version 2\.43\.' || { echo "::error::expected distro Git 2.43.x"; exit 1; }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install test dependencies
+        run: |
+          python3 -m venv /opt/venv
+          /opt/venv/bin/pip install --quiet "pytest>=9.0,<10.0" "pyyaml>=6.0" "jsonschema>=4.23,<5.0"
+      - name: Guard and pre-push tests on real Git 2.43
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          /opt/venv/bin/python -m pytest -p no:cacheprovider -q -rs \
+            tests/test_external_tree_inventory_guard.py \
+            tests/test_historical_json_debt.py \
+            tests/test_guard_safe_directory.py \
+            tests/test_pre_push_installation_integrity.py \
+            tests/test_pre_push_worktree_routing.py
+      - name: Show which enumeration path ran
+        run: |
+          /opt/venv/bin/python -m pytest -p no:cacheprovider -q -s \
+            "tests/test_external_tree_inventory_guard.py::test_installed_git_finds_newline_named_json_without_forcing_a_version"
