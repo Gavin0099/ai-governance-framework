@@ -9,6 +9,7 @@ Claim ceiling:
 """
 from __future__ import annotations
 
+import posixpath
 import re
 import subprocess
 import sys
@@ -134,8 +135,64 @@ def resolve_memory_binding(
     return "unbound"
 
 
+def normalize_repo_path(path_text: str, *, strip: bool = True) -> str:
+    """Normalise a repo-relative path for prefix comparison.
+
+    Removes leading "./" segments and collapses "//", "/./" and "a/../b".
+    It must not use str.lstrip("./"): that strips every leading "." and "/"
+    character, turning ".github/x" into "github/x", ".memory/x" into "memory/x"
+    and "../memory/x" (outside the repo) into "memory/x".
+
+    strip=False keeps leading/trailing whitespace, which is legal in git paths
+    and must survive when the path came from `git ... -z`.
+    """
+    text = (path_text.strip() if strip else path_text).replace("\\", "/")
+    while text.startswith("./"):
+        text = text[2:]
+    if not text:
+        return ""
+    normalized = posixpath.normpath(text)
+    return "" if normalized == "." else normalized
+
+
 def _normalize_path(path_text: str) -> str:
-    return path_text.strip().replace("\\", "/").lstrip("./")
+    return normalize_repo_path(path_text)
+
+
+def git_changed_paths(
+    project_root: Path,
+    args: Sequence[str],
+    *,
+    timeout: float | None = 120,
+) -> tuple[int, list[str], str]:
+    """Run a `git ... --name-only` style command and return its paths verbatim.
+
+    Appends -z and splits on NUL, so non-ASCII names are not quoted/octal
+    escaped and names containing spaces or newlines are not split or stripped.
+    `args` must not already contain -z and must put pathspecs (if any) after "--".
+    """
+    git_args = list(args)
+    if "--" in git_args:
+        split = git_args.index("--")
+        git_args[split:split] = ["-z"]
+    else:
+        git_args.append("-z")
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(project_root), "-c", "core.quotepath=false", *git_args],
+            capture_output=True,
+            check=False,
+            timeout=timeout,
+        )
+    except Exception as exc:  # pragma: no cover - defensive environment fallback
+        return 1, [], str(exc)
+    stderr = completed.stderr.decode("utf-8", errors="replace").strip()
+    paths = [
+        normalize_repo_path(raw.decode("utf-8", errors="replace"), strip=False)
+        for raw in completed.stdout.split(b"\0")
+        if raw
+    ]
+    return completed.returncode, [path for path in paths if path], stderr
 
 
 def _is_memory_path(path_text: str) -> bool:
@@ -276,14 +333,11 @@ def detect_staged_mixed_scope_memory_bindings(project_root: Path) -> list[dict]:
     """Inspect only the staged scope; unrelated working-tree dirt is ignored."""
     if not is_git_worktree(project_root):
         return []
-    code, stdout, _stderr = _run_git(
+    code, changed_paths, _stderr = git_changed_paths(
         project_root, ["diff", "--cached", "--name-only"]
     )
     if code != 0:
         return []
-    changed_paths = [
-        _normalize_path(line) for line in stdout.splitlines() if line.strip()
-    ]
     memory_paths = [path for path in changed_paths if _is_memory_path(path)]
     if not memory_paths:
         return []
@@ -307,10 +361,10 @@ def _commit_changed_paths(project_root: Path, commit: str) -> list[str]:
         args = ["diff", "--name-only", parent, commit]
     else:
         args = ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit]
-    code, stdout, _stderr = _run_git(project_root, args)
+    code, paths, _stderr = git_changed_paths(project_root, args)
     if code != 0:
         return []
-    return [_normalize_path(line) for line in stdout.splitlines() if line.strip()]
+    return paths
 
 
 def _commit_memory_patch(

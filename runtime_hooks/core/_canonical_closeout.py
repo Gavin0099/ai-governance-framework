@@ -102,6 +102,7 @@ def _resolve_head_commit(project_root: Path) -> str:
 
 
 def _session_envelope_path(session_id: str, project_root: Path) -> Path:
+    validate_session_id(session_id)
     return (
         project_root
         / "artifacts"
@@ -193,6 +194,8 @@ def write_session_envelope(
 
 def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any] | None:
     """Read and minimally validate the envelope for exactly one session."""
+    if not is_valid_session_id(session_id):
+        return None  # cannot name a session; reads keep their "not found" contract
     path = _session_envelope_path(session_id, project_root)
     if not path.is_file():
         return None
@@ -281,6 +284,7 @@ def assess_session_closeout_binding(
     candidate_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Assess session ownership and consume-once state before side effects."""
+    validate_session_id(session_id)
     canonical_path = project_root / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json"
     completion_path = (
         project_root
@@ -361,6 +365,8 @@ def pick_latest_candidate(session_id: str, project_root: Path) -> dict[str, Any]
     Timestamp filenames are lexicographically sortable (YYYYmmddTHHMMSSffffffZ).
     "Latest" means authoring precedence — last written, not most complete.
     """
+    if not is_valid_session_id(session_id):
+        return None  # cannot name a session; reads keep their "not found" contract
     candidates_dir = (
         project_root / "artifacts" / "runtime" / "closeout_candidates" / session_id
     )
@@ -424,6 +430,7 @@ def write_canonical_closeout(canonical: dict[str, Any], project_root: Path) -> P
     Write canonical closeout artifact to artifacts/runtime/closeouts/{session_id}.json.
     Creates directory if needed. Returns the written path.
     """
+    validate_session_id(canonical.get("session_id"))
     closeouts_dir = project_root / "artifacts" / "runtime" / "closeouts"
     closeouts_dir.mkdir(parents=True, exist_ok=True)
     path = closeouts_dir / f"{canonical['session_id']}.json"
@@ -435,6 +442,42 @@ def _generate_session_id() -> str:
     """Generate a new session ID: session-{YYYYmmddTHHMMSS}-{hex6}."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     return f"session-{ts}-{uuid.uuid4().hex[:6]}"
+
+
+# session_id is interpolated into artifact paths (closeouts/{id}.json,
+# sessions/{id}/..., memory-candidates/{id}.json), so it is a path component and
+# must never be able to carry a separator or a traversal segment.  The pattern is
+# the union of what the platform adapters legitimately emit: Codex (alnum first,
+# then [A-Za-z0-9_-]) and Copilot (may start with "_"/"-" and contain ".").
+# It cannot start with "." so "." / ".." and hidden names never match.
+SESSION_ID_PATTERN = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}\Z")
+_WINDOWS_RESERVED_STEM = re.compile(r"(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?\Z", re.IGNORECASE)
+
+
+class InvalidSessionIdError(ValueError):
+    """Raised when a session_id is not safe to use as a path component."""
+
+
+def is_valid_session_id(session_id: object) -> bool:
+    return (
+        isinstance(session_id, str)
+        and SESSION_ID_PATTERN.match(session_id) is not None
+        and not session_id.endswith(".")  # Windows silently strips trailing dots
+        and _WINDOWS_RESERVED_STEM.match(session_id) is None
+    )
+
+
+def validate_session_id(session_id: object) -> str:
+    """Return session_id unchanged if it is a safe path component, else raise.
+
+    The value is deliberately not stripped or normalised: whatever is validated
+    must be byte-identical to what is later used in the path.
+    """
+    if not is_valid_session_id(session_id):
+        raise InvalidSessionIdError(
+            f"unsafe session_id rejected before any write: {str(session_id)[:64]!r}"
+        )
+    return session_id  # type: ignore[return-value]
 
 
 def write_current_session_id(session_id: str, project_root: Path) -> Path:
@@ -449,6 +492,7 @@ def write_current_session_id(session_id: str, project_root: Path) -> Path:
 
 def _write_current_session_id_payload(session_id: str, path: Path) -> Path:
     """Write one current-session marker to an explicit lifecycle path."""
+    validate_session_id(session_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "session_id": session_id,
@@ -469,6 +513,7 @@ def read_current_session_id(
     Returns None if:
     - file does not exist (legacy path — wrap-up was not run)
     - file is malformed JSON or missing required fields
+    - session_id is not a safe path component (see validate_session_id)
     - written_at is missing or unparseable (cannot assess staleness → reject)
     - file age exceeds max_age_seconds (stale from a prior session)
 
@@ -485,6 +530,10 @@ def read_current_session_id(
             data = json.loads(path.read_text(encoding="utf-8"))
             session_id = str(data.get("session_id") or "").strip()
             if not session_id:
+                continue
+            # An unsafe pointer is untrusted input, not a session identity:
+            # ignore it so the caller falls back to a generated id.
+            if not is_valid_session_id(session_id):
                 continue
             written_at_str = str(data.get("written_at") or "").strip()
             if not written_at_str:
@@ -520,6 +569,7 @@ def build_candidate_artifact(
     text writer retains its existing platform newline translation.
     This helper does not add validation or change candidate selection.
     """
+    validate_session_id(session_id)
     relative = Path("artifacts/runtime/closeout_candidates") / session_id / f"{timestamp}.json"
     payload = dict(candidate)
     payload.setdefault("session_id", session_id)
@@ -557,6 +607,7 @@ def write_closeout_completion_marker(
     required_artifacts: list[Path],
 ) -> Path:
     """Atomically mark a session consumed after all required artifacts exist."""
+    validate_session_id(session_id)
     missing = [str(path) for path in required_artifacts if not path.is_file()]
     if missing:
         raise FileNotFoundError(
