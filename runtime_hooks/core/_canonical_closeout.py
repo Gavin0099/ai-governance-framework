@@ -59,6 +59,17 @@ _RUNTIME_CURRENT_SESSION_ID_FILE = Path("artifacts/runtime/.current-session-id")
 _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 _SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
 _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
+# The only providers whose SessionStart may create a root-bound (v1.1) envelope,
+# and the binding source each must carry.  A provider/source pair outside this
+# table is rejected on write and ignored on read, so one provider's envelope can
+# never be relabelled as another's.  The labels are provenance, not
+# authentication.
+ROOT_BOUND_SOURCES = {
+    "codex": "codex_session_start",
+    "github-copilot-vscode": "vscode_session_start",
+}
+_ROOT_BOUND_SESSION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
+_RESERVED_DEVICE_NAME = re.compile(r"CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]", re.IGNORECASE)
 
 
 def _consumer_worktree_root(path: Path) -> Path:
@@ -122,7 +133,8 @@ def write_session_envelope(
     repo_head_before: str | None = None,
     bound_consumer_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Create an envelope; only qualified Codex SessionStart supplies a bound root.
+    """Create an envelope; only a qualified SessionStart (see ROOT_BOUND_SOURCES)
+    supplies a bound root.
 
     Unqualified/legacy callers retain v1.0. The provenance label is not an
     authentication mechanism. A bound envelope is never used to migrate history.
@@ -147,9 +159,9 @@ def write_session_envelope(
     binding = None
     if bound_consumer_root is not None:
         root = _consumer_worktree_root(project_root)
-        if provider != "codex" or _consumer_worktree_root(bound_consumer_root) != root:
-            raise ValueError("Bound envelope requires matching Codex consumer root")
-        if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", normalized_session_id)
+        if provider not in ROOT_BOUND_SOURCES or _consumer_worktree_root(bound_consumer_root) != root:
+            raise ValueError("Bound envelope requires a root-bound provider and matching consumer root")
+        if (not _ROOT_BOUND_SESSION_ID.fullmatch(normalized_session_id)
                 or path.resolve() != root / "artifacts/runtime/sessions" / normalized_session_id / "session-envelope.json"):
             raise ValueError("Bound envelope path must remain in the session directory")
         marker = root / _RUNTIME_CURRENT_SESSION_ID_FILE
@@ -159,7 +171,7 @@ def write_session_envelope(
             raise ValueError("Existing envelope must not be overwritten or rebound")
         if (root / "artifacts/runtime/closeout-completions" / f"{normalized_session_id}.json").exists():
             raise ValueError("Completion marker exists; identity cannot be recreated")
-        binding = {"consumer_root": str(root), "source": "codex_session_start"}
+        binding = {"consumer_root": str(root), "source": ROOT_BOUND_SOURCES[provider]}
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": (_ROOT_BOUND_ENVELOPE_SCHEMA_VERSION if binding is not None
@@ -213,13 +225,14 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
     if _parse_aware_utc(str(payload.get("started_at") or "")) is None:
         return None
     if version == _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION:
-        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", session_id):
+        if not _ROOT_BOUND_SESSION_ID.fullmatch(session_id):
             return None
         binding = payload.get("repo_binding")
-        if payload.get("provider") != "codex" or not isinstance(binding, dict):
+        expected_source = ROOT_BOUND_SOURCES.get(payload.get("provider"))
+        if expected_source is None or not isinstance(binding, dict):
             return None
         raw_root = binding.get("consumer_root")
-        if (binding.get("source") != "codex_session_start"
+        if (binding.get("source") != expected_source
                 or not isinstance(raw_root, str) or not raw_root.strip()):
             return None
         try:
@@ -500,6 +513,89 @@ def _write_current_session_id_payload(session_id: str, path: Path) -> Path:
     }
     path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
+
+
+def _git_toplevel(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute() or not path.is_dir():
+        raise ValueError("An existing absolute project root is required")
+    result = subprocess.run(["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+                            capture_output=True, text=True, check=True, timeout=5)
+    return Path(result.stdout.strip()).resolve()
+
+
+def establish_root_bound_session(
+    *,
+    session_id: object,
+    cwd: object,
+    installed_root: Path,
+    provider: str,
+    require_existing: bool,
+    lock_name: str,
+) -> dict[str, Any]:
+    """Create or preserve a root-bound session identity at SessionStart.
+
+    The single implementation of the root-bound start checks, shared by every
+    provider in ROOT_BOUND_SOURCES so their guarantees cannot drift apart.
+    installed_root must come from how the hook was installed, never from the
+    payload; cwd is the payload's claim and must resolve to that same root.
+    Existing v1.0/v1.1 identity is never migrated or rebound.
+    """
+    if provider not in ROOT_BOUND_SOURCES:
+        raise ValueError("Provider cannot establish a root-bound session")
+    sid = session_id
+    if (not isinstance(sid, str) or not _ROOT_BOUND_SESSION_ID.fullmatch(sid)
+            or _RESERVED_DEVICE_NAME.fullmatch(sid)):
+        raise ValueError("Missing or unsafe session_id; identity is never generated here")
+    expected = installed_root.resolve()
+    if not isinstance(cwd, str) or _git_toplevel(cwd) != expected or _git_toplevel(str(expected)) != expected:
+        raise ValueError("Payload cwd and installed project root do not match")
+    session_dir = expected / "artifacts/runtime/sessions" / sid
+    # Reject redirected artifact directories before any write.
+    if session_dir.resolve() != session_dir:
+        raise ValueError("Session artifact path escapes project root")
+    marker = expected / _RUNTIME_CURRENT_SESSION_ID_FILE
+    if marker.resolve() != marker:
+        raise ValueError("Session pointer escapes project root")
+    envelope_path = session_dir / "session-envelope.json"
+    if envelope_path.resolve() != envelope_path:
+        raise ValueError("Envelope path escapes project root")
+    if not envelope_path.exists() and require_existing:
+        raise ValueError("Existing envelope required for resume/compact; no start time invented")
+    # Reject known invalid/wrong-root identity before even creating a lock.
+    # Re-read under exclusion below so this preflight is not a TOCTOU authority.
+    if envelope_path.exists() and read_session_envelope(sid, expected) is None:
+        raise ValueError("Existing envelope is invalid; refusing to overwrite")
+    if (not envelope_path.exists()
+            and (expected / "artifacts/runtime/closeout-completions" / f"{sid}.json").exists()):
+        raise ValueError("Completion marker exists without envelope")
+    session_dir.mkdir(parents=True, exist_ok=True)
+    # Serialize creation; existing v1.0/v1.1 identity is never migrated or rebound.
+    lock = session_dir / lock_name
+    try:
+        fd = lock.open("x", encoding="utf-8")
+    except FileExistsError as exc:
+        raise ValueError("SessionStart already running; retry without resetting identity") from exc
+    try:
+        with fd:
+            envelope = read_session_envelope(sid, expected)
+            if envelope_path.exists() and envelope is None:
+                raise ValueError("Existing envelope is invalid; refusing to overwrite")
+            if envelope is None:
+                # Completion without identity is inconsistent, never repair it implicitly.
+                if (expected / "artifacts/runtime/closeout-completions" / f"{sid}.json").exists():
+                    raise ValueError("Completion marker exists without envelope")
+                envelope = write_session_envelope(
+                    sid, expected, provider=provider, bound_consumer_root=expected,
+                )
+                status = "created"
+            else:
+                _write_current_session_id_payload(sid, marker)
+                status = "preserved"
+    finally:
+        lock.unlink()
+    return {"status": status, "session_id": sid, "project_root": str(expected),
+            "session_envelope_path": envelope["artifact_path"]}
 
 
 def read_current_session_id(

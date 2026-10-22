@@ -196,9 +196,11 @@ def test_bound_writer_cannot_recreate_consumed_identity(repo):
     assert not (repo/'artifacts/runtime/sessions').exists()
 
 
-@pytest.mark.parametrize('provider', ['claude', 'unknown'])
+# Only providers in core.ROOT_BOUND_SOURCES may bind; the Copilot CLI surface is
+# deliberately not one of them (#225 approved VS Code only).
+@pytest.mark.parametrize('provider', ['claude', 'unknown', 'github-copilot'])
 def test_other_providers_cannot_claim_codex_binding(repo, provider):
-    with pytest.raises(ValueError, match='Codex'):
+    with pytest.raises(ValueError, match='root-bound provider'):
         core.write_session_envelope('session-a', repo, provider=provider, bound_consumer_root=repo)
     assert not (repo/'artifacts').exists()
 
