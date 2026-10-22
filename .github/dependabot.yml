@@ -1,0 +1,14 @@
+# Keeps the commit-SHA pins in .github/workflows/*.yml current (#219).
+# Dependabot understands `uses: owner/repo@<sha> # vX.Y.Z` and updates both the
+# SHA and the version comment.  Updates are grouped into one weekly PR so CI
+# minutes are spent once per week, not once per action.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
