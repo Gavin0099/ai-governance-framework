@@ -248,11 +248,19 @@ class ClaudeAdapter(AgentAdapter):
     Claude Code (claude.ai/code, VS Code extension, CLI).
 
     Integration surface: .claude/settings.json or ~/.claude/settings.json
-    Hook key: hooks.Stop[].hooks[].command
-    Reference: Claude Code documentation — hooks configuration
+    Hook keys: hooks.SessionStart / hooks.SessionEnd [].hooks[].command
 
-    Tier A: Claude Code has a formal Stop hook that fires at session end.
+    Claude Code's Stop fires every time Claude finishes a response, not at
+    session end, so governance no longer closes out on Stop (a legacy
+    governance Stop hook is removed on install).  SessionStart establishes the
+    root-bound identity and reads back the latest checkpoint; SessionEnd writes
+    a resumable checkpoint within a 5 s budget.  Formal closeout is an explicit
+    operation.  Design: docs/proposals/2026-10-claude-code-session-lifecycle.md.
     """
+
+    LIFECYCLE_SCRIPT = "runtime_hooks/adapters/claude_code/session_lifecycle.py"
+    SESSION_END_TIMEOUT = 5
+    MANAGED_EVENTS = ("SessionStart", "SessionEnd", "Stop")
 
     @property
     def agent_id(self) -> str:
@@ -269,8 +277,8 @@ class ClaudeAdapter(AgentAdapter):
     @property
     def surface_description(self) -> str:
         return (
-            "Claude Code Stop hook in .claude/settings.json. "
-            "Fires automatically at every session end."
+            "Claude Code SessionStart (identity, read-back) and SessionEnd (resumable "
+            "checkpoint) hooks in .claude/settings.json; formal closeout is explicit."
         )
 
     def detect(self, project_root: Path) -> dict[str, Any]:
@@ -280,34 +288,26 @@ class ClaudeAdapter(AgentAdapter):
             "evidence": ".claude/ directory present" if has_dir else "no .claude/ directory",
         }
 
-    @staticmethod
-    def _command(project_root: Path, framework_root: Path) -> str:
-        # Claude Stop exit 2 requests another agent turn. Ordinary closeout
-        # failures must remain visible without acquiring that control authority.
-        argv = [str((framework_root.resolve() / "governance_tools" /
-                     "session_closeout_entry.py").as_posix()),
-                "--project-root", project_root.resolve().as_posix(),
-                "--format", "json", "--agent-id", "claude",
-                "--trigger-mode", "native_hook"]
-        script = "\n".join([
-            "# governance:claude-closeout-v1",
-            "import json, subprocess, sys",
-            f"p = subprocess.run([sys.executable] + {argv!r}, input=sys.stdin.buffer.read(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)",
-            "sys.stderr.buffer.write(p.stderr)",
-            "sys.stderr.buffer.write(p.stdout)",
-            "try:",
-            "    result = json.loads(p.stdout)",
-            "except (ValueError, UnicodeError):",
-            "    result = None",
-            "ok = p.returncode == 0 and isinstance(result, dict) and result.get('ok') is True",
-            "if not ok:",
-            "    sys.stderr.write('\\nGovernance closeout failed (child exit %s); Claude may stop.\\n' % p.returncode)",
-            "sys.exit(0 if ok else 1)",
-        ])
-        return "python -c " + shlex.quote(script)
+    @classmethod
+    def _command(cls, project_root: Path, framework_root: Path, event: str) -> str:
+        script = (framework_root.resolve() / cls.LIFECYCLE_SCRIPT).as_posix()
+        return "python " + shlex.join(
+            [script, "--event", event, "--project-root", project_root.resolve().as_posix()])
 
-    @staticmethod
-    def _is_governance_hook(hook: Any) -> bool:
+    @classmethod
+    def _expected_hooks(cls, project_root: Path, framework_root: Path) -> dict[str, dict[str, Any]]:
+        return {
+            "SessionStart": {"type": "command",
+                             "command": cls._command(project_root, framework_root, "session_start"),
+                             "statusMessage": "Establishing governance session identity..."},
+            "SessionEnd": {"type": "command",
+                           "command": cls._command(project_root, framework_root, "session_end"),
+                           "timeout": cls.SESSION_END_TIMEOUT},
+        }
+
+    @classmethod
+    def _is_governance_hook(cls, hook: Any) -> bool:
+        """Governance-owned hooks: the lifecycle entry, or the legacy Stop closeout."""
         if not isinstance(hook, dict) or hook.get("type", "command") != "command":
             return False
         try:
@@ -318,36 +318,48 @@ class ClaudeAdapter(AgentAdapter):
             return False
         if len(tokens) == 3 and tokens[1] == "-c":
             return tokens[2].startswith("# governance:claude-closeout-v1\n")
-        return tokens[1].replace("\\", "/").endswith(
-            "/governance_tools/session_closeout_entry.py")
+        target = tokens[1].replace("\\", "/")
+        return (target.endswith("/governance_tools/session_closeout_entry.py")
+                or target.endswith("/" + cls.LIFECYCLE_SCRIPT))
 
     def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
-        expected = self._command(project_root, framework_root)
-        found = []
+        expected = self._expected_hooks(project_root, framework_root)
+        found: dict[str, list[tuple[bool, str]]] = {event: [] for event in self.MANAGED_EVENTS}
         for path in (project_root / ".claude/settings.json",
                      project_root / ".claude/settings.local.json",
                      Path.home() / ".claude/settings.json"):
-            for group in _read_json(path).get("hooks", {}).get("Stop", []):
-                if not isinstance(group, dict):
-                    continue
-                for hook in group.get("hooks", []):
-                    if self._is_governance_hook(hook):
-                        current = (hook.get("command") == expected
+            hooks = _read_json(path).get("hooks", {})
+            if not isinstance(hooks, dict):
+                continue
+            for event in self.MANAGED_EVENTS:
+                for group in hooks.get(event, []) if isinstance(hooks.get(event), list) else []:
+                    if not isinstance(group, dict):
+                        continue
+                    for hook in group.get("hooks", []):
+                        if not self._is_governance_hook(hook):
+                            continue
+                        want = expected.get(event)
+                        current = (want is not None
+                                   and hook.get("command") == want["command"]
+                                   and hook.get("timeout") == want.get("timeout")
                                    and not hook.get("async", False)
                                    and not hook.get("if") and not group.get("matcher"))
-                        found.append((current, str(path)))
-        if len(found) == 1 and found[0][0]:
-            return "CORRECTLY_INSTALLED", found[0][1]
-        if found:
-            return "STALE_OR_WRONG_BINDING", found[0][1]
+                        found[event].append((current, str(path)))
+        complete = (not found["Stop"] and all(
+            len(found[event]) == 1 and found[event][0][0] for event in ("SessionStart", "SessionEnd")))
+        if complete:
+            return "CORRECTLY_INSTALLED", found["SessionStart"][0][1]
+        for event in self.MANAGED_EVENTS:
+            if found[event]:
+                return "STALE_OR_WRONG_BINDING", found[event][0][1]
         return "NOT_INSTALLED", None
 
     def _find_installed(self, project_root: Path, framework_root: Path) -> tuple[bool, str | None]:
         state, location = self._binding_state(project_root, framework_root)
         return state == "CORRECTLY_INSTALLED", location
 
-    @staticmethod
-    def _read_settings_for_install(path: Path) -> dict[str, Any]:
+    @classmethod
+    def _read_settings_for_install(cls, path: Path) -> dict[str, Any]:
         """Read the settings to be rewritten without treating errors as empty data."""
         try:
             content = path.read_text(encoding="utf-8")
@@ -359,13 +371,42 @@ class ClaudeAdapter(AgentAdapter):
         hooks = data.get("hooks", {})
         if not isinstance(hooks, dict):
             raise ValueError("settings hooks must be an object")
-        groups = hooks.get("Stop", [])
-        if not isinstance(groups, list):
-            raise ValueError("settings hooks.Stop must be a list")
-        for group in groups:
-            if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
-                raise ValueError("settings Stop groups must be objects with hook lists")
+        for event in cls.MANAGED_EVENTS:
+            groups = hooks.get(event, [])
+            if not isinstance(groups, list):
+                raise ValueError(f"settings hooks.{event} must be a list")
+            for group in groups:
+                if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
+                    raise ValueError(f"settings {event} groups must be objects with hook lists")
         return data
+
+    @classmethod
+    def _remove_governance_hooks(cls, hooks: dict[str, Any]) -> bool:
+        """Drop governance hooks; groups and events emptied by that removal go too."""
+        changed = False
+        for event in cls.MANAGED_EVENTS:
+            groups = hooks.get(event)
+            if not isinstance(groups, list):
+                continue
+            kept_groups = []
+            event_changed = False
+            for group in groups:
+                if not isinstance(group, dict) or "hooks" not in group:
+                    kept_groups.append(group)
+                    continue
+                kept = [h for h in group["hooks"] if not cls._is_governance_hook(h)]
+                if len(kept) != len(group["hooks"]):
+                    event_changed = True
+                    if not kept:
+                        continue
+                    group["hooks"] = kept
+                kept_groups.append(group)
+            if kept_groups:
+                hooks[event] = kept_groups
+            elif event_changed:
+                del hooks[event]
+            changed = changed or event_changed
+        return changed
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude/settings.json"
@@ -377,26 +418,26 @@ class ClaudeAdapter(AgentAdapter):
         state, loc = self._binding_state(project_root, framework_root)
         if state == "CORRECTLY_INSTALLED":
             return {"status": "already_installed", "location": loc,
-                    "message": "Governance Stop hook matches the requested binding."}
+                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."}
         for path in (project_root / ".claude/settings.local.json",
                      Path.home() / ".claude/settings.json"):
-            for group in _read_json(path).get("hooks", {}).get("Stop", []):
-                if isinstance(group, dict) and any(self._is_governance_hook(h)
-                                                  for h in group.get("hooks", [])):
-                    return {"status": "blocked", "location": str(path),
-                            "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
-        groups = data.setdefault("hooks", {}).setdefault("Stop", [])
-        for group in groups:
-            if "hooks" in group:
-                group["hooks"] = [h for h in group.get("hooks", [])
-                                  if not self._is_governance_hook(h)]
-        groups.append({"hooks": [{"type": "command",
-                                  "command": self._command(project_root, framework_root),
-                                  "statusMessage": "Running governance session closeout..."}]})
+            hooks = _read_json(path).get("hooks", {})
+            for event in self.MANAGED_EVENTS:
+                groups = hooks.get(event, []) if isinstance(hooks, dict) else []
+                for group in groups if isinstance(groups, list) else []:
+                    if isinstance(group, dict) and any(self._is_governance_hook(h)
+                                                      for h in group.get("hooks", [])):
+                        return {"status": "blocked", "location": str(path),
+                                "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+        hooks = data.setdefault("hooks", {})
+        removed = self._remove_governance_hooks(hooks)
+        for event, hook in self._expected_hooks(project_root, framework_root).items():
+            hooks.setdefault(event, []).append({"hooks": [hook]})
         _write_json(settings_path, data)
         return {"status": "installed", "previous_binding_state": state,
                 "location": str(settings_path),
-                "message": "Governance Stop hook installed with explicit binding and non-blocking error reporting."}
+                "message": ("Governance SessionStart/SessionEnd hooks installed"
+                            + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else "."))}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         state, loc = self._binding_state(project_root, framework_root)
@@ -407,36 +448,31 @@ class ClaudeAdapter(AgentAdapter):
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude" / "settings.json"
         data = _read_json(settings_path)
-        stop = data.get("hooks", {}).get("Stop", [])
-        changed = False
-        for group in stop:
-            if isinstance(group, dict) and "hooks" in group:
-                before = len(group["hooks"])
-                group["hooks"] = [
-                    h for h in group["hooks"]
-                    if "session_closeout_entry" not in h.get("command", "")
-                ]
-                changed = changed or len(group["hooks"]) < before
-        if changed:
+        hooks = data.get("hooks", {})
+        if isinstance(hooks, dict) and self._remove_governance_hooks(hooks):
             _write_json(settings_path, data)
             return {
                 "agent": self.agent_id,
                 "status": "uninstalled",
                 "location": str(settings_path),
-                "message": "Governance stop hook removed from .claude/settings.json",
+                "message": "Governance Claude hooks removed from .claude/settings.json",
             }
         return {
             "agent": self.agent_id,
             "status": "not_found",
-            "message": "No governance stop hook found to remove.",
+            "message": "No governance Claude hook found to remove.",
         }
 
     def print_manual(self, framework_root: Path) -> str:
         cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
         return (
-            f"[{self.display_name}] Manual closeout (fallback if stop hook is not installed):\n\n"
+            f"[{self.display_name}] Exiting only writes a resumable checkpoint; formal "
+            f"closeout is a separate explicit operation.\n\n"
+            f"Known gap: the manual command below uses --trigger-mode manual_fallback, which "
+            f"session_closeout_entry currently rejects (R2 release proof), so there is no "
+            f"working explicit closeout command yet:\n\n"
             f"    {cmd}\n\n"
-            f"Or install the stop hook:\n\n"
+            f"Install the SessionStart/SessionEnd hooks:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent claude"
         )
 
