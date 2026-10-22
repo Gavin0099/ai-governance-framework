@@ -128,6 +128,13 @@ KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {
         "primary_output": "closeout continuity context",
         "artifact_effect": "reads artifacts/runtime/closeouts/ to inject prior-session context at session start",
     },
+    "_bound_session_start": {
+        "path": "runtime_hooks/core/_bound_session_start.py",
+        "category": "runtime-init",
+        "input_mode": "internal-library",
+        "primary_output": "worktree-bound session identity result",
+        "artifact_effect": "writes artifacts/runtime/sessions/{session_id}/session-envelope.json and .current-session-id",
+    },
     "dispatcher": {
         "path": "runtime_hooks/dispatcher.py",
         "category": "shared-dispatch",

@@ -21,7 +21,8 @@ SUBMODULE = "SubModule/framework with spaces"
 ENTRY = "governance_tools/prepare_closeout_candidate.py"
 SOURCES = [ENTRY, "governance_tools/shared_closeout_ownership.py",
            "governance_tools/framework_versioning.py", "runtime_hooks/core/_canonical_closeout.py",
-           "runtime_hooks/adapters/codex/session_start.py"]
+           "runtime_hooks/adapters/codex/session_start.py", "runtime_hooks/core/_bound_session_start.py",
+           "runtime_hooks/adapters/copilot/lifecycle.py", "governance_tools/session_end_hook.py"]
 INPUT = dict(task_intent="Check summary delivery", work_summary="Inspected evidence.txt; 摘要保存。",
              tools_used=["read"], artifacts_referenced=["evidence.txt"], open_risks=[],
              checks_run="NONE", not_done="Consumer activation remains pending",
@@ -84,6 +85,20 @@ def start(root, sid="session-A"):
         "run(dict(hook_event_name='SessionStart',source='startup',session_id=sys.argv[3],"
         "cwd=sys.argv[2]),Path(sys.argv[2]))", root, sid)
     assert result.returncode == 0, result.stderr
+
+
+def clear_runtime(root):
+    shutil.rmtree(root / "artifacts")
+
+
+def start_vscode(root, sid):
+    result = script(root,
+        "import json; from runtime_hooks.adapters.copilot.lifecycle import run_lifecycle_event; "
+        "r=run_lifecycle_event(dict(session_id=sys.argv[3],cwd=sys.argv[2],hook_event_name='SessionStart'),"
+        "event_type='session_start',surface='vscode'); print(json.dumps(r)); sys.exit(0 if r['ok'] else 1)",
+        root, sid)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
 
 
 def invoke(root, *, sid="session-A", inputs=None, framework=None, target=None, env=None):
@@ -406,3 +421,63 @@ def test_non_object_lock_returns_json_rejection_before_mutation(consumer, lock_v
     assert json.loads(result.stdout)["status"] == "REJECTED"
     assert "Traceback" not in result.stderr
     assert runtime_bytes(consumer) == before
+
+
+def test_vscode_session_prepares_through_official_command(consumer):
+    clear_runtime(consumer)
+    started = start_vscode(consumer, "vscode-A")
+    assert started["session_envelope_binding"] == "root_bound"
+    envelope = json.loads((consumer / "artifacts/runtime/sessions/vscode-A/session-envelope.json").read_bytes())
+    assert envelope["provider"] == "github-copilot-vscode"
+    assert envelope["repo_binding"]["source"] == "vscode_session_start"
+    result = invoke(consumer, sid="vscode-A")
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["state"] == owner(consumer)["state"] == "OWNED"
+    assert report["session_id"] == "vscode-A" and report["closeout_executed"] is False
+    candidate = json.loads((consumer / report["candidate_identity"]["relative_path"]).read_bytes())
+    assert candidate["session_id"] == "vscode-A" and candidate["work_summary"] == INPUT["work_summary"]
+
+
+def test_vscode_other_or_unstarted_session_is_rejected_without_mutation(consumer):
+    clear_runtime(consumer)
+    start_vscode(consumer, "vscode-A")
+    assert invoke(consumer, sid="vscode-A").returncode == 0
+    start_vscode(consumer, "vscode-B")
+    for sid in ("vscode-B", "vscode-never-started"):
+        before = runtime_bytes(consumer)
+        result = invoke(consumer, sid=sid)
+        assert result.returncode == 1, result.stdout
+        assert runtime_bytes(consumer) == before
+        if sid == "vscode-never-started":
+            assert "qualified R1 binding required" in result.stdout
+
+
+def test_vscode_identity_copied_to_other_worktree_is_rejected(consumer, tmp_path):
+    clear_runtime(consumer)
+    start_vscode(consumer, "vscode-A")
+    other = tmp_path / "second worktree"
+    git(tmp_path, "-c", "protocol.file.allow=always", "clone", "--quiet", "--recurse-submodules",
+        str(consumer), str(other))
+    other = other.resolve()
+    copied = other / "artifacts/runtime/sessions/vscode-A/session-envelope.json"
+    copied.parent.mkdir(parents=True)
+    copied.write_bytes((consumer / "artifacts/runtime/sessions/vscode-A/session-envelope.json").read_bytes())
+    before = runtime_bytes(other)
+    result = invoke(other, sid="vscode-A")
+    assert result.returncode == 1, result.stdout
+    assert "qualified R1 binding required" in result.stdout
+    assert runtime_bytes(other) == before
+    assert not (other / "artifacts/runtime/shared-closeout/owner.json").exists()
+    # The source worktree keeps working with the same identity.
+    assert invoke(consumer, sid="vscode-A").returncode == 0
+
+
+def test_vscode_missing_summary_input_is_rejected_without_mutation(consumer):
+    clear_runtime(consumer)
+    start_vscode(consumer, "vscode-A")
+    before = runtime_bytes(consumer)
+    result = invoke(consumer, sid="vscode-A", inputs={})
+    assert result.returncode == 1, result.stdout
+    assert runtime_bytes(consumer) == before
+    assert not (consumer / "artifacts/runtime/shared-closeout/owner.json").exists()
