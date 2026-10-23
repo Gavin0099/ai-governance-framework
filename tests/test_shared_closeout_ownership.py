@@ -53,8 +53,8 @@ def inputs(root, sid='session-A', version=1):
     return {'relative_path':rel, 'sha256':sha(data)}, data, text
 
 
-def prepare(root, sid='session-A', version=1):
-    start_session(root, sid)
+def prepare(root, sid='session-A', version=1, session_start=start_session):
+    session_start(root, sid)
     ci, data, text = inputs(root, sid, version)
     with own.execution_exclusion(root) as lease:
         record = own.acquire_owner(lease, sid, ci, sha(text))

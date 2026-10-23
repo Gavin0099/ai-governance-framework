@@ -30,6 +30,36 @@ CHUNK = 1024 * 1024
 FORMAT_VERSION = "codex-0.154.0-alpha.6.2-session-meta"
 
 
+class Profile:
+    """One publisher's declared differences. Everything else is shared.
+
+    Keeping capture, stat stability and byte read-back in one place is
+    deliberate: a second provider must not be able to drift to weaker evidence
+    than the first by owning its own copy of them.
+    """
+
+    def __init__(self, *, event_provider, source_kind, platform_key, format_version,
+                 provider_class, snapshot_validator, cwd_matches_root):
+        self.event_provider = event_provider
+        self.source_kind = source_kind
+        self.platform_key = platform_key
+        self.format_version = format_version
+        self.provider_class = provider_class
+        self.snapshot_validator = snapshot_validator
+        self.cwd_matches_root = cwd_matches_root
+
+
+def _cwd_is_root(cwd, root):
+    return Path(cwd).resolve() == root
+
+
+CODEX = Profile(event_provider="codex", source_kind="codex_sessionend_observed_snapshot",
+                platform_key="codex_version", format_version=FORMAT_VERSION,
+                provider_class=h.NativeTranscriptProvider,
+                snapshot_validator=h._validate_native_snapshot,
+                cwd_matches_root=_cwd_is_root)
+
+
 class DeadlineExpired(TimeoutError):
     pass
 
@@ -53,19 +83,20 @@ def _stat(value):
             "mtime_ns": value.st_mtime_ns, "ctime_ns": value.st_ctime_ns}
 
 
-def _payload(value, root):
+def _payload(value, root, profile=CODEX):
     h._require(type(value) is dict and len(h.canonical_bytes(value)) <= MAX_PAYLOAD_BYTES,
                "INVALID_PAYLOAD")
     for key in ("hook_event_name", "session_id", "cwd", "transcript_path", "reason"):
         h._string(value.get(key))
     h._require(value["hook_event_name"] == "SessionEnd", "INVALID_EVENT")
     h._require(bool(r2._ID.fullmatch(value["session_id"])), "INVALID_SESSION")
-    h._require(Path(value["cwd"]).is_absolute() and Path(value["cwd"]).resolve() == root,
+    # The raw cwd stays in the payload as evidence; only the comparison resolves it.
+    h._require(Path(value["cwd"]).is_absolute() and profile.cwd_matches_root(value["cwd"], root),
                "CONSUMER_ROOT_MISMATCH")
     h._require(Path(value["transcript_path"]).is_absolute(), "INVALID_SOURCE_PATH")
 
 
-def _binding(lease, sid, reason, qualified_context):
+def _binding(lease, sid, reason, qualified_context, profile=CODEX):
     root = r2._lease(lease)
     r2._identity(root, sid)
     h._require(not r2._completion(root, sid), "CONSUMED_WITHOUT_REQUEST")
@@ -76,11 +107,12 @@ def _binding(lease, sid, reason, qualified_context):
                                    "candidate_identity", "text_digest")}
     envelope = r2._path(root, f"artifacts/runtime/sessions/{sid}/session-envelope.json")
     result.update(envelope_sha256=r2._digest(envelope), framework=h._qualified_identity(lease, qualified_context),
-                  native_event={"provider": "codex", "event": "SessionEnd", "reason": reason})
+                  native_event={"provider": profile.event_provider, "event": "SessionEnd",
+                                "reason": reason})
     return result
 
 
-def _capture(lease, payload, binding, check):
+def _capture(lease, payload, binding, check, profile=CODEX):
     root = r2._lease(lease)
     sid = binding["session_id"]
     source = Path(payload["transcript_path"])
@@ -142,17 +174,17 @@ def _capture(lease, payload, binding, check):
                     binding=binding, snapshot=dict(immutable_locator=relative, sha256=sha, size_bytes=size),
                     source=dict(path=str(source), before=_stat(before), after=_stat(after)),
                     native_payload=payload, captured_at=datetime.now(timezone.utc).isoformat(),
-                    platform=dict(os=platform.platform(), python=platform.python_version(),
-                                  codex_version=FORMAT_VERSION), **h.AUTHORITY)
+                    platform={"os": platform.platform(), "python": platform.python_version(),
+                              profile.platform_key: profile.format_version}, **h.AUTHORITY)
     manifest_sha = h._sha(h.canonical_bytes(manifest))
     base = f"{h.NATIVE_AREA}/{sid}"
-    ref = dict(schema_version="1.0", source_kind="codex_sessionend_observed_snapshot",
+    ref = dict(schema_version="1.0", source_kind=profile.source_kind,
                session_id=sid, **manifest["snapshot"],
                manifest_locator=f"{base}/manifests/{manifest_sha}.json", manifest_sha256=manifest_sha,
                ref_locator=f"{base}/refs/{manifest_sha}.json", retention_contract="owned-sessionend-snapshot",
                retention_version="1.0", readable_after_hook=True, **h.AUTHORITY)
     # Validate format before making a ref consumable.
-    h._validate_native_snapshot(target, sid, root, check)
+    profile.snapshot_validator(target, sid, root, check)
     for path, value in ((ref["manifest_locator"], manifest), (ref["ref_locator"], ref)):
         check()
         h._publish(lease, path, value)
@@ -160,14 +192,15 @@ def _capture(lease, payload, binding, check):
     return ref
 
 
-def publish(consumer_root, payload, *, deadline_ms=None, budget=None):
+def publish(consumer_root, payload, *, deadline_ms=None, budget=None, profile=CODEX):
     """Publish only; explicit invocation is not evidence of native hook firing."""
+    expected_version = {"codex": "1.1", "claude": "1.2"}[profile.event_provider]
     if budget is None:
         budget = Budget(deadline_ms)
     check = budget.check
     check()
     root = Path(consumer_root).resolve(strict=True)
-    _payload(payload, root)
+    _payload(payload, root, profile)
     sid, reason = payload["session_id"], payload["reason"]
     check()
     # Cheap authority preflight precedes even lock-directory creation. Repeat
@@ -179,12 +212,12 @@ def publish(consumer_root, payload, *, deadline_ms=None, budget=None):
         check()
     with r2.execution_exclusion(root) as lease:
         check()
-        provider = h.NativeTranscriptProvider(root, check=check)
+        provider = profile.provider_class(root, check=check)
         slot = r2._closeout_request_slot(root, sid)
         if slot.exists():
             request = h._decode(h._read_native_metadata(slot))
             bound = h._validate_request(request, root)
-            h._require(request["schema_version"] == "1.1" and bound["session_id"] == sid
+            h._require(request["schema_version"] == expected_version and bound["session_id"] == sid
                        and bound["native_event"]["reason"] == reason, "REQUEST_CONFLICT")
             # Never read the native path or current owner for finalized duplicates.
             provider.validate(root, bound["transcript"])
@@ -200,7 +233,7 @@ def publish(consumer_root, payload, *, deadline_ms=None, budget=None):
             check()
             return result
         with h._qualified_framework(lease) as qualified_context:
-            binding = _binding(lease, sid, reason, qualified_context)
+            binding = _binding(lease, sid, reason, qualified_context, profile)
             check()
             refs = r2._path(root, f"{h.NATIVE_AREA}/{sid}/refs")
             existing = None
@@ -212,7 +245,7 @@ def publish(consumer_root, payload, *, deadline_ms=None, budget=None):
                 provider.validate(root, ref)
                 h._require(provider.manifest["binding"] == binding, "ORPHAN_BINDING_MISMATCH")
                 existing = ref
-            ref = existing if existing is not None else _capture(lease, payload, binding, check)
+            ref = existing if existing is not None else _capture(lease, payload, binding, check, profile)
             check()
             result = h._publish_request_with_lease(lease, sid, ref, provider, reason=reason, check=check,
                                                         qualified_context=qualified_context)

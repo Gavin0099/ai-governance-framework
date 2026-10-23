@@ -63,6 +63,7 @@ _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
 _ROOT_BOUND_SOURCE_BY_PROVIDER = {
     "codex": "codex_session_start",
     "github-copilot-vscode": "vscode_session_start",
+    "claude": "claude_session_start",
 }
 
 
@@ -153,7 +154,7 @@ def write_session_envelope(
     if bound_consumer_root is not None:
         root = _consumer_worktree_root(project_root)
         if provider not in _ROOT_BOUND_SOURCE_BY_PROVIDER or _consumer_worktree_root(bound_consumer_root) != root:
-            raise ValueError("Bound envelope requires a Codex or VS Code provider and matching consumer root")
+            raise ValueError("Bound envelope requires a root-bound provider (Codex or VS Code or Claude) and matching consumer root")
         if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", normalized_session_id)
                 or path.resolve() != root / "artifacts/runtime/sessions" / normalized_session_id / "session-envelope.json"):
             raise ValueError("Bound envelope path must remain in the session directory")
