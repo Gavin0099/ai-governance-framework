@@ -1,9 +1,9 @@
-<!-- Verified predecessor: archive/active_task_20260830_021544.md -->
-<!-- Predecessor SHA-256: 38680653be7302482a0736af7d2ab92a282bc3fa311362f7a56db90c04824d78 -->
+<!-- Verified predecessor: archive/active_task_20261023_124358.md -->
+<!-- Predecessor SHA-256: a85cafddd7ff3a6fa01f7b41b151ed39f28f0c7d8ace5396757e393f893b7b64 -->
 
 # Active Task
 
-> Replacement-state candidate prepared 2026-08-30. This file is a current-state
+> Replacement-state candidate prepared 2026-10-23. This file is a current-state
 > retrieval index, not canonical authority and not proof that a referenced claim
 > was re-verified today. Follow the revision-bound pointers below. The exact
 > predecessor remains recoverable from the verified archive named above.
@@ -36,9 +36,13 @@
   cutover grants no review, commit, push, implementation or cleanup authority for
   it.
 - `memory_janitor.py --clean` and `--execute` remain fail-closed for this active
-  state. This is the one owner-authorized final manual replacement attempt under
-  the preservation finding. A semantic-fidelity blocker requires rollback and
-  STOP, not a third same-method candidate.
+  state; destructive automatic compression stays prohibited. The 2026-08-30
+  "one final manual replacement attempt" clause was scoped to that attempt and is
+  spent. This 2026-10-23 archive + replacement-state cutover rests on a separate
+  owner authorization recorded in
+  `archive/active_task_20261023_124358_cutover_manifest.json`.
+  A semantic-fidelity blocker requires rollback and STOP, not another same-method
+  candidate without new authorization.
 
 ## Durable Authority And Evidence Index
 
@@ -118,31 +122,15 @@ remains outside the Gate 3 critical path and outside this slice.
   is claimed.
 - Cannot claim the workspace is clean; it remains `NOT CLEAN` by design here.
 
+## Canonical Checkpoint Projections
 
-- Owner adopted exact Solo R2 task/rubric bytes; enclosing local commit establishes freeze after verification. STOP; new Pair creation requires separate authorization. <!-- memory_record_projection:active-task-summary:7d9a941064f486eb6f7eb360e54e670db5d2bd15f5fa96375b29ef476da2fbb8 -->
-
-
-- Disposable inputs qualified at 695863d1: Base 4 expected failures, reference 10/10; task unchanged, rubric reused. Authority freezes subtree/oracle locally; production binding unchanged, no Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:a4e46ca16fafb26c2dc6e6eec20b9f0f0c83c6483bdcf2e8f3273e57877594dd -->
-
-- Owner adopted v2.1 amendment; see docs/governance/solo-r2-v2.1-schema-owner-adoption-20260906.json. Local commit verification then STOP; D2 allocation unresolved; no production/Pair/Attempt/push. <!-- memory_record_projection:active-task-summary:29735f39f5f0eaaddad0b69bb23506e243434a8b4a151d2fe1b2e8439f605218 -->
-
-
-- D2 allocation adopted: one extra disposable evaluation/ledger allowance. See docs/governance/solo-r2-d2-allocation-owner-decision-20260906.json. Placement unresolved; no creation/execution authority. <!-- memory_record_projection:active-task-summary:4abae7efb9b50e2e48661afa714d543781fdeb542d9b8c1e7b37fe9e81628ddc -->
-
-- Placement adopted; STOP. <!-- memory_record_projection:active-task-summary:004754f2e3577eb3d7fd277858fcc7213b3b1c3e07a0adebcef22bba0843754b -->
-
-- Repo PUBLIC by owner authority for consumer access; severe PR #95 exposure cleared, known mild exposure remains pending Gate 3 or public-need re-review. <!-- memory_record_projection:active-task-summary:1e46e921a10d8a6520c22eb25c18444d406f9dee50e743b88519ce2bb47f86d8 -->
-
-- M3-b-2A merged by PR #108 at a59b0aef; status reconciliation is isolated, and M3-b-2B remains not started. <!-- memory_record_projection:active-task-summary:2eeb723b50a4c9513b6cecfbafb29471ef7d9d0ac29cd973b1fd97200a75a9ac -->
-
-- C1 Gate 1 admission passed and D5 was merged by PR #120 at 3351584a; randomization and A/B/C/D arms remain unauthorized and unstarted. <!-- memory_record_projection:active-task-summary:61990e3b367e7c69623b86c8d921fe58e73e384343f2c7d3ab136f4f7855bde7 -->
-
-- Advisory Skill selection adoption documentation prepared; routing unchanged. See docs/governance/advisory-skill-selection-adoption-20260909.md. PR delivery in progress; final-head merge authority pending. <!-- memory_record_projection:active-task-summary:e3e590f863c43f831722daac3cfdd003b3be0cfb499e0026b044fb6a4f6d9fe1 -->
-
-- S2 presentation committed: aligned lock is shown as pending commit; structured states unchanged; separate PR review pending. <!-- memory_record_projection:active-task-summary:c128d26d86b24d2a69d1809739c12e248c2eadf82ad9bff5bc652ac88687cb67 -->
-
-- H1 implementation committed; canonical Lenovo composed-hook compatibility verified locally; separate PR review pending, no merge authority. <!-- memory_record_projection:active-task-summary:c25f96c6d6518319d61235ba25706f34c1f0d96c5ef60597c876ad629f8e06a9 -->
-
-- Early-HOLD disposition: P1 OPEN; v1 owner-accepted limitation. See memory/2026-09-22.md (Early-HOLD disposition record); no reset/replay, no SLA, no future implementation authority. <!-- memory_record_projection:active-task-summary:7c2b2b8e8662be2202427b566c95063a239b0163c90f5396b181e5d2a95f8220 -->
+The 12 superseded `active-task-summary` projections were removed by the
+2026-10-23 cutover. Every removed identity stays verbatim in
+`archive/active_task_20261023_124358.md` and was independently confirmed recoverable in
+`memory/04_review_log.md`,
+`memory/2026-09-06.md`, `memory/2026-09-09.md`, `memory/2026-09-14.md`,
+`memory/2026-09-22.md` or `memory/2026-10-01.md` before removal. Removing a marker
+line also removes `memory_record`'s idempotency anchor for that identity, so an
+identical re-run could re-append it. Only the current projection is retained:
 
 - Stop wiring 6f097eb8：僅 Draft 交付。 <!-- memory_record_projection:active-task-summary:5464b03c9a9d3e32600c4312d548166fda1e2129b1173cafa794b0c0b0d613e7 -->

@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "operation": "manual_verified_archive_replacement_cutover",
+  "authority_scope": "operational_memory_only",
+  "created_before_cutover": true,
+  "owner_authorization": {
+    "date": "2026-10-23",
+    "instruction": "authorize memory archive + replacement-state cutover; clear EMERGENCY",
+    "channel": "interactive session",
+    "scope": "archive + replacement-state cutover of memory/01_active_task.md only"
+  },
+  "source_git_context": {
+    "head": "3bc4db55c9132f81aed4fce328f3622caf15db3c",
+    "branch": "main"
+  },
+  "source": {
+    "path": "memory/01_active_task.md",
+    "sha256": "10557e0524e3bd2161fb2995a3cda44b6fe65928aa98655d2708b2f34e950e23",
+    "git_blob": "291f481b287c8a300cb36c02c826ca2141c75feb",
+    "bytes": 12217,
+    "chars": 12057,
+    "lines": 148,
+    "lf": 148,
+    "cr": 148,
+    "bom": false,
+    "trailing_lf": true,
+    "note": "worktree is CRLF; the sha256 here is of the CRLF bytes",
+    "lf_normalized_sha256": "a85cafddd7ff3a6fa01f7b41b151ed39f28f0c7d8ace5396757e393f893b7b64"
+  },
+  "verified_archive": {
+    "path": "memory/archive/active_task_20261023_124358.md",
+    "sha256": "a85cafddd7ff3a6fa01f7b41b151ed39f28f0c7d8ace5396757e393f893b7b64",
+    "git_blob": "291f481b287c8a300cb36c02c826ca2141c75feb",
+    "bytes": 12069,
+    "chars": 12057,
+    "lines": 148,
+    "lf": 148,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "byte_equal_to_lf_normalized_source": true,
+    "git_blob_equal_to_source": true
+  },
+  "approved_replacement": {
+    "path": "memory/archive/active_task_20261023_124358_replacement_candidate.md",
+    "sha256": "f3419804f878137d881b97e16b2f1151420a6e0dbcace05420ff9b5a8d067a3e",
+    "git_blob": "1273ea862f337a536633f3f34c538a36c7d36340",
+    "bytes": 9613,
+    "chars": 9601,
+    "lines": 136,
+    "lf": 136,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "target_active_sha256": "f3419804f878137d881b97e16b2f1151420a6e0dbcace05420ff9b5a8d067a3e",
+    "independent_review": null,
+    "review_status": "unreviewed",
+    "review_note": "Section-level byte preservation verified by measurement only. The 2026-08-30 cutover's external APPROVED verdict has no equivalent here.",
+    "sole_semantic_delta": "Irreversible State And Prohibitions item 4: the spent 2026-08-30 one-final-attempt clause is scoped to that attempt and this cutover is bound to the 2026-10-23 owner authorization; the janitor fail-closed prohibition is preserved.",
+    "projections_removed": 12,
+    "projections_retained": 1,
+    "projections_recoverable_in_tracked_memory": 12
+  },
+  "preservation_matrix": {
+    "path": "memory/archive/active_task_20261023_124358_preservation_matrix.md",
+    "sha256": "cd3bd6a1ccda79dfd495abdfa8571dc64004dc9a7db4e574e7331e49eae4839d",
+    "git_blob": "a15216a51e9d3750e6ef12a839f0ff9cb620815a",
+    "bytes": 6904,
+    "chars": 6904,
+    "lines": 79,
+    "lf": 79,
+    "cr": 0,
+    "bom": false,
+    "trailing_lf": true,
+    "rows": 11,
+    "byte_identical_sections": 5,
+    "changed_sections": [
+      "__head__ (predecessor pointer and date)",
+      "Irreversible State And Prohibitions (item 4 only)",
+      "Claim Ceiling (projection tail removed; 7/7 bullets byte-identical)"
+    ]
+  },
+  "pressure": {
+    "before": {
+      "status": "EMERGENCY",
+      "lines": 148,
+      "chars": 12057,
+      "triggered_by": "chars"
+    },
+    "after": {
+      "status": "WARNING",
+      "lines": 136,
+      "chars": 9601,
+      "triggered_by": "chars"
+    },
+    "safe_not_reached_reason": "remaining mass is the preserved authority index, Gate 3 state and claim ceiling"
+  },
+  "rollback": {
+    "canonical_source": "memory/archive/active_task_20261023_124358.md",
+    "expected_restored_lf_sha256": "a85cafddd7ff3a6fa01f7b41b151ed39f28f0c7d8ace5396757e393f893b7b64",
+    "expected_restored_git_blob": "291f481b287c8a300cb36c02c826ca2141c75feb",
+    "scratchpad_dependency": false
+  },
+  "boundaries": {
+    "modifies_gate3_semantics": false,
+    "authorizes_provider_feasibility": false,
+    "authorizes_implementation": false,
+    "uses_legacy_destructive_clean": false,
+    "modifies_existing_global_archive_manifest": false,
+    "commit_authorized": false,
+    "push_authorized": false,
+    "independently_reviewed": false
+  }
+}
