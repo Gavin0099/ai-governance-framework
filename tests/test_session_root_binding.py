@@ -196,7 +196,9 @@ def test_bound_writer_cannot_recreate_consumed_identity(repo):
     assert not (repo/'artifacts/runtime/sessions').exists()
 
 
-@pytest.mark.parametrize('provider', ['claude', 'unknown'])
+# 'claude' became a root-bound provider with its own source (owner-approved in #231);
+# it is covered by test_claude_binds_with_its_own_source below.
+@pytest.mark.parametrize('provider', ['unknown', 'github-copilot'])
 def test_other_providers_cannot_claim_codex_binding(repo, provider):
     with pytest.raises(ValueError, match='Codex'):
         core.write_session_envelope('session-a', repo, provider=provider, bound_consumer_root=repo)
@@ -269,3 +271,19 @@ def test_completion_appearing_after_preflight_rejected_under_lock(repo, monkeypa
     assert not (repo/'artifacts/runtime/sessions/session-a/session-envelope.json').exists()
     assert not (repo/'artifacts/runtime/sessions/session-a/.codex-start.lock').exists()
     assert not (repo/'artifacts/runtime/.current-session-id').exists()
+
+
+def test_claude_binds_with_its_own_source(repo):
+    created = core.write_session_envelope('session-a', repo, provider='claude', bound_consumer_root=repo)
+    assert created['repo_binding']['source'] == 'claude_session_start'
+    assert core.read_session_envelope('session-a', repo)['provider'] == 'claude'
+
+
+@pytest.mark.parametrize('forged', ['codex_session_start', 'vscode_session_start'])
+def test_claude_envelope_cannot_be_relabelled(repo, forged):
+    core.write_session_envelope('session-a', repo, provider='claude', bound_consumer_root=repo)
+    path = repo / 'artifacts/runtime/sessions/session-a/session-envelope.json'
+    payload = json.loads(path.read_bytes())
+    payload['repo_binding']['source'] = forged
+    path.write_text(json.dumps(payload), encoding='utf-8')
+    assert core.read_session_envelope('session-a', repo) is None

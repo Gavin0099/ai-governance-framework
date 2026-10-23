@@ -115,6 +115,38 @@ It does not retroactively repair sessions that started without the hook.
 Existing candidates remain eligible across resume/compact because started_at
 is preserved. Completed sessions remain consumed.
 
+### Claude Code
+
+Claude Code uses the same identity contract with `provider=claude`,
+`repo_binding.source=claude_session_start`, through
+`runtime_hooks/adapters/claude_code/session_lifecycle.py` (design: #231,
+`docs/proposals/2026-10-claude-code-session-lifecycle.md`). The installer
+(`manage_agent_closeout install --agent claude`) manages a SessionStart and a
+SessionEnd hook and removes any legacy governance Stop closeout: Claude Code's
+`Stop` fires after every response, not at session end.
+
+- **SessionStart**: `startup`/`clear`/`fork` create an identity; `resume`/`compact`
+  preserve an existing one. A `resume` without an identity (older Claude Code may
+  report a fork that way) never invents one: the session stays unbound and the
+  context says saving is unavailable. The cwd is matched by Git worktree root, so
+  Claude may start in a subdirectory. Another provider's identity is never
+  adopted.
+- **Read-back**: SessionStart injects at most 800 characters of the latest
+  checkpointed summary, used only when the candidate's SHA-256 matches the
+  checkpoint, marked as data, from this worktree's Claude sessions only.
+  Ambiguous states are reported (`exit_unconfirmed`, `checkpoint_mismatch`,
+  `UNKNOWN`), never presented as success.
+- **SessionEnd**: writes a resumable checkpoint to
+  `artifacts/runtime/session-checkpoints/<session_id>.json` (timeout 5 s); no
+  completion marker and no consumption, so `claude --resume` can continue and
+  save again. Receipts-style fields use `trigger_mode=native_hook` with the
+  payload's `hook_event_name`/`reason` as evidence. SessionEnd may not run at
+  all; the next SessionStart derives the state from what is on disk.
+- **Formal closeout stays explicit.** The shared closeout allows one owning
+  session per worktree: after a session prepares a summary, a *new* session can
+  read it back but cannot save its own until the previous session's formal
+  closeout releases ownership. SessionStart says so when it applies.
+
 ## Event boundary and evidence
 
 ### Concurrent-session closeout identity
