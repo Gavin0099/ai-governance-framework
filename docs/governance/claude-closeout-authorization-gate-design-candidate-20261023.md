@@ -40,8 +40,18 @@ What it **can** be: a conjunctive, evidence-bound predicate that makes an
 unauthorized release impossible to perform **silently**. Every release names the
 exact attestation it consumed; an attestation binds the exact session,
 generation and summary bytes; anything missing or mismatched fails closed with
-no side effects. That is a non-repudiation and non-silence boundary, and the
-document must not claim more.
+no side effects. That is a **tamper-evident binding and non-silence** boundary,
+and the document must not claim more.
+
+In particular it is **not non-repudiation.** Within this threat model the quoted
+statement and its locator are both fabricable by the repository-writable agent
+or local process, and the self-attestation limit below concedes that such a
+record passes the gate. The digest binds whatever bytes were written; it cannot
+attribute them to the owner. Calling this non-repudiation would invite an
+auditor to read a self-attestation as human evidence, which is the precise
+failure this section exists to prevent. Non-repudiation would require
+provenance from an independently authenticated surface, which this design does
+not have and does not propose.
 
 This framing is not new here. `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`
 already separates "an authenticated owner action can prove who performed the
@@ -72,15 +82,33 @@ of the exact session and summary bytes**. It may be recorded in an authoring
 session, an authenticated comment, or another durable surface that identifies
 the target bytes.
 
+**Both canonical request forms count.** `AGENTS.md` defines session end as
+coming from a confirmed platform lifecycle event *or* "the user explicitly
+asking to end the session **or** to close out". The predicate must accept both
+of those explicit user forms. Requiring the literal word "closeout" would reject
+a user who says "end this session", which the canonical contract already treats
+as a valid session-end source — and would then retain ownership pending a
+further statement, breaking the no-permanent-block property below. Freezing a
+narrower predicate here would put this document in conflict with `AGENTS.md`,
+which is a governance conflict rather than a design preference.
+
 An agent **must not infer** this attestation from:
 
 - a checkpoint save, or the fact that a summary exists;
 - a memory `next_step`, a PLAN item, or a general continuation instruction;
-- "wrap up", "finish", or any instruction that does not name closeout;
+- "wrap up", "finish", or any instruction that names neither closeout nor
+  ending the session;
 - a governed lifecycle hook firing at session end;
+- a final answer, a DONE report, or a per-turn `Stop` event, which `AGENTS.md`
+  already excludes from session end unless that meaning is confirmed;
 - a legal `trigger_mode`, including `wrapper`;
 - its own recommendation that closing out would be appropriate;
 - the later fact that a release occurred.
+
+The distinction is explicit user direction versus agent inference, not a
+keyword. A confirmed platform lifecycle event establishes session end and so
+obliges an attempt; it is still not an attestation, because it is not a
+statement by the owner.
 
 That a release was performed can show *what* happened in an audit. It never
 retroactively establishes that the attestation predicate was satisfied.
@@ -89,10 +117,22 @@ retroactively establishes that the attestation predicate was satisfied.
 
 1. An **attestation record** under `artifacts/runtime/closeout-intents/<sid>/`,
    published under the existing R2 exclusion and digest-bound like every other
-   record in this area. Fields bind it to one exact state:
-   `consumer_root`, `session_id`, `generation`, `candidate_identity`,
-   `text_digest`, the quoted owner statement, where it was observed, `attested_at`,
-   and `attestation_id` as the digest of the canonical bytes.
+   record in this area. The record has two parts, mirroring how a closeout
+   request already separates `binding` from `request_id`:
+   - an `attestation` sub-object carrying everything that binds it to one exact
+     state — `consumer_root`, `session_id`, `generation`, `candidate_identity`,
+     `text_digest`, the quoted owner statement, where it was observed, and
+     `attested_at`;
+   - `attestation_id` **outside** that sub-object, defined as the digest of the
+     sub-object's canonical bytes only.
+
+   The identity payload must not contain the identity. `closeout_handoff`
+   already does this — `_sha(canonical_bytes(b))` hashes the `binding`, not the
+   whole request — and the same rule applies here, because a digest computed
+   over bytes that then absorb the digest is not reproducible by a writer or a
+   verifier. An earlier revision of this section listed `attestation_id` among
+   the hashed fields; that was self-referential and is corrected here before it
+   could become the Tranche 2a contract.
 2. **Release consumes exactly one attestation.** The receipt records which
    `attestation_id` it consumed, so the pairing is auditable after the fact and
    an attestation cannot be consumed twice.
@@ -194,6 +234,8 @@ review and applies here from the start.
 | A12 | malformed or truncated attestation | rejected, not ignored |
 | A13 | stale attestation then re-attestation | second attestation succeeds; session not stranded |
 | A14 | recovery validation with no attestation | remains available |
+| A15 | `attestation_id` not equal to the digest of the `attestation` sub-object | rejected; the identity payload is reproducible by writer and verifier |
+| A16 | owner says "end this session" rather than naming closeout | **accepted**, matching `AGENTS.md`; the session is not retained pending a further statement |
 
 Then the positive pair: the user attests, A releases once naming the consumed
 `attestation_id`; B acquires with generation incremented.
