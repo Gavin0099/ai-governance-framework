@@ -31,6 +31,15 @@ _BINDING = {"consumer_root", "session_id", "envelope_sha256", "generation",
 _REF = {"session_id", "immutable_locator", "sha256", "retention_contract",
         "retention_version", "readable_after_hook", "source_kind"}
 
+# Each request version pins exactly one publisher and one event provider, so a
+# new provider cannot be admitted by relaxing an existing version's checks. A
+# Claude request cannot claim codex, and a codex request cannot claim claude.
+CLAUDE_SOURCE_KIND = "claude_sessionend_observed_snapshot"
+CLAUDE_PUBLISHER = "claude-publisher-v1"
+_VERSIONS = {"1.0": ("core-v1-fixture", "codex"),
+             "1.1": ("native-publisher-v1", "codex"),
+             "1.2": (CLAUDE_PUBLISHER, "claude")}
+
 
 class HandoffError(ValueError):
     pass
@@ -180,11 +189,12 @@ _NATIVE_REF = _REF | {"schema_version", "size_bytes", "manifest_locator",
                        "manifest_sha256", "ref_locator", *AUTHORITY}
 
 
-def _validate_native_ref(ref, sid):
+def _validate_snapshot_ref(ref, sid, source_kind):
+    """Shared owned-snapshot ref rules; only source_kind differs per provider."""
     _keys(ref, _NATIVE_REF)
     _require(type(sid) is str and bool(r2._ID.fullmatch(sid)), "INVALID_SESSION")
     _require(ref["schema_version"] == "1.0" and ref["session_id"] == sid
-             and ref["source_kind"] == "codex_sessionend_observed_snapshot"
+             and ref["source_kind"] == source_kind
              and ref["retention_contract"] == "owned-sessionend-snapshot"
              and ref["retention_version"] == "1.0" and ref["readable_after_hook"] is True,
              "INVALID_NATIVE_REF")
@@ -201,6 +211,14 @@ def _validate_native_ref(ref, sid):
     }.items():
         _relative(ref[key])
         _require(ref[key] == expected, "TRANSCRIPT_IDENTITY_MISMATCH")
+
+
+def _validate_native_ref(ref, sid):
+    _validate_snapshot_ref(ref, sid, "codex_sessionend_observed_snapshot")
+
+
+def _validate_claude_ref(ref, sid):
+    _validate_snapshot_ref(ref, sid, CLAUDE_SOURCE_KIND)
 
 
 def _read_native_metadata(path, limit=131072):
@@ -287,6 +305,104 @@ class NativeTranscriptProvider:
                 digest.update(chunk)
         _require(digest.hexdigest() == ref["sha256"], "TRANSCRIPT_BYTES_MISMATCH")
         _validate_native_snapshot(path, ref["session_id"], root, self.check)
+        self.manifest = m
+        self.check()
+        return path
+
+
+def _validate_claude_snapshot(path, sid, root, check):
+    # Claude's transcript opens with a queue-operation record carrying a
+    # top-level sessionId, and cwd appears on later records. Supported JSONL
+    # identity only; no last-record or completeness heuristic, and the absence
+    # of a session_meta header is not treated as a defect.
+    with path.open("rb") as stream:
+        total = 0
+        first = True
+        seen_cwd = False
+        while line := stream.readline(MAX_SNAPSHOT_BYTES + 1):
+            check()
+            total += len(line)
+            _require(total <= MAX_SNAPSHOT_BYTES, "SNAPSHOT_CAP_EXCEEDED")
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            _require(type(record) is dict, "TRANSCRIPT_SESSION_MISMATCH")
+            if first:
+                _require(record.get("sessionId") == sid, "TRANSCRIPT_SESSION_MISMATCH")
+                first = False
+            # Every session id the transcript names must be this session, and
+            # every root it names must be this consumer root.
+            if "sessionId" in record:
+                _require(record["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
+            if "cwd" in record:
+                _require(type(record["cwd"]) is str and record["cwd"].strip()
+                         and str(Path(record["cwd"]).resolve()) == str(root),
+                         "TRANSCRIPT_SESSION_MISMATCH")
+                seen_cwd = True
+        _require(not first, "EMPTY_TRANSCRIPT")
+        _require(seen_cwd, "TRANSCRIPT_SESSION_MISMATCH")
+
+
+class ClaudeTranscriptProvider:
+    """Owned observed Claude bytes; same strictness as the native provider.
+
+    Only the transcript's record shape and the platform key differ. Session,
+    worktree, candidate, envelope, manifest and byte binding are validated by
+    the same rules, so this path is never admitted on weaker evidence.
+    """
+
+    def __init__(self, consumer_root, *, check=lambda: None):
+        self.root = Path(consumer_root).resolve()
+        self.check = check
+
+    def validate(self, root, ref):
+        self.check()
+        _require(root == self.root, "TRANSCRIPT_ROOT_MISMATCH")
+        _validate_claude_ref(ref, ref["session_id"])
+        _require(_decode(_read_native_metadata(r2._path(root, ref["ref_locator"]))) == ref, "REF_BYTES_MISMATCH")
+        data = _read_native_metadata(r2._path(root, ref["manifest_locator"]))
+        _require(_sha(data) == ref["manifest_sha256"], "MANIFEST_HASH_MISMATCH")
+        m = _decode(data)
+        _keys(m, {"schema_version", "provider", "provider_version", "binding", "snapshot",
+                  "source", "native_payload", "captured_at", "platform", *AUTHORITY})
+        _require(m["schema_version"] == "1.0" and m["provider"] == "owned-sessionend-snapshot"
+                 and m["provider_version"] == "1.0"
+                 and all(m[k] == v for k, v in AUTHORITY.items()), "INVALID_MANIFEST")
+        _keys(m["binding"], _BINDING - {"transcript"})
+        bound = {**m["binding"], "transcript": ref}
+        _validate_request(dict(schema_version="1.2", binding=bound,
+                               request_id=_sha(canonical_bytes(bound)),
+                               publication=dict(first_published_at=m["captured_at"],
+                                                publisher_version=CLAUDE_PUBLISHER)), root)
+        _require(m["binding"]["session_id"] == ref["session_id"]
+                 and m["binding"]["consumer_root"] == str(root), "MANIFEST_BINDING_MISMATCH")
+        _require(m["snapshot"] == {k: ref[k] for k in ("immutable_locator", "sha256", "size_bytes")},
+                 "SNAPSHOT_BINDING_MISMATCH")
+        _keys(m["source"], {"path", "before", "after"})
+        _require(m["source"]["before"] == m["source"]["after"], "SNAPSHOT_UNSTABLE")
+        _keys(m["source"]["before"], {"dev", "ino", "size", "mtime_ns", "ctime_ns"})
+        _require(all(type(v) is int for v in m["source"]["before"].values())
+                 and m["source"]["before"]["size"] == ref["size_bytes"], "INVALID_SOURCE_STAT")
+        payload = m["native_payload"]
+        _require(type(payload) is dict and payload.get("hook_event_name") == "SessionEnd"
+                 and payload.get("session_id") == ref["session_id"]
+                 and payload.get("reason") == m["binding"]["native_event"]["reason"]
+                 and str(Path(payload.get("cwd", "")).resolve()) == str(root)
+                 and payload.get("transcript_path") == m["source"]["path"],
+                 "INVALID_NATIVE_PAYLOAD")
+        _require(datetime.fromisoformat(m["captured_at"]).tzinfo is not None, "INVALID_TIMESTAMP")
+        _keys(m["platform"], {"os", "python", "claude_version"})
+        for value in m["platform"].values():
+            _string(value)
+        path = r2._path(root, ref["immutable_locator"])
+        _require(path.stat().st_size == ref["size_bytes"], "TRANSCRIPT_BYTES_MISMATCH")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                self.check()
+                digest.update(chunk)
+        _require(digest.hexdigest() == ref["sha256"], "TRANSCRIPT_BYTES_MISMATCH")
+        _validate_claude_snapshot(path, ref["session_id"], root, self.check)
         self.manifest = m
         self.check()
         return path
@@ -394,7 +510,9 @@ def _check_framework_drift(lease, context, check=lambda: None):
 
 def _validate_request(request, root):
     _keys(request, {"schema_version", "request_id", "binding", "publication"})
-    _require(request["schema_version"] in ("1.0", "1.1"), "UNKNOWN_REQUEST_VERSION")
+    version = request["schema_version"]
+    _require(version in _VERSIONS, "UNKNOWN_REQUEST_VERSION")
+    publisher, event_provider = _VERSIONS[version]
     _hash(request["request_id"])
     b = request["binding"]
     _keys(b, _BINDING)
@@ -413,12 +531,12 @@ def _validate_request(request, root):
     _require(f["gitlink_oid"] == f["checkout_head"] == f["adopted_commit"], "FRAMEWORK_MISMATCH")
     e = b["native_event"]
     _keys(e, {"provider", "event", "reason"})
-    _require(e["provider"] == "codex" and e["event"] == "SessionEnd", "INVALID_EVENT")
+    _require(e["provider"] == event_provider and e["event"] == "SessionEnd", "INVALID_EVENT")
     _string(e["reason"])
-    native = request["schema_version"] == "1.1"
-    (_validate_native_ref if native else _validate_ref)(b["transcript"], sid)
+    {"1.0": _validate_ref, "1.1": _validate_native_ref,
+     "1.2": _validate_claude_ref}[version](b["transcript"], sid)
     _keys(request["publication"], {"first_published_at", "publisher_version"})
-    _require(request["publication"]["publisher_version"] == ("native-publisher-v1" if native else "core-v1-fixture"), "INVALID_PUBLISHER")
+    _require(request["publication"]["publisher_version"] == publisher, "INVALID_PUBLISHER")
     timestamp = datetime.fromisoformat(request["publication"]["first_published_at"])
     _require(timestamp.tzinfo is not None, "INVALID_TIMESTAMP")
     _require(_sha(canonical_bytes(b)) == request["request_id"], "REQUEST_ID_MISMATCH")
@@ -443,13 +561,14 @@ def _live(lease, request, provider, *, qualified_context=None):
     if qualified_context is None:
         identity = _framework_identity(root)
     else:
-        _require(request["schema_version"] == "1.1", "INVALID_QUALIFIED_CONTEXT")
+        _require(request["schema_version"] in ("1.1", "1.2"), "INVALID_QUALIFIED_CONTEXT")
         identity = _qualified_identity(lease, qualified_context)
     _require(identity == b["framework"], "FRAMEWORK_DRIFT")
-    expected_provider = NativeTranscriptProvider if request["schema_version"] == "1.1" else FixtureTranscriptProvider
+    expected_provider = {"1.0": FixtureTranscriptProvider, "1.1": NativeTranscriptProvider,
+                         "1.2": ClaudeTranscriptProvider}[request["schema_version"]]
     _require(type(provider) is expected_provider, "TRANSCRIPT_RETENTION_UNQUALIFIED")
     transcript = provider.validate(root, b["transcript"])
-    if request["schema_version"] == "1.1":
+    if request["schema_version"] in ("1.1", "1.2"):
         _require(provider.manifest["binding"] == {k: v for k, v in b.items() if k != "transcript"}, "MANIFEST_BINDING_MISMATCH")
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
@@ -466,11 +585,14 @@ def publish_request(consumer_root: Path, session_id: str, transcript_ref: dict,
 
 def _publish_request_with_lease(lease, session_id, transcript_ref, provider, *,
                                 reason="fixture-normal-quit", check=lambda: None, qualified_context=None):
-    native = type(provider) is NativeTranscriptProvider
+    version = {FixtureTranscriptProvider: "1.0", NativeTranscriptProvider: "1.1",
+               ClaudeTranscriptProvider: "1.2"}.get(type(provider))
+    _require(version is not None, "TRANSCRIPT_RETENTION_UNQUALIFIED")
+    publisher, event_provider = _VERSIONS[version]
     check()
     root = r2._lease(lease)
     if qualified_context is not None:
-        _require(native, "INVALID_QUALIFIED_CONTEXT")
+        _require(version in ("1.1", "1.2"), "INVALID_QUALIFIED_CONTEXT")
         _qualified_identity(lease, qualified_context)
     slot = r2._closeout_request_slot(root, session_id)
     if slot.exists():
@@ -491,10 +613,11 @@ def _publish_request_with_lease(lease, session_id, transcript_ref, provider, *,
     identity = (_framework_identity(root) if qualified_context is None
                 else _qualified_identity(lease, qualified_context))
     b.update(envelope_sha256=r2._digest(envelope), framework=identity,
-             transcript=transcript_ref, native_event={"provider": "codex", "event": "SessionEnd", "reason": reason})
-    request = {"schema_version": "1.1" if native else "1.0", "request_id": _sha(canonical_bytes(b)), "binding": b,
+             transcript=transcript_ref,
+             native_event={"provider": event_provider, "event": "SessionEnd", "reason": reason})
+    request = {"schema_version": version, "request_id": _sha(canonical_bytes(b)), "binding": b,
                "publication": {"first_published_at": datetime.now(timezone.utc).isoformat(),
-                               "publisher_version": "native-publisher-v1" if native else "core-v1-fixture"}}
+                               "publisher_version": publisher}}
     _live(lease, request, provider, qualified_context=qualified_context)
     if qualified_context is not None:
         _check_framework_drift(lease, qualified_context, check)
@@ -823,14 +946,20 @@ def validate_recovery_readiness(lease, request, provider):
     return _validate_recovery_owner(lease, request, owner)
 
 
-def _verify_ingestion(root, sid, transcript):
-    """Verify actual persisted ingestor rows, not the fail-silent bridge return."""
+def _verify_ingestion(root, sid, transcript, provider_name):
+    """Verify actual persisted ingestor rows, not the fail-silent bridge return.
+
+    The provider is taken from the request's own event binding, so a request
+    can only be satisfied by rows its own ingestor wrote. It is never widened
+    to "any provider": codex rows cannot finalize a claude request.
+    """
+    _require(provider_name in {p for _, p in _VERSIONS.values()}, "TRANSCRIPT_INGESTION_UNCONFIRMED")
     db = r2._path(root, "artifacts/codeburn_closeout_ingest.db")
     _require(db.is_file(), "TRANSCRIPT_INGESTION_UNCONFIRMED")
     with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as conn:
         count = conn.execute("SELECT COUNT(*) FROM step_ingestion_provenance p JOIN steps s ON p.step_id=s.step_id "
-                             "WHERE s.session_id=? AND p.provider='codex' AND p.source_artifact_path=?",
-                             (sid, str(transcript))).fetchone()[0]
+                             "WHERE s.session_id=? AND p.provider=? AND p.source_artifact_path=?",
+                             (sid, provider_name, str(transcript))).fetchone()[0]
     _require(count > 0, "TRANSCRIPT_INGESTION_UNCONFIRMED")
 
 
@@ -879,7 +1008,8 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
         path, attempt = _claim(lease, request)
         def verify_before_receipt(result):
             _require(result.get("session_id") == session_id, "RESULT_SESSION_MISMATCH")
-            _verify_ingestion(root, session_id, transcript)
+            _verify_ingestion(root, session_id, transcript,
+                              request["binding"]["native_event"]["provider"])
             linked = _read(r2._path(root, path))
             _publish(lease, _base(root, session_id) + "/ingestion/" + linked["attempt_id"] + ".json",
                      _ingestion_record(request, linked))
