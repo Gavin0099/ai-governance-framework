@@ -98,3 +98,70 @@ preserves the 27,034 exact bytes from the fixed source commit, SHA-256
 `f80b2ae95728b1468697de02c89cf7267fdde3c16d1705b7464160012dfabcb8`.
 Tests verify that digest before use. This keeps fresh checkouts independent of
 unreachable historical Git objects; it is not a production scanner deployment.
+
+## Identity-config byte binding and line endings
+
+`--adopted-config-sha256` is a digest of the **worktree bytes** of
+`governance/external-tree-inventory-guard.json`, not of its Git blob. Git's
+end-of-line normalization therefore changes the value the verifier computes: a
+config authored with LF and adopted at an LF digest checks out as CRLF wherever
+`core.autocrlf` converts it, and `verify` then reports
+`adopted identity config changed` even though no one edited the file.
+
+Because of that, the path is pinned verbatim in `.gitattributes`:
+
+```gitattributes
+/governance/external-tree-inventory-guard.json -text
+```
+
+`-text` places it with the other inputs verified by exact-byte digests, so the
+blob bytes, the checked-out bytes and the adopted digest stay the same value on
+every platform. Removing that entry, or reformatting the file, invalidates the
+adopted digest and every receipt derived from it.
+
+An adoption that exists only as an untracked local file is not durable. A pull
+that starts tracking the same path replaces those bytes, and the installation is
+rejected until the config is re-adopted. Keep the adopted identities in the
+tracked config.
+
+## Re-pinning after a legitimate config change
+
+`verify` has no refresh path, so changing the adopted identities is an explicit
+re-adoption. The content change and the re-pin are separate steps, and neither
+is a licence to bypass a rejection:
+
+1. Change `governance/external-tree-inventory-guard.json` in the tracked repo,
+   preserving the schema and the previously adopted identities. The actual
+   `remote.origin.url` of each installation that pushes must appear in
+   `repository_identities`, together with `@repository-root`.
+2. Record the new worktree digest, for example
+   `python -c "import hashlib,pathlib;print(hashlib.sha256(pathlib.Path('governance/external-tree-inventory-guard.json').read_bytes()).hexdigest())"`.
+   Confirm the file still has LF endings and that `git check-attr text <path>`
+   reports `unset`.
+3. Run `prepare` with `--adopted-config-sha256` set to that digest and
+   `--output` pointing at a new candidate directory. `prepare` never installs.
+4. Review the candidate `pre-push` and `p5-pre-push-receipt.json`, then deploy
+   both into `.git/hooks` under explicit owner authorization. Deploying one file
+   leaves the installation rejected.
+5. Re-run `verify` and record the result as adoption evidence beside the
+   previous record, rather than editing that record.
+
+Each installation carries its own pin, so a config change is not complete until
+every installation that pushes has been re-prepared and re-deployed.
+
+## Framework root separation is a precondition, not advice
+
+`verify` checks the scanner at
+`<framework-root>/governance_tools/external_tree_inventory_guard.py` against the
+frozen 195a204f digest. When `--framework-root` is the live repository checkout,
+that path is also the repository's own evolving canonical scanner, so the
+installation is rejected with `scanner generation mismatch` as soon as the
+tracked scanner advances past the frozen generation. Provisioning the frozen
+bytes over the tracked path hides the conflict instead of resolving it, and this
+document already forbids overwriting a current canonical scanner from another
+generation.
+
+Point `--framework-root` at a dedicated fixed-profile deployment root holding
+the frozen scanner, the template and the required runtime tools, and keep
+`--repo-root` on the working checkout. If the frozen generation is no longer
+wanted, retiring the 195a204f pin is its own authorized change, not a re-pin.

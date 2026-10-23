@@ -3,6 +3,7 @@
   "repository_identities": [
     "Gavin0099/ai-governance-framework",
     "https://github.com/Gavin0099/ai-governance-framework.git",
+    "git@github.com:Gavin0099/ai-governance-framework.git",
     "@repository-root"
   ]
 }

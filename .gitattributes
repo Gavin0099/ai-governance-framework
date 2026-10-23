@@ -99,3 +99,4 @@
 /tests/fixtures/lite_benchmark_compatibility/*.json -text
 /docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md -text
 /memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json -text
+/governance/external-tree-inventory-guard.json -text
