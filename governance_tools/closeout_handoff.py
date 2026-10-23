@@ -40,6 +40,25 @@ _VERSIONS = {"1.0": ("core-v1-fixture", "codex"),
              "1.1": ("native-publisher-v1", "codex"),
              "1.2": (CLAUDE_PUBLISHER, "claude")}
 
+# Which session-envelope providers each event provider may bind. Before a
+# second provider existed this could not be violated, so nothing checked it;
+# admitting Claude makes borrowing another provider's envelope reachable, which
+# is what this closes. None means unconstrained, preserving the existing codex
+# behaviour including legacy envelopes whose provider is "unknown".
+_ENVELOPE_PROVIDERS = {"codex": None, "claude": frozenset({"claude"})}
+
+
+def provider_class_for(schema_version):
+    """The one transcript provider class a request version may be read with.
+
+    Single source for the correspondence. Callers outside this module must use
+    it instead of keeping their own copy, which is how closeout_status came to
+    read a 1.2 request with the fixture provider.
+    """
+    _require(schema_version in _VERSIONS, "UNKNOWN_REQUEST_VERSION")
+    return {"1.0": FixtureTranscriptProvider, "1.1": NativeTranscriptProvider,
+            "1.2": ClaudeTranscriptProvider}[schema_version]
+
 
 class HandoffError(ValueError):
     pass
@@ -558,15 +577,23 @@ def _live(lease, request, provider, *, qualified_context=None):
     r2._identity(root, b["session_id"])
     envelope = r2._path(root, f'artifacts/runtime/sessions/{b["session_id"]}/session-envelope.json')
     _require(r2._digest(envelope) == b["envelope_sha256"], "ENVELOPE_DRIFT")
+    # A matching digest proves the envelope did not change, not that it belongs
+    # to this request's provider. Without this a Claude request can ride an
+    # envelope a Codex SessionStart issued.
+    allowed_envelope = _ENVELOPE_PROVIDERS.get(b["native_event"]["provider"])
+    if allowed_envelope is not None:
+        # The canonical reader, not a raw parse: it already binds provider to
+        # repo_binding.source, so this adds the request-to-envelope leg only.
+        declared = (r2.read_session_envelope(b["session_id"], root) or {}).get("provider")
+        _require(declared in allowed_envelope, "ENVELOPE_PROVIDER_MISMATCH")
     if qualified_context is None:
         identity = _framework_identity(root)
     else:
         _require(request["schema_version"] in ("1.1", "1.2"), "INVALID_QUALIFIED_CONTEXT")
         identity = _qualified_identity(lease, qualified_context)
     _require(identity == b["framework"], "FRAMEWORK_DRIFT")
-    expected_provider = {"1.0": FixtureTranscriptProvider, "1.1": NativeTranscriptProvider,
-                         "1.2": ClaudeTranscriptProvider}[request["schema_version"]]
-    _require(type(provider) is expected_provider, "TRANSCRIPT_RETENTION_UNQUALIFIED")
+    _require(type(provider) is provider_class_for(request["schema_version"]),
+             "TRANSCRIPT_RETENTION_UNQUALIFIED")
     transcript = provider.validate(root, b["transcript"])
     if request["schema_version"] in ("1.1", "1.2"):
         _require(provider.manifest["binding"] == {k: v for k, v in b.items() if k != "transcript"}, "MANIFEST_BINDING_MISMATCH")
@@ -1016,7 +1043,10 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
 
         from governance_tools.session_closeout_entry import _run_protected_closeout_with_lease
         result = _run_protected_closeout_with_lease(
-            lease, session_id=session_id, transcript_path=transcript, agent_id="codex",
+            lease, session_id=session_id, transcript_path=transcript,
+            # Evidence must name the agent that actually closed out; a codex
+            # literal recorded a Claude closeout as Codex.
+            agent_id=request["binding"]["native_event"]["provider"],
             trigger_mode="wrapper", entrypoint=ENTRYPOINT, ledger_write_allowed=False,
             after_begin=lambda o: _bind_attempt(lease, path, attempt, o),
             after_run=verify_before_receipt,

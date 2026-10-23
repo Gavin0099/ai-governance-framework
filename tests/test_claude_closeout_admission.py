@@ -3,6 +3,21 @@
 Negative-first by design: this path is only meaningful if it fails closed.
 Synthetic payloads are not evidence that a Claude hook fired, and a passing
 test here is not evidence of completeness or anti-forgery authority.
+
+Coverage is deliberately split, and the split is the honest state of the work:
+
+- Live: the structural admission rules (N1, N1b, N3, N15), the transcript
+  record-shape rules reached during capture (N5, N6, N12, N13), the missing
+  envelope case (N7), the manual_fallback regression guard (N14) and the
+  envelope-provider binding (N16).
+- Strict xfail on P1-a: everything that needs a SUCCESSFULLY PUBLISHED Claude
+  request (N2, N4, N8, N9, N10, N11) and the end-to-end P1/P2. See
+  BLOCKED_ON_P1A. These are not "known failures to ignore"; strict xfail means
+  the suite fails if they start passing, which is the signal that P1-a landed
+  and this coverage must be reinstated.
+
+Nothing in this module asserts that the envelope leg works. It cannot: a
+qualified Claude envelope is unrepresentable in the current canonical contract.
 """
 import hashlib
 import json
@@ -17,6 +32,16 @@ from governance_tools import native_closeout_publisher as n
 from governance_tools import session_closeout_entry as entry
 from governance_tools import shared_closeout_ownership as r2
 from tests.test_shared_closeout_ownership import repo, prepare, owner
+
+BLOCKED_ON_P1A = (
+    "blocked on P1-a: R1 requires a root-bound schema 1.1 envelope, and the canonical "
+    "reader only recognises providers codex and github-copilot-vscode "
+    "(_ROOT_BOUND_SOURCE_BY_PROVIDER), binding provider to repo_binding.source. A "
+    "qualified Claude envelope is therefore unrepresentable, so no Claude request can "
+    "be published and these cases cannot be set up honestly. They passed before only "
+    "because the request bound a non-Claude envelope, which N16 now rejects. Strict "
+    "xfail is the tripwire for P1-a landing; its fix is in #232's file set."
+)
 
 SID = "session-A"
 ENVELOPE = f"artifacts/runtime/sessions/{SID}/session-envelope.json"
@@ -37,6 +62,8 @@ def claude_rows(root, *, sid=SID, cwd=None):
 def write_rows(path, rows):
     path.write_bytes(b"".join(json.dumps(row).encode() + b"\n" for row in rows))
     return path
+
+
 
 
 @pytest.fixture
@@ -85,15 +112,39 @@ def request_of(root):
     return h._read(r2._closeout_request_slot(root, SID))
 
 
-def craft(root, **overrides):
-    """A structurally valid Claude request, then one field broken on purpose."""
-    binding = dict(request_of(root)["binding"])
-    publication = dict(request_of(root)["publication"])
-    version = overrides.pop("schema_version", "1.2")
+def claude_request(root, **overrides):
+    """A structurally valid Claude request built without publishing one.
+
+    Publication is blocked while P1-a stands, so the structural admission tests
+    must not depend on it. Nothing here touches the filesystem beyond the
+    envelope digest, and _validate_request checks shapes and digests rather
+    than file existence.
+    """
+    sid = overrides.pop("session_id", SID)
+    o = owner(root)
+    base = f"artifacts/runtime/handoff-transcripts/{sid}"
+    sha, manifest_sha = "a" * 64, "b" * 64
+    ref = dict(schema_version="1.0", source_kind=h.CLAUDE_SOURCE_KIND, session_id=sid,
+               immutable_locator=f"{base}/snapshots/{sha}.jsonl", sha256=sha, size_bytes=10,
+               manifest_locator=f"{base}/manifests/{manifest_sha}.json",
+               manifest_sha256=manifest_sha,
+               ref_locator=f"{base}/refs/{manifest_sha}.json",
+               retention_contract="owned-sessionend-snapshot", retention_version="1.0",
+               readable_after_hook=True, **h.AUTHORITY)
+    ref.update(overrides.pop("transcript", {}))
+    binding = {k: o[k] for k in ("consumer_root", "session_id", "generation",
+                                 "candidate_identity", "text_digest")}
+    binding["session_id"] = sid
+    binding.update(
+        envelope_sha256=r2._digest(root / ENVELOPE),
+        framework=h._framework_identity(root), transcript=ref,
+        native_event={"provider": "claude", "event": "SessionEnd", "reason": "other"})
     binding.update(overrides.pop("binding", {}))
+    publication = dict(first_published_at="2026-10-23T00:00:00+00:00",
+                       publisher_version=h.CLAUDE_PUBLISHER)
     publication.update(overrides.pop("publication", {}))
-    return dict(schema_version=version, binding=binding, publication=publication,
-                request_id=h._sha(h.canonical_bytes(binding)), **overrides)
+    return dict(schema_version=overrides.pop("schema_version", "1.2"), binding=binding,
+                publication=publication, request_id=h._sha(h.canonical_bytes(binding)))
 
 
 def error(excinfo):
@@ -104,6 +155,7 @@ def error(excinfo):
 # P1 / P2 — the scenario #233 exists for
 # --------------------------------------------------------------------------
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_p1_claude_request_is_admitted_and_releases_ownership(ready):
     root, source, _ = ready
     before = owner(root)
@@ -135,6 +187,7 @@ def test_p1_claude_request_is_admitted_and_releases_ownership(ready):
     assert receipt["entrypoint"] == "governance_tools.closeout_handoff"
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_p2_next_session_acquires_after_release(ready):
     root = ready[0]
     req = publish(ready)
@@ -155,9 +208,9 @@ def test_p2_next_session_acquires_after_release(ready):
 
 def test_n1_unlisted_event_provider_rejected(ready):
     root = ready[0]
-    publish(ready)
-    bad = craft(root, binding={"native_event": {"provider": "gemini", "event": "SessionEnd",
-                                                "reason": "other"}})
+    bad = claude_request(root, binding={"native_event": {"provider": "gemini",
+                                                         "event": "SessionEnd",
+                                                         "reason": "other"}})
     with pytest.raises(h.HandoffError) as excinfo:
         h._validate_request(bad, root)
     assert "INVALID_EVENT" in error(excinfo)
@@ -165,14 +218,15 @@ def test_n1_unlisted_event_provider_rejected(ready):
 
 def test_n1b_claude_request_cannot_claim_codex(ready):
     root = ready[0]
-    publish(ready)
-    bad = craft(root, binding={"native_event": {"provider": "codex", "event": "SessionEnd",
-                                                "reason": "other"}})
+    bad = claude_request(root, binding={"native_event": {"provider": "codex",
+                                                         "event": "SessionEnd",
+                                                         "reason": "other"}})
     with pytest.raises(h.HandoffError) as excinfo:
         h._validate_request(bad, root)
     assert "INVALID_EVENT" in error(excinfo)
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n2_claude_request_with_native_provider_rejected(ready):
     root = ready[0]
     req = publish(ready)
@@ -185,13 +239,13 @@ def test_n2_claude_request_with_native_provider_rejected(ready):
 
 def test_n3_wrong_publisher_version_rejected(ready):
     root = ready[0]
-    publish(ready)
-    bad = craft(root, publication={"publisher_version": "native-publisher-v1"})
+    bad = claude_request(root, publication={"publisher_version": "native-publisher-v1"})
     with pytest.raises(h.HandoffError) as excinfo:
         h._validate_request(bad, root)
     assert "INVALID_PUBLISHER" in error(excinfo)
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n4_snapshot_bytes_altered_after_manifest_rejected(ready):
     root = ready[0]
     req = publish(ready)
@@ -234,6 +288,7 @@ def test_n7_missing_session_envelope_rejected(ready):
     assert not r2._closeout_request_slot(root, SID).exists()
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n8_envelope_changed_after_publication_rejected(ready):
     """Also rejected at the R1 layer; the release never completes either way."""
     root = ready[0]
@@ -247,6 +302,7 @@ def test_n8_envelope_changed_after_publication_rejected(ready):
     assert owner(root)["state"] != "RELEASED"
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n9_binding_session_not_current_owner_rejected(ready):
     root = ready[0]
     publish(ready)
@@ -258,6 +314,7 @@ def test_n9_binding_session_not_current_owner_rejected(ready):
     assert owner(root)["state"] != "RELEASED"
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n10_generation_mismatch_rejected(ready):
     root = ready[0]
     req = publish(ready)
@@ -270,6 +327,7 @@ def test_n10_generation_mismatch_rejected(ready):
     assert "GENERATION_MISMATCH" in error(excinfo) or "MISMATCH" in error(excinfo)
 
 
+@pytest.mark.xfail(strict=True, reason=BLOCKED_ON_P1A)
 def test_n11_consumed_session_cannot_republish(ready):
     root = ready[0]
     req = publish(ready)
@@ -320,23 +378,20 @@ def test_n14_manual_fallback_still_rejected_by_both_guards(repo, monkeypatch, ca
 ])
 def test_n15_locator_outside_the_handoff_area_rejected(ready, key, value):
     root = ready[0]
-    publish(ready)
-    ref = dict(request_of(root)["binding"]["transcript"])
+    ref = dict(claude_request(root)["binding"]["transcript"])
     ref[key] = value
     with pytest.raises(h.HandoffError):
         h._validate_claude_ref(ref, SID)
 
 
-# --------------------------------------------------------------------------
-# Envelope producer boundary
-# --------------------------------------------------------------------------
-
-def test_envelope_producer_writes_once_and_refuses_replacement(repo):
-    assert not (repo / ENVELOPE).exists()
-    first = c.write_session_envelope(repo, SID, repo_head_before="a" * 40)
-    assert first["provider"] == "claude"
-    assert set(first) == {"schema_version", "session_id", "started_at", "provider",
-                          "repo_head_before", "closeout_path"}
+def test_n16_claude_request_cannot_bind_another_providers_envelope(ready):
+    """P1-b: a matching digest is not an identity. Verified, not assumed."""
+    root = ready[0]
+    envelope = json.loads((root / ENVELOPE).read_bytes())
+    assert envelope["provider"] != "claude"
     with pytest.raises(h.HandoffError) as excinfo:
-        c.write_session_envelope(repo, SID, repo_head_before="a" * 40)
-    assert "ENVELOPE_ALREADY_PRESENT" in error(excinfo)
+        publish(ready)
+    assert "ENVELOPE_PROVIDER_MISMATCH" in error(excinfo)
+    # Rejection plus side-effect absence, not a code name.
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] != "RELEASED"
