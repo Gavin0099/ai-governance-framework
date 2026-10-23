@@ -39,19 +39,25 @@ class Profile:
     """
 
     def __init__(self, *, event_provider, source_kind, platform_key, format_version,
-                 provider_class, snapshot_validator):
+                 provider_class, snapshot_validator, cwd_matches_root):
         self.event_provider = event_provider
         self.source_kind = source_kind
         self.platform_key = platform_key
         self.format_version = format_version
         self.provider_class = provider_class
         self.snapshot_validator = snapshot_validator
+        self.cwd_matches_root = cwd_matches_root
+
+
+def _cwd_is_root(cwd, root):
+    return Path(cwd).resolve() == root
 
 
 CODEX = Profile(event_provider="codex", source_kind="codex_sessionend_observed_snapshot",
                 platform_key="codex_version", format_version=FORMAT_VERSION,
                 provider_class=h.NativeTranscriptProvider,
-                snapshot_validator=h._validate_native_snapshot)
+                snapshot_validator=h._validate_native_snapshot,
+                cwd_matches_root=_cwd_is_root)
 
 
 class DeadlineExpired(TimeoutError):
@@ -77,14 +83,15 @@ def _stat(value):
             "mtime_ns": value.st_mtime_ns, "ctime_ns": value.st_ctime_ns}
 
 
-def _payload(value, root):
+def _payload(value, root, profile=CODEX):
     h._require(type(value) is dict and len(h.canonical_bytes(value)) <= MAX_PAYLOAD_BYTES,
                "INVALID_PAYLOAD")
     for key in ("hook_event_name", "session_id", "cwd", "transcript_path", "reason"):
         h._string(value.get(key))
     h._require(value["hook_event_name"] == "SessionEnd", "INVALID_EVENT")
     h._require(bool(r2._ID.fullmatch(value["session_id"])), "INVALID_SESSION")
-    h._require(Path(value["cwd"]).is_absolute() and Path(value["cwd"]).resolve() == root,
+    # The raw cwd stays in the payload as evidence; only the comparison resolves it.
+    h._require(Path(value["cwd"]).is_absolute() and profile.cwd_matches_root(value["cwd"], root),
                "CONSUMER_ROOT_MISMATCH")
     h._require(Path(value["transcript_path"]).is_absolute(), "INVALID_SOURCE_PATH")
 
@@ -193,7 +200,7 @@ def publish(consumer_root, payload, *, deadline_ms=None, budget=None, profile=CO
     check = budget.check
     check()
     root = Path(consumer_root).resolve(strict=True)
-    _payload(payload, root)
+    _payload(payload, root, profile)
     sid, reason = payload["session_id"], payload["reason"]
     check()
     # Cheap authority preflight precedes even lock-directory creation. Repeat

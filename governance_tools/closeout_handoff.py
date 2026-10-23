@@ -15,10 +15,12 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import subprocess
 import uuid
 
 from governance_tools import shared_closeout_ownership as r2
 from governance_tools.prepare_closeout_candidate import validate_framework_binding, _git
+from runtime_hooks.core._bound_session_start import git_toplevel
 
 ENTRYPOINT = "governance_tools.closeout_handoff"
 ORIGIN = "deferred_handoff"
@@ -329,11 +331,27 @@ class NativeTranscriptProvider:
         return path
 
 
+def _same_worktree_root(cwd, root):
+    """Claude may run from a subdirectory: its cwd's Git worktree root must be root.
+
+    The rule Claude's SessionStart binding applies (git_toplevel), so start and
+    closeout cannot disagree. A nested repository or submodule has its own
+    worktree root and does not match, unlike a lexical "path under root" test.
+    A cwd that no longer exists fails closed. Callers keep the raw cwd as
+    evidence; only this comparison resolves it.
+    """
+    try:
+        return type(cwd) is str and git_toplevel(cwd) == Path(root)
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return False
+
+
 def _validate_claude_snapshot(path, sid, root, check):
     # Claude's transcript opens with a queue-operation record carrying a
     # top-level sessionId, and cwd appears on later records. Supported JSONL
     # identity only; no last-record or completeness heuristic, and the absence
     # of a session_meta header is not treated as a defect.
+    checked_cwds = {}
     with path.open("rb") as stream:
         total = 0
         first = True
@@ -350,13 +368,15 @@ def _validate_claude_snapshot(path, sid, root, check):
                 _require(record.get("sessionId") == sid, "TRANSCRIPT_SESSION_MISMATCH")
                 first = False
             # Every session id the transcript names must be this session, and
-            # every root it names must be this consumer root.
+            # every cwd it names must sit in this consumer's worktree.
             if "sessionId" in record:
                 _require(record["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
             if "cwd" in record:
-                _require(type(record["cwd"]) is str and record["cwd"].strip()
-                         and str(Path(record["cwd"]).resolve()) == str(root),
-                         "TRANSCRIPT_SESSION_MISMATCH")
+                cwd = record["cwd"]
+                _require(type(cwd) is str and cwd.strip(), "TRANSCRIPT_SESSION_MISMATCH")
+                if cwd not in checked_cwds:
+                    checked_cwds[cwd] = _same_worktree_root(cwd, root)
+                _require(checked_cwds[cwd], "TRANSCRIPT_SESSION_MISMATCH")
                 seen_cwd = True
         _require(not first, "EMPTY_TRANSCRIPT")
         _require(seen_cwd, "TRANSCRIPT_SESSION_MISMATCH")
@@ -365,9 +385,11 @@ def _validate_claude_snapshot(path, sid, root, check):
 class ClaudeTranscriptProvider:
     """Owned observed Claude bytes; same strictness as the native provider.
 
-    Only the transcript's record shape and the platform key differ. Session,
-    worktree, candidate, envelope, manifest and byte binding are validated by
-    the same rules, so this path is never admitted on weaker evidence.
+    Only the transcript's record shape, the platform key and the cwd rule
+    differ: Claude's cwd may be any directory of the consumer's own worktree
+    (_same_worktree_root), Codex's must be the root itself. Session, candidate,
+    envelope, manifest and byte binding are validated by the same rules, so
+    this path is never admitted on weaker evidence.
     """
 
     def __init__(self, consumer_root, *, check=lambda: None):
@@ -406,7 +428,7 @@ class ClaudeTranscriptProvider:
         _require(type(payload) is dict and payload.get("hook_event_name") == "SessionEnd"
                  and payload.get("session_id") == ref["session_id"]
                  and payload.get("reason") == m["binding"]["native_event"]["reason"]
-                 and str(Path(payload.get("cwd", "")).resolve()) == str(root)
+                 and _same_worktree_root(payload.get("cwd"), root)
                  and payload.get("transcript_path") == m["source"]["path"],
                  "INVALID_NATIVE_PAYLOAD")
         _require(datetime.fromisoformat(m["captured_at"]).tzinfo is not None, "INVALID_TIMESTAMP")
