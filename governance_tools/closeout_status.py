@@ -78,8 +78,7 @@ def inspect_closeout(consumer_root: Path, session_id: str) -> dict:
                     handoff._require(binding["session_id"] == session_id, "REQUEST_SESSION_MISMATCH")
                 # Finalized history is independent of the current owner's files.
                 if request is not None and handoff._finalized_path(lease.root, request["binding"]).is_file():
-                    provider = (handoff.NativeTranscriptProvider if request["schema_version"] == "1.1"
-                                else handoff.FixtureTranscriptProvider)(lease.root)
+                    provider = handoff.provider_class_for(request["schema_version"])(lease.root)
                     result.update(handoff.validate_recovery_readiness(lease, request, provider))
                     result["generation"] = request["binding"]["generation"]
                 else:
@@ -103,8 +102,7 @@ def inspect_closeout(consumer_root: Path, session_id: str) -> dict:
                             result.update(status="EARLY_HOLD_UNKNOWN" if owner["state"] == "HOLD" else "UNKNOWN",
                                           reason="REQUEST_MISSING")
                         else:
-                            provider = (handoff.NativeTranscriptProvider if request["schema_version"] == "1.1"
-                                        else handoff.FixtureTranscriptProvider)(lease.root)
+                            provider = handoff.provider_class_for(request["schema_version"])(lease.root)
                             result.update(handoff.validate_recovery_readiness(lease, request, provider))
             except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
                 result.update(status="UNKNOWN" if isinstance(exc, (OSError, subprocess.SubprocessError)) else "PROOF_CONFLICT", reason=str(exc))

@@ -126,7 +126,8 @@ def test_reader_rejects_provider_source_mismatch(repo, provider, source):
 
 
 def test_vscode_provider_cannot_be_written_as_codex_and_vice_versa(repo):
-    for provider in ("claude", "github-copilot", "unknown"):
+    # 'claude' is a root-bound provider with its own source since #231 was approved.
+    for provider in ("github-copilot", "unknown"):
         with pytest.raises(ValueError, match="Codex or VS Code"):
             core.write_session_envelope("x-" + provider, repo, provider=provider, bound_consumer_root=repo)
     codex_start(dict(hook_event_name="SessionStart", source="startup", session_id="codex-a", cwd=str(repo)), repo)
