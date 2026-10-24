@@ -594,3 +594,54 @@ def test_codex_payload_cwd_rule_stays_exact(ready, tmp_path):
     assert error(excinfo) == "CONSUMER_ROOT_MISMATCH"
     n._payload(moved, root, c.CLAUDE)
     n._payload(payload, root)
+
+
+# --------------------------------------------------------------------------
+# #242 — provider identity isolation in both directions
+# --------------------------------------------------------------------------
+
+def test_n17_codex_request_cannot_bind_a_claude_envelope(ready, tmp_path):
+    """The mirror of N16. Owner decision 2026-10-24: identity is isolated.
+
+    N16 covered only Claude-request-on-Codex-envelope. While codex mapped to
+    None this direction was unchecked, and it became reachable as soon as
+    Claude SessionStart began issuing envelopes.
+    """
+    root = ready[0]
+    assert json.loads((root / ENVELOPE).read_bytes())["provider"] == "claude"
+    source = write_rows(tmp_path / "codex.jsonl", [
+        {"type": "session_meta", "payload": {"id": SID, "cwd": str(root)}},
+        {"type": "event_msg", "timestamp": "2026-10-24T00:00:00Z",
+         "payload": {"type": "token_count", "info": {}}},
+    ])
+    payload = dict(hook_event_name="SessionEnd", session_id=SID, cwd=str(root),
+                   transcript_path=str(source), reason="other")
+    with pytest.raises(h.HandoffError) as excinfo:
+        n.publish(root, payload, deadline_ms=30000, profile=n.CODEX)
+    assert "ENVELOPE_PROVIDER_MISMATCH" in error(excinfo)
+    # Rejection plus side-effect absence, not a code name.
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] != "RELEASED"
+    assert not (root / "artifacts/runtime/closeout-completions" / f"{SID}.json").exists()
+
+
+def test_every_request_provider_has_an_explicit_envelope_mapping():
+    """A new provider must fail closed, never default-allow.
+
+    This is the development-time control for the runtime
+    ENVELOPE_PROVIDER_UNMAPPED guard: adding a provider to _VERSIONS without
+    adding it here fails this test rather than silently skipping the envelope
+    leg.
+    """
+    declared = {provider for _, provider in h._VERSIONS.values()}
+    assert declared == set(h._ENVELOPE_PROVIDERS), (declared, set(h._ENVELOPE_PROVIDERS))
+    # No None escape hatch, and no empty set that would reject everything by
+    # accident rather than by decision.
+    for provider, allowed in h._ENVELOPE_PROVIDERS.items():
+        assert isinstance(allowed, frozenset) and allowed, (provider, allowed)
+    # github-copilot-vscode issues root-bound envelopes but has no request
+    # provider, so nothing may bind one. Recorded so a future widening is a
+    # deliberate edit to this assertion.
+    assert "github-copilot-vscode" not in h._ENVELOPE_PROVIDERS
+    assert all("github-copilot-vscode" not in allowed
+               for allowed in h._ENVELOPE_PROVIDERS.values())
