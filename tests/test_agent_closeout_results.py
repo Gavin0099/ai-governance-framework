@@ -17,9 +17,9 @@ def test_claude_conflict_returns_failure_without_changing_settings(
     adapter = manager.ClaudeAdapter()
     settings = tmp_path / ".claude" / "settings.local.json"
     settings.parent.mkdir()
-    settings.write_text(json.dumps({"hooks": {"Stop": [{"hooks": [{
+    settings.write_text(json.dumps({"hooks": {"SessionStart": [{"hooks": [{
         "type": "command",
-        "command": adapter._command(tmp_path, tmp_path / "other-framework"),
+        "command": adapter._command(tmp_path, tmp_path / "other-framework", "session_start"),
     }]}]}}), encoding="utf-8")
     before = settings.read_bytes()
     monkeypatch.setattr(sys, "argv", [
