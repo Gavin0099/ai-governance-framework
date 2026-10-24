@@ -27,6 +27,7 @@ import subprocess
 import pytest
 
 from governance_tools import claude_closeout_publisher as c
+from governance_tools import closeout_attestation as _attest
 from governance_tools import closeout_handoff as h
 from governance_tools import native_closeout_publisher as n
 from governance_tools import session_closeout_entry as entry
@@ -264,6 +265,10 @@ def test_p1_claude_request_is_admitted_and_releases_ownership(ready):
     assert owner(root) == before
 
     provider = h.ClaudeTranscriptProvider(root)
+    # Release now requires an owner closeout attestation for the claude path
+    # (#233 Tranche 2). Admission is what this module tests; the attestation
+    # is recorded here so the release leg can still be exercised.
+    _attest.record(root, SID, "close out this session")
     final = h.consume_exact_request(root, req["request_id"], session_id=SID, provider=provider)
     assert final["status"] == "FINALIZED"
     assert final["transcript_ingestion"] == "VERIFIED"
@@ -279,6 +284,10 @@ def test_p1_claude_request_is_admitted_and_releases_ownership(ready):
 def test_p2_next_session_acquires_after_release(ready):
     root = ready[0]
     req = publish(ready)
+    # Release now requires an owner closeout attestation for the claude path
+    # (#233 Tranche 2). Admission is what this module tests; the attestation
+    # is recorded here so the release leg can still be exercised.
+    _attest.record(root, SID, "close out this session")
     h.consume_exact_request(root, req["request_id"], session_id=SID,
                             provider=h.ClaudeTranscriptProvider(root))
     released = owner(root)
@@ -425,6 +434,10 @@ def test_n10_generation_mismatch_rejected(ready, tmp_path):
 def test_n11_consumed_session_cannot_republish(ready):
     root = ready[0]
     req = publish(ready)
+    # Release now requires an owner closeout attestation for the claude path
+    # (#233 Tranche 2). Admission is what this module tests; the attestation
+    # is recorded here so the release leg can still be exercised.
+    _attest.record(root, SID, "close out this session")
     h.consume_exact_request(root, req["request_id"], session_id=SID,
                             provider=h.ClaudeTranscriptProvider(root))
     # An immutable finalized request answers a repeat; it never re-opens one.
@@ -536,6 +549,10 @@ def test_subdirectory_cwd_is_admitted_end_to_end_and_kept_raw(ready, tmp_path):
     manifest = json.loads((root / ref["manifest_locator"]).read_bytes())
     # The raw cwd stays as evidence; it is never rewritten to the root.
     assert manifest["native_payload"]["cwd"] == str(sub)
+    # Release now requires an owner closeout attestation for the claude path
+    # (#233 Tranche 2). Admission is what this module tests; the attestation
+    # is recorded here so the release leg can still be exercised.
+    _attest.record(root, SID, "close out this session")
     final = h.consume_exact_request(root, result["request_id"], session_id=SID,
                                     provider=h.ClaudeTranscriptProvider(root))
     assert final["status"] == "FINALIZED"
