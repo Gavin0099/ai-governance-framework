@@ -42,12 +42,26 @@ _VERSIONS = {"1.0": ("core-v1-fixture", "codex"),
              "1.1": ("native-publisher-v1", "codex"),
              "1.2": (CLAUDE_PUBLISHER, "claude")}
 
-# Which session-envelope providers each event provider may bind. Before a
-# second provider existed this could not be violated, so nothing checked it;
-# admitting Claude makes borrowing another provider's envelope reachable, which
-# is what this closes. None means unconstrained, preserving the existing codex
-# behaviour including legacy envelopes whose provider is "unknown".
-_ENVELOPE_PROVIDERS = {"codex": None, "claude": frozenset({"claude"})}
+# Which session-envelope providers each event provider may bind. Each provider
+# may bind only its own SessionStart's envelope.
+#
+# Owner decision, 2026-10-24 (#242): provider identity is isolated. Sharing the
+# closeout core does not make identities shareable, so Codex must not close out
+# work whose session identity Copilot or Claude established. An earlier revision
+# mapped codex to None to "preserve legacy envelopes whose provider is unknown";
+# that premise was false — _live calls r2._identity first, which requires schema
+# 1.1, and a 1.1 envelope's provider is always a key of
+# _ROOT_BOUND_SOURCE_BY_PROVIDER — so the exemption protected nothing while
+# removing the check for both codex request versions.
+#
+# github-copilot-vscode is deliberately absent. There is no evidence that
+# Copilot must use the codex request path; if it ever does, that needs its own
+# verification and authorization rather than a pre-widened boundary.
+#
+# A provider with no entry here is REJECTED. There is no default-allow branch,
+# so adding a provider to _VERSIONS without adding it here fails closed.
+_ENVELOPE_PROVIDERS = {"codex": frozenset({"codex"}),
+                       "claude": frozenset({"claude"})}
 
 
 def provider_class_for(schema_version):
@@ -600,14 +614,18 @@ def _live(lease, request, provider, *, qualified_context=None):
     envelope = r2._path(root, f'artifacts/runtime/sessions/{b["session_id"]}/session-envelope.json')
     _require(r2._digest(envelope) == b["envelope_sha256"], "ENVELOPE_DRIFT")
     # A matching digest proves the envelope did not change, not that it belongs
-    # to this request's provider. Without this a Claude request can ride an
-    # envelope a Codex SessionStart issued.
+    # to this request's provider. Without this a request can ride an envelope
+    # another provider's SessionStart issued, in either direction.
     allowed_envelope = _ENVELOPE_PROVIDERS.get(b["native_event"]["provider"])
-    if allowed_envelope is not None:
-        # The canonical reader, not a raw parse: it already binds provider to
-        # repo_binding.source, so this adds the request-to-envelope leg only.
-        declared = (r2.read_session_envelope(b["session_id"], root) or {}).get("provider")
-        _require(declared in allowed_envelope, "ENVELOPE_PROVIDER_MISMATCH")
+    # An unmapped provider fails closed rather than skipping this leg. Today
+    # _validate_request already pins the provider per request version, so this
+    # is unreachable; it exists so that adding a version cannot silently bypass
+    # the check. The development-time control is the mapping-coverage test.
+    _require(allowed_envelope is not None, "ENVELOPE_PROVIDER_UNMAPPED")
+    # The canonical reader, not a raw parse: it already binds provider to
+    # repo_binding.source, so this adds the request-to-envelope leg only.
+    declared = (r2.read_session_envelope(b["session_id"], root) or {}).get("provider")
+    _require(declared in allowed_envelope, "ENVELOPE_PROVIDER_MISMATCH")
     if qualified_context is None:
         identity = _framework_identity(root)
     else:
