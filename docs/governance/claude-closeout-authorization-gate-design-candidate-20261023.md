@@ -3,8 +3,11 @@
 Status: **DESIGN CANDIDATE / UNREVIEWED**. Scope only. No implementation is
 authorized by this document, and nothing below has been built or validated.
 
-Issue: #233, Tranche 2. Depends on Tranche 1 (#237, currently BLOCKED on P1-a).
-Related: #236 (Tranche 1 spec), #231/#232 (not modified).
+Issue: #233, Tranche 2. Builds on Tranche 1, which **landed** in `main` via
+#240 — the integration that merged #232 and #237 and resolved Tranche 1's P1-a
+and P2-c.
+Related: #236 (Tranche 1 spec), #242 (an asymmetry left open in Tranche 1's
+envelope check, recorded not fixed), #231 (not modified).
 
 ## Problem
 
@@ -156,8 +159,12 @@ retroactively establishes that the attestation predicate was satisfied.
   governance bypass shaped like a convenience.
 - **Not** changing R2 release-proof requirements, the receipt schema's existing
   fields, or the ownership state machine.
-- **Not** touching #231's or #232's file sets, and **not** Tranche 1's P1-a or
-  P2-c, which have their own blockers.
+- **Not** touching #231's file set, which is still open. #232's files are now in
+  `main` via #240, so the original collision no longer applies; Tranche 1's P1-a
+  and P2-c are resolved there and are no longer carve-outs.
+- **Not** fixing #242, the one-directional envelope provider check left open in
+  Tranche 1. It is adjacent, it affects the leg a release inherits, and it needs
+  an authority decision about the allowed set rather than a code choice.
 - **Not** an attestation surface for other agents yet. Prove it for Claude
   first.
 
@@ -263,20 +270,45 @@ statement read as a stronger one.
 
 ## Ordering and dependencies
 
-This design does not depend on Tranche 1's P1-a: the authorization leg is
-independent of envelope identity. It cannot be **verified end to end** until
-P1-a lands, because no Claude request can be published until then.
+**This section was written while Tranche 1 was blocked and is now updated.**
+When this document was first filed, no Claude request could be published,
+because R1 required a root-bound schema 1.1 envelope and the canonical reader
+recognised only `codex` and `github-copilot-vscode`. Tranche 2 was therefore
+designable but not verifiable.
 
-So the honest ordering is:
+That precondition is gone. #240 merged #232 and #237 and landed in `main`:
+`_ROOT_BOUND_SOURCE_BY_PROVIDER` now carries
+`"claude": "claude_session_start"`, the worktree-root rule replaced the
+`cwd`-equals-root requirement, and `tests/test_claude_closeout_admission.py`
+passes 31 cases with no `xfail` — the cases that were strict-xfail on P1-a were
+converted into live tests rather than removed.
+
+So the ordering collapses to:
 
 ```
-#231 -> #232 (Claude root-bound identity; contains P1-a's fix)
-      -> #237 P1-a unlock and re-review
-      -> Tranche 2a..2c (this document)
-      -> real Claude A/B handover acceptance
+Tranche 1  LANDED in main (#232 + #237 via #240)
+         -> Tranche 2a..2c (this document)
+         -> real Claude A/B handover acceptance
 ```
 
-Tranche 2a can be written and reviewed in parallel with the first two steps.
-Nothing in it should be claimed as working before the real handover acceptance
-succeeds, and the product judgement stays unchanged until then: cross-session
-memory is not a closed loop.
+**Tranche 2 is now verifiable end to end.** A Claude request can be published
+and a release proof produced, so the attestation predicate can be exercised
+against a real admitted request rather than only reasoned about. The negative
+cases in the evidence plan that assume a publishable request — A1 through A8 and
+the positive pair — no longer need to be deferred.
+
+Two things this does **not** change:
+
+- The claim ceiling. An attestation that can be written by the same process it
+  authorizes is still tamper-evident binding and non-silence, never
+  authentication. Tranche 1 landing makes the gate testable; it does not make it
+  stronger.
+- The product judgement. Nothing here should be claimed as working before the
+  real Claude A/B handover acceptance succeeds, and until it does, cross-session
+  memory is **not** a closed loop.
+
+One Tranche 1 item is still open and is recorded rather than fixed: #242, where
+the envelope-to-request provider check is one-directional because `codex` is
+mapped to `None`. It does not block Tranche 2a, but a release that this gate
+authorizes still inherits that envelope leg, so it should be settled before the
+handover acceptance is declared.
