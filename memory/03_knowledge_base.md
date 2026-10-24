@@ -444,3 +444,74 @@ blocked on it rather than on its own quality.
 **Not a licence.** None of this makes repinning a manifest or rewriting pair
 evidence acceptable. The consumed pair stays `NON_SUCCESS` and unusable; the
 correct response to a broken pin is to defer the slice, not to move the pin.
+
+## A mechanical signal is not the semantic property it resembles (2026-10-23)
+
+**Pattern.** Four claims in one work cycle were the same defect: a true
+mechanical fact restated as the stronger property it sits next to. Each
+mechanical statement was correct; each inference from it was not.
+
+- A missing session envelope was rejected at the R1 layer as
+  `INVALID_OWNER: qualified R1 binding required`, earlier than the expected
+  `ENVELOPE_DRIFT`. This was recorded as "stricter behaviour". It was neither
+  stricter nor a property: that message is the `schema_version == "1.1"` gate,
+  and what the test had actually found was a newly written envelope helper
+  emitting a legacy 1.0 envelope. The defect was read as a safeguard.
+- A closeout receipt carried `trigger_mode: wrapper`, a member of
+  `ALLOWED_TRIGGER_MODES`, and the end-to-end test reached `FINALIZED` /
+  `RELEASED`. This was presented as the formal closeout working. A legal trigger
+  mode only means the mode is not the rejected `manual_fallback`. It says
+  nothing about who asked for the release, and nothing in that path established
+  that anyone with authority did.
+- Tests blocked by an upstream contract were marked `xfail(strict=True)` and
+  described as "the tripwire for the blocker landing". An unexpected pass means
+  only that the path became reachable — which can equally mean a guard was
+  weakened or removed. It is a signal to re-verify, not evidence of a fix.
+- An attestation record's digest was described as making the design a
+  "non-repudiation boundary". A digest binds whatever bytes were written. In a
+  threat model that already concedes the writer can fabricate those bytes, it
+  cannot attribute them to anyone, so the honest claim is tamper-evident
+  binding, not non-repudiation.
+
+**Why it survives review.** The mechanical half is verifiable and gets verified,
+so the claim arrives with real evidence attached. The semantic half is adjacent,
+useful, and never separately checked — nothing in the pipeline distinguishes
+"X is true" from "X implies Y". Worse, the stronger wording is the one worth
+writing down, so it is what reaches a commit message, a PR body, or a memory
+entry, where it is later read as settled.
+
+**Detection rule.** For any sentence of the form "the system rejected / accepted
+/ recorded X, therefore <safety, authority, or completion property>", state the
+property's actual precondition and ask whether the mechanism establishes it.
+Four specific substitutions, each of which failed above:
+
+- a rejection establishes safety only together with side-effect absence — no
+  record written, no state transition, no residue a later call can consume;
+- an allowed enumeration value establishes that a value is in a set, never that
+  a request was authorized;
+- a test changing outcome establishes that reachability changed, never that the
+  change was correct;
+- a digest establishes byte identity, never attribution.
+
+Prefer the weaker sentence in the artifact that will be read later. If both the
+mechanical and the semantic claim are wanted, write them as two sentences so the
+second can be challenged on its own.
+
+**Confirmation.** Three were caught by the owner across one review cycle and one
+by an automated reviewer on a design document; all four were withdrawn in
+commit messages. Correcting each instance individually did not prevent the next
+one, which is why the class is recorded here rather than only in the four
+retractions.
+
+**Related, same cycle.** A predicate was written to require the literal word
+"closeout" while `AGENTS.md` defines session end as the user "explicitly asking
+to end the session **or** to close out". Matching a keyword instead of the
+intent the contract names put two governance documents in conflict and would
+have retained ownership for a user who said "end this session" — breaking the
+same document's own no-permanent-block property. When a predicate restates a
+canonical contract, quote the contract's own alternatives rather than one
+phrasing of them.
+
+**Related, earlier.** This is the same shape as "A test can be narrower than the
+invariant it is named after (2026-08-16)": prose asserting one thing while the
+mechanism checks another, with the green result read as evidence for the prose.
