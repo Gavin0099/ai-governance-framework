@@ -1,3 +1,13 @@
+"""Claude Code hook installation: SessionStart/SessionEnd, no governance Stop closeout.
+
+Claude Code's Stop fires after every response, not at session end (a real
+session here ran the old Stop closeout 44 times).  The installer now manages a
+SessionStart (identity, read-back) and a SessionEnd (resumable checkpoint, 5 s)
+hook and removes any legacy governance Stop hook.  The safety properties of
+the previous installer are kept: unreadable settings are never rewritten,
+installation is idempotent, user hooks are preserved, and a governance hook in
+another settings scope blocks installation.
+"""
 import json
 import os
 from pathlib import Path
@@ -9,6 +19,10 @@ import pytest
 
 from governance_tools.manage_agent_closeout import ClaudeAdapter
 
+FRAMEWORK = Path(__file__).resolve().parents[1]
+LEGACY_V1 = ("python -c " + "'# governance:claude-closeout-v1\nimport sys\n'")
+LEGACY_SHELL = "python E:/external/governance_tools/session_closeout_entry.py --project-root . 2>/dev/null || true"
+
 
 @pytest.fixture
 def adapter(tmp_path, monkeypatch):
@@ -16,25 +30,30 @@ def adapter(tmp_path, monkeypatch):
     return ClaudeAdapter()
 
 
-def write_hook(repo, command, name="settings.json"):
+def write_hook(repo, command, name="settings.json", event="Stop"):
     path = repo / ".claude" / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"permissions": {"allow": []}, "hooks": {
-        "Stop": [{"hooks": [{"type": "command", "command": command}]}]}}))
+        event: [{"hooks": [{"type": "command", "command": command}]}]}}))
     return path
 
 
-def test_missing_settings_creates_governance_stop_hook(adapter, tmp_path):
+def governance_hooks(data, event):
+    return [hook for group in data.get("hooks", {}).get(event, [])
+            for hook in group.get("hooks", []) if ClaudeAdapter._is_governance_hook(hook)]
+
+
+def test_missing_settings_installs_session_start_and_end_only(adapter, tmp_path):
     path = tmp_path / ".claude/settings.json"
     framework = tmp_path / "framework"
-    assert not path.exists()
-
     assert adapter.install(tmp_path, framework)["status"] == "installed"
-
     data = json.loads(path.read_text(encoding="utf-8"))
-    hooks = [hook for group in data["hooks"]["Stop"] for hook in group["hooks"]]
-    assert len(hooks) == 1
-    assert hooks[0]["command"] == adapter._command(tmp_path, framework)
+    (start,) = governance_hooks(data, "SessionStart")
+    (end,) = governance_hooks(data, "SessionEnd")
+    assert start["command"] == adapter._command(tmp_path, framework, "session_start")
+    assert end["command"] == adapter._command(tmp_path, framework, "session_end")
+    assert end["timeout"] == 5
+    assert "Stop" not in data["hooks"]
     assert adapter.verify(tmp_path, framework)["installed"] is True
 
 
@@ -45,6 +64,7 @@ def test_missing_settings_creates_governance_stop_hook(adapter, tmp_path):
         "Stop": [{"matcher": "", "custom_group_key": {"keep": True}, "hooks": [
             {"type": "command", "command": "echo custom-stop", "timeout": 17},
         ]}],
+        "SessionStart": [{"hooks": [{"type": "command", "command": "echo custom-start"}]}],
         "PreToolUse": [{"hooks": [{"type": "command", "command": "echo custom-pre"}]}],
     }}, id="custom_hooks"),
     pytest.param({"unknown_key": {"nested": [False, None, {"keep": "unchanged"}]},
@@ -63,14 +83,12 @@ def test_valid_utf8_settings_preserved_and_install_idempotent(adapter, tmp_path,
         if key != "hooks":
             assert data[key] == value
     for event, groups in original.get("hooks", {}).items():
-        if event == "Stop":
-            assert data["hooks"][event][:-1] == groups
+        if event == "SessionStart":
+            assert data["hooks"][event][:-1] == groups  # user hook kept, ours appended
         else:
-            assert data["hooks"][event] == groups
-    governance_hooks = [hook for group in data["hooks"]["Stop"] for hook in group["hooks"]
-                        if adapter._is_governance_hook(hook)]
-    assert len(governance_hooks) == 1
-    assert governance_hooks[0]["command"] == adapter._command(tmp_path, framework)
+            assert data["hooks"][event] == groups  # custom Stop untouched
+    assert len(governance_hooks(data, "SessionStart")) == 1
+    assert len(governance_hooks(data, "SessionEnd")) == 1
     before_retry = path.read_bytes()
     assert adapter.install(tmp_path, framework)["status"] == "already_installed"
     assert path.read_bytes() == before_retry
@@ -83,7 +101,8 @@ def test_valid_utf8_settings_preserved_and_install_idempotent(adapter, tmp_path,
     pytest.param(b'[]', id="non_object_settings"),
     pytest.param(b'{"hooks":[]}', id="non_object_hooks"),
     pytest.param(b'{"hooks":{"Stop":{}}}', id="non_list_stop"),
-    pytest.param(b'{"hooks":{"Stop":[null]}}', id="non_object_stop_group"),
+    pytest.param(b'{"hooks":{"SessionStart":{}}}', id="non_list_session_start"),
+    pytest.param(b'{"hooks":{"SessionEnd":[null]}}', id="non_object_session_end_group"),
     pytest.param(b'{"hooks":{"Stop":[{"hooks":{}}]}}', id="non_list_group_hooks"),
 ])
 def test_invalid_existing_settings_blocked_without_writes(adapter, tmp_path, payload):
@@ -151,7 +170,7 @@ def test_deep_settings_cli_returns_structured_failure_without_writes(tmp_path):
     result = subprocess.run([
         sys.executable, "-B", "-m", "governance_tools.manage_agent_closeout",
         "--project-root", str(tmp_path), "--format", "json", "install", "--agent", "claude",
-    ], cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30)
+    ], cwd=FRAMEWORK, capture_output=True, text=True, timeout=30)
 
     assert result.returncode == 1
     assert result.stdout, result.stderr
@@ -172,59 +191,121 @@ def test_correct_binding_is_idempotent(adapter, tmp_path):
     assert path.read_bytes() == before
 
 
-def test_wrong_external_binding_is_replaced_without_duplication(adapter, tmp_path):
-    path = write_hook(tmp_path, "python E:/external/governance_tools/session_closeout_entry.py --project-root . 2>/dev/null || true")
+@pytest.mark.parametrize("legacy", [LEGACY_SHELL, LEGACY_V1], ids=["shell_or_true", "closeout_v1"])
+def test_legacy_stop_closeout_is_reported_stale_and_replaced(adapter, tmp_path, legacy):
+    path = write_hook(tmp_path, legacy)
+    assert adapter.verify(tmp_path, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
+    result = adapter.install(tmp_path, tmp_path / "fw")
+    assert result["status"] == "installed" and "replaced" in result["message"]
+    data = json.loads(path.read_text())
+    assert "Stop" not in data["hooks"]  # the governance-only group and event are gone
+    assert len(governance_hooks(data, "SessionStart")) == 1
+    assert len(governance_hooks(data, "SessionEnd")) == 1
+    assert data["permissions"] == {"allow": []}
+    assert adapter.verify(tmp_path, tmp_path / "fw")["installed"] is True
+
+
+def test_wrong_framework_binding_is_replaced_without_duplication(adapter, tmp_path):
+    path = write_hook(tmp_path, adapter._command(tmp_path, tmp_path / "old-fw", "session_start"),
+                      event="SessionStart")
     assert adapter.verify(tmp_path, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
     assert adapter.install(tmp_path, tmp_path / "fw")["status"] == "installed"
     data = json.loads(path.read_text())
-    hooks = [h for g in data["hooks"]["Stop"] for h in g["hooks"]]
-    assert len(hooks) == 1
-    assert hooks[0]["command"] == adapter._command(tmp_path, tmp_path / "fw")
-    assert data["permissions"] == {"allow": []}
-    assert "|| true" not in hooks[0]["command"]
-    assert "2>/dev/null" not in hooks[0]["command"]
+    (start,) = governance_hooks(data, "SessionStart")
+    assert start["command"] == adapter._command(tmp_path, tmp_path / "fw", "session_start")
+
+
+def test_wrong_session_end_timeout_is_stale(adapter, tmp_path):
+    assert adapter.install(tmp_path, tmp_path / "fw")["status"] == "installed"
+    path = tmp_path / ".claude/settings.json"
+    data = json.loads(path.read_text())
+    data["hooks"]["SessionEnd"][0]["hooks"][0]["timeout"] = 60
+    path.write_text(json.dumps(data))
+    assert adapter.verify(tmp_path, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
 
 
 def test_similar_text_is_neither_current_nor_deleted(adapter, tmp_path):
-    text = "echo session_closeout_entry"
+    text = "echo session_closeout_entry session_lifecycle.py"
     path = write_hook(tmp_path, text)
     assert adapter.verify(tmp_path, tmp_path)["binding_state"] == "NOT_INSTALLED"
     adapter.install(tmp_path, tmp_path)
     assert json.loads(path.read_text())["hooks"]["Stop"][0]["hooks"][0]["command"] == text
 
 
-def test_override_conflict_does_not_create_second_hook(adapter, tmp_path):
-    path = write_hook(tmp_path, adapter._command(tmp_path, tmp_path / "other"), "settings.local.json")
+@pytest.mark.parametrize("event", ["Stop", "SessionStart", "SessionEnd"])
+def test_override_conflict_does_not_create_second_hook(adapter, tmp_path, event):
+    command = LEGACY_SHELL if event == "Stop" else adapter._command(tmp_path, tmp_path / "other", "session_start")
+    path = write_hook(tmp_path, command, "settings.local.json", event=event)
     before = path.read_bytes()
     assert adapter.install(tmp_path, tmp_path)["status"] == "blocked"
     assert path.read_bytes() == before
     assert not (tmp_path / ".claude/settings.json").exists()
 
 
-@pytest.mark.parametrize("code,ok,expected", [(0, True, 0), (1, False, 1), (2, False, 1), (7, False, 1), (0, False, 1)])
-def test_native_shell_failure_translation_and_stderr(adapter, tmp_path, code, ok, expected):
-    repo = tmp_path / "repo with spaces"
-    framework = repo / "framework's path"
-    entry = framework / "governance_tools/session_closeout_entry.py"
-    entry.parent.mkdir(parents=True)
-    entry.write_text(
-        "import json,sys,pathlib\n"
-        "pathlib.Path('invocation.json').write_text(json.dumps({'argv':sys.argv, 'stdin':sys.stdin.read()}))\n"
-        "sys.stderr.write('known-error\\n')\n"
-        f"print(json.dumps({{'ok': {ok!r}, 'decision': 'block'}}))\n"
-        f"sys.exit({code})\n"
-    )
+def test_uninstall_removes_lifecycle_and_legacy_hooks_only(adapter, tmp_path):
+    path = write_hook(tmp_path, LEGACY_SHELL)
+    data = json.loads(path.read_text())
+    data["hooks"]["PreToolUse"] = [{"hooks": [{"type": "command", "command": "echo custom"}]}]
+    path.write_text(json.dumps(data))
+    assert adapter.install(tmp_path, tmp_path / "fw")["status"] == "installed"
+    assert adapter.uninstall(tmp_path)["status"] == "uninstalled"
+    after = json.loads(path.read_text())
+    assert after["hooks"] == {"PreToolUse": [{"hooks": [{"type": "command", "command": "echo custom"}]}]}
+    assert adapter.uninstall(tmp_path)["status"] == "not_found"
+
+
+# ── the installed commands, executed the way Claude Code runs them ───────────
+
+def _bash():
     bash = "C:/Program Files/Git/bin/bash.exe" if os.name == "nt" else shutil.which("bash")
     if not bash or not Path(bash).exists():
         pytest.skip("Native Bash unavailable")
-    result = subprocess.run([bash, "-c", adapter._command(repo, framework)], cwd=repo,
-                            input='{"hook_event_name":"Stop"}', capture_output=True,
-                            text=True, timeout=30)
-    assert result.returncode == expected, result.stderr
-    assert "known-error" in result.stderr
-    assert not result.stdout  # core JSON must not become Claude decision control
-    record = json.loads((repo / "invocation.json").read_text())
-    assert Path(record["argv"][0]).resolve() == entry.resolve()
-    assert Path(record["argv"][2]).resolve() == repo.resolve()
-    assert record["stdin"] == '{"hook_event_name":"Stop"}'
-    assert record["argv"][3:] == ["--format", "json", "--agent-id", "claude", "--trigger-mode", "native_hook"]
+    return bash
+
+
+def _git_repo(path):
+    path.mkdir(parents=True)
+    subprocess.run(["git", "init", "--quiet", str(path)], check=True)
+    return path.resolve()
+
+
+def _run_installed(bash, repo, event, payload):
+    command = ClaudeAdapter._command(repo, FRAMEWORK, event)
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")}
+    env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    return subprocess.run([bash, "-c", command], cwd=repo, input=json.dumps(payload),
+                          capture_output=True, text=True, encoding="utf-8", timeout=60, env=env)
+
+
+def test_installed_commands_start_and_checkpoint_through_bash(tmp_path):
+    bash = _bash()
+    repo = _git_repo(tmp_path / "repo with spaces")
+    base = {"session_id": "a1b2c3d4-0000-4000-8000-000000000001", "cwd": str(repo), "transcript_path": "t"}
+
+    start = _run_installed(bash, repo, "session_start",
+                           {**base, "hook_event_name": "SessionStart", "source": "startup"})
+    assert start.returncode == 0, start.stderr
+    context = json.loads(start.stdout)["hookSpecificOutput"]
+    assert context["hookEventName"] == "SessionStart"
+    assert "identity=root_bound" in context["additionalContext"]
+
+    end = _run_installed(bash, repo, "session_end",
+                         {**base, "hook_event_name": "SessionEnd", "reason": "prompt_input_exit"})
+    assert end.returncode == 0, end.stderr
+    assert not end.stdout  # SessionEnd output is discarded by Claude Code anyway
+    checkpoint = repo / f"artifacts/runtime/session-checkpoints/{base['session_id']}.json"
+    assert json.loads(checkpoint.read_text())["trigger_mode"] == "native_hook"
+    assert not (repo / "artifacts/runtime/closeout-completions").exists()
+
+
+def test_installed_command_failure_is_visible_and_never_exit_2(tmp_path):
+    bash = _bash()
+    repo = _git_repo(tmp_path / "repo")
+    other = _git_repo(tmp_path / "other")
+    result = _run_installed(bash, repo, "session_start", {
+        "session_id": "a1b2c3d4-0000-4000-8000-000000000002", "cwd": str(other),
+        "hook_event_name": "SessionStart", "source": "startup", "transcript_path": "t"})
+    assert result.returncode == 1
+    assert "do not match" in result.stderr
+    assert not result.stdout
+    assert not (repo / "artifacts").exists() and not (other / "artifacts").exists()
