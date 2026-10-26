@@ -1,11 +1,14 @@
-"""Owner closeout attestation: an explicit, attributable record that the owner
+"""Owner closeout attestation: a recorded, byte-bound statement that the owner
 asked this exact session to close out.
 
 THREAT MODEL IS COOPERATIVE, AND THIS IS THE WHOLE CLAIM. Nothing here can
 distinguish a command the owner typed from one an agent issued: the same process
-can write this record. What it provides is an explicit operation and a record
-bound to exact state, so an unauthorized release cannot happen silently and can
-be attributed after the fact.
+can write this record. What it provides is a recorded operation whose bytes are
+bound to exact state. It does not establish that the statement came from the
+owner, nor that the owner knew of it: a record that looks like owner
+authorization can be written by the same process that benefits from it. So it
+does not make an unauthorized release detectable on its own, and it is not
+attribution.
 
 It is NOT authentication, NOT proof of human origin, and NOT non-repudiation.
 An agent that ignores the rule can still write a well-formed attestation.
@@ -69,8 +72,14 @@ def validate(record, root) -> dict:
     h._hash(a["text_digest"])
     r2._candidate(root, a["session_id"], a["candidate_identity"])
     _statement(a["owner_statement"])
-    h._require(datetime.fromisoformat(a["attested_at"]).tzinfo is not None,
-               "INVALID_ATTESTATION: timestamp")
+    # fromisoformat raises TypeError on a non-str, which would escape _require
+    # and propagate out of find(), so the type is checked first.
+    h._require(type(a["attested_at"]) is str, "INVALID_ATTESTATION: timestamp type")
+    try:
+        parsed = datetime.fromisoformat(a["attested_at"])
+    except ValueError as exc:
+        raise h.HandoffError("INVALID_ATTESTATION: timestamp") from exc
+    h._require(parsed.tzinfo is not None, "INVALID_ATTESTATION: timestamp")
     # The identity payload must not contain the identity.
     h._require(h._sha(h.canonical_bytes(a)) == record["attestation_id"],
                "ATTESTATION_ID_MISMATCH")
@@ -108,7 +117,10 @@ def find(root, binding: dict):
         try:
             candidate = h._read(r2._path(root, relative))
             a = validate(candidate, root)
-        except (ValueError, OSError):
+        except (ValueError, TypeError, KeyError, OSError):
+            # A malformed record is skipped, never fatal: aborting the scan
+            # would let one bad file permanently block a legitimate handover,
+            # which is the half of #233 that is not about wrongful release.
             continue
         # The filename must be the identity, so the store cannot be reshuffled.
         if path.stem != candidate["attestation_id"]:

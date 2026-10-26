@@ -63,8 +63,12 @@ def test_s2_next_session_takes_over_after_a_formally_closes_out(ready):
     assert result["owner_state"] == "RELEASED"
     assert result["transcript_ingestion"] == "VERIFIED"
     assert result["attestation_id"] and result["request_id"]
-    # The command must not overstate what it proved.
-    assert "not proof of human origin" in result["authorization_model"]
+    # The command must not overstate what it proved. Asserted as substance, so
+    # the wording can improve but cannot quietly strengthen.
+    model = result["authorization_model"]
+    assert "cooperative" in model
+    assert "not authentication" in model
+    assert "not attribution" in model
 
     # The attestation is on disk, bound to the generation that was released.
     stored = attestation.find(root, {**{k: before[k] for k in
@@ -260,3 +264,46 @@ def test_codex_release_path_is_unaffected_by_the_claude_gate(repo, monkeypatch, 
     entry.main()
     # The point is only that the claude gate did not reject it.
     assert "CLOSEOUT_NOT_ATTESTED" not in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------
+# #245 P2 — a malformed record must not block a legitimate handover
+# --------------------------------------------------------------------------
+
+def test_malformed_attestation_sorted_first_does_not_block_a_legal_handover(ready):
+    """The no-permanent-block half of #233.
+
+    find() scans sorted(glob("*.json")), so a bad record whose id sorts first
+    is seen first. Before the fix, attested_at=null raised TypeError out of
+    datetime.fromisoformat — which _require never sees and find did not catch —
+    so one bad file aborted the scan and a valid attestation later in the order
+    could never be found. A legitimate re-authorization then failed forever.
+    """
+    root, source, _ = ready
+    valid = attestation.record(root, SID, REQUEST)
+
+    bad_id = "0" * 64  # sorts before any real digest
+    directory = root / attestation.AREA / SID
+    bad = dict(json.loads((directory / f'{valid["attestation_id"]}.json').read_bytes()))
+    bad["attestation"] = {**bad["attestation"], "attested_at": None}
+    (directory / f"{bad_id}.json").write_bytes(h.canonical_bytes(bad))
+    assert sorted(p.stem for p in directory.glob("*.json"))[0] == bad_id
+
+    # The valid record is still found, and the handover still completes.
+    found = attestation.find(root, owner(root))
+    assert found is not None and found["attestation_id"] == valid["attestation_id"]
+
+    result = cli.close_out(root, SID, REQUEST, source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)
+
+
+@pytest.mark.parametrize("value", [None, 0, [], {}, True])
+def test_malformed_timestamp_types_are_refused_not_raised(ready, value):
+    """Each bad type yields a governed refusal, never a bare TypeError."""
+    root = ready[0]
+    record = attestation.build(owner(root), REQUEST)
+    record["attestation"]["attested_at"] = value
+    with pytest.raises(h.HandoffError) as excinfo:
+        attestation.validate(record, root)
+    assert "INVALID_ATTESTATION" in str(excinfo.value)

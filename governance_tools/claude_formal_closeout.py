@@ -17,8 +17,9 @@ gate only this command enforces is not a gate.
 
 THREAT MODEL IS COOPERATIVE. --owner-request records what the owner asked; it
 does not prove a human typed it, because the same process can write that record.
-This command gives an explicit operation and an attributable record, not
-authentication. manual_fallback remains rejected and is not involved.
+This command gives a recorded operation whose bytes are bound to exact state.
+It does not establish that the statement came from the owner or that the owner
+knew of it, so it is neither authentication nor attribution. manual_fallback remains rejected and is not involved.
 """
 from __future__ import annotations
 
@@ -64,8 +65,9 @@ def close_out(project_root, session_id: str, owner_request: str, transcript_path
             "owner_state": _owner_state(root),
             "transcript_ingestion": released.get("transcript_ingestion"),
             # Recorded so the caller cannot mistake this for authentication.
-            "authorization_model": "cooperative: explicit operation and "
-                                   "attributable record, not proof of human origin"}
+            "authorization_model": "cooperative: recorded byte-bound statement; "
+                                   "not authentication, not attribution, not "
+                                   "proof that the owner made or knew of it"}
 
 
 def _owner_state(root):
