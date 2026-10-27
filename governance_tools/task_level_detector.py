@@ -15,6 +15,8 @@ Step 5: L0 Payload Short-Circuit
 
 from __future__ import annotations
 
+import re
+
 
 # ── L0 關鍵字（任何一個命中 → 候選 L0）
 L0_KEYWORDS: list[str] = [
@@ -52,6 +54,37 @@ L0_VETO_KEYWORDS: list[str] = [
     "release", "deploy", "version", "changelog", "tag", "publish",
 ]
 
+# ── 資料破壞關鍵字（語義明確，單獨出現即否決 L0）
+# 這一組詞沒有常見的非破壞性用法，不需要搭配受詞就足以升級。
+DESTRUCTIVE_OPERATION_KEYWORDS: list[str] = [
+    "erase", "wipe", "purge", "shred", "destroy",
+    "unlink", "rm", "rmdir", "rmtree", "mkfs",
+    "抹除", "銷毀",
+]
+
+# ── 語義含糊的移除動詞（必須與資料物件共現才否決 L0）
+# "remove the button from the toolbar" 是 UI 工作；
+# "remove the save files" 不是。差別在受詞，不在動詞，
+# 所以這一組不能單獨否決，否則每個 UI 刪除動作都會升級。
+AMBIGUOUS_REMOVAL_KEYWORDS: list[str] = [
+    "delete", "remove", "discard", "clear", "drop",
+    "truncate", "format", "reset", "overwrite",
+    "刪除", "刪掉", "砍掉", "移除", "清空", "清除", "格式化", "覆寫",
+]
+
+# ── 資料物件（AMBIGUOUS_REMOVAL_KEYWORDS 的升級條件）
+# 刻意不收 row / volume / drive / path：這些在 CSS grid、音量、SVG
+# 語境裡是 UI 名詞，收進來會把純視覺任務誤升級。
+# table / column / database 已在 L0_VETO_KEYWORDS，不重複列入。
+DATA_OBJECT_KEYWORDS: list[str] = [
+    "file", "directory", "folder",
+    "data", "dataset", "record",
+    "save", "savegame", "backup", "snapshot",
+    "artifact", "log", "history", "profile", "account",
+    "disk", "partition", "bucket", "repository", "repo",
+    "存檔", "檔案", "資料", "備份", "紀錄", "記錄", "目錄", "磁碟", "帳號",
+]
+
 # ── L2 關鍵字（命中 → 最高風險，強制 L2）
 L2_KEYWORDS: list[str] = [
     "breaking change", "breaking-change",
@@ -62,6 +95,63 @@ L2_KEYWORDS: list[str] = [
 ]
 
 _VALID_LEVELS = frozenset({"L0", "L1", "L2"})
+
+
+def _inflections(word: str) -> list[str]:
+    """一個英文關鍵字的詞形變化。
+
+    只處理規則變化，因為關鍵字清單本身就是人工維護的；需要不規則變化時
+    直接把該詞形加進清單，比在這裡放一張例外表好追。
+    """
+    forms = {word, word + "s", word + "es", word + "d", word + "ed", word + "ing"}
+    if word.endswith("e"):
+        forms.update({word[:-1] + "ed", word[:-1] + "ing"})
+    if word.endswith("y"):
+        forms.add(word[:-1] + "ies")
+    return sorted(forms, key=len, reverse=True)
+
+
+def _contains_keyword(desc_lower: str, keyword: str) -> bool:
+    """英文走詞界比對，CJK 走子字串。
+
+    其他關鍵字清單用的是裸子字串比對。破壞性動詞普遍很短，用同一套比對
+    會把 form/confirm 當成 rm、dropdown 當成 drop、swipe 當成 wipe，
+    等於用新的誤判換掉舊的缺口。CJK 沒有詞界也沒有字尾變化，子字串就夠。
+    """
+    if not keyword.isascii():
+        return keyword in desc_lower
+    words = keyword.split()
+    head = r"\s+".join(re.escape(w) for w in words[:-1])
+    tail = "|".join(re.escape(form) for form in _inflections(words[-1]))
+    pattern = r"\b" + (head + r"\s+" if head else "") + "(?:" + tail + r")\b"
+    return re.search(pattern, desc_lower) is not None
+
+
+def destructive_data_veto(task_description: str) -> list[str]:
+    """回傳命中的資料破壞訊號；空 list 表示沒有命中。
+
+    回傳訊號而不是 bool，是為了讓升級理由在現場可見：這個 detector 目前
+    最大的問題之一，就是判級結果看得到、判級依據看不到。
+
+    偽陽性的代價是失去 L0 快速路徑，回到保守的預設 L1；偽陰性的代價是
+    未經審查的資料破壞。兩者不對稱，所以這裡偏向收斂到 L1。
+    """
+    desc_lower = task_description.lower()
+
+    explicit = [kw for kw in DESTRUCTIVE_OPERATION_KEYWORDS
+                if _contains_keyword(desc_lower, kw)]
+    if explicit:
+        return explicit
+
+    verbs = [kw for kw in AMBIGUOUS_REMOVAL_KEYWORDS
+             if _contains_keyword(desc_lower, kw)]
+    if not verbs:
+        return []
+    objects = [kw for kw in DATA_OBJECT_KEYWORDS
+               if _contains_keyword(desc_lower, kw)]
+    if not objects:
+        return []
+    return verbs + objects
 
 
 def detect_task_level(
@@ -87,6 +177,12 @@ def detect_task_level(
     # L2 檢查（最優先否決）
     if any(kw in desc_lower for kw in L2_KEYWORDS):
         return "L2"
+
+    # 資料破壞檢查（否決 L0 降級）
+    # 與 L0_VETO_KEYWORDS 分開處理，因為這一類的比對規則不同，見
+    # _contains_keyword。
+    if destructive_data_veto(task_description):
+        return "L1"
 
     # Veto 檢查（否決 L0 降級）
     if any(kw in desc_lower for kw in L0_VETO_KEYWORDS):

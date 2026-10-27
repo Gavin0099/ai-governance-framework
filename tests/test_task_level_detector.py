@@ -3,6 +3,7 @@ Tests for governance_tools/task_level_detector.py
 
 Coverage:
 - detect_task_level: explicit priority, L0 keywords, veto keywords, L2 keywords, defaults
+- destructive_data_veto: data-destruction escalation, and the UI words it must not catch
 - get_l0_context_limits: structure, required entries
 - apply_upgrade_triggers: L0 upgrade, L1/L2 passthrough, deduplication
 - Keyword list integrity: non-empty, no overlap, lowercase
@@ -13,10 +14,14 @@ from __future__ import annotations
 import pytest
 
 from governance_tools.task_level_detector import (
+    AMBIGUOUS_REMOVAL_KEYWORDS,
+    DATA_OBJECT_KEYWORDS,
+    DESTRUCTIVE_OPERATION_KEYWORDS,
     L0_KEYWORDS,
     L0_VETO_KEYWORDS,
     L2_KEYWORDS,
     apply_upgrade_triggers,
+    destructive_data_veto,
     detect_task_level,
     get_l0_context_limits,
 )
@@ -323,6 +328,107 @@ class TestApplyUpgradeTriggers:
 
 
 # ---------------------------------------------------------------------------
+# destructive_data_veto — 資料破壞升級
+# ---------------------------------------------------------------------------
+
+class TestDestructiveDataVeto:
+    """破壞資料的任務不能走 L0 快速路徑。
+
+    缺口的形狀：L0_VETO_KEYWORDS 收了 schema、auth、kernel、secret，
+    卻完全沒有收刪除類動詞，所以一個帶 UI 字眼的刪檔任務會被判成 L0。
+    """
+
+    @pytest.mark.parametrize("description", [
+        "add UI button to delete saved game files",
+        "rm -rf user data directory",
+        "wipe the user profile",
+        "purge old backups",
+        "shred the credential file",
+        "overwrite the save file",
+        "mkfs the partition",
+        "destroy the snapshot",
+        "clear all records in the ui table view",
+    ])
+    def test_data_destruction_is_not_l0(self, description):
+        assert detect_task_level(description) != "L0", description
+
+    @pytest.mark.parametrize("description", [
+        "刪除 UI button 的存檔",
+        "砍掉備份",
+        "清空資料",
+        "抹除磁碟",
+        "移除使用者帳號",
+    ])
+    def test_cjk_data_destruction_is_not_l0(self, description):
+        """CJK 沒有詞界，所以走子字串比對；UI 字眼不得讓它降級。"""
+        assert detect_task_level(description) != "L0", description
+
+    @pytest.mark.parametrize("description", [
+        "deleting the backup folder",
+        "deleted the save directory",
+        "removes the artifact files",
+        "purging the logs",
+    ])
+    def test_inflected_forms_are_caught(self, description):
+        """清單寫原形，比對要認得 -s/-ed/-ing，包含去 e 的 deleting。"""
+        assert detect_task_level(description) != "L0", description
+
+    @pytest.mark.parametrize("description", [
+        "remove the button from the toolbar",
+        "add a dropdown to the UI",
+        "add swipe gesture to the component",
+        "transform the css color",
+        "confirm button style update",
+        "fix form layout alignment",
+        "format the date in the ui label",
+        "truncate the label string in the ui",
+        "reset the theme color",
+        "clear the padding on the icon",
+        "remove the row spacing in the css grid",
+        "reset the volume slider style",
+    ])
+    def test_ui_words_that_merely_look_destructive_stay_l0(self, description):
+        """這個類別存在的理由就是不要重犯 key ⊂ keyboard 那種子字串誤判。
+
+        rm ⊂ form/confirm/transform、drop ⊂ dropdown、wipe ⊂ swipe；
+        而 remove/clear/reset/format/truncate 單獨出現時是 UI 動詞，
+        必須等到資料受詞出現才升級。
+        """
+        assert detect_task_level(description) == "L0", description
+
+    def test_veto_reports_the_signals_not_just_a_boolean(self):
+        """升級理由要在現場看得見，否則判級結果無從檢視。"""
+        signals = destructive_data_veto("delete the save files")
+        assert "delete" in signals
+        assert {"save", "file"} & set(signals)
+
+    def test_no_signals_for_a_pure_ui_removal(self):
+        assert destructive_data_veto("remove the button from the toolbar") == []
+
+    def test_ambiguous_verb_alone_does_not_veto(self):
+        """只有動詞、沒有資料受詞 → 不升級。這是偽陽性的主要防線。"""
+        assert destructive_data_veto("remove the icon") == []
+        assert destructive_data_veto("clear the margin") == []
+
+    def test_data_object_alone_does_not_veto(self):
+        """只有受詞、沒有破壞動詞 → 不升級。"""
+        assert destructive_data_veto("show the save file name in the ui") == []
+
+    def test_explicit_level_still_wins(self):
+        """人類明確指定的 level 仍然優先，與既有的 veto 行為一致。"""
+        assert detect_task_level("delete all user files", explicit_level="L0") == "L0"
+
+    def test_sql_shaped_destruction_is_already_covered(self):
+        """drop table / truncate table 由既有的 table、database veto 接住。
+
+        這一條記錄的是分工，不是這個類別的功勞：新類別補的是檔案與
+        使用者資料的破壞，不是 SQL。
+        """
+        assert detect_task_level("drop the table in the ui view") != "L0"
+        assert detect_task_level("truncate the database for the ui demo") != "L0"
+
+
+# ---------------------------------------------------------------------------
 # Keyword list integrity
 # ---------------------------------------------------------------------------
 
@@ -354,3 +460,29 @@ class TestKeywordListIntegrity:
     def test_no_empty_keywords(self):
         for kw in L0_KEYWORDS + L0_VETO_KEYWORDS + L2_KEYWORDS:
             assert kw.strip(), "Found empty or whitespace-only keyword"
+
+    def test_destruction_lists_not_empty(self):
+        assert len(DESTRUCTIVE_OPERATION_KEYWORDS) > 0
+        assert len(AMBIGUOUS_REMOVAL_KEYWORDS) > 0
+        assert len(DATA_OBJECT_KEYWORDS) > 0
+
+    def test_destruction_keywords_lowercase_and_non_empty(self):
+        for kw in (DESTRUCTIVE_OPERATION_KEYWORDS + AMBIGUOUS_REMOVAL_KEYWORDS
+                   + DATA_OBJECT_KEYWORDS):
+            assert kw == kw.lower(), f"Non-lowercase destruction keyword: '{kw}'"
+            assert kw.strip(), "Found empty or whitespace-only keyword"
+
+    def test_destruction_tiers_do_not_overlap(self):
+        """一個詞不能同時是『單獨即否決』和『需要受詞才否決』。"""
+        overlap = set(DESTRUCTIVE_OPERATION_KEYWORDS) & set(AMBIGUOUS_REMOVAL_KEYWORDS)
+        assert overlap == set(), f"A keyword is in both destruction tiers: {overlap}"
+
+    def test_destruction_keywords_do_not_collide_with_l0(self):
+        """否則同一個詞會同時要求降級和升級。"""
+        for name, lst in [
+            ("destructive", DESTRUCTIVE_OPERATION_KEYWORDS),
+            ("ambiguous", AMBIGUOUS_REMOVAL_KEYWORDS),
+            ("data object", DATA_OBJECT_KEYWORDS),
+        ]:
+            overlap = set(L0_KEYWORDS) & set(lst)
+            assert overlap == set(), f"L0 keywords overlap {name}: {overlap}"
