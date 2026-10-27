@@ -16,6 +16,13 @@ Gavin0099/ai-governance-framework#258 and is not on `main` at the time of
 writing. This record is numbered 0003 to avoid a filename collision. Nothing
 here depends on 0002.
 
+Relationship to #260: that open proposal carries the `minimal / standard /
+strict` tiering analysis and the per-repository governance-file ratios. This
+record deliberately does **not** restate it. The two are complementary — #260
+argues about how much governance a repository should carry; this one measures
+one specific surface and the limit it collides with — and neither depends on the
+other.
+
 ## What the owner authorized, and what they did not
 
 Recorded here because it bounds the record itself.
@@ -68,6 +75,26 @@ Two triggers fire, so this record is required rather than optional.
 
 **Goal A — the agent must see the rules that matter.** Writing them into
 `AGENTS.md` removes the risk that an agent never loads an on-demand document.
+
+Goal A has a measured limit that must be stated before the options are read:
+**inline placement raises visibility; it does not prove the model received the
+text, and this framework cannot currently observe the difference.**
+`runtime_hooks/core/session_start.py` sets
+`_instruction_found = any(f.exists() for f in _instruction_candidates)` and then
+`_instruction_loaded = "true" if _instruction_found else "unknown"`, reported
+with `source: "observed"`; the audit path passes `allowed_governance_files` as
+`files_loaded`. Those are existence and allow-list signals under names that
+sound like load confirmation. The surrounding code is honest elsewhere —
+`context_integrity` stays `unknown`/`assumed` and `injection_reliance` is
+`none` — so this is an observation gap, not a demonstrated breach. But it means
+no figure in this record, and no claim in any option below, may be read as
+evidence that inline text reached a model.
+
+That is the same shape as the defect in #256 (an envelope's existence read as a
+closeout obligation) and as the defect this branch's sibling PR #261 fixes (a
+successful `install` read as a runnable command). The pattern is recorded in
+`memory/03_knowledge_base.md` as "a mechanical signal is not the semantic
+property it resembles"; this is its third instance on a different surface.
 
 **Goal B — the rules must not crowd out other rules.** The agent's
 project-instruction budget is finite; an over-long instruction file loses part
@@ -246,9 +273,17 @@ verified byte-identical (16,020 bytes).
   and D.
 - **Cost:** a new CI check and a threshold to agree on. It must measure the
   total, not one file.
-- **Not a substitute:** `project_doc_max_bytes = 65536` in a personal
-  `~/.codex/config.toml` raises the limit for one machine, invisibly to CI and
-  to every other checkout. It hides the problem rather than measuring it.
+- **Raising the limit is a separate lever, and it is not necessarily
+  machine-local.** `project_doc_max_bytes = 65536` in a personal
+  `~/.codex/config.toml` applies to one machine, invisibly to CI and to every
+  other checkout — that one does hide the problem rather than measure it. But
+  Codex's config loader documents a **Project** layer at `.codex/config.toml`
+  inside the repository, ranking above the user config, so a raised budget can
+  be committed and reviewed like any other setting. Whether this particular key
+  is honoured at the project layer is **not documented** in the loader
+  reference and must be verified before relying on it. Either way, raising the
+  ceiling does not establish that the content deserves to be resident: a bigger
+  budget and a shorter instruction are independent questions.
 
 Options 2, 3 and 5 compose. Option 4 excludes nothing but requires the reversal.
 
@@ -419,6 +454,15 @@ keeping.
   measured for context, out of scope here.
 - What should happen to the two repositories already over budget. They are over
   for a reason this record does not address.
+- Whether the `instruction_loaded` signal should be renamed, or made into a real
+  load confirmation. It is adjacent and it undermines Goal A, but it is a
+  different surface (`session_start.py`) and belongs to its own change.
+- The automatic risk classifier. `governance_tools/task_level_detector.py`
+  matches English substrings and has no data-destruction category in
+  `L0_VETO_KEYWORDS`, so `add UI button to delete saved game files` classifies
+  as L0. Verified independently on blob `ba23c38d`, but out of scope here: it
+  decides how much process a task gets, not which surface carries an
+  instruction.
 
 ## Not claimed
 
