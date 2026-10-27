@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 -m pytest -q tests/test_claude_formal_closeout.py tests/test_shared_closeout_ownership.py tests/test_claude_closeout_admission.py",
+  "exit_code": 0,
+  "started_at": "2026-10-27T03:43:40Z",
+  "finished_at": "2026-10-27T03:46:10Z",
+  "runner": "claude-opus-5 step3 acceptance",
+  "linked_commit": "ba12d21c22aa07e7ed016c64abcd2d9bf2122328",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/step3-acceptance-focused-20261027.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
