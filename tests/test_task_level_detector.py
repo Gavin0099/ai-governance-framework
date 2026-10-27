@@ -17,6 +17,7 @@ from governance_tools.task_level_detector import (
     AMBIGUOUS_REMOVAL_KEYWORDS,
     DATA_OBJECT_KEYWORDS,
     DESTRUCTIVE_OPERATION_KEYWORDS,
+    UI_ELEMENT_NOUNS,
     L0_KEYWORDS,
     L0_VETO_KEYWORDS,
     L2_KEYWORDS,
@@ -363,15 +364,105 @@ class TestDestructiveDataVeto:
         """CJK 沒有詞界，所以走子字串比對；UI 字眼不得讓它降級。"""
         assert detect_task_level(description) != "L0", description
 
-    @pytest.mark.parametrize("description", [
-        "deleting the backup folder",
-        "deleted the save directory",
-        "removes the artifact files",
-        "purging the logs",
+    # (純 UI 的句子, 同一句加上破壞性子句, 預期的動詞訊號)
+    @pytest.mark.parametrize("ui_only,with_destruction,verb", [
+        ("restyle the ui button",
+         "restyle the ui button that deletes the save files", "delete"),
+        ("update the icon",
+         "update the icon for deleting the backup folder", "delete"),
+        ("fix the dialog layout",
+         "fix the dialog layout before it purges the user profile", "purge"),
+        ("adjust padding on the button",
+         "adjust padding on the button that drops saved game files", "drop"),
+        ("restyle the ui control",
+         "restyle the ui control that is resetting the user profile", "reset"),
+        ("tweak css for the panel",
+         "tweak css for the panel that wiped the user profile", "wipe"),
+        ("update the ui copy",
+         "update the ui copy after removing the artifact files", "remove"),
     ])
-    def test_inflected_forms_are_caught(self, description):
-        """清單寫原形，比對要認得 -s/-ed/-ing，包含去 e 的 deleting。"""
-        assert detect_task_level(description) != "L0", description
+    def test_inflected_forms_are_caught(self, ui_only, with_destruction, verb):
+        """詞形辨識要能被證明有作用，而不是靠預設值蒙對。
+
+        斷言「結果不是 L0」證明不了任何事：一句沒有命中 L0 關鍵字的描述
+        本來就會落到預設的 L1。所以每個案例都成對出現——先確認純 UI 的
+        版本真的走 L0，再確認加上破壞性子句之後變成 L1，而且訊號裡真的
+        有那個動詞。拿掉 _inflections 的任何一條規則，這組測試就會紅。
+        """
+        assert detect_task_level(ui_only) == "L0", (
+            f"baseline must be L0, otherwise this case proves nothing: {ui_only!r}")
+        signals = destructive_data_veto(with_destruction)
+        assert verb in signals, (
+            f"{with_destruction!r} -> expected {verb!r} in signals, got {signals}")
+        assert detect_task_level(with_destruction) == "L1", with_destruction
+
+    @pytest.mark.parametrize("description,verb", [
+        ("add UI button for dropping saved game files", "drop"),
+        ("add UI button for resetting saved game files", "reset"),
+        ("add UI button for shredding the backup files", "shred"),
+    ])
+    def test_doubled_consonant_forms_are_caught(self, description, verb):
+        """drop -> dropping、reset -> resetting：子音疊字的詞形。
+
+        這三句原本都判成 L0，因為 _inflections 只做了加 s/ed/ing 和去 e。
+        """
+        assert verb in destructive_data_veto(description), description
+        assert detect_task_level(description) == "L1", description
+
+    @pytest.mark.parametrize("description,verb", [
+        ("新增 UI 按鈕delete存檔", "delete"),
+        ("修改ui的delete存檔流程", "delete"),
+    ])
+    def test_english_verb_adjacent_to_cjk_is_caught(self, description, verb):
+        """中英相接處沒有空白時也要認得。
+
+        `\b` 用的是 Unicode 的 word character，中日韓文字也算，所以
+        「按鈕delete存檔」裡的 delete 兩側都不是詞界，整句會漏判。
+        """
+        assert verb in destructive_data_veto(description), description
+        assert detect_task_level(description) == "L1", description
+
+    @pytest.mark.parametrize("description", [
+        "fix typo in wipe button label",
+        "fix the destroy dialog wording",
+        "translate the erase button label",
+        "restyle the purge menu button",
+    ])
+    def test_a_destructive_word_naming_a_ui_element_stays_l0(self, description):
+        """提到一個破壞性動作，不等於正在執行它。
+
+        `fix typo in wipe button label` 只是在改一行文字。把它升級成 L1
+        是用真實的開發成本換一個不存在的風險，和漏判一樣是判錯。
+        """
+        assert destructive_data_veto(description) == [], description
+        assert detect_task_level(description) == "L0", description
+
+    def test_the_ui_element_guard_does_not_apply_once_data_is_named(self):
+        """守衛只處理「這個詞是元件名稱」，不是給破壞性任務的通行證。"""
+        description = "add a wipe button that erases the save files"
+        assert "erase" in destructive_data_veto(description)
+        assert detect_task_level(description) == "L1"
+
+    def test_a_bare_log_is_not_a_data_object(self):
+        """`remove the console log` 是例行清理，不該因此升級。
+
+        審計用的日誌要指名（audit log），刪日誌檔由 file 接住。這是刻意
+        放棄「clear the logs」這類描述的覆蓋，換掉一個每天都會踩到的
+        誤升級。
+        """
+        assert destructive_data_veto("remove the console log from the ui component") == []
+        assert "audit log" in destructive_data_veto("clear the audit log")
+
+    def test_detect_task_level_does_not_surface_the_reason(self):
+        """訊號可以被查詢，但 runtime 還沒有把升級理由呈現出來。
+
+        這條測試釘住的是說法的邊界：destructive_data_veto() 回傳訊號，
+        detect_task_level() 卻只把它當真假值用，對外只有一個 "L1"。哪天
+        runtime 真的開始呈現理由，這條會失敗，提醒同時修正說明。
+        """
+        description = "restyle the ui button that deletes the save files"
+        assert destructive_data_veto(description) != []
+        assert detect_task_level(description) == "L1"
 
     @pytest.mark.parametrize("description", [
         "remove the button from the toolbar",
@@ -471,6 +562,12 @@ class TestKeywordListIntegrity:
                    + DATA_OBJECT_KEYWORDS):
             assert kw == kw.lower(), f"Non-lowercase destruction keyword: '{kw}'"
             assert kw.strip(), "Found empty or whitespace-only keyword"
+
+    def test_ui_element_nouns_usable(self):
+        assert len(UI_ELEMENT_NOUNS) > 0
+        for noun in UI_ELEMENT_NOUNS:
+            assert noun == noun.lower(), f"Non-lowercase UI noun: '{noun}'"
+            assert noun.strip(), "Found empty or whitespace-only UI noun"
 
     def test_destruction_tiers_do_not_overlap(self):
         """一個詞不能同時是『單獨即否決』和『需要受詞才否決』。"""
