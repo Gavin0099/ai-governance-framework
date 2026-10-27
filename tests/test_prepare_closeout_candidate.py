@@ -272,11 +272,19 @@ def test_inherited_editor_override_does_not_block_preparation(consumer):
 
 
 def test_tolerated_override_is_dropped_from_every_git_child(consumer, monkeypatch):
-    """Tolerating a name in the parent must not change what a child Git call does."""
+    """Tolerating a name in the parent must not change what a child Git call does.
+
+    `git var` exits 1 when the variable has no value, so a headless runner with
+    no `core.editor`, `VISUAL` or `EDITOR` would fail this test even though the
+    filtering is correct. Pin a fallback: the assertion is about dropping the
+    sentinel, not about the runner's editor configuration.
+    """
     from governance_tools import prepare_closeout_candidate as prepare
+    monkeypatch.setenv("EDITOR", "true")
+    monkeypatch.setenv("VISUAL", "true")
     monkeypatch.setenv("GIT_EDITOR", "governance-sentinel-editor")
-    assert prepare.inherited_git_overrides() == []
-    assert prepare._git(consumer, "var", "GIT_EDITOR") != "governance-sentinel-editor"
+    assert "GIT_EDITOR" not in prepare.inherited_git_overrides()
+    assert prepare._git(consumer, "var", "GIT_EDITOR") == "true"
 
 
 @pytest.mark.parametrize("name", ["GIT_EDITOR", "GIT_SEQUENCE_EDITOR", "GIT_PAGER"])

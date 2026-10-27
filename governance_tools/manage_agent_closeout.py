@@ -305,14 +305,24 @@ def closeout_execution_readiness(project_root: Path, framework_root: Path) -> di
                 "declared_entry": _PREPARE_ENTRY}
 
     # The pipeline's own root predicate, so this reports what it would report.
-    # Imported here to keep the closeout pipeline off this CLI import path.
-    from governance_tools.session_closeout_entry import (
-        RootBindingError, _validate_explicit_project_root,
-    )
+    # Imported here to keep the closeout pipeline off this CLI import path, and
+    # guarded: that pipeline pulls in runtime dependencies (PyYAML today, via
+    # session_end_hook -> runtime_hooks.core.session_end -> runtime_phase_policy),
+    # and a report-only check must never turn into an install prerequisite for
+    # someone inspecting or repairing an integration on stdlib-only Python.
+    # Reported as undetermined, not duplicated here: a second copy of the marker
+    # list would drift from the predicate it is supposed to mirror.
     try:
-        _validate_explicit_project_root(str(consumer))
-    except RootBindingError as exc:
-        unmet.append(f"ROOT_BINDING_WOULD_FAIL: {exc}")
+        from governance_tools.session_closeout_entry import (
+            RootBindingError, _validate_explicit_project_root,
+        )
+    except ImportError as exc:
+        undetermined.append(f"ROOT_PREDICATE_UNAVAILABLE: {exc}")
+    else:
+        try:
+            _validate_explicit_project_root(str(consumer))
+        except RootBindingError as exc:
+            unmet.append(f"ROOT_BINDING_WOULD_FAIL: {exc}")
 
     if framework == consumer or not framework.is_relative_to(consumer):
         unmet.append("FRAMEWORK_NOT_INSIDE_PROJECT: the declared command requires the "

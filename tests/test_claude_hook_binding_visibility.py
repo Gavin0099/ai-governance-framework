@@ -303,6 +303,33 @@ def test_framework_outside_the_project_is_reported_not_merely_installed(adapter,
         "FRAMEWORK_NOT_INSIDE_PROJECT"]
 
 
+def test_readiness_survives_a_missing_runtime_dependency(adapter, tmp_path, monkeypatch):
+    """Report-only must stay report-only: no runtime import may block install.
+
+    The root predicate lives in the closeout pipeline, which imports PyYAML
+    transitively. On stdlib-only Python that import fails, and install/verify
+    must still return a result (#261 review finding).
+    """
+    import builtins
+    from governance_tools import manage_agent_closeout as manage
+    consumer, framework = consumer_layout(tmp_path)
+    real_import = builtins.__import__
+
+    def blocked(name, *args, **kwargs):
+        if name == "governance_tools.session_closeout_entry":
+            raise ModuleNotFoundError("No module named 'yaml'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", blocked)
+    readiness = manage.closeout_execution_readiness(consumer, framework)
+    assert readiness["ready"] is False and readiness["unmet"] == []
+    assert [reason.split(":")[0] for reason in readiness["undetermined"]] == [
+        "ROOT_PREDICATE_UNAVAILABLE"]
+    result = adapter.install(consumer, framework)
+    assert result["status"] == "installed"
+    assert adapter.verify(consumer, framework)["installed"] is True
+
+
 def test_an_unreadable_layout_is_undetermined_not_unmet(adapter, tmp_path, monkeypatch):
     """A layout that could not be read must never be reported as a failed precondition."""
     from governance_tools import manage_agent_closeout as manage
