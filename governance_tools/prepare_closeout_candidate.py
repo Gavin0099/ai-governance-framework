@@ -40,8 +40,27 @@ def _require(condition: bool, message: str) -> None:
         raise PreparationError(message)
 
 
+# Interactive helper selectors. Each names a program Git may launch — an editor,
+# the rebase sequence editor, a pager — and none of them can redirect which
+# repository, index, object or config Git reads. Agent harnesses set GIT_EDITOR
+# unconditionally, so rejecting it meant the save-progress command this
+# framework advertises into Claude's own context could never run (#257). Every
+# other GIT_* name stays rejected, and these are dropped from every child
+# environment below, so tolerating them in the parent cannot change what a
+# child Git call does.
+TOLERATED_GIT_ENV = frozenset({"GIT_EDITOR", "GIT_SEQUENCE_EDITOR", "GIT_PAGER"})
+
+
+def inherited_git_overrides() -> list[str]:
+    """Inherited Git overrides that could select a different repository or index."""
+    return sorted(key for key in os.environ
+                  if key.upper().startswith("GIT_") and key.upper() not in TOLERATED_GIT_ENV)
+
+
 def _git(root: Path, *args: str) -> str:
-    child_env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+    child_env = {key: value for key, value in os.environ.items()
+                 if key.upper() not in TOLERATED_GIT_ENV}
+    child_env["GIT_OPTIONAL_LOCKS"] = "0"
     result = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", *args], check=True,
                             capture_output=True, encoding="utf-8", timeout=15, env=child_env)
     return result.stdout.strip()
@@ -68,7 +87,7 @@ def _clean_control(root: Path, relative: str) -> Path:
 def validate_framework_binding(consumer_root: Path, framework_root: Path) -> tuple[Path, Path]:
     # R1/R2 also call Git. Reject inherited overrides rather than validating
     # one index here and letting those readers use a different one later.
-    overrides = sorted(key for key in os.environ if key.upper().startswith("GIT_"))
+    overrides = inherited_git_overrides()
     _require(not overrides, "Git environment overrides unsupported: " + ", ".join(overrides))
     consumer, framework = _root(consumer_root), _root(framework_root)
     _require(framework != consumer and framework.is_relative_to(consumer),

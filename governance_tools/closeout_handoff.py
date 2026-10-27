@@ -19,7 +19,9 @@ import subprocess
 import uuid
 
 from governance_tools import shared_closeout_ownership as r2
-from governance_tools.prepare_closeout_candidate import validate_framework_binding, _git
+from governance_tools.prepare_closeout_candidate import (
+    inherited_git_overrides, validate_framework_binding, _git,
+)
 from runtime_hooks.core._bound_session_start import git_toplevel
 
 ENTRYPOINT = "governance_tools.closeout_handoff"
@@ -476,7 +478,7 @@ def _framework_identity(root):
 
 def _framework_preflight(root):
     """Structural rejection only; registration authority is established in-lease."""
-    _require(not any(k.upper().startswith("GIT_") for k in os.environ), "GIT_OVERRIDE")
+    _require(not inherited_git_overrides(), "GIT_OVERRIDE")
     framework = FRAMEWORK.resolve(strict=True)
     _require(framework != root and framework.is_relative_to(root), "FRAMEWORK_ROOT_MISMATCH")
     _require(r2._path(root, framework.relative_to(root).as_posix()) == framework,
