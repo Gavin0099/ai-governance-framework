@@ -135,8 +135,15 @@ def _write_baseline_yaml(
 
 
 @pytest.fixture
-def clean_repo(tmp_path):
+def clean_repo(tmp_path, monkeypatch):
     """A repo with all baseline files correctly set up."""
+    # Date-hermetic: transitional-key aging reads the framework's own key table
+    # against today, not this repo. test_stale_transitional_key_is_warning_not_blocking
+    # covers that path explicitly.
+    monkeypatch.setattr(
+        "governance_tools.expansion_boundary_checker.check_transitional_key_staleness",
+        lambda max_days=90: [],
+    )
     agents = _write_agents_base(tmp_path)
     plan = _write_plan(tmp_path)
     contract = _write_contract(tmp_path)
@@ -626,6 +633,26 @@ def test_expansion_boundary_warnings_are_surface_in_drift_output(clean_repo, mon
         "expansion_boundary: core hook file not found" in item
         for item in result.warnings
     )
+
+
+def test_stale_transitional_key_is_warning_not_blocking(clean_repo, monkeypatch):
+    from datetime import timedelta
+    from governance_tools import expansion_boundary_checker as ebc
+
+    monkeypatch.undo()
+    admitted = (_date.today() - timedelta(days=91)).isoformat()
+    monkeypatch.setattr(ebc, "_TRANSITIONAL_KEYS_BY_HOOK", {
+        "session_start.py": {"aged_key": {"status": "transitional", "expected": "core",
+                                          "admitted_date": admitted}},
+    })
+
+    result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.ok is True
+    assert result.severity == "warning"
+    assert result.checks.get("expansion_boundary") is False
+    assert any("transitional_key_stale" in f["detail"] and "aged_key" in f["detail"]
+               for f in result.findings)
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
