@@ -653,6 +653,29 @@ def test_stale_transitional_key_is_warning_not_blocking(clean_repo, monkeypatch)
     assert result.checks.get("expansion_boundary") is False
     assert any("transitional_key_stale" in f["detail"] and "aged_key" in f["detail"]
                for f in result.findings)
+    # Phase Gate 2b lets exactly this real finding through as an advisory.
+    from governance_tools.drift_gate_policy import is_time_based_advisory
+    assert [f for f in result.findings if not is_time_based_advisory(f)] == []
+
+
+@pytest.mark.parametrize("initialized_at, advisory", [
+    ("2020-01-01T00:00:00Z", True),   # aged baseline: time-based
+    ("not-a-date", False),            # corrupted bookkeeping: still blocks
+])
+def test_gate_policy_matches_real_baseline_freshness_messages(clean_repo, initialized_at, advisory):
+    from governance_tools.drift_gate_policy import is_time_based_advisory
+
+    _write_baseline_yaml(
+        clean_repo,
+        agents_hash=_compute_hash(clean_repo / "AGENTS.base.md"),
+        plan_hash=_compute_hash(clean_repo / "PLAN.md"),
+        contract_hash=_compute_hash(clean_repo / "contract.yaml"),
+        initialized_at=initialized_at,
+    )
+    result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    freshness = [f for f in result.findings if f["check"] == "baseline_yaml_freshness"]
+    assert len(freshness) == 1
+    assert is_time_based_advisory(freshness[0]) is advisory
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
