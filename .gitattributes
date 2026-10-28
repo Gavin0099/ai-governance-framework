@@ -100,3 +100,6 @@
 /docs/governance/p3-regression-safety-rubric-amendment-candidate-20260908.md -text
 /memory/evidence/p3-regression-rubric-adoption-20260908/owner-adoption.json -text
 /governance/external-tree-inventory-guard.json -text
+/governance_tools/required_memory_obligation.py -text
+/governance_tools/required_memory_launcher.py -text
+/governance_tools/required_memory_bootstrap.py -text
