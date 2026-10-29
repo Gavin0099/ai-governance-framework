@@ -34,6 +34,20 @@ def test_agent_contract_guard_keeps_owner_gates_and_does_not_grant_commit() -> N
     assert "if those rules are not in your context, ask" in section
 
 
+def test_both_templates_share_the_finding_disposition_semantics() -> None:
+    # Codex/Claude and Copilot must make the same call on a finding: continue on a
+    # confirmed-unrelated, non-blocking one; escalate on unknown impact or real risk.
+    agent = _text(AGENT_CONTRACT)
+    agent_rules = agent[agent.index("## Delivery Convergence (MANDATORY)"):]
+    copilot = _text(COPILOT)
+    copilot_rule = copilot[copilot.index("### Rule 3a"):copilot.index("### Rule 4")]
+    for section in (agent_rules, copilot_rule):
+        assert "confirmed unrelated" in section
+        assert "one-line disposition under next options" in section
+        assert "remains unknown after a bounded check" in section
+        assert "credible safety, authority or data-integrity risk exists" in section
+
+
 def test_copilot_rule_3a_sits_between_rule_3_and_rule_4() -> None:
     text = _text(COPILOT)
     rule3 = text.index("### Rule 3: Dirty Tree Allowlist")

@@ -96,7 +96,7 @@ repository root.
 ## Delivery Convergence (MANDATORY)
 
 1. **Product slice first.** Finish the approved, usable product slice before adding governance surface, unless an observed failure requires it (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity).
-2. **Failure-driven only.** Future extensibility, completeness or "might be useful later" are not triggers. Every real finding gets a disposition, but a non-blocking finding is not automatically a new task, PR or gate. Unknown impact is escalated, never recorded as non-blocking.
+2. **Failure-driven only.** Future extensibility, completeness or "might be useful later" are not triggers. If a finding is confirmed unrelated to the approved slice and non-blocking to the current decision, note a one-line disposition under next options and continue the approved work; do not open a new task, PR or gate. If its current-decision impact remains unknown after a bounded check, or a credible safety, authority or data-integrity risk exists, escalate.
 3. **Scope-matched checks.** Validate the changed scope first; no full regression or broad smoke unless DONE or the user requires it. Re-review checks prior blockers and the correction delta; a new HEAD does not reopen subsystem qualification.
 4. **Stop at DONE.** Report extra work as next options only. An explicit bounded directive authorizes work inside its stated boundary without redundant confirmation; an ambiguous "continue" without an approved next slice is audit-first.
 
