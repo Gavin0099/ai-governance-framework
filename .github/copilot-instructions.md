@@ -346,4 +346,4 @@ from an earlier session, is a governance failure. The block is evidence of what
 was loaded, not a formatting ritual.
 <!-- AI Governance Framework: copilot-instructions END -->
 
-REVIEW PROBE (COPILOT): When you review a pull request in this repository, begin your review summary with the exact token CANARY-COPILOT-7f3a.
+REVIEW PROBE (COPILOT): Every review of a pull request in this repository must post at least one comment, even when there are no findings, and that comment must contain the exact token CANARY-COPILOT-9c2e.

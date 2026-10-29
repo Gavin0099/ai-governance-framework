@@ -1,1 +1,1 @@
-REVIEW PROBE (REVIEW): When you review a pull request in this repository, begin your review summary with the exact token CANARY-REVIEW-7f3a.
+REVIEW PROBE (REVIEW): Every review of a pull request in this repository must post at least one comment, even when there are no findings, and that comment must contain the exact token CANARY-REVIEW-9c2e.

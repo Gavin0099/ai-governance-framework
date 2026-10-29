@@ -588,4 +588,4 @@ See `TOOLS.md` for companion and chat operation guidance.
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
 
-REVIEW PROBE (AGENTS): When you review a pull request in this repository, begin your review summary with the exact token CANARY-AGENTS-7f3a.
+REVIEW PROBE (AGENTS): Every review of a pull request in this repository must post at least one comment, even when there are no findings, and that comment must contain the exact token CANARY-AGENTS-9c2e.
