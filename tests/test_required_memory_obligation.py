@@ -11,6 +11,11 @@ import pytest
 
 HOOK = Path(__file__).resolve().parents[1] / "governance_tools" / "required_memory_obligation.py"
 SESSION = "01a0eb40-0000-7000-8000-000000000001"
+# The v5 hook runs the approved producer with pwsh. Windows PowerShell 5.1 is
+# not a supported substitute, so these tests skip rather than pass without it.
+requires_pwsh = pytest.mark.skipif(
+    shutil.which("pwsh") is None, reason="requires PowerShell 7 (pwsh); v5 does not support 5.1"
+)
 
 
 def _repo(tmp_path, checker_state="blocked"):
@@ -91,6 +96,7 @@ def _stop_event(active=False, message="Sample task DONE"):
     }
 
 
+@requires_pwsh
 def test_a_recognized_blocker_requires_plan_risk_and_active_task(tmp_path):
     repo = _repo(tmp_path)
     feedback = _invoke(repo, "post-tool-use", _blocked_tool_event())
@@ -116,6 +122,7 @@ def test_a_recognized_blocker_requires_plan_risk_and_active_task(tmp_path):
     assert json.loads(state[0].read_text(encoding="utf-8"))["status"] == "pending"
 
 
+@requires_pwsh
 def test_b_intentional_miss_blocks_completion_but_allows_honest_blocked_report(tmp_path):
     repo = _repo(tmp_path)
     _invoke(repo, "post-tool-use", _blocked_tool_event())
@@ -127,6 +134,7 @@ def test_b_intentional_miss_blocks_completion_but_allows_honest_blocked_report(t
     assert _invoke(repo, "stop", _stop_event(active=True, message=honest)) == {}
 
 
+@requires_pwsh
 def test_no_declared_blocker_does_not_create_an_obligation(tmp_path):
     repo = _repo(tmp_path, checker_state="ready")
     event = _blocked_tool_event()
@@ -143,6 +151,7 @@ def test_no_declared_blocker_does_not_create_an_obligation(tmp_path):
     assert _invoke(repo, "stop", _stop_event()) == {}
 
 
+@requires_pwsh
 def test_command_forms_with_same_event_reuse_one_obligation(tmp_path):
     repo = _repo(tmp_path)
     event = _blocked_tool_event()
@@ -161,11 +170,11 @@ def test_command_forms_with_same_event_reuse_one_obligation(tmp_path):
     assert _invoke(repo, "stop", _stop_event())["decision"] == "block"
 
 
+@requires_pwsh
 def test_absolute_checker_and_interpreter_forms_reuse_relative_obligation(tmp_path):
     repo = _repo(tmp_path / "parent with spaces")
     checker = repo / "verify-prereq.ps1"
     interpreter = shutil.which("pwsh")
-    assert interpreter, "Focused checker tests require PowerShell"
     event = _blocked_tool_event()
     obligation_ids = set()
     for index, command in enumerate((
@@ -237,6 +246,7 @@ def test_invocation_path_resolution_failure_leaves_blocking_fallback(tmp_path, m
     assert record["id"] in stop["reason"]
 
 
+@requires_pwsh
 def test_unlisted_plan_heading_does_not_consume_obligation(tmp_path):
     repo = _repo(tmp_path)
     _invoke(repo, "post-tool-use", _blocked_tool_event())
@@ -249,6 +259,7 @@ def test_unlisted_plan_heading_does_not_consume_obligation(tmp_path):
     assert _invoke(repo, "stop", _stop_event())["decision"] == "block"
 
 
+@requires_pwsh
 def test_malformed_structured_event_fails_registration_closed(tmp_path):
     repo = _repo(tmp_path, checker_state="malformed")
     event = _blocked_tool_event()
@@ -261,6 +272,7 @@ def test_malformed_structured_event_fails_registration_closed(tmp_path):
     assert not list((repo / "memory" / ".pending_memory_obligations" / SESSION).glob("MEM-OBL-*.json"))
 
 
+@requires_pwsh
 def test_registered_obligation_state_loss_blocks_stop(tmp_path):
     repo = _repo(tmp_path)
     _invoke(repo, "post-tool-use", _blocked_tool_event())
@@ -298,6 +310,7 @@ def test_partial_observation_write_blocks_stop(tmp_path):
     assert "MEMORY_OBLIGATION_STATE_ERROR" in stop["reason"]
 
 
+@requires_pwsh
 def test_resolved_observation_allows_next_turn(tmp_path):
     repo = _repo(tmp_path)
     _invoke(repo, "post-tool-use", _blocked_tool_event())
@@ -330,6 +343,7 @@ def test_echoed_marker_without_checker_invocation_does_not_register(tmp_path):
     assert not (repo / "memory" / ".pending_memory_obligations").exists()
 
 
+@requires_pwsh
 @pytest.mark.parametrize("command", [
     "Write-Output 'ready'; # & .\\verify-prereq.ps1",
     "# & .\\verify-prereq.ps1\nWrite-Output 'ready'",
@@ -354,6 +368,7 @@ def test_commented_checker_is_not_an_invocation(tmp_path, command):
     assert _invoke(repo, "stop", _stop_event()) == {}
 
 
+@requires_pwsh
 @pytest.mark.parametrize("command", [
     "# & .\\verify-prereq.ps1\n& .\\verify-prereq.ps1",
     "Write-Output 'literal #'; <# & .\\verify-prereq.ps1 #>\n& .\\verify-prereq.ps1",
@@ -419,6 +434,7 @@ def test_malformed_hook_stdin_capture_preserves_raw_bytes_and_stage(tmp_path):
     assert json.loads(metadata[0].read_text(encoding="utf-8"))["stage"] == "payload"
 
 
+@requires_pwsh
 def test_malformed_registered_obligation_fails_closed(tmp_path):
     repo = _repo(tmp_path)
     _invoke(repo, "post-tool-use", _blocked_tool_event())
