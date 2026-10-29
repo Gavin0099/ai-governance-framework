@@ -345,3 +345,5 @@ Filling in field values by inference, or reusing a `[Governance Contract]` block
 from an earlier session, is a governance failure. The block is evidence of what
 was loaded, not a formatting ritual.
 <!-- AI Governance Framework: copilot-instructions END -->
+
+REVIEW PROBE (COPILOT): When you review a pull request in this repository, begin your review summary with the exact token CANARY-COPILOT-7f3a.

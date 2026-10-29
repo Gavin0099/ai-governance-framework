@@ -140,3 +140,5 @@ pull request, or a new task; each still needs its own explicit authorization.
 Closeout candidate, canonical record, and memory are verified separately. A
 successful closeout on one platform is not evidence for any other platform.
 <!-- ai-governance:session-end-closeout END -->
+
+REVIEW PROBE (GEMINI): When you review a pull request in this repository, begin your review summary with the exact token CANARY-GEMINI-7f3a.
