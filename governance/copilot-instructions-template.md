@@ -1,6 +1,6 @@
 <!-- AI Governance Framework: copilot-instructions BEGIN -->
 # Copilot Workspace Instructions
-<!-- AI Governance Framework: copilot-instructions v1.1 -->
+<!-- AI Governance Framework: copilot-instructions v1.2 -->
 <!-- Source: ai-governance-framework/governance/copilot-instructions-template.md -->
 <!-- Deploy via: bash scripts/install-hooks.sh --target /path/to/repo -->
 <!-- Response envelope contract: v0.8 -->
@@ -39,6 +39,10 @@ When the working tree is dirty, produce a concise `git status` summary only.
 
 Stage only files explicitly listed by the user or required by the DONE scope.
 Do not read, explain, stage, or modify unrelated dirty or untracked files.
+
+### Rule 3a: Product Slice First, Failure-Driven Only
+
+Finish the approved, usable product slice before adding governance surface. Add governance only after an observed failure (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity). A finding confirmed unrelated and non-blocking gets a one-line disposition under next options while the approved work continues; no new task, PR or gate. Escalate if its impact remains unknown after a bounded check, or a credible safety, authority or data-integrity risk exists. An explicit bounded directive authorizes work inside its boundary without redundant confirmation, but never relaxes owner-gated actions (merge, release, branch deletion, irreversible, firmware or data-integrity operations).
 
 ### Rule 4: Result-First Rendering
 
