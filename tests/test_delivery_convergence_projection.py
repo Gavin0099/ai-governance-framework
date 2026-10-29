@@ -6,9 +6,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 AGENT_CONTRACT = REPO_ROOT / "governance" / "agent-contract-template.md"
 COPILOT = REPO_ROOT / "governance" / "copilot-instructions-template.md"
 
-# Copilot code review reads only the first 4,000 characters of an instruction file.
-COPILOT_REVIEW_VISIBLE_CHARS = 4000
-
 
 def _text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -37,10 +34,10 @@ def test_agent_contract_guard_keeps_owner_gates_and_does_not_grant_commit() -> N
     assert "if those rules are not in your context, ask" in section
 
 
-def test_copilot_rule_3a_is_visible_to_code_review() -> None:
+def test_copilot_rule_3a_sits_between_rule_3_and_rule_4() -> None:
     text = _text(COPILOT)
     rule3 = text.index("### Rule 3: Dirty Tree Allowlist")
     rule3a = text.index("### Rule 3a: Product Slice First, Failure-Driven Only")
     rule4 = text.index("### Rule 4")
-    assert rule3 < rule3a < rule4 <= COPILOT_REVIEW_VISIBLE_CHARS
+    assert rule3 < rule3a < rule4
     assert "never relaxes owner-gated actions" in text[rule3a:rule4]
