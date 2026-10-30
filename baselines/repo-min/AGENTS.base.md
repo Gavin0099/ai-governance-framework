@@ -61,7 +61,7 @@ after DONE; do not record micro-steps or duplicate a record. Targets follow
 
 | Event | Required update |
 |-------|----------------|
-| Milestone reached | PLAN.md phase/sprint + `memory/01_active_task.md` |
+| Milestone reached | `memory/01_active_task.md`; PLAN.md phase/sprint only when the milestone changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
 | Architecture decision made | `memory/02_workflow.md`; PLAN.md only when the decision changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
 | Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
 | Review completed | full record in `memory/04_review_log.md` + one-line summary in `memory/01_active_task.md` |

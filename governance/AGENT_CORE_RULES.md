@@ -43,7 +43,7 @@ Identical on every agent surface. Repository rules may add duties; they never re
 | Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
 | Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
 | Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
-| Milestone reached | `PLAN.md` phase/sprint + `memory/01_active_task.md` |
+| Milestone reached | `memory/01_active_task.md`; `PLAN.md` phase/sprint only when it changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
 | Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
 | Confirmed session end | canonical `memory/YYYY-MM-DD.md` record through the session-end closeout when it is non-stateless |
 
