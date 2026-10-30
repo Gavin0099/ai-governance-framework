@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 from dataclasses import dataclass
@@ -61,6 +62,17 @@ SURFACE_CHOICES = (
     SURFACE_ACTIVE_TASK_SUMMARY,
 )
 
+# Superseded active-task-summary projections are moved here byte-exact by the
+# converging writer, so 01_active_task.md keeps one current projection instead of
+# growing by one line per record. The history file also keeps identity dedup for
+# retried records that are no longer the current projection.
+ACTIVE_TASK_PROJECTION_HISTORY = Path("memory") / "archive" / "active_task_projection_history.md"
+_ACTIVE_TASK_PROJECTION_HISTORY_HEADER = (
+    b"# Superseded active-task-summary projections\n\n"
+    b"Byte-exact lines moved here by governance_tools.memory_record when a newer\n"
+    b"projection superseded them. History only; not current state.\n"
+)
+
 _RECORD_IDENTITY_FIELDS = (
     "record_format_version",
     "memory_type",
@@ -77,6 +89,9 @@ class MemoryWriteOutcome:
     status: str
     record_identity: str
     writer: str
+    # Set only by the converging active-task writer when this write replaced
+    # the writer's previous projection (moved byte-exact to the history file).
+    superseded_record_identity: str | None = None
 
 
 def validate_test_evidence(value: str | None) -> tuple[str, str | None]:
@@ -544,8 +559,15 @@ def append_projection_with_outcome(
     record: dict[str, str],
     surface: str,
     active_task_summary: str | None = None,
+    converge: bool = False,
 ) -> MemoryWriteOutcome:
-    """Append to one of the two fixed non-daily memory projection surfaces."""
+    """Append to one of the two fixed non-daily memory projection surfaces.
+
+    With ``converge=True`` the active-task-summary surface supersedes the
+    writer's previous projection instead of accumulating one line per record;
+    see ``_write_converging_active_task_projection``. The default keeps the
+    plain append behaviour that the R0/R1 runtime libraries rely on.
+    """
     record = prepare_projection_record(record)
     identity = record["record_identity"]
 
@@ -580,6 +602,16 @@ def append_projection_with_outcome(
             writer=WRITER_ID,
         )
 
+    if surface == SURFACE_ACTIVE_TASK_SUMMARY and converge:
+        converged = _write_converging_active_task_projection(
+            project_root=project_root,
+            path=path,
+            identity=identity,
+            rendered=rendered,
+        )
+        if converged is not None:
+            return converged
+
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="\n") as fh:
         if existing and not existing.endswith(("\n", "\r")):
@@ -593,6 +625,135 @@ def append_projection_with_outcome(
         record_identity=identity,
         writer=WRITER_ID,
     )
+
+
+def _write_converging_active_task_projection(
+    *,
+    project_root: Path,
+    path: Path,
+    identity: str,
+    rendered: str,
+) -> MemoryWriteOutcome | None:
+    """Replace the writer's previous active-task projection with ``rendered``.
+
+    Returns ``None`` when convergence does not apply, so the caller falls back to
+    the plain append path. Convergence touches writer-owned bytes only:
+
+    - the predecessor is the last active-task-summary projection line in file
+      order, i.e. the one this writer appended most recently; earlier
+      projections (a pre-existing backlog) are left where they are;
+    - the predecessor line and the one blank separator line the writer put in
+      front of it are removed; every other byte is kept unchanged;
+    - the predecessor line is first copied byte-exact into
+      ``ACTIVE_TASK_PROJECTION_HISTORY``, which also keeps identity dedup for
+      a later retry of the superseded record;
+    - a predecessor that is an endpoint of a ``memory_runtime_supersession``
+      relation is never removed, and an unparseable surface is never rewritten.
+
+    The rewrite is compare-and-swap: if the surface changed after it was read,
+    nothing is replaced and ``ValueError`` is raised.
+    """
+    history_path = project_root / ACTIVE_TASK_PROJECTION_HISTORY
+    if history_path.exists():
+        history_text = history_path.read_bytes().decode("utf-8", errors="strict")
+        if _projection_marker_line_present(
+            existing=history_text,
+            surface=SURFACE_ACTIVE_TASK_SUMMARY,
+            identity=identity,
+        ):
+            # The record was already projected and later superseded; a retry
+            # must not resurrect it as the current projection.
+            return MemoryWriteOutcome(
+                path=path,
+                status=MEMORY_WRITE_STATUS_ALREADY_PRESENT,
+                record_identity=identity,
+                writer=WRITER_ID,
+            )
+    if not path.exists():
+        return None
+    existing_bytes = path.read_bytes()
+    try:
+        projections, relations = _parse_active_task_structured_lines(existing_bytes)
+    except ValueError:
+        return None
+    if not projections:
+        return None
+    predecessor_identity, predecessor_payload = projections[-1]
+    relation_endpoints = {relation[0] for relation in relations} | {
+        relation[2] for relation in relations
+    }
+    if predecessor_identity in relation_endpoints:
+        return None
+
+    framed_lines = existing_bytes.splitlines(keepends=True)
+    predecessor_index = None
+    for index in range(len(framed_lines) - 1, -1, -1):
+        if _strip_line_terminator(framed_lines[index]) == predecessor_payload:
+            predecessor_index = index
+            break
+    if predecessor_index is None:
+        return None
+    remove = {predecessor_index}
+    if predecessor_index > 0 and framed_lines[predecessor_index - 1] in (b"\n", b"\r\n"):
+        remove.add(predecessor_index - 1)
+    kept = b"".join(
+        line for index, line in enumerate(framed_lines) if index not in remove
+    )
+    if kept and not kept.endswith(b"\n"):
+        kept += b"\n"
+    if kept:
+        kept += b"\n"
+    new_bytes = kept + rendered.encode("utf-8")
+
+    _append_projection_history_line(history_path, predecessor_payload)
+    if path.read_bytes() != existing_bytes:
+        raise ValueError(
+            "active-task surface changed during convergence; nothing was replaced"
+        )
+    temp_path = path.with_name(f"{path.name}.converge-{os.getpid()}.tmp")
+    try:
+        with temp_path.open("wb") as fh:
+            fh.write(new_bytes)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(temp_path, path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+    return MemoryWriteOutcome(
+        path=path,
+        status=MEMORY_WRITE_STATUS_WRITTEN,
+        record_identity=identity,
+        writer=WRITER_ID,
+        superseded_record_identity=predecessor_identity,
+    )
+
+
+def _strip_line_terminator(framed_line: bytes) -> bytes:
+    if framed_line.endswith(b"\r\n"):
+        return framed_line[:-2]
+    if framed_line.endswith((b"\n", b"\r")):
+        return framed_line[:-1]
+    return framed_line
+
+
+def _append_projection_history_line(history_path: Path, payload: bytes) -> None:
+    """Append one superseded projection line byte-exact, once."""
+    existing = history_path.read_bytes() if history_path.exists() else b""
+    if any(
+        _strip_line_terminator(line) == payload
+        for line in existing.splitlines(keepends=True)
+    ):
+        return
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    with history_path.open("ab") as fh:
+        if not existing:
+            fh.write(_ACTIVE_TASK_PROJECTION_HISTORY_HEADER)
+        elif not existing.endswith(b"\n"):
+            fh.write(b"\n")
+        fh.write(b"\n" + payload + b"\n")
+        fh.flush()
+        os.fsync(fh.fileno())
 
 
 def append_session_derived_entry(*, project_root: Path, record: dict[str, str]) -> Path:
@@ -884,6 +1045,7 @@ def main() -> int:
                     record=record,
                     surface=surface,
                     active_task_summary=args.active_task_summary,
+                    converge=surface == SURFACE_ACTIVE_TASK_SUMMARY,
                 )
             )
     for outcome in outcomes:
@@ -896,6 +1058,12 @@ def main() -> int:
             f"[memory_record] {status_label}: {outcome.path} "
             f"(surface identity={outcome.record_identity})"
         )
+        if outcome.superseded_record_identity is not None:
+            print(
+                "[memory_record] Superseded previous active-task projection "
+                f"{outcome.superseded_record_identity}; moved byte-exact to "
+                f"{project_root / ACTIVE_TASK_PROJECTION_HISTORY}"
+            )
     print(render_session_derived_entry(record))
     return 0
 
