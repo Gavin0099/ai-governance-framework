@@ -1,3 +1,11 @@
+---
+audience: agent-on-demand
+authority: canonical
+can_override: false
+overridden_by: SYSTEM_PROMPT.md
+default_load: on-demand
+---
+
 # Agent Core Rules (canonical)
 
 This file is the single canonical source for the agent core rules that every
