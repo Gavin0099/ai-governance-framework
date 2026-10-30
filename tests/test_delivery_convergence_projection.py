@@ -35,7 +35,7 @@ def test_agent_contract_guard_keeps_owner_gates_and_does_not_grant_commit() -> N
     # Rules projected earlier in the same block; this guard defers to it.
     assert "commit and push authority (Agent Core Rules above)" in section
     core = text[text.index("## Agent Core Rules (MANDATORY)"):text.index("## Delivery Convergence (MANDATORY)")]
-    assert "If neither is in your context, ask." in core
+    assert "If either is missing from your context, ask." in core
 
 
 def test_both_templates_share_the_finding_disposition_semantics() -> None:
