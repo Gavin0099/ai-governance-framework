@@ -156,7 +156,7 @@ def _make_f7_target_fixture(tmp_path: Path, monkeypatch) -> tuple[Path, Path, st
     # persistence remain real. Hook deployment and maturity are separate scopes.
     monkeypatch.setattr(
         f7_full_update, "install_governance_hooks",
-        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[])),
+        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[])),
     )
     for module in (f7_full_update, updater_module):
         monkeypatch.setattr(module, "_governance_maturity_stage", lambda *_args: {})
@@ -1101,6 +1101,28 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
 
     # The consumer content survived the install that produced the backup.
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
+
+
+def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path) -> None:
+    """An over-budget AGENTS.md is reported through F-7, and only reported."""
+    # The real framework root is needed: the minimal fixture framework has no
+    # agent-contract template, so it never installs into AGENTS.md.
+    framework = Path(__file__).resolve().parents[1]
+    results = {}
+    for name, rules in (("small", 1), ("large", 2000)):
+        repo = tmp_path / name
+        _make_external_contract_repo(repo)
+        _write(repo / "AGENTS.md", "# AGENTS\n\n" + ("House rule line.\n" * rules))
+        results[name] = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    budget_warnings = [w for w in results["large"].warnings
+                       if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
+    assert budget_warnings, results["large"].warnings
+    assert not [w for w in results["small"].warnings if "codex-project-doc-budget" in w]
+    # The warning is a report: status, ok and stages match the under-budget run.
+    assert results["large"].f7_final_status == results["small"].f7_final_status
+    assert results["large"].ok == results["small"].ok
+    assert results["large"].stages["hook_validator_enforcement"] == results["small"].stages["hook_validator_enforcement"]
 
 
 def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> UpdateResult:

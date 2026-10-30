@@ -1136,6 +1136,25 @@ class TestCodexProjectDocBudget:
         assert report["crlf_worst_case_bytes"] == len(line) * lines + lines
         assert len(warnings) == 1 and "with CRLF line endings" in warnings[0]
 
+    def test_budget_boundary_is_exclusive(self, tmp_path):
+        from governance_tools.hook_installer import (
+            CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+            _codex_project_doc_budget,
+        )
+
+        repo = tmp_path / "consumer"
+        repo.mkdir()
+        target = repo / "AGENTS.md"
+        # No newlines, so the CRLF worst case equals the on-disk size.
+        target.write_bytes(b"x" * CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES)
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+        assert report["over_budget"] is False and warnings == []
+
+        target.write_bytes(b"x" * (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES + 1))
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+        assert report["over_budget"] is True and report["overflow_bytes"] == 1
+        assert len(warnings) == 1
+
     def test_human_output_names_the_warning(self, tmp_path, capsys):
         from governance_tools.hook_installer import main
 

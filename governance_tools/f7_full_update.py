@@ -894,6 +894,7 @@ def run_f7_full_update(
         # governance instructions; for half its consumers it did not.
         surface_changed: list[str] = []
         surface_backups: list[str] = []
+        surface_warnings: list[str] = []
         updater_blocked = apply and not (result.ok and not result.errors)
         if updater_blocked:
             # Fail-closed has to mean closed. The updater refuses to touch a repo
@@ -912,6 +913,7 @@ def run_f7_full_update(
             )
             surface_changed.extend(hook_result.changed_files)
             surface_backups.extend(hook_result.backups)
+            surface_warnings.extend(hook_result.warnings)
             result.errors.extend(hook_result.errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
@@ -929,6 +931,8 @@ def run_f7_full_update(
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
+        # Same report-only budget warning as the external path; status is already decided.
+        warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
         return F7Result(
             ok=result.ok and not result.errors,
             mode=result.mode,
