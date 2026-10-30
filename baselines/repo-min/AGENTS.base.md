@@ -54,15 +54,24 @@ claim a complete AI Governance update report.
 
 ## Memory Update Triggers
 
-The following events require updating PLAN.md and/or the relevant memory/ file:
+The following events require updating PLAN.md and/or the relevant memory/ file.
+These updates are part of the delivery that produced the event, not extra work
+after DONE; do not record micro-steps or duplicate a record. Targets follow
+`governance/SYSTEM_PROMPT.md` section 6.1 and match `governance/AGENT_CORE_RULES.md`.
 
 | Event | Required update |
 |-------|----------------|
-| Milestone reached | PLAN.md phase/sprint + memory/active_task |
-| Architecture decision made | PLAN.md decision log + memory/knowledge_base |
-| Bug fixed with root cause identified | memory/knowledge_base |
-| Risk or incident encountered | PLAN.md risk section + memory/active_task |
+| Milestone reached | `memory/01_active_task.md`; PLAN.md phase/sprint only when the milestone changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
+| Architecture decision made | `memory/02_workflow.md`; PLAN.md only when the decision changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
+| Review completed | full record in `memory/04_review_log.md` + one-line summary in `memory/01_active_task.md` |
+| Risk or incident encountered | PLAN.md risk section + `memory/01_active_task.md` |
 | Session end | canonical `memory/YYYY-MM-DD.md` record when closeout is non-stateless |
+
+Use the `memory/02_project_facts.md`, `memory/03_decisions.md` or
+`memory/04_validation_log.md` alias only when this repository has adopted the
+section 6.1 alias schema; never assume an alias that does not exist.
+Repository-specific record duties in `AGENTS.md` still apply.
 
 Automatic closeout has one write boundary: `session_end` may append the daily
 canonical record through `governance_tools.memory_record`. Pre-commit and
@@ -206,4 +215,5 @@ A task is done when:
 - Failure paths are guarded
 - Architecture boundaries remain intact
 - Evidence matches the declared risk level
-- PLAN.md and memory/ reflect the new state
+- PLAN.md and memory/ updates required by the Memory Update Triggers above are
+  included in this delivery; after DONE, add no unrelated rollups or new PRs

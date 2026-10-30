@@ -38,7 +38,7 @@ from governance_tools.governance_update_reporting import (
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
-from governance_tools.hook_installer import install_governance_hooks
+from governance_tools.hook_installer import _codex_project_doc_budget, install_governance_hooks
 from governance_tools.update_receipt import (
     RECEIPT_RELATIVE_PATH,
     skipped_update_receipt,
@@ -343,6 +343,14 @@ def _response_envelope_surface_conflicts(repo_root: Path) -> list[str]:
             if version != RESPONSE_ENVELOPE_CONTRACT_VERSION:
                 conflicts.append(f"{relative_path.as_posix()}: {version}")
     return conflicts
+
+
+def _final_budget_warnings(repo_root: Path, warnings: list[str]) -> list[str]:
+    """Replace the installer's Codex budget warning with one measured on the final AGENTS.md."""
+    kept = [warning for warning in warnings if not warning.startswith("codex-project-doc-budget:")]
+    agents = repo_root / "AGENTS.md"
+    _, final = _codex_project_doc_budget(repo_root, [str(agents)])
+    return kept + final
 
 
 def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
@@ -708,6 +716,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     }
 
     hook_backups: list[str] = []
+    hook_warnings: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -731,11 +740,18 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # them here would leave a consumer unable to tell from the F-7 report that
         # any of their own instruction content was moved aside.
         hook_backups.extend(hook_result.backups)
+        # The installer's Codex project-doc budget warning is report-only; F-7
+        # carries it into its own warnings so an over-budget AGENTS.md is not
+        # silent here either. It does not change the F-7 status.
+        hook_warnings.extend(hook_result.warnings)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
         changed.extend(agents_changed)
         errors.extend(agents_errors)
+        # The installer measured AGENTS.md before the keyed sections were added;
+        # report the file F-7 actually leaves for Codex to load.
+        hook_warnings = _final_budget_warnings(repo_root, hook_warnings)
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
@@ -756,6 +772,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
         )
+    warnings.extend(f"f7-diagnostic: {warning}" for warning in hook_warnings)
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
@@ -888,6 +905,7 @@ def run_f7_full_update(
         # governance instructions; for half its consumers it did not.
         surface_changed: list[str] = []
         surface_backups: list[str] = []
+        surface_warnings: list[str] = []
         updater_blocked = apply and not (result.ok and not result.errors)
         if updater_blocked:
             # Fail-closed has to mean closed. The updater refuses to touch a repo
@@ -906,6 +924,7 @@ def run_f7_full_update(
             )
             surface_changed.extend(hook_result.changed_files)
             surface_backups.extend(hook_result.backups)
+            surface_warnings.extend(hook_result.warnings)
             result.errors.extend(hook_result.errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
@@ -923,6 +942,11 @@ def run_f7_full_update(
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
+        # Same report-only budget warning as the external path, measured on the
+        # final AGENTS.md; status is already decided.
+        if apply and not updater_blocked:
+            surface_warnings = _final_budget_warnings(repo_root, surface_warnings)
+        warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
         return F7Result(
             ok=result.ok and not result.errors,
             mode=result.mode,

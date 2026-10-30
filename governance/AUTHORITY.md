@@ -4,7 +4,7 @@
 
 > machine-readable: true
 > version: 1.1.0
-> updated: 2026-08-31
+> updated: 2026-10-30
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -46,6 +46,7 @@ question into one property. Memory surfaces use the question-specific roles in
 | `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/RULE_REGISTRY.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/AGENT_CORE_RULES.md` | agent-on-demand | canonical | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/RUNTIME_CONTRACT.md` | agent-runtime | canonical | false | ~ | on-demand |
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
@@ -139,6 +140,7 @@ canonical > reference > derived
 | `governance/MEMORY_RECONCILIATION_KNOWLEDGE_IDENTITY_CONTRACT.md` | canonical MRCSP M1b-2 detector contract | deterministic exact case-sensitive knowledge-identity collision reporting for two caller-admitted observations | report-only; no parsing, normalization, semantic identity, missing surface, reader, schema, runtime, hook, CI, gate, blocker, or enforcement behavior |
 | `governance/MEMORY_RECONCILIATION_MISSING_LOGICAL_SURFACE_CONTRACT.md` | canonical MRCSP M1b-3 detector contract | deterministic alias-aware missing-surface reporting for one caller-admitted logical memory surface | report-only; no scanning, parsing, repair, freshness, supersession, reader, schema, runtime, hook, CI, gate, blocker, enforcement, or M2 behavior |
 | `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | canonical solo-owner merge decision contract | exact-head owner attestation, independent technical review, green required checks, and reviewed-head preservation | reporting and authority semantics only; no GitHub settings, CI, runtime, hook, gate, blocker, or enforcement behavior |
+| `governance/AGENT_CORE_RULES.md` | canonical source of the agent core rules | the body between the agent-core-rules markers, projected byte-identical into `governance/agent-contract-template.md` and `governance/copilot-instructions-template.md` | `on-demand`, not `always`: the installed projections (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) already deliver the body every session, so an `always` load would put the same rules in context twice; read this file when editing or verifying the rules |
 | `docs/e1-mutation-catalog.md` | mutation contract catalog / mutation surface inventory | documents mutation-capable surfaces and their allowed claim level | catalog presence is not enforcement by itself |
 | `governance_tools.memory_workflow` | implementation surface for governed memory workflow | dispatch, write-path assessment, guard summary, and receipt status reporting | implementation behavior must not exceed documented contract |
 
