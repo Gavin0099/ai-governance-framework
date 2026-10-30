@@ -140,8 +140,8 @@ and run through each path:
 
 | Consumer | main, full F-7 | main, installer only | candidate, full F-7 | candidate, installer only |
 |---|---|---|---|---|
-| ruiyi-life-map (31,663 now) | 27,678 | 33,393 (over 625) | 30,488 | 36,203 (over 3,435; Delivery Convergence cut) |
-| hbplus.avalonia (31,816 now) | 27,230 | 33,546 (over 778) | 30,040 | 36,356 (over 3,588; boundary block cut) |
+| ruiyi-life-map (31,663 now) | 27,678 | 33,393 (over 625) | 30,488 | 36,203 (over 3,435; cuts core rule 4's table tail, core rules 5-7 and all of Delivery Convergence) |
+| hbplus.avalonia (31,816 now) | 27,230 | 33,546 (over 778) | 30,040 | 36,356 (over 3,588; cuts Delivery Convergence rules 2-4 and the F-7 boundary block) |
 
 The full F-7 path (refresh + installer + boundary) fits on both. The installer-only path
 already overflows on main and overflows more with this change, because it grows the managed
