@@ -101,6 +101,13 @@ python governance_tools/memory_janitor.py --check --format json
 archive + cutover，並驗證：搬出的內容仍可找回、不可逆決策與授權邊界仍留在 active memory 或可追溯位置；
 完成後重新量測。`--manifest` 只顯示過去留下的紀錄，janitor 現在不會新增紀錄。
 
+**已授權的 cutover 用 `active_task_cutover.py`**（2026-10-23 `f42e49d4` 人工流程的工具化）：`prepare` 逐 byte 封存原檔並寫 manifest；
+replacement candidate 由 Agent 自己撰寫；`verify` 產生 preservation matrix——非 projection 行必須逐字且依原順序保留，
+projection 只有在 daily／review-log／projection history 找得回時才能拿掉，其他改寫一律 UNRESOLVED、不能 cutover；
+`cutover --authorization "<owner 授權>"` 才寫入並重新量測，`rollback` 還原。matrix 只是機械量測，不是語義審查。
+`memory_record --surface active-task-summary` 會取代自己上一筆 projection（舊行逐 byte 移到
+`memory/archive/active_task_projection_history.md`），所以 cutover 後不會再長回去；cutover 前已累積的舊 projection 不會被自動移動。
+
 **`--plan` 的限制**：可歸檔統計只靠四種標記判斷（含 `[x]` 的 `##` 標題、`~~刪除線~~`、`(Superseded …)`、`ADR-NNNN` 引用）。
 回報 0 不代表內容都必須留在 active memory，哪些是每次工作都需要的狀態、哪些是可改用索引查的歷史，仍需人工盤點。
 
