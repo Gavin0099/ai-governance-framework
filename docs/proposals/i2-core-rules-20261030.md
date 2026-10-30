@@ -41,8 +41,8 @@ part of this slice. Line numbers below are "before" = `48f0ce76`,
 | `governance/AGENT_CORE_RULES.md` (new) | Canonical core body between `ai-governance:agent-core-rules` BEGIN/END (lines 23-47): Owner Gate (C5), commit/push (C4), DONE vs session end (C1), must-record table (C2/C3), no fabricated evidence (C6), labels (C7), secrets (copied from BASE Secret Handling). |
 | `governance/agent-contract-template.md` (AC) | Core body at 96-120, after the UNAVAILABLE notice and before Delivery Convergence (122). Delivery Convergence trailing paragraph (before :103, after :129) now defers to the core for the Owner Gate and commit/push. |
 | `governance/copilot-instructions-template.md` (CP) | Core body at 11-35, before DONE Boundary Rules. Rule 1, Rule 3a, the label sentence and the inference/stale sentence changed (below). |
-| `baselines/repo-min/AGENTS.base.md`, `AGENTS.base.md` | Memory Update Triggers (55-74) and DoD line (repo-min 218-219, root 98-99). |
-| `.governance/baseline.yaml` | Only `sha256.AGENTS.base.md` re-recorded (separate commit `03361480`). |
+| `baselines/repo-min/AGENTS.base.md` | Memory Update Triggers (55-74) and DoD line (218-219). |
+| framework-root `AGENTS.base.md` + `.governance/baseline.yaml` | **Not in this PR.** The same edit plus a re-recorded protected hash is held on local branch `hold/i2-root-base-rehash` (`03361480`) for a separate owner decision, because re-recording a protected hash is a trust-structure change. |
 | `PLAN.md` | One Canonical Planning Surface entry for this slice + `最後更新` 2026-10-30. |
 | Tests | New `tests/test_agent_core_rules_projection.py`; `tests/test_delivery_convergence_projection.py` guard updated. |
 
@@ -55,7 +55,7 @@ part of this slice. Line numbers below are "before" = `48f0ce76`,
   closeout at a confirmed session end". Core rule 3 (AC:103, CP:18) states C1.
   AC:103 / BASE closeout block (repo-min 147-152) were already consistent and
   are unchanged.
-- **C2** before BASE:209 (repo-min) / :89 (root) `PLAN.md and memory/ reflect
+- **C2** before BASE:209 (repo-min) `PLAN.md and memory/ reflect
   the new state`. After: updates "required by the Memory Update Triggers above
   are included in this delivery; after DONE, add no unrelated rollups or new
   PRs". Core rule 4 says the same.
@@ -87,7 +87,7 @@ part of this slice. Line numbers below are "before" = `48f0ce76`,
 | AC template | 7,177 → 9,961 (+2,784) | 7,281 → 10,091 (+2,810) |
 | CP template | 13,315 → 16,496 (+3,181) | 13,551 → 16,758 (+3,207) |
 | repo-min `AGENTS.base.md` | 10,317 → 11,191 (+874) | 10,526 → 11,410 (+884) |
-| root `AGENTS.base.md` | 9,224 → 10,098 (+874) | 9,413 → 10,297 (+884) |
+| root `AGENTS.base.md` (held, not in this PR) | 9,224 → 10,098 (+874) | 9,413 → 10,297 (+884) |
 | `AGENT_CORE_RULES.md` | 0 → 4,059 | 0 → 4,106 |
 
 Disposable consumer (`C:\tmp\cp4\base` copied; `_refresh_repo_local_instructions`
@@ -117,6 +117,10 @@ replaces that sentence; it now checks the Delivery pointer and the core's
   wording.
 - The framework's own `.github/copilot-instructions.md` is a custom file, not
   an install of the CP template; it was not changed.
-- Re-recording the protected `AGENTS.base.md` hash is in its own commit
-  (`03361480`) so it can be dropped separately.
-- No push, PR, merge or consumer installation.
+- The framework-root `AGENTS.base.md` alignment and its protected-hash
+  re-record are held out of this PR (`hold/i2-root-base-rehash`, `03361480`)
+  pending an explicit owner decision on the trust-structure change. Until then
+  the framework's own root BASE keeps the old memory routing.
+- `PLAN.md` was edited only because the pre-commit hook blocked the commit for
+  staleness (15 days > 14); the entry records this slice.
+- No merge or consumer installation.
