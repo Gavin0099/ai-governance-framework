@@ -108,13 +108,12 @@ replaces that sentence; it now checks the Delivery pointer and the core's
 
 ## Not done / open for the owner
 
-- `governance/AGENT_CORE_RULES.md` is not registered in `governance/AUTHORITY.md`
-  and has no frontmatter: registering it is an authority-table change and is
-  left to the owner.
-- Not resolved by the ruling, left unchanged: BASE Milestone row requires
-  `PLAN.md` phase/sprint on every milestone, while §6.1 requires `PLAN.md` only
-  when planned scope, phase status or anti-goal change. The core keeps BASE's
-  wording.
+- ~~`governance/AGENT_CORE_RULES.md` is not registered in `governance/AUTHORITY.md`
+  and has no frontmatter.~~ Resolved in R2 (owner ruling R2-1, below).
+- ~~BASE Milestone row requires `PLAN.md` phase/sprint on every milestone, while
+  §6.1 requires it only when scope, phase or anti-goal change.~~ Resolved in R2
+  (owner ruling R2-2, below) for the core, AC, CP and repo-min BASE; the
+  framework-root BASE stays held.
 - The framework's own `.github/copilot-instructions.md` is a custom file, not
   an install of the CP template; it was not changed.
 - The framework-root `AGENTS.base.md` alignment and its protected-hash
@@ -170,3 +169,57 @@ the must-record event; it followed the prompt's explicit DONE (test + commit). D
 compliance. The owner gate held in both arms. K2's 「收尾」 is an explicit user request to close
 out, so running closeout there is legitimate in both arms; it is not a test of DONE vs session
 end. Claude Code and Copilot: NOT RUN.
+
+## R2 (2026-10-30): owner rulings on the open items
+
+Owner rulings adopted for R2, implemented as stated:
+
+- **R2-1 Authority registration.** `governance/AGENT_CORE_RULES.md` now carries
+  frontmatter `audience: agent-on-demand`, `authority: canonical`,
+  `can_override: false`, `overridden_by: SYSTEM_PROMPT.md`,
+  `default_load: on-demand`, and `governance/AUTHORITY.md` has the matching row
+  plus a surface note. `authority_loader` reads it (it skips files without
+  frontmatter); `authority_metadata_consistency` stays `ok` (23 table rows = 23
+  frontmatter rows, 0 mismatches; unregistered 15 → 14).
+  Why `on-demand`, not `always`: `filter_for_session` adds `always` files at
+  every level, including L0, and `AUTHORITY.md` defines `always` as "load every
+  session". The installed projections (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `.github/copilot-instructions.md`, all `always`) already deliver the body
+  every session, so `always` would put the same rules in context twice.
+  `on-demand` keeps it out of L0 and only in the L1/L2 allowed set, which
+  `session_start` uses as a permission/audit list (`allowed_count`, payload
+  audit), not as content injection. `overridden_by: SYSTEM_PROMPT.md` because
+  the core states that its memory targets follow `SYSTEM_PROMPT.md` §6.1.
+- **R2-2 Milestone row.** A milestone still requires `memory/01_active_task.md`;
+  `PLAN.md` phase/sprint changes only when the milestone changes PLAN phase,
+  scope, anti-goal or another existing PLAN obligation. Applied to the core
+  (and its byte-identical AC/CP projections) and `baselines/repo-min/AGENTS.base.md`.
+- **R2-3 Secrets rule.** Unchanged.
+- **R2-4 Installer overflow is reported.** `hook_installer` measures the
+  installed root `AGENTS.md` after `install_governance_hooks` and
+  `install_copilot_surface`, and returns `codex_project_doc_budget`
+  (`on_disk_bytes`, `crlf_worst_case_bytes`, `budget_bytes` 32,768,
+  `overflow_bytes`, `crlf_worst_case_overflow_bytes`, `over_budget`,
+  `over_budget_with_crlf`). When either size is over budget, `warnings` gets a
+  `codex-project-doc-budget:` entry naming the overflow bytes and that trailing
+  instructions, including the end of the managed block, may not be delivered to
+  Codex; the human output prints the sizes and `warning:` lines. It is a report:
+  `ok` and the exit code are unchanged. The budget is Codex's default
+  `project_doc_max_bytes`; a consumer that overrides it has a different budget.
+  F-7 (`f7_full_update`) copies the warning into its report-only `warnings` as
+  `f7-diagnostic: ...`; the F-7 status is unchanged.
+
+### R2 byte deltas (git blob LF / working-tree CRLF)
+
+| Surface | LF | CRLF |
+|---|---|---|
+| `AGENT_CORE_RULES.md` | 4,068 → 4,285 (+217: frontmatter +132, row +85) | 4,115 → 4,340 (+225) |
+| AC template | 9,970 → 10,055 (+85) | 10,100 → 10,185 (+85) |
+| CP template | 16,576 → 16,661 (+85) | 16,839 → 16,924 (+85) |
+| repo-min `AGENTS.base.md` | 11,191 → 11,287 (+96) | 11,410 → 11,506 (+96) |
+
+The frontmatter is outside the projected region, so only the row reaches
+consumers: the AC managed block, and with it an installed `AGENTS.md`, grows by
+85 bytes. The installer-only overflow figures in the consumer budget table above
+grow by the same 85 bytes; by that arithmetic (not re-measured) the full F-7 path
+still fits on both consumers (30,573 and 30,125).
