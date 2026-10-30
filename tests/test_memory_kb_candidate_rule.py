@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from governance_tools import external_governance_submodule_updater as updater
 from governance_tools import f7_full_update
 from memory_pipeline.memory_promoter import promote_candidate
 from memory_pipeline.promotion_policy import classify_promotion_policy
@@ -188,3 +189,108 @@ def test_promotion_appends_its_own_entry_instead_of_absorbing_the_candidate(tmp_
     assert "- Approved by: runtime-auto-promotion\n" in promoted
     # The pairing is recognisable only because this summary carries the fix commit.
     assert "0123456789abcdef0123456789abcdef01234567" in promoted
+
+
+# ── Installed consumers: replace the legacy router line (F1 follow-up) ─────────
+
+LEGACY = updater.LEGACY_MEMORY_WRITER_ROUTER_LINE
+CURRENT = updater.MEMORY_WRITER_ROUTER_LINE
+CONSUMER_HEAD = "# TacticalGo AGENTS\n\n消費端自有說明：不要動這一段。\n\n"
+CONSUMER_RISK = (
+    "## Repo-Specific Risk Levels\n<!-- governance:key=risk_levels -->\n\n"
+    "- HIGH：治理 Hook／workflow 變更（consumer-owned）\n\n"
+    "## Repo-Specific Forbidden Behaviors\n<!-- governance:key=forbidden_behaviors -->\n\n"
+    "- consumer-owned forbidden rule\n"
+)
+
+
+def _router(line: str) -> str:
+    return updater._memory_workflow_router_section().replace(CURRENT, line)
+
+
+def test_current_line_is_the_baseline_router_line() -> None:
+    assert _router_line(_text(ROUTER)) == CURRENT
+    assert LEGACY not in CURRENT and CURRENT in updater._memory_workflow_router_section()
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_replace_legacy_line_is_exact_and_idempotent(newline: str) -> None:
+    reworded = LEGACY.replace("ordinary markdown", "plain markdown (consumer wording)")
+    text = newline.join(["intro", LEGACY, reworded, "  " + LEGACY, "tail"]) + newline
+    once = updater.replace_legacy_memory_writer_router_line(text)
+    assert once == text.replace(newline + LEGACY + newline, newline + CURRENT + newline, 1)
+    assert once.count(CURRENT) == 1
+    assert reworded in once and ("  " + LEGACY) in once  # not whole-line legacy: untouched
+    assert updater.replace_legacy_memory_writer_router_line(once) == once
+
+
+def _f7_stable(repo: Path, body: str) -> str:
+    (repo / "AGENTS.md").write_text(body, encoding="utf-8")
+    f7_full_update._ensure_agents_keyed_sections(repo)
+    return (repo / "AGENTS.md").read_text(encoding="utf-8")
+
+
+def test_f7_keyed_sections_replace_legacy_line_once_and_keep_consumer_text(tmp_path: Path) -> None:
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    # Settle every other managed edit first, so the only difference left is the line.
+    expected = _f7_stable(repo, CONSUMER_HEAD + _router(CURRENT) + "\n" + CONSUMER_RISK)
+    legacy_body = expected.replace(CURRENT, LEGACY)
+    assert legacy_body.count(LEGACY) == 1
+
+    after = _f7_stable(repo, legacy_body)
+    assert after == expected
+    assert after.count(CURRENT) == 1 and LEGACY not in after
+    assert after.count(updater.MEMORY_WORKFLOW_MARKER) == 1
+
+    assert f7_full_update._ensure_agents_keyed_sections(repo)[0] == "verified"
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == expected
+
+
+def _refresh(repo: Path) -> dict:
+    return updater._refresh_repo_local_instructions(repo, REPO_ROOT)
+
+
+@pytest.mark.parametrize("layout", ["router-inside-section", "router-after-risk-levels"])
+def test_updater_refresh_leaves_one_current_line_and_consumer_text(tmp_path: Path, layout: str) -> None:
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    old_section = "## AI Governance Update Intent Rule\n\nolder framework text\n\n"
+    if layout == "router-inside-section":  # TacticalGo layout: router before Risk Levels
+        body = CONSUMER_HEAD + old_section + _router(LEGACY) + "\n" + CONSUMER_RISK
+    else:
+        body = CONSUMER_HEAD + old_section + CONSUMER_RISK + "\n" + _router(LEGACY)
+    (repo / "AGENTS.md").write_text(body, encoding="utf-8")
+
+    report = _refresh(repo)
+    after = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert report["status"] == "updated", report["errors"]
+    assert after.count(CURRENT) == 1 and LEGACY not in after
+    assert after.count(updater.MEMORY_WORKFLOW_MARKER) == 1
+    assert after.startswith(CONSUMER_HEAD)
+    assert CONSUMER_RISK.rstrip("\n") in after
+
+    second = _refresh(repo)
+    if layout == "router-after-risk-levels":
+        # Pre-existing (also at 898fc7db, independent of this line): collapsing the
+        # outside copy leaves one extra blank line that the next refresh adds back.
+        settled = (repo / "AGENTS.md").read_text(encoding="utf-8")
+        assert settled.replace("\n", "") == after.replace("\n", "")
+        after = settled
+        second = _refresh(repo)
+    assert second["status"] == "already_current" and second["changed_files"] == []
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == after
+
+
+def test_updater_router_step_leaves_an_edited_line_and_reports_it(tmp_path: Path) -> None:
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    edited = LEGACY.replace("as ordinary markdown", "by hand (team rule)")
+    body = CONSUMER_HEAD + CONSUMER_RISK + "\n" + _router(edited)
+    (repo / "AGENTS.md").write_text(body, encoding="utf-8")
+
+    report = updater._ensure_memory_workflow_router(repo)
+    assert (repo / "AGENTS.md").read_text(encoding="utf-8") == body
+    assert report["status"] == "verified" and report["errors"] == []
+    assert len(report["warnings"]) == 1 and "left untouched" in report["warnings"][0]
+    assert updater.memory_writer_router_line_diagnostics(_router(CURRENT)) == []

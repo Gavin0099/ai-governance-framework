@@ -24,7 +24,12 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
-from governance_tools.external_governance_submodule_updater import update_governance_submodule
+from governance_tools.external_governance_submodule_updater import (
+    MEMORY_WRITER_ROUTER_LINE,
+    memory_writer_router_line_diagnostics,
+    replace_legacy_memory_writer_router_line,
+    update_governance_submodule,
+)
 from governance_tools.external_repo_readiness import assess_external_repo
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -297,16 +302,15 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
         block=F7_UPDATE_BOUNDARY_BLOCK,
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
+    # Presence alone kept the legacy memory-writer line in installed consumers.
+    after = replace_legacy_memory_writer_router_line(after)
     inserts: list[str] = []
     if not _memory_workflow_router_present_in_text(before):
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
             "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
             "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
-            "- Use the canonical memory writer (`memory_record`) for session-derived records (daily, review log, active-task summary); "
-            "do not hand-edit them. A root-caused bug-fix gotcha may be written directly to `memory/03_knowledge_base.md` "
-            "(or the adopted alias) only as a `CANDIDATE / UNREVIEWED` entry with root cause, fix, fix commit and test evidence, "
-            "paired with a canonical daily record for the same fix commit; it never claims promotion or `Approved by`.\n"
+            f"{MEMORY_WRITER_ROUTER_LINE}\n"
         )
 
     if inserts:
@@ -755,6 +759,12 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # The installer measured AGENTS.md before the keyed sections were added;
         # report the file F-7 actually leaves for Codex to load.
         hook_warnings = _final_budget_warnings(repo_root, hook_warnings)
+        # Report-only: an edited memory-writer router line is left as the consumer wrote it.
+        agents_path = repo_root / "AGENTS.md"
+        if agents_path.is_file():
+            hook_warnings.extend(
+                memory_writer_router_line_diagnostics(agents_path.read_text(encoding="utf-8", errors="replace"))
+            )
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED

@@ -1521,3 +1521,59 @@ def test_human_report_carries_the_provenance_claim_boundary(tmp_path: Path) -> N
     assert "produced_by_claim_boundary=" in text
     assert "not compared against any required revision" in text
     assert "produced_by_sampled=before_any_mutation" in text
+
+
+# ── F1: legacy memory-writer router line in installed consumers ────────────────
+
+_LEGACY_WRITER = updater_module.LEGACY_MEMORY_WRITER_ROUTER_LINE
+_CURRENT_WRITER = updater_module.MEMORY_WRITER_ROUTER_LINE
+_CONSUMER_TAIL = "\n## Consumer Notes\n\n- 消費端自有：保留這一行。\n"
+
+
+def _consumer_with_router(tmp_path: Path, writer_line: str) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    agents = repo / "AGENTS.md"
+    _write(
+        agents,
+        agents.read_text(encoding="utf-8")
+        + "\n<!-- governance:key=memory_workflow -->\n"
+        "- Before claiming completion for any change touching `memory/**`, run "
+        "`python -m governance_tools.memory_workflow --check --repo .`.\n"
+        + writer_line
+        + "\n"
+        + _CONSUMER_TAIL,
+    )
+    return repo, framework
+
+
+def test_f7_replaces_exact_legacy_writer_line_once_and_keeps_consumer_text(tmp_path: Path) -> None:
+    repo, framework = _consumer_with_router(tmp_path, _LEGACY_WRITER)
+    agents = repo / "AGENTS.md"
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = agents.read_text(encoding="utf-8")
+    assert after.count(_CURRENT_WRITER) == 1 and _LEGACY_WRITER not in after
+
+    # Every other byte equals a run on the same consumer already carrying the new line.
+    control, control_framework = _consumer_with_router(tmp_path / "control", _CURRENT_WRITER)
+    run_f7_full_update(repo_root=control, framework_root=control_framework, apply=True)
+    assert after == (control / "AGENTS.md").read_text(encoding="utf-8")
+    assert "- Preserve this domain rule.\n" in after and _CONSUMER_TAIL in after
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    assert agents.read_text(encoding="utf-8") == after
+
+
+def test_f7_leaves_an_edited_writer_line_and_reports_it(tmp_path: Path) -> None:
+    edited = _LEGACY_WRITER.replace("as ordinary markdown", "by hand (team rule)")
+    repo, framework = _consumer_with_router(tmp_path, edited)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert after.count(edited) == 1 and _CURRENT_WRITER not in after
+    diagnostics = [w for w in result.warnings if w.startswith("f7-diagnostic: memory-workflow-router:")]
+    assert len(diagnostics) == 1, result.warnings
+    assert "left untouched" in diagnostics[0]

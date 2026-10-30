@@ -995,6 +995,54 @@ def _normalize_router_block(block: str) -> str:
     return re.sub(r"\s+", " ", block).strip()
 
 
+# The router's memory-writer line before the knowledge-base candidate rule (F1).
+# Consumers installed earlier carry it verbatim; a Codex agent read it as
+# forbidding any knowledge-base write.
+LEGACY_MEMORY_WRITER_ROUTER_LINE = (
+    "- Use the canonical memory writer for session-derived memory; do not edit "
+    "memory records as ordinary markdown."
+)
+MEMORY_WRITER_ROUTER_LINE = (
+    "- Use the canonical memory writer (`memory_record`) for session-derived records "
+    "(daily, review log, active-task summary); do not hand-edit them. A root-caused "
+    "bug-fix gotcha may be written directly to `memory/03_knowledge_base.md` (or the "
+    "adopted alias) only as a `CANDIDATE / UNREVIEWED` entry with root cause, fix, fix "
+    "commit and test evidence, paired with a canonical daily record for the same fix "
+    "commit; it never claims promotion or `Approved by`."
+)
+_LEGACY_MEMORY_WRITER_LINE_PATTERN = re.compile(
+    r"(?m)^" + re.escape(LEGACY_MEMORY_WRITER_ROUTER_LINE) + r"(?=\r?\n|\Z)"
+)
+
+
+def replace_legacy_memory_writer_router_line(text: str) -> str:
+    """Swap the exact legacy router line for the current one; touch nothing else.
+
+    Only a whole line equal to the legacy text is replaced, so a consumer that
+    reworded the line keeps its wording, and its line ending is preserved.
+    Idempotent: the current line never matches the legacy pattern.
+    """
+    return _LEGACY_MEMORY_WRITER_LINE_PATTERN.sub(lambda _m: MEMORY_WRITER_ROUTER_LINE, text)
+
+
+def memory_writer_router_line_diagnostics(text: str) -> list[str]:
+    """Report-only: name memory-writer router lines that are neither framework text.
+
+    A line that starts like the router's memory-writer bullet but equals neither
+    the legacy nor the current text may carry a consumer edit, so it is left in
+    place. This never changes a status or blocks; it only says what was left.
+    """
+    prefix = "- Use the canonical memory writer"
+    return [
+        f"memory-workflow-router: AGENTS.md line {number} is an edited memory-writer "
+        "router line; left untouched (consumer-owned or unclear ownership). Compare it "
+        "with the framework router text by hand."
+        for number, line in enumerate(text.splitlines(), start=1)
+        if line.lstrip().startswith(prefix)
+        and line.rstrip() not in (MEMORY_WRITER_ROUTER_LINE, LEGACY_MEMORY_WRITER_ROUTER_LINE)
+    ]
+
+
 def _memory_workflow_router_section() -> str:
     return (
         "## AI Governance Memory Workflow Router\n\n"
@@ -1004,8 +1052,7 @@ def _memory_workflow_router_section() -> str:
         "- For memory completion claims, run "
         "`python -m governance_tools.memory_workflow --check --repo . --run-guard` "
         "and report blockers before claiming DONE.\n"
-        "- Use the canonical memory writer for session-derived memory; do not edit "
-        "memory records as ordinary markdown.\n"
+        f"{MEMORY_WRITER_ROUTER_LINE}\n"
         "- Canonical writer signal: `governance_tools.memory_record` / "
         "`memory_record.py`.\n"
     )
@@ -1070,7 +1117,11 @@ def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
             "errors": [f"missing AGENTS.md: {agents}"],
         }
     current = _read_text(agents)
-    updated, duplicate_markers = _collapse_duplicate_memory_workflow_routers(current)
+    # Before collapsing: a legacy router outside the refreshed section must read
+    # the same as the fresh copy the section refresh just injected.
+    updated, duplicate_markers = _collapse_duplicate_memory_workflow_routers(
+        replace_legacy_memory_writer_router_line(current)
+    )
     if MEMORY_WORKFLOW_MARKER not in updated:
         updated = updated.rstrip() + "\n\n" + _memory_workflow_router_section()
     changed = _write_text_if_changed(agents, updated)
@@ -1086,6 +1137,8 @@ def _ensure_memory_workflow_router(repo: Path) -> dict[str, Any]:
         "status": "blocked" if errors else "updated" if changed else "verified",
         "changed_files": ["AGENTS.md"] if changed else [],
         "errors": errors,
+        # Report-only; never feeds status.
+        "warnings": memory_writer_router_line_diagnostics(updated),
     }
 
 
@@ -1160,6 +1213,7 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
         "changed_files": changed,
         "errors": errors,
         "memory_workflow_router": router_report,
+        "warnings": list(router_report["warnings"]),
     }
 
 
