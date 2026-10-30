@@ -1125,6 +1125,46 @@ def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path
     assert results["large"].stages["hook_validator_enforcement"] == results["small"].stages["hook_validator_enforcement"]
 
 
+def test_f7_budget_warning_measures_the_final_agents_md(tmp_path: Path) -> None:
+    """F-7 appends keyed sections after the installer measured; the report must use the final file."""
+    from governance_tools.hook_installer import CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES, install_governance_hooks
+
+    framework = Path(__file__).resolve().parents[1]
+    # Long lines keep the CRLF worst case close to the on-disk size, so the
+    # installed file is under the budget by both measures.
+    line = ("House rule line. " * 16) + "\n"
+
+    def consumer(name: str, lines: int) -> Path:
+        repo = tmp_path / name
+        _make_external_contract_repo(repo)
+        _write(repo / "AGENTS.md", "# AGENTS\n\n" + line * lines)
+        return repo
+
+    def crlf_worst_case(path: Path) -> int:
+        data = path.read_bytes().replace(b"\r\n", b"\n")
+        return len(data) + data.count(b"\n")
+
+    # Calibrate how much the installer itself adds, then size the content so the
+    # installed file sits about 1 KB under the budget.
+    probe = consumer("probe", 1)
+    install_governance_hooks(probe, framework)
+    installed_overhead = crlf_worst_case(probe / "AGENTS.md") - (len("# AGENTS\n\n" + line) + 3)
+    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 1000 - installed_overhead) // (len(line) + 1)
+
+    installer_only = consumer("installer-only", lines)
+    hook_result = install_governance_hooks(installer_only, framework)
+    assert crlf_worst_case(installer_only / "AGENTS.md") < CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+    assert not [w for w in hook_result.warnings if w.startswith("codex-project-doc-budget:")]
+
+    repo = consumer("f7", lines)
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    final_size = len((repo / "AGENTS.md").read_bytes())
+    assert final_size > CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES, final_size
+    budget_warnings = [w for w in result.warnings if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
+    assert len(budget_warnings) == 1, result.warnings
+    assert f"is {final_size} bytes on disk" in budget_warnings[0]
+
+
 def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> UpdateResult:
     return UpdateResult(
         ok=ok,
