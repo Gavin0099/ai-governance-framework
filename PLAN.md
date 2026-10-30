@@ -2,6 +2,19 @@
 
 ## Canonical Planning Surface
 
+### Authorized I2 agent core rules (S2-A/S2-B) — 2026-10-30
+
+- Owner ruling C1-C7 adopted 2026-10-30; slices S2-A (single canonical core)
+  and S2-B (projection) authorized on branch `feat/i2-core-rules` from
+  `main@48f0ce76`. Push, PR and merge stay with the orchestrator/owner.
+- DONE: `governance/AGENT_CORE_RULES.md` body projected byte-identical into the
+  agent-contract and Copilot templates; conflicting Copilot DONE/owner/label
+  wording removed; baseline memory triggers and DoD aligned with ruling C2/C3;
+  drift test `tests/test_agent_core_rules_projection.py`.
+- Scope: those templates, both `AGENTS.base.md` copies, tests and the proposal
+  `docs/proposals/i2-core-rules-20261030.md`. No change to the 2.8 projection,
+  Owner Gate scope, F-7 fail-closed rules or memory semantics beyond the ruling.
+
 ### Authorized VS Code Stop wiring repair — 2026-10-15
 
 - Owner authorized a bounded fix from `main@2a09d54`, independent review and
@@ -67,7 +80,7 @@
   independent review, Codex review and complete CI must pass before delivery.
 - Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
 
-> **最後更新**: 2026-10-15
+> **最後更新**: 2026-10-30
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10

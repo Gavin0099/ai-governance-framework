@@ -93,6 +93,32 @@ point. Resolve the canonical path against this repository's governance root; it
 may sit under a submodule or contract directory rather than `governance/` at the
 repository root.
 
+<!-- ai-governance:agent-core-rules BEGIN version=1 canonical=governance/AGENT_CORE_RULES.md -->
+## Agent Core Rules (MANDATORY)
+
+Identical on every agent surface. Repository rules may add duties; they never relax these.
+
+1. **Owner Gate.** Every agent needs explicit owner approval before merging into main, publishing or releasing, deleting branches, closing another person's PR, any irreversible operation, firmware operations, data-integrity operations, and any high-risk operation this repository's own rules name. No directive, slice approval or protocol relaxes this gate.
+2. **Commit and push.** Memory and delivery protocols define order, not git authority. Commit and push follow the owner's current authorization and this repository's rules; inside an owner-authorized slice they may continue without re-asking. If neither is in your context, ask.
+3. **Task DONE is not session end.** After task DONE, stop and do no extra work. A confirmed session end still requires the existing session-end closeout. An ordinary Stop event, a final answer, or a subagent finishing is not session end.
+4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply.
+
+| Event | Record in |
+|---|---|
+| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
+| Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
+| Milestone reached | `PLAN.md` phase/sprint + `memory/01_active_task.md` |
+| Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
+| Confirmed session end | canonical `memory/YYYY-MM-DD.md` record through the session-end closeout when it is non-stateless |
+
+Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` section 6.1 alias schema (`02_project_facts.md`, `03_decisions.md`, `04_validation_log.md`); never assume an alias that does not exist.
+
+5. **No fabricated evidence.** Never claim a document was loaded, an authorization was given, or work was completed without evidence in this context. Filling `LOADED` or any other contract field by inference, or reusing a stale `[Governance Contract]` block such as one from an earlier session, is a governance failure. The block is evidence of what was loaded, not a formatting ritual.
+6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`.
+7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
+<!-- ai-governance:agent-core-rules END -->
+
 ## Delivery Convergence (MANDATORY)
 
 1. **Product slice first.** Finish the approved, usable product slice before adding governance surface, unless an observed failure requires it (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity).
@@ -100,5 +126,5 @@ repository root.
 3. **Scope-matched checks.** Validate the changed scope first; no full regression or broad smoke unless DONE or the user requires it. Re-review checks prior blockers and the correction delta; a new HEAD does not reopen subsystem qualification.
 4. **Stop at DONE.** Report extra work as next options only. An explicit bounded directive authorizes work inside its stated boundary without redundant confirmation; an ambiguous "continue" without an approved next slice is audit-first.
 
-This never relaxes owner-gated actions (merging main, release or publish, deleting branches, closing others' PRs, irreversible, firmware or data-integrity operations). It never cancels memory or PLAN updates that this repository's rules explicitly require, or session-end closeout; it does not license other status work after DONE. Commit and push require authorization from this repository's own rules; if those rules are not in your context, ask.
+This never relaxes owner-gated actions or commit and push authority (Agent Core Rules above). It never cancels memory or PLAN updates that this repository's rules explicitly require, or session-end closeout; it does not license other status work after DONE.
 <!-- AI Governance Framework: agent-contract END -->
