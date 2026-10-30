@@ -34,6 +34,15 @@ def _agent_candidate(active: Path) -> bytes:
     return AGENT_HEADER.encode("utf-8") + b"\n" + projections[-1]
 
 
+def _candidate_sha(root: Path) -> str:
+    return _sha(cut.artifact_paths(root, STAMP)["candidate"].read_bytes())
+
+
+def _cut(root: Path, authorization: str, **kwargs):
+    """Cut over with the authorization bound to the candidate currently on disk."""
+    return cut.cutover(root, STAMP, authorization, _candidate_sha(root), **kwargs)
+
+
 def _pressure(root: Path) -> str:
     return MemoryJanitor(root / "memory").check_hot_memory_status()[2]
 
@@ -63,14 +72,14 @@ def test_tacticalgo_shaped_emergency_cutover_reaches_safe(tmp_path: Path) -> Non
     assert "not** a semantic-fidelity" in matrix
     assert active.read_bytes() == source, "verify must not modify active memory"
 
-    manifest = cut.cutover(tmp_path, STAMP, "owner authorized fixture cutover")
+    manifest = _cut(tmp_path, "owner authorized fixture cutover")
     assert manifest["noop"] is False
     assert manifest["pressure"]["before"]["status"] == "EMERGENCY"
     assert manifest["pressure"]["after"]["status"] == "SAFE"
     assert active.read_bytes() == paths["candidate"].read_bytes()
     assert paths["archive"].read_bytes() == source
 
-    again = cut.cutover(tmp_path, STAMP, "owner authorized fixture cutover")
+    again = _cut(tmp_path, "owner authorized fixture cutover")
     assert again["noop"] is True
     assert active.read_bytes() == paths["candidate"].read_bytes()
 
@@ -97,7 +106,7 @@ def test_rewritten_agent_line_is_unresolved_and_blocks_cutover(tmp_path: Path) -
     assert manifest["preservation_matrix"]["unresolved"] == 1
     assert manifest["preservation_matrix"]["added"] == 1
     with pytest.raises(cut.CutoverError):
-        cut.cutover(tmp_path, STAMP, "owner authorized")
+        _cut(tmp_path, "owner authorized")
     assert active.read_bytes() == source
 
 
@@ -153,13 +162,13 @@ def test_cutover_refuses_when_active_or_candidate_changed(tmp_path: Path) -> Non
 
     paths["candidate"].write_bytes(paths["candidate"].read_bytes() + b"- late edit\n")
     with pytest.raises(cut.CutoverError, match="candidate changed"):
-        cut.cutover(tmp_path, STAMP, "owner authorized")
+        _cut(tmp_path, "owner authorized")
 
     paths["candidate"].write_bytes(_agent_candidate(active))
     write_record(tmp_path, 77, converge=True)
     changed = active.read_bytes()
     with pytest.raises(cut.CutoverError, match="active file changed"):
-        cut.cutover(tmp_path, STAMP, "owner authorized")
+        _cut(tmp_path, "owner authorized")
     assert active.read_bytes() == changed
 
 
@@ -170,7 +179,7 @@ def test_rollback_restores_predecessor_bytes(tmp_path: Path) -> None:
     paths = cut.artifact_paths(tmp_path, STAMP)
     paths["candidate"].write_bytes(_agent_candidate(active))
     cut.verify(tmp_path, STAMP)
-    cut.cutover(tmp_path, STAMP, "owner authorized")
+    _cut(tmp_path, "owner authorized")
 
     assert cut.rollback(tmp_path, STAMP)["noop"] is False
     assert active.read_bytes() == source
@@ -203,9 +212,140 @@ def test_cli_round_trip(tmp_path: Path) -> None:
     verified = run("verify")
     assert verified.returncode == 0, verified.stdout + verified.stderr
     assert "not a semantic review" in verified.stdout
+    sha = _candidate_sha(tmp_path)
+    assert f"candidate SHA-256: {sha}" in verified.stdout
     assert run("cutover").returncode == 2  # --authorization is required
-    done = run("cutover", "--authorization", "owner authorized fixture")
+    assert run("cutover", "--authorization", "owner authorized fixture").returncode == 2
+    blank = run("cutover", "--authorization", "  ", "--authorized-candidate-sha256", sha)
+    assert blank.returncode == 2 and "refused" in blank.stderr
+    done = run(
+        "cutover", "--authorization", "owner authorized fixture",
+        "--authorized-candidate-sha256", sha,
+    )
     assert done.returncode == 0, done.stdout + done.stderr
     assert "SAFE" in done.stdout
-    again = run("cutover", "--authorization", "owner authorized fixture")
+    again = run(
+        "cutover", "--authorization", "owner authorized fixture",
+        "--authorized-candidate-sha256", sha,
+    )
     assert "nothing changed" in again.stdout
+
+
+def test_blank_authorization_is_refused_and_changes_nothing(tmp_path: Path) -> None:
+    active = build_tacticalgo_shaped(tmp_path, projections=10)
+    source = active.read_bytes()
+    cut.prepare(tmp_path, STAMP)
+    cut.artifact_paths(tmp_path, STAMP)["candidate"].write_bytes(_agent_candidate(active))
+    cut.verify(tmp_path, STAMP)
+
+    for blank in ("", "   ", "\t\n"):
+        with pytest.raises(cut.CutoverError, match="--authorization"):
+            _cut(tmp_path, blank)
+    assert active.read_bytes() == source
+
+
+def test_authorization_is_bound_to_the_authorized_candidate_hash(tmp_path: Path) -> None:
+    # Probe C2: the candidate is edited after the owner authorized its hash and
+    # re-verified; the same authorization must not cover the new bytes.
+    active = build_tacticalgo_shaped(tmp_path, projections=10)
+    source = active.read_bytes()
+    cut.prepare(tmp_path, STAMP)
+    paths = cut.artifact_paths(tmp_path, STAMP)
+    paths["candidate"].write_bytes(_agent_candidate(active))
+    cut.verify(tmp_path, STAMP)
+    authorized_sha = _candidate_sha(tmp_path)
+
+    paths["candidate"].write_bytes(_agent_candidate(active) + b"\n")  # edited after authorization
+    assert cut.verify(tmp_path, STAMP)["status"] == cut.STATUS_VERIFIED
+
+    with pytest.raises(cut.CutoverError, match="differs from the authorized"):
+        cut.cutover(tmp_path, STAMP, "owner authorized", authorized_sha)
+    assert active.read_bytes() == source
+
+    manifest = cut.cutover(tmp_path, STAMP, "owner authorized", _candidate_sha(tmp_path))
+    assert manifest["cutover"]["authorized_candidate_sha256"] == _candidate_sha(tmp_path)
+
+
+def test_added_lines_are_explicit_and_need_explicit_acceptance(tmp_path: Path) -> None:
+    active = build_tacticalgo_shaped(tmp_path, projections=10)
+    source = active.read_bytes()
+    cut.prepare(tmp_path, STAMP)
+    paths = cut.artifact_paths(tmp_path, STAMP)
+    header = b"<!-- Verified predecessor: archive/active_task_20261030_120000.md -->\n"
+    paths["candidate"].write_bytes(header + _agent_candidate(active))
+
+    manifest = cut.verify(tmp_path, STAMP)
+
+    candidate = manifest["replacement_candidate"]
+    assert candidate["verification"] == cut.RESULT_PASS_WITH_ADDITIONS
+    assert candidate["verification"] != cut.RESULT_PASS
+    assert candidate["added_lines"] == [{"line": 1, "text": header.decode().rstrip("\n")}]
+    assert "1 UNREVIEWED ADDED LINES" in paths["matrix"].read_text(encoding="utf-8")
+    with pytest.raises(cut.CutoverError, match="accept-unreviewed-additions"):
+        _cut(tmp_path, "owner authorized")
+    assert active.read_bytes() == source
+
+    done = _cut(tmp_path, "owner authorized", accept_additions=True)
+    assert done["cutover"]["unreviewed_additions_accepted"] is True
+    assert active.read_bytes() == paths["candidate"].read_bytes()
+
+
+def test_comment_wrapping_a_retained_blocker_is_unresolved(tmp_path: Path) -> None:
+    # Probe C1: keep the blocker verbatim but hide it in an HTML comment and
+    # add a line claiming everything below is resolved.
+    active = build_tacticalgo_shaped(tmp_path, projections=5)
+    cut.prepare(tmp_path, STAMP)
+    paths = cut.artifact_paths(tmp_path, STAMP)
+    blocker = "- 禁止：未經 Owner 同意不得推送或發布。\n".encode("utf-8")
+    candidate = _agent_candidate(active).replace(
+        blocker, "- 以下皆已解決。\n<!--\n".encode("utf-8") + blocker + b"-->\n"
+    )
+    paths["candidate"].write_bytes(candidate)
+
+    manifest = cut.verify(tmp_path, STAMP)
+
+    assert manifest["status"] == cut.STATUS_VERIFICATION_FAILED
+    assert "unbalanced HTML comment" in paths["matrix"].read_text(encoding="utf-8")
+
+
+def test_active_change_during_fresh_verification_is_not_overwritten(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    active = build_tacticalgo_shaped(tmp_path, projections=10)
+    cut.prepare(tmp_path, STAMP)
+    paths = cut.artifact_paths(tmp_path, STAMP)
+    paths["candidate"].write_bytes(_agent_candidate(active))
+    cut.verify(tmp_path, STAMP)
+    original = cut.evaluate
+
+    def evaluate_then_concurrent_edit(*args, **kwargs):
+        result = original(*args, **kwargs)
+        with active.open("ab") as fh:
+            fh.write(b"- concurrent edit during cutover\n")
+        return result
+
+    monkeypatch.setattr(cut, "evaluate", evaluate_then_concurrent_edit)
+    with pytest.raises(cut.CutoverError, match="changed"):
+        _cut(tmp_path, "owner authorized")
+    assert active.read_bytes().endswith(b"- concurrent edit during cutover\n")
+
+
+def test_active_change_after_temp_write_is_not_overwritten(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    active = build_tacticalgo_shaped(tmp_path, projections=10)
+    cut.prepare(tmp_path, STAMP)
+    paths = cut.artifact_paths(tmp_path, STAMP)
+    paths["candidate"].write_bytes(_agent_candidate(active))
+    cut.verify(tmp_path, STAMP)
+    original_fsync = cut.os.fsync
+
+    def fsync_then_concurrent_edit(fd):
+        original_fsync(fd)
+        with active.open("ab") as fh:
+            fh.write(b"- concurrent edit after temp write\n")
+
+    monkeypatch.setattr(cut.os, "fsync", fsync_then_concurrent_edit)
+    with pytest.raises(cut.CutoverError, match="changed during the write"):
+        _cut(tmp_path, "owner authorized")
+    assert active.read_bytes().endswith(b"- concurrent edit after temp write\n")

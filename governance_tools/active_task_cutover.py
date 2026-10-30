@@ -15,8 +15,11 @@ finding-20260830.md`` and ``memory-replacement-semantic-fidelity-finding-
     Check an agent-authored replacement candidate and write a mechanical
     preservation matrix. The tool never writes or shortens the candidate.
 ``cutover``
-    Replace the active file with the candidate only when verification passes
-    and neither the active file nor the candidate changed since; re-measure.
+    Replace the active file with the candidate only when verification passes,
+    the owner authorization names the candidate's SHA-256
+    (``--authorized-candidate-sha256``), lines the candidate adds are accepted
+    explicitly (``--accept-unreviewed-additions``), and neither the active
+    file nor the candidate changed since; re-measure.
 ``rollback``
     Restore the archived bytes.
 
@@ -26,7 +29,10 @@ and in the same order in the candidate. A projection line may be left out only
 when its record identity is recoverable from another memory file (a canonical
 daily record, a review-log projection, or the projection history kept by the
 converging writer) and it is not an endpoint of a supersession relation. Lines
-the candidate adds are listed as additions. Any other change is UNRESOLVED and
+the candidate adds are listed as unreviewed additions (verify reports
+``PASS_WITH_UNREVIEWED_ADDITIONS``, exit 3); an added line with an unbalanced
+HTML comment marker could hide retained lines and is UNRESOLVED. Any other
+change is UNRESOLVED and
 blocks cutover: rewriting agent-authored state still needs the manual,
 independently reviewed path described in the fidelity finding.
 
@@ -60,6 +66,9 @@ STATUS_VERIFIED = "verified"
 STATUS_VERIFICATION_FAILED = "verification_failed"
 STATUS_CUTOVER_COMPLETE = "cutover_complete"
 STATUS_ROLLED_BACK = "rolled_back"
+RESULT_PASS = "PASS"
+RESULT_PASS_WITH_ADDITIONS = "PASS_WITH_UNREVIEWED_ADDITIONS"
+RESULT_FAIL = "FAIL"
 
 _STAMP = re.compile(r"^\d{8}_\d{6}$")
 _PROJECTION_LINE = re.compile(
@@ -140,13 +149,20 @@ def _write_json(path: Path, payload: dict) -> None:
     )
 
 
-def _atomic_write(path: Path, data: bytes) -> None:
+def _atomic_write(path: Path, data: bytes, *, expected_sha256: str) -> None:
+    """Replace ``path`` with ``data`` only if it still hashes to ``expected_sha256``.
+
+    The comparison runs after the temp file is durable and immediately before
+    the replace, so a concurrent edit is refused rather than overwritten.
+    """
     temp = path.with_name(f"{path.name}.cutover-{os.getpid()}.tmp")
     try:
         with temp.open("wb") as fh:
             fh.write(data)
             fh.flush()
             os.fsync(fh.fileno())
+        if _sha256(path.read_bytes()) != expected_sha256:
+            raise CutoverError("active file changed during the write; nothing replaced")
         os.replace(temp, path)
     finally:
         if temp.exists():
@@ -307,21 +323,26 @@ def evaluate(project_root: Path, archive_bytes: bytes, candidate_bytes: bytes) -
         structured = (
             "memory_record_projection:" in line or "memory_runtime_supersession:" in line
         )
-        additions.append(
-            {
-                "line": number,
-                "text": line,
-                "result": "UNRESOLVED" if structured else "ADDED - UNREVIEWED",
-                "detail": (
-                    "candidate may not introduce writer-owned structured lines"
-                    if structured
-                    else "agent-authored addition"
-                ),
-            }
-        )
+        # An added line that opens or closes an HTML comment without doing both
+        # can hide retained predecessor lines from a reader of the cut-over file.
+        hides = line.count("<!--") != line.count("-->")
+        if structured:
+            result, detail = "UNRESOLVED", "candidate may not introduce writer-owned structured lines"
+        elif hides:
+            result, detail = "UNRESOLVED", "unbalanced HTML comment could hide retained lines"
+        else:
+            result, detail = "ADDED - UNREVIEWED", "agent-authored addition"
+        additions.append({"line": number, "text": line, "result": result, "detail": detail})
     unresolved = [r for r in rows + additions if r["result"] == "UNRESOLVED"]
+    added = sum(1 for r in additions if r["result"] == "ADDED - UNREVIEWED")
+    if unresolved:
+        result = RESULT_FAIL
+    elif added:
+        result = RESULT_PASS_WITH_ADDITIONS
+    else:
+        result = RESULT_PASS
     return {
-        "result": "PASS" if not unresolved else "FAIL",
+        "result": result,
         "rows": rows,
         "additions": additions,
         "counts": {
@@ -330,7 +351,7 @@ def evaluate(project_root: Path, archive_bytes: bytes, candidate_bytes: bytes) -
             "projections_removed_recoverable": sum(
                 1 for r in rows if r["result"] == "REMOVED - RECOVERABLE"
             ),
-            "added": sum(1 for r in additions if r["result"] == "ADDED - UNREVIEWED"),
+            "added": added,
             "unresolved": len(unresolved),
         },
     }
@@ -346,8 +367,14 @@ def render_matrix(manifest: dict, evaluation: dict, candidate_identity: dict) ->
     lines = [
         f"# Active-task replacement preservation matrix - {manifest['stamp']}",
         "",
-        f"Status: **MECHANICALLY {'VERIFIED' if evaluation['result'] == 'PASS' else 'REJECTED'}"
-        " / NOT SEMANTICALLY REVIEWED**",
+        "Status: **"
+        + {
+            RESULT_PASS: "MECHANICALLY VERIFIED",
+            RESULT_PASS_WITH_ADDITIONS: (
+                f"MECHANICALLY VERIFIED WITH {counts['added']} UNREVIEWED ADDED LINES"
+            ),
+        }.get(evaluation["result"], "MECHANICALLY REJECTED")
+        + " / NOT SEMANTICALLY REVIEWED**",
         "",
         MATRIX_NON_CLAIM,
         "",
@@ -405,13 +432,18 @@ def verify(project_root: Path, stamp: str) -> dict:
     matrix_text = render_matrix(manifest, evaluation, candidate_identity)
     paths["matrix"].write_text(matrix_text, encoding="utf-8", newline="\n")
     manifest["status"] = (
-        STATUS_VERIFIED if evaluation["result"] == "PASS" else STATUS_VERIFICATION_FAILED
+        STATUS_VERIFICATION_FAILED if evaluation["result"] == RESULT_FAIL else STATUS_VERIFIED
     )
     manifest["replacement_candidate"].update(
         {
             **candidate_identity,
             "pressure": measure_file(paths["candidate"]),
             "verification": evaluation["result"],
+            "added_lines": [
+                {"line": r["line"], "text": r["text"]}
+                for r in evaluation["additions"]
+                if r["result"] == "ADDED - UNREVIEWED"
+            ],
             "review_status": "unreviewed",
             "independent_review": None,
         }
@@ -426,9 +458,21 @@ def verify(project_root: Path, stamp: str) -> dict:
     return manifest
 
 
-def cutover(project_root: Path, stamp: str, authorization: str) -> dict:
+def cutover(
+    project_root: Path,
+    stamp: str,
+    authorization: str,
+    authorized_candidate_sha256: str,
+    *,
+    accept_additions: bool = False,
+) -> dict:
+    """Cut over to the candidate the owner authorized, identified by its hash."""
     if not authorization or not authorization.strip():
         raise CutoverError("cutover needs --authorization naming the owner authorization")
+    if not re.fullmatch(r"[0-9a-f]{64}", authorized_candidate_sha256 or ""):
+        raise CutoverError(
+            "cutover needs --authorized-candidate-sha256: the candidate SHA-256 the owner authorized"
+        )
     paths = artifact_paths(project_root, stamp)
     manifest = _load_manifest(paths)
     active_sha = _sha256(paths["active"].read_bytes())
@@ -443,16 +487,31 @@ def cutover(project_root: Path, stamp: str, authorization: str) -> dict:
     if active_sha != manifest["source"]["sha256"]:
         raise CutoverError("active file changed since prepare; nothing replaced")
     candidate_bytes = paths["candidate"].read_bytes()
-    if _sha256(candidate_bytes) != manifest["replacement_candidate"]["sha256"]:
+    candidate_sha = _sha256(candidate_bytes)
+    if candidate_sha != manifest["replacement_candidate"]["sha256"]:
         raise CutoverError("candidate changed since verify; run verify again")
-    if evaluate(project_root, archive_bytes, candidate_bytes)["result"] != "PASS":
-        raise CutoverError("fresh verification no longer passes; nothing replaced")
-    _atomic_write(paths["active"], candidate_bytes)
+    if candidate_sha != authorized_candidate_sha256:
+        raise CutoverError(
+            "candidate SHA-256 differs from the authorized one; the authorization does not cover it"
+        )
+    verification = evaluate(project_root, archive_bytes, candidate_bytes)["result"]
+    if verification == RESULT_FAIL or verification != manifest["replacement_candidate"]["verification"]:
+        raise CutoverError("fresh verification no longer matches; nothing replaced")
+    if verification == RESULT_PASS_WITH_ADDITIONS and not accept_additions:
+        raise CutoverError(
+            "candidate adds unreviewed lines (listed by verify); pass --accept-unreviewed-additions "
+            "to cut over with them"
+        )
+    if _sha256(paths["active"].read_bytes()) != manifest["source"]["sha256"]:
+        raise CutoverError("active file changed during verification; nothing replaced")
+    _atomic_write(paths["active"], candidate_bytes, expected_sha256=manifest["source"]["sha256"])
     if paths["active"].read_bytes() != candidate_bytes:
         raise CutoverError("post-write active file is not byte-equal to the candidate")
     manifest["status"] = STATUS_CUTOVER_COMPLETE
     manifest["cutover"] = {
         "authorization": authorization.strip(),
+        "authorized_candidate_sha256": authorized_candidate_sha256,
+        "unreviewed_additions_accepted": verification == RESULT_PASS_WITH_ADDITIONS,
         "completed_at": datetime.now().isoformat(timespec="seconds"),
         "active_sha256_after": _sha256(candidate_bytes),
     }
@@ -475,7 +534,7 @@ def rollback(project_root: Path, stamp: str) -> dict:
         return manifest
     if active_sha != manifest.get("cutover", {}).get("active_sha256_after"):
         raise CutoverError("active file is neither the predecessor nor the cut-over candidate")
-    _atomic_write(paths["active"], archive_bytes)
+    _atomic_write(paths["active"], archive_bytes, expected_sha256=active_sha)
     if _sha256(paths["active"].read_bytes()) != manifest["rollback"]["expected_restored_sha256"]:
         raise CutoverError("restored active file does not match the predecessor hash")
     manifest["status"] = STATUS_ROLLED_BACK
@@ -500,6 +559,8 @@ def main(argv: list[str] | None = None) -> int:
         cmd.add_argument("--stamp", required=name != "prepare", default=None)
         if name == "cutover":
             cmd.add_argument("--authorization", required=True)
+            cmd.add_argument("--authorized-candidate-sha256", required=True)
+            cmd.add_argument("--accept-unreviewed-additions", action="store_true")
     args = parser.parse_args(argv)
     project_root = Path(args.project_root).resolve()
     try:
@@ -527,9 +588,21 @@ def main(argv: list[str] | None = None) -> int:
                 f" unresolved {counts['unresolved']}"
             )
             print(f"[active_task_cutover] matrix (not a semantic review): {counts['path']}")
-            return 0 if manifest["status"] == STATUS_VERIFIED else 1
+            candidate = manifest["replacement_candidate"]
+            for added in candidate["added_lines"]:
+                print(f"[active_task_cutover] UNREVIEWED ADDED line {added['line']}: {added['text']}")
+            print(f"[active_task_cutover] candidate SHA-256: {candidate['sha256']}")
+            if manifest["status"] != STATUS_VERIFIED:
+                return 1
+            return 3 if candidate["verification"] == RESULT_PASS_WITH_ADDITIONS else 0
         if args.command == "cutover":
-            manifest = cutover(project_root, args.stamp, args.authorization)
+            manifest = cutover(
+                project_root,
+                args.stamp,
+                args.authorization,
+                args.authorized_candidate_sha256,
+                accept_additions=args.accept_unreviewed_additions,
+            )
             if manifest["noop"]:
                 print("[active_task_cutover] already cut over; nothing changed")
             else:

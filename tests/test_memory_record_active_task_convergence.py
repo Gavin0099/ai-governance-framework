@@ -262,6 +262,34 @@ def test_concurrent_change_during_convergence_replaces_nothing(
     assert make_summary(2).encode("utf-8") not in active.read_bytes()
 
 
+def test_concurrent_append_after_temp_write_is_not_lost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Probe P6: an append that lands between the temp-file write/fsync and the
+    # replace must be detected, not overwritten.
+    active = tmp_path / "memory" / "01_active_task.md"
+    active.parent.mkdir(parents=True)
+    active.write_bytes(AGENT_HEADER.encode("utf-8"))
+    write_record(tmp_path, 1, converge=True)
+    original_fsync = memory_record.os.fsync
+    calls: list[int] = []
+
+    def fsync_with_concurrent_append(fd: int) -> None:
+        original_fsync(fd)
+        calls.append(fd)
+        if len(calls) == 2:  # 1st: history append, 2nd: converged temp file
+            with active.open("ab") as fh:
+                fh.write(b"- concurrent agent edit after temp write\n")
+
+    monkeypatch.setattr(memory_record.os, "fsync", fsync_with_concurrent_append)
+    with pytest.raises(ValueError, match="changed during convergence"):
+        write_record(tmp_path, 2, converge=True, daily=False)
+    assert len(calls) == 2
+    assert active.read_bytes().endswith(b"- concurrent agent edit after temp write\n")
+    assert make_summary(2).encode("utf-8") not in active.read_bytes()
+    assert not list(active.parent.glob("*.tmp"))
+
+
 def _init_git_repo(repo: Path) -> str:
     for command in (
         ["git", "-C", str(repo), "init"],

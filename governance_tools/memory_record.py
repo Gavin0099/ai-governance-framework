@@ -563,8 +563,8 @@ def append_projection_with_outcome(
 ) -> MemoryWriteOutcome:
     """Append to one of the two fixed non-daily memory projection surfaces.
 
-    With ``converge=True`` the active-task-summary surface supersedes the
-    writer's previous projection instead of accumulating one line per record;
+    With ``converge=True`` the active-task-summary surface supersedes the last
+    projection in the file instead of accumulating one line per record;
     see ``_write_converging_active_task_projection``. The default keeps the
     plain append behaviour that the R0/R1 runtime libraries rely on.
     """
@@ -634,14 +634,18 @@ def _write_converging_active_task_projection(
     identity: str,
     rendered: str,
 ) -> MemoryWriteOutcome | None:
-    """Replace the writer's previous active-task projection with ``rendered``.
+    """Replace the last active-task projection in the file with ``rendered``.
 
     Returns ``None`` when convergence does not apply, so the caller falls back to
-    the plain append path. Convergence touches writer-owned bytes only:
+    the plain append path. Convergence touches projection lines only:
 
     - the predecessor is the last active-task-summary projection line in file
-      order, i.e. the one this writer appended most recently; earlier
-      projections (a pre-existing backlog) are left where they are;
+      order, whoever wrote it. Projection lines carry no writer/session
+      identity, so this cannot be limited to the caller's own previous line:
+      a parallel session's latest projection, or a base projection written by
+      the R0 library, is moved to history too (R1 ``select_current_active_task``
+      on such a moved base then fails closed). Earlier projections (a
+      pre-existing backlog) are left where they are;
     - the predecessor line and the one blank separator line the writer put in
       front of it are removed; every other byte is kept unchanged;
     - the predecessor line is first copied byte-exact into
@@ -706,16 +710,18 @@ def _write_converging_active_task_projection(
     new_bytes = kept + rendered.encode("utf-8")
 
     _append_projection_history_line(history_path, predecessor_payload)
-    if path.read_bytes() != existing_bytes:
-        raise ValueError(
-            "active-task surface changed during convergence; nothing was replaced"
-        )
     temp_path = path.with_name(f"{path.name}.converge-{os.getpid()}.tmp")
     try:
         with temp_path.open("wb") as fh:
             fh.write(new_bytes)
             fh.flush()
             os.fsync(fh.fileno())
+        # Compare as late as possible: immediately before the replace, after
+        # the temp file is durable, so a concurrent append is not overwritten.
+        if path.read_bytes() != existing_bytes:
+            raise ValueError(
+                "active-task surface changed during convergence; nothing was replaced"
+            )
         os.replace(temp_path, path)
     finally:
         if temp_path.exists():

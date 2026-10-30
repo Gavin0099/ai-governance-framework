@@ -104,9 +104,14 @@ archive + cutover，並驗證：搬出的內容仍可找回、不可逆決策與
 **已授權的 cutover 用 `active_task_cutover.py`**（2026-10-23 `f42e49d4` 人工流程的工具化）：`prepare` 逐 byte 封存原檔並寫 manifest；
 replacement candidate 由 Agent 自己撰寫；`verify` 產生 preservation matrix——非 projection 行必須逐字且依原順序保留，
 projection 只有在 daily／review-log／projection history 找得回時才能拿掉，其他改寫一律 UNRESOLVED、不能 cutover；
-`cutover --authorization "<owner 授權>"` 才寫入並重新量測，`rollback` 還原。matrix 只是機械量測，不是語義審查。
-`memory_record --surface active-task-summary` 會取代自己上一筆 projection（舊行逐 byte 移到
+candidate 新增的行會逐行列出，結果是 `PASS_WITH_UNREVIEWED_ADDITIONS`（exit 3），不是單純 PASS。
+`cutover --authorization "<owner 授權>" --authorized-candidate-sha256 <owner 核准的 candidate hash>` 才寫入並重新量測
+（有新增行時還要加 `--accept-unreviewed-additions`），`rollback` 還原。prepare／verify 不修改 active memory。
+matrix 只是機械量測，不是語義審查。
+`memory_record --surface active-task-summary` 會取代檔案中**最後一筆** active-task-summary projection（舊行逐 byte 移到
 `memory/archive/active_task_projection_history.md`），所以 cutover 後不會再長回去；cutover 前已累積的舊 projection 不會被自動移動。
+已知限制：projection 行沒有記錄是誰寫的，所以被取代的是最後一筆，不一定是同一個 session 寫的——平行 session 的最新 summary
+也會被移進 history；R0 函式庫寫入的 base projection 若被 CLI 收斂移走，R1 `select_current_active_task` 會 fail closed 拋出例外。
 
 **`--plan` 的限制**：可歸檔統計只靠四種標記判斷（含 `[x]` 的 `##` 標題、`~~刪除線~~`、`(Superseded …)`、`ADR-NNNN` 引用）。
 回報 0 不代表內容都必須留在 active memory，哪些是每次工作都需要的狀態、哪些是可改用索引查的歷史，仍需人工盤點。
