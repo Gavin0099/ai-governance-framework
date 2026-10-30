@@ -3,13 +3,21 @@
 **Date:** 2026-10-30 (Asia/Taipei)  
 **Status:** PROPOSAL / CLAUDE HANDOFF ONLY — docs-only, not adopted runtime policy.  
 **Target:** Gavin0099/ai-governance-framework.  
-**Baseline for this separate docs PR:** main at 48f0ce767677c83504e23ac0d3141d81ceca5d88.  
+**Original common-ancestor baseline:** main at 48f0ce767677c83504e23ac0d3141d81ceca5d88. **This stacked docs-only Draft PR targets the unmerged #270 branch** (feat/i2-core-rules-pr), rather than re-opening unrelated main PLAN freshness debt; it must not be merged ahead of #270.  
 **Related implementation:** Draft PR #270, exact HEAD 898fc7db3c82da64e992dc4cd6237650534fdf4e (NOT merged at this snapshot).  
 **Existing plan:** [2026-10-29 instruction architecture autonomous loop](2026-10-29-instruction-architecture-autonomous-loop.md). This document is a current-status and decision-impact handoff, **not another implementation plan or authorization**.
 
 ## 1. One-paragraph owner goal
 
 The owner wants AI coding agents to **finish the approved product slice with the necessary safety and evidence, and stop**. Routine tests, scoped corrections, review follow-up, Draft PR evidence updates and CI observation should not demand repeated human confirmations **when already authorized by both owner and repository rules**. A bounded agent loop and quiet heartbeat should reduce interruptions, **not create another governance framework, gate, memory stream, task chain or endless optimization loop**. Owner-only decisions (merge, release, irreversible / firmware / data-integrity operations, protected trust changes, new task scope) remain owner-only.
+
+## Owner 摘要（繁體中文）
+
+- **R2 / #270：**核心規則、容量量測與 F-7 正向實測已完成；最新 898fc7db 的 CI 為 11 項成功／1 項預期跳過，Codex Review 無新發現，但 PR 仍是 Draft／未合併。
+- **R1 Memory：**缺少明確的 Knowledge Base 候選寫入流程；TacticalGo Active Task 已進入 EMERGENCY，既有 B2 誠實回報 PARTIAL。先處理契約與經授權的 disposable archive，不能用放寬安全規則換取綠燈。
+- **R3 過度治理：**完成產品任務優先；真正影響當前驗收的問題在原授權內修，無關 P2/P3 不新增 PR／Gate／Review，DONE 就停止。
+- **Loop／心跳：**已做過一次安靜本機監控；建議每 60 秒寫本機 log，只在階段變更、實際結果或連續三次無進展時通知，並先診斷長時間指令，不自動重啟。
+- **Owner Gate 保留：**合併／發布、根目錄 protected BASE Hash、正式 Consumer Archive、R1 執行與新的 Loop 工具都不因本提案取得授權。
 
 ## 2. Verified status versus future work
 
@@ -96,6 +104,7 @@ Static consistency checks and tests remain valuable; **prompt loaded**, **tool i
 ## 7. Outstanding decisions and constraints
 
 - **#270 merge**: exact-head owner approval remains mandatory. This docs PR is not approval to merge #270.
+- **PR #271 dependency:** this docs-only Draft targets the unmerged #270 branch, not main. It requires #270 to be handled first; never merge #271 early, force-push either branch or treat this as approval for #270.
 - **CRLF-only overflow warning**: user acknowledgement/sign-off pending for a slightly broader interpretation of the owner ruling; do not silently represent it as explicitly ratified.
 - **Framework root AGENTS.base.md**: modifying its protected hash is held separately (hold/i2-root-base-rehash); no such change here.
 - **R1 implementation / disposable archive**: separate owner authorization; this document does not authorize it.
