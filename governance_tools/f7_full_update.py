@@ -708,6 +708,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     }
 
     hook_backups: list[str] = []
+    hook_warnings: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -731,6 +732,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # them here would leave a consumer unable to tell from the F-7 report that
         # any of their own instruction content was moved aside.
         hook_backups.extend(hook_result.backups)
+        # The installer's Codex project-doc budget warning is report-only; F-7
+        # carries it into its own warnings so an over-budget AGENTS.md is not
+        # silent here either. It does not change the F-7 status.
+        hook_warnings.extend(hook_result.warnings)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
@@ -756,6 +761,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
         )
+    warnings.extend(f"f7-diagnostic: {warning}" for warning in hook_warnings)
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "

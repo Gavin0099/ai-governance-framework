@@ -1071,3 +1071,83 @@ class TestAgentContractSurfaces:
             digests.add(header["sha256"])
 
         assert len(digests) == 1
+
+
+class TestCodexProjectDocBudget:
+    """Codex tail-truncates an over-budget root AGENTS.md; the install must say so."""
+
+    def _consumer(self, tmp_path, agents_text):
+        repo = tmp_path / "consumer"
+        (repo / ".git" / "hooks").mkdir(parents=True)
+        _write(repo / "AGENTS.md", agents_text)
+        return repo
+
+    def test_over_budget_agents_md_produces_a_warning(self, tmp_path):
+        from governance_tools.hook_installer import CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+
+        repo = self._consumer(tmp_path, "# AGENTS\n\n" + ("House rule line.\n" * 2000))
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        budget = result.codex_project_doc_budget
+        size = len((repo / "AGENTS.md").read_bytes())
+        assert size > CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+        assert budget["on_disk_bytes"] == size
+        assert budget["overflow_bytes"] == size - CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+        assert budget["crlf_worst_case_bytes"] > size
+        assert budget["over_budget"] is True
+        assert len(result.warnings) == 1
+        warning = result.warnings[0]
+        assert f"{budget['overflow_bytes']} bytes" in warning
+        assert "may not be delivered to Codex" in warning
+        assert "Codex's default" in warning
+
+    def test_under_budget_agents_md_has_no_warning(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n\nHouse rules.\n")
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        assert result.warnings == []
+        budget = result.codex_project_doc_budget
+        assert budget["over_budget"] is False
+        assert budget["over_budget_with_crlf"] is False
+        assert budget["overflow_bytes"] == 0
+
+    def test_crlf_worst_case_alone_is_reported(self, tmp_path):
+        from governance_tools.hook_installer import (
+            CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+            _codex_project_doc_budget,
+        )
+
+        repo = tmp_path / "consumer"
+        repo.mkdir()
+        target = repo / "AGENTS.md"
+        # Fits on disk with LF; 200 extra CR bytes would push it over.
+        line = b"x" * 99 + b"\n"
+        lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 100) // len(line)
+        target.write_bytes(line * lines)
+
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+
+        assert report["over_budget"] is False
+        assert report["over_budget_with_crlf"] is True
+        assert report["crlf_worst_case_bytes"] == len(line) * lines + lines
+        assert len(warnings) == 1 and "with CRLF line endings" in warnings[0]
+
+    def test_human_output_names_the_warning(self, tmp_path, capsys):
+        from governance_tools.hook_installer import main
+
+        repo = self._consumer(tmp_path, "# AGENTS\n\n" + ("House rule line.\n" * 2000))
+
+        exit_code = main([
+            "--repo", str(repo), "--framework-root", ".",
+            "--repository-id", TEST_REPOSITORY_ID,
+        ])
+
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "ok=True" in out
+        assert "codex_project_doc_bytes=" in out
+        assert "warning: codex-project-doc-budget:" in out
