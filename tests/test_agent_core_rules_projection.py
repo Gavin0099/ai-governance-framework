@@ -88,7 +88,13 @@ def test_agent_contract_places_core_after_unavailable_and_before_delivery() -> N
             "| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, "
             "phase, anti-goal or another existing PLAN obligation |",
         ),
-        ("C3", "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |"),
+        (
+            "C3",
+            "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` as a "
+            "`CANDIDATE / UNREVIEWED` entry (root cause, fix, fix commit, test evidence) paired with a "
+            "`memory_record` daily record for the same fix commit; never marked approved, reviewed only "
+            "through promotion |",
+        ),
         ("C3", "| Review completed |"),
         ("C3", "| Confirmed session end |"),
         ("C3", "never assume an alias that does not exist."),

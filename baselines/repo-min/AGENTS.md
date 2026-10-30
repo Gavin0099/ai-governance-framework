@@ -183,7 +183,7 @@ normalized.
 
 - Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.
 - For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.
-- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.
+- Use the canonical memory writer (`memory_record`) for session-derived records (daily, review log, active-task summary); do not hand-edit them. A root-caused bug-fix gotcha may be written directly to `memory/03_knowledge_base.md` (or the adopted alias) only as a `CANDIDATE / UNREVIEWED` entry with root cause, fix, fix commit and test evidence, paired with a canonical daily record for the same fix commit; it never claims promotion or `Approved by`.
 - Canonical writer signal: `governance_tools.memory_record` / `memory_record.py`.
 
 ## Repo-Specific Risk Levels
