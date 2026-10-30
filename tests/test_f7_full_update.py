@@ -327,6 +327,68 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert "runtime_capable=not_checked" in rendered
 
 
+def test_f7_submodule_backend_carries_router_diagnostics_into_warnings(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    router_warning = (
+        "memory-workflow-router: AGENTS.md line 7 is an edited memory-writer router line; "
+        "left untouched (consumer-owned or unclear ownership). Compare it with the framework "
+        "router text by hand."
+    )
+
+    def fake_update(warnings):
+        def _fake(**_kwargs):
+            return UpdateResult(
+                ok=True,
+                mode="dry_run",
+                update_mode="dry_run",
+                fast_forward=True,
+                repo=str(repo),
+                submodule_path="ai-governance-framework",
+                before_head="a" * 40,
+                target_head="a" * 40,
+                after_head="a" * 40,
+                staged_files=[],
+                committed=False,
+                commit_hash=None,
+                message="dry run complete",
+                errors=[],
+                full_update_stage_report={
+                    "final_status": "already_current",
+                    "framework_pointer": "already_current",
+                    "details": {"repo_local_instruction": {"status": "verified", "warnings": warnings}},
+                },
+            )
+
+        return _fake
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update([]))
+    plain = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    monkeypatch.setattr(
+        f7, "update_governance_submodule", fake_update([router_warning, "unrelated: not a router line"])
+    )
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert f"f7-diagnostic: {router_warning}" in result.warnings
+    assert not any("unrelated: not a router line" in warning for warning in result.warnings)
+    rendered = format_human(result)
+    assert rendered.index("[warnings]") < rendered.index(f"f7-diagnostic: {router_warning}")
+    # Report-only: the diagnostic changes neither ok nor the final status.
+    assert (result.ok, result.f7_final_status) == (plain.ok, plain.f7_final_status)
+
+
 def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"

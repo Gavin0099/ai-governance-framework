@@ -159,8 +159,9 @@ path.
 - Daily record: memory/YYYY-MM-DD.md (memory_record, commit <git-sha>)
 ```
 
-Keep the marker at the start of the heading so a candidate heading never equals
-a promoted heading. A candidate does not claim `memory_type: session-derived`.
+Keep the marker at the start of the heading so a candidate heading does not equal
+a promoted heading; this holds only while session task titles do not themselves
+start with `CANDIDATE / UNREVIEWED`, so task titles must not. A candidate does not claim `memory_type: session-derived`.
 Editing the knowledge base still falls under the Memory Workflow Dispatch Rule.
 
 Relation to promotion, including `AUTO_PROMOTE`:
@@ -168,7 +169,9 @@ Relation to promotion, including `AUTO_PROMOTE`:
 - Candidate entries are not inputs to auto-promotion. The promotion path
   (`memory_pipeline.promotion_policy`, `memory_pipeline.memory_promoter`)
   promotes session candidate snapshots, not knowledge-base lines, and never
-  relabels a candidate entry as approved.
+  edits a candidate entry; known limit: a task titled with the candidate marker
+  skips the knowledge-base write yet still logs `Promoted memory` and
+  `Approved by` under that heading, which is not approval of the candidate.
 - An `Approved by:` line written by promotion is a promotion record for the
   promoted entry. It is never evidence that an agent-written candidate was
   reviewed.

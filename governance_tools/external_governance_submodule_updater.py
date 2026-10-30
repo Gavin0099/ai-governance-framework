@@ -1011,35 +1011,50 @@ MEMORY_WRITER_ROUTER_LINE = (
     "commit; it never claims promotion or `Approved by`."
 )
 _LEGACY_MEMORY_WRITER_LINE_PATTERN = re.compile(
-    r"(?m)^" + re.escape(LEGACY_MEMORY_WRITER_ROUTER_LINE) + r"(?=\r?\n|\Z)"
+    r"(?m)^" + re.escape(LEGACY_MEMORY_WRITER_ROUTER_LINE) + r"[ \t]*(?=\r?\n|\Z)"
 )
+# One prefix for every router-line diagnostic; F-7 forwards warnings carrying it.
+MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX = "memory-workflow-router:"
 
 
 def replace_legacy_memory_writer_router_line(text: str) -> str:
     """Swap the exact legacy router line for the current one; touch nothing else.
 
-    Only a whole line equal to the legacy text is replaced, so a consumer that
-    reworded the line keeps its wording, and its line ending is preserved.
+    Only a whole line equal to the legacy text (trailing spaces/tabs allowed) is
+    replaced, so a consumer that reworded the line keeps its wording, and its line
+    ending is preserved. Exception: the updater refresh replaces the framework-managed
+    section (Update Intent -> Risk Levels) wholesale, so an edited line inside that
+    section is overwritten; that refresh reports it (report-only) instead of keeping it.
     Idempotent: the current line never matches the legacy pattern.
     """
     return _LEGACY_MEMORY_WRITER_LINE_PATTERN.sub(lambda _m: MEMORY_WRITER_ROUTER_LINE, text)
 
 
-def memory_writer_router_line_diagnostics(text: str) -> list[str]:
+def memory_writer_router_line_diagnostics(
+    text: str, *, first_line: int = 1, overwritten: bool = False
+) -> list[str]:
     """Report-only: name memory-writer router lines that are neither framework text.
 
     A line that starts like the router's memory-writer bullet but equals neither
     the legacy nor the current text may carry a consumer edit, so it is left in
     place. This never changes a status or blocks; it only says what was left.
+    With ``overwritten``, the lines are named as replaced by a wholesale section
+    refresh instead; ``first_line`` is the AGENTS.md line number of ``text``'s first line.
     """
     prefix = "- Use the canonical memory writer"
-    return [
-        f"memory-workflow-router: AGENTS.md line {number} is an edited memory-writer "
-        "router line; left untouched (consumer-owned or unclear ownership). Compare it "
+    outcome = (
+        "overwritten by the wholesale framework section refresh (Update Intent -> Risk "
+        "Levels); recover it from version control if it was a consumer edit."
+        if overwritten
+        else "left untouched (consumer-owned or unclear ownership). Compare it "
         "with the framework router text by hand."
-        for number, line in enumerate(text.splitlines(), start=1)
+    )
+    return [
+        f"{MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX} AGENTS.md line {number} is an edited "
+        f"memory-writer router line; {outcome}"
+        for number, line in enumerate(text.splitlines(), start=first_line)
         if line.lstrip().startswith(prefix)
-        and line.rstrip() not in (MEMORY_WRITER_ROUTER_LINE, LEGACY_MEMORY_WRITER_ROUTER_LINE)
+        and line.rstrip(" \t") not in (MEMORY_WRITER_ROUTER_LINE, LEGACY_MEMORY_WRITER_ROUTER_LINE)
     ]
 
 
@@ -1149,6 +1164,7 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
     target_agents = repo / "AGENTS.md"
     changed: list[str] = []
     errors: list[str] = []
+    section_warnings: list[str] = []
     agents_before = _read_text(target_agents) if target_agents.exists() else None
 
     if not source_base.exists():
@@ -1173,6 +1189,12 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
             start = current.find(start_marker)
             end = _find_agents_update_end(current, start) if start != -1 else None
             if start != -1 and end is not None and end > start:
+                # Report-only: the wholesale replacement drops an edited router line inside it.
+                section_warnings = memory_writer_router_line_diagnostics(
+                    current[start:end],
+                    first_line=current.count("\n", 0, start) + 1,
+                    overwritten=True,
+                )
                 updated = current[:start] + section + "\n" + current[end:]
             elif section.strip() in current:
                 updated = current
@@ -1213,7 +1235,7 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
         "changed_files": changed,
         "errors": errors,
         "memory_workflow_router": router_report,
-        "warnings": list(router_report["warnings"]),
+        "warnings": section_warnings + list(router_report["warnings"]),
     }
 
 

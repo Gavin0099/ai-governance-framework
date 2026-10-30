@@ -191,6 +191,26 @@ def test_promotion_appends_its_own_entry_instead_of_absorbing_the_candidate(tmp_
     assert "0123456789abcdef0123456789abcdef01234567" in promoted
 
 
+def test_promotion_separates_its_entry_from_a_kb_without_trailing_newline(tmp_path: Path) -> None:
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    kb = memory_root / "03_knowledge_base.md"
+    unterminated = "# Knowledge Base\n\n" + CANDIDATE_BLOCK.rstrip("\n")
+    kb.write_text(unterminated, encoding="utf-8")
+
+    promote_candidate(
+        memory_root=memory_root,
+        candidate_file=_candidate_snapshot(memory_root, "USB descriptor parse overrun"),
+        approved_by="runtime-auto-promotion",
+        title="USB descriptor parse overrun",
+    )
+
+    after = kb.read_text(encoding="utf-8")
+    assert after.startswith(unterminated + "\n\n## USB descriptor parse overrun\n")
+    candidate_section = after[: after.index("\n## USB descriptor parse overrun\n")]
+    assert "Approved by" not in candidate_section
+
+
 # ── Installed consumers: replace the legacy router line (F1 follow-up) ─────────
 
 LEGACY = updater.LEGACY_MEMORY_WRITER_ROUTER_LINE
@@ -223,6 +243,16 @@ def test_replace_legacy_line_is_exact_and_idempotent(newline: str) -> None:
     assert reworded in once and ("  " + LEGACY) in once  # not whole-line legacy: untouched
     assert updater.replace_legacy_memory_writer_router_line(once) == once
 
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_replace_legacy_line_accepts_trailing_blanks_and_diagnostics_agree(newline: str) -> None:
+    text = newline.join(["intro", LEGACY + " \t ", "tail"]) + newline
+    once = updater.replace_legacy_memory_writer_router_line(text)
+    assert once == newline.join(["intro", CURRENT, "tail"]) + newline
+    # Recognised as framework text by both, so it is neither missed nor reported.
+    assert updater.memory_writer_router_line_diagnostics(text) == []
+    assert updater.memory_writer_router_line_diagnostics(once) == []
 
 def _f7_stable(repo: Path, body: str) -> str:
     (repo / "AGENTS.md").write_text(body, encoding="utf-8")
@@ -294,3 +324,25 @@ def test_updater_router_step_leaves_an_edited_line_and_reports_it(tmp_path: Path
     assert report["status"] == "verified" and report["errors"] == []
     assert len(report["warnings"]) == 1 and "left untouched" in report["warnings"][0]
     assert updater.memory_writer_router_line_diagnostics(_router(CURRENT)) == []
+
+
+def test_updater_wholesale_section_refresh_reports_an_overwritten_edited_line(tmp_path: Path) -> None:
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    edited = LEGACY.replace("as ordinary markdown", "by hand (team rule)")
+    old_section = "## AI Governance Update Intent Rule\n\nolder framework text\n\n"
+    body = CONSUMER_HEAD + old_section + _router(edited) + "\n" + CONSUMER_RISK
+    (repo / "AGENTS.md").write_text(body, encoding="utf-8")
+    line_number = body.splitlines().index(edited) + 1
+
+    report = _refresh(repo)
+    after = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    # The overwrite design is unchanged; it is now reported instead of silent.
+    assert edited not in after and after.count(CURRENT) == 1
+    assert report["status"] == "updated" and report["errors"] == []
+    overwritten = [w for w in report["warnings"] if "overwritten" in w]
+    assert overwritten == [
+        f"memory-workflow-router: AGENTS.md line {line_number} is an edited memory-writer router "
+        "line; overwritten by the wholesale framework section refresh (Update Intent -> Risk "
+        "Levels); recover it from version control if it was a consumer edit."
+    ]

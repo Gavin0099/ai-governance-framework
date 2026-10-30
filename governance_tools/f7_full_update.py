@@ -25,6 +25,7 @@ if __package__ in (None, ""):
 
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
 from governance_tools.external_governance_submodule_updater import (
+    MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX,
     MEMORY_WRITER_ROUTER_LINE,
     memory_writer_router_line_diagnostics,
     replace_legacy_memory_writer_router_line,
@@ -959,6 +960,16 @@ def run_f7_full_update(
         # final AGENTS.md; status is already decided.
         if apply and not updater_blocked:
             surface_warnings = _final_budget_warnings(repo_root, surface_warnings)
+        # Report-only: the updater's router-line diagnostics would otherwise stay
+        # buried in the stage report details; status and ok are already decided.
+        repo_local_report = (
+            (result.full_update_stage_report.get("details") or {}).get("repo_local_instruction") or {}
+        )
+        surface_warnings.extend(
+            warning
+            for warning in repo_local_report.get("warnings", [])
+            if warning.startswith(MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX)
+        )
         warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
         return F7Result(
             ok=result.ok and not result.errors,
