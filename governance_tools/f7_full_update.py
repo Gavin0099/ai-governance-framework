@@ -24,7 +24,13 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
-from governance_tools.external_governance_submodule_updater import update_governance_submodule
+from governance_tools.external_governance_submodule_updater import (
+    MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX,
+    MEMORY_WRITER_ROUTER_LINE,
+    memory_writer_router_line_diagnostics,
+    replace_legacy_memory_writer_router_line,
+    update_governance_submodule,
+)
 from governance_tools.external_repo_readiness import assess_external_repo
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -39,6 +45,7 @@ from governance_tools.governance_update_reporting import (
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
 from governance_tools.hook_installer import _codex_project_doc_budget, install_governance_hooks
+from governance_tools.protected_base_sync import format_protected_hash_sync
 from governance_tools.update_receipt import (
     RECEIPT_RELATIVE_PATH,
     skipped_update_receipt,
@@ -297,13 +304,15 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
         block=F7_UPDATE_BOUNDARY_BLOCK,
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
+    # Presence alone kept the legacy memory-writer line in installed consumers.
+    after = replace_legacy_memory_writer_router_line(after)
     inserts: list[str] = []
     if not _memory_workflow_router_present_in_text(before):
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
             "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
             "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
-            "- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.\n"
+            f"{MEMORY_WRITER_ROUTER_LINE}\n"
         )
 
     if inserts:
@@ -752,6 +761,12 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # The installer measured AGENTS.md before the keyed sections were added;
         # report the file F-7 actually leaves for Codex to load.
         hook_warnings = _final_budget_warnings(repo_root, hook_warnings)
+        # Report-only: an edited memory-writer router line is left as the consumer wrote it.
+        agents_path = repo_root / "AGENTS.md"
+        if agents_path.is_file():
+            hook_warnings.extend(
+                memory_writer_router_line_diagnostics(agents_path.read_text(encoding="utf-8", errors="replace"))
+            )
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
@@ -935,6 +950,12 @@ def run_f7_full_update(
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
         changed_files = list(result.staged_files) + surface_changed
+        # F-J: the controlled AGENTS.base.md replacement is reported as its own
+        # item; the files it wrote are named here too, never hidden.
+        protected_sync = (result.full_update_stage_report.get("details") or {}).get(
+            "protected_hash_sync"
+        ) or {}
+        changed_files.extend(protected_sync.get("changed_files") or [])
         if result.update_receipt.get("status") == "written":
             changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         warnings = [
@@ -946,6 +967,16 @@ def run_f7_full_update(
         # final AGENTS.md; status is already decided.
         if apply and not updater_blocked:
             surface_warnings = _final_budget_warnings(repo_root, surface_warnings)
+        # Report-only: the updater's router-line diagnostics would otherwise stay
+        # buried in the stage report details; status and ok are already decided.
+        repo_local_report = (
+            (result.full_update_stage_report.get("details") or {}).get("repo_local_instruction") or {}
+        )
+        surface_warnings.extend(
+            warning
+            for warning in repo_local_report.get("warnings", [])
+            if warning.startswith(MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX)
+        )
         warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
         return F7Result(
             ok=result.ok and not result.errors,
@@ -1019,6 +1050,9 @@ def format_human(result: F7Result) -> str:
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
+        details = result.stages.get("details")
+        if isinstance(details, dict) and details.get("protected_hash_sync"):
+            lines.extend(format_protected_hash_sync(details["protected_hash_sync"]))
     lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.changed_files:

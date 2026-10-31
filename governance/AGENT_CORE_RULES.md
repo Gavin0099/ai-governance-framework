@@ -41,7 +41,7 @@ Identical on every agent surface. Repository rules may add duties; they never re
 | Event | Record in |
 |---|---|
 | Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
-| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` as a `CANDIDATE / UNREVIEWED` entry (root cause, fix, fix commit, test evidence) paired with a `memory_record` daily record for the same fix commit; never marked approved, reviewed only through promotion |
 | Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
 | Milestone reached | `memory/01_active_task.md`; `PLAN.md` phase/sprint only when it changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
 | Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
