@@ -491,3 +491,147 @@ def test_no_baseline_yaml_keeps_plain_replacement(tmp_path: Path, fast) -> None:
     item = result.full_update_stage_report["details"]["protected_hash_sync"]
     assert item["status"] == "not_applicable"
     assert "no protected-hash sync applied" in item["reason"]
+
+
+# --- review fixes -------------------------------------------------------------
+
+STOP = "Do not run adopt_governance --refresh and do not edit the hash by hand"
+
+
+def _tamper(consumer: Path) -> None:
+    (consumer / "AGENTS.base.md").write_bytes((BASE_V1 + "unknown edit\n").encode("utf-8"))
+    _commit_all(consumer, "unknown edit to protected file")
+
+
+def test_fix1_sync_resolves_checkout_owned_by_another_user(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    monkeypatch.setenv("GIT_TEST_ASSUME_DIFFERENT_OWNER", "1")
+
+    result = _apply(consumer)
+
+    assert result.after_head == v2
+    item = result.full_update_stage_report["details"]["protected_hash_sync"]
+    assert item["status"] == "synced", item["reason"]
+    assert (consumer / "AGENTS.base.md").read_text(encoding="utf-8") == BASE_V2
+
+
+def test_fix2_hold_message_says_files_untouched(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    _tamper(consumer)
+
+    result = _apply(consumer)
+
+    assert "left untouched" in result.message
+
+
+def test_fix2_failed_restored_message_says_written_then_restored(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+
+    def boom(_path, _payload):
+        raise OSError("injected")
+
+    monkeypatch.setattr(sync_module, "_write_baseline_bytes", boom)
+    result = _apply(consumer)
+
+    assert "written and then restored to their pre-sync bytes" in result.message
+    assert "left untouched" not in result.message
+
+
+def test_fix2_incomplete_message_reports_disk_state_and_journal(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+
+    def boom(_path, _payload):
+        raise OSError("injected")
+
+    monkeypatch.setattr(sync_module, "_write_baseline_bytes", boom)
+    monkeypatch.setattr(sync_module, "_restore_bytes", boom)
+    result = _apply(consumer)
+
+    assert "left untouched" not in result.message
+    assert "AGENTS.base.md=authorized_source" in result.message
+    assert ".governance/baseline.yaml=original" in result.message
+    assert f"journal kept at {_journal(consumer)}" in result.message
+    item = result.full_update_stage_report["details"]["protected_hash_sync"]
+    assert item["incomplete_state"] == {"agents_base": "authorized_source", "baseline": "original"}
+
+
+def test_fix3_hold_does_not_write_an_updated_receipt(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    _tamper(consumer)
+    receipt = consumer / "governance" / ".update-receipt.json"
+    assert not receipt.exists()
+
+    result = _apply(consumer)
+
+    assert not receipt.exists()
+    assert result.update_receipt["status"] == "not_written"
+    assert "protected-hash sync hold" in result.update_receipt["reason"]
+
+
+def test_fix4_hold_tells_the_agent_to_stop(tmp_path: Path, fast, monkeypatch) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    _tamper(consumer)
+    monkeypatch.setattr(
+        f7_full_update,
+        "install_governance_hooks",
+        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[])),
+    )
+
+    result = f7_full_update.run_f7_full_update(
+        repo_root=consumer, framework_root=consumer / "ai-governance-framework", apply=True
+    )
+
+    item = result.stages["details"]["protected_hash_sync"]
+    assert STOP in item["reason"]
+    assert STOP in item["operator_instruction"]
+    assert any(STOP in error for error in result.errors)
+    assert STOP in f7_full_update.format_human(result)
+    assert "hand this HOLD to the owner" in json.dumps(asdict(result), default=str)
+
+
+def test_fix4_incomplete_next_run_tells_the_agent_to_stop(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+
+    def boom(_path, _payload):
+        raise OSError("injected")
+
+    monkeypatch.setattr(sync_module, "_write_baseline_bytes", boom)
+    monkeypatch.setattr(sync_module, "_restore_bytes", boom)
+    first = _apply(consumer)
+    monkeypatch.undo()
+    monkeypatch.setattr(updater_module, "_governance_maturity_stage", lambda *_a: {})
+
+    second = _apply(consumer)
+
+    assert STOP in first.message
+    assert STOP in format_human(first)
+    assert any(STOP in error for error in second.errors)
+    assert STOP in format_human(second)
+
+
+def test_fix5_head_not_at_framework_commit_holds(tmp_path: Path, fast) -> None:
+    consumer, framework, _v1, v2 = _make_consumer(tmp_path)
+    # v3 changes nothing under baselines/, so the checked-out source still
+    # equals the v2 blob: only the HEAD binding can tell the two commits apart.
+    (framework / "README.md").write_text("v3\n", encoding="utf-8")
+    v3 = _commit_all(framework, "framework v3: README only")
+    checkout = consumer / "ai-governance-framework"
+    _git(checkout, "fetch", "-q", "origin")
+    _git(checkout, "checkout", "-q", v3)
+    base_before = (consumer / "AGENTS.base.md").read_bytes()
+    baseline_before = _baseline(consumer).read_bytes()
+
+    report = _refresh_repo_local_instructions(consumer, checkout, framework_commit=v2)
+
+    assert (consumer / "AGENTS.base.md").read_bytes() == base_before
+    assert _baseline(consumer).read_bytes() == baseline_before
+    assert report["protected_hash_sync"]["status"] == "hold"
+    assert "is not the authorized framework commit" in report["protected_hash_sync"]["reason"]

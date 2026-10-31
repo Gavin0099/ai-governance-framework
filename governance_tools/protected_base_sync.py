@@ -75,6 +75,13 @@ CLAIM_BOUNDARY = (
     "inventory are never recomputed or re-trusted"
 )
 
+# Said in every blocking reason and message: the failure this module prevents
+# is an agent "fixing" the drift by re-trusting everything.
+STOP_INSTRUCTION = (
+    "Do not run adopt_governance --refresh and do not edit the hash by hand; "
+    "stop and hand this HOLD to the owner for a decision."
+)
+
 _HEX64 = re.compile(rb"^[0-9a-fA-F]{64}$")
 _HASH_LINE = re.compile(
     rb"^(?P<prefix>sha256\.AGENTS\.base\.md[ \t]*:[ \t]*)(?P<value>[^ \t\r\n#]*)"
@@ -108,10 +115,17 @@ def _new_report(**overrides: Any) -> dict[str, Any]:
 
 
 def _git(cwd: Path, args: list[str]) -> subprocess.CompletedProcess[bytes]:
+    # Same environment as every updater Git call (PATH helpers plus a
+    # per-repo safe.directory), so a checkout owned by another user resolves
+    # here exactly as it does for the updater. Imported lazily because the
+    # updater imports this module.
+    from governance_tools.external_governance_submodule_updater import _git_env
+
     return subprocess.run(
         ["git", "-C", str(cwd), *args],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=_git_env(cwd),
         check=False,
     )
 
@@ -266,6 +280,84 @@ def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _disk_state(
+    repo: Path,
+    original_base: bytes,
+    original_baseline: bytes,
+    new_hash: str,
+    expected_baseline_sha256: str,
+) -> tuple[str, str]:
+    """What is on disk now, relative to the pre-sync originals and the target."""
+
+    base = repo / BASE_RELATIVE_PATH
+    baseline = repo / BASELINE_RELATIVE_PATH
+    try:
+        base_bytes = base.read_bytes() if base.is_file() else None
+        baseline_bytes = baseline.read_bytes() if baseline.is_file() else None
+    except OSError:
+        return "unreadable", "unreadable"
+    if base_bytes is None:
+        base_state = "missing"
+    elif base_bytes == original_base:
+        base_state = "original"
+    elif sha256_canonical_lf_bytes(base_bytes) == new_hash:
+        base_state = "authorized_source"
+    else:
+        base_state = "unknown"
+    if baseline_bytes is None:
+        baseline_state = "missing"
+    elif baseline_bytes == original_baseline:
+        baseline_state = "original"
+    elif _sha256(baseline_bytes) == expected_baseline_sha256:
+        baseline_state = "synced"
+    else:
+        baseline_state = "unknown"
+    return base_state, baseline_state
+
+
+def _with_stop_instruction(report: dict[str, Any]) -> dict[str, Any]:
+    """Blocking reports tell the reader to stop, in reason, errors and a field."""
+
+    if report.get("status") not in BLOCKING_STATUSES:
+        return report
+    report["operator_instruction"] = STOP_INSTRUCTION
+    if STOP_INSTRUCTION not in (report.get("reason") or ""):
+        report["reason"] = f"{report.get('reason') or ''} {STOP_INSTRUCTION}".strip()
+    errors = report.setdefault("errors", [])
+    if not any(STOP_INSTRUCTION in error for error in errors):
+        errors.append(f"protected-hash sync next step: {STOP_INSTRUCTION}")
+    return report
+
+
+def protected_sync_hold_message(report: dict[str, Any] | None) -> str:
+    """One-line result message that says what actually happened on disk."""
+
+    report = report or {}
+    status = report.get("status")
+    if status == "failed_restored":
+        what = (
+            "protected-hash sync FAILED: AGENTS.base.md and .governance/baseline.yaml were "
+            "written and then restored to their pre-sync bytes"
+        )
+    elif status == "incomplete":
+        state = report.get("incomplete_state") or {}
+        what = (
+            "protected-hash sync INCOMPLETE: on disk now "
+            f"AGENTS.base.md={state.get('agents_base', 'unknown')}, "
+            f".governance/baseline.yaml={state.get('baseline', 'unknown')}; recovery "
+            f"journal kept at {report.get('journal') or '<unknown>'}"
+        )
+    else:
+        what = (
+            "protected-hash sync HOLD: AGENTS.base.md and .governance/baseline.yaml left "
+            "untouched"
+        )
+    return (
+        f"{what}; nothing staged or committed; F-7 update is not complete. "
+        f"{STOP_INSTRUCTION}"
+    )
+
+
 def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str, Any] | None:
     """Resolve a journal left by an earlier interrupted sync.
 
@@ -283,14 +375,14 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
         new_hash = str(journal["new_hash"])
         expected_baseline_sha256 = str(journal["expected_baseline_sha256"])
     except (OSError, ValueError, KeyError, TypeError) as exc:
-        return _new_report(
+        return _with_stop_instruction(_new_report(
             status="incomplete",
             reason=(
                 f"unreadable protected-hash sync journal {path}: {exc}; an earlier sync "
                 "may be incomplete, refusing to touch AGENTS.base.md or baseline.yaml"
             ),
             journal=str(path),
-        )
+        ))
 
     base = repo / BASE_RELATIVE_PATH
     baseline = repo / BASELINE_RELATIVE_PATH
@@ -309,23 +401,10 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
         path.unlink()
         return None
 
-    if base_bytes is None:
-        base_state = "missing"
-    elif base_bytes == original_base:
-        base_state = "original"
-    elif sha256_canonical_lf_bytes(base_bytes) == new_hash:
-        base_state = "authorized_source"
-    else:
-        base_state = "unknown"
-    if baseline_bytes is None:
-        baseline_state = "missing"
-    elif baseline_bytes == original_baseline:
-        baseline_state = "original"
-    elif _sha256(baseline_bytes) == expected_baseline_sha256:
-        baseline_state = "synced"
-    else:
-        baseline_state = "unknown"
-    return _new_report(
+    base_state, baseline_state = _disk_state(
+        repo, original_base, original_baseline, new_hash, expected_baseline_sha256
+    )
+    return _with_stop_instruction(_new_report(
         status="incomplete",
         old_hash=journal.get("old_hash"),
         new_hash=new_hash,
@@ -339,7 +418,7 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
         ),
         journal=str(path),
         incomplete_state={"agents_base": base_state, "baseline": baseline_state},
-    )
+    ))
 
 
 # --- main entry --------------------------------------------------------------
@@ -360,6 +439,20 @@ def sync_protected_agents_base(
     restore attempt.
     """
 
+    return _with_stop_instruction(
+        _sync_protected_agents_base(
+            repo, submodule_repo, framework_commit=framework_commit, git_dir=git_dir
+        )
+    )
+
+
+def _sync_protected_agents_base(
+    repo: Path,
+    submodule_repo: Path,
+    *,
+    framework_commit: str | None,
+    git_dir: Path | None,
+) -> dict[str, Any]:
     target_base = repo / BASE_RELATIVE_PATH
     baseline = repo / BASELINE_RELATIVE_PATH
     source = submodule_repo / SOURCE_RELATIVE_PATH
@@ -494,12 +587,18 @@ def sync_protected_agents_base(
                 "were restored to their pre-sync bytes"
             )
         else:
+            base_state, baseline_state = _disk_state(
+                repo, original_base, baseline_bytes, new_hash, _sha256(new_baseline)
+            )
             report["status"] = "incomplete"
             report["journal"] = str(journal)
+            report["incomplete_state"] = {"agents_base": base_state, "baseline": baseline_state}
             report["reason"] = (
                 f"protected-hash sync failed ({detail}) and the restore could not be "
-                f"verified; pre-sync originals are kept in {journal}; the next run fails "
-                "closed until a human restores a verified state"
+                f"verified; on disk now AGENTS.base.md={base_state}, "
+                f"baseline.yaml={baseline_state}; pre-sync originals are kept in "
+                f"{journal}; the next run fails closed until a human restores a "
+                "verified state"
             )
         report["errors"].append(f"protected-hash sync {report['status']}: {report['reason']}")
         if not isinstance(exc, Exception):
@@ -555,4 +654,6 @@ def format_protected_hash_sync(report: dict[str, Any] | None) -> list[str]:
     ]
     if report.get("journal"):
         lines.append(f"journal={report['journal']}")
+    if report.get("operator_instruction"):
+        lines.append(f"next_step={report['operator_instruction']}")
     return lines

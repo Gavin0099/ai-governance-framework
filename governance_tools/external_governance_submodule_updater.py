@@ -36,6 +36,7 @@ from governance_tools.protected_base_sync import (
     BLOCKING_STATUSES as PROTECTED_SYNC_BLOCKING_STATUSES,
     format_protected_hash_sync,
     inspect_pending_journal as inspect_protected_sync_journal,
+    protected_sync_hold_message,
     sync_protected_agents_base,
 )
 from governance_tools.update_receipt import (
@@ -1703,6 +1704,7 @@ def _protected_sync_hold_result(
     target_head: str,
     after_head: str,
     errors: list[str],
+    protected_sync_report: dict[str, Any],
     full_update_stage_report: dict[str, Any],
     target_source: str,
     update_receipt: dict[str, Any],
@@ -1740,10 +1742,7 @@ def _protected_sync_hold_result(
         staged_files=[],
         committed=False,
         commit_hash=None,
-        message=(
-            "protected-hash sync HOLD: AGENTS.base.md and .governance/baseline.yaml left "
-            "untouched; nothing staged or committed; F-7 update is not complete"
-        ),
+        message=protected_sync_hold_message(protected_sync_report),
         errors=boundary_errors,
         full_update_stage_report=full_update_stage_report,
         target_source=target_source,
@@ -1876,15 +1875,6 @@ def update_governance_submodule(
                     "target_resolution": target_resolution,
                 },
             )
-            update_receipt = write_update_receipt(
-                tool="external_governance_submodule_updater",
-                repo_root=repo,
-                framework_root=submodule_repo,
-                framework_before=before_head,
-                framework_after=before_head,
-                update_status="already_current",
-                remote_evidence=target_resolution,
-            )
             protected_sync_errors = _protected_sync_blocking_errors(protected_sync_report)
             if protected_sync_errors:
                 # HOLD: nothing is staged or committed, and success is not claimed.
@@ -1897,14 +1887,29 @@ def update_governance_submodule(
                     target_head=target_head,
                     after_head=before_head,
                     errors=protected_sync_errors,
+                    protected_sync_report=protected_sync_report,
                     full_update_stage_report=full_update_stage_report,
                     target_source=target_source,
-                    update_receipt=update_receipt,
+                    # The receipt records a completed update; a HOLD is not one.
+                    update_receipt=skipped_update_receipt(
+                        "protected-hash sync "
+                        f"{protected_sync_report['status']}: F-7 update not complete; "
+                        "no update receipt written"
+                    ),
                     apply_allowlist=apply_allowlist,
                     parent_dirty_before=parent_dirty_before,
                     ignored_untracked_before=ignored_untracked_before,
                     allowed_ignored_transitions=allowed_ignored_transitions,
                 )
+            update_receipt = write_update_receipt(
+                tool="external_governance_submodule_updater",
+                repo_root=repo,
+                framework_root=submodule_repo,
+                framework_before=before_head,
+                framework_after=before_head,
+                update_status="already_current",
+                remote_evidence=target_resolution,
+            )
             if stage or commit:
                 allowed = {
                     submodule_path,
@@ -2079,16 +2084,6 @@ def update_governance_submodule(
                 "target_resolution": target_resolution,
             },
         )
-        update_receipt = write_update_receipt(
-            tool="external_governance_submodule_updater",
-            repo_root=repo,
-            framework_root=submodule_repo,
-            framework_before=before_head,
-            framework_after=after_head,
-            update_status="updated",
-            remote_evidence=target_resolution,
-        )
-
         protected_sync_errors = _protected_sync_blocking_errors(protected_sync_report)
         if protected_sync_errors:
             # HOLD: nothing is staged or committed, and success is not claimed.
@@ -2101,14 +2096,30 @@ def update_governance_submodule(
                 target_head=target_head,
                 after_head=after_head,
                 errors=protected_sync_errors,
+                protected_sync_report=protected_sync_report,
                 full_update_stage_report=full_update_stage_report,
                 target_source=target_source,
-                update_receipt=update_receipt,
+                # The receipt records a completed update; a HOLD is not one.
+                update_receipt=skipped_update_receipt(
+                    "protected-hash sync "
+                    f"{protected_sync_report['status']}: F-7 update not complete; "
+                    "no update receipt written"
+                ),
                 apply_allowlist=apply_allowlist,
                 parent_dirty_before=parent_dirty_before,
                 ignored_untracked_before=ignored_untracked_before,
                 allowed_ignored_transitions=allowed_ignored_transitions,
             )
+        update_receipt = write_update_receipt(
+            tool="external_governance_submodule_updater",
+            repo_root=repo,
+            framework_root=submodule_repo,
+            framework_before=before_head,
+            framework_after=after_head,
+            update_status="updated",
+            remote_evidence=target_resolution,
+        )
+
         if stage or commit:
             allowed = {
                 submodule_path,
