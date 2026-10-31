@@ -489,8 +489,9 @@ def test_no_baseline_yaml_keeps_plain_replacement(tmp_path: Path, fast) -> None:
     assert (consumer / "AGENTS.base.md").read_text(encoding="utf-8") == BASE_V2
     assert not _baseline(consumer).exists()
     item = result.full_update_stage_report["details"]["protected_hash_sync"]
-    assert item["status"] == "not_applicable"
-    assert "no protected-hash sync applied" in item["reason"]
+    # F-J 1A: compatible replacement, named for what it is.
+    assert item["status"] == "UNPROTECTED_BASE_REPLACEMENT"
+    assert "NOT verified against a protected hash" in item["reason"]
 
 
 # --- review fixes -------------------------------------------------------------
@@ -635,3 +636,119 @@ def test_fix5_head_not_at_framework_commit_holds(tmp_path: Path, fast) -> None:
     assert _baseline(consumer).read_bytes() == baseline_before
     assert report["protected_hash_sync"]["status"] == "hold"
     assert "is not the authorized framework commit" in report["protected_hash_sync"]["reason"]
+
+
+# --- 1A: no baseline.yaml -> UNPROTECTED_BASE_REPLACEMENT, still source-bound --
+
+UNPROTECTED = "UNPROTECTED_BASE_REPLACEMENT"
+
+
+def _drop_baseline_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
+    """A consumer without baseline.yaml whose BASE is the v1 framework blob."""
+    return _make_consumer(tmp_path, with_baseline=False)
+
+
+# compatibility (positive)
+
+
+def test_1a_compat_base_equal_to_previous_pin_blob_is_replaced_and_reported_unprotected(
+    tmp_path: Path, fast
+) -> None:
+    consumer, _framework, v1, v2 = _drop_baseline_fixture(tmp_path)
+
+    result = _apply(consumer)
+
+    assert (consumer / "AGENTS.base.md").read_text(encoding="utf-8") == BASE_V2
+    item = result.full_update_stage_report["details"]["protected_hash_sync"]
+    assert item["status"] == UNPROTECTED
+    assert result.full_update_stage_report["protected_hash_sync"] == UNPROTECTED
+    assert (item["framework_commit"], item["previous_commit"]) == (v2, v1)
+    assert item["new_hash"] == _h(BASE_V2) and item["old_hash"] == _h(BASE_V1)
+    assert "NOT verified against a protected hash" in item["reason"]
+    assert "NOT verified against a protected hash" in item["claim_boundary"]
+    rendered = format_human(result)
+    assert f"- protected_hash_sync={UNPROTECTED}" in rendered
+    assert f"status={UNPROTECTED}" in rendered
+    assert "status=verified" not in rendered and "status=synced" not in rendered
+    payload = json.dumps(asdict(result), default=str)
+    assert UNPROTECTED in payload
+
+
+def test_1a_compat_first_install_without_base_is_unprotected(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _drop_baseline_fixture(tmp_path)
+    _git(consumer, "rm", "-q", "AGENTS.base.md")
+    _git(consumer, "commit", "-q", "-m", "no AGENTS.base.md yet")
+
+    result = _apply(consumer)
+
+    assert (consumer / "AGENTS.base.md").read_text(encoding="utf-8") == BASE_V2
+    assert result.full_update_stage_report["protected_hash_sync"] == UNPROTECTED
+
+
+# strict (negative)
+
+
+def test_1a_no_baseline_dirty_base_holds(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, v2 = _drop_baseline_fixture(tmp_path)
+    checkout = consumer / "ai-governance-framework"
+    _git(checkout, "checkout", "-q", v2)
+    (consumer / "AGENTS.base.md").write_bytes((BASE_V1 + "uncommitted edit\n").encode("utf-8"))
+    before = (consumer / "AGENTS.base.md").read_bytes()
+
+    report = _refresh_repo_local_instructions(
+        consumer, checkout, framework_commit=v2, previous_commit=_v1
+    )
+
+    assert (consumer / "AGENTS.base.md").read_bytes() == before
+    item = report["protected_hash_sync"]
+    assert item["status"] == "hold"
+    assert "uncommitted local changes" in item["reason"]
+    assert STOP in item["reason"]
+
+
+def test_1a_no_baseline_committed_custom_base_holds(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _drop_baseline_fixture(tmp_path)
+    custom = BASE_V1 + "consumer rule committed on purpose\n"
+    (consumer / "AGENTS.base.md").write_bytes(custom.encode("utf-8"))
+    _commit_all(consumer, "custom AGENTS.base.md")
+    before = (consumer / "AGENTS.base.md").read_bytes()
+
+    result = _apply(consumer)
+
+    assert (consumer / "AGENTS.base.md").read_bytes() == before
+    assert result.ok is False
+    assert result.full_update_stage_report["protected_hash_sync"] == "hold"
+    assert result.full_update_stage_report["final_status"] == "blocked"
+    assert any("differs from the framework source at the previous pin" in e for e in result.errors)
+    assert STOP in format_human(result)
+
+
+@pytest.mark.parametrize("previous", [None, "0" * 40], ids=["unknown_pin", "pin_blob_unavailable"])
+def test_1a_no_baseline_undeterminable_previous_pin_holds(tmp_path: Path, fast, previous) -> None:
+    consumer, _framework, _v1, v2 = _drop_baseline_fixture(tmp_path)
+    checkout = consumer / "ai-governance-framework"
+    _git(checkout, "checkout", "-q", v2)
+    before = (consumer / "AGENTS.base.md").read_bytes()
+
+    report = _refresh_repo_local_instructions(
+        consumer, checkout, framework_commit=v2, previous_commit=previous
+    )
+
+    assert (consumer / "AGENTS.base.md").read_bytes() == before
+    assert report["protected_hash_sync"]["status"] == "hold"
+    assert report["status"] == "blocked"
+
+
+def test_1a_no_baseline_unbound_source_holds(tmp_path: Path, fast) -> None:
+    consumer, _framework, v1, _v2 = _drop_baseline_fixture(tmp_path)
+    checkout = consumer / "ai-governance-framework"
+    (checkout / "baselines/repo-min/AGENTS.base.md").write_text("# not the commit\n", encoding="utf-8")
+    before = (consumer / "AGENTS.base.md").read_bytes()
+
+    report = _refresh_repo_local_instructions(
+        consumer, checkout, framework_commit=v1, previous_commit=v1
+    )
+
+    assert (consumer / "AGENTS.base.md").read_bytes() == before
+    assert report["protected_hash_sync"]["status"] == "hold"
+    assert "refusing an unbound source" in report["protected_hash_sync"]["reason"]

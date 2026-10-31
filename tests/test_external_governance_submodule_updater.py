@@ -775,6 +775,9 @@ def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tm
     )
 
     first = _refresh_repo_local_instructions(consumer, framework)
+    # F-J 1A: as in a real F-7 run, the consumer commits the first result; an
+    # uncommitted AGENTS.base.md without a baseline is held, not overwritten.
+    _commit_all(consumer, "commit first refresh")
     second = _refresh_repo_local_instructions(consumer, framework)
     refreshed = agents.read_text(encoding="utf-8")
 
@@ -2510,10 +2513,15 @@ def test_refresh_keeps_one_router_on_a_real_consumer_shape(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
+    # F-J 1A: F-7 only ever runs on a Git consumer; the no-baseline AGENTS.base.md
+    # replacement holds when Git cannot tell whether the file has local changes.
+    _init_repo(consumer)
     read = lambda: (consumer / "AGENTS.md").read_text(encoding="utf-8")
     reports = []
     for _ in range(3):
         reports.append(_refresh_repo_local_instructions(consumer, framework_root))
+        _git(consumer, "add", ".")
+        _git(consumer, "commit", "-q", "--allow-empty", "-m", "commit refresh result")
         text = read()
         assert text.count("## AI Governance Memory Workflow Router") == 1
         assert text.count(MEMORY_WORKFLOW_MARKER_FOR_TEST) == 1

@@ -1172,6 +1172,7 @@ def _refresh_repo_local_instructions(
     repo: Path,
     submodule_repo: Path,
     framework_commit: str | None = None,
+    previous_commit: str | None = None,
 ) -> dict[str, Any]:
     source_agents = submodule_repo / "baselines" / "repo-min" / "AGENTS.md"
     target_agents = repo / "AGENTS.md"
@@ -1184,7 +1185,10 @@ def _refresh_repo_local_instructions(
     # step that keeps sha256.AGENTS.base.md in .governance/baseline.yaml in step
     # (or HOLDs, leaving both files untouched).
     protected_sync = sync_protected_agents_base(
-        repo, submodule_repo, framework_commit=framework_commit
+        repo,
+        submodule_repo,
+        framework_commit=framework_commit,
+        previous_commit=previous_commit,
     )
     changed.extend(protected_sync["changed_files"])
     errors.extend(protected_sync["errors"])
@@ -1840,7 +1844,7 @@ def update_governance_submodule(
 
         if not dry_run and before_head == target_head:
             instruction_report = _refresh_repo_local_instructions(
-                repo, submodule_repo, framework_commit=before_head
+                repo, submodule_repo, framework_commit=before_head, previous_commit=before_head
             )
             protected_sync_report = instruction_report["protected_hash_sync"]
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
@@ -2049,7 +2053,7 @@ def update_governance_submodule(
             )
 
         instruction_report = _refresh_repo_local_instructions(
-            repo, submodule_repo, framework_commit=after_head
+            repo, submodule_repo, framework_commit=after_head, previous_commit=before_head
         )
         protected_sync_report = instruction_report["protected_hash_sync"]
         hook_report = _ensure_hook_advisory(repo, submodule_repo)

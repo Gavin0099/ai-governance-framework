@@ -69,6 +69,15 @@ JOURNAL_SCHEMA = "protected_hash_sync_journal.v1"
 # Statuses that must keep F-7 from claiming a full update.
 BLOCKING_STATUSES = frozenset({"hold", "failed_restored", "incomplete"})
 
+# No .governance/baseline.yaml: the compatible replacement still happens, but it
+# is named for what it is -- nothing was hash-verified.
+UNPROTECTED_STATUS = "UNPROTECTED_BASE_REPLACEMENT"
+UNPROTECTED_CLAIM_BOUNDARY = (
+    "this replacement was NOT verified against a protected hash: there is no "
+    ".governance/baseline.yaml, so only the source binding to the framework commit and "
+    "the previous-pin content check were applied; it is not a protected-hash sync"
+)
+
 CLAIM_BOUNDARY = (
     "only the sha256.AGENTS.base.md line of .governance/baseline.yaml is synced, and "
     "only after the pre-update hash was verified; other hashes, provenance and PLAN "
@@ -430,6 +439,7 @@ def sync_protected_agents_base(
     *,
     framework_commit: str | None = None,
     git_dir: Path | None = None,
+    previous_commit: str | None = None,
 ) -> dict[str, Any]:
     """Replace ``AGENTS.base.md`` from the authorized framework source.
 
@@ -441,9 +451,111 @@ def sync_protected_agents_base(
 
     return _with_stop_instruction(
         _sync_protected_agents_base(
-            repo, submodule_repo, framework_commit=framework_commit, git_dir=git_dir
+            repo,
+            submodule_repo,
+            framework_commit=framework_commit,
+            git_dir=git_dir,
+            previous_commit=previous_commit,
         )
     )
+
+
+def _unprotected_replacement(
+    repo: Path,
+    submodule_repo: Path,
+    *,
+    framework_commit: str | None,
+    previous_commit: str | None,
+) -> dict[str, Any]:
+    """Compatible replacement for consumers without .governance/baseline.yaml.
+
+    Rule order (first match decides):
+      1. the source must be bound to the framework commit (``_authorized_source``);
+      2. BASE absent -> first install, replace;
+      3. BASE has uncommitted changes (or Git cannot tell) -> HOLD;
+      4. BASE already equals the authorized blob -> nothing to write;
+      5. previous pin unknown, or its blob unavailable -> HOLD;
+      6. BASE equals the previous pin's blob -> replace;
+      7. anything else (a committed consumer edit) -> HOLD.
+    """
+
+    target_base = repo / BASE_RELATIVE_PATH
+    report = _new_report(
+        status=UNPROTECTED_STATUS,
+        framework_commit=framework_commit,
+        previous_commit=previous_commit,
+        protection_mode="unprotected",
+        claim_boundary=UNPROTECTED_CLAIM_BOUNDARY,
+    )
+    try:
+        if not framework_commit:
+            raise ProtectedSyncHold("framework commit could not be resolved")
+        source_blob = _authorized_source(submodule_repo, framework_commit)
+        new_canonical = canonical_lf_bytes(source_blob)
+        report["new_hash"] = sha256_canonical_lf_bytes(source_blob)
+
+        if target_base.exists():
+            status = _git(repo, ["status", "--porcelain", "--", BASE_RELATIVE_PATH])
+            if status.returncode != 0:
+                raise ProtectedSyncHold(
+                    f"cannot determine whether {BASE_RELATIVE_PATH} has local changes; "
+                    "refusing to overwrite it"
+                )
+            if status.stdout.strip():
+                raise ProtectedSyncHold(
+                    f"{BASE_RELATIVE_PATH} has uncommitted local changes and there is no "
+                    f"{BASELINE_RELATIVE_PATH} to verify them; refusing to overwrite it"
+                )
+            current = canonical_lf_bytes(target_base.read_bytes())
+            report["old_hash"] = sha256_canonical_lf_bytes(current)
+            if current == new_canonical:
+                report["reason"] = (
+                    f"{BASE_RELATIVE_PATH} already equals the source at framework commit "
+                    f"{framework_commit}; nothing written. Not hash-verified: no "
+                    f"{BASELINE_RELATIVE_PATH}"
+                )
+                return report
+            if not previous_commit:
+                raise ProtectedSyncHold(
+                    "the previous framework pin is unknown, so it cannot be shown that "
+                    f"{BASE_RELATIVE_PATH} is unmodified framework content; refusing to "
+                    "overwrite it"
+                )
+            previous = _git(
+                submodule_repo, ["cat-file", "blob", f"{previous_commit}:{SOURCE_RELATIVE_PATH}"]
+            )
+            if previous.returncode != 0:
+                raise ProtectedSyncHold(
+                    f"{SOURCE_RELATIVE_PATH} cannot be read at the previous framework pin "
+                    f"{previous_commit}; refusing to overwrite {BASE_RELATIVE_PATH}"
+                )
+            if current != canonical_lf_bytes(previous.stdout):
+                raise ProtectedSyncHold(
+                    f"{BASE_RELATIVE_PATH} differs from the framework source at the previous "
+                    f"pin {previous_commit} (a committed local edit or unknown content); "
+                    "without .governance/baseline.yaml it cannot be verified, refusing to "
+                    "overwrite it"
+                )
+        _write_base_text(target_base, new_canonical.decode("utf-8"))
+        if sha256_canonical_lf_file(target_base) != report["new_hash"]:
+            raise OSError(f"{BASE_RELATIVE_PATH} does not hash to the authorized source after write")
+    except ProtectedSyncHold as exc:
+        report["status"] = "hold"
+        report["reason"] = f"{exc} (no {BASELINE_RELATIVE_PATH}: unprotected path)"
+        report["errors"].append(f"protected-hash sync HOLD: {report['reason']}")
+        return report
+    except OSError as exc:
+        report["status"] = "hold"
+        report["reason"] = f"{type(exc).__name__}: {exc}"
+        report["errors"].append(f"protected-hash sync HOLD: {report['reason']}")
+        return report
+    report["changed_files"] = [BASE_RELATIVE_PATH]
+    report["reason"] = (
+        f"{BASE_RELATIVE_PATH} replaced from {SOURCE_RELATIVE_PATH} at framework commit "
+        f"{framework_commit}. This replacement was NOT verified against a protected hash "
+        f"(no {BASELINE_RELATIVE_PATH})"
+    )
+    return report
 
 
 def _sync_protected_agents_base(
@@ -452,29 +564,21 @@ def _sync_protected_agents_base(
     *,
     framework_commit: str | None,
     git_dir: Path | None,
+    previous_commit: str | None = None,
 ) -> dict[str, Any]:
     target_base = repo / BASE_RELATIVE_PATH
     baseline = repo / BASELINE_RELATIVE_PATH
-    source = submodule_repo / SOURCE_RELATIVE_PATH
 
     if framework_commit is None:
         framework_commit = _git_text(submodule_repo, ["rev-parse", "HEAD"])
 
     if not baseline.is_file():
-        # Unchanged legacy behaviour: there is no recorded hash to keep in step.
-        report = _new_report(
+        return _unprotected_replacement(
+            repo,
+            submodule_repo,
             framework_commit=framework_commit,
-            reason=f"no {BASELINE_RELATIVE_PATH}; no protected-hash sync applied",
+            previous_commit=previous_commit,
         )
-        if not source.exists():
-            report["errors"].append(f"missing source {SOURCE_RELATIVE_PATH}")
-            return report
-        text = source.read_text(encoding="utf-8")
-        if not (target_base.exists() and target_base.read_text(encoding="utf-8") == text):
-            target_base.parent.mkdir(parents=True, exist_ok=True)
-            _write_base_text(target_base, text)
-            report["changed_files"].append(BASE_RELATIVE_PATH)
-        return report
 
     report = _new_report(framework_commit=framework_commit)
     pending = inspect_pending_journal(repo, git_dir)
@@ -654,6 +758,8 @@ def format_protected_hash_sync(report: dict[str, Any] | None) -> list[str]:
     ]
     if report.get("journal"):
         lines.append(f"journal={report['journal']}")
+    if report.get("previous_commit"):
+        lines.append(f"previous_commit={report['previous_commit']}")
     if report.get("operator_instruction"):
         lines.append(f"next_step={report['operator_instruction']}")
     return lines
