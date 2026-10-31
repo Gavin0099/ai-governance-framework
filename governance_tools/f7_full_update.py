@@ -45,6 +45,7 @@ from governance_tools.governance_update_reporting import (
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
 from governance_tools.hook_installer import _codex_project_doc_budget, install_governance_hooks
+from governance_tools.protected_base_sync import format_protected_hash_sync
 from governance_tools.update_receipt import (
     RECEIPT_RELATIVE_PATH,
     skipped_update_receipt,
@@ -949,6 +950,12 @@ def run_f7_full_update(
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
         changed_files = list(result.staged_files) + surface_changed
+        # F-J: the controlled AGENTS.base.md replacement is reported as its own
+        # item; the files it wrote are named here too, never hidden.
+        protected_sync = (result.full_update_stage_report.get("details") or {}).get(
+            "protected_hash_sync"
+        ) or {}
+        changed_files.extend(protected_sync.get("changed_files") or [])
         if result.update_receipt.get("status") == "written":
             changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         warnings = [
@@ -1043,6 +1050,9 @@ def format_human(result: F7Result) -> str:
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
+        details = result.stages.get("details")
+        if isinstance(details, dict) and details.get("protected_hash_sync"):
+            lines.extend(format_protected_hash_sync(details["protected_hash_sync"]))
     lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.changed_files:
