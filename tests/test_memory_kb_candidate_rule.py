@@ -14,6 +14,7 @@ promotion behavior; they pin what the current code does.
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -281,6 +282,17 @@ def _refresh(repo: Path) -> dict:
     return updater._refresh_repo_local_instructions(repo, REPO_ROOT)
 
 
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=updater._git_env())
+
+
+def _commit_refresh_result(repo: Path) -> None:
+    # F-J 1A: F-7 only runs on a Git consumer and the result is committed between
+    # runs; an uncommitted AGENTS.base.md without a baseline is held, not replaced.
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "--allow-empty", "-m", "commit refresh result")
+
+
 @pytest.mark.parametrize("layout", ["router-inside-section", "router-after-risk-levels"])
 def test_updater_refresh_leaves_one_current_line_and_consumer_text(tmp_path: Path, layout: str) -> None:
     repo = tmp_path / "consumer"
@@ -291,8 +303,13 @@ def test_updater_refresh_leaves_one_current_line_and_consumer_text(tmp_path: Pat
     else:
         body = CONSUMER_HEAD + old_section + CONSUMER_RISK + "\n" + _router(LEGACY)
     (repo / "AGENTS.md").write_text(body, encoding="utf-8")
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "test@example.invalid")
+    _git(repo, "config", "user.name", "Test User")
+    _commit_refresh_result(repo)
 
     report = _refresh(repo)
+    _commit_refresh_result(repo)
     after = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert report["status"] == "updated", report["errors"]
     assert after.count(CURRENT) == 1 and LEGACY not in after
@@ -307,6 +324,7 @@ def test_updater_refresh_leaves_one_current_line_and_consumer_text(tmp_path: Pat
         settled = (repo / "AGENTS.md").read_text(encoding="utf-8")
         assert settled.replace("\n", "") == after.replace("\n", "")
         after = settled
+        _commit_refresh_result(repo)
         second = _refresh(repo)
     assert second["status"] == "already_current" and second["changed_files"] == []
     assert (repo / "AGENTS.md").read_text(encoding="utf-8") == after
