@@ -949,6 +949,32 @@ def run_f7_full_update(
         )
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
+        update_receipt = result.update_receipt
+        written = update_receipt.get("receipt") if update_receipt.get("status") == "written" else None
+        if (
+            apply
+            and final_status == BLOCKED
+            and isinstance(written, dict)
+            and written.get("update_status") in {"updated", ALREADY_CURRENT}
+        ):
+            # A-3: the backend recorded a successful update before a later F-7
+            # step failed; the receipt must not outlive that as a success.
+            try:
+                update_receipt = write_update_receipt(
+                    tool="f7_full_update",
+                    repo_root=repo_root,
+                    framework_root=repo_root / submodule_path,
+                    framework_before=written.get("framework_before"),
+                    framework_after=written.get("framework_after"),
+                    update_status=BLOCKED,
+                    remote_evidence=written.get("remote_evidence"),
+                    warnings=list(result.errors),
+                )
+            except OSError as exc:
+                result.errors.append(
+                    "update receipt still records a successful update and could not be "
+                    f"rewritten ({type(exc).__name__}: {exc}); do not rely on it"
+                )
         changed_files = list(result.staged_files) + surface_changed
         # F-J: the controlled AGENTS.base.md replacement is reported as its own
         # item; the files it wrote are named here too, never hidden.
@@ -956,8 +982,8 @@ def run_f7_full_update(
             "protected_hash_sync"
         ) or {}
         changed_files.extend(protected_sync.get("changed_files") or [])
-        if result.update_receipt.get("status") == "written":
-            changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
+        if update_receipt.get("status") == "written":
+            changed_files.append(str(update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         warnings = [
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
@@ -989,7 +1015,7 @@ def run_f7_full_update(
             errors=result.errors,
             warnings=warnings,
             details={"submodule_backend": asdict(result)},
-            update_receipt=result.update_receipt,
+            update_receipt=update_receipt,
         )
     if role == "external_contract_repo":
         return _run_external_contract_backend(repo_root, framework_root, apply=apply)

@@ -295,6 +295,21 @@ def test_b_unproven_half_state_without_journal_holds(tmp_path: Path, fast) -> No
     assert result.ok is False
     assert _baseline(consumer).read_bytes() == baseline_before
     assert result.full_update_stage_report["protected_hash_sync"] == "hold"
+    # The hash still records the committed pin's source: named as the transition.
+    assert any("first-update transition" in e for e in result.errors)
+
+
+def test_b_unproven_half_state_at_the_committed_pin_holds(tmp_path: Path, fast) -> None:
+    """Pointer and BASE committed at the target, hash old: nothing proves the hash."""
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    _old_updater_ran(consumer, v2)
+    _commit_all(consumer, "commit pointer and BASE without the hash")
+    baseline_before = _baseline(consumer).read_bytes()
+
+    result = _apply(consumer)
+
+    assert result.ok is False
+    assert _baseline(consumer).read_bytes() == baseline_before
     assert any("cannot be proven" in e for e in result.errors)
 
 
@@ -752,3 +767,263 @@ def test_1a_no_baseline_unbound_source_holds(tmp_path: Path, fast) -> None:
     assert (consumer / "AGENTS.base.md").read_bytes() == before
     assert report["protected_hash_sync"]["status"] == "hold"
     assert "refusing an unbound source" in report["protected_hash_sync"]["reason"]
+
+
+# --- A-1/A-2/A-3: transition, completion claim, HOLD before anything moves ----
+
+
+def _old_updater_ran(consumer: Path, v2: str) -> None:
+    """What a pre-F-J in-submodule updater leaves: pointer and BASE moved, hash not."""
+    checkout = consumer / "ai-governance-framework"
+    _git(checkout, "checkout", "-q", v2)
+    (consumer / "AGENTS.base.md").write_bytes(BASE_V2.encode("utf-8"))
+
+
+def _dry_run(consumer: Path):
+    return update_governance_submodule(repo=consumer, fetch_ref="main", dry_run=True)
+
+
+def _receipt(consumer: Path) -> Path:
+    return consumer / "governance" / ".update-receipt.json"
+
+
+def test_a1_old_updater_transition_is_named_and_held(tmp_path: Path, fast) -> None:
+    consumer, _framework, v1, v2 = _make_consumer(tmp_path)
+    _old_updater_ran(consumer, v2)
+    baseline_before = _baseline(consumer).read_bytes()
+
+    result = _dry_run(consumer)
+
+    assert result.ok is False
+    stage = result.full_update_stage_report
+    assert stage["protected_hash_sync"] == "hold"
+    assert stage["final_status"] == "blocked"
+    item = stage["details"]["protected_hash_sync"]
+    assert item["transition"] == "pre_protected_sync_updater"
+    assert v1 in item["reason"] and "first-update transition" in item["reason"]
+    assert STOP in item["reason"]
+    assert _baseline(consumer).read_bytes() == baseline_before
+
+
+def test_a1_old_updater_transition_apply_changes_nothing(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    _old_updater_ran(consumer, v2)
+    base_before = (consumer / "AGENTS.base.md").read_bytes()
+    baseline_before = _baseline(consumer).read_bytes()
+
+    result = _apply(consumer)
+
+    assert result.ok is False
+    assert result.full_update_stage_report["final_status"] == "blocked"
+    assert (consumer / "AGENTS.base.md").read_bytes() == base_before
+    assert _baseline(consumer).read_bytes() == baseline_before
+    assert not _receipt(consumer).exists()
+
+
+def test_a2_committed_drift_is_not_full_update_completed(tmp_path: Path, fast, monkeypatch) -> None:
+    """BASE new and committed, hash old: the dry-run used to say full_update_completed."""
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    _old_updater_ran(consumer, v2)
+    _commit_all(consumer, "commit the unsynced update")
+    monkeypatch.setattr(
+        f7_full_update,
+        "install_governance_hooks",
+        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[])),
+    )
+
+    result = f7_full_update.run_f7_full_update(
+        repo_root=consumer, framework_root=consumer / "ai-governance-framework", apply=False
+    )
+
+    assert result.f7_final_status not in {"completed", "full_update_completed", "already_current"}
+    assert result.ok is False
+    assert result.stages["protected_hash_sync"] == "hold"
+
+
+@pytest.mark.parametrize("protected", ["not_verified", "ready", "hold", None])
+def test_a2_completion_needs_positive_protected_evidence(protected) -> None:
+    report = {
+        "framework_pointer": "updated",
+        "repo_local_instruction": "updated",
+        "memory_writer_coverage": "verified",
+        "hook_validator_enforcement": "verified",
+        "existing_memory_normalization": "not_applicable",
+        "protected_hash_sync": protected,
+    }
+    assert updater_module._final_full_update_status(report) != "full_update_completed"
+    report["protected_hash_sync"] = "synced"
+    assert updater_module._final_full_update_status(report) == "full_update_completed"
+
+
+def test_a2_dry_run_reports_protected_state(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+
+    result = _dry_run(consumer)
+
+    assert result.ok is True, result.errors
+    assert result.full_update_stage_report["protected_hash_sync"] == "ready"
+    assert result.full_update_stage_report["final_status"] != "full_update_completed"
+
+
+def test_a3_dry_run_leaves_a_clearable_journal_in_place(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    base = (consumer / "AGENTS.base.md").read_bytes()
+    baseline = _baseline(consumer).read_bytes()
+    _journal(consumer).write_text(
+        json.dumps(
+            {
+                "original_base_b64": base64.b64encode(base).decode("ascii"),
+                "original_baseline_b64": base64.b64encode(baseline).decode("ascii"),
+                "new_hash": _h(BASE_V2),
+                "expected_baseline_sha256": "0" * 64,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = _dry_run(consumer)
+
+    assert result.full_update_stage_report["protected_hash_sync"] == "ready"
+    assert _journal(consumer).exists()
+
+
+def test_a1_base_at_target_with_unrelated_recorded_hash_names_no_transition(
+    tmp_path: Path, fast
+) -> None:
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    baseline = _baseline(consumer)
+    baseline.write_bytes(baseline.read_bytes().replace(_h(BASE_V1).encode(), STALE.encode()))
+    _commit_all(consumer, "hash records neither version")
+    _old_updater_ran(consumer, v2)
+
+    result = _dry_run(consumer)
+
+    item = result.full_update_stage_report["details"]["protected_hash_sync"]
+    assert item["status"] == "hold"
+    assert "transition" not in item
+    assert "cannot be proven" in item["reason"]
+
+
+def test_a3_write_failure_after_checkout_writes_no_lock_and_says_checkout_moved(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, v1, v2 = _make_consumer(tmp_path)
+    lock = consumer / "governance" / "framework.lock.json"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(json.dumps({"adopted_commit": v1}) + "\n", encoding="utf-8")
+    _commit_all(consumer, "lock at v1")
+    lock_before = lock.read_bytes()
+    agents_before = (consumer / "AGENTS.md").read_bytes()
+
+    def boom(_path, _payload):
+        raise OSError("injected")
+
+    monkeypatch.setattr(sync_module, "_write_baseline_bytes", boom)
+
+    result = _apply(consumer)
+
+    assert result.ok is False
+    assert result.full_update_stage_report["protected_hash_sync"] == "failed_restored"
+    assert lock.read_bytes() == lock_before
+    assert (consumer / "AGENTS.md").read_bytes() == agents_before
+    assert not _receipt(consumer).exists()
+    assert f"moved to {v2}" in result.message and "git submodule update" in result.message
+
+
+def test_a3_hold_happens_before_the_pointer_moves(tmp_path: Path, fast) -> None:
+    """A committed mismatch HOLDs with pointer, lock and receipt unchanged."""
+    consumer, _framework, v1, _v2 = _make_consumer(tmp_path)
+    lock = consumer / "governance" / "framework.lock.json"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(json.dumps({"adopted_commit": v1}) + "\n", encoding="utf-8")
+    _commit_all(consumer, "lock at v1")
+    _tamper(consumer)
+    lock_before = lock.read_bytes()
+
+    result = _apply(consumer)
+
+    assert result.ok is False
+    assert result.update_mode == "held_before_update"
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == v1
+    assert result.after_head == v1
+    assert lock.read_bytes() == lock_before
+    assert not _receipt(consumer).exists()
+    assert "left untouched" in result.message and "framework pointer" in result.message
+    assert _git(consumer, "status", "--porcelain") == ""
+
+
+def test_a3_dirty_base_changes_nothing(tmp_path: Path, fast) -> None:
+    """An uncommitted line in the protected file is never lost."""
+    consumer, _framework, v1, _v2 = _make_consumer(tmp_path)
+    edited = BASE_V1 + "Local note: under review.\n"
+    (consumer / "AGENTS.base.md").write_bytes(edited.encode("utf-8"))
+
+    dry = _dry_run(consumer)
+    applied = _apply(consumer)
+
+    assert dry.ok is False and dry.full_update_stage_report["protected_hash_sync"] == "hold"
+    assert applied.ok is False
+    assert (consumer / "AGENTS.base.md").read_text(encoding="utf-8") == edited
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == v1
+    assert not _receipt(consumer).exists()
+
+
+def test_a3_failure_after_receipt_does_not_leave_a_success_receipt(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    real = updater_module._verify_parent_dirty_snapshot_unchanged
+    calls = {"n": 0}
+
+    def fail_after_receipt(*args, **kwargs):
+        if _receipt(consumer).exists():
+            calls["n"] += 1
+            raise updater_module.SubmoduleUpdateError("injected boundary failure")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(updater_module, "_verify_parent_dirty_snapshot_unchanged", fail_after_receipt)
+
+    result = _apply(consumer)
+
+    assert calls["n"] >= 1
+    assert result.ok is False
+    receipt = json.loads(_receipt(consumer).read_text(encoding="utf-8"))
+    assert receipt["update_status"] == "failed"
+
+
+def test_a3_f7_blocked_after_backend_rewrites_receipt(tmp_path: Path, fast, monkeypatch) -> None:
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    monkeypatch.setattr(
+        f7_full_update,
+        "install_governance_hooks",
+        mock.Mock(
+            return_value=mock.Mock(
+                ok=False, changed_files=[], backups=[], errors=["injected hook failure"], warnings=[]
+            )
+        ),
+    )
+
+    result = f7_full_update.run_f7_full_update(
+        repo_root=consumer, framework_root=consumer / "ai-governance-framework", apply=True
+    )
+
+    assert result.f7_final_status == "blocked"
+    receipt = json.loads(_receipt(consumer).read_text(encoding="utf-8"))
+    assert receipt["update_status"] == "blocked"
+    assert result.update_receipt["receipt"]["update_status"] == "blocked"
+
+
+def test_a3_repeat_run_after_success_is_already_current(tmp_path: Path, fast) -> None:
+    consumer, _framework, _v1, v2 = _make_consumer(tmp_path)
+    first = _apply(consumer)
+    assert first.ok is True, first.errors
+    _git(consumer, "add", "-A")
+    _git(consumer, "commit", "-q", "-m", "commit F-7 result")
+
+    second = _apply(consumer)
+
+    assert second.ok is True, second.errors
+    assert second.full_update_stage_report["protected_hash_sync"] == "verified"
+    receipt = json.loads(_receipt(consumer).read_text(encoding="utf-8"))
+    assert receipt["update_status"] == "already_current"
+    assert receipt["framework_after"] == v2

@@ -34,8 +34,10 @@ from governance_tools.governance_update_reporting import (
 from governance_tools.protected_base_sync import (
     BASELINE_RELATIVE_PATH as PROTECTED_BASELINE_RELATIVE_PATH,
     BLOCKING_STATUSES as PROTECTED_SYNC_BLOCKING_STATUSES,
+    UNPROTECTED_STATUS as PROTECTED_UNPROTECTED_STATUS,
     format_protected_hash_sync,
     inspect_pending_journal as inspect_protected_sync_journal,
+    preflight_protected_agents_base,
     protected_sync_hold_message,
     sync_protected_agents_base,
 )
@@ -1192,6 +1194,17 @@ def _refresh_repo_local_instructions(
     )
     changed.extend(protected_sync["changed_files"])
     errors.extend(protected_sync["errors"])
+    if protected_sync["status"] in PROTECTED_SYNC_BLOCKING_STATUSES:
+        # A-3: a protected HOLD stops the refresh here; AGENTS.md is not rewritten
+        # beside a BASE/hash pair that was left at the previous version.
+        return {
+            "status": "blocked",
+            "changed_files": changed,
+            "errors": errors,
+            "memory_workflow_router": {"changed_files": [], "errors": [], "warnings": []},
+            "warnings": [],
+            "protected_hash_sync": protected_sync,
+        }
 
     if not source_agents.exists():
         errors.append("missing source baselines/repo-min/AGENTS.md")
@@ -1290,6 +1303,14 @@ def _git_common_dir(repo: Path) -> Path:
     if not common.is_absolute():
         common = repo / common
     return common.resolve()
+
+
+def _committed_gitlink(repo: Path, submodule_path: str) -> str | None:
+    """The framework commit recorded in the parent's HEAD, or None."""
+    result = _run_git(repo, ["rev-parse", f"HEAD:{submodule_path}"], check=False)
+    if result.returncode != 0 or not result.stdout:
+        return None
+    return result.stdout
 
 
 def _git_dir(repo: Path) -> Path:
@@ -1565,6 +1586,12 @@ def _ensure_gitignore_hygiene(repo: Path) -> dict[str, Any]:
     }
 
 
+# Protected-hash outcomes that may stand behind a completed update.
+PROTECTED_SYNC_COMPLETE_STATUSES = frozenset(
+    {"synced", "verified", "not_applicable", PROTECTED_UNPROTECTED_STATUS}
+)
+
+
 def _final_full_update_status(report: dict[str, Any]) -> str:
     framework = report["framework_pointer"]
     repo_local = report["repo_local_instruction"]
@@ -1590,6 +1617,10 @@ def _final_full_update_status(report: dict[str, Any]) -> str:
         return "partially_updated"
     completed_values = {"updated", "already_current", "verified", "completed", "not_applicable"}
     if {framework, repo_local, memory, hook, normalization} <= completed_values:
+        # A-2: completion needs positive protected-hash evidence. An unverified
+        # or merely "ready" protected file is not a completed update.
+        if report.get("protected_hash_sync") not in PROTECTED_SYNC_COMPLETE_STATUSES:
+            return "not_verified"
         if framework == "already_current" and repo_local == "already_current":
             return "already_current"
         return "full_update_completed"
@@ -1698,6 +1729,70 @@ def _protected_sync_blocking_errors(report: dict[str, Any] | None) -> list[str]:
     return list(report.get("errors") or [f"protected-hash sync {report.get('status')}"])
 
 
+def _protected_hold_before_other_writes(
+    *,
+    repo: Path,
+    submodule_repo: Path,
+    submodule_path: str,
+    update_mode: str,
+    fast_forward: bool | None,
+    before_head: str,
+    target_head: str,
+    after_head: str,
+    target_source: str,
+    target_resolution: dict[str, Any],
+    candidate_status: str,
+    instruction_report: dict[str, Any],
+    apply_allowlist: frozenset[str],
+    parent_dirty_before: dict[str, DirtyPathSnapshot] | None,
+    ignored_untracked_before: frozenset[str],
+) -> UpdateResult | None:
+    """A-3: a protected HOLD found by the step itself stops before hooks,
+    .gitignore and framework.lock.json are written."""
+    protected_sync_report = instruction_report["protected_hash_sync"]
+    errors = _protected_sync_blocking_errors(protected_sync_report)
+    if not errors:
+        return None
+    stage_report = _build_full_update_stage_report(
+        framework_pointer=_framework_pointer_status(
+            candidate_status=candidate_status,
+            target_source=target_source,
+        ),
+        target_source=target_source,
+        repo_local_instruction=instruction_report["status"],
+        protected_hash_sync=protected_sync_report["status"],
+        governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
+        details={
+            "repo_local_instruction": instruction_report,
+            "protected_hash_sync": protected_sync_report,
+            "target_resolution": target_resolution,
+        },
+    )
+    return _protected_sync_hold_result(
+        repo=repo,
+        submodule_path=submodule_path,
+        update_mode=update_mode,
+        fast_forward=fast_forward,
+        before_head=before_head,
+        target_head=target_head,
+        after_head=after_head,
+        errors=errors,
+        protected_sync_report=protected_sync_report,
+        full_update_stage_report=stage_report,
+        target_source=target_source,
+        # The receipt records a completed update; a HOLD is not one.
+        update_receipt=skipped_update_receipt(
+            "protected-hash sync "
+            f"{protected_sync_report['status']}: F-7 update not complete; "
+            "no update receipt written"
+        ),
+        apply_allowlist=apply_allowlist,
+        parent_dirty_before=parent_dirty_before,
+        ignored_untracked_before=ignored_untracked_before,
+        allowed_ignored_transitions=frozenset(),
+    )
+
+
 def _protected_sync_hold_result(
     *,
     repo: Path,
@@ -1733,6 +1828,16 @@ def _protected_sync_hold_result(
     full_update_stage_report["final_status"] = _final_full_update_status(
         full_update_stage_report
     )
+    message = protected_sync_hold_message(protected_sync_report)
+    if after_head and before_head and after_head != before_head:
+        # Only an I/O failure inside the step gets here after the checkout
+        # moved; the preflight stops every deterministic HOLD before it.
+        message += (
+            f" The framework checkout was moved to {after_head} and not moved back; "
+            f"framework.lock.json, hooks and .gitignore were not written. Run "
+            f"`git submodule update -- {submodule_path}` to return the checkout to "
+            f"{before_head}."
+        )
     return UpdateResult(
         ok=False,
         mode="apply",
@@ -1746,7 +1851,7 @@ def _protected_sync_hold_result(
         staged_files=[],
         committed=False,
         commit_hash=None,
-        message=protected_sync_hold_message(protected_sync_report),
+        message=message,
         errors=boundary_errors,
         full_update_stage_report=full_update_stage_report,
         target_source=target_source,
@@ -1782,6 +1887,7 @@ def update_governance_submodule(
     committed = False
     commit_hash: str | None = None
     apply_allowlist: frozenset[str] = frozenset()
+    apply_overlap: list[str] = []
     parent_dirty_before: dict[str, DirtyPathSnapshot] | None = None
     ignored_untracked_before: frozenset[str] = frozenset()
     allowed_ignored_transitions: frozenset[str] = frozenset()
@@ -1818,10 +1924,9 @@ def update_governance_submodule(
                 repo,
                 submodule_repo,
             )
-            _require_clean_apply_overlap(
-                sorted(set(overlapping) | set(hook_overlapping))
-            )
-            _require_safe_hook_mutation_authority(repo)
+            # Raised after the read-only protected preflight below, so a known
+            # protected-file state is reported as such rather than as dirt.
+            apply_overlap = sorted(set(overlapping) | set(hook_overlapping))
 
         before_head = _resolve_head(submodule_repo, "HEAD")
         target_head, target_source = _resolve_target_head(
@@ -1842,11 +1947,83 @@ def update_governance_submodule(
             "target_head": target_head,
         }
 
+        # A-3: judge the protected file before anything moves. A HOLD found
+        # here leaves the pointer, lock and receipt exactly as they were, so a
+        # failed update cannot leave a new version recorded beside an old state.
+        protected_preflight = preflight_protected_agents_base(
+            repo,
+            submodule_repo,
+            target_commit=target_head,
+            previous_commit=before_head,
+            committed_pin=_committed_gitlink(repo, submodule_path),
+            git_dir=_git_dir(repo),
+        )
+        preflight_errors = _protected_sync_blocking_errors(protected_preflight)
+        if preflight_errors:
+            protected_sync_report = protected_preflight
+            hold_stage_report = _build_full_update_stage_report(
+                framework_pointer="blocked",
+                target_source=target_source,
+                protected_hash_sync=protected_preflight["status"],
+                governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
+                details={
+                    "protected_hash_sync": protected_preflight,
+                    "target_resolution": target_resolution,
+                },
+            )
+            hold = _protected_sync_hold_result(
+                repo=repo,
+                submodule_path=submodule_path,
+                update_mode="held_before_update",
+                fast_forward=None,
+                before_head=before_head,
+                target_head=target_head,
+                after_head=before_head,
+                errors=preflight_errors,
+                protected_sync_report=protected_preflight,
+                full_update_stage_report=hold_stage_report,
+                target_source=target_source,
+                update_receipt=skipped_update_receipt(
+                    "protected-hash sync "
+                    f"{protected_preflight['status']} before the update: nothing changed; "
+                    "no update receipt written"
+                ),
+                apply_allowlist=apply_allowlist,
+                parent_dirty_before=parent_dirty_before,
+                ignored_untracked_before=ignored_untracked_before,
+                allowed_ignored_transitions=allowed_ignored_transitions,
+            )
+            if dry_run:
+                hold.mode = "dry_run"
+            return hold
+        if not dry_run:
+            _require_clean_apply_overlap(apply_overlap)
+            _require_safe_hook_mutation_authority(repo)
+
         if not dry_run and before_head == target_head:
             instruction_report = _refresh_repo_local_instructions(
                 repo, submodule_repo, framework_commit=before_head, previous_commit=before_head
             )
             protected_sync_report = instruction_report["protected_hash_sync"]
+            early_hold = _protected_hold_before_other_writes(
+                repo=repo,
+                submodule_repo=submodule_repo,
+                submodule_path=submodule_path,
+                update_mode="already_current",
+                fast_forward=True,
+                before_head=before_head,
+                target_head=target_head,
+                after_head=before_head,
+                target_source=target_source,
+                target_resolution=target_resolution,
+                candidate_status="already_current",
+                instruction_report=instruction_report,
+                apply_allowlist=apply_allowlist,
+                parent_dirty_before=parent_dirty_before,
+                ignored_untracked_before=ignored_untracked_before,
+            )
+            if early_hold is not None:
+                return early_hold
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
             gitignore_report = _ensure_gitignore_hygiene(repo)
             allowed_ignored_transitions = _freeze_allowed_ignored_transitions(
@@ -1879,32 +2056,6 @@ def update_governance_submodule(
                     "target_resolution": target_resolution,
                 },
             )
-            protected_sync_errors = _protected_sync_blocking_errors(protected_sync_report)
-            if protected_sync_errors:
-                # HOLD: nothing is staged or committed, and success is not claimed.
-                return _protected_sync_hold_result(
-                    repo=repo,
-                    submodule_path=submodule_path,
-                    update_mode="already_current",
-                    fast_forward=True,
-                    before_head=before_head,
-                    target_head=target_head,
-                    after_head=before_head,
-                    errors=protected_sync_errors,
-                    protected_sync_report=protected_sync_report,
-                    full_update_stage_report=full_update_stage_report,
-                    target_source=target_source,
-                    # The receipt records a completed update; a HOLD is not one.
-                    update_receipt=skipped_update_receipt(
-                        "protected-hash sync "
-                        f"{protected_sync_report['status']}: F-7 update not complete; "
-                        "no update receipt written"
-                    ),
-                    apply_allowlist=apply_allowlist,
-                    parent_dirty_before=parent_dirty_before,
-                    ignored_untracked_before=ignored_untracked_before,
-                    allowed_ignored_transitions=allowed_ignored_transitions,
-                )
             update_receipt = write_update_receipt(
                 tool="external_governance_submodule_updater",
                 repo_root=repo,
@@ -2017,8 +2168,13 @@ def update_governance_submodule(
                     hook_validator_enforcement=_check_hook_validator_enforcement(repo),
                     existing_memory_normalization=_check_existing_memory_normalization(repo),
                     gitignore_hygiene=_check_gitignore_hygiene(repo),
+                    protected_hash_sync=protected_preflight["status"],
                     governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
-                    details={"dry_run": True, "target_resolution": target_resolution},
+                    details={
+                        "dry_run": True,
+                        "target_resolution": target_resolution,
+                        "protected_hash_sync": protected_preflight,
+                    },
                 ),
                 target_source=target_source,
                 update_receipt=skipped_update_receipt("dry_run"),
@@ -2056,6 +2212,25 @@ def update_governance_submodule(
             repo, submodule_repo, framework_commit=after_head, previous_commit=before_head
         )
         protected_sync_report = instruction_report["protected_hash_sync"]
+        early_hold = _protected_hold_before_other_writes(
+            repo=repo,
+            submodule_repo=submodule_repo,
+            submodule_path=submodule_path,
+            update_mode=update_mode,
+            fast_forward=fast_forward,
+            before_head=before_head,
+            target_head=target_head,
+            after_head=after_head,
+            target_source=target_source,
+            target_resolution=target_resolution,
+            candidate_status="updated",
+            instruction_report=instruction_report,
+            apply_allowlist=apply_allowlist,
+            parent_dirty_before=parent_dirty_before,
+            ignored_untracked_before=ignored_untracked_before,
+        )
+        if early_hold is not None:
+            return early_hold
         hook_report = _ensure_hook_advisory(repo, submodule_repo)
         gitignore_report = _ensure_gitignore_hygiene(repo)
         allowed_ignored_transitions = _freeze_allowed_ignored_transitions(
@@ -2088,32 +2263,6 @@ def update_governance_submodule(
                 "target_resolution": target_resolution,
             },
         )
-        protected_sync_errors = _protected_sync_blocking_errors(protected_sync_report)
-        if protected_sync_errors:
-            # HOLD: nothing is staged or committed, and success is not claimed.
-            return _protected_sync_hold_result(
-                repo=repo,
-                submodule_path=submodule_path,
-                update_mode=update_mode,
-                fast_forward=fast_forward,
-                before_head=before_head,
-                target_head=target_head,
-                after_head=after_head,
-                errors=protected_sync_errors,
-                protected_sync_report=protected_sync_report,
-                full_update_stage_report=full_update_stage_report,
-                target_source=target_source,
-                # The receipt records a completed update; a HOLD is not one.
-                update_receipt=skipped_update_receipt(
-                    "protected-hash sync "
-                    f"{protected_sync_report['status']}: F-7 update not complete; "
-                    "no update receipt written"
-                ),
-                apply_allowlist=apply_allowlist,
-                parent_dirty_before=parent_dirty_before,
-                ignored_untracked_before=ignored_untracked_before,
-                allowed_ignored_transitions=allowed_ignored_transitions,
-            )
         update_receipt = write_update_receipt(
             tool="external_governance_submodule_updater",
             repo_root=repo,
@@ -2225,6 +2374,35 @@ def update_governance_submodule(
                     after_head = current_head
         except Exception:
             pass
+        # A-3: a receipt written earlier in this run says "updated"; the run
+        # failed, so the receipt on disk must say so rather than claim success.
+        if update_receipt.get("status") == "written":
+            was_staged = bool(update_receipt.get("staged"))
+            try:
+                update_receipt = write_update_receipt(
+                    tool="external_governance_submodule_updater",
+                    repo_root=repo,
+                    framework_root=submodule_repo,
+                    framework_before=before_head or None,
+                    framework_after=after_head or None,
+                    update_status="failed",
+                    remote_evidence=target_resolution or None,
+                    warnings=list(errors),
+                )
+                if was_staged and not committed:
+                    # The index would otherwise still carry the success receipt.
+                    _run_git(repo, ["add", "--", RECEIPT_RELATIVE_PATH])
+                    update_receipt["staged"] = True
+                elif committed:
+                    errors.append(
+                        f"commit {commit_hash} already records an 'updated' receipt; the "
+                        "working-tree receipt now says failed"
+                    )
+            except (OSError, SubmoduleUpdateError) as receipt_exc:
+                errors.append(
+                    f"update receipt still records a successful update and could not be "
+                    f"rewritten ({type(receipt_exc).__name__}: {receipt_exc}); do not rely on it"
+                )
         return UpdateResult(
             ok=False,
             mode="dry_run" if dry_run else "apply",

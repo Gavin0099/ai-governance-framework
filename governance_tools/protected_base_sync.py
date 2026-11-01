@@ -37,6 +37,12 @@ survives (crash, failed restore), the next run inspects it:
 
 Consumers without ``.governance/baseline.yaml`` keep the previous behaviour
 (plain replacement) and the report says no protected-hash sync applied.
+
+The same rules also run read-only as a preflight, before F-7 moves the
+framework pointer, so a HOLD leaves pointer, lock and receipt untouched.  The
+preflight names the first-update transition (an older updater already replaced
+the file and left the hash at the committed pin's value) but still HOLDs: the
+consumer's pinned code runs that first update, and F-7 cannot prevent it.
 """
 
 from __future__ import annotations
@@ -356,6 +362,12 @@ def protected_sync_hold_message(report: dict[str, Any] | None) -> str:
             f".governance/baseline.yaml={state.get('baseline', 'unknown')}; recovery "
             f"journal kept at {report.get('journal') or '<unknown>'}"
         )
+    elif report.get("preflight"):
+        what = (
+            "protected-hash sync HOLD before the update: the framework pointer, "
+            "framework.lock.json, the update receipt, AGENTS.base.md and "
+            ".governance/baseline.yaml were left untouched"
+        )
     else:
         what = (
             "protected-hash sync HOLD: AGENTS.base.md and .governance/baseline.yaml left "
@@ -367,11 +379,15 @@ def protected_sync_hold_message(report: dict[str, Any] | None) -> str:
     )
 
 
-def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str, Any] | None:
+def inspect_pending_journal(
+    repo: Path, git_dir: Path | None = None, *, clear: bool = True
+) -> dict[str, Any] | None:
     """Resolve a journal left by an earlier interrupted sync.
 
     Returns ``None`` when there is no journal or it was safely cleared, and a
     HOLD report (status ``incomplete``) when the files are in any other state.
+    ``clear=False`` reports the same verdict without removing a clearable
+    journal (read-only callers such as the preflight).
     """
 
     path = journal_path(repo, git_dir)
@@ -399,7 +415,8 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
     baseline_bytes = baseline.read_bytes() if baseline.is_file() else None
 
     if base_bytes == original_base and baseline_bytes == original_baseline:
-        path.unlink()
+        if clear:
+            path.unlink()
         return None
     if (
         base_bytes is not None
@@ -407,7 +424,8 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
         and sha256_canonical_lf_bytes(base_bytes) == new_hash
         and _sha256(baseline_bytes) == expected_baseline_sha256
     ):
-        path.unlink()
+        if clear:
+            path.unlink()
         return None
 
     base_state, baseline_state = _disk_state(
@@ -428,6 +446,194 @@ def inspect_pending_journal(repo: Path, git_dir: Path | None = None) -> dict[str
         journal=str(path),
         incomplete_state={"agents_base": base_state, "baseline": baseline_state},
     ))
+
+
+# --- shared checks -------------------------------------------------------------
+
+
+def _check_protected_state(
+    report: dict[str, Any],
+    target_base: Path,
+    baseline_bytes: bytes,
+    load_source,
+    framework_commit: str,
+    *,
+    committed_pin: str | None = None,
+    committed_pin_hash: str | None = None,
+) -> tuple[str, str, str, bytes]:
+    """Return ``(recorded, current, new_hash, source_blob)`` or raise HOLD.
+
+    Shared by the sync and its read-only preflight so both judge the same
+    state with the same rules.
+    """
+
+    report["protection_mode"] = _protection_mode(baseline_bytes)
+    recorded = _recorded_hash(baseline_bytes)
+    report["old_hash"] = recorded
+    if not target_base.is_file():
+        raise ProtectedSyncHold(
+            f"{BASE_RELATIVE_PATH} is missing while {BASELINE_RELATIVE_PATH} records "
+            f"{HASH_KEY}; unknown state"
+        )
+    source_blob = load_source()
+    new_hash = sha256_canonical_lf_bytes(source_blob)
+    report["new_hash"] = new_hash
+    current = sha256_canonical_lf_file(target_base)
+    report["current_hash"] = current
+
+    if current != recorded:
+        if recorded in compatible_worktree_hashes(target_base):
+            raise ProtectedSyncHold(
+                f"{HASH_KEY} is a legacy (non canonical-LF) hash of the current "
+                f"{BASE_RELATIVE_PATH}; the controlled step only accepts the "
+                "canonical-LF hash and will not convert it"
+            )
+        if current == new_hash:
+            if committed_pin and committed_pin_hash == recorded:
+                # A-1: the first update after F-J is run by the consumer's older
+                # in-submodule updater, which replaces the file without the hash.
+                # Recognised and named, but trust is still not re-established here.
+                report["transition"] = "pre_protected_sync_updater"
+                raise ProtectedSyncHold(
+                    f"{BASE_RELATIVE_PATH} already equals the release source at "
+                    f"{framework_commit}, while {HASH_KEY} still records the source at "
+                    f"the committed pin {committed_pin}: an earlier updater without "
+                    "protected-hash sync (pre-F-J) replaced the file and left the hash "
+                    "behind. This is the known first-update transition; the result of "
+                    "that run is not a completed update"
+                )
+            raise ProtectedSyncHold(
+                f"{BASE_RELATIVE_PATH} already equals the authorized source at "
+                f"{framework_commit} but {HASH_KEY} records {recorded}; it cannot be "
+                "proven that the recorded hash is the pre-update value (earlier "
+                "unsynced update or interrupted sync), so trust is not re-established"
+            )
+        raise ProtectedSyncHold(
+            f"pre-existing {BASE_RELATIVE_PATH} hash mismatch: recorded={recorded} "
+            f"current={current}; unknown change, refusing to overwrite it"
+        )
+    return recorded, current, new_hash, source_blob
+
+
+def _commit_source_blob(submodule_repo: Path, commit: str) -> bytes:
+    """The source blob at ``commit``, read from the object store only."""
+
+    blob = _git(submodule_repo, ["cat-file", "blob", f"{commit}:{SOURCE_RELATIVE_PATH}"])
+    if blob.returncode != 0:
+        raise ProtectedSyncHold(f"{SOURCE_RELATIVE_PATH} is not present at framework commit {commit}")
+    return blob.stdout
+
+
+def preflight_protected_agents_base(
+    repo: Path,
+    submodule_repo: Path,
+    *,
+    target_commit: str,
+    previous_commit: str | None = None,
+    committed_pin: str | None = None,
+    git_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Read-only: would the controlled step succeed for ``target_commit``?
+
+    Runs before F-7 moves the framework pointer, so a HOLD leaves the pointer,
+    lock and receipt where they were (A-3).  Nothing is written, not even a
+    clearable journal.  Status is ``ready`` (the step would replace the file),
+    ``verified`` (already in step), ``UNPROTECTED_BASE_REPLACEMENT`` (no
+    baseline.yaml; the compatible path would proceed), or a blocking status.
+    The step itself re-checks everything when it runs.
+    """
+
+    target_base = repo / BASE_RELATIVE_PATH
+    baseline = repo / BASELINE_RELATIVE_PATH
+    if _git(submodule_repo, ["cat-file", "-e", f"{target_commit}^{{commit}}"]).returncode != 0:
+        # A dry run may resolve a target it has not fetched. Nothing can be
+        # judged, which is not a HOLD; it is also never completion evidence.
+        return _new_report(
+            status="not_verified",
+            framework_commit=target_commit,
+            preflight=True,
+            reason=(
+                f"target framework commit {target_commit} is not available locally; "
+                f"{BASE_RELATIVE_PATH} was not evaluated"
+            ),
+        )
+    if not baseline.is_file():
+        report = _new_report(
+            status=UNPROTECTED_STATUS,
+            framework_commit=target_commit,
+            previous_commit=previous_commit,
+            protection_mode="unprotected",
+            claim_boundary=UNPROTECTED_CLAIM_BOUNDARY,
+            preflight=True,
+        )
+        try:
+            source_blob = _commit_source_blob(submodule_repo, target_commit)
+            report["new_hash"] = sha256_canonical_lf_bytes(source_blob)
+            _unprotected_decision(
+                repo, submodule_repo, report, canonical_lf_bytes(source_blob), previous_commit
+            )
+        except ProtectedSyncHold as exc:
+            report["status"] = "hold"
+            report["reason"] = f"{exc} (no {BASELINE_RELATIVE_PATH}: unprotected path)"
+            report["errors"].append(f"protected-hash sync HOLD: {report['reason']}")
+        except OSError as exc:
+            report["status"] = "hold"
+            report["reason"] = f"{type(exc).__name__}: {exc}"
+            report["errors"].append(f"protected-hash sync HOLD: {report['reason']}")
+        return _with_stop_instruction(report)
+
+    try:
+        pending = inspect_pending_journal(repo, git_dir, clear=False)
+    except OSError as exc:
+        pending = _with_stop_instruction(_new_report(
+            status="incomplete",
+            reason=f"protected-hash sync journal could not be checked ({type(exc).__name__}: {exc})",
+        ))
+    if pending is not None:
+        pending["errors"].append(pending["reason"])
+        pending["preflight"] = True
+        return pending
+
+    report = _new_report(framework_commit=target_commit, preflight=True)
+    try:
+        committed_pin_hash = None
+        if committed_pin and committed_pin != target_commit:
+            pin_blob = _git(
+                submodule_repo, ["cat-file", "blob", f"{committed_pin}:{SOURCE_RELATIVE_PATH}"]
+            )
+            if pin_blob.returncode == 0:
+                committed_pin_hash = sha256_canonical_lf_bytes(pin_blob.stdout)
+        _recorded, current, new_hash, _blob = _check_protected_state(
+            report,
+            target_base,
+            baseline.read_bytes(),
+            lambda: _commit_source_blob(submodule_repo, target_commit),
+            target_commit,
+            committed_pin=committed_pin,
+            committed_pin_hash=committed_pin_hash,
+        )
+    except ProtectedSyncHold as exc:
+        report["status"] = "hold"
+        report["reason"] = str(exc)
+        report["errors"].append(f"protected-hash sync HOLD: {exc}")
+        return _with_stop_instruction(report)
+    except OSError as exc:
+        report["status"] = "hold"
+        report["reason"] = f"{type(exc).__name__}: {exc}"
+        report["errors"].append(f"protected-hash sync HOLD: {report['reason']}")
+        return _with_stop_instruction(report)
+    if current == new_hash:
+        report["status"] = "verified"
+        report["reason"] = (
+            f"{BASE_RELATIVE_PATH} and {HASH_KEY} already match the source at {target_commit}"
+        )
+    else:
+        report["status"] = "ready"
+        report["reason"] = (
+            f"pre-update hash verified; the controlled step can replace {BASE_RELATIVE_PATH} "
+            f"with the source at {target_commit} and sync only {HASH_KEY}"
+        )
+    return report
 
 
 # --- main entry --------------------------------------------------------------
@@ -458,6 +664,62 @@ def sync_protected_agents_base(
             previous_commit=previous_commit,
         )
     )
+
+
+def _unprotected_decision(
+    repo: Path,
+    submodule_repo: Path,
+    report: dict[str, Any],
+    new_canonical: bytes,
+    previous_commit: str | None,
+) -> bool:
+    """Rules 2-7 of the compatible path; True when the file must be written."""
+
+    target_base = repo / BASE_RELATIVE_PATH
+    if not target_base.exists():
+        return True
+    status = _git(repo, ["status", "--porcelain", "--", BASE_RELATIVE_PATH])
+    if status.returncode != 0:
+        raise ProtectedSyncHold(
+            f"cannot determine whether {BASE_RELATIVE_PATH} has local changes; "
+            "refusing to overwrite it"
+        )
+    if status.stdout.strip():
+        raise ProtectedSyncHold(
+            f"{BASE_RELATIVE_PATH} has uncommitted local changes and there is no "
+            f"{BASELINE_RELATIVE_PATH} to verify them; refusing to overwrite it"
+        )
+    current = canonical_lf_bytes(target_base.read_bytes())
+    report["old_hash"] = sha256_canonical_lf_bytes(current)
+    if current == new_canonical:
+        report["reason"] = (
+            f"{BASE_RELATIVE_PATH} already equals the source at framework commit "
+            f"{report.get('framework_commit')}; nothing written. Not hash-verified: no "
+            f"{BASELINE_RELATIVE_PATH}"
+        )
+        return False
+    if not previous_commit:
+        raise ProtectedSyncHold(
+            "the previous framework pin is unknown, so it cannot be shown that "
+            f"{BASE_RELATIVE_PATH} is unmodified framework content; refusing to "
+            "overwrite it"
+        )
+    previous = _git(
+        submodule_repo, ["cat-file", "blob", f"{previous_commit}:{SOURCE_RELATIVE_PATH}"]
+    )
+    if previous.returncode != 0:
+        raise ProtectedSyncHold(
+            f"{SOURCE_RELATIVE_PATH} cannot be read at the previous framework pin "
+            f"{previous_commit}; refusing to overwrite {BASE_RELATIVE_PATH}"
+        )
+    if current != canonical_lf_bytes(previous.stdout):
+        raise ProtectedSyncHold(
+            f"{BASE_RELATIVE_PATH} differs from the framework source at the previous "
+            f"pin {previous_commit} (a committed local edit or unknown content); "
+            "without .governance/baseline.yaml it cannot be verified, refusing to "
+            "overwrite it"
+        )
+    return True
 
 
 def _unprotected_replacement(
@@ -494,48 +756,8 @@ def _unprotected_replacement(
         new_canonical = canonical_lf_bytes(source_blob)
         report["new_hash"] = sha256_canonical_lf_bytes(source_blob)
 
-        if target_base.exists():
-            status = _git(repo, ["status", "--porcelain", "--", BASE_RELATIVE_PATH])
-            if status.returncode != 0:
-                raise ProtectedSyncHold(
-                    f"cannot determine whether {BASE_RELATIVE_PATH} has local changes; "
-                    "refusing to overwrite it"
-                )
-            if status.stdout.strip():
-                raise ProtectedSyncHold(
-                    f"{BASE_RELATIVE_PATH} has uncommitted local changes and there is no "
-                    f"{BASELINE_RELATIVE_PATH} to verify them; refusing to overwrite it"
-                )
-            current = canonical_lf_bytes(target_base.read_bytes())
-            report["old_hash"] = sha256_canonical_lf_bytes(current)
-            if current == new_canonical:
-                report["reason"] = (
-                    f"{BASE_RELATIVE_PATH} already equals the source at framework commit "
-                    f"{framework_commit}; nothing written. Not hash-verified: no "
-                    f"{BASELINE_RELATIVE_PATH}"
-                )
-                return report
-            if not previous_commit:
-                raise ProtectedSyncHold(
-                    "the previous framework pin is unknown, so it cannot be shown that "
-                    f"{BASE_RELATIVE_PATH} is unmodified framework content; refusing to "
-                    "overwrite it"
-                )
-            previous = _git(
-                submodule_repo, ["cat-file", "blob", f"{previous_commit}:{SOURCE_RELATIVE_PATH}"]
-            )
-            if previous.returncode != 0:
-                raise ProtectedSyncHold(
-                    f"{SOURCE_RELATIVE_PATH} cannot be read at the previous framework pin "
-                    f"{previous_commit}; refusing to overwrite {BASE_RELATIVE_PATH}"
-                )
-            if current != canonical_lf_bytes(previous.stdout):
-                raise ProtectedSyncHold(
-                    f"{BASE_RELATIVE_PATH} differs from the framework source at the previous "
-                    f"pin {previous_commit} (a committed local edit or unknown content); "
-                    "without .governance/baseline.yaml it cannot be verified, refusing to "
-                    "overwrite it"
-                )
+        if not _unprotected_decision(repo, submodule_repo, report, new_canonical, previous_commit):
+            return report
         _write_base_text(target_base, new_canonical.decode("utf-8"))
         if sha256_canonical_lf_file(target_base) != report["new_hash"]:
             raise OSError(f"{BASE_RELATIVE_PATH} does not hash to the authorized source after write")
@@ -590,38 +812,13 @@ def _sync_protected_agents_base(
         if not framework_commit:
             raise ProtectedSyncHold("framework commit could not be resolved")
         baseline_bytes = baseline.read_bytes()
-        report["protection_mode"] = _protection_mode(baseline_bytes)
-        recorded = _recorded_hash(baseline_bytes)
-        report["old_hash"] = recorded
-        if not target_base.is_file():
-            raise ProtectedSyncHold(
-                f"{BASE_RELATIVE_PATH} is missing while {BASELINE_RELATIVE_PATH} records "
-                f"{HASH_KEY}; unknown state"
-            )
-        source_blob = _authorized_source(submodule_repo, framework_commit)
-        new_hash = sha256_canonical_lf_bytes(source_blob)
-        report["new_hash"] = new_hash
-        current = sha256_canonical_lf_file(target_base)
-        report["current_hash"] = current
-
-        if current != recorded:
-            if recorded in compatible_worktree_hashes(target_base):
-                raise ProtectedSyncHold(
-                    f"{HASH_KEY} is a legacy (non canonical-LF) hash of the current "
-                    f"{BASE_RELATIVE_PATH}; the controlled step only accepts the "
-                    "canonical-LF hash and will not convert it"
-                )
-            if current == new_hash:
-                raise ProtectedSyncHold(
-                    f"{BASE_RELATIVE_PATH} already equals the authorized source at "
-                    f"{framework_commit} but {HASH_KEY} records {recorded}; it cannot be "
-                    "proven that the recorded hash is the pre-update value (earlier "
-                    "unsynced update or interrupted sync), so trust is not re-established"
-                )
-            raise ProtectedSyncHold(
-                f"pre-existing {BASE_RELATIVE_PATH} hash mismatch: recorded={recorded} "
-                f"current={current}; unknown change, refusing to overwrite it"
-            )
+        recorded, current, new_hash, source_blob = _check_protected_state(
+            report,
+            target_base,
+            baseline_bytes,
+            lambda: _authorized_source(submodule_repo, framework_commit),
+            framework_commit,
+        )
 
         if current == new_hash:
             report["status"] = "verified"
@@ -760,6 +957,10 @@ def format_protected_hash_sync(report: dict[str, Any] | None) -> list[str]:
         lines.append(f"journal={report['journal']}")
     if report.get("previous_commit"):
         lines.append(f"previous_commit={report['previous_commit']}")
+    if report.get("transition"):
+        lines.append(f"transition={report['transition']}")
+    if report.get("preflight"):
+        lines.append("checked_before_update=true")
     if report.get("operator_instruction"):
         lines.append(f"next_step={report['operator_instruction']}")
     return lines
