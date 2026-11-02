@@ -18,6 +18,24 @@
 - **工作規則：** 只針對會影響當前驗收、授權或資料完整性的缺陷做最小修正；無關的 P2/P3 一行紀錄後停止，不為了完善流程開新 Gate、Schema、Memory stream 或 PR。
 - **通報原則：** 工作已達到事前 DONE 就停止。原本必要的 SessionEnd／Memory obligation 仍照既有契約處理；Task DONE 不等於 SessionEnd。
 
+### 0.1 討論後的保存與接續判準（不以每次新增 PR 為預設）
+
+**目的：** 讓下一個 Codex／Claude Session 找到「目前已接受的決策、完成進度、未解阻擋與下一個 Slice」，而不是把每段聊天都變成 PR。此處是本次計畫的**建議操作方式**，不創設新的規範、寫入權限或自動化保證；已有的 `SYSTEM_PROMPT.md` §6.1、`MEMORY_PROTOCOL.md`、Owner Gate 及 Repo 契約仍優先。
+
+| 討論結果 | 保存方式 | 避免誤用 |
+|---|---|---|
+| 想法交流、尚未採納的建議 | 不建立 PR、不新增正式 Memory；必要時保留於原討論 | 不得標示為 Owner 已決策 |
+| 已接受的架構決策、重要風險或里程碑 | 按**現有** Memory 分類、Writer 與授權，更新適當的 workflow／active task／daily 等既有紀錄；只有 PLAN 的 phase、scope、anti-goal 或既有 obligation 改變才同步 PLAN | Session-derived 紀錄須走 canonical writer；儲存／寫入不等於審查或權威提升 |
+| 現有 Slice 的執行結果或下一步改變 | 更新既有 Active Task／正式 closeout 所需紀錄，附實際 commit、test／review、限制與下一步 | 不把未推送、未合併或只做本機測試的狀態寫成 DONE |
+| 本計畫的**目標、Slice 順序、驗收標準或實驗設計**有實質新決議 | 只更新**同一份計畫入口**（本 Draft #273 的這份文件；若日後已合併，使用 main 的已採納文件並遵循一般變更流程） | 不因一次討論另開下一個 Draft PR；若缺少編輯／push 授權，先記錄「待更新」而不擅自修改 |
+| 新的、獨立且需要正式審查的交付物 | 依實際新 scope 與 Owner／Repo 授權決定是否另開 PR | 不將每筆狀態更新包裝成新功能或新 PR |
+
+**每次真正需要保存的最小資訊：** (1) 具體決定與決定者／接受狀態；(2) 已完成項及可查的 HEAD／證據；(3) 未完成、HOLD 或限制；(4) 下一個 Slice 與是否需要 Owner 授權。沒有改變這四項，就不為例行進度新增記錄、Commit 或 PR；有既有強制性 Memory／SessionEnd 義務時仍依法定流程履行。
+
+**新 Session 的讀取順序：** 先讀當前 Repo 的既有記憶／工作入口；若任務涉及本計畫，交接訊息須明確提供 [Draft PR #273](https://github.com/Gavin0099/ai-governance-framework/pull/273) 或本文件路徑；接著比對 main、適用 PR 的 exact HEAD／CI／Review／Owner 授權和 Consumer 狀態，才接續第一個仍有效且已授權的 Slice。Draft PR **不會自動載入**，公開討論也不能替代受保護／未公開資料的正式來源。資料不一致時標 UNKNOWN／待對帳，不沿用過期快照或重做已驗證的工作。
+
+**驗收關聯：** V-03／V-04 應觀察新 Session 能否找回正確的「已完成／未完成／下一步／授權邊界」；若需 Owner 重複提供先前已正確保存的決策，記為讀取／交接缺口，而不是為補漏再建立新 PR。
+
 ## 1. 2026-11-02 可核對的公開快照（會過期）
 
 | 事項 | 快照 | 下次動作 |
