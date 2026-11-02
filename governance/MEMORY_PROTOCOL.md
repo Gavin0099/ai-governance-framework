@@ -86,8 +86,10 @@ require a separate owner-authorized tranche.
 - If the content is a personal preference, reminder, cross-repo habit, or
   private-cache pointer, classify that route explicitly before writing. Do not
   treat private/tool memory as governance authority.
-- When repository memory is the correct route, update `memory/YYYY-MM-DD.md` or
-  the relevant repo memory file through the canonical writer.
+- When repository memory is the correct route, write session-derived records
+  (`memory/YYYY-MM-DD.md`, review log, active-task summary) through the
+  canonical writer. A knowledge-base gotcha follows the Knowledge-Base
+  Candidate Rule below.
 - Canonical recording establishes valid provenance and placement for the
   declared claim class. It does not establish truth, human review, acceptance,
   commit, push, or normative authority by itself.
@@ -132,6 +134,54 @@ The guard flags direct-format entries in files dated `>= 2026-05-01` as
 Violation code: `non_canonical_writer` warning in `memory_authority_guard`.
 Historical violations before the cutoff are not to be backfilled unless a
 separate scoped cleanup is approved.
+
+## Knowledge-Base Candidate Rule
+
+`governance_tools.memory_record` writes session-derived records only (`daily`,
+`review-log`, `active-task-summary`); it has no knowledge-base surface.
+
+A knowledge-base gotcha for a bug fixed with root cause identified may be
+written directly to `memory/03_knowledge_base.md` (or the adopted alias
+`memory/03_decisions.md`) as a candidate entry marked `CANDIDATE / UNREVIEWED`.
+It must contain the root cause, the fix, the fix commit hash and the test
+evidence, and must be paired with a canonical daily record written by
+`governance_tools.memory_record` for the same fix commit (`--commit <fix-sha>`).
+A candidate is not reviewed knowledge: it never claims promotion, never carries
+`Approved by`, and becomes authoritative only through the existing promotion
+path.
+
+```markdown
+## CANDIDATE / UNREVIEWED: <short title>
+- Root cause: ...
+- Fix: ...
+- Fix commit: <git-sha>
+- Test evidence: ...
+- Daily record: memory/YYYY-MM-DD.md (memory_record, commit <git-sha>)
+```
+
+Keep the marker at the start of the heading so a candidate heading does not equal
+a promoted heading; this holds only while session task titles do not themselves
+start with `CANDIDATE / UNREVIEWED`, so task titles must not. A candidate does not claim `memory_type: session-derived`.
+Editing the knowledge base still falls under the Memory Workflow Dispatch Rule.
+
+Relation to promotion, including `AUTO_PROMOTE`:
+
+- Candidate entries are not inputs to auto-promotion. The promotion path
+  (`memory_pipeline.promotion_policy`, `memory_pipeline.memory_promoter`)
+  promotes session candidate snapshots, not knowledge-base lines, and never
+  edits a candidate entry; known limit: a task titled with the candidate marker
+  skips the knowledge-base write yet still logs `Promoted memory` and
+  `Approved by` under that heading, which is not approval of the candidate.
+- An `Approved by:` line written by promotion is a promotion record for the
+  promoted entry. It is never evidence that an agent-written candidate was
+  reviewed.
+- Write one candidate per root cause; when it recurs, update or cite the
+  existing candidate instead of writing a separate duplicate.
+- When promotion records the same root cause, the promoted entry supersedes the
+  candidate. The pair is recognised by the same fix commit hash in both
+  entries; readers use the promoted entry and the candidate stays as history.
+  The promotion code does not detect this pairing itself; a promoted entry
+  carries the fix commit only when its summary includes it.
 
 ## Memory Workflow Dispatch Rule
 
