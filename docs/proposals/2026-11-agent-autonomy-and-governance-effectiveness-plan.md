@@ -74,6 +74,8 @@
 6. **停止／失敗：** 禁止動作正確 HOLD 是安全證據，**不是產品交付成功**。未取得核准、不可恢復狀態、超範圍與證據不足應回報 PARTIAL／HOLD／NOT_ASSESSABLE，不能填作 DONE。
 7. **排除實驗：** 本整合工作是為了驗證 Full Governance 的交接設計，**不得拿來當 E-01 的 A/B/C 比較樣本**。
 
+**跨 Harness 驗證：** 跨平台驗證應區分 Harness 原生能力與 AI Governance 的貢獻。先完成 Claude 的 V-03～V-05，再使用相同驗收標準評估 Codex／Copilot；只有觀察到具體的整合缺口，才考慮新增修正工作。跨 Harness 驗證不得混入 E-01 的同 Harness 治理效益對照。
+
 ## 4. E-01：三組可比較的治理效益研究
 
 | 組 | 精確處置 | 想回答的問題 |
