@@ -2377,8 +2377,16 @@ def update_governance_submodule(
         # A-3: a receipt written earlier in this run says "updated"; the run
         # failed, so the receipt on disk must say so rather than claim success.
         if update_receipt.get("status") == "written":
-            was_staged = bool(update_receipt.get("staged"))
             try:
+                # Ask the index itself: `git add` may have run even if a later
+                # scope check failed before the receipt was marked as staged.
+                was_staged = bool(update_receipt.get("staged")) or bool(
+                    _run_git(
+                        repo,
+                        ["diff", "--cached", "--name-only", "--", RECEIPT_RELATIVE_PATH],
+                        check=False,
+                    ).stdout.strip()
+                )
                 update_receipt = write_update_receipt(
                     tool="external_governance_submodule_updater",
                     repo_root=repo,

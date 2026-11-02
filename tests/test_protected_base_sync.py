@@ -32,6 +32,7 @@ from governance_tools.protected_file_hash import sha256_canonical_lf_bytes
 
 BASE_V1 = "# AGENTS.base.md\n<!-- governance-baseline: protected -->\nrule v1\n"
 BASE_V2 = "# AGENTS.base.md\n<!-- governance-baseline: protected -->\nrule v2\nnew rule\n"
+BASE_V3 = "# AGENTS.base.md\n<!-- governance-baseline: protected -->\nrule v3\n"
 STALE = "0" * 63 + "1"
 
 
@@ -810,14 +811,41 @@ def test_a1_old_updater_transition_apply_changes_nothing(tmp_path: Path, fast) -
     _old_updater_ran(consumer, v2)
     base_before = (consumer / "AGENTS.base.md").read_bytes()
     baseline_before = _baseline(consumer).read_bytes()
+    agents_before = (consumer / "AGENTS.md").read_bytes()
+    status_before = _git(consumer, "status", "--porcelain", "--untracked-files=all")
 
     result = _apply(consumer)
 
     assert result.ok is False
     assert result.full_update_stage_report["final_status"] == "blocked"
+    assert result.update_mode == "held_before_update"
     assert (consumer / "AGENTS.base.md").read_bytes() == base_before
     assert _baseline(consumer).read_bytes() == baseline_before
+    assert (consumer / "AGENTS.md").read_bytes() == agents_before
     assert not _receipt(consumer).exists()
+    assert not (consumer / "governance" / "framework.lock.json").exists()
+    # No hook, .gitignore or other file was added or changed by the held run.
+    assert _git(consumer, "status", "--porcelain", "--untracked-files=all") == status_before
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == v2
+
+
+def test_a1_transition_is_still_named_after_a_newer_release(tmp_path: Path, fast) -> None:
+    """The old updater moved to v2; v3 was released before the owner handled it."""
+    consumer, framework, v1, v2 = _make_consumer(tmp_path)
+    _old_updater_ran(consumer, v2)
+    _write_framework(framework, BASE_V3)
+    v3 = _commit_all(framework, "framework v3: another AGENTS.base.md")
+    _git(consumer / "ai-governance-framework", "fetch", "-q", "origin")
+    baseline_before = _baseline(consumer).read_bytes()
+
+    result = _dry_run(consumer)
+
+    item = result.full_update_stage_report["details"]["protected_hash_sync"]
+    assert item["framework_commit"] == v3
+    assert item["status"] == "hold"
+    assert item["transition"] == "pre_protected_sync_updater"
+    assert v2 in item["reason"] and v1 in item["reason"]
+    assert _baseline(consumer).read_bytes() == baseline_before
 
 
 def test_a2_committed_drift_is_not_full_update_completed(tmp_path: Path, fast, monkeypatch) -> None:
@@ -989,6 +1017,28 @@ def test_a3_failure_after_receipt_does_not_leave_a_success_receipt(
     assert result.ok is False
     receipt = json.loads(_receipt(consumer).read_text(encoding="utf-8"))
     assert receipt["update_status"] == "failed"
+
+
+def test_a3_scope_failure_after_git_add_leaves_no_staged_success_receipt(
+    tmp_path: Path, fast, monkeypatch
+) -> None:
+    """`git add` ran, then the scope check failed before the receipt was marked staged."""
+    consumer, _framework, _v1, _v2 = _make_consumer(tmp_path)
+    real = updater_module._staged_files
+
+    def out_of_scope(repo):
+        return [*real(repo), "outside-scope.txt"]
+
+    monkeypatch.setattr(updater_module, "_staged_files", out_of_scope)
+
+    result = _apply(consumer, stage=True)
+
+    assert result.ok is False
+    assert any("outside F-7 full update scope" in e for e in result.errors)
+    staged = json.loads(_git(consumer, "show", ":governance/.update-receipt.json"))
+    assert staged["update_status"] == "failed"
+    on_disk = json.loads(_receipt(consumer).read_text(encoding="utf-8"))
+    assert on_disk["update_status"] == "failed"
 
 
 def test_a3_f7_blocked_after_backend_rewrites_receipt(tmp_path: Path, fast, monkeypatch) -> None:

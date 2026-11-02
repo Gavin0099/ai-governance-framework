@@ -460,6 +460,8 @@ def _check_protected_state(
     *,
     committed_pin: str | None = None,
     committed_pin_hash: str | None = None,
+    moved_checkout: str | None = None,
+    moved_checkout_hash: str | None = None,
 ) -> tuple[str, str, str, bytes]:
     """Return ``(recorded, current, new_hash, source_blob)`` or raise HOLD.
 
@@ -488,20 +490,28 @@ def _check_protected_state(
                 f"{BASE_RELATIVE_PATH}; the controlled step only accepts the "
                 "canonical-LF hash and will not convert it"
             )
+        # A-1: the first update after F-J is run by the consumer's older
+        # in-submodule updater, which replaces the file without the hash. The
+        # file then equals the source that run moved to: this target, or the
+        # checkout it left behind when a newer release has appeared since.
+        # Recognised and named, but trust is still not re-established here.
+        transition_source = None
+        if committed_pin and committed_pin_hash == recorded:
+            if current == new_hash:
+                transition_source = framework_commit
+            elif moved_checkout and current == moved_checkout_hash:
+                transition_source = moved_checkout
+        if transition_source:
+            report["transition"] = "pre_protected_sync_updater"
+            raise ProtectedSyncHold(
+                f"{BASE_RELATIVE_PATH} already equals the release source at "
+                f"{transition_source}, while {HASH_KEY} still records the source at "
+                f"the committed pin {committed_pin}: an earlier updater without "
+                "protected-hash sync (pre-F-J) replaced the file and left the hash "
+                "behind. This is the known first-update transition; the result of "
+                "that run is not a completed update"
+            )
         if current == new_hash:
-            if committed_pin and committed_pin_hash == recorded:
-                # A-1: the first update after F-J is run by the consumer's older
-                # in-submodule updater, which replaces the file without the hash.
-                # Recognised and named, but trust is still not re-established here.
-                report["transition"] = "pre_protected_sync_updater"
-                raise ProtectedSyncHold(
-                    f"{BASE_RELATIVE_PATH} already equals the release source at "
-                    f"{framework_commit}, while {HASH_KEY} still records the source at "
-                    f"the committed pin {committed_pin}: an earlier updater without "
-                    "protected-hash sync (pre-F-J) replaced the file and left the hash "
-                    "behind. This is the known first-update transition; the result of "
-                    "that run is not a completed update"
-                )
             raise ProtectedSyncHold(
                 f"{BASE_RELATIVE_PATH} already equals the authorized source at "
                 f"{framework_commit} but {HASH_KEY} records {recorded}; it cannot be "
@@ -513,6 +523,15 @@ def _check_protected_state(
             f"current={current}; unknown change, refusing to overwrite it"
         )
     return recorded, current, new_hash, source_blob
+
+
+def _source_hash_at(submodule_repo: Path, commit: str | None, target_commit: str) -> str | None:
+    """Canonical-LF hash of the source at ``commit`` (not the target), if readable."""
+
+    if not commit or commit == target_commit:
+        return None
+    blob = _git(submodule_repo, ["cat-file", "blob", f"{commit}:{SOURCE_RELATIVE_PATH}"])
+    return sha256_canonical_lf_bytes(blob.stdout) if blob.returncode == 0 else None
 
 
 def _commit_source_blob(submodule_repo: Path, commit: str) -> bytes:
@@ -596,13 +615,11 @@ def preflight_protected_agents_base(
 
     report = _new_report(framework_commit=target_commit, preflight=True)
     try:
-        committed_pin_hash = None
-        if committed_pin and committed_pin != target_commit:
-            pin_blob = _git(
-                submodule_repo, ["cat-file", "blob", f"{committed_pin}:{SOURCE_RELATIVE_PATH}"]
-            )
-            if pin_blob.returncode == 0:
-                committed_pin_hash = sha256_canonical_lf_bytes(pin_blob.stdout)
+        committed_pin_hash = _source_hash_at(submodule_repo, committed_pin, target_commit)
+        moved_checkout = (
+            previous_commit if previous_commit and previous_commit != committed_pin else None
+        )
+        moved_checkout_hash = _source_hash_at(submodule_repo, moved_checkout, target_commit)
         _recorded, current, new_hash, _blob = _check_protected_state(
             report,
             target_base,
@@ -611,6 +628,8 @@ def preflight_protected_agents_base(
             target_commit,
             committed_pin=committed_pin,
             committed_pin_hash=committed_pin_hash,
+            moved_checkout=moved_checkout,
+            moved_checkout_hash=moved_checkout_hash,
         )
     except ProtectedSyncHold as exc:
         report["status"] = "hold"
