@@ -31,7 +31,11 @@ def test_agent_contract_guard_keeps_owner_gates_and_does_not_grant_commit() -> N
     section = text[text.index("## Delivery Convergence (MANDATORY)"):]
     assert "never relaxes owner-gated actions" in section
     assert "explicitly require, or session-end closeout" in section
-    assert "if those rules are not in your context, ask" in section
+    # Owner ruling C4 (2026-10-30): commit/push authority lives in the Agent Core
+    # Rules projected earlier in the same block; this guard defers to it.
+    assert "commit and push authority (Agent Core Rules above)" in section
+    core = text[text.index("## Agent Core Rules (MANDATORY)"):text.index("## Delivery Convergence (MANDATORY)")]
+    assert "If either is missing from your context, ask." in core
 
 
 def test_both_templates_share_the_finding_disposition_semantics() -> None:

@@ -8,6 +8,32 @@
      replaced on every install. Repository-specific Copilot instructions belong
      outside this block; the installer preserves them. -->
 
+<!-- ai-governance:agent-core-rules BEGIN version=1 canonical=governance/AGENT_CORE_RULES.md -->
+## Agent Core Rules (MANDATORY)
+
+Identical on every agent surface. Repository rules may add duties; they never relax these.
+
+1. **Owner Gate.** Every agent needs explicit owner approval before merging into main, publishing or releasing, deleting branches, closing another person's PR, any irreversible operation, firmware operations, data-integrity operations, and any high-risk operation this repository's own rules name. No directive, slice approval or protocol relaxes this gate.
+2. **Commit and push.** Memory and delivery protocols define order, not git authority. Commit and push follow the owner's current authorization and this repository's rules; inside an owner-authorized slice they may continue without re-asking. If either is missing from your context, ask.
+3. **Task DONE is not session end.** After task DONE, stop and do no extra work. A confirmed session end still requires the existing session-end closeout. An ordinary Stop event, a final answer, or a subagent finishing is not session end.
+4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply.
+
+| Event | Record in |
+|---|---|
+| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |
+| Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
+| Milestone reached | `memory/01_active_task.md`; `PLAN.md` phase/sprint only when it changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
+| Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
+| Confirmed session end | canonical `memory/YYYY-MM-DD.md` record through the session-end closeout when it is non-stateless |
+
+Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` section 6.1 alias schema (`02_project_facts.md`, `03_decisions.md`, `04_validation_log.md`); never assume an alias that does not exist.
+
+5. **No fabricated evidence.** Never claim a document was loaded, an authorization was given, or work was completed without evidence in this context. Filling `LOADED` or any other contract field by inference, or reusing a stale `[Governance Contract]` block such as one from an earlier session, is a governance failure. The block is evidence of what was loaded, not a formatting ritual.
+6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`.
+7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
+<!-- ai-governance:agent-core-rules END -->
+
 ## DONE Boundary Rules (MANDATORY)
 
 ### Rule 1: Hard Stop After DONE
@@ -17,10 +43,12 @@ When the defined DONE condition is met, stop immediately.
 Do NOT automatically continue into:
 - full regression or broad smoke validation
 - governance artifact chains (triage → decision → contract → gate → acceptance → freeze)
-- commit, push, closeout, or status rollup
+- status rollups, memory or PLAN updates no must-record event requires, or new PRs
+- commit or push outside the owner's current authorization and this repository's rules
+- closeout outside a confirmed session end
 - inspection of unrelated dirty or untracked files
 
-Report next options only. Wait for explicit instruction.
+Report next options only. Wait for explicit instruction. This never cancels must-record memory or PLAN updates, or the session-end closeout at a confirmed session end (Agent Core Rules above).
 
 ### Rule 2: Scope-Matched Validation
 
@@ -42,7 +70,7 @@ Do not read, explain, stage, or modify unrelated dirty or untracked files.
 
 ### Rule 3a: Product Slice First, Failure-Driven Only
 
-Finish the approved, usable product slice before adding governance surface. Add governance only after an observed failure (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity). A finding confirmed unrelated and non-blocking gets a one-line disposition under next options while the approved work continues; no new task, PR or gate. Escalate if its impact remains unknown after a bounded check, or a credible safety, authority or data-integrity risk exists. An explicit bounded directive authorizes work inside its boundary without redundant confirmation, but never relaxes owner-gated actions (merge, release, branch deletion, irreversible, firmware or data-integrity operations).
+Finish the approved, usable product slice before adding governance surface. Add governance only after an observed failure (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity). A finding confirmed unrelated and non-blocking gets a one-line disposition under next options while the approved work continues; no new task, PR or gate. Escalate if its impact remains unknown after a bounded check, or a credible safety, authority or data-integrity risk exists. An explicit bounded directive authorizes work inside its boundary without redundant confirmation, but never relaxes owner-gated actions (Owner Gate in Agent Core Rules above).
 
 ### Rule 4: Result-First Rendering
 
@@ -72,7 +100,9 @@ Next step: <one concrete action, or a complete sentence saying none is needed>
 注意：<one decision-relevant limitation, when applicable>
 ```
 
-In Chinese, use `結果：`, `原因：`, and `下一步：`. Bind these lines to
+These labels follow the session language (Agent Core Rules above): the English
+labels shown are for an English session; in a Chinese session use `結果：`,
+`原因：`, and `下一步：`. Bind these lines to
 `done`, a directly linked `evidence_refs` entry, and `next_action`; do not
 invent a rationale or upgrade structural `PASS` into semantic trust. A
 non-decision-relevant `not_claimed` item may remain machine-side without a
@@ -228,9 +258,6 @@ NEXT    = load governance/SYSTEM_PROMPT.md, or ask the human to provide it
 Reading `governance/SYSTEM_PROMPT.md` during the session clears the notice; from
 that point the canonical block applies. Resolve the canonical path against this
 repository's governance root — it may sit under a submodule or a contract
-directory rather than `governance/` at the repository root.
-
-Filling in field values by inference, or reusing a `[Governance Contract]` block
-from an earlier session, is a governance failure. The block is evidence of what
-was loaded, not a formatting ritual.
+directory rather than `governance/` at the repository root. Inferred field
+values and stale blocks are governance failures (Agent Core Rules above).
 <!-- AI Governance Framework: copilot-instructions END -->

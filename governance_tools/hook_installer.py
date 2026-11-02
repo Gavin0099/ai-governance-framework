@@ -70,6 +70,11 @@ AGENT_CONTRACT_TARGETS = (
     (Path("GEMINI.md"), "gemini"),
 )
 HOOK_NAMES = ("pre-commit", "pre-push")
+# Codex reads the root `AGENTS.md` into its project-doc budget and silently drops
+# whatever lies past it. 32 KiB is Codex's default `project_doc_max_bytes`; a
+# consumer that overrides that setting in its Codex config has a different
+# budget. The installer only reports against the default; it does not gate.
+CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES = 32_768
 # Records the digest of every managed lifecycle file this installer wrote, so a
 # later install can tell "the framework wrote this" from "the consumer edited
 # this". Without it, a marker check passes on an edited file and the edit is
@@ -104,6 +109,9 @@ class HookInstallApplyResult:
     backups: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     copilot_instructions_mode: str | None = None
+    # Report-only: never feeds `ok`. See _codex_project_doc_budget.
+    warnings: list[str] = field(default_factory=list)
+    codex_project_doc_budget: dict[str, object] | None = None
 
 
 def _read_text(path: Path) -> str:
@@ -637,6 +645,65 @@ def _apply_agent_contract_surfaces(
     return modes
 
 
+def _codex_project_doc_budget(
+    repo_root: Path,
+    installed: Sequence[str],
+) -> tuple[dict[str, object] | None, list[str]]:
+    """Measure the installed root `AGENTS.md` against Codex's default budget.
+
+    Codex truncates the tail of an over-budget project doc, so the trailing
+    instructions, including the end of the managed block, may never reach it.
+    An install that put the contract there must say so instead of reporting
+    plain success. Both the on-disk size and the CRLF-equivalent worst case
+    (every LF stored as CRLF, as a Windows checkout may do) are reported. This
+    is a report, not a gate: it never changes `ok`.
+    """
+    target = repo_root / "AGENTS.md"
+    if str(target) not in installed or not target.is_file():
+        return None, []
+    try:
+        payload = target.read_bytes()
+    except OSError:
+        return None, []
+    budget = CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+    on_disk = len(payload)
+    lf_only = payload.replace(b"\r\n", b"\n")
+    crlf_worst_case = len(lf_only) + lf_only.count(b"\n")
+    overflow = max(0, on_disk - budget)
+    crlf_overflow = max(0, crlf_worst_case - budget)
+    report: dict[str, object] = {
+        "path": str(target),
+        "budget_bytes": budget,
+        "budget_source": "codex_default_project_doc_max_bytes",
+        "on_disk_bytes": on_disk,
+        "crlf_worst_case_bytes": crlf_worst_case,
+        "overflow_bytes": overflow,
+        "crlf_worst_case_overflow_bytes": crlf_overflow,
+        "over_budget": overflow > 0,
+        "over_budget_with_crlf": crlf_overflow > 0,
+    }
+    if crlf_overflow == 0:
+        return report, []
+    if overflow > 0:
+        size = (
+            f"is {on_disk} bytes on disk ({crlf_worst_case} with CRLF line endings), "
+            f"{overflow} bytes ({crlf_overflow} with CRLF) over"
+        )
+    else:
+        size = (
+            f"is {on_disk} bytes on disk and fits, but with CRLF line endings it is "
+            f"{crlf_worst_case} bytes, {crlf_overflow} bytes over"
+        )
+    warning = (
+        f"codex-project-doc-budget: {target} {size} Codex's default project-doc budget "
+        f"of {budget} bytes; Codex truncates the tail, so trailing instructions "
+        "(including the end of the AI Governance managed block) may not be delivered "
+        "to Codex. The budget is Codex's default project_doc_max_bytes and differs "
+        "if the consumer's Codex config overrides it."
+    )
+    return report, [warning]
+
+
 def _apply_copilot_surface(
     repo_root: Path,
     framework_root: Path,
@@ -739,6 +806,7 @@ def install_copilot_surface(
         backups=backups,
         errors=errors,
     )
+    budget_report, budget_warnings = _codex_project_doc_budget(repo_root, installed)
     return HookInstallApplyResult(
         ok=not errors,
         repo_root=str(repo_root),
@@ -748,6 +816,8 @@ def install_copilot_surface(
         backups=backups,
         errors=errors,
         copilot_instructions_mode=mode,
+        warnings=budget_warnings,
+        codex_project_doc_budget=budget_report,
     )
 
 
@@ -923,6 +993,7 @@ def install_governance_hooks(
 
     _, dependency_errors = validate_self_smoke_dependency(framework_root)
     errors.extend(dependency_errors)
+    budget_report, budget_warnings = _codex_project_doc_budget(repo_root, installed)
     return HookInstallApplyResult(
         ok=not errors,
         repo_root=str(repo_root),
@@ -932,6 +1003,8 @@ def install_governance_hooks(
         backups=backups,
         errors=errors,
         copilot_instructions_mode=copilot_mode,
+        warnings=budget_warnings,
+        codex_project_doc_budget=budget_report,
     )
 
 
@@ -1022,6 +1095,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         # belong in the terminal output, not just the JSON payload.
         for backup in result.backups:
             print(f"backup: {backup}")
+        budget = result.codex_project_doc_budget
+        if budget is not None:
+            print(
+                "codex_project_doc_bytes="
+                f"{budget['on_disk_bytes']} (crlf_worst_case={budget['crlf_worst_case_bytes']}, "
+                f"codex_default_budget={budget['budget_bytes']})"
+            )
+        for warning in result.warnings:
+            print(f"warning: {warning}")
         for error in result.errors:
             print(f"error: {error}")
     return 0 if result.ok else 1
