@@ -5469,3 +5469,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: NOT CLAIMED: receipt-backed provenance. Local scoped pytest: 210 passed. Independent reviewer: 42 passed and 10 direct probes. Results are recorded in the authoring transcript and Draft PR; no new receipt is introduced.
 - Next action: Finish the companion commit, verify authorized remote branch and Draft PR delivery, then stop for Owner review; merge and consumer updates remain unauthorized.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:ed137f967ccb539cf5138b23e3237440043b25634a03f1a239deb10c2c5a2aef -->
+### Canonical memory checkpoint — 70314172-8996-4ba7-b18e-d3b69389ebe2
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `ed137f967ccb539cf5138b23e3237440043b25634a03f1a239deb10c2c5a2aef`
+- Commit binding: `28803292210d457378eee08b49e36c6ed1d35a49` (bound)
+- Record: Two independent read-only reviews of the framework self must-record fix (Draft PR #276, fix commit 28803292, base d28acb9e), both APPROVE-WITH-NITS. Review 1 (full change set): every removed AGENTS.md Section 7 rule is covered by governance/RESPONSE_ENVELOPE_CONTRACT.md; protected sections (External vs Internal, Memory, Safety, Section 8, Progress Updates) byte-identical; core region identical on all surfaces; nits fixed before commit: restored the 注意 duty in AGENTS.md and clarified the private-memory sentence. Review 2 (final delta): root Copilot three synced passages match the template exactly, no other change; sentence consistent with MEMORY_PROTOCOL and SYSTEM_PROMPT 6.1; AGENTS.md 31,695 B CRLF. Accepted residual nits: root Copilot managed block keeps v1.1 marker after partial sync; one conflicting-phrasing case never existed in the root file; AUTHORITY.md:143 lists only the templates. The reviewed tree equals commit 28803292.
+- Validation boundary: Reviewer runs: tests/test_agent_core_rules_projection.py 34 passed (both reviews); review 1 also ran 15 related files 371 passed, 2 failed only from the then-dirty worktree; clean tree at 28803292: 37 + 365 passed. NOT CLAIMED: agent memory behaviour change.
+- Next action: Owner review and merge decision on Draft PR #276 after CI; CI Full Test Suite currently fails only on the pre-existing time-based test tests/test_blocking_graduation_check.py::test_sessions_outside_the_window_do_not_count, handled in a separate session.
+- PLAN reconciliation: `not_applicable`
