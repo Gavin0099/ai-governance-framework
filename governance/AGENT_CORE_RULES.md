@@ -16,10 +16,13 @@ agent surface must carry identically. The body between the
 - `governance/agent-contract-template.md` — installed into a consumer's
   `AGENTS.md` (Codex), `CLAUDE.md` (Claude Code) and `GEMINI.md` (Gemini);
 - `governance/copilot-instructions-template.md` — installed into
-  `.github/copilot-instructions.md` (Copilot).
+  `.github/copilot-instructions.md` (Copilot);
+- this repository's own `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and
+  `.github/copilot-instructions.md`, which the framework itself loads.
 
 `tests/test_agent_core_rules_projection.py` fails when a projection drifts.
-Edit the body here first, then copy it unchanged into both templates.
+Edit the body here first, then copy it unchanged into both templates and the
+four root entry files.
 
 Origin: owner ruling C1-C7 adopted 2026-10-30
 (`docs/proposals/i2-core-rules-20261030.md`). The body is deliberately short:
@@ -36,7 +39,7 @@ Identical on every agent surface. Repository rules may add duties; they never re
 1. **Owner Gate.** Every agent needs explicit owner approval before merging into main, publishing or releasing, deleting branches, closing another person's PR, any irreversible operation, firmware operations, data-integrity operations, and any high-risk operation this repository's own rules name. No directive, slice approval or protocol relaxes this gate.
 2. **Commit and push.** Memory and delivery protocols define order, not git authority. Commit and push follow the owner's current authorization and this repository's rules; inside an owner-authorized slice they may continue without re-asking. If either is missing from your context, ask.
 3. **Task DONE is not session end.** After task DONE, stop and do no extra work. A confirmed session end still requires the existing session-end closeout. An ordinary Stop event, a final answer, or a subagent finishing is not session end.
-4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply.
+4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply. An agent's private or tool-provided memory (for example Claude auto-memory or the Copilot memory tool) may help the agent, but never satisfies these records; only the records named here or by this repository, written through their own contracts, do.
 
 | Event | Record in |
 |---|---|
