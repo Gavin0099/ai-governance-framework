@@ -102,6 +102,11 @@ def test_agent_contract_places_core_after_unavailable_and_before_delivery() -> N
         ("C2", "Memory or PLAN updates these events require are part of that delivery, not extra work."),
         ("C2", "After DONE, add no unrelated rollups or new PRs"),
         (
+            "C2-scope",
+            "A task limited to named files still includes these records unless the owner explicitly "
+            "excludes them.",
+        ),
+        (
             "C3",
             "| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, "
             "phase, anti-goal or another existing PLAN obligation |",

@@ -223,3 +223,13 @@ consumers: the AC managed block, and with it an installed `AGENTS.md`, grows by
 85 bytes. The installer-only overflow figures in the consumer budget table above
 grow by the same 85 bytes; by that arithmetic (not re-measured) the full F-7 path
 still fits on both consumers (30,573 and 30,125).
+
+## C2-scope (2026-11-03): owner ruling on file-scoped tasks
+
+Observed failure: in a frozen three-agent test on `main@7debd301`, Claude Code, Codex Desktop and VS Code Copilot each fixed a bug with an identified root cause. The core rules were in each agent's context. Each prompt said to change only the named files, and each agent read that restriction as excluding the must-record files. Claude and Codex said so explicitly; Copilot asked after DONE. None wrote the knowledge-base candidate or the `memory_record` daily. Rule 4 said these records are part of the delivery, but it did not say whether a file-scope restriction covers them.
+
+Owner ruling adopted 2026-11-03, implemented as stated: **a task limited to named files still includes the records rule 4 requires, unless the owner explicitly excludes them.** The owner chose this over the alternative, which was to skip the records and list the gap in the final report.
+
+Change: one sentence added to rule 4 in `governance/AGENT_CORE_RULES.md`. It is projected byte-identical into both templates and the four root entry files, and `tests/test_agent_core_rules_projection.py` asserts it.
+
+Root `AGENTS.md` (CRLF) grows from 31,695 to 31,797 bytes. That is 971 bytes under Codex's 32,768 default, so it misses the 1 KiB engineering margin by 53 bytes. Restoring the margin would mean rewording other approved text, which this slice does not do.
