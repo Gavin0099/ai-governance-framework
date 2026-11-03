@@ -5480,3 +5480,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: Reviewer runs: tests/test_agent_core_rules_projection.py 34 passed (both reviews); review 1 also ran 15 related files 371 passed, 2 failed only from the then-dirty worktree; clean tree at 28803292: 37 + 365 passed. NOT CLAIMED: agent memory behaviour change.
 - Next action: Owner review and merge decision on Draft PR #276 after CI; CI Full Test Suite currently fails only on the pre-existing time-based test tests/test_blocking_graduation_check.py::test_sessions_outside_the_window_do_not_count, handled in a separate session.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb -->
+### Canonical memory checkpoint — 70314172-8996-4ba7-b18e-d3b69389ebe2
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb`
+- Commit binding: `b144858461d267f0dd1d932fa1566b12d8141fc8` (bound)
+- Record: Post-merge independent audit of PR #277 (time-bomb test fix), exact range d28acb9e..b1448584 (d6960629 test fix, b1448584 memory companion), merged as a6c25b7c; reviewer: independent read-only sub-agent (Claude Opus) distinct from the authoring session, owner-requested. Verdict APPROVE-WITH-NITS as a POST-MERGE audit only: PR #277 was merged before any independent review was recorded, so governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md independent_technical_review was not satisfied pre-merge and this audit cannot cure that (contract lines 92-94). Confirmed: root cause reproduces on d28acb9e (1 failed / 30 passed), 31 passed at b1448584, no governance_tools change, git diff b1448584 a6c25b7c empty, daily record bound to d6960629, KB entry follows the Candidate Rule. Nits, not fixed here: tests/test_blocking_graduation_check.py:84 _receipts(age_days=0) still uses wall-clock mtimes (not a forward time bomb; fails only if the clock is before 2026-07-06); the #277 KB candidate overclaims that every fixture mtime now derives from NOW; blocking_graduation_check counts receipts dated after now (pre-existing).
+- Validation boundary: Reviewer: tests/test_blocking_graduation_check.py 31 passed at b1448584, 1 failed / 30 passed on d28acb9e; fixture mtime shifts +10y/+100y 31 passed, -125d 3 failed; PR #277 checks all passed on b1448584 (run 41590762293); main a6c25b7c Governance Check success (run 41592679002).
+- Next action: Before merging #276: record all three Solo-Owner predicates for its exact new head (fresh independent review of the synced head, green required checks, owner attestation naming the SHA). The three #277 nits are separate optional work.
+- PLAN reconciliation: `not_applicable`

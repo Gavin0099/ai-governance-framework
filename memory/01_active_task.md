@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- 2026-11-03 #276 framework self must-record fix: two independent reviews APPROVE-WITH-NITS (review-log); Draft, awaiting owner merge decision. <!-- memory_record_projection:active-task-summary:ed137f967ccb539cf5138b23e3237440043b25634a03f1a239deb10c2c5a2aef -->
+- 2026-11-03: #277 merged (a6c25b7c), post-merge audit APPROVE-WITH-NITS, pre-merge independent review was missing (process deviation); #276 synced with main, Draft, needs fresh review of new head before merge. <!-- memory_record_projection:active-task-summary:fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb -->
