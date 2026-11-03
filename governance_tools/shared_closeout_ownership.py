@@ -245,6 +245,11 @@ def _initial(root: Path, sid: str) -> None:
                          for p in item.iterdir()), "AMBIGUOUS_LEGACY_STATE")
                 continue
             _require(bool(_ID.fullmatch(other)), "AMBIGUOUS_LEGACY_STATE")
+            if directory == "sessions":
+                # ADR-0002 D1/D2: sessions/ is an identity registry, not a closeout
+                # ledger. An envelope-only session (IDENTITY_ONLY) owes nothing here;
+                # IN_FLIGHT is still detected by the obligation surfaces below.
+                continue
             _require(read_session_envelope(other, root) is not None and _completion(root, other),
                      "AMBIGUOUS_LEGACY_STATE", "active or orphan lifecycle evidence")
     receipts = _path(root, "artifacts/runtime/closeout-receipts")

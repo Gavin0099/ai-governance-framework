@@ -150,13 +150,22 @@ def test_partial_prepare_survives_process_exit_and_retry_appends(repo):
     assert owner(repo)['state'] == 'OWNED' and owner(repo)['generation'] == 2
 
 
-@pytest.mark.parametrize('ambiguity', ['text', 'other-session', 'orphan-candidate', 'release-history'])
+@pytest.mark.parametrize('ambiguity', ['text', 'other-in-flight-candidate', 'other-in-flight-closeout',
+                                       'unnamed-session-dir', 'orphan-candidate', 'release-history'])
 def test_initialization_refuses_legacy_or_unknown_state(repo, ambiguity):
     start_session(repo)
     if ambiguity == 'text':
         (repo/own.TEXT).write_bytes(b'legacy text')
-    elif ambiguity == 'other-session':
+    elif ambiguity == 'other-in-flight-candidate':
         start_session(repo, 'session-B')
+        path = repo/'artifacts/runtime/closeout_candidates/session-B/000001.json'
+        path.parent.mkdir(parents=True); path.write_text('{}')
+    elif ambiguity == 'other-in-flight-closeout':
+        start_session(repo, 'session-B')
+        path = repo/'artifacts/runtime/closeouts/session-B.json'
+        path.parent.mkdir(parents=True); path.write_text('{}')
+    elif ambiguity == 'unnamed-session-dir':
+        (repo/'artifacts/runtime/sessions/.hidden').mkdir()
     elif ambiguity == 'orphan-candidate':
         path = repo/'artifacts/runtime/closeout_candidates/orphan/one.json'
         path.parent.mkdir(parents=True); path.write_text('{}')
@@ -168,6 +177,28 @@ def test_initialization_refuses_legacy_or_unknown_state(repo, ambiguity):
         with pytest.raises(own.OwnershipError, match='AMBIGUOUS_LEGACY_STATE'):
             own.acquire_owner(lease, 'session-A', ci, sha(text))
     assert not (repo/own.AREA/'owner.json').exists()
+
+
+def test_identity_only_sessions_do_not_block_initialization(repo):
+    # #256 / ADR-0002 D1: envelopes of sessions that never acquired ownership and
+    # left no closeout-side artifact are identity, not closeout obligation.
+    start_session(repo, 'session-B')
+    start_session(repo, 'session-C')
+    prepare(repo)
+    assert owner(repo)['state'] == 'OWNED' and owner(repo)['session_id'] == 'session-A'
+    assert not (repo/'artifacts/runtime/closeout-completions').exists()
+
+
+def test_two_sessions_started_before_progress_resolve_by_owner_conflict(repo):
+    # The #256 reproduction order: A and B both start before either saves progress.
+    start_session(repo, 'session-A')
+    start_session(repo, 'session-B')
+    prepare(repo, 'session-B', session_start=lambda *a: None)
+    ci, _, text = inputs(repo, 'session-A')
+    with own.execution_exclusion(repo) as lease:
+        with pytest.raises(own.OwnershipError, match='OWNER_CONFLICT'):
+            own.acquire_owner(lease, 'session-A', ci, sha(text))
+    assert owner(repo)['session_id'] == 'session-B'
 
 
 def test_main_missing_owner_never_enters_pipeline(repo, monkeypatch):
