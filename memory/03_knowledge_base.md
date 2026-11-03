@@ -515,3 +515,10 @@ phrasing of them.
 **Related, earlier.** This is the same shape as "A test can be narrower than the
 invariant it is named after (2026-08-16)": prose asserting one thing while the
 mechanism checks another, with the green result read as evidence for the prose.
+
+## CANDIDATE / UNREVIEWED: A fixed test clock mixed with wall-clock file mtimes is a time bomb (2026-11-03)
+- Root cause: `tests/test_blocking_graduation_check.py` pins `NOW = 2026-08-05` and calls `evaluate(repo, now=NOW)`, but its `_receipts` and `_write_baseline` helpers set fixture mtimes with `time.time() - age_days * 86400`. Ages were measured against the real clock while the tool measured against `NOW`, so as wall time advanced the "120 days old" receipts drifted into the 30-day window before `NOW`. On 2026-11-03 `test_sessions_outside_the_window_do_not_count` began failing (`assert 'met' == 'unevaluable'`) on unmodified main `d28acb9e`, turning Full Test Suite and Phase Gate Verification red on every PR. `_write_baseline(age_days=2)` had the same mix and passed only by accident: the file landed in the future relative to `NOW`, which still read as "inside the window".
+- Fix: derive every fixture mtime from the same fixed clock the tool receives, `(NOW - timedelta(days=age_days)).timestamp()`. `governance_tools/blocking_graduation_check.py` already compares mtimes only against the injected `now`; product logic unchanged. Detection rule: when a test pins a clock, grep it for `time.time()`, `datetime.now()` and bare `os.utime`/mtime writes; any of them next to a pinned `now` is a dated failure waiting for its date. Same class as the post-merge audit `session_envelope` red of 2026-10-29.
+- Fix commit: d69606290ffebb8d1dd63374a569ca0f51f38630
+- Test evidence: `python -X utf8 -B -m pytest -q -p no:cacheprovider --basetemp .tmp_bgc tests/test_blocking_graduation_check.py`: 1 failed / 30 passed on `d28acb9e` on 2026-11-03, 31 passed at the fix commit.
+- Daily record: memory/2026-11-03.md (memory_record, commit d69606290ffebb8d1dd63374a569ca0f51f38630)
