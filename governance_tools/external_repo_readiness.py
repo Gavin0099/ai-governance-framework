@@ -25,6 +25,11 @@ from governance_tools.governance_drift_checker import check_governance_drift
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.plan_freshness import check_freshness
 
+MIGRATION_REQUIRED = "migration_required"
+VSCODE_HOOK_CONFIG_REL = Path(".github/hooks/ai-governance-vscode.json")
+# Prefix of the validator error for the same unsafe state; reported here as an
+# error, so it is not repeated as an "optional" hook warning.
+UNSAFE_VSCODE_HOOK_ERROR = "unsafe VS Code hook config"
 
 @dataclass
 class ExternalRepoReadiness:
@@ -94,8 +99,24 @@ def assess_external_repo(
     # hooks_ready is informational only — hooks are a deployment convenience,
     # not a governance requirement. Missing hooks do NOT block readiness_ready.
     checks["hooks_ready"] = hook_result.valid
+    # One installed hook state is unsafe rather than incomplete: the framework
+    # lifecycle bridge still registered in the VS Code config (the legacy
+    # `Stop -> session_end` wiring) runs the session-end closeout at every agent
+    # turn, because Stop is not session end. That blocks readiness until migrated;
+    # absent hooks still do not.
+    checks["copilot_hooks_safe"] = hook_result.checks.get("copilot_vscode_hooks_governed", True)
+    if not checks["copilot_hooks_safe"]:
+        errors.append(
+            f"{MIGRATION_REQUIRED}: {repo_root / VSCODE_HOOK_CONFIG_REL} registers the framework "
+            "lifecycle bridge on a non-session-end event (legacy Stop -> session_end) or cannot be "
+            "parsed; run F-7 with a framework release that retires it"
+        )
     if not hook_result.valid:
-        warnings.extend(f"hooks (optional): {item}" for item in hook_result.errors)
+        warnings.extend(
+            f"hooks (optional): {item}"
+            for item in hook_result.errors
+            if checks["copilot_hooks_safe"] or not item.startswith(UNSAFE_VSCODE_HOOK_ERROR)
+        )
     warnings.extend(f"hooks (optional): {item}" for item in hook_result.warnings)
 
     plan_path = _discover_plan_path(repo_root) or (repo_root / "PLAN.md")
@@ -293,9 +314,11 @@ def assess_external_repo(
         and checks["contract_files_complete"]
         and checks["gitlab_adapter_scope_consistent"]
         and checks["framework_release_compatible"]
+        and checks["copilot_hooks_safe"]
         # hooks_ready intentionally excluded: hooks are a deployment convenience,
         # not a governance gate. A repo with clean governance but no hooks installed
         # is governance-ready. Use checks["hooks_ready"] for hook-specific reporting.
+        # copilot_hooks_safe is the exception above: installed but unsafe.
     )
 
     return ExternalRepoReadiness(
@@ -314,8 +337,56 @@ def assess_external_repo(
     )
 
 
+def governance_health(result: ExternalRepoReadiness) -> dict[str, str]:
+    """One-screen health view over the checks above; it adds no check of its own.
+
+    An outdated framework is reported but never blocks: only an incompatible
+    release or an installed-but-unsafe hook does. Session lifecycle and memory
+    recovery are runtime behaviour this static assessment cannot observe.
+    """
+    state = (result.framework_version or {}).get("state")
+    framework = {
+        "current": "CURRENT", "ahead": "CURRENT", "outdated": "OUTDATED", "incompatible": "INCOMPATIBLE",
+    }.get(state, "UNKNOWN")
+    hook_checks = (result.hooks or {}).get("checks") or {}
+    if not result.checks.get("copilot_hooks_safe", True):
+        copilot = "MIGRATION_REQUIRED"
+    elif hook_checks.get("copilot_session_end_hooks_governed") and hook_checks.get("copilot_lifecycle_bridge_governed"):
+        copilot = "SAFE"
+    elif not hook_checks.get("copilot_session_end_hooks_present"):
+        copilot = "NOT_INSTALLED"
+    else:
+        copilot = "INCOMPLETE"
+    if result.ready:
+        overall = "READY"
+    elif copilot == "MIGRATION_REQUIRED":
+        overall = "MIGRATION_REQUIRED"
+    else:
+        overall = "NOT_READY"
+    return {
+        "overall": overall,
+        "framework": framework,
+        "copilot_hooks": copilot,
+        "memory_lifecycle": "NOT_VERIFIED",
+    }
+
+
 def format_human(result: ExternalRepoReadiness) -> str:
+    health = governance_health(result)
     lines = [
+        "AI Governance Health",
+        f"overall            = {health['overall']}",
+        f"framework          = {health['framework']}",
+        f"copilot_hooks      = {health['copilot_hooks']}",
+        f"memory_lifecycle   = {health['memory_lifecycle']} (runtime session lifecycle is not observed here)",
+    ]
+    if health["copilot_hooks"] == "MIGRATION_REQUIRED":
+        lines.append(
+            "next_step          = run F-7 from a current framework checkout; it changes the repo, "
+            "so only with the owner's authorization"
+        )
+    lines += [
+        "",
         "External Repo Readiness",
         "",
         f"ready              = {result.ready}",
@@ -469,6 +540,7 @@ def format_json(result: ExternalRepoReadiness) -> str:
     return json.dumps(
         {
             "ready": result.ready,
+            "health": governance_health(result),
             "repo_root": result.repo_root,
             "checks": result.checks,
             "contract": result.contract,

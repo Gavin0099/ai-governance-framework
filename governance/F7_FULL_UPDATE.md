@@ -159,6 +159,33 @@ surfaces:
   stage for consuming-repo operators
 - reports `full_update_completed` only when memory workflow coverage, hook
   advisory coverage, and normalization status are all eligible
+- after installing hooks, verifies the Copilot hooks with the validator of the
+  target framework checkout, run in a subprocess, because the installer that ran
+  may predate the target. A framework lifecycle bridge still registered in
+  `.github/hooks/ai-governance-vscode.json` (the legacy `Stop -> session_end`
+  wiring, which closes the session at every agent turn) makes the hook stage
+  `blocked` with a `migration_required` error, and the update receipt records
+  `blocked`
+- in dry-run, reports the hook stage as `missing`, never `verified`, while that
+  legacy wiring remains
+
+## Consumer Health Check
+
+Run `python -m governance_tools.external_repo_readiness --repo <consumer>` from a
+current framework checkout. The tool then checks the consumer with current
+validator code, whatever framework version the consumer pins. Its output opens
+with an `AI Governance Health` summary:
+
+- `framework`: `CURRENT`, `OUTDATED` or `INCOMPATIBLE`; only `INCOMPATIBLE`
+  blocks readiness. An outdated framework is not by itself unsafe.
+- `copilot_hooks`: `SAFE`, `NOT_INSTALLED`, `INCOMPLETE` or
+  `MIGRATION_REQUIRED`. Absent hooks do not block readiness; the installed
+  legacy `Stop -> session_end` wiring does.
+- `memory_lifecycle`: always `NOT_VERIFIED`; this static check cannot observe a
+  session start, a session end or memory recovery.
+
+The check reads one repository. It keeps no list of consumers and changes
+nothing; migrating is an F-7 run, which needs the owner's authorization.
 
 ## Non-Claims
 

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from governance_tools.hook_installer import _framework_root_config_value
+from governance_tools.hook_install_validator import _vscode_hook_config_safe
 from governance_tools.composed_hook import (
     CompositionError, atomic_write_hook, declared_fragment, expected_hook, normalized,
 )
@@ -1498,6 +1499,19 @@ def _check_hook_validator_enforcement(repo: Path) -> str:
     return "missing"
 
 
+def _report_hook_validator_enforcement(repo: Path) -> str:
+    """Dry-run view of the hook stage, including Copilot hook safety.
+
+    A framework bridge still registered in the VS Code hook config (the legacy
+    `Stop -> session_end` wiring) is not migrated, so the hook stage cannot be
+    reported as verified. The apply path leaves this to F-7, which retires that
+    wiring after the pointer moves and then verifies it with the target validator.
+    """
+    if not _vscode_hook_config_safe(repo / ".github" / "hooks" / "ai-governance-vscode.json"):
+        return "missing"
+    return _check_hook_validator_enforcement(repo)
+
+
 def _check_existing_memory_normalization(repo: Path) -> str:
     memory_dir = repo / "memory"
     if not memory_dir.exists():
@@ -2165,7 +2179,7 @@ def update_governance_submodule(
                     target_source=target_source,
                     repo_local_instruction=_check_repo_local_instruction_coverage(repo),
                     memory_writer_coverage=_check_memory_writer_coverage(repo),
-                    hook_validator_enforcement=_check_hook_validator_enforcement(repo),
+                    hook_validator_enforcement=_report_hook_validator_enforcement(repo),
                     existing_memory_normalization=_check_existing_memory_normalization(repo),
                     gitignore_hygiene=_check_gitignore_hygiene(repo),
                     protected_hash_sync=protected_preflight["status"],

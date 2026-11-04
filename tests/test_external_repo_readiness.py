@@ -238,6 +238,90 @@ def test_assess_external_repo_ready_without_hooks() -> None:
     )
 
 
+LEGACY_STOP_BRIDGE = {
+    "type": "command",
+    "command": "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto",
+    "timeout": 30,
+}
+CONSUMER_STOP_HOOK = {"type": "command", "command": "python tools/notify.py", "timeout": 5}
+
+
+def _write_vscode_hooks(target_root: Path, stop_entries: list[dict]) -> None:
+    _write(
+        target_root / ".github" / "hooks" / "ai-governance-vscode.json",
+        json.dumps({"version": 1, "hooks": {"Stop": stop_entries}}, indent=2) + "\n",
+    )
+
+
+def test_legacy_stop_bridge_blocks_readiness_as_migration_required() -> None:
+    root = _reset_fixture("legacy_stop_bridge")
+    framework_root = root / "framework"
+    target_root = root / "target"
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, current_framework_release())
+    _write_vscode_hooks(target_root, [LEGACY_STOP_BRIDGE])
+
+    result = assess_external_repo(target_root)
+
+    assert result.ready is False
+    assert result.checks["copilot_hooks_safe"] is False
+    assert any(
+        item.startswith("migration_required:") and "ai-governance-vscode.json" in item for item in result.errors
+    ), result.errors
+    # Reported once, as an error; never also as an "optional" hook warning.
+    assert not any("unsafe VS Code hook config" in item for item in result.warnings)
+    from governance_tools.external_repo_readiness import format_json, governance_health
+
+    assert governance_health(result) == {
+        "overall": "MIGRATION_REQUIRED",
+        "framework": "CURRENT",
+        "copilot_hooks": "MIGRATION_REQUIRED",
+        "memory_lifecycle": "NOT_VERIFIED",
+    }
+    assert json.loads(format_json(result))["health"]["overall"] == "MIGRATION_REQUIRED"
+    rendered = format_human(result)
+    assert rendered.startswith("AI Governance Health\noverall            = MIGRATION_REQUIRED")
+    assert "next_step          = run F-7" in rendered
+
+
+def test_consumer_owned_stop_hook_does_not_block_readiness() -> None:
+    root = _reset_fixture("consumer_stop_hook")
+    framework_root = root / "framework"
+    target_root = root / "target"
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, current_framework_release())
+    _write_vscode_hooks(target_root, [CONSUMER_STOP_HOOK])
+
+    result = assess_external_repo(target_root)
+
+    assert result.checks["copilot_hooks_safe"] is True
+    assert result.ready is True, result.errors
+
+
+def test_health_reports_outdated_framework_without_blocking() -> None:
+    root = _reset_fixture("health_outdated")
+    framework_root = root / "framework"
+    target_root = root / "target"
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "v0.9.0")
+
+    from governance_tools.external_repo_readiness import governance_health
+
+    result = assess_external_repo(target_root)
+
+    assert result.ready is True
+    assert result.checks["copilot_hooks_safe"] is True
+    assert governance_health(result) == {
+        "overall": "READY",
+        "framework": "OUTDATED",
+        "copilot_hooks": "NOT_INSTALLED",
+        "memory_lifecycle": "NOT_VERIFIED",
+    }
+
+
 def test_assess_external_repo_fails_when_current_release_is_incompatible() -> None:
     root = _reset_fixture("incompatible_release")
     framework_root = root / "framework"
