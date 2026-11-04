@@ -536,3 +536,10 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: 557d41801981e8ab9d7055ef2fd77a9040c541cd
 - Test evidence: `tests/test_agent_core_rules_projection.py` 35 passed (new C2-scope assertion); 19 entry-file related test files 400 passed. Not claimed: that agents now write the records (not re-tested).
 - Daily record: memory/2026-11-03.md (memory_record, commit 557d41801981e8ab9d7055ef2fd77a9040c541cd)
+
+## CANDIDATE / UNREVIEWED: A general directory limit was read as excluding must-record files (2026-11-04)
+- Root cause: the C2-scope sentence in core rule 4 said a file-limited task keeps the records "unless the owner explicitly excludes them", but it did not say whether a general limit such as "do not touch other directories" is such an exclusion. In the frozen round-2 re-run on `main@27cd3a48`, Codex Desktop first said it would skip the records because of the file scope, then wrote them after reading the rule. A later VS Code Copilot run (claude-sonnet-5.5) recalled the C2-scope rule, but its own reasoning read "do not touch other directories" as the owner explicitly excluding `memory/`. It wrote no records and reported the gap (SCOPE_CONFLICT).
+- Fix: owner ruling W2. Core rule 4 now states that a general task-scope or directory limit is not an exclusion, while naming memory, forbidding any other file change or forbidding new files is; under such a ban the agent reports the records as not written. The sentence is projected byte-identical to both templates and the four root entry files, and the ruling is recorded in `docs/proposals/i2-core-rules-20261030.md`.
+- Fix commit: 60c80e7162d6dcb5b648ac93df727a9524382604
+- Test evidence: `tests/test_agent_core_rules_projection.py` 36 passed (new W2 assertion; 7 failed against the base core); 46 entry-file related test files 1195 passed, 9 skipped; the 2 failures in `test_external_repo_onboarding_report.py` occurred only on the uncommitted tree and passed after commit. Not claimed: that agents now follow the ruling (not re-tested).
+- Daily record: memory/2026-11-04.md (memory_record, commit 60c80e7162d6dcb5b648ac93df727a9524382604)
