@@ -107,6 +107,12 @@ def test_agent_contract_places_core_after_unavailable_and_before_delivery() -> N
             "excludes them.",
         ),
         (
+            "W2",
+            'A general scope or directory limit, such as "only fix this bug" or "do not touch other '
+            'directories", is not an exclusion; naming memory, forbidding any other file change, or '
+            "forbidding new files is, and then the agent reports the excluded records as not written.",
+        ),
+        (
             "C3",
             "| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, "
             "phase, anti-goal or another existing PLAN obligation |",

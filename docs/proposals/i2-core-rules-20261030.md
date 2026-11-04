@@ -235,3 +235,30 @@ Change: one sentence added to rule 4 in `governance/AGENT_CORE_RULES.md`. It is 
 Root `AGENTS.md` (CRLF) grows from 31,695 to 31,797 bytes. That is 971 bytes under Codex's 32,768 default, so it misses the 1 KiB engineering margin by 53 bytes. Restoring the margin would mean rewording other approved text, which this slice does not do. The agent-contract template grows by the same sentence (about 102 B), so by arithmetic, not re-measured, the consumer figures above move from 30,573 / 30,125 to about 30,675 / 30,227, still under 32,768.
 
 Open point for the owner: the frozen prompts also said "do not touch other directories". An agent may read such a blanket clause as an explicit exclusion of `memory/`. Whether a general file or directory restriction counts as an exclusion is not decided here.
+
+## W2 (2026-11-04): owner ruling on general scope limits
+
+This closes the open point above.
+
+Observed failure: a frozen re-run on `main@27cd3a48`, which includes the C2-scope sentence, used the same prompts as before. The prompts included "do not touch other directories".
+- Claude Code wrote the required records.
+- Codex Desktop first said it would skip them because of the file scope. After reading the rule, it wrote them.
+- In a later VS Code Copilot run, the agent recalled the C2-scope rule. Its own reasoning then read "do not touch other directories" as the owner explicitly excluding `memory/`. It wrote no records and reported the gap.
+
+The C2-scope sentence alone does not say whether a general limit counts as an explicit exclusion.
+
+Owner ruling adopted 2026-11-04:
+- General task-scope or directory limits do not exclude the records rule 4 requires. Examples: "only fix this bug", "do not touch other directories".
+- Explicit bans do exclude them: naming memory, forbidding any other file change, or forbidding new files.
+- Under such a ban, the agent must not write the excluded records for the sake of governance. It reports them as not written and never claims they were done.
+
+The owner's stated principle: canonical memory never overrides an explicit edit boundary.
+
+Change: one sentence added to rule 4 in `governance/AGENT_CORE_RULES.md`, right after the C2-scope sentence. It is projected byte-identical into both templates and the four root entry files. `tests/test_agent_core_rules_projection.py` asserts it (case `W2`).
+
+Budget:
+- Root `AGENTS.md` (CRLF) grows from 31,797 to 32,060 bytes, measured with `hook_installer._codex_project_doc_budget`.
+- That is 708 bytes under Codex's 32,768 default, which misses the 1 KiB engineering margin by 316 bytes, up from 53. Restoring the margin would mean rewording other approved text, which this slice does not do.
+- The agent-contract template grows by the same 263 bytes. By arithmetic, not re-measured, the consumer figures move to about 30,938 / 30,490, still under 32,768.
+
+Not claimed: that agents now follow the rule. The ruling has not been re-tested. Each earlier run was a single run, so the result describes those runs only.
