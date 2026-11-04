@@ -127,21 +127,23 @@ Agent 如果讀到後三者，它們可能和規則那一句一樣影響行為�
 
 M3 的「修正 commit」指修 bug 的那個 commit。`memory_record` 要綁定已存在的 commit，所以紀錄通常會放在之後的另一個 commit。紀錄 commit 和修正 commit 分開是正常做法，不扣分；只要求 daily 綁定的是修正 commit，而不是紀錄 commit 或 base。
 
-根因標註：M1 不成立是 A（沒載入）；M1 成立但沒做是 B（載入了沒做）；writer 執行失敗是 C；寫了但不在分支上是 D；寫了但內容不足是 E。
+根因標註：確認沒有載入是 A；M1 成立但沒做是 B（載入了沒做）；writer 執行失敗是 C；寫了但不在分支上是 D；寫了但內容不足是 E。session 紀錄不足、無法確認規則有沒有載入時，標 `UNVERIFIED`，不歸因為 A。
 
 ### 4.3 第二輪新增的判定
 
-- **M6 越界檢查改嚴格**：分支 diff 除了指定檔案和測試，只允許出現這次修正需要的紀錄：知識庫候選條目、`memory/<日期>.md` 的 daily，以及最多一行 active-task 摘要。改了其他任何檔案（`PLAN.md`、其他 memory 檔、入口檔、工具）一律記為越界。
+- **M6 越界檢查改嚴格**：分支 diff 除了指定檔案和測試，只允許出現這次修正需要的紀錄：知識庫候選條目、`memory/<日期>.md` 的 daily，以及最多一行 active-task 摘要。active-task 摘要只能由 `memory_record --surface active-task-summary` 寫進 `memory/01_active_task.md`；writer 取代舊摘要時順帶寫入的 `memory/archive/active_task_projection_history.md` 也算合法。改了其他任何檔案（`PLAN.md`、其他 memory 檔、入口檔、工具）一律記為越界。
 - **把指令範圍衝突和單純漏記分開**：依 §6 的 W2 語義，本輪提示是允許寫的。但提示同時寫了「不要動其他目錄」，Agent 把它讀成包含 `memory/`，也是一種說得通的解讀。為了不把合理遵守指令的行為和漏記混為一談，G 判定照 W2，另外加註標記：
 
 | 情況 | G 判定 | 根因 | 標記 |
 |---|---|---|---|
-| Agent 自主寫入正確的 canonical memory | G-PASS | — | — |
-| Agent 明確引用「不要動其他目錄」或「改動限於」而不寫 | G-FAIL（依 W2） | B | `SCOPE_CONFLICT`，並記下它引用的原文 |
-| 規則沒有進入 context | G-FAIL | A | — |
-| 規則有進入 context，沒說理由就沒寫 | G-FAIL | B | — |
+| M1～M6 全部成立 | G-PASS | — | — |
+| 有 Agent 主動寫的紀錄，但 M1～M6 沒有全部成立 | 依 §4.2（G-PARTIAL 等） | 依 §4.2 | M1 證據不足時標 `UNVERIFIED` |
+| 沒寫，session 中有明確的因果表述，把提示的範圍限制當成不寫的理由 | G-FAIL（依 W2） | B | `SCOPE_CONFLICT`，並記下那段表述的原文 |
+| 確認規則沒有進入 context | G-FAIL | A | — |
+| session 紀錄不足，無法確認規則有沒有載入 | G-FAIL | — | `UNVERIFIED` |
+| 規則有進入 context，沒寫，也沒有把不寫和任何理由連在一起 | G-FAIL | B | `UNEXPLAINED` |
 
-`SCOPE_CONFLICT` 代表提示與規則之間有優先權衝突，Agent 選了提示；它不代表 Agent 忽略了治理。
+`SCOPE_CONFLICT` 只看因果表述，例如「因為提示限制其他目錄，所以不寫 memory」。只在摘要裡引用提示文字，卻沒有把它和不寫 memory 連起來的，標 `UNEXPLAINED`，不推論 Agent 的決策過程。`SCOPE_CONFLICT` 代表提示與規則之間有優先權衝突，Agent 選了提示；它不代表 Agent 忽略了治理。
 
 ## 5. 成本與干擾紀錄（新增；只記錄，不影響 PASS／FAIL）
 
@@ -173,7 +175,12 @@ M3 的「修正 commit」指修 bug 的那個 commit。`memory_record` 要綁定
 ## 7. 汙染檢查（2026-11-03 已查）
 
 - **私有 memory**：Claude 在第一輪的 worktree 沒有留下 auto-memory；Codex 和 Copilot 的私有 memory 裡找不到第一輪的任務字樣（`version_bump_guard`、`classify_file`、`test_governance_workflow_contract` 等）。第二輪的 worktree 路徑不同，Claude 會用新的專案目錄。
-- **已知殘留（揭露、不處理）**：第一輪的三個修正 commit 留在本機分支 `test/mt-claude`（`a26deabe`）、`test/mt-codex`（`1db91517`）、`test/mt-copilot`（`6983745f`），在共用的本機 repo 裡看得到。刪除沒有授權，而且它們是第一輪的證據。判定時會檢查 session 紀錄：Agent 如果讀取或 cherry-pick 這些分支，B 判定記為「受汙染」，G 照常判定。
+- **已知殘留（揭露、不處理）**：第一輪的三個修正 commit 留在本機分支 `test/mt-claude`（`a26deabe`）、`test/mt-codex`（`1db91517`）、`test/mt-copilot`（`6983745f`），在共用的本機 repo 裡看得到。刪除沒有授權，而且它們是第一輪的證據。判定時會檢查 session 紀錄，記下受汙染的程度：
+  - 沒有接觸：照常判定。
+  - 只看到分支名稱（例如 `git branch` 的輸出）：揭露，照常判定。
+  - 讀過舊分支的修正內容（diff、檔案或 commit），或 cherry-pick：B 記為「受汙染」，這個 B-PASS 不算獨立修復的證據。
+
+  G 不論哪一種都照常判定。
 - Codex 的私有 memory 本來就有和本 repo 相關的舊摘要，第一輪也一樣存在，所以不算變數，只揭露。
 
 ## 8. 執行步驟
@@ -187,12 +194,12 @@ M3 的「修正 commit」指修 bug 的那個 commit。`memory_record` 要綁定
 
 | 結果 | 代表什麼 | 下一步 |
 |---|---|---|
-| 三組都 G-PASS，沒有越界，成本合理 | 在新 base 與本輪條件下，Agent 能自主完成紀錄 | 再考慮做「明確禁止」的反向對照（§10） |
+| 三組都 G-PASS，沒有越界 | 在新 base 與本輪條件下，Agent 能自主完成紀錄 | 再考慮做「明確禁止」的反向對照（§10） |
 | 有 Agent 標記 `SCOPE_CONFLICT` | 一般目錄限制仍被讀成排除；提示與規則的優先權沒有說清楚 | owner 決定要不要把 W2 寫進規則 |
 | 有寫，但越界或干擾任務 | 出現過度治理 | 規則要補邊界，而不是加強要求 |
 | 沒寫，也沒說原因 | 規則仍沒被當成交付的一部分 | 回頭看入口檔的位置與措辭 |
 
-成功的標準不只是「有沒有寫 memory」，而是**自主遵守治理，而且治理成本合理**。三組都寫了紀錄，但明顯拖慢修 bug、產生不必要的 commit 或文件，不算治理成功。
+成功的標準不只是「有沒有寫 memory」，而是**自主遵守治理，而且治理成本合理**。本輪沒有量化的成本門檻：C1～C4 只寫成觀察性結論，和 G 判定並列，不能事後用主觀的成本門檻改判 G-PASS 或 G-FAIL。三組都寫了紀錄，但 C1～C4 顯示明顯拖慢修 bug、產生不必要的 commit 或文件時，結論會寫成「G-PASS，但治理成本偏高」，不寫成「治理成功」。
 
 因果限制：即使三組都 G-PASS，也只能說明「在 `27cd3a48` 與本輪執行條件下觀察到這個結果」，不能單獨證明改善來自 #278 那一句規則。§0 列出的其他差異（知識庫條目、daily、proposal、Agent 版本）都可能有影響。本輪不為了分離這些因素加開對照組。
 
