@@ -172,6 +172,63 @@ def _git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
     return completed.returncode, (completed.stdout or "").strip(), (completed.stderr or "").strip()
 
 
+def _copilot_hook_post_install_errors(repo_root: Path, framework_root: Path) -> list[str]:
+    """Verify the installed Copilot hooks with the validator of the target framework.
+
+    This process imported its installer before the pointer moved, so its own code
+    may predate the target. The target checkout's validator runs in a subprocess
+    instead. A target too old to report the Copilot checks falls back to this
+    process's validator; an unverifiable result is an error, never a pass.
+    """
+    completed = None
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable, "-X", "utf8", "-m", "governance_tools.hook_install_validator",
+                "--repo", str(repo_root), "--framework-root", str(framework_root), "--format", "json",
+            ],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=framework_root,
+            check=False,
+            timeout=120,
+        )
+        # A validator that crashed prints no JSON; that is unverified, not an
+        # older validator that lacks the Copilot checks.
+        checks = json.loads(completed.stdout)["checks"]
+        if not isinstance(checks, dict):
+            raise ValueError("validator output has no checks object")
+    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as exc:
+        detail = (completed.stderr or "").strip()[-300:] if completed is not None else ""
+        return [f"copilot hooks could not be verified after install ({type(exc).__name__}: {exc}) {detail}".rstrip()]
+    if "copilot_vscode_hooks_governed" not in checks:
+        # The target predates the Copilot checks, or stopped early without a Git
+        # hooks directory: fill them in with this process's validator, and read
+        # the tracked VS Code config directly if that one stopped early too.
+        from governance_tools.hook_install_validator import _vscode_hook_config_safe, validate_hook_install
+
+        checks = {**validate_hook_install(repo_root, framework_root=framework_root).checks, **checks}
+        checks.setdefault(
+            "copilot_vscode_hooks_governed",
+            _vscode_hook_config_safe(repo_root / ".github" / "hooks" / "ai-governance-vscode.json"),
+        )
+    errors = []
+    if not checks["copilot_vscode_hooks_governed"]:
+        errors.append(
+            "migration_required: .github/hooks/ai-governance-vscode.json still registers the framework "
+            "lifecycle bridge (legacy Stop -> session_end) after install"
+        )
+    if checks.get("copilot_session_end_hooks_present") and not checks.get("copilot_session_end_hooks_governed"):
+        errors.append(
+            ".github/hooks/ai-governance-copilot.json does not declare exactly the managed "
+            "sessionStart/sessionEnd hooks after install"
+        )
+    return errors
+
+
 def _is_git_repo(repo: Path) -> bool:
     code, _stdout, _stderr = _git(repo, ["rev-parse", "--is-inside-work-tree"])
     return code == 0
@@ -930,9 +987,16 @@ def run_f7_full_update(
             stages["hook_validator_enforcement"] = BLOCKED
         elif apply:
             hook_result = install_governance_hooks(repo_root, repo_root / submodule_path)
+            # Install success is not hook safety: the installer that ran may be
+            # older than the target, so the target's validator has the last word.
+            post_install_errors = (
+                _copilot_hook_post_install_errors(repo_root, repo_root / submodule_path)
+                if hook_result.ok
+                else []
+            )
             stages["hook_validator_enforcement"] = (
                 BLOCKED
-                if not hook_result.ok
+                if not hook_result.ok or post_install_errors
                 else "updated"
                 if hook_result.changed_files
                 else "verified"
@@ -941,6 +1005,7 @@ def run_f7_full_update(
             surface_backups.extend(hook_result.backups)
             surface_warnings.extend(hook_result.warnings)
             result.errors.extend(hook_result.errors)
+            result.errors.extend(post_install_errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
         final_status = _status_with_lock_consistency(

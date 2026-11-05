@@ -52,6 +52,17 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "remote", "add", "origin", "https://example.invalid/test/fixture.git")
 
 
+# F-7 runs the target checkout's hook validator in a subprocess after install.
+# The fixture framework delegates to this repository's validator.
+_DELEGATING_HOOK_VALIDATOR = (
+    "import runpy, sys\n"
+    f"sys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
+    "for name in [m for m in sys.modules if m.split('.')[0] == 'governance_tools']:\n"
+    "    del sys.modules[name]\n"
+    "runpy.run_module('governance_tools.hook_install_validator', run_name='__main__', alter_sys=True)\n"
+)
+
+
 def _make_framework(root: Path) -> None:
     _init_repo(root)
     _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
@@ -69,6 +80,7 @@ def _make_framework(root: Path) -> None:
     _write(root / "governance_tools/plan_freshness.py", "")
     _write(root / "governance_tools/contract_validator.py", "")
     _write(root / "governance_tools/memory_workflow.py", "")
+    _write(root / "governance_tools/hook_install_validator.py", _DELEGATING_HOOK_VALIDATOR)
     _write(
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
@@ -1335,6 +1347,122 @@ def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_pat
                                     submodule_path="ai-governance-framework")
         assert second.stages["hook_validator_enforcement"] == "verified", second.errors
         assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+
+
+LEGACY_STOP_BRIDGE_COMMAND = (
+    "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"
+)
+
+
+def _submodule_consumer_with_legacy_stop(tmp_path: Path) -> tuple[Path, Path, Path]:
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n")
+    _write(repo / ".gitmodules", '[submodule "framework"]\n\tpath = ai-governance-framework\n\turl = https://example.invalid/framework.git\n')
+    _make_framework(framework)
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    return repo, framework, config
+
+
+def test_f7_blocks_when_install_leaves_the_legacy_stop_bridge(tmp_path: Path) -> None:
+    """An installer older than the target reports success without retiring the
+    legacy Stop wiring; install success must not stand in for hook safety."""
+    from governance_tools.hook_installer import HookInstallApplyResult
+
+    repo, framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    old_installer = HookInstallApplyResult(ok=True, repo_root=str(repo), framework_root=str(framework))
+    with mock.patch.object(
+        f7_full_update, "update_governance_submodule", side_effect=lambda **kwargs: _update_result(repo, ok=True)
+    ), mock.patch.object(f7_full_update, "install_governance_hooks", return_value=old_installer):
+        result = run_f7_full_update(
+            repo_root=repo, framework_root=framework, apply=True, submodule_path="ai-governance-framework"
+        )
+
+    assert LEGACY_STOP_BRIDGE_COMMAND in config.read_text(encoding="utf-8")
+    assert result.stages["hook_validator_enforcement"] == "blocked"
+    assert result.f7_final_status == "blocked"
+    assert any(item.startswith("migration_required:") for item in result.errors), result.errors
+
+
+def test_post_install_check_uses_the_target_framework_validator(tmp_path: Path) -> None:
+    """The target checkout's validator decides, even when this process's own
+    validator would pass the installed hooks."""
+    repo = tmp_path / "consumer"
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'copilot_vscode_hooks_governed': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+
+
+def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: Path) -> None:
+    """A target validator that predates the Copilot checks still reports JSON."""
+    repo, framework, _config = _submodule_consumer_with_legacy_stop(tmp_path)
+    _write(framework / "governance_tools" / "__init__.py", "")
+    _write(
+        framework / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': True}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, framework)
+
+    assert errors and errors[0].startswith("migration_required:")
+    (repo / ".github/hooks/ai-governance-vscode.json").write_text(
+        json.dumps({"version": 1, "hooks": {}}), encoding="utf-8"
+    )
+    assert f7_full_update._copilot_hook_post_install_errors(repo, framework) == []
+
+
+def test_post_install_check_blocks_when_the_target_validator_crashes(tmp_path: Path) -> None:
+    """No JSON from the target is unverified, even with a clean VS Code config."""
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(target / "governance_tools" / "hook_install_validator.py", "raise RuntimeError('broken target')\n")
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert len(errors) == 1
+    assert errors[0].startswith("copilot hooks could not be verified after install")
+    assert "broken target" in errors[0]
+
+
+def test_post_install_check_reads_the_config_when_the_validator_stops_early(tmp_path: Path) -> None:
+    """Without a Git hooks directory the validator returns before reading the
+    Copilot config; the check must then follow the config itself."""
+    repo = tmp_path / "consumer"
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+    config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+    assert f7_full_update._copilot_hook_post_install_errors(repo, target) == []
+
+
+def test_dry_run_hook_stage_is_not_verified_while_legacy_stop_remains(tmp_path: Path) -> None:
+    repo, _framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    with mock.patch.object(updater_module, "_check_hook_validator_enforcement", return_value="verified"):
+        assert updater_module._report_hook_validator_enforcement(repo) == "missing"
+        config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+        assert updater_module._report_hook_validator_enforcement(repo) == "verified"
 
 
 def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
