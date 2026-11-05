@@ -8,6 +8,50 @@
 >
 > **兩個產品目標必須分開驗收：** (1) AI 自主完成一項真實工程任務；(2) Governance 相對於 Baseline／Rules Only 是否提供可觀察的淨效益。成功 HOLD 只證明拒絕行為，不算產品完成。
 
+## 產品方向：三個核心 Goal（Owner 已確認方向；非新增 Gate／Policy）
+
+**優先順序：Goal 1 可信任決策 > Goal 2 效率 > Goal 3 有邊界的持續自主性。** 三者是長期產品方向，不是三項新的執行 Gate；任何量化門檻、技術方案、實驗變更或執行權限仍按既有契約另行凍結／核准。既有**兩項分開驗收的產品條件**保持不變：(1) 真實任務能自主完成，由 V-03～V-05 檢驗；(2) Governance 比沒有 Governance 有可觀察淨效益，由 E-01 檢驗。**E-01 受控比較是驗證 Goal 1 與 Goal 2 的主要方法**，不因新增 Goal 敘述而取消 A/B/C 對照。
+
+### Goal 1 — Trustworthy Agent Decisions（不可犧牲的可信任基礎）
+
+**Agent 可以自行決定怎麼完成任務，但不能自行改變什麼叫完成。**
+
+降低 Agent 因迎合使用者、追求 PASS、趕進度、規避困難、修改測試使結果看似成功，或掩蓋不利證據而做錯決策／錯誤宣稱完成的風險。以 Owner 事前凍結的需求、允許／禁止範圍、驗收 Oracle 及可重現證據為準；無充分證據就如實報告 PARTIAL／HOLD／NOT_ASSESSABLE，不因任何 AI（包括不同模型、其他 reviewer Agent）的 PASS／APPROVE 自動視為獨立證明。任何 AI 審查只能是輔助，最終仍須符合外部、事前固定且可獨立重現的驗收。
+
+**正確 HOLD 與不必要 HOLD 必須分別計數：** 由事前契約／獨立 Oracle 判定應停而停，是安全行為的證據，但不是產品交付成功；原本可合法繼續卻停下或重複詢問，是 Goal 2 的成本及 Goal 3 的摩擦／失敗。不能把所有 HOLD 當成功，也不能以跳過必要 HOLD 來提升自主完成率。
+
+### Goal 2 — Efficient, Risk-Proportionate Governance（可信前提下的最小合理成本）
+
+在 Goal 1 與不可豁免的授權／安全邊界內，依任務風險、複雜度、可驗證性選擇最小必要檢查，避免重讀指令、重複 Review、過量 Evidence／Memory、無增益的文件與人工確認。**只參照 #260 既有 `minimal`／`standard`／`strict` 提案（其更正及採納仍待審議）；不在本文件另立第二套分級、預設啟用或授權實作。** 調整成本不能放寬已生效的 Owner Gate 與硬性安全契約。
+
+實驗只用可觀測成本與結果：Token／金額（可取得時）、總耗時、重讀／工具呼叫、人工互動（RESCUE、APPROVAL、CLARIFICATION 各計次數與耗時）、返工次數，以及**獨立封存 Oracle 揭露的缺陷中，Agent 已宣稱 DONE 的件數**。不把不可測量的「未發現缺陷損失」當成本 KPI。保留各平台實際載入的指令檔大小與載入證據，包括 Codex 的 AGENTS.md **32 KiB 預算**；驗證受當時工具版本與實際載入機制約束，不以檔案存在推定已讀取。
+
+### Goal 3 — Continuous, Bounded Agent Autonomy（預授權範圍內持續執行）
+
+一旦 Owner 固定最終目標、驗收、允許／禁止操作、資源與授權邊界，Agent **應該**能自行規劃、實作、測試、修正、留下必要紀錄並接續下一 Slice；**Slice DONE 不等於 Task DONE**，已授權範圍內的下一步不應反覆向 Owner 索取同一核准。這是**待驗證的產品方向，不是宣稱目前已有跨 Session 自動 Loop controller**。沿用 #271 及既有 autonomous-loop 草稿作為提案參考；不重啟暫緩的 controller 實作，也不新增 daemon／Hook／Schema。跨 Session 的真實驗收仍受 #275、#261、#245 與 Consumer 既有 legacy closeout 狀態影響；PR merge 本身不等於 V-03／V-04／V-05 DONE。
+
+- **不必要停頓的可操作定義：** Agent 停下來詢問的答案，其實已由事前凍結的契約／已授權決策明確給出，而且沒有新風險、新資訊或新的授權邊界。保留問題、契約定位、等待時間與是否重複核准的證據。
+- **解讀需求不得偷偷改驗收：** Agent 在契約允許的空間做推論，應記錄所採用假設與依據；若假設將改變驗收標準、授權範圍、禁止操作或重要安全條件，必須停止取得 Owner 裁決，不得用假設代替核准。
+- **停止條件與介入分類分開：** `RESCUE` 是人類提供解法，`APPROVAL` 是人類核准，`CLARIFICATION` 是澄清需求；這三類只用於統計互動，**不直接決定是否停止**。是否停止由下表的觸發條件判定。
+
+| Stop／Continue 判斷 | 行為 | 計分邊界 |
+|---|---|---|
+| 子 Slice 已完成，下一步在已凍結目標與授權內 | **CONTINUE**；自行選下一步 | 無需重複 APPROVAL；停問已知答案記不必要停頓 |
+| 必要驗收 Oracle 已 PASS、合法 Closeout 及整體目標完成 | **DONE** | 產品交付成功仍依 V-05 獨立驗收 |
+| 新操作超出授權／須新高風險核准 | **HOLD / APPROVAL** | 正確停止是安全證據，不是交付成功 |
+| 解讀會改驗收標準、或關鍵需求無法由凍結契約決定 | **HOLD / CLARIFICATION** | 不能自行放寬標準 |
+| 不可接受風險、不可恢復阻擋、無效反覆重試或預算／時間上限 | **HOLD / PARTIAL** 並揭露原因 | 停滯與停損判準需事前固定；不得無限 Loop |
+| 可在授權內修復且尚未觸及停損 | **RETRY / CONTINUE** | 記錄有限重試及返工，不以重新提問代替分析 |
+
+**Loop 的 Token、時間、重試上限、停滯判準與停止門檻均由 Owner 在實驗前凍結，Agent 不得自行創設／放寬數字。** 若 Harness 不支援真實持續執行，只能報告已觀察到的接續能力，不能將文件規劃當作實際 runtime 保證。
+
+### 三個 Goal 與既有驗收的關係／E-01C 機制去留原則
+
+- **V-03／V-04／V-05**：先在一個 Internal Consumer、優先候選 Claude（實際啟動前核准）驗證真實跨 Session 自主產品交付。必要 PR／Consumer 整合及獨立 Oracle 的 DONE 要分別確認；不是只合併 #275、#261、#245 就等於完成。
+- **E-01A/B/C**：主要檢查 Goal 1 的可靠性增益、Goal 2 的成本效益；沿用 §4 現有 A Baseline / B Rules Only / C Full Governance，**三組都以同一個事前密封的評分 Oracle 判定**，不能把 Agent 可見測試與最終評分 Oracle 混為一談。Test-first 是**待 Owner 評估的實驗設計修訂候選**，不是已採納的新 B 組或第四組；需在正式凍結前另外裁決，不得並存兩套正式比較設計。排除 #279 T1–T3、F3／F4 及 V-05 已用或受污染的任務；正式樣本另選 3–5 個未受既有 Agent 修復污染的 Internal Consumer 工作，依 §4 的預註冊要求處理。
+- **E-01C KEEP／SIMPLIFY／STOP／INSUFFICIENT**：對每個既有 Hook、Memory、Gate 或規則，記錄「具體改善哪個 Goal、是否使其他 Goal 變差、對比證據與成本」；無法證明額外效益時，優先 SIMPLIFY 或證據不足判定，而不是自動新增機制。安全硬性約束不得只因效益不易量化就直接移除。所有量化門檻仍依 §5 由 Owner 在 E-01B 前凍結，本節不預設百分比或成功率。
+- **依賴與授權**：目標敘述不使 E-01 立即開始；先取得相應 Hook／Closeout 修正及 Consumer 採用證據，再讓 Claude 的 V-03～V-05 依各自契約 DONE，E-01 試跑／正式比較仍需各自授權。此處不改原 Slice 順序、Gate3／Gate4、任何 production 行為，也不新增權威。
+
 ## 0. Agent 交接入口：先讀這裡，別重做完成的工作
 
 這是供後續 Agent 查閱的**計畫與驗收索引**，不是新的 Policy、Gate、Hook、常駐 Loop 或自動授權來源。**只開 Draft PR 不會讓每個 Agent 自動讀到文件**；後續任務的交接訊息需明確附上本文件路徑／PR 連結。每次執行前重新核對遠端 PR HEAD、CI、Owner 授權與 Consumer 實際狀態，不得把本文件的歷史快照當作最新事實。
