@@ -188,6 +188,26 @@ def test_copilot_cli_resume_preserves_the_original_envelope(
     assert envelope.read_bytes() == original
 
 
+def test_copilot_cli_resume_points_the_current_session_back_to_the_resumed_one(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Session end without an explicit id resolves the session through this
+    # pointer, so a resumed session must own it again.
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    pointer = tmp_path / "artifacts/runtime/.current-session-id"
+    _copilot_cli_start(tmp_path, "copilot-session-a", "new")
+    envelope_a = tmp_path / "artifacts/runtime/sessions/copilot-session-a/session-envelope.json"
+    original_a = envelope_a.read_bytes()
+    _copilot_cli_start(tmp_path, "copilot-session-b", "new")
+    assert json.loads(pointer.read_text(encoding="utf-8"))["session_id"] == "copilot-session-b"
+
+    _copilot_cli_start(tmp_path, "copilot-session-a", "resume")
+
+    assert json.loads(pointer.read_text(encoding="utf-8"))["session_id"] == "copilot-session-a"
+    assert envelope_a.read_bytes() == original_a
+
+
 @pytest.mark.parametrize(
     ("existing", "message"),
     [
@@ -203,6 +223,9 @@ def test_copilot_cli_resume_refuses_an_unusable_identity_without_rewriting_it(
     message: str,
 ) -> None:
     monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    _copilot_cli_start(tmp_path, "copilot-other", "new")
+    pointer = tmp_path / "artifacts/runtime/.current-session-id"
+    pointer_before = pointer.read_bytes()
     envelope = tmp_path / "artifacts/runtime/sessions/copilot-resume-3/session-envelope.json"
     envelope.parent.mkdir(parents=True)
     envelope.write_text(existing, encoding="utf-8")
@@ -211,6 +234,7 @@ def test_copilot_cli_resume_refuses_an_unusable_identity_without_rewriting_it(
         _copilot_cli_start(tmp_path, "copilot-resume-3", "resume")
 
     assert envelope.read_text(encoding="utf-8") == existing
+    assert pointer.read_bytes() == pointer_before
 
 
 def test_copilot_cli_resume_never_invents_a_start_time(

@@ -291,6 +291,14 @@ def _preserving_envelope(
             raise ValueError("Existing envelope is invalid; refusing to overwrite")
         if existing.get("provider") != provider:
             raise ValueError("Session identity belongs to another provider; refusing to adopt it")
+        # Like the root-bound path: the resumed session owns the current-session
+        # pointer again, which session end resolves without an explicit id.  A
+        # framework older than that pointer never refreshed it on start either.
+        from runtime_hooks.core import _canonical_closeout
+
+        write_pointer = getattr(_canonical_closeout, "_write_current_session_id_payload", None)
+        if write_pointer is not None:
+            write_pointer(session_id, project_root / "artifacts/runtime/.current-session-id")
         return {**existing, "artifact_path": str(path), "envelope_status": "preserved"}
     if require_existing:
         raise ValueError("Existing envelope required for resume/compact; no start time invented")
