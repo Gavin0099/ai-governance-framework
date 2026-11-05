@@ -285,6 +285,27 @@ def test_legacy_stop_bridge_blocks_readiness_as_migration_required() -> None:
     assert "next_step          = run F-7" in rendered
 
 
+def test_legacy_stop_bridge_blocks_readiness_without_a_git_hooks_directory() -> None:
+    # The Copilot config is tracked and runs whether or not Git hooks are
+    # installed, so a missing hooks directory must not hide the unsafe wiring.
+    root = _reset_fixture("legacy_stop_bridge_no_git_hooks")
+    framework_root = root / "framework"
+    target_root = root / "target"
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, current_framework_release())
+    _write_vscode_hooks(target_root, [LEGACY_STOP_BRIDGE])
+    shutil.rmtree(target_root / ".git" / "hooks")
+
+    result = assess_external_repo(target_root)
+
+    assert result.ready is False
+    assert result.checks["copilot_hooks_safe"] is False
+    assert any(
+        item.startswith("migration_required:") and "ai-governance-vscode.json" in item for item in result.errors
+    ), result.errors
+
+
 def test_consumer_owned_stop_hook_does_not_block_readiness() -> None:
     root = _reset_fixture("consumer_stop_hook")
     framework_root = root / "framework"

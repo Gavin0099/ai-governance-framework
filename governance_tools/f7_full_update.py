@@ -201,11 +201,18 @@ def _copilot_hook_post_install_errors(repo_root: Path, framework_root: Path) -> 
         detail = (completed.stderr or "").strip()[-300:] if completed is not None else ""
         return [f"copilot hooks could not be verified after install ({type(exc).__name__}: {exc}) {detail}".rstrip()]
     if "copilot_vscode_hooks_governed" not in checks:
-        from governance_tools.hook_install_validator import validate_hook_install
+        # The target is too old to report the check, or its validator stopped
+        # early (no Git hooks directory); read the tracked config directly.
+        from governance_tools.hook_install_validator import _vscode_hook_config_safe
 
-        checks = validate_hook_install(repo_root, framework_root=framework_root).checks
+        checks = {
+            **checks,
+            "copilot_vscode_hooks_governed": _vscode_hook_config_safe(
+                repo_root / ".github" / "hooks" / "ai-governance-vscode.json"
+            ),
+        }
     errors = []
-    if not checks.get("copilot_vscode_hooks_governed", False):
+    if not checks["copilot_vscode_hooks_governed"]:
         errors.append(
             "migration_required: .github/hooks/ai-governance-vscode.json still registers the framework "
             "lifecycle bridge (legacy Stop -> session_end) after install"

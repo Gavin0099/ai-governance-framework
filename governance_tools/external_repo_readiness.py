@@ -22,7 +22,7 @@ from governance_tools.adopt_governance import _discover_plan_path
 from governance_tools.framework_versioning import assess_framework_version_status
 from governance_tools.gitlab_adapter_scope_validator import validate_adapter_file
 from governance_tools.governance_drift_checker import check_governance_drift
-from governance_tools.hook_install_validator import validate_hook_install
+from governance_tools.hook_install_validator import _vscode_hook_config_safe, validate_hook_install
 from governance_tools.plan_freshness import check_freshness
 
 MIGRATION_REQUIRED = "migration_required"
@@ -103,8 +103,10 @@ def assess_external_repo(
     # lifecycle bridge still registered in the VS Code config (the legacy
     # `Stop -> session_end` wiring) runs the session-end closeout at every agent
     # turn, because Stop is not session end. That blocks readiness until migrated;
-    # absent hooks still do not.
-    checks["copilot_hooks_safe"] = hook_result.checks.get("copilot_vscode_hooks_governed", True)
+    # absent hooks still do not. The config is read directly: it is tracked and
+    # runs without Git hooks, and the validator stops before reading it when the
+    # Git hooks directory is missing.
+    checks["copilot_hooks_safe"] = _vscode_hook_config_safe(repo_root / VSCODE_HOOK_CONFIG_REL)
     if not checks["copilot_hooks_safe"]:
         errors.append(
             f"{MIGRATION_REQUIRED}: {repo_root / VSCODE_HOOK_CONFIG_REL} registers the framework "

@@ -1403,6 +1403,26 @@ def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: P
     assert f7_full_update._copilot_hook_post_install_errors(repo, framework) == []
 
 
+def test_post_install_check_reads_the_config_when_the_validator_stops_early(tmp_path: Path) -> None:
+    """Without a Git hooks directory the validator returns before reading the
+    Copilot config; the check must then follow the config itself."""
+    repo = tmp_path / "consumer"
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+    config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+    assert f7_full_update._copilot_hook_post_install_errors(repo, target) == []
+
+
 def test_dry_run_hook_stage_is_not_verified_while_legacy_stop_remains(tmp_path: Path) -> None:
     repo, _framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
     with mock.patch.object(updater_module, "_check_hook_validator_enforcement", return_value="verified"):
