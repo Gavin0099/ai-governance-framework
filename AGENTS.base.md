@@ -90,8 +90,33 @@ A task is done when:
 
 ## Session Closeout Obligation
 
-Writing `artifacts/session-closeout.txt` before session end is a **governance
-obligation**, not a suggestion.
+A formal closeout requires a **session-bound candidate** prepared at a defined
+session end (Session-End Closeout Responsibility below), for example when the
+owner explicitly asks to close out. Task DONE and a per-turn Stop are not
+session end and never trigger preparation. Prepare it only with the existing
+entry point of the framework submodule registered in `.gitmodules`, run from
+that checkout with no `GIT_*` environment variables:
+
+```text
+python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-root <repo> --framework-root <framework> --session-id <session-id> --input <input.json>
+```
+
+`<session-id>` is `session_id` in `artifacts/runtime/.current-session-id`;
+`<input.json>` holds `task_intent`, `work_summary`, `tools_used`,
+`artifacts_referenced` and `open_risks` (field guidance:
+`<framework>/.agents/skills/wrap-up/SKILL.md`). `PREPARED` means the candidate
+and `artifacts/session-closeout.txt` were written together under R2 ownership,
+and that text takes part in R2's consistency check with the candidate. It is
+preparation, not closeout: the platform's session-end hook runs the closeout.
+`REJECTED` is reported verbatim. Preparation is available only in a
+registered-submodule consumer whose session has a qualified (schema 1.1)
+identity; a Copilot CLI session (provider `github-copilot`) is rejected and its
+closeout is reported as not persisted.
+
+Writing `artifacts/session-closeout.txt` by hand is **not** a formal closeout:
+it is a legacy/manual input surface, it is not converted into a session-bound
+candidate, and its presence is not proof that the content belongs to the
+current session.
 
 Where a governed lifecycle hook is wired, the harness calls `session_end` on that
 hook's event; Session-End Closeout Responsibility below defines when session end
@@ -106,10 +131,7 @@ stores its current-session marker under ignored runtime artifacts,
 and `session_end` accepts only a candidate stored under the same `session_id`
 and generated no earlier than that envelope. A previously consumed session or a
 candidate that is missing, mismatched, or older than session start fails closed:
-it is not promoted and its stale content is not reused. The fixed
-`artifacts/session-closeout.txt` path remains a legacy/manual input surface; its
-presence alone is not proof that the content belongs to the current session and
-it is not automatically converted into a session-bound candidate.
+it is not promoted and its stale content is not reused.
 
 <!-- ai-governance:session-end-closeout BEGIN version=1 canonical=AGENTS.base.md -->
 ### Session-End Closeout Responsibility

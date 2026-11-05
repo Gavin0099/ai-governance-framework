@@ -164,6 +164,21 @@ a command, artifact, or source; bare `PASS` is invalid. Do not replace claim
 ceiling, risk, authority, or evidence maturity with confidence scores or broad
 impact prose.
 
+## Formal Closeout on Request (MANDATORY)
+
+Prepare a formal closeout only at a defined session end: the owner explicitly asks to close out, or the platform confirms session end. Task DONE and a Stop event never trigger it. Use the existing entry point of the framework submodule registered in `.gitmodules`, run from that checkout with no `GIT_*` environment variables:
+
+```text
+python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-root <repo> --framework-root <framework> --session-id <session-id> --input <input.json>
+```
+
+- `<session-id>`: `session_id` in `artifacts/runtime/.current-session-id`.
+- `<input.json>`: a JSON object with `task_intent`, `work_summary`, `tools_used`, `artifacts_referenced` and `open_risks`; field guidance is in `<framework>/.agents/skills/wrap-up/SKILL.md`.
+- `PREPARED` is preparation, not closeout: the platform's session-end hook runs the closeout, so do not run it yourself. Report `REJECTED` verbatim and never substitute a hand-written `artifacts/session-closeout.txt`.
+- Supported only in a registered-submodule consumer whose session has a qualified (schema 1.1) identity. A Copilot CLI session (provider `github-copilot`) is rejected: report the closeout as not persisted.
+
+Details: `AGENTS.base.md`, Session Closeout Obligation.
+
 ## Governance Contract Output (MANDATORY)
 
 The rules in the region below are projected verbatim from the canonical source
