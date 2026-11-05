@@ -52,6 +52,17 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "remote", "add", "origin", "https://example.invalid/test/fixture.git")
 
 
+# F-7 runs the target checkout's hook validator in a subprocess after install.
+# The fixture framework delegates to this repository's validator.
+_DELEGATING_HOOK_VALIDATOR = (
+    "import runpy, sys\n"
+    f"sys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
+    "for name in [m for m in sys.modules if m.split('.')[0] == 'governance_tools']:\n"
+    "    del sys.modules[name]\n"
+    "runpy.run_module('governance_tools.hook_install_validator', run_name='__main__', alter_sys=True)\n"
+)
+
+
 def _make_framework(root: Path) -> None:
     _init_repo(root)
     _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
@@ -69,6 +80,7 @@ def _make_framework(root: Path) -> None:
     _write(root / "governance_tools/plan_freshness.py", "")
     _write(root / "governance_tools/contract_validator.py", "")
     _write(root / "governance_tools/memory_workflow.py", "")
+    _write(root / "governance_tools/hook_install_validator.py", _DELEGATING_HOOK_VALIDATOR)
     _write(
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
@@ -1392,7 +1404,13 @@ def test_post_install_check_uses_the_target_framework_validator(tmp_path: Path) 
 
 
 def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: Path) -> None:
+    """A target validator that predates the Copilot checks still reports JSON."""
     repo, framework, _config = _submodule_consumer_with_legacy_stop(tmp_path)
+    _write(framework / "governance_tools" / "__init__.py", "")
+    _write(
+        framework / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': True}}))\n",
+    )
 
     errors = f7_full_update._copilot_hook_post_install_errors(repo, framework)
 
@@ -1401,6 +1419,22 @@ def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: P
         json.dumps({"version": 1, "hooks": {}}), encoding="utf-8"
     )
     assert f7_full_update._copilot_hook_post_install_errors(repo, framework) == []
+
+
+def test_post_install_check_blocks_when_the_target_validator_crashes(tmp_path: Path) -> None:
+    """No JSON from the target is unverified, even with a clean VS Code config."""
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(target / "governance_tools" / "hook_install_validator.py", "raise RuntimeError('broken target')\n")
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert len(errors) == 1
+    assert errors[0].startswith("copilot hooks could not be verified after install")
+    assert "broken target" in errors[0]
 
 
 def test_post_install_check_reads_the_config_when_the_validator_stops_early(tmp_path: Path) -> None:

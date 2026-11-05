@@ -196,21 +196,25 @@ def _copilot_hook_post_install_errors(repo_root: Path, framework_root: Path) -> 
             check=False,
             timeout=120,
         )
-        checks = json.loads(completed.stdout or "{}").get("checks") or {}
-    except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError) as exc:
+        # A validator that crashed prints no JSON; that is unverified, not an
+        # older validator that lacks the Copilot checks.
+        checks = json.loads(completed.stdout)["checks"]
+        if not isinstance(checks, dict):
+            raise ValueError("validator output has no checks object")
+    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as exc:
         detail = (completed.stderr or "").strip()[-300:] if completed is not None else ""
         return [f"copilot hooks could not be verified after install ({type(exc).__name__}: {exc}) {detail}".rstrip()]
     if "copilot_vscode_hooks_governed" not in checks:
-        # The target is too old to report the check, or its validator stopped
-        # early (no Git hooks directory); read the tracked config directly.
-        from governance_tools.hook_install_validator import _vscode_hook_config_safe
+        # The target predates the Copilot checks, or stopped early without a Git
+        # hooks directory: fill them in with this process's validator, and read
+        # the tracked VS Code config directly if that one stopped early too.
+        from governance_tools.hook_install_validator import _vscode_hook_config_safe, validate_hook_install
 
-        checks = {
-            **checks,
-            "copilot_vscode_hooks_governed": _vscode_hook_config_safe(
-                repo_root / ".github" / "hooks" / "ai-governance-vscode.json"
-            ),
-        }
+        checks = {**validate_hook_install(repo_root, framework_root=framework_root).checks, **checks}
+        checks.setdefault(
+            "copilot_vscode_hooks_governed",
+            _vscode_hook_config_safe(repo_root / ".github" / "hooks" / "ai-governance-vscode.json"),
+        )
     errors = []
     if not checks["copilot_vscode_hooks_governed"]:
         errors.append(
