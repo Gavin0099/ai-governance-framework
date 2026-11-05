@@ -161,6 +161,70 @@ def test_session_start_writes_envelope_with_native_identity(
     }
 
 
+def _copilot_cli_start(root: Path, session_id: str, source: str) -> dict:
+    return lifecycle.run_lifecycle_event(
+        {"sessionId": session_id, "cwd": str(root), "source": source, "timestamp": 1},
+        event_type="session_start",
+        surface="auto",
+    )
+
+
+def test_copilot_cli_resume_preserves_the_original_envelope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Copilot CLI resumes reuse the sessionId; rewriting the envelope would move
+    # started_at to the resume and drop the first part of the session window.
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    first = _copilot_cli_start(tmp_path, "copilot-resume-1", "new")
+    envelope = tmp_path / "artifacts/runtime/sessions/copilot-resume-1/session-envelope.json"
+    original = envelope.read_bytes()
+
+    resumed = _copilot_cli_start(tmp_path, "copilot-resume-1", "resume")
+    again = _copilot_cli_start(tmp_path, "copilot-resume-1", "resume")
+
+    assert first["status"] == "session_envelope_written"
+    assert resumed["status"] == again["status"] == "session_envelope_preserved"
+    assert envelope.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("existing", "message"),
+    [
+        ("{not json", "Existing envelope is invalid"),
+        (json.dumps({"session_id": "someone-else", "provider": "github-copilot"}), "Existing envelope is invalid"),
+        (json.dumps({"session_id": "copilot-resume-3", "provider": "github-copilot-vscode"}), "another provider"),
+    ],
+)
+def test_copilot_cli_resume_refuses_an_unusable_identity_without_rewriting_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    existing: str,
+    message: str,
+) -> None:
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    envelope = tmp_path / "artifacts/runtime/sessions/copilot-resume-3/session-envelope.json"
+    envelope.parent.mkdir(parents=True)
+    envelope.write_text(existing, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        _copilot_cli_start(tmp_path, "copilot-resume-3", "resume")
+
+    assert envelope.read_text(encoding="utf-8") == existing
+
+
+def test_copilot_cli_resume_never_invents_a_start_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+
+    with pytest.raises(ValueError, match="Existing envelope required"):
+        _copilot_cli_start(tmp_path, "copilot-resume-2", "resume")
+
+    assert not (tmp_path / "artifacts/runtime/sessions/copilot-resume-2").exists()
+
+
 def test_session_end_invokes_canonical_hook_with_same_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
