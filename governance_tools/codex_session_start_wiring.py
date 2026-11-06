@@ -37,21 +37,70 @@ def _same_path(left: str | Path, right: str | Path) -> bool:
         return False
 
 
-def _field_tokens(hook: dict[str, Any]) -> list[tuple[str, list[str] | None]]:
-    """Tokens of the POSIX command and of the decoded Windows command; None if unreadable."""
-    found: list[tuple[str, list[str] | None]] = []
+def _powershell_tokens(script: str) -> list[str]:
+    """Split the installer's PowerShell script by PowerShell's own quoting.
+
+    POSIX splitting would read the `''` that PowerShell uses for an apostrophe
+    inside single quotes as two empty quotes and drop the apostrophe.
+    """
+    tokens: list[str] = []
+    word: list[str] | None = None
+    index = 0
+    while index < len(script):
+        char = script[index]
+        if char in " \t\r\n;":
+            if word is not None:
+                tokens.append("".join(word))
+                word = None
+            if char == ";":
+                tokens.append(";")
+            index += 1
+        elif char == "'":
+            word = word or []
+            index += 1
+            while True:
+                if index >= len(script):
+                    raise ValueError("unterminated single quote")
+                if script[index] == "'":
+                    if script[index + 1:index + 2] == "'":
+                        word.append("'")
+                        index += 2
+                        continue
+                    index += 1
+                    break
+                word.append(script[index])
+                index += 1
+        else:
+            word = (word or []) + [char]
+            index += 1
+    if word is not None:
+        tokens.append("".join(word))
+    return tokens
+
+
+def _field_tokens(hook: dict[str, Any]) -> list[tuple[str, list[str] | None, str]]:
+    """(field, tokens, text) for the POSIX command and the decoded Windows command.
+
+    tokens is None when the command cannot be parsed; text is still returned so
+    a malformed binding is recognised rather than mistaken for a missing one.
+    """
+    found: list[tuple[str, list[str] | None, str]] = []
     for field in ("command", "commandWindows"):
         command = hook.get(field)
         if not isinstance(command, str):
             continue
+        text = command
         try:
-            tokens = shlex.split(command)
-            if len(tokens) == 4 and tokens[:3] == ["powershell", "-NoProfile", "-EncodedCommand"]:
-                tokens = shlex.split(base64.b64decode(tokens[3], validate=True).decode("utf-16-le"))
+            outer = shlex.split(command)
+            if len(outer) == 4 and outer[:3] == ["powershell", "-NoProfile", "-EncodedCommand"]:
+                text = base64.b64decode(outer[3], validate=True).decode("utf-16-le")
+                tokens = _powershell_tokens(text)
+            else:
+                tokens = outer
         except (ValueError, UnicodeError, binascii.Error):
-            found.append((field, None))
+            found.append((field, None, text))
             continue
-        found.append((field, tokens))
+        found.append((field, tokens, text))
     return found
 
 
@@ -61,14 +110,17 @@ def _binding(tokens: list[str]) -> tuple[str, str | None] | None:
         if token.replace("\\", "/").endswith("/" + ENTRY):
             rest = tokens[index + 1:]
             if "--project-root" in rest[:-1]:
-                return token, rest[rest.index("--project-root") + 1].rstrip(";")
+                return token, rest[rest.index("--project-root") + 1]
             return token, None
     return None
 
 
 def _owned(hook: Any) -> bool:
+    # Same textual ownership the installer uses, so a binding it would refuse to
+    # replace is never reported as missing.
     return isinstance(hook, dict) and any(
-        tokens is not None and _binding(tokens) is not None for _, tokens in _field_tokens(hook)
+        _binding(tokens) is not None if tokens is not None else ENTRY in text.replace("\\", "/")
+        for _, tokens, text in _field_tokens(hook)
     )
 
 
@@ -103,7 +155,7 @@ def _has_session_end_publisher(hooks: dict[str, Any]) -> bool:
         for group in _groups(hooks, "SessionEnd")
         for hook in _hook_list(group)
         if isinstance(hook, dict)
-        for _, tokens in _field_tokens(hook)
+        for _, tokens, _text in _field_tokens(hook)
     )
 
 
@@ -123,7 +175,7 @@ def _session_start_reasons(hooks: dict[str, Any], repo_root: Path, framework_roo
             reasons.append(
                 f"SessionStart matcher is {group.get('matcher')!r}; expected {SESSION_START_MATCHER!r}"
             )
-        for field, tokens in _field_tokens(hook):
+        for field, tokens, _text in _field_tokens(hook):
             if tokens is None:
                 reasons.append(f"SessionStart {field} cannot be decoded")
                 continue

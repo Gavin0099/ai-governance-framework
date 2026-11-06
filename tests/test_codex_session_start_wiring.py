@@ -93,6 +93,36 @@ def test_installer_output_is_recognised_as_correct(consumer: Path) -> None:
     assert "codex_session_start.stop_wiring=consistent" in rendered
 
 
+def test_installer_output_with_an_apostrophe_in_the_path_is_correct(tmp_path: Path) -> None:
+    # PowerShell writes an apostrophe as '' inside single quotes; POSIX
+    # splitting would drop it and misreport the consumer root.
+    root = tmp_path / "owner's consumer"
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    root = root.resolve()
+    CodexCLIAdapter().install(root, ROOT)
+    install(root)
+    hook = json.loads(_hooks_file(root).read_text(encoding="utf-8"))["hooks"]["SessionStart"][0]["hooks"][0]
+    assert "commandWindows" in hook
+    report = _assess_unchanged(root)
+    assert report["status"] == INSTALLED_CORRECTLY, report["reasons"]
+
+
+def test_malformed_existing_binding_is_not_reported_as_missing(consumer: Path) -> None:
+    install(consumer)
+    data = json.loads(_hooks_file(consumer).read_text(encoding="utf-8"))
+    hook = data["hooks"]["SessionStart"][0]["hooks"][0]
+    hook["command"] += " 'unterminated"
+    del hook["commandWindows"]
+    _hooks_file(consumer).write_text(json.dumps(data), encoding="utf-8")
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_INCORRECTLY
+    assert any("cannot be decoded" in reason for reason in report["reasons"]), report["reasons"]
+    assert "--install" not in report["repair"]
+    # The installer recognises the same binding and refuses, so suggesting it would not help.
+    with pytest.raises(ValueError, match="differs"):
+        install(consumer)
+
+
 def test_custom_session_start_hook_is_not_counted_and_kept(consumer: Path) -> None:
     custom = {"type": "command", "command": "echo custom start"}
     _write_hooks(consumer, {"SessionStart": [{"hooks": [custom]}]})
