@@ -123,6 +123,25 @@ def test_malformed_existing_binding_is_not_reported_as_missing(consumer: Path) -
         install(consumer)
 
 
+def test_a_mention_of_the_entry_is_not_an_identity_hook(consumer: Path) -> None:
+    mention = {"type": "command",
+               "command": shlex.join(["echo", str(ENTRY), "--project-root", str(consumer)])}
+    _write_hooks(consumer, {"SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [mention]}]})
+    CodexCLIAdapter().install(consumer, ROOT)
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_INCORRECTLY
+    assert any("does not run the identity entry" in reason for reason in report["reasons"])
+    assert any("installed incorrectly" in w for w in diagnostic_warnings(report))
+
+
+def test_versioned_interpreter_names_are_invocations(consumer: Path) -> None:
+    hook = {"type": "command",
+            "command": shlex.join(["/usr/bin/python3.11", "-B", str(ENTRY), "--project-root", str(consumer)])}
+    _write_hooks(consumer, {"SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [hook]}]})
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_CORRECTLY, report["reasons"]
+
+
 def test_custom_session_start_hook_is_not_counted_and_kept(consumer: Path) -> None:
     custom = {"type": "command", "command": "echo custom start"}
     _write_hooks(consumer, {"SessionStart": [{"hooks": [custom]}]})

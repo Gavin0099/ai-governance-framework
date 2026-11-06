@@ -12,6 +12,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import shlex
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,9 @@ from governance_tools.manage_agent_closeout import CodexCLIAdapter
 from runtime_hooks.adapters.codex.session_start import SESSION_START_MATCHER
 
 ENTRY = "runtime_hooks/adapters/codex/session_start.py"
+# The installer writes `python3` and, for Windows, sys.executable (python.exe,
+# python3.11, ...).
+PYTHON_NAME = re.compile(r"python[0-9.]*(\.exe)?", re.IGNORECASE)
 NOT_APPLICABLE = "not_applicable"
 NOT_INSTALLED = "not_installed"
 INSTALLED_INCORRECTLY = "installed_incorrectly"
@@ -104,23 +108,35 @@ def _field_tokens(hook: dict[str, Any]) -> list[tuple[str, list[str] | None, str
     return found
 
 
+def _is_python(token: str) -> bool:
+    return PYTHON_NAME.fullmatch(token.replace("\\", "/").rsplit("/", 1)[-1]) is not None
+
+
 def _binding(tokens: list[str]) -> tuple[str, str | None] | None:
-    """(entry, project root) a command passes to the identity entry, or None if it does not run it."""
-    for index, token in enumerate(tokens):
-        if token.replace("\\", "/").endswith("/" + ENTRY):
-            rest = tokens[index + 1:]
-            if "--project-root" in rest[:-1]:
-                return token, rest[rest.index("--project-root") + 1]
-            return token, None
-    return None
+    """(entry, project root) when the command runs the identity entry, else None.
+
+    Only the installer's invocation forms count: `python3 <entry> ...` and
+    PowerShell's `& <python> <entry> ...`, optionally with -B. A command that
+    merely mentions the entry (for example `echo <entry>`) does not run it.
+    """
+    start = 1 if tokens[:1] == ["&"] else 0
+    if len(tokens) <= start + 1 or not _is_python(tokens[start]):
+        return None
+    index = start + 2 if tokens[start + 1] == "-B" else start + 1
+    if index >= len(tokens) or not tokens[index].replace("\\", "/").endswith("/" + ENTRY):
+        return None
+    rest = tokens[index + 1:]
+    if "--project-root" in rest[:-1]:
+        return tokens[index], rest[rest.index("--project-root") + 1]
+    return tokens[index], None
 
 
 def _owned(hook: Any) -> bool:
-    # Same textual ownership the installer uses, so a binding it would refuse to
-    # replace is never reported as missing.
+    # Same textual ownership the installer uses: a hook that names the entry is
+    # one the installer refuses to replace, so it is never reported as missing,
+    # whether or not it actually runs the entry.
     return isinstance(hook, dict) and any(
-        _binding(tokens) is not None if tokens is not None else ENTRY in text.replace("\\", "/")
-        for _, tokens, text in _field_tokens(hook)
+        ENTRY in text.replace("\\", "/") for _, _tokens, text in _field_tokens(hook)
     )
 
 
