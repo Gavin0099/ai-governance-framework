@@ -31,6 +31,11 @@ from governance_tools.external_governance_submodule_updater import (
     replace_legacy_memory_writer_router_line,
     update_governance_submodule,
 )
+from governance_tools.codex_session_start_wiring import (
+    assess_codex_session_start,
+    diagnostic_warnings as codex_session_start_warnings,
+    format_stage as _format_codex_session_start_stage,
+)
 from governance_tools.external_repo_readiness import assess_external_repo
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -832,6 +837,9 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     response_envelope_conflicts = _response_envelope_surface_conflicts(repo_root)
     stages["response_envelope_surface"] = "conflict" if response_envelope_conflicts else "verified"
     stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, framework_root)
+    # Report-only (#288): F-7 never installs the Codex identity hook; it says
+    # whether one is needed and how to add it with the owner's approval.
+    stages["codex_session_start"] = assess_codex_session_start(repo_root, framework_root)
     final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
         final_status = BLOCKED
@@ -845,6 +853,9 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             "review it before discarding — repository-specific instructions may live there"
         )
     warnings.extend(f"f7-diagnostic: {warning}" for warning in hook_warnings)
+    warnings.extend(
+        f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+    )
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
@@ -1008,6 +1019,8 @@ def run_f7_full_update(
             result.errors.extend(post_install_errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
+        # Report-only (#288), as on the external path: status and ok ignore it.
+        stages["codex_session_start"] = assess_codex_session_start(repo_root, repo_root / submodule_path)
         final_status = _status_with_lock_consistency(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
@@ -1069,6 +1082,9 @@ def run_f7_full_update(
             if warning.startswith(MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX)
         )
         warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
+        warnings.extend(
+            f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+        )
         return F7Result(
             ok=result.ok and not result.errors,
             mode=result.mode,
@@ -1139,6 +1155,8 @@ def format_human(result: F7Result) -> str:
         for key in sorted(result.stages):
             if key == "governance_maturity_summary":
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
+            elif key == "codex_session_start":
+                lines.extend(_format_codex_session_start_stage(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
         details = result.stages.get("details")
