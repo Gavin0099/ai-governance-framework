@@ -118,7 +118,8 @@ def _binding(tokens: list[str]) -> tuple[str, list[str]] | None:
     Only the installer's invocation forms count: `python3 <entry> ...` and
     PowerShell's `& <python> <entry> ...`, optionally with -B. A command that
     merely mentions the entry (for example `echo <entry>`) does not run it.
-    The arguments stop at PowerShell's `;`, before `exit $LASTEXITCODE`.
+    The arguments stop at PowerShell's `;` only when the rest is the installer's
+    `exit $LASTEXITCODE`; anything else stays in the arguments and is rejected.
     """
     start = 1 if tokens[:1] == ["&"] else 0
     if len(tokens) <= start + 1 or not _is_python(tokens[start]):
@@ -127,7 +128,9 @@ def _binding(tokens: list[str]) -> tuple[str, list[str]] | None:
     if index >= len(tokens) or not tokens[index].replace("\\", "/").endswith("/" + ENTRY):
         return None
     rest = tokens[index + 1:]
-    return tokens[index], rest[:rest.index(";")] if ";" in rest else rest
+    if ";" in rest and rest[rest.index(";"):] == [";", "exit", "$LASTEXITCODE"]:
+        rest = rest[:rest.index(";")]
+    return tokens[index], rest
 
 
 def _owned(hook: Any) -> bool:
@@ -186,6 +189,8 @@ def _session_start_reasons(hooks: dict[str, Any], repo_root: Path, framework_roo
     if len(owned) > 1:
         reasons.append(f"{len(owned)} identity hooks are registered under SessionStart; expected one")
     for group, hook in owned:
+        if hook.get("type", "command") != "command":
+            reasons.append(f"SessionStart hook type is {hook.get('type')!r}; expected 'command'")
         if group.get("matcher") != SESSION_START_MATCHER:
             reasons.append(
                 f"SessionStart matcher is {group.get('matcher')!r}; expected {SESSION_START_MATCHER!r}"

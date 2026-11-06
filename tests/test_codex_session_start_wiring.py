@@ -146,6 +146,28 @@ def test_other_modes_of_the_entry_are_not_identity_hooks(consumer: Path, extra: 
     assert any("must pass only --project-root" in reason for reason in report["reasons"]), report["reasons"]
 
 
+def _windows(script: str) -> str:
+    import base64
+    return "powershell -NoProfile -EncodedCommand " + base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+
+
+@pytest.mark.parametrize("tail, ok", [("; exit $LASTEXITCODE", True), ("; exit 0", False), ("; Remove-Item x", False)])
+def test_windows_tail_must_keep_the_exit_code(consumer: Path, tail: str, ok: bool) -> None:
+    hook = _identity_hook(ENTRY, consumer)
+    hook["commandWindows"] = _windows(f"& 'C:\\Python\\python.exe' '{ENTRY}' '--project-root' '{consumer}'{tail}")
+    _write_hooks(consumer, {"SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [hook]}]})
+    report = _assess_unchanged(consumer)
+    assert (report["status"] == INSTALLED_CORRECTLY) is ok, report["reasons"]
+
+
+def test_non_command_hook_type_is_incorrect(consumer: Path) -> None:
+    hook = {**_identity_hook(ENTRY, consumer), "type": "prompt"}
+    _write_hooks(consumer, {"SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [hook]}]})
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_INCORRECTLY
+    assert any("hook type" in reason for reason in report["reasons"])
+
+
 def test_versioned_interpreter_names_are_invocations(consumer: Path) -> None:
     hook = {"type": "command",
             "command": shlex.join(["/usr/bin/python3.11", "-B", str(ENTRY), "--project-root", str(consumer)])}
