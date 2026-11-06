@@ -119,6 +119,22 @@ Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` sectio
 7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
 <!-- ai-governance:agent-core-rules END -->
 
+## Formal Closeout on Request (MANDATORY)
+
+Prepare a formal closeout only at a defined session end: the owner explicitly asks to close out, or the platform confirms session end. Task DONE and a Stop event never trigger it. Use the existing entry point of the framework submodule registered in `.gitmodules`, run from that checkout with no `GIT_*` environment variables:
+
+```text
+python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-root <repo> --framework-root <framework> --session-id <session-id> --input <input.json>
+```
+
+- `<session-id>`: your platform's own session id (`CODEX_THREAD_ID` in Codex, `CLAUDE_CODE_SESSION_ID` in Claude Code). It must equal `session_id` in `artifacts/runtime/.current-session-id`, which names the most recently started or resumed session and may belong to another session sharing this checkout. If the platform exposes no native id, or the two differ, do not prepare: report the closeout as not persisted.
+- `<input.json>`: a JSON object with `task_intent`, `work_summary`, `tools_used`, `artifacts_referenced` and `open_risks`; field guidance is in `<framework>/.agents/skills/wrap-up/SKILL.md`.
+- `PREPARED` is preparation, not closeout. Where a governed session-end hook is confirmed for this platform, that hook runs the closeout: do not run it yourself. Where no usable governed hook exists, attempt the manual closeout printed by `python -m governance_tools.manage_agent_closeout print-manual --agent <agent>`, with the same session id; if it cannot run or its result cannot be verified, report `NOT PERSISTED` or `UNKNOWN`.
+- Report `REJECTED` verbatim and never substitute a hand-written `artifacts/session-closeout.txt`.
+- Supported only in a registered-submodule consumer whose session has a qualified (schema 1.1) identity. A Copilot CLI session (provider `github-copilot`) is rejected: report the closeout as not persisted.
+
+Details: `AGENTS.base.md`, Session Closeout Obligation.
+
 ## Delivery Convergence (MANDATORY)
 
 1. **Product slice first.** Finish the approved, usable product slice before adding governance surface, unless an observed failure requires it (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity).
