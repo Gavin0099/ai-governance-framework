@@ -112,12 +112,13 @@ def _is_python(token: str) -> bool:
     return PYTHON_NAME.fullmatch(token.replace("\\", "/").rsplit("/", 1)[-1]) is not None
 
 
-def _binding(tokens: list[str]) -> tuple[str, str | None] | None:
-    """(entry, project root) when the command runs the identity entry, else None.
+def _binding(tokens: list[str]) -> tuple[str, list[str]] | None:
+    """(entry, arguments) when the command runs the identity entry, else None.
 
     Only the installer's invocation forms count: `python3 <entry> ...` and
     PowerShell's `& <python> <entry> ...`, optionally with -B. A command that
     merely mentions the entry (for example `echo <entry>`) does not run it.
+    The arguments stop at PowerShell's `;`, before `exit $LASTEXITCODE`.
     """
     start = 1 if tokens[:1] == ["&"] else 0
     if len(tokens) <= start + 1 or not _is_python(tokens[start]):
@@ -126,9 +127,7 @@ def _binding(tokens: list[str]) -> tuple[str, str | None] | None:
     if index >= len(tokens) or not tokens[index].replace("\\", "/").endswith("/" + ENTRY):
         return None
     rest = tokens[index + 1:]
-    if "--project-root" in rest[:-1]:
-        return tokens[index], rest[rest.index("--project-root") + 1]
-    return tokens[index], None
+    return tokens[index], rest[:rest.index(";")] if ";" in rest else rest
 
 
 def _owned(hook: Any) -> bool:
@@ -199,11 +198,18 @@ def _session_start_reasons(hooks: dict[str, Any], repo_root: Path, framework_roo
             if bound is None:
                 reasons.append(f"SessionStart {field} does not run the identity entry")
                 continue
-            entry, root = bound
+            entry, args = bound
             if not _same_path(entry, expected_entry):
                 reasons.append(f"SessionStart {field} runs {entry}, not this framework checkout's entry")
-            if root is None or not _same_path(root, repo_root):
-                reasons.append(f"SessionStart {field} binds project root {root}, not this consumer")
+            # The hook must run the identity mode: exactly --project-root <consumer>.
+            # Anything else (--install, --help) runs another mode and never binds.
+            if len(args) != 2 or args[0] != "--project-root":
+                reasons.append(
+                    f"SessionStart {field} passes {args} to the identity entry; "
+                    "it must pass only --project-root <consumer>"
+                )
+            elif not _same_path(args[1], repo_root):
+                reasons.append(f"SessionStart {field} binds project root {args[1]}, not this consumer")
     return reasons
 
 

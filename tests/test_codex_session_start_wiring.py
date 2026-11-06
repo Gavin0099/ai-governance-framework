@@ -134,6 +134,18 @@ def test_a_mention_of_the_entry_is_not_an_identity_hook(consumer: Path) -> None:
     assert any("installed incorrectly" in w for w in diagnostic_warnings(report))
 
 
+@pytest.mark.parametrize("extra", [["--install"], ["--help"], []])
+def test_other_modes_of_the_entry_are_not_identity_hooks(consumer: Path, extra: list[str]) -> None:
+    # The repair command pasted into the hook keeps --install: it runs the
+    # installer on every start and never establishes an identity.
+    args = ["python3", str(ENTRY)] + (["--project-root", str(consumer)] if extra != [] else []) + extra
+    hook = {"type": "command", "command": shlex.join(args)}
+    _write_hooks(consumer, {"SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [hook]}]})
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_INCORRECTLY
+    assert any("must pass only --project-root" in reason for reason in report["reasons"]), report["reasons"]
+
+
 def test_versioned_interpreter_names_are_invocations(consumer: Path) -> None:
     hook = {"type": "command",
             "command": shlex.join(["/usr/bin/python3.11", "-B", str(ENTRY), "--project-root", str(consumer)])}
