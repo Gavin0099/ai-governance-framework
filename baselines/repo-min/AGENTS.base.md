@@ -136,14 +136,20 @@ that checkout with no `GIT_*` environment variables:
 python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-root <repo> --framework-root <framework> --session-id <session-id> --input <input.json>
 ```
 
-`<session-id>` is `session_id` in `artifacts/runtime/.current-session-id`;
-`<input.json>` holds `task_intent`, `work_summary`, `tools_used`,
+`<session-id>` is the platform's own session id (`CODEX_THREAD_ID` in Codex,
+`CLAUDE_CODE_SESSION_ID` in Claude Code), and it must equal `session_id` in
+`artifacts/runtime/.current-session-id`. That file names the most recently
+started or resumed session, which may be another session sharing the checkout;
+if the platform exposes no native id, or the two differ, do not prepare and
+report the closeout as not persisted. `<input.json>` holds `task_intent`, `work_summary`, `tools_used`,
 `artifacts_referenced` and `open_risks` (field guidance:
 `<framework>/.agents/skills/wrap-up/SKILL.md`). `PREPARED` means the candidate
 and `artifacts/session-closeout.txt` were written together under R2 ownership,
 and that text takes part in R2's consistency check with the candidate. It is
-preparation, not closeout: the platform's session-end hook runs the closeout.
-`REJECTED` is reported verbatim. Preparation is available only in a
+preparation, not closeout: where a governed session-end hook is confirmed for
+the platform (rule 4 below), that hook runs the closeout and the agent does
+not; where none is usable, the agent attempts the manual closeout under rule 5
+with the same session id. `REJECTED` is reported verbatim. Preparation is available only in a
 registered-submodule consumer whose session has a qualified (schema 1.1)
 identity; a Copilot CLI session (provider `github-copilot`) is rejected and its
 closeout is reported as not persisted.
