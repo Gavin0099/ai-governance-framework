@@ -16,6 +16,8 @@ from runtime_hooks.core._bound_session_start import establish_bound_session, git
 
 
 _root = git_toplevel
+# Every source re-binds the same identity; resume and compact must keep firing.
+SESSION_START_MATCHER = "^(startup|resume|clear|compact)$"
 
 
 def run(payload: dict, project_root: Path) -> dict:
@@ -55,7 +57,7 @@ def install(project_root: Path) -> dict:
     groups = hooks.setdefault("SessionStart", [])
     if not isinstance(groups, list):
         raise ValueError("Invalid SessionStart configuration")
-    expected = {"matcher": "^(startup|resume|clear|compact)$", "hooks": [hook_payload(root)]}
+    expected = {"matcher": SESSION_START_MATCHER, "hooks": [hook_payload(root)]}
     owned = []
     for group in groups:
         if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
