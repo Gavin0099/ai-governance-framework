@@ -323,10 +323,40 @@ def confirm_prepared(lease: Lease, session_id: str, generation: int) -> dict:
     return o
 
 
+# Providers whose release requires an owner closeout attestation (#233). The
+# provider is read from the canonical session envelope, never from a
+# caller-supplied agent_id, which any entry point can fill in freely.
+_ATTESTATION_REQUIRED_PROVIDERS = frozenset({"claude"})
+
+
+def _require_closeout_attested(lease, owner: dict) -> None:
+    """Authorization is checked where every release path converges.
+
+    finalize_release has exactly three callers — the handoff's HOLD recovery,
+    session_closeout_entry's protected closeout, and reconcile_release — so one
+    check here covers all of them instead of a second mechanism per entry.
+    Cooperative threat model: this records that the owner asked, it does not
+    authenticate who ran the command.
+    """
+    envelope = read_session_envelope(owner["session_id"], _lease(lease)) or {}
+    if envelope.get("provider") not in _ATTESTATION_REQUIRED_PROVIDERS:
+        return
+    # Lazy import: the attestation module builds on this one.
+    from governance_tools import closeout_attestation
+    closeout_attestation.require(lease, owner)
+
+
 def begin_closeout(lease: Lease, session_id: str, generation: int | None = None) -> dict:
     o = _matching(lease, session_id, generation)
     _require(not _completion(lease.root, session_id), "CONSUMED_SESSION")
     _require(o["state"] == "OWNED", "INVALID_OWNER", "prepared owner required")
+    # Authorization is checked here as well as at finalize_release, and it is
+    # the same check, not a second mechanism. finalize_release is the only point
+    # every release path converges on, so it stays the backstop; refusing here
+    # means an unattested attempt never runs the closeout, so it cannot burn a
+    # receipt reservation or leave a completion marker that would block the
+    # next session while this one is still unreleased.
+    _require_closeout_attested(lease, o)
     _payloads(lease, o)
     o.update(state="HOLD", hold_reason="closeout_pending", receipt_identity=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_r2_" + uuid.uuid4().hex)
     _publish(lease, AREA + "/owner.json", o, replace=True)
@@ -459,6 +489,7 @@ def finalize_release(lease: Lease, receipt: Path) -> dict:
     _require(o is not None and o["state"] == "HOLD"
              and o["hold_reason"] in {"closeout_pending", "failed"}, "RELEASE_PROOF_INVALID")
     _require(receipt == _path(lease.root, _receipt_relative(o)), "RELEASE_PROOF_INVALID")
+    _require_closeout_attested(lease, o)
     _payloads(lease, o)
     sha = _receipt_proof(lease, o)
     _publish(lease, f'{AREA}/releases/{o["generation"]}.json', _release_record(o, sha))
