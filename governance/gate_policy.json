@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "fail_mode": "strict",
+  "blocking_actions": [
+    "production_fix_required"
+  ],
+  "unknown_treatment": {
+    "mode": "block_if_count_exceeds",
+    "threshold": 3
+  },
+  "artifact_stale_seconds": 86400,
+  "canonical_audit_trend": {
+    "window_size": 20,
+    "signal_threshold_ratio": 0.5
+  },
+  "skip_test_result_check": false,
+  "hook_coverage_tier": "A"
+}
