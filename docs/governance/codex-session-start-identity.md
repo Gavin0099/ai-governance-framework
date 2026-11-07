@@ -146,6 +146,23 @@ SessionEnd hook and removes any legacy governance Stop closeout: Claude Code's
   session per worktree: after a session prepares a summary, a *new* session can
   read it back but cannot save its own until the previous session's formal
   closeout releases ownership. SessionStart says so when it applies.
+- **Install reports what it cannot promise.** `install` and `verify` carry a
+  `closeout_readiness` field. The save-progress command SessionStart declares
+  needs the framework to be a registered submodule of the project root and the
+  root's governance markers (`AGENTS.md`, `governance/`) to be present; neither
+  was checked at install time, so a configuration-only `installed` was reported
+  for layouts where that command had no success path (#257). Preconditions that
+  are unmet and preconditions that could not be read are reported separately, and
+  transient state — a dirty framework checkout, a moved gitlink — stays with the
+  pipeline's own fail-closed validation rather than being predicted here.
+- **Inherited `GIT_*` overrides.** The preparation entry rejects inherited Git
+  environment overrides, because its readers must not be handed a different
+  repository or index. Interactive helper selectors (`GIT_EDITOR`,
+  `GIT_SEQUENCE_EDITOR`, `GIT_PAGER`) are tolerated and dropped from every child
+  Git environment: they name a program Git may launch, cannot redirect what Git
+  reads, and an agent harness sets `GIT_EDITOR` unconditionally, which made the
+  declared command impossible to run as declared (#257). Every other `GIT_*` name
+  is still rejected before any runtime write.
 
 ## Event boundary and evidence
 

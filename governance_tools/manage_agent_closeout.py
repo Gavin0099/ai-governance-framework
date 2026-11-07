@@ -54,7 +54,9 @@ import argparse
 import base64
 import binascii
 import json
+import os
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -241,6 +243,119 @@ def _manual_closeout_cmd(framework_root: Path, agent_id: str, trigger_mode: str 
     return f"{base} --agent-id {agent_id} --trigger-mode {trigger_mode}"
 
 
+_PREPARE_ENTRY = "governance_tools/prepare_closeout_candidate.py"
+_SUBMODULE_PATH = r"^submodule\..*\.path$"
+
+
+def _registered_submodule_paths(consumer: Path) -> list[str] | None:
+    """Submodule paths registered in the consumer's .gitmodules.
+
+    Returns None when the registration cannot be read, which is reported as
+    undetermined rather than as a failed precondition.
+    """
+    modules = consumer / ".gitmodules"
+    if not modules.is_file():
+        return []
+    # Explicit -C and --file must select the repository and the registration
+    # file; inherited Git selectors must not supply a different one.
+    env = {key: value for key, value in os.environ.items()
+           if not key.upper().startswith("GIT_")}
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(consumer), "config", "--null", "--file", str(modules),
+             "--get-regexp", _SUBMODULE_PATH],
+            capture_output=True, encoding="utf-8", timeout=15, env=env, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode == 1:  # documented "no matching key", not a failure
+        return []
+    if result.returncode != 0:
+        return None
+    paths = []
+    for record in result.stdout.rstrip("\0").split("\0"):
+        if not record:
+            continue
+        _, _, relative = record.partition("\n")
+        if relative:
+            paths.append(relative)
+    return paths
+
+
+def closeout_execution_readiness(project_root: Path, framework_root: Path) -> dict[str, Any]:
+    """Report whether the save-progress command an install declares could run.
+
+    `install` writes a hook whose command is rejected outright when the
+    framework is not a registered submodule of the project, or when the
+    project root is missing its governance markers. Both are stable
+    properties of the layout and are cheap to check here, so reporting
+    `installed` without checking them overclaims (#257).
+
+    Only those stable preconditions are checked. A dirty framework checkout
+    or a moved gitlink is transient and stays with the pipeline's own
+    fail-closed validation. `unmet` and `undetermined` are kept apart so a
+    layout that could not be read is never reported as a failed precondition.
+    """
+    unmet: list[str] = []
+    undetermined: list[str] = []
+    try:
+        consumer = project_root.resolve(strict=True)
+        framework = framework_root.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        return {"ready": False, "unmet": [], "undetermined": [f"PATHS_UNRESOLVABLE: {exc}"],
+                "declared_entry": _PREPARE_ENTRY}
+
+    # The pipeline's own root predicate, so this reports what it would report.
+    # Imported here to keep the closeout pipeline off this CLI import path, and
+    # guarded: that pipeline pulls in runtime dependencies (PyYAML today, via
+    # session_end_hook -> runtime_hooks.core.session_end -> runtime_phase_policy),
+    # and a report-only check must never turn into an install prerequisite for
+    # someone inspecting or repairing an integration on stdlib-only Python.
+    # Reported as undetermined, not duplicated here: a second copy of the marker
+    # list would drift from the predicate it is supposed to mirror.
+    try:
+        from governance_tools.session_closeout_entry import (
+            RootBindingError, _validate_explicit_project_root,
+        )
+    except ImportError as exc:
+        undetermined.append(f"ROOT_PREDICATE_UNAVAILABLE: {exc}")
+    else:
+        try:
+            _validate_explicit_project_root(str(consumer))
+        except RootBindingError as exc:
+            unmet.append(f"ROOT_BINDING_WOULD_FAIL: {exc}")
+
+    if framework == consumer or not framework.is_relative_to(consumer):
+        unmet.append("FRAMEWORK_NOT_INSIDE_PROJECT: the declared command requires the "
+                     "framework to be a registered submodule of the project root")
+    else:
+        registrations = _registered_submodule_paths(consumer)
+        if registrations is None:
+            undetermined.append("SUBMODULE_REGISTRATION_UNREADABLE: .gitmodules could not be read")
+        else:
+            matched = []
+            for relative in registrations:
+                try:
+                    candidate = (consumer / relative).resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if candidate == framework:
+                    matched.append(relative)
+            if len(matched) != 1:
+                unmet.append("FRAMEWORK_NOT_REGISTERED_SUBMODULE: the framework path has "
+                             f"{len(matched)} submodule registrations in .gitmodules, not 1")
+    return {"ready": not unmet and not undetermined, "unmet": unmet,
+            "undetermined": undetermined, "declared_entry": _PREPARE_ENTRY}
+
+
+def _readiness_note(readiness: dict[str, Any]) -> str:
+    """One sentence naming what would reject the declared command, or nothing."""
+    if readiness["ready"]:
+        return ""
+    reasons = list(readiness["unmet"]) + list(readiness["undetermined"])
+    return (" The declared save-progress command cannot be shown to run in this layout: "
+            + "; ".join(reasons) + ".")
+
+
 # ── Claude Code adapter ───────────────────────────────────────────────────────
 
 class ClaudeAdapter(AgentAdapter):
@@ -416,9 +531,12 @@ class ClaudeAdapter(AgentAdapter):
             return {"status": "blocked", "location": str(settings_path),
                     "message": f"Unable to safely read Claude settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
+        readiness = closeout_execution_readiness(project_root, framework_root)
         if state == "CORRECTLY_INSTALLED":
             return {"status": "already_installed", "location": loc,
-                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."}
+                    "closeout_readiness": readiness,
+                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."
+                               + _readiness_note(readiness)}
         for path in (project_root / ".claude/settings.local.json",
                      Path.home() / ".claude/settings.json"):
             hooks = _read_json(path).get("hooks", {})
@@ -435,15 +553,18 @@ class ClaudeAdapter(AgentAdapter):
             hooks.setdefault(event, []).append({"hooks": [hook]})
         _write_json(settings_path, data)
         return {"status": "installed", "previous_binding_state": state,
-                "location": str(settings_path),
+                "location": str(settings_path), "closeout_readiness": readiness,
                 "message": ("Governance SessionStart/SessionEnd hooks installed"
-                            + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else "."))}
+                            + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else ".")
+                            + _readiness_note(readiness))}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         state, loc = self._binding_state(project_root, framework_root)
+        readiness = closeout_execution_readiness(project_root, framework_root)
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
-                "binding_state": state, "location": loc,
-                "note": "Configuration binding only; native execution is not verified."}
+                "binding_state": state, "location": loc, "closeout_readiness": readiness,
+                "note": "Configuration binding only; native execution is not verified."
+                        + _readiness_note(readiness)}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude" / "settings.json"
