@@ -225,12 +225,70 @@ def _matching(lease: Lease, sid: str, generation: int | None = None) -> dict:
     return o
 
 
+def _receipt_sessions(root: Path, receipts: Path) -> set[str]:
+    """Session ids named by readable receipts; the receipt check below stays authoritative."""
+    named: set[str] = set()
+    if receipts.exists():
+        for p in receipts.iterdir():
+            # Same path guard as the receipt check, before anything is read.
+            _path(root, p.relative_to(root).as_posix())
+            if not p.is_file():
+                continue
+            try:
+                other = json.loads(p.read_text(encoding="utf-8")).get("session_id")
+            except (OSError, ValueError, AttributeError):
+                continue
+            if isinstance(other, str):
+                named.add(other)
+    return named
+
+
+def _finished_without_candidate(root: Path, sid: str, receipt_sessions: set[str]) -> bool:
+    """A session end that recorded no candidate has nothing to reconcile (#256, 2026-11-07).
+
+    Its closeout record says ``missing``; the session has an identity, no closeout
+    candidate and no receipt. Shared text and release records were refused above.
+    """
+    record = _path(root, f"artifacts/runtime/closeouts/{sid}.json")
+    if not record.is_file() or read_session_envelope(sid, root) is None:
+        return False
+    try:
+        data = _json(record)
+    except OwnershipError:
+        return False
+    return (data.get("session_id") == sid and data.get("closeout_status") == "missing"
+            and not _path(root, f"artifacts/runtime/closeout_candidates/{sid}").exists()
+            and sid not in receipt_sessions)
+
+
 def _initial(root: Path, sid: str) -> None:
     _require(not _path(root, TEXT).exists(), "AMBIGUOUS_LEGACY_STATE")
     area = _path(root, AREA)
     _require(all(p.name == "execution.lock" for p in area.iterdir()), "AMBIGUOUS_LEGACY_STATE")
-    # Unknown/orphan/active lifecycle state cannot initialize FREE.
-    for directory, envelope_dir in (("sessions", True), ("closeout_candidates", True),
+    receipts = _path(root, "artifacts/runtime/closeout-receipts")
+    receipt_sessions = _receipt_sessions(root, receipts)
+    # ADR-0002 D1/D2: sessions/ is the identity registry. An envelope alone is
+    # identity, not a closeout obligation (IDENTITY_ONLY). The acquiring
+    # session's directory keeps its containment check, now with its own code
+    # (D3). Another session whose directory holds more than its envelope is not
+    # identity-only and still needs completion, as before; whether such files
+    # may ever be legitimate is ADR-0002's deferred question 2.
+    sessions = _path(root, "artifacts/runtime/sessions")
+    if sessions.exists():
+        for item in sessions.iterdir():
+            _path(root, item.relative_to(root).as_posix())
+            _require(bool(_ID.fullmatch(item.name)), "AMBIGUOUS_LEGACY_STATE")
+            stray = (sorted(p for p in item.iterdir() if p.name != "session-envelope.json")
+                     if item.is_dir() else [item])
+            if not stray:
+                continue
+            if item.name == sid:
+                raise OwnershipError("SESSION_DIR_UNEXPECTED_FILE", stray[0].relative_to(root).as_posix())
+            _require(read_session_envelope(item.name, root) is not None and _completion(root, item.name),
+                     "AMBIGUOUS_LEGACY_STATE", "active or orphan lifecycle evidence")
+    # Closeout-side state that is unknown, orphan or active cannot initialize FREE.
+    # closeout-requests/ is handoff state: it needs completion, never the ruling.
+    for directory, envelope_dir in (("closeout_candidates", True), ("closeout-requests", True),
                                      ("closeout-completions", False), ("closeouts", False),
                                      ("candidates", False), ("curated", False),
                                      ("summaries", False), ("verdicts", False), ("traces", False)):
@@ -240,14 +298,13 @@ def _initial(root: Path, sid: str) -> None:
         for item in parent.iterdir():
             _path(root, item.relative_to(root).as_posix())
             other = item.name if envelope_dir else item.stem
-            if directory == "sessions" and other == sid:
-                _require(item.is_dir() and all(p.name == "session-envelope.json"
-                         for p in item.iterdir()), "AMBIGUOUS_LEGACY_STATE")
-                continue
             _require(bool(_ID.fullmatch(other)), "AMBIGUOUS_LEGACY_STATE")
-            _require(read_session_envelope(other, root) is not None and _completion(root, other),
+            # The ruling covers only the JSON records a session end writes.
+            ruled = (not envelope_dir and item.is_file() and item.suffix == ".json"
+                     and _finished_without_candidate(root, other, receipt_sessions))
+            _require((read_session_envelope(other, root) is not None and _completion(root, other))
+                     or ruled,
                      "AMBIGUOUS_LEGACY_STATE", "active or orphan lifecycle evidence")
-    receipts = _path(root, "artifacts/runtime/closeout-receipts")
     if receipts.exists():
         for p in receipts.iterdir():
             data = _json(_path(root, p.relative_to(root).as_posix()))

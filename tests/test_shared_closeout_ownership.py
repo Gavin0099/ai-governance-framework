@@ -150,13 +150,13 @@ def test_partial_prepare_survives_process_exit_and_retry_appends(repo):
     assert owner(repo)['state'] == 'OWNED' and owner(repo)['generation'] == 2
 
 
-@pytest.mark.parametrize('ambiguity', ['text', 'other-session', 'orphan-candidate', 'release-history'])
+# An identity-only other session no longer blocks (ADR-0002 D1); see
+# tests/test_r2_first_initialization.py.
+@pytest.mark.parametrize('ambiguity', ['text', 'orphan-candidate', 'release-history'])
 def test_initialization_refuses_legacy_or_unknown_state(repo, ambiguity):
     start_session(repo)
     if ambiguity == 'text':
         (repo/own.TEXT).write_bytes(b'legacy text')
-    elif ambiguity == 'other-session':
-        start_session(repo, 'session-B')
     elif ambiguity == 'orphan-candidate':
         path = repo/'artifacts/runtime/closeout_candidates/orphan/one.json'
         path.parent.mkdir(parents=True); path.write_text('{}')
