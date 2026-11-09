@@ -114,14 +114,15 @@ and that text takes part in R2's consistency check with the candidate. It is
 preparation, not closeout, and the agent does not run the closeout itself.
 The manual fallback cannot release an R2-prepared candidate (it is refused with
 `RELEASE_PROOF_INVALID`), so after `PREPARED` do not attempt it. If
-`manage_agent_closeout verify --agent <agent>` reports the governed
-session-end hook as installed, the closeout is left to that hook after the
-turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
+`manage_agent_closeout verify --agent <agent>` reports a closeout hook as
+installed and says the closeout is left to it (today only the Codex Stop
+hook; a hook that only writes a checkpoint does not count), the closeout is
+left to that hook after the turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
 session-end hook), not `NOT PERSISTED`. An installed hook is not proof that
 it will run or succeed, and the agent cannot observe it during its own turn;
 only the existing R2 evidence (a valid canonical closeout and released
-ownership) confirms `VALID` / `RELEASED` afterwards. If no governed hook is installed,
-report the closeout as not persisted. `REJECTED` is reported verbatim. Preparation is available only in a
+ownership) confirms `VALID` / `RELEASED` afterwards. Otherwise report the closeout as
+not persisted. `REJECTED` is reported verbatim. Preparation is available only in a
 registered-submodule consumer whose session has a qualified (schema 1.1)
 identity; a Copilot CLI session (provider `github-copilot`) is rejected and its
 closeout is reported as not persisted.

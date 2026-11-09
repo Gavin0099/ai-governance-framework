@@ -455,8 +455,9 @@ class ClaudeAdapter(AgentAdapter):
         state, loc = self._binding_state(project_root, framework_root)
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
                 "binding_state": state, "location": loc,
-                "note": "Configuration binding only; native execution is not verified."
-                        + (_PENDING_HOOK_NOTE if state == "CORRECTLY_INSTALLED" else "")}
+                # No pending-hook note: Claude's SessionEnd hook only writes a
+                # resumable checkpoint; it never runs the formal closeout (#287).
+                "note": "Configuration binding only; native execution is not verified."}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude" / "settings.json"

@@ -26,6 +26,10 @@ def test_guidance_reports_pending_hook_and_skips_refused_fallback():
     for rel in GUIDANCE:
         text = _text(rel)
         assert "`PREPARED` / `PENDING_HOOK`" in text, rel
+        # Only a hook that runs the closeout counts, and verify must say so.
+        assert "says the closeout is left to it" in text, rel
+        assert "a hook that only writes a checkpoint does not count" in text, rel
+        assert "reports the governed session-end hook as installed" not in text, rel
         assert "not `NOT PERSISTED`" in text, rel
         assert "An installed hook is not proof that it will run or succeed" in text, rel
         assert "hook runs the closeout after" not in text, rel
@@ -51,7 +55,9 @@ def test_codex_verify_adds_pending_note_only_when_hook_installed(tmp_path):
     assert "native execution is not verified" in installed["note"]
 
 
-def test_claude_verify_adds_pending_note_only_when_correctly_installed(tmp_path):
+def test_claude_verify_never_leaves_the_closeout_to_its_hook(tmp_path):
+    # Claude's SessionEnd hook only writes a resumable checkpoint; telling the
+    # agent the closeout is pending on it would never resolve.
     adapter = ClaudeAdapter()
     framework = tmp_path / "framework"
     project = tmp_path / "consumer"
@@ -60,7 +66,12 @@ def test_claude_verify_adds_pending_note_only_when_correctly_installed(tmp_path)
     adapter.install(project, framework)
     result = adapter.verify(project, framework)
     assert result["binding_state"] == "CORRECTLY_INSTALLED"
-    assert result["note"].endswith(_PENDING_HOOK_NOTE)
+    assert _PENDING_HOOK_NOTE not in result["note"]
+    assert "closeout is left to" not in result["note"]
+
+
+def test_codex_note_carries_the_phrase_the_guidance_keys_on():
+    assert "the closeout is left to this hook" in _PENDING_HOOK_NOTE
 
 
 def test_codex_print_manual_says_fallback_is_not_for_prepared_candidates(tmp_path):
