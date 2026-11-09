@@ -57,10 +57,21 @@ def portable_framework_path(project_root: Path | None, framework_root: Path) -> 
     return rel
 
 
+# The resolved repository must itself declare Codex hooks. Without this, a hook
+# run from inside a nested repository that has no .codex/hooks.json would run
+# that repository's copy of the entry instead of the consumer's (#288 review).
+POSIX_ROOT = (
+    'repo_root="$(git rev-parse --show-toplevel)" && '
+    '[ -f "$repo_root/.codex/hooks.json" ] && '
+)
+
+
 def windows_python_prologue(purpose: str) -> str:
     """Resolve the repository root and a Python at run time (no sys.executable)."""
     return (
         "$repo = git rev-parse --show-toplevel; "
+        "if (-not (Test-Path (Join-Path $repo '.codex\\hooks.json'))) "
+        "{ Write-Error 'The resolved repository has no .codex/hooks.json'; exit 1 }; "
         "$candidates = @((Join-Path $repo '.venv-ci\\Scripts\\python.exe'), "
         "(Join-Path $repo '.venv\\Scripts\\python.exe')); "
         "$python = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1; "
@@ -78,10 +89,7 @@ def portable_hook_payload(project_root: Path, framework_root: Path | None = None
     if not rel:
         return None
     entry = f"{rel}/runtime_hooks/adapters/codex/session_start.py"
-    posix = (
-        'repo_root="$(git rev-parse --show-toplevel)" && '
-        f'python3 "$repo_root/{entry}" --project-root "$repo_root"'
-    )
+    posix = POSIX_ROOT + f'python3 "$repo_root/{entry}" --project-root "$repo_root"'
     script = (
         windows_python_prologue("Codex SessionStart")
         + f'& $python "$repo/{entry}" --project-root $repo; exit $LASTEXITCODE'
@@ -134,7 +142,11 @@ def install(project_root: Path) -> dict:
     groups.append(expected)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return {"status": "installed", "path": str(path)}
+    result = {"status": "installed", "path": str(path), "portable": portable is not None}
+    if portable is None:
+        result["note"] = ("absolute paths: the framework checkout is outside the consumer or its path "
+                          "needs shell quoting, so this hook is not portable to another machine or clone")
+    return result
 
 
 def main() -> int:

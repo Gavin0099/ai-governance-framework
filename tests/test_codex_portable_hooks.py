@@ -114,3 +114,65 @@ def test_framework_outside_the_consumer_keeps_the_absolute_form(tmp_path):
 def test_paths_that_would_need_shell_quoting_keep_the_absolute_form(tmp_path, rel):
     root, framework = _consumer(tmp_path, rel=rel)
     assert ss.portable_framework_path(root, framework) is None
+
+
+# ── Execute the generated commands (review: string checks alone cannot catch
+#    broken shell syntax or a wrong repository root) ─────────────────────────
+
+_STUB = (
+    "import pathlib, sys\n"
+    "pathlib.Path(sys.argv[0]).with_name('ran.txt').write_text(' '.join(sys.argv[1:]), encoding='utf-8')\n"
+)
+
+
+def _stub_framework(root: Path, rel: str = "ai-governance-framework") -> None:
+    for entry in ("governance_tools/session_closeout_entry.py",
+                  "runtime_hooks/adapters/codex/session_start.py"):
+        path = root / rel / entry
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_STUB, encoding="utf-8")
+
+
+def _run(hook: dict, cwd: Path) -> subprocess.CompletedProcess:
+    if sys.platform == "win32":
+        return subprocess.run(hook["commandWindows"], cwd=cwd, shell=True, capture_output=True)
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash not available")
+    return subprocess.run([bash, "-c", hook["command"]], cwd=cwd, capture_output=True)
+
+
+def _portable_hooks(root: Path, framework: Path) -> list[dict]:
+    return [CodexCLIAdapter._hook_payload(framework, root), ss.portable_hook_payload(root, framework)]
+
+
+@pytest.mark.skipif(sys.platform == "win32" and shutil.which("powershell") is None,
+                    reason="powershell not available")
+def test_portable_hooks_run_the_consumer_entry_from_a_subdirectory(tmp_path):
+    root, framework = _consumer(tmp_path / "with space")
+    _stub_framework(root)
+    (root / ".codex").mkdir()
+    (root / ".codex" / "hooks.json").write_text("{}", encoding="utf-8")
+    sub = root / "src" / "deep"
+    sub.mkdir(parents=True)
+    for hook, ran in zip(_portable_hooks(root, framework),
+                         ("governance_tools/ran.txt", "runtime_hooks/adapters/codex/ran.txt")):
+        result = _run(hook, sub)
+        assert result.returncode == 0, result.stderr
+        args = (framework / ran).read_text(encoding="utf-8")
+        assert Path(args.split("--project-root ", 1)[1].split(" --", 1)[0]).resolve() == root
+
+
+@pytest.mark.skipif(sys.platform == "win32" and shutil.which("powershell") is None,
+                    reason="powershell not available")
+def test_portable_hooks_refuse_a_nested_repository_without_codex_hooks(tmp_path):
+    root, framework = _consumer(tmp_path)
+    (root / ".codex").mkdir()
+    (root / ".codex" / "hooks.json").write_text("{}", encoding="utf-8")
+    nested = root / "third_party" / "lib"
+    subprocess.run(["git", "init", "-q", str(nested)], check=True)
+    _stub_framework(nested)  # a nested repo that ships same-named scripts
+    for hook in _portable_hooks(root, framework):
+        result = _run(hook, nested)
+        assert result.returncode != 0
+    assert not list(nested.rglob("ran.txt")), "a nested repository's entry must not run"

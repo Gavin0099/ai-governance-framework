@@ -63,6 +63,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime_hooks.adapters.codex.session_start import (  # noqa: E402
+    POSIX_ROOT as _POSIX_ROOT,
     encode_powershell as _encode_powershell,
     portable_framework_path,
     windows_python_prologue as _windows_python_prologue,
@@ -1024,8 +1025,8 @@ class CodexCLIAdapter(AgentAdapter):
                 "--agent-id codex --trigger-mode native_hook"
             )
             posix_command = (
-                'repo_root="$(git rev-parse --show-toplevel)" && '
-                f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
+                _POSIX_ROOT
+                + f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
                 f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
             )
             windows_script = (
@@ -1117,10 +1118,16 @@ class CodexCLIAdapter(AgentAdapter):
         target_hooks = target_group.setdefault("hooks", [])
         target_hooks.append(self._hook_payload(framework_root, project_root))
         _write_json(hook_path, data)
+        portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
             "location": str(hook_path),
-            "message": f"Governance Codex Stop hook added to {hook_path}.",
+            "portable": portable,
+            "message": f"Governance Codex Stop hook added to {hook_path}." + (
+                "" if portable else
+                " It uses absolute paths (framework outside the consumer, or a path that needs"
+                " shell quoting), so it is not portable to another machine or clone."
+            ),
         }
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
