@@ -30,6 +30,11 @@ def test_guidance_reports_pending_hook_and_skips_refused_fallback():
         assert "says the closeout is left to it" in text, rel
         assert "a hook that only writes a checkpoint does not count" in text, rel
         assert "reports the governed session-end hook as installed" not in text, rel
+        # verify defaults to the current directory, and preparation runs from
+        # the framework checkout, so the consumer root must be explicit.
+        assert "manage_agent_closeout --project-root <repo> verify --agent <agent>" in text, rel
+        # Rule 5's manual attempt is reconciled, not silently skipped.
+        assert "cannot release a `PREPARED` candidate, so that report is its outcome" in text, rel
         assert "not `NOT PERSISTED`" in text, rel
         assert "An installed hook is not proof that it will run or succeed" in text, rel
         assert "hook runs the closeout after" not in text, rel
@@ -55,9 +60,11 @@ def test_codex_verify_adds_pending_note_only_when_hook_installed(tmp_path):
     assert "native execution is not verified" in installed["note"]
 
 
-def test_claude_verify_never_leaves_the_closeout_to_its_hook(tmp_path):
+def test_claude_verify_never_leaves_the_closeout_to_its_hook(tmp_path, monkeypatch):
     # Claude's SessionEnd hook only writes a resumable checkpoint; telling the
     # agent the closeout is pending on it would never resolve.
+    # Isolate the user's global ~/.claude/settings.json.
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
     adapter = ClaudeAdapter()
     framework = tmp_path / "framework"
     project = tmp_path / "consumer"
