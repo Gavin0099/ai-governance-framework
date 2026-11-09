@@ -18,11 +18,12 @@ from pathlib import Path
 from typing import Any
 
 from governance_tools.manage_agent_closeout import CodexCLIAdapter
-from runtime_hooks.adapters.codex.session_start import SESSION_START_MATCHER
+from runtime_hooks.adapters.codex.session_start import SESSION_START_MATCHER, portable_hook_payload
 
 ENTRY = "runtime_hooks/adapters/codex/session_start.py"
-# The installer writes `python3` and, for Windows, sys.executable (python.exe,
-# python3.11, ...).
+# The installer's absolute form writes `python3` and, for Windows,
+# sys.executable (python.exe, python3.11, ...). For a framework checkout inside
+# the consumer it writes the portable form instead, matched exactly (#288).
 PYTHON_NAME = re.compile(r"python[0-9.]*(\.exe)?", re.IGNORECASE)
 NOT_APPLICABLE = "not_applicable"
 NOT_INSTALLED = "not_installed"
@@ -152,7 +153,7 @@ def _hook_list(group: dict[str, Any]) -> list[Any]:
     return hooks if isinstance(hooks, list) else []
 
 
-def _stop_wiring(hooks: dict[str, Any], framework_root: Path) -> str:
+def _stop_wiring(hooks: dict[str, Any], framework_root: Path, repo_root: Path) -> str:
     governance = [
         hook
         for group in _groups(hooks, "Stop")
@@ -161,7 +162,7 @@ def _stop_wiring(hooks: dict[str, Any], framework_root: Path) -> str:
     ]
     if not governance:
         return "not_found"
-    if len(governance) == 1 and CodexCLIAdapter._is_current_hook(governance[0], framework_root):
+    if len(governance) == 1 and CodexCLIAdapter._is_current_hook(governance[0], framework_root, repo_root):
         return "consistent"
     return "inconsistent"
 
@@ -188,7 +189,13 @@ def _session_start_reasons(hooks: dict[str, Any], repo_root: Path, framework_roo
     ]
     if len(owned) > 1:
         reasons.append(f"{len(owned)} identity hooks are registered under SessionStart; expected one")
+    portable = portable_hook_payload(repo_root, framework_root)
     for group, hook in owned:
+        if (portable is not None and group.get("matcher") == SESSION_START_MATCHER
+                and all(hook.get(key) == portable[key] for key in ("type", "command", "commandWindows"))):
+            # The portable form the installer writes for a framework checkout
+            # inside the consumer; it resolves both paths at run time (#288).
+            continue
         if hook.get("type", "command") != "command":
             reasons.append(f"SessionStart hook type is {hook.get('type')!r}; expected 'command'")
         if group.get("matcher") != SESSION_START_MATCHER:
@@ -273,7 +280,7 @@ def assess_codex_session_start(repo_root: Path, framework_root: Path) -> dict[st
     else:
         report["status"] = INSTALLED_CORRECTLY
 
-    report["stop_wiring"] = _stop_wiring(hooks, framework_root)
+    report["stop_wiring"] = _stop_wiring(hooks, framework_root, repo_root)
     if report["stop_wiring"] == "not_found" and _has_session_end_publisher(hooks):
         # The SessionEnd publisher only publishes a request; adding a Stop
         # closeout next to it would be a second, different closeout path.

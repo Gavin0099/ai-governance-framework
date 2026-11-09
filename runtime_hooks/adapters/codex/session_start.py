@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -33,7 +34,65 @@ def run(payload: dict, project_root: Path) -> dict:
     )
 
 
+FRAMEWORK_ROOT = Path(__file__).resolve().parents[3]
+_PORTABLE_REL = re.compile(r"[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*")
+
+
+def portable_framework_path(project_root: Path | None, framework_root: Path) -> str | None:
+    """Framework checkout path relative to the consumer root, or None.
+
+    A hook that names this relative path and resolves the repository root at
+    run time carries no machine-, user- or clone-specific path, so the consumer
+    can commit it (#288). Only plain path characters are accepted, so the path
+    needs no quoting in either shell; anything else keeps the absolute form.
+    """
+    if project_root is None:
+        return None
+    try:
+        rel = Path(framework_root).resolve().relative_to(Path(project_root).resolve()).as_posix()
+    except (ValueError, OSError):
+        return None
+    if rel in ("", ".") or not _PORTABLE_REL.fullmatch(rel) or ".." in rel.split("/"):
+        return None
+    return rel
+
+
+def windows_python_prologue(purpose: str) -> str:
+    """Resolve the repository root and a Python at run time (no sys.executable)."""
+    return (
+        "$repo = git rev-parse --show-toplevel; "
+        "$candidates = @((Join-Path $repo '.venv-ci\\Scripts\\python.exe'), "
+        "(Join-Path $repo '.venv\\Scripts\\python.exe')); "
+        "$python = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1; "
+        "if (-not $python) { $python = (Get-Command python -ErrorAction SilentlyContinue).Source }; "
+        f"if (-not $python) {{ Write-Error 'No Python interpreter found for {purpose}'; exit 1 }}; "
+    )
+
+
+def encode_powershell(script: str) -> str:
+    return "powershell -NoProfile -EncodedCommand " + base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+
+
+def portable_hook_payload(project_root: Path, framework_root: Path | None = None) -> dict | None:
+    rel = portable_framework_path(project_root, framework_root if framework_root is not None else FRAMEWORK_ROOT)
+    if not rel:
+        return None
+    entry = f"{rel}/runtime_hooks/adapters/codex/session_start.py"
+    posix = (
+        'repo_root="$(git rev-parse --show-toplevel)" && '
+        f'python3 "$repo_root/{entry}" --project-root "$repo_root"'
+    )
+    script = (
+        windows_python_prologue("Codex SessionStart")
+        + f'& $python "$repo/{entry}" --project-root $repo; exit $LASTEXITCODE'
+    )
+    return {"type": "command", "command": posix, "commandWindows": encode_powershell(script),
+            "timeout": 30, "statusMessage": "Establishing governance session identity..."}
+
+
 def hook_payload(project_root: Path) -> dict:
+    """Absolute form, kept for a framework checkout outside the consumer and
+    as an accepted existing binding."""
     entry = Path(__file__).resolve()
     args = [str(entry), "--project-root", str(project_root.resolve())]
     posix = "python3 " + shlex.join(args)
@@ -57,7 +116,10 @@ def install(project_root: Path) -> dict:
     groups = hooks.setdefault("SessionStart", [])
     if not isinstance(groups, list):
         raise ValueError("Invalid SessionStart configuration")
-    expected = {"matcher": SESSION_START_MATCHER, "hooks": [hook_payload(root)]}
+    portable = portable_hook_payload(root)
+    expected = {"matcher": SESSION_START_MATCHER, "hooks": [portable or hook_payload(root)]}
+    # An existing absolute binding for this checkout stays accepted; it is not rewritten.
+    accepted = [expected, {"matcher": SESSION_START_MATCHER, "hooks": [hook_payload(root)]}]
     owned = []
     for group in groups:
         if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
@@ -66,7 +128,7 @@ def install(project_root: Path) -> dict:
             if isinstance(h, dict) and "runtime_hooks/adapters/codex/session_start.py" in str(h.get("command", "")).replace("\\", "/"):
                 owned.append(group)
     if owned:
-        if len(owned) == 1 and owned[0] == expected:
+        if len(owned) == 1 and owned[0] in accepted:
             return {"status": "already_installed", "path": str(path)}
         raise ValueError("Existing SessionStart binding differs; review before replacing")
     groups.append(expected)
