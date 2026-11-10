@@ -111,10 +111,20 @@ report the closeout as not persisted. `<input.json>` holds `task_intent`, `work_
 `<framework>/.agents/skills/wrap-up/SKILL.md`). `PREPARED` means the candidate
 and `artifacts/session-closeout.txt` were written together under R2 ownership,
 and that text takes part in R2's consistency check with the candidate. It is
-preparation, not closeout: where a governed session-end hook is confirmed for
-the platform (rule 4 below), that hook runs the closeout and the agent does
-not; where none is usable, the agent attempts the manual closeout under rule 5
-with the same session id. `REJECTED` is reported verbatim. Preparation is available only in a
+preparation, not closeout, and the agent does not run the closeout itself.
+The manual fallback cannot release an R2-prepared candidate (it is refused with
+`RELEASE_PROOF_INVALID`), so after `PREPARED` do not attempt it. If
+`python -m governance_tools.manage_agent_closeout --project-root <repo> verify
+--agent <agent>`, run from the framework checkout, reports a closeout hook as
+installed and says the closeout is left to it (today only the Codex Stop
+hook; a hook that only writes a checkpoint does not count), the closeout is
+left to that hook after the turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
+session-end hook), not `NOT PERSISTED`. An installed hook is not proof that
+it will run or succeed, and the agent cannot observe it during its own turn;
+only the existing R2 evidence (a valid canonical closeout and released
+ownership) confirms `VALID` / `RELEASED` afterwards. Otherwise report the closeout as
+not persisted: rule 5's manual attempt cannot release a `PREPARED`
+candidate, so that report is its outcome. `REJECTED` is reported verbatim. Preparation is available only in a
 registered-submodule consumer whose session has a qualified (schema 1.1)
 identity; a Copilot CLI session (provider `github-copilot`) is rejected and its
 closeout is reported as not persisted.
