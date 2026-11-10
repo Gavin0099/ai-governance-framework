@@ -62,6 +62,13 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from runtime_hooks.adapters.codex.session_start import (  # noqa: E402
+    POSIX_ROOT as _POSIX_ROOT,
+    encode_powershell as _encode_powershell,
+    portable_framework_path,
+    windows_python_prologue as _windows_python_prologue,
+)
+
 
 # ── Capability tier constants ─────────────────────────────────────────────────
 
@@ -1001,18 +1008,54 @@ class CodexCLIAdapter(AgentAdapter):
         return False
 
     @classmethod
-    def _is_current_hook(cls, hook: Any, framework_root: Path) -> bool:
+    def _is_current_hook(cls, hook: Any, framework_root: Path,
+                         project_root: Path | None = None) -> bool:
         if not cls._is_governance_hook(hook):
             return False
-        expected = cls._hook_payload(framework_root)
-        return (
+        # The absolute form stays current so existing consumers are not
+        # reported stale; the portable form is current for a framework
+        # checkout inside the consumer (#288).
+        candidates = [cls._hook_payload(framework_root)]
+        if project_root is not None and portable_framework_path(project_root, framework_root):
+            candidates.append(cls._hook_payload(framework_root, project_root))
+        return any(
             hook.get("type") == expected["type"]
             and all(hook.get(field) == expected[field]
                     for field in ("command", "commandWindows"))
+            for expected in candidates
         )
 
     @staticmethod
-    def _hook_payload(framework_root: Path) -> dict[str, Any]:
+    def _hook_payload(framework_root: Path, project_root: Path | None = None) -> dict[str, Any]:
+        """Stop closeout hook. With project_root, and a framework checkout
+        inside it, the entry is resolved from the repository root at run time,
+        so a committed .codex/hooks.json works on any machine or clone (#288).
+        """
+        rel = portable_framework_path(project_root, framework_root) if project_root is not None else None
+        if rel:
+            posix_entry = f"$repo_root/{rel}/governance_tools/session_closeout_entry.py"
+            args = (
+                f'"{posix_entry}" --format json '
+                "--agent-id codex --trigger-mode native_hook"
+            )
+            posix_command = (
+                _POSIX_ROOT
+                + f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
+                f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
+            )
+            windows_script = (
+                _windows_python_prologue("Codex closeout")
+                + f'& $python "$repo/{rel}/governance_tools/session_closeout_entry.py" '
+                "--project-root $repo --format json "
+                "--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE"
+            )
+            return {
+                "type": "command",
+                "command": posix_command,
+                "commandWindows": _encode_powershell(windows_script),
+                "timeout": 30,
+                "statusMessage": "Running governance session closeout...",
+            }
         entrypoint = framework_root / "governance_tools" / "session_closeout_entry.py"
         args = (
             f'"{entrypoint.as_posix()}" --format json '
@@ -1057,7 +1100,7 @@ class CodexCLIAdapter(AgentAdapter):
                 if self._is_governance_hook(hook):
                     governance_hooks.append(hook)
         return (len(governance_hooks) == 1
-                and self._is_current_hook(governance_hooks[0], framework_root))
+                and self._is_current_hook(governance_hooks[0], framework_root, project_root))
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
@@ -1087,12 +1130,18 @@ class CodexCLIAdapter(AgentAdapter):
                     if not self._is_governance_hook(hook)
                 ]
         target_hooks = target_group.setdefault("hooks", [])
-        target_hooks.append(self._hook_payload(framework_root))
+        target_hooks.append(self._hook_payload(framework_root, project_root))
         _write_json(hook_path, data)
+        portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
             "location": str(hook_path),
-            "message": f"Governance Codex Stop hook added to {hook_path}.",
+            "portable": portable,
+            "message": f"Governance Codex Stop hook added to {hook_path}." + (
+                "" if portable else
+                " It uses absolute paths (framework outside the consumer, or a path that needs"
+                " shell quoting), so it is not portable to another machine or clone."
+            ),
         }
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
