@@ -234,6 +234,18 @@ _CLOSEOUT_CMD_BARE = (
 )
 
 
+# Issue #287: the agent cannot observe a session-end hook run during its own
+# turn, so for a PREPARED candidate an installed hook means "pending", not
+# "failed". Wording only; the existing R2 evidence remains the sole confirmation.
+_PENDING_HOOK_NOTE = (
+    " If you PREPARED a candidate this session, the closeout is left to this hook"
+    " after your turn: report PREPARED / PENDING_HOOK (not NOT PERSISTED), and do"
+    " not run manual_fallback, which is refused for R2-prepared candidates. An"
+    " installed hook is not proof that it will run or succeed; only the existing R2"
+    " evidence confirms VALID / RELEASED afterwards."
+)
+
+
 def _manual_closeout_cmd(framework_root: Path, agent_id: str, trigger_mode: str = "manual_fallback") -> str:
     base = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root, _MANUAL_ROOT_PLACEHOLDER)
     if agent_id == "codex":
@@ -443,6 +455,8 @@ class ClaudeAdapter(AgentAdapter):
         state, loc = self._binding_state(project_root, framework_root)
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
                 "binding_state": state, "location": loc,
+                # No pending-hook note: Claude's SessionEnd hook only writes a
+                # resumable checkpoint; it never runs the formal closeout (#287).
                 "note": "Configuration binding only; native execution is not verified."}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
@@ -1092,7 +1106,8 @@ class CodexCLIAdapter(AgentAdapter):
                 f"Single governance Codex Stop hook matches requested framework root {framework_root}."
                 if installed else
                 f"Governance Codex Stop hook is missing, stale, or duplicated for requested framework root {framework_root}."
-            ) + " Configuration binding only; native execution is not verified.",
+            ) + " Configuration binding only; native execution is not verified."
+            + (_PENDING_HOOK_NOTE if installed else ""),
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
@@ -1127,6 +1142,8 @@ class CodexCLIAdapter(AgentAdapter):
         return (
             f"[{self.display_name}] Manual closeout (fallback if Stop hook is not installed):\n\n"
             f"    {cmd}\n\n"
+            f"Not for a PREPARED (R2) candidate: manual_fallback is refused for it "
+            f"(RELEASE_PROOF_INVALID).\n\n"
             f"Or install the Stop hook:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent codex"
         )
