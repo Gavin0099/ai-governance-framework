@@ -485,14 +485,21 @@ class ClaudeAdapter(AgentAdapter):
         }
 
     def print_manual(self, framework_root: Path) -> str:
-        cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
+        entry = (framework_root / "governance_tools" / "claude_formal_closeout.py").as_posix()
+        base = (f"python {entry} --project-root <PROJECT_ROOT> --session-id <SESSION_ID> "
+                f"--transcript-path <SESSION_JSONL>")
         return (
             f"[{self.display_name}] Exiting only writes a resumable checkpoint; formal "
-            f"closeout is a separate explicit operation.\n\n"
-            f"Known gap: the manual command below uses --trigger-mode manual_fallback, which "
-            f"session_closeout_entry currently rejects (R2 release proof), so there is no "
-            f"working explicit closeout command yet:\n\n"
-            f"    {cmd}\n\n"
+            f"closeout is a separate explicit operation. Prepare the closeout candidate "
+            f"first, then run one of:\n\n"
+            f"When the owner asks for it in this session:\n\n"
+            f"    {base} --owner-request \"<what the owner asked>\"\n\n"
+            f"When the owner authorized the closeout in advance, in an [Owner Closeout "
+            f"Authorization] block committed before this session started, and its "
+            f"condition is met:\n\n"
+            f"    {base} --authorization-ref <path>@<commit> --condition-met \"<condition met>\"\n\n"
+            f"Never close out on a plan line, a memory next_step, task DONE alone, or an "
+            f"authorization you wrote yourself. manual_fallback stays rejected.\n\n"
             f"Install the SessionStart/SessionEnd hooks:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent claude"
         )
