@@ -2,6 +2,8 @@
 
 Status: **DESIGN CANDIDATE / UNREVIEWED**. Scope only. No implementation is
 authorized by this document, and nothing below has been built or validated.
+Amended by the owner ruling of 2026-11-11 (authorization given in advance);
+see that subsection under the predicate.
 
 Issue: #233, Tranche 2. Builds on Tranche 1, which **landed** in `main` via
 #240 — the integration that merged #232 and #237 and resolved Tranche 1's P1-a
@@ -115,6 +117,50 @@ statement by the owner.
 
 That a release was performed can show *what* happened in an audit. It never
 retroactively establishes that the attestation predicate was satisfied.
+
+### Owner ruling 2026-11-11: authorization given in advance
+
+The owner ruled that a current statement at every handover is not required when
+the owner already authorized the closeout. Without this, one complete
+authorization could not carry a task across sessions: the agent would stop at
+every handover to ask again. The ruling changes the predicate above as follows;
+everything else in this section still holds.
+
+- **Counts.** An owner authorization that names a concrete closeout or handover
+  condition, once the agent has met that condition. It must trace to a
+  verifiable original owner source and must have been recorded before the
+  closing session started. `AGENTS.base.md` Session Closeout rule 3 says the
+  same.
+- **Does not count.** A plan line such as "hand over to B next", a memory
+  `next_step`, task DONE without a named closeout condition, or an
+  authorization the agent wrote for itself. The exclusions in the list above
+  remain in force for anything that is not such an authorization.
+- **Mechanism.** The authorization is a committed block in the task's slice:
+
+  ```text
+  [Owner Closeout Authorization]
+  SOURCE    = <https URL or SHA-256 of the owner's original record>
+  CONDITION = <the closeout or handover condition>
+  ```
+
+  `claude_formal_closeout --authorization-ref <path>@<commit> --condition-met
+  "<...>"` records a schema 1.1 attestation instead of an owner statement.
+  The release gate resolves the reference against Git again and refuses unless
+  the block exists at that commit, the commit is in the history of `HEAD`, it
+  is in the history of `repo_head_before` (the HEAD the platform's SessionStart
+  hook recorded in the session envelope before the agent acted), and SOURCE
+  names an https URL or a SHA-256. Commit dates are never used, because whoever
+  commits sets them; history is used instead, so nothing the closing session
+  commits, backdated or not, can authorize it. Binding to session, generation,
+  candidate and text digest is unchanged, so a record still cannot be replayed
+  or reused by another session.
+- **What it does not prove.** The reference is a durable pointer to the
+  authorization, not the authorization itself. Git proves the bytes and their
+  order, not that the owner wrote them; an agent with commit access can still
+  write a false block in an earlier session. Whether SOURCE is really the
+  owner's is checked by a person, and a block that fails that check makes the
+  closeout invalid after the fact. No signing service, approval database or
+  further gate is added.
 
 ## Scope
 

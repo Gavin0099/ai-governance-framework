@@ -201,7 +201,12 @@ platform-specific and must be qualified separately for each platform.
 3. **Session end must come from a defined, observable source.** Only two sources
    count: a platform lifecycle event whose session-end meaning has been
    confirmed for that platform, or the user explicitly asking to end the session
-   or to close out. The agent must not infer that the conversation is over. A
+   or to close out. The user may give that request in advance: an owner
+   authorization that names a concrete closeout or handover condition counts
+   once the agent has met that condition, provided it traces to a verifiable
+   original owner source and was recorded before the session started. A plan
+   item, a memory `next_step`, or an authorization the agent wrote for itself
+   does not count. The agent must not infer that the conversation is over. A
    final answer, a DONE report, or a per-turn `Stop` event is not session end
    unless that meaning has been confirmed.
 4. **Governed lifecycle hook present:** the harness is responsible for
