@@ -42,9 +42,22 @@ Do not use vague phrases like "completed relevant changes" or "updated code".
 - ❌ "Implemented the audit feature and added tests."
 
 **`tools_used`** (list of strings)
-Tools actually invoked during the session. Use exact names.
-- ✅ ["read", "edit", "write", "bash", "pytest"]
+Platform tools this session actually called, by the exact tool-call name the
+platform exposes. A command run through a shell tool is not a tool call of its
+own: running `pytest` in a shell means the shell tool was called.
+- ✅ ["read", "edit", "write", "bash"]
 - ❌ ["various tools", "standard tools"]
+- ❌ ["bash", "pytest"] when `pytest` ran as a shell command. Canonical
+  validation reports a claimed `pytest`, `build`, `lint`, `test` or `make` as
+  `inconsistent` unless the runtime observed a tool call of that name.
+
+This changes where a check is recorded, never whether it is. Every check that
+ran, with its command, its result and any failure, still goes in the
+`CHECKS_RUN` field of the session closeout text (see
+`docs/session-closeout-schema.md`) and in the test receipt or other evidence
+the repository requires; name it in `work_summary`, and list a failed or
+unverified check in `open_risks`. Leaving a command out of `tools_used` must
+never remove it, or its failure, from the closeout.
 
 **`artifacts_referenced`** (list of strings)
 Relative paths from project root for files created or meaningfully modified.
@@ -65,7 +78,8 @@ Passing this checklist does NOT guarantee `closeout_status = "valid"`.
 - [ ] `task_intent` is one sentence and describes a specific goal
 - [ ] `work_summary` names at least one specific filename
 - [ ] `work_summary` does not contain "relevant", "related", "various", "some", or "etc."
-- [ ] `tools_used` lists actual tool names, not categories
+- [ ] `tools_used` lists platform tool-call names, not categories and not commands run through a shell tool
+- [ ] every check that ran, including any that failed, is reported with its result (`CHECKS_RUN`, `work_summary`, `open_risks`)
 - [ ] `artifacts_referenced` contains relative paths (not directory names or descriptions)
 - [ ] `open_risks` is populated or is consciously empty
 - [ ] All paths in `artifacts_referenced` are relative to project root

@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 from governance_tools.manage_agent_closeout import CodexCLIAdapter
+from runtime_hooks.adapters.codex.session_start import portable_framework_path
 
 
 def test_literal_transport_and_posix_unchanged(tmp_path):
@@ -52,12 +53,18 @@ def test_invalid_encoded_command_is_not_current(tmp_path, encoded):
     assert not CodexCLIAdapter._is_current_hook(hook, tmp_path)
 
 
-def assert_requested_framework_binding(payload, framework_root):
+def assert_requested_framework_binding(payload, framework_root, project_root=None):
     hooks = [hook for group in payload["hooks"]["Stop"] for hook in group["hooks"]]
     governance_hooks = [hook for hook in hooks
                         if "session_closeout_entry.py" in hook.get("command", "")]
     assert len(governance_hooks) == 1
     hook = governance_hooks[0]
+    if project_root is not None and portable_framework_path(project_root, framework_root):
+        # #288: a framework checkout inside the consumer is written in the
+        # portable, run-time-resolved form.
+        expected = CodexCLIAdapter._hook_payload(framework_root, project_root)
+        assert (hook["command"], hook["commandWindows"]) == (expected["command"], expected["commandWindows"])
+        return hook
     entry = (framework_root / "governance_tools/session_closeout_entry.py").as_posix()
     assert f'"{entry}"' in hook["command"]
     windows_script = base64.b64decode(hook["commandWindows"].split()[-1]).decode("utf-16-le")
@@ -129,7 +136,7 @@ def test_mixed_platform_framework_binding_is_not_current_and_repair_rebinds_both
     assert adapter.verify(tmp_path, framework)["installed"] is False
     assert path.read_bytes() == before_verify
     assert adapter.repair(tmp_path, framework)["status"] == "installed"
-    assert_requested_framework_binding(json.loads(path.read_text(encoding="utf-8")), framework)
+    assert_requested_framework_binding(json.loads(path.read_text(encoding="utf-8")), framework, tmp_path)
     assert adapter.verify(tmp_path, framework)["installed"] is True
 
 
@@ -150,7 +157,7 @@ def test_duplicate_governance_hooks_repair_to_one_binding(tmp_path, duplicate_is
     assert adapter.verify(tmp_path, framework)["installed"] is False
     assert adapter.repair(tmp_path, framework)["status"] == "installed"
     repaired = json.loads(path.read_text(encoding="utf-8"))
-    assert_requested_framework_binding(repaired, framework)
+    assert_requested_framework_binding(repaired, framework, tmp_path)
     assert repaired["hooks"]["Stop"][1] == {"hooks": [custom], "custom_group_key": "keep"}
     before_retry = path.read_bytes()
     assert adapter.repair(tmp_path, framework)["status"] == "no_repair_needed"
@@ -196,7 +203,8 @@ def test_closeout_text_in_custom_hook_is_preserved(tmp_path, operation, custom_c
     assert adapter.verify(tmp_path, framework)["installed"] is False
     assert getattr(adapter, operation)(tmp_path, framework)["status"] == "installed"
     hooks = json.loads(path.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["hooks"]
-    assert hooks == [custom, current]
+    # #288: the reinstalled hook uses the portable form (framework inside the consumer).
+    assert hooks == [custom, adapter._hook_payload(framework, tmp_path)]
     assert adapter.verify(tmp_path, framework)["installed"] is True
     before_retry = path.read_bytes()
     assert getattr(adapter, operation)(tmp_path, framework)["status"] == expected

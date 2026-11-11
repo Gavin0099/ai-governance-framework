@@ -3,13 +3,21 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    # Closeout runs in whatever Python a consumer's hook resolves, which may not
+    # have PyYAML. The stdlib twin below carries the same policy.
+    yaml = None
 
 
 DEFAULT_RUNTIME_PHASE_POLICY_PATH = Path("governance/runtime/runtime_phase_policy.yaml")
+# JSON twin of the YAML policy, read only without PyYAML; tests keep them identical.
+STDLIB_RUNTIME_PHASE_POLICY_PATH = DEFAULT_RUNTIME_PHASE_POLICY_PATH.with_suffix(".json")
 PHASE_ORDER = (
     "sync_gate",
     "sync_advisory",
@@ -78,7 +86,11 @@ def _validate_runtime_phase_policy(data: dict[str, Any], *, path: Path) -> dict[
 def load_runtime_phase_policy(*, framework_root: Path | None = None) -> dict[str, Any]:
     root = framework_root or Path(__file__).resolve().parent.parent
     path = root / DEFAULT_RUNTIME_PHASE_POLICY_PATH
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if yaml is not None:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    else:
+        path = root / STDLIB_RUNTIME_PHASE_POLICY_PATH
+        data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError(f"runtime phase policy must be a mapping: {path}")
     return _validate_runtime_phase_policy(data, path=path)

@@ -90,11 +90,27 @@ fi
 
 # ── Gate 2b: Canonical governance drift ──────────────────────────────────────
 info "Gate 2b / Canonical governance drift"
-if "${PYTHON_CMD[@]}" governance_tools/governance_drift_checker.py \
+# Exit 1 (warning) passes only when every finding is a time-based advisory;
+# critical, bookkeeping warnings and any other exit code still block.
+DRIFT_RC=0
+"${PYTHON_CMD[@]}" governance_tools/governance_drift_checker.py \
     --repo . \
     --framework-root . \
-    --format human; then
+    --format human || DRIFT_RC=$?
+DRIFT_ADVISORY_ONLY=false
+if [ "$DRIFT_RC" -eq 1 ]; then
+    DRIFT_JSON=$("${PYTHON_CMD[@]}" governance_tools/governance_drift_checker.py \
+        --repo . --framework-root . --format json) || true
+    if printf '%s' "$DRIFT_JSON" | "${PYTHON_CMD[@]}" governance_tools/drift_gate_policy.py; then
+        DRIFT_ADVISORY_ONLY=true
+    fi
+fi
+if [ "$DRIFT_RC" -eq 0 ]; then
     ok "canonical governance drift"
+    PASS=$((PASS + 1))
+elif [ "$DRIFT_ADVISORY_ONLY" = true ]; then
+    echo "  ⚠️  canonical governance drift: 只有時間型提醒 — 建議處理，但不阻擋"
+    ok "Gate 通過（警告）"
     PASS=$((PASS + 1))
 else
     fail "canonical governance drift - refresh proves bookkeeping consistency, not owner authorization; review protected-state changes first"

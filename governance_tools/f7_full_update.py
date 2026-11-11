@@ -24,7 +24,18 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
-from governance_tools.external_governance_submodule_updater import update_governance_submodule
+from governance_tools.external_governance_submodule_updater import (
+    MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX,
+    MEMORY_WRITER_ROUTER_LINE,
+    memory_writer_router_line_diagnostics,
+    replace_legacy_memory_writer_router_line,
+    update_governance_submodule,
+)
+from governance_tools.codex_session_start_wiring import (
+    assess_codex_session_start,
+    diagnostic_warnings as codex_session_start_warnings,
+    format_stage as _format_codex_session_start_stage,
+)
 from governance_tools.external_repo_readiness import assess_external_repo
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -38,7 +49,8 @@ from governance_tools.governance_update_reporting import (
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
-from governance_tools.hook_installer import install_governance_hooks
+from governance_tools.hook_installer import _codex_project_doc_budget, install_governance_hooks
+from governance_tools.protected_base_sync import format_protected_hash_sync
 from governance_tools.update_receipt import (
     RECEIPT_RELATIVE_PATH,
     skipped_update_receipt,
@@ -163,6 +175,63 @@ def _git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
         check=False,
     )
     return completed.returncode, (completed.stdout or "").strip(), (completed.stderr or "").strip()
+
+
+def _copilot_hook_post_install_errors(repo_root: Path, framework_root: Path) -> list[str]:
+    """Verify the installed Copilot hooks with the validator of the target framework.
+
+    This process imported its installer before the pointer moved, so its own code
+    may predate the target. The target checkout's validator runs in a subprocess
+    instead. A target too old to report the Copilot checks falls back to this
+    process's validator; an unverifiable result is an error, never a pass.
+    """
+    completed = None
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable, "-X", "utf8", "-m", "governance_tools.hook_install_validator",
+                "--repo", str(repo_root), "--framework-root", str(framework_root), "--format", "json",
+            ],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=framework_root,
+            check=False,
+            timeout=120,
+        )
+        # A validator that crashed prints no JSON; that is unverified, not an
+        # older validator that lacks the Copilot checks.
+        checks = json.loads(completed.stdout)["checks"]
+        if not isinstance(checks, dict):
+            raise ValueError("validator output has no checks object")
+    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as exc:
+        detail = (completed.stderr or "").strip()[-300:] if completed is not None else ""
+        return [f"copilot hooks could not be verified after install ({type(exc).__name__}: {exc}) {detail}".rstrip()]
+    if "copilot_vscode_hooks_governed" not in checks:
+        # The target predates the Copilot checks, or stopped early without a Git
+        # hooks directory: fill them in with this process's validator, and read
+        # the tracked VS Code config directly if that one stopped early too.
+        from governance_tools.hook_install_validator import _vscode_hook_config_safe, validate_hook_install
+
+        checks = {**validate_hook_install(repo_root, framework_root=framework_root).checks, **checks}
+        checks.setdefault(
+            "copilot_vscode_hooks_governed",
+            _vscode_hook_config_safe(repo_root / ".github" / "hooks" / "ai-governance-vscode.json"),
+        )
+    errors = []
+    if not checks["copilot_vscode_hooks_governed"]:
+        errors.append(
+            "migration_required: .github/hooks/ai-governance-vscode.json still registers the framework "
+            "lifecycle bridge (legacy Stop -> session_end) after install"
+        )
+    if checks.get("copilot_session_end_hooks_present") and not checks.get("copilot_session_end_hooks_governed"):
+        errors.append(
+            ".github/hooks/ai-governance-copilot.json does not declare exactly the managed "
+            "sessionStart/sessionEnd hooks after install"
+        )
+    return errors
 
 
 def _is_git_repo(repo: Path) -> bool:
@@ -297,13 +366,15 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
         block=F7_UPDATE_BOUNDARY_BLOCK,
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
+    # Presence alone kept the legacy memory-writer line in installed consumers.
+    after = replace_legacy_memory_writer_router_line(after)
     inserts: list[str] = []
     if not _memory_workflow_router_present_in_text(before):
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
             "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
             "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
-            "- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.\n"
+            f"{MEMORY_WRITER_ROUTER_LINE}\n"
         )
 
     if inserts:
@@ -343,6 +414,14 @@ def _response_envelope_surface_conflicts(repo_root: Path) -> list[str]:
             if version != RESPONSE_ENVELOPE_CONTRACT_VERSION:
                 conflicts.append(f"{relative_path.as_posix()}: {version}")
     return conflicts
+
+
+def _final_budget_warnings(repo_root: Path, warnings: list[str]) -> list[str]:
+    """Replace the installer's Codex budget warning with one measured on the final AGENTS.md."""
+    kept = [warning for warning in warnings if not warning.startswith("codex-project-doc-budget:")]
+    agents = repo_root / "AGENTS.md"
+    _, final = _codex_project_doc_budget(repo_root, [str(agents)])
+    return kept + final
 
 
 def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
@@ -708,6 +787,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     }
 
     hook_backups: list[str] = []
+    hook_warnings: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -731,11 +811,24 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # them here would leave a consumer unable to tell from the F-7 report that
         # any of their own instruction content was moved aside.
         hook_backups.extend(hook_result.backups)
+        # The installer's Codex project-doc budget warning is report-only; F-7
+        # carries it into its own warnings so an over-budget AGENTS.md is not
+        # silent here either. It does not change the F-7 status.
+        hook_warnings.extend(hook_result.warnings)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
         changed.extend(agents_changed)
         errors.extend(agents_errors)
+        # The installer measured AGENTS.md before the keyed sections were added;
+        # report the file F-7 actually leaves for Codex to load.
+        hook_warnings = _final_budget_warnings(repo_root, hook_warnings)
+        # Report-only: an edited memory-writer router line is left as the consumer wrote it.
+        agents_path = repo_root / "AGENTS.md"
+        if agents_path.is_file():
+            hook_warnings.extend(
+                memory_writer_router_line_diagnostics(agents_path.read_text(encoding="utf-8", errors="replace"))
+            )
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
@@ -744,6 +837,9 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     response_envelope_conflicts = _response_envelope_surface_conflicts(repo_root)
     stages["response_envelope_surface"] = "conflict" if response_envelope_conflicts else "verified"
     stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, framework_root)
+    # Report-only (#288): F-7 never installs the Codex identity hook; it says
+    # whether one is needed and how to add it with the owner's approval.
+    stages["codex_session_start"] = assess_codex_session_start(repo_root, framework_root)
     final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
         final_status = BLOCKED
@@ -756,6 +852,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
         )
+    warnings.extend(f"f7-diagnostic: {warning}" for warning in hook_warnings)
+    warnings.extend(
+        f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+    )
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
@@ -888,6 +988,7 @@ def run_f7_full_update(
         # governance instructions; for half its consumers it did not.
         surface_changed: list[str] = []
         surface_backups: list[str] = []
+        surface_warnings: list[str] = []
         updater_blocked = apply and not (result.ok and not result.errors)
         if updater_blocked:
             # Fail-closed has to mean closed. The updater refuses to touch a repo
@@ -897,32 +998,93 @@ def run_f7_full_update(
             stages["hook_validator_enforcement"] = BLOCKED
         elif apply:
             hook_result = install_governance_hooks(repo_root, repo_root / submodule_path)
+            # Install success is not hook safety: the installer that ran may be
+            # older than the target, so the target's validator has the last word.
+            post_install_errors = (
+                _copilot_hook_post_install_errors(repo_root, repo_root / submodule_path)
+                if hook_result.ok
+                else []
+            )
             stages["hook_validator_enforcement"] = (
                 BLOCKED
-                if not hook_result.ok
+                if not hook_result.ok or post_install_errors
                 else "updated"
                 if hook_result.changed_files
                 else "verified"
             )
             surface_changed.extend(hook_result.changed_files)
             surface_backups.extend(hook_result.backups)
+            surface_warnings.extend(hook_result.warnings)
             result.errors.extend(hook_result.errors)
+            result.errors.extend(post_install_errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
+        # Report-only (#288), as on the external path: status and ok ignore it.
+        stages["codex_session_start"] = assess_codex_session_start(repo_root, repo_root / submodule_path)
         final_status = _status_with_lock_consistency(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
         )
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
+        update_receipt = result.update_receipt
+        written = update_receipt.get("receipt") if update_receipt.get("status") == "written" else None
+        if (
+            apply
+            and final_status == BLOCKED
+            and isinstance(written, dict)
+            and written.get("update_status") in {"updated", ALREADY_CURRENT}
+        ):
+            # A-3: the backend recorded a successful update before a later F-7
+            # step failed; the receipt must not outlive that as a success.
+            try:
+                update_receipt = write_update_receipt(
+                    tool="f7_full_update",
+                    repo_root=repo_root,
+                    framework_root=repo_root / submodule_path,
+                    framework_before=written.get("framework_before"),
+                    framework_after=written.get("framework_after"),
+                    update_status=BLOCKED,
+                    remote_evidence=written.get("remote_evidence"),
+                    warnings=list(result.errors),
+                )
+            except OSError as exc:
+                result.errors.append(
+                    "update receipt still records a successful update and could not be "
+                    f"rewritten ({type(exc).__name__}: {exc}); do not rely on it"
+                )
         changed_files = list(result.staged_files) + surface_changed
-        if result.update_receipt.get("status") == "written":
-            changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
+        # F-J: the controlled AGENTS.base.md replacement is reported as its own
+        # item; the files it wrote are named here too, never hidden.
+        protected_sync = (result.full_update_stage_report.get("details") or {}).get(
+            "protected_hash_sync"
+        ) or {}
+        changed_files.extend(protected_sync.get("changed_files") or [])
+        if update_receipt.get("status") == "written":
+            changed_files.append(str(update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         warnings = [
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
+        # Same report-only budget warning as the external path, measured on the
+        # final AGENTS.md; status is already decided.
+        if apply and not updater_blocked:
+            surface_warnings = _final_budget_warnings(repo_root, surface_warnings)
+        # Report-only: the updater's router-line diagnostics would otherwise stay
+        # buried in the stage report details; status and ok are already decided.
+        repo_local_report = (
+            (result.full_update_stage_report.get("details") or {}).get("repo_local_instruction") or {}
+        )
+        surface_warnings.extend(
+            warning
+            for warning in repo_local_report.get("warnings", [])
+            if warning.startswith(MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX)
+        )
+        warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
+        warnings.extend(
+            f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+        )
         return F7Result(
             ok=result.ok and not result.errors,
             mode=result.mode,
@@ -934,7 +1096,7 @@ def run_f7_full_update(
             errors=result.errors,
             warnings=warnings,
             details={"submodule_backend": asdict(result)},
-            update_receipt=result.update_receipt,
+            update_receipt=update_receipt,
         )
     if role == "external_contract_repo":
         return _run_external_contract_backend(repo_root, framework_root, apply=apply)
@@ -993,8 +1155,13 @@ def format_human(result: F7Result) -> str:
         for key in sorted(result.stages):
             if key == "governance_maturity_summary":
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
+            elif key == "codex_session_start":
+                lines.extend(_format_codex_session_start_stage(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
+        details = result.stages.get("details")
+        if isinstance(details, dict) and details.get("protected_hash_sync"):
+            lines.extend(format_protected_hash_sync(details["protected_hash_sync"]))
     lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.changed_files:
