@@ -64,6 +64,13 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from runtime_hooks.adapters.codex.session_start import (  # noqa: E402
+    POSIX_ROOT as _POSIX_ROOT,
+    encode_powershell as _encode_powershell,
+    portable_framework_path,
+    windows_python_prologue as _windows_python_prologue,
+)
+
 
 # ── Capability tier constants ─────────────────────────────────────────────────
 
@@ -233,6 +240,18 @@ _CLOSEOUT_CMD = (
 _CLOSEOUT_CMD_BARE = (
     "python {framework_root}/governance_tools/session_closeout_entry.py "
     "--project-root {project_root}"
+)
+
+
+# Issue #287: the agent cannot observe a session-end hook run during its own
+# turn, so for a PREPARED candidate an installed hook means "pending", not
+# "failed". Wording only; the existing R2 evidence remains the sole confirmation.
+_PENDING_HOOK_NOTE = (
+    " If you PREPARED a candidate this session, the closeout is left to this hook"
+    " after your turn: report PREPARED / PENDING_HOOK (not NOT PERSISTED), and do"
+    " not run manual_fallback, which is refused for R2-prepared candidates. An"
+    " installed hook is not proof that it will run or succeed; only the existing R2"
+    " evidence confirms VALID / RELEASED afterwards."
 )
 
 
@@ -563,6 +582,8 @@ class ClaudeAdapter(AgentAdapter):
         readiness = closeout_execution_readiness(project_root, framework_root)
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
                 "binding_state": state, "location": loc, "closeout_readiness": readiness,
+                # No pending-hook note: Claude's SessionEnd hook only writes a
+                # resumable checkpoint; it never runs the formal closeout (#287).
                 "note": "Configuration binding only; native execution is not verified."
                         + _readiness_note(readiness)}
 
@@ -585,14 +606,21 @@ class ClaudeAdapter(AgentAdapter):
         }
 
     def print_manual(self, framework_root: Path) -> str:
-        cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
+        entry = (framework_root / "governance_tools" / "claude_formal_closeout.py").as_posix()
+        base = (f"python {entry} --project-root <PROJECT_ROOT> --session-id <SESSION_ID> "
+                f"--transcript-path <SESSION_JSONL>")
         return (
             f"[{self.display_name}] Exiting only writes a resumable checkpoint; formal "
-            f"closeout is a separate explicit operation.\n\n"
-            f"Known gap: the manual command below uses --trigger-mode manual_fallback, which "
-            f"session_closeout_entry currently rejects (R2 release proof), so there is no "
-            f"working explicit closeout command yet:\n\n"
-            f"    {cmd}\n\n"
+            f"closeout is a separate explicit operation. Prepare the closeout candidate "
+            f"first, then run one of:\n\n"
+            f"When the owner asks for it in this session:\n\n"
+            f"    {base} --owner-request \"<what the owner asked>\"\n\n"
+            f"When the owner authorized the closeout in advance, in an [Owner Closeout "
+            f"Authorization] block committed before this session started, and its "
+            f"condition is met:\n\n"
+            f"    {base} --authorization-ref <path>@<commit> --condition-met \"<condition met>\"\n\n"
+            f"Never close out on a plan line, a memory next_step, task DONE alone, or an "
+            f"authorization you wrote yourself. manual_fallback stays rejected.\n\n"
             f"Install the SessionStart/SessionEnd hooks:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent claude"
         )
@@ -1108,18 +1136,54 @@ class CodexCLIAdapter(AgentAdapter):
         return False
 
     @classmethod
-    def _is_current_hook(cls, hook: Any, framework_root: Path) -> bool:
+    def _is_current_hook(cls, hook: Any, framework_root: Path,
+                         project_root: Path | None = None) -> bool:
         if not cls._is_governance_hook(hook):
             return False
-        expected = cls._hook_payload(framework_root)
-        return (
+        # The absolute form stays current so existing consumers are not
+        # reported stale; the portable form is current for a framework
+        # checkout inside the consumer (#288).
+        candidates = [cls._hook_payload(framework_root)]
+        if project_root is not None and portable_framework_path(project_root, framework_root):
+            candidates.append(cls._hook_payload(framework_root, project_root))
+        return any(
             hook.get("type") == expected["type"]
             and all(hook.get(field) == expected[field]
                     for field in ("command", "commandWindows"))
+            for expected in candidates
         )
 
     @staticmethod
-    def _hook_payload(framework_root: Path) -> dict[str, Any]:
+    def _hook_payload(framework_root: Path, project_root: Path | None = None) -> dict[str, Any]:
+        """Stop closeout hook. With project_root, and a framework checkout
+        inside it, the entry is resolved from the repository root at run time,
+        so a committed .codex/hooks.json works on any machine or clone (#288).
+        """
+        rel = portable_framework_path(project_root, framework_root) if project_root is not None else None
+        if rel:
+            posix_entry = f"$repo_root/{rel}/governance_tools/session_closeout_entry.py"
+            args = (
+                f'"{posix_entry}" --format json '
+                "--agent-id codex --trigger-mode native_hook"
+            )
+            posix_command = (
+                _POSIX_ROOT
+                + f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
+                f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
+            )
+            windows_script = (
+                _windows_python_prologue("Codex closeout")
+                + f'& $python "$repo/{rel}/governance_tools/session_closeout_entry.py" '
+                "--project-root $repo --format json "
+                "--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE"
+            )
+            return {
+                "type": "command",
+                "command": posix_command,
+                "commandWindows": _encode_powershell(windows_script),
+                "timeout": 30,
+                "statusMessage": "Running governance session closeout...",
+            }
         entrypoint = framework_root / "governance_tools" / "session_closeout_entry.py"
         args = (
             f'"{entrypoint.as_posix()}" --format json '
@@ -1164,7 +1228,7 @@ class CodexCLIAdapter(AgentAdapter):
                 if self._is_governance_hook(hook):
                     governance_hooks.append(hook)
         return (len(governance_hooks) == 1
-                and self._is_current_hook(governance_hooks[0], framework_root))
+                and self._is_current_hook(governance_hooks[0], framework_root, project_root))
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
@@ -1194,12 +1258,18 @@ class CodexCLIAdapter(AgentAdapter):
                     if not self._is_governance_hook(hook)
                 ]
         target_hooks = target_group.setdefault("hooks", [])
-        target_hooks.append(self._hook_payload(framework_root))
+        target_hooks.append(self._hook_payload(framework_root, project_root))
         _write_json(hook_path, data)
+        portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
             "location": str(hook_path),
-            "message": f"Governance Codex Stop hook added to {hook_path}.",
+            "portable": portable,
+            "message": f"Governance Codex Stop hook added to {hook_path}." + (
+                "" if portable else
+                " It uses absolute paths (framework outside the consumer, or a path that needs"
+                " shell quoting), so it is not portable to another machine or clone."
+            ),
         }
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
@@ -1213,7 +1283,8 @@ class CodexCLIAdapter(AgentAdapter):
                 f"Single governance Codex Stop hook matches requested framework root {framework_root}."
                 if installed else
                 f"Governance Codex Stop hook is missing, stale, or duplicated for requested framework root {framework_root}."
-            ) + " Configuration binding only; native execution is not verified.",
+            ) + " Configuration binding only; native execution is not verified."
+            + (_PENDING_HOOK_NOTE if installed else ""),
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
@@ -1248,6 +1319,8 @@ class CodexCLIAdapter(AgentAdapter):
         return (
             f"[{self.display_name}] Manual closeout (fallback if Stop hook is not installed):\n\n"
             f"    {cmd}\n\n"
+            f"Not for a PREPARED (R2) candidate: manual_fallback is refused for it "
+            f"(RELEASE_PROOF_INVALID).\n\n"
             f"Or install the Stop hook:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent codex"
         )

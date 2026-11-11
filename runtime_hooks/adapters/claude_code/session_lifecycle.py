@@ -169,8 +169,16 @@ def _context(root: Path, sid: str, source: str, binding: str, readback: dict[str
             (FRAMEWORK_ROOT / "governance_tools/prepare_closeout_candidate.py").as_posix(),
             "--consumer-root", root.as_posix(), "--framework-root", FRAMEWORK_ROOT.as_posix(),
             "--session-id", sid])
+        closeout = "python " + shlex.join([
+            (FRAMEWORK_ROOT / "governance_tools/claude_formal_closeout.py").as_posix(),
+            "--project-root", root.as_posix(), "--session-id", sid])
         lines += ["Save progress for this session (summary JSON on stdin):", f"  {command}",
-                  "Exiting writes a resumable checkpoint; formal closeout is a separate explicit step."]
+                  "Exiting writes a resumable checkpoint; formal closeout is a separate explicit step:",
+                  f"  {closeout} --transcript-path <this session's transcript jsonl> "
+                  "--owner-request \"<what the owner asked>\"",
+                  "  or, only when an [Owner Closeout Authorization] committed before this session "
+                  "names a condition you met, replace --owner-request with "
+                  "--authorization-ref <path>@<commit> --condition-met \"<condition met>\""]
         note = _owner_note(root, sid)
         if note:
             lines.append(note)

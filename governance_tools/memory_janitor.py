@@ -61,7 +61,48 @@ class MemoryJanitor:
         "replacement-state cutover，active memory 未修改。請另行授權並驗證 "
         "archive + replacement-state cutover；不要重試舊的 --clean 或 --execute。"
     )
-    
+
+    # Framework-relative location of the verified archive/cutover tool.
+    CUTOVER_TOOL_FRAMEWORK_PATH = "governance_tools/active_task_cutover.py"
+
+    def cutover_tool_path(self) -> str:
+        """Cutover tool path, relative to the repository that owns memory_root.
+
+        In a consumer the framework is a submodule, so this yields e.g.
+        ``<submodule>/governance_tools/active_task_cutover.py``; when the tool
+        is not under that repository, the framework-relative path is returned.
+        """
+        tool = Path(__file__).resolve().parent / "active_task_cutover.py"
+        try:
+            return tool.relative_to(self.memory_root.resolve().parent).as_posix()
+        except ValueError:
+            return self.CUTOVER_TOOL_FRAMEWORK_PATH
+
+    def cutover_tool_guidance(self) -> str:
+        """One-sentence pointer appended after the §7.4 guidance; authorizes nothing."""
+        tool = self.cutover_tool_path()
+        return (
+            f"已授權的 verified archive + replacement-state cutover 用 `python {tool}`："
+            "`prepare --project-root .` 逐 byte 封存並寫 manifest，replacement candidate 由 Agent 撰寫，"
+            "`verify` 產生 preservation matrix（非語義審查）；prepare／verify 不修改 active memory；"
+            "`cutover` 必須由 owner 提供 `--authorization` 並綁定 `--authorized-candidate-sha256`。"
+            "此指引本身不授權 cutover。"
+        )
+
+    def cutover_tool_info(self) -> Dict[str, object]:
+        """Machine-readable form of ``cutover_tool_guidance`` for ``--plan --format json``."""
+        return {
+            "path": self.cutover_tool_path(),
+            "framework_relative_path": self.CUTOVER_TOOL_FRAMEWORK_PATH,
+            "steps": ["prepare", "verify", "cutover", "rollback"],
+            "modifies_active_memory": {
+                "prepare": False, "verify": False, "cutover": True, "rollback": True,
+            },
+            "cutover_requires": ["--authorization", "--authorized-candidate-sha256"],
+            "preservation_matrix_is_semantic_review": False,
+            "authorizes_cutover": False,
+        }
+
     def __init__(self, memory_root: Path):
         """
         Args:
@@ -140,13 +181,15 @@ class MemoryJanitor:
                 f"{char_count}/{self.HOT_MEMORY_CRITICAL_SIZE_LIMIT} 字元) - "
                 + self.EMERGENCY_SCOPE_GUIDANCE
                 + "自動掃除已 fail closed，需另行驗證 "
-                "archive + replacement-state cutover"
+                "archive + replacement-state cutover。"
+                + self.cutover_tool_guidance()
             )
         elif status == "CRITICAL":
             return (
                 f"⚠️ **熱記憶超過硬限制** ({line_count}/{self.HOT_MEMORY_HARD_LIMIT} 行, "
                 f"{char_count}/{self.HOT_MEMORY_HARD_SIZE_LIMIT} 字元) - "
-                "自動掃除已 fail closed；需另行驗證 archive + replacement-state cutover"
+                "自動掃除已 fail closed；需另行驗證 archive + replacement-state cutover。"
+                + self.cutover_tool_guidance()
             )
         elif status == "WARNING":
             return (
@@ -242,12 +285,16 @@ class MemoryJanitor:
             report += (
                 self.EMERGENCY_SCOPE_GUIDANCE
                 + "自動掃除已 fail closed，"
-                "需另行驗證 archive + replacement-state cutover\n"
+                "需另行驗證 archive + replacement-state cutover\n\n"
+                + self.cutover_tool_guidance()
+                + "\n"
             )
         elif status == "CRITICAL":
             report += (
                 "自動掃除已 fail closed；需另行驗證 archive + "
-                "replacement-state cutover\n"
+                "replacement-state cutover\n\n"
+                + self.cutover_tool_guidance()
+                + "\n"
             )
         elif status == "WARNING":
             report += "在下一個自然中斷點評估 verified archive + replacement-state cutover\n"
@@ -376,6 +423,7 @@ def main():
                     "archived_references": len(archivable["archived_references"]),
                 },
                 "recommendation": recommendation_map.get(status, "unknown"),
+                "cutover_tool": janitor.cutover_tool_info(),
             }, ensure_ascii=False))
         else:
             plan = janitor.create_archive_plan()

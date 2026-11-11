@@ -140,6 +140,8 @@ def test_handler_execution_failure_is_not_allow(deployment, source):
     assert "MEMORY_LAUNCHER_INTEGRITY_ERROR" in result["reason"]
 
 
+@pytest.mark.skipif(shutil.which("pwsh") is None,
+                    reason="requires PowerShell 7 (pwsh); v5 does not support 5.1")
 @pytest.mark.parametrize("event_name", ["PostToolUse", "Stop"])
 def test_rendered_windows_hook_command_handles_spaces_and_quotes(deployment, event_name):
     root, binding = deployment
@@ -150,7 +152,6 @@ def test_rendered_windows_hook_command_handles_spaces_and_quotes(deployment, eve
     binding["event"] = "post-tool-use" if event_name == "PostToolUse" else "stop"
     command = powershell_command(inline_source(binding))
     pwsh = shutil.which("pwsh")
-    assert pwsh, "PowerShell is required for this Windows command regression"
     process = subprocess.run([pwsh, "-NoProfile", "-NonInteractive", "-Command", command],
                              input=PAYLOAD, capture_output=True, timeout=40)
     assert process.returncode == 0, process.stderr

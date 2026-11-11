@@ -1,0 +1,110 @@
+mutation check for the destructive-data veto
+commit:  0e041215efaf2b24e5658f5da98fc1c788a59792
+runner:  local Windows, CPython 3.12.10
+purpose: a green suite is not evidence that a test can fail. Each mechanism is
+         broken in turn; the test that claims to cover it must go red.
+
+--- result ---
+mutation                           test that should catch it                        result
+remove consonant doubling          test_doubled_consonant_forms_are_caught          RED (good)
+remove the e-drop rule             test_inflected_forms_are_caught                  RED (good)
+revert ASCII boundaries to \b      test_english_verb_adjacent_to_cjk_is_caught      RED (good)
+remove the UI-element guard        test_a_destructive_word_naming_a_ui_element_stays_l0 RED (good)
+disable the whole veto             test_inflected_forms_are_caught                  RED (good)
+
+after restore: 145 passed in 0.57s
+
+--- the script, so this is reproducible ---
+"""Mutation check: break each mechanism in turn and confirm the test that
+claims to cover it actually goes red.
+
+A passing suite is not evidence that a test can fail. This is.
+Restores the original bytes in a finally block.
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path("D:/ai-governance-framework")
+TARGET = ROOT / "governance_tools/task_level_detector.py"
+original = TARGET.read_bytes()
+
+MUTATIONS = [
+    (
+        "remove consonant doubling",
+        '''    if (len(word) >= 3
+            and word[-1] not in _VOWELS + "wxy"
+            and word[-2] in _VOWELS
+            and word[-3] not in _VOWELS):
+        forms.update({word + word[-1] + "ed", word + word[-1] + "ing"})
+''',
+        "",
+        "test_doubled_consonant_forms_are_caught",
+    ),
+    (
+        "remove the e-drop rule",
+        '''    if word.endswith("e"):
+        forms.update({word[:-1] + "ed", word[:-1] + "ing"})
+''',
+        "",
+        "test_inflected_forms_are_caught",
+    ),
+    (
+        "revert ASCII boundaries to \\b",
+        '''_ASCII_LEFT = r"(?<![a-z0-9])"
+_ASCII_RIGHT = r"(?![a-z0-9])"''',
+        '''_ASCII_LEFT = r"\\b"
+_ASCII_RIGHT = r"\\b"''',
+        "test_english_verb_adjacent_to_cjk_is_caught",
+    ),
+    (
+        "remove the UI-element guard",
+        '''        acting = [kw for kw in explicit
+                  if not _names_a_ui_element(desc_lower, kw)]
+        return acting''',
+        '''        return explicit''',
+        "test_a_destructive_word_naming_a_ui_element_stays_l0",
+    ),
+    (
+        "disable the whole veto",
+        '''    desc_lower = task_description.lower()
+
+    objects = [kw for kw in DATA_OBJECT_KEYWORDS''',
+        '''    return []
+
+    desc_lower = task_description.lower()
+
+    objects = [kw for kw in DATA_OBJECT_KEYWORDS''',
+        "test_inflected_forms_are_caught",
+    ),
+]
+
+rows = []
+try:
+    for label, old, new, expected_test in MUTATIONS:
+        text = original.decode("utf-8")
+        crlf = "\r\n" in text
+        flat = text.replace("\r\n", "\n")
+        assert flat.count(old) == 1, f"{label}: anchor not unique"
+        flat = flat.replace(old, new)
+        TARGET.write_bytes((flat.replace("\n", "\r\n") if crlf else flat).encode("utf-8"))
+
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "tests/test_task_level_detector.py",
+             "-q", "-p", "no:randomly", "--no-header", "-x", "-k", expected_test],
+            cwd=str(ROOT), capture_output=True, text=True,
+        )
+        failed = proc.returncode != 0
+        rows.append((label, expected_test, "RED (good)" if failed else "GREEN (test is blind)"))
+finally:
+    TARGET.write_bytes(original)
+
+print(f"{'mutation':<34} {'test that should catch it':<48} result")
+for label, test, result in rows:
+    print(f"{label:<34} {test:<48} {result}")
+
+proc = subprocess.run(
+    [sys.executable, "-m", "pytest", "tests/test_task_level_detector.py",
+     "tests/test_session_start_l0.py", "-q", "-p", "no:randomly", "--no-header"],
+    cwd=str(ROOT), capture_output=True, text=True)
+print("\nafter restore:", proc.stdout.strip().splitlines()[-1])

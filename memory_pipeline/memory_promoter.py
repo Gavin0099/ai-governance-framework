@@ -52,8 +52,10 @@ def promote_candidate(
     kb_text = knowledge_base.read_text(encoding="utf-8") if knowledge_base.exists() else ""
     heading_pattern = re.compile(rf"^## {re.escape(heading)}$", re.MULTILINE)
     if not heading_pattern.search(kb_text):
+        # Without a trailing newline the new heading would join the last line of the file.
+        separator = "\n\n" if kb_text and not kb_text.endswith("\n") else ""
         with knowledge_base.open("a", encoding="utf-8") as fh:
-            fh.write(entry)
+            fh.write(separator + entry)
 
     at_text = active_task.read_text(encoding="utf-8") if active_task.exists() else ""
     if f"- [x] Promoted memory: {heading}" not in at_text:

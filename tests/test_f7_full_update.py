@@ -52,6 +52,17 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "remote", "add", "origin", "https://example.invalid/test/fixture.git")
 
 
+# F-7 runs the target checkout's hook validator in a subprocess after install.
+# The fixture framework delegates to this repository's validator.
+_DELEGATING_HOOK_VALIDATOR = (
+    "import runpy, sys\n"
+    f"sys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
+    "for name in [m for m in sys.modules if m.split('.')[0] == 'governance_tools']:\n"
+    "    del sys.modules[name]\n"
+    "runpy.run_module('governance_tools.hook_install_validator', run_name='__main__', alter_sys=True)\n"
+)
+
+
 def _make_framework(root: Path) -> None:
     _init_repo(root)
     _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
@@ -69,6 +80,7 @@ def _make_framework(root: Path) -> None:
     _write(root / "governance_tools/plan_freshness.py", "")
     _write(root / "governance_tools/contract_validator.py", "")
     _write(root / "governance_tools/memory_workflow.py", "")
+    _write(root / "governance_tools/hook_install_validator.py", _DELEGATING_HOOK_VALIDATOR)
     _write(
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
@@ -156,7 +168,7 @@ def _make_f7_target_fixture(tmp_path: Path, monkeypatch) -> tuple[Path, Path, st
     # persistence remain real. Hook deployment and maturity are separate scopes.
     monkeypatch.setattr(
         f7_full_update, "install_governance_hooks",
-        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[])),
+        mock.Mock(return_value=mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[])),
     )
     for module in (f7_full_update, updater_module):
         monkeypatch.setattr(module, "_governance_maturity_stage", lambda *_args: {})
@@ -325,6 +337,68 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert "[governance_maturity_summary]" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "runtime_capable=not_checked" in rendered
+
+
+def test_f7_submodule_backend_carries_router_diagnostics_into_warnings(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    router_warning = (
+        "memory-workflow-router: AGENTS.md line 7 is an edited memory-writer router line; "
+        "left untouched (consumer-owned or unclear ownership). Compare it with the framework "
+        "router text by hand."
+    )
+
+    def fake_update(warnings):
+        def _fake(**_kwargs):
+            return UpdateResult(
+                ok=True,
+                mode="dry_run",
+                update_mode="dry_run",
+                fast_forward=True,
+                repo=str(repo),
+                submodule_path="ai-governance-framework",
+                before_head="a" * 40,
+                target_head="a" * 40,
+                after_head="a" * 40,
+                staged_files=[],
+                committed=False,
+                commit_hash=None,
+                message="dry run complete",
+                errors=[],
+                full_update_stage_report={
+                    "final_status": "already_current",
+                    "framework_pointer": "already_current",
+                    "details": {"repo_local_instruction": {"status": "verified", "warnings": warnings}},
+                },
+            )
+
+        return _fake
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update([]))
+    plain = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    monkeypatch.setattr(
+        f7, "update_governance_submodule", fake_update([router_warning, "unrelated: not a router line"])
+    )
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert f"f7-diagnostic: {router_warning}" in result.warnings
+    assert not any("unrelated: not a router line" in warning for warning in result.warnings)
+    rendered = format_human(result)
+    assert rendered.index("[warnings]") < rendered.index(f"f7-diagnostic: {router_warning}")
+    # Report-only: the diagnostic changes neither ok nor the final status.
+    assert (result.ok, result.f7_final_status) == (plain.ok, plain.f7_final_status)
 
 
 def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, tmp_path: Path) -> None:
@@ -1103,6 +1177,68 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
 
 
+def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path) -> None:
+    """An over-budget AGENTS.md is reported through F-7, and only reported."""
+    # The real framework root is needed: the minimal fixture framework has no
+    # agent-contract template, so it never installs into AGENTS.md.
+    framework = Path(__file__).resolve().parents[1]
+    results = {}
+    for name, rules in (("small", 1), ("large", 2000)):
+        repo = tmp_path / name
+        _make_external_contract_repo(repo)
+        _write(repo / "AGENTS.md", "# AGENTS\n\n" + ("House rule line.\n" * rules))
+        results[name] = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    budget_warnings = [w for w in results["large"].warnings
+                       if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
+    assert budget_warnings, results["large"].warnings
+    assert not [w for w in results["small"].warnings if "codex-project-doc-budget" in w]
+    # The warning is a report: status, ok and stages match the under-budget run.
+    assert results["large"].f7_final_status == results["small"].f7_final_status
+    assert results["large"].ok == results["small"].ok
+    assert results["large"].stages["hook_validator_enforcement"] == results["small"].stages["hook_validator_enforcement"]
+
+
+def test_f7_budget_warning_measures_the_final_agents_md(tmp_path: Path) -> None:
+    """F-7 appends keyed sections after the installer measured; the report must use the final file."""
+    from governance_tools.hook_installer import CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES, install_governance_hooks
+
+    framework = Path(__file__).resolve().parents[1]
+    # Long lines keep the CRLF worst case close to the on-disk size, so the
+    # installed file is under the budget by both measures.
+    line = ("House rule line. " * 16) + "\n"
+
+    def consumer(name: str, lines: int) -> Path:
+        repo = tmp_path / name
+        _make_external_contract_repo(repo)
+        _write(repo / "AGENTS.md", "# AGENTS\n\n" + line * lines)
+        return repo
+
+    def crlf_worst_case(path: Path) -> int:
+        data = path.read_bytes().replace(b"\r\n", b"\n")
+        return len(data) + data.count(b"\n")
+
+    # Calibrate how much the installer itself adds, then size the content so the
+    # installed file sits about 1 KB under the budget.
+    probe = consumer("probe", 1)
+    install_governance_hooks(probe, framework)
+    installed_overhead = crlf_worst_case(probe / "AGENTS.md") - (len("# AGENTS\n\n" + line) + 3)
+    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 1000 - installed_overhead) // (len(line) + 1)
+
+    installer_only = consumer("installer-only", lines)
+    hook_result = install_governance_hooks(installer_only, framework)
+    assert crlf_worst_case(installer_only / "AGENTS.md") < CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+    assert not [w for w in hook_result.warnings if w.startswith("codex-project-doc-budget:")]
+
+    repo = consumer("f7", lines)
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    final_size = len((repo / "AGENTS.md").read_bytes())
+    assert final_size > CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES, final_size
+    budget_warnings = [w for w in result.warnings if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
+    assert len(budget_warnings) == 1, result.warnings
+    assert f"is {final_size} bytes on disk" in budget_warnings[0]
+
+
 def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> UpdateResult:
     return UpdateResult(
         ok=ok,
@@ -1211,6 +1347,122 @@ def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_pat
                                     submodule_path="ai-governance-framework")
         assert second.stages["hook_validator_enforcement"] == "verified", second.errors
         assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+
+
+LEGACY_STOP_BRIDGE_COMMAND = (
+    "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"
+)
+
+
+def _submodule_consumer_with_legacy_stop(tmp_path: Path) -> tuple[Path, Path, Path]:
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n")
+    _write(repo / ".gitmodules", '[submodule "framework"]\n\tpath = ai-governance-framework\n\turl = https://example.invalid/framework.git\n')
+    _make_framework(framework)
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    return repo, framework, config
+
+
+def test_f7_blocks_when_install_leaves_the_legacy_stop_bridge(tmp_path: Path) -> None:
+    """An installer older than the target reports success without retiring the
+    legacy Stop wiring; install success must not stand in for hook safety."""
+    from governance_tools.hook_installer import HookInstallApplyResult
+
+    repo, framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    old_installer = HookInstallApplyResult(ok=True, repo_root=str(repo), framework_root=str(framework))
+    with mock.patch.object(
+        f7_full_update, "update_governance_submodule", side_effect=lambda **kwargs: _update_result(repo, ok=True)
+    ), mock.patch.object(f7_full_update, "install_governance_hooks", return_value=old_installer):
+        result = run_f7_full_update(
+            repo_root=repo, framework_root=framework, apply=True, submodule_path="ai-governance-framework"
+        )
+
+    assert LEGACY_STOP_BRIDGE_COMMAND in config.read_text(encoding="utf-8")
+    assert result.stages["hook_validator_enforcement"] == "blocked"
+    assert result.f7_final_status == "blocked"
+    assert any(item.startswith("migration_required:") for item in result.errors), result.errors
+
+
+def test_post_install_check_uses_the_target_framework_validator(tmp_path: Path) -> None:
+    """The target checkout's validator decides, even when this process's own
+    validator would pass the installed hooks."""
+    repo = tmp_path / "consumer"
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'copilot_vscode_hooks_governed': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+
+
+def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: Path) -> None:
+    """A target validator that predates the Copilot checks still reports JSON."""
+    repo, framework, _config = _submodule_consumer_with_legacy_stop(tmp_path)
+    _write(framework / "governance_tools" / "__init__.py", "")
+    _write(
+        framework / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': True}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, framework)
+
+    assert errors and errors[0].startswith("migration_required:")
+    (repo / ".github/hooks/ai-governance-vscode.json").write_text(
+        json.dumps({"version": 1, "hooks": {}}), encoding="utf-8"
+    )
+    assert f7_full_update._copilot_hook_post_install_errors(repo, framework) == []
+
+
+def test_post_install_check_blocks_when_the_target_validator_crashes(tmp_path: Path) -> None:
+    """No JSON from the target is unverified, even with a clean VS Code config."""
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(target / "governance_tools" / "hook_install_validator.py", "raise RuntimeError('broken target')\n")
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert len(errors) == 1
+    assert errors[0].startswith("copilot hooks could not be verified after install")
+    assert "broken target" in errors[0]
+
+
+def test_post_install_check_reads_the_config_when_the_validator_stops_early(tmp_path: Path) -> None:
+    """Without a Git hooks directory the validator returns before reading the
+    Copilot config; the check must then follow the config itself."""
+    repo = tmp_path / "consumer"
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+    config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+    assert f7_full_update._copilot_hook_post_install_errors(repo, target) == []
+
+
+def test_dry_run_hook_stage_is_not_verified_while_legacy_stop_remains(tmp_path: Path) -> None:
+    repo, _framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    with mock.patch.object(updater_module, "_check_hook_validator_enforcement", return_value="verified"):
+        assert updater_module._report_hook_validator_enforcement(repo) == "missing"
+        config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+        assert updater_module._report_hook_validator_enforcement(repo) == "verified"
 
 
 def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
@@ -1459,3 +1711,59 @@ def test_human_report_carries_the_provenance_claim_boundary(tmp_path: Path) -> N
     assert "produced_by_claim_boundary=" in text
     assert "not compared against any required revision" in text
     assert "produced_by_sampled=before_any_mutation" in text
+
+
+# ── F1: legacy memory-writer router line in installed consumers ────────────────
+
+_LEGACY_WRITER = updater_module.LEGACY_MEMORY_WRITER_ROUTER_LINE
+_CURRENT_WRITER = updater_module.MEMORY_WRITER_ROUTER_LINE
+_CONSUMER_TAIL = "\n## Consumer Notes\n\n- 消費端自有：保留這一行。\n"
+
+
+def _consumer_with_router(tmp_path: Path, writer_line: str) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    agents = repo / "AGENTS.md"
+    _write(
+        agents,
+        agents.read_text(encoding="utf-8")
+        + "\n<!-- governance:key=memory_workflow -->\n"
+        "- Before claiming completion for any change touching `memory/**`, run "
+        "`python -m governance_tools.memory_workflow --check --repo .`.\n"
+        + writer_line
+        + "\n"
+        + _CONSUMER_TAIL,
+    )
+    return repo, framework
+
+
+def test_f7_replaces_exact_legacy_writer_line_once_and_keeps_consumer_text(tmp_path: Path) -> None:
+    repo, framework = _consumer_with_router(tmp_path, _LEGACY_WRITER)
+    agents = repo / "AGENTS.md"
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = agents.read_text(encoding="utf-8")
+    assert after.count(_CURRENT_WRITER) == 1 and _LEGACY_WRITER not in after
+
+    # Every other byte equals a run on the same consumer already carrying the new line.
+    control, control_framework = _consumer_with_router(tmp_path / "control", _CURRENT_WRITER)
+    run_f7_full_update(repo_root=control, framework_root=control_framework, apply=True)
+    assert after == (control / "AGENTS.md").read_text(encoding="utf-8")
+    assert "- Preserve this domain rule.\n" in after and _CONSUMER_TAIL in after
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    assert agents.read_text(encoding="utf-8") == after
+
+
+def test_f7_leaves_an_edited_writer_line_and_reports_it(tmp_path: Path) -> None:
+    edited = _LEGACY_WRITER.replace("as ordinary markdown", "by hand (team rule)")
+    repo, framework = _consumer_with_router(tmp_path, edited)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert after.count(edited) == 1 and _CURRENT_WRITER not in after
+    diagnostics = [w for w in result.warnings if w.startswith("f7-diagnostic: memory-workflow-router:")]
+    assert len(diagnostics) == 1, result.warnings
+    assert "left untouched" in diagnostics[0]

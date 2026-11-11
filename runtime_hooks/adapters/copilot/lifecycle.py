@@ -241,9 +241,12 @@ def _write_session_envelope(
             "envelope_status": started["status"],
         }
 
-    from runtime_hooks.core._canonical_closeout import write_session_envelope
-
-    return write_session_envelope(session_id, project_root, provider=provider)
+    # Copilot CLI resumes keep the same sessionId and send source "resume".
+    # Rewriting the envelope there would move started_at to the resume, so the
+    # same identity rules as the VS Code paths apply.
+    return _preserving_envelope(
+        session_id, project_root, provider=provider, require_existing=source == "resume",
+    )
 
 
 _BOUND_SESSION_MODULE = "runtime_hooks.core._bound_session_start"
@@ -258,9 +261,23 @@ def _legacy_vscode_envelope(
     require_existing: bool,
 ) -> dict[str, Any]:
     """A framework without root-bound support: its legacy v1.0 envelope, under
-    the same identity rules as the bound path.  An existing identity is
-    preserved, never rewritten; one owned by another provider is refused; and
-    resume/compact never invents an identity."""
+    the same identity rules as the bound path."""
+    envelope = _preserving_envelope(
+        session_id, project_root, provider=provider, require_existing=require_existing,
+    )
+    return {**envelope, "binding_reason": _LEGACY_REASON}
+
+
+def _preserving_envelope(
+    session_id: str,
+    project_root: Path,
+    *,
+    provider: str,
+    require_existing: bool,
+) -> dict[str, Any]:
+    """A v1.0 envelope under the bound path's identity rules.  An existing
+    identity is preserved, never rewritten; one owned by another provider is
+    refused; and resume/compact never invents an identity."""
     session_dir = project_root / "artifacts/runtime/sessions" / session_id
     path = session_dir / "session-envelope.json"
     if session_dir.is_symlink() or path.is_symlink():
@@ -274,14 +291,20 @@ def _legacy_vscode_envelope(
             raise ValueError("Existing envelope is invalid; refusing to overwrite")
         if existing.get("provider") != provider:
             raise ValueError("Session identity belongs to another provider; refusing to adopt it")
-        return {**existing, "artifact_path": str(path), "envelope_status": "preserved",
-                "binding_reason": _LEGACY_REASON}
+        # Like the root-bound path: the resumed session owns the current-session
+        # pointer again, which session end resolves without an explicit id.  A
+        # framework older than that pointer never refreshed it on start either.
+        from runtime_hooks.core import _canonical_closeout
+
+        write_pointer = getattr(_canonical_closeout, "_write_current_session_id_payload", None)
+        if write_pointer is not None:
+            write_pointer(session_id, project_root / "artifacts/runtime/.current-session-id")
+        return {**existing, "artifact_path": str(path), "envelope_status": "preserved"}
     if require_existing:
         raise ValueError("Existing envelope required for resume/compact; no start time invented")
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
-    envelope = write_session_envelope(session_id, project_root, provider=provider)
-    return {**envelope, "binding_reason": _LEGACY_REASON}
+    return write_session_envelope(session_id, project_root, provider=provider)
 
 
 def _run_session_end(

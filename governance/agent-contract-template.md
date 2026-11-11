@@ -1,5 +1,5 @@
 <!-- AI Governance Framework: agent-contract BEGIN -->
-<!-- AI Governance Framework: agent-contract v1.0 -->
+<!-- AI Governance Framework: agent-contract v1.1 -->
 <!-- Source: ai-governance-framework/governance/agent-contract-template.md -->
 <!-- Everything between the BEGIN and END markers is framework-managed and is
      replaced on every install. Repository-specific rules belong outside this
@@ -92,4 +92,55 @@ to `LOADED` is itself a material contract change — emit the full block at that
 point. Resolve the canonical path against this repository's governance root; it
 may sit under a submodule or contract directory rather than `governance/` at the
 repository root.
+
+<!-- ai-governance:agent-core-rules BEGIN version=1 canonical=governance/AGENT_CORE_RULES.md -->
+## Agent Core Rules (MANDATORY)
+
+Identical on every agent surface. Repository rules may add duties; they never relax these.
+
+1. **Owner Gate.** Every agent needs explicit owner approval before merging into main, publishing or releasing, deleting branches, closing another person's PR, any irreversible operation, firmware operations, data-integrity operations, and any high-risk operation this repository's own rules name. No directive, slice approval or protocol relaxes this gate.
+2. **Commit and push.** Memory and delivery protocols define order, not git authority. Commit and push follow the owner's current authorization and this repository's rules; inside an owner-authorized slice they may continue without re-asking. If either is missing from your context, ask.
+3. **Task DONE is not session end.** After task DONE, stop and do no extra work. A confirmed session end still requires the existing session-end closeout. An ordinary Stop event, a final answer, or a subagent finishing is not session end.
+4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. A task limited to named files still includes these records unless the owner explicitly excludes them. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply. An agent's private or tool-provided memory (for example Claude auto-memory or the Copilot memory tool) may help the agent, but never satisfies these records; only the records named here or by this repository, written through their own contracts, do.
+
+| Event | Record in |
+|---|---|
+| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` as a `CANDIDATE / UNREVIEWED` entry (root cause, fix, fix commit, test evidence) paired with a `memory_record` daily record for the same fix commit; never marked approved, reviewed only through promotion |
+| Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
+| Milestone reached | `memory/01_active_task.md`; `PLAN.md` phase/sprint only when it changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
+| Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
+| Confirmed session end | canonical `memory/YYYY-MM-DD.md` record through the session-end closeout when it is non-stateless |
+
+Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` section 6.1 alias schema (`02_project_facts.md`, `03_decisions.md`, `04_validation_log.md`); never assume an alias that does not exist.
+
+5. **No fabricated evidence.** Never claim a document was loaded, an authorization was given, or work was completed without evidence in this context. Filling `LOADED` or any other contract field by inference, or reusing a stale `[Governance Contract]` block such as one from an earlier session, is a governance failure. The block is evidence of what was loaded, not a formatting ritual.
+6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`.
+7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
+<!-- ai-governance:agent-core-rules END -->
+
+## Formal Closeout on Request (MANDATORY)
+
+Prepare a formal closeout only at a defined session end: the owner explicitly asks to close out, or the platform confirms session end. Task DONE and a Stop event never trigger it. Use the existing entry point of the framework submodule registered in `.gitmodules`, run from that checkout with no `GIT_*` environment variables:
+
+```text
+python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-root <repo> --framework-root <framework> --session-id <session-id> --input <input.json>
+```
+
+- `<session-id>`: your platform's own session id (`CODEX_THREAD_ID` in Codex, `CLAUDE_CODE_SESSION_ID` in Claude Code). It must equal `session_id` in `artifacts/runtime/.current-session-id`, which names the most recently started or resumed session and may belong to another session sharing this checkout. If the platform exposes no native id, or the two differ, do not prepare: report the closeout as not persisted.
+- `<input.json>`: a JSON object with `task_intent`, `work_summary`, `tools_used`, `artifacts_referenced` and `open_risks`; field guidance is in `<framework>/.agents/skills/wrap-up/SKILL.md`.
+- `PREPARED` is preparation, not closeout: do not run the closeout yourself. The manual fallback cannot release an R2-prepared candidate (it is refused with `RELEASE_PROOF_INVALID`), so do not attempt it after `PREPARED`. If `python -m governance_tools.manage_agent_closeout --project-root <repo> verify --agent <agent>`, run from the framework checkout, reports a closeout hook as installed and says the closeout is left to it (today only the Codex Stop hook; a hook that only writes a checkpoint does not count), the closeout is left to that hook after your turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the session-end hook), not `NOT PERSISTED`. An installed hook is not proof that it will run or succeed, and you cannot observe it during your own turn; only the existing R2 evidence (a valid canonical closeout and released ownership) confirms `VALID` / `RELEASED` afterwards. Otherwise report the closeout as not persisted: the manual attempt cannot release a `PREPARED` candidate, so that report is its outcome.
+- Report `REJECTED` verbatim and never substitute a hand-written `artifacts/session-closeout.txt`.
+- Supported only in a registered-submodule consumer whose session has a qualified (schema 1.1) identity. A Copilot CLI session (provider `github-copilot`) is rejected: report the closeout as not persisted.
+
+Details: `AGENTS.base.md`, Session Closeout Obligation.
+
+## Delivery Convergence (MANDATORY)
+
+1. **Product slice first.** Finish the approved, usable product slice before adding governance surface, unless an observed failure requires it (unsafe behavior, irreversible failure, false positive/negative, authority escalation, replay inconsistency, production ambiguity).
+2. **Failure-driven only.** Future extensibility, completeness or "might be useful later" are not triggers. If a finding is confirmed unrelated to the approved slice and non-blocking to the current decision, note a one-line disposition under next options and continue the approved work; do not open a new task, PR or gate. If its current-decision impact remains unknown after a bounded check, or a credible safety, authority or data-integrity risk exists, escalate.
+3. **Scope-matched checks.** Validate the changed scope first; no full regression or broad smoke unless DONE or the user requires it. Re-review checks prior blockers and the correction delta; a new HEAD does not reopen subsystem qualification.
+4. **Stop at DONE.** Report extra work as next options only. An explicit bounded directive authorizes work inside its stated boundary without redundant confirmation; an ambiguous "continue" without an approved next slice is audit-first.
+
+This never relaxes owner-gated actions or commit and push authority (Agent Core Rules above). It never cancels memory or PLAN updates that this repository's rules explicitly require, or session-end closeout; it does not license other status work after DONE.
 <!-- AI Governance Framework: agent-contract END -->

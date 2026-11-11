@@ -106,6 +106,32 @@ Reading `governance/SYSTEM_PROMPT.md` during the session clears the notice, and
 that change to `LOADED` is itself a material contract change — emit the full
 block at that point.
 
+<!-- ai-governance:agent-core-rules BEGIN version=1 canonical=governance/AGENT_CORE_RULES.md -->
+## Agent Core Rules (MANDATORY)
+
+Identical on every agent surface. Repository rules may add duties; they never relax these.
+
+1. **Owner Gate.** Every agent needs explicit owner approval before merging into main, publishing or releasing, deleting branches, closing another person's PR, any irreversible operation, firmware operations, data-integrity operations, and any high-risk operation this repository's own rules name. No directive, slice approval or protocol relaxes this gate.
+2. **Commit and push.** Memory and delivery protocols define order, not git authority. Commit and push follow the owner's current authorization and this repository's rules; inside an owner-authorized slice they may continue without re-asking. If either is missing from your context, ask.
+3. **Task DONE is not session end.** After task DONE, stop and do no extra work. A confirmed session end still requires the existing session-end closeout. An ordinary Stop event, a final answer, or a subagent finishing is not session end.
+4. **Must-record events.** Memory or PLAN updates these events require are part of that delivery, not extra work. A task limited to named files still includes these records unless the owner explicitly excludes them. After DONE, add no unrelated rollups or new PRs; do not record micro-steps or duplicate a record. Repository-specific record duties still apply. An agent's private or tool-provided memory (for example Claude auto-memory or the Copilot memory tool) may help the agent, but never satisfies these records; only the records named here or by this repository, written through their own contracts, do.
+
+| Event | Record in |
+|---|---|
+| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, phase, anti-goal or another existing PLAN obligation |
+| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` as a `CANDIDATE / UNREVIEWED` entry (root cause, fix, fix commit, test evidence) paired with a `memory_record` daily record for the same fix commit; never marked approved, reviewed only through promotion |
+| Review completed | full record in `memory/04_review_log.md`, one-line summary in `memory/01_active_task.md` |
+| Milestone reached | `memory/01_active_task.md`; `PLAN.md` phase/sprint only when it changes PLAN phase, scope, anti-goal or another existing PLAN obligation |
+| Risk or incident encountered | `PLAN.md` risk section + `memory/01_active_task.md` |
+| Confirmed session end | canonical `memory/YYYY-MM-DD.md` record through the session-end closeout when it is non-stateless |
+
+Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` section 6.1 alias schema (`02_project_facts.md`, `03_decisions.md`, `04_validation_log.md`); never assume an alias that does not exist.
+
+5. **No fabricated evidence.** Never claim a document was loaded, an authorization was given, or work was completed without evidence in this context. Filling `LOADED` or any other contract field by inference, or reusing a stale `[Governance Contract]` block such as one from an earlier session, is a governance failure. The block is evidence of what was loaded, not a formatting ritual.
+6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`.
+7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
+<!-- ai-governance:agent-core-rules END -->
+
 ## Conditional Governance Routers
 
 Before acting, load the detailed protocol only when its trigger applies:
@@ -263,7 +289,12 @@ platform-specific and must be qualified separately for each platform.
 3. **Session end must come from a defined, observable source.** Only two sources
    count: a platform lifecycle event whose session-end meaning has been
    confirmed for that platform, or the user explicitly asking to end the session
-   or to close out. The agent must not infer that the conversation is over. A
+   or to close out. The user may give that request in advance: an owner
+   authorization that names a concrete closeout or handover condition counts
+   once the agent has met that condition, provided it traces to a verifiable
+   original owner source and was recorded before the session started. A plan
+   item, a memory `next_step`, or an authorization the agent wrote for itself
+   does not count. The agent must not infer that the conversation is over. A
    final answer, a DONE report, or a per-turn `Stop` event is not session end
    unless that meaning has been confirmed.
 4. **Governed lifecycle hook present:** the harness is responsible for
@@ -339,40 +370,19 @@ The agent must not read, stage, summarize, or validate unrelated dirty files unl
 
 ### 7. Result-First Final Report (reporting convention, not a gate)
 
-Final reports and closeout must follow
-`governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+Before writing a final report or closeout, read and follow
+`governance/RESPONSE_ENVELOPE_CONTRACT.md`. It owns the details: rendering modes
+and triggers, the `注意：` line, the F-7 exception, translation and glossing,
+and report paths.
 
-Result-first reporting is required. Event-driven `mode` must be event-derived,
-not agent-selected. `mode_source`, `task_authority`, `scope`, `done`,
-`claim_ceiling`, `not_claimed`, `evidence_refs`, `risk`, and `next_action` must
-remain separate.
-
-Preserve `not_claimed`, `task_authority`, `claim_ceiling`, and `evidence_refs`
-in the complete machine envelope. A compact human response may omit the visible
-   Cannot claim section only when no decision-relevant item exists or the compact
-   `注意：` line preserves that boundary; it must not discard the machine data.
-   Failed/partial work and owner decisions may remain compact when the blocker,
-   ability to proceed, risks, non-claims, and required choice / authorization are
-   clear. Expand when a short answer cannot preserve those boundaries, canonical
-   evidence cannot be preserved, or full evidence is requested. Existing F-7
-   expanded-report exceptions remain. Dirty state, decision-relevant
-   limitations, and high-risk authority surfaces use one compact `注意：` line
-   when that line can state their effect honestly; otherwise classify the result
-   as failed or partial. `PASS` must always include a command, artifact, or
-   source; bare `PASS` is not valid.
-
-   In a Chinese session, translate conceptual reporting terms. Keep English
-   only for exact paths, commands, commits, APIs, schema fields, fixed machine
-   tokens, and trigger IDs; gloss trigger IDs on first use:
-   `full_evidence_request`（要求完整證據）、`owner_decision_required`（需要負責人
-   決定）、`failed_or_partial`（失敗或只完成一部分）. Do not put test commands,
-   counts, diagnostics, or general worktree status in `注意：`; put validation
-   details under `驗證：` or in `evidence_refs`, and keep `注意：` for the one
-   decision-relevant limitation.
-
-   Report commands from the repository root with their complete paths, such as
-   `tests/test_response_envelope_validator.py`. Every file reference must use
-   the actual workspace-relative path and verified 1-based line number.
+Always, even without that file: report the result first; `mode` is
+event-derived, not agent-selected; keep `mode_source`, `task_authority`,
+`scope`, `done`, `claim_ceiling`, `not_claimed`, `evidence_refs`, `risk`, and
+`next_action` separate and preserved in the machine envelope; a compact answer
+may never drop a decision-relevant non-claim, blocker, or required owner
+decision (expand instead); dirty state, decision-relevant limitations and
+high-risk authority surfaces use one `注意：` line, or the result is failed or
+partial; `PASS` must name a command, artifact, or source.
 
 #### Progress Updates
 
@@ -580,11 +590,5 @@ or milestone transitions according to `governance/MEMORY_PROTOCOL.md`.
 
 ## Companion / Chat Operations
 
-Non-repo companion behavior (group chat etiquette, heartbeat routine, social formatting, voice storytelling) is intentionally moved out of this file to reduce implementation-session noise.
-
-See `TOOLS.md` for companion and chat operation guidance.
-
-## Make It Yours
-
-This is a starting point. Add your own conventions, style, and rules as you figure out what works.
+See `TOOLS.md` for non-repo companion and chat operation guidance.
 
