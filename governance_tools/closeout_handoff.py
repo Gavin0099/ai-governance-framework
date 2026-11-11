@@ -362,12 +362,50 @@ def _same_worktree_root(cwd, root):
         return False
 
 
+def _registered_framework_root(root):
+    """The consumer's one registered governance framework submodule, or None.
+
+    Reuses _framework_identity, so the full binding check applies: exactly one
+    submodule registration, a committed gitlink, checkout HEAD equal to the
+    gitlink, a clean checkout, and the lock's adopted_commit equal to the
+    gitlink. Anything short of that is None and the caller fails closed.
+    """
+    try:
+        identity = _framework_identity(root)
+        return (Path(root) / identity["relative_path"]).resolve(strict=True)
+    except (ValueError, TypeError, KeyError, OSError, subprocess.SubprocessError):
+        return None
+
+
+def _transcript_cwd_in_consumer(cwd, root, framework_root):
+    """A transcript cwd belongs to this consumer's work (#233 follow-up).
+
+    Accepted: the consumer's own worktree root and its subdirectories, as in
+    _same_worktree_root; and the consumer's registered framework submodule and
+    its subdirectories, because agents are told to run the governance tools
+    from that checkout. Any other nested repository, submodule or worktree,
+    and any path outside the consumer, is still rejected. This widens only what
+    a transcript may name: SessionStart binding, the SessionEnd payload cwd,
+    ownership, receipts and release proof keep _same_worktree_root, and a cwd
+    in the framework grants no right to change the framework.
+    """
+    try:
+        if type(cwd) is not str:
+            return False
+        top = git_toplevel(cwd)
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return False
+    return top == Path(root) or (framework_root is not None and top == framework_root)
+
+
 def _validate_claude_snapshot(path, sid, root, check):
     # Claude's transcript opens with a queue-operation record carrying a
     # top-level sessionId, and cwd appears on later records. Supported JSONL
     # identity only; no last-record or completeness heuristic, and the absence
     # of a session_meta header is not treated as a defect.
     checked_cwds = {}
+    framework_root = None
+    framework_checked = False
     with path.open("rb") as stream:
         total = 0
         first = True
@@ -384,14 +422,22 @@ def _validate_claude_snapshot(path, sid, root, check):
                 _require(record.get("sessionId") == sid, "TRANSCRIPT_SESSION_MISMATCH")
                 first = False
             # Every session id the transcript names must be this session, and
-            # every cwd it names must sit in this consumer's worktree.
+            # every cwd it names must sit in this consumer's worktree or its
+            # registered framework submodule.
             if "sessionId" in record:
                 _require(record["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
             if "cwd" in record:
                 cwd = record["cwd"]
                 _require(type(cwd) is str and cwd.strip(), "TRANSCRIPT_SESSION_MISMATCH")
                 if cwd not in checked_cwds:
-                    checked_cwds[cwd] = _same_worktree_root(cwd, root)
+                    allowed = _same_worktree_root(cwd, root)
+                    if not allowed:
+                        # Resolved only when needed, once per snapshot.
+                        if not framework_checked:
+                            framework_root = _registered_framework_root(root)
+                            framework_checked = True
+                        allowed = _transcript_cwd_in_consumer(cwd, root, framework_root)
+                    checked_cwds[cwd] = allowed
                 _require(checked_cwds[cwd], "TRANSCRIPT_SESSION_MISMATCH")
                 seen_cwd = True
         _require(not first, "EMPTY_TRANSCRIPT")
