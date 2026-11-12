@@ -66,17 +66,47 @@ session id one provider created is never adopted by the other.
   Only an absent `runtime_hooks.core._bound_session_start` counts as "too old" —
   a broken dependency inside it, or a module without `establish_bound_session`,
   is reported as an error with nothing written.
-- **Supported harness: VS Code Local only.** The installed hook file is
-  Copilot-format (`sessionStart` in `.github/hooks/ai-governance-copilot.json`,
-  `--surface auto`). VS Code's Local harness maps that configuration and sends
-  its own snake_case payload (`session_id`, `hook_event_name`), routed to
-  `vscode` and bound. VS Code's Copilot harness sends the camelCase Copilot
-  payload (`sessionId`), routed to `copilot` (`provider=github-copilot`): it
-  keeps the unbound `1.0` envelope and cannot prepare a summary. Binding that
-  surface is not approved and would be a separate trust decision.
+- **One SessionStart registration for both Copilot clients (owner ruling
+  2026-11-11).** VS Code agent mode runs on the same Copilot runtime as the
+  standalone Copilot CLI and loads every `.github/hooks/*.json`, so the
+  Copilot-format `sessionStart` in `.github/hooks/ai-governance-copilot.json`
+  (`--surface auto`) is the only governed SessionStart; the VS Code-format file
+  carries no SessionStart. A snake_case payload (`session_id`) is routed to
+  `vscode` and bound as before. A camelCase payload (`sessionId`) is bound
+  through the same `establish_bound_session`, with the provider taken from the
+  client the runtime itself recorded for the session before any hook ran,
+  `$COPILOT_HOME/session-state/<id>/workspace.yaml` `client_name`
+  (`governance_tools/copilot_session_state.py`): `vscode-agent-host` →
+  `github-copilot-vscode` (`vscode_session_start`), `github/cli` →
+  `github-copilot` (`copilot_cli_session_start`). A missing or mismatched record
+  or an unknown client establishes nothing. The result does not depend on which
+  hook ran first; an existing envelope (`1.0` or `1.1`) is preserved and never
+  upgraded, and one owned by another provider is refused.
+- **VS Code Stop is an execution point only.** The VS Code-format file wires
+  `Stop` to `--event-type agent_stop --surface vscode`. Stop fires every turn:
+  without a `1.1` `github-copilot-vscode` identity, or when this session is not
+  the R2 owner of a prepared candidate, it returns without any write (not even
+  the R2 lock file). Otherwise it runs `session_closeout_entry.py --agent-id
+  copilot --trigger-mode native_hook`, which first requires that identity and
+  that the transcript is the runtime's `events.jsonl` for this session in this
+  consumer (session ids, working directories and git roots; the consumer or its
+  registered framework submodule), and only then enters R2. Stop never prepares
+  a candidate, never releases on its own and is never treated as session end.
+  VS Code never fired `SessionEnd` in the 2026-11-11 probe.
+- **Copilot CLI sessionEnd of a prepared session releases R2.** A root-bound
+  CLI session can now prepare a candidate, so its `sessionEnd` must not take the
+  direct session_end path, which produces no release proof and would leave the
+  owner `OWNED` (review on #297). When the session is the R2 owner of a
+  prepared candidate, `sessionEnd` runs the same protected entry, with the
+  runtime's `events.jsonl` for the session as transcript and the identity's own
+  provider as the expected client; anything wrong refuses and the owner stays
+  `OWNED`, never `valid`. Without a prepared candidate the existing session_end
+  path runs unchanged.
 
 Both payload shapes are tested through the real installer and the installed
-`sessionStart` command. Neither harness has been verified in a running editor.
+`sessionStart` command. The provider record and transcript shape come from a
+local probe (VS Code 1.145.3, Copilot runtime 1.0.103); the formal consumer run
+is still pending.
 
 The shared reader supports both `1.0` and `1.1` before the adapter emits `1.1`.
 Existing `1.0` envelopes remain byte-preserved and usable by existing closeout;

@@ -10,7 +10,9 @@ from pathlib import Path
 import pytest
 
 from governance_tools import hook_installer as installer
-from governance_tools.hook_install_validator import _vscode_hook_config_safe
+from governance_tools.hook_install_validator import (
+    VSCODE_MANAGED_HOOKS, VSCODE_MANAGED_STOP_ENTRY, _vscode_hook_config_safe,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +71,8 @@ def test_only_three_surfaces_and_preserves_legacy_and_instructions(targets):
     assert {Path(p).relative_to(repo) for p in result.changed_files} == {BRIDGE, CONFIG, MANIFEST}
     for name in protected:
         assert (repo / name).read_bytes() == b"consumer-owned\r\n"
-    assert json.loads((repo / CONFIG).read_text())["hooks"] == {}
+    # The VS Code file now carries exactly the managed Stop execution point.
+    assert json.loads((repo / CONFIG).read_text())["hooks"] == VSCODE_MANAGED_HOOKS
     assert _vscode_hook_config_safe(repo / CONFIG)
 
 
@@ -101,7 +104,10 @@ def test_upgrade_retires_only_legacy_entries_and_preserves_custom_hooks(targets,
     result = installer.install_copilot_vscode_lifecycle(repo, framework)
     assert result.ok, result.errors
     repaired = json.loads((repo / CONFIG).read_text())
-    assert repaired == {**config, "hooks": {"Stop": [custom], "UserPromptSubmit": config["hooks"]["UserPromptSubmit"]}}
+    # Legacy Stop -> session_end and SessionStart retired; custom entries kept in place;
+    # the managed Stop execution point appended once.
+    assert repaired == {**config, "hooks": {"Stop": [custom, VSCODE_MANAGED_STOP_ENTRY],
+                                            "UserPromptSubmit": config["hooks"]["UserPromptSubmit"]}}
     assert any(Path(p).read_bytes() == original for p in result.backups)
     assert _vscode_hook_config_safe(repo / CONFIG)
     before = snapshot(repo)
@@ -110,15 +116,19 @@ def test_upgrade_retires_only_legacy_entries_and_preserves_custom_hooks(targets,
     assert snapshot(repo) == before
 
 
-def test_custom_only_config_keeps_exact_bytes(targets):
+def test_custom_only_config_keeps_custom_entries_and_adds_the_managed_stop(targets):
     repo, framework = targets
     (repo / CONFIG).parent.mkdir(parents=True)
     original = b'{"version":1,"hooks":{"Stop":[{"command":"my-cleanup"}]},"mine":true}\r\n'
     (repo / CONFIG).write_bytes(original)
     result = installer.install_copilot_vscode_lifecycle(repo, framework)
     assert result.ok, result.errors
-    assert (repo / CONFIG).read_bytes() == original
-    assert result.backups == []
+    assert json.loads((repo / CONFIG).read_text()) == {
+        "version": 1, "hooks": {"Stop": [{"command": "my-cleanup"}, VSCODE_MANAGED_STOP_ENTRY]}, "mine": True}
+    before = snapshot(repo)
+    again = installer.install_copilot_vscode_lifecycle(repo, framework)
+    assert again.ok and again.changed_files == again.backups == []
+    assert snapshot(repo) == before
 
 
 @pytest.mark.parametrize("entry", [
@@ -134,7 +144,8 @@ def test_bridge_name_in_custom_data_is_not_lifecycle_wiring(targets, entry):
     assert _vscode_hook_config_safe(repo / CONFIG)
     result = installer.install_copilot_vscode_lifecycle(repo, framework)
     assert result.ok, result.errors
-    assert (repo / CONFIG).read_bytes() == original
+    # The bridge name in data is not wiring: the entry stays, only the managed Stop is added.
+    assert json.loads((repo / CONFIG).read_text())["hooks"] == {"Stop": [entry, VSCODE_MANAGED_STOP_ENTRY]}
 
 
 @pytest.mark.parametrize("raw", [

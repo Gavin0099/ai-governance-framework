@@ -1338,7 +1338,10 @@ def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_pat
         first = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True,
                                    submodule_path="ai-governance-framework")
         assert first.stages["hook_validator_enforcement"] == "updated", first.errors
-        assert json.loads(config.read_text())["hooks"] == {"Stop": [custom]}
+        # The legacy Stop -> session_end is retired, the consumer entry stays in place and
+        # the managed Stop execution point (agent_stop, ruling 2026-11-11) is added once.
+        from governance_tools.hook_install_validator import VSCODE_MANAGED_STOP_ENTRY
+        assert json.loads(config.read_text())["hooks"] == {"Stop": [custom, VSCODE_MANAGED_STOP_ENTRY]}
         copilot = repo / ".github/hooks/ai-governance-copilot.json"
         assert set(json.loads(copilot.read_text())["hooks"]) == {"sessionStart", "sessionEnd"}
         paths = [config, copilot, repo / ".github/hooks/ai-governance-lifecycle.py", repo / ".github/hooks/.ai-governance-managed.json"]

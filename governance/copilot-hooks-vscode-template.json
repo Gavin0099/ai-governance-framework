@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "hooks": {}
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python .github/hooks/ai-governance-lifecycle.py --event-type agent_stop --surface vscode",
+        "timeout": 60
+      }
+    ]
+  }
 }

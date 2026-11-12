@@ -538,29 +538,33 @@ def _apply_copilot_lifecycle_files(
 
 
 def _retired_vscode_payload(target: Path, source: Path) -> bytes:
-    """Remove only recognized old framework entries; retain consumer settings.
+    """Install the managed VS Code Stop execution point; retain consumer settings.
 
-    The empty template is intentional: VS Code has no confirmed session-end
-    event here. Unknown bridge invocations require manual resolution.
+    Recognized retired framework entries (Stop -> session_end, SessionStart) are
+    removed, the managed Stop entry is present exactly once, and every consumer
+    entry is kept in its place. Unknown bridge invocations require manual resolution.
+    The file is rewritten only when its parsed content would change.
     """
     from governance_tools.hook_install_validator import (
-        _read_vscode_hook_config, _references_copilot_bridge,
+        VSCODE_MANAGED_HOOKS, _read_vscode_hook_config, _references_copilot_bridge,
     )
 
-    if _read_vscode_hook_config(source)["hooks"]:
-        raise ValueError("VS Code template must have version 1 and empty hooks")
+    if _read_vscode_hook_config(source)["hooks"] != VSCODE_MANAGED_HOOKS:
+        raise ValueError("VS Code template must hold exactly the managed Stop execution point")
     if not target.exists():
         return source.read_bytes()
     original = target.read_bytes()
     config = _read_vscode_hook_config(target)
+    before = json.loads(json.dumps(config))
     hooks = config["hooks"]
-    changed = False
     for event, entries in list(hooks.items()):
         kept = []
         for entry in entries:
             if not _references_copilot_bridge(entry):
                 kept.append(entry)
                 continue
+            if entry in VSCODE_MANAGED_HOOKS.get(event, []):
+                continue  # Re-added below, so it is present exactly once.
             event_type = {"Stop": "session_end", "SessionStart": "session_start"}.get(event)
             expected = f"python .github/hooks/ai-governance-lifecycle.py --event-type {event_type} --surface auto"
             if (event_type is None or entry.get("type") != "command" or entry.get("command") != expected
@@ -568,12 +572,13 @@ def _retired_vscode_payload(target: Path, source: Path) -> bytes:
                     or not isinstance(entry.get("env", {}), dict)
                     or set(entry.get("env", {})) - {"AI_GOVERNANCE_FRAMEWORK_ROOT"}):
                 raise ValueError("unrecognized framework bridge wiring; preserve custom config and resolve manually")
-            changed = True
-        if kept or not entries:
+        if kept or not entries or event in VSCODE_MANAGED_HOOKS:
             hooks[event] = kept
         else:
             del hooks[event]
-    if not changed:
+    for event, managed in VSCODE_MANAGED_HOOKS.items():
+        hooks[event] = list(hooks.get(event, [])) + [dict(entry) for entry in managed]
+    if config == before:
         return original
     return (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
