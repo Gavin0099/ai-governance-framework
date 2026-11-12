@@ -154,11 +154,24 @@ def _references_copilot_bridge(entry: dict) -> bool:
     ))
 
 
-def _vscode_hook_config_safe(path: Path) -> bool:
-    """The retired VS Code surface is optional and may retain consumer hooks.
+# The one framework entry the VS Code hook file may carry (owner ruling 2026-11-11). Stop is
+# not session end: the bridge's agent_stop only runs an already prepared R2 closeout and
+# otherwise does nothing. SessionStart stays out of this file because VS Code also loads the
+# shared Copilot registration, whose sessionStart now establishes the identity for both.
+VSCODE_MANAGED_STOP_ENTRY = {
+    "type": "command",
+    "command": "python .github/hooks/ai-governance-lifecycle.py --event-type agent_stop --surface vscode",
+    "timeout": 60,
+}
+VSCODE_MANAGED_HOOKS = {"Stop": [VSCODE_MANAGED_STOP_ENTRY]}
 
-    No framework lifecycle registration belongs here: Stop is not session end,
-    and SessionStart would duplicate the existing Copilot registration.
+
+def _vscode_hook_config_safe(path: Path) -> bool:
+    """The VS Code surface is optional and may retain consumer hooks.
+
+    The only framework bridge registration allowed is the managed Stop execution
+    point, exactly once. The retired Stop -> session_end and SessionStart wiring,
+    or any other bridge invocation, is unsafe.
     """
     if not path.exists():
         return True
@@ -166,8 +179,10 @@ def _vscode_hook_config_safe(path: Path) -> bool:
         payload = _read_vscode_hook_config(path)
     except (OSError, ValueError):
         return False
-    return not any(_references_copilot_bridge(entry)
-                   for entries in payload["hooks"].values() for entry in entries)
+    bridged = [(event, entry) for event, entries in payload["hooks"].items()
+               for entry in entries if _references_copilot_bridge(entry)]
+    return all(event == "Stop" and entry == VSCODE_MANAGED_STOP_ENTRY for event, entry in bridged) \
+        and len(bridged) <= 1
 
 
 def _managed_copilot_hook_config(

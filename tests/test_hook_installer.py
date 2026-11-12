@@ -13,7 +13,7 @@ from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_SCHEMA,
     REPOSITORY_ROOT_TOKEN,
 )
-from governance_tools.hook_install_validator import validate_hook_install
+from governance_tools.hook_install_validator import VSCODE_MANAGED_STOP_ENTRY, validate_hook_install
 from governance_tools.hook_installer import (
     COPILOT_BLOCK_BEGIN,
     COPILOT_BLOCK_END,
@@ -77,7 +77,7 @@ def _make_framework(root: Path) -> None:
     )
     _write(
         root / "governance/copilot-hooks-vscode-template.json",
-        '{"version":1,"hooks":{}}\n',
+        (REPO_ROOT / "governance/copilot-hooks-vscode-template.json").read_text(encoding="utf-8"),
     )
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
@@ -851,12 +851,16 @@ def test_custom_vscode_hook_config_is_preserved_without_replacement(tmp_path: Pa
     install_governance_hooks(repo, framework)
     _write(_vscode_config(repo), '{"version":1,"hooks":{"UserPromptSubmit":[]}}\n')
 
-    before = _vscode_config(repo).read_bytes()
     result = install_governance_hooks(repo, framework)
 
     assert result.ok, result.errors
+    # The consumer's own events stay; only the managed Stop execution point is added.
+    assert json.loads(_vscode_config(repo).read_text(encoding="utf-8")) == {
+        "version": 1, "hooks": {"UserPromptSubmit": [], "Stop": [VSCODE_MANAGED_STOP_ENTRY]}}
+    before = _vscode_config(repo).read_bytes()
+    again = install_governance_hooks(repo, framework)
+    assert again.ok, again.errors
     assert _vscode_config(repo).read_bytes() == before
-    assert not any(Path(item).name.startswith("ai-governance-vscode.json.bak.") for item in result.backups)
 
 
 def test_unmodified_lifecycle_files_are_not_backed_up_on_reinstall(tmp_path: Path) -> None:
@@ -945,7 +949,9 @@ def test_installed_configs_register_each_session_boundary_exactly_once(tmp_path:
     # registration may reach closeout.
     assert len(ends) == 1, merged
     assert "SessionEnd" in merged
-    assert "Stop" not in merged
+    # Stop carries only the prepared-closeout execution point (owner ruling 2026-11-11),
+    # never session_start or session_end.
+    assert merged["Stop"] == ["python .github/hooks/ai-governance-lifecycle.py --event-type agent_stop --surface vscode"]
 
 
 def test_shell_installer_backs_up_edited_lifecycle_file_end_to_end() -> None:

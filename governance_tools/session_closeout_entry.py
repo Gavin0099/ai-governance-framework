@@ -728,12 +728,16 @@ def main() -> int:
         identity_error = "CLI session_id conflicts with native payload session_id"
     if explicit_session_id:
         _hook_session_id = explicit_session_id
-    if args.agent_id.strip().lower() == "codex":
+    # Copilot native_hook is the VS Code Stop execution point; other Copilot trigger modes
+    # (synthetic smoke, verify) keep their existing behaviour.
+    copilot_native = (args.agent_id.strip().lower() == "copilot" and args.trigger_mode == "native_hook")
+    if args.agent_id.strip().lower() == "codex" or copilot_native:
         import re
         if (not _hook_session_id
                 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", _hook_session_id)
                 or re.fullmatch(r"CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]", _hook_session_id, re.IGNORECASE)):
-            identity_error = "Codex closeout requires a valid explicit session_id; shared fallback is forbidden"
+            identity_error = (f"{args.agent_id.strip().capitalize()} closeout requires a valid explicit "
+                              "session_id; shared fallback is forbidden")
     if identity_error:
         if args.format == "json":
             print(json.dumps({"ok": False, "error": identity_error}))
@@ -746,6 +750,25 @@ def main() -> int:
     except RootBindingError as exc:
         print(f"ROOT_BINDING_FAILURE: {exc}", file=sys.stderr)
         return 2
+
+    # VS Code Copilot (owner ruling 2026-11-11): the Stop hook is only an execution point.
+    # Before R2 is touched, the session must hold a VS Code root-bound identity in this
+    # consumer, and the transcript the hook names must be the Copilot runtime's own record
+    # of this session in this consumer. Any doubt refuses with no state change.
+    if copilot_native:
+        from governance_tools import copilot_session_state as copilot_state
+        from runtime_hooks.core._canonical_closeout import read_session_envelope
+        try:
+            envelope = read_session_envelope(_hook_session_id, project_root) or {}
+            copilot_state._require(envelope.get("schema_version") == "1.1"
+                                   and envelope.get("provider") == "github-copilot-vscode",
+                                   "COPILOT_IDENTITY_NOT_ROOT_BOUND")
+            copilot_state._require(_transcript_path is not None, "COPILOT_TRANSCRIPT_MISSING")
+            copilot_state.validate_transcript(_transcript_path, _hook_session_id, project_root,
+                                              expected_provider="github-copilot-vscode")
+        except (ValueError, OSError) as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}))
+            return 1
 
     # The existing writer cannot satisfy the v1.5 manual-fallback requirements.
     # Reject before consumption rather than strand a session without release proof.

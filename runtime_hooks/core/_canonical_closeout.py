@@ -60,10 +60,15 @@ _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 _SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
 _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
 # Each host keeps its own identity; a source label is never valid for another provider.
+# github-copilot is the standalone Copilot CLI. VS Code agent mode runs on the same Copilot
+# runtime and reads the same hook file, so the shared Copilot SessionStart decides between
+# github-copilot and github-copilot-vscode from the client the runtime itself recorded for
+# the session (governance_tools/copilot_session_state.py), never from which hook ran first.
 _ROOT_BOUND_SOURCE_BY_PROVIDER = {
     "codex": "codex_session_start",
     "github-copilot-vscode": "vscode_session_start",
     "claude": "claude_session_start",
+    "github-copilot": "copilot_cli_session_start",
 }
 
 
