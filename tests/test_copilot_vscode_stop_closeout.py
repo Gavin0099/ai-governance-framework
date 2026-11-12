@@ -205,12 +205,12 @@ def test_framework_drive_letter_case_does_not_break_the_consumer_match(repo):
 
 # ── the protected entry refuses Copilot native closeout without the identity ──
 
-def test_entry_refuses_copilot_native_closeout_for_a_cli_identity(repo):
+def test_entry_refuses_copilot_native_closeout_for_a_legacy_identity(repo):
     import sys
+    from runtime_hooks.core import _canonical_closeout as core
     from tests.test_shared_closeout_ownership import FRAMEWORK
     register("cli-b", "github/cli")
-    run_lifecycle_event({"sessionId": "cli-b", "cwd": str(repo), "hookEventName": "sessionStart"},
-                        event_type="session_start", surface="copilot")
+    core.write_session_envelope("cli-b", repo, provider="github-copilot")  # legacy 1.0
     before = runtime_bytes(repo)
     done = subprocess.run(
         [sys.executable, str(FRAMEWORK / "governance_tools/session_closeout_entry.py"), "--project-root",
@@ -221,6 +221,89 @@ def test_entry_refuses_copilot_native_closeout_for_a_cli_identity(repo):
     assert done.returncode == 1
     assert json.loads(done.stdout)["error"] == "COPILOT_IDENTITY_NOT_ROOT_BOUND"
     assert runtime_bytes(repo) == before
+
+
+# ── Copilot CLI sessionEnd of a prepared session releases R2 (P1 review on #297) ──
+
+def start_cli(root, sid):
+    register(sid, "github/cli")
+    result = run_lifecycle_event({"sessionId": sid, "cwd": str(root), "hookEventName": "sessionStart"},
+                                 event_type="session_start", surface="copilot")
+    assert result["ok"] and result["provider"] == "github-copilot", result
+    assert result["session_envelope_binding"] == "root_bound"
+    return result
+
+
+def cli_end(root, sid, **extra):
+    return run_lifecycle_event({"sessionId": sid, "cwd": str(root), "hookEventName": "sessionEnd",
+                                "reason": "complete", **extra}, event_type="session_end", surface="copilot")
+
+
+def test_cli_a_prepares_ends_and_releases_then_cli_b_takes_over(repo):
+    """The reported sequence: start -> prepare -> sessionEnd used to say valid but stay OWNED."""
+    first = prepare(repo, "cli-a", session_start=start_cli)
+    transcript(repo, "cli-a")  # the runtime's own record; the CLI payload names no transcript
+    ended = cli_end(repo, "cli-a")
+    assert ended["status"] == "closeout_invoked", ended
+    assert ended["ok"] is True and ended["closeout_status"] == "valid", ended
+    assert owner(repo)["state"] == "RELEASED" and owner(repo)["session_id"] == "cli-a"
+    receipt = json.loads(Path(ended["closeout_receipt_artifact"]).read_text(encoding="utf-8"))
+    assert receipt["agent_id"] == "copilot" and receipt["trigger_mode"] == "native_hook"
+    second = prepare(repo, "cli-b", session_start=start_cli)  # no OWNER_CONFLICT
+    assert second["generation"] == first["generation"] + 1
+    assert owner(repo)["state"] == "OWNED" and owner(repo)["session_id"] == "cli-b"
+    transcript(repo, "cli-b")
+    assert cli_end(repo, "cli-b")["closeout_status"] == "valid"
+    assert owner(repo)["state"] == "RELEASED" and owner(repo)["session_id"] == "cli-b"
+
+
+def test_cli_end_with_a_bad_record_never_reports_valid_while_owned(repo, tmp_path):
+    prepare(repo, "cli-a", session_start=start_cli)
+    other = tmp_path / "other repo"
+    subprocess.run(["git", "init", "--quiet", str(other)], check=True)
+    transcript(repo, "cli-a", cwd=other.resolve())
+    before = runtime_bytes(repo)
+    ended = cli_end(repo, "cli-a")
+    assert ended["ok"] is False and ended["closeout_status"] != "valid", ended
+    assert ended["closeout_error"] == "COPILOT_TRANSCRIPT_REPOSITORY_MISMATCH"
+    assert runtime_bytes(repo) == before and owner(repo)["state"] == "OWNED"
+    transcript(repo, "cli-a")  # the session can still be closed out once the record is right
+    assert cli_end(repo, "cli-a")["closeout_status"] == "valid"
+    assert owner(repo)["state"] == "RELEASED"
+
+
+def test_cli_end_cannot_use_a_vscode_record(repo):
+    prepare(repo, "cli-a", session_start=start_cli)
+    transcript(repo, "cli-a")
+    register("cli-a", "vscode-agent-host")  # record now names another client
+    ended = cli_end(repo, "cli-a")
+    assert ended["ok"] is False and ended["closeout_error"] == "COPILOT_PROVIDER_MISMATCH"
+    assert owner(repo)["state"] == "OWNED"
+
+
+def test_cli_end_without_a_prepared_candidate_keeps_the_existing_path(repo):
+    start_cli(repo, "cli-a")
+    ended = cli_end(repo, "cli-a")
+    assert ended["status"] == "session_end_invoked", ended
+    assert not (repo / own.AREA / "owner.json").exists()
+
+
+def test_cli_end_of_another_sessions_prepared_owner_does_not_release_it(repo):
+    prepare(repo, "cli-a", session_start=start_cli)
+    start_cli(repo, "cli-b")
+    ended = cli_end(repo, "cli-b")
+    assert ended["status"] == "session_end_invoked", ended
+    assert owner(repo)["state"] == "OWNED" and owner(repo)["session_id"] == "cli-a"
+
+
+def test_cli_end_while_r2_is_busy_fails_closed(repo):
+    prepare(repo, "cli-a", session_start=start_cli)
+    transcript(repo, "cli-a")
+    before = runtime_bytes(repo)
+    with own.execution_exclusion(repo):
+        ended = cli_end(repo, "cli-a")
+    assert ended["ok"] is False and ended["status"] == "ownership_unavailable", ended
+    assert runtime_bytes(repo) == before and owner(repo)["state"] == "OWNED"
 
 
 # ── unit: client mapping ─────────────────────────────────────────────────────

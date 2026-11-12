@@ -93,6 +93,15 @@ session id one provider created is never adopted by the other.
   registered framework submodule), and only then enters R2. Stop never prepares
   a candidate, never releases on its own and is never treated as session end.
   VS Code never fired `SessionEnd` in the 2026-11-11 probe.
+- **Copilot CLI sessionEnd of a prepared session releases R2.** A root-bound
+  CLI session can now prepare a candidate, so its `sessionEnd` must not take the
+  direct session_end path, which produces no release proof and would leave the
+  owner `OWNED` (review on #297). When the session is the R2 owner of a
+  prepared candidate, `sessionEnd` runs the same protected entry, with the
+  runtime's `events.jsonl` for the session as transcript and the identity's own
+  provider as the expected client; anything wrong refuses and the owner stays
+  `OWNED`, never `valid`. Without a prepared candidate the existing session_end
+  path runs unchanged.
 
 Both payload shapes are tested through the real installer and the installed
 `sessionStart` command. The provider record and transcript shape come from a

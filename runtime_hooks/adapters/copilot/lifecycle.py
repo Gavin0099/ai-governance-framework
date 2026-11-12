@@ -299,25 +299,17 @@ _LEGACY_REASON = "framework_without_root_bound_support"
 VSCODE_PROVIDER = "github-copilot-vscode"
 
 
-def _agent_stop(normalized: dict[str, Any], framework_root: Path) -> dict[str, Any]:
-    """VS Code Stop: an execution point for an already prepared closeout, nothing more.
+COPILOT_PROVIDERS = (VSCODE_PROVIDER, "github-copilot")
 
-    Stop fires at the end of every agent turn and is not session end. It never prepares
-    a candidate, never releases ownership by itself and never treats task DONE as the
-    end of the session. Only when this VS Code session is the R2 owner of a prepared
-    candidate does it run the same protected entry Codex's native Stop uses, which
-    validates identity, transcript and release proof again and fails closed.
+
+def _prepared_owner(root: Path, sid: str) -> dict[str, Any] | None:
+    """None when this session is the R2 owner of a prepared candidate, else the reason not to act.
+
+    Read only: no owner record means nothing was prepared, and the R2 lock file is not
+    even created. The protected entry re-checks everything under the lock.
     """
-    root = normalized["project_root"]
-    sid = normalized["session_id"]
-    from runtime_hooks.core._canonical_closeout import read_session_envelope
     from governance_tools import shared_closeout_ownership as ownership
 
-    envelope = read_session_envelope(sid, root) or {}
-    if envelope.get("schema_version") != "1.1" or envelope.get("provider") != VSCODE_PROVIDER:
-        return {"ok": True, "status": "no_governed_vscode_identity"}
-    # Read only: an ordinary Stop must not even create the R2 lock file. No owner record
-    # means nothing was prepared; the protected entry re-checks everything under the lock.
     if not (root / ownership.AREA / "owner.json").exists():
         return {"ok": True, "status": "no_prepared_candidate"}
     try:
@@ -327,7 +319,11 @@ def _agent_stop(normalized: dict[str, Any], framework_root: Path) -> dict[str, A
         return {"ok": False, "status": "ownership_unavailable", "error": str(exc)}
     if not owner or owner.get("session_id") != sid or owner.get("state") != "OWNED":
         return {"ok": True, "status": "no_prepared_candidate"}
-    transcript = normalized["transcript_path"]
+    return None
+
+
+def _protected_closeout(root: Path, sid: str, transcript: Path | None, framework_root: Path) -> dict[str, Any]:
+    """The same protected, receipt-producing entry Codex's native Stop uses; it alone releases R2."""
     command = [sys.executable, str(framework_root / "governance_tools" / "session_closeout_entry.py"),
                "--project-root", str(root), "--format", "json", "--agent-id", "copilot",
                "--trigger-mode", "native_hook", "--session-id", sid]
@@ -347,6 +343,59 @@ def _agent_stop(normalized: dict[str, Any], framework_root: Path) -> dict[str, A
         "closeout_error": entry.get("error"),
         "closeout_receipt_artifact": entry.get("closeout_receipt_artifact"),
     }
+
+
+def _agent_stop(normalized: dict[str, Any], framework_root: Path) -> dict[str, Any]:
+    """VS Code Stop: an execution point for an already prepared closeout, nothing more.
+
+    Stop fires at the end of every agent turn and is not session end. It never prepares
+    a candidate, never releases ownership by itself and never treats task DONE as the
+    end of the session. Only when this VS Code session is the R2 owner of a prepared
+    candidate does it run the same protected entry Codex's native Stop uses, which
+    validates identity, transcript and release proof again and fails closed.
+    """
+    root = normalized["project_root"]
+    sid = normalized["session_id"]
+    from runtime_hooks.core._canonical_closeout import read_session_envelope
+
+    envelope = read_session_envelope(sid, root) or {}
+    if envelope.get("schema_version") != "1.1" or envelope.get("provider") != VSCODE_PROVIDER:
+        return {"ok": True, "status": "no_governed_vscode_identity"}
+    not_prepared = _prepared_owner(root, sid)
+    if not_prepared is not None:
+        return not_prepared
+    return _protected_closeout(root, sid, normalized["transcript_path"], framework_root)
+
+
+def _prepared_session_end(normalized: dict[str, Any], framework_root: Path) -> dict[str, Any] | None:
+    """Session end of a root-bound Copilot session that prepared an R2 candidate (review on #297).
+
+    Root-bound Copilot CLI sessions can now prepare, so their sessionEnd must release R2
+    through the protected entry; the direct session_end hook never produces release proof
+    and would leave the owner OWNED. The transcript is the runtime's own record of the
+    session (session-state/<id>/events.jsonl) when the payload names none; the entry
+    validates it exactly as for VS Code. None means no prepared candidate: the existing
+    session_end path runs unchanged.
+    """
+    root = normalized["project_root"]
+    sid = normalized["session_id"]
+    try:
+        from runtime_hooks.core._canonical_closeout import read_session_envelope
+        from governance_tools import copilot_session_state
+    except ModuleNotFoundError:
+        return None
+    envelope = read_session_envelope(sid, root) or {}
+    if envelope.get("schema_version") != "1.1" or envelope.get("provider") not in COPILOT_PROVIDERS:
+        return None
+    not_prepared = _prepared_owner(root, sid)
+    if not_prepared is not None:
+        # Nothing prepared: the existing path. R2 busy: fail closed rather than run a
+        # closeout that cannot release while another closeout holds the lock.
+        return None if not_prepared["status"] == "no_prepared_candidate" else not_prepared
+    transcript = normalized["transcript_path"]
+    if transcript is None:
+        transcript = copilot_session_state.session_state_dir(sid) / "events.jsonl"
+    return _protected_closeout(root, sid, transcript, framework_root)
 
 
 def _legacy_vscode_envelope(
@@ -479,6 +528,10 @@ def run_lifecycle_event(
             **({"session_envelope_binding_reason": envelope["binding_reason"]}
                if envelope.get("binding_reason") else {}),
         }
+
+    prepared = _prepared_session_end(normalized, framework_root)
+    if prepared is not None:
+        return {**common, **prepared}
 
     result = _run_session_end(
         normalized["project_root"],

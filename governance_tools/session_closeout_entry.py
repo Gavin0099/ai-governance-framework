@@ -751,21 +751,23 @@ def main() -> int:
         print(f"ROOT_BINDING_FAILURE: {exc}", file=sys.stderr)
         return 2
 
-    # VS Code Copilot (owner ruling 2026-11-11): the Stop hook is only an execution point.
-    # Before R2 is touched, the session must hold a VS Code root-bound identity in this
-    # consumer, and the transcript the hook names must be the Copilot runtime's own record
-    # of this session in this consumer. Any doubt refuses with no state change.
+    # Copilot native closeout (owner ruling 2026-11-11): VS Code Stop and the Copilot CLI
+    # sessionEnd of a prepared session. Before R2 is touched, the session must hold a
+    # root-bound Copilot identity in this consumer, and the transcript must be the Copilot
+    # runtime's own record of this session, written by the client that identity names, in
+    # this consumer. Any doubt refuses with no state change.
     if copilot_native:
         from governance_tools import copilot_session_state as copilot_state
         from runtime_hooks.core._canonical_closeout import read_session_envelope
         try:
             envelope = read_session_envelope(_hook_session_id, project_root) or {}
+            provider = envelope.get("provider")
             copilot_state._require(envelope.get("schema_version") == "1.1"
-                                   and envelope.get("provider") == "github-copilot-vscode",
+                                   and provider in copilot_state.PROVIDER_BY_CLIENT.values(),
                                    "COPILOT_IDENTITY_NOT_ROOT_BOUND")
             copilot_state._require(_transcript_path is not None, "COPILOT_TRANSCRIPT_MISSING")
             copilot_state.validate_transcript(_transcript_path, _hook_session_id, project_root,
-                                              expected_provider="github-copilot-vscode")
+                                              expected_provider=provider)
         except (ValueError, OSError) as exc:
             print(json.dumps({"ok": False, "error": str(exc)}))
             return 1
