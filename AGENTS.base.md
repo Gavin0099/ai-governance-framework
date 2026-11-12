@@ -102,7 +102,9 @@ python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-
 ```
 
 `<session-id>` is the platform's own session id (`CODEX_THREAD_ID` in Codex,
-`CLAUDE_CODE_SESSION_ID` in Claude Code), and it must equal `session_id` in
+`CLAUDE_CODE_SESSION_ID` in Claude Code; in VS Code Copilot, the id that the
+governed SessionStart hook adds to the conversation as `additionalContext`),
+and it must equal `session_id` in
 `artifacts/runtime/.current-session-id`. That file names the most recently
 started or resumed session, which may be another session sharing the checkout;
 if the platform exposes no native id, or the two differ, do not prepare and
@@ -116,8 +118,8 @@ The manual fallback cannot release an R2-prepared candidate (it is refused with
 `RELEASE_PROOF_INVALID`), so after `PREPARED` do not attempt it. If
 `python -m governance_tools.manage_agent_closeout --project-root <repo> verify
 --agent <agent>`, run from the framework checkout, reports a closeout hook as
-installed and says the closeout is left to it (today only the Codex Stop
-hook; a hook that only writes a checkpoint does not count), the closeout is
+installed and says the closeout is left to it (today the Codex Stop hook
+and the VS Code Copilot Stop hook; a hook that only writes a checkpoint does not count), the closeout is
 left to that hook after the turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
 session-end hook), not `NOT PERSISTED`. An installed hook is not proof that
 it will run or succeed, and the agent cannot observe it during its own turn;
@@ -126,8 +128,10 @@ ownership) confirms `VALID` / `RELEASED` afterwards. Otherwise report the closeo
 not persisted: rule 5's manual attempt cannot release a `PREPARED`
 candidate, so that report is its outcome. `REJECTED` is reported verbatim. Preparation is available only in a
 registered-submodule consumer whose session has a qualified (schema 1.1)
-identity; a Copilot CLI session (provider `github-copilot`) is rejected and its
-closeout is reported as not persisted.
+identity. The Copilot paths are separate: a VS Code Copilot session prepares
+with the id above and its Stop hook runs the closeout; a Copilot CLI session is
+given no session id, so it does not prepare and its closeout is reported as not
+persisted (its sessionEnd hook closes out only a session that was prepared).
 
 Writing `artifacts/session-closeout.txt` by hand is **not** a formal closeout:
 it is a legacy/manual input surface, it is not converted into a session-bound

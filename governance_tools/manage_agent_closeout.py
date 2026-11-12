@@ -812,13 +812,42 @@ class CopilotAdapter(AgentAdapter):
                 "message": f"Copilot sessionEnd hook written to {hook_path}."}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        """Report each Copilot closeout execution point on its own.
+
+        The lifecycle wiring is judged by the hook validator's own checks
+        (copilot_closeout_wiring). VS Code Stop runs the closeout of a prepared
+        VS Code session, so only it is "left to" the hook for the pending report;
+        the CLI sessionEnd is reported separately and never stands in for it.
+        """
+        from governance_tools.hook_install_validator import copilot_closeout_wiring
+
         state = self._binding_state(project_root, framework_root)
-        return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
+        wiring = copilot_closeout_wiring(project_root)
+        hooks_dir = project_root / ".github" / "hooks"
+        parts = [
+            "VS Code Copilot Stop (agent_stop): "
+            + ("installed; a prepared VS Code Copilot session's closeout is left to it"
+               if wiring["vscode_stop"] else "not installed"),
+            "Copilot CLI sessionEnd (lifecycle bridge): "
+            + ("installed; it closes out only a session that was prepared"
+               if wiring["cli_session_end"] else "not installed"),
+            f"legacy {self.HOOK_FILE} sessionEnd binding: {state}",
+        ]
+        blockers = self._configuration_blockers(project_root)
+        note = ("; ".join(parts) + ". Configuration binding only; native execution is not verified."
+                + (" " + "; ".join(blockers) if blockers else "")
+                + (_PENDING_HOOK_NOTE if wiring["vscode_stop"] else ""))
+        location = (hooks_dir / "ai-governance-vscode.json" if wiring["vscode_stop"]
+                    else hooks_dir / "ai-governance-copilot.json" if wiring["cli_session_end"]
+                    else self._hook_path(project_root) if state != "NOT_INSTALLED" else None)
+        return {"installed": bool(wiring["vscode_stop"] or wiring["cli_session_end"]
+                                  or state == "CORRECTLY_INSTALLED"),
+                "manual_only": False,
                 "binding_state": state,
-                "location": str(self._hook_path(project_root)) if state != "NOT_INSTALLED" else None,
-                "note": (f"Managed binding and recognized repository sessionEnd invocation check: {state}; "
-                         "runtime and other configuration sources not verified. "
-                         + "; ".join(self._configuration_blockers(project_root)))}
+                "vscode_stop": wiring["vscode_stop"],
+                "cli_session_end": wiring["cli_session_end"],
+                "location": str(location) if location else None,
+                "note": note}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)

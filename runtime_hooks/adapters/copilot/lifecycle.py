@@ -398,6 +398,33 @@ def _prepared_session_end(normalized: dict[str, Any], framework_root: Path) -> d
     return _protected_closeout(root, sid, transcript, framework_root)
 
 
+def _session_id_context(result: dict[str, Any]) -> dict[str, Any]:
+    """Tell a VS Code Copilot agent its own platform session id (owner ruling 2026-11-12).
+
+    VS Code gives the agent no session id, yet formal closeout preparation needs it.
+    Only after this hook has established or preserved a root-bound github-copilot-vscode
+    identity does the hook hand the platform's id to the conversation, through the
+    documented top-level SessionStart output, additionalContext, of the GitHub Copilot
+    hook format that the shared registration uses. It only informs the agent; it
+    proves nothing. R2 still checks the platform-created envelope,
+    repository, transcript and ownership on its own.
+    """
+    if (result.get("provider") != VSCODE_PROVIDER
+            or result.get("session_envelope_binding") != "root_bound"):
+        return {}
+    note = (
+        f"AI Governance: the platform session id of this VS Code Copilot session is "
+        f"{result['session_id']}. The SessionStart hook bound it to {result['project_root']}. "
+        "Use it as <session-id> for prepare_closeout_candidate.py, and only at an "
+        "owner-authorized closeout (AGENTS.base.md, Session Closeout Obligation); never take "
+        "an id from artifacts/runtime/.current-session-id. After PREPARED, the VS Code Stop "
+        "hook runs the formal closeout after your turn: report PREPARED / PENDING_HOOK, and do "
+        "not run manual_fallback. Only R2 evidence (valid closeout, RELEASED ownership) "
+        "confirms success. This note is not proof of identity."
+    )
+    return {"additionalContext": note}
+
+
 def _legacy_vscode_envelope(
     session_id: str,
     project_root: Path,
@@ -512,7 +539,7 @@ def run_lifecycle_event(
             hook_event_name=normalized["hook_event_name"],
             source=payload.get("source"),
         )
-        return {
+        result = {
             **common,
             "provider": envelope.get("provider", common["provider"]),
             "ok": True,
@@ -528,6 +555,8 @@ def run_lifecycle_event(
             **({"session_envelope_binding_reason": envelope["binding_reason"]}
                if envelope.get("binding_reason") else {}),
         }
+        result.update(_session_id_context(result))
+        return result
 
     prepared = _prepared_session_end(normalized, framework_root)
     if prepared is not None:
