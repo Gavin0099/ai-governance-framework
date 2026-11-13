@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_update_protocol_manual_status.py tests/test_adopt_governance.py tests/test_governance_drift_checker.py tests/test_adopt_governance_packaging.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-27T08:41:59Z",
+  "finished_at": "2026-10-27T08:42:42Z",
+  "runner": "pytest: baseline-pinning suites (ADR-0003 is docs only)",
+  "linked_commit": "9193b09c3811107c45772e6be90d01120d03ea4d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/adr0003-unchanged-20261027.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
