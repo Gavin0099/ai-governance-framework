@@ -2,6 +2,21 @@
 
 ## Canonical Planning Surface
 
+### E-01B first exploratory batch — 2026-11-14
+
+- Owner released six exploratory runs (A/B/C x 2, one `codex exec` turn each)
+  under the E-01B v5 design (Draft PR #303, not merged). The drawn task was
+  disqualified because an earlier experiment had already implemented it; the
+  owner designated the replacement task directly.
+- DONE: all six runs graded offline against an oracle fixed before the first
+  run: every run 13/13, so both comparisons stop at "ceiling". Arm C hooks
+  fired, but no closeout was produced and R2 was not released, so arm C is
+  recorded as "product valid / governance loop incomplete" (design 3.4).
+- Redacted result for review: `docs/proposals/2026-11-e01b-batch1-result.md`.
+  Full data stays on the owner's machine (#273 public limits).
+- Not a formal E-01B sample; no KEEP/SIMPLIFY decision and no framework change.
+  Independent review is pending; merge is not authorized.
+
 ### Authorized I2 agent core rules (S2-A/S2-B) — 2026-10-30
 
 - Owner ruling C1-C7 adopted 2026-10-30; slices S2-A (single canonical core)
@@ -80,7 +95,7 @@
   independent review, Codex review and complete CI must pass before delivery.
 - Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
 
-> **最後更新**: 2026-10-30
+> **最後更新**: 2026-11-14
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
