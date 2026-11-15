@@ -12,7 +12,8 @@ Full governance rules: `AGENTS.md` and `rules/byok.md`.
 
 ## Before Every Task
 
-1. **Check PLAN.md scope** — Read `PLAN.md`. If the task is NOT listed under
+1. **Check PLAN.md scope** — Follow `governance/SYSTEM_PROMPT.md` §2.2 for PLAN
+   startup context; without the full framework, read `PLAN.md` in full. If the task is NOT listed under
    the current focus, stop and ask before proceeding.
 
 2. **Check PLAN.md freshness** — If `PLAN.md` has not been updated recently,

@@ -88,7 +88,7 @@ python -m governance_tools.upgrade_starter_pack --repo /your/project
 
 ### 1. 先維護 `PLAN.md`
 
-`PLAN.md` 是 starter-pack 的核心。每次 session 前，AI 都應先讀這份檔案。
+`PLAN.md` 是 starter-pack 的核心。每次 session 先依 `SYSTEM_PROMPT.md` 的 PLAN 啟動讀法取得脈絡；未安裝完整 framework 時仍讀全文。
 
 至少要維護：
 
@@ -168,7 +168,7 @@ do not stay on starter-pack permanently.
 
 ## What this starter-pack solves
 
-- Makes the AI read `PLAN.md` at the start of every session
+- Loads PLAN context at session start using the installed framework's checked summary/full rule; standalone starter-pack reads the full PLAN
 - Gives work focus, memory pressure, and architecture boundaries a minimal dependable entry point
 - Gives a new repo a clear governance starting point before full adoption
 

@@ -268,8 +268,8 @@ def get_l0_context_limits() -> dict:
         "always_load": [
             "governance/SYSTEM_PROMPT.md",
             "governance/AGENT.md",
-            "PLAN.md",
         ],
+        "plan_context": "governance/SYSTEM_PROMPT.md#2.2",
         "forbidden_load": [
             "governance/ARCHITECTURE.md",
             "governance/REVIEW_CRITERIA.md",

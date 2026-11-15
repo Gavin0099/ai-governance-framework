@@ -29,9 +29,12 @@ Stopping is a success condition, not a failure.
 
 Before any action, complete these steps in order:
 
-### Read `PLAN.md`
+### Read PLAN startup context
 
 - Get current project scope and sprint focus.
+- With the full framework installed, follow `governance/SYSTEM_PROMPT.md` §2.2
+  for checked summary-first loading and source rereads. Without that framework,
+  read the full `PLAN.md`; before editing PLAN or when the owner asks, read it in full.
 - If `PLAN.md` is missing, warn and ask the human to create one.
 - If the request is outside current focus, stop and surface the mismatch.
 

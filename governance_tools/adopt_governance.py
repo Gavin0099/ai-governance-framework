@@ -672,7 +672,7 @@ def _write_payload_layering_config(target_repo_root: Path, repo_type: str) -> No
         "    always_load:\n"
         "    - governance/SYSTEM_PROMPT.md\n"
         "    - governance/AGENT.md\n"
-        "    - PLAN.md\n"
+        "    plan_context: governance/SYSTEM_PROMPT.md#2.2\n"
         "    forbidden_load:\n"
         "    - governance/ARCHITECTURE.md\n"
         "    - governance/REVIEW_CRITERIA.md\n"

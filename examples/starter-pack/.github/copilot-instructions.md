@@ -16,7 +16,7 @@ Stopping is a success condition, not a failure.
 
 ## Before Every Task
 
-1. Read `PLAN.md` and verify the requested task is in current focus.
+1. Follow `SYSTEM_PROMPT.md`'s PLAN startup rule and verify the requested task is in current focus.
 2. Check memory pressure in `memory/01_active_task.md`.
 3. Start the response with:
 

@@ -4,7 +4,7 @@
 
 > machine-readable: true
 > version: 1.1.0
-> updated: 2026-10-30
+> updated: 2026-11-15
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -36,6 +36,11 @@ question into one property. Memory surfaces use the question-specific roles in
 - `on-demand`：只有當 context 需要時才讀
 - `incremental`：只增量讀取最近候選，不做 full rescan
 - `never`：agent 不自動載入；通常對應 human-only 文件
+
+Project PLAN 的啟動讀法由 `SYSTEM_PROMPT.md` §2.2 決定：小檔讀全文，較大者先執行
+`python -X utf8 scripts/plan_summary.py --startup --plan PLAN.md`（submodule 使用實際 framework prefix）。
+只有完整索引、受支援版面且無 warning 的摘要可作啟動脈絡；失敗／警告、編輯 PLAN、owner 要求時讀全文，觸及索引章節先補讀原文。
+摘要是 derived context，不改 project PLAN 的 canonical authority；下表 `governance/PLAN.md` 是按需範本，不能當成 project PLAN。
 
 ---
 

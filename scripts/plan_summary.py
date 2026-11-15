@@ -12,6 +12,7 @@ Usage:
   python scripts/plan_summary.py --plan PLAN.md
   python scripts/plan_summary.py --format json
   python scripts/plan_summary.py --out artifacts/plan-summary.md
+  python scripts/plan_summary.py --startup --plan PLAN.md
 """
 
 from __future__ import annotations
@@ -169,7 +170,10 @@ _READ_RULE = (
     "not complete grants of authority. Use current owner authorization; open "
     "checkboxes can be standing constraints, not permission to execute. Regenerate "
     "a saved summary if the source SHA-256 changes. Dated grants may be superseded; "
-    "they do not authorize this session. This view does not change PLAN load rules."
+    "they do not authorize this session. Follow SYSTEM_PROMPT.md section 2.2: use "
+    "summary context only when startup_read=summary, coverage is complete and no "
+    "warnings are reported. Read the full PLAN before editing it, on command "
+    "failure/warnings, or when the owner asks."
 )
 _CONSTRAINT_HEADING = re.compile(
     r"claim (?:ceiling|boundar)|cannot claim|constraints?|non-goals?|anti-goals?|"
@@ -180,6 +184,106 @@ _CONSTRAINT_TEXT = re.compile(
     r"\b(?:unauthori[sz]ed|not authori[sz]ed|does not authori[sz]e|do not|must not|"
     r"standing constraint|not funded|only after)\b|\bno [^\n.]{0,160}authori[sz]ed\b", re.I)
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+
+# Small plans cost less to read directly. A complete index alone does not prove
+# semantic extraction: only the evaluated framework outline is supported for
+# summary-first loading. Dates and source-commit labels are not layout changes.
+FULL_READ_MAX_BYTES = 16_384
+_SUPPORTED_OUTLINES = {
+    "18acabad91f071ca7f626bfb112551db2332a77abb375c098fb45007cc97bc27": "framework_plan",
+}
+
+
+def _outline_digest(text: str) -> str:
+    headings = [re.sub(r"\b[0-9a-f]{7,40}\b", "<commit>", _DATE.sub("<date>", h["heading"]))
+                for h in parse_plan_headings(text) if h["level"] == 2]
+    return hashlib.sha256("\n".join(headings).encode("utf-8")).hexdigest()
+
+
+def _complete_index(text: str, sections: list[dict]) -> bool:
+    """Validate actual inclusive coverage, not the presence of an index key."""
+    cursor = 1
+    try:
+        for section in sections:
+            start, end = section["line"], section["end_line"]
+            if type(start) is not int or type(end) is not int or start != cursor or end < start:
+                return False
+            cursor = end + 1
+        if cursor != len(text.splitlines()) + 1:
+            return False
+        indexed = {s["line"]: s["heading"] for s in sections if s["kind"] == "markdown"}
+        return all(indexed.get(h["line"]) == h["heading"] for h in parse_plan_headings(text))
+    except (KeyError, TypeError):
+        return False
+
+
+def _startup_loading(text: str, summary: dict) -> dict:
+    """Select context only; this signal grants no execution or gate authority."""
+    lines, code = plan_source_lines(text)
+    sections = summary["section_index"]
+    coverage = _complete_index(text, sections)
+    outline = _outline_digest(text)
+    layout = _SUPPORTED_OUTLINES.get(outline)
+    warnings = []
+    if not coverage:
+        warnings.append("incomplete_index")
+    if summary["source"]["bytes"] > FULL_READ_MAX_BYTES:
+        if not layout:
+            warnings.append("unverified_layout")
+        if not summary["current_phase"]["id"]:
+            warnings.append("current_phase_not_parsed")
+        history = [(s["line"], s.get("subtree_end_line", s["end_line"])) for s in sections
+                   if re.match(r"^(?:Historical\b|History\b|Archive[ds]?\b|歷史|封存)", s["heading"], re.I)]
+        expected = {n for n, line in enumerate(lines, 1)
+                    if n not in code and re.match(r"\s*(?:[-+*]|\d+[.)])\s+\[[ >~]\]", line)
+                    and not any(a <= n <= b for a, b in history)}
+        items = summary["open_items"]
+        if ({t["line"] for t in items} != expected or any(
+                t["text"] != "\n".join(lines[t["line"] - 1:t["end_line"]]) for t in items)):
+            warnings.append("open_item_coverage_incomplete")
+        carried = {n for span in summary["carried_sections"]
+                   for n in range(span["line"], span["end_line"] + 1)}
+        if any(span["content"] != "\n".join(lines[span["line"] - 1:span["end_line"]])
+               for span in summary["carried_sections"]):
+            warnings.append("constraint_text_mismatch")
+        headings = parse_plan_headings(text)
+        first_section = next((h["line"] for h in headings if h["level"] == 2), len(lines) + 1)
+        if any(line.strip() and not re.match(r"^#\s+", line.lstrip("\ufeff")) for line in lines[:first_section - 1]):
+            warnings.append("unclassified_preamble")
+        required = {"Canonical Planning Surface", "Active Claim Boundaries", "Dirty Workspace Policy",
+                    "Definition Of Done For Current Planning Slice", "Cannot Claim From This PLAN Alone"}
+        found = set()
+        for index, heading in enumerate(headings):
+            if heading["heading"] not in required:
+                continue
+            found.add(heading["heading"])
+            end = heading["end_line"]
+            if heading["heading"] == "Cannot Claim From This PLAN Alone" and index + 1 < len(headings):
+                end = headings[index + 1]["line"] - 1
+            if any(n not in carried for n in range(heading["line"], end + 1) if lines[n - 1].strip()):
+                warnings.append("startup_constraints_not_carried")
+        if found != required:
+            warnings.append("startup_constraints_not_found")
+        fence = None
+        for line in lines:
+            match = re.match(r"^\s*(`{3,}|~{3,})(.*)$", line)
+            if not match:
+                continue
+            if fence is None:
+                fence = match[1]
+            elif match[1][0] == fence[0] and len(match[1]) >= len(fence) and not match[2].strip():
+                fence = None
+        if fence:
+            warnings.append("unclosed_code_fence")
+        if any(n not in code and re.match(r"\s*(?:[-+*]|\d+[.)])\s+\[[^\]]*\]", line)
+               and not re.match(r"\s*(?:[-+*]|\d+[.)])\s+\[[ xX>~]\]", line)
+               for n, line in enumerate(lines, 1)):
+            warnings.append("unsupported_checkbox_marker")
+    small = summary["source"]["bytes"] <= FULL_READ_MAX_BYTES
+    return {"startup_read": "full" if small or warnings else "summary",
+            "reason": "small_plan" if small else warnings[0] if warnings else "supported_layout",
+            "full_read_max_bytes": FULL_READ_MAX_BYTES, "index_coverage_complete": coverage,
+            "layout": layout, "outline_sha256": outline, "warnings": list(dict.fromkeys(warnings))}
 
 
 def _paragraphs(lines: list[str], code: set[int]) -> list[tuple[int, int]]:
@@ -250,7 +354,8 @@ def _fidelity_context(text: str) -> dict:
                             r"^Phase Overview$|^Work Item Glossary$", re.I)
     for section in sections:
         if navigation.search(section["heading"]):
-            spans.append((section["line"], section["end_line"], "authorization/navigation"))
+            end = section.get("subtree_end_line", section["end_line"]) if section["heading"] == "Canonical Planning Surface" else section["end_line"]
+            spans.append((section["line"], end, "authorization/navigation"))
         if _CONSTRAINT_HEADING.search(section["heading"]):
             end = section["heading_end_line"] if section.get("inline") else section["end_line"]
             spans.append((section["line"], end, "constraint section"))
@@ -333,7 +438,8 @@ def _fidelity_context(text: str) -> dict:
 
 
 def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
-    text = plan_path.read_text(encoding="utf-8")
+    payload = plan_path.read_bytes()
+    text = payload.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
     header = parse_header(text)
     phase = parse_current_phase(text)
     gates = parse_gate_status(text)
@@ -349,10 +455,10 @@ def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
     phase2_gate = _parse_phase2_gate_status(text)
     head = _head_commit(project_root)
 
-    return {
+    summary = {
         "read_rule": _READ_RULE,
-        "source": {"sha256": hashlib.sha256(plan_path.read_bytes()).hexdigest(),
-                   "bytes": plan_path.stat().st_size, "lines": len(text.splitlines())},
+        "source": {"sha256": hashlib.sha256(payload).hexdigest(),
+                   "bytes": len(payload), "lines": len(text.splitlines())},
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "head_commit": head,
         "plan_path": str(plan_path),
@@ -373,6 +479,8 @@ def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
         "plan_context_provenance": _PLAN_CONTEXT_PROVENANCE,
         **_fidelity_context(text),
     }
+    summary["startup_loading"] = _startup_loading(text, summary)
+    return summary
 
 
 def format_human(summary: dict) -> str:
@@ -383,6 +491,9 @@ def format_human(summary: dict) -> str:
     lines.append("# PLAN.md Compressed View")
     if "section_index" in summary:
         lines.append(summary["read_rule"])
+    if "startup_loading" in summary:
+        loading = summary["startup_loading"]
+        lines.append(f"startup_read={loading['startup_read']} | index_coverage_complete={str(loading['index_coverage_complete']).lower()} | layout={loading['layout']} | warnings={json.dumps(loading['warnings'])}")
     lines.append(f"generated: {summary['generated_at']}  |  HEAD: {summary['head_commit']}")
     lines.append(f"plan: {summary['plan_path']}  |  last_updated: {summary['last_updated']}  |  owner: {summary['owner']}")
     lines.append("")
@@ -488,31 +599,71 @@ def format_human(summary: dict) -> str:
 
 # ── CLI ────────────────────────────────────────────────────────────────────
 
+def _emit_output(args: argparse.Namespace, output: str) -> None:
+    if args.out:
+        Path(args.out).write_text(output, encoding="utf-8")
+        print(f"[plan_summary] wrote {args.out}")
+    else:
+        print(output)
+
+
+def _emit_full_plan(args: argparse.Namespace, plan_path: Path, reason: str, warnings: list[str]) -> None:
+    text = plan_path.read_text(encoding="utf-8")
+    status = {"startup_read": "full", "reason": reason, "warnings": warnings,
+              "full_read_max_bytes": FULL_READ_MAX_BYTES}
+    if warnings:
+        print(f"[plan_summary] WARNING: {', '.join(warnings)}; read the full {plan_path} below before acting.", file=sys.stderr)
+    output = (json.dumps({"startup_loading": status, "plan_path": str(plan_path), "full_plan_text": text}, ensure_ascii=False, indent=2)
+              if args.format == "json" else f"# PLAN startup: startup_read=full | reason={reason} | source_lines={len(text.splitlines())}\n\n{text}")
+    _emit_output(args, output)
+    # No compressed view was delivered. Existing summary CLI sidecar behavior
+    # below is unchanged; a full startup read does not write compression evidence.
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="PLAN.md source-linked session context and section index")
     parser.add_argument("--plan", default="PLAN.md", help="Path to PLAN.md")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--out", help="Write output to file instead of stdout")
+    parser.add_argument("--startup", action="store_true", help="Read small or unsupported PLANs in full; otherwise emit a checked summary")
     args = parser.parse_args()
 
     plan_path = Path(args.plan)
     if not plan_path.exists():
-        print(f"[plan_summary] ERROR: {plan_path} not found", file=sys.stderr)
+        print(f"[plan_summary] ERROR: {plan_path} not found; read the full PLAN before acting.", file=sys.stderr)
         sys.exit(1)
 
     project_root = plan_path.parent.resolve()
-    summary = build_plan_summary(plan_path, project_root)
+    try:
+        if args.startup and plan_path.stat().st_size <= FULL_READ_MAX_BYTES:
+            _emit_full_plan(args, plan_path, "small_plan", [])
+            return
+        try:
+            summary = build_plan_summary(plan_path, project_root)
+        except Exception:
+            if not args.startup:
+                raise
+            _emit_full_plan(args, plan_path, "summary_failed", ["summary_failed"])
+            return
+        loading = summary["startup_loading"]
+        eligible = (loading.get("startup_read") == "summary" and loading.get("index_coverage_complete") is True
+                    and loading.get("layout") in _SUPPORTED_OUTLINES.values() and loading.get("warnings") == [])
+        if args.startup and not eligible:
+            reason, warnings = loading.get("reason", "invalid_loading_signal"), loading.get("warnings", [])
+            if loading.get("startup_read") == "summary":
+                reason, warnings = "invalid_loading_signal", ["invalid_loading_signal"]
+            _emit_full_plan(args, plan_path, reason, warnings)
+            return
+    except Exception as exc:
+        print(f"[plan_summary] ERROR: {type(exc).__name__}; read the full {plan_path} before acting.", file=sys.stderr)
+        sys.exit(1)
 
     if args.format == "json":
         output = json.dumps(summary, ensure_ascii=False, indent=2)
     else:
         output = format_human(summary)
 
-    if args.out:
-        Path(args.out).write_text(output, encoding="utf-8")
-        print(f"[plan_summary] wrote {args.out}")
-    else:
-        print(output)
+    _emit_output(args, output)
 
     # Always write provenance sidecar so session_end_hook can read it
     # even when plan_summary output goes to stdout (not to a file).

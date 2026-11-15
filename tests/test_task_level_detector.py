@@ -220,9 +220,10 @@ class TestGetL0ContextLimits:
         limits = get_l0_context_limits()
         assert any("AGENT.md" in f for f in limits["always_load"])
 
-    def test_plan_always_loaded(self):
+    def test_plan_context_uses_canonical_startup_rule(self):
         limits = get_l0_context_limits()
-        assert any("PLAN.md" in f for f in limits["always_load"])
+        assert "PLAN.md" not in limits["always_load"]
+        assert limits["plan_context"] == "governance/SYSTEM_PROMPT.md#2.2"
 
     def test_review_criteria_forbidden(self):
         limits = get_l0_context_limits()

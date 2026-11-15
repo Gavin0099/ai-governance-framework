@@ -59,17 +59,27 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kern
 
 ### 2.2 Memory Sync
 
-讀取 project plan 與 `memory/` 目錄來同步 project state：
+讀取 PLAN 啟動脈絡與 `memory/` 目錄來同步 project state：
 
 | File | Purpose |
 |---|---|
-| `PLAN.md` | 當前 sprint focus、phase status、anti-goals |
+| PLAN 啟動脈絡（見下方） | 當前 sprint focus、phase status、anti-goals |
 | `memory/01_active_task.md` | 當前 active state |
 | `memory/02_workflow.md` | workflow 與 toolchain 事實 |
 | `memory/02_project_facts.md` | external-domain factual baseline 的 accepted alias |
 | `memory/03_knowledge_base.md` | troubleshooting 與 anti-pattern |
 | `memory/03_decisions.md` | external-domain decision record 的 accepted alias |
 | `memory/04_validation_log.md` | external-domain validation history 的 accepted alias |
+
+PLAN 啟動讀法（所有 level；在 project root 執行）：
+- `PLAN.md` 不超過 16,384 原始 bytes 時直接讀全文；較大者執行
+  `python -X utf8 scripts/plan_summary.py --startup --plan PLAN.md`。
+  framework 為 submodule 時用
+  `python -X utf8 ai-governance-framework/scripts/plan_summary.py --startup --plan PLAN.md`；
+  prefix 依 `.gitmodules` 的實際 framework 路徑替換，`--plan` 始終指本 repo 的 PLAN（非標準位置依 baseline `plan_path`）。
+- 讀完整輸出；只有 `startup_read=summary`、`index_coverage_complete=true` 且無 warning 才可用摘要。
+  `startup_read=full` 已輸出原文，完整讀完即為全文讀取。未知版面或有 warning 時只能讀全文；指令不存在／失敗時改讀完整原檔。
+- 任務涉及僅索引或部分攜帶的章節，先補讀索引指定的 PLAN 行；編輯 PLAN 前或 owner 要求時讀全文。
 
 `PLAN.md` 是 planned work、phase status、anti-goals 的 single source of truth。
 不要讓平行的 long-range plan 檔案和它漂移。
@@ -254,7 +264,7 @@ repo-local governance 真相應維持單一邊界，不應讓 workspace 層、ad
 | Tier | Document | Condition |
 |---|---|---|
 | 0 | `SYSTEM_PROMPT.md` | Every conversation |
-| 0 | `PLAN.md` | Every conversation when present |
+| 0 | PLAN startup context | Every conversation when present; follow §2.2 summary/full selection and reread rules |
 | 1 | `AGENT.md` | All non-trivial tasks |
 | 1 | `ARCHITECTURE.md` | New features, refactors, boundary changes |
 | 1 | `TESTING.md` | Behavior, build, regression, or baseline risk |
