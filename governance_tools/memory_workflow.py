@@ -292,18 +292,20 @@ def _is_linked_worktree(repo_root: Path) -> bool:
 
 
 def _declared_submodule_roots(repo_root: Path) -> list[Path]:
-    gitmodules = repo_root / ".gitmodules"
-    if not gitmodules.is_file():
+    """Submodule paths declared in `.gitmodules`, parsed by git so quoting, escapes and
+    inline comments resolve exactly as git resolves them."""
+    if not (repo_root / ".gitmodules").is_file():
         return []
-    try:
-        lines = gitmodules.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
+    code, stdout, _stderr = _run_git(
+        repo_root, ["config", "--file", ".gitmodules", "--null", "--get-regexp", r"^submodule\..*\.path$"]
+    )
+    if code != 0 or not stdout:
         return []
     roots: list[Path] = []
-    for line in lines:
-        key, sep, value = line.strip().partition("=")
-        if sep and key.strip() == "path" and value.strip():
-            roots.append(repo_root / value.strip())
+    for entry in stdout.split("\0"):
+        _key, sep, value = entry.partition("\n")
+        if sep and value:
+            roots.append(repo_root / value)
     return roots
 
 

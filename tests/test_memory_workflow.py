@@ -348,13 +348,15 @@ def _git(repo: Path, *args: str) -> None:
     )
 
 
-def _main_with_submodule_framework(tmp_path: Path) -> tuple[Path, Path]:
+def _main_with_submodule_framework(
+    tmp_path: Path, path_value: str = "additional/ai-governance-framework"
+) -> tuple[Path, Path]:
     """A main checkout whose framework copy lives at a declared submodule path, with the
     hook root file (in the shared git dir) pointing at the main checkout's copy."""
     main = tmp_path / "main"
     main.mkdir()
     _git(main, "init", "-b", "main")
-    _write(main / ".gitmodules", '[submodule "fw"]\n\tpath = additional/ai-governance-framework\n')
+    _write(main / ".gitmodules", f'[submodule "fw"]\n\tpath = {path_value}\n')
     _make_framework_surface(main, "additional/ai-governance-framework")
     _git(main, "add", "-A")
     _git(main, "commit", "-m", "init")
@@ -363,8 +365,19 @@ def _main_with_submodule_framework(tmp_path: Path) -> tuple[Path, Path]:
     return main, main_framework
 
 
-def test_linked_worktree_prefers_its_own_framework_over_shared_hook_root(tmp_path: Path) -> None:
-    main, main_framework = _main_with_submodule_framework(tmp_path)
+@pytest.mark.parametrize(
+    "path_value",
+    [
+        "additional/ai-governance-framework",
+        '"additional/ai-governance-framework"',
+        "additional/ai-governance-framework ; inline comment",
+    ],
+    ids=["plain", "quoted", "inline-comment"],
+)
+def test_linked_worktree_prefers_its_own_framework_over_shared_hook_root(
+    tmp_path: Path, path_value: str
+) -> None:
+    main, main_framework = _main_with_submodule_framework(tmp_path, path_value)
     worktree = tmp_path / "wt"
     _git(main, "worktree", "add", "-b", "feature", str(worktree))
 
