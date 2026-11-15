@@ -144,21 +144,16 @@ Before acting, load the detailed protocol only when its trigger applies:
    New session-derived memory must use `governance_tools.memory_record`.
    Direct markdown append is prohibited.
 
-2. Owner-facing engineering explanation / final report / closeout:
-   when reporting status, diagnosis, review, completion, or when the owner asks
-   for a plain explanation, read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
-   Use result-first reporting and preserve `not_claimed` in the complete
-   machine envelope. In compact human output, omit the visible Cannot claim
-   section only when no decision-relevant item exists or a compact `注意：`
-   line preserves that boundary; expanded output must show every
-   decision-relevant non-claim.
-   When surfacing machine / guard field tokens, pair each with a one-line
-   plain-language meaning. This does not require displaying every token. Keep
-   all raw fields in canonical evidence; show exact tokens only when their value
-   affects the current decision / claim boundary or full evidence is requested.
+2. Owner-facing status, diagnosis, review, plain explanation, final report or
+   closeout: read `governance/RESPONSE_ENVELOPE_CONTRACT.md`. Preserve the complete
+   machine envelope including `not_claimed`; follow its result-first rendering,
+   non-claim visibility and plain-language glossing rules. Keep raw fields in
+   canonical evidence; display exact tokens only when decision-relevant or requested.
+   Give each surfaced machine/guard field token a one-line plain-language meaning.
 
 3. Review / assess / audit / recommend next changes:
-   read `governance/REVIEW_CRITERIA.md`.
+   read `governance/REVIEW_CRITERIA.md` before findings; it routes additional
+   testing, architecture and knowledge-base inputs.
 
 4. AI Governance check/update request:
    read `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`.
@@ -177,94 +172,47 @@ Before acting, load the detailed protocol only when its trigger applies:
 These routers are trigger rules. The detailed files are the authority for the
 corresponding protocol.
 
-## Review Tasks
-
-When asked to **review, assess, audit, or recommend next changes** for this repository,
-first read `governance/REVIEW_CRITERIA.md` before producing findings.
-
-`REVIEW_CRITERIA.md` defines which additional governance documents are required
-(e.g. `TESTING.md`, `ARCHITECTURE.md`, `memory/03_knowledge_base.md`) and under what conditions.
-Do not produce review findings before reading it.
-
 ## Delivery Recovery Constraints
 
-These constraints apply to implementation sessions in this repository and in consuming repositories using this governance framework. Their purpose is to prevent governance work from displacing product delivery.
+These apply to framework and consumer implementation sessions; governance must
+not displace product delivery.
 
 ### 1. Vertical Slice First
 
-Before expanding governance surface, complete one usable end-to-end product slice.
-
-Examples:
-- `scan -> select -> execute -> result`
-- `launch -> interact -> complete -> recover`
-
-No governance expansion before the vertical slice is usable unless triggered by an observed failure.
+Complete one usable end-to-end product slice before expanding governance
+(e.g. `scan -> select -> execute -> result`), unless an observed failure requires it.
 
 ### 2. Failure-Driven Governance Only
 
-New governance surface is allowed only after an observed failure.
-
-Valid triggers:
-- unsafe behavior
-- irreversible failure
-- false-positive / false-negative
-- authority escalation
-- replay inconsistency
-- production ambiguity
-
-Invalid triggers:
-- future extensibility
-- theoretical completeness
-- semantic elegance
-- might be useful later
+New governance requires observed unsafe behavior, irreversible failure, a false
+positive/negative, authority escalation, replay inconsistency or production
+ambiguity. Future extensibility, theoretical completeness, semantic elegance
+and "might be useful later" are not triggers.
 
 ### 3. Session Done Definition Required
 
-Every implementation session must have a concrete DONE condition before file edits begin.
-
-If the user provides DONE, use it directly.
-If the user does not provide DONE, propose one measurable product outcome and wait for confirmation.
-If the user gives an explicit bounded execution directive (for example: "proceed", "continue", "do not add features, only converge"), treat that as execution authorization within the stated boundary and do not ask for redundant confirmation.
-Ask again only when scope expands, enforcement semantics change, schema/runtime behavior changes, or irreversible/destructive risk is introduced.
+Before edits, use the user's DONE or propose one measurable product outcome and
+wait for confirmation: `DONE = <one measurable product outcome>`.
+Keep it narrow and testable; broad project direction is not DONE.
+An explicit bounded directive ("proceed", "continue", "only converge") authorizes
+execution inside its stated boundary without redundant confirmation. Ask again
+only for scope expansion, enforcement or schema/runtime behavior changes, or
+new irreversible/destructive risk.
 
 #### Ambiguous Continuation Is Audit-First
 
-Ambiguous continuation commands are not bounded execution directives by themselves.
-
-Examples include:
-
-- continue
-- proceed
-- keep going
-- 繼續
-- 往下做
-- 再做下一步
-
-If no next-slice boundary was already approved, the agent must default to audit-first behavior:
-
-- inspect the current state;
-- identify the last committed / validated scope;
-- propose the next narrow slice;
-- list the intended scope, allowed files, non-goals, validation, commit/push intent, and non-claims;
-- do not edit files until the user confirms the proposed slice.
-
-If a next-slice boundary was already explicitly approved, the agent may execute that bounded slice without repeating the proposal.
-
-Format:
-
-`DONE = <one measurable product outcome>`
-
-Do not infer broad project direction as DONE. DONE must be narrow and testable.
+"Continue", "proceed", "keep going", "繼續", "往下做" or "再做下一步" alone
+does not establish a boundary. Without an approved next slice, inspect current
+state and the last committed/validated scope; propose a narrow slice with scope,
+allowed files, non-goals, validation, commit/push intent and non-claims. Wait for
+confirmation before edits. Execute an already approved slice without re-proposing it.
 
 ### 4. Hard Stop After Done
 
-When DONE is achieved, stop.
-
-Do not add extra telemetry, readiness, qualification, runtime hooks, artifacts, or governance work unless there is an observed failure.
-
-Do not automatically continue into: full regression, broad smoke validation, closeout execution, status/rollup updates, unrelated cleanup, commit, push, or inspection of unrelated dirty/untracked files.
-
-If additional work appears useful, report it as next options only.
+At DONE, stop; report additional work as next options only. Add no telemetry,
+readiness, qualification, hooks, artifacts or governance without an observed
+failure. Do not automatically run full regression, broad smoke, closeout,
+status/rollups, unrelated cleanup, commit, push or inspect unrelated dirty files.
 
 ### Session-End Closeout (MANDATORY)
 
@@ -319,28 +267,26 @@ successful closeout on one platform is not evidence for any other platform.
 
 ### 5. Scope-Matched Validation
 
-Validation must match the changed scope. Run targeted validation first.
-
-Do not upgrade to full regression, broad smoke, or closeout unless the DONE definition explicitly requires it or the user explicitly requests it.
-This closeout limit and the one in Hard Stop After Done apply to task DONE. Closeout at a session end established under Session-End Closeout rule 3 is governed by that block.
-
-Examples: markdown-only changes do not require runtime tests; a single helper change runs its directly related test file; full regression is a release gate, not a default task gate.
+Run targeted checks for the changed scope first. Full regression, broad smoke
+or closeout only if the DONE definition explicitly requires it or the user
+explicitly requests it. Markdown-only work
+needs no runtime tests; a helper change runs its related test file; full
+regression is a release gate. This and Hard Stop apply to task DONE; closeout
+at an established session end follows the mandatory block above.
 
 ### 6. Dirty Tree Allowlist
 
-When the working tree is dirty, produce a concise `git status` summary only.
-
-Do not inspect, read, explain, stage, or modify unrelated dirty or untracked files.
-
-Stage only the explicit allowlist provided by the user or required by the DONE scope.
+Run `git status --short` and give a concise summary; classify paths as in scope,
+unrelated or unknown. Inspect, explain, summarize and validate only the claimed
+scope or an approved allowlist. Never read, stage or modify unrelated dirty or
+untracked files without explicit approval. Stage only user-listed or DONE files;
+provide commit-preflight review only when commit is requested.
 
 #### Dirty Work Must Not Be Reported as Overall DONE
 
-If local workspace changes remain after the claimed work, the agent must not report the overall task as DONE.
-
-The agent may only claim DONE for the committed and validated scope.
-
-Required wording pattern:
+Only committed, validated scope may be DONE. Any remaining unstaged, staged but
+uncommitted, untracked, generated or uncommitted auto-review work, or failed/
+unavailable commit/push tooling, prevents overall DONE. Use this wording:
 
 ```text
 Committed scope: DONE
@@ -348,50 +294,24 @@ Workspace state: NOT CLEAN
 Overall task: NOT DONE until dirty work is audited or explicitly excluded
 ```
 
-This applies when any of the following remain after the claimed work:
-
-- unstaged changes;
-- staged but uncommitted changes;
-- untracked files;
-- generated local diff without commit checkpoint;
-- failed or unavailable commit / push tooling;
-- auto-review changes that were not committed.
-
-When dirty work exists, the agent must:
-
-- run `git status --short`;
-- identify whether dirty files are in the claimed scope, unrelated, or unknown;
-- inspect only files in the claimed scope or user-approved allowlist;
-- summarize scoped diff only when inspection is allowed;
-- run scoped validation only for in-scope changes;
-- provide commit-preflight review only if commit is requested.
-
-The agent must not read, stage, summarize, or validate unrelated dirty files unless the user explicitly approves that scope.
-
 ### 7. Result-First Final Report (reporting convention, not a gate)
 
-Before writing a final report or closeout, read and follow
-`governance/RESPONSE_ENVELOPE_CONTRACT.md`. It owns the details: rendering modes
-and triggers, the `注意：` line, the F-7 exception, translation and glossing,
-and report paths.
-
-Always, even without that file: report the result first; `mode` is
-event-derived, not agent-selected; keep `mode_source`, `task_authority`,
-`scope`, `done`, `claim_ceiling`, `not_claimed`, `evidence_refs`, `risk`, and
-`next_action` separate and preserved in the machine envelope; a compact answer
-may never drop a decision-relevant non-claim, blocker, or required owner
-decision (expand instead); dirty state, decision-relevant limitations and
-high-risk authority surfaces use one `注意：` line, or the result is failed or
-partial; `PASS` must name a command, artifact, or source.
+Before a final report or closeout, read `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+for rendering, triggers, the F-7 exception, language/glossing and report paths.
+Even if unavailable: lead with the result; derive `mode` from the event; preserve
+`mode_source`, `task_authority`, `scope`, `done`, `claim_ceiling`, `not_claimed`,
+`evidence_refs`, `risk` and `next_action` separately in the complete machine record.
+Compact text must preserve decision-relevant non-claims, blockers and owner
+decisions; expand if needed. Use one `注意：` line for dirty state, material
+limitations or high-risk authority surfaces, or report failed/partial. `PASS`
+must name a command, artifact or source.
 
 #### Progress Updates
 
-Progress updates are content-dense and on demand. Each update must contain at
-least one new discovery, root-cause convergence, or plan change. Omit updates
-that only narrate routine commands, searches, or repeated validation, and do
-not impose a hard maximum number of updates. Keep each update concise and in
-the current session language; the final report states the result rather than
-replaying progress history.
+Keep updates concise, in the session language and on demand. Each must add a
+discovery, root-cause convergence or plan change; omit routine command/search/
+retest narration. No hard maximum applies. Final reports state results rather
+than replay progress.
 
 ### 8. Commit Checkpoint (reporting convention, not a gate)
 
@@ -448,43 +368,19 @@ If any signal is unclear or regressed, surface it before proceeding.
 
 ## Workspace vs Repo Governance
 
-This file defines workspace behavior, memory habits, safety posture, and how to
-operate in this environment.
-
-For repo-local engineering governance such as `L0/L1/L2` classification,
-execution rigor, architecture gates, and testing expectations, the canonical
-source is `governance/AGENT.md` together with the other files under
-`governance/`.
-
-If this file and `governance/AGENT.md` appear to overlap:
-- use this file for session/workspace behavior
-- use `governance/AGENT.md` for repo engineering governance
-- if editor/adapter/workspace instructions conflict with repo-local governance on execution rigor, risk gates, or task classification, `governance/` wins for repo work and the mismatch should be corrected instead of silently improvised
+This file governs session/workspace behavior, memory habits and safety.
+`governance/AGENT.md` and `governance/` own repo engineering classification,
+execution rigor, architecture, risk and testing gates. For repo work they prevail
+over conflicting workspace/editor/adapter instructions; correct the mismatch
+instead of silently inventing policy.
 
 ### Persistent User Preference Precedence
 
-Repo-local instructions may define task execution, validation, memory, and
-governance behavior for this repository. They must not silently override durable
-user preferences or tool-level permanent instructions when those preferences do
-not conflict with repo safety or correctness.
-
-If a repo instruction conflicts with a durable user preference, the agent must
-surface the conflict and state which instruction is being followed and why.
-
-Repo governance may override a durable user preference only for:
-- safety;
-- destructive operation prevention;
-- validation, evidence, or claim-boundary requirements;
-- commit / push discipline;
-- repository-specific correctness boundaries.
-
-Repo governance must not override a durable user preference for:
-- language preference;
-- communication style;
-- response verbosity;
-- non-conflicting workflow preferences;
-- personal naming or formatting preferences.
-
+Surface conflicts with durable user preferences or permanent tool instructions;
+state the chosen source and reason. Repo governance overrides preferences only
+for safety, destructive-operation prevention, validation/evidence/claim boundaries,
+commit/push discipline or repo correctness. It must not override language, style,
+verbosity, non-conflicting workflow, naming or formatting preferences.
 When uncertain, report:
 
 ```text
@@ -494,64 +390,36 @@ Following <source> because <reason>.
 
 ## Nested Repo / Submodule Rule
 
-When this repository is opened inside another repository as a nested checkout or
-submodule:
-- treat this repository root as a separate workspace, not as an extension of the parent repo
-- confirm the current repo root before reading or updating `memory/`, `artifacts/`, `PLAN.md`, or `governance/`
-- do not mix this repo's `memory/` files with the parent repo's `memory/` files
-- do not write review notes, active-task updates, or governance artifacts into the wrong repo just because both repos expose similarly named paths
-- when reporting findings, name which repo owns the file and which repo owns the decision
-
-If the parent repo wants to consume this framework through a submodule, treat
-submodule pointer updates as parent-repo decisions. Do not silently assume that
-advancing the framework checkout also updates the parent repo's intended pinned
-version.
+Treat this root as a separate workspace when nested. Confirm it before accessing
+`memory/`, `artifacts/`, `PLAN.md` or `governance/`; never mix parent/child memory,
+review notes, active-task updates or governance artifacts. Findings must name
+the repo owning the file and the repo owning the decision. Submodule pointer
+updates are parent-repo decisions; advancing this checkout does not update the
+parent's intended pin.
 
 ### AI Governance Update Trigger
 
-When the user asks to check or update AI Governance, read
-`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` before acting.
+Follow Conditional Governance Routers 4–5 before check/update work. Route
+"幫我更新最新版 AI Governance" or equivalent wording to
+`governance_tools.f7_full_update`, even without the name F-7. Its updater is a
+backend, not the final reporting surface.
 
-An update request such as "幫我更新最新版 AI Governance" or equivalent wording
-must route to `governance_tools.f7_full_update`; the user does not need to name
-F-7 explicitly. The governed updater is an F-7 backend, not the final reporting
-surface.
+Instruction sync, parent `git pull` or a clean parent tree do not prove framework
+freshness. A submodule pointer alone is incomplete, never `full_update_completed`.
+This workspace section is a trigger summary, not the canonical definition.
+For consumer updates, prefer the governed F-7 path. A direct pointer, checkout or
+lock edit is a `manual_update` path, incomplete without governed evidence.
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` owns the definitions, templates,
+pre-discard inspection and final discarded-path inventory for `manual_update`
+and `destructive_manual_update`; read it before changing nested state.
+Before discarding local state in a nested framework checkout, first inspect the modified and untracked paths to be discarded.
+If cleanup proceeds, list that inventory in the final report as `destructive_manual_update`.
+Do not call discarded state merely "cleaned the submodule".
 
-Do not treat `AGENTS.md`, `AGENTS.base.md`, local instruction-file sync, parent
-repo `git pull`, or a clean parent working tree as proof that the AI Governance
-Framework is current.
-
-When updating AI Governance for a consuming repository, prefer the governed
-updater/F-7 path. A direct submodule/gitlink checkout, framework checkout bump,
-or lock-file edit is a `manual_update` path and must be reported as incomplete
-unless the governed updater/F-7 evidence is also produced.
-
-This workspace section is a trigger summary, not the canonical definition of
-`manual_update` or `destructive_manual_update`. The canonical reporting
-vocabulary and templates live in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`;
-F-7 and consumer AGENTS baselines only project that vocabulary into their active
-execution surfaces.
-
-Before discarding local state in a nested framework checkout, first inspect the
-modified and untracked paths that would be discarded. If cleanup proceeds, the
-final report must list that discarded-path inventory and use
-`destructive_manual_update`; do not summarize it only as "cleaned the
-submodule".
-
-### F-7 Full Update Trigger
-
-When the user asks for F-7, a full AI Governance update, or the latest AI
-Governance update in natural language, read
-`governance/F7_FULL_UPDATE.md`.
-
-A submodule pointer update alone is not a full F-7 update and must not be
-reported as `full_update_completed`.
-
-Every F-7 terminal result must relay the complete
-`[human_readable_adoption_summary]` table when available. If the table is
-unavailable or omitted, report `human_readable_adoption_summary: NOT REPORTED`,
-`update_report_complete=false`, and `completion_claim_allowed=false`; do not
-claim a complete AI Governance update report.
+Every F-7 terminal report relays the complete `[human_readable_adoption_summary]`
+table. If unavailable or omitted, report
+`human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`
+and `completion_claim_allowed=false`; do not claim a complete update report.
 
 ## Memory
 
