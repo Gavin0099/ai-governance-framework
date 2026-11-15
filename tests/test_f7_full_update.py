@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
+import sys
 from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
@@ -1087,6 +1089,135 @@ def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow
     assert result.repo_role == "external_contract_repo"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
     assert result.details["memory_workflow_hook_advisory_present"] is True
+
+
+def _make_linked_update_fixture(tmp_path: Path, role: str) -> tuple[Path, Path, str]:
+    remote = tmp_path / "framework"
+    _make_framework(remote)
+    _write(remote / "baselines/repo-min/AGENTS.base.md", "# Framework baseline\n")
+    _write(
+        remote / "baselines/repo-min/AGENTS.md",
+        "# Agent rules\n\n## AI Governance Update Intent Rule\n\n"
+        "Use F-7.\n\n## Repo-Specific Risk Levels\n\nN/A\n",
+    )
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "complete framework fixture")
+
+    primary = tmp_path / "primary"
+    linked = tmp_path / "linked"
+    _make_external_contract_repo(primary)
+    submodule_path = (
+        "additional/ai-governance-framework"
+        if role == "external_contract_repo"
+        else "ai-governance-framework"
+    )
+    _git(
+        primary, "-c", "protocol.file.allow=always", "submodule", "add",
+        str(remote), submodule_path,
+    )
+    _git(primary, "add", ".")
+    _git(primary, "commit", "-m", "seed consumer")
+    _git(primary, "worktree", "add", "--detach", str(linked), "HEAD")
+    _git(
+        linked, "-c", "protocol.file.allow=always", "submodule", "update",
+        "--init", "--", submodule_path,
+    )
+
+    # Faithful managed hooks with the root belonging to the primary checkout.
+    hooks = primary / ".git/hooks"
+    for name in ("pre-commit", "pre-push"):
+        (hooks / name).write_bytes((primary / submodule_path / "scripts/hooks" / name).read_bytes())
+    _write(hooks / "ai-governance-framework-root", (primary / submodule_path).as_posix() + "\n")
+    _write(hooks / "unrelated-hook", "preserve this shared file\n")
+    assert classify_repo(linked) == role
+    return primary, linked, submodule_path
+
+
+def _tree_hashes(root: Path, *, exclude: Path | None = None) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in root.rglob("*")
+        if path.is_file() and (exclude is None or exclude not in path.parents)
+    }
+
+
+def _run_linked_update_cli(linked: Path, submodule_path: str, tool: str, apply: bool):
+    module = (
+        "governance_tools.f7_full_update"
+        if tool == "f7"
+        else "governance_tools.external_governance_submodule_updater"
+    )
+    args = [sys.executable, "-X", "utf8", "-m", module, "--repo", str(linked), "--format", "json"]
+    if tool == "f7":
+        # The nested path intentionally exercises the external-contract backend.
+        args.extend(["--framework-root", str(linked / submodule_path)])
+    else:
+        args.extend(["--submodule-path", submodule_path])
+    if apply:
+        args.append("--apply")
+    completed = subprocess.run(
+        args, cwd=Path(__file__).resolve().parents[1], env=updater_module._git_env(),
+        text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    return completed, json.loads(completed.stdout)
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("tool", ["f7", "updater"])
+def test_linked_worktree_apply_refuses_without_any_writes(tmp_path: Path, role: str, tool: str) -> None:
+    primary, linked, submodule_path = _make_linked_update_fixture(tmp_path, role)
+    common_dir = primary / ".git"
+    hooks_before = _tree_hashes(common_dir / "hooks")
+    common_before = _tree_hashes(common_dir)
+    outside_before = _tree_hashes(tmp_path, exclude=linked)
+    linked_before = _tree_hashes(linked)
+
+    completed, payload = _run_linked_update_cli(linked, submodule_path, tool, apply=True)
+
+    assert _tree_hashes(common_dir / "hooks") == hooks_before
+    assert _tree_hashes(common_dir) == common_before
+    assert _tree_hashes(tmp_path, exclude=linked) == outside_before
+    assert _tree_hashes(linked) == linked_before
+    assert completed.returncode == 1, (completed.stdout, completed.stderr)
+    assert payload["ok"] is False
+    assert payload["errors"]
+    assert payload["update_receipt"]["status"] == "not_written"
+    if tool == "f7":
+        assert payload["repo_role"] == role
+        assert payload["f7_final_status"] == "blocked"
+        assert payload["changed_files"] == []
+        diagnostic = " ".join(payload["errors"])
+        assert "linked worktree is blocked" in diagnostic
+        assert "common Git directory" in diagnostic
+        assert "run apply from the primary worktree" in diagnostic
+    else:
+        assert payload["update_mode"] == "failed"
+        assert payload["full_update_stage_report"]["final_status"] == "blocked"
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("tool", ["f7", "updater"])
+def test_linked_worktree_dry_run_inspects_without_writes_and_warns_apply_blocked(
+    tmp_path: Path, role: str, tool: str,
+) -> None:
+    _primary, linked, submodule_path = _make_linked_update_fixture(tmp_path, role)
+    before = _tree_hashes(tmp_path)
+
+    completed, payload = _run_linked_update_cli(linked, submodule_path, tool, apply=False)
+
+    assert _tree_hashes(tmp_path) == before
+    assert completed.returncode == 0, (completed.stdout, completed.stderr)
+    assert payload["ok"] is True
+    assert payload["mode"] == "dry_run"
+    assert payload["errors"] == []
+    assert "run apply from the primary worktree" in completed.stdout
+    if tool == "f7":
+        assert payload["repo_role"] == role
+        human_output = format_human(f7_full_update.F7Result(**payload))
+    else:
+        human_output = updater_module.format_human(UpdateResult(**payload))
+    assert "run apply from the primary worktree" in human_output
 
 
 def test_f7_partial_hook_install_failure_is_blocked_not_updated(tmp_path: Path) -> None:
