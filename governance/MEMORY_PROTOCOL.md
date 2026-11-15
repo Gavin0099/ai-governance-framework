@@ -119,6 +119,19 @@ All new session-derived memory entries must use the canonical writer CLI.
 Direct markdown append in `- what changed:` or `- what_changed:` format is
 prohibited for new entries.
 
+Passing non-ASCII text on Windows: Windows PowerShell 5.1 encodes text piped
+into a native program's stdin with `$OutputEncoding`, which defaults to
+US-ASCII, so every non-ASCII character (for example Traditional Chinese)
+arrives as `?` and the writer records exactly what it received. Pass record
+text as command-line arguments, as in the canonical path above, or load it from
+a UTF-8 file inside the program that calls the writer. Do not pipe a script or
+text that contains non-ASCII characters through PowerShell into `python -`; if a
+pipe cannot be avoided, set
+`$OutputEncoding = [System.Text.UTF8Encoding]::new($false)` first. Confirm the
+result by reading the written record back and comparing it with the source
+text. Do not treat `?` in a record as evidence of corruption: it is a legitimate
+character, and after the loss it cannot be told apart from a replaced one.
+
 `--test-evidence` is required and must contain non-whitespace evidence. When no
 validation ran, record that boundary explicitly as `NOT RUN: <reason>`. When
 the entry intentionally makes no validation claim, use
