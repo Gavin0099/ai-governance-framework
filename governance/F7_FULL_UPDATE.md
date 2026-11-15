@@ -35,6 +35,17 @@ A submodule pointer update alone is insufficient and must be reported as
 5. hook / validator coverage check
 6. existing memory normalization status check
 7. final adoption status report backed by `governance_maturity_summary`
+8. instruction context budget measurement on the final on-disk AGENTS.md
+
+Both external-contract and submodule backends report `instruction_context_budget`,
+including dry-run (which measures the current file without projecting writes).
+The stage reports on-disk bytes and the CRLF worst case against Codex's default
+32,768 raw-byte project-doc budget. A file exactly at the limit fits; an on-disk
+size greater than the limit downgrades `completed`, `full_update_completed`,
+`updated` or `already_current` to `partially_updated`. The update receipt must
+reflect that downgrade. CRLF-only worst-case overflow remains a warning when
+the actual file fits. This changes completion reporting, not hook enforcement
+or the budget diagnostic in the installer.
 
 ## Layered Status Fields
 
@@ -45,6 +56,7 @@ memory_writer_coverage: verified | updated | blocked | missing | not_applicable 
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 response_envelope_surface: verified | conflict | not_verified
+instruction_context_budget: verified | warning | over_budget | not_verified
 governance_maturity_summary: present | not_available | not_run
 human_readable_adoption_summary: reported | not_reported
 ai_governance_update_result: reported | not_reported
@@ -53,6 +65,8 @@ final_status: full_update_completed | already_current | partially_updated | manu
 
 `full_update_completed` may be used only when every required stage is
 `updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
+The instruction-budget stage also permits `warning`: only the CRLF worst case
+exceeds the limit, while the actual on-disk instructions still fit.
 
 If any required surface is `missing`, `needed`, `blocked`, `conflict`, or `not_verified`,
 the final status must not be `full_update_completed`.

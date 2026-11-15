@@ -24,6 +24,43 @@ sync as proof that the AI Governance Framework itself is current.
 For the map of where update and review instructions reach different agent
 surfaces, see `docs/governance/agent-instruction-surface-map.md`.
 
+## Canonical Instruction Routing
+
+Consumer AGENTS.md keeps only the check/update router and the table-unavailable
+fallback. Load this protocol and `governance/F7_FULL_UPDATE.md` before F-7 work
+or completion claims. Resolve paths against installed governance documents or
+the active, pinned framework checkout, including a submodule; an unrelated
+framework version is not authority for the consumer. Missing instructions or
+unverified evidence mean `not_verified` / `blocked`, never `updated` or
+`already_current`. On-demand documents and suggested actions do not authorize
+commit, push, release or destructive work beyond the current Owner approval.
+Do not repeat authorization already granted within the approved scope; stop
+only for a real blocker or an Owner-gated action.
+
+F-7 updates must preserve existing repo-specific AGENTS.md rules. Validate F-7
+state from the framework environment with
+`python -X utf8 -m governance_tools.f7_full_update --repo . --format human`.
+Required external contract surfaces are `contract.yaml`,
+`governance/framework.lock.json`, `.git/hooks/pre-commit`,
+`.git/hooks/pre-push`, and `.github/copilot-instructions.md`.
+
+Follow `governance/RESPONSE_ENVELOPE_CONTRACT.md` (v0.8) for compact ordinary
+reports, the `full_evidence_request`, `owner_decision_required`, and
+`failed_or_partial` expansion conditions, Engineering Explanation for review,
+diagnosis and concepts, and event-derived `mode` with `mode_source`. Preserve
+all raw fields in canonical evidence; the human projection must not create
+trust claims or replace that evidence. Gloss decision-relevant status tokens.
+Keep validation commands, counts and diagnostics under `驗證` or `evidence_refs`;
+reserve `注意` for one decision-relevant limitation. F-7 terminal reports use
+the expanded adoption report and plain-language opening below. Other task
+classes retain their existing rendering rules.
+
+The Consumer Test-Quality Expectations below and `governance/TESTING.md` remain
+the authority for later non-trivial feature and bugfix testing. The required
+stages, eligible completion states and layered status fields live in
+`governance/F7_FULL_UPDATE.md`. Successful structural checks do not prove
+real-session hook execution or that existing memory was normalized.
+
 ## Update Intent Rule
 
 When the user asks to "Update AI Governance to latest" or equivalent Chinese

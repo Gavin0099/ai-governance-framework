@@ -73,18 +73,8 @@ _RESPONSE_ENVELOPE_VERSION_PATTERN = re.compile(
 )
 F7_UPDATE_BOUNDARY_BLOCK = (
     f"{F7_UPDATE_BOUNDARY_MARKER}\n"
-    "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
-    "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
-    "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` table rows as a table, not a prose summary, and include the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
-    "- F-7 terminal results require an expanded report, not a technical-first opening. For completion or partial-completion reports, retain the first three non-empty lines as 結果 / 原因 / 下一步 (translated in other session languages); other task classes retain their existing rendering rules. Explain local completion, commit/push/merge state, and important unverified behavior in plain language before the complete adoption table. Follow governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md; preserve machine status, claim boundary, evidence references, and next action. Suggested actions do not grant authorization.\n"
-    f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}. Compact human responses are the default.\n"
-    "- Ordinary expanded reporting retains three trigger IDs: `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`. Failure or an owner decision alone does not force expansion when a short answer preserves the blocker, ability to proceed, risks, decision-relevant non-claims, claim boundary, and required owner choice / authorization; full-evidence requests and unavailable or ambiguously preserved canonical records still expand.\n"
-    "- Keep validation commands, counts, and diagnostics under `驗證` or `evidence_refs`; use `注意` only for one decision-relevant limitation.\n"
-    "- If the adoption table is unavailable or cannot be relayed, report `human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`, and `completion_claim_allowed=false` with the reason; do not fabricate rows or claim a complete update report.\n"
-    "- When a `mode` is used, keep `mode` event-derived with its `mode_source`; the human projection must not create trust claims or replace the canonical machine envelope.\n"
-    "- Non-trivial feature or bugfix work must not be reported with happy-path-only tests: reproducible bugs need regression tests when feasible, expected values must come from a spec/invariant/fixture rather than copied production logic, mock-only assertions are weak evidence unless observable behavior is asserted, and domain validators need pass/fail fixtures plus an execution harness before fixture evidence is treated as strong.\n"
-    "- `test_signal_quality_audit` output is report-only reviewer evidence; it helps surface weak signals but does not prove industry-grade tests, domain correctness, or enforcement.\n"
-    "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
+    "- Before F-7 work, read `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` and `governance/F7_FULL_UPDATE.md` in the installed or pinned framework.\n"
+    f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}; follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.\n"
 )
 
 
@@ -319,6 +309,14 @@ def _update_receipt_status(status: str) -> str:
     return "not_verified"
 
 
+def _status_with_instruction_context_budget(status: str, stages: dict[str, Any]) -> str:
+    if status not in {COMPLETED, "full_update_completed", "updated", ALREADY_CURRENT}:
+        return status
+    if stages["instruction_context_budget"].get("over_budget"):
+        return PARTIALLY_UPDATED
+    return status
+
+
 def classify_repo(repo_root: Path, submodule_path: str = "ai-governance-framework") -> str:
     repo_root = repo_root.resolve()
     if not repo_root.exists() or not _is_git_repo(repo_root):
@@ -416,12 +414,17 @@ def _response_envelope_surface_conflicts(repo_root: Path) -> list[str]:
     return conflicts
 
 
-def _final_budget_warnings(repo_root: Path, warnings: list[str]) -> list[str]:
-    """Replace the installer's Codex budget warning with one measured on the final AGENTS.md."""
+def _instruction_context_budget(
+    repo_root: Path, warnings: list[str]
+) -> tuple[dict[str, Any], list[str]]:
+    """Measure the final on-disk instructions in apply and dry-run modes."""
     kept = [warning for warning in warnings if not warning.startswith("codex-project-doc-budget:")]
     agents = repo_root / "AGENTS.md"
-    _, final = _codex_project_doc_budget(repo_root, [str(agents)])
-    return kept + final
+    report, final = _codex_project_doc_budget(repo_root, [str(agents)])
+    if report is None:
+        return {"status": NOT_VERIFIED, "reason": "AGENTS.md missing or unreadable"}, kept
+    status = "over_budget" if report["over_budget"] else "warning" if report["over_budget_with_crlf"] else "verified"
+    return {"status": status, **report}, kept + final
 
 
 def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
@@ -772,7 +775,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     before = assess_external_repo(repo_root, framework_root=framework_root)
     changed: list[str] = []
     errors: list[str] = []
-    stages: dict[str, str] = {
+    stages: dict[str, Any] = {
         "framework_pointer": NOT_APPLICABLE,
         "repo_local_instruction": NOT_VERIFIED,
         "memory_writer_coverage": NOT_VERIFIED,
@@ -811,18 +814,12 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # them here would leave a consumer unable to tell from the F-7 report that
         # any of their own instruction content was moved aside.
         hook_backups.extend(hook_result.backups)
-        # The installer's Codex project-doc budget warning is report-only; F-7
-        # carries it into its own warnings so an over-budget AGENTS.md is not
-        # silent here either. It does not change the F-7 status.
         hook_warnings.extend(hook_result.warnings)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
         changed.extend(agents_changed)
         errors.extend(agents_errors)
-        # The installer measured AGENTS.md before the keyed sections were added;
-        # report the file F-7 actually leaves for Codex to load.
-        hook_warnings = _final_budget_warnings(repo_root, hook_warnings)
         # Report-only: an edited memory-writer router line is left as the consumer wrote it.
         agents_path = repo_root / "AGENTS.md"
         if agents_path.is_file():
@@ -840,7 +837,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     # Report-only (#288): F-7 never installs the Codex identity hook; it says
     # whether one is needed and how to add it with the owner's approval.
     stages["codex_session_start"] = assess_codex_session_start(repo_root, framework_root)
-    final_status = _status_from_external_readiness(after, repo_root, framework_root)
+    stages["instruction_context_budget"], hook_warnings = _instruction_context_budget(repo_root, hook_warnings)
+    final_status = _status_with_instruction_context_budget(
+        _status_from_external_readiness(after, repo_root, framework_root), stages
+    )
     if errors:
         final_status = BLOCKED
     diagnostics = _framework_version_diagnostics(after, framework_root)
@@ -1021,9 +1021,11 @@ def run_f7_full_update(
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
         # Report-only (#288), as on the external path: status and ok ignore it.
         stages["codex_session_start"] = assess_codex_session_start(repo_root, repo_root / submodule_path)
-        final_status = _status_with_lock_consistency(
-            result.full_update_stage_report.get("final_status", NOT_VERIFIED),
-            stages,
+        stages["instruction_context_budget"], surface_warnings = _instruction_context_budget(repo_root, surface_warnings)
+        final_status = _status_with_instruction_context_budget(
+            _status_with_lock_consistency(
+                result.full_update_stage_report.get("final_status", NOT_VERIFIED), stages
+            ), stages,
         )
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
@@ -1031,12 +1033,12 @@ def run_f7_full_update(
         written = update_receipt.get("receipt") if update_receipt.get("status") == "written" else None
         if (
             apply
-            and final_status == BLOCKED
+            and final_status in {BLOCKED, PARTIALLY_UPDATED}
             and isinstance(written, dict)
             and written.get("update_status") in {"updated", ALREADY_CURRENT}
         ):
-            # A-3: the backend recorded a successful update before a later F-7
-            # step failed; the receipt must not outlive that as a success.
+            # The backend receipt predates the final surface checks. Preserve
+            # their blocked or partial result instead of leaving success behind.
             try:
                 update_receipt = write_update_receipt(
                     tool="f7_full_update",
@@ -1044,9 +1046,9 @@ def run_f7_full_update(
                     framework_root=repo_root / submodule_path,
                     framework_before=written.get("framework_before"),
                     framework_after=written.get("framework_after"),
-                    update_status=BLOCKED,
+                    update_status=final_status,
                     remote_evidence=written.get("remote_evidence"),
-                    warnings=list(result.errors),
+                    warnings=list(result.errors) + surface_warnings,
                 )
             except OSError as exc:
                 result.errors.append(
@@ -1067,10 +1069,6 @@ def run_f7_full_update(
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
-        # Same report-only budget warning as the external path, measured on the
-        # final AGENTS.md; status is already decided.
-        if apply and not updater_blocked:
-            surface_warnings = _final_budget_warnings(repo_root, surface_warnings)
         # Report-only: the updater's router-line diagnostics would otherwise stay
         # buried in the stage report details; status and ok are already decided.
         repo_local_report = (
@@ -1150,6 +1148,14 @@ def format_human(result: F7Result) -> str:
             "it does not prove runtime enforcement or full governance correctness."
         ),
     ]
+    budget = result.stages.get("instruction_context_budget", {})
+    if budget.get("over_budget"):
+        lines.append(
+            f"AGENTS.md exceeds Codex's {budget['budget_bytes']}-byte budget on disk; "
+            "trailing instructions will be truncated, so this is not a complete update."
+        )
+    elif budget.get("over_budget_with_crlf"):
+        lines.append("AGENTS.md fits on disk, but converting it to CRLF would exceed Codex's budget (warning only).")
     if result.stages:
         lines.append("[stages]")
         for key in sorted(result.stages):
