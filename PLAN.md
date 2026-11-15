@@ -2,6 +2,23 @@
 
 ## Canonical Planning Surface
 
+### Owner-recommended #250 Codex Stop hook output fix — 2026-11-15
+
+- Owner plan "real consumer validation and friction reduction", S2 prerequisite:
+  a minimal #250 fix of the hook output contract only, without changing R2
+  semantics. Push and PR by the orchestrator; merge stays with the owner.
+- Diagnosis: Codex reads Stop stdout on exit 0 as hook-response JSON. A real
+  probe showed empty stdout, `{}` and `{"systemMessage": ...}` reported as
+  Completed, and the closeout's own result JSON (unknown fields) reported as
+  Failed. Every Codex turn therefore showed "Stop Failed", including turns whose
+  formal closeout reached RELEASED.
+- DONE: for `--agent-id codex --trigger-mode native_hook` only, a turn whose
+  session holds no prepared (OWNED) R2 owner record exits 0 silently with a
+  stderr reason, and a successful closeout keeps stdout empty with a stderr
+  summary. An unreadable owner record, a HOLD state for this session and
+  pipeline errors still exit 1. Claude, Copilot and the other trigger modes are
+  unchanged. Tests: `tests/test_codex_stop_hook_output.py`.
+
 ### Authorized S1-B memory text transport and worktree framework root — 2026-11-15
 
 - Owner plan "real consumer validation and friction reduction", stage S1-B,
