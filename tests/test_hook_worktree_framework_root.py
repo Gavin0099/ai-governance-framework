@@ -279,6 +279,90 @@ def test_local_framework_resolves_under_inherited_hook_git_environment(layout, n
     assert result.returncode == 1
 
 
+@pytest.mark.parametrize("commit_args, matches_pin", [
+    (("-a",), True),
+    (("--", SUBMODULE), True),
+    (("--", "PLAN.md"), False),
+], ids=["all", "paths", "unmatched-pin"])
+def test_linked_commit_uses_prepared_index(layout, commit_args, matches_pin):
+    primary, linked = layout
+    local = linked / SUBMODULE
+    original_head = git(linked, "rev-parse", "HEAD")
+    original_pin = git(linked, "rev-parse", ":" + SUBMODULE)
+    new_pin = git(primary / SUBMODULE, "rev-parse", "HEAD")
+    assert original_pin != new_pin
+    git(local, "checkout", "-q", new_pin)
+    write(linked / "PLAN.md", "# Updated fixture plan\n")
+    # Neither commit mode may rely on an explicitly staged gitlink. A shared
+    # fallback must not masquerade as execution of the newly pinned checkout.
+    assert git(linked, "rev-parse", ":" + SUBMODULE) == original_pin
+    write(primary / SUBMODULE / "scripts/lib/python.sh",
+          'echo "UNEXPECTED_SHARED_COPY"\nexit 99\n')
+    hooks_before = snapshot(primary / ".git/hooks")
+    result = subprocess.run(
+        ["git", "-C", str(linked), "commit", "-qm", "advance fixture", *commit_args],
+        env=ENV, capture_output=True, text=True, encoding="utf-8", timeout=30,
+    )
+    output = result.stdout + result.stderr
+    assert snapshot(primary / ".git/hooks") == hooks_before
+    assert "UNEXPECTED_SHARED_COPY" not in output
+    if matches_pin:
+        assert result.returncode == 0, output
+        assert "FRAMEWORK_VERSION=primary" in output
+        assert "FRAMEWORK_VERSION=linked" not in output
+        assert "[governance] using framework" in output
+        assert git(linked, "rev-parse", "HEAD:" + SUBMODULE) == new_pin
+        assert git(linked, "rev-parse", "HEAD") != original_head
+    else:
+        assert result.returncode != 0, output
+        assert "framework Git identity or pin mismatch" in output
+        assert "FRAMEWORK_VERSION=" not in output
+        assert git(linked, "rev-parse", "HEAD") == original_head
+
+
+@pytest.mark.parametrize("matches_pin", [True, False], ids=["matching", "mismatch"])
+@pytest.mark.parametrize("name", ["pre-commit", "pre-push"])
+def test_hook_uses_active_consumer_index(layout, name, matches_pin):
+    primary, linked = layout
+    local = linked / SUBMODULE
+    ordinary_pin = git(linked, "rev-parse", ":" + SUBMODULE)
+    new_pin = git(primary / SUBMODULE, "rev-parse", "HEAD")
+    assert ordinary_pin != new_pin
+    index = Path(git(linked, "rev-parse", "--git-path", "index"))
+    if not index.is_absolute():
+        index = linked / index
+    active = index.with_name("prepared-test.index")
+    shutil.copyfile(index, active)
+    git(local, "checkout", "-q", new_pin)
+    git_env = {
+        "GIT_DIR": git(linked, "rev-parse", "--absolute-git-dir"),
+        "GIT_COMMON_DIR": str(primary / ".git"),
+        "GIT_WORK_TREE": str(linked),
+        "GIT_INDEX_FILE": str(active),
+    }
+    if matches_pin:
+        subprocess.run(
+            ["git", "-C", str(linked), "update-index", "--cacheinfo",
+             f"160000,{new_pin},{SUBMODULE}"],
+            env={**ENV, **git_env}, check=True, capture_output=True, timeout=30,
+        )
+    else:
+        # The ordinary index agrees with the checkout, while the commit index
+        # does not. Dropping GIT_INDEX_FILE would incorrectly admit this state.
+        git(linked, "add", "--", SUBMODULE)
+    result = invoke(primary, linked, name, **git_env)
+    output = result.stdout + result.stderr
+    if matches_pin:
+        assert result.returncode == 0, output
+        assert "FRAMEWORK_VERSION=primary" in output
+        assert "[governance] using framework" in output
+        assert git(linked, "rev-parse", ":" + SUBMODULE) == ordinary_pin
+    else:
+        assert result.returncode == 1, output
+        assert "framework Git identity or pin mismatch" in output
+        assert "FRAMEWORK_VERSION=" not in output
+
+
 @pytest.mark.parametrize("damage", ["foreign_gitfile", "staged_declaration", "head_declaration", "worktree_config", "hook_entry"])
 @pytest.mark.parametrize("name", ["pre-commit", "pre-push"])
 def test_local_framework_trust_boundary_rejects_invalid_identity(layout, name, damage):

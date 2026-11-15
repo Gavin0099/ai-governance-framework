@@ -60,7 +60,14 @@ resolve_worktree_framework() (
     if [ -n "${AI_GOVERNANCE_FRAMEWORK_ROOT:-}" ] || [ ! -f "$target/.git" ]; then
         printf '%s\n' "$shared"; return
     fi
-    for name in $(git rev-parse --local-env-vars); do unset "$name"; done
+    # Consumer queries retain Git's prepared commit index (commit -a / paths).
+    # Only queries in the framework checkout discard consumer repository state.
+    framework_git() (
+        local root="$1" variable
+        shift
+        for variable in $(git rev-parse --local-env-vars); do unset "$variable"; done
+        GIT_OPTIONAL_LOCKS=0 GIT_NO_REPLACE_OBJECTS=1 git -C "$root" "$@"
+    )
     export GIT_OPTIONAL_LOCKS=0
     export GIT_NO_REPLACE_OBJECTS=1
     git_dir="$(git -C "$target" rev-parse --absolute-git-dir)" || return 1
@@ -122,11 +129,11 @@ resolve_worktree_framework() (
            [ "$(cd -- "$candidate" 2>/dev/null && pwd -P)" != "$candidate" ]; then
             echo "[governance] error: linked-worktree framework is not an initialized declared submodule: $candidate" >&2; return 1
         fi
-        if ! sub_dir="$(git -C "$candidate" rev-parse --absolute-git-dir 2>/dev/null)" ||
+        if ! sub_dir="$(framework_git "$candidate" rev-parse --absolute-git-dir 2>/dev/null)" ||
            ! sub_dir="$(cd -- "$sub_dir" && pwd -P)" ||
            ! expected="$(cd -- "$git_dir/modules/$name" 2>/dev/null && pwd -P)" ||
-           ! head="$(git -C "$candidate" rev-parse --verify HEAD 2>/dev/null)" ||
-           ! top="$(git -C "$candidate" rev-parse --show-toplevel 2>/dev/null)" ||
+           ! head="$(framework_git "$candidate" rev-parse --verify HEAD 2>/dev/null)" ||
+           ! top="$(framework_git "$candidate" rev-parse --show-toplevel 2>/dev/null)" ||
            [ "$(cd -- "$top" && pwd -P)" != "$candidate" ]; then
             echo "[governance] error: cannot verify linked-worktree framework Git identity: $candidate" >&2; return 1
         fi
