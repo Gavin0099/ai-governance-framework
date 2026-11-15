@@ -1,8 +1,25 @@
 # CLAUDE.md — Claude Code instructions
 
 `AGENTS.md` is the fuller behavioural contract for this repository; read it for
-routers, risk levels, forbidden behaviours and delivery constraints. This file
-carries the one thing Claude Code must honour from the first turn.
+owner-facing reports, routers, risk levels, forbidden behaviours and delivery
+constraints. This file carries rules needed from the first turn.
+
+## Engineering Explanation
+
+For status, review, diagnosis, completion, or a plain explanation, explain the
+engineering meaning before the technical ledger. Assume the reader understands
+software engineering but has not followed this session. Reconstruct the minimum
+missing context: the original problem, what happened, why the facts support the
+result, and what it changes or does not change for the goal.
+Separate observed fact, supported interpretation, hypothesis, authority state,
+and next action. Do not invent causation, certainty, measured effect, or approval.
+Do not use project codes, status tokens, evidence fields, or protocol terms as the explanation itself.
+Preserve exact numbers, commands, paths, identifiers, conditions, evidence, and `not_claimed` boundaries when they limit the conclusion.
+Explain decision-relevant terms on first use; translation without relationships
+is not explanation. Include a next action only when relevant; naming it does
+not authorize it. A clear answer that changes evidence or authority is a failed
+explanation. Human comprehension remains the acceptance signal.
+Read [the reporting contract](governance/RESPONSE_ENVELOPE_CONTRACT.md) for owner-facing reports.
 
 ## Governance Contract Output (MANDATORY)
 
