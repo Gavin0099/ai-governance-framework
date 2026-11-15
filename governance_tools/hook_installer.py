@@ -32,6 +32,11 @@ from governance_tools.external_tree_inventory_guard import (
     IdentityConfigError,
     load_repository_identity_values,
 )
+# Re-export the constant for existing installer callers.
+from governance_tools.instruction_context_budget import (
+    CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+    measure_codex_project_doc,
+)
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -70,11 +75,6 @@ AGENT_CONTRACT_TARGETS = (
     (Path("GEMINI.md"), "gemini"),
 )
 HOOK_NAMES = ("pre-commit", "pre-push")
-# Codex reads the root `AGENTS.md` into its project-doc budget and silently drops
-# whatever lies past it. 32 KiB is Codex's default `project_doc_max_bytes`; a
-# consumer that overrides that setting in its Codex config has a different
-# budget. The installer only reports against the default; it does not gate.
-CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES = 32_768
 # Records the digest of every managed lifecycle file this installer wrote, so a
 # later install can tell "the framework wrote this" from "the consumer edited
 # this". Without it, a marker check passes on an edited file and the edit is
@@ -670,26 +670,18 @@ def _codex_project_doc_budget(
         payload = target.read_bytes()
     except OSError:
         return None, []
-    budget = CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
-    on_disk = len(payload)
-    lf_only = payload.replace(b"\r\n", b"\n")
-    crlf_worst_case = len(lf_only) + lf_only.count(b"\n")
-    overflow = max(0, on_disk - budget)
-    crlf_overflow = max(0, crlf_worst_case - budget)
     report: dict[str, object] = {
         "path": str(target),
-        "budget_bytes": budget,
-        "budget_source": "codex_default_project_doc_max_bytes",
-        "on_disk_bytes": on_disk,
-        "crlf_worst_case_bytes": crlf_worst_case,
-        "overflow_bytes": overflow,
-        "crlf_worst_case_overflow_bytes": crlf_overflow,
-        "over_budget": overflow > 0,
-        "over_budget_with_crlf": crlf_overflow > 0,
+        **measure_codex_project_doc(payload),
     }
-    if crlf_overflow == 0:
+    if not report["over_budget_with_crlf"]:
         return report, []
-    if overflow > 0:
+    budget = report["budget_bytes"]
+    on_disk = report["on_disk_bytes"]
+    crlf_worst_case = report["crlf_worst_case_bytes"]
+    overflow = report["overflow_bytes"]
+    crlf_overflow = report["crlf_worst_case_overflow_bytes"]
+    if report["over_budget"]:
         size = (
             f"is {on_disk} bytes on disk ({crlf_worst_case} with CRLF line endings), "
             f"{overflow} bytes ({crlf_overflow} with CRLF) over"

@@ -2,7 +2,11 @@
 """
 Check whether a repo's governance files have drifted from the recorded baseline.
 
-18 named checks across 4 categories:
+19 named checks: a root instruction preflight and 5 categories:
+
+  Instruction Context Preflight (1 check):
+    agents_context_budget       raw AGENTS.md bytes fit the inclusive Codex limit;
+                                CRLF-only overflow is advisory; absent file is not applicable
 
   Category 1 — Baseline Metadata (4 checks):
     baseline_yaml_present       .governance/baseline.yaml exists and is parseable
@@ -15,7 +19,7 @@ Check whether a repo's governance files have drifted from the recorded baseline.
     protected_files_unmodified  sha256 of protected files matches recorded hash
     protected_file_sentinel_present  AGENTS.base.md contains governance sentinel comment
 
-  Category 3 — Overridable File Required Fields (6 checks):
+  Category 3 — Overridable File Required Fields (7 checks):
     contract_required_fields_present  contract.yaml has all required fields
     contract_agents_base_referenced   AGENTS.base.md wired into contract documents
     contract_no_placeholders          contract.yaml values contain no <...> template tokens
@@ -28,6 +32,9 @@ Check whether a repo's governance files have drifted from the recorded baseline.
     plan_freshness              PLAN.md freshness via plan_freshness.py
     plan_inventory_current      plan_section_inventory in baseline matches current PLAN.md headings
     baseline_yaml_freshness     baseline.yaml age within --freshness-threshold days
+
+  Category 5 — Expansion Boundary (1 check):
+    expansion_boundary         passive runtime expansion admission check
 
 Usage:
     python governance_tools/governance_drift_checker.py --repo /path/to/repo
@@ -65,6 +72,7 @@ from governance_tools.protected_file_hash import (
     sha256_canonical_lf_file,
 )
 from governance_tools.plan_freshness import check_freshness
+from governance_tools.instruction_context_budget import measure_codex_project_doc
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 # ── Framework drift → risk signal component mapping ──────────────────────────
@@ -274,6 +282,33 @@ def check_governance_drift(
         checks.setdefault(check_name, True)
         if checks[check_name] is not False:
             checks[check_name] = True
+
+    # Root instructions are measured before baseline parsing, including BOM/CR.
+    # An absent optional file has no budget check (not applicable, not a failure).
+    agents_md_path = repo_root / "AGENTS.md"
+    if agents_md_path.is_file():
+        budget = measure_codex_project_doc(agents_md_path.read_bytes())
+        if budget["over_budget"]:
+            _fail(
+                "agents_context_budget",
+                "critical",
+                f"AGENTS.md is {budget['on_disk_bytes']} bytes on disk, "
+                f"{budget['overflow_bytes']} bytes over Codex's default "
+                f"{budget['budget_bytes']}-byte project-doc limit; "
+                "the tail is silently truncated.",
+            )
+        elif budget["over_budget_with_crlf"]:
+            _pass("agents_context_budget")
+            warnings.append(
+                "agents_context_budget: "
+                f"AGENTS.md is {budget['on_disk_bytes']} bytes on disk and fits "
+                f"Codex's default {budget['budget_bytes']}-byte project-doc limit, "
+                f"but its CRLF form would be {budget['crlf_worst_case_bytes']} bytes "
+                f"({budget['crlf_worst_case_overflow_bytes']} bytes over); a Windows "
+                "checkout with autocrlf would have its tail silently truncated.",
+            )
+        else:
+            _pass("agents_context_budget")
 
     # ── Category 1: Baseline Metadata ────────────────────────────────────────
 
@@ -534,7 +569,6 @@ def check_governance_drift(
         _fail("plan_required_sections_present", "warning", "PLAN.md not found")
 
     # agents_sections_filled — governance:key sections in AGENTS.md have real content
-    agents_md_path = repo_root / "AGENTS.md"
     if agents_md_path.exists():
         empty_sections = _find_empty_governance_sections(
             agents_md_path.read_text(encoding="utf-8")

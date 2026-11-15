@@ -1906,6 +1906,7 @@ def update_governance_submodule(
     ignored_untracked_before: frozenset[str] = frozenset()
     allowed_ignored_transitions: frozenset[str] = frozenset()
     protected_sync_report: dict[str, Any] | None = None
+    apply_warning: str | None = None
     update_receipt = skipped_update_receipt(
         "dry_run failed before receipt boundary"
         if dry_run
@@ -1941,6 +1942,17 @@ def update_governance_submodule(
             # Raised after the read-only protected preflight below, so a known
             # protected-file state is reported as such rather than as dirt.
             apply_overlap = sorted(set(overlapping) | set(hook_overlapping))
+
+        try:
+            _require_safe_hook_mutation_authority(repo)
+        except SubmoduleUpdateError as exc:
+            if not dry_run:
+                # Keep the existing dirty-scope / unmanaged-hook diagnostic,
+                # but refuse before target resolution can fetch into the
+                # submodule's Git directory under the shared common directory.
+                _require_clean_apply_overlap(apply_overlap)
+                raise
+            apply_warning = str(exc)
 
         before_head = _resolve_head(submodule_repo, "HEAD")
         target_head, target_source = _resolve_target_head(
@@ -2009,10 +2021,11 @@ def update_governance_submodule(
             )
             if dry_run:
                 hold.mode = "dry_run"
+                if apply_warning:
+                    hold.message += f"; {apply_warning}"
             return hold
         if not dry_run:
             _require_clean_apply_overlap(apply_overlap)
-            _require_safe_hook_mutation_authority(repo)
 
         if not dry_run and before_head == target_head:
             instruction_report = _refresh_repo_local_instructions(
@@ -2167,7 +2180,9 @@ def update_governance_submodule(
                 staged_files=[],
                 committed=False,
                 commit_hash=None,
-                message="dry run complete; no files modified",
+                message="dry run complete; no files modified" + (
+                    f"; {apply_warning}" if apply_warning else ""
+                ),
                 errors=[],
                 full_update_stage_report=_build_full_update_stage_report(
                     framework_pointer=_framework_pointer_status(
