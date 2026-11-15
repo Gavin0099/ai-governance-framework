@@ -339,6 +339,74 @@ def test_windows_style_hook_framework_root_path_supported(tmp_path: Path) -> Non
     assert result.authority_guard_path is not None
 
 
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.email=t@example.invalid", "-c", "user.name=t", *args],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def _main_with_submodule_framework(tmp_path: Path) -> tuple[Path, Path]:
+    """A main checkout whose framework copy lives at a declared submodule path, with the
+    hook root file (in the shared git dir) pointing at the main checkout's copy."""
+    main = tmp_path / "main"
+    main.mkdir()
+    _git(main, "init", "-b", "main")
+    _write(main / ".gitmodules", '[submodule "fw"]\n\tpath = additional/ai-governance-framework\n')
+    _make_framework_surface(main, "additional/ai-governance-framework")
+    _git(main, "add", "-A")
+    _git(main, "commit", "-m", "init")
+    main_framework = main / "additional" / "ai-governance-framework"
+    _write(main / ".git" / "hooks" / "ai-governance-framework-root", str(main_framework))
+    return main, main_framework
+
+
+def test_linked_worktree_prefers_its_own_framework_over_shared_hook_root(tmp_path: Path) -> None:
+    main, main_framework = _main_with_submodule_framework(tmp_path)
+    worktree = tmp_path / "wt"
+    _git(main, "worktree", "add", "-b", "feature", str(worktree))
+
+    result = assess_memory_workflow(worktree, changed_files=["memory/2026-06-09.md"])
+
+    assert result.canonical_writer_path == "additional/ai-governance-framework/governance_tools/memory_record.py"
+    assert result.authority_guard_path == "additional/ai-governance-framework/governance_tools/memory_authority_guard.py"
+    assert result.memory_protocol_path == "additional/ai-governance-framework/governance/MEMORY_PROTOCOL.md"
+    assert str(main_framework.as_posix()) not in (result.canonical_writer_path or "")
+
+
+def test_main_checkout_keeps_hook_root_when_local_copy_exists(tmp_path: Path) -> None:
+    main, _main_framework = _main_with_submodule_framework(tmp_path)
+    external = tmp_path / "external-framework"
+    _make_framework_surface(external)
+    _write(main / ".git" / "hooks" / "ai-governance-framework-root", str(external))
+
+    result = assess_memory_workflow(main, changed_files=["memory/2026-06-09.md"])
+
+    assert result.canonical_writer_path is not None
+    assert result.canonical_writer_path.endswith("external-framework/governance_tools/memory_record.py")
+
+
+def test_linked_worktree_without_local_framework_uses_hook_root(tmp_path: Path) -> None:
+    main = tmp_path / "main"
+    main.mkdir()
+    _git(main, "init", "-b", "main")
+    _write(main / "README.md", "consumer\n")
+    _git(main, "add", "-A")
+    _git(main, "commit", "-m", "init")
+    external = tmp_path / "external-framework"
+    _make_framework_surface(external)
+    _write(main / ".git" / "hooks" / "ai-governance-framework-root", str(external))
+    worktree = tmp_path / "wt"
+    _git(main, "worktree", "add", "-b", "feature", str(worktree))
+
+    result = assess_memory_workflow(worktree, changed_files=["memory/2026-06-09.md"])
+
+    assert result.canonical_writer_path is not None
+    assert result.canonical_writer_path.endswith("external-framework/governance_tools/memory_record.py")
+
+
 def test_possible_memory_task_is_advisory_without_memory_diff(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
 

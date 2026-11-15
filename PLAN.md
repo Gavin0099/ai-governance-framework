@@ -2,6 +2,26 @@
 
 ## Canonical Planning Surface
 
+### Authorized S1-B memory text transport and worktree framework root — 2026-11-15
+
+- Owner plan "real consumer validation and friction reduction", stage S1-B,
+  authorized 2026-11-15 from `main@ea2da76b`: diagnose the Traditional Chinese
+  loss seen in a real consumer handoff and the worktree framework path, with the
+  smallest fix. Push and PR by the orchestrator; merge stays with the owner.
+- Diagnosis: Windows PowerShell 5.1 pipes text to a native program's stdin with
+  `$OutputEncoding` (default US-ASCII), so non-ASCII text arrives as `?`;
+  argv and UTF-8 file input are exact. The canonical writer round-trips
+  Traditional Chinese, punctuation, a literal `?`, emoji and newlines exactly,
+  including readback from a new process. No writer defect.
+- DONE: `governance/MEMORY_PROTOCOL.md` documents the safe transport and
+  readback check; `governance_tools/memory_workflow.py` prefers a linked
+  worktree's own framework copy when the shared hook root file points outside
+  that worktree (main checkouts and external frameworks unchanged); three
+  tests in `tests/test_memory_workflow.py`, one of which fails on the base.
+- Known gap, not changed here: the installed git pre-commit hook reads the same
+  shared root file, so a linked worktree still runs the main checkout's
+  framework for pre-commit.
+
 ### Authorized I2 agent core rules (S2-A/S2-B) — 2026-10-30
 
 - Owner ruling C1-C7 adopted 2026-10-30; slices S2-A (single canonical core)
@@ -80,7 +100,7 @@
   independent review, Codex review and complete CI must pass before delivery.
 - Evidence: `artifacts/evidence/historical-json-debt-20261003/`.
 
-> **最後更新**: 2026-10-30
+> **最後更新**: 2026-11-15
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
