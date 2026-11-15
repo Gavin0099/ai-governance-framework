@@ -174,13 +174,36 @@ _PROVENANCE_SIDECAR_PATH = Path("artifacts") / "runtime" / "plan-context-provena
 
 # ── main summary builder ───────────────────────────────────────────────────
 
+def _summary_backlog_counts(text: str) -> dict:
+    """Read the ordered PLAN layout when the legacy Backlog section is absent."""
+    if re.search(r"^##[ \t]+Backlog\b", text, re.MULTILINE | re.IGNORECASE):
+        return parse_backlog_counts(text)
+    match = re.search(
+        r"^##[ \t]+Pending Work - Ordered[ \t]*\n(.*?)(?=^##[ \t]+|\Z)",
+        text, re.MULTILINE | re.DOTALL,
+    )
+    if not match:
+        return parse_backlog_counts(text)
+
+    counts = {"P0": 0, "P1": 0, "P2": 0}
+    priority = None
+    for line in match.group(1).splitlines():
+        label = re.match(r"^(P\d+)(?:-[A-Z][A-Z0-9]*)?[ \t]+-[ \t]+", line)
+        if label:
+            # Unreported groups (for example P3) must end the prior group too.
+            priority = label.group(1)
+        elif priority in counts and re.match(r"\s*-\s*\[\s*\]", line):
+            counts[priority] += 1
+    return counts
+
+
 def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
     text = plan_path.read_text(encoding="utf-8")
     header = parse_header(text)
     phase = parse_current_phase(text)
     gates = parse_gate_status(text)
     sprint = parse_sprint_tasks(text)
-    backlogs = parse_backlog_counts(text)
+    backlogs = _summary_backlog_counts(text)
 
     open_sprint = [t["name"] for t in sprint if not t["done"]]
     open_phase_e = _parse_open_phase_e_tasks(text)
