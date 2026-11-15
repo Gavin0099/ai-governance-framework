@@ -813,6 +813,8 @@ def test_cli_success_evidence_without_artifact_prints_advisory(tmp_path: Path) -
     result = _run_record_cli(tmp_path, "PASS: 5 focused tests green")
     assert result.returncode == 0  # advisory never blocks the canonical writer
     assert "test_evidence_provenance_not_found" in result.stdout
+    assert "For commands expected to produce long output, use --compress-output" in result.stdout
+    assert "failing runs are kept as plain text automatically" in result.stdout
     assert list((tmp_path / "memory").glob("*.md"))  # entry still written
 
 
@@ -826,3 +828,4 @@ def test_cli_success_evidence_with_receipt_has_no_advisory(tmp_path: Path) -> No
     )
     assert result.returncode == 0
     assert "test_evidence_provenance_not_found" not in result.stdout
+    assert "--compress-output" not in result.stdout

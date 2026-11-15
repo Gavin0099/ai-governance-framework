@@ -1015,7 +1015,9 @@ def main() -> int:
             "existing artifacts/ path; the memory authority guard will flag this "
             "entry as test_evidence_provenance_not_found. Wrap the validation "
             "command in governance_tools.test_evidence_receipt_writer and cite "
-            "the receipt path inside --test-evidence."
+            "the receipt path inside --test-evidence. For commands expected "
+            "to produce long output, use --compress-output; failing runs "
+            "are kept as plain text automatically."
         )
 
     record = build_session_derived_record(
