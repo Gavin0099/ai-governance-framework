@@ -133,9 +133,7 @@ def _write_framework_baseline(framework: Path) -> None:
     (baseline / "AGENTS.md").write_text(
         "# AGENTS.md\n\n"
         "## AI Governance Update Intent Rule\n\n"
-        "intent rule\n\n"
-        "### F-7 Full Update Semantics\n\n"
-        "F-7 is the AI Governance Full Update workflow.\n\n"
+        "Read governance/F7_FULL_UPDATE.md.\n\n"
         "## Repo-Specific Risk Levels\n\n"
         "N/A\n",
         encoding="utf-8",
@@ -272,7 +270,7 @@ def _make_fixture(
 
 
 @pytest.mark.parametrize("existing_section", [False, True])
-def test_submodule_apply_installs_plain_language_update_opening(
+def test_submodule_apply_installs_canonical_update_router(
     tmp_path: Path, existing_section: bool
 ) -> None:
     consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
@@ -297,16 +295,17 @@ def test_submodule_apply_installs_plain_language_update_opening(
     assert result.ok is True
     assert result.after_head == target
     text = (consumer / "AGENTS.md").read_text(encoding="utf-8")
-    assert "non-empty lines as 結果 / 原因 / 下一步" in text
-    assert "before the complete adoption table" in text
-    assert "suggested actions do not grant\nauthorization" in text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in text
+    assert "governance/F7_FULL_UPDATE.md" in text
+    assert "governance_tools.f7_full_update" in text
     assert "Required response shape:" not in text
     assert "STALE_TECHNICAL_FIRST_OPENING" not in text
-    example = text.split("Valid partial conclusion:", 1)[1].split("```text", 1)[1]
+    protocol = (baseline.parents[2] / "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md").read_text(encoding="utf-8")
+    example = protocol.split("Valid partial conclusion:", 1)[1].split("```text", 1)[1]
     lines = [line for line in example.splitlines() if line.strip()]
     assert [line.split("：", 1)[0] for line in lines[:3]] == ["結果", "原因", "下一步"]
     assert "AI Governance update check: not_verified" in example
-    assert "human_readable_adoption_summary: NOT REPORTED" in example
+    assert "human_readable_adoption_summary: NOT REPORTED" in text
     if existing_section:
         assert "Preserve this domain rule." in text
 
@@ -785,7 +784,7 @@ def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tm
     assert second["status"] == "already_current"
     assert refreshed.count("## AI Governance Update Intent Rule") == 1
     assert refreshed.count("## CFU Risk Levels") == 1
-    assert "intent rule" in refreshed
+    assert "governance/F7_FULL_UPDATE.md" in refreshed
     assert "firmware-specific risks" in refreshed
 
 
@@ -814,7 +813,7 @@ def test_refresh_repo_local_instructions_replaces_section_after_preceding_risk_h
     assert refreshed.count("## CFU Risk Levels") == 1
     assert refreshed.count("## AI Governance Memory Workflow Router") == 1
     assert "firmware-specific risks" in refreshed
-    assert "intent rule" in refreshed
+    assert "governance/F7_FULL_UPDATE.md" in refreshed
     assert "existing router" in refreshed
 
 
@@ -1182,7 +1181,7 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert lock["adopted_commit"] == new_head
     assert lock["updated_at"]
     assert "full governance adoption" in receipt["not_claimed"]
-    assert "F-7 Full Update Semantics" in (consumer / "AGENTS.md").read_text(
+    assert "governance/F7_FULL_UPDATE.md" in (consumer / "AGENTS.md").read_text(
         encoding="utf-8"
     )
     assert "governance:key=memory_workflow" in (consumer / "AGENTS.md").read_text(

@@ -843,25 +843,12 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Preserve this domain rule." in agents_text
     assert "governance:key=f7_update_boundary" in agents_text
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" not in agents_text
-    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
-    assert "before the complete adoption table" in agents_text
-    assert "Suggested actions do not grant authorization" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
-    assert "owner_decision_required" in agents_text
-    assert "failed_or_partial" in agents_text
-    assert "update_report_complete=false" in agents_text
-    assert "completion_claim_allowed=false" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "--format json` from the framework environment" not in agents_text
     assert "governance:key=memory_workflow" in agents_text
     assert "memory/**" in agents_text
@@ -943,25 +930,12 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "Preserve this domain rule." in agents_text
     assert "## Repo-Specific Notes" in agents_text
     assert "Keep this section." in agents_text
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" not in agents_text
-    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
-    assert "before the complete adoption table" in agents_text
-    assert "Suggested actions do not grant authorization" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
-    assert "owner_decision_required" in agents_text
-    assert "failed_or_partial" in agents_text
-    assert "update_report_complete=false" in agents_text
-    assert "completion_claim_allowed=false" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" in agents_text
     assert "--format json` from the framework environment" not in agents_text
 
@@ -987,7 +961,7 @@ def test_external_contract_apply_marks_legacy_response_envelope_conflict(tmp_pat
     assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.1"]
     assert "Response envelope contract: v0.1" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert any("response envelope contract versions conflict" in warning for warning in result.warnings)
 
 
@@ -1010,12 +984,14 @@ def test_external_contract_apply_detects_previous_v07_reporting_rules(tmp_path: 
     assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.7"]
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "Failure or an owner decision alone does not force expansion" in agents_text
+    response = (Path(__file__).resolve().parents[1] / "governance/RESPONSE_ENVELOPE_CONTRACT.md").read_text(encoding="utf-8")
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
+    assert "Failure or an owner decision alone does not force expanded human rendering" in response
     assert (
-        "the blocker, ability to proceed, risks, decision-relevant non-claims, "
-        "claim boundary, and required owner choice / authorization"
-    ) in agents_text
-    assert "unavailable or ambiguously preserved canonical records still expand" in agents_text
+        "blocker, ability to proceed, risks, non-claims, and\n"
+        "required owner decision or authorization"
+    ) in response
+    assert "canonical record cannot be preserved" in response
 
 
 def test_response_surface_accepts_v08_but_rejects_v07(tmp_path: Path) -> None:
@@ -1062,14 +1038,12 @@ def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outsid
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert result.ok is True
     assert result.f7_final_status == "completed"
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
+    assert "Response envelope contract version: v0.8" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "f7_full_update --repo . --format json` before reporting update status" in agents_text
     assert "--format json` from the framework environment" not in agents_text
     assert "memory_workflow --check --repo . --format json" in agents_text
@@ -1177,8 +1151,8 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
 
 
-def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path) -> None:
-    """An over-budget AGENTS.md is reported through F-7, and only reported."""
+def test_f7_surfaces_codex_budget_warning_and_partial_status(tmp_path: Path) -> None:
+    """An over-budget final instruction set cannot be a complete F-7 update."""
     # The real framework root is needed: the minimal fixture framework has no
     # agent-contract template, so it never installs into AGENTS.md.
     framework = Path(__file__).resolve().parents[1]
@@ -1193,8 +1167,9 @@ def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path
                        if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
     assert budget_warnings, results["large"].warnings
     assert not [w for w in results["small"].warnings if "codex-project-doc-budget" in w]
-    # The warning is a report: status, ok and stages match the under-budget run.
-    assert results["large"].f7_final_status == results["small"].f7_final_status
+    assert results["large"].f7_final_status == "partially_updated"
+    assert results["large"].stages["instruction_context_budget"]["over_budget"] is True
+    assert results["small"].stages["instruction_context_budget"]["over_budget"] is False
     assert results["large"].ok == results["small"].ok
     assert results["large"].stages["hook_validator_enforcement"] == results["small"].stages["hook_validator_enforcement"]
 
@@ -1219,11 +1194,11 @@ def test_f7_budget_warning_measures_the_final_agents_md(tmp_path: Path) -> None:
         return len(data) + data.count(b"\n")
 
     # Calibrate how much the installer itself adds, then size the content so the
-    # installed file sits about 1 KB under the budget.
+    # installed file sits just under the budget.
     probe = consumer("probe", 1)
     install_governance_hooks(probe, framework)
     installed_overhead = crlf_worst_case(probe / "AGENTS.md") - (len("# AGENTS\n\n" + line) + 3)
-    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 1000 - installed_overhead) // (len(line) + 1)
+    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 100 - installed_overhead) // (len(line) + 1)
 
     installer_only = consumer("installer-only", lines)
     hook_result = install_governance_hooks(installer_only, framework)
@@ -1257,6 +1232,93 @@ def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> 
         errors=list(errors or []),
         full_update_stage_report={"final_status": "updated" if ok else "blocked"},
     )
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+@pytest.mark.parametrize(
+    "payload,stage_status,final_status",
+    [
+        (b"x" * 32769, "over_budget", "partially_updated"),
+        (b"x" * 32768, "verified", "completed"),
+        (b"x\n" * 16000, "warning", "completed"),
+        (b"x\r\n" * 11000, "over_budget", "partially_updated"),
+    ],
+    ids=["overflow", "exact_limit", "crlf_warning_only", "actual_crlf_overflow"],
+)
+def test_instruction_budget_in_both_backends(
+    tmp_path: Path, monkeypatch, role, apply, payload, stage_status, final_status
+) -> None:
+    """Issue #309 raw-byte contract; unrelated hook/readiness work is isolated.
+
+    The real byte measurement, orchestrator status, human report and persisted
+    receipt must agree. Dry-run must measure without changing the input file.
+    """
+    repo, framework = tmp_path / "repo", tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    agents = repo / "AGENTS.md"
+    agents.write_bytes(payload)
+    monkeypatch.setattr(f7_full_update, "classify_repo", lambda *_args, **_kwargs: role)
+    monkeypatch.setattr(f7_full_update, "_has_staged_changes", lambda *_args: False)
+    monkeypatch.setattr(f7_full_update, "_governance_maturity_stage", lambda *_args: {})
+    monkeypatch.setattr(f7_full_update, "_status_from_external_readiness", lambda *_args: "completed")
+    monkeypatch.setattr(f7_full_update, "_ensure_agents_keyed_sections", lambda *_args: ("verified", [], []))
+    monkeypatch.setattr(f7_full_update, "_copilot_hook_post_install_errors", lambda *_args: [])
+    monkeypatch.setattr(
+        f7_full_update, "install_governance_hooks",
+        lambda *_args: mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[]),
+    )
+    backend = _update_result(repo, ok=True)
+    backend.mode = "apply" if apply else "dry_run"
+    backend.full_update_stage_report["final_status"] = "completed"
+    if role == "submodule_consumer" and apply:
+        backend.update_receipt = f7_full_update.write_update_receipt(
+            tool="external_governance_submodule_updater", repo_root=repo,
+            framework_root=framework, framework_before=None, framework_after=None,
+            update_status="updated", warnings=[],
+        )
+    monkeypatch.setattr(f7_full_update, "update_governance_submodule", lambda **_kwargs: backend)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=apply)
+
+    budget = result.stages["instruction_context_budget"]
+    assert budget["status"] == stage_status
+    assert budget["on_disk_bytes"] == len(payload)
+    assert budget["budget_bytes"] == 32768
+    assert result.f7_final_status == final_status
+    assert agents.read_bytes() == payload
+    assert result.ok is True  # A partial update is reported, not a new gate.
+    warnings = [w for w in result.warnings if "codex-project-doc-budget:" in w]
+    assert len(warnings) == (0 if stage_status == "verified" else 1)
+    human = format_human(result)
+    if stage_status == "over_budget":
+        assert "trailing instructions will be truncated" in human
+    elif stage_status == "warning":
+        assert "warning only" in human
+    if apply:
+        receipt = json.loads((repo / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+        assert receipt["update_status"] == ("partially_updated" if final_status == "partially_updated" else "updated")
+        assert result.update_receipt["receipt"]["update_status"] == receipt["update_status"]
+    else:
+        assert result.update_receipt["status"] == "not_written"
+        assert not (repo / RECEIPT_RELATIVE_PATH).exists()
+
+
+@pytest.mark.parametrize("status", ["completed", "full_update_completed", "updated", "already_current", "blocked", "not_verified"])
+def test_budget_downgrades_only_successful_statuses(tmp_path: Path, status) -> None:
+    (tmp_path / "AGENTS.md").write_bytes(b"x" * 32769)
+    budget, _warnings = f7_full_update._instruction_context_budget(tmp_path, [])
+    expected = status if status in {"blocked", "not_verified"} else "partially_updated"
+    assert f7_full_update._status_with_instruction_context_budget(
+        status, {"instruction_context_budget": budget}
+    ) == expected
+
+
+def test_instruction_budget_missing_file_is_not_verified(tmp_path: Path) -> None:
+    budget, warnings = f7_full_update._instruction_context_budget(tmp_path, [])
+    assert budget == {"status": "not_verified", "reason": "AGENTS.md missing or unreadable"}
+    assert warnings == []
 
 
 def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> None:

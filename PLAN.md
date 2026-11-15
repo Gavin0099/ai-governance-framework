@@ -2,6 +2,22 @@
 
 ## Canonical Planning Surface
 
+### Authorized #309 consumer AGENTS.md instruction budget — 2026-11-15
+
+- Owner authorized the bounded Issue #309 fix from `main@8db71dc2` on
+  `fix/309-agents-md-budget`. Changes remain in the working tree; commit,
+  push and PR belong to the orchestrator. Merge is not authorized.
+- DONE: replace managed Update Intent and F-7 calibration prose with canonical
+  pointers, preserve memory routing and every moved rule, and measure the final
+  AGENTS.md in both F-7 backends including dry-run. On-disk sizes greater than
+  32,768 bytes downgrade successful completion to `partially_updated`, including
+  the update receipt; CRLF-only worst-case overflow remains a warning.
+- Validation: affected router/manual-status/updater tests plus hook installer
+  and F-7 tests; disposable adopt/F-7 consumers with before/after LF and CRLF
+  byte counts. Real agent loading, CI and independent review remain unverified.
+- Non-goals: S4 drift checking, new gates/schema/hooks/tiers, R2/closeout/
+  ownership changes, root AGENTS.md edits, or changes to any consumer repo.
+
 ### Owner-recommended #250 Codex Stop hook output fix — 2026-11-15
 
 - Owner plan "real consumer validation and friction reduction", S2 prerequisite:
