@@ -322,16 +322,13 @@ def test_git_invokes_installed_hook_with_linked_pin(layout, name):
 def test_prior_consumer_hooks_upgrade_without_relaxing_recognition(layout):
     primary, _ = layout
     framework = primary / SUBMODULE
+    prior = ROOT / "tests/fixtures/prior_hooks_b32a45d6"
     current = {}
     for name in ("pre-commit", "pre-push"):
         current[name] = (framework / "scripts/hooks" / name).read_bytes()
-        # Only disposable repos use ENV's isolated config. Reading this source
-        # checkout retains the caller's existing ownership/trust configuration.
-        old = subprocess.check_output(
-            ["git", "-C", str(ROOT), "show", "HEAD:scripts/hooks/" + name],
-            text=True, encoding="utf-8",
-        )
-        write(framework / "scripts/hooks" / name, old)
+        old = (prior / name).read_bytes()
+        assert old != current[name], "upgrade fixture must differ from current hooks"
+        (framework / "scripts/hooks" / name).write_bytes(old)
     # F-7 checks the installed version before moving the pin and refreshing.
     assert install_governance_hooks(primary, framework, include_copilot=False,
                                     repository_identities=["example/consumer"]).ok
@@ -341,7 +338,11 @@ def test_prior_consumer_hooks_upgrade_without_relaxing_recognition(layout):
     assert _ensure_hook_advisory(primary, framework)["status"] == "updated"
     assert _preexisting_unmanaged_hook_overlaps(primary, framework) == []
     for name, data in current.items():
-        assert (primary / ".git/hooks" / name).read_bytes() == data
+        installed = primary / ".git/hooks" / name
+        assert installed.read_bytes() == data
+        installed.write_bytes(data + b"\n# Unmanaged customization\n")
+        assert _preexisting_unmanaged_hook_overlaps(primary, framework) == [f".git/hooks/{name}"]
+        installed.write_bytes(data)
 
 
 def test_both_hooks_share_the_same_read_only_bootstrap():
