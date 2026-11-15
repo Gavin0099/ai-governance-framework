@@ -5,6 +5,8 @@ plan_summary.py — source-linked PLAN context with exact safety excerpts.
 Open work includes in-progress items, continuations and nested conditions.
 Authorization, navigation and constraint text is carried verbatim. Everything
 else has a line-range index and must be reread before task-dependent action.
+Completed checkboxes retain explicit standing boundaries under the documented
+lexical rule below; completion and historical headings do not expire a limit.
 Legacy JSON fields and CLI/provenance behavior remain available.
 
 Usage:
@@ -286,6 +288,68 @@ def _startup_loading(text: str, summary: dict) -> dict:
             "layout": layout, "outline_sha256": outline, "warnings": list(dict.fromkeys(warnings))}
 
 
+_COMPLETED_BOUNDARY_RULE = (
+    "Carry the whole completed item when prose outside fenced examples contains "
+    "an explicit prohibition (do/must/shall/should/may not; never claim, prove, "
+    "authorize or block), an authorization/claim limit (unauthorized, not "
+    "authorized/allowed/permitted, no ... authorized, claim ceiling, NOT_CLAIMED, "
+    "unclaimed, cannot ... , "
+    "does not authorize/claim/prove/establish/approve), or a future gate "
+    "(must/shall obligations, requires/needs prerequisites, only after/if/once/when/with, "
+    "required before, separate/explicit/owner approval required, "
+    "advisory only, warning-only, deferred until, or remaining gated/blocked/paused/advisory). "
+    "Match wrapped prose "
+    "case-insensitively; quoted restrictions count conservatively. Past-tense "
+    "did not run/was not changed/never executed alone and mentions of plural claim ceilings "
+    "are finished-work narratives, not matches. No age, completed status or "
+    "historical heading expires a matching boundary; preserve its original scope "
+    "and check supersession before relying on it. These items grant no new authority."
+)
+# Explicit lexical signals, not an inference that every negative sentence is a
+# continuing instruction. Do not silently dismiss a restriction as a quotation
+# or an old decision: a summary cannot establish that it has expired. Conversely,
+# "did not run", "was not changed", "cannot-claim headings" and "claim ceilings"
+# alone only describe finished work. Keep punctuation between clauses so an
+# unrelated approval in the next sentence cannot turn a narrative into a gate.
+_COMPLETED_BOUNDARY_SIGNALS = {
+    "prohibition": re.compile(
+        r"\b(?:do|must|shall|should|may)\s+not\b|"
+        r"\bnever\s+(?:claim|prove|authori[sz]e|blocks?)\b", re.I),
+    "authorization/claim limit": re.compile(
+        r"\b(?:unauthori[sz]ed|not(?:\s+(?:currently|yet|now))?\s+"
+        r"(?:authori[sz]ed|allowed|permitted)|claim ceiling|NOT[ _]CLAIMED|unclaimed)\b|"
+        r"\bcannot\s+|"
+        r"\bno\s+[^.;]{0,160}\bauthori[sz]ed\b|"
+        r"\bdoes?\s+not\s+(?:authori[sz]e|claim|prove|establish|approve)\b", re.I),
+    "future gate": re.compile(
+        r"\b(?:must|shall)\s+|"
+        r"(?<!did not )(?<!did )\b(?:requires?|needs?)\s+|"
+        r"\bonly\s+(?:after|if|once|when|with)\b|"
+        r"\b(?:required|mandatory)\s+[^.;]{0,120}\bbefore\b|"
+        r"\b(?:requires?|needs?|pending|without)\s+[^.;]{0,80}"
+        r"\b(?:separate|explicit|owner|human)[ -](?:[^.;]{0,40})"
+        r"\b(?:approval|authori[sz]ation|authority)\b|"
+        r"\b(?:separate|explicit|owner|human)[ -](?:[^.;]{0,40})"
+        r"\b(?:approval|authori[sz]ation|authority)\s+(?:is\s+)?required\b|"
+        r"\b(?:advisory only|warning-only)\b|"
+        r"\bdeferred\s+(?:until|pending)\b|"
+        r"\b(?:(?:remain|stay)s?|still)\s+(?:gated|blocked|paused|advisory|warning-only)\b|"
+        r"\bgated\s+(?:by|behind|on|until)\b", re.I),
+}
+
+
+def _completed_boundary_signals(text: str) -> list[str]:
+    """Recognize explicit limits in a full item, including wrapped conditions.
+
+    The exact extraction policy is exposed in JSON and human output. A quoted
+    imperative is retained rather than guessing its scope or supersession.
+    Fenced examples alone do not create a standing instruction.
+    """
+    lines, code = plan_source_lines(text)
+    prose = " ".join(line.strip() for n, line in enumerate(lines, 1) if n not in code)
+    return [label for label, pattern in _COMPLETED_BOUNDARY_SIGNALS.items() if pattern.search(prose)]
+
+
 def _paragraphs(lines: list[str], code: set[int]) -> list[tuple[int, int]]:
     """Source paragraphs/list entries, keeping wrapped and nested text exact."""
     spans = []
@@ -371,9 +435,8 @@ def _fidelity_context(text: str) -> dict:
     for start, end in _paragraphs(lines, code):
         content = "\n".join(lines[start - 1:end])
         completed_context = any(t["done"] and t["line"] <= start <= t["end_line"] for t in all_tasks)
-        # Completed implementation narratives remain indexed. Explicit safety
-        # headings and labelled claim paragraphs are carried even inside them;
-        # a past-tense "did not change" is not itself a standing instruction.
+        # Completed boundaries are carried as whole items in their own section
+        # below. Keep the existing labelled safety excerpts as well.
         explicit_label = re.match(r"\s*(?:-\s*)?(?:Claim ceiling|NOT[ _]CLAIMED|CANNOT CLAIM|Non-goals?|Anti-goals?)\b", content, re.I)
         if start not in code and (not completed_context or explicit_label) and _CONSTRAINT_TEXT.search(content):
             spans.append((start, end, "constraint paragraph"))
@@ -426,14 +489,22 @@ def _fidelity_context(text: str) -> dict:
                               "effect_line": task["line"]})
     decisions.sort(key=lambda item: item["line"])
     tasks = [task for task in all_tasks if not task["done"] and not task["historical"]]
-    for task in tasks:
+    completed_boundaries = []
+    for task in all_tasks:
+        signals = _completed_boundary_signals(task["text"]) if task["done"] else []
+        if signals:
+            completed_boundaries.append(dict(task, boundary_signals=signals))
+    for task in tasks + completed_boundaries:
         task["section"] = next(s["path"] for s in sections if s["line"] <= task["line"] <= s["end_line"])
-    carried_lines = {n for span in merged + tasks for n in range(span["line"], span["end_line"] + 1)}
+    carried_lines = {n for span in merged + tasks + completed_boundaries
+                     for n in range(span["line"], span["end_line"] + 1)}
     for section in sections:
         covered = len(carried_lines.intersection(range(section["line"], section["end_line"] + 1)))
         length = section["end_line"] - section["line"] + 1
         section["coverage"] = "carried" if covered == length else "partial" if covered else "indexed"
     return {"read_rule": _READ_RULE, "open_items": tasks,
+            "completed_item_boundary_rule": _COMPLETED_BOUNDARY_RULE,
+            "completed_item_boundaries": completed_boundaries,
             "carried_sections": merged, "decision_index": decisions, "section_index": sections}
 
 
@@ -515,6 +586,10 @@ def format_human(summary: dict) -> str:
             lines.append(f"### {priority or 'Unprioritized'}")
             for item in items:
                 lines.extend([f"PLAN.md:{item['line']}-{item['end_line']} | {item['status']} | {item['section']}", item["text"], ""])
+        lines.extend(["## Standing boundaries recorded in completed items",
+                      summary.get("completed_item_boundary_rule", _COMPLETED_BOUNDARY_RULE), ""])
+        for item in summary.get("completed_item_boundaries", []):
+            lines.extend([f"PLAN.md:{item['line']}-{item['end_line']} | completed | {item['section']}", item["text"], ""])
         lines.append("## Authorization, navigation and standing constraints (exact source excerpts)")
         for span in summary["carried_sections"]:
             lines.extend([f"\nPLAN.md:{span['line']}-{span['end_line']}", span["content"]])
