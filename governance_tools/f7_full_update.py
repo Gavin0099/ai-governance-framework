@@ -27,6 +27,8 @@ from governance_tools.agents_calibration_maturity import assess_agents_calibrati
 from governance_tools.external_governance_submodule_updater import (
     MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX,
     MEMORY_WRITER_ROUTER_LINE,
+    SubmoduleUpdateError,
+    _require_safe_hook_mutation_authority,
     memory_writer_router_line_diagnostics,
     replace_legacy_memory_writer_router_line,
     update_governance_submodule,
@@ -949,6 +951,34 @@ def run_f7_full_update(
             },
             errors=[f"not a usable git repo: {repo_root}"],
         )
+    apply_warnings: list[str] = []
+    try:
+        _require_safe_hook_mutation_authority(repo_root)
+    except SubmoduleUpdateError as exc:
+        if apply:
+            # Both backends can install common-directory hooks. Refuse before
+            # either can fetch, copy instructions, install hooks or write a receipt.
+            return F7Result(
+                ok=False,
+                mode="apply",
+                repo_root=str(repo_root),
+                repo_role=role,
+                f7_final_status=BLOCKED,
+                stages={
+                    "framework_pointer": (
+                        NOT_APPLICABLE if role == "external_contract_repo" else BLOCKED
+                    ),
+                    "hook_validator_enforcement": BLOCKED,
+                    "governance_maturity_summary": _governance_maturity_stage(
+                        repo_root, framework_root
+                    ),
+                },
+                errors=[str(exc)],
+                update_receipt=skipped_update_receipt(
+                    "linked worktree apply blocked before any writes"
+                ),
+            )
+        apply_warnings.append(f"f7-diagnostic: {exc}")
     # Submodule consumers have their own pre-mutation staged-scope guard. Let
     # that backend produce its structured blocked result so dry-run reporting
     # still includes the report-only maturity summary and adoption table.
@@ -966,6 +996,7 @@ def run_f7_full_update(
                 )
             },
             errors=["repo has pre-existing staged changes; refusing to mix F-7 scope"],
+            warnings=apply_warnings,
         )
     if role == "submodule_consumer":
         result = update_governance_submodule(
@@ -1069,6 +1100,7 @@ def run_f7_full_update(
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
+        warnings.extend(apply_warnings)
         # Report-only: the updater's router-line diagnostics would otherwise stay
         # buried in the stage report details; status and ok are already decided.
         repo_local_report = (
@@ -1097,7 +1129,9 @@ def run_f7_full_update(
             update_receipt=update_receipt,
         )
     if role == "external_contract_repo":
-        return _run_external_contract_backend(repo_root, framework_root, apply=apply)
+        result = _run_external_contract_backend(repo_root, framework_root, apply=apply)
+        result.warnings.extend(apply_warnings)
+        return result
     return F7Result(
         ok=False,
         mode="apply" if apply else "dry_run",
@@ -1109,6 +1143,7 @@ def run_f7_full_update(
             "governance_maturity_summary": _governance_maturity_stage(repo_root, framework_root),
         },
         errors=[f"no F-7 apply backend for repo role: {role}"],
+        warnings=apply_warnings,
     )
 
 
