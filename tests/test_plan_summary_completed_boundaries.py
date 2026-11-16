@@ -16,21 +16,34 @@ from scripts import plan_summary
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "PLAN.md"
 COMPLETED_BOUNDARY_RANGES = {
-    653: 658, 659: 661, 683: 686, 729: 733, 743: 755, 764: 771,
-    772: 779, 780: 790, 794: 808, 810: 832, 864: 867, 980: 980,
-    991: 997, 998: 1004, 1005: 1012, 1071: 1075, 1308: 1309,
-    1383: 1403, 1442: 1446, 1455: 1466, 1475: 1484, 1491: 1494,
-    1495: 1540, 1576: 1578, 1583: 1584, 1615: 1619, 1625: 1630,
-    1631: 1632, 1634: 1641, 1700: 1701,
-    1702: 1703, 1706: 1715, 1723: 1733, 1748: 1758, 1762: 1768,
-    1773: 1780, 1786: 1835, 1805: 1810, 1811: 1822, 1823: 1835,
-    1858: 1862, 1863: 1865, 1866: 1868, 1869: 1871, 1997: 2005,
-    2053: 2083, 2098: 2109,
-    2111: 2124, 2126: 2140, 2158: 2178, 2180: 2200, 2202: 2239,
-    2241: 2266, 2268: 2274, 2276: 2288, 2290: 2306, 2321: 2357, 2359: 2423,
-    2425: 2492, 2494: 2550, 2552: 2575, 2577: 2612, 2614: 2641,
-    2643: 2663, 2665: 2697, 2699: 2709, 2862: 2874, 2876: 2889,
+    856: 859, 2365: 2369,
 }
+# Explicit retained or superseding condition ranges from the original completed
+# sources. Their full source text must survive even after checkbox-to-prose moves.
+RELOCATED_CONSTRAINT_RANGES = [
+    (97, 110), (116, 127), (133, 147), (153, 165), (186, 210),
+    (216, 237), (243, 283), (289, 315), (321, 354), (360, 387),
+    (413, 430), (432, 446), (448, 461), (463, 477), (514, 520),
+    (532, 544), (555, 560), (566, 579), (581, 594), (637, 659),
+    (687, 693), (695, 710), (730, 742), (753, 757), (759, 780),
+    (782, 791), (793, 807), (851, 854), (903, 907), (946, 951),
+    (977, 985), (987, 994), (1002, 1011), (1028, 1035), (1037, 1048),
+    (1050, 1059), (1078, 1084), (1086, 1090), (1092, 1096), (1133, 1151),
+    (1153, 1163), (1165, 1178), (1180, 1192), (1194, 1207), (1209, 1228),
+    (1234, 1247), (1249, 1275), (1277, 1292), (1298, 1302), (1304, 1318),
+    (1320, 1334), (1342, 1360), (1362, 1408), (1410, 1451), (1453, 1474),
+    (1476, 1487), (1489, 1506), (1508, 1519), (1521, 1538), (1540, 1555),
+    (1557, 1562), (1598, 1605), (1666, 1669), (1671, 1681), (1714, 1719),
+    (1729, 1732), (1734, 1739), (1765, 1770), (1780, 1784), (1795, 1798),
+    (1800, 1803), (1809, 1812), (1818, 1821), (1827, 1831), (1833, 1837),
+    (1848, 1891), (1906, 1911), (1913, 1918), (1920, 1924), (1954, 1960),
+    (1968, 1973), (2023, 2029), (2229, 2236), (2244, 2247), (2266, 2273),
+    (2356, 2363), (2390, 2395), (2431, 2436), (2501, 2504), (2549, 2559),
+    (2561, 2567), (2569, 2576), (2578, 2585), (2670, 2679), (2681, 2691),
+    (2715, 2726), (2746, 2748), (2820, 2826), (2871, 2884), (2890, 2900),
+    (2909, 2918), (2977, 2979), (2981, 3010), (3094, 3098), (3223, 3235),
+    (3306, 3324),
+]
 
 
 def _completed_section(human):
@@ -58,8 +71,21 @@ def test_real_plan_every_matching_completed_boundary_has_full_text_in_its_sectio
         assert f"PLAN.md:{start}-{end} | completed |" in section
         assert expected in section, f"Missing full completed boundary at PLAN.md:{start}-{end}"
     # These were missed by the original evaluation; neither becomes pending work.
-    assert {659, 1702}.issubset(actual)
+    assert {856, 2365}.issubset(actual)
     assert {t["line"] for t in summary["open_items"]}.isdisjoint(actual)
+
+
+def test_real_plan_relocated_completed_constraints_keep_their_full_effective_text():
+    lines = PLAN.read_text(encoding="utf-8").splitlines()
+    summary = plan_summary.build_plan_summary(PLAN, ROOT)
+    human = plan_summary.format_human(summary)
+    spans = (summary["carried_sections"] + summary["open_items"]
+             + summary["completed_item_boundaries"])
+    for start, end in RELOCATED_CONSTRAINT_RANGES:
+        expected = "\n".join(lines[start - 1:end]).rstrip()
+        assert expected in human, f"Missing relocated constraint at PLAN.md:{start}-{end}"
+        assert any(span["line"] <= start and span["end_line"] >= end
+                   for span in spans)
 
 
 @pytest.mark.parametrize("prose", [
