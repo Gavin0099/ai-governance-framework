@@ -728,7 +728,12 @@ Claim ceiling: Goal: every completion-oriented memory record must declare whethe
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1481-L1484)
 
 **M1475 · Add `--plan-reconciliation` field to `governance_tools.memory_record`.** Claim ceiling (verbatim):
-Claim ceiling: This historical writer behavior was superseded by P1-F
+Claim ceiling: The first sentence records the historical pre-Option-B writer contract. The following c06014c4 sentence explicitly supersedes its omission behavior; the old behavior is not restored as current permission.
+Claim ceiling: Add `--plan-reconciliation` field to `governance_tools.memory_record`
+  (2026-06-12): `updated` | `not_applicable` | `deferred:<reason>`;
+  at that time, omission was recorded as `not_declared` with a writer
+  advisory (never blocks), while malformed values were rejected as input
+  errors (exit 2). This historical writer behavior was superseded by P1-F
   Option B at `c06014c4`: the canonical writer now requires an explicit
   declaration and rejects omission with exit 2 before any memory write.
   Historical parsing can still represent older omitted declarations as
@@ -1355,7 +1360,10 @@ Claim ceiling: Claim ceiling: this tranche opens and holds directory handles and
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2331-L2367)
 
 **M2359 · Gate 3 M3-b blockers taken 2026-08-19.** Merged to `main` as `f802dba4`.** Claim ceiling (verbatim):
-Claim ceiling: Two are amendments made under
+Claim ceiling: The original BLOCKED-1/2/3 identities below are the antecedents of "Two" and "The third"; the accepted historical amendments and later BLOCKED-3 closure remain distinct, with no new permission.
+Claim ceiling: **Gate 3 M3-b blockers taken 2026-08-19.** Merged to `main` as `f802dba4`
+  (PR #76): BLOCKED-1 `fa10dda8`, BLOCKED-2 `4ea55d3e`, BLOCKED-3 `95838ac0`,
+  after the record reconciliation `09597ace`. Two are amendments made under
   explicit human authorization. The third is not an amendment: **merging did not
   close BLOCKED-3**, which was in `main` and still OPEN at that checkpoint; it
   was later closed after acceptance of `95838ac0` and measured layouts in
@@ -1511,7 +1519,11 @@ Claim ceiling: Two claims were withdrawn against measurement. A held created fil
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2624-L2651)
 
 **M2643 · N3c2 design; path-read/_contained dependency superseded-by M2722.S02.** Claim ceiling (verbatim):
-Claim ceiling: It
+Claim ceiling: "It" below is the original exact accepted N3c-2 design identified by commit and digest. This is historical design evidence; the retained M2722 supersession and original no-implementation/no-live limits are unchanged.
+Claim ceiling: **Gate 3 N3c-2 design accepted 2026-08-17.** Design-only commit
+  `520cc306`, exact SHA-256
+  `25d0a2522c5bd4a482bb28fcc3c9cdfc62d5c0768f44f897445053fdead6aaba`
+  (20,180 bytes), subordinate to revision 17 and restating none of it. It
   carries the owner ruling that `base` must pre-exist and stay a borrowed
   ancestor, with the reasoning that generalizes: a created object owes a
   deletion and a borrowed one owes never deleting, so an object made to carry
@@ -1584,7 +1596,10 @@ Claim ceiling: M3-b-2A binds one live `MaterializedTree` authority to one launch
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2761-L2765)
 
 **M2759 · The seven failing tests in `test_gate3_route_v2_ab_candidate.py` and.** Claim ceiling (verbatim):
-Claim ceiling: The
+Claim ceiling: The quoted HEAD/worktree comparison is the original B-1 divergence checkpoint, not a fresh observation of this checkout. "That commit" means only its named SOURCE_COMMIT; later M4 requirements are unchanged.
+Claim ceiling: At `HEAD`, `gate3_route_v2.py` and
+  `gate3_route_v2_codex.py` are byte-identical to `SOURCE_COMMIT`
+  `204965c94bd843d599986d9f9d0fd552ea053dff`; only the worktree differs. The
   historical candidate is verified by comparing live worktree bytes against
   that commit, which holds only while the implementing source never moves.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2769-L2775)
@@ -1718,6 +1733,8 @@ Claim ceiling: Minimal v2.1 cost representation implemented; numeric v2 unchange
 
 **M3156 · Unavailable-cost R1 refresh.** Claim ceiling (verbatim):
 Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: The commit named below is the antecedent of "that commit" in this consumed historical R1 refresh; it is not the current HEAD or a new refresh grant.
+Claim ceiling: Implementation committed at `0c48594a0e6e474bcb58bfcd1f25e2a7f9940bab`; targeted 138 PASS and independent 42 PASS / Blocking 0.
 Claim ceiling: R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3166-L3171)
 
@@ -1747,6 +1764,8 @@ Claim ceiling: Fixed replacement create/append APIs bind exact adopted authority
 
 **M3199 · Replacement binding R1 refresh.** Claim ceiling (verbatim):
 Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: The commit named below is the antecedent of "that commit" in this consumed historical R1 refresh; it is not the current HEAD or a new refresh grant.
+Claim ceiling: Implementation committed at de85d2f8ecf5f1ccb732e09ec4053b74456ab180; reviewed source bytes verified 9/9.
 Claim ceiling: R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3209-L3214)
 
@@ -1759,7 +1778,9 @@ Claim ceiling: No readiness, execution, payload regeneration or old-pin reuse.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3223-L3228)
 
 **M3220 · Replacement Phase B.** Claim ceiling (verbatim):
-Claim ceiling: Blank input and EOF do not return; explicit ABORT discards live handoff.
+Claim ceiling: Consumed historical replacement Phase B checkpoint only. Its pending-scope status is the antecedent that M3227.S02 subsequently supersedes for one exact transition; it is not a current blocker, READY claim or new permission.
+Claim ceiling: Added committed-adoption/external-state verification, replacement-only readiness object assembly, and live in-process wait. Blank input and EOF do not return; explicit ABORT discards live handoff.
+Claim ceiling: Execution entry remains disabled pending owner scope answer; do not claim executable continuation READY.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3230-L3235)
 
 **M3227 · Controlled EXECUTE wiring.** Claim ceiling (verbatim):
@@ -2163,7 +2184,11 @@ Scope: only the original named work and its original authorization, if any. Stat
 P1 - PR-body drift disposition:
 
 - [ ] **M0539 · PR-body drift response.** Claim ceiling (verbatim):
-  Claim ceiling: This is a
+  Claim ceiling: The quoted "this PR" and third occurrence belong to the original PR-description drift checkpoint, not this repair. This restores the failure referent only; the retained owner-decision and separate-approval limits remain unchanged.
+  Claim ceiling: Reviewer-facing body drift has now occurred three times: PR #57, PR #60, and
+  this PR's original description. In each case the branch content was corrected
+  while the pull request description continued to publish withdrawn claims, and
+  every instance was caught by external review, none by CI. This is a
   manual-copy failure, and the honest response is to stop retyping numbers that
   already exist in an artifact. The third occurrence admits an owner decision
   only; it does not authorise a gate, generator or new surface. Any
@@ -2522,10 +2547,13 @@ Claim ceiling: Consumer-facing update instructions now surface semantic test-qua
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L718-L721)
 
 **M0764 · G4 manual work-item case 001 records that response-readability line as one.** Claim ceiling (verbatim):
+Claim ceiling: The exact case-001 artifact and v0.6 failure/replay named below identify "that response-readability line"; this is historical case evidence, not a new observation or grant.
 Claim ceiling: G4 manual work-item case 001 records that response-readability line as one
   self-hosted early outcome signal rather than counting its sessions, commits,
-  validation, and memory events as separate samples.
-Claim ceiling: G4 remains
+  validation, and memory events as separate samples. It binds the natural
+  failure, v0.6 response, owner replay acceptance, four owner interventions,
+  observable delivery cost, recurrence boundary, and absent transfer evidence
+  in `docs/status/g4-work-item-case-001-owner-summary-2026-07-22.md`. G4 remains
   unclaimed; no independent consumer, non-author, cross-repo, sustained, or
   benefit-over-cost conclusion follows from this case.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L774-L781)
@@ -2951,6 +2979,7 @@ Claim ceiling: The old run is not salvageable or reinterpreted by this amendment
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2007-L2015)
 
 **M2006 · Gate 2 execution artifacts preserved; process integrity.** Claim ceiling (verbatim):
+Claim ceiling: The 2026-07-27 admission note quoted below is historical and superseded, not current admission or execution status. Its "two completed items above" are the original M1997 timeout-amendment item and M2006 execution-preservation item. Their later record does not establish scorer-before-mapping integrity or authorize another run.
 Claim ceiling: **Gate 2 execution artifacts preserved; process integrity
   `NOT_ESTABLISHED`, corrected 2026-07-28.** Fresh master
   `gate2-formal-20260728-115533` passed resource and scorer admission on the
@@ -2961,7 +2990,21 @@ Claim ceiling: Mapping release and all four packet/handoff reverifications are
   release. The earlier process-integrity `PASS` is therefore withdrawn.
 Claim ceiling: The corrected decision records process integrity as `NOT_ESTABLISHED` and
   Skill effectiveness as `NOT_CLAIMED`.
-Claim ceiling: This historical note is superseded for current admission status by the two
+Claim ceiling: **Admission state recorded 2026-07-27 (owner-accepted scope).** The
+    2026-07-25 admission canary (`canary-20260725T164626Z`) is a historical PASS
+    report for **producer-channel** admission, including nine isolation checks
+    (network none, read-only rootfs, all capabilities dropped, no-new-privileges,
+    non-root uid, no host bind mount, tmpfs workspace, no docker socket, pinned
+    image). Its recorded execution paths are under a `D:` root; this checkout does not
+    contain that live JSON evidence and the run was **not reproduced locally**
+    (Docker daemon not running at record time). **Scorer-side is NOT RUN**:
+    `admission-canary/evidence-live/` contains `capture_scorer_packet.py`,
+    `verify_scorer_packet.py` and tests, but zero execution artifacts — tool
+    presence is not execution evidence. Therefore **resource admission is NOT
+    complete**, Gate 2 has not started, and arm execution remains 0.
+    Receipt: `artifacts/evidence/test-results/receipt-gate2-admission-state-20260727.json`.
+    Claimable: a historical producer-channel admission report exists.
+    This historical note is superseded for current admission status by the two
     completed items above. It remains valid historical evidence about what had
     not yet run at that earlier checkpoint.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2016-L2050)
