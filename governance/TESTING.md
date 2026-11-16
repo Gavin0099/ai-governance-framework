@@ -279,6 +279,30 @@ build breadth 應隨 task risk 調整：
 - `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合
 - `pre_task_check` 完成 → `post_task_check` 接收 contract
 
+### 6.4 Compact Command Evidence
+
+預期產生長篇輸出的命令可選用既有 receipt writer 的 `--compress-output`；
+失敗執行會自動保留純文字，方便 reviewer 直接閱讀：
+
+```powershell
+python -X utf8 -m governance_tools.test_evidence_receipt_writer --compress-output --output artifacts/evidence/test-results/receipt-focused.json -- python -X utf8 -m pytest tests/test_example.py -q
+```
+
+短 JSON receipt 仍記錄 command、exit code、時間、runner 與 linked commit；啟用選項且
+命令成功時，完整輸出存為同目錄的 `.txt.gz`，可選欄位 `raw_output` 記錄還原後的
+UTF-8 bytes、`splitlines()` 行數與 SHA-256，供 reviewer 核對；既有 receipt schema、
+validator 與宣稱界線不變。失敗時產生原本的 `.txt` 與 receipt，不加 `raw_output`。
+這些統計不是測試通過數，也不能證明命令真的執行過。
+
+receipt 與實際產生的 raw log 都隨原本的 evidence 交付保留在 Git；不要只保留 digest 或把 raw log
+放入忽略路徑。使用 writer 印出的完整 `test_evidence` 行，同時引用兩個路徑，讓 raw log
+依既有「直接引用 artifact」規則成為 closeout companion。未使用此選項時仍產生 `.txt`。
+還原範例（輸出至 stdout，不改原檔）：
+
+```powershell
+python -X utf8 -c "import gzip, pathlib, sys; sys.stdout.buffer.write(gzip.decompress(pathlib.Path('artifacts/evidence/test-results/receipt-focused.txt.gz').read_bytes()))"
+```
+
 ---
 
 ## 7. Hard-to-Test Areas

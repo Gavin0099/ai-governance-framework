@@ -1,21 +1,13 @@
 #!/usr/bin/env python3
 """
-plan_summary.py — PLAN.md compressed view (~1,000 tokens)
+plan_summary.py — source-linked PLAN context with exact safety excerpts.
 
-Generates a compact, agent-readable summary of PLAN.md that contains
-only what a session start needs:
-  - current phase + gate status
-  - open (not-done) sprint items
-  - active blockers from Phase E
-  - HEAD commit hash
-  - backlog open counts (P0/P1/P2)
-  - key design decisions (decision table, last 5 entries)
-
-Does NOT include:
-  - full G1–G6 sub-sections
-  - Phase 2.5 fleet reality assessment detail
-  - harness engineering evaluation
-  - completed sprint items
+Open work includes in-progress items, continuations and nested conditions.
+Authorization, navigation and constraint text is carried verbatim. Everything
+else has a line-range index and must be reread before task-dependent action.
+Completed checkboxes retain explicit standing boundaries under the documented
+lexical rule below; completion and historical headings do not expire a limit.
+Legacy JSON fields and CLI/provenance behavior remain available.
 
 Usage:
   python scripts/plan_summary.py
@@ -27,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -42,7 +35,10 @@ from governance_tools.state_generator import (
     parse_current_phase,
     parse_gate_status,
     parse_header,
+    parse_plan_headings,
+    parse_plan_tasks,
     parse_sprint_tasks,
+    plan_source_lines,
 )
 
 
@@ -60,33 +56,23 @@ def _head_commit(project_root: Path) -> str:
 
 
 def _parse_active_blockers(text: str) -> list[str]:
-    """Extract genuinely open (unchecked) lines mentioning blockers from the PLAN."""
-    blockers: list[str] = []
-    # Only lines starting with - [ ] (unchecked) that mention blocker signals
-    for line in text.splitlines():
-        stripped = line.strip()
-        # must be an open task (not [x])
-        if not re.match(r"-\s*\[\s*\]", stripped):
-            continue
-        if any(marker in stripped for marker in ("❌", "[FAIL]", "Blocker", "NOT_READY", "blocked", "待辦", "未達標")):
-            blockers.append(stripped)
-    return blockers[:8]
+    """Keep the list-of-strings interface, without dropping nested conditions."""
+    return [task["text"] for task in parse_plan_tasks(text)
+            if not task["done"] and not task["historical"] and any(
+                marker in task["text"] for marker in
+                ("❌", "[FAIL]", "Blocker", "NOT_READY", "blocked", "待辦", "未達標"))]
 
 
 def _parse_open_phase_e_tasks(text: str) -> list[str]:
-    """Get not-done [ ] items from Phase E Sprint section."""
-    open_tasks: list[str] = []
-    in_phase_e_sprint = False
-    for line in text.splitlines():
-        if re.match(r"^##\s+Phase E Sprint", line):
-            in_phase_e_sprint = True
-        elif re.match(r"^##\s+", line) and in_phase_e_sprint:
-            break
-        if in_phase_e_sprint:
-            m = re.match(r"\s*-\s*\[\s*\]\s*(.+)", line)
-            if m:
-                open_tasks.append(m.group(1).strip())
-    return open_tasks
+    """Support both the old named sprint and the current Phase E sprint."""
+    heading = next((h for h in parse_plan_headings(text)
+                    if re.match(r"Phase E Sprint\b", h["heading"], re.I)), None)
+    if heading:
+        return [t["name"] for t in parse_plan_tasks(text) if not t["done"] and not t["historical"]
+                and heading["line"] < t["line"] <= heading["end_line"]]
+    if parse_current_phase(text)["id"] == "PhaseE":
+        return [t["name"] for t in parse_sprint_tasks(text) if not t["done"]]
+    return []
 
 
 def _parse_decision_table_tail(text: str, n: int = 5) -> list[dict]:
@@ -175,26 +161,246 @@ _PROVENANCE_SIDECAR_PATH = Path("artifacts") / "runtime" / "plan-context-provena
 # ── main summary builder ───────────────────────────────────────────────────
 
 def _summary_backlog_counts(text: str) -> dict:
-    """Read the ordered PLAN layout when the legacy Backlog section is absent."""
-    if re.search(r"^##[ \t]+Backlog\b", text, re.MULTILINE | re.IGNORECASE):
-        return parse_backlog_counts(text)
-    match = re.search(
-        r"^##[ \t]+Pending Work - Ordered[ \t]*\n(.*?)(?=^##[ \t]+|\Z)",
-        text, re.MULTILINE | re.DOTALL,
-    )
-    if not match:
-        return parse_backlog_counts(text)
+    """Compatibility alias; both derived views now use the same parser."""
+    return parse_backlog_counts(text)
 
-    counts = {"P0": 0, "P1": 0, "P2": 0}
-    priority = None
-    for line in match.group(1).splitlines():
-        label = re.match(r"^(P\d+)(?:-[A-Z][A-Z0-9]*)?[ \t]+-[ \t]+", line)
-        if label:
-            # Unreported groups (for example P3) must end the prior group too.
-            priority = label.group(1)
-        elif priority in counts and re.match(r"\s*-\s*\[\s*\]", line):
-            counts[priority] += 1
-    return counts
+
+_READ_RULE = (
+    "When a task touches a section that is only indexed (or partially carried), "
+    "read those PLAN lines before acting. Decision effects are navigation aids, "
+    "not complete grants of authority. Use current owner authorization; open "
+    "checkboxes can be standing constraints, not permission to execute. Regenerate "
+    "a saved summary if the source SHA-256 changes. Dated grants may be superseded; "
+    "they do not authorize this session. This view does not change PLAN load rules."
+)
+_CONSTRAINT_HEADING = re.compile(
+    r"claim (?:ceiling|boundar)|cannot claim|constraints?|non-goals?|anti-goals?|"
+    r"dirty workspace policy|definition of done|blocking relationships|funding gate|"
+    r"phase e posture|per-surface decisions|^decisions$", re.I)
+_CONSTRAINT_TEXT = re.compile(
+    r"claim ceiling|\b(?:NOT[ _]CLAIMED|CANNOT CLAIM|cannot claim|do not claim|unclaimed)\b|"
+    r"\b(?:unauthori[sz]ed|not authori[sz]ed|does not authori[sz]e|do not|must not|"
+    r"standing constraint|not funded|only after)\b|\bno [^\n.]{0,160}authori[sz]ed\b", re.I)
+_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+
+
+_COMPLETED_BOUNDARY_RULE = (
+    "Carry the whole completed item when prose outside fenced examples contains "
+    "an explicit prohibition (do/must/shall/should/may not; never claim, prove, "
+    "authorize or block), an authorization/claim limit (unauthorized, not "
+    "authorized/allowed/permitted, no ... authorized, claim ceiling, NOT_CLAIMED, "
+    "unclaimed, cannot ... , "
+    "does not authorize/claim/prove/establish/approve), or a future gate "
+    "(must/shall obligations, requires/needs prerequisites, only after/if/once/when/with, "
+    "required before, separate/explicit/owner approval required, "
+    "advisory only, warning-only, deferred until, or remaining gated/blocked/paused/advisory). "
+    "Match wrapped prose "
+    "case-insensitively; quoted restrictions count conservatively. Past-tense "
+    "did not run/was not changed/never executed alone and mentions of plural claim ceilings "
+    "are finished-work narratives, not matches. No age, completed status or "
+    "historical heading expires a matching boundary; preserve its original scope "
+    "and check supersession before relying on it. These items grant no new authority."
+)
+# Explicit lexical signals, not an inference that every negative sentence is a
+# continuing instruction. Do not silently dismiss a restriction as a quotation
+# or an old decision: a summary cannot establish that it has expired. Conversely,
+# "did not run", "was not changed", "cannot-claim headings" and "claim ceilings"
+# alone only describe finished work. Keep punctuation between clauses so an
+# unrelated approval in the next sentence cannot turn a narrative into a gate.
+_COMPLETED_BOUNDARY_SIGNALS = {
+    "prohibition": re.compile(
+        r"\b(?:do|must|shall|should|may)\s+not\b|"
+        r"\bnever\s+(?:claim|prove|authori[sz]e|blocks?)\b", re.I),
+    "authorization/claim limit": re.compile(
+        r"\b(?:unauthori[sz]ed|not(?:\s+(?:currently|yet|now))?\s+"
+        r"(?:authori[sz]ed|allowed|permitted)|claim ceiling|NOT[ _]CLAIMED|unclaimed)\b|"
+        r"\bcannot\s+|"
+        r"\bno\s+[^.;]{0,160}\bauthori[sz]ed\b|"
+        r"\bdoes?\s+not\s+(?:authori[sz]e|claim|prove|establish|approve)\b", re.I),
+    "future gate": re.compile(
+        r"\b(?:must|shall)\s+|"
+        r"(?<!did not )(?<!did )\b(?:requires?|needs?)\s+|"
+        r"\bonly\s+(?:after|if|once|when|with)\b|"
+        r"\b(?:required|mandatory)\s+[^.;]{0,120}\bbefore\b|"
+        r"\b(?:requires?|needs?|pending|without)\s+[^.;]{0,80}"
+        r"\b(?:separate|explicit|owner|human)[ -](?:[^.;]{0,40})"
+        r"\b(?:approval|authori[sz]ation|authority)\b|"
+        r"\b(?:separate|explicit|owner|human)[ -](?:[^.;]{0,40})"
+        r"\b(?:approval|authori[sz]ation|authority)\s+(?:is\s+)?required\b|"
+        r"\b(?:advisory only|warning-only)\b|"
+        r"\bdeferred\s+(?:until|pending)\b|"
+        r"\b(?:(?:remain|stay)s?|still)\s+(?:gated|blocked|paused|advisory|warning-only)\b|"
+        r"\bgated\s+(?:by|behind|on|until)\b", re.I),
+}
+
+
+def _completed_boundary_signals(text: str) -> list[str]:
+    """Recognize explicit limits in a full item, including wrapped conditions.
+
+    The exact extraction policy is exposed in JSON and human output. A quoted
+    imperative is retained rather than guessing its scope or supersession.
+    Fenced examples alone do not create a standing instruction.
+    """
+    lines, code = plan_source_lines(text)
+    prose = " ".join(line.strip() for n, line in enumerate(lines, 1) if n not in code)
+    return [label for label, pattern in _COMPLETED_BOUNDARY_SIGNALS.items() if pattern.search(prose)]
+
+
+def _paragraphs(lines: list[str], code: set[int]) -> list[tuple[int, int]]:
+    """Source paragraphs/list entries, keeping wrapped and nested text exact."""
+    spans = []
+    start = None
+    for number, line in enumerate(lines, 1):
+        # Separate adjacent root bullets, but keep their continuation lines.
+        boundary = number not in code and re.match(
+            r"^(?:(?:[-+*]|\d+[.)])\s+|#{1,6}\s+|P\d+(?:-[A-Z][A-Z0-9]*)?\s+[-—–]|"
+            r"Current (?:refresh|sprint)|Historical\b|(?:Claim ceiling|Non-goals?|Anti-goals?)[ :])", line, re.I)
+        if not line.strip() or boundary:
+            if start is not None:
+                spans.append((start, number - 1))
+                start = None
+        if line.strip() and start is None:
+            start = number
+    if start is not None:
+        spans.append((start, len(lines)))
+    return spans
+
+
+def _section_index(text: str) -> list[dict]:
+    """A gap-free partition, including PLAN's plain, sometimes wrapped labels.
+
+    Markdown headings have subtree ranges as well as disjoint own ranges.
+    Plain labels (priority groups, refreshes, colon headings) are navigation
+    boundaries too. Dates, checkbox state, and heading age never erase authority.
+    """
+    lines, code = plan_source_lines(text)
+    headings = parse_plan_headings(text)
+    starts = {h["line"]: dict(h, kind="markdown") for h in headings}
+    for start, end in _paragraphs(lines, code):
+        first = lines[start - 1]
+        if start in starts or start in code or not first or first[0] in " \t-|>+*`~<":
+            continue
+        paragraph = " ".join(line.strip() for line in lines[start - 1:end])
+        inline = re.match(r"(Claim ceiling(?: for [^:]+)?):\s*\S", paragraph, re.I)
+        if inline or (len(paragraph) <= 300 and paragraph.endswith(":")):
+            title = inline[1] if inline else paragraph.rstrip(":")
+            starts[start] = {"heading": title, "line": start, "kind": "label",
+                             "heading_end_line": end, "inline": bool(inline)}
+    if lines and 1 not in starts:
+        starts[1] = {"heading": "Preamble", "line": 1, "kind": "preamble"}
+    sections = [starts[line] for line in sorted(starts)]
+    for index, section in enumerate(sections):
+        if "end_line" in section:
+            section["subtree_end_line"] = section["end_line"]
+        section["end_line"] = sections[index + 1]["line"] - 1 if index + 1 < len(sections) else len(lines)
+        parents = [h["heading"] for h in headings if h["line"] < section["line"] <= h["end_line"]]
+        section["path"] = " / ".join(parents + [section["heading"]])
+        parent_level = max((h["level"] for h in headings if h["line"] < section["line"] <= h["end_line"]), default=0)
+        is_context = re.match(r"^(?:P\d+(?:-[A-Z][A-Z0-9]*)?\s+[-—–]|Current refresh|Historical sprint|Completed \d{4})", section["heading"], re.I)
+        section["logical_level"] = section.get("level", parent_level + (1 if is_context else 2))
+    for index, section in enumerate(sections):
+        if section["kind"] != "markdown":
+            section["subtree_end_line"] = next((other["line"] - 1 for other in sections[index + 1:]
+                                                if other["logical_level"] <= section["logical_level"]), len(lines))
+    return sections
+
+
+def _fidelity_context(text: str) -> dict:
+    lines, code = plan_source_lines(text)
+    sections = _section_index(text)
+    all_tasks = parse_plan_tasks(text)
+    spans: list[tuple[int, int, str]] = []
+    navigation = re.compile(r"^Canonical Planning Surface$|^Authori[sz]ed\b|^Owner-recommended\b|"
+                            r"^Phase Overview$|^Work Item Glossary$", re.I)
+    for section in sections:
+        if navigation.search(section["heading"]):
+            spans.append((section["line"], section["end_line"], "authorization/navigation"))
+        if _CONSTRAINT_HEADING.search(section["heading"]):
+            end = section["heading_end_line"] if section.get("inline") else section["end_line"]
+            spans.append((section["line"], end, "constraint section"))
+    # Carry all children of explicitly named safety sections, but do not absorb
+    # later decision appendices merely because they use a lower heading level.
+    safety_parent = None
+    for section in sections:
+        if section["kind"] == "markdown" and section.get("level", 0) <= 2:
+            safety_parent = section["heading"] if _CONSTRAINT_HEADING.search(section["heading"]) else None
+        nested_safety = safety_parent and re.search(r"active claim boundar|constraints?", safety_parent, re.I)
+        if safety_parent and (section["kind"] != "markdown" or (nested_safety and section.get("level", 0) > 2)):
+            spans.append((section["line"], section["end_line"], "constraint section"))
+    for start, end in _paragraphs(lines, code):
+        content = "\n".join(lines[start - 1:end])
+        completed_context = any(t["done"] and t["line"] <= start <= t["end_line"] for t in all_tasks)
+        # Completed boundaries are carried as whole items in their own section
+        # below. Keep the existing labelled safety excerpts as well.
+        explicit_label = re.match(r"\s*(?:-\s*)?(?:Claim ceiling|NOT[ _]CLAIMED|CANNOT CLAIM|Non-goals?|Anti-goals?)\b", content, re.I)
+        if start not in code and (not completed_context or explicit_label) and _CONSTRAINT_TEXT.search(content):
+            spans.append((start, end, "constraint paragraph"))
+    # Merge overlaps to avoid repeating the same source in the human view.
+    merged = []
+    for start, end, reason in sorted(spans):
+        if merged and (start <= merged[-1]["end_line"] + 1 or
+                       not any(line.strip() for line in lines[merged[-1]["end_line"]:start - 1])):
+            merged[-1]["end_line"] = max(end, merged[-1]["end_line"])
+            if reason not in merged[-1]["reasons"]:
+                merged[-1]["reasons"].append(reason)
+        else:
+            merged.append({"line": start, "end_line": end, "reasons": [reason]})
+    for span in merged:
+        span["content"] = "\n".join(lines[span["line"] - 1:span["end_line"]])
+    decisions = []
+    paragraphs = _paragraphs(lines, code)
+    heading_lines = {number for section in sections for number in
+                     range(section["line"], section.get("heading_end_line", section["line"]) + 1)}
+    for section in sections:
+        heading = section["heading"]
+        if re.match(r"Current Sprint\b", heading, re.I):
+            continue
+        if _CONSTRAINT_HEADING.search(heading):
+            continue
+        if not (_DATE.search(heading) or re.search(r"decision|adoption|ratifi|funding gate|決策", heading, re.I)):
+            continue
+        if re.search(r"historical|completed in|milestone commits|scoped evidence|encoding repair", heading, re.I):
+            continue
+        body_start = section.get("heading_end_line", section["line"]) + 1
+        end_line = section.get("subtree_end_line", section["end_line"])
+        first_content = next((n for n in range(body_start, end_line + 1)
+                              if n not in heading_lines and n not in code and lines[n - 1].strip()), None)
+        body = next(((first_content, min(b, end_line)) for a, b in paragraphs
+                     if first_content is not None and a <= first_content <= b), None)
+        effect = " ".join(lines[body[0] - 1:body[1]]) if body else heading
+        # An effect is an intact first sentence, not a cut-off first line.
+        effect = re.split(r"(?<=[.!?])\s+(?=[A-Z])", effect, maxsplit=1)[0]
+        date = _DATE.search(heading) or _DATE.search(effect)
+        decisions.append({"heading": heading, "date": date[0] if date else None,
+                          "effect": effect, "line": section["line"], "end_line": end_line,
+                          "effect_line": body[0] if body else section["line"]})
+    # A decision can also be recorded as a completed checkbox, rather than a
+    # heading. Keep the explicit date and whole first sentence for those grants.
+    for task in all_tasks:
+        if re.match(r"P\d+(?:-[A-Z][A-Z0-9]*)?\s+decided\s+\d{4}-\d{2}-\d{2}", task["name"], re.I):
+            effect = re.split(r"(?<=[.!?])\s+(?=[A-Z])", " ".join(task["name"].split()), maxsplit=1)[0]
+            decisions.append({"heading": task["name"].splitlines()[0], "date": _DATE.search(task["name"])[0],
+                              "effect": effect, "line": task["line"], "end_line": task["end_line"],
+                              "effect_line": task["line"]})
+    decisions.sort(key=lambda item: item["line"])
+    tasks = [task for task in all_tasks if not task["done"] and not task["historical"]]
+    completed_boundaries = []
+    for task in all_tasks:
+        signals = _completed_boundary_signals(task["text"]) if task["done"] else []
+        if signals:
+            completed_boundaries.append(dict(task, boundary_signals=signals))
+    for task in tasks + completed_boundaries:
+        task["section"] = next(s["path"] for s in sections if s["line"] <= task["line"] <= s["end_line"])
+    carried_lines = {n for span in merged + tasks + completed_boundaries
+                     for n in range(span["line"], span["end_line"] + 1)}
+    for section in sections:
+        covered = len(carried_lines.intersection(range(section["line"], section["end_line"] + 1)))
+        length = section["end_line"] - section["line"] + 1
+        section["coverage"] = "carried" if covered == length else "partial" if covered else "indexed"
+    return {"read_rule": _READ_RULE, "open_items": tasks,
+            "completed_item_boundary_rule": _COMPLETED_BOUNDARY_RULE,
+            "completed_item_boundaries": completed_boundaries,
+            "carried_sections": merged, "decision_index": decisions, "section_index": sections}
 
 
 def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
@@ -215,6 +421,9 @@ def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
     head = _head_commit(project_root)
 
     return {
+        "read_rule": _READ_RULE,
+        "source": {"sha256": hashlib.sha256(plan_path.read_bytes()).hexdigest(),
+                   "bytes": plan_path.stat().st_size, "lines": len(text.splitlines())},
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "head_commit": head,
         "plan_path": str(plan_path),
@@ -233,6 +442,7 @@ def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
         # Compression provenance — always present in plan_summary output.
         # Lets session_start and session_end know context was compressed.
         "plan_context_provenance": _PLAN_CONTEXT_PROVENANCE,
+        **_fidelity_context(text),
     }
 
 
@@ -242,9 +452,55 @@ def format_human(summary: dict) -> str:
     # reading only the first line of the file (cheap, no full parse needed).
     lines.append(_PROVENANCE_MARKER)
     lines.append("# PLAN.md Compressed View")
+    if "section_index" in summary:
+        lines.append(summary["read_rule"])
     lines.append(f"generated: {summary['generated_at']}  |  HEAD: {summary['head_commit']}")
     lines.append(f"plan: {summary['plan_path']}  |  last_updated: {summary['last_updated']}  |  owner: {summary['owner']}")
     lines.append("")
+
+    if "section_index" in summary:
+        source = summary["source"]
+        lines.append(f"Source: {source['bytes']} bytes / {source['lines']} lines / SHA-256 {source['sha256']}")
+        phase = summary["current_phase"]
+        lines.append(f"Current phase: {phase['id']} — {phase['name']}")
+        lines.append("Phase status: " + ", ".join(f"{key}={value}" for key, value in summary["gate_status"].items()))
+        bl = summary["backlog_open"]
+        lines.append(f"Backlog Open (unchecked, including constraints): P0={bl['P0']} P1={bl['P1']} P2={bl['P2']}")
+        lines.extend(["", "## Open and in-progress items (not execution authorization)"])
+        priorities = sorted({t["priority"] for t in summary["open_items"] if t["priority"]}, key=lambda p: int(p[1:]))
+        for priority in priorities + [None]:
+            items = [t for t in summary["open_items"] if t["priority"] == priority]
+            if not items:
+                continue
+            lines.append(f"### {priority or 'Unprioritized'}")
+            for item in items:
+                lines.extend([f"PLAN.md:{item['line']}-{item['end_line']} | {item['status']} | {item['section']}", item["text"], ""])
+        lines.extend(["## Standing boundaries recorded in completed items",
+                      summary.get("completed_item_boundary_rule", _COMPLETED_BOUNDARY_RULE), ""])
+        for item in summary.get("completed_item_boundaries", []):
+            lines.extend([f"PLAN.md:{item['line']}-{item['end_line']} | completed | {item['section']}", item["text"], ""])
+        lines.append("## Authorization, navigation and standing constraints (exact source excerpts)")
+        for span in summary["carried_sections"]:
+            lines.extend([f"\nPLAN.md:{span['line']}-{span['end_line']}", span["content"]])
+        lines.extend(["", "## Decisions and dated checkpoints (effects are navigation, reread before relying)"])
+        for decision in summary["decision_index"]:
+            lines.append(f"- PLAN.md:{decision['line']}-{decision['end_line']} | {decision['date'] or 'date not stated'} | {decision['heading']}\n  Effect: {decision['effect']}")
+        lines.extend(["", "## Complete section index (inclusive source ranges, no gaps)",
+                      "carried = whole range above; partial = some excerpts above; indexed = reread source. "
+                      "Subsections have their own rows; a subtree extends through subtree_end_line in JSON."])
+        for section in summary["section_index"]:
+            lines.append(f"- PLAN.md:{section['line']}-{section['end_line']} [{section['coverage']}] {section['heading']}")
+        # These legacy observations are still exposed in JSON in their original
+        # shapes; retain nonempty observations in human output as well.
+        if summary["sa_layer1_log"] or summary["sa_layer1_stability"] != "unknown":
+            lines.append(f"\nSpecAuthority Layer 1: {summary['sa_layer1_stability']}")
+            lines.extend(f"{row['run']} | {row['date']} | {row['session_id']} | artifact_state={row['artifact_state']}" for row in summary["sa_layer1_log"])
+        if summary["phase2_gate_conditions"]:
+            lines.extend(["\nPhase 2 Gate Conditions:"] + summary["phase2_gate_conditions"])
+        if summary["recent_decisions"]:
+            lines.append("\nLegacy decision table (last 5):")
+            lines.extend(f"{d['date']} | {d['decision']} | {d['note']}" for d in summary["recent_decisions"])
+        return "\n".join(lines)
 
     # Phase + gates
     phase = summary["current_phase"]
@@ -308,7 +564,7 @@ def format_human(summary: dict) -> str:
 # ── CLI ────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="PLAN.md compressed view (~1,000 tokens)")
+    parser = argparse.ArgumentParser(description="PLAN.md source-linked session context and section index")
     parser.add_argument("--plan", default="PLAN.md", help="Path to PLAN.md")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--out", help="Write output to file instead of stdout")
