@@ -225,6 +225,55 @@ def test_stop_bound_to_another_checkout_is_inconsistent(consumer: Path, tmp_path
     assert any("same checkout" in w for w in diagnostic_warnings(report))
 
 
+@pytest.mark.parametrize(
+    ("configuration", "expected"),
+    [
+        ("declared", "consistent"),
+        ("undeclared", "inconsistent"),
+        ("windows_mismatch", "inconsistent"),
+        ("duplicate", "inconsistent"),
+    ],
+)
+def test_stop_diagnostic_uses_project_adapter_binding(
+    consumer: Path, configuration: str, expected: str
+) -> None:
+    CodexCLIAdapter().install(consumer, ROOT)
+    install(consumer)
+    hook_file = _hooks_file(consumer)
+    data = json.loads(hook_file.read_text(encoding="utf-8"))
+    hooks = data["hooks"]["Stop"][0]["hooks"]
+    adapter = {
+        "type": "command",
+        "command": "python scripts/turn_adapter.py --agent-id codex --trigger-mode native_hook",
+        "commandWindows": "python scripts/turn_adapter.py --agent-id codex --trigger-mode native_hook",
+    }
+    if configuration != "duplicate":
+        hooks.clear()
+    hooks.append(adapter)
+    hook_file.write_text(json.dumps(data), encoding="utf-8")
+    if configuration != "undeclared":
+        declaration = {
+            "command": adapter["command"],
+            "commandWindows": adapter["commandWindows"],
+            "delegates_to": str(ROOT / "governance_tools/session_closeout_entry.py"),
+        }
+        if configuration == "windows_mismatch":
+            declaration["commandWindows"] += " --format json"
+        (hook_file.parent / "closeout-adapter.json").write_text(
+            json.dumps(declaration), encoding="utf-8"
+        )
+
+    report = _assess_unchanged(consumer)
+    assert report["status"] == INSTALLED_CORRECTLY
+    assert report["stop_wiring"] == expected
+    if expected == "consistent":
+        assert report["stop_repair"] is None
+        assert diagnostic_warnings(report) == []
+    else:
+        assert "install --agent codex" not in report["stop_repair"]
+        assert diagnostic_warnings(report)
+
+
 def test_session_end_publisher_is_not_answered_with_a_second_closeout(consumer: Path) -> None:
     install(consumer)
     data = json.loads(_hooks_file(consumer).read_text(encoding="utf-8"))
