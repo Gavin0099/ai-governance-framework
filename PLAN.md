@@ -13,12 +13,12 @@
 
 | Read first | Current instruction |
 |---|---|
-| Now | Repair semantic-review F01–F10, restore the 9 lost and 8 questionable sentences, scan delivered acceptance conditions, and run scoped validation for coordinator review. |
-| Authority | Owner authorized this bounded semantic repair on docs/plan-information-architecture at a3d7b37b. Existing [grants](#authorizations-and-owner-decisions) keep their original scope; delivered grants stay terminal and are not renewed. |
-| Allowed | PLAN.md, the compact mapping, and only the two real-PLAN test inventories if needed. Temporary sentence/check records stay in the coordinator-designated E:/g315/codex-tmp/g/ directory. |
-| Limits | No load rules, summary algorithm, consumer, memory, immutable history or baseline edits; no runtime/governance behavior changes and no commit, push or merge. [Standing conditions](#active-claim-boundaries) remain in force. |
-| DONE | Reviewable local repair: verbatim scoped conditions and sentence decisions in root/mapping; immutable history, coverage, authorization targets, boundary accounting and requested tests pass. Coordinator owns commit and delivery. |
-| Next | Coordinator reviews and commits this repair; [ordered holds and follow-ups](#pending-work---ordered) stay outside this round. Do not automatically start backlog work. |
+| Now | The PLAN information-architecture round is delivered on `docs/plan-information-architecture` for owner review. No next slice has been selected. |
+| Authority | Owner authorization, 2026-11-16: reconcile and restructure the framework root PLAN as the single working entry, keep history verbatim, and deliver to a PR; no merge. Existing [grants](#authorizations-and-owner-decisions) keep their original scope; delivered grants stay terminal and are not renewed. |
+| Allowed | The delivered round covers root PLAN information architecture, verbatim history preservation, the compact source/authorization mapping, baseline inventory and existing real-PLAN test inventories, with reader compatibility preserved. |
+| Limits | No load rules, summary algorithm, consumer, memory or history-record changes; no merge. [Standing conditions](#active-claim-boundaries) remain in force. |
+| DONE | The branch delivers byte-identical history, every original line mapped, every condition in force stated in the root, indexed authorizations and compatible readers. Independent semantic review and continuity evaluation are done; these results do not authorize merge. |
+| Next | Owner review and a separate merge decision. [Tracked follow-ups and holds](#pending-work---ordered) stay outside this round; the nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work. |
 | Phase | [A–D completed; E in progress](#phase-overview), validity before expansion. |
 | Full source | [Verbatim pre-restructure PLAN](docs/status/plan-history-2026-11-16-6c7e24c3.md) and [512-unit preservation/authorization map](docs/status/plan-information-architecture-2026-11-16-mapping.md). History is not a planning source. |
 
@@ -26,9 +26,9 @@ The front-door table above answers now / authority / limits. Source IDs Mnnnn re
 
 ## Current Sprint - 2026-11-16
 
-- [>] Repair F01–F10 and the delivered-acceptance preservation pattern; restore all 9 lost / 8 questionable sentences with scope and terminal status, update the compact mapping, and finish requested local validation for coordinator review. Keep the resulting change reviewable; no commit or merge is authorized.
+- [>] PLAN information-architecture round delivered and reviewable on `docs/plan-information-architecture`; awaiting owner review and merge decision. No next slice has been selected; tracked follow-ups and holds remain in [Pending Work](#pending-work---ordered).
 
-Claim ceiling: The restructured PLAN at a3d7b37b is the reviewed input; this slice repairs its semantic omissions. Local implementation and tests are not a claim of commit/push/PR publication or independent semantic approval. The current user request, not an old next_step or dated single-use experiment grant, selects work.
+Claim ceiling: The 2026-11-16 authorization covers reconciliation and restructuring of the root PLAN as the single working entry, verbatim history preservation and delivery to a PR; merge needs a separate owner decision. No load rules, summary algorithm, consumer, memory or history-record changes belong to this round. Existing grants retain their original scope; delivered grants stay terminal. The nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work.
 
 ## Authorizations And Owner Decisions
 
@@ -3333,7 +3333,7 @@ Claim ceiling / completed orientation: Phase D sign-off; MEM-DISPATCH/P1-A; P1-C
 
 ## Definition Of Done For Current Planning Slice
 
-This slice requires a byte-identical history body with exactly ten banner lines; occurrence coverage for all 3,012 original nonblank lines; root conditions or explicit source-status locations for all 400 non-history units; dated/scoped authorization H3 targets; verbatim preservation of every marked binding/dependent sentence; a disposition for every detector hit; compatible header/phase/pending/summary and baseline inventory; the requested tests and git diff --check. PR publication and merge are separately observable states.
+The delivered PLAN information-architecture round provides a byte-identical history body with exactly ten banner lines; every original line mapped, including occurrence coverage for all 3,012 original nonblank lines; every condition still in force stated in the root, with root conditions or explicit source-status locations for all 400 non-history units; dated/scoped authorization H3 targets; verbatim binding/dependent sentences and detector-hit dispositions; compatible header/phase/pending/summary readers and baseline inventory; completed independent semantic review and continuity evaluation. These are branch-delivery results for owner review, not merge approval. Merge needs a separate owner decision; no next slice has been selected. [Tracked follow-ups and holds](#pending-work---ordered), including the nine August constraints awaiting owner adjudication, remain outside this round; do not automatically start backlog work.
 
 The old P0b one-time delivery checklist is historical (#16, 61111f5f / 7f47b12f; source M3003). Its ongoing PR trigger, fail-closed, post-merge audit, regression and unchanged-surface conditions are retained in M3003 under Active Claim Boundaries; M3025 also preserves the hash-consistency/owner-authorization distinction.
 
