@@ -47,7 +47,7 @@ contract_required_fields:
 #   Drift checker surfaces these for visibility but never fails on missing inventory items.
 plan_section_inventory:
   - "## Canonical Planning Surface"
-  - "## Current Sprint - 2026-11-16"
+  - "## Current Sprint - 2026-11-17"
   - "## Authorizations And Owner Decisions"
   - "## Reconciliation And Evidence Gaps"
   - "## Pending Work - Ordered"
