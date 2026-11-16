@@ -115,6 +115,11 @@ python -m governance_tools.memory_record `
   --project-root .
 ```
 
+For command evidence, wrap validation in `governance_tools.test_evidence_receipt_writer`
+and cite its printed `test_evidence` line. For commands expected to produce long
+output, use `--compress-output`; failing runs are kept as plain text automatically.
+See `TESTING.md` section 6.4 for retained logs and restoration.
+
 All new session-derived memory entries must use the canonical writer CLI.
 Direct markdown append in `- what changed:` or `- what_changed:` format is
 prohibited for new entries.
