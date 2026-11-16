@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- #325 merged at d1dc23d0 (review and post-merge main CI green; Windows native argument passing still unverified); current slice: #328 F-7 missing-lock hint plus a separate report-format fix; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:33bbe71ca8759748fa46de0732664e1ed79057ac792ae16ee0b25af549787f3e -->
+- #325 merged at d1dc23d0 (Windows native argument passing still unverified); #328 missing-lock hint at cb1c0356 and report-format fix at c21f5b63 await PR review, CI and an owner merge decision; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:8666f7cfe65447c1eb440604aa76b62af351752eecdb6ca4270a6db9263d48ac -->
