@@ -20,6 +20,7 @@ from governance_tools.agents_calibration_maturity import (
     AgentsCalibrationMaturity,
     assess_agents_calibration_maturity,
 )
+from governance_tools.codex_hook_trust_status import STATE_MEANINGS, inspect_codex_hook_trust
 from governance_tools.domain_contract_loader import load_domain_contract, resolve_domain_contract
 from governance_tools.external_repo_smoke import EXTERNAL_REPO_SMOKE_RESULT_SCHEMA
 
@@ -93,6 +94,7 @@ class GovernanceMaturitySummary:
     capability_states: dict[str, CapabilityStatus] = field(default_factory=dict)
     owner_actions: list[str] = field(default_factory=list)
     next_safe_command: str | None = None
+    codex_hook_trust: dict[str, object] = field(default_factory=dict)
     claim_boundary: str = (
         "This summary is report-only. It does not prove full governance adoption, "
         "runtime self-contained execution, hook enforcement, memory completeness, "
@@ -585,6 +587,7 @@ def _derive_human_readable_adoption_summary(
     memory_workflow_surface: SummaryValue,
     missing_surfaces: list[str],
     cannot_claim: list[str],
+    codex_hook_trust: dict[str, object] | None = None,
 ) -> list[str]:
     # Render the existing diagnostic; do not promote the machine status or
     # infer parent/index alignment, delivery completion, or push authority.
@@ -695,6 +698,20 @@ def _derive_human_readable_adoption_summary(
             ),
         ]
     )
+
+    if codex_hook_trust:
+        for hook in codex_hook_trust["hooks"]:
+            state = hook["state"]
+            identity = hook["event"]
+            if hook["group_index"] is not None:
+                identity += f"[{hook['group_index']}:{hook['hook_index']}]"
+            lines.append(_capability_row(
+                f"Codex {identity}",
+                f"{STATE_MEANINGS[state]}（{state}）",
+                "本報告不啟動 app-server；可用下方命令診斷信任狀態。"
+                "已信任仍不代表已執行或已收尾，須看既有 R1/R2 證據。",
+            ))
+        lines.append("Codex hook 信任診斷命令：" + codex_hook_trust["diagnostic_command"])
 
     lines.append("技術細項：")
     lines.append(
@@ -1396,6 +1413,9 @@ def build_governance_maturity_summary(
     readiness_report = assess_external_repo(repo, framework_root=framework)
     hook_report = validate_hook_install(repo, framework_root=framework)
     agents_report = assess_agents_calibration_maturity(repo)
+    # Keep routine adoption/update reports deterministic and cheap. The explicit
+    # CLI owns process startup; file presence alone never establishes trust.
+    codex_hook_trust = inspect_codex_hook_trust(repo, query_server=False)
     domain_contract_present, validator_surface_present = _load_contract_surface(repo)
     repo_specific_present = _repo_specific_rules_present(agents_report.status)
     lock_consistency = _derive_lock_consistency(repo, framework)
@@ -1504,6 +1524,7 @@ def build_governance_maturity_summary(
         memory_workflow_surface=memory_workflow_surface,
         missing_surfaces=missing_surfaces,
         cannot_claim=cannot_claim,
+        codex_hook_trust=codex_hook_trust,
     )
 
     return GovernanceMaturitySummary(
@@ -1530,6 +1551,7 @@ def build_governance_maturity_summary(
         capability_states=capability_states,
         owner_actions=owner_actions,
         next_safe_command=next_safe_command,
+        codex_hook_trust=codex_hook_trust,
     )
 
 
