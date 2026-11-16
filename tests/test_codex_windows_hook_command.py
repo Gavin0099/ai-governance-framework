@@ -154,7 +154,10 @@ def test_duplicate_governance_hooks_repair_to_one_binding(tmp_path, duplicate_is
     path.parent.mkdir()
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    assert adapter.verify(tmp_path, framework)["installed"] is False
+    verified = adapter.verify(tmp_path, framework)
+    assert verified["installed"] is False
+    assert verified["configuration_state"] == "standard_duplicate"
+    assert verified["formal_closeout_count"] == 2
     assert adapter.repair(tmp_path, framework)["status"] == "installed"
     repaired = json.loads(path.read_text(encoding="utf-8"))
     assert_requested_framework_binding(repaired, framework, tmp_path)

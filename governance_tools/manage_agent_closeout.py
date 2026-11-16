@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import abc
 import argparse
+import ast
 import base64
 import binascii
 import json
@@ -144,7 +145,7 @@ class AgentAdapter(abc.ABC):
         """
         Install the closeout trigger.
         Returns: {"status": str, "location": str|None, "message": str}
-        Status values: installed | already_installed | manual_only | blocked | error
+        Status values: installed | already_installed | already_configured | manual_only | blocked | error
         """
 
     @abc.abstractmethod
@@ -1085,6 +1086,9 @@ class CodexCLIAdapter(AgentAdapter):
     JSON output because Codex requires JSON on stdout for successful Stop hooks.
 
     Tier A: Codex has a documented project-local lifecycle hook surface.
+    Verify/install/repair share a configuration classifier. Project entries
+    are preserved, with optional exact binding in .codex/closeout-adapter.json;
+    neither a declaration nor configuration success proves native execution.
     """
 
     @property
@@ -1119,6 +1123,277 @@ class CodexCLIAdapter(AgentAdapter):
     @staticmethod
     def _hook_path(project_root: Path) -> Path:
         return project_root / ".codex" / "hooks.json"
+
+    @staticmethod
+    def _command_segments(command: str) -> list[list[str]]:
+        """Inspect command syntax without running a shell or project code.
+
+        Encoded PowerShell is transport, not evidence of execution or trust.
+        This intentionally does not attempt to analyze arbitrary wrapper files.
+        """
+        try:
+            outer = shlex.split(command)
+            if (len(outer) >= 3 and outer[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+                    in {"powershell", "powershell.exe", "pwsh", "pwsh.exe"}):
+                if outer[-2].lower() == "-encodedcommand":
+                    command = base64.b64decode(outer[-1], validate=True).decode("utf-16-le")
+                elif outer[-2].lower() == "-command":
+                    command = outer[-1]
+            lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+            lexer.whitespace_split = True
+            lexer.commenters = ""
+            segments: list[list[str]] = [[]]
+            for token in lexer:
+                if token in {";", "&&", "||", "|", "&", "then", "else", "{", "}"}:
+                    segments.append([])
+                else:
+                    segments[-1].append(token)
+            return [segment for segment in segments if segment]
+        except (ValueError, UnicodeError, binascii.Error):
+            return []
+
+    @classmethod
+    def _looks_like_project_entry(cls, hook: Any) -> bool:
+        """Conservative closeout *candidate*, never proof of delegation.
+
+        Invocation with the native Codex identity/trigger pair, or invocation
+        of the formal module (including an inline Python import), reserves the
+        entry for human verification. Filename/diagnostic text is insufficient.
+        """
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        for field in ("command", "commandWindows"):
+            command = hook.get(field)
+            if not isinstance(command, str):
+                continue
+            owned_command = cls._is_governance_hook({"type": "command", field: command})
+            for tokens in cls._command_segments(command):
+                executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+                if executable in {"echo", "printf", "write-output", "write-host"}:
+                    continue
+                # A recognized direct entry remains framework-owned, including
+                # stale bindings. Other invocations in the same hook are still
+                # inspected, so a mixed direct/project command is not replaced.
+                is_python = executable in {"python", "python3", "python.exe", "python3.exe", "$python"}
+                if is_python and len(tokens) > 1:
+                    entry = tokens[1].replace("\\", "/")
+                    if entry.split("/")[-2:] == ["governance_tools", "session_closeout_entry.py"]:
+                        if owned_command:
+                            continue
+                        return True
+                    if len(tokens) == 2 and entry == "session_closeout_entry.py":
+                        if owned_command:
+                            continue
+                        return True
+                    if tokens[1:3] == ["-m", "governance_tools.session_closeout_entry"]:
+                        return True
+                    if tokens[1] == "-c" and len(tokens) > 2:
+                        if owned_command and tokens[2].startswith("# governance:claude-closeout-v1\n"):
+                            continue
+                        try:
+                            tree = ast.parse(tokens[2])
+                        except SyntaxError:
+                            tree = ast.Module(body=[], type_ignores=[])
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.Import) and any(
+                                alias.name == "governance_tools.session_closeout_entry" for alias in node.names
+                            ):
+                                return True
+                            if isinstance(node, ast.ImportFrom) and (
+                                node.module == "governance_tools.session_closeout_entry"
+                                or (node.module == "governance_tools" and any(
+                                    alias.name == "session_closeout_entry" for alias in node.names
+                                ))
+                            ):
+                                return True
+                def has_arg(name: str, value: str) -> bool:
+                    return any(token == name + "=" + value or (
+                        token == name and index + 1 < len(tokens) and tokens[index + 1] == value
+                    ) for index, token in enumerate(tokens))
+                if has_arg("--agent-id", "codex") and has_arg("--trigger-mode", "native_hook"):
+                    return True
+        return False
+
+    @staticmethod
+    def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("Duplicate JSON key")
+            result[key] = value
+        return result
+
+    def _configuration(self, project_root: Path, framework_root: Path) -> tuple[str, dict, dict]:
+        """One classification shared by verify, install and repair."""
+        path = self._hook_path(project_root)
+        source = "{}\n"
+        data: dict[str, Any] = {}
+        try:
+            if path.exists():
+                source = path.read_bytes().decode("utf-8")
+                data = json.loads(source, object_pairs_hook=self._json_object)
+            if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
+                raise ValueError("Expected hooks object")
+            groups = data.get("hooks", {}).get("Stop", [])
+            if not isinstance(groups, list) or any(
+                not isinstance(group, dict) or not isinstance(group.get("hooks", []), list)
+                or any(not isinstance(hook, dict) for hook in group.get("hooks", []))
+                for group in groups
+            ):
+                raise ValueError("Expected Stop hook groups")
+        except (OSError, UnicodeError, ValueError):
+            return source, data, {
+                "configuration_state": "invalid", "formal_closeout_count": 0,
+                "note": "Codex hooks configuration is unreadable or malformed; it was not treated as missing.",
+            }
+
+        declaration_path = project_root / ".codex" / "closeout-adapter.json"
+        declared = declaration_path.exists()
+        declaration: dict[str, Any] = {}
+        valid_declaration = False
+        if declared:
+            try:
+                declaration = json.loads(declaration_path.read_text(encoding="utf-8"),
+                                         object_pairs_hook=self._json_object)
+                if (not isinstance(declaration, dict)
+                        or set(declaration) - {"command", "commandWindows", "delegates_to"}
+                        or not isinstance(declaration.get("command"), str) or not declaration["command"].strip()
+                        or ("commandWindows" in declaration and (
+                            not isinstance(declaration["commandWindows"], str) or not declaration["commandWindows"].strip()
+                        )) or not isinstance(declaration.get("delegates_to"), str)
+                        or not declaration["delegates_to"].strip()):
+                    raise ValueError("Invalid adapter declaration")
+                target = (project_root / declaration["delegates_to"]).resolve()
+                expected = (framework_root / "governance_tools/session_closeout_entry.py").resolve()
+                valid_declaration = target == expected and expected.is_file()
+            except (OSError, UnicodeError, ValueError):
+                declaration = {}
+
+        entries = []
+        for group_index, group in enumerate(groups):
+            for hook_index, hook in enumerate(group.get("hooks", [])):
+                matches = bool(declaration.get("command")) and hook.get("type", "command") == "command" and all(
+                    hook.get(field) == declaration.get(field) for field in ("command", "commandWindows")
+                )
+                owned = self._is_governance_hook(hook)
+                project_entry = self._looks_like_project_entry(hook)
+                if owned or project_entry or matches:
+                    entries.append(((group_index, hook_index), hook, owned, project_entry, matches))
+
+        count = len(entries)
+        assessment: dict[str, Any] = {"formal_closeout_count": count}
+        if count > 1 and not declared and all(entry[2] and not entry[3] for entry in entries):
+            state = "standard_duplicate"
+            assessment["replace_positions"] = [entry[0] for entry in entries]
+            note = (f"Found {count} framework-owned Codex Stop closeout entries; "
+                    "install/repair can consolidate them into one requested framework binding.")
+        elif count > 1:
+            state = "conflict"
+            note = f"Found {count} possible formal Codex Stop closeout entries; configuration conflicts."
+        elif declared:
+            if count == 1 and valid_declaration and entries[0][4]:
+                state = "project_adapter_verified"
+                note = ("One project adapter matches .codex/closeout-adapter.json and the requested framework entry. "
+                        "Verified here means declaration/configuration binding only; runtime delegation is not verified.")
+            else:
+                state = "project_adapter_unverified"
+                note = (f"Found {count} possible formal Codex Stop closeout entries, but "
+                        ".codex/closeout-adapter.json is invalid, does not match the Stop commands, "
+                        "or does not name the existing requested framework entry.")
+        elif count == 0:
+            state = "missing"
+            note = "No formal Codex Stop closeout entry was identified."
+        elif entries[0][2] and not entries[0][3]:
+            if self._is_current_hook(entries[0][1], framework_root, project_root):
+                state = "standard"
+                note = f"Single governance Codex Stop hook matches requested framework root {framework_root}."
+            else:
+                state = "standard_stale"
+                assessment["replace_positions"] = [entries[0][0]]
+                note = "One framework-owned Codex Stop entry is stale or bound to a different framework root."
+        else:
+            state = "project_adapter_unverified"
+            note = ("One possible project-owned formal Codex Stop closeout entry is unverified; "
+                    "it is not a missing framework hook.")
+        assessment.update(configuration_state=state, note=note)
+        return source, data, assessment
+
+    @staticmethod
+    def _json_span(source: str, path: tuple) -> tuple[int, int]:
+        """Locate one JSON value so unrelated values retain their exact bytes."""
+        decoder = json.JSONDecoder()
+        start = len(source) - len(source.lstrip())
+        _, end = decoder.raw_decode(source, start)
+        for part in path:
+            cursor = start + 1
+            index = 0
+            found = False
+            while cursor < end - 1:
+                cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                if source[cursor] in "}]":
+                    break
+                key = index
+                if source[start] == "{":
+                    key, cursor = decoder.raw_decode(source, cursor)
+                    cursor = source.index(":", cursor) + 1
+                    cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                value_start = cursor
+                _, cursor = decoder.raw_decode(source, cursor)
+                if key == part:
+                    start, end = value_start, cursor
+                    found = True
+                    break
+                index += 1
+                cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                if source[cursor] == ",":
+                    cursor += 1
+            if not found:
+                raise KeyError(path)
+        return start, end
+
+    @classmethod
+    def _set_json_value(cls, source: str, path: tuple, value: Any) -> str:
+        replacement = json.dumps(value, ensure_ascii=False)
+        try:
+            start, end = cls._json_span(source, path)
+        except KeyError:
+            try:
+                start, end = cls._json_span(source, path[:-1])
+            except KeyError:
+                return cls._set_json_value(source, path[:-1], {path[-1]: value})
+            comma = "," if json.loads(source[start:end]) else ""
+            return source[:end - 1] + comma + json.dumps(path[-1]) + ": " + replacement + source[end - 1:]
+        return source[:start] + replacement + source[end:]
+
+    def _write_standard_hook(self, source: str, data: dict, assessment: dict,
+                             project_root: Path, framework_root: Path) -> None:
+        # Replace only framework-owned entries approved by the classifier,
+        # retaining installer ordering and the exact bytes of other handlers.
+        # Remove backwards so remaining positions stay valid across deletions.
+        for group, index in sorted(assessment.get("replace_positions", []), reverse=True):
+            array_path = ("hooks", "Stop", group, "hooks")
+            start, end = self._json_span(source, array_path + (index,))
+            if index:
+                start = self._json_span(source, array_path + (index - 1,))[1]
+            else:
+                array_start, array_end = self._json_span(source, array_path)
+                if len(json.loads(source[array_start:array_end])) > 1:
+                    end = self._json_span(source, array_path + (index + 1,))[0]
+            source = source[:start] + source[end:]
+        payload = self._hook_payload(framework_root, project_root)
+        try:
+            start, end = self._json_span(source, ("hooks", "Stop", 0, "hooks"))
+        except KeyError:
+            if data.get("hooks", {}).get("Stop"):
+                source = self._set_json_value(source, ("hooks", "Stop", 0, "hooks"), [payload])
+            else:
+                source = self._set_json_value(source, ("hooks", "Stop"), [{"hooks": [payload]}])
+        else:
+            comma = "," if json.loads(source[start:end]) else ""
+            source = source[:end - 1] + comma + json.dumps(payload, ensure_ascii=False) + source[end - 1:]
+        path = self._hook_path(project_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(source.encode("utf-8"))
 
     @staticmethod
     def _is_governance_hook(hook: Any) -> bool:
@@ -1248,50 +1523,50 @@ class CodexCLIAdapter(AgentAdapter):
         }
 
     def _find_current_hook(self, project_root: Path, framework_root: Path) -> bool:
-        data = _read_json(self._hook_path(project_root))
-        governance_hooks = []
-        for group in data.get("hooks", {}).get("Stop", []):
-            if not isinstance(group, dict):
-                continue
-            for hook in group.get("hooks", []):
-                if self._is_governance_hook(hook):
-                    governance_hooks.append(hook)
-        return (len(governance_hooks) == 1
-                and self._is_current_hook(governance_hooks[0], framework_root, project_root))
+        return self._configuration(project_root, framework_root)[2]["configuration_state"] in {
+            "standard", "project_adapter_verified",
+        }
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        if self._find_current_hook(project_root, framework_root):
+        source, data, assessment = self._configuration(project_root, framework_root)
+        state = assessment["configuration_state"]
+        if state == "standard":
             return {
                 "status": "already_installed",
+                "configuration_state": state,
                 "location": str(hook_path),
                 "message": "Governance Codex Stop hook already matches the requested framework binding.",
             }
-
-        data = _read_json(hook_path)
-        hooks = data.setdefault("hooks", {})
-        stop_groups = hooks.setdefault("Stop", [{"hooks": []}])
-        if not stop_groups:
-            stop_groups.append({"hooks": []})
-        if not isinstance(stop_groups[0], dict):
-            stop_groups.insert(0, {"hooks": []})
-        target_group = stop_groups[0]
-        target_hooks = target_group.setdefault("hooks", [])
-
-        # Replace obsolete framework closeout commands rather than adding a
-        # second closeout hook for the same Codex Stop event.
-        for group in stop_groups:
-            if isinstance(group, dict) and isinstance(group.get("hooks"), list):
-                group["hooks"] = [
-                    hook for hook in group["hooks"]
-                    if not self._is_governance_hook(hook)
-                ]
-        target_hooks = target_group.setdefault("hooks", [])
-        target_hooks.append(self._hook_payload(framework_root, project_root))
-        _write_json(hook_path, data)
+        if state == "project_adapter_verified":
+            return {
+                "status": "already_configured",
+                "configuration_state": state,
+                "formal_closeout_count": assessment["formal_closeout_count"],
+                "location": str(hook_path),
+                "message": assessment["note"] + (
+                    " No configuration changed. Configuration binding only; native execution, "
+                    "hook trust and formal closeout are not verified."
+                ),
+            }
+        if state not in {"missing", "standard_stale", "standard_duplicate"}:
+            return {
+                "status": "blocked",
+                "configuration_state": state,
+                "formal_closeout_count": assessment["formal_closeout_count"],
+                "location": str(hook_path),
+                "message": assessment["note"] + (
+                    " No configuration changed. The human must decide which formal entry to retain, "
+                    "check or correct the project adapter declaration, or explicitly remove the conflict. "
+                    "Do not add a direct entry alongside a project adapter. "
+                    "Configuration binding only; native execution is not verified."
+                ),
+            }
+        self._write_standard_hook(source, data, assessment, project_root, framework_root)
         portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
+            "configuration_state": "standard",
             "location": str(hook_path),
             "portable": portable,
             "message": f"Governance Codex Stop hook added to {hook_path}." + (
@@ -1301,18 +1576,26 @@ class CodexCLIAdapter(AgentAdapter):
             ),
         }
 
+    def repair(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        # Reuse the classifier and successful no-op for a verified adapter;
+        # its configuration match never authorizes replacing the project entry.
+        result = self.install(project_root, framework_root)
+        if result["status"] in {"already_installed", "already_configured"}:
+            result["status"] = "no_repair_needed"
+        return {"agent": self.agent_id, **result, "repaired": result["status"] == "installed"}
+
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        installed = self._find_current_hook(project_root, framework_root)
+        _, _, assessment = self._configuration(project_root, framework_root)
+        state = assessment["configuration_state"]
+        installed = state in {"standard", "project_adapter_verified"}
         return {
             "installed": installed,
+            "configuration_state": state,
+            "formal_closeout_count": assessment["formal_closeout_count"],
             "manual_only": False,
-            "location": str(hook_path) if installed else None,
-            "note": (
-                f"Single governance Codex Stop hook matches requested framework root {framework_root}."
-                if installed else
-                f"Governance Codex Stop hook is missing, stale, or duplicated for requested framework root {framework_root}."
-            ) + " Configuration binding only; native execution is not verified."
+            "location": str(hook_path) if hook_path.exists() else None,
+            "note": assessment["note"] + " Configuration binding only; native execution is not verified."
             + (_PENDING_HOOK_NOTE if installed else ""),
         }
 
@@ -1350,8 +1633,14 @@ class CodexCLIAdapter(AgentAdapter):
             f"    {cmd}\n\n"
             f"Not for a PREPARED (R2) candidate: manual_fallback is refused for it "
             f"(RELEASE_PROOF_INVALID).\n\n"
-            f"Or install the Stop hook:\n\n"
-            f"    python -m governance_tools.manage_agent_closeout install --agent codex"
+            f"First inspect the Stop configuration (run from the framework checkout):\n\n"
+            f"    python -m governance_tools.manage_agent_closeout --project-root <PROJECT_ROOT> verify --agent codex\n\n"
+            f"Install/repair add only when missing, replace one stale framework entry, or consolidate "
+            f"duplicates when all formal entries are framework-owned. A verified project adapter is "
+            f"a successful no-op; unverified adapters, conflicts and invalid settings remain blocked. "
+            f"An adapter match verifies configuration only, not execution, hook trust or formal closeout. "
+            f"Do not add a direct entry alongside an adapter. See docs/hook-coverage-model.md "
+            f"for the .codex/closeout-adapter.json declaration."
         )
 
 
@@ -1384,6 +1673,8 @@ def op_status(project_root: Path, framework_root: Path) -> list[dict[str, Any]]:
         fallback_required = bool(cap.get("fallback_required")) or not bool(v["installed"])
         enforcement_level = "NATIVE_HOOK" if cap.get("auto_trigger_capable", False) else "MANUAL_FALLBACK"
         compliance_status = "READY" if v["installed"] else "PENDING_INSTALL"
+        if v.get("configuration_state") in {"project_adapter_unverified", "conflict", "invalid"}:
+            compliance_status = "NEEDS_DECISION"
         if enforcement_level == "MANUAL_FALLBACK":
             compliance_status = "PENDING_MANUAL_ACTION"
         results.append({
@@ -1400,6 +1691,7 @@ def op_status(project_root: Path, framework_root: Path) -> list[dict[str, Any]]:
             "compliance_status": compliance_status,
             "location": v.get("location"),
             "note": v.get("note"),
+            **{key: v[key] for key in ("configuration_state", "formal_closeout_count") if key in v},
         })
     return results
 
@@ -1593,7 +1885,17 @@ def main() -> int:
     sub.add_parser("capabilities", help="Show capability tiers for all agents")
 
     for op in ("install", "verify", "repair", "uninstall", "smoke"):
-        p = sub.add_parser(op, help=f"{op.capitalize()} integration for an agent")
+        codex_help = (
+            " For Codex, verify classifies formal Stop entries. Install/repair add only when missing, "
+            "replace one stale framework entry, or consolidate duplicates only when all formal entries "
+            "are framework-owned. A verified project adapter is a successful no-op; "
+            "unverified adapters, conflicts and invalid settings remain blocked for a human decision. "
+            "A matching .codex/closeout-adapter.json declaration verifies configuration only, "
+            "not execution, hook trust or formal closeout. "
+            "See docs/hook-coverage-model.md."
+        ) if op in {"install", "verify", "repair"} else ""
+        p = sub.add_parser(op, help=f"{op.capitalize()} integration for an agent",
+                           description=f"{op.capitalize()} integration for an agent." + codex_help)
         p.add_argument("--agent", choices=KNOWN_AGENTS + ["all"], required=True)
 
     pm = sub.add_parser("print-manual", help="Print manual closeout instructions for an agent")

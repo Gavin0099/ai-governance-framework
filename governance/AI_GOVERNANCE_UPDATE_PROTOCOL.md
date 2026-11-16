@@ -44,6 +44,49 @@ Required external contract surfaces are `contract.yaml`,
 `governance/framework.lock.json`, `.git/hooks/pre-commit`,
 `.git/hooks/pre-push`, and `.github/copilot-instructions.md`.
 
+## Instruction Budget Before Upgrade
+
+Run F-7 dry-run before apply. Its `instruction_budget_precheck` replays the
+actual instruction writers on a temporary copy before any consumer write,
+including Update Intent, memory routing, the F-7 boundary where applicable,
+and the installer's agent-contract block. Read current bytes, predicted bytes,
+the 32,768-byte limit, headroom/overflow and the CRLF worst case. This is a byte
+prediction conditional on existing apply gates, not update authorization or
+readiness. Overflow does not block dry-run: the post-upgrade consumer drift
+check will fail if the on-disk file remains over the limit. The limit and
+critical severity are unchanged. A missing target tree or failed rewrite is
+`not_verified`, never evidence that the upgrade fits; obtain the selected
+target locally and rerun the prediction before applying it.
+
+For a standalone prediction from the intended framework checkout:
+
+```text
+python -X utf8 -m governance_tools.consumer_upgrade_precheck predict --repo <consumer> --framework-root <framework> --target-ref <local-target>
+```
+
+For an external-contract consumer, add `--repo-role external_contract_repo`
+and use the framework checkout intended for apply. Without `--target-ref`,
+that backend predicts from the checkout's instruction templates.
+
+If space is needed, inspect a separate slimming dry-run:
+
+```text
+python -X utf8 -m governance_tools.consumer_upgrade_precheck slim --repo <consumer> --framework-root <framework>
+```
+
+It shows section-by-section byte changes. Only exact current or local-history
+framework text establishes ownership; a heading or managed marker alone does
+not. Unknown/edited candidates, unmatched markers or differing duplicates
+cause refusal of the entire edit. Shallow history can therefore require human
+review. Explicit `slim --apply` writes only `AGENTS.md`, preserves BOM, line
+endings and every byte outside the proven managed spans, and never expands a
+section to save space. It is separate from F-7 so deletion is an explicit,
+reviewable choice. Review and deliver that edit under the existing commit
+authority, then rerun prediction/F-7; existing dirty-tree gates still apply.
+If overflow remains, the owner must decide how to relocate consumer-owned
+rules to appropriate referenced documents. Do not delete them automatically,
+relax the byte limit, or treat slimming as a completed framework update.
+
 Follow `governance/RESPONSE_ENVELOPE_CONTRACT.md` (v0.8) for compact ordinary
 reports, the `full_evidence_request`, `owner_decision_required`, and
 `failed_or_partial` expansion conditions, Engineering Explanation for review,

@@ -242,6 +242,103 @@ def test_f7_real_submodule_invalid_explicit_target_fails_without_fallback(
     f7_full_update.install_governance_hooks.assert_not_called()
 
 
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_precheck_matches_real_submodule_instruction_refresh(tmp_path: Path, monkeypatch, apply) -> None:
+    repo, checkout, _before, target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    # This target fixture has no agent-contract template, so the real backend
+    # instruction refresh is the complete AGENTS rewrite for this target.
+    result = run_f7_full_update(
+        repo_root=repo, framework_root=checkout, apply=apply, target_ref=target,
+    )
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["errors"] == []
+    assert prediction["source_revision"] == target
+    if apply:
+        assert prediction["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+    else:
+        assert not (repo / "AGENTS.md").exists()
+        assert prediction["predicted"]["on_disk_bytes"] > 0
+
+
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"], ids=["lf", "crlf"])
+def test_f7_precheck_predicts_complete_external_apply(tmp_path: Path, newline: bytes) -> None:
+    framework, repo = tmp_path / "framework", tmp_path / "consumer"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        framework / "governance/agent-contract-template.md",
+        "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+        "- Follow the canonical contract.\n"
+        "<!-- AI Governance Framework: agent-contract END -->\n",
+    )
+    agents = repo / "AGENTS.md"
+    agents.write_bytes(b"\xef\xbb\xbf" + agents.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", newline))
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["errors"] == []
+    assert prediction["predicted"]["on_disk_bytes"] == len(agents.read_bytes())
+    assert b"Follow the canonical contract." in agents.read_bytes()
+    assert b"Preserve this domain rule." in agents.read_bytes()
+
+
+def test_f7_precheck_uses_target_checkout_when_consumer_has_not_fetched_it(tmp_path: Path, monkeypatch) -> None:
+    repo, checkout, before, _target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    source = tmp_path / "framework-remote"
+    _write(source / "README.md", "new target not fetched by consumer\n")
+    _git(source, "commit", "-am", "new target")
+    target = _git(source, "rev-parse", "HEAD")
+
+    def observe(report):
+        assert report["errors"] == []
+        assert report["source_revision"] == target
+        assert report["source_root"] == str(source.resolve())
+        assert _git(checkout, "rev-parse", "HEAD") == before
+        # The read-only precheck must not fetch even the object into the consumer.
+        completed = subprocess.run(["git", "-C", str(checkout), "cat-file", "-e", target], capture_output=True)
+        assert completed.returncode != 0
+
+    result = run_f7_full_update(repo_root=repo, framework_root=source, apply=True, precheck_observer=observe)
+    assert result.stages["instruction_budget_precheck"]["source_revision"] == target
+    assert _git(checkout, "rev-parse", "HEAD") == target
+    assert result.stages["instruction_budget_precheck"]["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+
+
+def test_f7_precheck_matches_partial_instruction_refresh_and_install(tmp_path: Path, monkeypatch) -> None:
+    repo, checkout, _before, _target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    source = tmp_path / "framework-remote"
+    _write(source / "governance/agent-contract-template.md",
+           "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+           "- Canonical template instruction.\n"
+           "<!-- AI Governance Framework: agent-contract END -->\n")
+    _git(source, "add", ".")
+    _git(source, "commit", "-m", "target with contract template")
+    target = _git(source, "rev-parse", "HEAD")
+    _git(checkout, "fetch", "origin")
+    _write(repo / "AGENTS.md", "# Consumer\n\n## AI Governance Update Intent Rule\n- Consumer text without a Risk Levels boundary.\n")
+    _git(repo, "add", "AGENTS.md")
+    _git(repo, "commit", "-m", "consumer instructions")
+
+    def install_surfaces(consumer: Path, framework: Path):
+        from governance_tools.hook_installer import _apply_agent_contract_surfaces
+
+        changed, errors = [], []
+        _apply_agent_contract_surfaces(consumer, framework, installed=[], changed=changed, backups=[], errors=errors)
+        return mock.Mock(ok=not errors, changed_files=changed, backups=[], errors=errors, warnings=[])
+
+    # Local instruction errors live in the backend stage report, while its
+    # operation still succeeds. F-7 therefore reaches the real surface writer.
+    monkeypatch.setattr(f7_full_update, "install_governance_hooks", install_surfaces)
+    monkeypatch.setattr(f7_full_update, "_copilot_hook_post_install_errors", lambda *_args: [])
+    result = run_f7_full_update(repo_root=repo, framework_root=source, target_ref=target, apply=True)
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["status"] == "not_verified"
+    assert "missing a Risk Levels heading" in " ".join(prediction["errors"])
+    assert prediction["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+    assert b"Canonical template instruction." in (repo / "AGENTS.md").read_bytes()
+    assert result.stages["repo_local_instruction"] == "blocked"
+    assert result.f7_final_status not in {"completed", "full_update_completed"}
+
+
 def test_classify_repo_detects_external_contract_repo(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _make_external_contract_repo(repo)
