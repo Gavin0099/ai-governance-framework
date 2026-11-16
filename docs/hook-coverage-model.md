@@ -52,6 +52,102 @@ Source: `governance_tools/manage_agent_closeout.py` AGENT_MANIFEST.
 
 ---
 
+## Codex Stop configuration: verify before install or repair
+
+Run from the framework checkout with the consumer root explicitly supplied:
+
+```sh
+python -m governance_tools.manage_agent_closeout --project-root <repo> verify --agent codex
+python -m governance_tools.manage_agent_closeout --project-root <repo> install --agent codex
+python -m governance_tools.manage_agent_closeout --project-root <repo> repair --agent codex
+```
+
+`verify`, `install` and `repair` share the same configuration classification.
+Do not interpret every `installed=false` as permission to add a direct entry.
+
+| `configuration_state` | Meaning | `verify.installed` | Install / repair |
+| --- | --- | --- | --- |
+| `missing` | No formal closeout candidate or adapter declaration identified | false | Add one framework entry |
+| `standard` | Exactly one current framework entry bound to the requested root | true | No change |
+| `standard_stale` | Exactly one framework-owned entry with an obsolete command or wrong root | false | Replace that owned entry, without increasing the entry count |
+| `standard_duplicate` | Multiple entries, all framework-owned, with no project adapter declaration | false | Consolidate to one entry bound to the requested framework root |
+| `project_adapter_unverified` | Possible project closeout entry, or an invalid / mismatched declaration | false | Preserve configuration; return `blocked` |
+| `project_adapter_verified` | Exactly one adapter matches the explicit declaration and framework target | true, configuration only | Successful no-op: install returns `already_configured`, repair returns `no_repair_needed`; CLI exit 0 |
+| `conflict` | Multiple possible formal entries with a project / unknown entry or adapter declaration participating | false | Preserve configuration; return `blocked` |
+| `invalid` | Unreadable / malformed hooks JSON, duplicate keys, or malformed Stop containers | false | Preserve configuration; return `blocked` |
+
+`blocked` is a non-success result (CLI exit 1). A human decides which entry to
+retain, corrects or declares the project adapter, or removes a conflict. Neither
+install nor repair makes that choice. Repeated calls do not accumulate entries.
+They leave SessionStart and unrelated Stop handlers byte-identical, including
+their JSON spelling and whitespace. A single stale framework entry can still be
+rebound. Pure framework duplicates are consolidated without bypassing any project
+entry. If a project adapter, declared adapter or unknown formal candidate
+participates, the configuration remains a conflict and is preserved. A verified
+project adapter is already configured: both operations succeed without changing
+any bytes. That success verifies only a configuration match, not execution,
+hook trust or formal closeout.
+
+### What counts as a possible formal entry
+
+The manager distinguishes ownership from a closeout candidate. Its existing
+framework-owned command forms remain recognized for stale/wrong-root replacement.
+An invoked command carrying both `--agent-id codex` and
+`--trigger-mode native_hook` (also accepting `--flag=value`) is a closeout
+candidate even when its executable or script name is unknown. The same applies
+to Python invoking `-m governance_tools.session_closeout_entry`, or inline Python
+importing that module. Both command fields are inspected, including encoded
+PowerShell. Shell alternatives within one hook object count as one configured
+entry; the count is not a measurement of runtime calls.
+
+These syntax signals reserve a possible entry for verification; they never
+prove delegation. Diagnostic `echo` / `printf` / `Write-Output` / `Write-Host`
+commands, textual mentions, similarly named scripts with other arguments, and
+handlers for another purpose are left alone and do not count as conflicts.
+The manager does not execute hooks or inspect arbitrary project script bodies.
+An opaque adapter without these signals must use the explicit declaration below;
+absence of a detected candidate cannot establish that arbitrary code never calls
+closeout. Review opaque Stop handlers before asking the manager to install.
+
+### Minimal project adapter declaration
+
+There was no existing Codex project adapter declaration in the manager. A project
+can now maintain `.codex/closeout-adapter.json` alongside its hooks file. This is
+a configuration binding contract, not a plugin API, execution proof or trust
+setting. The manager never creates or updates the declaration.
+
+```json
+{
+  "command": "repo_root=\"$(git rev-parse --show-toplevel)\" && python3 \"$repo_root/scripts/turn_adapter.py\" --project-root \"$repo_root\" --format json --agent-id codex --trigger-mode native_hook",
+  "delegates_to": "framework/governance_tools/session_closeout_entry.py"
+}
+```
+
+Copy the actual hook's complete `command` string. If the hook has
+`commandWindows`, declare that complete string too, including encoded transport;
+omitting or changing either platform command leaves the adapter unverified.
+`delegates_to` names the framework entry the project declares it delegates to.
+Relative paths resolve from the consumer root; the resolved path must equal the
+requested framework root's `governance_tools/session_closeout_entry.py` and exist
+as a file. Unknown fields and malformed declarations are unverified. A declaration
+that does not match the hooks file blocks installation even for an opaque adapter.
+
+The project owns reviewing the adapter's actual delegation and extra checks.
+`project_adapter_verified` only means the declaration matches one configured
+entry and the requested framework target. It does not verify the adapter's
+implementation, native execution, execution order or hook trust. A direct entry
+alongside even a declared adapter remains a conflict; install/repair preserve both.
+
+Configuration is not execution. After preparation, retain the existing
+`PREPARED` / `PENDING_HOOK` distinction. Formal completion still requires the
+existing same-session / same-SHA canonical closeout and released ownership
+evidence. R1/R2 identity, receipt and ownership rules are unchanged. A declaration
+does not admit manual fallback for a prepared R2 candidate or automatically trust
+a hook. Re-evaluate the declaration whenever either command or the framework
+target changes; remove it only when the project deliberately retires the adapter.
+
+---
+
 ## Critical distinction: tier ≠ coverage rate
 
 **Tier classification describes the observation *mechanism*, not the actual coverage
