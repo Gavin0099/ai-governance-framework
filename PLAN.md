@@ -13,12 +13,12 @@
 
 | Read first | Current instruction |
 |---|---|
-| Now | Complete the owner-approved [step 2](#current-sprint---2026-11-16) and its scoped validation; coordinator reviews the resulting change for PR delivery. |
-| Authority | Owner 2026-11-16 approved the step-1 mapping and authorized these step-2 files. Existing [grants](#authorizations-and-owner-decisions) keep their original scope; they are not re-approved or extended. |
-| Allowed | Root PLAN, immutable history and compact mapping, baseline plan_section_inventory only, the two requested real-PLAN inventories and one stale count assertion in test_plan_parser.py. |
-| Limits | No load rules or summary algorithms, consumer or memory edits, history deletion, new runtime/governance behavior, or merge. [Standing conditions](#active-claim-boundaries) remain in force. |
-| DONE | Preserved source bytes and effective conditions, reconciled deliveries/holds, compatible readers, requested tests, reviewable PR handoff. It is not consumer adoption or Gate 3 success. |
-| Next | Review this slice; [ordered holds and follow-ups](#pending-work---ordered) stay outside this round's DONE. Do not automatically start backlog work. |
+| Now | Repair semantic-review F01–F10, restore the 9 lost and 8 questionable sentences, scan delivered acceptance conditions, and run scoped validation for coordinator review. |
+| Authority | Owner authorized this bounded semantic repair on docs/plan-information-architecture at a3d7b37b. Existing [grants](#authorizations-and-owner-decisions) keep their original scope; delivered grants stay terminal and are not renewed. |
+| Allowed | PLAN.md, the compact mapping, and only the two real-PLAN test inventories if needed. Temporary sentence/check records stay in the coordinator-designated E:/g315/codex-tmp/g/ directory. |
+| Limits | No load rules, summary algorithm, consumer, memory, immutable history or baseline edits; no runtime/governance behavior changes and no commit, push or merge. [Standing conditions](#active-claim-boundaries) remain in force. |
+| DONE | Reviewable local repair: verbatim scoped conditions and sentence decisions in root/mapping; immutable history, coverage, authorization targets, boundary accounting and requested tests pass. Coordinator owns commit and delivery. |
+| Next | Coordinator reviews and commits this repair; [ordered holds and follow-ups](#pending-work---ordered) stay outside this round. Do not automatically start backlog work. |
 | Phase | [A–D completed; E in progress](#phase-overview), validity before expansion. |
 | Full source | [Verbatim pre-restructure PLAN](docs/status/plan-history-2026-11-16-6c7e24c3.md) and [512-unit preservation/authorization map](docs/status/plan-information-architecture-2026-11-16-mapping.md). History is not a planning source. |
 
@@ -26,9 +26,9 @@ The front-door table above answers now / authority / limits. Source IDs Mnnnn re
 
 ## Current Sprint - 2026-11-16
 
-- [>] Converge the owner-approved PLAN restructuring, preservation mapping and scoped validation for coordinator review and PR handoff. Keep the source/authorization semantics reviewable; merge is not authorized.
+- [>] Repair F01–F10 and the delivered-acceptance preservation pattern; restore all 9 lost / 8 questionable sentences with scope and terminal status, update the compact mapping, and finish requested local validation for coordinator review. Keep the resulting change reviewable; no commit or merge is authorized.
 
-Claim ceiling: Step 1 is coordinator-approved; step 2 is the current slice. Implementation and tests are not a claim of commit/push/PR publication. The current user request, not an old next_step or dated single-use experiment grant, selects work.
+Claim ceiling: The restructured PLAN at a3d7b37b is the reviewed input; this slice repairs its semantic omissions. Local implementation and tests are not a claim of commit/push/PR publication or independent semantic approval. The current user request, not an old next_step or dated single-use experiment grant, selects work.
 
 ## Authorizations And Owner Decisions
 
@@ -95,10 +95,13 @@ Claim ceiling: Commit `PLAN.md` repair separately from runtime ledgers.
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0005 · original #309 framework-template grant; delivery terminal at #311; not a consumer-edit grant.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Owner authorized the bounded Issue #309 fix from `main@8db71dc2` on
   `fix/309-agents-md-budget`.
 Claim ceiling: Merge is not authorized.
-Claim ceiling: On-disk sizes greater than
+Claim ceiling: DONE: replace managed Update Intent and F-7 calibration prose with canonical
+  pointers, preserve memory routing and every moved rule, and measure the final
+  AGENTS.md in both F-7 backends including dry-run. On-disk sizes greater than
   32,768 bytes downgrade successful completion to `partially_updated`, including
   the update receipt; CRLF-only worst-case overflow remains a warning.
 Claim ceiling: Real agent loading, CI and independent review remain unverified.
@@ -111,9 +114,16 @@ Claim ceiling: Non-goals: S4 drift checking, new gates/schema/hooks/tiers, R2/cl
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0021 · original #250 hook-output-only grant; framework delivery terminal at #308.** Claim ceiling (verbatim):
+Claim ceiling: Delivered at PR #308; the original grant is consumed and not reusable. The following DONE text is the preserved native-only output contract, not a new execution instruction.
 Claim ceiling: Owner plan "real consumer validation and friction reduction", S2 prerequisite:
   a minimal #250 fix of the hook output contract only, without changing R2
   semantics. Push and PR by the orchestrator; merge stays with the owner.
+Claim ceiling: DONE: for `--agent-id codex --trigger-mode native_hook` only, a turn whose
+  session holds no prepared (OWNED) R2 owner record exits 0 silently with a
+  stderr reason, and a successful closeout keeps stdout empty with a stderr
+  summary. An unreadable owner record, a HOLD state for this session and
+  pipeline errors still exit 1. Claude, Copilot and the other trigger modes are
+  unchanged.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L31-L46)
 
 ### Authorized S1-B memory text transport and worktree framework root — 2026-11-15
@@ -121,6 +131,7 @@ Claim ceiling: Owner plan "real consumer validation and friction reduction", S2 
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0038 · original S1B transport/worktree-root grant; installed-hook status superseded-by #321; Copilot bridge remains separate.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Owner plan "real consumer validation and friction reduction", stage S1-B,
   authorized 2026-11-15 from `main@ea2da76b`: diagnose the Traditional Chinese
   loss seen in a real consumer handoff and the worktree framework path, with the
@@ -128,6 +139,11 @@ Claim ceiling: Owner plan "real consumer validation and friction reduction", sta
 Claim ceiling: Diagnosis: Windows PowerShell 5.1 pipes text to a native program's stdin with
   `$OutputEncoding` (default US-ASCII), so non-ASCII text arrives as `?`;
   argv and UTF-8 file input are exact.
+Claim ceiling: DONE: `governance/MEMORY_PROTOCOL.md` documents the safe transport and
+  readback check; `governance_tools/memory_workflow.py` prefers a linked
+  worktree's own framework copy when the shared hook root file points outside
+  that worktree (main checkouts and external frameworks unchanged); three
+  tests in `tests/test_memory_workflow.py`, one of which fails on the base.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L48-L66)
 
 ### Authorized I2 agent core rules (S2-A/S2-B) — 2026-10-30
@@ -135,9 +151,14 @@ Claim ceiling: Diagnosis: Windows PowerShell 5.1 pipes text to a native program'
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0058 · original I2 S2A/S2B grant; delivery terminal; core-rule boundaries retained.** Claim ceiling (verbatim):
+Claim ceiling: Delivered S2-A/S2-B; grant consumed. The DONE sentence below names the agent-contract and Copilot templates referred to by "those templates"; the framework-root copy remains held out.
 Claim ceiling: Owner ruling C1-C7 adopted 2026-10-30; slices S2-A (single canonical core)
   and S2-B (projection) authorized on branch `feat/i2-core-rules-pr` from
   `main@48f0ce76`. Push, PR and merge stay with the orchestrator/owner.
+Claim ceiling: DONE: `governance/AGENT_CORE_RULES.md` body projected byte-identical into the
+  agent-contract and Copilot templates; conflicting Copilot DONE/owner/label
+  wording removed; baseline memory triggers and DoD aligned with ruling C2/C3;
+  drift test `tests/test_agent_core_rules_projection.py`.
 Claim ceiling: Scope: those templates, `baselines/repo-min/AGENTS.base.md` (framework-root copy held out), tests and the proposal
   `docs/proposals/i2-core-rules-20261030.md`. No change to the 2.8 projection,
   Owner Gate scope, F-7 fail-closed rules or memory semantics beyond the ruling.
@@ -163,14 +184,26 @@ Claim ceiling: Other planning entries below retain their own historical evidence
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0084 · GDScript S1/S2 and repair delivery terminal at #209/#210; sequential consumer S3/S4 grant retains original scope.** Claim ceiling (verbatim):
+Claim ceiling: S1/S2 delivered at #209 / 06b98906 and #210 / 2a09d542. The quoted State paragraph is the earlier S2 PR #210 repaired-head checkpoint (88824c4d), including its review/CI prerequisites. That conditional-merge grant ended with #210; it does not authorize consumer S3/S4 merge or pin adoption. The S1/S2 acceptance and exclusion-normalization limits still bind their delivered behavior.
 Claim ceiling: Owner confirmed sequential S1–S4 implementation after scope analysis.
 Claim ceiling: Owner additionally authorized separate S1/S2 commits, pushes and Draft PRs
   on 2026-10-13; merge and consumer pin adoption remain separate gates.
+Claim ceiling: S1 DONE: explicit GDScript contracts and non-empty rule loading work;
+  checkpoint projections agree and existing language behavior remains valid.
+Claim ceiling: S2 DONE: product `.gd` signals are suggested without using test, document,
+  framework-copy or Godot-only signals as product-language proof.
 Claim ceiling: S3/S4 belong to DiceMercenaries: bind its existing native checker and add
   post-task/memory CI coverage using the existing extension interfaces.
 Claim ceiling: Allowed framework scope: language enum, validator, rule-pack metadata/content,
   language suggestion, checkpoint projections and directly related tests.
-Claim ceiling: Owner authorized CI restoration and review followed by conditional merge.
+Claim ceiling: State: S1 PR #209 merged at 06b98906 after independent review and green CI.
+  S2 PR #210 now targets main. Its original final tree passed review and CI,
+  but external P2 review exposed case-varied non-product root false positives;
+  repair 88824c4d normalizes the existing exclusion without threshold changes.
+  Final repaired-head review and CI remain pending before conditional merge.
+  Owner authorized CI restoration and review followed by conditional merge.
+  Consumer S3/S4 candidates remain local/uncommitted;
+  pin adoption and hosted checks are pending framework review and delivery.
 Claim ceiling: Claim ceiling: scoped implementation, tests and authorized Draft delivery.
   Merge, hosted CI, consumer pin adoption, owner classification acceptance and
   full adoption remain separate authorization/evidence gates.
@@ -181,9 +214,13 @@ Claim ceiling: Claim ceiling: scoped implementation, tests and authorized Draft 
 Scope: original bounded framework/consumer work stated in the following clause. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0112 · framework repair terminal at #204; original reviewed eight-blob consumer-policy/product-push grant retains its bounds.** Claim ceiling (verbatim):
+Claim ceiling: Framework delivery is terminal at #204. The quoted PR204 repair/review/CI sentence is the original exact-head prerequisite, not a current repair instruction; merge alone is not proof that all three checks passed. The separately reviewed eight-blob consumer scope remains distinct.
 Claim ceiling: Owner instruction: repair Bookstore-Scraper's pre-push publication blocker
   before resuming its sequential reviewed product slices.
-Claim ceiling: After framework delivery, deploy only the separately reviewed
+Claim ceiling: DONE: a reviewed framework PR supports a private, exact-blob historical JSON
+  parse-debt policy; real Git push proves known historical failures can be
+  acknowledged while newly introduced parse failures and inventory findings
+  still block. After framework delivery, deploy only the separately reviewed
   eight-blob consumer policy and retry the ordinary product push.
 Claim ceiling: Allowed: `governance_tools/external_tree_inventory_guard.py`, managed
   `scripts/hooks/pre-push`, directly related tests, policy documentation,
@@ -195,13 +232,16 @@ Claim ceiling: Allowed: `governance_tools/external_tree_inventory_guard.py`, man
   relaxation, history rewriting, production imports or unrelated roadmap work.
 Claim ceiling: State: implementation and focused validation pass; independent review has
   approved the implementation and exact eight-blob policy.
+Claim ceiling: PR204 P1 and the expired-registry CI failure are being repaired; current-head
+  independent review, Codex review and complete CI must pass before delivery.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L122-L144)
 
 ### Authorized R0 specification — 2026-09-02
 
-Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
+Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: original exact-instance acceptance/delivery recorded satisfied; grant consumed; no future RAG or qualification authority. Claim ceiling: retained verbatim source conditions below.
 
 **M0239 · Define one bounded exact round-trip specification for one.** Claim ceiling (verbatim):
+Claim ceiling: This exact-instance acceptance/delivery is recorded satisfied by the original named source/head/merge below; its grant was consumed for that delivery. The quoted requires clauses apply to that original instance, not a pending approval. Future RAG, qualification or other implementation is not authorized by it.
 Claim ceiling: Define one bounded exact round-trip specification for one
   caller-authorized canonical session-derived record and logical `active_task`
   surface.
@@ -236,13 +276,18 @@ Claim ceiling: Implementation-readiness acceptance requires an owner merge attes
   retroactively establish the owner-attestation predicate. Acceptance
   does not activate a governance authority. Runtime implementation requires a
   separate owner authorization after specification acceptance.
+Claim ceiling: Implementation-readiness predicates were satisfied for exact reviewed head
+  `b2cc43bc5e7e9032d55aa49f5e820220a792eb43`, merged through PR #139 at
+  `ee44240f` after owner attestation, zero unresolved P0/P1, green checks, and
+  reviewed-head preservation.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L249-L286)
 
 ### Authorized R0 implementation — 2026-09-02
 
-Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
+Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: original exact-instance acceptance/delivery recorded satisfied; grant consumed; no future RAG or qualification authority. Claim ceiling: retained verbatim source conditions below.
 
 **M0277 · Implement the smallest active-task Runtime vertical slice over one.** Claim ceiling (verbatim):
+Claim ceiling: This exact-instance acceptance/delivery is recorded satisfied by the original named source/head/merge below; its grant was consumed for that delivery. The quoted requires clauses apply to that original instance, not a pending approval. Future RAG, qualification or other implementation is not authorized by it.
 Claim ceiling: Implement the smallest active-task Runtime vertical slice over one
   caller-authorized canonical record and one caller-admitted M-1 observation.
 Claim ceiling: DONE: the Runtime calls the canonical active-task writer, snapshots the
@@ -258,6 +303,12 @@ Claim ceiling: Claim ceiling: one active-task exact write-resolve-read-verify-re
   only. No writer, resolver, authority, identity, MRCSP, schema, hook, CI, gate,
   enforcement, RAG, semantic retrieval, update, supersession, deletion, crash
   safety, Runtime R1, or Gate 3 behavior is changed or authorized.
+Claim ceiling: Delivery predicates were satisfied for exact independently reviewed head
+  `966dbbb3f4f8e8c987e286396a032d9230dc2940`, merged through PR #140 at
+  `ae926fc7b877c413036ba37cc0655cf62fbda75c` after owner authorization, zero
+  unresolved P0/P1, green pre-merge checks, reviewed-head preservation, and a
+  successful post-merge Governance Check whose Canonical Drift Post-Merge Audit
+  passed.
 Claim ceiling: This one-time reconciliation records that earlier delivery event; its later
   closeout commit does not imply that the PLAN or memory record existed in merge
   commit `ae926fc7`.
@@ -265,9 +316,10 @@ Claim ceiling: This one-time reconciliation records that earlier delivery event;
 
 ### Authorized R1 specification — 2026-09-04
 
-Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
+Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: original exact-instance acceptance/delivery recorded satisfied; grant consumed; no future RAG or qualification authority. Claim ceiling: retained verbatim source conditions below.
 
 **M0307 · Define one non-authoritative technical specification for exactly one.** Claim ceiling (verbatim):
+Claim ceiling: This exact-instance acceptance/delivery is recorded satisfied by the original named source/head/merge below; its grant was consumed for that delivery. The quoted requires clauses apply to that original instance, not a pending approval. Future RAG, qualification or other implementation is not authorized by it.
 Claim ceiling: Define one non-authoritative technical specification for exactly one
   append-only `active_task` supersession edge from distinct v1 and v2 canonical
   record identities.
@@ -295,13 +347,18 @@ Claim ceiling: Specification acceptance requires exact-head technical review wit
   unresolved P0/P1, green scope-matched checks, reviewed-head preservation, and
   owner merge authorization. Acceptance does not authorize the implementation
   tranche or any RAG work.
+Claim ceiling: Specification acceptance predicates were satisfied for exact reviewed head
+  `c56bef21f4993cdedd6dc41f92b2ada88ff6d5c8`, merged through PR #144 at
+  `c751644be56439ec8ea910de0cfaebc3c078f4ad` after owner authorization, zero
+  unresolved P0/P1, green checks, and reviewed-head preservation.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L317-L347)
 
 ### Authorized R1 implementation — 2026-09-04
 
-Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
+Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: original exact-instance acceptance/delivery recorded satisfied; grant consumed; no future RAG or qualification authority. Claim ceiling: retained verbatim source conditions below.
 
 **M0338 · Implement the bounded two-version `active_task` supersession vertical.** Claim ceiling (verbatim):
+Claim ceiling: This exact-instance acceptance/delivery is recorded satisfied by the original named source/head/merge below; its grant was consumed for that delivery. The quoted requires clauses apply to that original instance, not a pending approval. Future RAG, qualification or other implementation is not authorized by it.
 Claim ceiling: Implement the bounded two-version `active_task` supersession vertical
   slice defined by the accepted R1 specification.
 Claim ceiling: DONE: from a fully validated immutable pre-write snapshot, a canonical v1
@@ -322,11 +379,16 @@ Claim ceiling: Claim ceiling: one two-version, one-edge active-task supersession
 Claim ceiling: Delivery requires exact-head technical review with no unresolved P0/P1,
   green scope-matched checks, reviewed-head preservation, and separate owner
   merge authorization.
+Claim ceiling: Implementation delivery predicates were satisfied for exact reviewed head
+  `6b441071c794ac38f69403919ce969eb205abcc7`, merged through PR #145 at
+  `c6e5d9e14ddba7ec1d7543f1808c98c946d297ee` after owner authorization,
+  zero unresolved P0/P1, green required and post-merge checks, and
+  reviewed-head preservation.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L348-L372)
 
 ### Authorized NSI-N0 feasibility — 2026-09-04
 
-Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
+Scope: framework bounded active_task work, with spec/implementation/feasibility separated. Status: original exact-instance acceptance/delivery recorded satisfied; grant consumed; no future RAG or qualification authority. Claim ceiling: retained verbatim source conditions below.
 
 **M0372 · Record the bounded NSI-N0 feasibility result without defining an.** Claim ceiling (verbatim):
 Claim ceiling: Record the bounded NSI-N0 feasibility result without defining an
@@ -349,9 +411,17 @@ Claim ceiling: DONE: current persisted logical `active_task` and `review_log` su
 Scope: M0/M1a/M1b synthetic/caller-admitted report-only detectors. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M0402 · Add one deterministic report-only detector for one caller-admitted.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Add one deterministic report-only detector for one caller-admitted
   `memory_root` directory and one logical name defined by
   `MEMORY_FILE_ALIASES`.
+Claim ceiling: DONE: resolution reuses
+  `memory_pipeline.memory_layout.resolve_memory_file()`; an existing canonical
+  or secondary alias produces zero findings; all configured aliases missing
+  produces exactly one `missing_logical_memory_surface` warning; repeated
+  unchanged input produces byte-stable JSON; invalid roots, logical names,
+  argument types, and ordinary resolver exceptions fail closed with
+  `ValueError`.
 Claim ceiling: Claim ceiling: one caller-specified logical surface at one filesystem
   observation only. No repository-wide completeness, parsing, repair,
   creation, deletion, alias inference, normalization, semantic identity,
@@ -360,9 +430,15 @@ Claim ceiling: Claim ceiling: one caller-specified logical surface at one filesy
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L412-L430)
 
 **M0424 · Add one deterministic report-only namespaced knowledge-identity collision.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Add one deterministic report-only namespaced knowledge-identity collision
   detector over exactly two caller-admitted `KnowledgeIdentityObservation`
   values.
+Claim ceiling: DONE: two distinct record identities with the same exact case-sensitive
+  `knowledge_id` produce exactly one `knowledge_identity_collision` finding;
+  different identifiers produce zero findings; input order does not change the
+  result; repeated input produces byte-stable JSON; invalid input fails closed
+  with `ValueError`.
 Claim ceiling: Claim ceiling: exact caller-supplied knowledge-identifier equality only. No
   Markdown parsing, normalization, semantic identity, missing logical surface,
   reader, projection, supersession, schema, runtime, hook, CI, gate, blocker,
@@ -370,8 +446,14 @@ Claim ceiling: Claim ceiling: exact caller-supplied knowledge-identifier equalit
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L434-L449)
 
 **M0443 · Add one deterministic report-only encoding-integrity detector for one.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Add one deterministic report-only encoding-integrity detector for one
   caller-admitted `MemoryRecordBytes` value.
+Claim ceiling: DONE: invalid UTF-8 produces exactly one
+  `memory_encoding_integrity_anomaly` finding; valid UTF-8 containing U+FFFD
+  produces exactly one finding; clean valid UTF-8 produces zero findings;
+  repeated input produces byte-stable JSON; non-record and empty-content input
+  fail closed with `ValueError`.
 Claim ceiling: Claim ceiling: strict UTF-8 decode failure and literal U+FFFD presence only.
   No heuristic mojibake detection, repair, identity collision, missing logical
   surface, reader, projection, supersession, schema, runtime, hook, CI, gate,
@@ -379,9 +461,13 @@ Claim ceiling: Claim ceiling: strict UTF-8 decode failure and literal U+FFFD pre
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L453-L467)
 
 **M0477 · Implement one deterministic report-only exact-byte duplicate detector.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Implement one deterministic report-only exact-byte duplicate detector
   over exactly two independently identified, caller-admitted memory record byte
   payloads.
+Claim ceiling: DONE: equal raw bytes produce exactly one `duplicate_memory_entry` warning;
+  a one-byte mutation produces zero findings; identical logical input produces
+  byte-stable JSON.
 Claim ceiling: Claim ceiling: raw-byte SHA-256 equality only. No fixture admission,
   normalization, semantic reconciliation, reader, projection, writer, public
   schema, runtime, hook, CI, gate, blocker, enforcement, historical scan, or
@@ -444,11 +530,13 @@ Claim ceiling: Owner-authorized on 2026-07-17 and implemented at `61673ca9`: mec
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L744-L752)
 
 **M0743 · Second failure-driven response-quality slice (owner-authorized.** Claim ceiling (verbatim):
+Claim ceiling: Delivered v0.5 regression acceptance remains binding. This adds no gate and does not enable either opt-in check by default.
 Claim ceiling: Added opt-in `--check-plain-summary`: `conclusion`,
   `reason`, `next_action` exactly once before `evidence_refs`, each a
   sentence rather than a bare machine token (tokens need a plain-language
-  gloss; `next_action: none` rejected).
-Claim ceiling: Contract v0.5 records the honest boundary: structural
+  gloss; `next_action: none` rejected). The observed unreadable reply is a
+  must-fail regression fixture; the owner's three-line plain version is a
+  must-pass fixture. Contract v0.5 records the honest boundary: structural
   proxy only — it raises the probability of readable reports and cannot
   prove comprehension; the real success signal remains direct reader
   feedback. Default behavior unchanged; no hook/CI/gate enables either
@@ -605,14 +693,21 @@ Claim ceiling: Verify memory file naming against `memory_layout` aliases during 
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1452-L1456)
 
 **M1455 · Document rollback procedure for a failed F-7 update / failed smoke.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Updating governance is itself a trust-surface
   change and must be reversible per the core principle (expensive,
-  explicit, reversible).
-Claim ceiling: Grade caveat recorded in the doc: derived from the
+  explicit, reversible). (Closed 2026-06-13:
+  `docs/fleet/governance-update-rollback.md` — what can / must not be
+  auto-rolled-back, pre-rollback evidence capture, execution order with
+  clean-worktree stop-at-diagnosis gate, post-rollback verification
+  (behind-latest is the correct post-rollback state), and claim ceiling
+  after rollback. Grade caveat recorded in the doc: derived from the
   P1-C read-only observation, never execution-tested; the first real
   rollback is its own evidence-producing slice. No rollback executed,
   no updater/F-7/hook/validator change, no consumer repo touched.)
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1465-L1476)
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1457-L1460)
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1462-L1463)
 
 ### Decision P1-F keep advisory — 2026-07-18
 
@@ -689,6 +784,22 @@ Claim ceiling: The runtime
   only if a natural post-Option-B `not_declared` record appears. This
   decision does not claim the runtime writer path is fixed.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1644-L1651)
+
+**M1642 · Add a non-blocking deferred-debt report (deferred count by reason,.** Claim ceiling (verbatim):
+Claim ceiling: Historical observed input-quality gap in the 2026-06-13 report, not a new blocker. M1661 narrows semantic PLAN-touched detection to four proxies only; it does not supersede this decode caveat. Whether those two files were repaired later requires new evidence; no present-day corruption claim is made.
+Claim ceiling: (Implemented 2026-06-13 exactly per the checkpoint below:
+  `governance_tools/deferred_debt_report.py`, read-only, deterministic
+  given `--as-of`, json/human stdout, optional `--output`; the four
+  checkpoint observables only; pre_field guard verified by a dedicated
+  test; historical non-UTF-8 daily files (2026-04-10, 2026-05-04)
+  surfaced as `files_with_decode_errors` via lossy decode — observed,
+  not repaired. 12 focused tests passed; adjacent memory_record /
+  memory_workflow 23 tests passed. First real-repo run as-of
+  2026-06-13: updated=18, deferred=0, not_declared=14 (oldest
+  2026-06-12, matching the P1-E first data point), pre_field=249,
+  malformed=0. No CI wiring, no thresholds, no gate semantics, no
+  historical record rewritten.)
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1652-L1666)
 
 **M1661 · Report scope (exactly four observables, all machine-decidable from.** Claim ceiling (verbatim):
 Claim ceiling: Report scope (exactly four observables, all machine-decidable from
@@ -1015,9 +1126,16 @@ separate slice (P2-H) — they are not bundled, because topic words like
 Scope: the consumed NON_SUCCESS pair and distinct offline diagnostic/design/capture tranches. Status: retained source conditions; this round is selected by the first-screen instruction. Claim ceiling: retained verbatim source conditions below.
 
 **M2053 · Gate 3 NON_SUCCESS pair-final manifest promoted 2026-08-11.** The.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: The one authorized pair ran once on 2026-08-11 and terminated `NON_SUCCESS`:
   both arms exited zero but produced no final message and left the calibrated
-  workspace unchanged.
+  workspace unchanged. Public pair-final SHA-256 is
+  `8201b7c1331b1b91dccf528ff79b5b020ef295b9c5aac25c4eac51ca3dbb9722`;
+  the public bytes in evidence commit `53fc93f7` were internally coherent, but
+  independent review found that its exact Git tree omitted three contract-
+  required empty runtime directories. Repair commit `230679cf` adds a checkout
+  materializer that restores only those empty directories before delegating to
+  the unchanged frozen verifier.
 Claim ceiling: Public
   evidence confirms task-execution failure in both arms because `result.txt`
   stayed at the `PENDING\n` baseline. The nearer cause of the absent final
@@ -1028,6 +1146,10 @@ Claim ceiling: Public
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2063-L2093)
 
 **M2085 · Gate 3 final-message diagnostic offline tranche completed.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: **Gate 3 final-message diagnostic offline tranche completed
+  2026-08-12.** Implementation commit `7c1c42e0` adds only the pure in-memory
+  synthetic classifier and its focused tests.
 Claim ceiling: This tranche
   does not integrate a lifecycle observer or evidence publication, does not
   use credentials or authorize preflight/live, does not reuse the consumed
@@ -1036,14 +1158,28 @@ Claim ceiling: This tranche
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2095-L2106)
 
 **M2111 · Gate 3 final-message diagnostic offline integration completed.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: **Gate 3 final-message diagnostic offline integration completed
+  2026-08-13.** Implementation commit `e3b70173` adds the synthetic retained-
+  fixture lifecycle observer, create-once store, pre-cleanup seal/cleanup/
+  receipt chain, route and external recovery profiles, privacy verifier, and
+  crash/TOCTOU fail-closed behavior.
 Claim ceiling: This milestone is
   synthetic and offline only: no credentials, preflight, live execution, old-
   pair reuse, retry, or replacement occurred or is authorized; the consumed
   pair remains `NON_SUCCESS`, and no Gate 3 success or treatment/Skill-effect
   conclusion is established.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2121-L2134)
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2108-L2119)
 
 **M2126 · Gate 3 actual-capture adapter design accepted 2026-08-13.** Design.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: **Gate 3 actual-capture adapter design accepted 2026-08-13.** Design
+  commit `420a7f42` records the independently approved private-stdout parser
+  ACL, privacy-safe lifecycle projection, create-once capture evidence links,
+  crash/TOCTOU fail-closed plan, and minimal offline implementation tranche at
+  exact SHA-256
+  `6d52ecda73c542e300c1612a712beb38c4ce7b44a66e5335965d254052905a34`.
 Claim ceiling: The public claim ceiling is limited to internally linked adapter
   reports and `PUBLIC_CAPTURE_ATTESTATION_CHAIN_RECONSTRUCTED`; it does not
   prove correspondence to private stdout, executable provenance, lifecycle
@@ -1051,6 +1187,12 @@ Claim ceiling: The public claim ceiling is limited to internally linked adapter
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2136-L2150)
 
 **M2142 · Gate 3 actual-capture adapter minimal offline tranche completed.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: **Gate 3 actual-capture adapter minimal offline tranche completed
+  2026-08-13.** Implementation commit `25a9da65` adds only the pure private
+  NDJSON parser ACL, privacy-safe lifecycle projector, closed public capture
+  artifacts, create-once synthetic publisher/verifier behavior, and focused
+  offline tests.
 Claim ceiling: This tranche
   does not wire `CodexExecRunner`, prove correspondence between private stdout
   and public markers, use credentials, run preflight/live, or reuse, retry, or
@@ -1060,6 +1202,13 @@ Claim ceiling: This tranche
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2152-L2166)
 
 **M2158 · Gate 3 runner/capture integration minimal offline tranche completed.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: **Gate 3 runner/capture integration minimal offline tranche completed
+  2026-08-13.** Implementation commit `854fef93` adds only the injected
+  contained-process runner seam, authorization-consumed launch ordinal, single
+  stdout handoff, private runtime TOCTOU checks, mutually exclusive evidence
+  profiles, seal-before-cleanup chain, create-once cleanup continuation, and
+  focused synthetic regressions.
 Claim ceiling: The reviewed
   design basis is preserved retrospectively in commit `dc76c293` at exact
   SHA-256 `d0d1609bc111bb8cef28f8442f80beddeb6ad87744be9e74723d3e11126a19fd`;
@@ -1547,6 +1696,13 @@ Claim ceiling: Binding spec is preserved subordinate design provenance, not impl
 Claim ceiling: STOP with implementation/test/review evidence ready; future actions need their own scope.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3101-L3114)
 
+**M3106 · Materializer/arm integration.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Exact subtree and packet binding, durable exposure-before-dispatch, per-arm runtime
+freeze and retained source/runtime evidence are covered by 28 passing new tests.
+Claim ceiling: Frozen inputs unchanged.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3116-L3127)
+
 **M3131 · R1 after 3b820a2c.** Claim ceiling (verbatim):
 Claim ceiling: Scope: structural evidence only; no real evaluation, ledger, Pair, Attempt, admission, or push.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3141-L3145)
@@ -1556,8 +1712,14 @@ Claim ceiling: No retry, Attempt 2, new Pair, A1-A6 or push authority.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3153-L3158)
 
 **M3150 · Unavailable-cost implementation.** Claim ceiling (verbatim):
-Claim ceiling: Extended append requires exact adoption and durable controller evidence verified against the retained trace.
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Minimal v2.1 cost representation implemented; numeric v2 unchanged. Extended append requires exact adoption and durable controller evidence verified against the retained trace.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3160-L3164)
+
+**M3156 · Unavailable-cost R1 refresh.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: R1 refresh binds the two changed sources to that commit, preserves the other five bindings and entropy-call structure, and recognizes the reviewed `record_harness_failure` API.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3166-L3171)
 
 **M3163 · Historical Attempt terminal.** Claim ceiling (verbatim):
 Claim ceiling: Owner-authorized historical append completed: fifth event EXECUTION_TERMINAL / HARNESS_FAILURE; original four-event prefix preserved byte-for-byte.
@@ -1583,6 +1745,11 @@ Claim ceiling: Old five-event ledger and consumed Attempt preserved; no producti
 Claim ceiling: Fixed replacement create/append APIs bind exact adopted authority, genesis, evaluation and placement; old cost authority is not transferred.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3202-L3207)
 
+**M3199 · Replacement binding R1 refresh.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: R1 binds ledger_v2/pair_creation/lifecycle to that commit, preserving other four bindings and entropy-call semantics.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3209-L3214)
+
 **M3206 · Replacement launcher static delivery.** Claim ceiling (verbatim):
 Claim ceiling: Replacement-only external launcher offers check and Phase A creation-to-candidate STOP; no readiness/execution/adoption modes.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3216-L3221)
@@ -1604,24 +1771,48 @@ Claim ceiling: Exact evaluation/Pair/nonce authorization revalidates current ado
 Claim ceiling: One final evaluation/ledger/Pair and two fresh arms as allocation only; all creation and execution require separate authorization. Historical runs preserved, no further automatic replacement.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3245-L3247)
 
+**M3239 · Final fresh binding implementation.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Lifecycle unchanged; historical ledgers/frozen inputs preserved.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3249-L3251)
+
+**M3243 · Final fresh R1 refresh.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Refresh binds exact committed ledger/pair bytes; five other pins unchanged.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3253-L3255)
+
 **M3251 · Scoring continuation adoption.** Claim ceiling (verbatim):
 Claim ceiling: Owner adopts exact preserved scoring inputs as new prospective authority; historical ATTEMPT_BOUND digest custody remains ABSENT.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3261-L3263)
 
+**M3255 · Scoring continuation implementation.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Final-only consumer verifies prospective adoption and 22 exact artifacts before existing scoring preparation.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3265-L3267)
+
 **M3259 · Superseding scoring adoption.** Claim ceiling (verbatim):
 Claim ceiling: Historical nine-event ledger and rejected bundle/checkpoint preserved. One prospective detached supersession only; implementation, artifact activation, fresh scoring and unblinding require separate authorization.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3269-L3271)
+
+**M3263 · Superseding implementation.** Claim ceiling (verbatim):
+Claim ceiling: Original fixed-instance prerequisite, subsequently narrowed only by the owner-adopted C02 exception quoted in M3288. Fresh context and restricted delivery survive; the old OS-attested assurance is not restored. This consumed instance is not a scoring grant.
+Claim ceiling: Fresh scorer/host custody remains execution prerequisite.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3273-L3275)
 
 **M3268 · Superseding R1 refresh.** Claim ceiling (verbatim):
 Claim ceiling: Only R1 metadata refreshed; historical ledger/bundle/checkpoint unchanged.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3278-L3280)
 
 **M3272 · AppContainer minimal environment.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Only LOCALAPPDATA added to the existing sanitized Probe.cs environment.
 Claim ceiling: Corrected source compiled; external Probe.exe remains historical and has not been redeployed.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3282-L3284)
 
 **M3276 · Runtime parent custody.** Claim ceiling (verbatim):
-Claim ceiling: Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical.
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Fixed D:/r2-final-disposable-shakedown-20260907 root DACL protected with owner/SYSTEM/Administrators only.
+Claim ceiling: Windows converted inherited ACEs to explicit/protected on 11 direct children; existing grants unchanged, but child SDDL not identical. Disk ACL and preserved ledger/bundle/checkpoint bytes and ACLs unchanged.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3286-L3288)
 
 **M3280 · Synthetic scorer isolation durability.** Claim ceiling (verbatim):
@@ -1634,7 +1825,48 @@ Claim ceiling: Real parent custody, reviewed deployed executable/RX and semantic
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3294-L3296)
 
 **M3288 · Simplified scoring ceiling adoption.** Claim ceiling (verbatim):
-Claim ceiling: Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged.
+Claim ceiling: Ended scoring instance only: evaluation 74ad1963-e24c-4ced-9f84-32e3c0daf900, Pair 93584d7e-2bf9-4535-93c8-5593fcd3e272, R2-SHAKEDOWN. Adoption record interprets the unchanged candidate header as historical. The following exact adopted C01/C02/C04 conditions narrow OS assurance while retaining fresh-context, input and STOP predicates; M3298 records the terminal outcome. No new scorer, rerun, freeze or unblinding grant is created.
+Claim ceiling: Owner adopted exact amendment SHA256 a9ca58223b6b452dd2518a8138c49a95d077fe85862bed737441b36932712a03 (7170 bytes, 73 lines). Claim ceiling is NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY; OS scorer isolation, strict end-to-end PASS and Formal/counted evidence are not claimed. Prior evidence remains unchanged. Record: memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json. Scoped adoption commit and identity verification then STOP; actual fresh-context scoring/freeze and later unblinding require separate authorizations.
+Claim ceiling: Exact adopted source excerpts (C01/C02/C04); all grants here are consumed.
+
+Claim ceiling: Adopted C01 conditions (verbatim)
+> Permit a limited comparison of the already-completed Solo R2 outputs without claiming OS-attested scorer isolation or strict end-to-end shakedown PASS. This is an explicit reduction in scorer assurance and claim ceiling, not a statement that the previous ceiling is unchanged.
+>
+> Applies only to evaluation `74ad1963-e24c-4ced-9f84-32e3c0daf900`, Pair `93584d7e-2bf9-4535-93c8-5593fcd3e272`, slot `R2-SHAKEDOWN`.
+>
+> The only permitted scoring identity is the already-activated superseding identity:
+>
+> | Artifact | Bytes | SHA-256 |
+> |---|---:|---|
+> | Superseding bundle | 2796 | `b2097cda3b973b5154b5393d01d2ec98aa662574ba0e529879a405bc67b01bd3` |
+> | Superseding transition | 1668 | `20b5cfcc131c2e09cf1f9d858666c2f62af4d9a817931a29721cb2d1b4303fb5` |
+> | Owner activation record | 254 | `9d748ef3746c737c66c146efad4bbfad6d9a919f442257926ba289f12e452218` |
+> | Frozen rubric | 3754 | `a93a1f3d74ef9a191317d345c5e54f31b309ee481174cfe374f42938db4bfca9` |
+>
+> The fixed paths and relationships remain those of the existing transition and activation. No arbitrary bundle, replacement identity or caller-selected evaluation is accepted. The current nine-event ledger remains unchanged, SHA-256 `e471517f5e6e36e2fdce3f42c8e87edf6b87c2cc4a67e47acbf90352140eac77`.
+
+Claim ceiling: Adopted C02 conditions (verbatim)
+> Results under this amendment are limited to `NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY`.
+>
+> Explicitly NOT CLAIMED:
+> - OS-level isolation of the actual scorer;
+> - strict end-to-end Solo R2 shakedown PASS;
+> - Formal Gate 3 or counted evidence;
+> - generalized Bug Fix Safety effectiveness beyond this evaluated task.
+>
+> For this scoring step only, this amendment permits context-level freshness and restricted input delivery instead of requiring OS-attested isolation of the scorer execution. It narrowly adjusts the fresh-scorer execution assurance required by S07 of the adopted superseding policy (SHA-256 `10fc9ad2e7ab83088391ed3beaa705d65fc69f0456142bfd3fb329f5cb77535c`) and the subsequent owner OS-isolation execution requirements for this instance. All remaining identity, history-preservation, correctness, score-freeze and separate-unblinding boundaries remain in force.
+>
+> Do not claim that an OS verifier passed for a context that did not run inside that boundary. Existing isolation probes retain their original limited evidentiary meaning. AppContainer model integration, local-model discovery and network-scorer sandbox work are POST-GATE3 and are not prerequisites for this decision-support route.
+
+Claim ceiling: Adopted C04 conditions (verbatim)
+> Use exactly one new scorer context with no prior conversation or scoring context from this evaluation. It must not have seen the rejected bundle or been given CONTROL/TREATMENT mapping. Do not fork or copy the current conversation, investigative summaries, execution history or prior review context into it. The current controller/reviewer context cannot serve as the scorer.
+>
+> Deliver only the activated anonymous scoring materials, the exact frozen rubric, and explicitly permitted correctness information. Use opaque presentation keys; exclude controller-only identity wrappers, repository/workspace or execution identities, mappings, rejected materials and investigation records. Do not alter the preserved bundle to perform delivery.
+>
+> Restrict the supplied inputs and available capabilities to scoring. Instruct the scorer not to infer, request or obtain arm mapping or other prohibited materials. Preserve a controller-only manifest of the actual fresh context and exact delivered inputs; do not send that provenance manifest to the scorer. This records delivery and declared context freshness, not OS proof that all other information is inaccessible.
+>
+> If context freshness or restricted delivery cannot be established, or identity leakage is observed, STOP without scoring; do not silently substitute the current context or repair the preserved bundle.
+[adopted amendment](docs/governance/solo-r2-simplified-blind-scoring-amendment-candidate-20260907.md) · [owner adoption](memory/evidence/solo-r2-simplified-scoring-amendment-20260907/owner-adoption.json)
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3298-L3300)
 
 **M3293 · Regression projection adoption.** Claim ceiling (verbatim):
@@ -1651,16 +1883,22 @@ Claim ceiling: Python capability remains UNKNOWN and is POST-GATE3, not a closeo
 Scope: the original exact instances, IDs, digests and single-use actions in the dated source clauses below. Status: ended single-use grants; terminal outcomes and surviving input/claim limits follow. Claim ceiling: retained verbatim source conditions below.
 
 **M3303 · Lite synthetic Slice 1.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Synthetic Lite flow implemented: anonymous input -> fixture scoring -> freeze -> explicitly authorized unblinding -> report. Existing future scoring consumer reused unchanged.
 Claim ceiling: Ceiling: NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY. Real runner/scorer, OS isolation, strict equivalence and actual cost reduction are not established. Strict and historical rounds unchanged.
 Claim ceiling: P1 remains closed UNKNOWN.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3313-L3318)
 
 **M3311 · Lite Slice 2 initial 401.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Bounded real adapter implemented: fresh model patch generation, host oracle/regression, anonymous scorer input, freeze then authorized unblinding.
 Claim ceiling: One live invocation stopped at first model HTTP 401 (missing auth header), process exit 1. No CONTROL output; TREATMENT/oracle/scorer/freeze/report not run.
 Claim ceiling: Result: REAL_LITE_END_TO_END_BLOCKED.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3321-L3326)
 
 **M3318 · Lite auth override replay.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Shared Lite exec now explicitly selects the existing keyring store while retaining --ignore-user-config.
 Claim ceiling: One authorized live replay: CONTROL model process exit 0 with response and turn.completed; parser rejects runtime item.error warnings as tool access. No observed tool event. TREATMENT/oracle/scorer/freeze/unblind not run. REAL_LITE_END_TO_END_BLOCKED; no automatic retry.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3328-L3332)
 
@@ -1693,9 +1931,12 @@ Claim ceiling: Candidate identity is not owner adoption or authorization for rea
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3355-L3360)
 
 **M3360 · Benchmark hint fix and adoption.** Claim ceiling (verbatim):
+Claim ceiling: The quoted unverified/no-change/no-push sentence describes the adopted benchmark-pack checkpoint. Only runner integration and later single-instance model execution were subsequently supplied by M3368 / M3383 / M3390; difficulty calibration and generalized effectiveness are not thereby established. Later grants apply only to their named instances; the earlier preparation grant is consumed.
 Claim ceiling: Removed only the Hard public TASK implementation-specific ignore-revisits hint; functional cycle detection requirement remains. Manifest updates only that TASK identity; other 17 entries unchanged.
 Claim ceiling: Accepted pack manifest SHA256 a55394136c8dfead4940c577fc94aa999ae4b9593bb2d652ef981241fd3cbe34. Exact snapshot and historical review evidence retained; no claim that earlier candidate snapshots were adopted.
+Claim ceiling: Runner integration/difficulty calibration/model evaluation remain unverified; no runner/Skill/scorer or historical-result changes, no push.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3370-L3375)
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3363-L3367)
 
 **M3368 · bounded default-P2 Lite benchmark adapter; prospective opt-in P3 is separately scoped in M3414.** Claim ceiling (verbatim):
 Claim ceiling: BENCHMARK_LITE_INTEGRATION_READY: three adopted fixtures verify manifest/bytes, materialize separate two-arm workspaces, use their own oracle cases and rubric, preserve host source/test versions and regression diagnostics through the existing anonymous consumer.
@@ -1704,7 +1945,9 @@ Claim ceiling: Completed zero-test evidence remains unassessable. Regression lau
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3378-L3383)
 
 **M3376 · Lite harness compatibility.** Claim ceiling (verbatim):
-Claim ceiling: Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Host now delegates a unique standard final unittest.main entry to actual suite execution; disk source/test bytes preserved. Only Medium test zip/assertIsInstance and Hard test DictComp/IfExp/self.subTest context admitted; other with/I/O paths still reject.
+Claim ceiling: All original43 failure artifacts and adopted benchmark materials unchanged.
 Claim ceiling: Scoped compatibility commit and STOP; no second real benchmark or push without separate authorization.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3386-L3390)
 
@@ -1757,8 +2000,10 @@ Claim ceiling: Actual hook/scanner/config unchanged; no deployment, P4 work or p
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3432-L3436)
 
 **M3428 · PR155 integration delivery.** Claim ceiling (verbatim):
+Claim ceiling: PR155 delivery is terminal. The final Strict rerun and GitHub current-head review/CI sentence below is the original exact-integration prerequisite, not a newly opened gate or proof those checks passed; the merge fact alone cannot establish them.
 Claim ceiling: Integrate main a6a2d622 with feature 09248cb4 without rewriting either history. Preserve both branches' canonical memory records and historical claim boundaries.
 Claim ceiling: No production trust pin, model invocation, historical score, or P4 change.
+Claim ceiling: Runtime smoke plus 201 tests and Lite/P3/P5 129 tests passed; final Strict rerun and GitHub current-head review / CI remain required before merge.
 Claim ceiling: Original dirty workspace and local P5 installation remain separate; deployment compatibility does not establish a canonical or portable installer. Results remain NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3438-L3443)
 
@@ -1785,7 +2030,7 @@ Scope: the 17 source pairs identified in step 1. Claim ceiling: factual delivery
 | C13 | PLAN L2256–2266 | PLAN L2202–2239：Group A 明確 closes two of five，仍餘 credential recovery / non-repr / exclusivity 三項 | 這是舊 checkpoint 的限制，保留原文；現在 dependency projection 列已解兩項及仍缺三項，不能只按同日日期排序。 |
 | C14 | PLAN L2759–2773 | main #110 346ebb64 / 9d51a3c8 五檔 paused B-1 preservation；#108 a59b0aef 與 L2734–2755 的 2A delivery | 只更正 durability/dirty-attribution；CHANGES_REQUESTED / PAUSED_BEHIND_M4、owner 拒絕縮為一 consumer 的決定保持，不把 preservation 當 B-1 acceptance。 |
 | C15 | PLAN L3000–3001 | PLAN L1372–1403：一個具名 consumer accepted apply / natural receipt field verification；L1417–1429 明確不宣稱 rollout complete | 第一個 bounded verification 與全 fleet rollout 分開，兩者都不延伸為現在 consumer 全部已採用。 |
-| C16 | PLAN L3003–3021 | main #16 61111f5f / 7f47b12f；本輪 owner step 1 四個 temp artifacts / step 2 to PR | 舊 P0b acceptance 保留 history；PLAN 當前 DONE 換本輪核准的窄結果，不重新開 CI/gate work。 |
+| C16 | PLAN L3003–3021 | main #16 61111f5f / 7f47b12f；本輪 owner step 1 四個 temp artifacts / step 2 to PR | 舊 P0b 一次交付清單保留 history；持續 PR trigger / critical-drift fail-closed / main-push audit / regression / unchanged-surface 條件在根 M3003 原文保留，不重新開 CI/gate work。 |
 | C17 | PLAN L3430–3433 | main #155 3be20695（integrates feature 09248cb4 with main a6a2d622） | 只記已 merge 事實；保留當時 continuous push/PR/review/conditional merge 的精確整合授權，不能延伸本輪 merge 或 deployment。 |
 
 ### Decision framework merged versus consumer adoption — 2026-11-16
@@ -2302,6 +2547,15 @@ Claim ceiling: The new Bookstore case retains its `linked_commit=e478409` receip
   and benefit-over-cost remain unclaimed.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L790-L800)
 
+**M1066 · Hermes adapter line reached mock-backend smoke coverage:.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Hermes adapter line reached mock-backend smoke coverage:
+  adapter scaffold, accepted-input interface doc, deterministic stub runner,
+  standard smoke registration, input-driven mock backend fixture, fail-closed
+  parse / allowlist behavior, and fixture disclaimer were committed with
+  focused tests.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1076-L1080)
+
 **M1077 · Claim ceiling for 2026-06-21 updates: Hermes remains mock-backend /.** Claim ceiling (verbatim):
 Claim ceiling: Claim ceiling for 2026-06-21 updates: Hermes remains mock-backend /
 accepted-input smoke only; no real Hermes model, hosted/local backend,
@@ -2386,13 +2640,23 @@ Claim ceiling: CANNOT CLAIM: any real consumer is updated, full adoption is veri
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L611-L616)
 
 **M0998 · Consumer .gitignore hygiene: `adopt_governance.py` now ships a managed,.** Claim ceiling (verbatim):
-Claim ceiling: Memory is intentionally not ignored. Covers
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Consumer .gitignore hygiene: `adopt_governance.py` now ships a managed,
+  idempotent, non-destructive artifact/pyc ignore block to consuming repos on
+  adopt and `--refresh`, so a consumer no longer goes permanently dirty from
+  regenerated runtime artifacts / tracked `.pyc` (root-caused from
+  gl_electron_tool F-7 evidence). Memory is intentionally not ignored. Covers
   the adopt/refresh path only; already-adopted repos must re-run refresh + a
   one-time `git rm --cached`.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1008-L1014)
 
 **M1005 · F-7 updater hygiene: `external_governance_submodule_updater.py` now also.** Claim ceiling (verbatim):
-Claim ceiling: Reported as an advisory field, intentionally NOT folded
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: F-7 updater hygiene: `external_governance_submodule_updater.py` now also
+  ensures the same managed `.gitignore` block on the managed-updater path
+  (dry-run reports a `gitignore_hygiene` field; apply writes + stages
+  `.gitignore`), reusing the canonical block from `adopt_governance` (single
+  source, no drift). Reported as an advisory field, intentionally NOT folded
   into `final_status` (the 5-layer contract is unchanged). Both adopt/refresh
   and the F-7 updater now carry hygiene; already-dirty repos still need a
   one-time `git rm --cached`.
@@ -2575,6 +2839,21 @@ Claim ceiling: Observed confusion (2026-06-12): thread append can create contrad
 **M1340 · Reviewer polling recorded as explicitly manual / resume-triggered.** Claim ceiling (verbatim):
 Claim ceiling: Reviewer polling recorded as explicitly manual / resume-triggered.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L1350-L1350)
+
+**M3003 · Delivered P0b CI operational conditions.** Claim ceiling (verbatim):
+Claim ceiling: P0b was delivered via #16 / 61111f5f / 7f47b12f. Its one-time test/commit checklist is historical; these operational and preservation conditions remain binding in that slice's scope. No old CI/gate work is reopened and no required branch-protection context is added.
+Claim ceiling: the existing canonical drift checker executes inside the required pull
+  request `Phase Gate Verification` path and fails closed on critical drift;
+Claim ceiling: protected and baseline-only changes trigger the governance workflow;
+Claim ceiling: a main-push `Canonical Drift Post-Merge Audit` rechecks merged state without
+  being added to branch-protection required contexts;
+Claim ceiling: regression tests prove that an unrefreshed protected-file change is critical
+  and that canonical refresh restores bookkeeping consistency;
+Claim ceiling: the workflow and reviewer language state that hash consistency is not proof
+  of owner authorization for a protected-file change;
+Claim ceiling: runtime hooks, schemas, memory writer behavior, gate policy, branch
+  protection configuration, F-7 behavior, and G4 claims remain unchanged;
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3013-L3031)
 
 ### Decision structured-memory freshness — 2026-06-13
 
@@ -2769,6 +3048,12 @@ Claim ceiling: `mixed_scope_memory_binding` reports staged or commit-range close
   memory blocking policy.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2916-L2919)
 
+**M2910 · Focused replay covers the CFU release-artifact mixed-scope must-fail case.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
+Claim ceiling: Focused replay covers the CFU release-artifact mixed-scope must-fail case
+  and the product-commit then memory-closeout-commit must-pass case.
+[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2920-L2921)
+
 **M2916 · The causal audit found zero confirmed avoidable memory defects. Three.** Claim ceiling (verbatim):
 Claim ceiling: Three
   apparent stale-at-write cases were `record_commit_artifact` false positives:
@@ -2893,12 +3178,14 @@ Claim ceiling: Do not claim workspace clean while the EOL/status residual remain
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L2974-L2977)
 
 **M2971 · the same two runtime ledgers named in M2964 / source M2937.** Claim ceiling (verbatim):
+Claim ceiling: Delivered; grant consumed, not reusable. Original-slice behavior follows.
 Claim ceiling: Option B selected: these two ledgers should become ignored-by-default runtime
   artifacts.
 Claim ceiling: Durable reviewer-facing evidence must come from explicit audit / reviewer
   milestone export, not accidental runtime append commits.
 Claim ceiling: Implemented 2026-06-18: ledgers untracked + ignored (`ffd9609`, local files
-  kept); manifest-only milestone export tool added (`bf798d4`).
+  kept); manifest-only milestone export tool added (`bf798d4`). No runtime
+  writer / hook / validator / closeout change.
 Claim ceiling: NOT CLAIMED: raw-snapshot export refinement, reviewer-handoff export
   integration (separate slices), historical evidence migration, workspace
   clean, or Gate 3 opening.
@@ -2974,21 +3261,23 @@ nearby status text remain the authority for whether an item is complete.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L202-L204)
 
 **M0196 · | Label | Plain-language purpose |.** Claim ceiling (verbatim):
-Claim ceiling: | Label | Plain-language purpose |
-Claim ceiling: | --- | --- |
-Claim ceiling: | Phase A--E | Major work periods: core baseline; adoption/memory foundations; runtime observation; external adoption/reviewer workflow; and the current failure-boundary/exclusion/usage-enforcement line. |
-Claim ceiling: | P0 / P1 / P2 | Priority groups; the letter identifies a work item within that group. |
-Claim ceiling: | P1-C | First external F-7 verification for `meiandraybook`; the natural-session closeout-receipt check completed read-only on 2026-07-22, while its separate consumer memory blocker remains outside P1-C. |
-Claim ceiling: | P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
-Claim ceiling: | P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
-Claim ceiling: | P1-F | Decision about stronger declaration enforcement. Decided 2026-07-18: keep advisory and do not add a current-diff blocker; reopen only after a natural post-Option-B `not_declared` failure. |
-Claim ceiling: | P1-G / P1-H | Reproducible fleet-matrix generator / future decision about fleet-update freshness. |
-Claim ceiling: | P2-E | Rules for public-facing release surfaces such as topics, badges, and release notes. |
-Claim ceiling: | F-7 | Governed full framework update for a consumer repository, with staged evidence; a pointer update alone is not F-7 completion. |
-Claim ceiling: | E2 | Retrospective external-engineer adoption evidence. It is usability/adoption evidence, not runtime-effectiveness proof. |
-Claim ceiling: | Gate 3 | Frozen learning-loop unpause gate; it opens only under its documented criteria and explicit owner approval. |
-Claim ceiling: | E1-B, E8A, CE-1C/1D, R49.x, Round A/B | Historical experiment, claim-enforcement, or retrieval/cache study labels. Read their linked artifact before treating them as active work. |
-Claim ceiling: | v1 / v2 / v3 | Versions of the no-governance baseline experiment; their individual status and claim boundary are recorded in the current task and status artifacts. |
+Claim ceiling: Existing label definitions, verbatim; no status or permission changes.
+
+| Label | Plain-language purpose |
+| --- | --- |
+| Phase A--E | Major work periods: core baseline; adoption/memory foundations; runtime observation; external adoption/reviewer workflow; and the current failure-boundary/exclusion/usage-enforcement line. |
+| P0 / P1 / P2 | Priority groups; the letter identifies a work item within that group. |
+| P1-C | First external F-7 verification for `meiandraybook`; the natural-session closeout-receipt check completed read-only on 2026-07-22, while its separate consumer memory blocker remains outside P1-C. |
+| P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
+| P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
+| P1-F | Decision about stronger declaration enforcement. Decided 2026-07-18: keep advisory and do not add a current-diff blocker; reopen only after a natural post-Option-B `not_declared` failure. |
+| P1-G / P1-H | Reproducible fleet-matrix generator / future decision about fleet-update freshness. |
+| P2-E | Rules for public-facing release surfaces such as topics, badges, and release notes. |
+| F-7 | Governed full framework update for a consumer repository, with staged evidence; a pointer update alone is not F-7 completion. |
+| E2 | Retrospective external-engineer adoption evidence. It is usability/adoption evidence, not runtime-effectiveness proof. |
+| Gate 3 | Frozen learning-loop unpause gate; it opens only under its documented criteria and explicit owner approval. |
+| E1-B, E8A, CE-1C/1D, R49.x, Round A/B | Historical experiment, claim-enforcement, or retrieval/cache study labels. Read their linked artifact before treating them as active work. |
+| v1 / v2 / v3 | Versions of the no-governance baseline experiment; their individual status and claim boundary are recorded in the current task and status artifacts. |
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L206-L220)
 
 ## Historical Milestone Index
@@ -3003,7 +3292,7 @@ Claim ceiling / completed orientation: Phase D sign-off; MEM-DISPATCH/P1-A; P1-C
 
 This slice requires a byte-identical history body with exactly ten banner lines; occurrence coverage for all 3,012 original nonblank lines; root conditions or explicit source-status locations for all 400 non-history units; dated/scoped authorization H3 targets; verbatim preservation of every marked binding/dependent sentence; a disposition for every detector hit; compatible header/phase/pending/summary and baseline inventory; the requested tests and git diff --check. PR publication and merge are separately observable states.
 
-The old P0b DONE is historical (#16, 61111f5f / 7f47b12f; source M3003). Its live hash-consistency/owner-authorization rule is retained verbatim in M3025.
+The old P0b one-time delivery checklist is historical (#16, 61111f5f / 7f47b12f; source M3003). Its ongoing PR trigger, fail-closed, post-merge audit, regression and unchanged-surface conditions are retained in M3003 under Active Claim Boundaries; M3025 also preserves the hash-consistency/owner-authorization distinction.
 
 ## Cannot Claim From This PLAN Alone
 
