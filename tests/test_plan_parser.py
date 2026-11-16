@@ -47,7 +47,7 @@ def test_history_is_explicit_not_inferred_from_age_or_completed_items():
 def test_generated_state_keeps_snapshot_authority_and_correct_real_backlog():
     root = Path(__file__).resolve().parents[1]
     result = parser.generate_state(root / "PLAN.md", project_root=root)
-    assert result["backlog_counts"] == {"P0": 0, "P1": 4, "P2": 6}
+    assert result["backlog_counts"] == {"P0": 0, "P1": 5, "P2": 8}
     assert result["state_surface_contract"]["authority_scope"] == "session_context_only"
     assert result["state_surface_contract"]["non_authoritative_for"] == [
         "gate_verdict", "classification_validation", "escalation_closure"]
