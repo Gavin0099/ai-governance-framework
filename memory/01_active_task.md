@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- #309 local instruction-budget fix validated; uncommitted working diff for coordinator commit/push/PR; no merge authorization. <!-- memory_record_projection:active-task-summary:0ffdad6b8f464322dd2686edebf348ba192a58aa65b00a7ac1952d6f4703cb72 -->
+- F-7 lock version and project Stop diagnostics fixed at 57653004, with 322 focused tests passing. Upstream review and consumer adoption remain pending. <!-- memory_record_projection:active-task-summary:5048fe3f0acd62c02ae69fb40352fa7bcb6cf37faa3f46671bb5b5d57e76edf8 -->

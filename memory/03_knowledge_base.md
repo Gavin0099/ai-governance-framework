@@ -550,3 +550,17 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: ace2002cee57e4da4176c1722704df6fed82dbe8
 - Test evidence: 5 new cases in `tests/test_copilot_lifecycle_bridge.py`, all failing against the base code; 8 related test files 275 passed before the extra refusal cases; a real Copilot CLI new -> resume -> resume run left the envelope bytes unchanged. Not claimed: two independent sessions handing off, and the second `sessionEnd` after a resume still re-running closeout and overwriting the earlier closeout artifact.
 - Daily record: memory/2026-11-05.md (memory_record, commit ace2002cee57e4da4176c1722704df6fed82dbe8)
+
+## CANDIDATE / UNREVIEWED: F-7 refreshed the framework SHA while leaving stale release metadata
+- Root cause: The submodule updater only compared and wrote adopted_commit, including when already at the target SHA.
+- Fix: Refresh adopted_release from the target checkout when its release metadata is readable. Preserve the prior release when metadata is unavailable.
+- Fix commit: 57653004065d6046bc2dc6d3a32a1d87a0ea7b25
+- Test evidence: PASS: artifacts/evidence/test-results/f7-lock-release-stop-diagnostic-20261116.json -> exit_code=0. 322 passed and 10 skipped.
+- Daily record: memory/2026-11-16.md (memory_record, commit 57653004065d6046bc2dc6d3a32a1d87a0ea7b25)
+
+## CANDIDATE / UNREVIEWED: F-7 reported declared Codex Stop adapters as missing
+- Root cause: The SessionStart report checked framework-owned Stop commands directly and bypassed the manager that verifies project adapter declarations.
+- Fix: Use the manager verification result and report mismatched or conflicting project entries for review.
+- Fix commit: 57653004065d6046bc2dc6d3a32a1d87a0ea7b25
+- Test evidence: PASS: artifacts/evidence/test-results/f7-lock-release-stop-diagnostic-20261116.json -> exit_code=0. 322 passed and 10 skipped.
+- Daily record: memory/2026-11-16.md (memory_record, commit 57653004065d6046bc2dc6d3a32a1d87a0ea7b25)
