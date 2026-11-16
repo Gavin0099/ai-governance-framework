@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- F-7 lock version and project Stop diagnostics fixed at 57653004, with 322 focused tests passing. Upstream review and consumer adoption remain pending. <!-- memory_record_projection:active-task-summary:5048fe3f0acd62c02ae69fb40352fa7bcb6cf37faa3f46671bb5b5d57e76edf8 -->
+- #325 merged at d1dc23d0 (review and post-merge main CI green; Windows native argument passing still unverified); current slice: #328 F-7 missing-lock hint plus a separate report-format fix; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:33bbe71ca8759748fa46de0732664e1ed79057ac792ae16ee0b25af549787f3e -->
