@@ -149,6 +149,61 @@ def _catalog() -> precheck.ManagedCatalog:
     return catalog
 
 
+@pytest.fixture(params=[precheck.UPDATE_HEADING, precheck.F7_MARKER], ids=["update_intent", "f7_boundary"])
+def replaceable_versions(request):
+    older = (request.param + "\n- Older instruction.\n").encode()
+    newer = (request.param + "\n- Newer instruction with additional safety requirements.\n").encode()
+    catalog = _catalog()
+    catalog.add(older)
+    catalog.add(newer, current=True)
+    assert len(older) < len(newer)
+    return catalog, older, newer
+
+
+@pytest.mark.parametrize("older_first", [True, False], ids=["older_first", "newer_first"])
+@pytest.mark.parametrize("newline,bom", [(b"\n", b""), (b"\r\n", b"\xef\xbb\xbf")], ids=["lf", "crlf_bom"])
+def test_slimming_refuses_differing_versions_with_replacement(
+    tmp_path: Path, replaceable_versions, older_first: bool, newline: bytes, bom: bytes,
+) -> None:
+    catalog, older, newer = replaceable_versions
+    first, second = (older, newer) if older_first else (newer, older)
+    # A separate, identical router duplicate would be removable on its own.
+    # The conflicting family must refuse that edit too.
+    router = updater._memory_workflow_router_section().encode()
+    payload = bom + (
+        b"# Consumer\n\n" + router + router + first
+        + b"## Repo-Specific Risk Levels\n- Keep this consumer rule.\n"
+        + second + b"## Custom\n- Keep exact trailing bytes.  "
+    ).replace(b"\n", newline)
+    path = tmp_path / "AGENTS.md"
+    path.write_bytes(payload)
+
+    report, after = precheck.plan_slimming(payload, catalog)
+    assert report["status"] == "refused"
+    assert any("managed copies differ" in error for error in report["errors"])
+    assert after == payload
+    assert report["after"]["on_disk_bytes"] == len(payload)
+
+    applied = precheck.slim_agents(tmp_path, tmp_path, apply=True, catalog=catalog)
+    assert applied["status"] == "refused"
+    assert applied["changed_files"] == []
+    assert path.read_bytes() == payload
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize("version", ["older", "newer"])
+def test_slimming_collapses_identical_versions_with_replacement(replaceable_versions, version: str) -> None:
+    catalog, older, newer = replaceable_versions
+    block = older if version == "older" else newer
+    prefix = b"# Consumer\n\n"
+    middle = b"## Repo-Specific Risk Levels\n- Keep this consumer rule.\n"
+    tail = b"## Custom\n- Keep exact trailing bytes.  "
+    report, after = precheck.plan_slimming(prefix + block + middle + block + tail, catalog)
+    assert report["status"] == "would_change"
+    assert [row["action"] for row in report["sections"]] == ["keep", "remove_duplicate"]
+    assert after == prefix + block + middle + tail
+
+
 @pytest.mark.parametrize("newline,bom", [(b"\n", b""), (b"\r\n", b""), (b"\n", b"\xef\xbb\xbf"), (b"\r\n", b"\xef\xbb\xbf")])
 def test_slimming_preserves_every_consumer_byte_and_is_idempotent(newline: bytes, bom: bytes) -> None:
     managed = (precheck.UPDATE_HEADING + "\n\n- Old managed text.\n\n").encode().replace(b"\n", newline)

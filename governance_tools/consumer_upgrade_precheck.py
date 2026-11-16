@@ -382,7 +382,7 @@ def plan_slimming(payload: bytes, catalog: ManagedCatalog) -> tuple[dict[str, An
             continue
         if unknown:
             report["errors"].append(f"{family}: text is not an exact known framework section; ownership is uncertain")
-        elif family not in catalog.replacements and len({_section_content(s) for s in copies}) > 1:
+        elif len({_section_content(s) for s in copies}) > 1:
             report["errors"].append(f"{family}: managed copies differ; manual ownership review required")
         for number, section in enumerate(copies, 1):
             replacement = section.payload
