@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
+from governance_tools.framework_versioning import current_framework_release
 from governance_tools.hook_installer import _framework_root_config_value
 from governance_tools.hook_install_validator import _vscode_hook_config_safe
 from governance_tools.composed_hook import (
@@ -940,7 +941,9 @@ def _write_bytes_if_changed(path: Path, payload: bytes) -> bool:
     return True
 
 
-def _sync_existing_framework_lock(repo: Path, framework_head: str) -> dict[str, Any]:
+def _sync_existing_framework_lock(
+    repo: Path, framework_root: Path, framework_head: str
+) -> dict[str, Any]:
     """Advance an existing consumer lock without creating a new lock surface."""
     path = repo / FRAMEWORK_LOCK_RELATIVE_PATH
     if not path.is_file():
@@ -959,10 +962,17 @@ def _sync_existing_framework_lock(repo: Path, framework_head: str) -> dict[str, 
             "changed_files": [],
             "errors": [f"framework lock must be a JSON object: {path}"],
         }
-    if str(payload.get("adopted_commit", "")).strip() == framework_head:
+    adopted = {"adopted_commit": framework_head}
+    try:
+        release = current_framework_release(framework_root)
+    except UnicodeError:
+        release = None  # A legacy checkout can lack readable release metadata.
+    if release is not None:
+        adopted["adopted_release"] = release
+    if all(str(payload.get(key, "")).strip() == value for key, value in adopted.items()):
         return {"status": "verified", "changed_files": [], "errors": []}
 
-    payload["adopted_commit"] = framework_head
+    payload.update(adopted)
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()
     _write_text_if_changed(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     return {
@@ -2058,7 +2068,7 @@ def update_governance_submodule(
                 dirty_before=parent_dirty_before,
                 ignored_before=ignored_untracked_before,
             )
-            lock_report = _sync_existing_framework_lock(repo, before_head)
+            lock_report = _sync_existing_framework_lock(repo, submodule_repo, before_head)
             if (stage or commit) and lock_report["changed_files"]:
                 _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
             full_update_stage_report = _build_full_update_stage_report(
@@ -2267,7 +2277,7 @@ def update_governance_submodule(
             dirty_before=parent_dirty_before,
             ignored_before=ignored_untracked_before,
         )
-        lock_report = _sync_existing_framework_lock(repo, after_head)
+        lock_report = _sync_existing_framework_lock(repo, submodule_repo, after_head)
         if (stage or commit) and lock_report["changed_files"]:
             _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
         full_update_stage_report = _build_full_update_stage_report(

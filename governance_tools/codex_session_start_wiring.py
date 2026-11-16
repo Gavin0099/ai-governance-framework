@@ -153,20 +153,6 @@ def _hook_list(group: dict[str, Any]) -> list[Any]:
     return hooks if isinstance(hooks, list) else []
 
 
-def _stop_wiring(hooks: dict[str, Any], framework_root: Path, repo_root: Path) -> str:
-    governance = [
-        hook
-        for group in _groups(hooks, "Stop")
-        for hook in _hook_list(group)
-        if CodexCLIAdapter._is_governance_hook(hook)
-    ]
-    if not governance:
-        return "not_found"
-    if len(governance) == 1 and CodexCLIAdapter._is_current_hook(governance[0], framework_root, repo_root):
-        return "consistent"
-    return "inconsistent"
-
-
 def _has_session_end_publisher(hooks: dict[str, Any]) -> bool:
     return any(
         tokens is not None
@@ -280,13 +266,23 @@ def assess_codex_session_start(repo_root: Path, framework_root: Path) -> dict[st
     else:
         report["status"] = INSTALLED_CORRECTLY
 
-    report["stop_wiring"] = _stop_wiring(hooks, framework_root, repo_root)
+    stop = CodexCLIAdapter().verify(repo_root, framework_root)
+    stop_state = stop["configuration_state"]
+    report["stop_wiring"] = (
+        "consistent" if stop["installed"]
+        else {"missing": "not_found", "invalid": "not_verified"}.get(stop_state, "inconsistent")
+    )
     if report["stop_wiring"] == "not_found" and _has_session_end_publisher(hooks):
         # The SessionEnd publisher only publishes a request; adding a Stop
         # closeout next to it would be a second, different closeout path.
         report["stop_repair"] = (
             "a SessionEnd closeout publisher is wired instead of a Stop closeout hook; "
             "review that path before adding a Stop hook"
+        )
+    elif stop_state in {"project_adapter_unverified", "conflict", "invalid"}:
+        report["stop_repair"] = (
+            "review the Stop command and project adapter declaration before changing the hook. "
+            f"{stop['note']}"
         )
     elif report["stop_wiring"] != "consistent":
         report["stop_repair"] = (

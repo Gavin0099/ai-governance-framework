@@ -10,3 +10,5 @@ projection superseded them. History only; not current state.
 - 2026-11-03: #277 merged (a6c25b7c), post-merge audit APPROVE-WITH-NITS, pre-merge independent review was missing (process deviation); #276 synced with main, Draft, needs fresh review of new head before merge. <!-- memory_record_projection:active-task-summary:fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb -->
 
 - #309 local instruction-budget fix validated; uncommitted working diff for coordinator commit/push/PR; no merge authorization. <!-- memory_record_projection:active-task-summary:0f1f9fe131d70d936dccf0a6b0035380a42206fa5f1fa1ad48e73896e5fc0abb -->
+
+- #309 local instruction-budget fix validated; uncommitted working diff for coordinator commit/push/PR; no merge authorization. <!-- memory_record_projection:active-task-summary:0ffdad6b8f464322dd2686edebf348ba192a58aa65b00a7ac1952d6f4703cb72 -->

@@ -13,12 +13,12 @@
 
 | Read first | Current instruction |
 |---|---|
-| Now | The PLAN information-architecture round is delivered on `docs/plan-information-architecture` for owner review. No next slice has been selected. |
-| Authority | Owner authorization, 2026-11-16: reconcile and restructure the framework root PLAN as the single working entry, keep history verbatim, and deliver to a PR; no merge. Existing [grants](#authorizations-and-owner-decisions) keep their original scope; delivered grants stay terminal and are not renewed. |
-| Allowed | The delivered round covers root PLAN information architecture, verbatim history preservation, the compact source/authorization mapping, baseline inventory and existing real-PLAN test inventories, with reader compatibility preserved. |
-| Limits | No load rules, summary algorithm, consumer, memory or history-record changes; no merge. [Standing conditions](#active-claim-boundaries) remain in force. |
-| DONE | The branch delivers byte-identical history, every original line mapped, every condition in force stated in the root, indexed authorizations and compatible readers. Independent semantic review and continuity evaluation are done; these results do not authorize merge. |
-| Next | Owner review and a separate merge decision. [Tracked follow-ups and holds](#pending-work---ordered) stay outside this round; the nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work. |
+| Now | PLAN information architecture is delivered: PR #330 merged at `ce04379d`; main CI on `ce04379d`: 7 success, 5 skipped, 0 failed, including the Canonical Drift Post-Merge Audit. Now converge existing PR #325 to a final candidate HEAD with independent review and CI bound to that HEAD. |
+| Authority | Owner decision, 2026-11-16: converge #325. Merge is outside this batch and requires a separate owner decision bound to the exact candidate SHA under [SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md). |
+| Allowed | Integrate #325 with current main, verify both fixes, and update this PLAN state. F-7 synchronizes an existing consumer lock's release metadata and SHA, including the already-current-SHA case; F-7 diagnostics reuse the Codex closeout manager's verification for consistent reporting of verified, unverified and conflicting Stop configurations. |
+| Limits | No merge; first-import missing-lock handling stays with issue #328; no consumer, load-rule or summary-algorithm changes. [Standing conditions](#active-claim-boundaries) remain in force. |
+| DONE | Hand the owner the final candidate SHA and actual change scope, independent review and CI results for that SHA, and the still-unverified consumer / native-execution items for one merge decision. |
+| Next | Owner merge decision on #325; then #328 (first-import missing-lock diagnostic: minimal hint and repair guidance) is the next candidate. #324 stays Draft: its selector expects the old PLAN headings and falls back to the full PLAN on the restructured one; re-measure its value on the new PLAN before adoption or closure. The nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work. |
 | Phase | [A–D completed; E in progress](#phase-overview), validity before expansion. |
 | Full source | [Verbatim pre-restructure PLAN](docs/status/plan-history-2026-11-16-6c7e24c3.md) and [512-unit preservation/authorization map](docs/status/plan-information-architecture-2026-11-16-mapping.md). History is not a planning source. |
 
@@ -26,9 +26,9 @@ The front-door table above answers now / authority / limits. Source IDs Mnnnn re
 
 ## Current Sprint - 2026-11-16
 
-- [>] PLAN information-architecture round delivered and reviewable on `docs/plan-information-architecture`; awaiting owner review and merge decision. No next slice has been selected; tracked follow-ups and holds remain in [Pending Work](#pending-work---ordered).
+- [>] Converge existing PR #325 (existing-lock release metadata/SHA synchronization, including already-current SHA, and consistent Codex Stop diagnostics) to a final reviewable candidate HEAD with independent review and CI bound to that HEAD, per the owner decision of 2026-11-16.
 
-Claim ceiling: The 2026-11-16 authorization covers reconciliation and restructuring of the root PLAN as the single working entry, verbatim history preservation and delivery to a PR; merge needs a separate owner decision. No load rules, summary algorithm, consumer, memory or history-record changes belong to this round. Existing grants retain their original scope; delivered grants stay terminal. The nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work.
+Claim ceiling: PLAN information architecture is delivered through PR #330 at `ce04379d`; main CI on that SHA: 7 success, 5 skipped, 0 failed, including the Canonical Drift Post-Merge Audit. Allowed: integrate #325 with current main, verify both fixes, and update this PLAN state. No merge; first-import missing-lock handling stays with #328; no consumer, load-rule or summary-algorithm changes. Merge requires a separate owner decision on the exact candidate SHA under [SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md). Follow-up order and holds are stated in the first-screen Next row; the nine August constraints still await owner adjudication and remain in force. Do not automatically start backlog work.
 
 ## Authorizations And Owner Decisions
 
@@ -3333,7 +3333,7 @@ Claim ceiling / completed orientation: Phase D sign-off; MEM-DISPATCH/P1-A; P1-C
 
 ## Definition Of Done For Current Planning Slice
 
-The delivered PLAN information-architecture round provides a byte-identical history body with exactly ten banner lines; every original line mapped, including occurrence coverage for all 3,012 original nonblank lines; every condition still in force stated in the root, with root conditions or explicit source-status locations for all 400 non-history units; dated/scoped authorization H3 targets; verbatim binding/dependent sentences and detector-hit dispositions; compatible header/phase/pending/summary readers and baseline inventory; completed independent semantic review and continuity evaluation. These are branch-delivery results for owner review, not merge approval. Merge needs a separate owner decision; no next slice has been selected. [Tracked follow-ups and holds](#pending-work---ordered), including the nine August constraints awaiting owner adjudication, remain outside this round; do not automatically start backlog work.
+For #325 delivery convergence, hand the owner the final candidate SHA and actual change scope, independent review and CI results bound to that SHA, and the still-unverified consumer / native-execution items for one merge decision. Merge is outside this batch and requires a separate owner decision bound to the exact candidate SHA under [SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md). Allowed work is integration with current main, verification of the two existing fixes and this PLAN state update; first-import missing-lock handling stays with #328, with no consumer, load-rule or summary-algorithm changes. Do not automatically start backlog work.
 
 The old P0b one-time delivery checklist is historical (#16, 61111f5f / 7f47b12f; source M3003). Its ongoing PR trigger, fail-closed, post-merge audit, regression and unchanged-surface conditions are retained in M3003 under Active Claim Boundaries; M3025 also preserves the hash-consistency/owner-authorization distinction.
 

@@ -2160,12 +2160,52 @@ def test_apply_does_not_complete_when_hook_advisory_source_missing(tmp_path: Pat
     )
 
 
-def test_apply_commit_recomputes_lock_consistency_after_commit(tmp_path: Path) -> None:
-    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+@pytest.mark.parametrize("already_at_target", [False, True])
+def test_apply_syncs_release_and_commit_from_the_target_checkout(
+    tmp_path: Path, already_at_target: bool
+) -> None:
+    consumer, framework, old_head, _new_head = _make_fixture(tmp_path)
+    (framework / "CHANGELOG.md").write_text("# Changelog\n\n## v1.3.0\n", encoding="utf-8")
+    target = _commit_all(framework, "declare framework release")
+    if already_at_target:
+        nested = consumer / "ai-governance-framework"
+        _git(nested, "fetch", "origin", "main")
+        _git(nested, "checkout", target)
+    lock_path = consumer / "governance" / "framework.lock.json"
+    lock_path.parent.mkdir()
+    lock_path.write_text(
+        json.dumps({
+            "adopted_commit": target if already_at_target else old_head,
+            "adopted_release": "1.2.0",
+            "adopted_surfaces": ["domain_contract"],
+        }),
+        encoding="utf-8",
+    )
+    _commit_all(consumer, "record consumer lock with old release")
+
+    result = update_governance_submodule(repo=consumer, fetch_ref="main", dry_run=False)
+
+    assert result.ok is True
+    assert result.after_head == target
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    assert lock["adopted_commit"] == target
+    assert lock["adopted_release"] == "1.3.0"
+    assert lock["adopted_surfaces"] == ["domain_contract"]
+    assert result.full_update_stage_report["details"]["framework_lock"]["status"] == "updated"
+
+
+@pytest.mark.parametrize("unreadable_release", [False, True])
+def test_apply_commit_recomputes_lock_consistency_after_commit(
+    tmp_path: Path, unreadable_release: bool
+) -> None:
+    consumer, framework, old_head, new_head = _make_fixture(tmp_path)
+    if unreadable_release:
+        (framework / "CHANGELOG.md").write_bytes(b"\xff")
+        new_head = _commit_all(framework, "publish legacy release metadata")
     lock_path = consumer / "governance" / "framework.lock.json"
     lock_path.parent.mkdir(parents=True)
     lock_path.write_text(
-        json.dumps({"adopted_commit": old_head}, indent=2) + "\n",
+        json.dumps({"adopted_commit": old_head, "adopted_release": "1.2.0"}, indent=2) + "\n",
         encoding="utf-8",
     )
     _commit_all(consumer, "add consumer lock")
@@ -2188,6 +2228,7 @@ def test_apply_commit_recomputes_lock_consistency_after_commit(tmp_path: Path) -
         == "consistent"
     )
     assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_commit"] == new_head
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_release"] == "1.2.0"
     assert _git(consumer, "status", "--short") == ""
 
 
