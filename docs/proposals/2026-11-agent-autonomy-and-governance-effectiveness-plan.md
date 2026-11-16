@@ -28,6 +28,18 @@
 
 實驗只用可觀測成本與結果：Token／金額（可取得時）、總耗時、重讀／工具呼叫、人工互動（RESCUE、APPROVAL、CLARIFICATION 各計次數與耗時）、返工次數，以及**獨立封存 Oracle 揭露的缺陷中，Agent 已宣稱 DONE 的件數**。不把不可測量的「未發現缺陷損失」當成本 KPI。保留各平台實際載入的指令檔大小與載入證據，包括 Codex 的 AGENTS.md **32 KiB 預算**；驗證受當時工具版本與實際載入機制約束，不以檔案存在推定已讀取。
 
+#### 2026-11-16 Owner 決策：多 Repo 導入與更新採有界、按風險驗收
+
+**決策／目標：** AI Governance 應降低 AI 工程工作的**總成本**（含模型用量、排障、重複驗證、人工救援與維護），而不是最大化治理機制的驗證次數。這是 Goal 2／Goal 3 的工作收斂方向，**不新增全域 Policy、Gate、Hook、Profile、量化門檻或執行授權，也不放寬既有安全／R1／R2／Owner Gate**。相關定性觀察另見 [#313](https://github.com/Gavin0099/ai-governance-framework/pull/313)；不得將其誤當已量測的因果收益或成本排序。
+
+- **事前定 DONE 與停止邊界：** 導入／更新開始前先列出該次 Repo、受影響 Surface、必要驗收及例外停止條件；證據滿足後結束。執行途中發現的新問題，只有**直接阻擋本次安全、正確性、授權或交付條件**時才納入原工作；其他問題用既有紀錄獨立追蹤，不自動擴張本次測試或新增 Gate。
+- **一般更新採增量驗證：** 當既有 Harness／Runtime 行為未變，優先檢查 Submodule／Lock、Consumer 自訂指令保留、Hooks 接線、受影響的相容性與必要 Smoke／回歸；不在每個 Repo、每次更新重演完整 L2 Reviewer／SessionStart／Closeout 能力展示。
+- **核心機制／新接線需完整但有界驗證：** Session 身分、原生生命週期、Closeout、Ownership、Review／Admission 契約、權限或安全邊界**新導入或實質更動**時，對變更面做對應的正反測試、原生驗收與可信證據；已在相同條件驗證的能力可以重用，Consumer 特有差異仍需各自檢查。不得將一次隔離 PASS 推論為所有平台或 Consumer 都可用。
+- **產品安全與治理效果分流：** 導入時發現產品安全疑慮，記入相應 Consumer 的安全調查／設計流程；只在直接阻擋當次交付時才提升為當次 blocker。不能為證明 Governance 有效，將產品風險全數轉為 Framework 功能需求。
+- **重用而非反覆探索：** 優先沿用已驗證的導入步驟、工具與收據格式，避免三個 Repo 分別重新發明相同流程；共用工具若需新增或改寫，仍是獨立候選，不因本段自動獲得實作授權。
+
+**驗收這項決策的方式：** 在下次本來就會執行的 Consumer 導入／更新中，沿用既有工作紀錄，比對必要與重複檢查、額外工具／Token／時間、Owner 介入及是否漏掉真正的阻擋項；**尚無精確分項成本或同任務對照，不能宣稱這次超支主因已被量化證實**。不為驗證本原則另開實驗或強制新一輪 Review。
+
 ### Goal 3 — Continuous, Bounded Agent Autonomy（預授權範圍內持續執行）
 
 一旦 Owner 固定最終目標、驗收、允許／禁止操作、資源與授權邊界，Agent **應該**能自行規劃、實作、測試、修正、留下必要紀錄並接續下一 Slice；**Slice DONE 不等於 Task DONE**，已授權範圍內的下一步不應反覆向 Owner 索取同一核准。這是**待驗證的產品方向，不是宣稱目前已有跨 Session 自動 Loop controller**。沿用 #271 及既有 autonomous-loop 草稿作為提案參考；不重啟暫緩的 controller 實作，也不新增 daemon／Hook／Schema。跨 Session 的真實驗收仍受 #275、#261、#245 與 Consumer 既有 legacy closeout 狀態影響；PR merge 本身不等於 V-03／V-04／V-05 DONE。
