@@ -38,7 +38,19 @@ A submodule pointer update alone is insufficient and must be reported as
 8. instruction context budget measurement on the final on-disk AGENTS.md
 
 Both external-contract and submodule backends report `instruction_context_budget`,
-including dry-run (which measures the current file without projecting writes).
+including dry-run (which retains the current-file measurement). Before either
+backend can write, F-7 also reports `instruction_budget_precheck`: current and
+predicted post-upgrade bytes, limit, headroom/overflow and the CRLF worst case.
+Prediction replays the real instruction refresh and managed-block installer in
+an isolated temporary copy. The CLI emits it before apply starts (on stderr,
+so JSON stdout remains parseable), and both output formats retain it in stages.
+Submodule prediction identifies the selected target; unavailable local target
+objects may be read from the supplied or executing framework checkout at that
+exact commit, without fetching into the consumer. A target unavailable in all
+those checkouts, or one that changes between precheck and fetch, is explicitly
+unverified. No precheck result bypasses the existing apply gates or blocks
+dry-run. Follow the prediction and separate opt-in slimming commands in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md#instruction-budget-before-upgrade`.
 The stage reports on-disk bytes and the CRLF worst case against Codex's default
 32,768 raw-byte project-doc budget. A file exactly at the limit fits; an on-disk
 size greater than the limit downgrades `completed`, `full_update_completed`,

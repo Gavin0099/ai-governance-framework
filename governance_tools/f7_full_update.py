@@ -18,7 +18,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -77,6 +77,12 @@ F7_UPDATE_BOUNDARY_BLOCK = (
     f"{F7_UPDATE_BOUNDARY_MARKER}\n"
     "- Before F-7 work, read `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` and `governance/F7_FULL_UPDATE.md` in the installed or pinned framework.\n"
     f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}; follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.\n"
+)
+F7_MEMORY_WORKFLOW_BLOCK = (
+    "<!-- governance:key=memory_workflow -->\n"
+    "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
+    "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
+    f"{MEMORY_WRITER_ROUTER_LINE}\n"
 )
 
 
@@ -370,12 +376,7 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
     after = replace_legacy_memory_writer_router_line(after)
     inserts: list[str] = []
     if not _memory_workflow_router_present_in_text(before):
-        inserts.append(
-            "<!-- governance:key=memory_workflow -->\n"
-            "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
-            "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
-            f"{MEMORY_WRITER_ROUTER_LINE}\n"
-        )
+        inserts.append(F7_MEMORY_WORKFLOW_BLOCK)
 
     if inserts:
         after = after.rstrip() + "\n\n" + "\n\n".join(inserts) + "\n"
@@ -920,7 +921,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     )
 
 
-def run_f7_full_update(
+def _run_f7_full_update(
     *,
     repo_root: Path,
     framework_root: Path,
@@ -1147,6 +1148,87 @@ def run_f7_full_update(
     )
 
 
+def run_f7_full_update(
+    *,
+    repo_root: Path,
+    framework_root: Path,
+    apply: bool = False,
+    submodule_path: str = "ai-governance-framework",
+    target_ref: str | None = None,
+    fetch_remote: str = "origin",
+    fetch_ref: str = "main",
+    precheck_observer: Callable[[dict[str, Any]], None] | None = None,
+    precheck_scratch_dir: Path | None = None,
+) -> F7Result:
+    """Report instruction compatibility before either backend can mutate the repo."""
+    _tool_provenance()
+    from governance_tools.consumer_upgrade_precheck import predict_instruction_upgrade
+
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+    role = classify_repo(repo_root, submodule_path=submodule_path)
+    source = framework_root
+    selected_ref = None
+    resolution_error = None
+    if role == "submodule_consumer":
+        try:
+            # Discovery is read-only and follows the backend's path authority.
+            from governance_tools.external_governance_submodule_updater import (
+                _resolve_submodule_path, _resolve_target_head, _require_initialized_git_checkout,
+            )
+
+            resolved_path = _resolve_submodule_path(repo_root, submodule_path)
+            source = repo_root / resolved_path
+            _require_initialized_git_checkout(source)
+            selected_ref, _source = _resolve_target_head(
+                source, target_ref=target_ref or f"{fetch_remote}/{fetch_ref}",
+                explicit_target=target_ref is not None, fetch_remote=fetch_remote,
+                fetch_ref=fetch_ref, dry_run=True,
+            )
+        except (SubmoduleUpdateError, OSError) as exc:
+            resolution_error = str(exc)
+    precheck = predict_instruction_upgrade(
+        repo_root, source, repo_role=role, target_ref=selected_ref,
+        scratch_dir=precheck_scratch_dir,
+    )
+    if selected_ref and not precheck.get("source_revision") and not resolution_error:
+        # A consumer may not have fetched this target yet, while the checkout
+        # running F-7 already has it. The exact selected commit is the authority;
+        # use its objects without fetching into or modifying the consumer.
+        for candidate in dict.fromkeys((framework_root, Path(__file__).resolve().parent.parent)):
+            if candidate == source:
+                continue
+            alternate = predict_instruction_upgrade(
+                repo_root, candidate, repo_role=role, target_ref=selected_ref,
+                scratch_dir=precheck_scratch_dir,
+            )
+            if alternate.get("source_revision") == selected_ref:
+                precheck = alternate
+                break
+    if resolution_error:
+        precheck.update(status=NOT_VERIFIED, predicted=None)
+        precheck.pop("drift_check_will_fail", None)
+        precheck["errors"].append(resolution_error)
+    if precheck_observer is not None:
+        precheck_observer(precheck)
+    result = _run_f7_full_update(
+        repo_root=repo_root, framework_root=framework_root, apply=apply,
+        submodule_path=submodule_path, target_ref=target_ref,
+        fetch_remote=fetch_remote, fetch_ref=fetch_ref,
+    )
+    backend = result.details.get("submodule_backend", {})
+    actual_target = backend.get("target_head") if isinstance(backend, dict) else None
+    if selected_ref and actual_target and selected_ref != actual_target:
+        # The remote may advance between read-only selection and backend fetch.
+        # Keep the original observation; never pass it off as the applied target.
+        precheck["status"] = NOT_VERIFIED
+        precheck["errors"].append("the backend selected a different target after precheck; prediction does not describe that target")
+        precheck["actual_target"] = actual_target
+        precheck.pop("drift_check_will_fail", None)
+    result.stages["instruction_budget_precheck"] = precheck
+    return result
+
+
 def format_human(result: F7Result) -> str:
     lines = [
         "[f7_full_update]",
@@ -1198,6 +1280,10 @@ def format_human(result: F7Result) -> str:
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
             elif key == "codex_session_start":
                 lines.extend(_format_codex_session_start_stage(result.stages[key]))
+            elif key == "instruction_budget_precheck":
+                from governance_tools.consumer_upgrade_precheck import format_prediction
+
+                lines.extend(format_prediction(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
         details = result.stages.get("details")
@@ -1218,6 +1304,8 @@ def format_human(result: F7Result) -> str:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from governance_tools.consumer_upgrade_precheck import format_prediction
+
     parser = argparse.ArgumentParser(description="Run repo-role aware F-7 full update.")
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--framework-root", type=Path, default=Path(__file__).resolve().parent.parent)
@@ -1252,6 +1340,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         target_ref=args.target_ref,
         fetch_remote=args.fetch_remote,
         fetch_ref=args.fetch_ref,
+        precheck_observer=lambda report: print(
+            "\n".join(format_prediction(report)),
+            file=sys.stderr, flush=True,
+        ),
     )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
