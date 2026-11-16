@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -2060,3 +2061,188 @@ def test_f7_leaves_an_edited_writer_line_and_reports_it(tmp_path: Path) -> None:
     diagnostics = [w for w in result.warnings if w.startswith("f7-diagnostic: memory-workflow-router:")]
     assert len(diagnostics) == 1, result.warnings
     assert "left untouched" in diagnostics[0]
+
+
+_LOCK_REPAIR_SECTION = "docs/ai-governance-first-import-sop.md#submodule-framework-lock"
+_LOCK_HINT_PREFIX = "f7-diagnostic: formal-closeout prerequisite missing: "
+
+
+def test_f7_lock_hint_target_section_exists() -> None:
+    """The hint's repair link must resolve to the SOP section it names."""
+    doc, anchor = _LOCK_REPAIR_SECTION.split("#")
+    text = (Path(__file__).resolve().parents[1] / doc).read_text(encoding="utf-8")
+    assert text.count(f'<a id="{anchor}"></a>') == 1
+    assert "### 4.1 Repair the submodule consumer framework lock" in text
+
+
+def _make_lock_hint_consumer(tmp_path: Path, submodule_path: str) -> tuple[Path, Path, str]:
+    """All transport and writes stay in disposable, synthetic repositories."""
+    remote = tmp_path / "source"
+    _make_framework(remote)
+    _write(remote / "baselines/repo-min/AGENTS.base.md", "# Framework baseline\n")
+    _write(remote / "baselines/repo-min/AGENTS.md",
+           "# Agents\n\n## AI Governance Update Intent Rule\n\nUse F-7.\n\n"
+           "## Repo-Specific Risk Levels\n\nN/A\n")
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "synthetic framework baseline")
+    before = _git(remote, "rev-parse", "HEAD")
+    _write(remote / "CHANGELOG.md", "## 1.3.0\n\nSynthetic update.\n")
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "synthetic framework target")
+
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _git(repo, "-c", "protocol.file.allow=always", "submodule", "add", str(remote), submodule_path)
+    checkout = repo / submodule_path
+    _git(checkout, "checkout", before)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "pin synthetic framework without a consumer lock")
+    return repo, checkout, before
+
+
+def _capture_before_lock_hint(monkeypatch):
+    """Freeze the existing backend result before report-only additions."""
+    original = f7_full_update._run_f7_full_update
+    baseline = []
+
+    def capture(**kwargs):
+        result = original(**kwargs)
+        baseline.append(copy.deepcopy(result))
+        return result
+
+    monkeypatch.setattr(f7_full_update, "_run_f7_full_update", capture)
+    return baseline
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+@pytest.mark.parametrize("submodule_path", ["ai-governance-framework", "vendor/framework with spaces"])
+@pytest.mark.parametrize("output_format", ["json", "human"])
+def test_f7_missing_lock_hint_is_report_only(
+    tmp_path: Path, monkeypatch, capsys, apply, submodule_path, output_format,
+) -> None:
+    repo, checkout, _before = _make_lock_hint_consumer(tmp_path, submodule_path)
+    baseline = _capture_before_lock_hint(monkeypatch)
+    results = []
+    original = f7_full_update.run_f7_full_update
+
+    def capture_report(**kwargs):
+        result = original(**kwargs)
+        results.append(result)
+        return result
+
+    monkeypatch.setattr(f7_full_update, "run_f7_full_update", capture_report)
+    args = ["--repo", str(repo), "--framework-root", str(checkout), "--format", output_format]
+    if submodule_path != "ai-governance-framework":
+        args.extend(["--submodule-path", submodule_path])
+    if apply:
+        args.append("--apply")
+    exit_code = f7_full_update.main(args)
+    stdout = capsys.readouterr().out
+    result, plain = results[0], baseline[0]
+    hints = [w for w in result.warnings if w.startswith(_LOCK_HINT_PREFIX)]
+    assert len(hints) == 1, result.warnings
+    hint = hints[0]
+    assert (repo / "governance/framework.lock.json").as_posix() in hint
+    assert "tracked, clean regular file" in hint
+    assert "adopted_commit matching the consumer index gitlink" in hint
+    assert f"{submodule_path}/{_LOCK_REPAIR_SECTION}" in hint
+    assert "update-stage completion does not establish formal-closeout eligibility" in hint
+    if output_format == "json":
+        assert hint in json.loads(stdout)["warnings"]
+    else:
+        assert "[warnings]\n" in stdout and hint in stdout
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.ok is plain.ok is True
+    assert result.errors == plain.errors == []
+    assert exit_code == (0 if plain.ok else 1) == 0
+    assert result.f7_final_status == plain.f7_final_status
+    if apply:
+        assert result.f7_final_status == "full_update_completed"
+        assert result.update_receipt["receipt"]["update_status"] == "updated"
+    else:
+        assert result.update_receipt["status"] == "not_written"
+    assert result.update_receipt == plain.update_receipt
+    assert result.stages["governance_maturity_summary"]["lock_consistency"]["value"] == "not_applicable"
+    assert not (repo / "governance/framework.lock.json").exists()
+    assert not any("framework.lock.json" in p for p in result.changed_files)
+    # Only the new warning and the pre-existing wrapper's prediction may differ.
+    expected = asdict(plain)
+    expected["warnings"].append(hint)
+    expected["stages"]["instruction_budget_precheck"] = result.stages["instruction_budget_precheck"]
+    assert asdict(result) == expected
+    if not apply:
+        assert _git(repo, "status", "--porcelain") == ""
+
+
+@pytest.mark.parametrize("role", ["copy_based_consumer", "external_contract_repo", "not_governed", "framework"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_lock_hint_excludes_other_adoption_modes(tmp_path: Path, role, apply) -> None:
+    framework, repo = tmp_path / "framework", tmp_path / "repo"
+    _make_framework(framework)
+    if role == "framework":
+        repo = framework
+        (repo / "governance/framework.lock.json").unlink()
+        _write(repo / "AGENTS.base.md", "# Framework baseline\n")
+    elif role == "external_contract_repo":
+        _make_external_contract_repo(repo)
+    else:
+        _init_repo(repo)
+        if role == "copy_based_consumer":
+            _write(repo / "AGENTS.base.md", "# Copied baseline\n")
+    assert classify_repo(repo) == ("copy_based_consumer" if role == "framework" else role)
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=apply)
+    assert not any(w.startswith(_LOCK_HINT_PREFIX) for w in result.warnings)
+    assert _LOCK_HINT_PREFIX not in format_human(result)
+
+
+@pytest.mark.parametrize("wrong_lock", [False, True], ids=["valid_lock", "wrong_lock"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_existing_lock_reporting_is_unchanged(tmp_path: Path, monkeypatch, wrong_lock, apply) -> None:
+    repo, checkout, before = _make_lock_hint_consumer(tmp_path, "ai-governance-framework")
+    lock = repo / "governance/framework.lock.json"
+    _write(lock, json.dumps({"adopted_commit": "0" * 40 if wrong_lock else before,
+                             "adopted_release": "1.3.0"}) + "\n")
+    _git(repo, "add", "governance/framework.lock.json")
+    _git(repo, "commit", "-m", "record synthetic consumer lock")
+    before_bytes = lock.read_bytes()
+    baseline = _capture_before_lock_hint(monkeypatch)
+    result = run_f7_full_update(repo_root=repo, framework_root=checkout, apply=apply, target_ref=before)
+    expected = asdict(baseline[0])
+    expected["stages"]["instruction_budget_precheck"] = result.stages["instruction_budget_precheck"]
+    assert asdict(result) == expected
+    assert not any(w.startswith(_LOCK_HINT_PREFIX) for w in result.warnings)
+    assert "closeout ready" not in json.dumps(asdict(result)).lower()
+    assert "closeout ready" not in format_human(result).lower()
+    consistency = result.stages["governance_maturity_summary"]["lock_consistency"]["value"]
+    expected_consistency = "consistent"
+    if wrong_lock:
+        expected_consistency = "inconsistent" if apply else "lock_commit_not_found_locally"
+    assert consistency == expected_consistency
+    if wrong_lock:
+        # Explicit local targets retain the existing freshness non-claim.
+        assert result.f7_final_status == "not_verified"
+    if not apply or not wrong_lock:
+        assert lock.read_bytes() == before_bytes
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_missing_lock_hint_preserves_a_blocked_exit(tmp_path: Path, monkeypatch, capsys, apply) -> None:
+    repo, checkout, _before = _make_lock_hint_consumer(tmp_path, "ai-governance-framework")
+    _write(repo / "staged.txt", "pre-existing staged work\n")
+    _git(repo, "add", "staged.txt")
+    baseline = _capture_before_lock_hint(monkeypatch)
+    args = ["--repo", str(repo), "--framework-root", str(checkout), "--format", "json"]
+    if apply:
+        args.append("--apply")
+    exit_code = f7_full_update.main(args)
+    payload = json.loads(capsys.readouterr().out)
+    plain = baseline[0]
+    assert plain.ok is False
+    assert exit_code == 1
+    assert payload["f7_final_status"] == plain.f7_final_status == "blocked"
+    assert payload["errors"] == plain.errors and plain.errors
+    assert payload["update_receipt"] == plain.update_receipt
+    assert len([w for w in payload["warnings"] if w.startswith(_LOCK_HINT_PREFIX)]) == 1
+    assert not (repo / "governance/framework.lock.json").exists()
+    assert _git(repo, "diff", "--cached", "--name-only") == "staged.txt"

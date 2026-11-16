@@ -83,6 +83,17 @@ exceeds the limit, while the actual on-disk instructions still fit.
 If any required surface is `missing`, `needed`, `blocked`, `conflict`, or `not_verified`,
 the final status must not be `full_update_completed`.
 
+For a repo classified as `submodule_consumer`, a missing consumer
+`governance/framework.lock.json` produces a report-only warning in both JSON
+`warnings` and the human report's `[warnings]` section, in dry-run and apply.
+The warning names the actual missing path, the tracked/clean/index-gitlink
+prerequisite for formal closeout preparation, and the manual repair section at
+`<submodule-path>/docs/ai-governance-first-import-sop.md#submodule-framework-lock`.
+This is separate from update-stage completion: it does not change
+`lock_consistency`, final status, receipt status, errors or exit code, and does
+not create a lock. An existing lock alone establishes no closeout eligibility;
+the existing consistency reporting and closeout validations still apply.
+
 Manual pointer, gitlink, checkout, or lock-file edits that bypass F-7 may be
 reported as `manual_update`, but must not be reported as
 `full_update_completed`, `already_current`, or `updated`. If that manual path
