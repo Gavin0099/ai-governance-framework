@@ -1,4 +1,6 @@
 """Own execution is a statement, not a tool-name occurrence (CLOSEOUT-02)."""
+import ast
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -427,3 +429,213 @@ def test_probe_phrasings_default_to_claim_unless_excluded(tmp_path, checks, requ
 ])
 def test_checkable_field_presence_restores_main_status(tmp_path, checks, expected):
     assert _check_evidence({"FILES_TOUCHED": "NONE", "CHECKS_RUN": checks}, tmp_path) == (expected, [], [])
+
+
+def _existing_check_phrasings():
+    """Include existing parametrized inputs and literal CHECKS_RUN call sites."""
+    phrasings = set()
+    for value in list(globals().values()):
+        if not callable(value):
+            continue
+        for mark in getattr(value, "pytestmark", []):
+            if mark.name != "parametrize":
+                continue
+            names, rows = mark.args[:2]
+            names = names.split(",") if isinstance(names, str) else names
+            names = [name.strip() for name in names]
+            for row in rows:
+                values = (row,) if len(names) == 1 else row
+                for name, item in zip(names, values):
+                    if name in {"checks", "statement"}:
+                        phrasings.add(item)
+                    elif name == "tool":
+                        phrasings.add("I ran " + item)
+                    elif name == "executable":
+                        command = item + " -m pytest -q"
+                        phrasings.update((command + ", session_end_hook", "session_end_hook, " + command))
+    for node in ast.walk(ast.parse(Path(__file__).read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "evidence":
+            if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+                phrasings.add(node.args[1].value)
+        elif isinstance(node, ast.Dict):
+            for key, value in zip(node.keys, node.values):
+                if (isinstance(key, ast.Constant) and key.value == "CHECKS_RUN"
+                        and isinstance(value, ast.Constant)):
+                    phrasings.add(value.value)
+    return phrasings
+
+
+# Snapshot all earlier tests before defining the new corpus-based tests.
+_PRE_REVIEW_PHRASINGS = _existing_check_phrasings()
+_LITERAL_COMMANDS = (
+    "python -m pytest -q", "py -m pytest -q", "python3 -m pytest -q",
+    "python3.11 -m pytest -q", "uv run pytest -q", "poetry run pytest -q",
+    "pipx run pytest -q", "tox -e py -- pytest -q", "npx pytest -q",
+    ".venv/bin/python -m pytest -q", r".venv\Scripts\python.exe -m pytest -q",
+    r'"C:\Synthetic Tools\python3.exe" -m pytest -q',
+)
+_QUOTED_COMMAND_CLAIMS = tuple(
+    template.format(command=command)
+    for command in _LITERAL_COMMANDS
+    for template in (
+        "I ran `{command}`.", "我有執行 `{command}`。", "`{command}`",
+        '"{command}"', "'{command}'",
+    )
+)
+_ENGLISH_NEGATIONS = ("didn't run", "did not run", "never ran", "not run", "didn’t run")
+_CHINESE_NEGATIONS = ("沒有執行", "未執行", "没有执行", "並未執行")
+_MIXED_EXECUTION_CLAIMS = tuple(
+    (statement, positive)
+    for positive, negative in (("pytest", "session_end_hook"), ("session_end_hook", "pytest"))
+    for negation in _ENGLISH_NEGATIONS
+    for statement in (
+        f"I ran {positive} and {negation} {negative}.",
+        f"I {negation} {negative} and ran {positive}.",
+    )
+) + tuple(
+    (statement, positive)
+    for positive, negative in (("pytest", "session_end_hook"), ("session_end_hook", "pytest"))
+    for negation in _CHINESE_NEGATIONS
+    for coordinator in ("且", "但", "而且", "，")
+    for statement in (
+        f"我有執行 {positive}{coordinator}我{negation} {negative}。",
+        f"我{negation} {negative}{coordinator}我有執行 {positive}。",
+    )
+) + (
+    ("I ran pytest, not session_end_hook.", "pytest"),
+    ("Not session_end_hook, I ran pytest.", "pytest"),
+    ("I ran pytest and session_end_hook was not run.", "pytest"),
+    ("session_end_hook was not run and I ran pytest.", "pytest"),
+    ("我有執行 pytest，未 session_end_hook。", "pytest"),
+    ("未 session_end_hook，我有執行 pytest。", "pytest"),
+    ("I ran pytest not session_end_hook.", "pytest"),
+    ("I ran pytest not run session_end_hook.", "pytest"),
+    ("我有執行 pytest未執行 session_end_hook。", "pytest"),
+)
+
+# Exact inputs only: these are the owner-authorized non-execution contexts.
+# No regex or production-derived expected results may extend this allow-list.
+_INTENDED_EXCLUSIONS = {
+    "supplied pytest evidence was not run by me": "supplied evidence",
+    "I did not run pytest locally; supplied JUnit reports 38 passed.": "negation",
+    "I have not executed pytest myself.": "negation",
+    "CI ran pytest -q and supplied the JUnit artifact.": "CI evidence",
+    "The report states 'I ran pytest -q'.": "report attribution",
+    'The report states "I ran pytest -q".': "report attribution",
+    "The supplied report says I ran pytest -q.": "report attribution",
+    "The supplied report says, I ran pytest -q.": "report attribution",
+    'The report states "I ran pytest -q, session_end_hook".': "report attribution",
+    'The report states \'session_end_hook, "C:\\Program Files\\Python313\\python.exe" -m pytest -q\'.': "report attribution",
+    "Read pytest documentation in review.md.": "documentation",
+    "我沒有執行 pytest": "negation",
+    "pytest 不是我執行的": "negation",
+    "pytest was not executed by me.": "negation",
+    "Read pytest documentation.": "documentation",
+    "pytest documentation was reviewed.": "documentation",
+    "pytest was mentioned in review.md.": "documentation",
+    "pytest output from CI was supplied.": "CI evidence",
+    "pytest evidence supplied by the reviewer.": "supplied evidence",
+    "pytest 在報告中被提及。": "report attribution",
+    "pytest was run by CI.": "CI evidence",
+    "I reviewed pytest output.": "supplied evidence",
+    "CI 執行 pytest -q。": "CI evidence",
+    '"I ran pytest -q"': "quoted assertion",
+    "'I ran pytest -q'": "quoted assertion",
+    "`I ran pytest -q`": "quoted assertion",
+    'The report states "I ran pytest -q': "report attribution",
+    '"I ran pytest -q': "quoted assertion",
+    "CI ran pytest -q": "CI evidence",
+    "Read pytest documentation": "documentation",
+    "pytest documentation was reviewed": "documentation",
+    "I did not run session_end_hook": "negation",
+    "I didn't run session_end_hook": "negation",
+    "I never ran session_end_hook": "negation",
+    "I did not run pytest": "negation",
+    "I didn't run pytest": "negation",
+    "I never ran pytest": "negation",
+    "not pytest": "negation",
+    "not session_end_hook": "negation",
+    "沒有執行 pytest": "negation",
+    "未執行 pytest": "negation",
+    "沒有執行 session_end_hook": "negation",
+    "未執行 session_end_hook": "negation",
+}
+_DIFFERENTIAL_PHRASINGS = sorted(
+    _PRE_REVIEW_PHRASINGS | set(_QUOTED_COMMAND_CLAIMS)
+    | {statement for statement, _ in _MIXED_EXECUTION_CLAIMS}
+    | set(_INTENDED_EXCLUSIONS)
+)
+
+
+@pytest.fixture(scope="module")
+def main_check_evidence(tmp_path_factory):
+    """Load the actual frozen main implementation, never the new parser."""
+    repo = Path(__file__).resolve().parents[1]
+    source = subprocess.run(
+        ["git", "show", "39d57baf:governance_tools/session_end_hook.py"],
+        cwd=repo, check=True, capture_output=True, encoding="utf-8",
+        env={name: value for name, value in os.environ.items() if not name.upper().startswith("GIT_")},
+    ).stdout
+    path = tmp_path_factory.mktemp("main_evidence_module") / "session_end_hook.py"
+    path.write_text(source, encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("governance_tools._main_evidence_baseline", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module._check_evidence
+
+
+@pytest.mark.parametrize("checks", _DIFFERENTIAL_PHRASINGS)
+def test_main_evidence_differential_allows_only_explicit_nonexecution(tmp_path, main_check_evidence, checks):
+    fields = {"FILES_TOUCHED": "NONE", "CHECKS_RUN": checks}
+    old = main_check_evidence(fields, tmp_path)[0]
+    new = _check_evidence(fields, tmp_path)[0]
+    if old == EVIDENCE_INCONSISTENT and new == EVIDENCE_CONSISTENT:
+        assert checks in _INTENDED_EXCLUSIONS, f"Unintended fail-open: {checks!r}: {old} -> {new}"
+        print(f"\nINTENDED_FLIP {checks!r} -> {old} -> {new}")
+    if checks in _INTENDED_EXCLUSIONS:
+        assert (old, new) == (EVIDENCE_INCONSISTENT, EVIDENCE_CONSISTENT)
+
+
+@pytest.mark.parametrize("checks", _QUOTED_COMMAND_CLAIMS)
+def test_quoted_launcher_command_retains_recognized_tool(tmp_path, checks):
+    status, problems, refs = _check_evidence({"FILES_TOUCHED": "NONE", "CHECKS_RUN": checks}, tmp_path)
+    assert status == EVIDENCE_INCONSISTENT
+    assert problems and any(ref.get("tool") == "pytest" for ref in refs)
+    (tmp_path / ".pytest_cache").mkdir()
+    assert _check_evidence({"FILES_TOUCHED": "NONE", "CHECKS_RUN": checks}, tmp_path)[0] == EVIDENCE_CONSISTENT
+
+
+@pytest.mark.parametrize("checks,claimed", _MIXED_EXECUTION_CLAIMS)
+def test_negation_cannot_discard_another_affirmative_predicate(tmp_path, checks, claimed):
+    fields = {"FILES_TOUCHED": "NONE", "CHECKS_RUN": checks}
+    status, problems, refs = _check_evidence(fields, tmp_path)
+    assert status == EVIDENCE_INCONSISTENT
+    assert problems and {ref["tool"] for ref in refs} == {claimed}
+    signal = ".pytest_cache" if claimed == "pytest" else "artifacts/runtime/verdicts"
+    (tmp_path / signal).mkdir(parents=True)
+    status, problems, refs = _check_evidence(fields, tmp_path)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert {ref["tool"] for ref in refs} == {claimed}
+
+
+@pytest.mark.parametrize("checks", [
+    "I ran `python3 -m pytest -q`.",
+    "I ran `uv run pytest -q`.",
+    "I ran `.venv/bin/python -m pytest -q`.",
+    "I ran pytest and didn't run session_end_hook.",
+    "I ran pytest and never ran session_end_hook.",
+])
+def test_reviewer_examples_cannot_qualify_as_valid_without_artifacts(tmp_path, checks):
+    path = tmp_path / "session-closeout.txt"
+    path.write_text(
+        "TASK_INTENT: Review the synthetic input\nWORK_COMPLETED: Reviewed review.md\n"
+        "FILES_TOUCHED: NONE\n"
+        f"CHECKS_RUN: {checks}\n"
+        "OPEN_RISKS: NONE\nNOT_DONE: NONE\nRECOMMENDED_MEMORY_UPDATE: NO_UPDATE\n",
+        encoding="utf-8",
+    )
+    result = classify_closeout(path, tmp_path)
+    assert result["schema_validity"] == "valid"
+    assert result["content_sufficiency"] == CONTENT_SUFFICIENT
+    assert result["closeout_status"] == "evidence_inconsistent"
+    assert result["memory_tier"] != "verified_state_update"

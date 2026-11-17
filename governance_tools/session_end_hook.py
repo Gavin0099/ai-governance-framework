@@ -266,9 +266,8 @@ def _extract_tool_names(text: str) -> list[str]:
 
 
 _CHECK_CLAUSE_BREAK = re.compile(
-    r"&&|\|\||[;；\n。]|\.(?=\s|$)|\bbut\b|"
-    r"\band\b(?=\s+(?:i|we|did|have|read|reviewed|not|ci|supplied|provided|external|(?:the\s+)?report)\b)|"
-    r"但是|但(?=我|已|未|沒)", re.IGNORECASE,
+    r"&&|\|\||[;；\n。]|\.(?=\s|$)|\b(?:and|or|but)\b|"
+    r"但是|但(?=我|已|未|沒)|並且|并且|而且|以及|且|和|與|与", re.IGNORECASE,
 )
 _REPORTED_CHECK = re.compile(
     r"^(?:(?:the\s+)?(?:(?:supplied|provided|external)\s+)?"
@@ -286,8 +285,13 @@ _NEGATED_EXECUTION = re.compile(
     r"(?:run|ran|executed?|invoked?|test(?:ed)?|check(?:ed)?)\b|"
     r"(?:並未|并未|未|沒(?:有)?|没(?:有)?)\s*(?:在(?:本機|本机|本地)\s*)?"
     r"(?:親自|亲自|自行)?\s*(?:執行|执行|運行|运行|跑)|"
-    r"(?:不是|並非|并非)\s*(?:由\s*)?我(?:們|们)?\s*(?:執行|执行|跑)",
+    r"(?:不是|並非|并非)\s*(?:由\s*)?我(?:們|们)?\s*(?:執行|执行|跑)|"
+    r"(?:\bnot\s+|(?:未|沒有|没有)\s*)(?=" + _TOOL_NAME_PATTERN.pattern + r")",
     re.IGNORECASE,
+)
+_NEGATED_CHECK_SUBJECT = re.compile(
+    r"^\s*(?:" + _TOOL_NAME_PATTERN.pattern + r")\s*"
+    r"(?:(?:was|were|is|are)(?:\s+being)?\s*|[:：]\s*)?$", re.IGNORECASE,
 )
 _CHECK_MENTION_TAIL = re.compile(
     r"^(?:(?:documentation|docs|reference|examples?)\b(?![/\\]|\.[A-Za-z0-9_])|"
@@ -306,6 +310,10 @@ _CHECK_QUOTES = {'"': '"', "'": "'", "`": "`", "「": "」", "『": "』", "“"
 _QUOTED_CHECK_TEXT = re.compile(
     r'''"[^"]*(?:"|\Z)|(?<!\w)'(?:[^']|(?<=\w)'(?=\w))*(?:'|\Z)|`[^`]*(?:`|\Z)|'''
     r"「[^」]*(?:」|\Z)|『[^』]*(?:』|\Z)|“[^”]*(?:”|\Z)|‘[^’]*(?:’|\Z)"
+)
+_QUOTED_ASSERTION_HEAD = re.compile(
+    r"^(?:(?:i|we|he|she|they|you|ran|executed|invoked|tested|checked|verified)\b|"
+    r"我(?:們|们)?|他(?:們|们)?|她(?:們|们)?)", re.IGNORECASE,
 )
 
 
@@ -350,6 +358,17 @@ def _is_check_mention(text: str) -> bool:
     )
 
 
+def _without_negated_execution(clause: str) -> str:
+    """Remove the negated predicate, never an earlier affirmative predicate."""
+    negation = _NEGATED_EXECUTION.search(clause)
+    if negation is None:
+        return clause
+    prefix = clause[:negation.start()]
+    # A leading passive subject belongs to the negation ("pytest was not run").
+    # Otherwise keep the prefix: it may contain an affirmative execution claim.
+    return "" if _NEGATED_CHECK_SUBJECT.fullmatch(prefix) else prefix
+
+
 def _execution_claims(text: str) -> list[str]:
     """Keep clauses by default; exclude only explicit non-execution context."""
     def hide_quoted_assertion(match: re.Match) -> str:
@@ -358,12 +377,13 @@ def _execution_claims(text: str) -> list[str]:
         if body.endswith(_CHECK_QUOTES[quoted[0]]):
             body = body[:-1]
         body = body.strip()
-        whole_quote = match.start() == 0 and match.end() == len(match.string) and quoted[0] != "`"
-        if (whole_quote or not _TOOL_NAME_PATTERN.match(body)
-                or _NEGATED_EXECUTION.search(body) or _REPORTED_CHECK.match(body)
+        if (_QUOTED_ASSERTION_HEAD.match(body) or _REPORTED_CHECK.match(body)
                 or _EXTERNAL_CHECK.match(body) or _is_check_mention(body)):
             return " " * len(match.group())
-        return match.group()  # a literal command is not a quoted assertion
+        if (_NEGATED_EXECUTION.search(body)
+                and not _extract_tool_names(_without_negated_execution(body))):
+            return " " * len(match.group())
+        return body  # literal commands retain tools after any launcher or path
 
     claims: list[str] = []
     for statement in _split_check_clauses(text):
@@ -373,9 +393,9 @@ def _execution_claims(text: str) -> list[str]:
         for clause in _split_check_clauses(statement, commas=True):
             clause = _QUOTED_CHECK_TEXT.sub(hide_quoted_assertion, clause).lstrip(" -*•\t")
             if (_REPORTED_CHECK.match(clause) or _EXTERNAL_CHECK.match(clause)
-                    or _NEGATED_EXECUTION.search(clause) or _is_check_mention(clause)):
+                    or _is_check_mention(clause)):
                 continue
-            claims.append(clause)
+            claims.append(_without_negated_execution(clause))
     return claims
 
 
