@@ -5,6 +5,10 @@ definition and the error-code separation on 2026-10-27. **No implementation is
 authorized by this record.** The code change, and the two questions listed under
 "Deliberately not decided", each need their own authorization.
 
+**Implemented** by #291 (merged 2026-11-07, `413acf23`) under its own
+authorization; see "Implementation record" below for what main does and where it
+is narrower or broader than this record. Both deferred questions remain open.
+
 Date: 2026-10-27
 
 Observed failure this record answers:
@@ -169,6 +173,38 @@ Ratified on 2026-10-27: D1 through D5 only. The owner deferred the rest.
   registry, and this record deliberately does not create one.
 - No new validator, hook, schema field or governance surface is introduced. This
   record narrows one existing predicate and splits one existing error code.
+
+## Implementation record (added 2026-11-17)
+
+Checked against main `737eadeb`. The decisions above are unchanged; this section
+states what was built.
+
+| Decision | On main | Where |
+| --- | --- | --- |
+| D1 | An envelope-only directory under `sessions/` passes as `IDENTITY_ONLY`; candidate, receipt, release record or shared text without a completion marker is still refused as `IN_FLIGHT` | `governance_tools/shared_closeout_ownership.py`, `_initial`; `tests/test_r2_first_initialization.py` |
+| D2 | `sessions/` is no longer read as an obligation surface; the obligation surfaces are scanned directly, and `closeout-requests/` is now scanned directly as handoff state | `_initial` |
+| D3 | `SESSION_DIR_UNEXPECTED_FILE` with the relative path, for the **acquiring session's own directory only**; obligation failures keep `AMBIGUOUS_LEGACY_STATE` | `_initial`; `test_stray_file_in_the_acquiring_session_directory_names_the_path` |
+| D4 | No change needed: `execution_exclusion` plus `OWNER_CONFLICT` | `tests/test_r2_first_initialization.py` |
+| D5 | Holds: the ownership module reads neither `exited_at` nor `session-checkpoints/` | `shared_closeout_ownership.py` |
+
+Narrower than D2/D3 as written: containment is applied only to the acquiring
+session. Another session's directory that holds more than its envelope is not
+`IDENTITY_ONLY` and still needs a completion marker, refused as
+`AMBIGUOUS_LEGACY_STATE`
+(`test_extra_file_in_an_unclosed_other_session_is_not_identity_only`). An
+earlier draft of #291 applied containment to every session and newly refused a
+completed session in another consumer whose directory holds files an older
+Copilot closeout left there. Whether such files may be legitimate is deferred
+question 2, which stays open.
+
+Broader than this record, from a separate source: the owner ruling recorded on
+#256 on 2026-11-07 lets a session end pass when its `closeouts/<sid>.json` says
+`closeout_status: "missing"`, its envelope exists, and it has no closeout
+candidate and no receipt (`_finished_without_candidate`). That ruling is not an
+ADR-0002 decision; #291 implements it and additionally requires the envelope.
+
+Deferred question 1 (recovery for `IN_FLIGHT` with no owner record) is
+unimplemented and still needs its own authorization.
 
 ## Authorization boundary
 
