@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -B -m pytest -q -p no:cacheprovider tests/test_codex_session_start_wiring.py tests/test_codex_closeout_configuration.py tests/test_codex_portable_hooks.py tests/test_codex_windows_hook_command.py tests/test_external_governance_submodule_updater.py tests/test_f7_full_update.py tests/test_framework_versioning.py",
+  "exit_code": 0,
+  "started_at": "2026-11-16T01:00:38Z",
+  "finished_at": "2026-11-16T01:02:14Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "57653004065d6046bc2dc6d3a32a1d87a0ea7b25",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/f7-lock-release-stop-diagnostic-20261116.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

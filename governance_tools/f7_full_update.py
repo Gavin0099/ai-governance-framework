@@ -18,13 +18,26 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
-from governance_tools.external_governance_submodule_updater import update_governance_submodule
+from governance_tools.external_governance_submodule_updater import (
+    MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX,
+    MEMORY_WRITER_ROUTER_LINE,
+    SubmoduleUpdateError,
+    _require_safe_hook_mutation_authority,
+    memory_writer_router_line_diagnostics,
+    replace_legacy_memory_writer_router_line,
+    update_governance_submodule,
+)
+from governance_tools.codex_session_start_wiring import (
+    assess_codex_session_start,
+    diagnostic_warnings as codex_session_start_warnings,
+    format_stage as _format_codex_session_start_stage,
+)
 from governance_tools.external_repo_readiness import assess_external_repo
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
@@ -38,7 +51,8 @@ from governance_tools.governance_update_reporting import (
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
-from governance_tools.hook_installer import install_governance_hooks
+from governance_tools.hook_installer import _codex_project_doc_budget, install_governance_hooks
+from governance_tools.protected_base_sync import format_protected_hash_sync
 from governance_tools.update_receipt import (
     RECEIPT_RELATIVE_PATH,
     skipped_update_receipt,
@@ -61,18 +75,14 @@ _RESPONSE_ENVELOPE_VERSION_PATTERN = re.compile(
 )
 F7_UPDATE_BOUNDARY_BLOCK = (
     f"{F7_UPDATE_BOUNDARY_MARKER}\n"
-    "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
-    "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
-    "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` table rows as a table, not a prose summary, and include the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
-    "- F-7 terminal results require an expanded report, not a technical-first opening. For completion or partial-completion reports, retain the first three non-empty lines as 結果 / 原因 / 下一步 (translated in other session languages); other task classes retain their existing rendering rules. Explain local completion, commit/push/merge state, and important unverified behavior in plain language before the complete adoption table. Follow governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md; preserve machine status, claim boundary, evidence references, and next action. Suggested actions do not grant authorization.\n"
-    f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}. Compact human responses are the default.\n"
-    "- Ordinary expanded reporting retains three trigger IDs: `full_evidence_request`, `owner_decision_required`, and `failed_or_partial`. Failure or an owner decision alone does not force expansion when a short answer preserves the blocker, ability to proceed, risks, decision-relevant non-claims, claim boundary, and required owner choice / authorization; full-evidence requests and unavailable or ambiguously preserved canonical records still expand.\n"
-    "- Keep validation commands, counts, and diagnostics under `驗證` or `evidence_refs`; use `注意` only for one decision-relevant limitation.\n"
-    "- If the adoption table is unavailable or cannot be relayed, report `human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`, and `completion_claim_allowed=false` with the reason; do not fabricate rows or claim a complete update report.\n"
-    "- When a `mode` is used, keep `mode` event-derived with its `mode_source`; the human projection must not create trust claims or replace the canonical machine envelope.\n"
-    "- Non-trivial feature or bugfix work must not be reported with happy-path-only tests: reproducible bugs need regression tests when feasible, expected values must come from a spec/invariant/fixture rather than copied production logic, mock-only assertions are weak evidence unless observable behavior is asserted, and domain validators need pass/fail fixtures plus an execution harness before fixture evidence is treated as strong.\n"
-    "- `test_signal_quality_audit` output is report-only reviewer evidence; it helps surface weak signals but does not prove industry-grade tests, domain correctness, or enforcement.\n"
-    "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
+    "- Before F-7 work, read `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` and `governance/F7_FULL_UPDATE.md` in the installed or pinned framework.\n"
+    f"- Response envelope contract version: {RESPONSE_ENVELOPE_CONTRACT_VERSION}; follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.\n"
+)
+F7_MEMORY_WORKFLOW_BLOCK = (
+    "<!-- governance:key=memory_workflow -->\n"
+    "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
+    "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
+    f"{MEMORY_WRITER_ROUTER_LINE}\n"
 )
 
 
@@ -165,6 +175,63 @@ def _git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
     return completed.returncode, (completed.stdout or "").strip(), (completed.stderr or "").strip()
 
 
+def _copilot_hook_post_install_errors(repo_root: Path, framework_root: Path) -> list[str]:
+    """Verify the installed Copilot hooks with the validator of the target framework.
+
+    This process imported its installer before the pointer moved, so its own code
+    may predate the target. The target checkout's validator runs in a subprocess
+    instead. A target too old to report the Copilot checks falls back to this
+    process's validator; an unverifiable result is an error, never a pass.
+    """
+    completed = None
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable, "-X", "utf8", "-m", "governance_tools.hook_install_validator",
+                "--repo", str(repo_root), "--framework-root", str(framework_root), "--format", "json",
+            ],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=framework_root,
+            check=False,
+            timeout=120,
+        )
+        # A validator that crashed prints no JSON; that is unverified, not an
+        # older validator that lacks the Copilot checks.
+        checks = json.loads(completed.stdout)["checks"]
+        if not isinstance(checks, dict):
+            raise ValueError("validator output has no checks object")
+    except (OSError, subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as exc:
+        detail = (completed.stderr or "").strip()[-300:] if completed is not None else ""
+        return [f"copilot hooks could not be verified after install ({type(exc).__name__}: {exc}) {detail}".rstrip()]
+    if "copilot_vscode_hooks_governed" not in checks:
+        # The target predates the Copilot checks, or stopped early without a Git
+        # hooks directory: fill them in with this process's validator, and read
+        # the tracked VS Code config directly if that one stopped early too.
+        from governance_tools.hook_install_validator import _vscode_hook_config_safe, validate_hook_install
+
+        checks = {**validate_hook_install(repo_root, framework_root=framework_root).checks, **checks}
+        checks.setdefault(
+            "copilot_vscode_hooks_governed",
+            _vscode_hook_config_safe(repo_root / ".github" / "hooks" / "ai-governance-vscode.json"),
+        )
+    errors = []
+    if not checks["copilot_vscode_hooks_governed"]:
+        errors.append(
+            "migration_required: .github/hooks/ai-governance-vscode.json still registers the framework "
+            "lifecycle bridge (legacy Stop -> session_end) after install"
+        )
+    if checks.get("copilot_session_end_hooks_present") and not checks.get("copilot_session_end_hooks_governed"):
+        errors.append(
+            ".github/hooks/ai-governance-copilot.json does not declare exactly the managed "
+            "sessionStart/sessionEnd hooks after install"
+        )
+    return errors
+
+
 def _is_git_repo(repo: Path) -> bool:
     code, _stdout, _stderr = _git(repo, ["rev-parse", "--is-inside-work-tree"])
     return code == 0
@@ -250,6 +317,14 @@ def _update_receipt_status(status: str) -> str:
     return "not_verified"
 
 
+def _status_with_instruction_context_budget(status: str, stages: dict[str, Any]) -> str:
+    if status not in {COMPLETED, "full_update_completed", "updated", ALREADY_CURRENT}:
+        return status
+    if stages["instruction_context_budget"].get("over_budget"):
+        return PARTIALLY_UPDATED
+    return status
+
+
 def classify_repo(repo_root: Path, submodule_path: str = "ai-governance-framework") -> str:
     repo_root = repo_root.resolve()
     if not repo_root.exists() or not _is_git_repo(repo_root):
@@ -297,14 +372,11 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
         block=F7_UPDATE_BOUNDARY_BLOCK,
     )
     after = _remove_legacy_f7_json_validation_guidance(after)
+    # Presence alone kept the legacy memory-writer line in installed consumers.
+    after = replace_legacy_memory_writer_router_line(after)
     inserts: list[str] = []
     if not _memory_workflow_router_present_in_text(before):
-        inserts.append(
-            "<!-- governance:key=memory_workflow -->\n"
-            "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
-            "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
-            "- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.\n"
-        )
+        inserts.append(F7_MEMORY_WORKFLOW_BLOCK)
 
     if inserts:
         after = after.rstrip() + "\n\n" + "\n\n".join(inserts) + "\n"
@@ -343,6 +415,19 @@ def _response_envelope_surface_conflicts(repo_root: Path) -> list[str]:
             if version != RESPONSE_ENVELOPE_CONTRACT_VERSION:
                 conflicts.append(f"{relative_path.as_posix()}: {version}")
     return conflicts
+
+
+def _instruction_context_budget(
+    repo_root: Path, warnings: list[str]
+) -> tuple[dict[str, Any], list[str]]:
+    """Measure the final on-disk instructions in apply and dry-run modes."""
+    kept = [warning for warning in warnings if not warning.startswith("codex-project-doc-budget:")]
+    agents = repo_root / "AGENTS.md"
+    report, final = _codex_project_doc_budget(repo_root, [str(agents)])
+    if report is None:
+        return {"status": NOT_VERIFIED, "reason": "AGENTS.md missing or unreadable"}, kept
+    status = "over_budget" if report["over_budget"] else "warning" if report["over_budget_with_crlf"] else "verified"
+    return {"status": status, **report}, kept + final
 
 
 def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
@@ -693,7 +778,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     before = assess_external_repo(repo_root, framework_root=framework_root)
     changed: list[str] = []
     errors: list[str] = []
-    stages: dict[str, str] = {
+    stages: dict[str, Any] = {
         "framework_pointer": NOT_APPLICABLE,
         "repo_local_instruction": NOT_VERIFIED,
         "memory_writer_coverage": NOT_VERIFIED,
@@ -708,6 +793,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     }
 
     hook_backups: list[str] = []
+    hook_warnings: list[str] = []
     if apply:
         status, lock_changed, lock_errors = _copy_framework_lock(repo_root, framework_root)
         stages["framework_lock"] = status
@@ -731,11 +817,18 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         # them here would leave a consumer unable to tell from the F-7 report that
         # any of their own instruction content was moved aside.
         hook_backups.extend(hook_result.backups)
+        hook_warnings.extend(hook_result.warnings)
 
         agents_status, agents_changed, agents_errors = _ensure_agents_keyed_sections(repo_root)
         stages["agents_calibration"] = agents_status
         changed.extend(agents_changed)
         errors.extend(agents_errors)
+        # Report-only: an edited memory-writer router line is left as the consumer wrote it.
+        agents_path = repo_root / "AGENTS.md"
+        if agents_path.is_file():
+            hook_warnings.extend(
+                memory_writer_router_line_diagnostics(agents_path.read_text(encoding="utf-8", errors="replace"))
+            )
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
@@ -744,7 +837,13 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     response_envelope_conflicts = _response_envelope_surface_conflicts(repo_root)
     stages["response_envelope_surface"] = "conflict" if response_envelope_conflicts else "verified"
     stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, framework_root)
-    final_status = _status_from_external_readiness(after, repo_root, framework_root)
+    # Report-only (#288): F-7 never installs the Codex identity hook; it says
+    # whether one is needed and how to add it with the owner's approval.
+    stages["codex_session_start"] = assess_codex_session_start(repo_root, framework_root)
+    stages["instruction_context_budget"], hook_warnings = _instruction_context_budget(repo_root, hook_warnings)
+    final_status = _status_with_instruction_context_budget(
+        _status_from_external_readiness(after, repo_root, framework_root), stages
+    )
     if errors:
         final_status = BLOCKED
     diagnostics = _framework_version_diagnostics(after, framework_root)
@@ -756,6 +855,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
         )
+    warnings.extend(f"f7-diagnostic: {warning}" for warning in hook_warnings)
+    warnings.extend(
+        f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+    )
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
             "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
@@ -818,7 +921,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     )
 
 
-def run_f7_full_update(
+def _run_f7_full_update(
     *,
     repo_root: Path,
     framework_root: Path,
@@ -849,6 +952,34 @@ def run_f7_full_update(
             },
             errors=[f"not a usable git repo: {repo_root}"],
         )
+    apply_warnings: list[str] = []
+    try:
+        _require_safe_hook_mutation_authority(repo_root)
+    except SubmoduleUpdateError as exc:
+        if apply:
+            # Both backends can install common-directory hooks. Refuse before
+            # either can fetch, copy instructions, install hooks or write a receipt.
+            return F7Result(
+                ok=False,
+                mode="apply",
+                repo_root=str(repo_root),
+                repo_role=role,
+                f7_final_status=BLOCKED,
+                stages={
+                    "framework_pointer": (
+                        NOT_APPLICABLE if role == "external_contract_repo" else BLOCKED
+                    ),
+                    "hook_validator_enforcement": BLOCKED,
+                    "governance_maturity_summary": _governance_maturity_stage(
+                        repo_root, framework_root
+                    ),
+                },
+                errors=[str(exc)],
+                update_receipt=skipped_update_receipt(
+                    "linked worktree apply blocked before any writes"
+                ),
+            )
+        apply_warnings.append(f"f7-diagnostic: {exc}")
     # Submodule consumers have their own pre-mutation staged-scope guard. Let
     # that backend produce its structured blocked result so dry-run reporting
     # still includes the report-only maturity summary and adoption table.
@@ -866,6 +997,7 @@ def run_f7_full_update(
                 )
             },
             errors=["repo has pre-existing staged changes; refusing to mix F-7 scope"],
+            warnings=apply_warnings,
         )
     if role == "submodule_consumer":
         result = update_governance_submodule(
@@ -888,6 +1020,7 @@ def run_f7_full_update(
         # governance instructions; for half its consumers it did not.
         surface_changed: list[str] = []
         surface_backups: list[str] = []
+        surface_warnings: list[str] = []
         updater_blocked = apply and not (result.ok and not result.errors)
         if updater_blocked:
             # Fail-closed has to mean closed. The updater refuses to touch a repo
@@ -897,32 +1030,92 @@ def run_f7_full_update(
             stages["hook_validator_enforcement"] = BLOCKED
         elif apply:
             hook_result = install_governance_hooks(repo_root, repo_root / submodule_path)
+            # Install success is not hook safety: the installer that ran may be
+            # older than the target, so the target's validator has the last word.
+            post_install_errors = (
+                _copilot_hook_post_install_errors(repo_root, repo_root / submodule_path)
+                if hook_result.ok
+                else []
+            )
             stages["hook_validator_enforcement"] = (
                 BLOCKED
-                if not hook_result.ok
+                if not hook_result.ok or post_install_errors
                 else "updated"
                 if hook_result.changed_files
                 else "verified"
             )
             surface_changed.extend(hook_result.changed_files)
             surface_backups.extend(hook_result.backups)
+            surface_warnings.extend(hook_result.warnings)
             result.errors.extend(hook_result.errors)
+            result.errors.extend(post_install_errors)
 
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
-        final_status = _status_with_lock_consistency(
-            result.full_update_stage_report.get("final_status", NOT_VERIFIED),
-            stages,
+        # Report-only (#288), as on the external path: status and ok ignore it.
+        stages["codex_session_start"] = assess_codex_session_start(repo_root, repo_root / submodule_path)
+        stages["instruction_context_budget"], surface_warnings = _instruction_context_budget(repo_root, surface_warnings)
+        final_status = _status_with_instruction_context_budget(
+            _status_with_lock_consistency(
+                result.full_update_stage_report.get("final_status", NOT_VERIFIED), stages
+            ), stages,
         )
         if stages.get("hook_validator_enforcement") == BLOCKED:
             final_status = BLOCKED
+        update_receipt = result.update_receipt
+        written = update_receipt.get("receipt") if update_receipt.get("status") == "written" else None
+        if (
+            apply
+            and final_status in {BLOCKED, PARTIALLY_UPDATED}
+            and isinstance(written, dict)
+            and written.get("update_status") in {"updated", ALREADY_CURRENT}
+        ):
+            # The backend receipt predates the final surface checks. Preserve
+            # their blocked or partial result instead of leaving success behind.
+            try:
+                update_receipt = write_update_receipt(
+                    tool="f7_full_update",
+                    repo_root=repo_root,
+                    framework_root=repo_root / submodule_path,
+                    framework_before=written.get("framework_before"),
+                    framework_after=written.get("framework_after"),
+                    update_status=final_status,
+                    remote_evidence=written.get("remote_evidence"),
+                    warnings=list(result.errors) + surface_warnings,
+                )
+            except OSError as exc:
+                result.errors.append(
+                    "update receipt still records a successful update and could not be "
+                    f"rewritten ({type(exc).__name__}: {exc}); do not rely on it"
+                )
         changed_files = list(result.staged_files) + surface_changed
-        if result.update_receipt.get("status") == "written":
-            changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
+        # F-J: the controlled AGENTS.base.md replacement is reported as its own
+        # item; the files it wrote are named here too, never hidden.
+        protected_sync = (result.full_update_stage_report.get("details") or {}).get(
+            "protected_hash_sync"
+        ) or {}
+        changed_files.extend(protected_sync.get("changed_files") or [])
+        if update_receipt.get("status") == "written":
+            changed_files.append(str(update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         warnings = [
             f"f7-diagnostic: install replaced existing content and kept a backup at {backup}; "
             "review it before discarding — repository-specific instructions may live there"
             for backup in surface_backups
         ]
+        warnings.extend(apply_warnings)
+        # Report-only: the updater's router-line diagnostics would otherwise stay
+        # buried in the stage report details; status and ok are already decided.
+        repo_local_report = (
+            (result.full_update_stage_report.get("details") or {}).get("repo_local_instruction") or {}
+        )
+        surface_warnings.extend(
+            warning
+            for warning in repo_local_report.get("warnings", [])
+            if warning.startswith(MEMORY_WORKFLOW_ROUTER_WARNING_PREFIX)
+        )
+        warnings.extend(f"f7-diagnostic: {warning}" for warning in surface_warnings)
+        warnings.extend(
+            f"f7-diagnostic: {warning}" for warning in codex_session_start_warnings(stages["codex_session_start"])
+        )
         return F7Result(
             ok=result.ok and not result.errors,
             mode=result.mode,
@@ -934,10 +1127,12 @@ def run_f7_full_update(
             errors=result.errors,
             warnings=warnings,
             details={"submodule_backend": asdict(result)},
-            update_receipt=result.update_receipt,
+            update_receipt=update_receipt,
         )
     if role == "external_contract_repo":
-        return _run_external_contract_backend(repo_root, framework_root, apply=apply)
+        result = _run_external_contract_backend(repo_root, framework_root, apply=apply)
+        result.warnings.extend(apply_warnings)
+        return result
     return F7Result(
         ok=False,
         mode="apply" if apply else "dry_run",
@@ -949,7 +1144,105 @@ def run_f7_full_update(
             "governance_maturity_summary": _governance_maturity_stage(repo_root, framework_root),
         },
         errors=[f"no F-7 apply backend for repo role: {role}"],
+        warnings=apply_warnings,
     )
+
+
+def run_f7_full_update(
+    *,
+    repo_root: Path,
+    framework_root: Path,
+    apply: bool = False,
+    submodule_path: str = "ai-governance-framework",
+    target_ref: str | None = None,
+    fetch_remote: str = "origin",
+    fetch_ref: str = "main",
+    precheck_observer: Callable[[dict[str, Any]], None] | None = None,
+    precheck_scratch_dir: Path | None = None,
+) -> F7Result:
+    """Report instruction compatibility before either backend can mutate the repo."""
+    _tool_provenance()
+    from governance_tools.consumer_upgrade_precheck import predict_instruction_upgrade
+
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+    role = classify_repo(repo_root, submodule_path=submodule_path)
+    source = framework_root
+    selected_ref = None
+    resolution_error = None
+    if role == "submodule_consumer":
+        try:
+            # Discovery is read-only and follows the backend's path authority.
+            from governance_tools.external_governance_submodule_updater import (
+                _resolve_submodule_path, _resolve_target_head, _require_initialized_git_checkout,
+            )
+
+            resolved_path = _resolve_submodule_path(repo_root, submodule_path)
+            source = repo_root / resolved_path
+            _require_initialized_git_checkout(source)
+            selected_ref, _source = _resolve_target_head(
+                source, target_ref=target_ref or f"{fetch_remote}/{fetch_ref}",
+                explicit_target=target_ref is not None, fetch_remote=fetch_remote,
+                fetch_ref=fetch_ref, dry_run=True,
+            )
+        except (SubmoduleUpdateError, OSError) as exc:
+            resolution_error = str(exc)
+    precheck = predict_instruction_upgrade(
+        repo_root, source, repo_role=role, target_ref=selected_ref,
+        scratch_dir=precheck_scratch_dir,
+    )
+    if selected_ref and not precheck.get("source_revision") and not resolution_error:
+        # A consumer may not have fetched this target yet, while the checkout
+        # running F-7 already has it. The exact selected commit is the authority;
+        # use its objects without fetching into or modifying the consumer.
+        for candidate in dict.fromkeys((framework_root, Path(__file__).resolve().parent.parent)):
+            if candidate == source:
+                continue
+            alternate = predict_instruction_upgrade(
+                repo_root, candidate, repo_role=role, target_ref=selected_ref,
+                scratch_dir=precheck_scratch_dir,
+            )
+            if alternate.get("source_revision") == selected_ref:
+                precheck = alternate
+                break
+    if resolution_error:
+        precheck.update(status=NOT_VERIFIED, predicted=None)
+        precheck.pop("drift_check_will_fail", None)
+        precheck["errors"].append(resolution_error)
+    if precheck_observer is not None:
+        precheck_observer(precheck)
+    result = _run_f7_full_update(
+        repo_root=repo_root, framework_root=framework_root, apply=apply,
+        submodule_path=submodule_path, target_ref=target_ref,
+        fetch_remote=fetch_remote, fetch_ref=fetch_ref,
+    )
+    backend = result.details.get("submodule_backend", {})
+    actual_target = backend.get("target_head") if isinstance(backend, dict) else None
+    if selected_ref and actual_target and selected_ref != actual_target:
+        # The remote may advance between read-only selection and backend fetch.
+        # Keep the original observation; never pass it off as the applied target.
+        precheck["status"] = NOT_VERIFIED
+        precheck["errors"].append("the backend selected a different target after precheck; prediction does not describe that target")
+        precheck["actual_target"] = actual_target
+        precheck.pop("drift_check_will_fail", None)
+    result.stages["instruction_budget_precheck"] = precheck
+    # Disclosure only: completion, lock consistency and receipt status have
+    # already been decided. A missing first-import lock is not an update stage.
+    lock_path = repo_root / "governance" / "framework.lock.json"
+    if result.repo_role == "submodule_consumer" and not lock_path.exists():
+        reported_path = (
+            backend.get("submodule_path") or submodule_path
+            if isinstance(backend, dict) else submodule_path
+        )
+        result.warnings.append(
+            f"f7-diagnostic: formal-closeout prerequisite missing: {lock_path.as_posix()}; "
+            "formal closeout preparation requires a tracked, clean regular file with "
+            "adopted_commit matching the consumer index gitlink; "
+            "update-stage completion does not establish formal-closeout eligibility. "
+            "Manual repair (add and commit): "
+            f"{reported_path}/docs/ai-governance-first-import-sop.md#submodule-framework-lock"
+        )
+    return result
 
 
 def format_human(result: F7Result) -> str:
@@ -988,13 +1281,30 @@ def format_human(result: F7Result) -> str:
             "it does not prove runtime enforcement or full governance correctness."
         ),
     ]
+    budget = result.stages.get("instruction_context_budget", {})
+    if budget.get("over_budget"):
+        lines.append(
+            f"AGENTS.md exceeds Codex's {budget['budget_bytes']}-byte budget on disk; "
+            "trailing instructions will be truncated, so this is not a complete update."
+        )
+    elif budget.get("over_budget_with_crlf"):
+        lines.append("AGENTS.md fits on disk, but converting it to CRLF would exceed Codex's budget (warning only).")
     if result.stages:
         lines.append("[stages]")
         for key in sorted(result.stages):
             if key == "governance_maturity_summary":
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
+            elif key == "codex_session_start":
+                lines.extend(_format_codex_session_start_stage(result.stages[key]))
+            elif key == "instruction_budget_precheck":
+                from governance_tools.consumer_upgrade_precheck import format_prediction
+
+                lines.extend(format_prediction(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
+        details = result.stages.get("details")
+        if isinstance(details, dict) and details.get("protected_hash_sync"):
+            lines.extend(format_protected_hash_sync(details["protected_hash_sync"]))
     lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.changed_files:
@@ -1010,6 +1320,8 @@ def format_human(result: F7Result) -> str:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from governance_tools.consumer_upgrade_precheck import format_prediction
+
     parser = argparse.ArgumentParser(description="Run repo-role aware F-7 full update.")
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--framework-root", type=Path, default=Path(__file__).resolve().parent.parent)
@@ -1044,6 +1356,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         target_ref=args.target_ref,
         fetch_remote=args.fetch_remote,
         fetch_ref=args.fetch_ref,
+        precheck_observer=lambda report: print(
+            "\n".join(format_prediction(report)),
+            file=sys.stderr, flush=True,
+        ),
     )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))

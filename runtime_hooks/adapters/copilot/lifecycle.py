@@ -65,9 +65,11 @@ def normalize_lifecycle_payload(
     event_type: str,
     surface: str,
 ) -> dict[str, Any]:
-    if event_type not in {"session_start", "session_end"}:
+    if event_type not in {"session_start", "session_end", "agent_stop"}:
         raise ValueError(f"unsupported lifecycle event_type: {event_type}")
     resolved_surface = _resolve_surface(payload, surface)
+    if event_type == "agent_stop" and resolved_surface != "vscode":
+        raise ValueError("agent_stop is the VS Code Stop execution point only")
 
     session_id = _validate_session_id(_first_text(payload, "session_id", "sessionId"))
     cwd = _first_text(payload, "cwd")
@@ -232,7 +234,7 @@ def _write_session_envelope(
         anchor = installed_root or project_root
         started = establish_bound_session(
             session_id, anchor, str(project_root),
-            provider=provider, lock_name=".vscode-start.lock",
+            provider=provider, lock_name=_COPILOT_RUNTIME_START_LOCK,
             require_existing=require_existing,
         )
         return {
@@ -241,13 +243,186 @@ def _write_session_envelope(
             "envelope_status": started["status"],
         }
 
-    from runtime_hooks.core._canonical_closeout import write_session_envelope
-
-    return write_session_envelope(session_id, project_root, provider=provider)
+    # The shared Copilot registration (.github/hooks/ai-governance-copilot.json) runs for
+    # the standalone Copilot CLI and, because VS Code loads that file too, for VS Code
+    # agent mode, with the same session id. One entry decides, so hook order cannot.
+    # The provider is the client the Copilot runtime itself recorded for this session
+    # (owner ruling 2026-11-11); an unknown or missing record establishes nothing.
+    # Resumes keep the same sessionId and send source "resume": an existing identity,
+    # including a v1.0 one, is preserved and never migrated or rebound.
+    require_existing = source == "resume"
+    installed_root = _installed_project_root()
+    if installed_root is not None:
+        _require_installed_root(project_root, installed_root)
+    try:
+        from runtime_hooks.core._bound_session_start import establish_bound_session
+        from governance_tools.copilot_session_state import provider_for_session
+    except ModuleNotFoundError as exc:
+        # A framework without root-bound support or the runtime record reader keeps
+        # the previous v1.0 behaviour; any other import failure is a real error.
+        if exc.name not in (_BOUND_SESSION_MODULE, _SESSION_STATE_MODULE):
+            raise
+        return _preserving_envelope(
+            session_id, project_root, provider=provider, require_existing=require_existing,
+        )
+    try:
+        resolved = provider_for_session(session_id)
+    except ValueError:
+        # A resume of an identity that already exists needs no new decision: the
+        # envelope already names its provider and is only preserved. Anything else
+        # without the runtime's own record establishes nothing.
+        from runtime_hooks.core._canonical_closeout import read_session_envelope
+        existing = read_session_envelope(session_id, installed_root or project_root) if require_existing else None
+        if not existing:
+            raise
+        resolved = existing["provider"]
+    anchor = installed_root or project_root
+    started = establish_bound_session(
+        session_id, anchor, str(project_root),
+        provider=resolved, lock_name=_COPILOT_RUNTIME_START_LOCK,
+        require_existing=require_existing,
+    )
+    return {
+        "artifact_path": started["session_envelope_path"],
+        "schema_version": started["envelope_schema_version"],
+        "envelope_status": started["status"],
+        "provider": resolved,
+    }
 
 
 _BOUND_SESSION_MODULE = "runtime_hooks.core._bound_session_start"
+# One lock for every SessionStart that runs on the Copilot runtime (VS Code payload and
+# shared Copilot payload), so two registrations for one session id serialize; name kept from #225.
+_COPILOT_RUNTIME_START_LOCK = ".vscode-start.lock"
+_SESSION_STATE_MODULE = "governance_tools.copilot_session_state"
 _LEGACY_REASON = "framework_without_root_bound_support"
+VSCODE_PROVIDER = "github-copilot-vscode"
+
+
+COPILOT_PROVIDERS = (VSCODE_PROVIDER, "github-copilot")
+
+
+def _prepared_owner(root: Path, sid: str) -> dict[str, Any] | None:
+    """None when this session is the R2 owner of a prepared candidate, else the reason not to act.
+
+    Read only: no owner record means nothing was prepared, and the R2 lock file is not
+    even created. The protected entry re-checks everything under the lock.
+    """
+    from governance_tools import shared_closeout_ownership as ownership
+
+    if not (root / ownership.AREA / "owner.json").exists():
+        return {"ok": True, "status": "no_prepared_candidate"}
+    try:
+        with ownership.execution_exclusion(root, create=False) as lease:
+            owner = ownership._owner(lease)
+    except (ValueError, OSError) as exc:
+        return {"ok": False, "status": "ownership_unavailable", "error": str(exc)}
+    if not owner or owner.get("session_id") != sid or owner.get("state") != "OWNED":
+        return {"ok": True, "status": "no_prepared_candidate"}
+    return None
+
+
+def _protected_closeout(root: Path, sid: str, transcript: Path | None, framework_root: Path) -> dict[str, Any]:
+    """The same protected, receipt-producing entry Codex's native Stop uses; it alone releases R2."""
+    command = [sys.executable, str(framework_root / "governance_tools" / "session_closeout_entry.py"),
+               "--project-root", str(root), "--format", "json", "--agent-id", "copilot",
+               "--trigger-mode", "native_hook", "--session-id", sid]
+    completed = subprocess.run(
+        command, input=json.dumps({"session_id": sid, "transcript_path": str(transcript) if transcript else None}),
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600,
+    )
+    try:
+        entry = json.loads(completed.stdout) if completed.stdout.strip() else {}
+    except json.JSONDecodeError:
+        entry = {}
+    return {
+        "ok": completed.returncode == 0,
+        "status": "closeout_invoked",
+        "closeout_exit_code": completed.returncode,
+        "closeout_status": entry.get("closeout_status"),
+        "closeout_error": entry.get("error"),
+        "closeout_receipt_artifact": entry.get("closeout_receipt_artifact"),
+    }
+
+
+def _agent_stop(normalized: dict[str, Any], framework_root: Path) -> dict[str, Any]:
+    """VS Code Stop: an execution point for an already prepared closeout, nothing more.
+
+    Stop fires at the end of every agent turn and is not session end. It never prepares
+    a candidate, never releases ownership by itself and never treats task DONE as the
+    end of the session. Only when this VS Code session is the R2 owner of a prepared
+    candidate does it run the same protected entry Codex's native Stop uses, which
+    validates identity, transcript and release proof again and fails closed.
+    """
+    root = normalized["project_root"]
+    sid = normalized["session_id"]
+    from runtime_hooks.core._canonical_closeout import read_session_envelope
+
+    envelope = read_session_envelope(sid, root) or {}
+    if envelope.get("schema_version") != "1.1" or envelope.get("provider") != VSCODE_PROVIDER:
+        return {"ok": True, "status": "no_governed_vscode_identity"}
+    not_prepared = _prepared_owner(root, sid)
+    if not_prepared is not None:
+        return not_prepared
+    return _protected_closeout(root, sid, normalized["transcript_path"], framework_root)
+
+
+def _prepared_session_end(normalized: dict[str, Any], framework_root: Path) -> dict[str, Any] | None:
+    """Session end of a root-bound Copilot session that prepared an R2 candidate (review on #297).
+
+    Root-bound Copilot CLI sessions can now prepare, so their sessionEnd must release R2
+    through the protected entry; the direct session_end hook never produces release proof
+    and would leave the owner OWNED. The transcript is the runtime's own record of the
+    session (session-state/<id>/events.jsonl) when the payload names none; the entry
+    validates it exactly as for VS Code. None means no prepared candidate: the existing
+    session_end path runs unchanged.
+    """
+    root = normalized["project_root"]
+    sid = normalized["session_id"]
+    try:
+        from runtime_hooks.core._canonical_closeout import read_session_envelope
+        from governance_tools import copilot_session_state
+    except ModuleNotFoundError:
+        return None
+    envelope = read_session_envelope(sid, root) or {}
+    if envelope.get("schema_version") != "1.1" or envelope.get("provider") not in COPILOT_PROVIDERS:
+        return None
+    not_prepared = _prepared_owner(root, sid)
+    if not_prepared is not None:
+        # Nothing prepared: the existing path. R2 busy: fail closed rather than run a
+        # closeout that cannot release while another closeout holds the lock.
+        return None if not_prepared["status"] == "no_prepared_candidate" else not_prepared
+    transcript = normalized["transcript_path"]
+    if transcript is None:
+        transcript = copilot_session_state.session_state_dir(sid) / "events.jsonl"
+    return _protected_closeout(root, sid, transcript, framework_root)
+
+
+def _session_id_context(result: dict[str, Any]) -> dict[str, Any]:
+    """Tell a VS Code Copilot agent its own platform session id (owner ruling 2026-11-12).
+
+    VS Code gives the agent no session id, yet formal closeout preparation needs it.
+    Only after this hook has established or preserved a root-bound github-copilot-vscode
+    identity does the hook hand the platform's id to the conversation, through the
+    documented top-level SessionStart output, additionalContext, of the GitHub Copilot
+    hook format that the shared registration uses. It only informs the agent; it
+    proves nothing. R2 still checks the platform-created envelope,
+    repository, transcript and ownership on its own.
+    """
+    if (result.get("provider") != VSCODE_PROVIDER
+            or result.get("session_envelope_binding") != "root_bound"):
+        return {}
+    note = (
+        f"AI Governance: the platform session id of this VS Code Copilot session is "
+        f"{result['session_id']}. The SessionStart hook bound it to {result['project_root']}. "
+        "Use it as <session-id> for prepare_closeout_candidate.py, and only at an "
+        "owner-authorized closeout (AGENTS.base.md, Session Closeout Obligation); never take "
+        "an id from artifacts/runtime/.current-session-id. After PREPARED, the VS Code Stop "
+        "hook runs the formal closeout after your turn: report PREPARED / PENDING_HOOK, and do "
+        "not run manual_fallback. Only R2 evidence (valid closeout, RELEASED ownership) "
+        "confirms success. This note is not proof of identity."
+    )
+    return {"additionalContext": note}
 
 
 def _legacy_vscode_envelope(
@@ -258,9 +433,23 @@ def _legacy_vscode_envelope(
     require_existing: bool,
 ) -> dict[str, Any]:
     """A framework without root-bound support: its legacy v1.0 envelope, under
-    the same identity rules as the bound path.  An existing identity is
-    preserved, never rewritten; one owned by another provider is refused; and
-    resume/compact never invents an identity."""
+    the same identity rules as the bound path."""
+    envelope = _preserving_envelope(
+        session_id, project_root, provider=provider, require_existing=require_existing,
+    )
+    return {**envelope, "binding_reason": _LEGACY_REASON}
+
+
+def _preserving_envelope(
+    session_id: str,
+    project_root: Path,
+    *,
+    provider: str,
+    require_existing: bool,
+) -> dict[str, Any]:
+    """A v1.0 envelope under the bound path's identity rules.  An existing
+    identity is preserved, never rewritten; one owned by another provider is
+    refused; and resume/compact never invents an identity."""
     session_dir = project_root / "artifacts/runtime/sessions" / session_id
     path = session_dir / "session-envelope.json"
     if session_dir.is_symlink() or path.is_symlink():
@@ -274,14 +463,20 @@ def _legacy_vscode_envelope(
             raise ValueError("Existing envelope is invalid; refusing to overwrite")
         if existing.get("provider") != provider:
             raise ValueError("Session identity belongs to another provider; refusing to adopt it")
-        return {**existing, "artifact_path": str(path), "envelope_status": "preserved",
-                "binding_reason": _LEGACY_REASON}
+        # Like the root-bound path: the resumed session owns the current-session
+        # pointer again, which session end resolves without an explicit id.  A
+        # framework older than that pointer never refreshed it on start either.
+        from runtime_hooks.core import _canonical_closeout
+
+        write_pointer = getattr(_canonical_closeout, "_write_current_session_id_payload", None)
+        if write_pointer is not None:
+            write_pointer(session_id, project_root / "artifacts/runtime/.current-session-id")
+        return {**existing, "artifact_path": str(path), "envelope_status": "preserved"}
     if require_existing:
         raise ValueError("Existing envelope required for resume/compact; no start time invented")
     from runtime_hooks.core._canonical_closeout import write_session_envelope
 
-    envelope = write_session_envelope(session_id, project_root, provider=provider)
-    return {**envelope, "binding_reason": _LEGACY_REASON}
+    return write_session_envelope(session_id, project_root, provider=provider)
 
 
 def _run_session_end(
@@ -333,6 +528,9 @@ def run_lifecycle_event(
             "would_invoke_session_end": event_type == "session_end",
         }
 
+    if event_type == "agent_stop":
+        return {**common, **_agent_stop(normalized, framework_root)}
+
     if event_type == "session_start":
         envelope = _write_session_envelope(
             normalized["session_id"],
@@ -341,8 +539,9 @@ def run_lifecycle_event(
             hook_event_name=normalized["hook_event_name"],
             source=payload.get("source"),
         )
-        return {
+        result = {
             **common,
+            "provider": envelope.get("provider", common["provider"]),
             "ok": True,
             "status": (
                 "session_envelope_preserved"
@@ -356,6 +555,12 @@ def run_lifecycle_event(
             **({"session_envelope_binding_reason": envelope["binding_reason"]}
                if envelope.get("binding_reason") else {}),
         }
+        result.update(_session_id_context(result))
+        return result
+
+    prepared = _prepared_session_end(normalized, framework_root)
+    if prepared is not None:
+        return {**common, **prepared}
 
     result = _run_session_end(
         normalized["project_root"],
@@ -376,7 +581,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Bridge VS Code/Copilot lifecycle payloads to canonical AI Governance runtime."
     )
-    parser.add_argument("--event-type", required=True, choices=("session_start", "session_end"))
+    parser.add_argument("--event-type", required=True, choices=("session_start", "session_end", "agent_stop"))
     parser.add_argument(
         "--surface",
         required=True,

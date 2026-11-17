@@ -389,6 +389,7 @@ def handoff_framework_source(tmp_path_factory):
         subprocess.run(['git','archive','--format=zip','HEAD'],cwd=framework,stdout=output,check=True)
     with zipfile.ZipFile(archive) as z: z.extractall(source)
     for relative in ['governance_tools/closeout_handoff.py',
+                     'governance_tools/prepare_closeout_candidate.py',
                      'governance_tools/shared_closeout_ownership.py',
                      'governance_tools/native_closeout_publisher.py',
                      'governance_tools/session_closeout_entry.py']:

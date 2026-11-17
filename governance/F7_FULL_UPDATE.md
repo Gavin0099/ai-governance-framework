@@ -35,6 +35,29 @@ A submodule pointer update alone is insufficient and must be reported as
 5. hook / validator coverage check
 6. existing memory normalization status check
 7. final adoption status report backed by `governance_maturity_summary`
+8. instruction context budget measurement on the final on-disk AGENTS.md
+
+Both external-contract and submodule backends report `instruction_context_budget`,
+including dry-run (which retains the current-file measurement). Before either
+backend can write, F-7 also reports `instruction_budget_precheck`: current and
+predicted post-upgrade bytes, limit, headroom/overflow and the CRLF worst case.
+Prediction replays the real instruction refresh and managed-block installer in
+an isolated temporary copy. The CLI emits it before apply starts (on stderr,
+so JSON stdout remains parseable), and both output formats retain it in stages.
+Submodule prediction identifies the selected target; unavailable local target
+objects may be read from the supplied or executing framework checkout at that
+exact commit, without fetching into the consumer. A target unavailable in all
+those checkouts, or one that changes between precheck and fetch, is explicitly
+unverified. No precheck result bypasses the existing apply gates or blocks
+dry-run. Follow the prediction and separate opt-in slimming commands in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md#instruction-budget-before-upgrade`.
+The stage reports on-disk bytes and the CRLF worst case against Codex's default
+32,768 raw-byte project-doc budget. A file exactly at the limit fits; an on-disk
+size greater than the limit downgrades `completed`, `full_update_completed`,
+`updated` or `already_current` to `partially_updated`. The update receipt must
+reflect that downgrade. CRLF-only worst-case overflow remains a warning when
+the actual file fits. This changes completion reporting, not hook enforcement
+or the budget diagnostic in the installer.
 
 ## Layered Status Fields
 
@@ -45,6 +68,7 @@ memory_writer_coverage: verified | updated | blocked | missing | not_applicable 
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 response_envelope_surface: verified | conflict | not_verified
+instruction_context_budget: verified | warning | over_budget | not_verified
 governance_maturity_summary: present | not_available | not_run
 human_readable_adoption_summary: reported | not_reported
 ai_governance_update_result: reported | not_reported
@@ -53,9 +77,22 @@ final_status: full_update_completed | already_current | partially_updated | manu
 
 `full_update_completed` may be used only when every required stage is
 `updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
+The instruction-budget stage also permits `warning`: only the CRLF worst case
+exceeds the limit, while the actual on-disk instructions still fit.
 
 If any required surface is `missing`, `needed`, `blocked`, `conflict`, or `not_verified`,
 the final status must not be `full_update_completed`.
+
+For a repo classified as `submodule_consumer`, a missing consumer
+`governance/framework.lock.json` produces a report-only warning in both JSON
+`warnings` and the human report's `[warnings]` section, in dry-run and apply.
+The warning names the actual missing path, the tracked/clean/index-gitlink
+prerequisite for formal closeout preparation, and the manual repair section at
+`<submodule-path>/docs/ai-governance-first-import-sop.md#submodule-framework-lock`.
+This is separate from update-stage completion: it does not change
+`lock_consistency`, final status, receipt status, errors or exit code, and does
+not create a lock. An existing lock alone establishes no closeout eligibility;
+the existing consistency reporting and closeout validations still apply.
 
 Manual pointer, gitlink, checkout, or lock-file edits that bypass F-7 may be
 reported as `manual_update`, but must not be reported as
@@ -159,6 +196,33 @@ surfaces:
   stage for consuming-repo operators
 - reports `full_update_completed` only when memory workflow coverage, hook
   advisory coverage, and normalization status are all eligible
+- after installing hooks, verifies the Copilot hooks with the validator of the
+  target framework checkout, run in a subprocess, because the installer that ran
+  may predate the target. A framework lifecycle bridge still registered in
+  `.github/hooks/ai-governance-vscode.json` (the legacy `Stop -> session_end`
+  wiring, which closes the session at every agent turn) makes the hook stage
+  `blocked` with a `migration_required` error, and the update receipt records
+  `blocked`
+- in dry-run, reports the hook stage as `missing`, never `verified`, while that
+  legacy wiring remains
+
+## Consumer Health Check
+
+Run `python -m governance_tools.external_repo_readiness --repo <consumer>` from a
+current framework checkout. The tool then checks the consumer with current
+validator code, whatever framework version the consumer pins. Its output opens
+with an `AI Governance Health` summary:
+
+- `framework`: `CURRENT`, `OUTDATED` or `INCOMPATIBLE`; only `INCOMPATIBLE`
+  blocks readiness. An outdated framework is not by itself unsafe.
+- `copilot_hooks`: `SAFE`, `NOT_INSTALLED`, `INCOMPLETE` or
+  `MIGRATION_REQUIRED`. Absent hooks do not block readiness; the installed
+  legacy `Stop -> session_end` wiring does.
+- `memory_lifecycle`: always `NOT_VERIFIED`; this static check cannot observe a
+  session start, a session end or memory recovery.
+
+The check reads one repository. It keeps no list of consumers and changes
+nothing; migrating is an F-7 run, which needs the owner's authorization.
 
 ## Non-Claims
 

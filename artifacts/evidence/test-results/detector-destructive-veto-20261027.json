@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_task_level_detector.py tests/test_session_start_l0.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-27T10:15:58Z",
+  "finished_at": "2026-10-27T10:16:00Z",
+  "runner": "local Windows, CPython 3.12.10, pytest tests/test_task_level_detector.py tests/test_session_start_l0.py",
+  "linked_commit": "96db6055f53b77f90502520e94fd42df5d88735d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/detector-destructive-veto-20261027.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

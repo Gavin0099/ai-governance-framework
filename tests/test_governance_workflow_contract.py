@@ -282,7 +282,12 @@ if args[:1] == ["-c"]:
 elif args and args[0] == "governance_tools/plan_freshness.py":
     print(json.dumps({"status": "FRESH", "days_since_update": 0}))
 elif args and args[0] == "governance_tools/governance_drift_checker.py":
+    if "json" in args:
+        print(os.environ["DRIFT_JSON"])
     sys.exit(int(os.environ.get("DRIFT_EXIT", "0")))
+elif args and args[0] == "governance_tools/drift_gate_policy.py":
+    import subprocess
+    sys.exit(subprocess.run([sys.executable, os.environ["DRIFT_POLICY"]]).returncode)
 ''')
     python = write("bin/python", '#!/bin/bash\nexec "$REAL_PYTHON" "$PYTHON_STUB" "$@"\n')
     python.chmod(0o755)
@@ -293,8 +298,14 @@ elif args and args[0] == "governance_tools/governance_drift_checker.py":
         AI_GOVERNANCE_PYTHON=python.as_posix(),
         PATH=str(python.parent) + os.pathsep + env.get("PATH", ""),
         PYTEST_EXIT="0", DRIFT_EXIT="0",
+        DRIFT_POLICY=(Path.cwd() / "governance_tools/drift_gate_policy.py").as_posix(),
+        DRIFT_JSON=_drift_json("source_commit_recorded", "source_commit is missing"),
     )
     return tmp_path, env, calls
+
+
+def _drift_json(check: str, detail: str) -> str:
+    return json.dumps({"findings": [{"check": check, "severity": "warning", "detail": detail}]})
 
 
 def _pytest_calls(path: Path) -> list[list[str]]:
@@ -327,18 +338,33 @@ def test_non_pytest_mode_does_not_rerun_tests_or_claim_all_gates_passed(
     assert "Phase 完成條件滿足" not in result.stdout
 
 
-@pytest.mark.parametrize("failure", ["drift", "missing_document"])
+@pytest.mark.parametrize("failure", ["drift", "drift_critical", "missing_document"])
 def test_other_phase_gate_failures_are_not_hidden_by_non_pytest_mode(
     phase_gate_environment: tuple[Path, dict[str, str], Path], failure: str,
 ) -> None:
     root, env, _ = phase_gate_environment
     if failure == "drift":
         env["DRIFT_EXIT"] = "1"
+    elif failure == "drift_critical":
+        env["DRIFT_EXIT"] = "2"
     else:
         (root / "governance/ARCHITECTURE.md").unlink()
     result = _bash_command("bash scripts/verify_phase_gates.sh --non-pytest-only", cwd=root, env=env)
     assert result.returncode == 1, result.stdout + result.stderr
     assert "未通過" in result.stdout
+
+
+def test_time_based_drift_advisory_passes_visibly(
+    phase_gate_environment: tuple[Path, dict[str, str], Path],
+) -> None:
+    root, env, _ = phase_gate_environment
+    env["DRIFT_EXIT"] = "1"
+    env["DRIFT_JSON"] = _drift_json(
+        "expansion_boundary", "transitional_key_stale: key='k' age=91d (max=90d)")
+    result = _bash_command("bash scripts/verify_phase_gates.sh --non-pytest-only", cwd=root, env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ADVISORY expansion_boundary" in result.stdout
+    assert "Gate 通過（警告）" in result.stdout
 
 
 def test_phase_gate_rejects_unknown_options_before_running_checks(

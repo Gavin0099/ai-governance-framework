@@ -32,6 +32,11 @@ from governance_tools.external_tree_inventory_guard import (
     IdentityConfigError,
     load_repository_identity_values,
 )
+# Re-export the constant for existing installer callers.
+from governance_tools.instruction_context_budget import (
+    CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+    measure_codex_project_doc,
+)
 
 
 FRAMEWORK_MARKER = "AI Governance Framework"
@@ -104,6 +109,9 @@ class HookInstallApplyResult:
     backups: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     copilot_instructions_mode: str | None = None
+    # Report-only: never feeds `ok`. See _codex_project_doc_budget.
+    warnings: list[str] = field(default_factory=list)
+    codex_project_doc_budget: dict[str, object] | None = None
 
 
 def _read_text(path: Path) -> str:
@@ -530,29 +538,33 @@ def _apply_copilot_lifecycle_files(
 
 
 def _retired_vscode_payload(target: Path, source: Path) -> bytes:
-    """Remove only recognized old framework entries; retain consumer settings.
+    """Install the managed VS Code Stop execution point; retain consumer settings.
 
-    The empty template is intentional: VS Code has no confirmed session-end
-    event here. Unknown bridge invocations require manual resolution.
+    Recognized retired framework entries (Stop -> session_end, SessionStart) are
+    removed, the managed Stop entry is present exactly once, and every consumer
+    entry is kept in its place. Unknown bridge invocations require manual resolution.
+    The file is rewritten only when its parsed content would change.
     """
     from governance_tools.hook_install_validator import (
-        _read_vscode_hook_config, _references_copilot_bridge,
+        VSCODE_MANAGED_HOOKS, _read_vscode_hook_config, _references_copilot_bridge,
     )
 
-    if _read_vscode_hook_config(source)["hooks"]:
-        raise ValueError("VS Code template must have version 1 and empty hooks")
+    if _read_vscode_hook_config(source)["hooks"] != VSCODE_MANAGED_HOOKS:
+        raise ValueError("VS Code template must hold exactly the managed Stop execution point")
     if not target.exists():
         return source.read_bytes()
     original = target.read_bytes()
     config = _read_vscode_hook_config(target)
+    before = json.loads(json.dumps(config))
     hooks = config["hooks"]
-    changed = False
     for event, entries in list(hooks.items()):
         kept = []
         for entry in entries:
             if not _references_copilot_bridge(entry):
                 kept.append(entry)
                 continue
+            if entry in VSCODE_MANAGED_HOOKS.get(event, []):
+                continue  # Re-added below, so it is present exactly once.
             event_type = {"Stop": "session_end", "SessionStart": "session_start"}.get(event)
             expected = f"python .github/hooks/ai-governance-lifecycle.py --event-type {event_type} --surface auto"
             if (event_type is None or entry.get("type") != "command" or entry.get("command") != expected
@@ -560,12 +572,13 @@ def _retired_vscode_payload(target: Path, source: Path) -> bytes:
                     or not isinstance(entry.get("env", {}), dict)
                     or set(entry.get("env", {})) - {"AI_GOVERNANCE_FRAMEWORK_ROOT"}):
                 raise ValueError("unrecognized framework bridge wiring; preserve custom config and resolve manually")
-            changed = True
-        if kept or not entries:
+        if kept or not entries or event in VSCODE_MANAGED_HOOKS:
             hooks[event] = kept
         else:
             del hooks[event]
-    if not changed:
+    for event, managed in VSCODE_MANAGED_HOOKS.items():
+        hooks[event] = list(hooks.get(event, [])) + [dict(entry) for entry in managed]
+    if config == before:
         return original
     return (json.dumps(config, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
@@ -635,6 +648,57 @@ def _apply_agent_contract_surfaces(
         modes[surface] = mode
 
     return modes
+
+
+def _codex_project_doc_budget(
+    repo_root: Path,
+    installed: Sequence[str],
+) -> tuple[dict[str, object] | None, list[str]]:
+    """Measure the installed root `AGENTS.md` against Codex's default budget.
+
+    Codex truncates the tail of an over-budget project doc, so the trailing
+    instructions, including the end of the managed block, may never reach it.
+    An install that put the contract there must say so instead of reporting
+    plain success. Both the on-disk size and the CRLF-equivalent worst case
+    (every LF stored as CRLF, as a Windows checkout may do) are reported. This
+    is a report, not a gate: it never changes `ok`.
+    """
+    target = repo_root / "AGENTS.md"
+    if str(target) not in installed or not target.is_file():
+        return None, []
+    try:
+        payload = target.read_bytes()
+    except OSError:
+        return None, []
+    report: dict[str, object] = {
+        "path": str(target),
+        **measure_codex_project_doc(payload),
+    }
+    if not report["over_budget_with_crlf"]:
+        return report, []
+    budget = report["budget_bytes"]
+    on_disk = report["on_disk_bytes"]
+    crlf_worst_case = report["crlf_worst_case_bytes"]
+    overflow = report["overflow_bytes"]
+    crlf_overflow = report["crlf_worst_case_overflow_bytes"]
+    if report["over_budget"]:
+        size = (
+            f"is {on_disk} bytes on disk ({crlf_worst_case} with CRLF line endings), "
+            f"{overflow} bytes ({crlf_overflow} with CRLF) over"
+        )
+    else:
+        size = (
+            f"is {on_disk} bytes on disk and fits, but with CRLF line endings it is "
+            f"{crlf_worst_case} bytes, {crlf_overflow} bytes over"
+        )
+    warning = (
+        f"codex-project-doc-budget: {target} {size} Codex's default project-doc budget "
+        f"of {budget} bytes; Codex truncates the tail, so trailing instructions "
+        "(including the end of the AI Governance managed block) may not be delivered "
+        "to Codex. The budget is Codex's default project_doc_max_bytes and differs "
+        "if the consumer's Codex config overrides it."
+    )
+    return report, [warning]
 
 
 def _apply_copilot_surface(
@@ -739,6 +803,7 @@ def install_copilot_surface(
         backups=backups,
         errors=errors,
     )
+    budget_report, budget_warnings = _codex_project_doc_budget(repo_root, installed)
     return HookInstallApplyResult(
         ok=not errors,
         repo_root=str(repo_root),
@@ -748,6 +813,8 @@ def install_copilot_surface(
         backups=backups,
         errors=errors,
         copilot_instructions_mode=mode,
+        warnings=budget_warnings,
+        codex_project_doc_budget=budget_report,
     )
 
 
@@ -923,6 +990,7 @@ def install_governance_hooks(
 
     _, dependency_errors = validate_self_smoke_dependency(framework_root)
     errors.extend(dependency_errors)
+    budget_report, budget_warnings = _codex_project_doc_budget(repo_root, installed)
     return HookInstallApplyResult(
         ok=not errors,
         repo_root=str(repo_root),
@@ -932,6 +1000,8 @@ def install_governance_hooks(
         backups=backups,
         errors=errors,
         copilot_instructions_mode=copilot_mode,
+        warnings=budget_warnings,
+        codex_project_doc_budget=budget_report,
     )
 
 
@@ -1022,6 +1092,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         # belong in the terminal output, not just the JSON payload.
         for backup in result.backups:
             print(f"backup: {backup}")
+        budget = result.codex_project_doc_budget
+        if budget is not None:
+            print(
+                "codex_project_doc_bytes="
+                f"{budget['on_disk_bytes']} (crlf_worst_case={budget['crlf_worst_case_bytes']}, "
+                f"codex_default_budget={budget['budget_bytes']})"
+            )
+        for warning in result.warnings:
+            print(f"warning: {warning}")
         for error in result.errors:
             print(f"error: {error}")
     return 0 if result.ok else 1

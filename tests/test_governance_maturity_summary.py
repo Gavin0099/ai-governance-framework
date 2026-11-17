@@ -235,6 +235,44 @@ def _commit_path(repo: Path, relpath: str, message: str) -> None:
     _run_git(["commit", "-m", message], repo)
 
 
+def test_codex_trust_is_deferred_and_forwarded_without_starting_app_server(tmp_path: Path, monkeypatch) -> None:
+    from governance_tools import codex_hook_trust_status
+    from governance_tools.governance_update_reporting import format_governance_maturity_stage
+
+    repo = _make_repo(tmp_path / "codex")
+    _write(repo / ".codex" / "hooks.json", json.dumps({"hooks": {
+        "SessionStart": [{"hooks": [{"type": "command", "command": "do not execute"}]}],
+        "Stop": [{"hooks": [{"type": "command", "command": "do not execute"}]}],
+    }}))
+    monkeypatch.setattr(codex_hook_trust_status, "_resolve_codex", lambda explicit: pytest.fail("implicit process"))
+    summary = build_governance_maturity_summary(repo)
+    report = summary.codex_hook_trust
+    assert report["state"] == "trust_unknown"
+    assert report["adopted"] is False and report["probe_attempted"] is False
+    assert all(h["state"] == "trust_unknown" and not h["adopted"] for h in report["hooks"])
+    rendered = format_human(summary)
+    rows = [line for line in rendered.splitlines() if line.startswith("| Codex ")]
+    assert len(rows) == 2
+    assert all("trust_unknown" in row and "未驗證" in row and "已可用" not in row for row in rows)
+    assert "已信任仍不代表已執行或已收尾" in rendered
+    payload = summary_to_dict(summary)
+    assert payload["codex_hook_trust"] == report
+    forwarded = format_governance_maturity_stage(payload)
+    assert all(row in forwarded for row in rows)
+    assert "Codex hook 信任診斷命令：" + report["diagnostic_command"] in forwarded
+    assert "--repo" in report["diagnostic_command"]
+
+
+def test_absent_codex_hooks_are_reported_without_trust_inference(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "no-codex")
+    summary = build_governance_maturity_summary(repo)
+    assert summary.codex_hook_trust["state"] == "not_installed"
+    assert summary.codex_hook_trust["adopted"] is False
+    rendered = format_human(summary)
+    assert "| Codex SessionStart | 未安裝（not_installed） |" in rendered
+    assert "| Codex Stop | 未安裝（not_installed） |" in rendered
+
+
 def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "copy")
     external_framework = _make_framework_root(tmp_path / "external-framework")

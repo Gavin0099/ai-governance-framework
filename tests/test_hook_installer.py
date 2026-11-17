@@ -13,7 +13,7 @@ from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_SCHEMA,
     REPOSITORY_ROOT_TOKEN,
 )
-from governance_tools.hook_install_validator import validate_hook_install
+from governance_tools.hook_install_validator import VSCODE_MANAGED_STOP_ENTRY, validate_hook_install
 from governance_tools.hook_installer import (
     COPILOT_BLOCK_BEGIN,
     COPILOT_BLOCK_END,
@@ -77,7 +77,7 @@ def _make_framework(root: Path) -> None:
     )
     _write(
         root / "governance/copilot-hooks-vscode-template.json",
-        '{"version":1,"hooks":{}}\n',
+        (REPO_ROOT / "governance/copilot-hooks-vscode-template.json").read_text(encoding="utf-8"),
     )
     _write(
         root / "governance/copilot-hooks-session-end-template.json",
@@ -851,12 +851,16 @@ def test_custom_vscode_hook_config_is_preserved_without_replacement(tmp_path: Pa
     install_governance_hooks(repo, framework)
     _write(_vscode_config(repo), '{"version":1,"hooks":{"UserPromptSubmit":[]}}\n')
 
-    before = _vscode_config(repo).read_bytes()
     result = install_governance_hooks(repo, framework)
 
     assert result.ok, result.errors
+    # The consumer's own events stay; only the managed Stop execution point is added.
+    assert json.loads(_vscode_config(repo).read_text(encoding="utf-8")) == {
+        "version": 1, "hooks": {"UserPromptSubmit": [], "Stop": [VSCODE_MANAGED_STOP_ENTRY]}}
+    before = _vscode_config(repo).read_bytes()
+    again = install_governance_hooks(repo, framework)
+    assert again.ok, again.errors
     assert _vscode_config(repo).read_bytes() == before
-    assert not any(Path(item).name.startswith("ai-governance-vscode.json.bak.") for item in result.backups)
 
 
 def test_unmodified_lifecycle_files_are_not_backed_up_on_reinstall(tmp_path: Path) -> None:
@@ -945,7 +949,9 @@ def test_installed_configs_register_each_session_boundary_exactly_once(tmp_path:
     # registration may reach closeout.
     assert len(ends) == 1, merged
     assert "SessionEnd" in merged
-    assert "Stop" not in merged
+    # Stop carries only the prepared-closeout execution point (owner ruling 2026-11-11),
+    # never session_start or session_end.
+    assert merged["Stop"] == ["python .github/hooks/ai-governance-lifecycle.py --event-type agent_stop --surface vscode"]
 
 
 def test_shell_installer_backs_up_edited_lifecycle_file_end_to_end() -> None:
@@ -1071,3 +1077,102 @@ class TestAgentContractSurfaces:
             digests.add(header["sha256"])
 
         assert len(digests) == 1
+
+
+class TestCodexProjectDocBudget:
+    """Codex tail-truncates an over-budget root AGENTS.md; the install must say so."""
+
+    def _consumer(self, tmp_path, agents_text):
+        repo = tmp_path / "consumer"
+        (repo / ".git" / "hooks").mkdir(parents=True)
+        _write(repo / "AGENTS.md", agents_text)
+        return repo
+
+    def test_over_budget_agents_md_produces_a_warning(self, tmp_path):
+        from governance_tools.hook_installer import CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+
+        repo = self._consumer(tmp_path, "# AGENTS\n\n" + ("House rule line.\n" * 2000))
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        budget = result.codex_project_doc_budget
+        size = len((repo / "AGENTS.md").read_bytes())
+        assert size > CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+        assert budget["on_disk_bytes"] == size
+        assert budget["overflow_bytes"] == size - CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES
+        assert budget["crlf_worst_case_bytes"] > size
+        assert budget["over_budget"] is True
+        assert len(result.warnings) == 1
+        warning = result.warnings[0]
+        assert f"{budget['overflow_bytes']} bytes" in warning
+        assert "may not be delivered to Codex" in warning
+        assert "Codex's default" in warning
+
+    def test_under_budget_agents_md_has_no_warning(self, tmp_path):
+        repo = self._consumer(tmp_path, "# AGENTS\n\nHouse rules.\n")
+
+        result = install_governance_hooks(repo, Path("."))
+
+        assert result.ok is True, result.errors
+        assert result.warnings == []
+        budget = result.codex_project_doc_budget
+        assert budget["over_budget"] is False
+        assert budget["over_budget_with_crlf"] is False
+        assert budget["overflow_bytes"] == 0
+
+    def test_crlf_worst_case_alone_is_reported(self, tmp_path):
+        from governance_tools.hook_installer import (
+            CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+            _codex_project_doc_budget,
+        )
+
+        repo = tmp_path / "consumer"
+        repo.mkdir()
+        target = repo / "AGENTS.md"
+        # Fits on disk with LF; 200 extra CR bytes would push it over.
+        line = b"x" * 99 + b"\n"
+        lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 100) // len(line)
+        target.write_bytes(line * lines)
+
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+
+        assert report["over_budget"] is False
+        assert report["over_budget_with_crlf"] is True
+        assert report["crlf_worst_case_bytes"] == len(line) * lines + lines
+        assert len(warnings) == 1 and "with CRLF line endings" in warnings[0]
+
+    def test_budget_boundary_is_exclusive(self, tmp_path):
+        from governance_tools.hook_installer import (
+            CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES,
+            _codex_project_doc_budget,
+        )
+
+        repo = tmp_path / "consumer"
+        repo.mkdir()
+        target = repo / "AGENTS.md"
+        # No newlines, so the CRLF worst case equals the on-disk size.
+        target.write_bytes(b"x" * CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES)
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+        assert report["over_budget"] is False and warnings == []
+
+        target.write_bytes(b"x" * (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES + 1))
+        report, warnings = _codex_project_doc_budget(repo, [str(target)])
+        assert report["over_budget"] is True and report["overflow_bytes"] == 1
+        assert len(warnings) == 1
+
+    def test_human_output_names_the_warning(self, tmp_path, capsys):
+        from governance_tools.hook_installer import main
+
+        repo = self._consumer(tmp_path, "# AGENTS\n\n" + ("House rule line.\n" * 2000))
+
+        exit_code = main([
+            "--repo", str(repo), "--framework-root", ".",
+            "--repository-id", TEST_REPOSITORY_ID,
+        ])
+
+        out = capsys.readouterr().out
+        assert exit_code == 0
+        assert "ok=True" in out
+        assert "codex_project_doc_bytes=" in out
+        assert "warning: codex-project-doc-budget:" in out

@@ -240,24 +240,33 @@ def test_f2_yaml_file_present_no_pyyaml_raises(tmp_path, monkeypatch):
     assert "refusing silent fallback" in msg
 
 
-def test_f2_no_yaml_file_no_pyyaml_uses_builtin(tmp_path, monkeypatch):
+def test_f2_no_yaml_file_no_pyyaml_uses_framework_default_twin(tmp_path, monkeypatch):
     """
     F2 contrast: no REPO-LOCAL gate_policy.yaml AND no PyYAML.
     Must succeed — no file = no user-declared explicit policy intent, so
-    fallback to builtin default is legitimate (no configuration integrity violation).
+    there is no configuration integrity violation.
 
     The guard only fires when a repo-local policy file is present (user-declared).
-    When there is no repo-local file, the framework falls through to framework
-    default or builtin default without raising.
+    When there is no repo-local file, the framework default applies: without
+    PyYAML it is read from its JSON twin, so the shipped values (for example
+    hook_coverage_tier) are the same as with PyYAML.
     """
     _patch_has_yaml(monkeypatch, False)
     # tmp_path has no governance/gate_policy.yaml (no repo-local file)
-    # load_policy with project_root=tmp_path: repo_local absent → discovers
-    # framework default → _HAS_YAML=False → framework default gets builtin fallback
-    # (framework default is not user-declared, so no hard error)
     policy = load_policy(project_root=tmp_path)
-    from governance_tools.gate_policy import POLICY_SOURCE_BUILTIN_DEFAULT
-    assert policy.policy_source == POLICY_SOURCE_BUILTIN_DEFAULT
+    from governance_tools.gate_policy import POLICY_SOURCE_FRAMEWORK_DEFAULT
+    assert policy.policy_source == POLICY_SOURCE_FRAMEWORK_DEFAULT
+    assert policy.hook_coverage_tier == "A"
+    assert policy.source.endswith("gate_policy.json")
+
+
+def test_f2_no_yaml_file_no_pyyaml_without_twin_uses_builtin(tmp_path, monkeypatch):
+    """A framework checkout without the JSON twin still falls back to builtin."""
+    import governance_tools.gate_policy as gp
+    _patch_has_yaml(monkeypatch, False)
+    monkeypatch.setattr(gp, "_FRAMEWORK_POLICY_STDLIB_PATH", tmp_path / "missing.json")
+    policy = load_policy(project_root=tmp_path)
+    assert policy.policy_source == gp.POLICY_SOURCE_BUILTIN_DEFAULT
 
 
 # ── F2 end-to-end: propagation through run_session_end_hook ──────────────────

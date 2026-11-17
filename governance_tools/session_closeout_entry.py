@@ -515,6 +515,28 @@ def _capture_hook_outcome(result: dict[str, Any], session_id: str) -> dict[str, 
     return {"ok": result["ok"], "gate_blocked": gate["blocked"], "errors": list(errors)}
 
 
+def _codex_stop_skip_reason(lease, session_id: str) -> str | None:
+    """Why this Codex Stop has no closeout to run, or None when it does.
+
+    Codex fires Stop at the end of every turn. Only a session whose R2 owner record is
+    this session in state OWNED (a prepared candidate) has a closeout to run; for any
+    other turn there is nothing to close. Read-only, under the caller's lease. An owner
+    record that cannot be validated raises, and a HOLD state for this session returns
+    None, so begin_closeout reports those as the real failures they are.
+    """
+    owner = ownership._owner(lease)
+    if owner is None:
+        reason = "no R2 owner record; this session has not prepared a closeout"
+        if ownership._path(ownership._lease(lease), ownership.TEXT).exists():
+            reason += "; legacy shared closeout text is present"
+        return reason
+    if owner["session_id"] != session_id:
+        return "the R2 owner record belongs to another session"
+    if owner["state"] == "RELEASED":
+        return "this session's closeout is already released"
+    return None
+
+
 def _run_protected_closeout_with_lease(
     lease, *, session_id, transcript_path=None, agent_id="codex",
     trigger_mode="wrapper", entrypoint="governance_tools.session_closeout_entry",
@@ -728,12 +750,18 @@ def main() -> int:
         identity_error = "CLI session_id conflicts with native payload session_id"
     if explicit_session_id:
         _hook_session_id = explicit_session_id
-    if args.agent_id.strip().lower() == "codex":
+    # Copilot native_hook is the VS Code Stop execution point; other Copilot trigger modes
+    # (synthetic smoke, verify) keep their existing behaviour.
+    copilot_native = (args.agent_id.strip().lower() == "copilot" and args.trigger_mode == "native_hook")
+    # Codex native_hook is the per-turn Codex Stop event (see _codex_stop_skip_reason).
+    codex_native_stop = (args.agent_id.strip().lower() == "codex" and args.trigger_mode == "native_hook")
+    if args.agent_id.strip().lower() == "codex" or copilot_native:
         import re
         if (not _hook_session_id
                 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", _hook_session_id)
                 or re.fullmatch(r"CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]", _hook_session_id, re.IGNORECASE)):
-            identity_error = "Codex closeout requires a valid explicit session_id; shared fallback is forbidden"
+            identity_error = (f"{args.agent_id.strip().capitalize()} closeout requires a valid explicit "
+                              "session_id; shared fallback is forbidden")
     if identity_error:
         if args.format == "json":
             print(json.dumps({"ok": False, "error": identity_error}))
@@ -746,6 +774,27 @@ def main() -> int:
     except RootBindingError as exc:
         print(f"ROOT_BINDING_FAILURE: {exc}", file=sys.stderr)
         return 2
+
+    # Copilot native closeout (owner ruling 2026-11-11): VS Code Stop and the Copilot CLI
+    # sessionEnd of a prepared session. Before R2 is touched, the session must hold a
+    # root-bound Copilot identity in this consumer, and the transcript must be the Copilot
+    # runtime's own record of this session, written by the client that identity names, in
+    # this consumer. Any doubt refuses with no state change.
+    if copilot_native:
+        from governance_tools import copilot_session_state as copilot_state
+        from runtime_hooks.core._canonical_closeout import read_session_envelope
+        try:
+            envelope = read_session_envelope(_hook_session_id, project_root) or {}
+            provider = envelope.get("provider")
+            copilot_state._require(envelope.get("schema_version") == "1.1"
+                                   and provider in copilot_state.PROVIDER_BY_CLIENT.values(),
+                                   "COPILOT_IDENTITY_NOT_ROOT_BOUND")
+            copilot_state._require(_transcript_path is not None, "COPILOT_TRANSCRIPT_MISSING")
+            copilot_state.validate_transcript(_transcript_path, _hook_session_id, project_root,
+                                              expected_provider=provider)
+        except (ValueError, OSError) as exc:
+            print(json.dumps({"ok": False, "error": str(exc)}))
+            return 1
 
     # The existing writer cannot satisfy the v1.5 manual-fallback requirements.
     # Reject before consumption rather than strand a session without release proof.
@@ -767,6 +816,13 @@ def main() -> int:
         begun = True
 
     try:
+        if codex_native_stop:
+            skip_reason = _codex_stop_skip_reason(lease, _hook_session_id)
+            if skip_reason is not None:
+                # Exit 0 with empty stdout is the Codex Stop success contract.
+                print(f"[session_closeout_entry] Codex Stop: nothing to close this turn ({skip_reason})",
+                      file=sys.stderr)
+                return 0
         result = _run_protected_closeout_with_lease(
             lease, session_id=_hook_session_id, transcript_path=_transcript_path,
             agent_id=args.agent_id, trigger_mode=args.trigger_mode,
@@ -819,7 +875,14 @@ def main() -> int:
         # Execution exclusion ends; persistent HOLD survives any failure.
         exclusion.__exit__(None, None, None)
 
-    if args.format == "json":
+    if codex_native_stop:
+        # Codex treats Stop stdout on exit 0 as its hook-response JSON and marks a run with
+        # unrecognised fields as failed, so the closeout result goes to stderr instead. The
+        # durable evidence is the receipt, completion and release record written above.
+        print("[session_closeout_entry] Codex Stop closeout: "
+              f"session_id={result.get('session_id')} closeout_status={result.get('closeout_status')} "
+              f"receipt={result.get('closeout_receipt_artifact')}", file=sys.stderr)
+    elif args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(format_human_result(result))

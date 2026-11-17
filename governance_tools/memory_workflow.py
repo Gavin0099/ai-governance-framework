@@ -266,6 +266,49 @@ def _has_memory_keyword(task_text: str | None) -> bool:
     return any(keyword in lowered for keyword in _MEMORY_KEYWORDS)
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _is_linked_worktree(repo_root: Path) -> bool:
+    """True for a `git worktree add` checkout, whose git dir differs from the shared common dir.
+
+    A submodule checkout also has a `.git` file, but its git dir and common dir are the same.
+    """
+    if not (repo_root / ".git").is_file():
+        return False
+    code_dir, git_dir, _stderr = _run_git(repo_root, ["rev-parse", "--absolute-git-dir"])
+    code_common, common_dir, _stderr = _run_git(repo_root, ["rev-parse", "--git-common-dir"])
+    if code_dir != 0 or code_common != 0 or not git_dir or not common_dir:
+        return False
+    common_path = Path(common_dir)
+    if not common_path.is_absolute():
+        common_path = repo_root / common_path
+    return Path(git_dir).resolve() != common_path.resolve()
+
+
+def _declared_submodule_roots(repo_root: Path) -> list[Path]:
+    """Submodule paths declared in `.gitmodules`, parsed by git so quoting, escapes and
+    inline comments resolve exactly as git resolves them."""
+    if not (repo_root / ".gitmodules").is_file():
+        return []
+    code, stdout, _stderr = _run_git(
+        repo_root, ["config", "--file", ".gitmodules", "--null", "--get-regexp", r"^submodule\..*\.path$"]
+    )
+    if code != 0 or not stdout:
+        return []
+    roots: list[Path] = []
+    for entry in stdout.split("\0"):
+        _key, sep, value = entry.partition("\n")
+        if sep and value:
+            roots.append(repo_root / value)
+    return roots
+
+
 def _find_framework_surface(repo_root: Path) -> tuple[str | None, str | None, str | None]:
     hook_root = _framework_root_from_hook_config(repo_root)
     candidates = [
@@ -278,6 +321,22 @@ def _find_framework_surface(repo_root: Path) -> tuple[str | None, str | None, st
         )
         if item is not None
     ]
+    if hook_root is not None and not _is_within(hook_root, repo_root) and _is_linked_worktree(repo_root):
+        # Linked worktrees share the git common dir, so the hook root file names whichever
+        # checkout installed the hooks. Prefer this worktree's own framework copy when it has
+        # one, so the reported writer and guard belong to the version this worktree pins.
+        local_roots = (
+            repo_root,
+            *_declared_submodule_roots(repo_root),
+            repo_root / "ai-governance-framework",
+            repo_root / ".ai-governance-framework",
+        )
+        local = next(
+            (root for root in local_roots if (root / "governance_tools" / "memory_record.py").is_file()),
+            None,
+        )
+        if local is not None:
+            candidates = [local, *candidates]
     for root in candidates:
         protocol = root / "governance" / "MEMORY_PROTOCOL.md"
         writer = root / "governance_tools" / "memory_record.py"

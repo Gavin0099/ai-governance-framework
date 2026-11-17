@@ -264,6 +264,45 @@ def test_git_environment_cannot_substitute_an_index(consumer):
     assert runtime_bytes(consumer) == before
 
 
+def test_inherited_editor_override_does_not_block_preparation(consumer):
+    """An agent harness sets GIT_EDITOR; the declared command must still run (#257)."""
+    result = invoke(consumer, env={**environment(), "GIT_EDITOR": "true"})
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert owner(consumer)["state"] == "OWNED"
+
+
+def test_tolerated_override_is_dropped_from_every_git_child(consumer, monkeypatch):
+    """Tolerating a name in the parent must not change what a child Git call does.
+
+    `git var` exits 1 when the variable has no value, so a headless runner with
+    no `core.editor`, `VISUAL` or `EDITOR` would fail this test even though the
+    filtering is correct. Pin a fallback: the assertion is about dropping the
+    sentinel, not about the runner's editor configuration.
+    """
+    from governance_tools import prepare_closeout_candidate as prepare
+    monkeypatch.setenv("EDITOR", "true")
+    monkeypatch.setenv("VISUAL", "true")
+    monkeypatch.setenv("GIT_EDITOR", "governance-sentinel-editor")
+    assert "GIT_EDITOR" not in prepare.inherited_git_overrides()
+    assert prepare._git(consumer, "var", "GIT_EDITOR") == "true"
+
+
+@pytest.mark.parametrize("name", ["GIT_EDITOR", "GIT_SEQUENCE_EDITOR", "GIT_PAGER"])
+def test_interactive_helper_selectors_are_tolerated(name, monkeypatch):
+    from governance_tools import prepare_closeout_candidate as prepare
+    monkeypatch.setenv(name, "sentinel")
+    assert name not in prepare.inherited_git_overrides()
+
+
+@pytest.mark.parametrize("name", ["GIT_INDEX_FILE", "GIT_DIR", "GIT_WORK_TREE",
+                                  "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR",
+                                  "GIT_CONFIG_GLOBAL", "GIT_OPTIONAL_LOCKS"])
+def test_repository_and_object_selectors_stay_rejected(name, monkeypatch):
+    from governance_tools import prepare_closeout_candidate as prepare
+    monkeypatch.setenv(name, "x")
+    assert name in prepare.inherited_git_overrides()
+
+
 def test_completion_appearing_during_lock_acquisition_rejects_before_owner(consumer):
     code = """
 from pathlib import Path

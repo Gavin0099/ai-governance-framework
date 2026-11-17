@@ -162,9 +162,14 @@ def test_adopted_response_rules_remain_current_after_f7_sections(tmp_path):
     assert adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False) == 0
     adopted = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Response envelope contract version: v0.8" in adopted
-    assert "Failed/partial work and owner decisions may remain compact" in adopted
-    assert "Keep all raw fields in canonical evidence" in adopted
-    assert "without forcing an irrelevant next action" in adopted
+    # #309: the detailed reporting rules live in the canonical contract; the
+    # resident AGENTS.md keeps the version line and a pointer to that contract.
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in adopted
+    contract = (FRAMEWORK_ROOT / "governance" / "RESPONSE_ENVELOPE_CONTRACT.md").read_text(encoding="utf-8")
+    assert "### Compact by default" in contract
+    assert "use compact rendering when a\nshort answer preserves the blocker" in contract
+    assert "Preserve all raw fields in canonical machine records" in contract
+    assert "do not force an irrelevant next action" in contract
     assert _response_envelope_surface_conflicts(repo) == []
 
     _ensure_agents_keyed_sections(repo)

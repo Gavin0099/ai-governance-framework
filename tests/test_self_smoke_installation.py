@@ -11,7 +11,7 @@ import pytest
 from governance_tools import f7_full_update, hook_installer
 from governance_tools.hook_install_validator import validate_self_smoke_dependency
 from tests.test_hook_installer import _make_framework, _write
-from tests.test_f7_full_update import _init_repo, _git, _update_result
+from tests.test_f7_full_update import _DELEGATING_HOOK_VALIDATOR, _init_repo, _git, _update_result
 
 
 def target(tmp_path, declaration="required"):
@@ -212,6 +212,8 @@ def test_actual_installer_result_controls_f7_final_status(tmp_path, present):
     _make_framework(framework)
     _write(framework / ".governance/version_manifest.yaml",
            "default_self_smoke_contract_dependency: required\n")
+    # F-7 verifies the installed hooks with the target checkout's validator.
+    _write(framework / "governance_tools/hook_install_validator.py", _DELEGATING_HOOK_VALIDATOR)
     if present:
         _write(framework / "contract.yaml", "name: fixture\n")
     _write(repo / ".gitmodules", '[submodule "ai-governance-framework"]\n'
