@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- #258 merged at 5ecaaaf3 and #275 closed (first backlog group done; Windows native argument passing, real consumer closeout and native Stop still unverified); second group in progress: PLAN sync PR, proposal-PR dispositions, #213/#282 reproduction, #223 review; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:cffc94a93cd7a173272e022a627db18b8976108d3857d8cdbdf3d0059b961b81 -->
+- #332 merged at 39d57baf; #213 Copilot closeout gaps fixed in four commits on fix/213-copilot-closeout-gaps (native SessionEnd execution unverified), awaiting PR review, CI and an owner merge decision; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:6b638bb7ae2adf2783c57b8ebb875f4d44138969c6eda577918ff2bc722c0b96 -->

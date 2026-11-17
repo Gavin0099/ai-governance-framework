@@ -490,9 +490,12 @@ def test_session_end_cli_absent_no_ledger_flag_returns_env_fallback_sentinel():
 
 
 def test_session_end_appends_daily_memory_entry_with_required_fields(local_project_root):
+    session_id = "2026-03-12-01-memory"
+    write_session_envelope(session_id, local_project_root, provider="codex")
+    write_candidate(session_id, local_project_root, _closeout_candidate())
     result = run_session_end(
         project_root=local_project_root,
-        session_id="2026-03-12-01-memory",
+        session_id=session_id,
         runtime_contract=_contract(),
         checks={"ok": True, "errors": []},
         response_text="runtime output",

@@ -6,6 +6,7 @@ Runtime session-end lifecycle closeout.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -42,6 +43,7 @@ from governance_tools.runtime_reliability_observation import (
     safe_append_observation_event,
 )
 from runtime_hooks.core._canonical_closeout import (
+    CloseoutContentMismatchError,
     assess_session_closeout_binding,
     build_canonical_closeout,
     classify_binding_status,
@@ -280,8 +282,6 @@ def _build_daily_memory_record(
     canonical_closeout: dict[str, Any],
     observed_closeout_status: str | None = None,
 ) -> dict[str, str]:
-    open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
-    summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(project_root, commit, session_id)
     canonical_closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
@@ -312,6 +312,30 @@ def _build_daily_memory_record(
         else decision
     )
     displayed_promoted = False if closeout_fail_closed else promoted
+    if closeout_fail_closed or canonical_closeout_status != "valid":
+        # Preserve the required daily outcome without turning untrusted input
+        # or runtime defaults into an account of the agent's work.
+        return build_session_derived_record(
+            what_changed=(
+                f"session_end closeout audit (session={session_id}, decision={displayed_decision}, "
+                f"snapshot_created={snapshot_created}, promoted={displayed_promoted}). "
+                "No valid session-bound closeout input. No agent work is recorded; "
+                "work, checks, open items and risks are not assessed."
+            ),
+            commit=commit,
+            session_id=session_id,
+            memory_binding=memory_binding,
+            test_evidence=(
+                f"`session_end` => closeout_status={closeout_status or 'unknown'}, "
+                f"canonical_closeout_status={canonical_closeout_status or 'unknown'}, "
+                f"snapshot_created={snapshot_created}, promoted={displayed_promoted}"
+            ),
+            next_step=(
+                "NOT CLAIMED: agent next step is unknown because session-bound closeout input is missing or invalid."
+            ),
+        )
+    open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
+    summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     return build_session_derived_record(
         what_changed=(
             f"session_end auto-closeout recorded for `{task}` "
@@ -939,9 +963,19 @@ def run_session_end(
     if enforce_session_binding and binding_status == "already_consumed":
         runtime_root = project_root / "artifacts" / "runtime"
         canonical_path = runtime_root / "closeouts" / f"{session_id}.json"
+        replay_mismatch = False
         try:
-            canonical_closeout = json.loads(canonical_path.read_text(encoding="utf-8"))
+            canonical_bytes = canonical_path.read_bytes()
+            if (
+                "canonical_closeout_sha256" in session_binding
+                and hashlib.sha256(canonical_bytes).hexdigest()
+                != session_binding["canonical_closeout_sha256"]
+            ):
+                raise ValueError("canonical_closeout_digest_mismatch")
+            canonical_closeout = json.loads(canonical_bytes.decode("utf-8"))
         except (OSError, ValueError):
+            # Legacy markers retain their previous replay/fallback behavior.
+            replay_mismatch = "canonical_closeout_sha256" in session_binding
             canonical_closeout = build_canonical_closeout(
                 session_id=session_id,
                 closed_at=datetime.now(timezone.utc).isoformat(),
@@ -949,11 +983,15 @@ def run_session_end(
                 existing_artifacts=frozenset(),
                 runtime_signals={},
             )
+        replay_reason = (
+            "canonical_closeout_digest_mismatch"
+            if replay_mismatch else "session_closeout_already_consumed"
+        )
         return {
-            "ok": True,
+            "ok": not replay_mismatch,
             "session_id": session_id,
-            "decision": "ALREADY_CONSUMED",
-            "policy": {"decision": "STOP", "reason": "session_closeout_already_consumed"},
+            "decision": "CLOSEOUT_REPLAY_MISMATCH" if replay_mismatch else "ALREADY_CONSUMED",
+            "policy": {"decision": "STOP", "reason": replay_reason},
             "curated": None,
             "snapshot": None,
             "promotion": None,
@@ -962,7 +1000,7 @@ def run_session_end(
                 "candidate_signals": [],
                 "promotion_considered": False,
                 "decision": "skipped",
-                "reason": "session_closeout_already_consumed",
+                "reason": replay_reason,
             },
             "candidate_artifact": str(runtime_root / "candidates" / f"{session_id}.json"),
             "curated_artifact": str(runtime_root / "curated" / f"{session_id}.json"),
@@ -997,7 +1035,10 @@ def run_session_end(
             },
             "session_binding": session_binding,
             "warnings": ["Session closeout was already consumed; side effects were skipped."],
-            "errors": [],
+            "errors": [
+                "Accepted canonical closeout no longer matches its completion digest; "
+                "preserve artifacts and inspect recovery evidence."
+            ] if replay_mismatch else [],
         }
     if enforce_session_binding and not binding_valid:
         warnings.append(
@@ -1169,6 +1210,7 @@ def run_session_end(
     claim_enforcement_check_path: Path | None = None
     session_index_write_status = "not_attempted"
     claim_receipt_write_status = "not_attempted"
+    completion_content_mismatch = False
 
     try:
         _force_runtime_failure_if_requested(checks, "artifact_emission")
@@ -1261,6 +1303,16 @@ def run_session_end(
         _write_json(summary_path, summary_payload)
         _write_json(runtime_phase_summary_path, runtime_phase_summary)
         closeout_path = write_canonical_closeout(canonical_closeout, project_root)
+        # Bind acceptance to the qualified object and the actual text-mode bytes
+        # (including CRLF on Windows), before any later closeout side effects.
+        try:
+            canonical_bytes = closeout_path.read_bytes()
+            emitted_canonical = json.loads(canonical_bytes.decode("utf-8"))
+        except (OSError, ValueError) as exc:
+            raise CloseoutContentMismatchError("canonical_closeout_readback_mismatch") from exc
+        if emitted_canonical != canonical_closeout:
+            raise CloseoutContentMismatchError("canonical_closeout_readback_mismatch")
+        canonical_closeout_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
         session_index_write_status = _append_session_index(
             canonical_closeout,
             project_root,
@@ -1324,36 +1376,22 @@ def run_session_end(
         ]
         if claim_enforcement_check_path is not None:
             required_completion_artifacts.append(claim_enforcement_check_path)
-        # Consume the session id ONLY when the closeout actually succeeded.
-        #
-        # A rejected binding is recoverable: the operator can fix the envelope
-        # or candidate and re-run the SAME id. Writing the completion marker
-        # here would make that impossible, so a fixable input error would cost
-        # a session id — which is what it used to do.
-        #
-        # Everything above still runs on rejection: the canonical closeout,
-        # verdict, trace and daily memory record are all preserved, so the
-        # rejected attempt stays auditable. Only consumption is withheld.
-        #
-        # The guard is `binding_valid`, not the reported class:
-        # `not enforce_session_binding or binding_status == "valid"`. Callers
-        # that do not enforce binding therefore keep their current behaviour
-        # exactly, and enforcement consumes on "valid" alone.
-        #
-        # This mirrors the existing partial-emission invariant — see
-        # tests/test_runtime_session_end.py
-        # ::test_failed_artifact_emission_does_not_mark_session_consumed.
-        #
-        # Scope: structural axis only. The hook-only content axis
-        # (`session_candidate_content_mismatch`) still reaches here with a
-        # structurally valid binding and still consumes the id; that is
-        # Tranche 1b, not this change.
-        if binding_valid:
+        # Preserve attempt evidence but consume only a bound, qualified result.
+        # "valid" is the existing canonical qualification, not a new gate.
+        # R2 release remains independent of the hook's test-result gate.
+        if binding_valid and canonical_closeout["closeout_status"] == "valid":
             write_closeout_completion_marker(
                 session_id,
                 project_root,
                 required_completion_artifacts,
+                canonical_closeout_sha256=canonical_closeout_sha256,
             )
+    except CloseoutContentMismatchError as exc:
+        # Preserve the conflicting bytes and all attempt artifacts for diagnosis.
+        completion_content_mismatch = True
+        errors.append(f"Closeout not accepted: {exc}")
+        decision = "CLOSEOUT_ACCEPTANCE_MISMATCH"
+        policy = {"decision": "STOP", "reason": str(exc)}
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)
@@ -1419,6 +1457,8 @@ def run_session_end(
         "warnings": warnings,
         "errors": errors,
     }
+    if completion_content_mismatch:
+        return result
     safe_append_observation_event(
         project_root,
         RECOVERY_LOG,

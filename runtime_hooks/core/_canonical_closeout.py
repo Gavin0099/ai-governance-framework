@@ -19,6 +19,7 @@ Same inputs → same canonical output. Enables replay, audit re-run, dry-run tes
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -256,8 +257,8 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
 # the SAME session id. It does NOT mean the rejection is soft: binding stays
 # fail-closed, nothing is promoted, and no completion is claimed. The class is
 # reported for reviewers; it is deliberately NOT the condition that guards the
-# completion marker — see session_end.run_session_end, which guards on
-# `binding_valid` so that non-enforcing callers keep their current behaviour.
+# completion marker — session_end.run_session_end checks binding validity and
+# canonical qualification separately before consuming an id.
 #
 # Scope note: these are the statuses produced by assess_session_closeout_binding
 # (the structural axis). The hook-only content axis
@@ -267,7 +268,7 @@ BINDING_CLASS_TERMINAL = "terminal"
 BINDING_CLASS_RECOVERABLE = "recoverable"
 
 _TERMINAL_BINDING_STATUSES = frozenset({
-    "valid",             # closeout succeeded; the id is consumed
+    "valid",             # structurally bound; qualification controls consumption
     "already_consumed",  # a previous run consumed it; nothing left to retry
 })
 _RECOVERABLE_BINDING_STATUSES = frozenset({
@@ -312,12 +313,17 @@ def assess_session_closeout_binding(
         completion_path,
     )
     if completion is not None:
-        return {
+        binding = {
             "status": "already_consumed",
             "session_id": session_id,
             "canonical_closeout_path": str(canonical_path),
             "completion_marker_path": str(completion_path),
         }
+        # Keep consumption structural. The runtime replay branch checks content
+        # without treating a changed accepted artifact as permission to rerun.
+        if "canonical_closeout_sha256" in completion:
+            binding["canonical_closeout_sha256"] = completion["canonical_closeout_sha256"]
+        return binding
 
     envelope = read_session_envelope(session_id, project_root)
     if envelope is None:
@@ -614,13 +620,29 @@ def write_candidate(
     return path
 
 
+class CloseoutContentMismatchError(ValueError):
+    """The emitted canonical content cannot be accepted as qualified."""
+
+
 def write_closeout_completion_marker(
     session_id: str,
     project_root: Path,
     required_artifacts: list[Path],
+    *,
+    canonical_closeout_sha256: str | None = None,
 ) -> Path:
     """Atomically mark a session consumed after all required artifacts exist."""
     validate_session_id(session_id)
+    if canonical_closeout_sha256 is not None:
+        canonical_path = project_root / "artifacts/runtime/closeouts" / f"{session_id}.json"
+        try:
+            current_digest = hashlib.sha256(canonical_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            raise CloseoutContentMismatchError(
+                "canonical_closeout_changed_before_completion"
+            ) from exc
+        if current_digest != canonical_closeout_sha256:
+            raise CloseoutContentMismatchError("canonical_closeout_changed_before_completion")
     missing = [str(path) for path in required_artifacts if not path.is_file()]
     if missing:
         raise FileNotFoundError(
@@ -639,6 +661,8 @@ def write_closeout_completion_marker(
             for artifact in required_artifacts
         ],
     }
+    if canonical_closeout_sha256 is not None:
+        payload["canonical_closeout_sha256"] = canonical_closeout_sha256
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
