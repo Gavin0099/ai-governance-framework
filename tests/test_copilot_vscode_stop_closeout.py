@@ -239,6 +239,50 @@ def cli_end(root, sid, **extra):
                                 "reason": "complete", **extra}, event_type="session_end", surface="copilot")
 
 
+@pytest.mark.parametrize("native_event", ["Stop", "agentStop"])
+@pytest.mark.parametrize("surface", ["vscode", "copilot"])
+def test_legacy_turn_stop_of_prepared_session_keeps_protected_closeout(
+    repo, monkeypatch, native_event, surface,
+):
+    from runtime_hooks.adapters.copilot import lifecycle
+
+    prepare(repo, SID, session_start=start_vscode if surface == "vscode" else start_cli)
+    path = transcript(repo, records=[])
+    memory = repo / "memory"
+
+    def memory_bytes():
+        return {p.relative_to(repo).as_posix(): p.read_bytes()
+                for p in memory.rglob("*") if p.is_file()}
+
+    def unexpected_generic_closeout(*_args, **_kwargs):
+        pytest.fail("a prepared legacy Stop must use the protected closeout entry")
+
+    monkeypatch.setattr(lifecycle, "_run_session_end", unexpected_generic_closeout)
+    payload = ({"session_id": SID, "hook_event_name": native_event} if surface == "vscode"
+               else {"sessionId": SID, "hookEventName": native_event})
+    payload.update(cwd=str(repo), transcript_path=str(path))
+    before, memory_before = runtime_bytes(repo), memory_bytes()
+
+    failed = run_lifecycle_event(payload, event_type="session_end", surface=surface)
+    assert failed["status"] == "closeout_invoked" and failed["ok"] is False, failed
+    assert failed["closeout_error"].startswith("COPILOT_"), failed
+    assert runtime_bytes(repo) == before and memory_bytes() == memory_before
+    assert owner(repo)["state"] == "OWNED"
+
+    transcript(repo)  # The same session can retry once its runtime record is valid.
+    result = run_lifecycle_event(payload, event_type="session_end", surface=surface)
+    assert result["status"] == "closeout_invoked", result
+    assert result["ok"] is True and result["closeout_status"] == "valid", result
+    assert owner(repo)["state"] == "RELEASED"
+    receipt = json.loads(Path(result["closeout_receipt_artifact"]).read_text(encoding="utf-8"))
+    assert receipt["agent_id"] == "copilot" and receipt["trigger_mode"] == "native_hook"
+
+    before, memory_before = runtime_bytes(repo), memory_bytes()
+    again = run_lifecycle_event(payload, event_type="session_end", surface=surface)
+    assert again["ok"] is True and again["status"] == "turn_stop_ignored", again
+    assert runtime_bytes(repo) == before and memory_bytes() == memory_before
+
+
 def test_cli_a_prepares_ends_and_releases_then_cli_b_takes_over(repo):
     """The reported sequence: start -> prepare -> sessionEnd used to say valid but stay OWNED."""
     first = prepare(repo, "cli-a", session_start=start_cli)

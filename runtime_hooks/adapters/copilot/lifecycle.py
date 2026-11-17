@@ -562,6 +562,16 @@ def run_lifecycle_event(
     if prepared is not None:
         return {**common, **prepared}
 
+    # Legacy installations sent per-turn Stop/agentStop to session_end. Only an
+    # R2-prepared session above may close out at that execution point.
+    if normalized["hook_event_name"].casefold() in {"stop", "agentstop"}:
+        return {
+            **common,
+            "ok": True,
+            "status": "turn_stop_ignored",
+            "hook_event_name": normalized["hook_event_name"],
+        }
+
     result = _run_session_end(
         normalized["project_root"],
         session_id=normalized["session_id"],

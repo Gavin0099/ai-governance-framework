@@ -279,9 +279,21 @@ def test_copilot_cli_resume_never_invents_a_start_time(
     assert not (tmp_path / "artifacts/runtime/sessions/copilot-resume-2").exists()
 
 
+@pytest.mark.parametrize("native_event", ["SessionEnd", "sessionEnd"])
+@pytest.mark.parametrize(
+    ("surface", "event_key", "session_key"),
+    [
+        ("vscode", "hook_event_name", "session_id"),
+        ("copilot", "hookEventName", "sessionId"),
+    ],
+)
 def test_session_end_invokes_canonical_hook_with_same_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    native_event: str,
+    surface: str,
+    event_key: str,
+    session_key: str,
 ) -> None:
     observed: dict[str, object] = {}
     transcript = tmp_path / "transcript.jsonl"
@@ -310,13 +322,13 @@ def test_session_end_invokes_canonical_hook_with_same_identity(
 
     result = lifecycle.run_lifecycle_event(
         {
-            "hook_event_name": "Stop",
-            "session_id": "vscode-session-3",
+            event_key: native_event,
+            session_key: "vscode-session-3",
             "cwd": str(tmp_path),
             "transcript_path": str(transcript),
         },
         event_type="session_end",
-        surface="vscode",
+        surface=surface,
     )
 
     assert result["ok"] is True
@@ -327,6 +339,82 @@ def test_session_end_invokes_canonical_hook_with_same_identity(
         "session_id": "vscode-session-3",
         "transcript_path": transcript.resolve(),
     }
+
+
+def _lifecycle_state(root: Path) -> dict[str, bytes | None]:
+    """Include directories so even an empty artifact or memory write is visible."""
+    snapshot = {}
+    for name in ("artifacts", "memory"):
+        area = root / name
+        if area.exists():
+            for path in (area, *area.rglob("*")):
+                snapshot[path.relative_to(root).as_posix()] = (
+                    path.read_bytes() if path.is_file() else None
+                )
+    return snapshot
+
+
+@pytest.mark.parametrize(
+    "native_event",
+    ["Stop", "stop", "STOP", "agentStop", "AgentStop", "AGENTSTOP", " sToP ", " aGeNtStOp "],
+)
+@pytest.mark.parametrize(
+    ("surface", "event_key", "session_key"),
+    [
+        ("vscode", "hook_event_name", "session_id"),
+        ("copilot", "hookEventName", "sessionId"),
+    ],
+)
+@pytest.mark.parametrize("session_state", ["absent", "legacy_identity", "identity_only", "unprepared_candidate"])
+def test_legacy_turn_stop_routed_as_session_end_leaves_no_closeout_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    native_event: str,
+    surface: str,
+    event_key: str,
+    session_key: str,
+    session_state: str,
+) -> None:
+    from runtime_hooks.core import _canonical_closeout as core
+
+    sid = "legacy-turn-stop"
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    if session_state == "legacy_identity":
+        core.write_session_envelope(sid, tmp_path, provider=lifecycle.PROVIDER_BY_SURFACE[surface])
+    elif session_state != "absent":
+        client = "vscode-agent-host" if surface == "vscode" else "github/cli"
+        _copilot_cli_start(tmp_path, sid, "new", client)
+        if session_state == "unprepared_candidate":
+            core.write_candidate(sid, tmp_path, {
+                "task_intent": "a turn is not a session end",
+                "work_summary": "work remains in progress",
+                "tools_used": [],
+                "artifacts_referenced": [],
+                "open_risks": [],
+            })
+    if session_state != "absent":
+        memory = tmp_path / "memory" / "existing.md"
+        memory.parent.mkdir()
+        memory.write_text("Existing memory must remain unchanged.\n", encoding="utf-8")
+    before = _lifecycle_state(tmp_path)
+
+    def _unexpected_closeout(*_args, **_kwargs):
+        pytest.fail("an unprepared turn Stop must not invoke any closeout hook")
+
+    monkeypatch.setattr(lifecycle, "_run_session_end", _unexpected_closeout)
+    monkeypatch.setattr(lifecycle, "_protected_closeout", _unexpected_closeout)
+
+    for _ in range(2):  # Repeated turn ends must not consume the session either.
+        result = lifecycle.run_lifecycle_event(
+            {event_key: native_event, session_key: sid, "cwd": str(tmp_path)},
+            event_type="session_end",
+            surface="auto",
+        )
+        assert result["ok"] is True and result["continue"] is True
+        assert result["status"] == "turn_stop_ignored"
+        assert result["hook_event_name"] == native_event.strip()
+        assert result["session_id"] == sid
+        assert _lifecycle_state(tmp_path) == before
 
 
 def test_dry_run_resolves_hub_topology_without_writes(
