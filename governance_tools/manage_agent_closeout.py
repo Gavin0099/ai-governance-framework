@@ -830,7 +830,8 @@ class CopilotAdapter(AgentAdapter):
             + ("installed; a prepared VS Code Copilot session's closeout is left to it"
                if wiring["vscode_stop"] else "not installed"),
             "Copilot CLI sessionEnd (lifecycle bridge): "
-            + ("installed; it closes out only a session that was prepared"
+            + ("installed; a prepared session uses the protected closeout, any other session "
+               "the generic session_end closeout"
                if wiring["cli_session_end"] else "not installed"),
             f"legacy {self.HOOK_FILE} sessionEnd binding: {state}",
         ]

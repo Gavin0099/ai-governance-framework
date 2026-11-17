@@ -101,8 +101,11 @@ def assess_external_repo(
     checks["hooks_ready"] = hook_result.valid
     # One installed hook state is unsafe rather than incomplete: the framework
     # lifecycle bridge still registered in the VS Code config (the legacy
-    # `Stop -> session_end` wiring) runs the session-end closeout at every agent
-    # turn, because Stop is not session end. That blocks readiness until migrated;
+    # `Stop -> session_end` wiring) fires the session-end bridge at every agent
+    # turn, because Stop is not session end. Framework releases before #213 fix 1
+    # run the generic session-end closeout on each of those turns; later ones
+    # ignore the turn Stop of an unprepared session, but the wiring is still
+    # wrong and the consumer may pin an older framework. That blocks readiness until migrated;
     # absent hooks still do not. The config is read directly: it is tracked and
     # runs without Git hooks, and the validator stops before reading it when the
     # Git hooks directory is missing.
