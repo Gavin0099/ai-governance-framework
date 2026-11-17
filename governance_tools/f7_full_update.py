@@ -1226,6 +1226,22 @@ def run_f7_full_update(
         precheck["actual_target"] = actual_target
         precheck.pop("drift_check_will_fail", None)
     result.stages["instruction_budget_precheck"] = precheck
+    # Disclosure only: completion, lock consistency and receipt status have
+    # already been decided. A missing first-import lock is not an update stage.
+    lock_path = repo_root / "governance" / "framework.lock.json"
+    if result.repo_role == "submodule_consumer" and not lock_path.exists():
+        reported_path = (
+            backend.get("submodule_path") or submodule_path
+            if isinstance(backend, dict) else submodule_path
+        )
+        result.warnings.append(
+            f"f7-diagnostic: formal-closeout prerequisite missing: {lock_path.as_posix()}; "
+            "formal closeout preparation requires a tracked, clean regular file with "
+            "adopted_commit matching the consumer index gitlink; "
+            "update-stage completion does not establish formal-closeout eligibility. "
+            "Manual repair (add and commit): "
+            f"{reported_path}/docs/ai-governance-first-import-sop.md#submodule-framework-lock"
+        )
     return result
 
 

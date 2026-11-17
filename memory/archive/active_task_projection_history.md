@@ -12,3 +12,7 @@ projection superseded them. History only; not current state.
 - #309 local instruction-budget fix validated; uncommitted working diff for coordinator commit/push/PR; no merge authorization. <!-- memory_record_projection:active-task-summary:0f1f9fe131d70d936dccf0a6b0035380a42206fa5f1fa1ad48e73896e5fc0abb -->
 
 - #309 local instruction-budget fix validated; uncommitted working diff for coordinator commit/push/PR; no merge authorization. <!-- memory_record_projection:active-task-summary:0ffdad6b8f464322dd2686edebf348ba192a58aa65b00a7ac1952d6f4703cb72 -->
+
+- F-7 lock version and project Stop diagnostics fixed at 57653004, with 322 focused tests passing. Upstream review and consumer adoption remain pending. <!-- memory_record_projection:active-task-summary:5048fe3f0acd62c02ae69fb40352fa7bcb6cf37faa3f46671bb5b5d57e76edf8 -->
+
+- #325 merged at d1dc23d0 (review and post-merge main CI green; Windows native argument passing still unverified); current slice: #328 F-7 missing-lock hint plus a separate report-format fix; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:33bbe71ca8759748fa46de0732664e1ed79057ac792ae16ee0b25af549787f3e -->

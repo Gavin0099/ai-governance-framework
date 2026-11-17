@@ -288,7 +288,8 @@ Agent 輸出應以 **繁體中文** 為主；只有 source code 或必要 techni
 
 ### 4.2 Visual Protocol
 
-- 以 **[Decision Summary]** 開頭
+- 回報的開頭形式由 `RESPONSE_ENVELOPE_CONTRACT.md` 決定：完成與部分完成的回報，前三行依序是「結果／原因／下一步」；診斷、審查與概念解釋，採該契約允許的形式。
+- 不要求每則回覆以 `[Decision Summary]` 開頭；它仍可作為審查報告中的區段名稱。
 - 對風險、決策、stop condition 使用 **粗體**
 - 只有當表格比 prose 更清楚時才用表格
 
