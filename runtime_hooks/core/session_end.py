@@ -280,8 +280,6 @@ def _build_daily_memory_record(
     canonical_closeout: dict[str, Any],
     observed_closeout_status: str | None = None,
 ) -> dict[str, str]:
-    open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
-    summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(project_root, commit, session_id)
     canonical_closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
@@ -312,6 +310,30 @@ def _build_daily_memory_record(
         else decision
     )
     displayed_promoted = False if closeout_fail_closed else promoted
+    if closeout_fail_closed or canonical_closeout_status != "valid":
+        # Preserve the required daily outcome without turning untrusted input
+        # or runtime defaults into an account of the agent's work.
+        return build_session_derived_record(
+            what_changed=(
+                f"session_end closeout audit (session={session_id}, decision={displayed_decision}, "
+                f"snapshot_created={snapshot_created}, promoted={displayed_promoted}). "
+                "No valid session-bound closeout input. No agent work is recorded; "
+                "work, checks, open items and risks are not assessed."
+            ),
+            commit=commit,
+            session_id=session_id,
+            memory_binding=memory_binding,
+            test_evidence=(
+                f"`session_end` => closeout_status={closeout_status or 'unknown'}, "
+                f"canonical_closeout_status={canonical_closeout_status or 'unknown'}, "
+                f"snapshot_created={snapshot_created}, promoted={displayed_promoted}"
+            ),
+            next_step=(
+                "NOT CLAIMED: agent next step is unknown because session-bound closeout input is missing or invalid."
+            ),
+        )
+    open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
+    summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     return build_session_derived_record(
         what_changed=(
             f"session_end auto-closeout recorded for `{task}` "
