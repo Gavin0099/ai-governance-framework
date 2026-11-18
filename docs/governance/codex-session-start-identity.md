@@ -82,6 +82,20 @@ session id one provider created is never adopted by the other.
   or an unknown client establishes nothing. The result does not depend on which
   hook ran first; an existing envelope (`1.0` or `1.1`) is preserved and never
   upgraded, and one owned by another provider is refused.
+- **SessionStart hands off a root-bound Copilot id.** The shared hook names the
+  id in top-level `additionalContext`. VS Code can receive the id again when it
+  resumes a root-bound session. For CLI, this start's runtime record must confirm
+  the identity's provider, and the effective `sessionEnd` command for the current
+  platform must invoke the governed entry from the repository root. Preserving
+  an envelope on resume does not verify the CLI provider. Without the id, report
+  the closeout as not persisted. Use the id only at an owner-authorized closeout;
+  never take it from `.current-session-id`. After `PREPARED`, report `PREPARED` /
+  `PENDING_HOOK`: VS Code Stop runs the formal closeout after the turn, while
+  CLI `sessionEnd` runs it when the session ends (not after the turn). A resumed
+  CLI session loads repository hooks only with persistent folder trust;
+  `--trust-folder` cannot be combined with `--resume`. Do not run
+  `manual_fallback` after preparation. The note proves nothing; only R2's
+  valid canonical closeout and `RELEASED` ownership confirm success.
 - **VS Code Stop is an execution point only.** The VS Code-format file wires
   `Stop` to `--event-type agent_stop --surface vscode`. Stop fires every turn:
   without a `1.1` `github-copilot-vscode` identity, or when this session is not

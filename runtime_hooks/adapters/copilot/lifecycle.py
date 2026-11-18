@@ -241,6 +241,7 @@ def _write_session_envelope(
             "artifact_path": started["session_envelope_path"],
             "schema_version": started["envelope_schema_version"],
             "envelope_status": started["status"],
+            "verified_provider": provider,
         }
 
     # The shared Copilot registration (.github/hooks/ai-governance-copilot.json) runs for
@@ -265,12 +266,12 @@ def _write_session_envelope(
         return _preserving_envelope(
             session_id, project_root, provider=provider, require_existing=require_existing,
         )
+    verified_provider: str | None = None
     try:
-        resolved = provider_for_session(session_id)
+        verified_provider = resolved = provider_for_session(session_id)
     except ValueError:
-        # A resume of an identity that already exists needs no new decision: the
-        # envelope already names its provider and is only preserved. Anything else
-        # without the runtime's own record establishes nothing.
+        # A resume can preserve an existing identity without the runtime record.
+        # Its stored provider does not verify this start for the id hand-off.
         from runtime_hooks.core._canonical_closeout import read_session_envelope
         existing = read_session_envelope(session_id, installed_root or project_root) if require_existing else None
         if not existing:
@@ -287,6 +288,7 @@ def _write_session_envelope(
         "schema_version": started["envelope_schema_version"],
         "envelope_status": started["status"],
         "provider": resolved,
+        "verified_provider": verified_provider,
     }
 
 
@@ -398,20 +400,40 @@ def _prepared_session_end(normalized: dict[str, Any], framework_root: Path) -> d
     return _protected_closeout(root, sid, transcript, framework_root)
 
 
-def _session_id_context(result: dict[str, Any]) -> dict[str, Any]:
-    """Tell a VS Code Copilot agent its own platform session id (owner ruling 2026-11-12).
+def _session_id_context(result: dict[str, Any], *, verified_provider: str | None) -> dict[str, Any]:
+    """Hand off a root-bound Copilot id for formal closeout preparation.
 
-    VS Code gives the agent no session id, yet formal closeout preparation needs it.
-    Only after this hook has established or preserved a root-bound github-copilot-vscode
-    identity does the hook hand the platform's id to the conversation, through the
-    documented top-level SessionStart output, additionalContext, of the GitHub Copilot
-    hook format that the shared registration uses. It only informs the agent; it
-    proves nothing. R2 still checks the platform-created envelope,
-    repository, transcript and ownership on its own.
+    CLI needs this start's provider verification and governed sessionStart/sessionEnd wiring;
+    it closes out a prepared session when it ends. VS Code can name a preserved
+    root-bound identity on resume, and its Stop hook runs after the turn. The
+    note proves nothing; R2 still checks the envelope, repository, transcript and ownership.
     """
-    if (result.get("provider") != VSCODE_PROVIDER
+    provider = result.get("provider")
+    if (provider not in COPILOT_PROVIDERS
             or result.get("session_envelope_binding") != "root_bound"):
         return {}
+    if provider == "github-copilot":
+        if verified_provider != provider:
+            return {}
+        from governance_tools.hook_install_validator import copilot_cli_session_id_wired
+
+        if not copilot_cli_session_id_wired(
+            Path(result["project_root"]), framework_root=Path(result["framework_root"]),
+        ):
+            return {}
+        note = (
+            "AI Governance: the platform session id of this Copilot CLI session is "
+            f"{result['session_id']}. The SessionStart hook bound it to {result['project_root']}. "
+            "Use it as <session-id> for prepare_closeout_candidate.py, and only at an "
+            "owner-authorized closeout (AGENTS.base.md, Session Closeout Obligation); never take "
+            "an id from artifacts/runtime/.current-session-id. After PREPARED, the CLI sessionEnd "
+            "hook runs the formal closeout when the session ends (not after the turn): "
+            "report PREPARED / PENDING_HOOK, and do not run manual_fallback. Only R2 evidence "
+            "(valid closeout, RELEASED ownership) confirms success. A resumed CLI session loads "
+            "repository hooks only with persistent folder trust; --trust-folder cannot be combined "
+            "with --resume. This note is not proof of identity."
+        )
+        return {"additionalContext": note}
     note = (
         f"AI Governance: the platform session id of this VS Code Copilot session is "
         f"{result['session_id']}. The SessionStart hook bound it to {result['project_root']}. "
@@ -555,7 +577,7 @@ def run_lifecycle_event(
             **({"session_envelope_binding_reason": envelope["binding_reason"]}
                if envelope.get("binding_reason") else {}),
         }
-        result.update(_session_id_context(result))
+        result.update(_session_id_context(result, verified_provider=envelope.get("verified_provider")))
         return result
 
     prepared = _prepared_session_end(normalized, framework_root)
@@ -606,10 +628,51 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _read_bridge_payload() -> Any:
+    stream = sys.stdin
+    buffer = getattr(stream, "buffer", None)
+    if buffer is None:
+        return json.loads(stream.read())
+    raw = buffer.read()
+    encoding = getattr(stream, "encoding", None) or "utf-8"
+    errors = getattr(stream, "errors", None) or "strict"
+    # VS Code keeps the stream's decoding when those bytes form valid JSON.
+    try:
+        payload = json.loads(raw.decode(encoding, errors=errors))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return json.loads(raw.decode("utf-8"))
+
+    # Both clients can send camelCase. Only the runtime record establishes CLI.
+    session_id = _first_text(payload, "session_id", "sessionId") if isinstance(payload, dict) else ""
+    if not session_id:
+        return payload
+    try:
+        if not __package__:
+            # The copied bridge has no framework on sys.path yet. Resolve it using
+            # the install location, before trusting any decoding of the payload cwd.
+            anchor = _installed_project_root() or Path(__file__).resolve().parents[3]
+            framework_root = str(resolve_framework_root(anchor))
+            if framework_root not in sys.path:
+                sys.path.insert(0, framework_root)
+        from governance_tools.copilot_session_state import provider_for_session
+
+        provider = provider_for_session(session_id)
+    except Exception:  # noqa: BLE001 - Only an encoding hint; lifecycle verification still runs.
+        return payload
+    if provider != PROVIDER_BY_SURFACE["copilot"]:
+        return payload
+
+    try:
+        decoded = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return payload
+    return json.loads(decoded)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        payload = json.loads(sys.stdin.read())
+        payload = _read_bridge_payload()
         result = run_lifecycle_event(
             payload,
             event_type=args.event_type,
@@ -623,6 +686,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "status": "bridge_error",
             "error": str(exc),
         }
+    if result.get("provider") == "github-copilot" and "additionalContext" in result:
+        # CLI reads this JSON as UTF-8; VS Code keeps its existing stream settings.
+        reconfigure_stdout = getattr(sys.stdout, "reconfigure", None)
+        if callable(reconfigure_stdout):
+            reconfigure_stdout(encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result.get("ok") else 1
 

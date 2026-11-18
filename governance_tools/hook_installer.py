@@ -80,6 +80,7 @@ HOOK_NAMES = ("pre-commit", "pre-push")
 # this". Without it, a marker check passes on an edited file and the edit is
 # overwritten with no backup.
 MANAGED_MANIFEST_REL = Path(".github/hooks/.ai-governance-managed.json")
+COPILOT_CLI_HOOK_TEMPLATE_REL = Path("governance/copilot-hooks-session-end-template.json")
 COPILOT_LIFECYCLE_FILES = (
     (
         Path("runtime_hooks/adapters/copilot/lifecycle.py"),
@@ -92,7 +93,7 @@ COPILOT_LIFECYCLE_FILES = (
         COPILOT_HOOK_COMMAND_MARKER,
     ),
     (
-        Path("governance/copilot-hooks-session-end-template.json"),
+        COPILOT_CLI_HOOK_TEMPLATE_REL,
         Path(".github/hooks/ai-governance-copilot.json"),
         COPILOT_HOOK_COMMAND_MARKER,
     ),
