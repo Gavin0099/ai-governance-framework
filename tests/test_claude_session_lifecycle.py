@@ -178,14 +178,14 @@ def test_tampered_checkpointed_summary_is_not_injected(repo):
     assert readback["state"] == "checkpoint_mismatch" and readback["summary"] is None
 
 
-def test_newer_summary_after_checkpoint_is_flagged(repo):
+def test_previous_checkpoint_is_unverified_when_a_new_prepare_replaces_its_anchor(repo):
     start(repo)
     save(repo, SID_A, work_summary="first", )
     end(repo)
     save(repo, SID_A, work_summary="second, not yet checkpointed")
     readback = start(repo, source="resume")["readback"]
-    assert readback["state"] == "newer_summary_after_checkpoint"
-    assert "first" in readback["summary"]  # only the verified, checkpointed content
+    assert readback["state"] == "checkpoint_mismatch"
+    assert readback["summary"] is None
 
 
 def test_readback_is_bounded_and_marked_as_data(repo):
@@ -281,8 +281,7 @@ def test_exit_resume_save_again_exit_reads_back_latest(consumer):
     assert second.returncode == 0, second.stdout  # same session may prepare again after resume
     assert owner(consumer)["generation"] == 2
     pending = start(consumer, source="resume")["readback"]
-    assert pending["state"] == "newer_summary_after_checkpoint"
-    assert "first pass" in pending["summary"] and "second pass" not in pending["summary"]
+    assert pending["state"] == "checkpoint_mismatch" and pending["summary"] is None
     assert hook(consumer, "session_end", {**base, "hook_event_name": "SessionEnd", "reason": "other"}).returncode == 0
 
     again = hook(consumer, "session_start", {**base, "hook_event_name": "SessionStart", "source": "resume"})
