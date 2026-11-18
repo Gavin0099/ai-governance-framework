@@ -1,4 +1,4 @@
-"""S1 P2: real hooks retain only this session's previously verified binding.
+"""S1: real hooks retain only R2-verified bindings for the exiting session.
 
 The owner-provided regression sequences are the behavior source. Formal release
 uses the real claude_formal_closeout CLI in a synthetic registered submodule.
@@ -127,6 +127,11 @@ def _tamper(root, identity):
     path.write_text(json.dumps(value), encoding="utf-8")
 
 
+def _add_unprepared_newer_candidate(root, identity):
+    path = root / identity["relative_path"]
+    path.with_name("99991231T235959999999Z.json").write_bytes(path.read_bytes())
+
+
 def _released_a(root, tmp_path):
     _start(root)
     identity = _prepare(root)
@@ -156,6 +161,20 @@ def test_real_hooks_refuse_tamper_across_two_resumes(consumer):
     assert "TAMPERED" not in again
 
 
+@pytest.mark.parametrize("next_owner", [False, True], ids=["released-owner", "archived-release"])
+def test_formal_closeout_before_first_exit_preserves_handoff(consumer, tmp_path, next_owner):
+    _start(consumer)
+    identity = _prepare(consumer)
+    _release(consumer, tmp_path)
+    if next_owner:
+        _b_prepares(consumer)
+        assert owner(consumer)["session_id"] == SID_B
+    assert not _checkpoint_path(consumer).exists()
+    assert _end(consumer)["candidate"] == identity
+    context = _start(consumer, SID_C if next_owner else SID_B)
+    assert "state=checkpointed" in context and A_SUMMARY in context and B_SUMMARY not in context
+
+
 @pytest.mark.parametrize("drop_release", [False, True])
 def test_formal_closeout_then_late_exit_preserves_handoff(consumer, tmp_path, drop_release):
     identity = _released_a(consumer, tmp_path)
@@ -178,6 +197,7 @@ def test_a_late_exit_keeps_a_binding_after_b_prepares(consumer, tmp_path):
     assert release["consumer_root"] == str(consumer) and release["session_id"] == SID_A
     assert release["state"] == "RELEASED" and release["candidate_identity"] == a
     b = _b_prepares(consumer)
+    _add_unprepared_newer_candidate(consumer, a)
     assert a != b
     owner_before = (consumer / lc.OWNER_RECORD).read_bytes()
     b_before = _checkpoint_path(consumer, SID_B).read_bytes()
@@ -186,7 +206,7 @@ def test_a_late_exit_keeps_a_binding_after_b_prepares(consumer, tmp_path):
     assert (consumer / lc.OWNER_RECORD).read_bytes() == owner_before
     assert owner(consumer)["session_id"] == SID_B
     context = _start(consumer, SID_C)
-    assert "state=checkpointed" in context and A_SUMMARY in context and B_SUMMARY not in context
+    assert "state=newer_summary_after_checkpoint" in context and A_SUMMARY in context and B_SUMMARY not in context
     context_b = _start(consumer, SID_B, "resume")
     assert "state=checkpointed" in context_b and B_SUMMARY in context_b
 
@@ -203,11 +223,28 @@ def test_legacy_rebound_checkpoint_requires_r2_vouch_after_upgrade(consumer, tmp
     assert rebound["relative_path"] == prepared["relative_path"]
     assert rebound["sha256"] != prepared["sha256"]
 
+    # The first upgraded hook may be SessionStart, before SessionEnd can
+    # replace the legacy checkpoint. Reading it must reject the rebound hash.
+    legacy_checkpoint = _checkpoint_path(consumer).read_bytes()
+    direct_resume = _start(consumer, source="resume")
+    assert "state=checkpoint_mismatch" in direct_resume
+    assert "(no verified summary)" in direct_resume and "TAMPERED" not in direct_resume
+    assert _checkpoint_path(consumer).read_bytes() == legacy_checkpoint
+
     upgraded = _end(consumer)
     resumed = _start(consumer, source="resume")
     assert "(no verified summary)" in resumed and "TAMPERED" not in resumed
     assert upgraded["candidate"] is None and upgraded["candidate_rejected"]
     assert (consumer / lc.OWNER_RECORD).read_bytes() == owner_before
+
+
+def test_untampered_legacy_checkpoint_reads_back_on_first_resume(consumer, tmp_path):
+    _start(consumer)
+    prepared = _prepare(consumer)
+    assert _legacy_end(consumer, tmp_path)["candidate"] == prepared
+
+    resumed = _start(consumer, source="resume")
+    assert "state=checkpointed" in resumed and A_SUMMARY in resumed
 
 
 @pytest.mark.parametrize("fault", ["sha256", "consumer_root", "session_id"])
@@ -216,6 +253,7 @@ def test_release_record_must_vouch_for_carried_binding(consumer, tmp_path, fault
     generation = owner(consumer)["generation"]
     release_path = consumer / lc.OWNER_RECORD.parent / "releases" / f"{generation}.json"
     _b_prepares(consumer)
+    _add_unprepared_newer_candidate(consumer, a)
     owner_before = (consumer / lc.OWNER_RECORD).read_bytes()
     b_before = _checkpoint_path(consumer, SID_B).read_bytes()
     candidate_before = (consumer / a["relative_path"]).read_bytes()
@@ -239,6 +277,7 @@ def test_release_record_must_vouch_for_carried_binding(consumer, tmp_path, fault
 
 def test_carried_binding_is_refused_if_file_is_tampered_later(consumer, tmp_path):
     identity = _released_a(consumer, tmp_path)
+    _add_unprepared_newer_candidate(consumer, identity)
     assert _end(consumer)["candidate"] == identity
     _tamper(consumer, identity)
     refused = _start(consumer, SID_B)
@@ -250,8 +289,9 @@ def test_carried_binding_is_refused_if_file_is_tampered_later(consumer, tmp_path
 
 @pytest.mark.parametrize("previous", ["missing", "foreign_session", "foreign_candidate"])
 def test_late_exit_never_borrows_b_checkpoint(consumer, tmp_path, previous):
-    _released_a(consumer, tmp_path)
+    a = _released_a(consumer, tmp_path)
     b = _b_prepares(consumer)
+    _add_unprepared_newer_candidate(consumer, a)
     a_path = _checkpoint_path(consumer)
     if previous == "missing":
         a_path.unlink()
@@ -283,6 +323,9 @@ def test_corrupted_trust_json_still_writes_rejected_checkpoint(consumer, tmp_pat
             generation = owner(consumer)["generation"]
             path = consumer / lc.RELEASES_DIR / f"{generation}.json"
             _b_prepares(consumer)
+        else:
+            # Reach the previous checkpoint path even though the release is valid.
+            _add_unprepared_newer_candidate(consumer, identity)
 
     original = json.loads(path.read_bytes())
     if damage == "deep":

@@ -93,7 +93,7 @@ def test_tamper_before_first_exit_is_rejected(repo):
 @pytest.mark.parametrize("fault", [
     "missing_owner", "malformed_owner", "non_object_owner", "missing_identity",
     "non_object_identity", "foreign_session", "foreign_root", "missing_generation",
-    "zero_generation", "bool_generation", "wrong_schema", "released", "hold",
+    "zero_generation", "bool_generation", "wrong_schema", "released_wrong_hash", "hold",
     "wrong_path", "wrong_hash",
 ])
 def test_candidate_requires_a_matching_prepared_owner(repo, fault):
@@ -122,8 +122,9 @@ def test_candidate_requires_a_matching_prepared_owner(repo, fault):
             record["generation"] = True
         elif fault == "wrong_schema":
             record["schema_version"] = "unknown"
-        elif fault == "released":
+        elif fault == "released_wrong_hash":
             record["state"] = "RELEASED"
+            record["candidate_identity"]["sha256"] = "0" * 64
         elif fault == "hold":
             record.update(state="HOLD", hold_reason="preparation_pending")
         elif fault == "wrong_path":
@@ -157,6 +158,46 @@ def test_candidate_written_without_prepare_has_no_trust_anchor(repo):
     start(repo)
     core.write_candidate(SID_A, repo, {"task_intent": "synthetic", "work_summary": "unprepared"})
     _assert_untrusted(repo, end(repo))
+
+
+def test_candidate_scan_permission_error_still_writes_rejection(repo, monkeypatch):
+    start(repo)
+    save(repo, SID_A, work_summary="prepared summary")
+    assert end(repo)["candidate"] is not None
+    candidate_dir = repo / lc.CANDIDATES_DIR / SID_A
+    is_dir = Path.is_dir
+
+    def deny_candidate_scan(path):
+        if path == candidate_dir:
+            raise PermissionError("synthetic candidate directory probe failure")
+        return is_dir(path)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "is_dir", deny_candidate_scan)
+        checkpoint = end(repo)
+    assert checkpoint["candidate_rejected"] == "candidate_unreadable"
+    _assert_untrusted(repo, checkpoint)
+
+
+def test_checkpoint_probe_permission_error_still_writes_rejection(repo, monkeypatch):
+    start(repo)
+    prepared = save(repo, SID_A, work_summary="prepared summary")
+    assert end(repo)["candidate"] is not None
+    prepared.with_name("99991231T235959999999Z.json").write_bytes(prepared.read_bytes())
+    checkpoint_path = repo / lc.CHECKPOINTS_DIR / f"{SID_A}.json"
+
+    def deny_checkpoint_probe(probe):
+        def probe_path(path, *args, **kwargs):
+            if path == checkpoint_path:
+                raise PermissionError("synthetic checkpoint probe failure")
+            return probe(path, *args, **kwargs)
+        return probe_path
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "is_file", deny_checkpoint_probe(Path.is_file))
+        patch.setattr(Path, "lstat", deny_checkpoint_probe(Path.lstat))
+        checkpoint = end(repo)
+    _assert_untrusted(repo, checkpoint)
 
 
 @pytest.mark.parametrize("fault", ["missing", "hold", "different_sha"])

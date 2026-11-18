@@ -8,10 +8,10 @@ checkpoint: no completion marker and no consumption, so ``claude --resume`` can
 continue the same session.  Formal closeout stays an explicit operation
 (``session_closeout_entry``).  Design: docs/proposals/2026-10-claude-code-session-lifecycle.md.
 
-SessionEnd detects a candidate changed after prepare by requiring R2 prepare or
-release provenance even when carrying a checkpoint. This cooperative check does
-not defend against rewriting both the candidate and its R2 record. Like the rest
-of the closeout path, it provides no signing or hostile-local-writer protection.
+SessionStart and SessionEnd detect a candidate changed after prepare by requiring
+R2 prepare or release provenance for checkpointed summaries. This cooperative
+check does not defend against rewriting both the candidate and its R2 record.
+Like the rest of the closeout path, it provides no signing.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import shlex
+import stat
 import subprocess
 import sys
 import uuid
@@ -71,12 +72,9 @@ def _latest_candidate(root: Path, sid: str) -> Path | None:
     directory = root / CANDIDATES_DIR / sid
     if not directory.is_dir() or directory.is_symlink():
         return None
-    files = sorted(p for p in directory.glob("*.json") if p.is_file() and not p.is_symlink())
+    files = sorted(p for p in directory.iterdir()
+                   if p.match("*.json") and p.is_file() and not p.is_symlink())
     return files[-1] if files else None
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _read_trust_json(path: Path) -> Any:
@@ -91,99 +89,97 @@ def _read_trust_json(path: Path) -> Any:
         raise ValueError("Trust record exceeds JSON nesting limit") from exc
 
 
-def _prepared_candidate(root: Path, sid: str, latest: Path | None) -> tuple[dict | None, str | None]:
-    """Bind only the identity confirmed by prepare, never freshly found bytes."""
-    if latest is None:
-        return None, None
-    owner_path = root / OWNER_RECORD
-    try:
-        if not owner_path.is_file():
-            return None, "missing_prepare_anchor"
-        if owner_path.resolve() != owner_path:
-            return None, "invalid_prepare_anchor"
-        owner = _read_trust_json(owner_path)
-    except (OSError, ValueError):
-        return None, "invalid_prepare_anchor"
-    if (not isinstance(owner, dict) or owner.get("schema_version") != "1.0"
-            or type(owner.get("generation")) is not int or owner["generation"] <= 0):
-        return None, "invalid_prepare_anchor"
-    if owner.get("consumer_root") != str(root) or owner.get("session_id") != sid:
-        return None, "prepare_owner_mismatch"
-    # HOLD can be an interrupted prepare; RELEASED is no longer a prepared session.
-    if owner.get("state") != "OWNED" or owner.get("hold_reason") is not None:
-        return None, "owner_not_prepared"
-    identity = owner.get("candidate_identity")
-    if (not isinstance(identity, dict) or set(identity) != {"relative_path", "sha256"}
-            or not isinstance(identity["relative_path"], str) or not isinstance(identity["sha256"], str)):
-        return None, "invalid_prepare_anchor"
-    if latest.resolve() != latest or identity["relative_path"] != latest.relative_to(root).as_posix():
-        return None, "candidate_identity_mismatch"
-    try:
-        if _sha256(latest) != identity["sha256"]:
-            return None, "candidate_identity_mismatch"
-    except OSError:
-        return None, "candidate_unreadable"
-    return dict(identity), None
+def _r2_verified_candidate(
+    root: Path, sid: str, path: Path, *, binding: dict | None = None,
+) -> tuple[dict, bytes] | None:
+    """Return a same-session R2 identity and the exact bytes it verifies."""
+    if path.resolve() != path or not path.is_file():
+        return None
+    relative_path = path.relative_to(root).as_posix()
 
-
-def _r2_vouches_for_candidate(root: Path, sid: str, identity: dict) -> bool:
-    """Read existing R2 provenance; a checkpoint cannot vouch for itself."""
-    def matching_record(path: Path, states: tuple[str, ...]) -> dict | None:
+    def matching_record(record_path: Path, states: tuple[str, ...]) -> dict | None:
         try:
-            if not path.is_file() or path.resolve() != path:
+            if not record_path.is_file() or record_path.resolve() != record_path:
                 return None
-            record = _read_trust_json(path)
+            record = _read_trust_json(record_path)
         except (OSError, ValueError):
             return None
         if (not isinstance(record, dict) or record.get("schema_version") != "1.0"
                 or record.get("consumer_root") != str(root) or record.get("session_id") != sid
                 or type(record.get("generation")) is not int or record["generation"] <= 0
-                or record.get("state") not in states or record.get("candidate_identity") != identity):
+                or record.get("state") not in states):
             return None
         return record
 
+    raw = sha256 = None
+
+    def verified_identity(record: dict) -> tuple[dict, bytes] | None:
+        nonlocal raw, sha256
+        identity = record.get("candidate_identity")
+        if (not isinstance(identity, dict) or set(identity) != {"relative_path", "sha256"}
+                or identity["relative_path"] != relative_path or not isinstance(identity["sha256"], str)
+                or (binding is not None and identity != binding)):
+            return None
+        if raw is None:
+            raw = path.read_bytes()
+            sha256 = hashlib.sha256(raw).hexdigest()
+        return (dict(identity), raw) if identity["sha256"] == sha256 else None
+
     owner = matching_record(root / OWNER_RECORD, ("OWNED", "RELEASED"))
     if owner is not None and owner.get("hold_reason") is None:
-        return True
+        identity = verified_identity(owner)
+        if identity is not None:
+            return identity
     directory = root / RELEASES_DIR
     try:
         if not directory.is_dir() or directory.resolve() != directory:
-            return False
+            return None
         releases = list(directory.glob("*.json"))
     except (OSError, ValueError):
-        return False
-    for path in releases:
-        record = matching_record(path, ("RELEASED",))
+        return None
+    for release_path in releases:
+        record = matching_record(release_path, ("RELEASED",))
         # finalize_release writes _release_record under its generation filename.
-        if record is not None and path.name == f'{record["generation"]}.json':
-            return True
-    return False
+        if record is not None and release_path.name == f'{record["generation"]}.json':
+            identity = verified_identity(record)
+            if identity is not None:
+                return identity
+    return None
+
+
+def _verified_checkpoint_binding(root: Path, sid: str, checkpoint: dict | None) -> tuple[dict, bytes] | None:
+    if checkpoint is None or checkpoint.get("consumer_root") != str(root):
+        return None
+    binding = checkpoint.get("candidate")
+    if (not isinstance(binding, dict) or set(binding) != {"relative_path", "sha256"}
+            or not isinstance(binding["relative_path"], str) or not isinstance(binding["sha256"], str)):
+        return None
+    relative = Path(binding["relative_path"])
+    path = root / relative
+    if relative.is_absolute() or path.parent != root / CANDIDATES_DIR / sid or path.suffix != ".json":
+        return None
+    # Older checkpoints could bind tampered bytes; only R2 can vouch for them.
+    return _r2_verified_candidate(root, sid, path, binding=binding)
 
 
 def _checkpoint_candidate(root: Path, sid: str, latest: Path | None) -> tuple[dict | None, str | None]:
-    """Prefer prepare's identity; carry a prior binding only with R2 backing."""
-    candidate, rejected = _prepared_candidate(root, sid, latest)
-    if candidate is not None:
-        return candidate, None
-    previous = _read_checkpoint(root, sid)
-    identity = previous.get("candidate") if previous else None
-    if (previous is not None and previous.get("consumer_root") == str(root)
-            and isinstance(identity, dict) and set(identity) == {"relative_path", "sha256"}
-            and isinstance(identity["relative_path"], str) and isinstance(identity["sha256"], str)):
-        # Legacy SessionEnd could bind tampered bytes. Its checkpoint is only a
-        # proposed identity; R2 must independently name those same path/hash bytes.
-        relative = Path(identity["relative_path"])
-        path = root / relative
+    """Prefer the latest R2-verified candidate, then verify the prior binding."""
+    rejected = "no_candidate"
+    if latest is not None:
         try:
-            if (not relative.is_absolute() and path.parent == root / CANDIDATES_DIR / sid
-                    and path.suffix == ".json" and path.resolve() == path and path.is_file()):
-                if not _r2_vouches_for_candidate(root, sid, identity):
-                    return None, "checkpoint_not_vouched_by_r2"
-                if _sha256(path) == identity["sha256"]:
-                    return dict(identity), None
+            verified = _r2_verified_candidate(root, sid, latest)
+            if verified is not None:
+                return verified[0], None
+            rejected = "candidate_identity_mismatch"
         except (OSError, ValueError):
-            pass
-    return None, rejected or "no_candidate"
+            rejected = "candidate_unreadable"
+    try:
+        verified = _verified_checkpoint_binding(root, sid, _read_checkpoint(root, sid))
+        if verified is not None:
+            return verified[0], None
+    except (OSError, ValueError):
+        rejected = "candidate_unreadable"
+    return None, rejected
 
 
 def _summary_text(candidate: dict[str, Any]) -> str:
@@ -203,9 +199,9 @@ def _summary_text(candidate: dict[str, Any]) -> str:
 
 def _read_checkpoint(root: Path, sid: str) -> dict[str, Any] | None:
     path = root / CHECKPOINTS_DIR / f"{sid}.json"
-    if not path.is_file() or path.is_symlink():
-        return None
     try:
+        if not stat.S_ISREG(path.lstat().st_mode):
+            return None
         data = _read_trust_json(path)
     except (OSError, ValueError):
         return None
@@ -238,7 +234,10 @@ def build_readback(root: Path, sid: str, source: str) -> dict[str, Any]:
     if target is None:
         return {"state": "no_previous_session", "session_id": None, "summary": None, "source": None}
     checkpoint = _read_checkpoint(root, target)
-    latest = _latest_candidate(root, target)
+    try:
+        latest = _latest_candidate(root, target)
+    except OSError:
+        return {"state": "UNKNOWN", "session_id": target, "summary": None, "source": None}
     if checkpoint is None:
         state = "exit_unconfirmed" if latest is not None else "UNKNOWN"
         return {"state": state, "session_id": target, "summary": None,
@@ -249,16 +248,16 @@ def build_readback(root: Path, sid: str, source: str) -> dict[str, Any]:
         return {"state": state, "session_id": target, "summary": None,
                 "source": latest.relative_to(root).as_posix() if latest else None}
     relative = recorded.get("relative_path") if isinstance(recorded, dict) else None
-    expected_dir = (root / CANDIDATES_DIR / target).resolve()
-    path = (root / relative).resolve() if isinstance(relative, str) else None
-    if (path is None or path.parent != expected_dir or not path.is_file()
-            or _sha256(path) != recorded.get("sha256")):
-        return {"state": "checkpoint_mismatch", "session_id": target, "summary": None, "source": relative}
     try:
-        candidate = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        verified = _verified_checkpoint_binding(root, target, checkpoint)
+        if verified is not None:
+            identity, raw = verified
+            candidate = json.loads(raw.decode("utf-8"))
+    except (OSError, ValueError, RecursionError):
+        verified = None
+    if verified is None:
         return {"state": "checkpoint_mismatch", "session_id": target, "summary": None, "source": relative}
-    newer = latest is not None and latest.resolve() != path
+    newer = latest is not None and latest.relative_to(root).as_posix() != identity["relative_path"]
     return {"state": "newer_summary_after_checkpoint" if newer else "checkpointed",
             "session_id": target, "summary": _summary_text(candidate) if isinstance(candidate, dict) else None,
             "source": relative}
@@ -343,8 +342,12 @@ def session_end(payload: dict, project_root: Path) -> dict[str, Any]:
     _require_root(payload.get("cwd"), root)
     if _bound_claude_envelope(root, sid) is None:
         raise ValueError("No root-bound Claude identity for this session; nothing checkpointed")
-    latest = _latest_candidate(root, sid)
-    candidate, rejected = _checkpoint_candidate(root, sid, latest)
+    try:
+        latest = _latest_candidate(root, sid)
+    except OSError:
+        candidate, rejected = None, "candidate_unreadable"
+    else:
+        candidate, rejected = _checkpoint_candidate(root, sid, latest)
     checkpoint = {
         "schema_version": "1.0", "session_id": sid, "provider": PROVIDER, "agent_id": PROVIDER,
         "trigger_mode": "native_hook", "hook_event_name": "SessionEnd",
