@@ -174,7 +174,7 @@ def test_invalid_framework_binding_rejects_before_runtime_writes(consumer, mutat
     assert runtime_bytes(consumer) == before
 
 
-@pytest.mark.parametrize("kind", ["framework-root", "consumer-root", "session", "legacy", "wrong-binding", "consumed", "missing"])
+@pytest.mark.parametrize("kind", ["framework-root", "consumer-root", "legacy", "wrong-binding", "consumed", "missing"])
 def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
     envelope = consumer / "artifacts/runtime/sessions/session-A/session-envelope.json"
     options = {}
@@ -182,8 +182,6 @@ def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
         options["framework"] = consumer
     elif kind == "consumer-root":
         options["target"] = consumer / "governance"
-    elif kind == "session":
-        options["sid"] = "session-B"
     elif kind == "missing":
         envelope.unlink()
     elif kind in ("legacy", "wrong-binding"):
@@ -202,6 +200,27 @@ def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
     result = invoke(consumer, **options)
     assert result.returncode == 1, result.stdout
     assert runtime_bytes(consumer) == before
+
+
+def test_unconsumed_session_without_envelope_rejects_before_writes(consumer):
+    def tree():
+        return {path.relative_to(consumer): path.read_bytes() if path.is_file() else None
+                for path in consumer.rglob("*")}
+
+    runtime = consumer / "artifacts/runtime"
+    assert (runtime / "sessions/session-A/session-envelope.json").is_file()
+    assert not (runtime / "sessions/session-B/session-envelope.json").exists()
+    assert not (runtime / "closeout-completions/session-B.json").exists()
+    before = tree()
+
+    result = invoke(consumer, sid="session-B")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["status"] == "REJECTED"
+    assert report["error"] == "INVALID_OWNER: qualified R1 binding required"
+    assert report["error"] != "consumed session cannot prepare"
+    assert tree() == before
 
 
 def test_other_session_cannot_replace_prepared_owner(consumer):

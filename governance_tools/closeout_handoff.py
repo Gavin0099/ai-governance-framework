@@ -859,7 +859,8 @@ def _receipt_material_record(lease, request, attempt, receipt):
     b = request["binding"]
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
-    _require(owner["state"] == "HOLD" and owner["hold_reason"] in {"closeout_pending", "failed"},
+    _require(owner["state"] == "HOLD"
+             and owner["hold_reason"] in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH},
              "RECEIPT_MATERIAL_OWNER")
     r2._receipt_schema(receipt)
     _require(receipt.get("r2_binding") == r2.receipt_binding(owner)
@@ -1015,7 +1016,7 @@ def _validate_recovery_owner(lease, request, owner):
         return {"status": "RECOVERABLE", "recovery_kind": "finalization"}
     if owner["state"] != "HOLD":
         return {"status": "UNKNOWN", "reason": "NO_RECOVERY_PENDING"}
-    if owner["hold_reason"] not in {"closeout_pending", "failed"}:
+    if owner["hold_reason"] not in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH}:
         return {"status": "UNKNOWN", "reason": "PREPARATION_HOLD"}
     linked = [(p, a) for p, a in _attempts(root, request) if a["receipt_identity"] is not None]
     receipt_path = r2._path(root, r2._receipt_relative(owner))
@@ -1037,12 +1038,12 @@ def _validate_recovery_owner(lease, request, owner):
     expected = _validate_final_receipt(root, b, attempt, receipt_bytes)
     sha = _sha(receipt_bytes)
     _require(owner["receipt_sha256"] in (None, sha), "RELEASE_PROOF_INVALID")
-    _require(r2._completion(root, b["session_id"]), "RELEASE_PROOF_INVALID")
     if receipt_path.exists():
         r2._receipt_proof(lease, owner)
     else:
-        # Existing R2 publisher cannot publish into a failed HOLD.
-        _require(owner["hold_reason"] == "closeout_pending", "RELEASE_PROOF_INVALID")
+        _require(owner["hold_reason"] in {"closeout_pending", r2._CANONICAL_CLOSEOUT_MISMATCH},
+                 "RELEASE_PROOF_INVALID")
+        _require(r2._completion(root, b["session_id"], verify_canonical=True), "RELEASE_PROOF_INVALID")
     release = _release_path(root, b)
     if release.exists():
         _require(release.read_bytes() == r2._bytes({**expected, "receipt_sha256": sha, "state": "RELEASED"}),
@@ -1098,11 +1099,12 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
         attempts = _attempts(root, request)
         reserved = [(p, a) for p, a in attempts if a["receipt_identity"] is not None]
         if owner["state"] == "HOLD":
-            _require(owner["hold_reason"] in {"closeout_pending", "failed"}
+            _require(owner["hold_reason"] in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH}
                      and owner["receipt_identity"] is not None, "FAILED_HOLD")
             if reserved:
                 _require(reserved[0][1]["receipt_identity"] == owner["receipt_identity"], "RECEIPT_RESERVATION_CONFLICT")
             else:
+                _require(owner["hold_reason"] != r2._CANONICAL_CLOSEOUT_MISMATCH, "MISSING_RESERVED_ATTEMPT")
                 _require(bool(attempts), "MISSING_CLAIM")
                 # Only one unreserved claim can be the interrupted last claim.
                 p, a = attempts[-1]

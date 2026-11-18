@@ -272,6 +272,7 @@ _TERMINAL_BINDING_STATUSES = frozenset({
     "already_consumed",  # a previous run consumed it; nothing left to retry
 })
 _RECOVERABLE_BINDING_STATUSES = frozenset({
+    "completion_marker_invalid",
     "session_envelope_missing",
     "session_candidate_missing",
     "session_candidate_mismatch",
@@ -296,6 +297,8 @@ def assess_session_closeout_binding(
     session_id: str,
     project_root: Path,
     candidate_payload: dict[str, Any] | None,
+    *,
+    digest_replay_only: bool = False,
 ) -> dict[str, Any]:
     """Assess session ownership and consume-once state before side effects."""
     validate_session_id(session_id)
@@ -307,11 +310,19 @@ def assess_session_closeout_binding(
         / "closeout-completions"
         / f"{session_id}.json"
     )
-    completion = _read_valid_closeout_completion(
-        session_id,
-        project_root,
-        completion_path,
-    )
+    try:
+        completion = _read_valid_closeout_completion(
+            session_id,
+            project_root,
+            completion_path,
+            require_digest=digest_replay_only,
+        )
+    except _InvalidCloseoutCompletionMarker:
+        return {
+            "status": "completion_marker_invalid",
+            "session_id": session_id,
+            "completion_marker_path": str(completion_path),
+        }
     if completion is not None:
         binding = {
             "status": "already_consumed",
@@ -323,7 +334,13 @@ def assess_session_closeout_binding(
         # without treating a changed accepted artifact as permission to rerun.
         if "canonical_closeout_sha256" in completion:
             binding["canonical_closeout_sha256"] = completion["canonical_closeout_sha256"]
+            artifacts = _completion_artifact_paths(project_root, completion.get("required_artifacts"))
+            if not _completion_artifacts_available(artifacts):
+                binding["completion_artifacts_missing_or_invalid"] = True
         return binding
+
+    if digest_replay_only:
+        return {"status": "not_enforced", "session_id": session_id}
 
     envelope = read_session_envelope(session_id, project_root)
     if envelope is None:
@@ -634,6 +651,11 @@ def write_closeout_completion_marker(
     """Atomically mark a session consumed after all required artifacts exist."""
     validate_session_id(session_id)
     if canonical_closeout_sha256 is not None:
+        # R2's lock does not cover every writer. Two entries can pass the replay guard
+        # before the first marker is published, then both write. If the last write
+        # replaces both files with a matching pair, replay returns ALREADY_CONSUMED
+        # without detecting the double write. Only a final digest mismatch is refused;
+        # restore trusted bytes matching the saved marker rather than rebuilding them.
         canonical_path = project_root / "artifacts/runtime/closeouts" / f"{session_id}.json"
         try:
             current_digest = hashlib.sha256(canonical_path.read_bytes()).hexdigest()
@@ -672,32 +694,64 @@ def write_closeout_completion_marker(
     return path
 
 
+class _InvalidCloseoutCompletionMarker(ValueError):
+    pass
+
+
 def _read_valid_closeout_completion(
     session_id: str,
     project_root: Path,
     path: Path,
+    *,
+    require_digest: bool = False,
 ) -> dict[str, Any] | None:
-    """Return a completion marker only when its identity and artifacts validate."""
+    """Read consumption evidence, independently of artifact health for digest markers."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if str(payload.get("session_id") or "") != session_id:
-        return None
-    required_artifacts = payload.get("required_artifacts")
+    except FileNotFoundError as read_error:
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return None
+        except OSError as stat_error:
+            raise _InvalidCloseoutCompletionMarker from stat_error
+        raise _InvalidCloseoutCompletionMarker from read_error
+    except (OSError, ValueError, RecursionError) as exc:
+        raise _InvalidCloseoutCompletionMarker from exc
+    if not isinstance(payload, dict) or payload.get("session_id") != session_id:
+        raise _InvalidCloseoutCompletionMarker
+    if "canonical_closeout_sha256" in payload:
+        return payload
+    artifacts = _completion_artifact_paths(project_root, payload.get("required_artifacts"))
+    if artifacts is None:
+        raise _InvalidCloseoutCompletionMarker
+    if not require_digest and _completion_artifacts_available(artifacts):
+        return payload
+    return None
+
+
+def _completion_artifact_paths(project_root: Path, required_artifacts: Any) -> list[Path] | None:
     if not isinstance(required_artifacts, list) or not required_artifacts:
         return None
+    root = project_root.resolve()
+    artifacts = []
     for raw_path in required_artifacts:
         if not isinstance(raw_path, str) or not raw_path.strip():
             return None
-        artifact = (project_root / raw_path).resolve()
         try:
-            artifact.relative_to(project_root.resolve())
-        except ValueError:
+            artifact = (root / raw_path).resolve()
+            artifact.relative_to(root)
+        except (OSError, RuntimeError, ValueError):
             return None
-        if not artifact.is_file():
-            return None
-    return payload
+        artifacts.append(artifact)
+    return artifacts
+
+
+def _completion_artifacts_available(artifacts: list[Path] | None) -> bool:
+    try:
+        return artifacts is not None and all(artifact.is_file() for artifact in artifacts)
+    except OSError:
+        return False
 
 
 # ---------------------------------------------------------------------------
