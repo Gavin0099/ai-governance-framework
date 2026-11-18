@@ -47,6 +47,13 @@ A same-session unconsumed preparation retry must reserve a new candidate;
 previous candidates are never changed or deleted. Another session cannot take
 an OWNED/HOLD generation. Consumed sessions cannot prepare again.
 
+**Owner ruling (2026-11-18).** `prepare_closeout_candidate` trusts the session
+ID supplied by the agent. It checks for a qualified envelope and an unconsumed
+session. Caller identity is outside the prepare check, so in one consumer a
+session can prepare for another live session, including one from another
+provider. This is part of the cooperative threat model. R2 still verifies the
+named session's own transcript and identity at closeout.
+
 Initial adoption requires no shared text, unexplained ownership/release artifacts,
 or active/orphan/incomplete lifecycle evidence. The bounded inventory covers
 sessions, candidates, closeout candidates, completions, closeouts, curated,

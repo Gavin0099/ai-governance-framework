@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -24,6 +25,9 @@ from typing import Sequence
 from governance_tools.composed_hook import (
     MARKER, CompositionError, atomic_write_hook, declared_fragment, expected_hook,
     matches_prior_composition, normalized,
+)
+from governance_tools.copilot_instructions_projection import (
+    PROJECTION_BEGIN_PREFIX, PROJECTION_END, extract_projection_region,
 )
 from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_REL,
@@ -294,50 +298,57 @@ def _extract_managed_block(
     return "\n".join(lines[begins[0] : ends[0] + 1])
 
 
-def _merge_managed_block(
-    existing_text: str | None,
-    block: str,
-    begin: str = COPILOT_BLOCK_BEGIN,
-    end: str = COPILOT_BLOCK_END,
-    legacy_digests: frozenset[str] = LEGACY_COPILOT_TEMPLATE_DIGESTS,
-    legacy_marker: str | None = COPILOT_MARKER,
-) -> tuple[str, str]:
-    """Splice the managed block into the target, preserving consumer content.
+def _reuse_standalone_checkpoint(block: str, before: str, after: str) -> str:
+    """Keep a checkpoint already owned by the surrounding instruction file."""
+    if PROJECTION_BEGIN_PREFIX not in block:
+        return block
+    standalone = []
+    for part in (before, after):
+        outer_lines = map(str.strip, _normalize_newlines(part).split("\n"))
+        if any(line.startswith(PROJECTION_BEGIN_PREFIX) or line == PROJECTION_END for line in outer_lines):
+            standalone.append(part)
+    if not standalone:
+        return block
+    if len(standalone) != 1:
+        raise ValueError("expected one standalone checkpoint projection outside the managed block")
+    extract_projection_region(standalone[0])
 
-    Returns the new file text and the mode describing what happened:
-    `created`, `replaced`, `migrated` (pre-managed-block framework file), or
-    `appended` (the target was written by the consumer, not the framework).
+    _, _, first, last = extract_projection_region(block)
+    lines = block.split("\n")
+    # Omit the checkpoint's heading and introduction with its marker region.
+    heading = max((i for i in range(first) if lines[i].startswith("## ")), default=first)
+    return "\n".join(lines[:heading] + lines[last + 1:])
 
-    The marker pair is a parameter because the same merge serves more than one
-    surface: `.github/copilot-instructions.md` and the agent instruction files a
-    consumer already owns. Only the Copilot surface has legacy whole-file
-    installs to migrate, so the other surfaces pass `legacy_marker=None` and
-    append rather than ever replacing a file wholesale.
-    """
+
+def _managed_block_bounds(lines: list[str], begin: str, end: str) -> tuple[int, int] | None:
+    begins = [i for i, line in enumerate(lines) if line.strip() == begin]
+    ends = [i for i, line in enumerate(lines) if line.strip() == end]
+    if not begins and not ends:
+        return None
+    if len(begins) != 1 or len(ends) != 1 or ends[0] < begins[0]:
+        raise ValueError(
+            f"target has {len(begins)} managed BEGIN and {len(ends)} managed END markers; "
+            "expected exactly one matched pair — resolve manually before reinstalling"
+        )
+    return begins[0], ends[0]
+
+
+def _merge_copilot_instructions(existing_text: str | None, block: str) -> tuple[str, str]:
+    """Keep the Copilot instructions installer's LF output and legacy migration."""
     if existing_text is None:
         return f"{block}\n", "created"
 
     text = _normalize_newlines(existing_text)
     lines = text.split("\n")
-    begins = [i for i, line in enumerate(lines) if line.strip() == begin]
-    ends = [i for i, line in enumerate(lines) if line.strip() == end]
-
-    if begins or ends:
-        if len(begins) != 1 or len(ends) != 1 or ends[0] < begins[0]:
-            raise ValueError(
-                f"target has {len(begins)} managed BEGIN and {len(ends)} managed END markers; "
-                "expected exactly one matched pair — resolve manually before reinstalling"
-            )
-        merged = "\n".join(lines[: begins[0]] + block.split("\n") + lines[ends[0] + 1 :])
+    bounds = _managed_block_bounds(lines, COPILOT_BLOCK_BEGIN, COPILOT_BLOCK_END)
+    if bounds is not None:
+        first, last = bounds
+        merged = "\n".join(lines[:first] + block.split("\n") + lines[last + 1:])
         return merged.rstrip("\n") + "\n", "replaced"
 
-    if legacy_marker is not None and legacy_marker in text:
-        # Written by a framework version that replaced the whole file. Migrating
-        # means replacing all of it, so only do that when the content is provably
-        # untouched framework output. A marker alone does not prove that: the
-        # consumer may have added rules to the installed file, and those would
-        # survive only in the backup.
-        if _content_digest(text) in legacy_digests:
+    if COPILOT_MARKER in text:
+        # Only replace a legacy whole-file install if it matches an untouched template.
+        if _content_digest(text) in LEGACY_COPILOT_TEMPLATE_DIGESTS:
             return f"{block}\n", "migrated"
         raise ValueError(
             "target carries a framework marker but no managed block, and its content matches "
@@ -350,6 +361,37 @@ def _merge_managed_block(
     if not preserved:
         return f"{block}\n", "created"
     return f"{preserved}\n\n{block}\n", "appended"
+
+
+def _splice_agent_contract(existing_text: str | None, block: str) -> tuple[str, str]:
+    """Preserve the consumer's bytes outside the managed agent contract."""
+    if existing_text is None:
+        return f"{block}\n", "created"
+
+    bom = "\ufeff" if existing_text.startswith("\ufeff") else ""
+    text = existing_text.removeprefix(bom)
+    lines = io.StringIO(text, newline="").readlines()
+    first_line = lines[0] if lines else ""
+    newline = first_line[len(first_line.rstrip("\r\n")):] or "\n"
+    bounds = _managed_block_bounds(lines, AGENT_CONTRACT_BLOCK_BEGIN, AGENT_CONTRACT_BLOCK_END)
+    if bounds is not None:
+        first, last = bounds
+        before = "".join(lines[:first])
+        end_line = lines[last]
+        after = end_line[len(end_line.rstrip("\r\n")):] + "".join(lines[last + 1:])
+        block = _reuse_standalone_checkpoint(block, before, after)
+        return bom + before + block.replace("\n", newline) + after, "replaced"
+
+    block = _reuse_standalone_checkpoint(block, text, "")
+    rendered = block.replace("\n", newline) + newline
+    if not text:
+        return bom + rendered, "created"
+    separator = ""
+    if not text.endswith(("\r", "\n")):
+        separator = newline * 2
+    elif lines[-1].strip():
+        separator = newline
+    return existing_text + separator + rendered, "appended"
 
 
 def _read_managed_manifest(repo_root: Path) -> dict[str, str]:
@@ -449,20 +491,18 @@ def _apply_copilot_instructions(
     try:
         block = _extract_managed_block(_read_text(source))
         existing = _read_text(target) if target.is_file() else None
-        merged, mode = _merge_managed_block(existing, block)
+        merged, mode = _merge_copilot_instructions(existing, block)
     except ValueError as exc:
         errors.append(f"cannot update {target}: {exc}")
         return None
 
-    # Compare on normalized newlines: a repo with core.autocrlf=true checks this
-    # file out as CRLF, and rewriting it every install would report a change that
-    # is not one.
-    if existing is not None and _normalize_newlines(existing) == merged:
+    # An equivalent CRLF checkout does not need a rewrite.
+    if existing == merged:
         installed.append(str(target))
         return mode
 
-    # `replaced` only touches the managed block, so the rest of the file is
-    # already safe. `appended` and `migrated` rewrite content this installer did
+    # `replaced` only changes the managed content and normalizes newlines.
+    # `appended` and `migrated` rewrite content this installer did
     # not author in the current format — a consumer's own file, or a whole-file
     # install from an older framework version that may since have been edited by
     # hand. Keep a copy of those before writing.
@@ -592,8 +632,9 @@ def _apply_agent_contract_surfaces(
     changed: list[str],
     backups: list[str],
     errors: list[str],
+    targets: Sequence[tuple[Path, str]] = AGENT_CONTRACT_TARGETS,
 ) -> dict[str, str]:
-    """Install the checkpoint contract into every agent's instruction file.
+    """Install the agent contract into the selected instruction files.
 
     Copilot reads `.github/copilot-instructions.md`, Codex reads `AGENTS.md`,
     Claude Code reads `CLAUDE.md`, Gemini reads `GEMINI.md`. Projecting the rules
@@ -601,9 +642,7 @@ def _apply_agent_contract_surfaces(
     still only had Copilot, because nothing deployed the other three.
 
     These files belong to the consumer, so the contract goes in as a managed
-    block and everything outside it is preserved. There is no legacy whole-file
-    form to migrate here, so `legacy_marker=None`: this installer never replaces
-    one of these files wholesale.
+    block and everything outside it is preserved.
     """
     source = framework_root / AGENT_CONTRACT_TEMPLATE_REL
     modes: dict[str, str] = {}
@@ -619,23 +658,16 @@ def _apply_agent_contract_surfaces(
         errors.append(f"cannot read {source}: {exc}")
         return modes
 
-    for target_rel, surface in AGENT_CONTRACT_TARGETS:
+    for target_rel, surface in targets:
         target = repo_root / target_rel
-        existing = _read_text(target) if target.is_file() else None
+        existing = target.read_bytes().decode("utf-8") if target.is_file() else None
         try:
-            merged, mode = _merge_managed_block(
-                existing,
-                block,
-                AGENT_CONTRACT_BLOCK_BEGIN,
-                AGENT_CONTRACT_BLOCK_END,
-                legacy_digests=frozenset(),
-                legacy_marker=None,
-            )
+            merged, mode = _splice_agent_contract(existing, block)
         except ValueError as exc:
             errors.append(f"cannot update {target}: {exc}")
             continue
 
-        if existing is not None and _normalize_newlines(existing) == merged:
+        if existing == merged:
             installed.append(str(target))
             modes[surface] = mode
             continue
@@ -649,6 +681,21 @@ def _apply_agent_contract_surfaces(
         modes[surface] = mode
 
     return modes
+
+
+def install_claude_instructions(repo_root: Path, framework_root: Path) -> HookInstallApplyResult:
+    """Project shared and Claude instructions without installing Copilot or Gemini files."""
+    result = HookInstallApplyResult(ok=True, repo_root=str(repo_root), framework_root=str(framework_root))
+    targets = tuple(target for target in AGENT_CONTRACT_TARGETS if target[1] in {"claude", "codex"})
+    try:
+        _apply_agent_contract_surfaces(
+            repo_root, framework_root, installed=result.installed_files,
+            changed=result.changed_files, backups=result.backups, errors=result.errors, targets=targets,
+        )
+    except (OSError, UnicodeError) as exc:
+        result.errors.append(str(exc))
+    result.ok = not result.errors
+    return result
 
 
 def _codex_project_doc_budget(

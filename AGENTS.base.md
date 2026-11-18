@@ -113,8 +113,22 @@ report the closeout as not persisted. `<input.json>` holds `task_intent`, `work_
 `artifacts_referenced` and `open_risks` (field guidance:
 `<framework>/.agents/skills/wrap-up/SKILL.md`). `PREPARED` means the candidate
 and `artifacts/session-closeout.txt` were written together under R2 ownership,
-and that text takes part in R2's consistency check with the candidate. It is
-preparation, not closeout, and the agent does not run the closeout itself.
+and that text takes part in R2's consistency check with the candidate.
+`PREPARED` reports only preparation.
+
+In Claude Code, SessionEnd saves a resumable checkpoint. On an explicit owner
+request, prepare first, then run this from the registered framework checkout
+with your session ID and the absolute path to its transcript:
+
+```text
+python -B -m governance_tools.claude_formal_closeout --owner-request "<what the owner asked>" --project-root <repo> --session-id <session-id> --transcript-path <session.jsonl>
+```
+
+For a standing owner authorization, see
+`manage_agent_closeout print-manual --agent claude`. Confirm formal closeout
+from the resulting R2 evidence.
+
+On Codex and Copilot, leave prepared closeout to the harness.
 The manual fallback cannot release an R2-prepared candidate (it is refused with
 `RELEASE_PROOF_INVALID`), so after `PREPARED` do not attempt it. If
 `python -m governance_tools.manage_agent_closeout --project-root <repo> verify
