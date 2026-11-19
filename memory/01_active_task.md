@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- C1-R for the #213 supplied pytest report false positive: independent implementation review completed on f70e41d7. PR #338 awaits the owner merge decision. See memory/04_review_log.md and PLAN.md for evidence and existing decisions. <!-- memory_record_projection:active-task-summary:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
+- N7 B0-B3 Windows native acceptance on 98142f55 is recorded in #337, merged at fe965ac2. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. C1-R independent implementation review completed on f70e41d7. PR #338 awaits the owner merge decision. See memory/2026-11-19.md and memory/04_review_log.md. <!-- memory_record_projection:active-task-summary:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
