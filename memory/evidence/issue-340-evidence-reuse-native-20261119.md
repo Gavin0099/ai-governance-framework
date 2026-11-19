@@ -1,6 +1,6 @@
 # Issue #340 evidence reuse routing
 
-**Native result: PARTIAL.** The static projection checks passed. The two fresh Codex sessions each met two of the five frozen behavioral criteria.
+**Original native result: PARTIAL (2/5 in each run). Follow-up behavioral result: PASS (5/5 in one completed turn).** See the follow-up below for the process timeout and cost.
 
 ## Scope and instruction budget
 
@@ -47,3 +47,25 @@ No Owner restatement or rescue was supplied to either session. The independent r
 - The event digests identify the retained originals, which include local paths and are kept outside the public PR. The table is the independently checked excerpt of their decision evidence.
 
 Static validation: [projection and budget receipt](../../artifacts/evidence/test-results/issue-340-projections-20261119.json) records exit 0, with 99 passing tests in its linked output. Drift was `ok` with zero findings. The work did not change the runtime, the existing authority and closeout contracts, PLAN, or any consumer.
+
+## Rule 8 follow-up
+
+The owner authorized one more Rule 8 change and one fresh Codex run. The instruction now prioritizes opening relevant PRs or issues and their evidence, including Draft PRs at their ref or commit. Unavailable evidence leaves the affected decision `UNKNOWN` and does not establish a need to repeat the work. The change is limited to the canonical rule and its six existing projections.
+
+- **Readable control.** The independent reviewer fetched the #313 report at `94408febfda8a804c178094b60ac58d978521774` and read #339. Existing continuity and product work were supported. The historical V-05 case remains `NOT_ASSESSABLE` because the pre-frozen Oracle and complete intervention record were missing.
+- **Unavailable control.** The same path returned GitHub 404 at pinned main `fe965ac222e2a6af84b479ac3105978ca4d0cd6a`. In the rule walkthrough with no alternate source, the affected judgment remains `UNKNOWN`; neither absence of work nor a rerun is inferred. This is a connector and instruction walkthrough.
+- **Static validation.** [Scoped receipt](../../artifacts/evidence/test-results/issue-340-rule8-followup-20261119.json) records 99 passing projection and budget tests at the implementation SHA. The Copilot checkpoint projection check passed, drift was `ok` with zero findings, and `git diff --check` passed. Rule 8 adds 158 ASCII bytes per surface versus the previous Draft. `AGENTS.md` is 27,955 CRLF bytes with 4,813 bytes of default headroom. Marginal instruction tokens were not measured.
+
+The single follow-up used implementation `724abee6b40c186a36fcda5b2aef0bd6a3bb6731` and the same 493-byte blind prompt and SHA documented above. The independent reviewer found the exact rule in the startup context before the user prompt. Windows Codex CLI `0.167.0-alpha.4.1`, model `gpt-6.2-sol`, read-only sandbox, approval `never`. No owner rescue or answer was supplied. The worktree was clean after the run.
+
+| Frozen decision | Follow-up result and trace evidence |
+| --- | --- |
+| Reuse V-03/V-04 | Pass. #313 PR and exact-ref report (events 40, 70) and #339's D0.7 decision (51). The plan retains the verified results without repeating the standalone validation. |
+| Preserve V-05 eligibility limit | Pass. #313 and #339 (40, 51, 70) plus #273 (56, 79). The plan recognizes completed historical product work and preserves the Oracle and intervention-record gaps. |
+| Reuse the 12 exploratory E-01 runs | Pass. Batch reports and review #304/#305/#306 (53, 54, 57), design #303 (58), and exact-ref local source excerpts (74). The plan retains the product results and the limits from configuration differences and missing formal C-group closeout. |
+| Check live N7 PR status | Pass. Live #337 response (38) and matching merge commit `fe965ac2`. |
+| Preserve new POSIX and real Python 3.9 validation | Pass. N7 report (52) and separate future compatibility work in the final decision. |
+
+**Independent verdict: behavioral PASS, 5/5.** Final response is event 93 and `turn.completed` is event 94. The wrapper reached its 300-second cap (300.06 s total) after the completed turn, with no clean CLI process exit observed. The completed turn reported 1,908,466 input tokens (1,785,472 cached and 122,994 uncached) and 9,332 output tokens, including 2,614 reasoning tokens. Event stream SHA-256 `118ed90ec1a57191c890ff30e133c28f1667663b988088f44e0af0dab33b5515` identifies the retained private trace.
+
+The follow-up consumed more time and tokens than either earlier attempt. The candidate also retained the earlier evidence report (found at event 26), and the session read #340 (37). Those navigation clues limit attribution to the wording alone. The observed result applies to one completed Codex turn. Other harnesses were checked at the projection level. Token and time savings, general effectiveness, and clean CLI shutdown remain unverified. V-05 remains a separate product acceptance task, and #341 remains Draft for owner decision.

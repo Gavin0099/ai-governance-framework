@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Issue #340: shared guidance projections verified on d7082224. Fresh Codex loaded the guidance, but native planning acceptance remains PARTIAL (2/5 twice). Draft-only owner review. V-05 remains separate. See memory/evidence/issue-340-evidence-reuse-native-20261119.md. <!-- memory_record_projection:active-task-summary:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->
+- Issue #340 Rule 8 follow-up: completed Codex turn 5/5 at 724abee6. CLI exit timed out. Draft-only owner decision. V-05 remains separate. <!-- memory_record_projection:active-task-summary:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
