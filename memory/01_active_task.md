@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- #335 merged at 98142f55. The owner authorized head 452ea69d and gave the P1 instruction in the coordinating session. Neither is recorded on GitHub. Main push CI: 7 passed including drift audit, 5 skipped (run on pull requests or manual dispatch), 0 failed. Next: native Codex and VS Code Copilot reruns on 98142f55, pending owner decisions, then real-consumer acceptance. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:09c76600ef86fd7787cf5893e550cbfbef02e97320af8e633e6abe2f785a1cc9 -->
+- PR #336 merged at 4328e280 and main CI succeeded. N7 B0-B3 Windows native acceptance completed on 98142f55. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. Next: owner decision on the N7 evidence PR. C/D await authorization. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:324ebc419f68d7195848702e209493bcf0d95d54b02d3a34423db3973fdabbd7 -->
