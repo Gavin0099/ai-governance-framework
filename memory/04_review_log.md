@@ -5491,3 +5491,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: Reviewer: tests/test_blocking_graduation_check.py 31 passed at b1448584, 1 failed / 30 passed on d28acb9e; fixture mtime shifts +10y/+100y 31 passed, -125d 3 failed; PR #277 checks all passed on b1448584 (run 41590762293); main a6c25b7c Governance Check success (run 41592679002).
 - Next action: Before merging #276: record all three Solo-Owner predicates for its exact new head (fresh independent review of the synced head, green required checks, owner attestation naming the SHA). The three #277 nits are separate optional work.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:160061bf0c76871d067dc48ed0df61f765968523055afe6371d356d5cbf74c2e -->
+### Canonical memory checkpoint — n7-native-acceptance-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `160061bf0c76871d067dc48ed0df61f765968523055afe6371d356d5cbf74c2e`
+- Commit binding: `98142f55c6cdb8a45162766b2cc2d3c1ab67559e` (bound)
+- Record: Recorded bounded Windows native Codex and VS Code Copilot acceptance for the #335 runtime. Both negative Stops and prepared released closeouts were observed. Preserved and distinguished the first inadmissible attempts from successful retries.
+- Validation boundary: Independent review of native lifecycle records and digest bindings is documented in memory/evidence/n7-native-acceptance-20261119.md. Fixture coverage classification, POSIX, Python 3.9, real consumer and Gate 3 remain unqualified.
+- Next action: Obtain the owner decision on #336 and authorizations for the pending PR dispositions before consumer acceptance.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
