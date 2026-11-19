@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- #335 merged at 98142f55. The owner authorized head 452ea69d and gave the P1 instruction in the coordinating session. Neither is recorded on GitHub. Main push CI: 7 passed including drift audit, 5 skipped (run on pull requests or manual dispatch), 0 failed. Next: native Codex and VS Code Copilot reruns on 98142f55, pending owner decisions, then real-consumer acceptance. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:09c76600ef86fd7787cf5893e550cbfbef02e97320af8e633e6abe2f785a1cc9 -->
+- C1-R for the #213 supplied pytest report false positive: independent implementation review completed on f70e41d7. PR #338 awaits the owner merge decision. See memory/04_review_log.md and PLAN.md for evidence and existing decisions. <!-- memory_record_projection:active-task-summary:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
