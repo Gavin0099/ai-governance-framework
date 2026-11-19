@@ -24,3 +24,5 @@ projection superseded them. History only; not current state.
 - #258 merged at 5ecaaaf3 and #275 closed (first backlog group done; Windows native argument passing, real consumer closeout and native Stop still unverified); second group in progress: PLAN sync PR, proposal-PR dispositions, #213/#282 reproduction, #223 review; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:cffc94a93cd7a173272e022a627db18b8976108d3857d8cdbdf3d0059b961b81 -->
 
 - #332 merged at 39d57baf; #213 Copilot closeout gaps fixed in four commits on fix/213-copilot-closeout-gaps (native SessionEnd execution unverified), awaiting PR review, CI and an owner merge decision; details in memory/2026-11-17.md. <!-- memory_record_projection:active-task-summary:6b638bb7ae2adf2783c57b8ebb875f4d44138969c6eda577918ff2bc722c0b96 -->
+
+- #333 merged at 10bd1f09. N6 S1-S4 at 4ea65ddd and S5 PLAN sync recorded. Pending final-SHA PR review and CI, then owner merge decision. See memory/2026-11-18.md. <!-- memory_record_projection:active-task-summary:b41582e44a53c25625b1f417a09102efdaddd60c0f480e9c78b2074faa8b91c8 -->
