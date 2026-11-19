@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- PR #336 merged at 4328e280 and main CI succeeded. N7 B0-B3 Windows native acceptance completed on 98142f55. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. Next: owner decision on the N7 evidence PR. C/D await authorization. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:324ebc419f68d7195848702e209493bcf0d95d54b02d3a34423db3973fdabbd7 -->
+- Issue #340: shared guidance projections verified on d7082224. Fresh Codex loaded the guidance, but native planning acceptance remains PARTIAL (2/5 twice). Draft-only owner review. V-05 remains separate. See memory/evidence/issue-340-evidence-reuse-native-20261119.md. <!-- memory_record_projection:active-task-summary:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->

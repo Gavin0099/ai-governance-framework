@@ -5502,3 +5502,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: Independent review of native lifecycle records and digest bindings is documented in memory/evidence/n7-native-acceptance-20261119.md. Fixture coverage classification, POSIX, Python 3.9, real consumer and Gate 3 remain unqualified.
 - Next action: Obtain the owner decision on #336 and authorizations for the pending PR dispositions before consumer acceptance.
 - PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->
+### Canonical memory checkpoint — issue-340-evidence-routing-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b`
+- Commit binding: `d7082224b5a6afdfc865568f9b7e7a81a23fddcc` (bound)
+- Record: Issue #340 projects a single conditional prior-evidence rule into all six existing instruction surfaces. Independent review confirmed projection fidelity and a Draft-only handoff. Two fresh Codex sessions loaded the rule and each met two of five frozen decisions. The V-03/V-04, V-05 and E-01 historical evidence retrieval criteria remain unmet.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-340-projections-20261119.json artifacts/evidence/test-results/issue-340-projections-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity is ok. Native result PARTIAL, as documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
+- Next action: Hand off one Draft PR for owner review. V-05 remains the independent product priority. Further work on native history retrieval requires a separate owner decision.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
