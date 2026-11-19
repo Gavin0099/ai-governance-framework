@@ -137,25 +137,41 @@ python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-
 ```
 
 `<session-id>` is the platform's own session id (`CODEX_THREAD_ID` in Codex,
-`CLAUDE_CODE_SESSION_ID` in Claude Code; in VS Code Copilot, the id that the
+`CLAUDE_CODE_SESSION_ID` in Claude Code; in VS Code Copilot or Copilot CLI, the id that the
 governed SessionStart hook adds to the conversation as `additionalContext`),
 and it must equal `session_id` in
 `artifacts/runtime/.current-session-id`. That file names the most recently
 started or resumed session, which may be another session sharing the checkout;
+never take an id from `artifacts/runtime/.current-session-id`;
 if the platform exposes no native id, or the two differ, do not prepare and
 report the closeout as not persisted. `<input.json>` holds `task_intent`, `work_summary`, `tools_used`,
 `artifacts_referenced` and `open_risks` (field guidance:
 `<framework>/.agents/skills/wrap-up/SKILL.md`). `PREPARED` means the candidate
 and `artifacts/session-closeout.txt` were written together under R2 ownership,
-and that text takes part in R2's consistency check with the candidate. It is
-preparation, not closeout, and the agent does not run the closeout itself.
+and that text takes part in R2's consistency check with the candidate.
+`PREPARED` reports only preparation.
+
+In Claude Code, SessionEnd saves a resumable checkpoint. On an explicit owner
+request, prepare first, then run this from the registered framework checkout
+with your session ID and the absolute path to its transcript:
+
+```text
+python -B -m governance_tools.claude_formal_closeout --owner-request "<what the owner asked>" --project-root <repo> --session-id <session-id> --transcript-path <session.jsonl>
+```
+
+For a standing owner authorization, see
+`manage_agent_closeout print-manual --agent claude`. Confirm formal closeout
+from the resulting R2 evidence.
+
+On Codex and Copilot, leave prepared closeout to the harness.
 The manual fallback cannot release an R2-prepared candidate (it is refused with
 `RELEASE_PROOF_INVALID`), so after `PREPARED` do not attempt it. If
 `python -m governance_tools.manage_agent_closeout --project-root <repo> verify
 --agent <agent>`, run from the framework checkout, reports a closeout hook as
-installed and says the closeout is left to it (today the Codex Stop hook
-and the VS Code Copilot Stop hook; a hook that only writes a checkpoint does not count), the closeout is
-left to that hook after the turn: report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
+installed and says the closeout is left to it (today the Codex Stop hook and the VS Code Copilot Stop hook,
+and the Copilot CLI sessionEnd hook; a hook that only writes a checkpoint does not count), the closeout is
+left to that hook at its execution point: after the turn for Codex and VS Code,
+or when the CLI session ends (not after the turn). Report `PREPARED` / `PENDING_HOOK` (closeout prepared, waiting for the
 session-end hook), not `NOT PERSISTED`. An installed hook is not proof that
 it will run or succeed, and the agent cannot observe it during its own turn;
 only the existing R2 evidence (a valid canonical closeout and released
@@ -164,9 +180,13 @@ not persisted: rule 5's manual attempt cannot release a `PREPARED`
 candidate, so that report is its outcome. `REJECTED` is reported verbatim. Preparation is available only in a
 registered-submodule consumer whose session has a qualified (schema 1.1)
 identity. The Copilot paths are separate: a VS Code Copilot session prepares
-with the id above and its Stop hook runs the closeout; a Copilot CLI session is
-given no session id, so it does not prepare and its closeout is reported as not
-persisted (its sessionEnd hook closes out only a session that was prepared).
+with the id above and its Stop hook runs the closeout. A Copilot CLI session
+receives its id from the SessionStart hook only when the current start verifies
+its CLI identity and the governed sessionEnd hook is installed. It then prepares
+like VS Code; its sessionEnd hook closes out a prepared session when the session
+ends (not after the turn). Without that id, report the closeout as not persisted.
+A resumed CLI session loads repository hooks only with persistent folder trust;
+`--trust-folder` cannot be combined with `--resume`.
 
 Writing `artifacts/session-closeout.txt` by hand is **not** a formal closeout:
 it is a legacy/manual input surface, it is not converted into a session-bound

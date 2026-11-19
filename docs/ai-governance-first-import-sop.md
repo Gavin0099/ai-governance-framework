@@ -47,6 +47,18 @@ python governance_tools/adopt_governance.py --target <repo> --dry-run
 python governance_tools/adopt_governance.py --target <repo>
 ```
 
+New managed `.gitignore` blocks cover the generated claim-enforcement receipt
+log and runtime phase summary. If the consumer already has a managed block,
+add these two rules outside it. The installer preserves existing blocks.
+
+```gitignore
+/artifacts/claim-enforcement/claim-enforcement-receipts.ndjson
+/artifacts/governance/runtime_phase_summary.json
+```
+
+Keep `artifacts/session-closeout.txt` visible to Git. It is also a legacy
+manual input and the shared text input checked against the prepared candidate.
+
 4. Resolve common first-import gaps
 - ensure these files exist and are valid:
   - `.governance/version_manifest.yaml`
@@ -216,6 +228,16 @@ Known binding rejection messages from the existing validator include:
   for unresolved registration/pin/checkout state;
 - `Git environment overrides unsupported: <names>` when the shell carries
   inherited `GIT_*` variables (see step 5); this is checked before the lock.
+
+On Windows, the Codex sandbox account can encounter Git's dubious-ownership
+refusal when another account owns the checkout. The preparation CLI names this
+in its `REJECTED` error. For a checkout you trust, configure exact
+`safe.directory` entries for both the consumer root and the registered
+framework submodule. Use the account running prepare, or set `HOME` for that
+process to a directory whose `.gitconfig` includes the user config and the two
+entries. In either scope, use `git config --global --add safe.directory
+"<absolute-path>"` once per path from the intended account or process
+environment. Retry preparation there.
 
 The binding-only command raises the existing error and exits nonzero. The
 preparation CLI returns exit code `1` with JSON `status: REJECTED` and the

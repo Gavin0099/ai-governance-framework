@@ -544,6 +544,8 @@ class ClaudeAdapter(AgentAdapter):
         return changed
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        from governance_tools.hook_installer import install_claude_instructions
+
         settings_path = project_root / ".claude/settings.json"
         try:
             data = self._read_settings_for_install(settings_path)
@@ -551,22 +553,28 @@ class ClaudeAdapter(AgentAdapter):
             return {"status": "blocked", "location": str(settings_path),
                     "message": f"Unable to safely read Claude settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
+        if state != "CORRECTLY_INSTALLED":
+            for path in (project_root / ".claude/settings.local.json",
+                         Path.home() / ".claude/settings.json"):
+                hooks = _read_json(path).get("hooks", {})
+                for event in self.MANAGED_EVENTS:
+                    groups = hooks.get(event, []) if isinstance(hooks, dict) else []
+                    for group in groups if isinstance(groups, list) else []:
+                        if isinstance(group, dict) and any(self._is_governance_hook(h)
+                                                          for h in group.get("hooks", [])):
+                            return {"status": "blocked", "location": str(path),
+                                    "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+        instructions = install_claude_instructions(project_root, framework_root)
+        if not instructions.ok:
+            return {"status": "blocked", "location": str(settings_path),
+                    "message": "Unable to project Claude instructions: " + "; ".join(instructions.errors)}
         readiness = closeout_execution_readiness(project_root, framework_root)
+        guidance = " Formal closeout guidance is in CLAUDE.md and AGENTS.md." if instructions.installed_files else ""
         if state == "CORRECTLY_INSTALLED":
             return {"status": "already_installed", "location": loc,
                     "closeout_readiness": readiness,
                     "message": "Governance SessionStart/SessionEnd hooks match the requested binding."
-                               + _readiness_note(readiness)}
-        for path in (project_root / ".claude/settings.local.json",
-                     Path.home() / ".claude/settings.json"):
-            hooks = _read_json(path).get("hooks", {})
-            for event in self.MANAGED_EVENTS:
-                groups = hooks.get(event, []) if isinstance(hooks, dict) else []
-                for group in groups if isinstance(groups, list) else []:
-                    if isinstance(group, dict) and any(self._is_governance_hook(h)
-                                                      for h in group.get("hooks", [])):
-                        return {"status": "blocked", "location": str(path),
-                                "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+                               + guidance + _readiness_note(readiness)}
         hooks = data.setdefault("hooks", {})
         removed = self._remove_governance_hooks(hooks)
         for event, hook in self._expected_hooks(project_root, framework_root).items():
@@ -576,7 +584,7 @@ class ClaudeAdapter(AgentAdapter):
                 "location": str(settings_path), "closeout_readiness": readiness,
                 "message": ("Governance SessionStart/SessionEnd hooks installed"
                             + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else ".")
-                            + _readiness_note(readiness))}
+                            + guidance + _readiness_note(readiness))}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         state, loc = self._binding_state(project_root, framework_root)
@@ -816,22 +824,22 @@ class CopilotAdapter(AgentAdapter):
         """Report each Copilot closeout execution point on its own.
 
         The lifecycle wiring is judged by the hook validator's own checks
-        (copilot_closeout_wiring). VS Code Stop runs the closeout of a prepared
-        VS Code session, so only it is "left to" the hook for the pending report;
-        the CLI sessionEnd is reported separately and never stands in for it.
+        (copilot_closeout_wiring). For a prepared session, VS Code Stop closes
+        out after the turn and CLI sessionEnd closes out when the session ends.
+        The pending report's after-turn note applies only to VS Code.
         """
         from governance_tools.hook_install_validator import copilot_closeout_wiring
 
         state = self._binding_state(project_root, framework_root)
-        wiring = copilot_closeout_wiring(project_root)
+        wiring = copilot_closeout_wiring(project_root, framework_root=framework_root)
         hooks_dir = project_root / ".github" / "hooks"
         parts = [
             "VS Code Copilot Stop (agent_stop): "
             + ("installed; a prepared VS Code Copilot session's closeout is left to it"
                if wiring["vscode_stop"] else "not installed"),
             "Copilot CLI sessionEnd (lifecycle bridge): "
-            + ("installed; a prepared session uses the protected closeout, any other session "
-               "the generic session_end closeout"
+            + ("installed; a prepared CLI session's closeout is left to this hook at sessionEnd, "
+               "when the CLI session ends (not after the turn); other sessions use the generic session_end closeout"
                if wiring["cli_session_end"] else "not installed"),
             f"legacy {self.HOOK_FILE} sessionEnd binding: {state}",
         ]

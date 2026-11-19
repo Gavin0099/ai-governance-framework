@@ -1,9 +1,11 @@
 """#213: invalid closeout input is an audit event, never an agent work record."""
 from __future__ import annotations
 
+import io
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -145,6 +147,22 @@ def test_copilot_generic_closeout_never_projects_invalid_input_as_work(repo, sur
     assert TASK not in text and WORK not in text
     label = "MISSING" if input_state == "missing" else expected.upper()
     assert f"FAIL_CLOSED_CLOSEOUT_{label}" in text
+
+
+def test_unprepared_copilot_cli_bridge_exits_with_fail_closed_audit(repo, monkeypatch, capsys):
+    start_copilot(repo, "copilot")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({
+        "sessionId": SID, "hookEventName": "sessionEnd", "cwd": str(repo),
+    })))
+
+    assert lifecycle.main(["--event-type", "session_end", "--surface", "auto"]) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "session_end_invoked"
+    assert result["ok"] is False and result["closeout_status"] == "closeout_missing"
+    text = memory_text(repo)
+    assert_audit_only(text)
+    assert "FAIL_CLOSED_CLOSEOUT_MISSING" in text
+    assert not (repo / f"artifacts/runtime/closeout-completions/{SID}.json").exists()
 
 
 @pytest.mark.parametrize("surface", ["vscode", "copilot"])

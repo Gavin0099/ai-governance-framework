@@ -226,7 +226,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=True))
         return 0
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
-        print(json.dumps({"status": "REJECTED", "error": str(exc),
+        error = str(exc)
+        if isinstance(exc, subprocess.CalledProcessError):
+            stderr = (exc.stderr or "").casefold()
+            if re.search(r"(?m)^(?:fatal: )?detected dubious ownership\b"
+                         r"|^[ \t]*git config --global --add safe\.directory[ \t]+\S", stderr):
+                error = ("Git refused the checkout due to dubious ownership. Configure safe.directory for the "
+                         "consumer root and its framework submodule in the account running prepare, using "
+                         "a process-scoped HOME with a .gitconfig or the account's user-level Git config. "
+                         + error)
+        print(json.dumps({"status": "REJECTED", "error": error,
                           "partial_preparation_may_remain": True}, ensure_ascii=True))
         return 1
 

@@ -104,16 +104,6 @@ def _contains_framework_marker(path: Path) -> bool:
     return _contains_marker(path, FRAMEWORK_MARKER)
 
 
-def _command_option(tokens: list[str], option: str) -> str | None:
-    try:
-        index = tokens.index(option)
-    except ValueError:
-        return None
-    if index + 1 >= len(tokens):
-        return None
-    return tokens[index + 1]
-
-
 def _read_vscode_hook_config(path: Path) -> dict:
     def unique_object(pairs):
         result = {}
@@ -173,16 +163,50 @@ def _vscode_hook_config_safe(path: Path) -> bool:
     point, exactly once. The retired Stop -> session_end and SessionStart wiring,
     or any other bridge invocation, is unsafe.
     """
-    if not path.exists():
-        return True
     try:
         payload = _read_vscode_hook_config(path)
+    except FileNotFoundError:
+        return True
     except (OSError, ValueError):
         return False
+    return _vscode_hook_payload_safe(payload)
+
+
+def _vscode_hook_payload_safe(payload: dict) -> bool:
     bridged = [(event, entry) for event, entries in payload["hooks"].items()
                for entry in entries if _references_copilot_bridge(entry)]
     return all(event == "Stop" and entry == VSCODE_MANAGED_STOP_ENTRY for event, entry in bridged) \
         and len(bridged) <= 1
+
+
+COPILOT_SHARED_EVENTS = {
+    "sessionStart": ("session_start", "auto"),
+    "sessionEnd": ("session_end", "auto"),
+}
+
+
+def _read_managed_copilot_config(path: Path) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if (
+        not isinstance(payload, dict) or type(payload.get("version")) is not int
+        or payload["version"] != 1 or not isinstance(payload.get("hooks"), dict)
+    ):
+        return {}
+    return payload
+
+
+def _command_option(tokens: list[str], option: str) -> str | None:
+    try:
+        index = tokens.index(option)
+    except ValueError:
+        return None
+    if index + 1 >= len(tokens):
+        return None
+    return tokens[index + 1]
+
 
 
 def _managed_copilot_hook_config(
@@ -198,17 +222,11 @@ def _managed_copilot_hook_config(
     handler for the same boundary and writes the session envelope twice, so an
     extra event is a defect to report rather than a variation to tolerate.
     """
-    if not path.is_file():
-        return False
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    if not isinstance(payload, dict):
-        return False
-    hooks = payload.get("hooks")
-    if type(payload.get("version")) is not int or payload["version"] != 1 or not isinstance(hooks, dict):
-        return False
+    hooks = _read_managed_copilot_config(path).get("hooks", {})
+    return _managed_copilot_hook_payload_matches(hooks, expected_events)
+
+
+def _managed_copilot_hook_payload_matches(hooks: dict, expected_events: dict[str, tuple[str, str]]) -> bool:
     if set(hooks) != set(expected_events):
         return False
     for event_name, (expected_event_type, expected_surface) in expected_events.items():
@@ -232,32 +250,97 @@ def _managed_copilot_hook_config(
     return True
 
 
-COPILOT_SHARED_EVENTS = {
-    "sessionStart": ("session_start", "auto"),
-    "sessionEnd": ("session_end", "auto"),
-}
+def _managed_copilot_hook_entries(hooks: dict) -> dict[str, dict]:
+    entries_by_event = {}
+    for event_name in COPILOT_SHARED_EVENTS:
+        # PascalCase and lowerCamelCase aliases can register the same event twice.
+        if any(name != event_name and name.casefold() == event_name.casefold() for name in hooks):
+            continue
+        entries = hooks.get(event_name)
+        if isinstance(entries, list) and len(entries) == 1 and isinstance(entries[0], dict):
+            entries_by_event[event_name] = entries[0]
+    return entries_by_event
 
 
-def copilot_closeout_wiring(repo_root: Path) -> dict[str, bool]:
-    """Which Copilot closeout execution points the repository hook config wires.
+def _cli_hook_matches_template(entry: dict, expected: dict) -> bool:
+    # For repository command hooks, the shell-specific key precedes command.
+    # https://docs.github.com/en/copilot/reference/hooks-reference#command-hooks
+    shell_key = "powershell" if sys.platform == "win32" else "bash"
+    absent = object()
+    expected_command = expected.get(shell_key, expected.get("command"))
+    if not isinstance(expected_command, str) or entry.get(shell_key, entry.get("command")) != expected_command:
+        return False
+    # exec is a different way to select the executable. The template uses shell commands.
+    fields = ("exec", "cwd", "type", "timeoutSec", "timeout")
+    if any(entry.get(key, absent) != expected.get(key, absent) for key in fields):
+        return False
+    # The installer does not override the environment for either lifecycle hook.
+    return "env" not in entry
 
-    Configuration only, with the same checks validate_hook_install uses. Both points
-    need the governed lifecycle bridge and the shared Copilot registration, whose
-    sessionStart establishes the identity. VS Code Stop and Copilot CLI sessionEnd are
-    reported separately: one being wired says nothing about the other, and neither is
-    proof that the platform runs it.
-    """
-    hooks_dir = Path(repo_root) / ".github" / "hooks"
+
+def _cli_hook_file_has_required_shape(hooks: dict) -> bool:
+    # Directory configs require array-valued events. The loader can skip a bad
+    # item without dropping the file; managed entries are checked below.
+    # https://docs.github.com/en/copilot/reference/hooks-reference#hook-configuration-format
+    return all(isinstance(items, list) for items in hooks.values())
+
+
+def _managed_cli_hook_events(config: dict, framework_root: Path | None) -> dict[str, bool]:
+    from governance_tools.hook_installer import COPILOT_CLI_HOOK_TEMPLATE_REL
+
+    # https://docs.github.com/en/copilot/reference/hooks-reference#disable-all-hooks
+    hooks = config.get("hooks", {})
+    if config.get("disableAllHooks") is True or not _cli_hook_file_has_required_shape(hooks):
+        return dict.fromkeys(COPILOT_SHARED_EVENTS, False)
+    root = framework_root if framework_root is not None else Path(__file__).parent.parent
+    template_config = _read_managed_copilot_config(root / COPILOT_CLI_HOOK_TEMPLATE_REL)
+    template = _managed_copilot_hook_entries(template_config.get("hooks", {}))
+    entries = _managed_copilot_hook_entries(hooks)
+    return {
+        event: event in entries and event in template and _cli_hook_matches_template(entries[event], template[event])
+        for event in COPILOT_SHARED_EVENTS
+    }
+
+
+def _copilot_shared_wiring(repo_root: Path) -> tuple[bool, dict]:
+    hooks_dir = repo_root / ".github" / "hooks"
     bridge = hooks_dir / "ai-governance-lifecycle.py"
-    bridge_governed = bridge.is_file() and _contains_marker(bridge, COPILOT_LIFECYCLE_MARKER)
-    shared = bridge_governed and _managed_copilot_hook_config(
-        hooks_dir / "ai-governance-copilot.json", COPILOT_SHARED_EVENTS)
-    vscode = hooks_dir / "ai-governance-vscode.json"
+    try:
+        bridge_governed = COPILOT_LIFECYCLE_MARKER in bridge.read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        bridge_governed = False
+    config = _read_managed_copilot_config(hooks_dir / "ai-governance-copilot.json") if bridge_governed else {}
+    return bridge_governed, config
+
+
+def copilot_cli_session_id_wired(repo_root: Path, *, framework_root: Path | None = None) -> bool:
+    """The ID hand-off needs both CLI events and never consults VS Code wiring."""
+    bridge_governed, config = _copilot_shared_wiring(repo_root)
+    return bridge_governed and all(_managed_cli_hook_events(config, framework_root).values())
+
+
+def copilot_closeout_wiring(repo_root: Path, *, framework_root: Path | None = None) -> dict[str, bool]:
+    """Report the configured closeout execution points independently."""
+    bridge_governed, config = _copilot_shared_wiring(repo_root)
+    # VS Code verification keeps the install validator's whole-file judgment.
+    shared = bridge_governed and _managed_copilot_hook_payload_matches(config.get("hooks", {}), COPILOT_SHARED_EVENTS)
     vscode_stop = False
-    if shared and vscode.is_file() and _vscode_hook_config_safe(vscode):
-        vscode_stop = VSCODE_MANAGED_STOP_ENTRY in _read_vscode_hook_config(vscode)["hooks"].get("Stop", [])
-    return {"bridge_governed": bridge_governed, "shared_registration_governed": shared,
-            "vscode_stop": vscode_stop, "cli_session_end": shared}
+    if shared:
+        try:
+            payload = _read_vscode_hook_config(repo_root / ".github" / "hooks" / "ai-governance-vscode.json")
+        except (OSError, ValueError):
+            pass
+        else:
+            vscode_stop = (
+                _vscode_hook_payload_safe(payload)
+                and VSCODE_MANAGED_STOP_ENTRY in payload["hooks"].get("Stop", [])
+            )
+    return {
+        "bridge_governed": bridge_governed,
+        "shared_registration_governed": shared,
+        "vscode_stop": vscode_stop,
+        "cli_session_end": bridge_governed and _managed_cli_hook_events(config, framework_root)["sessionEnd"],
+    }
 
 
 def _normalize_framework_root(raw_value: str) -> Path:

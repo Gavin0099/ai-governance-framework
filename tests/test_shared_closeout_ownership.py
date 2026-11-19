@@ -215,6 +215,63 @@ entry.main()
         own.reconcile_release(repo,'session-A',1,held['receipt_identity'])
 
 
+@pytest.mark.parametrize('state, canonical_state', [
+    ('HOLD', 'tampered'), ('HOLD', 'missing'), ('HOLD', 'intact'), ('HOLD', 'legacy'),
+    ('RELEASED', 'tampered'), ('RELEASED', 'missing'),
+])
+def test_reconcile_release_checks_accepted_canonical(repo, monkeypatch, capsys, state, canonical_state):
+    reason = 'canonical_closeout_digest_mismatch'
+    prepare(repo)
+
+    def interrupted(*args, **kwargs):
+        raise OSError('interrupted before release')
+
+    with monkeypatch.context() as context:
+        if state == 'HOLD':
+            context.setattr(own, 'finalize_release', interrupted)
+        assert invoke(repo, context) == (1 if state == 'HOLD' else 0)
+    capsys.readouterr()
+    current = owner(repo)
+    assert current['state'] == state
+    assert (repo/own._receipt_relative(current)).is_file()
+    args = (repo, 'session-A', 1, current['receipt_identity'])
+    canonical = repo/'artifacts/runtime/closeouts/session-A.json'
+    marker = repo/'artifacts/runtime/closeout-completions/session-A.json'
+    original = canonical.read_bytes()
+    completion = json.loads(marker.read_bytes())
+    assert completion['canonical_closeout_sha256'] == sha(original)
+    release = repo/own.AREA/'releases/1.json'
+    if canonical_state in {'tampered', 'legacy'}:
+        canonical.write_bytes(original + b'\n')
+    if canonical_state == 'missing':
+        canonical.unlink()
+    if canonical_state == 'legacy':
+        del completion['canonical_closeout_sha256']
+        marker.write_text(json.dumps(completion), encoding='utf-8')
+
+    def files():
+        return {
+            path.relative_to(repo): (path.read_bytes(), path.stat().st_mtime_ns)
+            for path in (repo/'artifacts').rglob('*')
+            if path.is_file() and path != repo/own.AREA/'owner.json'
+        }
+
+    before = files()
+    if canonical_state in {'tampered', 'missing'}:
+        with pytest.raises(own.OwnershipError, match=f'^RELEASE_PROOF_INVALID: {reason}$'):
+            own.reconcile_release(*args)
+        assert owner(repo) == (dict(current, hold_reason=reason) if state == 'HOLD' else current)
+        assert release.exists() is (state == 'RELEASED')
+        assert files() == before
+        if state == 'HOLD':
+            canonical.write_bytes(original)
+            assert own.reconcile_release(*args)['status'] == 'RELEASED'
+    else:
+        assert own.reconcile_release(*args)['status'] == 'RELEASED'
+        assert release.is_file()
+        assert {path: value for path, value in files().items() if path != release.relative_to(repo)} == before
+
+
 @pytest.mark.parametrize('conflict', [False, True])
 def test_release_record_published_before_owner_transition_recovery(repo, monkeypatch, conflict):
     prepare(repo)

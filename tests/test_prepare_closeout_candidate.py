@@ -4,6 +4,7 @@ No formal closeout, gate, promotion or consumer activation is executed here.
 """
 import copy
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ import sys
 
 import pytest
 
+from governance_tools import prepare_closeout_candidate as preparation
 from governance_tools.prepare_closeout_candidate import render_inputs, PreparationError
 from runtime_hooks.core._canonical_closeout import build_candidate_artifact, write_candidate
 
@@ -119,6 +121,43 @@ def runtime_bytes(root):
             for p in (root / "artifacts").rglob("*") if p.is_file()}
 
 
+@pytest.mark.parametrize(("stderr", "ownership_error"), [
+    ("fatal: detected dubious ownership in repository at 'consumer'", True),
+    ("To add an exception for this directory, call:\n\n"
+     "\tgit config --global --add safe.directory consumer", True),
+    ("fatal: not a git repository", False),
+    pytest.param("fatal: bad config line 3 in file C:/config/safe.directory", False, id="invalid-config"),
+])
+def test_git_failure_rejection_preserves_fail_closed_and_explains_ownership(
+    tmp_path, monkeypatch, capsys, stderr, ownership_error
+):
+    for name in list(os.environ):
+        if name.upper().startswith("GIT_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(INPUT)))
+
+    def reject_git(args, **kwargs):
+        assert args[0] == "git" and args[-2:] == ["rev-parse", "--show-toplevel"]
+        raise subprocess.CalledProcessError(128, args, stderr=stderr)
+
+    monkeypatch.setattr(subprocess, "run", reject_git)
+    assert preparation.main([
+        "--consumer-root", str(tmp_path), "--framework-root", str(tmp_path / "framework"),
+        "--session-id", "session-A",
+    ]) == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "REJECTED"
+    if not ownership_error:
+        assert "exit status 128" in report["error"]
+        assert "safe.directory" not in report["error"]
+    else:
+        assert all(term in report["error"] for term in (
+            "dubious ownership", "safe.directory", "consumer root", "framework submodule",
+            "process-scoped HOME", "user-level Git config",
+        ))
+    assert not list(tmp_path.iterdir())
+
+
 def test_submodule_entry_reserves_exact_utf8_bytes_and_only_prepares(consumer):
     before_envelope = runtime_bytes(consumer)
     result = invoke(consumer)
@@ -174,7 +213,7 @@ def test_invalid_framework_binding_rejects_before_runtime_writes(consumer, mutat
     assert runtime_bytes(consumer) == before
 
 
-@pytest.mark.parametrize("kind", ["framework-root", "consumer-root", "session", "legacy", "wrong-binding", "consumed", "missing"])
+@pytest.mark.parametrize("kind", ["framework-root", "consumer-root", "legacy", "wrong-binding", "consumed", "missing"])
 def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
     envelope = consumer / "artifacts/runtime/sessions/session-A/session-envelope.json"
     options = {}
@@ -182,8 +221,6 @@ def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
         options["framework"] = consumer
     elif kind == "consumer-root":
         options["target"] = consumer / "governance"
-    elif kind == "session":
-        options["sid"] = "session-B"
     elif kind == "missing":
         envelope.unlink()
     elif kind in ("legacy", "wrong-binding"):
@@ -202,6 +239,27 @@ def test_identity_rejects_without_mutation(consumer, tmp_path, kind):
     result = invoke(consumer, **options)
     assert result.returncode == 1, result.stdout
     assert runtime_bytes(consumer) == before
+
+
+def test_unconsumed_session_without_envelope_rejects_before_writes(consumer):
+    def tree():
+        return {path.relative_to(consumer): path.read_bytes() if path.is_file() else None
+                for path in consumer.rglob("*")}
+
+    runtime = consumer / "artifacts/runtime"
+    assert (runtime / "sessions/session-A/session-envelope.json").is_file()
+    assert not (runtime / "sessions/session-B/session-envelope.json").exists()
+    assert not (runtime / "closeout-completions/session-B.json").exists()
+    before = tree()
+
+    result = invoke(consumer, sid="session-B")
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["status"] == "REJECTED"
+    assert report["error"] == "INVALID_OWNER: qualified R1 binding required"
+    assert report["error"] != "consumed session cannot prepare"
+    assert tree() == before
 
 
 def test_other_session_cannot_replace_prepared_owner(consumer):

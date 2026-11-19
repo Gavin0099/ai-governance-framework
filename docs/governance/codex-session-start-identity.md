@@ -82,6 +82,26 @@ session id one provider created is never adopted by the other.
   or an unknown client establishes nothing. The result does not depend on which
   hook ran first; an existing envelope (`1.0` or `1.1`) is preserved and never
   upgraded, and one owned by another provider is refused.
+- **SessionStart hands off a root-bound Copilot id.** The shared hook names the
+  id in top-level `additionalContext`. VS Code can receive the id again when it
+  resumes a root-bound session. For CLI, this start's runtime record must confirm
+  the identity's provider, and the effective `sessionEnd` command for the current
+  platform must invoke the governed entry from the repository root. Preserving
+  an envelope on resume does not verify the CLI provider. Without the id, report
+  the closeout as not persisted. Use the id only at an owner-authorized closeout;
+  never take it from `.current-session-id`. After `PREPARED`, report `PREPARED` /
+  `PENDING_HOOK`: VS Code Stop runs the formal closeout after the turn, while
+  CLI `sessionEnd` runs it when the session ends (not after the turn). A resumed
+  CLI session loads repository hooks only with persistent folder trust;
+  `--trust-folder` cannot be combined with `--resume`. Do not run
+  `manual_fallback` after preparation. The note proves nothing; only R2's
+  valid canonical closeout and `RELEASED` ownership confirm success.
+- **Owner ruling (2026-11-18).** `prepare_closeout_candidate` trusts the session
+  ID supplied by the agent. It checks that the ID has a qualified envelope and
+  is unconsumed. Caller identity is outside the prepare check, so in one
+  consumer a session can prepare for another live session, including one from
+  another provider. This is part of the cooperative threat model. R2 still
+  verifies the named session's own transcript and identity at closeout.
 - **VS Code Stop is an execution point only.** The VS Code-format file wires
   `Stop` to `--event-type agent_stop --surface vscode`. Stop fires every turn:
   without a `1.1` `github-copilot-vscode` identity, or when this session is not
@@ -101,7 +121,21 @@ session id one provider created is never adopted by the other.
   runtime's `events.jsonl` for the session as transcript and the identity's own
   provider as the expected client; anything wrong refuses and the owner stays
   `OWNED`, never `valid`. Without a prepared candidate the existing session_end
-  path runs unchanged.
+  path handles the refusal. For missing closeout input it writes the
+  `FAIL_CLOSED_CLOSEOUT_MISSING` audit with `NOT CLAIMED` for a non-stateless
+  session and leaves the completion marker absent. The bridge deliberately
+  exits `1` when the closeout result has `ok: false`. Copilot CLI displays that
+  status as “Hook command failed” even when the audit was written successfully.
+- **Replay digest verification.** The binding-enforced session-end hook checks
+  the digest on replay when the completion marker carries
+  `canonical_closeout_sha256`. Without that field, the binding-enforced entries
+  keep their legacy replay behavior. These entries include unprepared Copilot
+  CLI and shared VS Code `SessionEnd`, the direct hook CLI and its PowerShell
+  wrapper, and `session_closeout_entry.run()`. The standalone core CLI also
+  checks the digest when present. With a digest-less marker, it re-runs closeout
+  and, on success, writes the canonical closeout and records its digest in the
+  completion marker. Per-turn VS Code and Codex Stop events skip released
+  sessions by design.
 
 Both payload shapes are tested through the real installer and the installed
 `sessionStart` command. The provider record and transcript shape come from a
@@ -150,10 +184,16 @@ is preserved. Completed sessions remain consumed.
 Claude Code uses the same identity contract with `provider=claude`,
 `repo_binding.source=claude_session_start`, through
 `runtime_hooks/adapters/claude_code/session_lifecycle.py` (design: #231,
-`docs/proposals/2026-10-claude-code-session-lifecycle.md`). The installer
-(`manage_agent_closeout install --agent claude`) manages a SessionStart and a
-SessionEnd hook and removes any legacy governance Stop closeout: Claude Code's
-`Stop` fires after every response, not at session end.
+`docs/proposals/2026-10-claude-code-session-lifecycle.md`). After baseline
+adoption, run this from the registered framework checkout:
+
+```text
+python -m governance_tools.manage_agent_closeout --project-root <repo> install --agent claude
+```
+
+It installs SessionStart and SessionEnd, projects the formal closeout guidance
+into `CLAUDE.md` and `AGENTS.md`, and removes any legacy governance Stop
+closeout. Claude Code's `Stop` fires after every response.
 
 - **SessionStart**: `startup`/`clear`/`fork` create an identity; `resume`/`compact`
   preserve an existing one. A `resume` without an identity (older Claude Code may
@@ -175,7 +215,10 @@ SessionEnd hook and removes any legacy governance Stop closeout: Claude Code's
 - **Formal closeout stays explicit.** The shared closeout allows one owning
   session per worktree: after a session prepares a summary, a *new* session can
   read it back but cannot save its own until the previous session's formal
-  closeout releases ownership. SessionStart says so when it applies.
+  closeout releases ownership. SessionStart says so when it applies. On an
+  explicit owner request, prepare first, then run
+  `python -B -m governance_tools.claude_formal_closeout --owner-request "<what the owner asked>" --project-root <repo> --session-id <session-id> --transcript-path <session.jsonl>`
+  from the registered framework checkout. Pass the absolute transcript path.
 - **Install reports what it cannot promise.** `install` and `verify` carry a
   `closeout_readiness` field. The save-progress command SessionStart declares
   needs the framework to be a registered submodule of the project root and the

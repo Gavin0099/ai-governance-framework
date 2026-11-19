@@ -902,6 +902,8 @@ def run_session_end(
     observed_closeout_status: str | None = None,
     daily_memory_write_required: bool | None = None,
     enforce_session_binding: bool = False,
+    *,
+    check_digest_replay: bool = False,
 ) -> dict[str, Any]:
     # session_id becomes a path component below (closeouts/{id}.json, ...), so an
     # unsafe or empty id must stop here: the old "session_id is required" error
@@ -939,32 +941,35 @@ def run_session_end(
             session_id,
             project_root,
             _closeout_candidate,
+            digest_replay_only=not enforce_session_binding,
         )
-        if enforce_session_binding
+        if enforce_session_binding or check_digest_replay
         else {"status": "not_enforced", "session_id": session_id}
     )
     binding_status = str(session_binding.get("status") or "")
     binding_valid = not enforce_session_binding or binding_status == "valid"
-    # Additive reporting field, enforcement mode ONLY. Reviewers need to tell
+    # Additive reporting field. Reviewers need to tell
     # "this id is finished" from "this id can be corrected and re-run"; the
     # status string alone does not say which. Never used as a control
     # condition — see the marker guard.
     #
-    # Deliberately NOT set when binding is not enforced. The non-enforced
-    # payload carries the sentinel status "not_enforced", which is neither a
+    # Deliberately NOT set for the sentinel status "not_enforced", which is neither a
     # rejection nor a completion, so no class literal describes it: classifying
     # it would report "recoverable" and assert that a non-existent rejection
     # can be retried. Adding a third literal to cover it would widen a
     # vocabulary the owner approved as exactly two. Leaving the key absent
     # keeps the non-enforced return shape byte-identical to its previous form.
-    if enforce_session_binding:
+    if binding_status != "not_enforced":
         session_binding["class"] = classify_binding_status(binding_status)
 
-    if enforce_session_binding and binding_status == "already_consumed":
+    marker_invalid = binding_status == "completion_marker_invalid"
+    if binding_status == "already_consumed" or marker_invalid:
         runtime_root = project_root / "artifacts" / "runtime"
         canonical_path = runtime_root / "closeouts" / f"{session_id}.json"
         replay_mismatch = False
         try:
+            if marker_invalid or session_binding.get("completion_artifacts_missing_or_invalid"):
+                raise ValueError("accepted_closeout_artifact_missing_or_invalid")
             canonical_bytes = canonical_path.read_bytes()
             if (
                 "canonical_closeout_sha256" in session_binding
@@ -975,7 +980,7 @@ def run_session_end(
             canonical_closeout = json.loads(canonical_bytes.decode("utf-8"))
         except (OSError, ValueError):
             # Legacy markers retain their previous replay/fallback behavior.
-            replay_mismatch = "canonical_closeout_sha256" in session_binding
+            replay_mismatch = marker_invalid or "canonical_closeout_sha256" in session_binding
             canonical_closeout = build_canonical_closeout(
                 session_id=session_id,
                 closed_at=datetime.now(timezone.utc).isoformat(),
@@ -983,10 +988,12 @@ def run_session_end(
                 existing_artifacts=frozenset(),
                 runtime_signals={},
             )
-        replay_reason = (
-            "canonical_closeout_digest_mismatch"
-            if replay_mismatch else "session_closeout_already_consumed"
-        )
+        if marker_invalid:
+            replay_reason = "completion_marker_invalid"
+        elif replay_mismatch:
+            replay_reason = "canonical_closeout_digest_mismatch"
+        else:
+            replay_reason = "session_closeout_already_consumed"
         return {
             "ok": not replay_mismatch,
             "session_id": session_id,
@@ -1031,11 +1038,15 @@ def run_session_end(
                 "session_end_invoked": True,
                 "canonical_closeout_written": False,
                 "claim_binding_written": False,
-                "already_consumed": True,
+                "already_consumed": not marker_invalid,
             },
             "session_binding": session_binding,
-            "warnings": ["Session closeout was already consumed; side effects were skipped."],
+            "warnings": [] if marker_invalid else [
+                "Session closeout was already consumed; side effects were skipped."
+            ],
             "errors": [
+                "The completion marker is malformed or unreadable; side effects were skipped."
+                if marker_invalid else
                 "Accepted canonical closeout no longer matches its completion digest; "
                 "preserve artifacts and inspect recovery evidence."
             ] if replay_mismatch else [],
@@ -1614,6 +1625,7 @@ def main() -> None:
         initial_agent_class=initial_agent_class,
         session_start_phase_classification=(session_start_payload.get("pre_task_check") or {}).get("phase_classification"),
         ledger_write_allowed=resolve_ledger_write_allowed_from_no_write_flag(args.no_ledger_write),
+        check_digest_replay=True,
     )
 
     if args.format == "json":

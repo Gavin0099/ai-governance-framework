@@ -29,6 +29,7 @@ TEXT = "artifacts/session-closeout.txt"
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _RECEIPT_ID = re.compile(r"[0-9]{8}T[0-9]{12}Z_r2_[0-9a-f]{32}\Z")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
+_CANONICAL_CLOSEOUT_MISMATCH = "canonical_closeout_digest_mismatch"
 _LIVE: dict[int, "Lease"] = {}
 _FIELDS = {"schema_version", "consumer_root", "session_id", "generation",
            "candidate_identity", "text_digest", "state", "hold_reason",
@@ -39,6 +40,11 @@ class OwnershipError(ValueError):
     def __init__(self, code: str, detail: str = ""):
         self.code = code
         super().__init__(f"{code}: {detail}" if detail else code)
+
+
+class _CanonicalCloseoutMismatch(OwnershipError):
+    def __init__(self):
+        super().__init__("RELEASE_PROOF_INVALID", _CANONICAL_CLOSEOUT_MISMATCH)
 
 
 def _require(condition: bool, code: str, detail: str = "") -> None:
@@ -163,7 +169,7 @@ def _identity(root: Path, sid: str) -> None:
              "INVALID_OWNER", "qualified R1 binding required")
 
 
-def _completion(root: Path, sid: str) -> bool:
+def _completion(root: Path, sid: str, *, verify_canonical: bool = False) -> bool:
     path = _path(root, f"artifacts/runtime/closeout-completions/{sid}.json")
     if not path.exists():
         return False
@@ -171,6 +177,14 @@ def _completion(root: Path, sid: str) -> bool:
     required = data.get("required_artifacts")
     _require(data.get("session_id") == sid and isinstance(required, list) and bool(required),
              "INVALID_OWNER", "invalid consumption evidence")
+    if verify_canonical and "canonical_closeout_sha256" in data:
+        canonical = _path(root, f"artifacts/runtime/closeouts/{sid}.json")
+        try:
+            canonical_digest = _digest(canonical)
+        except OwnershipError as exc:
+            raise _CanonicalCloseoutMismatch() from exc
+        if canonical_digest != data["canonical_closeout_sha256"]:
+            raise _CanonicalCloseoutMismatch()
     for name in required:
         _require(isinstance(name, str) and bool(name), "INVALID_OWNER")
         _require(_path(root, name).is_file(), "INVALID_OWNER", "missing consumption artifact")
@@ -200,7 +214,8 @@ def _owner(lease: Lease) -> dict | None:
     _require(isinstance(o["text_digest"], str) and bool(_SHA.fullmatch(o["text_digest"])), "INVALID_OWNER")
     _require(isinstance(o["state"], str) and (o["hold_reason"] is None or isinstance(o["hold_reason"], str))
              and o["state"] in {"OWNED", "HOLD", "RELEASED"}
-             and o["hold_reason"] in {None, "preparation_pending", "closeout_pending", "failed"}, "INVALID_OWNER")
+             and o["hold_reason"] in {None, "preparation_pending", "closeout_pending", "failed",
+                                      _CANONICAL_CLOSEOUT_MISMATCH}, "INVALID_OWNER")
     rid, sha = o["receipt_identity"], o["receipt_sha256"]
     _require(rid is None or (isinstance(rid, str) and bool(_RECEIPT_ID.fullmatch(rid))), "INVALID_OWNER")
     _require(sha is None or (isinstance(sha, str) and bool(_SHA.fullmatch(sha))), "INVALID_OWNER")
@@ -209,7 +224,7 @@ def _owner(lease: Lease) -> dict | None:
         _require(rid is not None and sha is not None, "INVALID_OWNER")
     if o["state"] == "OWNED" or o["hold_reason"] == "preparation_pending":
         _require(rid is None and sha is None, "INVALID_OWNER")
-    if o["hold_reason"] == "closeout_pending":
+    if o["hold_reason"] in {"closeout_pending", _CANONICAL_CLOSEOUT_MISMATCH}:
         _require(rid is not None, "INVALID_OWNER")
     return o
 
@@ -503,7 +518,8 @@ def _receipt_schema(data: dict) -> None:
 def publish_receipt(lease: Lease, receipt: dict) -> Path:
     _receipt_schema(receipt)
     o = _matching(lease, receipt.get("session_id", ""))
-    _require(o["state"] == "HOLD" and o["hold_reason"] == "closeout_pending", "RELEASE_PROOF_INVALID")
+    _require(o["state"] == "HOLD" and o["hold_reason"] in {"closeout_pending", _CANONICAL_CLOSEOUT_MISMATCH},
+             "RELEASE_PROOF_INVALID")
     _payloads(lease, o)
     _require(receipt.get("schema_version") == "1.5" and receipt.get("exit_code") == 0
              and receipt.get("r2_binding") == receipt_binding(o)
@@ -511,12 +527,13 @@ def publish_receipt(lease: Lease, receipt: dict) -> Path:
              and receipt.get("closeout_artifact_path") == str(_path(lease.root, TEXT)), "RELEASE_PROOF_INVALID")
     path = _path(lease.root, _receipt_relative(o))
     _require(not path.exists(), "RELEASE_PROOF_INVALID", "receipt already exists")
+    if o["hold_reason"] == _CANONICAL_CLOSEOUT_MISMATCH:
+        _require(_completion(lease.root, o["session_id"], verify_canonical=True), "RELEASE_PROOF_INVALID")
     return _publish(lease, _receipt_relative(o), receipt)
 
 
 def _receipt_proof(lease: Lease, o: dict) -> str:
-    _require(o["receipt_identity"] is not None and _completion(lease.root, o["session_id"]),
-             "RELEASE_PROOF_INVALID", "consumed session and reserved receipt required")
+    _require(o["receipt_identity"] is not None, "RELEASE_PROOF_INVALID", "reserved receipt required")
     path = _path(lease.root, _receipt_relative(o))
     data = _json(path)
     _receipt_schema(data)
@@ -527,6 +544,8 @@ def _receipt_proof(lease: Lease, o: dict) -> str:
              and data.get("closeout_artifact_path") == str(_path(lease.root, TEXT)), "RELEASE_PROOF_INVALID")
     sha = _digest(path)
     _require(o["receipt_sha256"] in (None, sha), "RELEASE_PROOF_INVALID")
+    _require(_completion(lease.root, o["session_id"], verify_canonical=True),
+             "RELEASE_PROOF_INVALID", "consumed session required")
     return sha
 
 
@@ -544,11 +563,21 @@ def _verify_release(lease: Lease, o: dict) -> None:
 def finalize_release(lease: Lease, receipt: Path) -> dict:
     o = _owner(lease)
     _require(o is not None and o["state"] == "HOLD"
-             and o["hold_reason"] in {"closeout_pending", "failed"}, "RELEASE_PROOF_INVALID")
+             and o["hold_reason"] in {"closeout_pending", "failed", _CANONICAL_CLOSEOUT_MISMATCH},
+             "RELEASE_PROOF_INVALID")
     _require(receipt == _path(lease.root, _receipt_relative(o)), "RELEASE_PROOF_INVALID")
     _require_closeout_attested(lease, o)
     _payloads(lease, o)
-    sha = _receipt_proof(lease, o)
+    try:
+        sha = _receipt_proof(lease, o)
+    except _CanonicalCloseoutMismatch:
+        # Restore the exact accepted bytes from a trusted copy, then run reconcile-release
+        # with the same session, generation and reserved receipt. Without a trusted copy,
+        # no existing command can rebuild the accepted bytes.
+        if o["hold_reason"] != _CANONICAL_CLOSEOUT_MISMATCH:
+            o["hold_reason"] = _CANONICAL_CLOSEOUT_MISMATCH
+            _publish(lease, AREA + "/owner.json", o, replace=True)
+        raise
     _publish(lease, f'{AREA}/releases/{o["generation"]}.json', _release_record(o, sha))
     o.update(state="RELEASED", hold_reason=None, receipt_sha256=sha)
     _publish(lease, AREA + "/owner.json", o, replace=True)

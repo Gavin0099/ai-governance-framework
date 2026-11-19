@@ -2213,10 +2213,10 @@ def run_session_end_hook(
     # Gate evaluation — policy-driven, not hardcoded.
     # load_policy discovers: project_root/governance/gate_policy.yaml first,
     # then framework default, then builtin.  Provenance is always recorded.
-    already_consumed = (
-        (result.get("session_binding") or {}).get("status") == "already_consumed"
-    )
-    if already_consumed:
+    replay_guarded = (result.get("session_binding") or {}).get("status") in {
+        "already_consumed", "completion_marker_invalid",
+    }
+    if replay_guarded:
         closeout_status = STATUS_STALE_OR_MISMATCHED
         memory_tier = MEMORY_TIER_NONE
         fields = {}
@@ -2279,7 +2279,7 @@ def run_session_end_hook(
 
     # Persist canonical audit entry — non-blocking, repo-local, observability only.
     # See _append_canonical_audit_log() for authority boundary documentation.
-    if not already_consumed:
+    if not replay_guarded:
         _append_canonical_audit_log(
             project_root=project_root,
             session_id=session_id,
@@ -2328,7 +2328,7 @@ def run_session_end_hook(
     # Advisory-only — log write failures must not interrupt the session result.
     taxonomy_expansion_log_entry: dict | None = None
     if (
-        not already_consumed
+        not replay_guarded
         and failure_disposition_data
         and failure_disposition_data.get("taxonomy_expansion_signal")
     ):
@@ -2362,7 +2362,7 @@ def run_session_end_hook(
     try:
         # v0.2 rollout: candidate + significance classifier + advisory report.
         # Advisory only; never changes gate outcome.
-        if not already_consumed:
+        if not replay_guarded:
             commit_hash = _resolve_head_commit(project_root)
             memory_significance_artifacts = write_candidate_and_advisory(
                 repo_root=project_root,
@@ -2381,7 +2381,7 @@ def run_session_end_hook(
     # preferred_session_id → scope=current_session.
     # Bridge is now always called; it handles None/missing transcript_path by
     # attempting auto-detection from ~/.claude/projects/.
-    if not already_consumed:
+    if not replay_guarded:
         _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     # Memory authority observation surface — Phase 1 (non-blocking, repo-scoped).

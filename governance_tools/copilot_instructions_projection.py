@@ -5,8 +5,8 @@ instruction surface.
 
 `governance/SYSTEM_PROMPT.md` §2.8 is the single source of truth for when a
 `[Governance Contract]` block must be emitted. Agents receive those rules by
-reading their own instruction file at session start — not by hook injection; the
-Copilot session_start hook returns no `additionalContext` and never has. Each
+reading their own instruction file at session start. Copilot SessionStart's
+`additionalContext` hands off the session id, not these checkpoint rules. Each
 agent reads a different markdown file, so cross-agent parity means projecting the
 same canonical section into each of them:
 
@@ -41,8 +41,8 @@ TEMPLATE_REL = "governance/copilot-instructions-template.md"
 # Every agent surface that must carry the canonical checkpoint rules.
 #
 # The rules reach an agent by being in the file it reads at session start, not
-# by hook injection — the Copilot session_start hook returns no additionalContext
-# and never has. Each agent reads a different markdown file, so parity is a
+# by hook injection — Copilot SessionStart's additionalContext hands off the id.
+# Each agent reads a different markdown file, so parity is a
 # matter of projecting into each of them, not of four different hook APIs.
 PROJECTION_TARGETS: tuple[tuple[str, str], ...] = (
     (TEMPLATE_REL, "copilot"),

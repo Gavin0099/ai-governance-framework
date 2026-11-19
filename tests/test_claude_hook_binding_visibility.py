@@ -17,6 +17,8 @@ import sys
 
 import pytest
 
+from governance_tools import adopt_governance, manage_agent_closeout
+from governance_tools.copilot_instructions_projection import extract_projection_region
 from governance_tools.manage_agent_closeout import ClaudeAdapter
 
 FRAMEWORK = Path(__file__).resolve().parents[1]
@@ -41,6 +43,67 @@ def write_hook(repo, command, name="settings.json", event="Stop"):
 def governance_hooks(data, event):
     return [hook for group in data.get("hooks", {}).get(event, [])
             for hook in group.get("hooks", []) if ClaudeAdapter._is_governance_hook(hook)]
+
+
+@pytest.mark.parametrize("hooks_already_installed", [False, True])
+def test_claude_only_install_projects_formal_closeout_guidance(
+    adapter, tmp_path, monkeypatch, capsys, hooks_already_installed
+):
+    repo = tmp_path / "Claude consumer"
+    subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+    assert adopt_governance.adopt_existing(repo, FRAMEWORK) == 0
+    capsys.readouterr()
+    claude = repo / "CLAUDE.md"
+    agents = repo / "AGENTS.md"
+    assert not claude.exists()
+    original_agents = agents.read_text(encoding="utf-8")
+    assert "Formal Closeout on Request" not in original_agents
+
+    if hooks_already_installed:
+        settings = repo / ".claude/settings.json"
+        settings.parent.mkdir()
+        hooks = adapter._expected_hooks(repo, FRAMEWORK)
+        settings.write_text(json.dumps({"hooks": {
+            event: [{"hooks": [hook]}] for event, hook in hooks.items()
+        }}), encoding="utf-8")
+        claude.write_text("# Consumer Claude instructions\n", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", [
+        "manage_agent_closeout", "--project-root", str(repo), "--format", "json",
+        "install", "--agent", "claude",
+    ])
+    assert manage_agent_closeout.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == ("already_installed" if hooks_already_installed else "installed")
+    assert "CLAUDE.md and AGENTS.md" in result["message"]
+    assert adapter.verify(repo, FRAMEWORK)["installed"]
+
+    for path in (claude, agents):
+        guidance = path.read_text(encoding="utf-8")
+        assert guidance.count("Formal Closeout on Request") == 1
+        assert "governance_tools/prepare_closeout_candidate.py" in guidance
+        assert "governance_tools.claude_formal_closeout --owner-request" in guidance
+    assert agents.read_text(encoding="utf-8").startswith(original_agents.rstrip())
+    if hooks_already_installed:
+        assert claude.read_text(encoding="utf-8").startswith("# Consumer Claude instructions\n")
+    assert not (repo / "GEMINI.md").exists()
+    assert not (repo / ".github/copilot-instructions.md").exists()
+    assert not (repo / ".github/hooks").exists()
+
+
+def test_claude_install_reuses_starter_pack_checkpoint_projection(adapter, tmp_path):
+    target = tmp_path / "CLAUDE.md"
+    starter = (FRAMEWORK / "examples/starter-pack/CLAUDE.md").read_bytes()
+    target.write_bytes(starter)
+    original_projection = extract_projection_region(starter.decode("utf-8"))[:2]
+
+    assert adapter.install(tmp_path, FRAMEWORK)["status"] == "installed"
+    installed = target.read_bytes()
+    assert extract_projection_region(installed.decode("utf-8"))[:2] == original_projection
+    assert installed.startswith(starter)
+    assert b"governance_tools.claude_formal_closeout --owner-request" in installed
+    assert adapter.install(tmp_path, FRAMEWORK)["status"] == "already_installed"
+    assert target.read_bytes() == installed
 
 
 def test_missing_settings_installs_session_start_and_end_only(adapter, tmp_path):
