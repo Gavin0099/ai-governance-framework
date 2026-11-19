@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- PR #336 merged at 4328e280 and main CI succeeded. N7 B0-B3 Windows native acceptance completed on 98142f55. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. Next: owner decision on the N7 evidence PR. C/D await authorization. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:324ebc419f68d7195848702e209493bcf0d95d54b02d3a34423db3973fdabbd7 -->
+- Issue #340 Rule 8 follow-up: completed Codex turn 5/5 at 724abee6. CLI exit timed out. Draft-only owner decision. V-05 remains separate. <!-- memory_record_projection:active-task-summary:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
