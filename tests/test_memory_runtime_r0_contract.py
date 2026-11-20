@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = REPO_ROOT / "docs" / "memory-runtime-r0-exact-round-trip-spec.md"
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 PLAN = REPO_ROOT / "PLAN.md"
+PLAN_HISTORY = REPO_ROOT / "docs" / "status" / "plan-history-2026-11-16-6c7e24c3.md"
 R0_CLOSEOUT_MEMORY = REPO_ROOT / "memory" / "2026-09-02.md"
 MEMORY_RECORD = REPO_ROOT / "governance_tools" / "memory_record.py"
 MEMORY_LAYOUT = REPO_ROOT / "memory_pipeline" / "memory_layout.py"
@@ -230,39 +231,75 @@ def test_r0_evidence_inventory_is_bounded_and_complete() -> None:
 
 def test_r0_plan_records_spec_acceptance_and_bounded_implementation() -> None:
     plan = PLAN.read_text(encoding="utf-8")
+    spec_heading = "### Authorized R0 specification — 2026-09-02"
+    implementation_heading = "### Authorized R0 implementation — 2026-09-02"
+    assert spec_heading in plan
+    assert implementation_heading in plan
+    spec = plan.split(spec_heading, 1)[1].split("\n### ", 1)[0]
+    implementation = plan.split(implementation_heading, 1)[1].split("\n### ", 1)[0]
+    # Completion moved from checkboxes to exact-instance terminal records.
+    # Binding conditions must still be present in the current planning surface.
+    for entry in (spec, implementation):
+        assert (
+            "This exact-instance acceptance/delivery is recorded satisfied by the "
+            "original named source/head/merge below; its grant was consumed for "
+            "that delivery."
+        ) in entry
     assert (
-        "Current refresh - 2026-09-02 "
-        "(Memory Runtime R0 exact round-trip implementation active):"
-    ) in plan
-    assert "- [x] Define one bounded exact round-trip specification" in plan
-    assert "Runtime implementation requires a\n  separate owner authorization" in plan
+        "Claim ceiling: Define one bounded exact round-trip specification for one\n"
+        "  caller-authorized canonical session-derived record and logical `active_task`\n"
+        "  surface."
+    ) in spec
+    assert "Runtime implementation requires a\n  separate owner authorization" in spec
     assert (
         "Implementation-readiness acceptance requires an owner merge attestation\n"
         "  recorded for the exact candidate HEAD before merge"
-    ) in plan
-    assert "approving that same HEAD with no unresolved P0/P1" in plan
-    assert "cannot\n  retroactively establish the owner-attestation predicate" in plan
-    assert "Implementation-readiness predicates were satisfied for exact reviewed head" in plan
-    assert "`b2cc43bc5e7e9032d55aa49f5e820220a792eb43`" in plan
-    assert "merged through PR #139 at\n  `ee44240f`" in plan
-    assert "- [x] Implement the smallest active-task Runtime vertical slice" in plan
-    assert "every frozen R0 evidence case has executable focused coverage" in plan
-    assert "Delivery predicates were satisfied for exact independently reviewed head" in plan
-    assert "`966dbbb3f4f8e8c987e286396a032d9230dc2940`" in plan
-    assert "merged through PR #140 at\n  `ae926fc7b877c413036ba37cc0655cf62fbda75c`" in plan
+    ) in spec
+    assert "approving that same HEAD with no unresolved P0/P1" in spec
+    assert "cannot\n  retroactively establish the owner-attestation predicate" in spec
+    assert "Implementation-readiness predicates were satisfied for exact reviewed head" in spec
+    assert "`b2cc43bc5e7e9032d55aa49f5e820220a792eb43`" in spec
+    assert "merged through PR #139 at\n  `ee44240f`" in spec
+    assert (
+        "Claim ceiling: Implement the smallest active-task Runtime vertical slice over one\n"
+        "  caller-authorized canonical record and one caller-admitted M-1 observation."
+    ) in implementation
+    assert "every frozen R0 evidence case has executable focused coverage" in implementation
+    assert "Delivery predicates were satisfied for exact independently reviewed head" in implementation
+    assert "`966dbbb3f4f8e8c987e286396a032d9230dc2940`" in implementation
+    assert (
+        "merged through PR #140 at\n  `ae926fc7b877c413036ba37cc0655cf62fbda75c`"
+    ) in implementation
+    assert (
+        "later\n  closeout commit does not imply that the PLAN or memory record existed in merge"
+    ) in implementation
+    assert "Specification activation" not in plan
+
+    # The original refresh heading, checkboxes and CI URLs are historical
+    # evidence; the root entries retain the conditions and link to that source.
+    history = PLAN_HISTORY.read_text(encoding="utf-8")
+    refresh_heading = (
+        "Current refresh - 2026-09-02 "
+        "(Memory Runtime R0 exact round-trip implementation active):"
+    )
+    assert refresh_heading in history
+    historical_r0 = history.split(refresh_heading, 1)[1].split("\nCurrent refresh", 1)[0]
+    assert "- [x] Define one bounded exact round-trip specification" in historical_r0
+    assert "- [x] Implement the smallest active-task Runtime vertical slice" in historical_r0
+    assert (
+        "[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L249-L286)"
+    ) in spec
+    assert (
+        "[source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L287-L313)"
+    ) in implementation
     assert (
         "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33612270819"
-        in plan
+        in historical_r0
     )
     assert (
         "https://github.com/Gavin0099/ai-governance-framework/actions/runs/33613414801"
-        in plan
+        in historical_r0
     )
-    assert (
-        "later\n  closeout commit does not imply that the PLAN or memory record existed in merge"
-        in plan
-    )
-    assert "Specification activation" not in plan
 
     closeout_memory = R0_CLOSEOUT_MEMORY.read_text(encoding="utf-8")
     assert "exact independently reviewed head 966dbbb3f4f8e8c987e286396a032d9230dc2940" in closeout_memory

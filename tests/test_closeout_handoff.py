@@ -389,6 +389,7 @@ def handoff_framework_source(tmp_path_factory):
         subprocess.run(['git','archive','--format=zip','HEAD'],cwd=framework,stdout=output,check=True)
     with zipfile.ZipFile(archive) as z: z.extractall(source)
     for relative in ['governance_tools/closeout_handoff.py',
+                     'governance_tools/prepare_closeout_candidate.py',
                      'governance_tools/shared_closeout_ownership.py',
                      'governance_tools/native_closeout_publisher.py',
                      'governance_tools/session_closeout_entry.py']:
@@ -776,6 +777,51 @@ def test_tail_checkpoint_recovery_only_publishes_exact_receipt(queued, monkeypat
     # A duplicate must not depend on B's new text/owner, nor rebuild material.
     monkeypatch.setattr(h, '_receipt_material_record', forbidden)
     assert consume(queued)['status'] == 'ALREADY_FINALIZED'
+
+
+@pytest.mark.parametrize('existing_digest_hold', [False, True])
+def test_tail_reconcile_digest_mismatch_recovers_after_restore(queued, monkeypatch, existing_digest_hold):
+    root = queued[0]
+    checkpoint, material = _tail_crash(queued, monkeypatch)
+    canonical = root / 'artifacts/runtime/closeouts/session-A.json'
+    receipt = root / material['receipt_relative_path']
+    release = root / r2.AREA / 'releases/1.json'
+    owner_path = root / r2.AREA / 'owner.json'
+    if existing_digest_hold:
+        with r2.execution_exclusion(root) as lease:
+            r2._publish(lease, r2.AREA + '/owner.json',
+                        dict(owner(root), hold_reason='canonical_closeout_digest_mismatch'), replace=True)
+    original_owner = owner_path.read_bytes()
+    original = canonical.read_bytes()
+    original_checkpoint = checkpoint.read_bytes()
+    changed = original + b'\n'
+    canonical.write_bytes(changed)
+
+    def reconcile():
+        return r2.reconcile_release(root, 'session-A', material['generation'], material['receipt_identity'])
+
+    with pytest.raises(r2.OwnershipError):
+        reconcile()
+    assert owner_path.read_bytes() == original_owner
+    assert not receipt.exists()
+    assert not release.exists()
+    with pytest.raises((h.HandoffError, r2.OwnershipError), match='MISMATCH|digest_mismatch'):
+        consume(queued)
+    assert owner_path.read_bytes() == original_owner
+    assert checkpoint.read_bytes() == original_checkpoint
+    assert canonical.read_bytes() == changed
+    assert not receipt.exists()
+    assert not release.exists()
+    assert not final_path(root).exists()
+
+    canonical.write_bytes(original)
+    assert consume(queued)['status'] == 'FINALIZED'
+    assert reconcile()['status'] == 'ALREADY_RELEASED'
+    assert receipt.read_bytes() == r2._bytes(material['receipt'])
+    assert checkpoint.read_bytes() == original_checkpoint
+    assert canonical.read_bytes() == original
+    assert owner(root)['state'] == 'RELEASED'
+    assert release.is_file()
 
 
 @pytest.mark.parametrize('damage', ['missing', 'partial', 'extra', 'request_sha256',

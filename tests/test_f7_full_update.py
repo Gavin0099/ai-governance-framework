@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import re
 import subprocess
+import sys
 from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
@@ -52,6 +55,17 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "remote", "add", "origin", "https://example.invalid/test/fixture.git")
 
 
+# F-7 runs the target checkout's hook validator in a subprocess after install.
+# The fixture framework delegates to this repository's validator.
+_DELEGATING_HOOK_VALIDATOR = (
+    "import runpy, sys\n"
+    f"sys.path.insert(0, {str(Path(__file__).resolve().parents[1])!r})\n"
+    "for name in [m for m in sys.modules if m.split('.')[0] == 'governance_tools']:\n"
+    "    del sys.modules[name]\n"
+    "runpy.run_module('governance_tools.hook_install_validator', run_name='__main__', alter_sys=True)\n"
+)
+
+
 def _make_framework(root: Path) -> None:
     _init_repo(root)
     _write(root / ".governance/version_manifest.yaml", "default_self_smoke_contract_dependency: not_applicable\n")
@@ -69,6 +83,7 @@ def _make_framework(root: Path) -> None:
     _write(root / "governance_tools/plan_freshness.py", "")
     _write(root / "governance_tools/contract_validator.py", "")
     _write(root / "governance_tools/memory_workflow.py", "")
+    _write(root / "governance_tools/hook_install_validator.py", _DELEGATING_HOOK_VALIDATOR)
     _write(
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
@@ -228,6 +243,103 @@ def test_f7_real_submodule_invalid_explicit_target_fails_without_fallback(
     f7_full_update.install_governance_hooks.assert_not_called()
 
 
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_precheck_matches_real_submodule_instruction_refresh(tmp_path: Path, monkeypatch, apply) -> None:
+    repo, checkout, _before, target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    # This target fixture has no agent-contract template, so the real backend
+    # instruction refresh is the complete AGENTS rewrite for this target.
+    result = run_f7_full_update(
+        repo_root=repo, framework_root=checkout, apply=apply, target_ref=target,
+    )
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["errors"] == []
+    assert prediction["source_revision"] == target
+    if apply:
+        assert prediction["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+    else:
+        assert not (repo / "AGENTS.md").exists()
+        assert prediction["predicted"]["on_disk_bytes"] > 0
+
+
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"], ids=["lf", "crlf"])
+def test_f7_precheck_predicts_complete_external_apply(tmp_path: Path, newline: bytes) -> None:
+    framework, repo = tmp_path / "framework", tmp_path / "consumer"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        framework / "governance/agent-contract-template.md",
+        "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+        "- Follow the canonical contract.\n"
+        "<!-- AI Governance Framework: agent-contract END -->\n",
+    )
+    agents = repo / "AGENTS.md"
+    agents.write_bytes(b"\xef\xbb\xbf" + agents.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", newline))
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["errors"] == []
+    assert prediction["predicted"]["on_disk_bytes"] == len(agents.read_bytes())
+    assert b"Follow the canonical contract." in agents.read_bytes()
+    assert b"Preserve this domain rule." in agents.read_bytes()
+
+
+def test_f7_precheck_uses_target_checkout_when_consumer_has_not_fetched_it(tmp_path: Path, monkeypatch) -> None:
+    repo, checkout, before, _target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    source = tmp_path / "framework-remote"
+    _write(source / "README.md", "new target not fetched by consumer\n")
+    _git(source, "commit", "-am", "new target")
+    target = _git(source, "rev-parse", "HEAD")
+
+    def observe(report):
+        assert report["errors"] == []
+        assert report["source_revision"] == target
+        assert report["source_root"] == str(source.resolve())
+        assert _git(checkout, "rev-parse", "HEAD") == before
+        # The read-only precheck must not fetch even the object into the consumer.
+        completed = subprocess.run(["git", "-C", str(checkout), "cat-file", "-e", target], capture_output=True)
+        assert completed.returncode != 0
+
+    result = run_f7_full_update(repo_root=repo, framework_root=source, apply=True, precheck_observer=observe)
+    assert result.stages["instruction_budget_precheck"]["source_revision"] == target
+    assert _git(checkout, "rev-parse", "HEAD") == target
+    assert result.stages["instruction_budget_precheck"]["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+
+
+def test_f7_precheck_matches_partial_instruction_refresh_and_install(tmp_path: Path, monkeypatch) -> None:
+    repo, checkout, _before, _target, _latest = _make_f7_target_fixture(tmp_path, monkeypatch)
+    source = tmp_path / "framework-remote"
+    _write(source / "governance/agent-contract-template.md",
+           "<!-- AI Governance Framework: agent-contract BEGIN -->\n"
+           "- Canonical template instruction.\n"
+           "<!-- AI Governance Framework: agent-contract END -->\n")
+    _git(source, "add", ".")
+    _git(source, "commit", "-m", "target with contract template")
+    target = _git(source, "rev-parse", "HEAD")
+    _git(checkout, "fetch", "origin")
+    _write(repo / "AGENTS.md", "# Consumer\n\n## AI Governance Update Intent Rule\n- Consumer text without a Risk Levels boundary.\n")
+    _git(repo, "add", "AGENTS.md")
+    _git(repo, "commit", "-m", "consumer instructions")
+
+    def install_surfaces(consumer: Path, framework: Path):
+        from governance_tools.hook_installer import _apply_agent_contract_surfaces
+
+        changed, errors = [], []
+        _apply_agent_contract_surfaces(consumer, framework, installed=[], changed=changed, backups=[], errors=errors)
+        return mock.Mock(ok=not errors, changed_files=changed, backups=[], errors=errors, warnings=[])
+
+    # Local instruction errors live in the backend stage report, while its
+    # operation still succeeds. F-7 therefore reaches the real surface writer.
+    monkeypatch.setattr(f7_full_update, "install_governance_hooks", install_surfaces)
+    monkeypatch.setattr(f7_full_update, "_copilot_hook_post_install_errors", lambda *_args: [])
+    result = run_f7_full_update(repo_root=repo, framework_root=source, target_ref=target, apply=True)
+    prediction = result.stages["instruction_budget_precheck"]
+    assert prediction["status"] == "not_verified"
+    assert "missing a Risk Levels heading" in " ".join(prediction["errors"])
+    assert prediction["predicted"]["on_disk_bytes"] == (repo / "AGENTS.md").stat().st_size
+    assert b"Canonical template instruction." in (repo / "AGENTS.md").read_bytes()
+    assert result.stages["repo_local_instruction"] == "blocked"
+    assert result.f7_final_status not in {"completed", "full_update_completed"}
+
+
 def test_classify_repo_detects_external_contract_repo(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _make_external_contract_repo(repo)
@@ -325,6 +437,68 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert "[governance_maturity_summary]" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "runtime_capable=not_checked" in rendered
+
+
+def test_f7_submodule_backend_carries_router_diagnostics_into_warnings(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    router_warning = (
+        "memory-workflow-router: AGENTS.md line 7 is an edited memory-writer router line; "
+        "left untouched (consumer-owned or unclear ownership). Compare it with the framework "
+        "router text by hand."
+    )
+
+    def fake_update(warnings):
+        def _fake(**_kwargs):
+            return UpdateResult(
+                ok=True,
+                mode="dry_run",
+                update_mode="dry_run",
+                fast_forward=True,
+                repo=str(repo),
+                submodule_path="ai-governance-framework",
+                before_head="a" * 40,
+                target_head="a" * 40,
+                after_head="a" * 40,
+                staged_files=[],
+                committed=False,
+                commit_hash=None,
+                message="dry run complete",
+                errors=[],
+                full_update_stage_report={
+                    "final_status": "already_current",
+                    "framework_pointer": "already_current",
+                    "details": {"repo_local_instruction": {"status": "verified", "warnings": warnings}},
+                },
+            )
+
+        return _fake
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update([]))
+    plain = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    monkeypatch.setattr(
+        f7, "update_governance_submodule", fake_update([router_warning, "unrelated: not a router line"])
+    )
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert f"f7-diagnostic: {router_warning}" in result.warnings
+    assert not any("unrelated: not a router line" in warning for warning in result.warnings)
+    rendered = format_human(result)
+    assert rendered.index("[warnings]") < rendered.index(f"f7-diagnostic: {router_warning}")
+    # Report-only: the diagnostic changes neither ok nor the final status.
+    assert (result.ok, result.f7_final_status) == (plain.ok, plain.f7_final_status)
 
 
 def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, tmp_path: Path) -> None:
@@ -769,25 +943,12 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Preserve this domain rule." in agents_text
     assert "governance:key=f7_update_boundary" in agents_text
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" not in agents_text
-    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
-    assert "before the complete adoption table" in agents_text
-    assert "Suggested actions do not grant authorization" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
-    assert "owner_decision_required" in agents_text
-    assert "failed_or_partial" in agents_text
-    assert "update_report_complete=false" in agents_text
-    assert "completion_claim_allowed=false" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "--format json` from the framework environment" not in agents_text
     assert "governance:key=memory_workflow" in agents_text
     assert "memory/**" in agents_text
@@ -869,25 +1030,12 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "Preserve this domain rule." in agents_text
     assert "## Repo-Specific Notes" in agents_text
     assert "Keep this section." in agents_text
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "user-facing adoption status" in agents_text
-    assert "expanded-report exception to the compact three-line default" not in agents_text
-    assert "first three non-empty lines as 結果 / 原因 / 下一步" in agents_text
-    assert "before the complete adoption table" in agents_text
-    assert "Suggested actions do not grant authorization" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
-    assert "owner_decision_required" in agents_text
-    assert "failed_or_partial" in agents_text
-    assert "update_report_complete=false" in agents_text
-    assert "completion_claim_allowed=false" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" in agents_text
     assert "--format json` from the framework environment" not in agents_text
 
@@ -913,7 +1061,7 @@ def test_external_contract_apply_marks_legacy_response_envelope_conflict(tmp_pat
     assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.1"]
     assert "Response envelope contract: v0.1" in agents_text
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "full_evidence_request" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
     assert any("response envelope contract versions conflict" in warning for warning in result.warnings)
 
 
@@ -936,12 +1084,14 @@ def test_external_contract_apply_detects_previous_v07_reporting_rules(tmp_path: 
     assert result.details["response_envelope_conflicts"] == ["AGENTS.md: v0.7"]
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Response envelope contract version: v0.8" in agents_text
-    assert "Failure or an owner decision alone does not force expansion" in agents_text
+    response = (Path(__file__).resolve().parents[1] / "governance/RESPONSE_ENVELOPE_CONTRACT.md").read_text(encoding="utf-8")
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
+    assert "Failure or an owner decision alone does not force expanded human rendering" in response
     assert (
-        "the blocker, ability to proceed, risks, decision-relevant non-claims, "
-        "claim boundary, and required owner choice / authorization"
-    ) in agents_text
-    assert "unavailable or ambiguously preserved canonical records still expand" in agents_text
+        "blocker, ability to proceed, risks, non-claims, and\n"
+        "required owner decision or authorization"
+    ) in response
+    assert "canonical record cannot be preserved" in response
 
 
 def test_response_surface_accepts_v08_but_rejects_v07(tmp_path: Path) -> None:
@@ -988,14 +1138,12 @@ def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outsid
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert result.ok is True
     assert result.f7_final_status == "completed"
-    assert "--format human" in agents_text
-    assert "[human_readable_adoption_summary]" in agents_text
-    assert "table rows as a table, not a prose summary" in agents_text
-    assert "happy-path-only tests" in agents_text
-    assert "expected values must come from a spec/invariant/fixture" in agents_text
-    assert "mock-only assertions are weak evidence" in agents_text
-    assert "domain validators need pass/fail fixtures" in agents_text
-    assert "`test_signal_quality_audit` output is report-only reviewer evidence" in agents_text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in agents_text
+    assert "governance/F7_FULL_UPDATE.md" in agents_text
+    assert "governance/RESPONSE_ENVELOPE_CONTRACT.md" in agents_text
+    assert "Response envelope contract version: v0.8" in agents_text
+    assert f7_full_update.F7_UPDATE_BOUNDARY_BLOCK in agents_text
+    assert len(f7_full_update.F7_UPDATE_BOUNDARY_BLOCK.splitlines()) == 3
     assert "f7_full_update --repo . --format json` before reporting update status" in agents_text
     assert "--format json` from the framework environment" not in agents_text
     assert "memory_workflow --check --repo . --format json" in agents_text
@@ -1039,6 +1187,135 @@ def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow
     assert result.repo_role == "external_contract_repo"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
     assert result.details["memory_workflow_hook_advisory_present"] is True
+
+
+def _make_linked_update_fixture(tmp_path: Path, role: str) -> tuple[Path, Path, str]:
+    remote = tmp_path / "framework"
+    _make_framework(remote)
+    _write(remote / "baselines/repo-min/AGENTS.base.md", "# Framework baseline\n")
+    _write(
+        remote / "baselines/repo-min/AGENTS.md",
+        "# Agent rules\n\n## AI Governance Update Intent Rule\n\n"
+        "Use F-7.\n\n## Repo-Specific Risk Levels\n\nN/A\n",
+    )
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "complete framework fixture")
+
+    primary = tmp_path / "primary"
+    linked = tmp_path / "linked"
+    _make_external_contract_repo(primary)
+    submodule_path = (
+        "additional/ai-governance-framework"
+        if role == "external_contract_repo"
+        else "ai-governance-framework"
+    )
+    _git(
+        primary, "-c", "protocol.file.allow=always", "submodule", "add",
+        str(remote), submodule_path,
+    )
+    _git(primary, "add", ".")
+    _git(primary, "commit", "-m", "seed consumer")
+    _git(primary, "worktree", "add", "--detach", str(linked), "HEAD")
+    _git(
+        linked, "-c", "protocol.file.allow=always", "submodule", "update",
+        "--init", "--", submodule_path,
+    )
+
+    # Faithful managed hooks with the root belonging to the primary checkout.
+    hooks = primary / ".git/hooks"
+    for name in ("pre-commit", "pre-push"):
+        (hooks / name).write_bytes((primary / submodule_path / "scripts/hooks" / name).read_bytes())
+    _write(hooks / "ai-governance-framework-root", (primary / submodule_path).as_posix() + "\n")
+    _write(hooks / "unrelated-hook", "preserve this shared file\n")
+    assert classify_repo(linked) == role
+    return primary, linked, submodule_path
+
+
+def _tree_hashes(root: Path, *, exclude: Path | None = None) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in root.rglob("*")
+        if path.is_file() and (exclude is None or exclude not in path.parents)
+    }
+
+
+def _run_linked_update_cli(linked: Path, submodule_path: str, tool: str, apply: bool):
+    module = (
+        "governance_tools.f7_full_update"
+        if tool == "f7"
+        else "governance_tools.external_governance_submodule_updater"
+    )
+    args = [sys.executable, "-X", "utf8", "-m", module, "--repo", str(linked), "--format", "json"]
+    if tool == "f7":
+        # The nested path intentionally exercises the external-contract backend.
+        args.extend(["--framework-root", str(linked / submodule_path)])
+    else:
+        args.extend(["--submodule-path", submodule_path])
+    if apply:
+        args.append("--apply")
+    completed = subprocess.run(
+        args, cwd=Path(__file__).resolve().parents[1], env=updater_module._git_env(),
+        text=True, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    return completed, json.loads(completed.stdout)
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("tool", ["f7", "updater"])
+def test_linked_worktree_apply_refuses_without_any_writes(tmp_path: Path, role: str, tool: str) -> None:
+    primary, linked, submodule_path = _make_linked_update_fixture(tmp_path, role)
+    common_dir = primary / ".git"
+    hooks_before = _tree_hashes(common_dir / "hooks")
+    common_before = _tree_hashes(common_dir)
+    outside_before = _tree_hashes(tmp_path, exclude=linked)
+    linked_before = _tree_hashes(linked)
+
+    completed, payload = _run_linked_update_cli(linked, submodule_path, tool, apply=True)
+
+    assert _tree_hashes(common_dir / "hooks") == hooks_before
+    assert _tree_hashes(common_dir) == common_before
+    assert _tree_hashes(tmp_path, exclude=linked) == outside_before
+    assert _tree_hashes(linked) == linked_before
+    assert completed.returncode == 1, (completed.stdout, completed.stderr)
+    assert payload["ok"] is False
+    assert payload["errors"]
+    assert payload["update_receipt"]["status"] == "not_written"
+    if tool == "f7":
+        assert payload["repo_role"] == role
+        assert payload["f7_final_status"] == "blocked"
+        assert payload["changed_files"] == []
+        diagnostic = " ".join(payload["errors"])
+        assert "linked worktree is blocked" in diagnostic
+        assert "common Git directory" in diagnostic
+        assert "run apply from the primary worktree" in diagnostic
+    else:
+        assert payload["update_mode"] == "failed"
+        assert payload["full_update_stage_report"]["final_status"] == "blocked"
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("tool", ["f7", "updater"])
+def test_linked_worktree_dry_run_inspects_without_writes_and_warns_apply_blocked(
+    tmp_path: Path, role: str, tool: str,
+) -> None:
+    _primary, linked, submodule_path = _make_linked_update_fixture(tmp_path, role)
+    before = _tree_hashes(tmp_path)
+
+    completed, payload = _run_linked_update_cli(linked, submodule_path, tool, apply=False)
+
+    assert _tree_hashes(tmp_path) == before
+    assert completed.returncode == 0, (completed.stdout, completed.stderr)
+    assert payload["ok"] is True
+    assert payload["mode"] == "dry_run"
+    assert payload["errors"] == []
+    assert "run apply from the primary worktree" in completed.stdout
+    if tool == "f7":
+        assert payload["repo_role"] == role
+        human_output = format_human(f7_full_update.F7Result(**payload))
+    else:
+        human_output = updater_module.format_human(UpdateResult(**payload))
+    assert "run apply from the primary worktree" in human_output
 
 
 def test_f7_partial_hook_install_failure_is_blocked_not_updated(tmp_path: Path) -> None:
@@ -1103,8 +1380,8 @@ def test_f7_surfaces_backup_inventory_when_install_replaces_content(tmp_path: Pa
     assert "Never touch vendor/." in instructions.read_text(encoding="utf-8")
 
 
-def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path) -> None:
-    """An over-budget AGENTS.md is reported through F-7, and only reported."""
+def test_f7_surfaces_codex_budget_warning_and_partial_status(tmp_path: Path) -> None:
+    """An over-budget final instruction set cannot be a complete F-7 update."""
     # The real framework root is needed: the minimal fixture framework has no
     # agent-contract template, so it never installs into AGENTS.md.
     framework = Path(__file__).resolve().parents[1]
@@ -1119,8 +1396,9 @@ def test_f7_surfaces_codex_budget_warning_without_changing_status(tmp_path: Path
                        if w.startswith("f7-diagnostic: codex-project-doc-budget:")]
     assert budget_warnings, results["large"].warnings
     assert not [w for w in results["small"].warnings if "codex-project-doc-budget" in w]
-    # The warning is a report: status, ok and stages match the under-budget run.
-    assert results["large"].f7_final_status == results["small"].f7_final_status
+    assert results["large"].f7_final_status == "partially_updated"
+    assert results["large"].stages["instruction_context_budget"]["over_budget"] is True
+    assert results["small"].stages["instruction_context_budget"]["over_budget"] is False
     assert results["large"].ok == results["small"].ok
     assert results["large"].stages["hook_validator_enforcement"] == results["small"].stages["hook_validator_enforcement"]
 
@@ -1145,11 +1423,11 @@ def test_f7_budget_warning_measures_the_final_agents_md(tmp_path: Path) -> None:
         return len(data) + data.count(b"\n")
 
     # Calibrate how much the installer itself adds, then size the content so the
-    # installed file sits about 1 KB under the budget.
+    # installed file sits just under the budget.
     probe = consumer("probe", 1)
     install_governance_hooks(probe, framework)
     installed_overhead = crlf_worst_case(probe / "AGENTS.md") - (len("# AGENTS\n\n" + line) + 3)
-    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 1000 - installed_overhead) // (len(line) + 1)
+    lines = (CODEX_PROJECT_DOC_DEFAULT_MAX_BYTES - 100 - installed_overhead) // (len(line) + 1)
 
     installer_only = consumer("installer-only", lines)
     hook_result = install_governance_hooks(installer_only, framework)
@@ -1183,6 +1461,93 @@ def _update_result(repo: Path, *, ok: bool, errors: list[str] | None = None) -> 
         errors=list(errors or []),
         full_update_stage_report={"final_status": "updated" if ok else "blocked"},
     )
+
+
+@pytest.mark.parametrize("role", ["external_contract_repo", "submodule_consumer"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+@pytest.mark.parametrize(
+    "payload,stage_status,final_status",
+    [
+        (b"x" * 32769, "over_budget", "partially_updated"),
+        (b"x" * 32768, "verified", "completed"),
+        (b"x\n" * 16000, "warning", "completed"),
+        (b"x\r\n" * 11000, "over_budget", "partially_updated"),
+    ],
+    ids=["overflow", "exact_limit", "crlf_warning_only", "actual_crlf_overflow"],
+)
+def test_instruction_budget_in_both_backends(
+    tmp_path: Path, monkeypatch, role, apply, payload, stage_status, final_status
+) -> None:
+    """Issue #309 raw-byte contract; unrelated hook/readiness work is isolated.
+
+    The real byte measurement, orchestrator status, human report and persisted
+    receipt must agree. Dry-run must measure without changing the input file.
+    """
+    repo, framework = tmp_path / "repo", tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    agents = repo / "AGENTS.md"
+    agents.write_bytes(payload)
+    monkeypatch.setattr(f7_full_update, "classify_repo", lambda *_args, **_kwargs: role)
+    monkeypatch.setattr(f7_full_update, "_has_staged_changes", lambda *_args: False)
+    monkeypatch.setattr(f7_full_update, "_governance_maturity_stage", lambda *_args: {})
+    monkeypatch.setattr(f7_full_update, "_status_from_external_readiness", lambda *_args: "completed")
+    monkeypatch.setattr(f7_full_update, "_ensure_agents_keyed_sections", lambda *_args: ("verified", [], []))
+    monkeypatch.setattr(f7_full_update, "_copilot_hook_post_install_errors", lambda *_args: [])
+    monkeypatch.setattr(
+        f7_full_update, "install_governance_hooks",
+        lambda *_args: mock.Mock(ok=True, changed_files=[], backups=[], errors=[], warnings=[]),
+    )
+    backend = _update_result(repo, ok=True)
+    backend.mode = "apply" if apply else "dry_run"
+    backend.full_update_stage_report["final_status"] = "completed"
+    if role == "submodule_consumer" and apply:
+        backend.update_receipt = f7_full_update.write_update_receipt(
+            tool="external_governance_submodule_updater", repo_root=repo,
+            framework_root=framework, framework_before=None, framework_after=None,
+            update_status="updated", warnings=[],
+        )
+    monkeypatch.setattr(f7_full_update, "update_governance_submodule", lambda **_kwargs: backend)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=apply)
+
+    budget = result.stages["instruction_context_budget"]
+    assert budget["status"] == stage_status
+    assert budget["on_disk_bytes"] == len(payload)
+    assert budget["budget_bytes"] == 32768
+    assert result.f7_final_status == final_status
+    assert agents.read_bytes() == payload
+    assert result.ok is True  # A partial update is reported, not a new gate.
+    warnings = [w for w in result.warnings if "codex-project-doc-budget:" in w]
+    assert len(warnings) == (0 if stage_status == "verified" else 1)
+    human = format_human(result)
+    if stage_status == "over_budget":
+        assert "trailing instructions will be truncated" in human
+    elif stage_status == "warning":
+        assert "warning only" in human
+    if apply:
+        receipt = json.loads((repo / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+        assert receipt["update_status"] == ("partially_updated" if final_status == "partially_updated" else "updated")
+        assert result.update_receipt["receipt"]["update_status"] == receipt["update_status"]
+    else:
+        assert result.update_receipt["status"] == "not_written"
+        assert not (repo / RECEIPT_RELATIVE_PATH).exists()
+
+
+@pytest.mark.parametrize("status", ["completed", "full_update_completed", "updated", "already_current", "blocked", "not_verified"])
+def test_budget_downgrades_only_successful_statuses(tmp_path: Path, status) -> None:
+    (tmp_path / "AGENTS.md").write_bytes(b"x" * 32769)
+    budget, _warnings = f7_full_update._instruction_context_budget(tmp_path, [])
+    expected = status if status in {"blocked", "not_verified"} else "partially_updated"
+    assert f7_full_update._status_with_instruction_context_budget(
+        status, {"instruction_context_budget": budget}
+    ) == expected
+
+
+def test_instruction_budget_missing_file_is_not_verified(tmp_path: Path) -> None:
+    budget, warnings = f7_full_update._instruction_context_budget(tmp_path, [])
+    assert budget == {"status": "not_verified", "reason": "AGENTS.md missing or unreadable"}
+    assert warnings == []
 
 
 def test_submodule_consumer_receives_instruction_surfaces(tmp_path: Path) -> None:
@@ -1264,7 +1629,10 @@ def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_pat
         first = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True,
                                    submodule_path="ai-governance-framework")
         assert first.stages["hook_validator_enforcement"] == "updated", first.errors
-        assert json.loads(config.read_text())["hooks"] == {"Stop": [custom]}
+        # The legacy Stop -> session_end is retired, the consumer entry stays in place and
+        # the managed Stop execution point (agent_stop, ruling 2026-11-11) is added once.
+        from governance_tools.hook_install_validator import VSCODE_MANAGED_STOP_ENTRY
+        assert json.loads(config.read_text())["hooks"] == {"Stop": [custom, VSCODE_MANAGED_STOP_ENTRY]}
         copilot = repo / ".github/hooks/ai-governance-copilot.json"
         assert set(json.loads(copilot.read_text())["hooks"]) == {"sessionStart", "sessionEnd"}
         paths = [config, copilot, repo / ".github/hooks/ai-governance-lifecycle.py", repo / ".github/hooks/.ai-governance-managed.json"]
@@ -1273,6 +1641,122 @@ def test_f7_retires_legacy_stop_and_keeps_custom_hooks_on_repeated_apply(tmp_pat
                                     submodule_path="ai-governance-framework")
         assert second.stages["hook_validator_enforcement"] == "verified", second.errors
         assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+
+
+LEGACY_STOP_BRIDGE_COMMAND = (
+    "python .github/hooks/ai-governance-lifecycle.py --event-type session_end --surface auto"
+)
+
+
+def _submodule_consumer_with_legacy_stop(tmp_path: Path) -> tuple[Path, Path, Path]:
+    repo = tmp_path / "consumer"
+    framework = repo / "ai-governance-framework"
+    _init_repo(repo)
+    _write(repo / "AGENTS.md", "# AGENTS\n")
+    _write(repo / ".gitmodules", '[submodule "framework"]\n\tpath = ai-governance-framework\n\turl = https://example.invalid/framework.git\n')
+    _make_framework(framework)
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    return repo, framework, config
+
+
+def test_f7_blocks_when_install_leaves_the_legacy_stop_bridge(tmp_path: Path) -> None:
+    """An installer older than the target reports success without retiring the
+    legacy Stop wiring; install success must not stand in for hook safety."""
+    from governance_tools.hook_installer import HookInstallApplyResult
+
+    repo, framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    old_installer = HookInstallApplyResult(ok=True, repo_root=str(repo), framework_root=str(framework))
+    with mock.patch.object(
+        f7_full_update, "update_governance_submodule", side_effect=lambda **kwargs: _update_result(repo, ok=True)
+    ), mock.patch.object(f7_full_update, "install_governance_hooks", return_value=old_installer):
+        result = run_f7_full_update(
+            repo_root=repo, framework_root=framework, apply=True, submodule_path="ai-governance-framework"
+        )
+
+    assert LEGACY_STOP_BRIDGE_COMMAND in config.read_text(encoding="utf-8")
+    assert result.stages["hook_validator_enforcement"] == "blocked"
+    assert result.f7_final_status == "blocked"
+    assert any(item.startswith("migration_required:") for item in result.errors), result.errors
+
+
+def test_post_install_check_uses_the_target_framework_validator(tmp_path: Path) -> None:
+    """The target checkout's validator decides, even when this process's own
+    validator would pass the installed hooks."""
+    repo = tmp_path / "consumer"
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'copilot_vscode_hooks_governed': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+
+
+def test_post_install_check_falls_back_when_the_target_cannot_report(tmp_path: Path) -> None:
+    """A target validator that predates the Copilot checks still reports JSON."""
+    repo, framework, _config = _submodule_consumer_with_legacy_stop(tmp_path)
+    _write(framework / "governance_tools" / "__init__.py", "")
+    _write(
+        framework / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': True}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, framework)
+
+    assert errors and errors[0].startswith("migration_required:")
+    (repo / ".github/hooks/ai-governance-vscode.json").write_text(
+        json.dumps({"version": 1, "hooks": {}}), encoding="utf-8"
+    )
+    assert f7_full_update._copilot_hook_post_install_errors(repo, framework) == []
+
+
+def test_post_install_check_blocks_when_the_target_validator_crashes(tmp_path: Path) -> None:
+    """No JSON from the target is unverified, even with a clean VS Code config."""
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _write(repo / ".github/hooks/ai-governance-vscode.json", json.dumps({"version": 1, "hooks": {}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(target / "governance_tools" / "hook_install_validator.py", "raise RuntimeError('broken target')\n")
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert len(errors) == 1
+    assert errors[0].startswith("copilot hooks could not be verified after install")
+    assert "broken target" in errors[0]
+
+
+def test_post_install_check_reads_the_config_when_the_validator_stops_early(tmp_path: Path) -> None:
+    """Without a Git hooks directory the validator returns before reading the
+    Copilot config; the check must then follow the config itself."""
+    repo = tmp_path / "consumer"
+    config = repo / ".github/hooks/ai-governance-vscode.json"
+    _write(config, json.dumps({"version": 1, "hooks": {"Stop": [{"type": "command", "command": LEGACY_STOP_BRIDGE_COMMAND}]}}))
+    target = tmp_path / "target-framework"
+    _write(target / "governance_tools" / "__init__.py", "")
+    _write(
+        target / "governance_tools" / "hook_install_validator.py",
+        "import json\nprint(json.dumps({'checks': {'git_hooks_dir_present': False}}))\n",
+    )
+
+    errors = f7_full_update._copilot_hook_post_install_errors(repo, target)
+
+    assert errors and errors[0].startswith("migration_required:")
+    config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+    assert f7_full_update._copilot_hook_post_install_errors(repo, target) == []
+
+
+def test_dry_run_hook_stage_is_not_verified_while_legacy_stop_remains(tmp_path: Path) -> None:
+    repo, _framework, config = _submodule_consumer_with_legacy_stop(tmp_path)
+    with mock.patch.object(updater_module, "_check_hook_validator_enforcement", return_value="verified"):
+        assert updater_module._report_hook_validator_enforcement(repo) == "missing"
+        config.write_text(json.dumps({"version": 1, "hooks": {}}), encoding="utf-8")
+        assert updater_module._report_hook_validator_enforcement(repo) == "verified"
 
 
 def test_memory_workflow_block_installs_even_when_the_word_appears(tmp_path: Path) -> None:
@@ -1521,3 +2005,244 @@ def test_human_report_carries_the_provenance_claim_boundary(tmp_path: Path) -> N
     assert "produced_by_claim_boundary=" in text
     assert "not compared against any required revision" in text
     assert "produced_by_sampled=before_any_mutation" in text
+
+
+# ── F1: legacy memory-writer router line in installed consumers ────────────────
+
+_LEGACY_WRITER = updater_module.LEGACY_MEMORY_WRITER_ROUTER_LINE
+_CURRENT_WRITER = updater_module.MEMORY_WRITER_ROUTER_LINE
+_CONSUMER_TAIL = "\n## Consumer Notes\n\n- 消費端自有：保留這一行。\n"
+
+
+def _consumer_with_router(tmp_path: Path, writer_line: str) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    agents = repo / "AGENTS.md"
+    _write(
+        agents,
+        agents.read_text(encoding="utf-8")
+        + "\n<!-- governance:key=memory_workflow -->\n"
+        "- Before claiming completion for any change touching `memory/**`, run "
+        "`python -m governance_tools.memory_workflow --check --repo .`.\n"
+        + writer_line
+        + "\n"
+        + _CONSUMER_TAIL,
+    )
+    return repo, framework
+
+
+def test_f7_replaces_exact_legacy_writer_line_once_and_keeps_consumer_text(tmp_path: Path) -> None:
+    repo, framework = _consumer_with_router(tmp_path, _LEGACY_WRITER)
+    agents = repo / "AGENTS.md"
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = agents.read_text(encoding="utf-8")
+    assert after.count(_CURRENT_WRITER) == 1 and _LEGACY_WRITER not in after
+
+    # Every other byte equals a run on the same consumer already carrying the new line.
+    control, control_framework = _consumer_with_router(tmp_path / "control", _CURRENT_WRITER)
+    run_f7_full_update(repo_root=control, framework_root=control_framework, apply=True)
+    assert after == (control / "AGENTS.md").read_text(encoding="utf-8")
+    assert "- Preserve this domain rule.\n" in after and _CONSUMER_TAIL in after
+
+    run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    assert agents.read_text(encoding="utf-8") == after
+
+
+def test_f7_leaves_an_edited_writer_line_and_reports_it(tmp_path: Path) -> None:
+    edited = _LEGACY_WRITER.replace("as ordinary markdown", "by hand (team rule)")
+    repo, framework = _consumer_with_router(tmp_path, edited)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    after = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert after.count(edited) == 1 and _CURRENT_WRITER not in after
+    diagnostics = [w for w in result.warnings if w.startswith("f7-diagnostic: memory-workflow-router:")]
+    assert len(diagnostics) == 1, result.warnings
+    assert "left untouched" in diagnostics[0]
+
+
+_LOCK_REPAIR_SECTION = "docs/ai-governance-first-import-sop.md#submodule-framework-lock"
+_LOCK_HINT_PREFIX = "f7-diagnostic: formal-closeout prerequisite missing: "
+
+
+def test_f7_lock_hint_target_section_exists() -> None:
+    """The hint's repair link must resolve to the SOP section it names."""
+    doc, anchor = _LOCK_REPAIR_SECTION.split("#")
+    text = (Path(__file__).resolve().parents[1] / doc).read_text(encoding="utf-8")
+    assert text.count(f'<a id="{anchor}"></a>') == 1
+    assert "### 4.1 Repair the submodule consumer framework lock" in text
+
+
+def _make_lock_hint_consumer(tmp_path: Path, submodule_path: str) -> tuple[Path, Path, str]:
+    """All transport and writes stay in disposable, synthetic repositories."""
+    remote = tmp_path / "source"
+    _make_framework(remote)
+    _write(remote / "baselines/repo-min/AGENTS.base.md", "# Framework baseline\n")
+    _write(remote / "baselines/repo-min/AGENTS.md",
+           "# Agents\n\n## AI Governance Update Intent Rule\n\nUse F-7.\n\n"
+           "## Repo-Specific Risk Levels\n\nN/A\n")
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "synthetic framework baseline")
+    before = _git(remote, "rev-parse", "HEAD")
+    _write(remote / "CHANGELOG.md", "## 1.3.0\n\nSynthetic update.\n")
+    _git(remote, "add", ".")
+    _git(remote, "commit", "-m", "synthetic framework target")
+
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    _git(repo, "-c", "protocol.file.allow=always", "submodule", "add", str(remote), submodule_path)
+    checkout = repo / submodule_path
+    _git(checkout, "checkout", before)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "pin synthetic framework without a consumer lock")
+    return repo, checkout, before
+
+
+def _capture_before_lock_hint(monkeypatch):
+    """Freeze the existing backend result before report-only additions."""
+    original = f7_full_update._run_f7_full_update
+    baseline = []
+
+    def capture(**kwargs):
+        result = original(**kwargs)
+        baseline.append(copy.deepcopy(result))
+        return result
+
+    monkeypatch.setattr(f7_full_update, "_run_f7_full_update", capture)
+    return baseline
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+@pytest.mark.parametrize("submodule_path", ["ai-governance-framework", "vendor/framework with spaces"])
+@pytest.mark.parametrize("output_format", ["json", "human"])
+def test_f7_missing_lock_hint_is_report_only(
+    tmp_path: Path, monkeypatch, capsys, apply, submodule_path, output_format,
+) -> None:
+    repo, checkout, _before = _make_lock_hint_consumer(tmp_path, submodule_path)
+    baseline = _capture_before_lock_hint(monkeypatch)
+    results = []
+    original = f7_full_update.run_f7_full_update
+
+    def capture_report(**kwargs):
+        result = original(**kwargs)
+        results.append(result)
+        return result
+
+    monkeypatch.setattr(f7_full_update, "run_f7_full_update", capture_report)
+    args = ["--repo", str(repo), "--framework-root", str(checkout), "--format", output_format]
+    if submodule_path != "ai-governance-framework":
+        args.extend(["--submodule-path", submodule_path])
+    if apply:
+        args.append("--apply")
+    exit_code = f7_full_update.main(args)
+    stdout = capsys.readouterr().out
+    result, plain = results[0], baseline[0]
+    hints = [w for w in result.warnings if w.startswith(_LOCK_HINT_PREFIX)]
+    assert len(hints) == 1, result.warnings
+    hint = hints[0]
+    assert (repo / "governance/framework.lock.json").as_posix() in hint
+    assert "tracked, clean regular file" in hint
+    assert "adopted_commit matching the consumer index gitlink" in hint
+    assert f"{submodule_path}/{_LOCK_REPAIR_SECTION}" in hint
+    assert "update-stage completion does not establish formal-closeout eligibility" in hint
+    if output_format == "json":
+        assert hint in json.loads(stdout)["warnings"]
+    else:
+        assert "[warnings]\n" in stdout and hint in stdout
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.ok is plain.ok is True
+    assert result.errors == plain.errors == []
+    assert exit_code == (0 if plain.ok else 1) == 0
+    assert result.f7_final_status == plain.f7_final_status
+    if apply:
+        assert result.f7_final_status == "full_update_completed"
+        assert result.update_receipt["receipt"]["update_status"] == "updated"
+    else:
+        assert result.update_receipt["status"] == "not_written"
+    assert result.update_receipt == plain.update_receipt
+    assert result.stages["governance_maturity_summary"]["lock_consistency"]["value"] == "not_applicable"
+    assert not (repo / "governance/framework.lock.json").exists()
+    assert not any("framework.lock.json" in p for p in result.changed_files)
+    # Only the new warning and the pre-existing wrapper's prediction may differ.
+    expected = asdict(plain)
+    expected["warnings"].append(hint)
+    expected["stages"]["instruction_budget_precheck"] = result.stages["instruction_budget_precheck"]
+    assert asdict(result) == expected
+    if not apply:
+        assert _git(repo, "status", "--porcelain") == ""
+
+
+@pytest.mark.parametrize("role", ["copy_based_consumer", "external_contract_repo", "not_governed", "framework"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_lock_hint_excludes_other_adoption_modes(tmp_path: Path, role, apply) -> None:
+    framework, repo = tmp_path / "framework", tmp_path / "repo"
+    _make_framework(framework)
+    if role == "framework":
+        repo = framework
+        (repo / "governance/framework.lock.json").unlink()
+        _write(repo / "AGENTS.base.md", "# Framework baseline\n")
+    elif role == "external_contract_repo":
+        _make_external_contract_repo(repo)
+    else:
+        _init_repo(repo)
+        if role == "copy_based_consumer":
+            _write(repo / "AGENTS.base.md", "# Copied baseline\n")
+    assert classify_repo(repo) == ("copy_based_consumer" if role == "framework" else role)
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=apply)
+    assert not any(w.startswith(_LOCK_HINT_PREFIX) for w in result.warnings)
+    assert _LOCK_HINT_PREFIX not in format_human(result)
+
+
+@pytest.mark.parametrize("wrong_lock", [False, True], ids=["valid_lock", "wrong_lock"])
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_existing_lock_reporting_is_unchanged(tmp_path: Path, monkeypatch, wrong_lock, apply) -> None:
+    repo, checkout, before = _make_lock_hint_consumer(tmp_path, "ai-governance-framework")
+    lock = repo / "governance/framework.lock.json"
+    _write(lock, json.dumps({"adopted_commit": "0" * 40 if wrong_lock else before,
+                             "adopted_release": "1.3.0"}) + "\n")
+    _git(repo, "add", "governance/framework.lock.json")
+    _git(repo, "commit", "-m", "record synthetic consumer lock")
+    before_bytes = lock.read_bytes()
+    baseline = _capture_before_lock_hint(monkeypatch)
+    result = run_f7_full_update(repo_root=repo, framework_root=checkout, apply=apply, target_ref=before)
+    expected = asdict(baseline[0])
+    expected["stages"]["instruction_budget_precheck"] = result.stages["instruction_budget_precheck"]
+    assert asdict(result) == expected
+    assert not any(w.startswith(_LOCK_HINT_PREFIX) for w in result.warnings)
+    assert "closeout ready" not in json.dumps(asdict(result)).lower()
+    assert "closeout ready" not in format_human(result).lower()
+    consistency = result.stages["governance_maturity_summary"]["lock_consistency"]["value"]
+    expected_consistency = "consistent"
+    if wrong_lock:
+        expected_consistency = "inconsistent" if apply else "lock_commit_not_found_locally"
+    assert consistency == expected_consistency
+    if wrong_lock:
+        # Explicit local targets retain the existing freshness non-claim.
+        assert result.f7_final_status == "not_verified"
+    if not apply or not wrong_lock:
+        assert lock.read_bytes() == before_bytes
+
+
+@pytest.mark.parametrize("apply", [False, True], ids=["dry_run", "apply"])
+def test_f7_missing_lock_hint_preserves_a_blocked_exit(tmp_path: Path, monkeypatch, capsys, apply) -> None:
+    repo, checkout, _before = _make_lock_hint_consumer(tmp_path, "ai-governance-framework")
+    _write(repo / "staged.txt", "pre-existing staged work\n")
+    _git(repo, "add", "staged.txt")
+    baseline = _capture_before_lock_hint(monkeypatch)
+    args = ["--repo", str(repo), "--framework-root", str(checkout), "--format", "json"]
+    if apply:
+        args.append("--apply")
+    exit_code = f7_full_update.main(args)
+    payload = json.loads(capsys.readouterr().out)
+    plain = baseline[0]
+    assert plain.ok is False
+    assert exit_code == 1
+    assert payload["f7_final_status"] == plain.f7_final_status == "blocked"
+    assert payload["errors"] == plain.errors and plain.errors
+    assert payload["update_receipt"] == plain.update_receipt
+    assert len([w for w in payload["warnings"] if w.startswith(_LOCK_HINT_PREFIX)]) == 1
+    assert not (repo / "governance/framework.lock.json").exists()
+    assert _git(repo, "diff", "--cached", "--name-only") == "staged.txt"

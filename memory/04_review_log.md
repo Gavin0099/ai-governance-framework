@@ -5469,3 +5469,91 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: NOT CLAIMED: receipt-backed provenance. Local scoped pytest: 210 passed. Independent reviewer: 42 passed and 10 direct probes. Results are recorded in the authoring transcript and Draft PR; no new receipt is introduced.
 - Next action: Finish the companion commit, verify authorized remote branch and Draft PR delivery, then stop for Owner review; merge and consumer updates remain unauthorized.
 - PLAN reconciliation: `updated`
+
+<!-- memory_record_projection:review-log:ed137f967ccb539cf5138b23e3237440043b25634a03f1a239deb10c2c5a2aef -->
+### Canonical memory checkpoint — 70314172-8996-4ba7-b18e-d3b69389ebe2
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `ed137f967ccb539cf5138b23e3237440043b25634a03f1a239deb10c2c5a2aef`
+- Commit binding: `28803292210d457378eee08b49e36c6ed1d35a49` (bound)
+- Record: Two independent read-only reviews of the framework self must-record fix (Draft PR #276, fix commit 28803292, base d28acb9e), both APPROVE-WITH-NITS. Review 1 (full change set): every removed AGENTS.md Section 7 rule is covered by governance/RESPONSE_ENVELOPE_CONTRACT.md; protected sections (External vs Internal, Memory, Safety, Section 8, Progress Updates) byte-identical; core region identical on all surfaces; nits fixed before commit: restored the 注意 duty in AGENTS.md and clarified the private-memory sentence. Review 2 (final delta): root Copilot three synced passages match the template exactly, no other change; sentence consistent with MEMORY_PROTOCOL and SYSTEM_PROMPT 6.1; AGENTS.md 31,695 B CRLF. Accepted residual nits: root Copilot managed block keeps v1.1 marker after partial sync; one conflicting-phrasing case never existed in the root file; AUTHORITY.md:143 lists only the templates. The reviewed tree equals commit 28803292.
+- Validation boundary: Reviewer runs: tests/test_agent_core_rules_projection.py 34 passed (both reviews); review 1 also ran 15 related files 371 passed, 2 failed only from the then-dirty worktree; clean tree at 28803292: 37 + 365 passed. NOT CLAIMED: agent memory behaviour change.
+- Next action: Owner review and merge decision on Draft PR #276 after CI; CI Full Test Suite currently fails only on the pre-existing time-based test tests/test_blocking_graduation_check.py::test_sessions_outside_the_window_do_not_count, handled in a separate session.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb -->
+### Canonical memory checkpoint — 70314172-8996-4ba7-b18e-d3b69389ebe2
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `fe2c955db44c87038d39bb9f0bfd32afbdea0ae35fcd2e5f4f5f60acceb762cb`
+- Commit binding: `b144858461d267f0dd1d932fa1566b12d8141fc8` (bound)
+- Record: Post-merge independent audit of PR #277 (time-bomb test fix), exact range d28acb9e..b1448584 (d6960629 test fix, b1448584 memory companion), merged as a6c25b7c; reviewer: independent read-only sub-agent (Claude Opus) distinct from the authoring session, owner-requested. Verdict APPROVE-WITH-NITS as a POST-MERGE audit only: PR #277 was merged before any independent review was recorded, so governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md independent_technical_review was not satisfied pre-merge and this audit cannot cure that (contract lines 92-94). Confirmed: root cause reproduces on d28acb9e (1 failed / 30 passed), 31 passed at b1448584, no governance_tools change, git diff b1448584 a6c25b7c empty, daily record bound to d6960629, KB entry follows the Candidate Rule. Nits, not fixed here: tests/test_blocking_graduation_check.py:84 _receipts(age_days=0) still uses wall-clock mtimes (not a forward time bomb; fails only if the clock is before 2026-07-06); the #277 KB candidate overclaims that every fixture mtime now derives from NOW; blocking_graduation_check counts receipts dated after now (pre-existing).
+- Validation boundary: Reviewer: tests/test_blocking_graduation_check.py 31 passed at b1448584, 1 failed / 30 passed on d28acb9e; fixture mtime shifts +10y/+100y 31 passed, -125d 3 failed; PR #277 checks all passed on b1448584 (run 41590762293); main a6c25b7c Governance Check success (run 41592679002).
+- Next action: Before merging #276: record all three Solo-Owner predicates for its exact new head (fresh independent review of the synced head, green required checks, owner attestation naming the SHA). The three #277 nits are separate optional work.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:160061bf0c76871d067dc48ed0df61f765968523055afe6371d356d5cbf74c2e -->
+### Canonical memory checkpoint — n7-native-acceptance-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `160061bf0c76871d067dc48ed0df61f765968523055afe6371d356d5cbf74c2e`
+- Commit binding: `98142f55c6cdb8a45162766b2cc2d3c1ab67559e` (bound)
+- Record: Recorded bounded Windows native Codex and VS Code Copilot acceptance for the #335 runtime. Both negative Stops and prepared released closeouts were observed. Preserved and distinguished the first inadmissible attempts from successful retries.
+- Validation boundary: Independent review of native lifecycle records and digest bindings is documented in memory/evidence/n7-native-acceptance-20261119.md. Fixture coverage classification, POSIX, Python 3.9, real consumer and Gate 3 remain unqualified.
+- Next action: Obtain the owner decision on #336 and authorizations for the pending PR dispositions before consumer acceptance.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->
+### Canonical memory checkpoint — issue-340-evidence-routing-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b`
+- Commit binding: `d7082224b5a6afdfc865568f9b7e7a81a23fddcc` (bound)
+- Record: Issue #340 projects a single conditional prior-evidence rule into all six existing instruction surfaces. Independent review confirmed projection fidelity and a Draft-only handoff. Two fresh Codex sessions loaded the rule and each met two of five frozen decisions. The V-03/V-04, V-05 and E-01 historical evidence retrieval criteria remain unmet.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-340-projections-20261119.json artifacts/evidence/test-results/issue-340-projections-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity is ok. Native result PARTIAL, as documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
+- Next action: Hand off one Draft PR for owner review. V-05 remains the independent product priority. Further work on native history retrieval requires a separate owner decision.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
+### Canonical memory checkpoint — issue-340-rule8-followup-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f`
+- Commit binding: `724abee6b40c186a36fcda5b2aef0bd6a3bb6731` (bound)
+- Record: Issue #340 Rule 8 now follows relevant PR or issue evidence including Draft PR refs and preserves UNKNOWN when evidence is unavailable. The independent review verified the six projections, both connector controls, and 5/5 on the single completed native Codex turn. The wrapper timed out after turn.completed, with process exit unverified. The trial took more time and tokens than the original trials.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-340-rule8-followup-20261119.json artifacts/evidence/test-results/issue-340-rule8-followup-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity ok. Completed native Codex turn 5/5 with independent trace review and CLI exit timeout documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
+- Next action: Keep #341 as Draft for the owner decision. V-05 remains a separate product acceptance task.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
+### Canonical memory checkpoint — 2026-11-20-01
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b`
+- Commit binding: `6b74764e178e6594f0171785802428635af0ced7` (bound)
+- Record: Issue #295 added one existing-contract explanation sentence to Rule 6 and synced six managed projections. Independent review rejected opaque or overstated reports and accepted a clear report with no required owner decision. Focused verification passed 150 tests and the CRLF instruction budget is 28131 of 32768 bytes. Natural report evidence is pending.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-295-rule6-20261120.json -> exit_code=0. Retained output artifacts/evidence/test-results/issue-295-rule6-20261120.txt
+- Next action: Verify the exact Draft candidate and its CI. Observe naturally occurring reports after adoption.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
+### Canonical memory checkpoint — c1-r-supplied-pytest-evidence-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1`
+- Commit binding: `f70e41d76ccf11e4cdd8fa025362e6f7fe90417b` (bound)
+- Record: C1-R repairs the #213 supplied pytest evidence false positive on main. The independent review caught a mixed-claim case and the final patch applies only to a standalone supplied pytest reference. Real and anaphoric execution claims still require their existing artifacts. This is a bounded parser fix for a reviewed PR.
+- Validation boundary: PASS: artifacts/evidence/test-results/c1-r-closeout-20261119.json artifacts/evidence/test-results/c1-r-closeout-20261119.txt -> exit_code=0 (159 focused regression and adjacent closeout cases on f70e41d7). The complete execution-claims and frozen differential suite returned 591 passes on the reviewed implementation before commit.
+- Next action: Review the final C1-R PR and await its owner merge decision. The existing decisions for #337, #213 closure and C2-D remain separate.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:1642ec3c8be7a7ea55dc148767299d5c9e06396b2688925170c5e8377192a72a -->
+### Canonical memory checkpoint — 2026-11-20-02
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `1642ec3c8be7a7ea55dc148767299d5c9e06396b2688925170c5e8377192a72a`
+- Commit binding: `8cd8735a4494857aba8547bf265182c1dd3b3250` (bound)
+- Record: Rule 4 now identifies explicit edit bans that cover a required record and asks the agent to report that record as unwritten. The existing default for ordinary task scope remains in effect across all six projections. PR #282 at 8fc547e1 reported different agent interpretations of a directory restriction on main at 27cd3a48. The current batch states that an explicit owner path restriction takes precedence when it covers the record.
+- Validation boundary: PASS: artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.json -> exit_code=0. 104 focused projection and instruction-budget tests. Retained output: artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.txt. Native agent behavior remains unverified.
+- Next action: Obtain independent review of the final candidate and hand off the Draft PR for an owner decision.
+- PLAN reconciliation: `not_applicable`

@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Stop wiring 6f097eb8：僅 Draft 交付。 <!-- memory_record_projection:active-task-summary:5464b03c9a9d3e32600c4312d548166fda1e2129b1173cafa794b0c0b0d613e7 -->
+- Issue #295 shared reporting guidance passed scoped checks. Natural reports pending. <!-- memory_record_projection:active-task-summary:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->

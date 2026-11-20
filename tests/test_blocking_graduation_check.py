@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -83,7 +82,7 @@ def _receipts(repo: Path, ran: int, total: int, *, age_days: float = 0.0) -> Non
         path = root / f"r{index}.json"
         path.write_text(json.dumps({"guard_ran": index < ran}), encoding="utf-8")
         if age_days:
-            stamp = time.time() - age_days * 86400
+            stamp = (NOW - timedelta(days=age_days)).timestamp()
             os.utime(path, (stamp, stamp))
 
 
@@ -305,7 +304,7 @@ def _write_baseline(repo: Path, buckets: list[dict], *, age_days: float) -> Path
     root.mkdir(parents=True, exist_ok=True)
     path = root / "memory-authority-baseline-2026-01-01.json"
     path.write_text(json.dumps({"buckets": buckets}), encoding="utf-8")
-    stamp = time.time() - age_days * 86400
+    stamp = (NOW - timedelta(days=age_days)).timestamp()
     os.utime(path, (stamp, stamp))
     return path
 

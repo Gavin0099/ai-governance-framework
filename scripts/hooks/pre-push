@@ -48,6 +48,124 @@ if [ -z "$FRAMEWORK_ROOT" ]; then
     governance_error "framework root is not configured"
     exit 1
 fi
+
+# Keep this bootstrap self-contained: the shared checkout may have been removed.
+# Only the configured submodule in a registered worktree can supply a local pin;
+# an explicit override or an external installation keeps its existing authority.
+resolve_worktree_framework() (
+    local hook="$1" shared="$FRAMEWORK_ROOT" target="$TARGET_REPO_ROOT"
+    local git_dir common record key relative anchor entry bound="" candidate name
+    local bound_head="" matching="" declared
+    local mode pin stage ignored sub_dir expected head top required directory
+    if [ -n "${AI_GOVERNANCE_FRAMEWORK_ROOT:-}" ] || [ ! -f "$target/.git" ]; then
+        printf '%s\n' "$shared"; return
+    fi
+    # Consumer queries retain Git's prepared commit index (commit -a / paths).
+    # Only queries in the framework checkout discard consumer repository state.
+    framework_git() (
+        local root="$1" variable
+        shift
+        for variable in $(git rev-parse --local-env-vars); do unset "$variable"; done
+        GIT_OPTIONAL_LOCKS=0 GIT_NO_REPLACE_OBJECTS=1 git -C "$root" "$@"
+    )
+    export GIT_OPTIONAL_LOCKS=0
+    export GIT_NO_REPLACE_OBJECTS=1
+    git_dir="$(git -C "$target" rev-parse --absolute-git-dir)" || return 1
+    common="$(git -C "$target" rev-parse --git-common-dir)" || return 1
+    git_dir="$(cd -- "$git_dir" && pwd -P)" || return 1
+    common="$(cd -- "$target" && cd -- "$common" && pwd -P)" || return 1
+    if [ "$git_dir" = "$common" ] || [ ! -f "$target/.gitmodules" ]; then
+        printf '%s\n' "$shared"; return
+    fi
+    shared="${shared%$'\r'}"; shared="${shared//\\//}"
+    # cygpath also normalizes drive paths that no longer exist.
+    if command -v cygpath >/dev/null 2>&1; then shared="$(cygpath -am "$shared")"; fi
+    while IFS= read -r -d '' record; do
+        key="${record%%$'\n'*}"; relative="${record#*$'\n'}"
+        case "$relative" in ""|/*|*:*|*\\*|../*|*/../*|*/..|.|..|./*|*/./*|*/.) continue ;; esac
+        while IFS= read -r -d '' entry; do
+            case "$entry" in
+                "worktree "*)
+                    matching=""
+                    anchor="${entry#worktree }/$relative"
+                    if command -v cygpath >/dev/null 2>&1; then anchor="$(cygpath -am "$anchor")"; fi
+                    if [ "${shared%/}" = "${anchor%/}" ]; then
+                        if [ -n "$bound" ]; then
+                            echo "[governance] error: ambiguous linked-worktree framework declaration" >&2; return 1
+                        fi
+                        bound="$key"
+                        matching=yes
+                    fi ;;
+                "HEAD "*) [ "$matching" != yes ] || bound_head="${entry#HEAD }" ;;
+            esac
+        done < <(git -C "$target" worktree list --porcelain -z)
+        [ "$bound" = "$key" ] || continue
+        # A nested external installation is not submodule authority. The
+        # installing worktree's committed declaration must identify this slot.
+        IFS=$' \t' read -r mode ignored < <(git --literal-pathspecs -C "$target" ls-tree "$bound_head" -- "$relative" 2>/dev/null)
+        declared="$(git -C "$target" config --blob "$bound_head:.gitmodules" --get "$key" 2>/dev/null)" || declared=""
+        if [ "${mode:-}" != 160000 ] || [ "$declared" != "$relative" ]; then
+            if [ -d "$FRAMEWORK_ROOT" ]; then printf '%s\n' "$FRAMEWORK_ROOT"; return; fi
+            echo "[governance] error: missing shared framework root has no committed submodule authority: $FRAMEWORK_ROOT" >&2; return 1
+        fi
+        candidate="$target/$relative"
+        # HEAD, index and working declaration must agree before dispatching code.
+        IFS=$' \t' read -r mode ignored < <(git -C "$target" ls-tree HEAD -- .gitmodules)
+        case "${mode:-}" in
+            100644|100755) ;;
+            *) echo "[governance] error: linked-worktree framework declaration is not a committed regular file" >&2; return 1 ;;
+        esac
+        if [ -L "$target/.gitmodules" ] ||
+           ! git -C "$target" diff --quiet HEAD -- .gitmodules ||
+           ! git -C "$target" diff --cached --quiet HEAD -- .gitmodules; then
+            echo "[governance] error: linked-worktree framework declaration is not committed and unchanged" >&2; return 1
+        fi
+        target="$(cd -- "$target" && pwd -P)" || return 1
+        candidate="$target/$relative"
+        name="${key#submodule.}"; name="${name%.path}"
+        IFS=$' \t' read -r mode pin stage ignored < <(git --literal-pathspecs -C "$target" ls-files --stage -- "$relative")
+        if [ "${mode:-}" != 160000 ] || [ "${stage:-}" != 0 ] ||
+           [ ! -f "$candidate/.git" ] || [ -L "$candidate/.git" ] ||
+           [ "$(cd -- "$candidate" 2>/dev/null && pwd -P)" != "$candidate" ]; then
+            echo "[governance] error: linked-worktree framework is not an initialized declared submodule: $candidate" >&2; return 1
+        fi
+        if ! sub_dir="$(framework_git "$candidate" rev-parse --absolute-git-dir 2>/dev/null)" ||
+           ! sub_dir="$(cd -- "$sub_dir" && pwd -P)" ||
+           ! expected="$(cd -- "$git_dir/modules/$name" 2>/dev/null && pwd -P)" ||
+           ! head="$(framework_git "$candidate" rev-parse --verify HEAD 2>/dev/null)" ||
+           ! top="$(framework_git "$candidate" rev-parse --show-toplevel 2>/dev/null)" ||
+           [ "$(cd -- "$top" && pwd -P)" != "$candidate" ]; then
+            echo "[governance] error: cannot verify linked-worktree framework Git identity: $candidate" >&2; return 1
+        fi
+        if [ "$sub_dir" != "$expected" ] || [[ "$sub_dir" != "$git_dir/modules/"* ]] ||
+           [ "$head" != "$pin" ]; then
+            echo "[governance] error: linked-worktree framework Git identity or pin mismatch: $candidate" >&2; return 1
+        fi
+        required="scripts/lib/python.sh scripts/hooks/$hook governance/SYSTEM_PROMPT.md governance_tools/hook_installer.py"
+        if [ "$hook" = pre-commit ]; then
+            required="$required governance_tools/plan_freshness.py governance_tools/memory_workflow.py governance_tools/manual_update_advisory.py"
+        else
+            required="$required scripts/run-runtime-governance.sh governance_tools/external_tree_inventory_guard.py"
+        fi
+        for entry in $required; do
+            directory="$(cd -- "$candidate/${entry%/*}" 2>/dev/null && pwd -P)" || directory=""
+            if [ ! -f "$candidate/$entry" ] || [ -L "$candidate/$entry" ] ||
+               [[ "$directory" != "$candidate/"* ]]; then
+                echo "[governance] error: missing or external linked-worktree framework entry: $candidate/$entry" >&2; return 1
+            fi
+        done
+        echo "[governance] using framework $candidate (linked worktree's declared, initialized pinned submodule; shared root: $shared)" >&2
+        printf '%s\n' "$candidate"
+        return
+    done < <(git -C "$target" config --file .gitmodules --null --get-regexp '^submodule\..*\.path$')
+    if [ ! -d "$FRAMEWORK_ROOT" ]; then
+        echo "[governance] error: missing shared framework root cannot be bound to a registered worktree: $FRAMEWORK_ROOT" >&2; return 1
+    fi
+    printf '%s\n' "$FRAMEWORK_ROOT"
+)
+
+FRAMEWORK_ROOT="$(resolve_worktree_framework pre-push)" || exit 1
+
 if [ ! -d "$FRAMEWORK_ROOT" ]; then
     governance_error "framework root does not exist: $FRAMEWORK_ROOT"
     exit 1

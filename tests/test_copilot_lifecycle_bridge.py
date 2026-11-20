@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,30 @@ from runtime_hooks.adapters.copilot import lifecycle
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def copilot_home(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """The Copilot runtime's own session records live under COPILOT_HOME, never the real one."""
+    home = tmp_path_factory.mktemp("copilot-home")
+    monkeypatch.setenv("COPILOT_HOME", str(home))
+    for name in list(os.environ):
+        if name.upper().startswith("GIT_"):
+            monkeypatch.delenv(name)
+    return home
+
+
+def _register_copilot_session(session_id: str, client: str = "github/cli") -> None:
+    """What the Copilot runtime writes before any hook runs (workspace.yaml)."""
+    state = Path(os.environ["COPILOT_HOME"]) / "session-state" / session_id
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "workspace.yaml").write_text(f"id: {session_id}\nclient_name: {client}\n", encoding="utf-8")
+
+
+def _git_repo(root: Path) -> None:
+    """Root-bound identity binds to a Git worktree root."""
+    if not (root / ".git").exists():
+        subprocess.run(["git", "init", "--quiet", str(root)], check=True, capture_output=True)
 
 
 def test_vscode_stop_normalizes_snake_case_payload(tmp_path: Path) -> None:
@@ -161,9 +187,113 @@ def test_session_start_writes_envelope_with_native_identity(
     }
 
 
+def _copilot_cli_start(root: Path, session_id: str, source: str, client: str = "github/cli") -> dict:
+    _git_repo(root)
+    _register_copilot_session(session_id, client)
+    return lifecycle.run_lifecycle_event(
+        {"sessionId": session_id, "cwd": str(root), "source": source, "timestamp": 1},
+        event_type="session_start",
+        surface="auto",
+    )
+
+
+def test_copilot_cli_resume_preserves_the_original_envelope(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Copilot CLI resumes reuse the sessionId; rewriting the envelope would move
+    # started_at to the resume and drop the first part of the session window.
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    first = _copilot_cli_start(tmp_path, "copilot-resume-1", "new")
+    envelope = tmp_path / "artifacts/runtime/sessions/copilot-resume-1/session-envelope.json"
+    original = envelope.read_bytes()
+
+    resumed = _copilot_cli_start(tmp_path, "copilot-resume-1", "resume")
+    again = _copilot_cli_start(tmp_path, "copilot-resume-1", "resume")
+
+    assert first["status"] == "session_envelope_written"
+    assert resumed["status"] == again["status"] == "session_envelope_preserved"
+    assert envelope.read_bytes() == original
+
+
+def test_copilot_cli_resume_points_the_current_session_back_to_the_resumed_one(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Session end without an explicit id resolves the session through this
+    # pointer, so a resumed session must own it again.
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    pointer = tmp_path / "artifacts/runtime/.current-session-id"
+    _copilot_cli_start(tmp_path, "copilot-session-a", "new")
+    envelope_a = tmp_path / "artifacts/runtime/sessions/copilot-session-a/session-envelope.json"
+    original_a = envelope_a.read_bytes()
+    _copilot_cli_start(tmp_path, "copilot-session-b", "new")
+    assert json.loads(pointer.read_text(encoding="utf-8"))["session_id"] == "copilot-session-b"
+
+    _copilot_cli_start(tmp_path, "copilot-session-a", "resume")
+
+    assert json.loads(pointer.read_text(encoding="utf-8"))["session_id"] == "copilot-session-a"
+    assert envelope_a.read_bytes() == original_a
+
+
+@pytest.mark.parametrize(
+    ("existing", "message"),
+    [
+        ("{not json", "Existing envelope is invalid"),
+        (json.dumps({"session_id": "someone-else", "provider": "github-copilot"}), "Existing envelope is invalid"),
+        # Unreadable as an identity, so refused as invalid before the provider check.
+        (json.dumps({"session_id": "copilot-resume-3", "provider": "github-copilot-vscode"}),
+         "Existing envelope is invalid|another provider"),
+    ],
+)
+def test_copilot_cli_resume_refuses_an_unusable_identity_without_rewriting_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    existing: str,
+    message: str,
+) -> None:
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    _copilot_cli_start(tmp_path, "copilot-other", "new")
+    pointer = tmp_path / "artifacts/runtime/.current-session-id"
+    pointer_before = pointer.read_bytes()
+    envelope = tmp_path / "artifacts/runtime/sessions/copilot-resume-3/session-envelope.json"
+    envelope.parent.mkdir(parents=True)
+    envelope.write_text(existing, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        _copilot_cli_start(tmp_path, "copilot-resume-3", "resume")
+
+    assert envelope.read_text(encoding="utf-8") == existing
+    assert pointer.read_bytes() == pointer_before
+
+
+def test_copilot_cli_resume_never_invents_a_start_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+
+    with pytest.raises(ValueError, match="Existing envelope required"):
+        _copilot_cli_start(tmp_path, "copilot-resume-2", "resume")
+
+    assert not (tmp_path / "artifacts/runtime/sessions/copilot-resume-2").exists()
+
+
+@pytest.mark.parametrize("native_event", ["SessionEnd", "sessionEnd"])
+@pytest.mark.parametrize(
+    ("surface", "event_key", "session_key"),
+    [
+        ("vscode", "hook_event_name", "session_id"),
+        ("copilot", "hookEventName", "sessionId"),
+    ],
+)
 def test_session_end_invokes_canonical_hook_with_same_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    native_event: str,
+    surface: str,
+    event_key: str,
+    session_key: str,
 ) -> None:
     observed: dict[str, object] = {}
     transcript = tmp_path / "transcript.jsonl"
@@ -192,13 +322,13 @@ def test_session_end_invokes_canonical_hook_with_same_identity(
 
     result = lifecycle.run_lifecycle_event(
         {
-            "hook_event_name": "Stop",
-            "session_id": "vscode-session-3",
+            event_key: native_event,
+            session_key: "vscode-session-3",
             "cwd": str(tmp_path),
             "transcript_path": str(transcript),
         },
         event_type="session_end",
-        surface="vscode",
+        surface=surface,
     )
 
     assert result["ok"] is True
@@ -209,6 +339,82 @@ def test_session_end_invokes_canonical_hook_with_same_identity(
         "session_id": "vscode-session-3",
         "transcript_path": transcript.resolve(),
     }
+
+
+def _lifecycle_state(root: Path) -> dict[str, bytes | None]:
+    """Include directories so even an empty artifact or memory write is visible."""
+    snapshot = {}
+    for name in ("artifacts", "memory"):
+        area = root / name
+        if area.exists():
+            for path in (area, *area.rglob("*")):
+                snapshot[path.relative_to(root).as_posix()] = (
+                    path.read_bytes() if path.is_file() else None
+                )
+    return snapshot
+
+
+@pytest.mark.parametrize(
+    "native_event",
+    ["Stop", "stop", "STOP", "agentStop", "AgentStop", "AGENTSTOP", " sToP ", " aGeNtStOp "],
+)
+@pytest.mark.parametrize(
+    ("surface", "event_key", "session_key"),
+    [
+        ("vscode", "hook_event_name", "session_id"),
+        ("copilot", "hookEventName", "sessionId"),
+    ],
+)
+@pytest.mark.parametrize("session_state", ["absent", "legacy_identity", "identity_only", "unprepared_candidate"])
+def test_legacy_turn_stop_routed_as_session_end_leaves_no_closeout_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    native_event: str,
+    surface: str,
+    event_key: str,
+    session_key: str,
+    session_state: str,
+) -> None:
+    from runtime_hooks.core import _canonical_closeout as core
+
+    sid = "legacy-turn-stop"
+    monkeypatch.setattr(lifecycle, "resolve_framework_root", lambda _root: REPO_ROOT)
+    if session_state == "legacy_identity":
+        core.write_session_envelope(sid, tmp_path, provider=lifecycle.PROVIDER_BY_SURFACE[surface])
+    elif session_state != "absent":
+        client = "vscode-agent-host" if surface == "vscode" else "github/cli"
+        _copilot_cli_start(tmp_path, sid, "new", client)
+        if session_state == "unprepared_candidate":
+            core.write_candidate(sid, tmp_path, {
+                "task_intent": "a turn is not a session end",
+                "work_summary": "work remains in progress",
+                "tools_used": [],
+                "artifacts_referenced": [],
+                "open_risks": [],
+            })
+    if session_state != "absent":
+        memory = tmp_path / "memory" / "existing.md"
+        memory.parent.mkdir()
+        memory.write_text("Existing memory must remain unchanged.\n", encoding="utf-8")
+    before = _lifecycle_state(tmp_path)
+
+    def _unexpected_closeout(*_args, **_kwargs):
+        pytest.fail("an unprepared turn Stop must not invoke any closeout hook")
+
+    monkeypatch.setattr(lifecycle, "_run_session_end", _unexpected_closeout)
+    monkeypatch.setattr(lifecycle, "_protected_closeout", _unexpected_closeout)
+
+    for _ in range(2):  # Repeated turn ends must not consume the session either.
+        result = lifecycle.run_lifecycle_event(
+            {event_key: native_event, session_key: sid, "cwd": str(tmp_path)},
+            event_type="session_end",
+            surface="auto",
+        )
+        assert result["ok"] is True and result["continue"] is True
+        assert result["status"] == "turn_stop_ignored"
+        assert result["hook_event_name"] == native_event.strip()
+        assert result["session_id"] == sid
+        assert _lifecycle_state(tmp_path) == before
 
 
 def test_dry_run_resolves_hub_topology_without_writes(
@@ -255,9 +461,12 @@ def test_hook_templates_use_independent_surface_event_names() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    # Local Stop is not a session end. The compatibility config registers
-    # neither closeout nor a duplicate SessionStart.
-    assert vscode["hooks"] == {}
+    # Local Stop is not a session end: the VS Code file holds only the Stop execution
+    # point (agent_stop), never a duplicate SessionStart, because VS Code also loads the
+    # shared Copilot registration whose sessionStart establishes identity for both.
+    assert set(vscode["hooks"]) == {"Stop"}
+    assert len(vscode["hooks"]["Stop"]) == 1
+    assert "--event-type agent_stop --surface vscode" in vscode["hooks"]["Stop"][0]["command"]
     assert set(copilot["hooks"]) == {"sessionStart", "sessionEnd"}
     normalized_copilot = {name[0].upper() + name[1:] for name in copilot["hooks"]}
     assert not set(vscode["hooks"]) & normalized_copilot
@@ -285,7 +494,10 @@ def test_cross_loader_event_normalization_executes_each_boundary_once() -> None:
         for name, entries in combined.items()
     }
     assert len(vscode_normalized["SessionStart"]) == 1
-    assert "Stop" not in vscode_normalized
+    # Stop runs only the prepared-closeout execution point, never session_end.
+    assert len(vscode_normalized["Stop"]) == 1
+    assert "agent_stop" in vscode_normalized["Stop"][0]["command"]
+    assert "session_end" not in vscode_normalized["Stop"][0]["command"]
     assert "session_start" in vscode_normalized["SessionStart"][0]["command"]
     assert "session_end" in vscode_normalized["SessionEnd"][0]["command"]
 

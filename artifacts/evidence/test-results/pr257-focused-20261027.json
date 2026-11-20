@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_prepare_closeout_candidate.py tests/test_claude_hook_binding_visibility.py tests/test_closeout_handoff.py tests/test_closeout_status.py tests/test_native_closeout_publisher.py tests/test_agent_closeout_receipt.py tests/test_agent_closeout_results.py tests/test_copilot_vscode_scoped_install.py -q",
+  "exit_code": 0,
+  "started_at": "2026-10-27T07:10:58Z",
+  "finished_at": "2026-10-27T07:26:43Z",
+  "runner": "pytest focused (#257 claude install path)",
+  "linked_commit": "75117a74bcecd6e7080156671e13d86da8c17c6e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/pr257-focused-20261027.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

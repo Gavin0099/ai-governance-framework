@@ -17,6 +17,8 @@ import sys
 
 import pytest
 
+from governance_tools import adopt_governance, manage_agent_closeout
+from governance_tools.copilot_instructions_projection import extract_projection_region
 from governance_tools.manage_agent_closeout import ClaudeAdapter
 
 FRAMEWORK = Path(__file__).resolve().parents[1]
@@ -41,6 +43,67 @@ def write_hook(repo, command, name="settings.json", event="Stop"):
 def governance_hooks(data, event):
     return [hook for group in data.get("hooks", {}).get(event, [])
             for hook in group.get("hooks", []) if ClaudeAdapter._is_governance_hook(hook)]
+
+
+@pytest.mark.parametrize("hooks_already_installed", [False, True])
+def test_claude_only_install_projects_formal_closeout_guidance(
+    adapter, tmp_path, monkeypatch, capsys, hooks_already_installed
+):
+    repo = tmp_path / "Claude consumer"
+    subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+    assert adopt_governance.adopt_existing(repo, FRAMEWORK) == 0
+    capsys.readouterr()
+    claude = repo / "CLAUDE.md"
+    agents = repo / "AGENTS.md"
+    assert not claude.exists()
+    original_agents = agents.read_text(encoding="utf-8")
+    assert "Formal Closeout on Request" not in original_agents
+
+    if hooks_already_installed:
+        settings = repo / ".claude/settings.json"
+        settings.parent.mkdir()
+        hooks = adapter._expected_hooks(repo, FRAMEWORK)
+        settings.write_text(json.dumps({"hooks": {
+            event: [{"hooks": [hook]}] for event, hook in hooks.items()
+        }}), encoding="utf-8")
+        claude.write_text("# Consumer Claude instructions\n", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", [
+        "manage_agent_closeout", "--project-root", str(repo), "--format", "json",
+        "install", "--agent", "claude",
+    ])
+    assert manage_agent_closeout.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == ("already_installed" if hooks_already_installed else "installed")
+    assert "CLAUDE.md and AGENTS.md" in result["message"]
+    assert adapter.verify(repo, FRAMEWORK)["installed"]
+
+    for path in (claude, agents):
+        guidance = path.read_text(encoding="utf-8")
+        assert guidance.count("Formal Closeout on Request") == 1
+        assert "governance_tools/prepare_closeout_candidate.py" in guidance
+        assert "governance_tools.claude_formal_closeout --owner-request" in guidance
+    assert agents.read_text(encoding="utf-8").startswith(original_agents.rstrip())
+    if hooks_already_installed:
+        assert claude.read_text(encoding="utf-8").startswith("# Consumer Claude instructions\n")
+    assert not (repo / "GEMINI.md").exists()
+    assert not (repo / ".github/copilot-instructions.md").exists()
+    assert not (repo / ".github/hooks").exists()
+
+
+def test_claude_install_reuses_starter_pack_checkpoint_projection(adapter, tmp_path):
+    target = tmp_path / "CLAUDE.md"
+    starter = (FRAMEWORK / "examples/starter-pack/CLAUDE.md").read_bytes()
+    target.write_bytes(starter)
+    original_projection = extract_projection_region(starter.decode("utf-8"))[:2]
+
+    assert adapter.install(tmp_path, FRAMEWORK)["status"] == "installed"
+    installed = target.read_bytes()
+    assert extract_projection_region(installed.decode("utf-8"))[:2] == original_projection
+    assert installed.startswith(starter)
+    assert b"governance_tools.claude_formal_closeout --owner-request" in installed
+    assert adapter.install(tmp_path, FRAMEWORK)["status"] == "already_installed"
+    assert target.read_bytes() == installed
 
 
 def test_missing_settings_installs_session_start_and_end_only(adapter, tmp_path):
@@ -240,6 +303,105 @@ def test_override_conflict_does_not_create_second_hook(adapter, tmp_path, event)
     assert adapter.install(tmp_path, tmp_path)["status"] == "blocked"
     assert path.read_bytes() == before
     assert not (tmp_path / ".claude/settings.json").exists()
+
+
+def consumer_layout(tmp_path, *, markers=True, registration=True, relative="fw"):
+    """A consumer layout, with the two stable preconditions independently removable."""
+    consumer = tmp_path / "consumer"
+    framework = consumer / relative
+    framework.mkdir(parents=True)
+    if markers:
+        (consumer / "AGENTS.md").write_text("fixture\n", encoding="utf-8")
+        (consumer / "governance").mkdir()
+    if registration:
+        (consumer / ".gitmodules").write_text(
+            '[submodule "framework"]\n\tpath = ' + relative + "\n\turl = ../framework\n",
+            encoding="utf-8")
+    return consumer, framework
+
+
+def test_install_reports_a_layout_that_cannot_run_the_declared_command(adapter, tmp_path):
+    """install declares a save-progress command; the layout that rejects it is reported (#257)."""
+    consumer, framework = consumer_layout(tmp_path, markers=False, registration=False)
+    result = adapter.install(consumer, framework)
+    assert result["status"] == "installed"
+    readiness = result["closeout_readiness"]
+    assert readiness["ready"] is False and readiness["undetermined"] == []
+    reasons = " ".join(readiness["unmet"])
+    assert "ROOT_BINDING_WOULD_FAIL" in reasons and "AGENTS.md" in reasons
+    assert "FRAMEWORK_NOT_REGISTERED_SUBMODULE" in reasons
+    assert "cannot be shown to run in this layout" in result["message"]
+    assert adapter.verify(consumer, framework)["closeout_readiness"] == readiness
+
+
+@pytest.mark.parametrize("missing", ["markers", "registration"])
+def test_each_precondition_is_reported_on_its_own(adapter, tmp_path, missing):
+    consumer, framework = consumer_layout(
+        tmp_path, markers=missing != "markers", registration=missing != "registration")
+    readiness = adapter.install(consumer, framework)["closeout_readiness"]
+    expected = ("ROOT_BINDING_WOULD_FAIL" if missing == "markers"
+                else "FRAMEWORK_NOT_REGISTERED_SUBMODULE")
+    assert [reason.split(":")[0] for reason in readiness["unmet"]] == [expected]
+
+
+def test_a_ready_layout_is_reported_without_a_caveat(adapter, tmp_path):
+    consumer, framework = consumer_layout(tmp_path)
+    result = adapter.install(consumer, framework)
+    assert result["closeout_readiness"] == {
+        "ready": True, "unmet": [], "undetermined": [],
+        "declared_entry": "governance_tools/prepare_closeout_candidate.py"}
+    assert "cannot be shown to run" not in result["message"]
+    assert adapter.verify(consumer, framework)["note"] == (
+        "Configuration binding only; native execution is not verified.")
+
+
+def test_framework_outside_the_project_is_reported_not_merely_installed(adapter, tmp_path):
+    """The external-absolute-path install: status installed, no success path (#257)."""
+    consumer, _ = consumer_layout(tmp_path)
+    outside = tmp_path / "outside-framework"
+    outside.mkdir()
+    result = adapter.install(consumer, outside)
+    assert result["status"] == "installed"
+    assert [reason.split(":")[0] for reason in result["closeout_readiness"]["unmet"]] == [
+        "FRAMEWORK_NOT_INSIDE_PROJECT"]
+
+
+def test_readiness_survives_a_missing_runtime_dependency(adapter, tmp_path, monkeypatch):
+    """Report-only must stay report-only: no runtime import may block install.
+
+    The root predicate lives in the closeout pipeline, which imports PyYAML
+    transitively. On stdlib-only Python that import fails, and install/verify
+    must still return a result (#261 review finding).
+    """
+    import builtins
+    from governance_tools import manage_agent_closeout as manage
+    consumer, framework = consumer_layout(tmp_path)
+    real_import = builtins.__import__
+
+    def blocked(name, *args, **kwargs):
+        if name == "governance_tools.session_closeout_entry":
+            raise ModuleNotFoundError("No module named 'yaml'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", blocked)
+    readiness = manage.closeout_execution_readiness(consumer, framework)
+    assert readiness["ready"] is False and readiness["unmet"] == []
+    assert [reason.split(":")[0] for reason in readiness["undetermined"]] == [
+        "ROOT_PREDICATE_UNAVAILABLE"]
+    result = adapter.install(consumer, framework)
+    assert result["status"] == "installed"
+    assert adapter.verify(consumer, framework)["installed"] is True
+
+
+def test_an_unreadable_layout_is_undetermined_not_unmet(adapter, tmp_path, monkeypatch):
+    """A layout that could not be read must never be reported as a failed precondition."""
+    from governance_tools import manage_agent_closeout as manage
+    consumer, framework = consumer_layout(tmp_path)
+    monkeypatch.setattr(manage, "_registered_submodule_paths", lambda _consumer: None)
+    readiness = manage.closeout_execution_readiness(consumer, framework)
+    assert readiness["ready"] is False and readiness["unmet"] == []
+    assert [reason.split(":")[0] for reason in readiness["undetermined"]] == [
+        "SUBMODULE_REGISTRATION_UNREADABLE"]
 
 
 def test_uninstall_removes_lifecycle_and_legacy_hooks_only(adapter, tmp_path):

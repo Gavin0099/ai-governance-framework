@@ -319,17 +319,14 @@ def test_parse_current_phase_no_match():
 # ---------------------------------------------------------------------------
 
 def test_parse_backlog_counts_returns_dict_with_priority_keys():
-    # parse_backlog_counts captures only text between ## Backlog and the first
-    # occurrence of \n## (which also matches \n###). Items inside ### sub-sections
-    # are therefore not reachable by the current regex — function returns zeros.
+    # Nested priority headings belong to the Backlog section.
     text = "## Backlog\n### P0\n- [ ] Task A\n"
     counts = state_generator.parse_backlog_counts(text)
     assert set(counts.keys()) == {"P0", "P1", "P2"}
+    assert counts == {"P0": 1, "P1": 0, "P2": 0}
 
 def test_parse_backlog_counts_items_before_subsection():
-    # Items appearing in the captured region (before any \n## or \n###) are not
-    # counted either because current_priority is still None at that point —
-    # the function only sets it from ### headers, which are excluded by regex.
+    # An item without an explicit priority remains unclassified.
     text = "## Backlog\n- [ ] orphan item\n## Other\n"
     counts = state_generator.parse_backlog_counts(text)
     assert counts == {"P0": 0, "P1": 0, "P2": 0}

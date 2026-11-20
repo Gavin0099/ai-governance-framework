@@ -53,16 +53,11 @@ def test_update_protocol_and_baseline_share_manual_status_contract() -> None:
         "This file is the canonical source for the `manual_update` and\n"
         "`destructive_manual_update` reporting vocabulary"
     ) in protocol
-    assert (
-        "This baseline is a propagated, managed consumer instruction copy of the\n"
-        "canonical manual-update reporting vocabulary"
-    ) in baseline
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in baseline
+    assert "manual-update vocabulary" in baseline
     assert UPDATE_STATUS_LINE in protocol
-    assert UPDATE_STATUS_LINE in baseline
     assert MANUAL_TEMPLATE in protocol
-    assert MANUAL_TEMPLATE in baseline
     assert DESTRUCTIVE_TEMPLATE in protocol
-    assert DESTRUCTIVE_TEMPLATE in baseline
 
 
 def test_f7_protocol_allows_manual_status_without_completed_claim() -> None:

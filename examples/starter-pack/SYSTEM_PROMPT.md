@@ -142,7 +142,8 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 
 ## 3. Core Rules
 
-- Lead with **[Decision Summary]**
+- Put the result first. A completion or partial-completion report opens with three plain lines, in this order: the result (whether the requested outcome is usable now), the reason (the one fact that makes it credible) and the next step (one concrete action, or a full sentence saying none is needed). Technical evidence follows those lines.
+- Diagnosis, review and explanation answers use the shape that fits the question; they do not need the three-line opening.
 - Use **bold** for risks, decisions, and stop conditions
 
 ### Red Lines

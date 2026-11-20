@@ -17,6 +17,14 @@ CORE = REPO_ROOT / "governance" / "AGENT_CORE_RULES.md"
 AGENT_CONTRACT = REPO_ROOT / "governance" / "agent-contract-template.md"
 COPILOT = REPO_ROOT / "governance" / "copilot-instructions-template.md"
 BASELINES = (REPO_ROOT / "baselines" / "repo-min" / "AGENTS.base.md",)
+# The framework's own entry files are a consumer of the same rules: without them
+# here, a framework session can miss the core body while every template passes.
+ROOT_ENTRIES = (
+    REPO_ROOT / "AGENTS.md",
+    REPO_ROOT / "CLAUDE.md",
+    REPO_ROOT / "GEMINI.md",
+    REPO_ROOT / ".github" / "copilot-instructions.md",
+)
 BEGIN = "<!-- ai-governance:agent-core-rules BEGIN"
 END = "<!-- ai-governance:agent-core-rules END -->"
 
@@ -37,9 +45,19 @@ def _core() -> str:
     return _region(_text(CORE))
 
 
-@pytest.mark.parametrize("surface", [AGENT_CONTRACT, COPILOT], ids=["agent-contract", "copilot"])
+@pytest.mark.parametrize(
+    "surface",
+    [AGENT_CONTRACT, COPILOT, *ROOT_ENTRIES],
+    ids=["agent-contract", "copilot", "root-agents", "root-claude", "root-gemini", "root-copilot"],
+)
 def test_core_body_is_projected_byte_identical(surface: Path) -> None:
     assert _region(_text(surface)) == _core()
+
+
+def test_root_agents_places_core_before_delivery_recovery() -> None:
+    # Codex truncates the tail of the root AGENTS.md; keep the core in the head.
+    text = _text(ROOT_ENTRIES[0])
+    assert text.index(END) < text.index("## Delivery Recovery Constraints")
 
 
 @pytest.mark.parametrize(
@@ -84,15 +102,32 @@ def test_agent_contract_places_core_after_unavailable_and_before_delivery() -> N
         ("C2", "Memory or PLAN updates these events require are part of that delivery, not extra work."),
         ("C2", "After DONE, add no unrelated rollups or new PRs"),
         (
+            "C2-scope",
+            "A task limited to named files still includes these records unless the owner explicitly "
+            "excludes them.",
+        ),
+        (
             "C3",
             "| Architecture decision | `memory/02_workflow.md`; `PLAN.md` only when it changes PLAN scope, "
             "phase, anti-goal or another existing PLAN obligation |",
         ),
-        ("C3", "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |"),
+        (
+            "C3",
+            "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` as a "
+            "`CANDIDATE / UNREVIEWED` entry (root cause, fix, fix commit, test evidence) paired with a "
+            "`memory_record` daily record for the same fix commit; never marked approved, reviewed only "
+            "through promotion |",
+        ),
         ("C3", "| Review completed |"),
         ("C3", "| Confirmed session end |"),
         ("C3", "never assume an alias that does not exist."),
         ("C3", "Repository-specific record duties still apply."),
+        (
+            "C3-private",
+            "An agent's private or tool-provided memory (for example Claude auto-memory or the Copilot "
+            "memory tool) may help the agent, but never satisfies these records; only the records named "
+            "here or by this repository, written through their own contracts, do.",
+        ),
         ("C4", "Memory and delivery protocols define order, not git authority."),
         ("C4", "inside an owner-authorized slice they may continue without re-asking."),
         (
@@ -132,6 +167,7 @@ def test_core_secret_rule_copies_the_baseline_sentences() -> None:
 )
 def test_copilot_conflicting_phrasing_is_gone(stale: str) -> None:
     assert stale not in _text(COPILOT)
+    assert stale not in _text(ROOT_ENTRIES[3])
 
 
 def test_copilot_hard_stop_keeps_session_end_and_must_record_exceptions() -> None:
@@ -159,7 +195,13 @@ def test_baseline_memory_triggers_agree_with_core(baseline: Path) -> None:
         "| Architecture decision made | `memory/02_workflow.md`; PLAN.md only when the decision changes "
         "PLAN scope, phase, anti-goal or another existing PLAN obligation |" in triggers
     )
-    assert "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |" in triggers
+    assert "| Bug fixed with root cause identified (new gotcha / solution) | `memory/03_knowledge_base.md` |" not in triggers
+    core_bug_row = next(
+        line for line in (REPO_ROOT / "governance" / "AGENT_CORE_RULES.md").read_text(encoding="utf-8").splitlines()
+        if line.startswith("| Bug fixed with root cause identified")
+    )
+    assert core_bug_row in triggers.splitlines()
+    assert "`CANDIDATE / UNREVIEWED`" in core_bug_row
     assert "| Review completed |" in triggers
     assert "| Session end |" in triggers
     assert "never assume an alias that does not exist" in triggers

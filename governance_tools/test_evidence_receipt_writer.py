@@ -7,10 +7,13 @@ Producer side of the R3 evidence receipt design
 Usage:
     python -m governance_tools.test_evidence_receipt_writer \
         [--project-root .] [--output artifacts/runtime/test-results/run.json] \
-        [--runner NAME] -- <command> [args...]
+        [--runner NAME] [--compress-output] -- <command> [args...]
 
 Behavior:
   - runs the command, teeing combined stdout/stderr to a sibling .txt artifact;
+  - with --compress-output, keeps successful output losslessly in .txt.gz,
+    adding uncompressed byte/line counts and SHA-256 to the short receipt;
+    non-zero exits keep the default .txt output and receipt shape;
   - writes a receipt recording command, exit_code, timestamps, runner,
     linked_commit (git HEAD when available), and the output artifact path;
   - prints the receipt path and a ready-to-paste test_evidence line;
@@ -25,7 +28,10 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import gzip
+import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -109,6 +115,7 @@ def write_receipt(
     *,
     output: Path | None = None,
     runner: str = _DEFAULT_RUNNER,
+    compress_output: bool = False,
 ) -> tuple[Path, int]:
     """Run `command`, write receipt + raw output artifacts, return (receipt_path, exit_code)."""
     if output is None:
@@ -117,10 +124,14 @@ def write_receipt(
     elif not output.is_absolute():
         output = project_root / output
     raw_output_path = output.with_suffix(".txt")
+    compressed_output_path = output.with_suffix(".txt.gz")
     # Governance artifact boundary: refuse out-of-root paths BEFORE running
     # the command, so a rejected invocation has zero side effects.
     _ensure_inside_project_root(output, project_root, "receipt output")
     _ensure_inside_project_root(raw_output_path, project_root, "raw output")
+    if compress_output:
+        # The exit code is not known yet: either output path may be used.
+        _ensure_inside_project_root(compressed_output_path, project_root, "compressed output")
     output.parent.mkdir(parents=True, exist_ok=True)
 
     started_at = _utc_now_iso()
@@ -141,7 +152,16 @@ def write_receipt(
     exit_code = process.wait()
     finished_at = _utc_now_iso()
 
-    raw_output_path.write_text("".join(output_chunks), encoding="utf-8")
+    output_text = "".join(output_chunks)
+    compressed = compress_output and exit_code == 0
+    if compressed:
+        raw_output_path = compressed_output_path
+        # Match Path.write_text's platform newlines before hashing/compressing,
+        # so restoring a log gives the same bytes as the default writer.
+        raw_bytes = output_text.replace("\n", os.linesep).encode("utf-8")
+        raw_output_path.write_bytes(gzip.compress(raw_bytes, mtime=0))
+    else:
+        raw_output_path.write_text(output_text, encoding="utf-8")
 
     payload = {
         "receipt_schema": _TEST_EVIDENCE_RECEIPT_SCHEMA,
@@ -155,6 +175,14 @@ def write_receipt(
         "output_artifacts": [_relpath(raw_output_path, project_root)],
         "cannot_claim": list(_CANNOT_CLAIM),
     }
+    if compressed:
+        # Optional producer metadata; the existing receipt validator and its
+        # claim ceiling are unchanged. The digest binds restored log bytes.
+        payload["raw_output"] = {
+            "bytes": len(raw_bytes),
+            "lines": len(output_text.splitlines()),
+            "sha256": hashlib.sha256(raw_bytes).hexdigest(),
+        }
 
     error = _validate_evidence_receipt(payload)
     if error is not None:
@@ -187,6 +215,11 @@ def main(argv: list[str] | None = None) -> None:
         help="Runner identity recorded in the receipt.",
     )
     parser.add_argument(
+        "--compress-output",
+        action="store_true",
+        help="Compress successful output to .txt.gz with counts and SHA-256; failures keep .txt.",
+    )
+    parser.add_argument(
         "command",
         nargs=argparse.REMAINDER,
         help="Command to run (prefix with -- to separate from options).",
@@ -203,11 +236,17 @@ def main(argv: list[str] | None = None) -> None:
     output = Path(args.output) if args.output else None
 
     receipt_path, exit_code = write_receipt(
-        project_root, command, output=output, runner=args.runner
+        project_root, command, output=output, runner=args.runner,
+        compress_output=args.compress_output,
     )
     relative_receipt = _relpath(receipt_path, project_root)
     verdict = "PASS" if exit_code == 0 else "FAIL"
     print(f"[test_evidence_receipt] receipt={relative_receipt} exit_code={exit_code}")
+    if args.compress_output:
+        # Direct citation keeps the selected log within the existing memory
+        # companion policy without widening any accepted path pattern.
+        raw_suffix = ".txt.gz" if exit_code == 0 else ".txt"
+        relative_receipt += " " + _relpath(receipt_path.with_suffix(raw_suffix), project_root)
     print(f"  test_evidence: {verdict}: {relative_receipt} -> exit_code={exit_code}")
     sys.exit(exit_code)
 

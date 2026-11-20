@@ -67,6 +67,10 @@ POLICY_SOURCE_BUILTIN_DEFAULT = "builtin_default"
 _FRAMEWORK_POLICY_PATH = (
     Path(__file__).resolve().parents[1] / "governance" / "gate_policy.yaml"
 )
+# JSON twin of the framework default, read only without PyYAML so the shipped
+# policy still applies; tests keep both identical. A repo-local policy has no
+# twin: without PyYAML it is still refused (F2 guard in _load_from_path).
+_FRAMEWORK_POLICY_STDLIB_PATH = _FRAMEWORK_POLICY_PATH.with_suffix(".json")
 
 # Relative path within a project_root where the repo-local policy lives.
 _REPO_POLICY_RELPATH = Path("governance") / "gate_policy.yaml"
@@ -262,9 +266,10 @@ def _load_from_path(
         # would be a policy source substitution — the system would behave as if
         # no external policy existed, with no visible signal.
         #
-        # Guard applies ONLY to repo_local (user-declared file).  When loading
-        # the framework-shipped default, falling back to builtin default is
-        # acceptable because neither file represents a consuming-repo decision.
+        # Guard applies ONLY to repo_local (user-declared file).  The
+        # framework-shipped default does not represent a consuming-repo
+        # decision; it is read from its stdlib twin so the shipped policy still
+        # applies, and only without that twin does it fall back to builtin.
         if policy_source == POLICY_SOURCE_REPO_LOCAL:
             raise RuntimeError(
                 f"gate_policy.yaml is present at {target} "
@@ -273,24 +278,33 @@ def _load_from_path(
                 f"refusing silent fallback to builtin default. "
                 f"Fix: pip install pyyaml  (or: pip install -r requirements.txt)"
             )
-        # Framework default or explicit-override path with no pyyaml:
-        # fall back to builtin so the system can still operate.
-        return _build_policy(
-            raw,
-            source=f"builtin_defaults (yaml unavailable, checked {target})",
-            policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
-            policy_path=str(target),
-            fallback_used=True,
-            repo_policy_present=repo_policy_present,
-        )
+        if not (
+            policy_source == POLICY_SOURCE_FRAMEWORK_DEFAULT
+            and target == _FRAMEWORK_POLICY_PATH
+            and _FRAMEWORK_POLICY_STDLIB_PATH.is_file()
+        ):
+            # A framework checkout without the twin: fall back to builtin so
+            # the system can still operate. (An explicit path= override is
+            # repo_local and was already refused above.)
+            return _build_policy(
+                raw,
+                source=f"builtin_defaults (yaml unavailable, checked {target})",
+                policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
+                policy_path=str(target),
+                fallback_used=True,
+                repo_policy_present=repo_policy_present,
+            )
+    read_from = target if _HAS_YAML else _FRAMEWORK_POLICY_STDLIB_PATH
     try:
-        loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+        text = read_from.read_text(encoding="utf-8")
+        loaded = (yaml.safe_load(text) if _HAS_YAML else json.loads(text)) or {}
         # An explicitly null fail_mode is invalid, not an omitted setting.
         raw.update({k: v for k, v in loaded.items() if v is not None or k == "fail_mode"})
     except Exception as exc:
         return _build_policy(
             dict(_DEFAULTS),
-            source=f"builtin_defaults (load error: {exc}; path={target})",
+            # read_from is target with PyYAML, so this is unchanged there.
+            source=f"builtin_defaults (load error: {exc}; path={read_from})",
             policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
             policy_path=str(target),
             fallback_used=True,
@@ -302,7 +316,8 @@ def _load_from_path(
     # caller rather than being silently absorbed into a builtin fallback.
     return _build_policy(
         raw,
-        source=str(target),
+        # Names the file actually read; unchanged when PyYAML is available.
+        source=str(read_from),
         policy_source=policy_source,
         policy_path=str(target),
         fallback_used=fallback_used,

@@ -30,6 +30,21 @@ def repo(tmp_path):
     return root.resolve()
 
 
+@pytest.fixture(autouse=True)
+def copilot_home(tmp_path_factory, monkeypatch):
+    """The Copilot runtime's own session records, never the real ~/.copilot."""
+    home = tmp_path_factory.mktemp("copilot-home")
+    monkeypatch.setenv("COPILOT_HOME", str(home))
+    return home
+
+
+def register_copilot_session(sid, client):
+    """What the Copilot runtime writes before any hook runs (workspace.yaml)."""
+    state = Path(os.environ["COPILOT_HOME"]) / "session-state" / sid
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "workspace.yaml").write_text(f"id: {sid}\nclient_name: {client}\n", encoding="utf-8")
+
+
 def vscode_start(root, sid=SID, surface="vscode"):
     payload = {"session_id": sid, "cwd": str(root), "hook_event_name": "SessionStart"}
     return run_lifecycle_event(payload, event_type="session_start", surface=surface)
@@ -81,10 +96,76 @@ def test_existing_legacy_vscode_envelope_is_never_migrated(repo):
     assert envelope_path(repo).read_bytes() == before
 
 
-def test_copilot_cli_surface_stays_legacy(repo):
+def test_copilot_cli_surface_is_root_bound_from_the_runtime_record(repo):
+    """Owner ruling 2026-11-11: the shared Copilot SessionStart binds the CLI too."""
+    register_copilot_session("cli-session", "github/cli")
     result = vscode_start(repo, sid="cli-session", surface="copilot")
-    assert result["ok"] and result["session_envelope_binding"] == "legacy"
-    assert json.loads(envelope_path(repo, "cli-session").read_text())["schema_version"] == "1.0"
+    assert result["ok"] and result["session_envelope_binding"] == "root_bound"
+    envelope = json.loads(envelope_path(repo, "cli-session").read_text())
+    assert envelope["schema_version"] == "1.1" and envelope["provider"] == "github-copilot"
+    assert envelope["repo_binding"]["source"] == "copilot_cli_session_start"
+
+
+def test_copilot_surface_with_vscode_client_binds_as_vscode(repo):
+    register_copilot_session("vs-session", "vscode-agent-host")
+    result = vscode_start(repo, sid="vs-session", surface="copilot")
+    assert result["ok"] and result["provider"] == "github-copilot-vscode"
+    envelope = json.loads(envelope_path(repo, "vs-session").read_text())
+    assert envelope["provider"] == "github-copilot-vscode"
+    assert envelope["repo_binding"]["source"] == "vscode_session_start"
+
+
+def test_both_hook_files_in_either_order_give_one_vscode_identity(repo):
+    """VS Code runs the vscode-format and the Copilot-format SessionStart; order must not matter."""
+    for sid, order in (("order-a", ("vscode", "copilot")), ("order-b", ("copilot", "vscode"))):
+        register_copilot_session(sid, "vscode-agent-host")
+        first = vscode_start(repo, sid=sid, surface=order[0])
+        before = envelope_path(repo, sid).read_bytes()
+        second = vscode_start(repo, sid=sid, surface=order[1])
+        assert first["ok"] and second["ok"] and second["status"] == "session_envelope_preserved"
+        assert envelope_path(repo, sid).read_bytes() == before
+        assert json.loads(before)["provider"] == "github-copilot-vscode"
+
+
+def test_cli_identity_cannot_be_adopted_by_the_vscode_surface(repo):
+    register_copilot_session("cli-owned", "github/cli")
+    vscode_start(repo, sid="cli-owned", surface="copilot")
+    before = envelope_path(repo, "cli-owned").read_bytes()
+    with pytest.raises(ValueError, match="another provider"):
+        vscode_start(repo, sid="cli-owned", surface="vscode")
+    assert envelope_path(repo, "cli-owned").read_bytes() == before
+
+
+def test_existing_legacy_cli_envelope_is_never_upgraded(repo):
+    register_copilot_session("cli-legacy", "github/cli")
+    core.write_session_envelope("cli-legacy", repo, provider="github-copilot")
+    before = envelope_path(repo, "cli-legacy").read_bytes()
+    result = vscode_start(repo, sid="cli-legacy", surface="copilot")
+    assert result["ok"] and result["status"] == "session_envelope_preserved"
+    assert result["session_envelope_binding"] == "legacy"
+    assert envelope_path(repo, "cli-legacy").read_bytes() == before
+
+
+def test_copilot_surface_without_the_runtime_record_establishes_nothing(repo):
+    with pytest.raises(ValueError, match="COPILOT_WORKSPACE_MISSING"):
+        vscode_start(repo, sid="no-record", surface="copilot")
+    assert not envelope_path(repo, "no-record").exists()
+
+
+def test_copilot_surface_with_an_unknown_client_establishes_nothing(repo):
+    register_copilot_session("odd-client", "some-other-host")
+    with pytest.raises(ValueError, match="COPILOT_CLIENT_UNKNOWN"):
+        vscode_start(repo, sid="odd-client", surface="copilot")
+    assert not envelope_path(repo, "odd-client").exists()
+
+
+def test_copilot_surface_with_a_mismatched_record_establishes_nothing(repo):
+    state = Path(os.environ["COPILOT_HOME"]) / "session-state" / "mismatch"
+    state.mkdir(parents=True)
+    (state / "workspace.yaml").write_text("id: someone-else\nclient_name: github/cli\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="COPILOT_WORKSPACE_SESSION_MISMATCH"):
+        vscode_start(repo, sid="mismatch", surface="copilot")
+    assert not envelope_path(repo, "mismatch").exists()
 
 
 def test_unbindable_session_id_fails_closed_without_legacy_fallback(repo):
@@ -127,9 +208,11 @@ def test_reader_rejects_provider_source_mismatch(repo, provider, source):
 
 def test_vscode_provider_cannot_be_written_as_codex_and_vice_versa(repo):
     # 'claude' is a root-bound provider with its own source since #231 was approved.
-    for provider in ("github-copilot", "unknown"):
-        with pytest.raises(ValueError, match="Codex or VS Code"):
-            core.write_session_envelope("x-" + provider, repo, provider=provider, bound_consumer_root=repo)
+    # 'github-copilot' (the standalone CLI) binds with its own source since 2026-11-11.
+    with pytest.raises(ValueError, match="Codex or VS Code"):
+        core.write_session_envelope("x-unknown", repo, provider="unknown", bound_consumer_root=repo)
+    cli = core.write_session_envelope("x-cli", repo, provider="github-copilot", bound_consumer_root=repo)
+    assert cli["repo_binding"]["source"] == "copilot_cli_session_start"
     codex_start(dict(hook_event_name="SessionStart", source="startup", session_id="codex-a", cwd=str(repo)), repo)
     payload = json.loads(envelope_path(repo, "codex-a").read_text())
     assert payload["provider"] == "codex"
@@ -407,19 +490,41 @@ def test_installed_entry_local_harness_payload_is_root_bound(installed_consumer)
     ownership._identity(installed_consumer, "vscode-local")  # prepare's identity preflight
 
 
-def test_installed_entry_copilot_harness_payload_is_not_root_bound(installed_consumer):
-    """VS Code's Copilot harness sends the camelCase Copilot payload: copilot
-    surface, unbound, cannot prepare a summary.  Binding it is not approved."""
+def test_installed_entry_vscode_harness_payload_binds_as_vscode(installed_consumer):
+    """VS Code's Copilot harness sends the camelCase Copilot payload through the shared
+    registration. The runtime's own record names VS Code, so the session is root-bound
+    as github-copilot-vscode regardless of which hook file ran first (ruling 2026-11-11)."""
     from governance_tools import shared_closeout_ownership as ownership
 
+    register_copilot_session("copilot-harness", "vscode-agent-host")
     result = _run_installed(installed_consumer, {"sessionId": "copilot-harness",
                                                  "hookEventName": "sessionStart",
                                                  "cwd": str(installed_consumer)})
     assert result["ok"] is True, result
-    assert (result["surface"], result["provider"]) == ("copilot", "github-copilot")
-    assert result["session_envelope_binding"] == "legacy"
-    with pytest.raises(ownership.OwnershipError, match="INVALID_OWNER"):
-        ownership._identity(installed_consumer, "copilot-harness")
+    assert (result["surface"], result["provider"]) == ("copilot", "github-copilot-vscode")
+    assert result["session_envelope_binding"] == "root_bound"
+    ownership._identity(installed_consumer, "copilot-harness")  # prepare's identity preflight
+
+
+def test_installed_entry_cli_payload_binds_as_copilot_cli(installed_consumer):
+    from governance_tools import shared_closeout_ownership as ownership
+
+    register_copilot_session("copilot-cli", "github/cli")
+    result = _run_installed(installed_consumer, {"sessionId": "copilot-cli",
+                                                 "hookEventName": "sessionStart",
+                                                 "cwd": str(installed_consumer)})
+    assert result["ok"] is True, result
+    assert (result["provider"], result["session_envelope_binding"]) == ("github-copilot", "root_bound")
+    ownership._identity(installed_consumer, "copilot-cli")
+
+
+def test_installed_entry_without_the_runtime_record_fails_closed(installed_consumer):
+    result = _run_installed(installed_consumer, {"sessionId": "copilot-unknown",
+                                                 "hookEventName": "sessionStart",
+                                                 "cwd": str(installed_consumer)})
+    assert result["ok"] is False and result["status"] == "bridge_error", result
+    assert "COPILOT_WORKSPACE_MISSING" in result["error"]
+    assert not envelope_path(installed_consumer, "copilot-unknown").exists()
 
 
 # ── same SessionStart payload rules as Codex (review on main@fea3e918) ──────

@@ -24,7 +24,7 @@ def test_compact_router_references_existing_canonical_documents() -> None:
     for document in (PROTOCOL, F7, RESPONSE, TESTING):
         assert document.is_file()
         assert f"governance/{document.name}" in text
-    assert "read both documents" in text or "load the canonical update and F-7 documents" in text
+    assert "Before acting, read" in text
     assert "active, pinned framework checkout" in text
 
 
@@ -32,28 +32,33 @@ def test_f7_status_truthfulness_survives_without_on_demand_load() -> None:
     text = AGENTS.read_text(encoding="utf-8")
     assert "not_verified" in text
     assert "blocked" in text
-    assert "already_current" in text
-    assert "updated" in text
-    assert "manual_update" in text
-    assert "destructive_manual_update" in text
-    assert "update_available" in text
-    assert "partially_updated" in text
-    assert "full_update_completed" in text
+    assert "verify only; do not update the framework pointer" in text
+    assert "governance_tools.f7_full_update" in text
+    assert "幫我更新最新版 AI Governance" in text
     assert "human_readable_adoption_summary: NOT REPORTED" in text
     assert "update_report_complete=false" in text
     assert "completion_claim_allowed=false" in text
-    assert "Never fabricate" in text or "Never fabricate" in text.capitalize()
-    assert "owner" in text.lower()
+    assert "never claim completion or fabricate table rows" in text
 
 
-def test_original_f7_evidence_and_false_completion_cases_remain_inline() -> None:
+def test_original_f7_rules_remain_in_canonical_documents() -> None:
     text = AGENTS.read_text(encoding="utf-8")
-    assert "Invalid conclusion:" in text
-    assert "Valid partial conclusion:" in text
-    assert "AI Governance update check: not_verified" in text
-    assert "Manual update conclusion template:" in text
-    assert "Destructive manual update conclusion template:" in text
-    assert "discarded_modified_paths" in text
-    assert "discarded_untracked_paths" in text
-    assert "F-7 Full Update Semantics" in text
-    assert "suggested actions do not grant\nauthorization" in text
+    protocol = PROTOCOL.read_text(encoding="utf-8")
+    for rule in (
+        "Invalid conclusion:", "Valid partial conclusion:",
+        "AI Governance update check: not_verified", "Manual update conclusion template:",
+        "Destructive manual update conclusion template:", "discarded_modified_paths",
+        "discarded_untracked_paths", "suggested actions do not authorize",
+        "F-7 updates must preserve existing repo-specific AGENTS.md rules",
+        "Required external contract surfaces", "real-session hook execution",
+        "happy-path-only tests", "mock-only assertions", "test_signal_quality_audit",
+    ):
+        assert rule in protocol, rule
+    assert "every required stage" in F7.read_text(encoding="utf-8")
+    assert "mode_source" in RESPONSE.read_text(encoding="utf-8")
+    # The router stays small as detailed rules grow in the on-demand sources.
+    section = text.split("## AI Governance Update Intent Rule", 1)[1].split(
+        "## AI Governance Memory Workflow Router", 1
+    )[0]
+    assert len(section.encode("utf-8")) < 1300
+    assert "Invalid conclusion:" not in section
