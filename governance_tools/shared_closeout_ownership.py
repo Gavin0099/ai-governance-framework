@@ -418,6 +418,22 @@ def _require_closeout_attested(lease, owner: dict) -> None:
     closeout_attestation.require(lease, owner)
 
 
+def _require_gemini_handoff_request(lease, owner: dict) -> None:
+    """Gemini sessions may only enter closeout with a verified session-bound handoff request."""
+    root = _lease(lease)
+    envelope = read_session_envelope(owner["session_id"], root) or {}
+    if envelope.get("provider") != "gemini":
+        return
+    slot = _closeout_request_slot(root, owner["session_id"])
+    _require(slot.is_file(), "RELEASE_PROOF_INVALID",
+             "gemini closeout requires a verified session handoff request")
+    from governance_tools import closeout_handoff as h
+    request = h._read(slot)
+    _require(request.get("schema_version") == "1.3", "RELEASE_PROOF_INVALID",
+             "gemini closeout requires a schema 1.3 handoff request")
+    h._live(lease, request, h.GeminiTranscriptProvider(root))
+
+
 def begin_closeout(lease: Lease, session_id: str, generation: int | None = None) -> dict:
     o = _matching(lease, session_id, generation)
     _require(not _completion(lease.root, session_id), "CONSUMED_SESSION")
@@ -429,6 +445,7 @@ def begin_closeout(lease: Lease, session_id: str, generation: int | None = None)
     # receipt reservation or leave a completion marker that would block the
     # next session while this one is still unreleased.
     _require_closeout_attested(lease, o)
+    _require_gemini_handoff_request(lease, o)
     _payloads(lease, o)
     o.update(state="HOLD", hold_reason="closeout_pending", receipt_identity=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_r2_" + uuid.uuid4().hex)
     _publish(lease, AREA + "/owner.json", o, replace=True)

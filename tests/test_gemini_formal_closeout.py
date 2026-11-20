@@ -688,3 +688,34 @@ def test_n16_invalid_unicode_surrogate_in_id_or_timestamp_rejected_before_hold(
     result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
     assert result["status"] == "FINALIZED"
     assert released(root)
+
+def test_n17_session_closeout_entry_cannot_bypass_gemini_transcript_verification_after_attestation(
+    ready, tmp_path
+):
+    """P1: Residual attestation after failed transcript validation must not let session_closeout_entry release a Gemini worktree."""
+    from governance_tools import session_closeout_entry
+
+    root, valid_source, _ = ready
+    # Step 1: Attempt formal closeout with a transcript lacking any gemini response row.
+    # This records an attestation and then fails during snapshot validation.
+    bad_rows = gemini_rows(root, sid=SID)[:2]
+    bad_source = write_rows(tmp_path / "no-gemini-row.jsonl", bad_rows)
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_INGESTION_UNCONFIRMED"):
+        cli.close_out(root, SID, REQUEST, bad_source, deadline_ms=30000)
+    assert owner(root)["state"] == "OWNED"
+    assert no_release_residue(root)
+
+    # Step 2: Direct protected closeout via session_closeout_entry must fail closed
+    # before entering HOLD because no verified Gemini handoff request exists.
+    with r2.execution_exclusion(root) as lease:
+        with pytest.raises(r2.OwnershipError, match="RELEASE_PROOF_INVALID"):
+            session_closeout_entry._run_protected_closeout_with_lease(
+                lease, session_id=SID, agent_id="gemini", trigger_mode="wrapper"
+            )
+    assert owner(root)["state"] == "OWNED"
+    assert no_release_residue(root)
+
+    # Step 3: Valid transcript through gemini_formal_closeout still releases cleanly.
+    result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)
