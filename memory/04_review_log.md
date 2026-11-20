@@ -5524,3 +5524,25 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PASS: artifacts/evidence/test-results/issue-340-rule8-followup-20261119.json artifacts/evidence/test-results/issue-340-rule8-followup-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity ok. Completed native Codex turn 5/5 with independent trace review and CLI exit timeout documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
 - Next action: Keep #341 as Draft for the owner decision. V-05 remains a separate product acceptance task.
 - PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
+### Canonical memory checkpoint — 2026-11-20-01
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b`
+- Commit binding: `6b74764e178e6594f0171785802428635af0ced7` (bound)
+- Record: Issue #295 added one existing-contract explanation sentence to Rule 6 and synced six managed projections. Independent review rejected opaque or overstated reports and accepted a clear report with no required owner decision. Focused verification passed 150 tests and the CRLF instruction budget is 28131 of 32768 bytes. Natural report evidence is pending.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-295-rule6-20261120.json -> exit_code=0. Retained output artifacts/evidence/test-results/issue-295-rule6-20261120.txt
+- Next action: Verify the exact Draft candidate and its CI. Observe naturally occurring reports after adoption.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
+### Canonical memory checkpoint — c1-r-supplied-pytest-evidence-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1`
+- Commit binding: `f70e41d76ccf11e4cdd8fa025362e6f7fe90417b` (bound)
+- Record: C1-R repairs the #213 supplied pytest evidence false positive on main. The independent review caught a mixed-claim case and the final patch applies only to a standalone supplied pytest reference. Real and anaphoric execution claims still require their existing artifacts. This is a bounded parser fix for a reviewed PR.
+- Validation boundary: PASS: artifacts/evidence/test-results/c1-r-closeout-20261119.json artifacts/evidence/test-results/c1-r-closeout-20261119.txt -> exit_code=0 (159 focused regression and adjacent closeout cases on f70e41d7). The complete execution-claims and frozen differential suite returned 591 passes on the reviewed implementation before commit.
+- Next action: Review the final C1-R PR and await its owner merge decision. The existing decisions for #337, #213 closure and C2-D remain separate.
+- PLAN reconciliation: `deferred:scope-split-next-slice`

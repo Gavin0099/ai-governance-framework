@@ -352,6 +352,12 @@ def test_other_existing_artifact_signals_still_apply(tmp_path, tool, artifact):
 
 @pytest.mark.parametrize("checks,requires_runner", [
     ("supplied pytest evidence was not run by me", False),
+    ("I used the supplied pytest report.", False),
+    ("We used provided pytest results.", False),
+    ("I used the supplied pytest report to run pytest -q.", True),
+    ("I used the supplied pytest report, then ran pytest -q.", True),
+    ("I used the supplied pytest report, then reran the same command.", True),
+    ("I used the supplied pytest report and reran the tests.", True),
     ("我有執行 pytest", True),
     ("pytest: 38 passed", True),
     ("pytest：38 passed", True),
@@ -538,6 +544,8 @@ _INTENDED_EXCLUSIONS = {
     "pytest 在報告中被提及。": "report attribution",
     "pytest was run by CI.": "CI evidence",
     "I reviewed pytest output.": "supplied evidence",
+    "I used the supplied pytest report.": "supplied evidence",
+    "We used provided pytest results.": "supplied evidence",
     "CI 執行 pytest -q。": "CI evidence",
     '"I ran pytest -q"': "quoted assertion",
     "'I ran pytest -q'": "quoted assertion",

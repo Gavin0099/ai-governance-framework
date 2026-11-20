@@ -564,3 +564,10 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: 57653004065d6046bc2dc6d3a32a1d87a0ea7b25
 - Test evidence: PASS: artifacts/evidence/test-results/f7-lock-release-stop-diagnostic-20261116.json -> exit_code=0. 322 passed and 10 skipped.
 - Daily record: memory/2026-11-16.md (memory_record, commit 57653004065d6046bc2dc6d3a32a1d87a0ea7b25)
+
+## CANDIDATE / UNREVIEWED: A supplied pytest report was classified as local execution
+- Root cause: The `CHECKS_RUN` classifier treated a standalone reference to a supplied pytest report as a local execution claim. Removing just the supplied-report clause also removed the pytest name needed to resolve a subsequent claim such as “reran the same command.”
+- Fix: Recognize only a whole-field reference to explicitly supplied pytest evidence. Send mixed or ambiguous text through the existing parser so real and anaphoric rerun claims continue to require execution evidence.
+- Fix commit: f70e41d76ccf11e4cdd8fa025362e6f7fe90417b
+- Test evidence: `artifacts/evidence/test-results/c1-r-closeout-20261119.json` records exit code 0 on the fix commit. The linked `artifacts/evidence/test-results/c1-r-closeout-20261119.txt` reports 159 passing tests. The execution-claims and frozen differential suite passed 591 tests on the reviewed implementation.
+- Daily record: memory/2026-11-19.md (memory_record, commit f70e41d76ccf11e4cdd8fa025362e6f7fe90417b)
