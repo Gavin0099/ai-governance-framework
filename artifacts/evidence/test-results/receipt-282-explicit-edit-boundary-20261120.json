@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -B -X utf8 -m pytest -q -p no:cacheprovider --basetemp ../c282r-pytest-evidence tests/test_agent_core_rules_projection.py tests/test_copilot_instructions_projection.py tests/test_delivery_convergence_projection.py tests/test_review_projection_integrity.py tests/test_instruction_context_budget.py",
+  "exit_code": 0,
+  "started_at": "2026-11-20T11:14:26Z",
+  "finished_at": "2026-11-20T11:14:32Z",
+  "runner": "pytest",
+  "linked_commit": "8cd8735a4494857aba8547bf265182c1dd3b3250",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
