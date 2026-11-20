@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -B -m pytest -q -p no:cacheprovider -k \"not test_closeout_execution_claims or (current_closeout_classifier and (supplied or provided))\" tests/test_closeout_execution_claims.py tests/test_closeout_completion_integrity.py tests/test_runtime_session_end.py tests/test_session_end_hook_closeout_bridge.py tests/test_session_end_memory_input.py tests/test_session_end_hook_memory_truth.py",
+  "exit_code": 0,
+  "started_at": "2026-11-19T06:21:23Z",
+  "finished_at": "2026-11-19T06:27:20Z",
+  "runner": "pytest",
+  "linked_commit": "f70e41d76ccf11e4cdd8fa025362e6f7fe90417b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/c1-r-closeout-20261119.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
