@@ -77,6 +77,7 @@ def establish_bound_session(
                     raise ValueError("Completion marker exists without envelope")
                 envelope = write_session_envelope(
                     sid, expected, provider=provider, bound_consumer_root=expected,
+                    started_cwd=Path(cwd).resolve(),
                 )
                 status = "created"
             else:

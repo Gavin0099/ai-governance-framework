@@ -11,7 +11,9 @@ Epistemic contract:
   - provider_truthfulness_assumed = 0 always (schema also enforces this)
   - missing token fields -> NULL, never 0
   - malformed records -> quarantined_records, never silently dropped
-  - no aggregation, no estimation, no billing computation
+  - duplicate message-id updates (e.g. tool-call updates) are coalesced by
+    message id so token usage is never double-counted
+  - source_record_offset is computed from raw file bytes in binary mode
 """
 from __future__ import annotations
 
@@ -20,7 +22,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 _PROVIDER = "gemini"
 _EPISTEMIC_CLASS = "Class C"
@@ -153,11 +155,15 @@ def ingest(
     skipped = 0
     quarantined = 0
 
-    with open(artifact_path, "r", encoding="utf-8", errors="replace") as f:
+    pending_turns: list[dict[str, Any]] = []
+    turn_index_by_id: dict[str, int] = {}
+
+    with open(artifact_path, "rb") as f:
         byte_offset = 0
-        for line_number, raw_line in enumerate(f, start=1):
+        for line_number, raw_bytes in enumerate(f, start=1):
             line_byte_offset = byte_offset
-            byte_offset += len(raw_line.encode("utf-8", errors="replace"))
+            byte_offset += len(raw_bytes)
+            raw_line = raw_bytes.decode("utf-8", errors="replace")
             raw_stripped = raw_line.rstrip("\n\r")
             if not raw_stripped.strip():
                 skipped += 1
@@ -207,7 +213,11 @@ def ingest(
                 quarantined += 1
                 continue
 
-            source_record_id = record.get("id") if isinstance(record.get("id"), str) else None
+            source_record_id = (
+                record.get("id").strip()
+                if isinstance(record.get("id"), str) and record.get("id").strip()
+                else None
+            )
             source_record_timestamp = (
                 record.get("timestamp") if isinstance(record.get("timestamp"), str) else None
             )
@@ -222,18 +232,43 @@ def ingest(
                 if isinstance(raw_output, int) and not isinstance(raw_output, bool):
                     completion_tokens = raw_output
 
-            _write_class_c_evidence(
-                conn,
-                session_id,
-                source_path_str,
-                line_number,
-                line_byte_offset,
-                source_record_id,
-                source_record_timestamp,
-                prompt_tokens,
-                completion_tokens,
-            )
-            processed += 1
+            entry = {
+                "line_number": line_number,
+                "line_byte_offset": line_byte_offset,
+                "source_record_id": source_record_id,
+                "source_record_timestamp": source_record_timestamp,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+            }
+            if source_record_id is not None and source_record_id in turn_index_by_id:
+                idx = turn_index_by_id[source_record_id]
+                prev = pending_turns[idx]
+                if entry["prompt_tokens"] is None:
+                    entry["prompt_tokens"] = prev["prompt_tokens"]
+                if entry["completion_tokens"] is None:
+                    entry["completion_tokens"] = prev["completion_tokens"]
+                if entry["source_record_timestamp"] is None:
+                    entry["source_record_timestamp"] = prev["source_record_timestamp"]
+                pending_turns[idx] = entry
+                skipped += 1
+            else:
+                if source_record_id is not None:
+                    turn_index_by_id[source_record_id] = len(pending_turns)
+                pending_turns.append(entry)
+
+    for turn in pending_turns:
+        _write_class_c_evidence(
+            conn,
+            session_id,
+            source_path_str,
+            turn["line_number"],
+            turn["line_byte_offset"],
+            turn["source_record_id"],
+            turn["source_record_timestamp"],
+            turn["prompt_tokens"],
+            turn["completion_tokens"],
+        )
+        processed += 1
 
     conn.close()
 

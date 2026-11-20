@@ -542,6 +542,10 @@ def _validate_gemini_snapshot(path, sid, root, check):
     framework_root = None
     framework_checked = False
     allowed_hashes = _candidate_project_hashes(str(root))
+    envelope = r2.read_session_envelope(sid, root) or {}
+    started_cwd = (envelope.get("repo_binding") or {}).get("started_cwd")
+    if isinstance(started_cwd, str) and _same_worktree_root(started_cwd, root):
+        allowed_hashes.update(_candidate_project_hashes(started_cwd))
     project_hash = None
 
     def check_workspace_dir(cwd):
@@ -561,6 +565,7 @@ def _validate_gemini_snapshot(path, sid, root, check):
     with path.open("rb") as stream:
         total = 0
         first = True
+        seen_ingestable_gemini = False
         while line := stream.readline(MAX_SNAPSHOT_BYTES + 1):
             check()
             total += len(line)
@@ -584,6 +589,10 @@ def _validate_gemini_snapshot(path, sid, root, check):
                 _require(type(dirs) is list and bool(dirs), "TRANSCRIPT_SESSION_MISMATCH")
                 for d in dirs:
                     check_workspace_dir(d)
+            if record.get("type") == "gemini":
+                tokens = record.get("tokens")
+                if tokens is None or type(tokens) is dict:
+                    seen_ingestable_gemini = True
         _require(not first, "EMPTY_TRANSCRIPT")
         if project_hash not in allowed_hashes:
             if not framework_checked:
@@ -592,6 +601,7 @@ def _validate_gemini_snapshot(path, sid, root, check):
             if framework_root is not None:
                 allowed_hashes.update(_candidate_project_hashes(str(framework_root)))
         _require(project_hash in allowed_hashes, "TRANSCRIPT_SESSION_MISMATCH")
+        _require(seen_ingestable_gemini, "TRANSCRIPT_INGESTION_UNCONFIRMED")
 
 
 class GeminiTranscriptProvider:

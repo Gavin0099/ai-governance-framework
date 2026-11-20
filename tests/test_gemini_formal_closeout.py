@@ -460,3 +460,94 @@ def test_n12_transcript_negative_controls_wrong_session_project_hash_nested_repo
             root, published["request_id"], session_id=SID,
             provider=h.GeminiTranscriptProvider(root),
         )
+
+
+def test_n13_uningestable_transcript_without_gemini_turn_rejected_before_request_or_hold(
+    ready, tmp_path
+):
+    root, valid_source, _ = ready
+    header_only = gemini_rows(root, sid=SID)[:2]  # header + user message only, no gemini turn
+    bad_source = write_rows(tmp_path / "header-only.jsonl", header_only)
+
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_INGESTION_UNCONFIRMED"):
+        cli.close_out(root, SID, REQUEST, bad_source, deadline_ms=30000)
+
+    # Request was NOT published and R2 was NOT stranded in HOLD
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] == "OWNED"
+    assert no_release_residue(root)
+
+    # Operator can now supply the valid transcript and complete formal closeout
+    result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)
+
+
+def test_p5_subdirectory_session_start_validates_transcript_without_directories_field(
+    repo, monkeypatch, tmp_path
+):
+    sub = repo / "src" / "deep"
+    sub.mkdir(parents=True)
+
+    def start_in_subdir(r, sid=SID):
+        gemini_session_start(
+            dict(hook_event_name="SessionStart", source="startup", session_id=sid, cwd=str(sub)),
+            r,
+        )
+
+    root, _, _ = _ready(repo, monkeypatch, tmp_path, start_in_subdir)
+    # Native Gemini CLI 0.65.0 main-session transcript started in `sub`:
+    # projectHash is sha256(str(sub)) and initial header has no `directories` or `cwd`.
+    rows = gemini_rows(root, sid=SID, cwd=sub)
+    rows[0].pop("directories", None)
+    assert "directories" not in rows[0] and "cwd" not in rows[0]
+    source = write_rows(tmp_path / "subdir-native.jsonl", rows)
+
+    result = cli.close_out(root, SID, REQUEST, source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)
+
+
+def test_p6_duplicate_message_id_updates_coalesced_and_crlf_byte_offsets_exact(
+    ready, tmp_path
+):
+    root, _, _ = ready
+    base_rows = gemini_rows(root, sid=SID)
+    # Simulate Gemini CLI recordToolCalls re-appending msg-gemini-1 with the same id & tokens,
+    # followed by a second distinct model turn msg-gemini-2.
+    updated_turn_1 = {
+        **base_rows[2],
+        "toolCalls": [{"id": "call-1", "name": "run_shell_command"}],
+    }
+    turn_2 = {
+        "id": "msg-gemini-2",
+        "timestamp": "2026-11-20T00:00:03.000Z",
+        "type": "gemini",
+        "model": "gemini-2.5-pro",
+        "content": "all done",
+        "tokens": {"input": 15, "output": 5, "cached": 0, "thoughts": 0, "tool": 0, "total": 20},
+    }
+    rows = [base_rows[0], base_rows[1], base_rows[2], updated_turn_1, turn_2]
+    encoded_lines = [json.dumps(r).encode("utf-8") + b"\r\n" for r in rows]
+    crlf_source = tmp_path / "gemini-crlf.jsonl"
+    crlf_source.write_bytes(b"".join(encoded_lines))
+
+    expected_offset_turn_1_update = sum(len(line) for line in encoded_lines[:3])
+    expected_offset_turn_2 = sum(len(line) for line in encoded_lines[:4])
+
+    result = cli.close_out(root, SID, REQUEST, crlf_source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+
+    db = root / "artifacts/codeburn_closeout_ingest.db"
+    with sqlite3.connect(db) as conn:
+        ingested = conn.execute(
+            "SELECT s.command, s.prompt_tokens, s.completion_tokens, "
+            "p.source_record_line, p.source_record_offset "
+            "FROM step_ingestion_provenance p JOIN steps s ON p.step_id=s.step_id "
+            "WHERE s.session_id=? ORDER BY p.source_record_line",
+            (SID,),
+        ).fetchall()
+    assert ingested == [
+        ("gemini-log-ingestion:msg-gemini-1", 25, 10, 4, expected_offset_turn_1_update),
+        ("gemini-log-ingestion:msg-gemini-2", 15, 5, 5, expected_offset_turn_2),
+    ]

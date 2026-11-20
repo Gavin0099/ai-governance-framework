@@ -942,10 +942,27 @@ class GeminiAdapter(AgentAdapter):
         return project_root / self.CONFIG_PATH
 
     @classmethod
+    def _user_settings_path(cls) -> Path:
+        configured = os.environ.get("GEMINI_CLI_HOME", "").strip()
+        base = Path(configured).expanduser() if configured else Path.home()
+        return base / cls.CONFIG_PATH
+
+    @staticmethod
+    def _quote_arg(value: str) -> str:
+        """Quote an argument for both Gemini CLI's Windows PowerShell and POSIX Bash runners."""
+        if "'" not in value:
+            return shlex.quote(value)
+        if not any(ch in value for ch in ('"', "$", "`", "\\")):
+            return f'"{value}"'
+        if os.name == "nt":
+            return "'" + value.replace("'", "''") + "'"
+        return shlex.quote(value)
+
+    @classmethod
     def _command(cls, project_root: Path, framework_root: Path, event: str) -> str:
         script = (framework_root.resolve() / cls.LIFECYCLE_SCRIPT).as_posix()
-        return "python " + shlex.join(
-            [script, "--event", event, "--project-root", project_root.resolve().as_posix()])
+        args = [script, "--event", event, "--project-root", project_root.resolve().as_posix()]
+        return "python " + " ".join(cls._quote_arg(arg) for arg in args)
 
     @classmethod
     def _expected_hooks(cls, project_root: Path, framework_root: Path) -> dict[str, dict[str, Any]]:
@@ -975,7 +992,7 @@ class GeminiAdapter(AgentAdapter):
     def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
         expected = self._expected_hooks(project_root, framework_root)
         found: dict[str, list[tuple[bool, str]]] = {event: [] for event in self.MANAGED_EVENTS}
-        for path in (project_root / self.CONFIG_PATH, Path.home() / self.CONFIG_PATH):
+        for path in (project_root / self.CONFIG_PATH, self._user_settings_path()):
             hooks = _read_json(path).get("hooks", {})
             if not isinstance(hooks, dict):
                 continue
@@ -1049,6 +1066,9 @@ class GeminiAdapter(AgentAdapter):
                         continue
                     kept_groups.append(group)
                     continue
+                if not isinstance(group["hooks"], list):
+                    kept_groups.append(group)
+                    continue
                 kept = [h for h in group["hooks"] if not cls._is_governance_hook(h)]
                 if len(kept) != len(group["hooks"]):
                     event_changed = True
@@ -1074,7 +1094,7 @@ class GeminiAdapter(AgentAdapter):
                     "message": f"Unable to safely read Gemini settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
         if state != "CORRECTLY_INSTALLED":
-            user_path = Path.home() / self.CONFIG_PATH
+            user_path = self._user_settings_path()
             hooks = _read_json(user_path).get("hooks", {})
             for event in self.MANAGED_EVENTS:
                 groups = hooks.get(event, []) if isinstance(hooks, dict) else []

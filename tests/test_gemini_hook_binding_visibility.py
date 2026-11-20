@@ -298,3 +298,54 @@ def test_installed_command_failure_is_visible_and_never_exit_2(tmp_path):
     assert "do not match" in result.stderr
     assert not result.stdout
     assert not (repo / "artifacts").exists() and not (other / "artifacts").exists()
+
+
+def test_single_quote_in_project_path_executes_through_gemini_windows_shell(adapter, tmp_path):
+    repo = _git_repo(tmp_path / "Author's Project")
+    assert adapter.install(repo, FRAMEWORK)["status"] == "installed"
+    assert adapter.verify(repo, FRAMEWORK)["installed"] is True
+
+    base = {"session_id": "a1b2c3d4-0000-4000-8000-000000000023", "cwd": str(repo), "transcript_path": "t"}
+    start = _run_installed_powershell(
+        repo, "session_start", {**base, "hook_event_name": "SessionStart", "source": "startup"}
+    )
+    assert start.returncode == 0, start.stderr
+    context = json.loads(start.stdout)["hookSpecificOutput"]
+    assert "identity=root_bound" in context["additionalContext"]
+
+    end = _run_installed_powershell(
+        repo, "session_end", {**base, "hook_event_name": "SessionEnd", "reason": "exit"}
+    )
+    assert end.returncode == 0, end.stderr
+    checkpoint = repo / f"artifacts/runtime/session-checkpoints/{base['session_id']}.json"
+    assert checkpoint.is_file()
+
+
+def test_gemini_cli_home_env_var_controls_user_settings_scope(adapter, tmp_path, monkeypatch):
+    custom_home = tmp_path / "custom-gemini-home"
+    custom_settings = custom_home / ".gemini" / "settings.json"
+    custom_settings.parent.mkdir(parents=True)
+    custom_settings.write_text(json.dumps({
+        "hooks": {"SessionEnd": [{"hooks": [{"type": "command", "command": LEGACY_SHELL}]}]}
+    }), encoding="utf-8")
+
+    monkeypatch.setenv("GEMINI_CLI_HOME", str(custom_home))
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert adapter.verify(repo, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
+    blocked = adapter.install(repo, tmp_path / "fw")
+    assert blocked["status"] == "blocked"
+    assert blocked["location"] == str(custom_settings)
+
+
+def test_uninstall_ignores_malformed_null_hooks_group_without_type_error(adapter, tmp_path):
+    assert adapter.install(tmp_path, tmp_path / "fw")["status"] == "installed"
+    path = tmp_path / ".gemini/settings.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["hooks"]["SessionEnd"].insert(0, {"hooks": None})
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    res = adapter.uninstall(tmp_path)
+    assert res["status"] == "uninstalled"
+    after = json.loads(path.read_text(encoding="utf-8"))
+    assert after["hooks"] == {"SessionEnd": [{"hooks": None}]}
