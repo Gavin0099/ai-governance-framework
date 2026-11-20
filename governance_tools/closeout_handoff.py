@@ -40,9 +40,12 @@ _REF = {"session_id", "immutable_locator", "sha256", "retention_contract",
 # Claude request cannot claim codex, and a codex request cannot claim claude.
 CLAUDE_SOURCE_KIND = "claude_sessionend_observed_snapshot"
 CLAUDE_PUBLISHER = "claude-publisher-v1"
+GEMINI_SOURCE_KIND = "gemini_sessionend_observed_snapshot"
+GEMINI_PUBLISHER = "gemini-publisher-v1"
 _VERSIONS = {"1.0": ("core-v1-fixture", "codex"),
              "1.1": ("native-publisher-v1", "codex"),
-             "1.2": (CLAUDE_PUBLISHER, "claude")}
+             "1.2": (CLAUDE_PUBLISHER, "claude"),
+             "1.3": (GEMINI_PUBLISHER, "gemini")}
 
 # Which session-envelope providers each event provider may bind. Each provider
 # may bind only its own SessionStart's envelope.
@@ -63,7 +66,8 @@ _VERSIONS = {"1.0": ("core-v1-fixture", "codex"),
 # A provider with no entry here is REJECTED. There is no default-allow branch,
 # so adding a provider to _VERSIONS without adding it here fails closed.
 _ENVELOPE_PROVIDERS = {"codex": frozenset({"codex"}),
-                       "claude": frozenset({"claude"})}
+                       "claude": frozenset({"claude"}),
+                       "gemini": frozenset({"gemini"})}
 
 
 def provider_class_for(schema_version):
@@ -75,7 +79,7 @@ def provider_class_for(schema_version):
     """
     _require(schema_version in _VERSIONS, "UNKNOWN_REQUEST_VERSION")
     return {"1.0": FixtureTranscriptProvider, "1.1": NativeTranscriptProvider,
-            "1.2": ClaudeTranscriptProvider}[schema_version]
+            "1.2": ClaudeTranscriptProvider, "1.3": GeminiTranscriptProvider}[schema_version]
 
 
 class HandoffError(ValueError):
@@ -256,6 +260,10 @@ def _validate_native_ref(ref, sid):
 
 def _validate_claude_ref(ref, sid):
     _validate_snapshot_ref(ref, sid, CLAUDE_SOURCE_KIND)
+
+
+def _validate_gemini_ref(ref, sid):
+    _validate_snapshot_ref(ref, sid, GEMINI_SOURCE_KIND)
 
 
 def _read_native_metadata(path, limit=131072):
@@ -511,6 +519,240 @@ class ClaudeTranscriptProvider:
         return path
 
 
+_MAX_SQLITE_INT = (1 << 63) - 1
+
+
+def _same_root_dir(cwd, root):
+    """Gemini CLI loads project hooks from the launch directory, which must be root itself."""
+    try:
+        return (type(cwd) is str and bool(cwd.strip())
+                and Path(cwd).resolve(strict=True) == Path(root)
+                and git_toplevel(cwd) == Path(root))
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return False
+
+
+def _candidate_project_hashes(target_dir: Path, extra_spellings: tuple[str, ...] = ()) -> set[str]:
+    """Hashes for path spellings that refer to the exact same directory on this filesystem."""
+    resolved = target_dir.resolve(strict=True)
+    target_stat = os.stat(resolved)
+    raw = str(resolved)
+    candidates = {raw, resolved.as_posix()}
+    for spelling in extra_spellings:
+        if type(spelling) is str and spelling.strip():
+            candidates.add(spelling)
+            candidates.add(spelling.replace("\\", "/"))
+            if os.name == "nt":
+                candidates.add(spelling.replace("/", "\\"))
+    if os.name == "nt":
+        candidates.add(raw.replace("/", "\\"))
+        for item in list(candidates):
+            if len(item) >= 2 and item[1] == ":":
+                candidates.add(item[0].upper() + item[1:])
+                candidates.add(item[0].lower() + item[1:])
+    verified = set()
+    for item in candidates:
+        try:
+            if os.path.samestat(os.stat(item), target_stat):
+                verified.add(hashlib.sha256(item.encode("utf-8")).hexdigest())
+        except OSError:
+            continue
+    return verified
+
+
+def _verified_gemini_origin_cwds(root: Path, sid: str, observed_cwd: str | None = None) -> tuple[str, ...]:
+    spellings: list[str] = []
+    if isinstance(observed_cwd, str) and _same_root_dir(observed_cwd, root):
+        spellings.append(observed_cwd)
+    try:
+        origin_path = r2._path(root, f"artifacts/runtime/gemini-session-origins/{sid}.json")
+        if origin_path.is_file():
+            data = json.loads(_read_native_metadata(origin_path).decode("utf-8"))
+            if (isinstance(data, dict) and data.get("session_id") == sid
+                    and data.get("provider") == "gemini"
+                    and data.get("consumer_root") == str(root)):
+                launch_cwd = data.get("launch_cwd")
+                if isinstance(launch_cwd, str) and _same_root_dir(launch_cwd, root):
+                    spellings.append(launch_cwd)
+    except (OSError, ValueError, HandoffError, r2.OwnershipError):
+        pass
+    return tuple(spellings)
+
+
+def _valid_sqlite_utf8_text(value) -> bool:
+    if value is None:
+        return True
+    if type(value) is not str:
+        return True
+    try:
+        value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
+def _valid_gemini_token_int(value) -> bool:
+    return type(value) is int and 0 <= value <= _MAX_SQLITE_INT
+
+
+def _validate_gemini_tokens_dict(tokens) -> bool:
+    if tokens is None:
+        return True
+    if type(tokens) is not dict:
+        return False
+    raw_in = tokens.get("input")
+    raw_out = tokens.get("output")
+    raw_cached = tokens.get("cached")
+    if raw_in is not None and not _valid_gemini_token_int(raw_in):
+        return False
+    if raw_out is not None and not _valid_gemini_token_int(raw_out):
+        return False
+    if raw_cached is not None:
+        if not _valid_gemini_token_int(raw_cached):
+            return False
+        if raw_in is not None and raw_cached > raw_in:
+            return False
+    return True
+
+
+def _validate_gemini_snapshot(path, sid, root, check, *, observed_cwd=None):
+    # Gemini CLI's .jsonl transcript opens with an initial metadata record
+    # carrying top-level sessionId and projectHash (SHA-256 of the project
+    # root), plus optional directories / cwd fields and $set metadata updates.
+    checked_cwds = {}
+    framework_root = None
+    framework_checked = False
+    origin_cwds = _verified_gemini_origin_cwds(Path(root), sid, observed_cwd)
+    allowed_hashes = _candidate_project_hashes(Path(root), extra_spellings=origin_cwds)
+    project_hash = None
+
+    def check_workspace_dir(cwd):
+        nonlocal framework_root, framework_checked
+        _require(type(cwd) is str and bool(cwd.strip()), "TRANSCRIPT_SESSION_MISMATCH")
+        if cwd not in checked_cwds:
+            allowed = _same_worktree_root(cwd, root)
+            if not allowed:
+                if not framework_checked:
+                    framework_root = _registered_framework_root(root)
+                    framework_checked = True
+                allowed = _transcript_cwd_in_consumer(cwd, root, framework_root)
+            checked_cwds[cwd] = allowed
+        _require(checked_cwds[cwd], "TRANSCRIPT_SESSION_MISMATCH")
+
+    def check_metadata_fields(obj):
+        if "sessionId" in obj:
+            _require(obj["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
+        if "projectHash" in obj:
+            _require(obj["projectHash"] == project_hash, "TRANSCRIPT_SESSION_MISMATCH")
+        if "cwd" in obj:
+            check_workspace_dir(obj["cwd"])
+        if "directories" in obj and obj["directories"] is not None:
+            dirs = obj["directories"]
+            _require(type(dirs) is list and bool(dirs), "TRANSCRIPT_SESSION_MISMATCH")
+            for d in dirs:
+                check_workspace_dir(d)
+
+    with path.open("rb") as stream:
+        total = 0
+        first = True
+        seen_ingestable_gemini = False
+        while line := stream.readline(MAX_SNAPSHOT_BYTES + 1):
+            check()
+            total += len(line)
+            _require(total <= MAX_SNAPSHOT_BYTES, "SNAPSHOT_CAP_EXCEEDED")
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            _require(type(record) is dict, "TRANSCRIPT_SESSION_MISMATCH")
+            if first:
+                _require(record.get("sessionId") == sid, "TRANSCRIPT_SESSION_MISMATCH")
+                project_hash = record.get("projectHash")
+                _require(type(project_hash) is str and bool(_SHA.fullmatch(project_hash)),
+                         "TRANSCRIPT_SESSION_MISMATCH")
+                first = False
+            check_metadata_fields(record)
+            if "$set" in record:
+                _require(type(record["$set"]) is dict, "TRANSCRIPT_SESSION_MISMATCH")
+                check_metadata_fields(record["$set"])
+            if record.get("type") == "gemini":
+                _require(_validate_gemini_tokens_dict(record.get("tokens")),
+                         "TRANSCRIPT_INGESTION_UNCONFIRMED")
+                _require(_valid_sqlite_utf8_text(record.get("id"))
+                         and _valid_sqlite_utf8_text(record.get("timestamp")),
+                         "TRANSCRIPT_INGESTION_UNCONFIRMED")
+                seen_ingestable_gemini = True
+        _require(not first, "EMPTY_TRANSCRIPT")
+        if project_hash not in allowed_hashes:
+            if not framework_checked:
+                framework_root = _registered_framework_root(root)
+                framework_checked = True
+            if framework_root is not None:
+                allowed_hashes.update(_candidate_project_hashes(Path(framework_root)))
+        _require(project_hash in allowed_hashes, "TRANSCRIPT_SESSION_MISMATCH")
+        _require(seen_ingestable_gemini, "TRANSCRIPT_INGESTION_UNCONFIRMED")
+
+
+class GeminiTranscriptProvider:
+    """Owned observed Gemini CLI bytes; same strictness as the native/Claude providers."""
+
+    def __init__(self, consumer_root, *, check=lambda: None):
+        self.root = Path(consumer_root).resolve()
+        self.check = check
+
+    def validate(self, root, ref):
+        self.check()
+        _require(root == self.root, "TRANSCRIPT_ROOT_MISMATCH")
+        _validate_gemini_ref(ref, ref["session_id"])
+        _require(_decode(_read_native_metadata(r2._path(root, ref["ref_locator"]))) == ref, "REF_BYTES_MISMATCH")
+        data = _read_native_metadata(r2._path(root, ref["manifest_locator"]))
+        _require(_sha(data) == ref["manifest_sha256"], "MANIFEST_HASH_MISMATCH")
+        m = _decode(data)
+        _keys(m, {"schema_version", "provider", "provider_version", "binding", "snapshot",
+                  "source", "native_payload", "captured_at", "platform", *AUTHORITY})
+        _require(m["schema_version"] == "1.0" and m["provider"] == "owned-sessionend-snapshot"
+                 and m["provider_version"] == "1.0"
+                 and all(m[k] == v for k, v in AUTHORITY.items()), "INVALID_MANIFEST")
+        _keys(m["binding"], _BINDING - {"transcript"})
+        bound = {**m["binding"], "transcript": ref}
+        _validate_request(dict(schema_version="1.3", binding=bound,
+                               request_id=_sha(canonical_bytes(bound)),
+                               publication=dict(first_published_at=m["captured_at"],
+                                                publisher_version=GEMINI_PUBLISHER)), root)
+        _require(m["binding"]["session_id"] == ref["session_id"]
+                 and m["binding"]["consumer_root"] == str(root), "MANIFEST_BINDING_MISMATCH")
+        _require(m["snapshot"] == {k: ref[k] for k in ("immutable_locator", "sha256", "size_bytes")},
+                 "SNAPSHOT_BINDING_MISMATCH")
+        _keys(m["source"], {"path", "before", "after"})
+        _require(m["source"]["before"] == m["source"]["after"], "SNAPSHOT_UNSTABLE")
+        _keys(m["source"]["before"], {"dev", "ino", "size", "mtime_ns", "ctime_ns"})
+        _require(all(type(v) is int for v in m["source"]["before"].values())
+                 and m["source"]["before"]["size"] == ref["size_bytes"], "INVALID_SOURCE_STAT")
+        payload = m["native_payload"]
+        _require(type(payload) is dict and payload.get("hook_event_name") == "SessionEnd"
+                 and payload.get("session_id") == ref["session_id"]
+                 and payload.get("reason") == m["binding"]["native_event"]["reason"]
+                 and _same_root_dir(payload.get("cwd"), root)
+                 and payload.get("transcript_path") == m["source"]["path"],
+                 "INVALID_NATIVE_PAYLOAD")
+        _require(datetime.fromisoformat(m["captured_at"]).tzinfo is not None, "INVALID_TIMESTAMP")
+        _keys(m["platform"], {"os", "python", "gemini_version"})
+        for value in m["platform"].values():
+            _string(value)
+        path = r2._path(root, ref["immutable_locator"])
+        _require(path.stat().st_size == ref["size_bytes"], "TRANSCRIPT_BYTES_MISMATCH")
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                self.check()
+                digest.update(chunk)
+        _require(digest.hexdigest() == ref["sha256"], "TRANSCRIPT_BYTES_MISMATCH")
+        _validate_gemini_snapshot(path, ref["session_id"], root, self.check,
+                                  observed_cwd=payload.get("cwd"))
+        self.manifest = m
+        self.check()
+        return path
+
+
 def _framework_identity(root):
     consumer, framework = validate_framework_binding(root, FRAMEWORK)
     relative = framework.relative_to(consumer).as_posix()
@@ -637,7 +879,7 @@ def _validate_request(request, root):
     _require(e["provider"] == event_provider and e["event"] == "SessionEnd", "INVALID_EVENT")
     _string(e["reason"])
     {"1.0": _validate_ref, "1.1": _validate_native_ref,
-     "1.2": _validate_claude_ref}[version](b["transcript"], sid)
+     "1.2": _validate_claude_ref, "1.3": _validate_gemini_ref}[version](b["transcript"], sid)
     _keys(request["publication"], {"first_published_at", "publisher_version"})
     _require(request["publication"]["publisher_version"] == publisher, "INVALID_PUBLISHER")
     timestamp = datetime.fromisoformat(request["publication"]["first_published_at"])
@@ -677,13 +919,13 @@ def _live(lease, request, provider, *, qualified_context=None):
     if qualified_context is None:
         identity = _framework_identity(root)
     else:
-        _require(request["schema_version"] in ("1.1", "1.2"), "INVALID_QUALIFIED_CONTEXT")
+        _require(request["schema_version"] in ("1.1", "1.2", "1.3"), "INVALID_QUALIFIED_CONTEXT")
         identity = _qualified_identity(lease, qualified_context)
     _require(identity == b["framework"], "FRAMEWORK_DRIFT")
     _require(type(provider) is provider_class_for(request["schema_version"]),
              "TRANSCRIPT_RETENTION_UNQUALIFIED")
     transcript = provider.validate(root, b["transcript"])
-    if request["schema_version"] in ("1.1", "1.2"):
+    if request["schema_version"] in ("1.1", "1.2", "1.3"):
         _require(provider.manifest["binding"] == {k: v for k, v in b.items() if k != "transcript"}, "MANIFEST_BINDING_MISMATCH")
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
@@ -701,13 +943,13 @@ def publish_request(consumer_root: Path, session_id: str, transcript_ref: dict,
 def _publish_request_with_lease(lease, session_id, transcript_ref, provider, *,
                                 reason="fixture-normal-quit", check=lambda: None, qualified_context=None):
     version = {FixtureTranscriptProvider: "1.0", NativeTranscriptProvider: "1.1",
-               ClaudeTranscriptProvider: "1.2"}.get(type(provider))
+               ClaudeTranscriptProvider: "1.2", GeminiTranscriptProvider: "1.3"}.get(type(provider))
     _require(version is not None, "TRANSCRIPT_RETENTION_UNQUALIFIED")
     publisher, event_provider = _VERSIONS[version]
     check()
     root = r2._lease(lease)
     if qualified_context is not None:
-        _require(version in ("1.1", "1.2"), "INVALID_QUALIFIED_CONTEXT")
+        _require(version in ("1.1", "1.2", "1.3"), "INVALID_QUALIFIED_CONTEXT")
         _qualified_identity(lease, qualified_context)
     slot = r2._closeout_request_slot(root, session_id)
     if slot.exists():
@@ -1123,6 +1365,11 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
         _require(owner["state"] == "OWNED" and not reserved
                  and not r2._completion(root, session_id), "FAILED_HOLD: cannot replay")
         path, attempt = _claim(lease, request)
+        r2.bind_verified_handoff(
+            lease, session_id=session_id,
+            provider=request["binding"]["native_event"]["provider"],
+            request_id=request["request_id"], attempt_relpath=path,
+        )
         def verify_before_receipt(result):
             _require(result.get("session_id") == session_id, "RESULT_SESSION_MISMATCH")
             _verify_ingestion(root, session_id, transcript,

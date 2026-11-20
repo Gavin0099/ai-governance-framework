@@ -184,7 +184,10 @@ def _capture(lease, payload, binding, check, profile=CODEX):
                ref_locator=f"{base}/refs/{manifest_sha}.json", retention_contract="owned-sessionend-snapshot",
                retention_version="1.0", readable_after_hook=True, **h.AUTHORITY)
     # Validate format before making a ref consumable.
-    profile.snapshot_validator(target, sid, root, check)
+    if profile.event_provider == "gemini":
+        profile.snapshot_validator(target, sid, root, check, observed_cwd=payload.get("cwd"))
+    else:
+        profile.snapshot_validator(target, sid, root, check)
     for path, value in ((ref["manifest_locator"], manifest), (ref["ref_locator"], ref)):
         check()
         h._publish(lease, path, value)
@@ -194,7 +197,7 @@ def _capture(lease, payload, binding, check, profile=CODEX):
 
 def publish(consumer_root, payload, *, deadline_ms=None, budget=None, profile=CODEX):
     """Publish only; explicit invocation is not evidence of native hook firing."""
-    expected_version = {"codex": "1.1", "claude": "1.2"}[profile.event_provider]
+    expected_version = {"codex": "1.1", "claude": "1.2", "gemini": "1.3"}[profile.event_provider]
     if budget is None:
         budget = Budget(deadline_ms)
     check = budget.check

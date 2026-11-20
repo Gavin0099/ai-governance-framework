@@ -683,6 +683,21 @@ def _apply_agent_contract_surfaces(
     return modes
 
 
+def install_gemini_instructions(repo_root: Path, framework_root: Path) -> HookInstallApplyResult:
+    """Project shared and Gemini instructions without installing Copilot or Claude files."""
+    result = HookInstallApplyResult(ok=True, repo_root=str(repo_root), framework_root=str(framework_root))
+    targets = tuple(target for target in AGENT_CONTRACT_TARGETS if target[1] in {"gemini", "codex"})
+    try:
+        _apply_agent_contract_surfaces(
+            repo_root, framework_root, installed=result.installed_files,
+            changed=result.changed_files, backups=result.backups, errors=result.errors, targets=targets,
+        )
+    except (OSError, UnicodeError) as exc:
+        result.errors.append(str(exc))
+    result.ok = not result.errors
+    return result
+
+
 def install_claude_instructions(repo_root: Path, framework_root: Path) -> HookInstallApplyResult:
     """Project shared and Claude instructions without installing Copilot or Gemini files."""
     result = HookInstallApplyResult(ok=True, repo_root=str(repo_root), framework_root=str(framework_root))
