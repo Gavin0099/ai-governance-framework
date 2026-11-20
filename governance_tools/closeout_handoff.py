@@ -1365,6 +1365,11 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
         _require(owner["state"] == "OWNED" and not reserved
                  and not r2._completion(root, session_id), "FAILED_HOLD: cannot replay")
         path, attempt = _claim(lease, request)
+        r2.bind_verified_handoff(
+            lease, session_id=session_id,
+            provider=request["binding"]["native_event"]["provider"],
+            request_id=request["request_id"], attempt_relpath=path,
+        )
         def verify_before_receipt(result):
             _require(result.get("session_id") == session_id, "RESULT_SESSION_MISMATCH")
             _verify_ingestion(root, session_id, transcript,

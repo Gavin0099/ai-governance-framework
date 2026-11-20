@@ -715,7 +715,23 @@ def test_n17_session_closeout_entry_cannot_bypass_gemini_transcript_verification
     assert owner(root)["state"] == "OWNED"
     assert no_release_residue(root)
 
-    # Step 3: Valid transcript through gemini_formal_closeout still releases cleanly.
-    result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
+    # Step 3: Even after a valid schema 1.3 handoff request is published (but not yet consumed),
+    # generic session_closeout_entry must still be rejected before HOLD.
+    from governance_tools import gemini_closeout_publisher as publisher
+    pub = publisher.publish(root, {"hook_event_name": "SessionEnd", "session_id": SID,
+                                   "cwd": str(root), "transcript_path": str(valid_source),
+                                   "reason": "owner_request"}, deadline_ms=30000)
+    assert pub["status"] == "REQUESTED"
+    with r2.execution_exclusion(root) as lease:
+        with pytest.raises(r2.OwnershipError, match="RELEASE_PROOF_INVALID"):
+            session_closeout_entry._run_protected_closeout_with_lease(
+                lease, session_id=SID, agent_id="gemini", trigger_mode="wrapper"
+            )
+    assert owner(root)["state"] == "OWNED"
+    assert no_release_residue(root)
+
+    # Step 4: Consuming the published request through formal handoff releases cleanly.
+    result = h.consume_exact_request(root, pub["request_id"], session_id=SID,
+                                     provider=h.GeminiTranscriptProvider(root))
     assert result["status"] == "FINALIZED"
     assert released(root)
