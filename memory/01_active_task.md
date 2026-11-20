@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Issue #340 Rule 8 follow-up: completed Codex turn 5/5 at 724abee6. CLI exit timed out. Draft-only owner decision. V-05 remains separate. <!-- memory_record_projection:active-task-summary:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
+- Issue #295 shared reporting guidance passed scoped checks. Natural reports pending. <!-- memory_record_projection:active-task-summary:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
