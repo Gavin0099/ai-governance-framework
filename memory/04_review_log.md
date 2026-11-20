@@ -5503,6 +5503,39 @@ boundary from which future accepted-design edits can be diffed.
 - Next action: Obtain the owner decision on #336 and authorizations for the pending PR dispositions before consumer acceptance.
 - PLAN reconciliation: `deferred:scope-split-next-slice`
 
+<!-- memory_record_projection:review-log:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->
+### Canonical memory checkpoint — issue-340-evidence-routing-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b`
+- Commit binding: `d7082224b5a6afdfc865568f9b7e7a81a23fddcc` (bound)
+- Record: Issue #340 projects a single conditional prior-evidence rule into all six existing instruction surfaces. Independent review confirmed projection fidelity and a Draft-only handoff. Two fresh Codex sessions loaded the rule and each met two of five frozen decisions. The V-03/V-04, V-05 and E-01 historical evidence retrieval criteria remain unmet.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-340-projections-20261119.json artifacts/evidence/test-results/issue-340-projections-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity is ok. Native result PARTIAL, as documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
+- Next action: Hand off one Draft PR for owner review. V-05 remains the independent product priority. Further work on native history retrieval requires a separate owner decision.
+- PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
+### Canonical memory checkpoint — issue-340-rule8-followup-20261119
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f`
+- Commit binding: `724abee6b40c186a36fcda5b2aef0bd6a3bb6731` (bound)
+- Record: Issue #340 Rule 8 now follows relevant PR or issue evidence including Draft PR refs and preserves UNKNOWN when evidence is unavailable. The independent review verified the six projections, both connector controls, and 5/5 on the single completed native Codex turn. The wrapper timed out after turn.completed, with process exit unverified. The trial took more time and tokens than the original trials.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-340-rule8-followup-20261119.json artifacts/evidence/test-results/issue-340-rule8-followup-20261119.txt -> exit_code=0 (99 projection and budget tests). Drift severity ok. Completed native Codex turn 5/5 with independent trace review and CLI exit timeout documented in memory/evidence/issue-340-evidence-reuse-native-20261119.md.
+- Next action: Keep #341 as Draft for the owner decision. V-05 remains a separate product acceptance task.
+- PLAN reconciliation: `not_applicable`
+
+<!-- memory_record_projection:review-log:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
+### Canonical memory checkpoint — 2026-11-20-01
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b`
+- Commit binding: `6b74764e178e6594f0171785802428635af0ced7` (bound)
+- Record: Issue #295 added one existing-contract explanation sentence to Rule 6 and synced six managed projections. Independent review rejected opaque or overstated reports and accepted a clear report with no required owner decision. Focused verification passed 150 tests and the CRLF instruction budget is 28131 of 32768 bytes. Natural report evidence is pending.
+- Validation boundary: PASS: artifacts/evidence/test-results/issue-295-rule6-20261120.json -> exit_code=0. Retained output artifacts/evidence/test-results/issue-295-rule6-20261120.txt
+- Next action: Verify the exact Draft candidate and its CI. Observe naturally occurring reports after adoption.
+- PLAN reconciliation: `not_applicable`
+
 <!-- memory_record_projection:review-log:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
 ### Canonical memory checkpoint — c1-r-supplied-pytest-evidence-20261119
 

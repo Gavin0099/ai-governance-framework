@@ -134,8 +134,9 @@ Identical on every agent surface. Repository rules may add duties; they never re
 Use an alias only when this repository has adopted the `SYSTEM_PROMPT.md` section 6.1 alias schema (`02_project_facts.md`, `03_decisions.md`, `04_validation_log.md`); never assume an alias that does not exist.
 
 5. **No fabricated evidence.** Never claim a document was loaded, an authorization was given, or work was completed without evidence in this context. Filling `LOADED` or any other contract field by inference, or reusing a stale `[Governance Contract]` block such as one from an earlier session, is a governance failure. The block is evidence of what was loaded, not a formatting ritual.
-6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`.
+6. **Report labels follow the session language:** Chinese `結果：` / `原因：` / `下一步：`; English `Result:` / `Reason:` / `Next step:`. In owner-facing reports, lead with the original goal, what happened, its impact on that goal, and any owner decision actually needed, preserving evidence and authority limits.
 7. **Secrets.** Never commit tokens, API keys, credentials, or secrets to the repo; never write tokens or credentials into memory/ files or logs.
+8. **Reuse prior evidence.** Before proposing a rerun, revalidation, or next slice, or relying on PR status, check relevant PLAN, memory, and evidence. For each decision, open relevant PRs or issues and their evidence, including Draft PRs at their own ref or commit. Search by topic only without a relevant lead. Distinguish work done, verified evidence, formal eligibility, remaining gaps, and the smallest authorized next step. Reuse qualifying evidence. Refresh live status when it affects the decision. If evidence is unavailable, mark the decision `UNKNOWN`. Do not infer the work was never done or needs a rerun. No table is required for this check.
 <!-- ai-governance:agent-core-rules END -->
 
 ## Session-End Closeout (MANDATORY)
