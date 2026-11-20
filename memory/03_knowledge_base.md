@@ -537,6 +537,13 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Test evidence: `tests/test_agent_core_rules_projection.py` 35 passed (new C2-scope assertion); 19 entry-file related test files 400 passed. Not claimed: that agents now write the records (not re-tested).
 - Daily record: memory/2026-11-03.md (memory_record, commit 557d41801981e8ab9d7055ef2fd77a9040c541cd)
 
+### Follow-up: Explicit edit limits can exclude required records (2026-11-20)
+- Root cause: Rule 4 still left open whether an explicit ban on edits outside named paths excluded a record under those paths. [PR #282](https://github.com/Gavin0099/ai-governance-framework/pull/282) records the earlier interpretation mismatch at 27cd3a48. The current batch clarifies that an explicit restriction applies when it covers the record.
+- Fix: State that an explicit edit ban covering a record excludes that record and requires reporting it as unwritten. Keep the existing default for ordinary task scope and synchronize all six projections.
+- Fix commit: 8cd8735a4494857aba8547bf265182c1dd3b3250
+- Test evidence: 104 focused projection and instruction-budget tests passed. See [test receipt](../artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.json). Native agent behavior remains unverified.
+- Daily record: memory/2026-11-20.md (memory_record, commit 8cd8735a4494857aba8547bf265182c1dd3b3250)
+
 ## CANDIDATE / UNREVIEWED: Consumers kept the legacy Copilot Stop closeout while reporting ready (2026-11-04)
 - Root cause: 6f097eb8 retired the framework lifecycle bridge registered on `Stop` in `.github/hooks/ai-governance-vscode.json` and taught `hook_install_validator` to reject it, but readiness excluded hook results by design, F-7 counted install success as hook safety, and the dry-run hook stage looked only at the pre-commit memory markers. Consumers pinned before the fix therefore kept the wiring while reporting ready. Under the Copilot harness `Stop` maps to `agentStop`, so one observed consumer session ran the session-end closeout at each agent turn (11:21 and 11:23 UTC) while `sessionEnd` never fired.
 - Fix: readiness adds `copilot_hooks_safe` from the existing validator result and blocks with `migration_required` when the bridge is installed on a non-session-end event; absent hooks still do not block; the human output opens with an `AI Governance Health` summary. F-7 verifies Copilot hooks after install with the target checkout's validator in a subprocess and blocks on a remaining bridge. The dry-run hook stage reports `missing` while the wiring remains.

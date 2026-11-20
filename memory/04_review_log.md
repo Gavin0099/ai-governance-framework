@@ -5546,3 +5546,14 @@ boundary from which future accepted-design edits can be diffed.
 - Validation boundary: PASS: artifacts/evidence/test-results/c1-r-closeout-20261119.json artifacts/evidence/test-results/c1-r-closeout-20261119.txt -> exit_code=0 (159 focused regression and adjacent closeout cases on f70e41d7). The complete execution-claims and frozen differential suite returned 591 passes on the reviewed implementation before commit.
 - Next action: Review the final C1-R PR and await its owner merge decision. The existing decisions for #337, #213 closure and C2-D remain separate.
 - PLAN reconciliation: `deferred:scope-split-next-slice`
+
+<!-- memory_record_projection:review-log:1642ec3c8be7a7ea55dc148767299d5c9e06396b2688925170c5e8377192a72a -->
+### Canonical memory checkpoint — 2026-11-20-02
+
+- Writer: `governance_tools.memory_record`
+- Record identity: `1642ec3c8be7a7ea55dc148767299d5c9e06396b2688925170c5e8377192a72a`
+- Commit binding: `8cd8735a4494857aba8547bf265182c1dd3b3250` (bound)
+- Record: Rule 4 now identifies explicit edit bans that cover a required record and asks the agent to report that record as unwritten. The existing default for ordinary task scope remains in effect across all six projections. PR #282 at 8fc547e1 reported different agent interpretations of a directory restriction on main at 27cd3a48. The current batch states that an explicit owner path restriction takes precedence when it covers the record.
+- Validation boundary: PASS: artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.json -> exit_code=0. 104 focused projection and instruction-budget tests. Retained output: artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.txt. Native agent behavior remains unverified.
+- Next action: Obtain independent review of the final candidate and hand off the Draft PR for an owner decision.
+- PLAN reconciliation: `not_applicable`
