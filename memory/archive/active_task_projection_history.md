@@ -32,3 +32,5 @@ projection superseded them. History only; not current state.
 - PR #336 merged at 4328e280 and main CI succeeded. N7 B0-B3 Windows native acceptance completed on 98142f55. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. Next: owner decision on the N7 evidence PR. C/D await authorization. See memory/2026-11-19.md. <!-- memory_record_projection:active-task-summary:324ebc419f68d7195848702e209493bcf0d95d54b02d3a34423db3973fdabbd7 -->
 
 - Issue #340: shared guidance projections verified on d7082224. Fresh Codex loaded the guidance, but native planning acceptance remains PARTIAL (2/5 twice). Draft-only owner review. V-05 remains separate. See memory/evidence/issue-340-evidence-reuse-native-20261119.md. <!-- memory_record_projection:active-task-summary:2ae0c1513dc1b9571befeebad199540979690d5123c600a23489af33936a6c5b -->
+
+- Issue #340 Rule 8 follow-up: completed Codex turn 5/5 at 724abee6. CLI exit timed out. Draft-only owner decision. V-05 remains separate. <!-- memory_record_projection:active-task-summary:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
