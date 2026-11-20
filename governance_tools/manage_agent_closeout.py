@@ -1045,9 +1045,49 @@ class GeminiAdapter(AgentAdapter):
             raise ValueError("user settings hooks must be an object")
         return data
 
+    @classmethod
+    def _disabled_reasons(
+        cls,
+        project_data: dict[str, Any],
+        user_data: dict[str, Any],
+        expected: dict[str, dict[str, Any]],
+        installed_hooks: dict[str, list[dict[str, Any]]],
+    ) -> list[str]:
+        """Detect hooksConfig.enabled=false or hooksConfig.disabled disabling managed hooks."""
+        reasons: list[str] = []
+        proj_cfg = project_data.get("hooksConfig") if isinstance(project_data, dict) else None
+        user_cfg = user_data.get("hooksConfig") if isinstance(user_data, dict) else None
+        proj_hooks = project_data.get("hooks") if isinstance(project_data, dict) else None
+        user_hooks = user_data.get("hooks") if isinstance(user_data, dict) else None
+
+        proj_enabled = proj_cfg.get("enabled") if isinstance(proj_cfg, dict) else None
+        user_enabled = user_cfg.get("enabled") if isinstance(user_cfg, dict) else None
+        if proj_enabled is False or (proj_enabled is None and user_enabled is False):
+            reasons.append("hooksConfig.enabled is false")
+        if ((isinstance(proj_hooks, dict) and proj_hooks.get("enabled") is False)
+                or (isinstance(user_hooks, dict) and user_hooks.get("enabled") is False)):
+            reasons.append("hooks.enabled is false")
+
+        disabled_names: set[str] = set()
+        for source in (proj_cfg, user_cfg, proj_hooks, user_hooks):
+            if isinstance(source, dict) and isinstance(source.get("disabled"), list):
+                disabled_names.update(item for item in source["disabled"] if isinstance(item, str))
+
+        for event in ("SessionStart", "SessionEnd"):
+            candidates = {expected[event]["command"]}
+            for hook in installed_hooks.get(event, []):
+                name = hook.get("name") or hook.get("command")
+                if isinstance(name, str):
+                    candidates.add(name)
+            matched = sorted(candidates & disabled_names)
+            if matched:
+                reasons.append(f"{event} hook listed in hooksConfig.disabled")
+        return reasons
+
     def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
         expected = self._expected_hooks(project_root, framework_root)
         found: dict[str, list[tuple[bool, str]]] = {event: [] for event in self.MANAGED_EVENTS}
+        matched_hooks: dict[str, list[dict[str, Any]]] = {event: [] for event in self.MANAGED_EVENTS}
         user_path = self._user_settings_path()
         try:
             user_data = self._read_user_settings(user_path)
@@ -1055,7 +1095,8 @@ class GeminiAdapter(AgentAdapter):
             return "STALE_OR_WRONG_BINDING", str(user_path)
 
         project_path = project_root / self.CONFIG_PATH
-        for path, data in ((project_path, _read_json(project_path)), (user_path, user_data)):
+        project_data = _read_json(project_path)
+        for path, data in ((project_path, project_data), (user_path, user_data)):
             hooks = data.get("hooks", {}) if isinstance(data, dict) else {}
             if not isinstance(hooks, dict):
                 continue
@@ -1077,10 +1118,15 @@ class GeminiAdapter(AgentAdapter):
                                    and hook.get("timeout") == want.get("timeout")
                                    and not group.get("matcher"))
                         found[event].append((current, str(path)))
+                        if current:
+                            matched_hooks[event].append(hook)
         complete = all(
             len(found[event]) == 1 and found[event][0][0] for event in ("SessionStart", "SessionEnd")
         )
         if complete:
+            disabled = self._disabled_reasons(project_data, user_data, expected, matched_hooks)
+            if disabled:
+                return "DISABLED_BY_SETTINGS", found["SessionStart"][0][1]
             return "CORRECTLY_INSTALLED", found["SessionStart"][0][1]
         for event in self.MANAGED_EVENTS:
             if found[event]:
@@ -1162,6 +1208,9 @@ class GeminiAdapter(AgentAdapter):
             return {"status": "blocked", "location": str(user_path),
                     "message": f"Unable to safely read user Gemini settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
+        if state == "DISABLED_BY_SETTINGS":
+            return {"status": "blocked", "location": loc,
+                    "message": "Governance Gemini hooks are configured but disabled by hooksConfig; not re-enabled automatically."}
         if state != "CORRECTLY_INSTALLED":
             hooks = user_data.get("hooks", {})
             for event in self.MANAGED_EVENTS:
@@ -1200,12 +1249,16 @@ class GeminiAdapter(AgentAdapter):
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         state, loc = self._binding_state(project_root, framework_root)
         readiness = closeout_execution_readiness(project_root, framework_root)
+        disabled_note = (
+            " Hooks are configured but disabled by Gemini hooksConfig; enable them explicitly to restore execution."
+            if state == "DISABLED_BY_SETTINGS" else ""
+        )
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
                 "binding_state": state, "location": loc, "closeout_readiness": readiness,
                 # No pending-hook note: Gemini's SessionEnd hook only writes a
                 # resumable checkpoint; it never runs the formal closeout.
                 "note": "Configuration binding only; native execution is not verified."
-                        + _readiness_note(readiness)}
+                        + disabled_note + _readiness_note(readiness)}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = self._settings_path(project_root)

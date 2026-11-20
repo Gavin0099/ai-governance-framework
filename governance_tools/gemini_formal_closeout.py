@@ -58,12 +58,16 @@ def close_out(project_root, session_id: str, owner_request: str | None, transcri
                "AUTHORIZATION_REQUIRED: --condition-met goes with --authorization-ref")
 
     if standing:
-        attested = attestation.record_standing(root, session_id, authorization_ref, condition_met)
+        attested = attestation.record_standing(
+            root, session_id, authorization_ref, condition_met, expected_provider="gemini"
+        )
         reason = "owner_authorized_condition"
     else:
-        attested = attestation.record(root, session_id, owner_request)
+        attested = attestation.record(root, session_id, owner_request, expected_provider="gemini")
 
-    payload = dict(hook_event_name="SessionEnd", session_id=session_id, cwd=str(root),
+    raw_project_dir = str(Path(project_root).absolute())
+    payload_cwd = raw_project_dir if h._same_root_dir(raw_project_dir, root) else str(root)
+    payload = dict(hook_event_name="SessionEnd", session_id=session_id, cwd=payload_cwd,
                    transcript_path=str(source), reason=reason)
     published = publisher.publish(root, payload, deadline_ms=deadline_ms)
     request_id = published.get("request_id")

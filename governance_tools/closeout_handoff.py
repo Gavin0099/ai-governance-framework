@@ -532,12 +532,18 @@ def _same_root_dir(cwd, root):
         return False
 
 
-def _candidate_project_hashes(target_dir: Path) -> set[str]:
+def _candidate_project_hashes(target_dir: Path, extra_spellings: tuple[str, ...] = ()) -> set[str]:
     """Hashes for path spellings that refer to the exact same directory on this filesystem."""
     resolved = target_dir.resolve(strict=True)
     target_stat = os.stat(resolved)
     raw = str(resolved)
     candidates = {raw, resolved.as_posix()}
+    for spelling in extra_spellings:
+        if type(spelling) is str and spelling.strip():
+            candidates.add(spelling)
+            candidates.add(spelling.replace("\\", "/"))
+            if os.name == "nt":
+                candidates.add(spelling.replace("/", "\\"))
     if os.name == "nt":
         candidates.add(raw.replace("/", "\\"))
         for item in list(candidates):
@@ -552,6 +558,37 @@ def _candidate_project_hashes(target_dir: Path) -> set[str]:
         except OSError:
             continue
     return verified
+
+
+def _verified_gemini_origin_cwds(root: Path, sid: str, observed_cwd: str | None = None) -> tuple[str, ...]:
+    spellings: list[str] = []
+    if isinstance(observed_cwd, str) and _same_root_dir(observed_cwd, root):
+        spellings.append(observed_cwd)
+    try:
+        origin_path = r2._path(root, f"artifacts/runtime/gemini-session-origins/{sid}.json")
+        if origin_path.is_file():
+            data = json.loads(_read_native_metadata(origin_path).decode("utf-8"))
+            if (isinstance(data, dict) and data.get("session_id") == sid
+                    and data.get("provider") == "gemini"
+                    and data.get("consumer_root") == str(root)):
+                launch_cwd = data.get("launch_cwd")
+                if isinstance(launch_cwd, str) and _same_root_dir(launch_cwd, root):
+                    spellings.append(launch_cwd)
+    except (OSError, ValueError, HandoffError, r2.OwnershipError):
+        pass
+    return tuple(spellings)
+
+
+def _valid_sqlite_utf8_text(value) -> bool:
+    if value is None:
+        return True
+    if type(value) is not str:
+        return True
+    try:
+        value.encode("utf-8", errors="strict")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _valid_gemini_token_int(value) -> bool:
@@ -578,14 +615,15 @@ def _validate_gemini_tokens_dict(tokens) -> bool:
     return True
 
 
-def _validate_gemini_snapshot(path, sid, root, check):
+def _validate_gemini_snapshot(path, sid, root, check, *, observed_cwd=None):
     # Gemini CLI's .jsonl transcript opens with an initial metadata record
     # carrying top-level sessionId and projectHash (SHA-256 of the project
     # root), plus optional directories / cwd fields and $set metadata updates.
     checked_cwds = {}
     framework_root = None
     framework_checked = False
-    allowed_hashes = _candidate_project_hashes(Path(root))
+    origin_cwds = _verified_gemini_origin_cwds(Path(root), sid, observed_cwd)
+    allowed_hashes = _candidate_project_hashes(Path(root), extra_spellings=origin_cwds)
     project_hash = None
 
     def check_workspace_dir(cwd):
@@ -638,6 +676,9 @@ def _validate_gemini_snapshot(path, sid, root, check):
                 check_metadata_fields(record["$set"])
             if record.get("type") == "gemini":
                 _require(_validate_gemini_tokens_dict(record.get("tokens")),
+                         "TRANSCRIPT_INGESTION_UNCONFIRMED")
+                _require(_valid_sqlite_utf8_text(record.get("id"))
+                         and _valid_sqlite_utf8_text(record.get("timestamp")),
                          "TRANSCRIPT_INGESTION_UNCONFIRMED")
                 seen_ingestable_gemini = True
         _require(not first, "EMPTY_TRANSCRIPT")
@@ -705,7 +746,8 @@ class GeminiTranscriptProvider:
                 self.check()
                 digest.update(chunk)
         _require(digest.hexdigest() == ref["sha256"], "TRANSCRIPT_BYTES_MISMATCH")
-        _validate_gemini_snapshot(path, ref["session_id"], root, self.check)
+        _validate_gemini_snapshot(path, ref["session_id"], root, self.check,
+                                  observed_cwd=payload.get("cwd"))
         self.manifest = m
         self.check()
         return path

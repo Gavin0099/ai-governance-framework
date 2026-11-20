@@ -273,6 +273,22 @@ def ingest(
             source_record_timestamp = (
                 record.get("timestamp") if isinstance(record.get("timestamp"), str) else None
             )
+            try:
+                if source_record_id is not None:
+                    source_record_id.encode("utf-8", errors="strict")
+                if source_record_timestamp is not None:
+                    source_record_timestamp.encode("utf-8", errors="strict")
+            except UnicodeEncodeError:
+                _quarantine(
+                    conn,
+                    source_path_str,
+                    line_number,
+                    line_byte_offset,
+                    "invalid_unicode: unpaired surrogate in id or timestamp",
+                    raw_stripped,
+                )
+                quarantined += 1
+                continue
 
             entry = {
                 "line_number": line_number,

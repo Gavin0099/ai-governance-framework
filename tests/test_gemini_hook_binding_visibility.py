@@ -386,3 +386,51 @@ def test_print_manual_quotes_framework_path_with_spaces_and_single_quotes(adapte
     manual = adapter.print_manual(fw)
     expected_script = (fw / "governance_tools" / "gemini_formal_closeout.py").as_posix()
     assert f'python "{expected_script}" --project-root' in manual
+
+
+def test_disabled_hooks_config_never_reports_correctly_installed_and_install_does_not_reenable(
+    adapter, tmp_path
+):
+    """P2 #4: Managed hooks disabled by hooksConfig must not report CORRECTLY_INSTALLED."""
+    fw = tmp_path / "fw"
+    assert adapter.install(tmp_path, fw)["status"] == "installed"
+    assert adapter.verify(tmp_path, fw)["installed"] is True
+
+    settings_path = tmp_path / ".gemini/settings.json"
+    base_data = json.loads(settings_path.read_text(encoding="utf-8"))
+
+    # Case 1: project hooksConfig.enabled = false
+    disabled_all = {**base_data, "hooksConfig": {"enabled": False}}
+    settings_path.write_text(json.dumps(disabled_all), encoding="utf-8")
+    v1 = adapter.verify(tmp_path, fw)
+    assert v1["installed"] is False
+    assert v1["binding_state"] == "DISABLED_BY_SETTINGS"
+    assert "disabled" in v1["note"].lower()
+    before_bytes = settings_path.read_bytes()
+    ins1 = adapter.install(tmp_path, fw)
+    assert ins1["status"] == "blocked"
+    assert settings_path.read_bytes() == before_bytes  # never silently re-enabled
+
+    # Case 2: project hooksConfig.disabled lists the managed SessionStart command
+    start_cmd = adapter._command(tmp_path, fw, "session_start")
+    disabled_one = {**base_data, "hooksConfig": {"disabled": [start_cmd]}}
+    settings_path.write_text(json.dumps(disabled_one), encoding="utf-8")
+    v2 = adapter.verify(tmp_path, fw)
+    assert v2["installed"] is False
+    assert v2["binding_state"] == "DISABLED_BY_SETTINGS"
+    assert adapter.install(tmp_path, fw)["status"] == "blocked"
+
+    # Case 3: user-level hooksConfig.enabled = false disables project hooks
+    settings_path.write_text(json.dumps(base_data), encoding="utf-8")
+    user_settings = tmp_path / "home" / ".gemini" / "settings.json"
+    user_settings.parent.mkdir(parents=True, exist_ok=True)
+    user_settings.write_text(json.dumps({"hooksConfig": {"enabled": False}}), encoding="utf-8")
+    v3 = adapter.verify(tmp_path, fw)
+    assert v3["installed"] is False
+    assert v3["binding_state"] == "DISABLED_BY_SETTINGS"
+
+    # Positive: removing user-level disable restores CORRECTLY_INSTALLED
+    user_settings.unlink()
+    v4 = adapter.verify(tmp_path, fw)
+    assert v4["installed"] is True
+    assert v4["binding_state"] == "CORRECTLY_INSTALLED"

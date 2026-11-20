@@ -592,3 +592,99 @@ def test_p6_duplicate_message_id_updates_coalesced_and_crlf_byte_offsets_exact(
         ("gemini-log-ingestion:msg-gemini-1", 25, 10, 4, expected_offset_turn_1_update),
         ("gemini-log-ingestion:msg-gemini-2", 15, 5, 5, expected_offset_turn_2),
     ]
+
+
+def test_n15_claude_session_cannot_be_attested_through_gemini_formal_closeout(
+    repo, monkeypatch, tmp_path
+):
+    """P1: A failed Gemini closeout call for a Claude session must not write an attestation."""
+    from governance_tools import claude_closeout_publisher as cp
+    from tests.test_claude_closeout_admission import claude_rows
+
+    root, source, _ = _ready(repo, monkeypatch, tmp_path, start_claude)
+    assert json.loads((root / ENVELOPE).read_bytes())["provider"] == "claude"
+
+    with pytest.raises(h.HandoffError, match="ENVELOPE_PROVIDER_MISMATCH"):
+        cli.close_out(root, SID, REQUEST, source, deadline_ms=30000)
+
+    # No attestation file was left behind for Claude's release gate to accept.
+    assert attestation.find(root, owner(root)) is None
+    assert not (root / attestation.AREA).exists()
+    assert no_release_residue(root)
+
+    # Confirm Claude's own release gate still refuses release because no attestation exists.
+    claude_src = write_rows(tmp_path / "claude.jsonl", claude_rows(root, sid=SID))
+    published = cp.publish(
+        root,
+        dict(hook_event_name="SessionEnd", session_id=SID, cwd=str(root),
+             transcript_path=str(claude_src), reason="other"),
+        deadline_ms=30000,
+    )
+    with pytest.raises(h.HandoffError, match="CLOSEOUT_NOT_ATTESTED"):
+        h.consume_exact_request(
+            root, published["request_id"], session_id=SID,
+            provider=h.ClaudeTranscriptProvider(root),
+        )
+    assert not released(root)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows case-insensitive directory spelling")
+def test_p7_windows_case_variant_launch_cwd_hash_accepted_and_unverified_hash_rejected(
+    repo, monkeypatch, tmp_path
+):
+    """P1: Same physical worktree entered with different directory case on Windows must succeed."""
+    variant_cwd = str(repo.parent / repo.name.upper())
+    assert variant_cwd != str(repo)
+
+    def start_gemini_variant(r, sid=SID):
+        gemini_session_start(
+            dict(hook_event_name="SessionStart", source="startup", session_id=sid, cwd=variant_cwd),
+            r,
+        )
+
+    root, _, _ = _ready(repo, monkeypatch, tmp_path, start_gemini_variant)
+
+    # Negative: an unverified hash (not matching any verified spelling of root) is still rejected
+    bad_rows = gemini_rows(root, sid=SID)
+    bad_rows[0]["projectHash"] = hashlib.sha256(b"C:\\unverified\\different\\path").hexdigest()
+    bad_src = write_rows(tmp_path / "unverified-hash.jsonl", bad_rows)
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_SESSION_MISMATCH"):
+        cli.close_out(root, SID, REQUEST, bad_src, deadline_ms=30000)
+    assert owner(root)["state"] == "OWNED"
+
+    # Positive: transcript hashed with the verified launch cwd case variant closes out cleanly
+    good_rows = gemini_rows(root, sid=SID)
+    good_rows[0]["projectHash"] = hashlib.sha256(variant_cwd.encode("utf-8")).hexdigest()
+    good_src = write_rows(tmp_path / "variant-case.jsonl", good_rows)
+    result = cli.close_out(root, SID, REQUEST, good_src, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)
+
+
+@pytest.mark.parametrize("field", ["id", "timestamp"])
+def test_n16_invalid_unicode_surrogate_in_id_or_timestamp_rejected_before_hold(
+    ready, tmp_path, field
+):
+    """P2 #1: Unpaired Unicode surrogates that SQLite rejects must fail before R2 HOLD."""
+    root, valid_source, _ = ready
+    rows = gemini_rows(root, sid=SID)
+    # Write raw JSON with an unpaired surrogate escape (\ud800) in `id` or `timestamp`.
+    bad_lines = [
+        json.dumps(rows[0]).encode("utf-8") + b"\n",
+        json.dumps(rows[1]).encode("utf-8") + b"\n",
+        json.dumps({**rows[2], field: "bad-\\ud800-val"}).replace("\\\\ud800", "\\ud800").encode("utf-8") + b"\n",
+    ]
+    bad_source = tmp_path / f"surrogate-{field}.jsonl"
+    bad_source.write_bytes(b"".join(bad_lines))
+
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_INGESTION_UNCONFIRMED"):
+        cli.close_out(root, SID, REQUEST, bad_source, deadline_ms=30000)
+
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] == "OWNED"
+    assert no_release_residue(root)
+
+    # Valid transcript still completes cleanly
+    result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+    assert released(root)

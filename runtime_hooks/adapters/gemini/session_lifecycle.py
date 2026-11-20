@@ -44,6 +44,7 @@ CANDIDATES_DIR = Path("artifacts/runtime/closeout_candidates")
 # Deliberately outside artifacts/runtime/sessions/<sid>/, which closeout
 # ownership requires to hold only the envelope.
 CHECKPOINTS_DIR = Path("artifacts/runtime/session-checkpoints")
+ORIGINS_DIR = Path("artifacts/runtime/gemini-session-origins")
 OWNER_RECORD = Path("artifacts/runtime/shared-closeout/owner.json")
 RELEASES_DIR = OWNER_RECORD.parent / "releases"
 # Same metadata budget/read pattern as closeout_handoff._read_native_metadata;
@@ -51,6 +52,25 @@ RELEASES_DIR = OWNER_RECORD.parent / "releases"
 MAX_TRUST_JSON_BYTES = 128 * 1024
 READBACK_LIMIT = 800
 FRAMEWORK_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _record_session_origin_cwd(root: Path, sid: str, cwd: str) -> None:
+    """Persist the verified launch cwd spelling for Windows case-variant projectHash matching."""
+    directory = root / ORIGINS_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    if directory.is_symlink() or directory.resolve() != directory:
+        raise ValueError("Session origin directory escapes project root")
+    target = directory / f"{sid}.json"
+    if target.exists():
+        return
+    record = {"schema_version": "1.0", "session_id": sid, "provider": PROVIDER,
+              "consumer_root": str(root), "launch_cwd": cwd}
+    temporary = directory / f".{sid}.{uuid.uuid4().hex}.tmp"
+    try:
+        temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(target)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _require_root(cwd: object, root: Path) -> None:
@@ -330,6 +350,8 @@ def session_start(payload: dict, project_root: Path) -> dict[str, Any]:
         )
         identity_status = started["status"]
         binding = "root_bound" if _bound_gemini_envelope(root, sid) is not None else "legacy"
+        if binding == "root_bound" and isinstance(payload.get("cwd"), str):
+            _record_session_origin_cwd(root, sid, payload["cwd"])
     readback = build_readback(root, sid, source)
     return {"session_id": sid, "source": source, "binding": binding, "identity_status": identity_status,
             "readback": readback, "additional_context": _context(root, sid, source, binding, readback)}
