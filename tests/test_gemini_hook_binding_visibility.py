@@ -349,3 +349,40 @@ def test_uninstall_ignores_malformed_null_hooks_group_without_type_error(adapter
     assert res["status"] == "uninstalled"
     after = json.loads(path.read_text(encoding="utf-8"))
     assert after["hooks"] == {"SessionEnd": [{"hooks": None}]}
+
+
+def test_commented_jsonc_and_malformed_user_settings_block_install(adapter, tmp_path, monkeypatch):
+    custom_home = tmp_path / "jsonc-gemini-home"
+    custom_settings = custom_home / ".gemini" / "settings.json"
+    custom_settings.parent.mkdir(parents=True)
+    custom_settings.write_text(
+        '// User-level Gemini CLI settings with comments\n'
+        '{\n'
+        '  /* Block comment before hooks */\n'
+        '  "hooks": {\n'
+        f'    "SessionEnd": [{{"hooks": [{{"type": "command", "command": "{LEGACY_SHELL}"}}]}}]\n'
+        '  }\n'
+        '}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("GEMINI_CLI_HOME", str(custom_home))
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert adapter.verify(repo, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
+    blocked = adapter.install(repo, tmp_path / "fw")
+    assert blocked["status"] == "blocked"
+    assert "Conflicting Governance hook" in blocked["message"]
+
+    # Malformed user settings must also fail closed rather than being ignored as {}
+    custom_settings.write_text("{ malformed json", encoding="utf-8")
+    assert adapter.verify(repo, tmp_path / "fw")["binding_state"] == "STALE_OR_WRONG_BINDING"
+    blocked_malformed = adapter.install(repo, tmp_path / "fw")
+    assert blocked_malformed["status"] == "blocked"
+    assert "user Gemini settings" in blocked_malformed["message"]
+
+
+def test_print_manual_quotes_framework_path_with_spaces_and_single_quotes(adapter, tmp_path):
+    fw = tmp_path / "Author's Framework"
+    manual = adapter.print_manual(fw)
+    expected_script = (fw / "governance_tools" / "gemini_formal_closeout.py").as_posix()
+    assert f'python "{expected_script}" --project-root' in manual

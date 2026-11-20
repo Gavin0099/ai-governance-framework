@@ -903,6 +903,8 @@ class GeminiAdapter(AgentAdapter):
     removed on install).  SessionStart establishes the root-bound identity
     (provider ``gemini``) and reads back the latest checkpoint; SessionEnd
     writes a resumable checkpoint within a 5,000 ms (5 s) timeout budget.
+    Gemini CLI loads project hooks from `<launch_dir>/.gemini/settings.json`,
+    so governed sessions must be launched from the consumer Git worktree root.
     Formal closeout is an explicit operation via ``gemini_formal_closeout.py``.
     """
 
@@ -989,11 +991,72 @@ class GeminiAdapter(AgentAdapter):
         return (target.endswith("/governance_tools/session_closeout_entry.py")
                 or target.endswith("/" + cls.LIFECYCLE_SCRIPT))
 
+    @staticmethod
+    def _strip_jsonc_comments(content: str) -> str:
+        """Strip // and /* */ comments outside JSON string literals, matching Gemini CLI strip-json-comments."""
+        out: list[str] = []
+        i = 0
+        n = len(content)
+        in_str = False
+        while i < n:
+            ch = content[i]
+            if in_str:
+                out.append(ch)
+                if ch == "\\" and i + 1 < n:
+                    out.append(content[i + 1])
+                    i += 2
+                    continue
+                if ch == '"':
+                    in_str = False
+                i += 1
+                continue
+            if ch == '"':
+                in_str = True
+                out.append(ch)
+                i += 1
+                continue
+            if ch == "/" and i + 1 < n and content[i + 1] == "/":
+                i += 2
+                while i < n and content[i] not in "\r\n":
+                    i += 1
+                continue
+            if ch == "/" and i + 1 < n and content[i + 1] == "*":
+                end_idx = content.find("*/", i + 2)
+                if end_idx == -1:
+                    raise ValueError("unterminated block comment in settings.json")
+                i = end_idx + 2
+                continue
+            out.append(ch)
+            i += 1
+        return "".join(out)
+
+    @classmethod
+    def _read_user_settings(cls, path: Path) -> dict[str, Any]:
+        """Read user-level Gemini settings (allowing JSONC comments); fail closed on invalid content."""
+        try:
+            content = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return {}
+        data = json.loads(cls._strip_jsonc_comments(content))
+        if not isinstance(data, dict):
+            raise ValueError("user settings must contain a JSON object")
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("user settings hooks must be an object")
+        return data
+
     def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
         expected = self._expected_hooks(project_root, framework_root)
         found: dict[str, list[tuple[bool, str]]] = {event: [] for event in self.MANAGED_EVENTS}
-        for path in (project_root / self.CONFIG_PATH, self._user_settings_path()):
-            hooks = _read_json(path).get("hooks", {})
+        user_path = self._user_settings_path()
+        try:
+            user_data = self._read_user_settings(user_path)
+        except (OSError, ValueError, RecursionError):
+            return "STALE_OR_WRONG_BINDING", str(user_path)
+
+        project_path = project_root / self.CONFIG_PATH
+        for path, data in ((project_path, _read_json(project_path)), (user_path, user_data)):
+            hooks = data.get("hooks", {}) if isinstance(data, dict) else {}
             if not isinstance(hooks, dict):
                 continue
             for event in self.MANAGED_EVENTS:
@@ -1092,10 +1155,15 @@ class GeminiAdapter(AgentAdapter):
         except (OSError, ValueError, RecursionError) as exc:
             return {"status": "blocked", "location": str(settings_path),
                     "message": f"Unable to safely read Gemini settings; not modified: {exc}"}
+        user_path = self._user_settings_path()
+        try:
+            user_data = self._read_user_settings(user_path)
+        except (OSError, ValueError, RecursionError) as exc:
+            return {"status": "blocked", "location": str(user_path),
+                    "message": f"Unable to safely read user Gemini settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
         if state != "CORRECTLY_INSTALLED":
-            user_path = self._user_settings_path()
-            hooks = _read_json(user_path).get("hooks", {})
+            hooks = user_data.get("hooks", {})
             for event in self.MANAGED_EVENTS:
                 groups = hooks.get(event, []) if isinstance(hooks, dict) else []
                 for group in groups if isinstance(groups, list) else []:
@@ -1158,7 +1226,7 @@ class GeminiAdapter(AgentAdapter):
         }
 
     def print_manual(self, framework_root: Path) -> str:
-        entry = (framework_root / "governance_tools" / "gemini_formal_closeout.py").as_posix()
+        entry = self._quote_arg((framework_root / "governance_tools" / "gemini_formal_closeout.py").as_posix())
         base = (f"python {entry} --project-root <PROJECT_ROOT> --session-id <SESSION_ID> "
                 f"--transcript-path <SESSION_JSONL>")
         return (

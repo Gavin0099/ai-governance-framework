@@ -52,8 +52,7 @@ def start_claude(root, sid=SID):
 
 
 def gemini_rows(root, *, sid=SID, cwd=None):
-    work = str(cwd or root)
-    project_hash = hashlib.sha256(work.encode("utf-8")).hexdigest()
+    project_hash = hashlib.sha256(str(root).encode("utf-8")).hexdigest()
     meta = {
         "sessionId": sid,
         "projectHash": project_hash,
@@ -62,7 +61,7 @@ def gemini_rows(root, *, sid=SID, cwd=None):
         "kind": "main",
     }
     if cwd is not None:
-        meta["directories"] = [work]
+        meta["directories"] = [str(cwd)]
     return [
         meta,
         {
@@ -483,27 +482,69 @@ def test_n13_uningestable_transcript_without_gemini_turn_rejected_before_request
     assert released(root)
 
 
-def test_p5_subdirectory_session_start_validates_transcript_without_directories_field(
-    repo, monkeypatch, tmp_path
-):
-    sub = repo / "src" / "deep"
-    sub.mkdir(parents=True)
-
-    def start_in_subdir(r, sid=SID):
-        gemini_session_start(
-            dict(hook_event_name="SessionStart", source="startup", session_id=sid, cwd=str(sub)),
-            r,
-        )
-
-    root, _, _ = _ready(repo, monkeypatch, tmp_path, start_in_subdir)
-    # Native Gemini CLI 0.65.0 main-session transcript started in `sub`:
-    # projectHash is sha256(str(sub)) and initial header has no `directories` or `cwd`.
-    rows = gemini_rows(root, sid=SID, cwd=sub)
-    rows[0].pop("directories", None)
-    assert "directories" not in rows[0] and "cwd" not in rows[0]
-    source = write_rows(tmp_path / "subdir-native.jsonl", rows)
+def test_p5_cached_tokens_subtracted_from_prompt_tokens(ready, tmp_path):
+    root, _, _ = ready
+    rows = gemini_rows(root, sid=SID)
+    rows[2]["tokens"] = {
+        "input": 100,
+        "output": 20,
+        "cached": 60,
+        "thoughts": 5,
+        "tool": 0,
+        "total": 125,
+    }
+    source = write_rows(tmp_path / "gemini-cached.jsonl", rows)
 
     result = cli.close_out(root, SID, REQUEST, source, deadline_ms=30000)
+    assert result["status"] == "FINALIZED"
+
+    db = root / "artifacts/codeburn_closeout_ingest.db"
+    with sqlite3.connect(db) as conn:
+        ingested = conn.execute(
+            "SELECT s.prompt_tokens, s.completion_tokens "
+            "FROM step_ingestion_provenance p JOIN steps s ON p.step_id=s.step_id "
+            "WHERE s.session_id=?",
+            (SID,),
+        ).fetchall()
+    assert ingested == [(40, 20)]
+
+
+def test_n14_overflow_tokens_and_unbound_set_directories_rejected_before_hold(
+    ready, tmp_path
+):
+    root, valid_source, _ = ready
+
+    # 1. SQLite INTEGER overflow in tokens.input rejected before request freeze or HOLD
+    overflow_rows = gemini_rows(root, sid=SID)
+    overflow_rows[2]["tokens"]["input"] = 1 << 63
+    overflow_source = write_rows(tmp_path / "overflow.jsonl", overflow_rows)
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_INGESTION_UNCONFIRMED"):
+        cli.close_out(root, SID, REQUEST, overflow_source, deadline_ms=30000)
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] == "OWNED"
+
+    # 2. cached > input rejected before request freeze or HOLD
+    bad_cache_rows = gemini_rows(root, sid=SID)
+    bad_cache_rows[2]["tokens"] = {"input": 10, "output": 5, "cached": 20}
+    bad_cache_source = write_rows(tmp_path / "bad-cache.jsonl", bad_cache_rows)
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_INGESTION_UNCONFIRMED"):
+        cli.close_out(root, SID, REQUEST, bad_cache_source, deadline_ms=30000)
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] == "OWNED"
+
+    # 3. $set.directories pointing outside the consumer worktree rejected before request freeze or HOLD
+    foreign = tmp_path / "foreign-set-dir"
+    foreign.mkdir()
+    subprocess.run(["git", "init", "--quiet", str(foreign)], check=True)
+    bad_set_rows = [*gemini_rows(root, sid=SID), {"$set": {"directories": [str(foreign)]}}]
+    bad_set_source = write_rows(tmp_path / "bad-set.jsonl", bad_set_rows)
+    with pytest.raises(h.HandoffError, match="TRANSCRIPT_SESSION_MISMATCH"):
+        cli.close_out(root, SID, REQUEST, bad_set_source, deadline_ms=30000)
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert owner(root)["state"] == "OWNED"
+
+    # Valid transcript still closes out cleanly
+    result = cli.close_out(root, SID, REQUEST, valid_source, deadline_ms=30000)
     assert result["status"] == "FINALIZED"
     assert released(root)
 

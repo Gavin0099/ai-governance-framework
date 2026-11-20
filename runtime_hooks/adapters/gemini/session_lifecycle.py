@@ -54,8 +54,12 @@ FRAMEWORK_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _require_root(cwd: object, root: Path) -> None:
-    """Gemini may start in a subdirectory: compare the cwd's Git worktree root."""
-    if not isinstance(cwd, str) or git_toplevel(cwd) != root:
+    """Gemini CLI loads .gemini/settings.json from the launch directory, which must be the worktree root."""
+    try:
+        resolved = Path(cwd).resolve(strict=True) if isinstance(cwd, str) and cwd.strip() else None
+    except OSError:
+        resolved = None
+    if resolved != root or git_toplevel(cwd) != root:
         raise ValueError("Payload cwd and installed project root do not match")
 
 
@@ -316,8 +320,8 @@ def session_start(payload: dict, project_root: Path) -> dict[str, Any]:
     sid = payload.get("session_id")
     if not is_valid_session_id(sid):
         raise ValueError("Missing or unsafe session_id; identity is never generated here")
+    _require_root(payload.get("cwd"), root)
     if source in CONTINUING_SOURCES and not (root / SESSIONS_DIR / sid / "session-envelope.json").exists():
-        _require_root(payload.get("cwd"), root)
         binding, identity_status = "UNKNOWN", "not_established"
     else:
         started = establish_bound_session(

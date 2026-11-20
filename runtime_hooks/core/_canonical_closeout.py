@@ -134,7 +134,6 @@ def write_session_envelope(
     started_at: str | None = None,
     repo_head_before: str | None = None,
     bound_consumer_root: Path | None = None,
-    started_cwd: Path | str | None = None,
 ) -> dict[str, Any]:
     """Create an envelope; only qualified Codex or VS Code SessionStart supplies a bound root.
 
@@ -174,16 +173,6 @@ def write_session_envelope(
         if (root / "artifacts/runtime/closeout-completions" / f"{normalized_session_id}.json").exists():
             raise ValueError("Completion marker exists; identity cannot be recreated")
         binding = {"consumer_root": str(root), "source": _ROOT_BOUND_SOURCE_BY_PROVIDER[provider]}
-        if started_cwd is not None:
-            resolved_cwd = Path(started_cwd).resolve(strict=True)
-            cwd_top = subprocess.run(
-                ["git", "-C", str(resolved_cwd), "rev-parse", "--show-toplevel"],
-                capture_output=True, text=True, encoding="utf-8", check=True, timeout=5,
-            )
-            if Path(cwd_top.stdout.strip()).resolve(strict=True) != root:
-                raise ValueError("started_cwd must belong to the consumer worktree root")
-            if resolved_cwd != root:
-                binding["started_cwd"] = str(resolved_cwd)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": (_ROOT_BOUND_ENVELOPE_SCHEMA_VERSION if binding is not None
@@ -252,17 +241,6 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
             root = _consumer_worktree_root(project_root)
             if _consumer_worktree_root(Path(raw_root)) != root:
                 return None
-            if "started_cwd" in binding:
-                raw_cwd = binding.get("started_cwd")
-                if not isinstance(raw_cwd, str) or not raw_cwd.strip():
-                    return None
-                resolved_cwd = Path(raw_cwd).resolve(strict=True)
-                cwd_top = subprocess.run(
-                    ["git", "-C", str(resolved_cwd), "rev-parse", "--show-toplevel"],
-                    capture_output=True, text=True, encoding="utf-8", check=True, timeout=5,
-                )
-                if Path(cwd_top.stdout.strip()).resolve(strict=True) != root:
-                    return None
             # A relocated/symlinked envelope is not evidence for this target.
             expected = root / "artifacts/runtime/sessions" / session_id / "session-envelope.json"
             if (not expected.is_relative_to(root / "artifacts/runtime/sessions")

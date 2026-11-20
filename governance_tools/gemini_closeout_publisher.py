@@ -26,7 +26,7 @@ GEMINI = n.Profile(event_provider="gemini",
                    format_version=FORMAT_VERSION,
                    provider_class=h.GeminiTranscriptProvider,
                    snapshot_validator=h._validate_gemini_snapshot,
-                   cwd_matches_root=h._same_worktree_root)
+                   cwd_matches_root=h._same_root_dir)
 
 
 def publish(consumer_root, payload, *, deadline_ms=None, budget=None):

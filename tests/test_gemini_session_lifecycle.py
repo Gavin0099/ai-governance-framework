@@ -96,12 +96,12 @@ def test_clear_starts_new_identity(repo):
     assert (result["binding"], result["identity_status"]) == ("root_bound", "created")
 
 
-def test_subdirectory_start_binds_the_worktree_root(repo):
+def test_subdirectory_start_is_rejected_without_writes(repo):
     sub = repo / "src" / "deep"
     sub.mkdir(parents=True)
-    result = start(repo, cwd=sub)
-    assert result["binding"] == "root_bound"
-    assert core.read_session_envelope(SID_A, repo)["repo_binding"]["consumer_root"] == str(repo)
+    with pytest.raises(ValueError, match="do not match"):
+        start(repo, cwd=sub)
+    assert runtime(repo) == []
 
 
 def test_foreign_repo_cwd_is_rejected_without_writes(repo, tmp_path):

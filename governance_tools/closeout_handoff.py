@@ -519,33 +519,73 @@ class ClaudeTranscriptProvider:
         return path
 
 
-def _candidate_project_hashes(path_str: str) -> set[str]:
-    candidates = {path_str, path_str.replace("\\", "/"), path_str.replace("/", "\\")}
+_MAX_SQLITE_INT = (1 << 63) - 1
+
+
+def _same_root_dir(cwd, root):
+    """Gemini CLI loads project hooks from the launch directory, which must be root itself."""
     try:
-        resolved = str(Path(path_str).resolve())
-        candidates.update({resolved, resolved.replace("\\", "/"), resolved.replace("/", "\\")})
-    except OSError:
-        pass
-    for item in list(candidates):
-        candidates.add(item.lower())
-        if len(item) >= 2 and item[1] == ":":
-            candidates.add(item[0].upper() + item[1:])
-            candidates.add(item[0].lower() + item[1:])
-    return {hashlib.sha256(item.encode("utf-8")).hexdigest() for item in candidates}
+        return (type(cwd) is str and bool(cwd.strip())
+                and Path(cwd).resolve(strict=True) == Path(root)
+                and git_toplevel(cwd) == Path(root))
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return False
+
+
+def _candidate_project_hashes(target_dir: Path) -> set[str]:
+    """Hashes for path spellings that refer to the exact same directory on this filesystem."""
+    resolved = target_dir.resolve(strict=True)
+    target_stat = os.stat(resolved)
+    raw = str(resolved)
+    candidates = {raw, resolved.as_posix()}
+    if os.name == "nt":
+        candidates.add(raw.replace("/", "\\"))
+        for item in list(candidates):
+            if len(item) >= 2 and item[1] == ":":
+                candidates.add(item[0].upper() + item[1:])
+                candidates.add(item[0].lower() + item[1:])
+    verified = set()
+    for item in candidates:
+        try:
+            if os.path.samestat(os.stat(item), target_stat):
+                verified.add(hashlib.sha256(item.encode("utf-8")).hexdigest())
+        except OSError:
+            continue
+    return verified
+
+
+def _valid_gemini_token_int(value) -> bool:
+    return type(value) is int and 0 <= value <= _MAX_SQLITE_INT
+
+
+def _validate_gemini_tokens_dict(tokens) -> bool:
+    if tokens is None:
+        return True
+    if type(tokens) is not dict:
+        return False
+    raw_in = tokens.get("input")
+    raw_out = tokens.get("output")
+    raw_cached = tokens.get("cached")
+    if raw_in is not None and not _valid_gemini_token_int(raw_in):
+        return False
+    if raw_out is not None and not _valid_gemini_token_int(raw_out):
+        return False
+    if raw_cached is not None:
+        if not _valid_gemini_token_int(raw_cached):
+            return False
+        if raw_in is not None and raw_cached > raw_in:
+            return False
+    return True
 
 
 def _validate_gemini_snapshot(path, sid, root, check):
     # Gemini CLI's .jsonl transcript opens with an initial metadata record
     # carrying top-level sessionId and projectHash (SHA-256 of the project
-    # root), plus optional directories / cwd fields.
+    # root), plus optional directories / cwd fields and $set metadata updates.
     checked_cwds = {}
     framework_root = None
     framework_checked = False
-    allowed_hashes = _candidate_project_hashes(str(root))
-    envelope = r2.read_session_envelope(sid, root) or {}
-    started_cwd = (envelope.get("repo_binding") or {}).get("started_cwd")
-    if isinstance(started_cwd, str) and _same_worktree_root(started_cwd, root):
-        allowed_hashes.update(_candidate_project_hashes(started_cwd))
+    allowed_hashes = _candidate_project_hashes(Path(root))
     project_hash = None
 
     def check_workspace_dir(cwd):
@@ -560,7 +600,19 @@ def _validate_gemini_snapshot(path, sid, root, check):
                 allowed = _transcript_cwd_in_consumer(cwd, root, framework_root)
             checked_cwds[cwd] = allowed
         _require(checked_cwds[cwd], "TRANSCRIPT_SESSION_MISMATCH")
-        allowed_hashes.update(_candidate_project_hashes(cwd))
+
+    def check_metadata_fields(obj):
+        if "sessionId" in obj:
+            _require(obj["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
+        if "projectHash" in obj:
+            _require(obj["projectHash"] == project_hash, "TRANSCRIPT_SESSION_MISMATCH")
+        if "cwd" in obj:
+            check_workspace_dir(obj["cwd"])
+        if "directories" in obj and obj["directories"] is not None:
+            dirs = obj["directories"]
+            _require(type(dirs) is list and bool(dirs), "TRANSCRIPT_SESSION_MISMATCH")
+            for d in dirs:
+                check_workspace_dir(d)
 
     with path.open("rb") as stream:
         total = 0
@@ -580,26 +632,21 @@ def _validate_gemini_snapshot(path, sid, root, check):
                 _require(type(project_hash) is str and bool(_SHA.fullmatch(project_hash)),
                          "TRANSCRIPT_SESSION_MISMATCH")
                 first = False
-            if "sessionId" in record:
-                _require(record["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
-            if "cwd" in record:
-                check_workspace_dir(record["cwd"])
-            if "directories" in record and record["directories"] is not None:
-                dirs = record["directories"]
-                _require(type(dirs) is list and bool(dirs), "TRANSCRIPT_SESSION_MISMATCH")
-                for d in dirs:
-                    check_workspace_dir(d)
+            check_metadata_fields(record)
+            if "$set" in record:
+                _require(type(record["$set"]) is dict, "TRANSCRIPT_SESSION_MISMATCH")
+                check_metadata_fields(record["$set"])
             if record.get("type") == "gemini":
-                tokens = record.get("tokens")
-                if tokens is None or type(tokens) is dict:
-                    seen_ingestable_gemini = True
+                _require(_validate_gemini_tokens_dict(record.get("tokens")),
+                         "TRANSCRIPT_INGESTION_UNCONFIRMED")
+                seen_ingestable_gemini = True
         _require(not first, "EMPTY_TRANSCRIPT")
         if project_hash not in allowed_hashes:
             if not framework_checked:
                 framework_root = _registered_framework_root(root)
                 framework_checked = True
             if framework_root is not None:
-                allowed_hashes.update(_candidate_project_hashes(str(framework_root)))
+                allowed_hashes.update(_candidate_project_hashes(Path(framework_root)))
         _require(project_hash in allowed_hashes, "TRANSCRIPT_SESSION_MISMATCH")
         _require(seen_ingestable_gemini, "TRANSCRIPT_INGESTION_UNCONFIRMED")
 
@@ -643,7 +690,7 @@ class GeminiTranscriptProvider:
         _require(type(payload) is dict and payload.get("hook_event_name") == "SessionEnd"
                  and payload.get("session_id") == ref["session_id"]
                  and payload.get("reason") == m["binding"]["native_event"]["reason"]
-                 and _same_worktree_root(payload.get("cwd"), root)
+                 and _same_root_dir(payload.get("cwd"), root)
                  and payload.get("transcript_path") == m["source"]["path"],
                  "INVALID_NATIVE_PAYLOAD")
         _require(datetime.fromisoformat(m["captured_at"]).tzinfo is not None, "INVALID_TIMESTAMP")

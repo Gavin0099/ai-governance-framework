@@ -10,7 +10,9 @@ Epistemic contract:
   - analysis_safe_for_decision = 0 always (schema also enforces this)
   - provider_truthfulness_assumed = 0 always (schema also enforces this)
   - missing token fields -> NULL, never 0
-  - malformed records -> quarantined_records, never silently dropped
+  - prompt_tokens stores non-cached input tokens (tokens.input - tokens.cached)
+    per schema.sql line 33 (IAF-4 compliant)
+  - malformed or out-of-range records -> quarantined_records, never silently dropped
   - duplicate message-id updates (e.g. tool-call updates) are coalesced by
     message id so token usage is never double-counted
   - source_record_offset is computed from raw file bytes in binary mode
@@ -30,10 +32,15 @@ _ACQUISITION_MODE = "session_log_ingestion"
 _REAL_TIME_OBSERVED = 0
 _ANALYSIS_SAFE_FOR_DECISION = 0
 _PROVIDER_TRUTHFULNESS_ASSUMED = 0
+_MAX_SQLITE_INT = (1 << 63) - 1
 
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _valid_token_int(value: Any) -> bool:
+    return type(value) is int and 0 <= value <= _MAX_SQLITE_INT
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -213,6 +220,51 @@ def ingest(
                 quarantined += 1
                 continue
 
+            prompt_tokens: Optional[int] = None
+            completion_tokens: Optional[int] = None
+            if isinstance(tokens, dict):
+                raw_input = tokens.get("input")
+                raw_output = tokens.get("output")
+                raw_cached = tokens.get("cached")
+                if raw_input is not None and not _valid_token_int(raw_input):
+                    _quarantine(
+                        conn,
+                        source_path_str,
+                        line_number,
+                        line_byte_offset,
+                        "invalid_token_count: tokens.input out of SQLite integer bounds",
+                        raw_stripped,
+                    )
+                    quarantined += 1
+                    continue
+                if raw_output is not None and not _valid_token_int(raw_output):
+                    _quarantine(
+                        conn,
+                        source_path_str,
+                        line_number,
+                        line_byte_offset,
+                        "invalid_token_count: tokens.output out of SQLite integer bounds",
+                        raw_stripped,
+                    )
+                    quarantined += 1
+                    continue
+                if raw_cached is not None:
+                    if not _valid_token_int(raw_cached) or (raw_input is not None and raw_cached > raw_input):
+                        _quarantine(
+                            conn,
+                            source_path_str,
+                            line_number,
+                            line_byte_offset,
+                            "invalid_token_count: tokens.cached invalid or exceeds tokens.input",
+                            raw_stripped,
+                        )
+                        quarantined += 1
+                        continue
+                if raw_input is not None:
+                    prompt_tokens = raw_input - (raw_cached if raw_cached is not None else 0)
+                if raw_output is not None:
+                    completion_tokens = raw_output
+
             source_record_id = (
                 record.get("id").strip()
                 if isinstance(record.get("id"), str) and record.get("id").strip()
@@ -221,16 +273,6 @@ def ingest(
             source_record_timestamp = (
                 record.get("timestamp") if isinstance(record.get("timestamp"), str) else None
             )
-
-            prompt_tokens: Optional[int] = None
-            completion_tokens: Optional[int] = None
-            if isinstance(tokens, dict):
-                raw_input = tokens.get("input")
-                raw_output = tokens.get("output")
-                if isinstance(raw_input, int) and not isinstance(raw_input, bool):
-                    prompt_tokens = raw_input
-                if isinstance(raw_output, int) and not isinstance(raw_output, bool):
-                    completion_tokens = raw_output
 
             entry = {
                 "line_number": line_number,
