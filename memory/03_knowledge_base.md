@@ -538,7 +538,7 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Daily record: memory/2026-11-03.md (memory_record, commit 557d41801981e8ab9d7055ef2fd77a9040c541cd)
 
 ### Follow-up: Explicit edit limits can exclude required records (2026-11-20)
-- Root cause: Rule 4 still left open whether an explicit ban on edits outside named paths excluded a record under those paths. [PR #282](https://github.com/Gavin0099/ai-governance-framework/pull/282) records the earlier interpretation mismatch at 27cd3a48. The current batch clarifies that an explicit restriction applies when it covers the record.
+- Root cause: Rule 4 still left open whether an explicit ban on edits outside named paths excluded a record elsewhere. [PR #282](https://github.com/Gavin0099/ai-governance-framework/pull/282) records the earlier interpretation mismatch at 27cd3a48. The current batch clarifies that an explicit restriction applies when it covers the record.
 - Fix: State that an explicit edit ban covering a record excludes that record and requires reporting it as unwritten. Keep the existing default for ordinary task scope and synchronize all six projections.
 - Fix commit: 8cd8735a4494857aba8547bf265182c1dd3b3250
 - Test evidence: 104 focused projection and instruction-budget tests passed. See [test receipt](../artifacts/evidence/test-results/receipt-282-explicit-edit-boundary-20261120.json). Native agent behavior remains unverified.
