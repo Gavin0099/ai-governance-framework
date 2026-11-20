@@ -194,7 +194,7 @@ def _capture(lease, payload, binding, check, profile=CODEX):
 
 def publish(consumer_root, payload, *, deadline_ms=None, budget=None, profile=CODEX):
     """Publish only; explicit invocation is not evidence of native hook firing."""
-    expected_version = {"codex": "1.1", "claude": "1.2"}[profile.event_provider]
+    expected_version = {"codex": "1.1", "claude": "1.2", "gemini": "1.3"}[profile.event_provider]
     if budget is None:
         budget = Budget(deadline_ms)
     check = budget.check

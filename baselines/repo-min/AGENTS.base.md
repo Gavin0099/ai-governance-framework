@@ -137,7 +137,7 @@ python -B <framework>/governance_tools/prepare_closeout_candidate.py --consumer-
 ```
 
 `<session-id>` is the platform's own session id (`CODEX_THREAD_ID` in Codex,
-`CLAUDE_CODE_SESSION_ID` in Claude Code; in VS Code Copilot or Copilot CLI, the id that the
+`CLAUDE_CODE_SESSION_ID` in Claude Code, `GEMINI_SESSION_ID` in Gemini CLI; in VS Code Copilot, Copilot CLI, or Gemini CLI, the id that the
 governed SessionStart hook adds to the conversation as `additionalContext`),
 and it must equal `session_id` in
 `artifacts/runtime/.current-session-id`. That file names the most recently
@@ -151,16 +151,17 @@ and `artifacts/session-closeout.txt` were written together under R2 ownership,
 and that text takes part in R2's consistency check with the candidate.
 `PREPARED` reports only preparation.
 
-In Claude Code, SessionEnd saves a resumable checkpoint. On an explicit owner
+In Claude Code and Gemini CLI, SessionEnd saves a resumable checkpoint. On an explicit owner
 request, prepare first, then run this from the registered framework checkout
-with your session ID and the absolute path to its transcript:
+with your session ID and the absolute path to its transcript (`claude_formal_closeout` for Claude Code, `gemini_formal_closeout` for Gemini CLI):
 
 ```text
 python -B -m governance_tools.claude_formal_closeout --owner-request "<what the owner asked>" --project-root <repo> --session-id <session-id> --transcript-path <session.jsonl>
+python -B -m governance_tools.gemini_formal_closeout --owner-request "<what the owner asked>" --project-root <repo> --session-id <session-id> --transcript-path <session.jsonl>
 ```
 
 For a standing owner authorization, see
-`manage_agent_closeout print-manual --agent claude`. Confirm formal closeout
+`manage_agent_closeout print-manual --agent claude` (or `--agent gemini`). Confirm formal closeout
 from the resulting R2 evidence.
 
 On Codex and Copilot, leave prepared closeout to the harness.

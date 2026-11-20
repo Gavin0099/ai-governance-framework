@@ -398,7 +398,7 @@ def confirm_prepared(lease: Lease, session_id: str, generation: int) -> dict:
 # Providers whose release requires an owner closeout attestation (#233). The
 # provider is read from the canonical session envelope, never from a
 # caller-supplied agent_id, which any entry point can fill in freely.
-_ATTESTATION_REQUIRED_PROVIDERS = frozenset({"claude"})
+_ATTESTATION_REQUIRED_PROVIDERS = frozenset({"claude", "gemini"})
 
 
 def _require_closeout_attested(lease, owner: dict) -> None:
