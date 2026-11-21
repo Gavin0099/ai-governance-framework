@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest -q --tb=short -p no:cacheprovider --basetemp E:/g315/codex-tmp/n18 tests/test_closeout_completion_integrity.py::test_missing_accepted_artifacts_replay tests/test_closeout_completion_integrity.py::test_invalid_completion_marker_refuses_replay tests/test_closeout_completion_integrity.py::test_real_entry_refuses_changed_accepted_closeout tests/test_closeout_completion_integrity.py::test_standalone_cli_completion_replay tests/test_closeout_handoff.py::test_tail_reconcile_digest_mismatch_recovers_after_restore tests/test_prepare_closeout_candidate.py::test_unconsumed_session_without_envelope_rejects_before_writes tests/test_shared_closeout_ownership.py::test_reconcile_release_checks_accepted_canonical tests/test_adopt_governance_gitignore_hygiene.py::test_installed_gitignore_matches_runtime_outputs_only tests/test_claude_hook_binding_visibility.py::test_claude_only_install_projects_formal_closeout_guidance tests/test_claude_hook_binding_visibility.py::test_claude_install_reuses_starter_pack_checkpoint_projection tests/test_hook_installer.py::test_copilot_instructions_crlf_write_matches_b6a04e3c tests/test_hook_installer.py::test_claude_install_preserves_bytes_outside_managed_block tests/test_prepare_closeout_candidate.py::test_git_failure_rejection_preserves_fail_closed_and_explains_ownership tests/test_session_end_memory_input.py::test_unprepared_copilot_cli_bridge_exits_with_fail_closed_audit",
+  "exit_code": 0,
+  "started_at": "2026-11-18T15:56:13Z",
+  "finished_at": "2026-11-18T15:57:36Z",
+  "runner": "codex",
+  "linked_commit": "4ea65dddf316d3d712d67d578388cbaec3ff62c9",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/native-acceptance-n6-s3-s4-20261118.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

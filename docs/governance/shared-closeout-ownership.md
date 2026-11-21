@@ -47,6 +47,13 @@ A same-session unconsumed preparation retry must reserve a new candidate;
 previous candidates are never changed or deleted. Another session cannot take
 an OWNED/HOLD generation. Consumed sessions cannot prepare again.
 
+**Owner ruling (2026-11-18).** `prepare_closeout_candidate` trusts the session
+ID supplied by the agent. It checks for a qualified envelope and an unconsumed
+session. Caller identity is outside the prepare check, so in one consumer a
+session can prepare for another live session, including one from another
+provider. This is part of the cooperative threat model. R2 still verifies the
+named session's own transcript and identity at closeout.
+
 Initial adoption requires no shared text, unexplained ownership/release artifacts,
 or active/orphan/incomplete lifecycle evidence. The bounded inventory covers
 sessions, candidates, closeout candidates, completions, closeouts, curated,
@@ -84,8 +91,27 @@ completion. An already-published exact release record is reused unchanged; a
 conflicting record rejects. Exact already-RELEASED reconciliation is idempotent.
 Missing/partial/malformed receipt or mismatched ownership remains fail-closed.
 
-Publication guarantees atomic visibility and process-crash recovery, not power-loss
-durability or protection against hostile filesystem writers. Windows and POSIX
+Recovery with existing commands requires a valid reserved receipt or a
+consistent receipt-material checkpoint on disk. When the completion marker
+records `canonical_closeout_sha256`, replay and R2 release verification refuse
+a missing or mismatched canonical closeout. A valid reserved receipt can be
+reconciled once the exact accepted bytes are restored. If only a consistent
+checkpoint exists, rerun the same authorized handoff: it publishes the receipt
+and completes release directly.
+
+### Known limitations
+
+- A writer outside R2's lock can replace canonical bytes A with B after the
+  marker binds A but before the handoff checkpoints receipt material. If the
+  process then crashes before publishing the receipt, the owner stays in
+  `HOLD`: A matches the marker but not the checkpoint, while B matches the
+  checkpoint but not the marker. No existing command recovers this state.
+- If the process stops after R2 enters `HOLD` but before either the reserved
+  receipt or its checkpoint is written, no existing command can resume the
+  handoff or release ownership, even if no completion marker was published.
+
+Publication guarantees atomic visibility, not power-loss durability or
+protection against hostile filesystem writers. Windows and POSIX
 backends require separate platform evidence; local Windows tests do not qualify
 POSIX or native host lifecycle activation.
 

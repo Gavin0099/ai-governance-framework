@@ -198,11 +198,19 @@ def test_bound_writer_cannot_recreate_consumed_identity(repo):
 
 # 'claude' became a root-bound provider with its own source (owner-approved in #231);
 # it is covered by test_claude_binds_with_its_own_source below.
-@pytest.mark.parametrize('provider', ['unknown', 'github-copilot'])
+# 'github-copilot' (standalone Copilot CLI) became root-bound with its own source on 2026-11-11;
+# covered by test_copilot_cli_binds_with_its_own_source below.
+@pytest.mark.parametrize('provider', ['unknown'])
 def test_other_providers_cannot_claim_codex_binding(repo, provider):
     with pytest.raises(ValueError, match='Codex'):
         core.write_session_envelope('session-a', repo, provider=provider, bound_consumer_root=repo)
     assert not (repo/'artifacts').exists()
+
+
+def test_copilot_cli_binds_with_its_own_source(repo):
+    created = core.write_session_envelope('session-a', repo, provider='github-copilot', bound_consumer_root=repo)
+    assert created['repo_binding']['source'] == 'copilot_cli_session_start'
+    assert core.read_session_envelope('session-a', repo)['provider'] == 'github-copilot'
 
 
 def test_legacy_writer_cannot_downgrade_bound_envelope(repo):

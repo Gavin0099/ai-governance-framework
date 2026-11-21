@@ -92,6 +92,8 @@ def test_session_end_hook_writes_non_missing_canonical_closeout_when_closeout_pr
 
 def test_session_end_hook_accepts_closeout_metadata_lines_when_closeout_present() -> None:
     repo = _reset_fixture("bridge_metadata_lines")
+    # CHECKS_RUN below claims an earlier local hook execution, not a mention.
+    (repo / "artifacts" / "runtime" / "verdicts").mkdir(parents=True, exist_ok=True)
     session_id = "bridge-metadata-lines"
     write_session_envelope(session_id, repo, provider="test")
     closeout = repo / "artifacts" / "session-closeout.txt"

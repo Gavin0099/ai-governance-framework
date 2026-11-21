@@ -13,9 +13,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+from governance_tools import prepare_closeout_candidate as preparation
 from runtime_hooks.adapters.claude_code import session_lifecycle as lc
 from runtime_hooks.core import _canonical_closeout as core
 from tests.test_prepare_closeout_candidate import (
@@ -50,8 +52,14 @@ def end(root, sid=SID_A, reason="prompt_input_exit"):
 
 
 def save(root, sid, **fields):
-    return core.write_candidate(sid, root, {**{"task_intent": "t", "work_summary": "w", "open_risks": []},
-                                            **fields})
+    # Exercise real prepare/ownership; only submodule qualification is stubbed
+    # for the small unit fixtures. The integration tests below use the CLI.
+    with patch.object(preparation, "validate_framework_binding", return_value=(root, FRAMEWORK)):
+        result = preparation.prepare(root, FRAMEWORK, sid, {
+            "task_intent": "t", "work_summary": "w", "tools_used": [],
+            "artifacts_referenced": [], "open_risks": [], **fields,
+        })
+    return root / result["candidate_identity"]["relative_path"]
 
 
 def runtime(root):
@@ -170,14 +178,14 @@ def test_tampered_checkpointed_summary_is_not_injected(repo):
     assert readback["state"] == "checkpoint_mismatch" and readback["summary"] is None
 
 
-def test_newer_summary_after_checkpoint_is_flagged(repo):
+def test_previous_checkpoint_is_unverified_when_a_new_prepare_replaces_its_anchor(repo):
     start(repo)
     save(repo, SID_A, work_summary="first", )
     end(repo)
     save(repo, SID_A, work_summary="second, not yet checkpointed")
     readback = start(repo, source="resume")["readback"]
-    assert readback["state"] == "newer_summary_after_checkpoint"
-    assert "first" in readback["summary"]  # only the verified, checkpointed content
+    assert readback["state"] == "checkpoint_mismatch"
+    assert readback["summary"] is None
 
 
 def test_readback_is_bounded_and_marked_as_data(repo):
@@ -267,11 +275,13 @@ def test_exit_resume_save_again_exit_reads_back_latest(consumer):
 
     resumed = hook(consumer, "session_start", {**base, "hook_event_name": "SessionStart", "source": "resume"})
     context = json.loads(resumed.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert "first pass" in context
+    assert "first pass" in context and "state=checkpointed" in context
 
     second = invoke(consumer, sid=SID_A, inputs={**INPUT, "work_summary": "second pass"})
     assert second.returncode == 0, second.stdout  # same session may prepare again after resume
     assert owner(consumer)["generation"] == 2
+    pending = start(consumer, source="resume")["readback"]
+    assert pending["state"] == "checkpoint_mismatch" and pending["summary"] is None
     assert hook(consumer, "session_end", {**base, "hook_event_name": "SessionEnd", "reason": "other"}).returncode == 0
 
     again = hook(consumer, "session_start", {**base, "hook_event_name": "SessionStart", "source": "resume"})

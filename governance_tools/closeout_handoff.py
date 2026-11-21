@@ -19,7 +19,9 @@ import subprocess
 import uuid
 
 from governance_tools import shared_closeout_ownership as r2
-from governance_tools.prepare_closeout_candidate import validate_framework_binding, _git
+from governance_tools.prepare_closeout_candidate import (
+    inherited_git_overrides, validate_framework_binding, _git,
+)
 from runtime_hooks.core._bound_session_start import git_toplevel
 
 ENTRYPOINT = "governance_tools.closeout_handoff"
@@ -360,12 +362,50 @@ def _same_worktree_root(cwd, root):
         return False
 
 
+def _registered_framework_root(root):
+    """The consumer's one registered governance framework submodule, or None.
+
+    Reuses _framework_identity, so the full binding check applies: exactly one
+    submodule registration, a committed gitlink, checkout HEAD equal to the
+    gitlink, a clean checkout, and the lock's adopted_commit equal to the
+    gitlink. Anything short of that is None and the caller fails closed.
+    """
+    try:
+        identity = _framework_identity(root)
+        return (Path(root) / identity["relative_path"]).resolve(strict=True)
+    except (ValueError, TypeError, KeyError, OSError, subprocess.SubprocessError):
+        return None
+
+
+def _transcript_cwd_in_consumer(cwd, root, framework_root):
+    """A transcript cwd belongs to this consumer's work (#233 follow-up).
+
+    Accepted: the consumer's own worktree root and its subdirectories, as in
+    _same_worktree_root; and the consumer's registered framework submodule and
+    its subdirectories, because agents are told to run the governance tools
+    from that checkout. Any other nested repository, submodule or worktree,
+    and any path outside the consumer, is still rejected. This widens only what
+    a transcript may name: SessionStart binding, the SessionEnd payload cwd,
+    ownership, receipts and release proof keep _same_worktree_root, and a cwd
+    in the framework grants no right to change the framework.
+    """
+    try:
+        if type(cwd) is not str:
+            return False
+        top = git_toplevel(cwd)
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return False
+    return top == Path(root) or (framework_root is not None and top == framework_root)
+
+
 def _validate_claude_snapshot(path, sid, root, check):
     # Claude's transcript opens with a queue-operation record carrying a
     # top-level sessionId, and cwd appears on later records. Supported JSONL
     # identity only; no last-record or completeness heuristic, and the absence
     # of a session_meta header is not treated as a defect.
     checked_cwds = {}
+    framework_root = None
+    framework_checked = False
     with path.open("rb") as stream:
         total = 0
         first = True
@@ -382,14 +422,22 @@ def _validate_claude_snapshot(path, sid, root, check):
                 _require(record.get("sessionId") == sid, "TRANSCRIPT_SESSION_MISMATCH")
                 first = False
             # Every session id the transcript names must be this session, and
-            # every cwd it names must sit in this consumer's worktree.
+            # every cwd it names must sit in this consumer's worktree or its
+            # registered framework submodule.
             if "sessionId" in record:
                 _require(record["sessionId"] == sid, "TRANSCRIPT_SESSION_MISMATCH")
             if "cwd" in record:
                 cwd = record["cwd"]
                 _require(type(cwd) is str and cwd.strip(), "TRANSCRIPT_SESSION_MISMATCH")
                 if cwd not in checked_cwds:
-                    checked_cwds[cwd] = _same_worktree_root(cwd, root)
+                    allowed = _same_worktree_root(cwd, root)
+                    if not allowed:
+                        # Resolved only when needed, once per snapshot.
+                        if not framework_checked:
+                            framework_root = _registered_framework_root(root)
+                            framework_checked = True
+                        allowed = _transcript_cwd_in_consumer(cwd, root, framework_root)
+                    checked_cwds[cwd] = allowed
                 _require(checked_cwds[cwd], "TRANSCRIPT_SESSION_MISMATCH")
                 seen_cwd = True
         _require(not first, "EMPTY_TRANSCRIPT")
@@ -476,7 +524,7 @@ def _framework_identity(root):
 
 def _framework_preflight(root):
     """Structural rejection only; registration authority is established in-lease."""
-    _require(not any(k.upper().startswith("GIT_") for k in os.environ), "GIT_OVERRIDE")
+    _require(not inherited_git_overrides(), "GIT_OVERRIDE")
     framework = FRAMEWORK.resolve(strict=True)
     _require(framework != root and framework.is_relative_to(root), "FRAMEWORK_ROOT_MISMATCH")
     _require(r2._path(root, framework.relative_to(root).as_posix()) == framework,
@@ -811,7 +859,8 @@ def _receipt_material_record(lease, request, attempt, receipt):
     b = request["binding"]
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
-    _require(owner["state"] == "HOLD" and owner["hold_reason"] in {"closeout_pending", "failed"},
+    _require(owner["state"] == "HOLD"
+             and owner["hold_reason"] in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH},
              "RECEIPT_MATERIAL_OWNER")
     r2._receipt_schema(receipt)
     _require(receipt.get("r2_binding") == r2.receipt_binding(owner)
@@ -967,7 +1016,7 @@ def _validate_recovery_owner(lease, request, owner):
         return {"status": "RECOVERABLE", "recovery_kind": "finalization"}
     if owner["state"] != "HOLD":
         return {"status": "UNKNOWN", "reason": "NO_RECOVERY_PENDING"}
-    if owner["hold_reason"] not in {"closeout_pending", "failed"}:
+    if owner["hold_reason"] not in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH}:
         return {"status": "UNKNOWN", "reason": "PREPARATION_HOLD"}
     linked = [(p, a) for p, a in _attempts(root, request) if a["receipt_identity"] is not None]
     receipt_path = r2._path(root, r2._receipt_relative(owner))
@@ -989,12 +1038,12 @@ def _validate_recovery_owner(lease, request, owner):
     expected = _validate_final_receipt(root, b, attempt, receipt_bytes)
     sha = _sha(receipt_bytes)
     _require(owner["receipt_sha256"] in (None, sha), "RELEASE_PROOF_INVALID")
-    _require(r2._completion(root, b["session_id"]), "RELEASE_PROOF_INVALID")
     if receipt_path.exists():
         r2._receipt_proof(lease, owner)
     else:
-        # Existing R2 publisher cannot publish into a failed HOLD.
-        _require(owner["hold_reason"] == "closeout_pending", "RELEASE_PROOF_INVALID")
+        _require(owner["hold_reason"] in {"closeout_pending", r2._CANONICAL_CLOSEOUT_MISMATCH},
+                 "RELEASE_PROOF_INVALID")
+        _require(r2._completion(root, b["session_id"], verify_canonical=True), "RELEASE_PROOF_INVALID")
     release = _release_path(root, b)
     if release.exists():
         _require(release.read_bytes() == r2._bytes({**expected, "receipt_sha256": sha, "state": "RELEASED"}),
@@ -1050,11 +1099,12 @@ def consume_exact_request(consumer_root: Path, request_id: str, *, session_id: s
         attempts = _attempts(root, request)
         reserved = [(p, a) for p, a in attempts if a["receipt_identity"] is not None]
         if owner["state"] == "HOLD":
-            _require(owner["hold_reason"] in {"closeout_pending", "failed"}
+            _require(owner["hold_reason"] in {"closeout_pending", "failed", r2._CANONICAL_CLOSEOUT_MISMATCH}
                      and owner["receipt_identity"] is not None, "FAILED_HOLD")
             if reserved:
                 _require(reserved[0][1]["receipt_identity"] == owner["receipt_identity"], "RECEIPT_RESERVATION_CONFLICT")
             else:
+                _require(owner["hold_reason"] != r2._CANONICAL_CLOSEOUT_MISMATCH, "MISSING_RESERVED_ATTEMPT")
                 _require(bool(attempts), "MISSING_CLAIM")
                 # Only one unreserved claim can be the interrupted last claim.
                 p, a = attempts[-1]

@@ -68,7 +68,11 @@ def parse_header(text: str) -> dict:
 
 
 def parse_current_phase(text: str) -> dict:
-    for match in re.finditer(r"\[([xX>~ ])\]\s*(Phase\s+\w+)\s*:\s*(.+)", text):
+    lines, code = plan_source_lines(text)
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"\s*(?:[-+*]\s+)?\[([xX>~ ])\]\s*(Phase\s+\w+)\s*:\s*(.+)", line)
+        if number in code or not match:
+            continue
         if match.group(1) in {">", "~"}:
             return {
                 "id": match.group(2).replace(" ", ""),
@@ -79,7 +83,11 @@ def parse_current_phase(text: str) -> dict:
 
 def parse_gate_status(text: str) -> dict:
     statuses = {}
-    for match in re.finditer(r"\[([xX>~ ])\]\s*(Phase\s+\w+)(?:\s*:\s*(.*))?", text):
+    lines, code = plan_source_lines(text)
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"\s*(?:[-+*]\s+)?\[([xX>~ ])\]\s*(Phase\s+\w+)(?:\s*:\s*(.*))?", line)
+        if number in code or not match:
+            continue
         marker = match.group(1)
         phase = match.group(2).replace(" ", "")
         detail = (match.group(3) or "").strip().lower()
@@ -94,31 +102,135 @@ def parse_gate_status(text: str) -> dict:
     return statuses
 
 
-def parse_sprint_tasks(text: str) -> list[dict]:
-    match = re.search(r"##\s*Current Sprint(.*?)(?=\n##|\Z)", text, re.DOTALL | re.IGNORECASE)
-    if not match:
-        return []
+_PLAN_CHECKBOX = re.compile(r"^(\s*)(?:[-+*]|\d+[.)])\s+\[([ xX>~])\]\s*(.*)$")
+_PLAN_LIST = re.compile(r"^(\s*)(?:[-+*]|\d+[.)])\s+")
+_PLAN_PRIORITY = re.compile(r"^P(\d+)(?:-[A-Z][A-Z0-9]*)?(?:\s*[-:—–]|\s*$)")
+_PLAN_HISTORY = re.compile(r"^(?:historical\b|history\b|archive[ds]?\b|歷史|封存)", re.I)
 
+
+def plan_source_lines(text: str) -> tuple[list[str], set[int]]:
+    """Return source lines and fenced-code line numbers (one based)."""
+    lines = text.splitlines()
+    code = set()
+    fence = None
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"^\s*(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            code.add(number)
+            if match and match[1][0] == fence[0] and len(match[1]) >= len(fence) and not match[2].strip():
+                fence = None
+        elif match:
+            fence = match[1]
+            code.add(number)
+    return lines, code
+
+
+def parse_plan_headings(text: str) -> list[dict]:
+    """Markdown heading subtrees, ignoring examples inside fenced code."""
+    lines, code = plan_source_lines(text)
+    headings = []
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$", line.lstrip("\ufeff"))
+        if match and number not in code:
+            headings.append({"heading": match[2], "level": len(match[1]), "line": number})
+    for index, heading in enumerate(headings):
+        heading["end_line"] = next((other["line"] - 1 for other in headings[index + 1:]
+                                    if other["level"] <= heading["level"]), len(lines))
+    return headings
+
+
+def parse_plan_tasks(text: str) -> list[dict]:
+    """Extract exact list-item spans, including nested conditions and continuations.
+
+    A sibling/ancestor list item, a heading, or an unindented paragraph after
+    a blank line ends an item. Explicit historical headings suppress current
+    work classification; age and completed siblings never do. Priority labels
+    must be headings or standalone labels, never words in a task's prose.
+    """
+    lines, code = plan_source_lines(text)
+    headings = parse_plan_headings(text)
+    by_line = {heading["line"]: heading for heading in headings}
+    priority = None
+    priority_level = None
+    historical_until = 0
     tasks = []
-    for item in re.finditer(r"-\s*\[([ xX])\]\s*(.+)", match.group(1)):
-        tasks.append({"name": item.group(2).strip(), "done": item.group(1).lower() == "x"})
+    for number, line in enumerate(lines, 1):
+        if number in code:
+            continue
+        heading = by_line.get(number)
+        if heading:
+            if priority_level is not None and heading["level"] <= priority_level:
+                priority = priority_level = None
+            label = heading["heading"]
+            if _PLAN_HISTORY.match(label):
+                historical_until = heading["end_line"]
+        else:
+            label = line.strip("* ") if line == line.lstrip() else ""
+            if _PLAN_HISTORY.match(label):
+                # A plain historical label lasts to the next peer Markdown
+                # section, or an explicit current refresh, rather than EOF.
+                historical_until = min((h["end_line"] for h in headings
+                                        if h["line"] <= number <= h["end_line"]), default=len(lines))
+            elif re.match(r"Current (?:refresh|sprint)\b", label, re.I):
+                historical_until = 0
+        priority_match = _PLAN_PRIORITY.match(label)
+        if priority_match:
+            priority = "P" + priority_match[1]
+            priority_level = heading["level"] if heading else max(
+                (h["level"] + 1 for h in headings if h["line"] <= number <= h["end_line"]), default=1)
+        match = _PLAN_CHECKBOX.match(line)
+        if not match:
+            continue
+        indent = len(match[1].expandtabs(4))
+        end = number
+        for following in range(number + 1, len(lines) + 1):
+            candidate = lines[following - 1]
+            if (re.match(r"^(?:`{3,}|~{3,})", candidate) and not lines[following - 2].strip()):
+                break
+            if following not in code:
+                sibling = _PLAN_LIST.match(candidate)
+                if following in by_line or (sibling and len(sibling[1].expandtabs(4)) <= indent):
+                    break
+                if candidate.strip() and len(candidate) - len(candidate.lstrip()) <= indent:
+                    label_boundary = re.match(r"^(?:Current (?:refresh|sprint)|Historical\b|Claim ceiling|Non-goals?|Anti-goals?)", candidate, re.I)
+                    if not lines[following - 2].strip() or _PLAN_PRIORITY.match(candidate) or label_boundary:
+                        break
+            end = following
+        while end > number and not lines[end - 1].strip():
+            end -= 1
+        raw = "\n".join(lines[number - 1:end])
+        tasks.append({
+            "name": "\n".join([match[3]] + lines[number:end]),
+            "done": match[2].lower() == "x",
+            "status": "done" if match[2].lower() == "x" else "in_progress" if match[2] in ">~" else "open",
+            "text": raw, "line": number, "end_line": end,
+            "priority": priority, "historical": number <= historical_until,
+        })
     return tasks
+
+
+def parse_sprint_tasks(text: str) -> list[dict]:
+    section = next((h for h in parse_plan_headings(text)
+                    if re.match(r"Current Sprint\b", h["heading"], re.I)), None)
+    if not section:
+        return []
+    # Keep the existing name/done interface for state-generator consumers.
+    return [{"name": task["name"], "done": task["done"]} for task in parse_plan_tasks(text)
+            if section["line"] < task["line"] <= section["end_line"] and not task["historical"]]
 
 
 def parse_backlog_counts(text: str) -> dict:
     counts = {"P0": 0, "P1": 0, "P2": 0}
-    match = re.search(r"##\s*Backlog(.*?)(?=\n##|\Z)", text, re.DOTALL | re.IGNORECASE)
-    if not match:
+    headings = parse_plan_headings(text)
+    section = next((h for h in headings if re.match(r"Backlog\b", h["heading"], re.I)), None)
+    if section is None:
+        section = next((h for h in headings if re.match(r"Pending Work\s*[-—–]\s*Ordered\b", h["heading"], re.I)), None)
+    if section is None:
         return counts
-
-    current_priority = None
-    for line in match.group(1).splitlines():
-        priority_match = re.search(r"(P[012])", line)
-        if priority_match and line.lstrip().startswith("###"):
-            current_priority = priority_match.group(1)
-            continue
-        if current_priority and re.match(r"\s*-\s*\[\s*\]", line):
-            counts[current_priority] += 1
+    for task in parse_plan_tasks(text):
+        if (section["line"] < task["line"] <= section["end_line"] and not task["historical"]
+                and task["status"] == "open" and task["priority"] in counts):
+            counts[task["priority"]] += 1
     return counts
 
 

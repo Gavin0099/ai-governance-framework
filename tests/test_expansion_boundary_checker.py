@@ -7,8 +7,10 @@ from governance_tools.expansion_boundary_checker import (
     ExpansionBoundaryResult,
     Violation,
     _CORE_POST_TASK_KEYS,
+    _CORE_SESSION_START_KEYS,
     _TRANSITIONAL_POST_TASK_KEYS,
     _TRANSITIONAL_SESSION_START_KEYS,
+    _check_new_return_keys,
     run_checks,
 )
 
@@ -40,17 +42,12 @@ def test_expansion_boundary_checker_accepts_current_pre_task_decision_boundary_s
     assert unexpected == []
 
 
-def test_session_envelope_is_admitted_as_transitional_lifecycle_metadata():
-    admission = _TRANSITIONAL_SESSION_START_KEYS["session_envelope"]
-
-    assert admission == {
-        "status": "transitional",
-        "expected": "core",
-        "admitted_date": "2026-07-29",
-        "source_commit": "a0683a5c",
-    }
+def test_session_envelope_is_core_lifecycle_metadata():
+    assert "session_envelope" in _CORE_SESSION_START_KEYS
+    assert "session_envelope" not in _TRANSITIONAL_SESSION_START_KEYS
 
     result = run_checks(FRAMEWORK_ROOT)
+    assert [v for v in result.violations if v.kind == "transitional_key_stale"] == []
     unexpected = [
         violation
         for violation in result.violations
@@ -58,6 +55,19 @@ def test_session_envelope_is_admitted_as_transitional_lifecycle_metadata():
         and Path(violation.file).name == "session_start.py"
     ]
     assert unexpected == []
+
+
+def test_session_start_still_rejects_an_unadmitted_return_key():
+    source = (
+        "def run():\n"
+        "    return {'ok': True, 'session_envelope': {}, 'unadmitted_new_key': 1}\n"
+    )
+
+    violations = _check_new_return_keys(Path("session_start.py"), source)
+
+    assert [v.kind for v in violations] == ["new_return_key"]
+    assert "unadmitted_new_key" in violations[0].detail
+    assert "session_envelope" not in violations[0].detail
 
 
 def test_stable_visibility_output_keys_are_core_not_transitional():

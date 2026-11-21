@@ -9,6 +9,7 @@ Covers _ensure_gitignore_hygiene():
 """
 
 from pathlib import Path
+import subprocess
 
 from governance_tools.adopt_governance import (
     _GITIGNORE_HYGIENE_START,
@@ -77,3 +78,23 @@ def test_block_contains_key_patterns() -> None:
         if ln.strip() and not ln.strip().startswith("#")
     ]
     assert not any("memory" in ln for ln in active_lines)
+
+
+def test_installed_gitignore_matches_runtime_outputs_only(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    _ensure_gitignore_hygiene(tmp_path, dry_run=False)
+    generated = [
+        "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson",
+        "artifacts/governance/runtime_phase_summary.json",
+        "artifacts/runtime/sessions/session-A/session-envelope.json",
+    ]
+    visible = [
+        "artifacts/session-closeout.txt",
+        "artifacts/claim-enforcement/reviewed-evidence.ndjson",
+        "artifacts/governance/reviewed-evidence.json",
+    ]
+    result = subprocess.run(
+        ["git", "-C", str(tmp_path), "-c", "core.excludesFile=", "check-ignore", "--", *generated, *visible],
+        capture_output=True, text=True, check=True,
+    )
+    assert result.stdout.splitlines() == generated

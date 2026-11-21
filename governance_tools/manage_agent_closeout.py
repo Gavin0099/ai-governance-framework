@@ -51,16 +51,26 @@ from __future__ import annotations
 
 import abc
 import argparse
+import ast
 import base64
 import binascii
 import json
+import os
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from runtime_hooks.adapters.codex.session_start import (  # noqa: E402
+    POSIX_ROOT as _POSIX_ROOT,
+    encode_powershell as _encode_powershell,
+    portable_framework_path,
+    windows_python_prologue as _windows_python_prologue,
+)
 
 
 # ── Capability tier constants ─────────────────────────────────────────────────
@@ -135,7 +145,7 @@ class AgentAdapter(abc.ABC):
         """
         Install the closeout trigger.
         Returns: {"status": str, "location": str|None, "message": str}
-        Status values: installed | already_installed | manual_only | blocked | error
+        Status values: installed | already_installed | already_configured | manual_only | blocked | error
         """
 
     @abc.abstractmethod
@@ -234,11 +244,136 @@ _CLOSEOUT_CMD_BARE = (
 )
 
 
+# Issue #287: the agent cannot observe a session-end hook run during its own
+# turn, so for a PREPARED candidate an installed hook means "pending", not
+# "failed". Wording only; the existing R2 evidence remains the sole confirmation.
+_PENDING_HOOK_NOTE = (
+    " If you PREPARED a candidate this session, the closeout is left to this hook"
+    " after your turn: report PREPARED / PENDING_HOOK (not NOT PERSISTED), and do"
+    " not run manual_fallback, which is refused for R2-prepared candidates. An"
+    " installed hook is not proof that it will run or succeed; only the existing R2"
+    " evidence confirms VALID / RELEASED afterwards."
+)
+
+
 def _manual_closeout_cmd(framework_root: Path, agent_id: str, trigger_mode: str = "manual_fallback") -> str:
     base = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root, _MANUAL_ROOT_PLACEHOLDER)
     if agent_id == "codex":
         base += " --session-id <SESSION_ID>"
     return f"{base} --agent-id {agent_id} --trigger-mode {trigger_mode}"
+
+
+_PREPARE_ENTRY = "governance_tools/prepare_closeout_candidate.py"
+_SUBMODULE_PATH = r"^submodule\..*\.path$"
+
+
+def _registered_submodule_paths(consumer: Path) -> list[str] | None:
+    """Submodule paths registered in the consumer's .gitmodules.
+
+    Returns None when the registration cannot be read, which is reported as
+    undetermined rather than as a failed precondition.
+    """
+    modules = consumer / ".gitmodules"
+    if not modules.is_file():
+        return []
+    # Explicit -C and --file must select the repository and the registration
+    # file; inherited Git selectors must not supply a different one.
+    env = {key: value for key, value in os.environ.items()
+           if not key.upper().startswith("GIT_")}
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(consumer), "config", "--null", "--file", str(modules),
+             "--get-regexp", _SUBMODULE_PATH],
+            capture_output=True, encoding="utf-8", timeout=15, env=env, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode == 1:  # documented "no matching key", not a failure
+        return []
+    if result.returncode != 0:
+        return None
+    paths = []
+    for record in result.stdout.rstrip("\0").split("\0"):
+        if not record:
+            continue
+        _, _, relative = record.partition("\n")
+        if relative:
+            paths.append(relative)
+    return paths
+
+
+def closeout_execution_readiness(project_root: Path, framework_root: Path) -> dict[str, Any]:
+    """Report whether the save-progress command an install declares could run.
+
+    `install` writes a hook whose command is rejected outright when the
+    framework is not a registered submodule of the project, or when the
+    project root is missing its governance markers. Both are stable
+    properties of the layout and are cheap to check here, so reporting
+    `installed` without checking them overclaims (#257).
+
+    Only those stable preconditions are checked. A dirty framework checkout
+    or a moved gitlink is transient and stays with the pipeline's own
+    fail-closed validation. `unmet` and `undetermined` are kept apart so a
+    layout that could not be read is never reported as a failed precondition.
+    """
+    unmet: list[str] = []
+    undetermined: list[str] = []
+    try:
+        consumer = project_root.resolve(strict=True)
+        framework = framework_root.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        return {"ready": False, "unmet": [], "undetermined": [f"PATHS_UNRESOLVABLE: {exc}"],
+                "declared_entry": _PREPARE_ENTRY}
+
+    # The pipeline's own root predicate, so this reports what it would report.
+    # Imported here to keep the closeout pipeline off this CLI import path, and
+    # guarded: that pipeline pulls in runtime dependencies (PyYAML today, via
+    # session_end_hook -> runtime_hooks.core.session_end -> runtime_phase_policy),
+    # and a report-only check must never turn into an install prerequisite for
+    # someone inspecting or repairing an integration on stdlib-only Python.
+    # Reported as undetermined, not duplicated here: a second copy of the marker
+    # list would drift from the predicate it is supposed to mirror.
+    try:
+        from governance_tools.session_closeout_entry import (
+            RootBindingError, _validate_explicit_project_root,
+        )
+    except ImportError as exc:
+        undetermined.append(f"ROOT_PREDICATE_UNAVAILABLE: {exc}")
+    else:
+        try:
+            _validate_explicit_project_root(str(consumer))
+        except RootBindingError as exc:
+            unmet.append(f"ROOT_BINDING_WOULD_FAIL: {exc}")
+
+    if framework == consumer or not framework.is_relative_to(consumer):
+        unmet.append("FRAMEWORK_NOT_INSIDE_PROJECT: the declared command requires the "
+                     "framework to be a registered submodule of the project root")
+    else:
+        registrations = _registered_submodule_paths(consumer)
+        if registrations is None:
+            undetermined.append("SUBMODULE_REGISTRATION_UNREADABLE: .gitmodules could not be read")
+        else:
+            matched = []
+            for relative in registrations:
+                try:
+                    candidate = (consumer / relative).resolve()
+                except (OSError, RuntimeError):
+                    continue
+                if candidate == framework:
+                    matched.append(relative)
+            if len(matched) != 1:
+                unmet.append("FRAMEWORK_NOT_REGISTERED_SUBMODULE: the framework path has "
+                             f"{len(matched)} submodule registrations in .gitmodules, not 1")
+    return {"ready": not unmet and not undetermined, "unmet": unmet,
+            "undetermined": undetermined, "declared_entry": _PREPARE_ENTRY}
+
+
+def _readiness_note(readiness: dict[str, Any]) -> str:
+    """One sentence naming what would reject the declared command, or nothing."""
+    if readiness["ready"]:
+        return ""
+    reasons = list(readiness["unmet"]) + list(readiness["undetermined"])
+    return (" The declared save-progress command cannot be shown to run in this layout: "
+            + "; ".join(reasons) + ".")
 
 
 # ── Claude Code adapter ───────────────────────────────────────────────────────
@@ -409,6 +544,8 @@ class ClaudeAdapter(AgentAdapter):
         return changed
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        from governance_tools.hook_installer import install_claude_instructions
+
         settings_path = project_root / ".claude/settings.json"
         try:
             data = self._read_settings_for_install(settings_path)
@@ -416,34 +553,48 @@ class ClaudeAdapter(AgentAdapter):
             return {"status": "blocked", "location": str(settings_path),
                     "message": f"Unable to safely read Claude settings; not modified: {exc}"}
         state, loc = self._binding_state(project_root, framework_root)
+        if state != "CORRECTLY_INSTALLED":
+            for path in (project_root / ".claude/settings.local.json",
+                         Path.home() / ".claude/settings.json"):
+                hooks = _read_json(path).get("hooks", {})
+                for event in self.MANAGED_EVENTS:
+                    groups = hooks.get(event, []) if isinstance(hooks, dict) else []
+                    for group in groups if isinstance(groups, list) else []:
+                        if isinstance(group, dict) and any(self._is_governance_hook(h)
+                                                          for h in group.get("hooks", [])):
+                            return {"status": "blocked", "location": str(path),
+                                    "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+        instructions = install_claude_instructions(project_root, framework_root)
+        if not instructions.ok:
+            return {"status": "blocked", "location": str(settings_path),
+                    "message": "Unable to project Claude instructions: " + "; ".join(instructions.errors)}
+        readiness = closeout_execution_readiness(project_root, framework_root)
+        guidance = " Formal closeout guidance is in CLAUDE.md and AGENTS.md." if instructions.installed_files else ""
         if state == "CORRECTLY_INSTALLED":
             return {"status": "already_installed", "location": loc,
-                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."}
-        for path in (project_root / ".claude/settings.local.json",
-                     Path.home() / ".claude/settings.json"):
-            hooks = _read_json(path).get("hooks", {})
-            for event in self.MANAGED_EVENTS:
-                groups = hooks.get(event, []) if isinstance(hooks, dict) else []
-                for group in groups if isinstance(groups, list) else []:
-                    if isinstance(group, dict) and any(self._is_governance_hook(h)
-                                                      for h in group.get("hooks", [])):
-                        return {"status": "blocked", "location": str(path),
-                                "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+                    "closeout_readiness": readiness,
+                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."
+                               + guidance + _readiness_note(readiness)}
         hooks = data.setdefault("hooks", {})
         removed = self._remove_governance_hooks(hooks)
         for event, hook in self._expected_hooks(project_root, framework_root).items():
             hooks.setdefault(event, []).append({"hooks": [hook]})
         _write_json(settings_path, data)
         return {"status": "installed", "previous_binding_state": state,
-                "location": str(settings_path),
+                "location": str(settings_path), "closeout_readiness": readiness,
                 "message": ("Governance SessionStart/SessionEnd hooks installed"
-                            + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else "."))}
+                            + ("; previous governance hooks (incl. any Stop closeout) replaced." if removed else ".")
+                            + guidance + _readiness_note(readiness))}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         state, loc = self._binding_state(project_root, framework_root)
+        readiness = closeout_execution_readiness(project_root, framework_root)
         return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
-                "binding_state": state, "location": loc,
-                "note": "Configuration binding only; native execution is not verified."}
+                "binding_state": state, "location": loc, "closeout_readiness": readiness,
+                # No pending-hook note: Claude's SessionEnd hook only writes a
+                # resumable checkpoint; it never runs the formal closeout (#287).
+                "note": "Configuration binding only; native execution is not verified."
+                        + _readiness_note(readiness)}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = project_root / ".claude" / "settings.json"
@@ -464,14 +615,21 @@ class ClaudeAdapter(AgentAdapter):
         }
 
     def print_manual(self, framework_root: Path) -> str:
-        cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
+        entry = (framework_root / "governance_tools" / "claude_formal_closeout.py").as_posix()
+        base = (f"python {entry} --project-root <PROJECT_ROOT> --session-id <SESSION_ID> "
+                f"--transcript-path <SESSION_JSONL>")
         return (
             f"[{self.display_name}] Exiting only writes a resumable checkpoint; formal "
-            f"closeout is a separate explicit operation.\n\n"
-            f"Known gap: the manual command below uses --trigger-mode manual_fallback, which "
-            f"session_closeout_entry currently rejects (R2 release proof), so there is no "
-            f"working explicit closeout command yet:\n\n"
-            f"    {cmd}\n\n"
+            f"closeout is a separate explicit operation. Prepare the closeout candidate "
+            f"first, then run one of:\n\n"
+            f"When the owner asks for it in this session:\n\n"
+            f"    {base} --owner-request \"<what the owner asked>\"\n\n"
+            f"When the owner authorized the closeout in advance, in an [Owner Closeout "
+            f"Authorization] block committed before this session started, and its "
+            f"condition is met:\n\n"
+            f"    {base} --authorization-ref <path>@<commit> --condition-met \"<condition met>\"\n\n"
+            f"Never close out on a plan line, a memory next_step, task DONE alone, or an "
+            f"authorization you wrote yourself. manual_fallback stays rejected.\n\n"
             f"Install the SessionStart/SessionEnd hooks:\n\n"
             f"    python -m governance_tools.manage_agent_closeout install --agent claude"
         )
@@ -663,13 +821,43 @@ class CopilotAdapter(AgentAdapter):
                 "message": f"Copilot sessionEnd hook written to {hook_path}."}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        """Report each Copilot closeout execution point on its own.
+
+        The lifecycle wiring is judged by the hook validator's own checks
+        (copilot_closeout_wiring). For a prepared session, VS Code Stop closes
+        out after the turn and CLI sessionEnd closes out when the session ends.
+        The pending report's after-turn note applies only to VS Code.
+        """
+        from governance_tools.hook_install_validator import copilot_closeout_wiring
+
         state = self._binding_state(project_root, framework_root)
-        return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
+        wiring = copilot_closeout_wiring(project_root, framework_root=framework_root)
+        hooks_dir = project_root / ".github" / "hooks"
+        parts = [
+            "VS Code Copilot Stop (agent_stop): "
+            + ("installed; a prepared VS Code Copilot session's closeout is left to it"
+               if wiring["vscode_stop"] else "not installed"),
+            "Copilot CLI sessionEnd (lifecycle bridge): "
+            + ("installed; a prepared CLI session's closeout is left to this hook at sessionEnd, "
+               "when the CLI session ends (not after the turn); other sessions use the generic session_end closeout"
+               if wiring["cli_session_end"] else "not installed"),
+            f"legacy {self.HOOK_FILE} sessionEnd binding: {state}",
+        ]
+        blockers = self._configuration_blockers(project_root)
+        note = ("; ".join(parts) + ". Configuration binding only; native execution is not verified."
+                + (" " + "; ".join(blockers) if blockers else "")
+                + (_PENDING_HOOK_NOTE if wiring["vscode_stop"] else ""))
+        location = (hooks_dir / "ai-governance-vscode.json" if wiring["vscode_stop"]
+                    else hooks_dir / "ai-governance-copilot.json" if wiring["cli_session_end"]
+                    else self._hook_path(project_root) if state != "NOT_INSTALLED" else None)
+        return {"installed": bool(wiring["vscode_stop"] or wiring["cli_session_end"]
+                                  or state == "CORRECTLY_INSTALLED"),
+                "manual_only": False,
                 "binding_state": state,
-                "location": str(self._hook_path(project_root)) if state != "NOT_INSTALLED" else None,
-                "note": (f"Managed binding and recognized repository sessionEnd invocation check: {state}; "
-                         "runtime and other configuration sources not verified. "
-                         + "; ".join(self._configuration_blockers(project_root)))}
+                "vscode_stop": wiring["vscode_stop"],
+                "cli_session_end": wiring["cli_session_end"],
+                "location": str(location) if location else None,
+                "note": note}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
@@ -907,6 +1095,9 @@ class CodexCLIAdapter(AgentAdapter):
     JSON output because Codex requires JSON on stdout for successful Stop hooks.
 
     Tier A: Codex has a documented project-local lifecycle hook surface.
+    Verify/install/repair share a configuration classifier. Project entries
+    are preserved, with optional exact binding in .codex/closeout-adapter.json;
+    neither a declaration nor configuration success proves native execution.
     """
 
     @property
@@ -941,6 +1132,277 @@ class CodexCLIAdapter(AgentAdapter):
     @staticmethod
     def _hook_path(project_root: Path) -> Path:
         return project_root / ".codex" / "hooks.json"
+
+    @staticmethod
+    def _command_segments(command: str) -> list[list[str]]:
+        """Inspect command syntax without running a shell or project code.
+
+        Encoded PowerShell is transport, not evidence of execution or trust.
+        This intentionally does not attempt to analyze arbitrary wrapper files.
+        """
+        try:
+            outer = shlex.split(command)
+            if (len(outer) >= 3 and outer[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+                    in {"powershell", "powershell.exe", "pwsh", "pwsh.exe"}):
+                if outer[-2].lower() == "-encodedcommand":
+                    command = base64.b64decode(outer[-1], validate=True).decode("utf-16-le")
+                elif outer[-2].lower() == "-command":
+                    command = outer[-1]
+            lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+            lexer.whitespace_split = True
+            lexer.commenters = ""
+            segments: list[list[str]] = [[]]
+            for token in lexer:
+                if token in {";", "&&", "||", "|", "&", "then", "else", "{", "}"}:
+                    segments.append([])
+                else:
+                    segments[-1].append(token)
+            return [segment for segment in segments if segment]
+        except (ValueError, UnicodeError, binascii.Error):
+            return []
+
+    @classmethod
+    def _looks_like_project_entry(cls, hook: Any) -> bool:
+        """Conservative closeout *candidate*, never proof of delegation.
+
+        Invocation with the native Codex identity/trigger pair, or invocation
+        of the formal module (including an inline Python import), reserves the
+        entry for human verification. Filename/diagnostic text is insufficient.
+        """
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        for field in ("command", "commandWindows"):
+            command = hook.get(field)
+            if not isinstance(command, str):
+                continue
+            owned_command = cls._is_governance_hook({"type": "command", field: command})
+            for tokens in cls._command_segments(command):
+                executable = tokens[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+                if executable in {"echo", "printf", "write-output", "write-host"}:
+                    continue
+                # A recognized direct entry remains framework-owned, including
+                # stale bindings. Other invocations in the same hook are still
+                # inspected, so a mixed direct/project command is not replaced.
+                is_python = executable in {"python", "python3", "python.exe", "python3.exe", "$python"}
+                if is_python and len(tokens) > 1:
+                    entry = tokens[1].replace("\\", "/")
+                    if entry.split("/")[-2:] == ["governance_tools", "session_closeout_entry.py"]:
+                        if owned_command:
+                            continue
+                        return True
+                    if len(tokens) == 2 and entry == "session_closeout_entry.py":
+                        if owned_command:
+                            continue
+                        return True
+                    if tokens[1:3] == ["-m", "governance_tools.session_closeout_entry"]:
+                        return True
+                    if tokens[1] == "-c" and len(tokens) > 2:
+                        if owned_command and tokens[2].startswith("# governance:claude-closeout-v1\n"):
+                            continue
+                        try:
+                            tree = ast.parse(tokens[2])
+                        except SyntaxError:
+                            tree = ast.Module(body=[], type_ignores=[])
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.Import) and any(
+                                alias.name == "governance_tools.session_closeout_entry" for alias in node.names
+                            ):
+                                return True
+                            if isinstance(node, ast.ImportFrom) and (
+                                node.module == "governance_tools.session_closeout_entry"
+                                or (node.module == "governance_tools" and any(
+                                    alias.name == "session_closeout_entry" for alias in node.names
+                                ))
+                            ):
+                                return True
+                def has_arg(name: str, value: str) -> bool:
+                    return any(token == name + "=" + value or (
+                        token == name and index + 1 < len(tokens) and tokens[index + 1] == value
+                    ) for index, token in enumerate(tokens))
+                if has_arg("--agent-id", "codex") and has_arg("--trigger-mode", "native_hook"):
+                    return True
+        return False
+
+    @staticmethod
+    def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("Duplicate JSON key")
+            result[key] = value
+        return result
+
+    def _configuration(self, project_root: Path, framework_root: Path) -> tuple[str, dict, dict]:
+        """One classification shared by verify, install and repair."""
+        path = self._hook_path(project_root)
+        source = "{}\n"
+        data: dict[str, Any] = {}
+        try:
+            if path.exists():
+                source = path.read_bytes().decode("utf-8")
+                data = json.loads(source, object_pairs_hook=self._json_object)
+            if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
+                raise ValueError("Expected hooks object")
+            groups = data.get("hooks", {}).get("Stop", [])
+            if not isinstance(groups, list) or any(
+                not isinstance(group, dict) or not isinstance(group.get("hooks", []), list)
+                or any(not isinstance(hook, dict) for hook in group.get("hooks", []))
+                for group in groups
+            ):
+                raise ValueError("Expected Stop hook groups")
+        except (OSError, UnicodeError, ValueError):
+            return source, data, {
+                "configuration_state": "invalid", "formal_closeout_count": 0,
+                "note": "Codex hooks configuration is unreadable or malformed; it was not treated as missing.",
+            }
+
+        declaration_path = project_root / ".codex" / "closeout-adapter.json"
+        declared = declaration_path.exists()
+        declaration: dict[str, Any] = {}
+        valid_declaration = False
+        if declared:
+            try:
+                declaration = json.loads(declaration_path.read_text(encoding="utf-8"),
+                                         object_pairs_hook=self._json_object)
+                if (not isinstance(declaration, dict)
+                        or set(declaration) - {"command", "commandWindows", "delegates_to"}
+                        or not isinstance(declaration.get("command"), str) or not declaration["command"].strip()
+                        or ("commandWindows" in declaration and (
+                            not isinstance(declaration["commandWindows"], str) or not declaration["commandWindows"].strip()
+                        )) or not isinstance(declaration.get("delegates_to"), str)
+                        or not declaration["delegates_to"].strip()):
+                    raise ValueError("Invalid adapter declaration")
+                target = (project_root / declaration["delegates_to"]).resolve()
+                expected = (framework_root / "governance_tools/session_closeout_entry.py").resolve()
+                valid_declaration = target == expected and expected.is_file()
+            except (OSError, UnicodeError, ValueError):
+                declaration = {}
+
+        entries = []
+        for group_index, group in enumerate(groups):
+            for hook_index, hook in enumerate(group.get("hooks", [])):
+                matches = bool(declaration.get("command")) and hook.get("type", "command") == "command" and all(
+                    hook.get(field) == declaration.get(field) for field in ("command", "commandWindows")
+                )
+                owned = self._is_governance_hook(hook)
+                project_entry = self._looks_like_project_entry(hook)
+                if owned or project_entry or matches:
+                    entries.append(((group_index, hook_index), hook, owned, project_entry, matches))
+
+        count = len(entries)
+        assessment: dict[str, Any] = {"formal_closeout_count": count}
+        if count > 1 and not declared and all(entry[2] and not entry[3] for entry in entries):
+            state = "standard_duplicate"
+            assessment["replace_positions"] = [entry[0] for entry in entries]
+            note = (f"Found {count} framework-owned Codex Stop closeout entries; "
+                    "install/repair can consolidate them into one requested framework binding.")
+        elif count > 1:
+            state = "conflict"
+            note = f"Found {count} possible formal Codex Stop closeout entries; configuration conflicts."
+        elif declared:
+            if count == 1 and valid_declaration and entries[0][4]:
+                state = "project_adapter_verified"
+                note = ("One project adapter matches .codex/closeout-adapter.json and the requested framework entry. "
+                        "Verified here means declaration/configuration binding only; runtime delegation is not verified.")
+            else:
+                state = "project_adapter_unverified"
+                note = (f"Found {count} possible formal Codex Stop closeout entries, but "
+                        ".codex/closeout-adapter.json is invalid, does not match the Stop commands, "
+                        "or does not name the existing requested framework entry.")
+        elif count == 0:
+            state = "missing"
+            note = "No formal Codex Stop closeout entry was identified."
+        elif entries[0][2] and not entries[0][3]:
+            if self._is_current_hook(entries[0][1], framework_root, project_root):
+                state = "standard"
+                note = f"Single governance Codex Stop hook matches requested framework root {framework_root}."
+            else:
+                state = "standard_stale"
+                assessment["replace_positions"] = [entries[0][0]]
+                note = "One framework-owned Codex Stop entry is stale or bound to a different framework root."
+        else:
+            state = "project_adapter_unverified"
+            note = ("One possible project-owned formal Codex Stop closeout entry is unverified; "
+                    "it is not a missing framework hook.")
+        assessment.update(configuration_state=state, note=note)
+        return source, data, assessment
+
+    @staticmethod
+    def _json_span(source: str, path: tuple) -> tuple[int, int]:
+        """Locate one JSON value so unrelated values retain their exact bytes."""
+        decoder = json.JSONDecoder()
+        start = len(source) - len(source.lstrip())
+        _, end = decoder.raw_decode(source, start)
+        for part in path:
+            cursor = start + 1
+            index = 0
+            found = False
+            while cursor < end - 1:
+                cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                if source[cursor] in "}]":
+                    break
+                key = index
+                if source[start] == "{":
+                    key, cursor = decoder.raw_decode(source, cursor)
+                    cursor = source.index(":", cursor) + 1
+                    cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                value_start = cursor
+                _, cursor = decoder.raw_decode(source, cursor)
+                if key == part:
+                    start, end = value_start, cursor
+                    found = True
+                    break
+                index += 1
+                cursor += len(source[cursor:]) - len(source[cursor:].lstrip())
+                if source[cursor] == ",":
+                    cursor += 1
+            if not found:
+                raise KeyError(path)
+        return start, end
+
+    @classmethod
+    def _set_json_value(cls, source: str, path: tuple, value: Any) -> str:
+        replacement = json.dumps(value, ensure_ascii=False)
+        try:
+            start, end = cls._json_span(source, path)
+        except KeyError:
+            try:
+                start, end = cls._json_span(source, path[:-1])
+            except KeyError:
+                return cls._set_json_value(source, path[:-1], {path[-1]: value})
+            comma = "," if json.loads(source[start:end]) else ""
+            return source[:end - 1] + comma + json.dumps(path[-1]) + ": " + replacement + source[end - 1:]
+        return source[:start] + replacement + source[end:]
+
+    def _write_standard_hook(self, source: str, data: dict, assessment: dict,
+                             project_root: Path, framework_root: Path) -> None:
+        # Replace only framework-owned entries approved by the classifier,
+        # retaining installer ordering and the exact bytes of other handlers.
+        # Remove backwards so remaining positions stay valid across deletions.
+        for group, index in sorted(assessment.get("replace_positions", []), reverse=True):
+            array_path = ("hooks", "Stop", group, "hooks")
+            start, end = self._json_span(source, array_path + (index,))
+            if index:
+                start = self._json_span(source, array_path + (index - 1,))[1]
+            else:
+                array_start, array_end = self._json_span(source, array_path)
+                if len(json.loads(source[array_start:array_end])) > 1:
+                    end = self._json_span(source, array_path + (index + 1,))[0]
+            source = source[:start] + source[end:]
+        payload = self._hook_payload(framework_root, project_root)
+        try:
+            start, end = self._json_span(source, ("hooks", "Stop", 0, "hooks"))
+        except KeyError:
+            if data.get("hooks", {}).get("Stop"):
+                source = self._set_json_value(source, ("hooks", "Stop", 0, "hooks"), [payload])
+            else:
+                source = self._set_json_value(source, ("hooks", "Stop"), [{"hooks": [payload]}])
+        else:
+            comma = "," if json.loads(source[start:end]) else ""
+            source = source[:end - 1] + comma + json.dumps(payload, ensure_ascii=False) + source[end - 1:]
+        path = self._hook_path(project_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(source.encode("utf-8"))
 
     @staticmethod
     def _is_governance_hook(hook: Any) -> bool:
@@ -987,18 +1449,54 @@ class CodexCLIAdapter(AgentAdapter):
         return False
 
     @classmethod
-    def _is_current_hook(cls, hook: Any, framework_root: Path) -> bool:
+    def _is_current_hook(cls, hook: Any, framework_root: Path,
+                         project_root: Path | None = None) -> bool:
         if not cls._is_governance_hook(hook):
             return False
-        expected = cls._hook_payload(framework_root)
-        return (
+        # The absolute form stays current so existing consumers are not
+        # reported stale; the portable form is current for a framework
+        # checkout inside the consumer (#288).
+        candidates = [cls._hook_payload(framework_root)]
+        if project_root is not None and portable_framework_path(project_root, framework_root):
+            candidates.append(cls._hook_payload(framework_root, project_root))
+        return any(
             hook.get("type") == expected["type"]
             and all(hook.get(field) == expected[field]
                     for field in ("command", "commandWindows"))
+            for expected in candidates
         )
 
     @staticmethod
-    def _hook_payload(framework_root: Path) -> dict[str, Any]:
+    def _hook_payload(framework_root: Path, project_root: Path | None = None) -> dict[str, Any]:
+        """Stop closeout hook. With project_root, and a framework checkout
+        inside it, the entry is resolved from the repository root at run time,
+        so a committed .codex/hooks.json works on any machine or clone (#288).
+        """
+        rel = portable_framework_path(project_root, framework_root) if project_root is not None else None
+        if rel:
+            posix_entry = f"$repo_root/{rel}/governance_tools/session_closeout_entry.py"
+            args = (
+                f'"{posix_entry}" --format json '
+                "--agent-id codex --trigger-mode native_hook"
+            )
+            posix_command = (
+                _POSIX_ROOT
+                + f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
+                f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
+            )
+            windows_script = (
+                _windows_python_prologue("Codex closeout")
+                + f'& $python "$repo/{rel}/governance_tools/session_closeout_entry.py" '
+                "--project-root $repo --format json "
+                "--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE"
+            )
+            return {
+                "type": "command",
+                "command": posix_command,
+                "commandWindows": _encode_powershell(windows_script),
+                "timeout": 30,
+                "statusMessage": "Running governance session closeout...",
+            }
         entrypoint = framework_root / "governance_tools" / "session_closeout_entry.py"
         args = (
             f'"{entrypoint.as_posix()}" --format json '
@@ -1034,65 +1532,80 @@ class CodexCLIAdapter(AgentAdapter):
         }
 
     def _find_current_hook(self, project_root: Path, framework_root: Path) -> bool:
-        data = _read_json(self._hook_path(project_root))
-        governance_hooks = []
-        for group in data.get("hooks", {}).get("Stop", []):
-            if not isinstance(group, dict):
-                continue
-            for hook in group.get("hooks", []):
-                if self._is_governance_hook(hook):
-                    governance_hooks.append(hook)
-        return (len(governance_hooks) == 1
-                and self._is_current_hook(governance_hooks[0], framework_root))
+        return self._configuration(project_root, framework_root)[2]["configuration_state"] in {
+            "standard", "project_adapter_verified",
+        }
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        if self._find_current_hook(project_root, framework_root):
+        source, data, assessment = self._configuration(project_root, framework_root)
+        state = assessment["configuration_state"]
+        if state == "standard":
             return {
                 "status": "already_installed",
+                "configuration_state": state,
                 "location": str(hook_path),
                 "message": "Governance Codex Stop hook already matches the requested framework binding.",
             }
-
-        data = _read_json(hook_path)
-        hooks = data.setdefault("hooks", {})
-        stop_groups = hooks.setdefault("Stop", [{"hooks": []}])
-        if not stop_groups:
-            stop_groups.append({"hooks": []})
-        if not isinstance(stop_groups[0], dict):
-            stop_groups.insert(0, {"hooks": []})
-        target_group = stop_groups[0]
-        target_hooks = target_group.setdefault("hooks", [])
-
-        # Replace obsolete framework closeout commands rather than adding a
-        # second closeout hook for the same Codex Stop event.
-        for group in stop_groups:
-            if isinstance(group, dict) and isinstance(group.get("hooks"), list):
-                group["hooks"] = [
-                    hook for hook in group["hooks"]
-                    if not self._is_governance_hook(hook)
-                ]
-        target_hooks = target_group.setdefault("hooks", [])
-        target_hooks.append(self._hook_payload(framework_root))
-        _write_json(hook_path, data)
+        if state == "project_adapter_verified":
+            return {
+                "status": "already_configured",
+                "configuration_state": state,
+                "formal_closeout_count": assessment["formal_closeout_count"],
+                "location": str(hook_path),
+                "message": assessment["note"] + (
+                    " No configuration changed. Configuration binding only; native execution, "
+                    "hook trust and formal closeout are not verified."
+                ),
+            }
+        if state not in {"missing", "standard_stale", "standard_duplicate"}:
+            return {
+                "status": "blocked",
+                "configuration_state": state,
+                "formal_closeout_count": assessment["formal_closeout_count"],
+                "location": str(hook_path),
+                "message": assessment["note"] + (
+                    " No configuration changed. The human must decide which formal entry to retain, "
+                    "check or correct the project adapter declaration, or explicitly remove the conflict. "
+                    "Do not add a direct entry alongside a project adapter. "
+                    "Configuration binding only; native execution is not verified."
+                ),
+            }
+        self._write_standard_hook(source, data, assessment, project_root, framework_root)
+        portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
+            "configuration_state": "standard",
             "location": str(hook_path),
-            "message": f"Governance Codex Stop hook added to {hook_path}.",
+            "portable": portable,
+            "message": f"Governance Codex Stop hook added to {hook_path}." + (
+                "" if portable else
+                " It uses absolute paths (framework outside the consumer, or a path that needs"
+                " shell quoting), so it is not portable to another machine or clone."
+            ),
         }
+
+    def repair(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        # Reuse the classifier and successful no-op for a verified adapter;
+        # its configuration match never authorizes replacing the project entry.
+        result = self.install(project_root, framework_root)
+        if result["status"] in {"already_installed", "already_configured"}:
+            result["status"] = "no_repair_needed"
+        return {"agent": self.agent_id, **result, "repaired": result["status"] == "installed"}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        installed = self._find_current_hook(project_root, framework_root)
+        _, _, assessment = self._configuration(project_root, framework_root)
+        state = assessment["configuration_state"]
+        installed = state in {"standard", "project_adapter_verified"}
         return {
             "installed": installed,
+            "configuration_state": state,
+            "formal_closeout_count": assessment["formal_closeout_count"],
             "manual_only": False,
-            "location": str(hook_path) if installed else None,
-            "note": (
-                f"Single governance Codex Stop hook matches requested framework root {framework_root}."
-                if installed else
-                f"Governance Codex Stop hook is missing, stale, or duplicated for requested framework root {framework_root}."
-            ) + " Configuration binding only; native execution is not verified.",
+            "location": str(hook_path) if hook_path.exists() else None,
+            "note": assessment["note"] + " Configuration binding only; native execution is not verified."
+            + (_PENDING_HOOK_NOTE if installed else ""),
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
@@ -1127,8 +1640,16 @@ class CodexCLIAdapter(AgentAdapter):
         return (
             f"[{self.display_name}] Manual closeout (fallback if Stop hook is not installed):\n\n"
             f"    {cmd}\n\n"
-            f"Or install the Stop hook:\n\n"
-            f"    python -m governance_tools.manage_agent_closeout install --agent codex"
+            f"Not for a PREPARED (R2) candidate: manual_fallback is refused for it "
+            f"(RELEASE_PROOF_INVALID).\n\n"
+            f"First inspect the Stop configuration (run from the framework checkout):\n\n"
+            f"    python -m governance_tools.manage_agent_closeout --project-root <PROJECT_ROOT> verify --agent codex\n\n"
+            f"Install/repair add only when missing, replace one stale framework entry, or consolidate "
+            f"duplicates when all formal entries are framework-owned. A verified project adapter is "
+            f"a successful no-op; unverified adapters, conflicts and invalid settings remain blocked. "
+            f"An adapter match verifies configuration only, not execution, hook trust or formal closeout. "
+            f"Do not add a direct entry alongside an adapter. See docs/hook-coverage-model.md "
+            f"for the .codex/closeout-adapter.json declaration."
         )
 
 
@@ -1161,6 +1682,8 @@ def op_status(project_root: Path, framework_root: Path) -> list[dict[str, Any]]:
         fallback_required = bool(cap.get("fallback_required")) or not bool(v["installed"])
         enforcement_level = "NATIVE_HOOK" if cap.get("auto_trigger_capable", False) else "MANUAL_FALLBACK"
         compliance_status = "READY" if v["installed"] else "PENDING_INSTALL"
+        if v.get("configuration_state") in {"project_adapter_unverified", "conflict", "invalid"}:
+            compliance_status = "NEEDS_DECISION"
         if enforcement_level == "MANUAL_FALLBACK":
             compliance_status = "PENDING_MANUAL_ACTION"
         results.append({
@@ -1177,6 +1700,7 @@ def op_status(project_root: Path, framework_root: Path) -> list[dict[str, Any]]:
             "compliance_status": compliance_status,
             "location": v.get("location"),
             "note": v.get("note"),
+            **{key: v[key] for key in ("configuration_state", "formal_closeout_count") if key in v},
         })
     return results
 
@@ -1370,7 +1894,17 @@ def main() -> int:
     sub.add_parser("capabilities", help="Show capability tiers for all agents")
 
     for op in ("install", "verify", "repair", "uninstall", "smoke"):
-        p = sub.add_parser(op, help=f"{op.capitalize()} integration for an agent")
+        codex_help = (
+            " For Codex, verify classifies formal Stop entries. Install/repair add only when missing, "
+            "replace one stale framework entry, or consolidate duplicates only when all formal entries "
+            "are framework-owned. A verified project adapter is a successful no-op; "
+            "unverified adapters, conflicts and invalid settings remain blocked for a human decision. "
+            "A matching .codex/closeout-adapter.json declaration verifies configuration only, "
+            "not execution, hook trust or formal closeout. "
+            "See docs/hook-coverage-model.md."
+        ) if op in {"install", "verify", "repair"} else ""
+        p = sub.add_parser(op, help=f"{op.capitalize()} integration for an agent",
+                           description=f"{op.capitalize()} integration for an agent." + codex_help)
         p.add_argument("--agent", choices=KNOWN_AGENTS + ["all"], required=True)
 
     pm = sub.add_parser("print-manual", help="Print manual closeout instructions for an agent")

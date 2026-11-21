@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 -m pytest tests/test_f7_full_update.py -q -p no:cacheprovider --basetemp .tmp_c5 -k \"lock_hint or missing_lock or existing_lock_reporting\"",
+  "exit_code": 0,
+  "started_at": "2026-11-16T17:18:23Z",
+  "finished_at": "2026-11-16T17:22:00Z",
+  "runner": "claude-coordinator",
+  "linked_commit": "cb1c0356cab493570368fc71dfc8aa97be3b4a15",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/f7-328-missing-lock-hint-20261117.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

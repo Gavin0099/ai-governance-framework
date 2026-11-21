@@ -19,6 +19,7 @@ Same inputs → same canonical output. Enables replay, audit re-run, dry-run tes
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -60,10 +61,15 @@ _CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 _SESSION_ENVELOPE_SCHEMA_VERSION = "1.0"
 _ROOT_BOUND_ENVELOPE_SCHEMA_VERSION = "1.1"
 # Each host keeps its own identity; a source label is never valid for another provider.
+# github-copilot is the standalone Copilot CLI. VS Code agent mode runs on the same Copilot
+# runtime and reads the same hook file, so the shared Copilot SessionStart decides between
+# github-copilot and github-copilot-vscode from the client the runtime itself recorded for
+# the session (governance_tools/copilot_session_state.py), never from which hook ran first.
 _ROOT_BOUND_SOURCE_BY_PROVIDER = {
     "codex": "codex_session_start",
     "github-copilot-vscode": "vscode_session_start",
     "claude": "claude_session_start",
+    "github-copilot": "copilot_cli_session_start",
 }
 
 
@@ -251,8 +257,8 @@ def read_session_envelope(session_id: str, project_root: Path) -> dict[str, Any]
 # the SAME session id. It does NOT mean the rejection is soft: binding stays
 # fail-closed, nothing is promoted, and no completion is claimed. The class is
 # reported for reviewers; it is deliberately NOT the condition that guards the
-# completion marker — see session_end.run_session_end, which guards on
-# `binding_valid` so that non-enforcing callers keep their current behaviour.
+# completion marker — session_end.run_session_end checks binding validity and
+# canonical qualification separately before consuming an id.
 #
 # Scope note: these are the statuses produced by assess_session_closeout_binding
 # (the structural axis). The hook-only content axis
@@ -262,10 +268,11 @@ BINDING_CLASS_TERMINAL = "terminal"
 BINDING_CLASS_RECOVERABLE = "recoverable"
 
 _TERMINAL_BINDING_STATUSES = frozenset({
-    "valid",             # closeout succeeded; the id is consumed
+    "valid",             # structurally bound; qualification controls consumption
     "already_consumed",  # a previous run consumed it; nothing left to retry
 })
 _RECOVERABLE_BINDING_STATUSES = frozenset({
+    "completion_marker_invalid",
     "session_envelope_missing",
     "session_candidate_missing",
     "session_candidate_mismatch",
@@ -290,6 +297,8 @@ def assess_session_closeout_binding(
     session_id: str,
     project_root: Path,
     candidate_payload: dict[str, Any] | None,
+    *,
+    digest_replay_only: bool = False,
 ) -> dict[str, Any]:
     """Assess session ownership and consume-once state before side effects."""
     validate_session_id(session_id)
@@ -301,18 +310,37 @@ def assess_session_closeout_binding(
         / "closeout-completions"
         / f"{session_id}.json"
     )
-    completion = _read_valid_closeout_completion(
-        session_id,
-        project_root,
-        completion_path,
-    )
-    if completion is not None:
+    try:
+        completion = _read_valid_closeout_completion(
+            session_id,
+            project_root,
+            completion_path,
+            require_digest=digest_replay_only,
+        )
+    except _InvalidCloseoutCompletionMarker:
         return {
+            "status": "completion_marker_invalid",
+            "session_id": session_id,
+            "completion_marker_path": str(completion_path),
+        }
+    if completion is not None:
+        binding = {
             "status": "already_consumed",
             "session_id": session_id,
             "canonical_closeout_path": str(canonical_path),
             "completion_marker_path": str(completion_path),
         }
+        # Keep consumption structural. The runtime replay branch checks content
+        # without treating a changed accepted artifact as permission to rerun.
+        if "canonical_closeout_sha256" in completion:
+            binding["canonical_closeout_sha256"] = completion["canonical_closeout_sha256"]
+            artifacts = _completion_artifact_paths(project_root, completion.get("required_artifacts"))
+            if not _completion_artifacts_available(artifacts):
+                binding["completion_artifacts_missing_or_invalid"] = True
+        return binding
+
+    if digest_replay_only:
+        return {"status": "not_enforced", "session_id": session_id}
 
     envelope = read_session_envelope(session_id, project_root)
     if envelope is None:
@@ -609,13 +637,34 @@ def write_candidate(
     return path
 
 
+class CloseoutContentMismatchError(ValueError):
+    """The emitted canonical content cannot be accepted as qualified."""
+
+
 def write_closeout_completion_marker(
     session_id: str,
     project_root: Path,
     required_artifacts: list[Path],
+    *,
+    canonical_closeout_sha256: str | None = None,
 ) -> Path:
     """Atomically mark a session consumed after all required artifacts exist."""
     validate_session_id(session_id)
+    if canonical_closeout_sha256 is not None:
+        # R2's lock does not cover every writer. Two entries can pass the replay guard
+        # before the first marker is published, then both write. If the last write
+        # replaces both files with a matching pair, replay returns ALREADY_CONSUMED
+        # without detecting the double write. Only a final digest mismatch is refused;
+        # restore trusted bytes matching the saved marker rather than rebuilding them.
+        canonical_path = project_root / "artifacts/runtime/closeouts" / f"{session_id}.json"
+        try:
+            current_digest = hashlib.sha256(canonical_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            raise CloseoutContentMismatchError(
+                "canonical_closeout_changed_before_completion"
+            ) from exc
+        if current_digest != canonical_closeout_sha256:
+            raise CloseoutContentMismatchError("canonical_closeout_changed_before_completion")
     missing = [str(path) for path in required_artifacts if not path.is_file()]
     if missing:
         raise FileNotFoundError(
@@ -634,6 +683,8 @@ def write_closeout_completion_marker(
             for artifact in required_artifacts
         ],
     }
+    if canonical_closeout_sha256 is not None:
+        payload["canonical_closeout_sha256"] = canonical_closeout_sha256
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -643,32 +694,64 @@ def write_closeout_completion_marker(
     return path
 
 
+class _InvalidCloseoutCompletionMarker(ValueError):
+    pass
+
+
 def _read_valid_closeout_completion(
     session_id: str,
     project_root: Path,
     path: Path,
+    *,
+    require_digest: bool = False,
 ) -> dict[str, Any] | None:
-    """Return a completion marker only when its identity and artifacts validate."""
+    """Read consumption evidence, independently of artifact health for digest markers."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if str(payload.get("session_id") or "") != session_id:
-        return None
-    required_artifacts = payload.get("required_artifacts")
+    except FileNotFoundError as read_error:
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return None
+        except OSError as stat_error:
+            raise _InvalidCloseoutCompletionMarker from stat_error
+        raise _InvalidCloseoutCompletionMarker from read_error
+    except (OSError, ValueError, RecursionError) as exc:
+        raise _InvalidCloseoutCompletionMarker from exc
+    if not isinstance(payload, dict) or payload.get("session_id") != session_id:
+        raise _InvalidCloseoutCompletionMarker
+    if "canonical_closeout_sha256" in payload:
+        return payload
+    artifacts = _completion_artifact_paths(project_root, payload.get("required_artifacts"))
+    if artifacts is None:
+        raise _InvalidCloseoutCompletionMarker
+    if not require_digest and _completion_artifacts_available(artifacts):
+        return payload
+    return None
+
+
+def _completion_artifact_paths(project_root: Path, required_artifacts: Any) -> list[Path] | None:
     if not isinstance(required_artifacts, list) or not required_artifacts:
         return None
+    root = project_root.resolve()
+    artifacts = []
     for raw_path in required_artifacts:
         if not isinstance(raw_path, str) or not raw_path.strip():
             return None
-        artifact = (project_root / raw_path).resolve()
         try:
-            artifact.relative_to(project_root.resolve())
-        except ValueError:
+            artifact = (root / raw_path).resolve()
+            artifact.relative_to(root)
+        except (OSError, RuntimeError, ValueError):
             return None
-        if not artifact.is_file():
-            return None
-    return payload
+        artifacts.append(artifact)
+    return artifacts
+
+
+def _completion_artifacts_available(artifacts: list[Path] | None) -> bool:
+    try:
+        return artifacts is not None and all(artifact.is_file() for artifact in artifacts)
+    except OSError:
+        return False
 
 
 # ---------------------------------------------------------------------------

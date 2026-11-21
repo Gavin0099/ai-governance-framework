@@ -25,6 +25,13 @@ adopt 後的 repo 至少應把 `AGENTS.base.md` 導入，並且保留 `Session C
 
 repo 不一定非得用同一種 stop hook，但至少要有可被觀測的 closeout entry path，讓 `session_end_hook.py` 或等價流程可以被觸發。
 
+Codex 應先執行 `manage_agent_closeout --project-root <repo> verify --agent codex`。
+未驗證的專案 adapter 與含專案或未知入口的衝突都會回報未安裝；不能因此另加直接入口。
+install／repair 會保留這些設定並回傳 `blocked`，交由人決定保留哪條入口。
+純框架重複入口可合併成一條；宣告核對通過的專案 adapter 則成功回傳且不變更任何 bytes。
+完整狀態、宣告方式及操作命令見 [Codex Stop 設定說明](hook-coverage-model.md#codex-stop-configuration-verify-before-install-or-repair)。
+有宣告的 adapter 也只通過配置核對；正式完成仍須既有同 session／SHA 的 closeout 與所有權證據。
+
 ### 4. reviewer 可讀到 closeout 狀態
 
 至少要能分辨：

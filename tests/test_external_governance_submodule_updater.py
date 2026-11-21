@@ -133,9 +133,7 @@ def _write_framework_baseline(framework: Path) -> None:
     (baseline / "AGENTS.md").write_text(
         "# AGENTS.md\n\n"
         "## AI Governance Update Intent Rule\n\n"
-        "intent rule\n\n"
-        "### F-7 Full Update Semantics\n\n"
-        "F-7 is the AI Governance Full Update workflow.\n\n"
+        "Read governance/F7_FULL_UPDATE.md.\n\n"
         "## Repo-Specific Risk Levels\n\n"
         "N/A\n",
         encoding="utf-8",
@@ -272,7 +270,7 @@ def _make_fixture(
 
 
 @pytest.mark.parametrize("existing_section", [False, True])
-def test_submodule_apply_installs_plain_language_update_opening(
+def test_submodule_apply_installs_canonical_update_router(
     tmp_path: Path, existing_section: bool
 ) -> None:
     consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
@@ -297,16 +295,17 @@ def test_submodule_apply_installs_plain_language_update_opening(
     assert result.ok is True
     assert result.after_head == target
     text = (consumer / "AGENTS.md").read_text(encoding="utf-8")
-    assert "non-empty lines as 結果 / 原因 / 下一步" in text
-    assert "before the complete adoption table" in text
-    assert "suggested actions do not grant\nauthorization" in text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in text
+    assert "governance/F7_FULL_UPDATE.md" in text
+    assert "governance_tools.f7_full_update" in text
     assert "Required response shape:" not in text
     assert "STALE_TECHNICAL_FIRST_OPENING" not in text
-    example = text.split("Valid partial conclusion:", 1)[1].split("```text", 1)[1]
+    protocol = (baseline.parents[2] / "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md").read_text(encoding="utf-8")
+    example = protocol.split("Valid partial conclusion:", 1)[1].split("```text", 1)[1]
     lines = [line for line in example.splitlines() if line.strip()]
     assert [line.split("：", 1)[0] for line in lines[:3]] == ["結果", "原因", "下一步"]
     assert "AI Governance update check: not_verified" in example
-    assert "human_readable_adoption_summary: NOT REPORTED" in example
+    assert "human_readable_adoption_summary: NOT REPORTED" in text
     if existing_section:
         assert "Preserve this domain rule." in text
 
@@ -775,6 +774,9 @@ def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tm
     )
 
     first = _refresh_repo_local_instructions(consumer, framework)
+    # F-J 1A: as in a real F-7 run, the consumer commits the first result; an
+    # uncommitted AGENTS.base.md without a baseline is held, not overwritten.
+    _commit_all(consumer, "commit first refresh")
     second = _refresh_repo_local_instructions(consumer, framework)
     refreshed = agents.read_text(encoding="utf-8")
 
@@ -782,7 +784,7 @@ def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tm
     assert second["status"] == "already_current"
     assert refreshed.count("## AI Governance Update Intent Rule") == 1
     assert refreshed.count("## CFU Risk Levels") == 1
-    assert "intent rule" in refreshed
+    assert "governance/F7_FULL_UPDATE.md" in refreshed
     assert "firmware-specific risks" in refreshed
 
 
@@ -811,7 +813,7 @@ def test_refresh_repo_local_instructions_replaces_section_after_preceding_risk_h
     assert refreshed.count("## CFU Risk Levels") == 1
     assert refreshed.count("## AI Governance Memory Workflow Router") == 1
     assert "firmware-specific risks" in refreshed
-    assert "intent rule" in refreshed
+    assert "governance/F7_FULL_UPDATE.md" in refreshed
     assert "existing router" in refreshed
 
 
@@ -1179,7 +1181,7 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert lock["adopted_commit"] == new_head
     assert lock["updated_at"]
     assert "full governance adoption" in receipt["not_claimed"]
-    assert "F-7 Full Update Semantics" in (consumer / "AGENTS.md").read_text(
+    assert "governance/F7_FULL_UPDATE.md" in (consumer / "AGENTS.md").read_text(
         encoding="utf-8"
     )
     assert "governance:key=memory_workflow" in (consumer / "AGENTS.md").read_text(
@@ -2158,12 +2160,52 @@ def test_apply_does_not_complete_when_hook_advisory_source_missing(tmp_path: Pat
     )
 
 
-def test_apply_commit_recomputes_lock_consistency_after_commit(tmp_path: Path) -> None:
-    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+@pytest.mark.parametrize("already_at_target", [False, True])
+def test_apply_syncs_release_and_commit_from_the_target_checkout(
+    tmp_path: Path, already_at_target: bool
+) -> None:
+    consumer, framework, old_head, _new_head = _make_fixture(tmp_path)
+    (framework / "CHANGELOG.md").write_text("# Changelog\n\n## v1.3.0\n", encoding="utf-8")
+    target = _commit_all(framework, "declare framework release")
+    if already_at_target:
+        nested = consumer / "ai-governance-framework"
+        _git(nested, "fetch", "origin", "main")
+        _git(nested, "checkout", target)
+    lock_path = consumer / "governance" / "framework.lock.json"
+    lock_path.parent.mkdir()
+    lock_path.write_text(
+        json.dumps({
+            "adopted_commit": target if already_at_target else old_head,
+            "adopted_release": "1.2.0",
+            "adopted_surfaces": ["domain_contract"],
+        }),
+        encoding="utf-8",
+    )
+    _commit_all(consumer, "record consumer lock with old release")
+
+    result = update_governance_submodule(repo=consumer, fetch_ref="main", dry_run=False)
+
+    assert result.ok is True
+    assert result.after_head == target
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    assert lock["adopted_commit"] == target
+    assert lock["adopted_release"] == "1.3.0"
+    assert lock["adopted_surfaces"] == ["domain_contract"]
+    assert result.full_update_stage_report["details"]["framework_lock"]["status"] == "updated"
+
+
+@pytest.mark.parametrize("unreadable_release", [False, True])
+def test_apply_commit_recomputes_lock_consistency_after_commit(
+    tmp_path: Path, unreadable_release: bool
+) -> None:
+    consumer, framework, old_head, new_head = _make_fixture(tmp_path)
+    if unreadable_release:
+        (framework / "CHANGELOG.md").write_bytes(b"\xff")
+        new_head = _commit_all(framework, "publish legacy release metadata")
     lock_path = consumer / "governance" / "framework.lock.json"
     lock_path.parent.mkdir(parents=True)
     lock_path.write_text(
-        json.dumps({"adopted_commit": old_head}, indent=2) + "\n",
+        json.dumps({"adopted_commit": old_head, "adopted_release": "1.2.0"}, indent=2) + "\n",
         encoding="utf-8",
     )
     _commit_all(consumer, "add consumer lock")
@@ -2186,6 +2228,7 @@ def test_apply_commit_recomputes_lock_consistency_after_commit(tmp_path: Path) -
         == "consistent"
     )
     assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_commit"] == new_head
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_release"] == "1.2.0"
     assert _git(consumer, "status", "--short") == ""
 
 
@@ -2442,13 +2485,14 @@ def test_divergent_duplicate_routers_are_reported_not_merged() -> None:
     )
 
     canonical = _memory_workflow_router_section()
-    edited = canonical.replace("do not edit memory records", "never edit memory records")
+    edited = canonical.replace("do not hand-edit them", "never hand-edit them")
+    assert edited != canonical
     text = f"# AGENTS\n\n{canonical}\n{edited}\n"
 
     collapsed, unresolved = _collapse_duplicate_memory_workflow_routers(text)
 
     assert unresolved is True
-    assert "never edit memory records" in collapsed
+    assert "never hand-edit them" in collapsed
 
 
 MEMORY_WORKFLOW_MARKER_FOR_TEST = "<!-- governance:key=memory_workflow -->"
@@ -2509,10 +2553,15 @@ def test_refresh_keeps_one_router_on_a_real_consumer_shape(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
+    # F-J 1A: F-7 only ever runs on a Git consumer; the no-baseline AGENTS.base.md
+    # replacement holds when Git cannot tell whether the file has local changes.
+    _init_repo(consumer)
     read = lambda: (consumer / "AGENTS.md").read_text(encoding="utf-8")
     reports = []
     for _ in range(3):
         reports.append(_refresh_repo_local_instructions(consumer, framework_root))
+        _git(consumer, "add", ".")
+        _git(consumer, "commit", "-q", "--allow-empty", "-m", "commit refresh result")
         text = read()
         assert text.count("## AI Governance Memory Workflow Router") == 1
         assert text.count(MEMORY_WORKFLOW_MARKER_FOR_TEST) == 1

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -B -X utf8 -m pytest -q -p no:cacheprovider --basetemp ../g295-evidence/pytest-committed tests/test_agent_core_rules_projection.py tests/test_copilot_instructions_projection.py tests/test_instruction_context_budget.py tests/test_hook_installer.py",
+  "exit_code": 0,
+  "started_at": "2026-11-20T09:20:20Z",
+  "finished_at": "2026-11-20T09:20:34Z",
+  "runner": "Windows local verification",
+  "linked_commit": "6b74764e178e6594f0171785802428635af0ced7",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/issue-295-rule6-20261120.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

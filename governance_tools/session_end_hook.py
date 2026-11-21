@@ -110,6 +110,13 @@ _TOOL_ANCHORS = frozenset({
     "test_codeburn_copilot_ingestion.py", "test_codeburn_copilot_smoke.py",
 })
 
+_TOOL_NAME_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:"
+    + "|".join(re.escape(tool) for tool in sorted(_TOOL_ANCHORS, key=len, reverse=True))
+    + r")(?![A-Za-z0-9_]|\.[A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+
 # Maps tool names to directories/patterns that indicate the tool was run
 _TOOL_ARTIFACT_SIGNALS: dict[str, list[str]] = {
     "pytest": [".pytest_cache", "test-results", ".tox"],
@@ -211,8 +218,7 @@ def _check_schema(fields: dict[str, str]) -> tuple[str, list[str]]:
 def _has_observable_anchor(value: str) -> bool:
     if _FILENAME_PATTERN.search(value):
         return True
-    tokens = set(re.split(r"[\s,/\-]+", value.lower()))
-    return bool(tokens & _TOOL_ANCHORS)
+    return bool(_extract_tool_names(value))
 
 
 def _is_vague(value: str) -> bool:
@@ -255,8 +261,151 @@ def _check_content(fields: dict[str, str]) -> tuple[str, list[dict[str, str]]]:
 
 def _extract_tool_names(text: str) -> list[str]:
     """Extract known tool names mentioned in a field value."""
-    tokens = set(re.split(r"[\s,/()\-]+", text.lower()))
+    tokens = {match.group().lower() for match in _TOOL_NAME_PATTERN.finditer(text)}
     return [t for t in _TOOL_ANCHORS if t in tokens]
+
+
+_CHECK_CLAUSE_BREAK = re.compile(
+    r"&&|\|\||[;；\n。]|\.(?=\s|$)|\b(?:and|or|but)\b|"
+    r"但是|但(?=我|已|未|沒)|並且|并且|而且|以及|且|和|與|与", re.IGNORECASE,
+)
+_REPORTED_CHECK = re.compile(
+    r"^(?:(?:the\s+)?(?:(?:supplied|provided|external)\s+)?"
+    r"(?:reports?|results?|logs?|junit)\b.*?\b(?:states?|says?|reports?|mentions?|quotes?)\b|"
+    r"(?:外部)?(?:報告|报告|紀錄|记录|日誌|日志|結果|结果).*?(?:說|说|顯示|显示|表示|寫道|写道|提到))",
+    re.IGNORECASE,
+)
+_EXTERNAL_CHECK = re.compile(
+    r"^(?:ci(?=\s|執行|执行|跑)|pipeline\b|"
+    r"(?:supplied|provided|external|upstream)\b(?=[^,;]*\b(?:evidence|reports?|results?|output|junit|logs?)\b)|"
+    r"(?:外部|提供的|供應的|供应的))", re.IGNORECASE,
+)
+_NEGATED_EXECUTION = re.compile(
+    r"\b(?:not|never|(?:did|have|has|had|was|were|is|are|do|does)n['’]t)\s+"
+    r"(?:run|ran|executed?|invoked?|test(?:ed)?|check(?:ed)?)\b|"
+    r"(?:並未|并未|未|沒(?:有)?|没(?:有)?)\s*(?:在(?:本機|本机|本地)\s*)?"
+    r"(?:親自|亲自|自行)?\s*(?:執行|执行|運行|运行|跑)|"
+    r"(?:不是|並非|并非)\s*(?:由\s*)?我(?:們|们)?\s*(?:執行|执行|跑)|"
+    r"(?:\bnot\s+|(?:未|沒有|没有)\s*)(?=" + _TOOL_NAME_PATTERN.pattern + r")",
+    re.IGNORECASE,
+)
+_NEGATED_CHECK_SUBJECT = re.compile(
+    r"^\s*(?:" + _TOOL_NAME_PATTERN.pattern + r")\s*"
+    r"(?:(?:was|were|is|are)(?:\s+being)?\s*|[:：]\s*)?$", re.IGNORECASE,
+)
+_CHECK_MENTION_TAIL = re.compile(
+    r"^(?:(?:documentation|docs|reference|examples?)\b(?![/\\]|\.[A-Za-z0-9_])|"
+    r"(?:was|were|is|are)\s+(?:mentioned|documented|listed|discussed|described|recommended)\b|"
+    r"(?:was|were)\s+(?:run|executed)\s+by\s+(?:ci|pipeline)\b|"
+    r"(?:evidence|results?|output|reports?)\s+(?:(?:was|were)\s+)?(?:supplied|provided|from\s+(?:ci|pipeline))\b|"
+    r"(?:supplied|provided|external)\s+(?:results?|evidence|reports?|output)\b|"
+    r"在(?:報告|报告|文件)中?(?:被)?(?:提及|提到|列出)|(?:僅|仅)?被?(?:提及|提到))",
+    re.IGNORECASE,
+)
+_CHECK_MENTION_PREFIX = re.compile(
+    r"(?:(?:i|we)\s+)?(?:(?:only|just)\s+)?(?:read|reviewed|consulted|mentioned|documented)",
+    re.IGNORECASE,
+)
+_SUPPLIED_PYTEST_REFERENCE = re.compile(
+    r"(?:(?:i|we)\s+)?used\s+(?:the\s+)?(?:supplied|provided|external)\s+"
+    r"pytest\s+(?:reports?|results?|output|evidence)[.!?]?",
+    re.IGNORECASE,
+)
+_CHECK_QUOTES = {'"': '"', "'": "'", "`": "`", "「": "」", "『": "』", "“": "”", "‘": "’"}
+_QUOTED_CHECK_TEXT = re.compile(
+    r'''"[^"]*(?:"|\Z)|(?<!\w)'(?:[^']|(?<=\w)'(?=\w))*(?:'|\Z)|`[^`]*(?:`|\Z)|'''
+    r"「[^」]*(?:」|\Z)|『[^』]*(?:』|\Z)|“[^”]*(?:”|\Z)|‘[^’]*(?:’|\Z)"
+)
+_QUOTED_ASSERTION_HEAD = re.compile(
+    r"^(?:(?:i|we|he|she|they|you|ran|executed|invoked|tested|checked|verified)\b|"
+    r"我(?:們|们)?|他(?:們|们)?|她(?:們|们)?)", re.IGNORECASE,
+)
+
+
+def _split_check_clauses(text: str, *, commas: bool = False) -> list[str]:
+    """Split assertions/commands, retaining delimiters inside quoted paths/text."""
+    parts: list[str] = []
+    start = index = 0
+    quote = None
+    while index < len(text):
+        char = text[index]
+        apostrophe = char == "'" and 0 < index < len(text) - 1 and text[index - 1].isalnum() and text[index + 1].isalnum()
+        if quote:
+            if char == quote and not apostrophe:
+                quote = None
+        elif char in _CHECK_QUOTES and not apostrophe:
+            quote = _CHECK_QUOTES[char]
+        else:
+            delimiter = _CHECK_CLAUSE_BREAK.match(text, index)
+            end = delimiter.end() if delimiter else index + 1 if commas and char in ",，" else None
+            if end is not None:
+                parts.append(text[start:index].strip())
+                start = index = end
+                continue
+        index += 1
+    parts.append(text[start:].strip())
+    return parts
+
+
+def _is_check_mention(text: str) -> bool:
+    """Identify documentation/mention context without opting other wording out."""
+    tool = _TOOL_NAME_PATTERN.search(text)
+    if tool is None:
+        return False
+    prefix = text[:tool.start()].strip()
+    tail = text[tool.end():].lstrip(" \t:：")
+    return bool(
+        (not prefix and _CHECK_MENTION_TAIL.match(tail))
+        or (_CHECK_MENTION_PREFIX.fullmatch(prefix) and re.match(
+            r"(?:documentation|docs|reference|examples?|output|results?|reports?|evidence)\b(?![/\\]|\.[A-Za-z0-9_])",
+            tail, re.IGNORECASE,
+        ))
+    )
+
+
+def _without_negated_execution(clause: str) -> str:
+    """Remove the negated predicate, never an earlier affirmative predicate."""
+    negation = _NEGATED_EXECUTION.search(clause)
+    if negation is None:
+        return clause
+    prefix = clause[:negation.start()]
+    # A leading passive subject belongs to the negation ("pytest was not run").
+    # Otherwise keep the prefix: it may contain an affirmative execution claim.
+    return "" if _NEGATED_CHECK_SUBJECT.fullmatch(prefix) else prefix
+
+
+def _execution_claims(text: str) -> list[str]:
+    """Keep clauses by default; exclude only explicit non-execution context."""
+    # A later execution claim can refer back to pytest without naming it again.
+    if _SUPPLIED_PYTEST_REFERENCE.fullmatch(text.strip()):
+        return []
+
+    def hide_quoted_assertion(match: re.Match) -> str:
+        quoted = match.group()
+        body = quoted[1:]
+        if body.endswith(_CHECK_QUOTES[quoted[0]]):
+            body = body[:-1]
+        body = body.strip()
+        if (_QUOTED_ASSERTION_HEAD.match(body) or _REPORTED_CHECK.match(body)
+                or _EXTERNAL_CHECK.match(body) or _is_check_mention(body)):
+            return " " * len(match.group())
+        if (_NEGATED_EXECUTION.search(body)
+                and not _extract_tool_names(_without_negated_execution(body))):
+            return " " * len(match.group())
+        return body  # literal commands retain tools after any launcher or path
+
+    claims: list[str] = []
+    for statement in _split_check_clauses(text):
+        # Attribution may contain commas and quoted first-person assertions.
+        if _REPORTED_CHECK.match(statement):
+            continue
+        for clause in _split_check_clauses(statement, commas=True):
+            clause = _QUOTED_CHECK_TEXT.sub(hide_quoted_assertion, clause).lstrip(" -*•\t")
+            if (_REPORTED_CHECK.match(clause) or _EXTERNAL_CHECK.match(clause)
+                    or _is_check_mention(clause)):
+                continue
+            claims.append(_without_negated_execution(clause))
+    return claims
 
 
 def _check_evidence(
@@ -291,11 +440,13 @@ def _check_evidence(
                     f"FILES_TOUCHED: '{claimed}' not found on filesystem"
                 )
 
-    # CHECKS_RUN: extract tool names, check for corresponding artifacts
+    # CHECKS_RUN: only own execution claims require local artifact signals.
     checks_run = fields.get("CHECKS_RUN", "").strip()
     if checks_run and checks_run.upper() not in {"NONE", ""}:
+        # Field presence remains checkable even when every clause is excluded.
         has_checkable = True
-        found_tools = _extract_tool_names(checks_run)
+        claims = _execution_claims(checks_run)
+        found_tools = _extract_tool_names(" ".join(claims))
         for tool in found_tools:
             signals = _TOOL_ARTIFACT_SIGNALS.get(tool, [])
             artifact_found = any(
@@ -2071,10 +2222,10 @@ def run_session_end_hook(
     # Gate evaluation — policy-driven, not hardcoded.
     # load_policy discovers: project_root/governance/gate_policy.yaml first,
     # then framework default, then builtin.  Provenance is always recorded.
-    already_consumed = (
-        (result.get("session_binding") or {}).get("status") == "already_consumed"
-    )
-    if already_consumed:
+    replay_guarded = (result.get("session_binding") or {}).get("status") in {
+        "already_consumed", "completion_marker_invalid",
+    }
+    if replay_guarded:
         closeout_status = STATUS_STALE_OR_MISMATCHED
         memory_tier = MEMORY_TIER_NONE
         fields = {}
@@ -2137,7 +2288,7 @@ def run_session_end_hook(
 
     # Persist canonical audit entry — non-blocking, repo-local, observability only.
     # See _append_canonical_audit_log() for authority boundary documentation.
-    if not already_consumed:
+    if not replay_guarded:
         _append_canonical_audit_log(
             project_root=project_root,
             session_id=session_id,
@@ -2186,7 +2337,7 @@ def run_session_end_hook(
     # Advisory-only — log write failures must not interrupt the session result.
     taxonomy_expansion_log_entry: dict | None = None
     if (
-        not already_consumed
+        not replay_guarded
         and failure_disposition_data
         and failure_disposition_data.get("taxonomy_expansion_signal")
     ):
@@ -2220,7 +2371,7 @@ def run_session_end_hook(
     try:
         # v0.2 rollout: candidate + significance classifier + advisory report.
         # Advisory only; never changes gate outcome.
-        if not already_consumed:
+        if not replay_guarded:
             commit_hash = _resolve_head_commit(project_root)
             memory_significance_artifacts = write_candidate_and_advisory(
                 repo_root=project_root,
@@ -2239,7 +2390,7 @@ def run_session_end_hook(
     # preferred_session_id → scope=current_session.
     # Bridge is now always called; it handles None/missing transcript_path by
     # attempting auto-detection from ~/.claude/projects/.
-    if not already_consumed:
+    if not replay_guarded:
         _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     # Memory authority observation surface — Phase 1 (non-blocking, repo-scoped).

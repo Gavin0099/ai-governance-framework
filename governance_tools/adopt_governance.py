@@ -731,6 +731,8 @@ artifacts/runtime/
 artifacts/session/
 artifacts/session-index.ndjson
 artifacts/governance/version_compatibility.json
+/artifacts/claim-enforcement/claim-enforcement-receipts.ndjson
+/artifacts/governance/runtime_phase_summary.json
 artifacts/*.db
 # any-depth copies (runtime writers can spill a nested artifacts/ tree)
 **/artifacts/runtime/
