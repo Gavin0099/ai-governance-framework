@@ -84,6 +84,15 @@ def test_contract_is_registered_and_routed_as_canonical_on_demand_authority() ->
         "canonical | false | AGENT.md | on-demand |"
     ) in authority
     assert "`SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`" in agent
+    predicate_summary = (
+        "exact-head owner attestation, independent technical review, green required "
+        "checks, reviewed-head preservation, and current-base integration evidence"
+    )
+    assert f"five merge predicates: {predicate_summary}." in " ".join(agent.split())
+    assert (
+        "| `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | canonical solo-owner "
+        f"merge decision contract | five predicates: {predicate_summary} |"
+    ) in " ".join(authority.split())
 
 
 def test_integration_check_vocabulary_covers_current_base_evidence_states() -> None:
@@ -104,7 +113,7 @@ def test_normative_cases_are_semantically_consistent() -> None:
     vocabulary = _json_block("solo-owner-merge-vocabulary")
     cases = _json_block("solo-owner-merge-cases")
 
-    assert len(cases) == 16
+    assert len(cases) == 17
     assert all(_case_errors(case, vocabulary) == [] for case in cases)
 
 
@@ -131,6 +140,65 @@ def test_integration_evidence_prose_preserves_required_semantics() -> None:
 
     for sentence in required_sentences:
         assert " ".join(sentence.split()) in text
+
+
+def test_fresh_run_prose_excludes_rerunning_stale_workflow_attempts() -> None:
+    text = " ".join(CONTRACT.read_text(encoding="utf-8").split())
+    required_sentences = (
+        "For GitHub Actions, re-running an existing workflow run or attempt reuses the "
+        "original event's `GITHUB_SHA`.",
+        "The framework's `governance.yml` checks out `${{ github.sha }}`; for "
+        "`pull_request`, this is the merge commit computed at event time.",
+        "After the target tip advances, evidence must come from a fresh run whose tested "
+        "revision is verified to bind the current target tip and exact head.",
+        "A new `pull_request` event such as `synchronize` or `reopened` may trigger a "
+        "fresh run, but the event type alone is insufficient.",
+        "A test-merge run or merge-queue evidence may also qualify under the same "
+        "tested-revision binding requirement.",
+        "Re-running an earlier workflow run or attempt is not an evidence refresh, "
+        "because it tests the earlier merge candidate.",
+        "If fresh evidence cannot be produced or the tested revision cannot be shown to "
+        "bind the current target tip and exact head, `integration_checks` fails closed "
+        "(for base drift, `base_advanced_without_integration_evidence`), and eligibility "
+        "is `ineligible`.",
+        "With an unchanged head, re-verification requires only fresh integration evidence "
+        "for the current target tip and exact head; no re-review is required.",
+    )
+
+    for sentence in required_sentences:
+        assert " ".join(sentence.split()) in text
+
+
+def test_consumer_adoption_prose_requires_a_declared_verifiable_check_set() -> None:
+    text = " ".join(CONTRACT.read_text(encoding="utf-8").split())
+    required_sentences = (
+        "Before adopting the five-predicate text, a consumer must have a non-empty, "
+        "explicitly declared, verifiable required-check set from repository configuration "
+        "or a separately authorized governance declaration.",
+        "Classic branch protection and repository rulesets both count as repository "
+        "configuration; the required set must cover all applicable requirements from "
+        "either or both sources.",
+        "A 404 from the classic branch-protection API alone is not evidence that the "
+        "required-check set is empty.",
+        "An agent must not choose a subset of green checks and treat it as the required set.",
+        "A consumer without such a set will find every merge ineligible under this "
+        "text; this is the disclosed adoption cost, not a reason to relax the "
+        "empty-required-check-set rule.",
+    )
+
+    for sentence in required_sentences:
+        assert " ".join(sentence.split()) in text
+
+
+def test_rerun_of_stale_attempt_is_not_integration_evidence() -> None:
+    vocabulary = _json_block("solo-owner-merge-vocabulary")
+    cases = {case["case_id"]: case for case in _json_block("solo-owner-merge-cases")}
+    rerun_case = cases["rerun_of_stale_attempt_is_not_integration_evidence"]
+
+    assert rerun_case["required_checks"] == "green_for_exact_head"
+    assert rerun_case["integration_checks"] == "base_advanced_without_integration_evidence"
+    assert rerun_case["expected_decision"] == "ineligible"
+    assert _case_errors(rerun_case, vocabulary) == []
 
 
 def test_empty_required_check_set_is_not_integration_evidence() -> None:

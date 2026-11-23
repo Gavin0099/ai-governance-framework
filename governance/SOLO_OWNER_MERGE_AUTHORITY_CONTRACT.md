@@ -169,6 +169,24 @@ are that tip and head, or run metadata recording both SHAs and the tested ref).
 Event type alone is insufficient: a `pull_request`-triggered job that explicitly
 checks out only the head is head evidence, not merge-candidate evidence.
 
+For GitHub Actions, re-running an existing workflow run or attempt reuses the
+original event's `GITHUB_SHA`. The framework's `governance.yml` checks out
+`${{ github.sha }}`; for `pull_request`, this is the merge commit computed at
+event time.
+
+After the target tip advances, evidence must come from a fresh run whose tested
+revision is verified to bind the current target tip and exact head. A new
+`pull_request` event such as `synchronize` or `reopened` may trigger a fresh run,
+but the event type alone is insufficient. A test-merge run or merge-queue
+evidence may also qualify under the same tested-revision binding requirement.
+Re-running an earlier workflow run or attempt is not an evidence refresh,
+because it tests the earlier merge candidate.
+
+If fresh evidence cannot be produced or the tested revision cannot be shown to
+bind the current target tip and exact head, `integration_checks` fails closed
+(for base drift, `base_advanced_without_integration_evidence`), and eligibility
+is `ineligible`.
+
 Every other state fails closed:
 
 - `base_advanced_without_integration_evidence`: the target tip moved after the
@@ -182,9 +200,9 @@ Every other state fails closed:
 
 Base drift invalidates only integration evidence, never the head's own check
 results, independent review, or owner attestation. With an unchanged head,
-re-verification requires only the integration run, not a re-review. If the head
-itself changes, the existing exact-head and reviewed-head predicates still
-apply.
+re-verification requires only fresh integration evidence for the current target
+tip and exact head; no re-review is required. If the head itself changes, the
+existing exact-head and reviewed-head predicates still apply.
 
 GitHub's "strict" required-status mode or a merge queue are ways to produce
 such evidence. This contract does not require or configure either mechanism.
@@ -295,6 +313,16 @@ such evidence. This contract does not require or configure either mechanism.
     "expected_decision": "ineligible"
   },
   {
+    "case_id": "rerun_of_stale_attempt_is_not_integration_evidence",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "base_advanced_without_integration_evidence",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
+    "expected_decision": "ineligible"
+  },
+  {
     "case_id": "merge_candidate_green_for_current_base",
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "independent_approved_for_exact_head",
@@ -378,6 +406,19 @@ The added `integration_checks` predicate applies to merge decisions made after
 this amendment is merged. It does not reclassify earlier merges. Consumers
 pinned to an older framework copy keep the old four-predicate text until they
 update.
+
+Before adopting the five-predicate text, a consumer must have a non-empty,
+explicitly declared, verifiable required-check set from repository configuration
+or a separately authorized governance declaration. Classic branch protection
+and repository rulesets both count as repository configuration; the required
+set must cover all applicable requirements from either or both sources. A 404
+from the classic branch-protection API alone is not evidence that the
+required-check set is empty.
+
+An agent must not choose a subset of green checks and treat it as the required
+set. A consumer without such a set will find every merge ineligible under this
+text; this is the disclosed adoption cost, not a reason to relax the
+empty-required-check-set rule.
 
 ## Claim Ceiling And Non-Goals
 
