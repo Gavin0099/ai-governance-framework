@@ -289,12 +289,7 @@ _NEGATED_EXECUTION = re.compile(
     r"(?:\bnot\s+|(?:未|沒有|没有)\s*)(?=" + _TOOL_NAME_PATTERN.pattern + r")",
     re.IGNORECASE,
 )
-_AFFIRMATIVE_EXECUTION_DASH = re.compile(
-    r"(?:[—–]|(?<=\s)-(?=\s))\s*"
-    r"(?=(?:(?:i|we)\s+)?(?:(?:have|had|did|also|later|then)\s+)*"
-    r"(?:run|ran|executed|invoked|tested|checked|verified)\b)",
-    re.IGNORECASE,
-)
+_CHECK_CLAUSE_DASH = re.compile(r"[—–]+|(?<=\s)-(?=\s)")
 _NEGATED_CHECK_SUBJECT = re.compile(
     r"^\s*(?:" + _TOOL_NAME_PATTERN.pattern + r")\s*"
     r"(?:(?:was|were|is|are)(?:\s+being)?\s*|[:：]\s*)?$", re.IGNORECASE,
@@ -344,9 +339,9 @@ def _split_check_clauses(text: str, *, commas: bool = False) -> list[str]:
         else:
             delimiter = _CHECK_CLAUSE_BREAK.match(text, index)
             if commas and char in "—–-" and delimiter is None:
-                # Keep dashes in commands and prose unless they introduce an
-                # execution predicate that the preceding negation would hide.
-                dash = _AFFIRMATIVE_EXECUTION_DASH.match(text, index)
+                # End a negated clause at a dash so the next clause gets
+                # its own evidence classification regardless of wording.
+                dash = _CHECK_CLAUSE_DASH.match(text, index)
                 if dash and _NEGATED_EXECUTION.search(text, start, index):
                     delimiter = dash
             end = delimiter.end() if delimiter else index + 1 if commas and char in ",，" else None

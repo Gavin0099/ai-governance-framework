@@ -649,10 +649,20 @@ def test_reviewer_examples_cannot_qualify_as_valid_without_artifacts(tmp_path, c
     assert result["memory_tier"] != "verified_state_update"
 
 
-@pytest.mark.parametrize("separator", [" — ", " – ", " - ", "; ", ", but ", ". "],
-                         ids=["em-dash", "en-dash", "spaced-hyphen", "semicolon", "comma-but", "period"])
-def test_affirmative_execution_after_negation_requires_evidence(tmp_path, separator):
-    checks = f"I did not run the build{separator}I ran pytest"
+@pytest.mark.parametrize("checks", [
+    pytest.param("I did not run the build — I ran pytest", id="em-dash"),
+    pytest.param("I did not run the build – I ran pytest", id="en-dash"),
+    pytest.param("I did not run the build - I ran pytest", id="spaced-hyphen"),
+    pytest.param("I did not run the build; I ran pytest", id="semicolon"),
+    pytest.param("I did not run the build, but I ran pytest", id="comma-but"),
+    pytest.param("I did not run the build. I ran pytest", id="period"),
+    pytest.param("I did not run the build — I successfully ran pytest", id="review-adverb"),
+    pytest.param("I did not run the build – I reran pytest", id="review-reran"),
+    pytest.param("我未執行 build — 我有執行 pytest", id="review-chinese"),
+    pytest.param("I did not run the build - then I ran pytest", id="review-then"),
+    pytest.param("我未執行 build——改用 pytest 完成驗證", id="review-double-em-dash"),
+])
+def test_affirmative_execution_after_negation_requires_evidence(tmp_path, checks):
     status, problems, refs = evidence(tmp_path, checks)
     assert status == EVIDENCE_INCONSISTENT
     assert any("'pytest' claimed" in problem for problem in problems)
@@ -666,6 +676,7 @@ def test_affirmative_execution_after_negation_requires_evidence(tmp_path, separa
 @pytest.mark.parametrize("checks", [
     "I did not run pytest",
     "I did not run pytest — pytest results were supplied",
+    "I did not run python -m pytest",
     'I did not run the command "build — I ran pytest"',
     'The report states, "I did not run the build — I ran pytest"',
 ])
