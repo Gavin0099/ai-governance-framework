@@ -647,3 +647,29 @@ def test_reviewer_examples_cannot_qualify_as_valid_without_artifacts(tmp_path, c
     assert result["content_sufficiency"] == CONTENT_SUFFICIENT
     assert result["closeout_status"] == "evidence_inconsistent"
     assert result["memory_tier"] != "verified_state_update"
+
+
+@pytest.mark.parametrize("separator", [" — ", " – ", " - ", "; ", ", but ", ". "],
+                         ids=["em-dash", "en-dash", "spaced-hyphen", "semicolon", "comma-but", "period"])
+def test_affirmative_execution_after_negation_requires_evidence(tmp_path, separator):
+    checks = f"I did not run the build{separator}I ran pytest"
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_INCONSISTENT
+    assert any("'pytest' claimed" in problem for problem in problems)
+    assert [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref] == [("pytest", False)]
+
+    (tmp_path / ".pytest_cache").mkdir()
+    status, problems, _ = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+
+
+@pytest.mark.parametrize("checks", [
+    "I did not run pytest",
+    "I did not run pytest — pytest results were supplied",
+    'I did not run the command "build — I ran pytest"',
+    'The report states, "I did not run the build — I ran pytest"',
+])
+def test_negated_execution_without_affirmative_claim_requires_no_artifact(tmp_path, checks):
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert not any("tool" in ref for ref in refs)
