@@ -895,23 +895,24 @@ class GeminiAdapter(AgentAdapter):
     Gemini CLI (and VS Code Gemini Code Assist in agent mode, which is CLI-driven).
 
     Integration surface: .gemini/settings.json (project) or ~/.gemini/settings.json (user)
-    Hook key: hooks.SessionEnd (list of hook objects)
+    Hook keys: hooks.SessionStart / hooks.SessionEnd [].hooks[].command
     Reference: https://geminicli.com/docs/hooks/reference/
-               Google Cloud — Gemini CLI hooks documentation
 
-    Hook object schema (confirmed):
-        {"command": "...", "timeout": 30}
-    Hook input: JSON via stdin with fields session_id, transcript_path, cwd,
-                hook_event_name, timestamp.
-    Exit codes: 0=success, 2=block, others=warning.
-
-    Tier A: Gemini CLI has native SessionEnd lifecycle hook support, confirmed
-    in official documentation. VS Code Gemini Code Assist agent mode is
-    driven by Gemini CLI.
+    Gemini CLI treats SessionEnd as best-effort on exit, so governance does not
+    run formal closeout in SessionEnd (any legacy SessionEnd closeout hook is
+    removed on install).  SessionStart establishes the root-bound identity
+    (provider ``gemini``) and reads back the latest checkpoint; SessionEnd
+    writes a resumable checkpoint within a 5,000 ms (5 s) timeout budget.
+    Gemini CLI loads project hooks from `<launch_dir>/.gemini/settings.json`,
+    so governed sessions must be launched from the consumer Git worktree root.
+    Formal closeout is an explicit operation via ``gemini_formal_closeout.py``.
     """
 
     CONFIG_PATH = ".gemini/settings.json"
-    HOOK_EVENT = "SessionEnd"
+    LIFECYCLE_SCRIPT = "runtime_hooks/adapters/gemini/session_lifecycle.py"
+    # Gemini CLI HookRunner.executeCommandHook measures hook timeout in milliseconds.
+    SESSION_END_TIMEOUT = 5000
+    MANAGED_EVENTS = ("SessionStart", "SessionEnd")
 
     @property
     def agent_id(self) -> str:
@@ -928,9 +929,8 @@ class GeminiAdapter(AgentAdapter):
     @property
     def surface_description(self) -> str:
         return (
-            "Gemini CLI native SessionEnd hook in .gemini/settings.json. "
-            "Also covers VS Code Gemini Code Assist agent mode (CLI-driven). "
-            "Hook receives session_id, transcript_path, cwd via stdin JSON."
+            "Gemini CLI SessionStart (identity, read-back) and SessionEnd (resumable "
+            "checkpoint) hooks in .gemini/settings.json; formal closeout is explicit."
         )
 
     def detect(self, project_root: Path) -> dict[str, Any]:
@@ -943,74 +943,359 @@ class GeminiAdapter(AgentAdapter):
     def _settings_path(self, project_root: Path) -> Path:
         return project_root / self.CONFIG_PATH
 
-    def _is_hook_installed(self, project_root: Path) -> bool:
-        data = _read_json(self._settings_path(project_root))
-        hooks = data.get("hooks", {}).get(self.HOOK_EVENT, [])
-        return any("session_closeout_entry" in h.get("command", "") for h in hooks)
+    @classmethod
+    def _user_settings_path(cls) -> Path:
+        configured = os.environ.get("GEMINI_CLI_HOME", "").strip()
+        base = Path(configured).expanduser() if configured else Path.home()
+        return base / cls.CONFIG_PATH
+
+    @staticmethod
+    def _quote_arg(value: str) -> str:
+        """Quote an argument for both Gemini CLI's Windows PowerShell and POSIX Bash runners."""
+        if "'" not in value:
+            return shlex.quote(value)
+        if not any(ch in value for ch in ('"', "$", "`", "\\")):
+            return f'"{value}"'
+        if os.name == "nt":
+            return "'" + value.replace("'", "''") + "'"
+        return shlex.quote(value)
+
+    @classmethod
+    def _command(cls, project_root: Path, framework_root: Path, event: str) -> str:
+        script = (framework_root.resolve() / cls.LIFECYCLE_SCRIPT).as_posix()
+        args = [script, "--event", event, "--project-root", project_root.resolve().as_posix()]
+        return "python " + " ".join(cls._quote_arg(arg) for arg in args)
+
+    @classmethod
+    def _expected_hooks(cls, project_root: Path, framework_root: Path) -> dict[str, dict[str, Any]]:
+        return {
+            "SessionStart": {"type": "command",
+                             "command": cls._command(project_root, framework_root, "session_start")},
+            "SessionEnd": {"type": "command",
+                           "command": cls._command(project_root, framework_root, "session_end"),
+                           "timeout": cls.SESSION_END_TIMEOUT},
+        }
+
+    @classmethod
+    def _is_governance_hook(cls, hook: Any) -> bool:
+        """Governance-owned hooks: the lifecycle entry, or the legacy SessionEnd closeout."""
+        if not isinstance(hook, dict) or hook.get("type", "command") != "command":
+            return False
+        try:
+            tokens = shlex.split(hook.get("command", ""))
+        except (ValueError, TypeError):
+            return False
+        if len(tokens) < 2 or tokens[0] not in ("python", "python3"):
+            return False
+        target = tokens[1].replace("\\", "/")
+        return (target.endswith("/governance_tools/session_closeout_entry.py")
+                or target.endswith("/" + cls.LIFECYCLE_SCRIPT))
+
+    @staticmethod
+    def _strip_jsonc_comments(content: str) -> str:
+        """Strip // and /* */ comments outside JSON string literals, matching Gemini CLI strip-json-comments."""
+        out: list[str] = []
+        i = 0
+        n = len(content)
+        in_str = False
+        while i < n:
+            ch = content[i]
+            if in_str:
+                out.append(ch)
+                if ch == "\\" and i + 1 < n:
+                    out.append(content[i + 1])
+                    i += 2
+                    continue
+                if ch == '"':
+                    in_str = False
+                i += 1
+                continue
+            if ch == '"':
+                in_str = True
+                out.append(ch)
+                i += 1
+                continue
+            if ch == "/" and i + 1 < n and content[i + 1] == "/":
+                i += 2
+                while i < n and content[i] not in "\r\n":
+                    i += 1
+                continue
+            if ch == "/" and i + 1 < n and content[i + 1] == "*":
+                end_idx = content.find("*/", i + 2)
+                if end_idx == -1:
+                    raise ValueError("unterminated block comment in settings.json")
+                i = end_idx + 2
+                continue
+            out.append(ch)
+            i += 1
+        return "".join(out)
+
+    @classmethod
+    def _read_user_settings(cls, path: Path) -> dict[str, Any]:
+        """Read user-level Gemini settings (allowing JSONC comments); fail closed on invalid content."""
+        try:
+            content = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return {}
+        data = json.loads(cls._strip_jsonc_comments(content))
+        if not isinstance(data, dict):
+            raise ValueError("user settings must contain a JSON object")
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("user settings hooks must be an object")
+        return data
+
+    @classmethod
+    def _disabled_reasons(
+        cls,
+        project_data: dict[str, Any],
+        user_data: dict[str, Any],
+        expected: dict[str, dict[str, Any]],
+        installed_hooks: dict[str, list[dict[str, Any]]],
+    ) -> list[str]:
+        """Detect hooksConfig.enabled=false or hooksConfig.disabled disabling managed hooks."""
+        reasons: list[str] = []
+        proj_cfg = project_data.get("hooksConfig") if isinstance(project_data, dict) else None
+        user_cfg = user_data.get("hooksConfig") if isinstance(user_data, dict) else None
+        proj_hooks = project_data.get("hooks") if isinstance(project_data, dict) else None
+        user_hooks = user_data.get("hooks") if isinstance(user_data, dict) else None
+
+        proj_enabled = proj_cfg.get("enabled") if isinstance(proj_cfg, dict) else None
+        user_enabled = user_cfg.get("enabled") if isinstance(user_cfg, dict) else None
+        if proj_enabled is False or (proj_enabled is None and user_enabled is False):
+            reasons.append("hooksConfig.enabled is false")
+        if ((isinstance(proj_hooks, dict) and proj_hooks.get("enabled") is False)
+                or (isinstance(user_hooks, dict) and user_hooks.get("enabled") is False)):
+            reasons.append("hooks.enabled is false")
+
+        disabled_names: set[str] = set()
+        for source in (proj_cfg, user_cfg, proj_hooks, user_hooks):
+            if isinstance(source, dict) and isinstance(source.get("disabled"), list):
+                disabled_names.update(item for item in source["disabled"] if isinstance(item, str))
+
+        for event in ("SessionStart", "SessionEnd"):
+            candidates = {expected[event]["command"]}
+            for hook in installed_hooks.get(event, []):
+                name = hook.get("name") or hook.get("command")
+                if isinstance(name, str):
+                    candidates.add(name)
+            matched = sorted(candidates & disabled_names)
+            if matched:
+                reasons.append(f"{event} hook listed in hooksConfig.disabled")
+        return reasons
+
+    def _binding_state(self, project_root: Path, framework_root: Path) -> tuple[str, str | None]:
+        expected = self._expected_hooks(project_root, framework_root)
+        found: dict[str, list[tuple[bool, str]]] = {event: [] for event in self.MANAGED_EVENTS}
+        matched_hooks: dict[str, list[dict[str, Any]]] = {event: [] for event in self.MANAGED_EVENTS}
+        user_path = self._user_settings_path()
+        try:
+            user_data = self._read_user_settings(user_path)
+        except (OSError, ValueError, RecursionError):
+            return "STALE_OR_WRONG_BINDING", str(user_path)
+
+        project_path = project_root / self.CONFIG_PATH
+        project_data = _read_json(project_path)
+        for path, data in ((project_path, project_data), (user_path, user_data)):
+            hooks = data.get("hooks", {}) if isinstance(data, dict) else {}
+            if not isinstance(hooks, dict):
+                continue
+            for event in self.MANAGED_EVENTS:
+                for group in hooks.get(event, []) if isinstance(hooks.get(event), list) else []:
+                    if not isinstance(group, dict):
+                        continue
+                    if "hooks" not in group and self._is_governance_hook(group):
+                        found[event].append((False, str(path)))
+                        continue
+                    group_hooks = group.get("hooks", [])
+                    for hook in group_hooks if isinstance(group_hooks, list) else []:
+                        if not self._is_governance_hook(hook):
+                            continue
+                        want = expected.get(event)
+                        current = (want is not None
+                                   and hook.get("type") == "command"
+                                   and hook.get("command") == want["command"]
+                                   and hook.get("timeout") == want.get("timeout")
+                                   and not group.get("matcher"))
+                        found[event].append((current, str(path)))
+                        if current:
+                            matched_hooks[event].append(hook)
+        complete = all(
+            len(found[event]) == 1 and found[event][0][0] for event in ("SessionStart", "SessionEnd")
+        )
+        if complete:
+            disabled = self._disabled_reasons(project_data, user_data, expected, matched_hooks)
+            if disabled:
+                return "DISABLED_BY_SETTINGS", found["SessionStart"][0][1]
+            return "CORRECTLY_INSTALLED", found["SessionStart"][0][1]
+        for event in self.MANAGED_EVENTS:
+            if found[event]:
+                return "STALE_OR_WRONG_BINDING", found[event][0][1]
+        return "NOT_INSTALLED", None
+
+    @classmethod
+    def _read_settings_for_install(cls, path: Path) -> dict[str, Any]:
+        """Read the settings to be rewritten without treating errors as empty data."""
+        try:
+            content = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return {}
+        data = json.loads(content)
+        if not isinstance(data, dict):
+            raise ValueError("settings must contain a JSON object")
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("settings hooks must be an object")
+        for event in cls.MANAGED_EVENTS:
+            groups = hooks.get(event, [])
+            if not isinstance(groups, list):
+                raise ValueError(f"settings hooks.{event} must be a list")
+            for group in groups:
+                if not isinstance(group, dict) or not isinstance(group.get("hooks", []), list):
+                    raise ValueError(f"settings {event} groups must be objects with hook lists")
+        return data
+
+    @classmethod
+    def _remove_governance_hooks(cls, hooks: dict[str, Any]) -> bool:
+        """Drop governance hooks; groups and events emptied by that removal go too."""
+        changed = False
+        for event in cls.MANAGED_EVENTS:
+            groups = hooks.get(event)
+            if not isinstance(groups, list):
+                continue
+            kept_groups = []
+            event_changed = False
+            for group in groups:
+                if not isinstance(group, dict):
+                    kept_groups.append(group)
+                    continue
+                if "hooks" not in group:
+                    if cls._is_governance_hook(group):
+                        event_changed = True
+                        continue
+                    kept_groups.append(group)
+                    continue
+                if not isinstance(group["hooks"], list):
+                    kept_groups.append(group)
+                    continue
+                kept = [h for h in group["hooks"] if not cls._is_governance_hook(h)]
+                if len(kept) != len(group["hooks"]):
+                    event_changed = True
+                    if not kept:
+                        continue
+                    group["hooks"] = kept
+                kept_groups.append(group)
+            if kept_groups:
+                hooks[event] = kept_groups
+            elif event_changed:
+                del hooks[event]
+            changed = changed or event_changed
+        return changed
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        if self._is_hook_installed(project_root):
-            return {
-                "status": "already_installed",
-                "location": str(self._settings_path(project_root)),
-                "message": f"Gemini {self.HOOK_EVENT} hook already present.",
-            }
+        from governance_tools.hook_installer import install_gemini_instructions
+
         settings_path = self._settings_path(project_root)
-        data = _read_json(settings_path)
-        data.setdefault("hooks", {}).setdefault(self.HOOK_EVENT, [])
-        data["hooks"][self.HOOK_EVENT].append({
-            "command": _fmt_cmd(_CLOSEOUT_CMD, framework_root, project_root),
-            "timeout": 30,
-        })
+        try:
+            data = self._read_settings_for_install(settings_path)
+        except (OSError, ValueError, RecursionError) as exc:
+            return {"status": "blocked", "location": str(settings_path),
+                    "message": f"Unable to safely read Gemini settings; not modified: {exc}"}
+        user_path = self._user_settings_path()
+        try:
+            user_data = self._read_user_settings(user_path)
+        except (OSError, ValueError, RecursionError) as exc:
+            return {"status": "blocked", "location": str(user_path),
+                    "message": f"Unable to safely read user Gemini settings; not modified: {exc}"}
+        state, loc = self._binding_state(project_root, framework_root)
+        if state == "DISABLED_BY_SETTINGS":
+            return {"status": "blocked", "location": loc,
+                    "message": "Governance Gemini hooks are configured but disabled by hooksConfig; not re-enabled automatically."}
+        if state != "CORRECTLY_INSTALLED":
+            hooks = user_data.get("hooks", {})
+            for event in self.MANAGED_EVENTS:
+                groups = hooks.get(event, []) if isinstance(hooks, dict) else []
+                for group in groups if isinstance(groups, list) else []:
+                    if not isinstance(group, dict):
+                        continue
+                    if ("hooks" not in group and self._is_governance_hook(group)) or any(
+                        self._is_governance_hook(h)
+                        for h in (group.get("hooks", []) if isinstance(group.get("hooks"), list) else [])
+                    ):
+                        return {"status": "blocked", "location": str(user_path),
+                                "message": "Conflicting Governance hook outside scoped settings.json; not modified."}
+        instructions = install_gemini_instructions(project_root, framework_root)
+        if not instructions.ok:
+            return {"status": "blocked", "location": str(settings_path),
+                    "message": "Unable to project Gemini instructions: " + "; ".join(instructions.errors)}
+        readiness = closeout_execution_readiness(project_root, framework_root)
+        guidance = " Formal closeout guidance is in GEMINI.md and AGENTS.md." if instructions.installed_files else ""
+        if state == "CORRECTLY_INSTALLED":
+            return {"status": "already_installed", "location": loc,
+                    "closeout_readiness": readiness,
+                    "message": "Governance SessionStart/SessionEnd hooks match the requested binding."
+                               + guidance + _readiness_note(readiness)}
+        hooks = data.setdefault("hooks", {})
+        removed = self._remove_governance_hooks(hooks)
+        for event, hook in self._expected_hooks(project_root, framework_root).items():
+            hooks.setdefault(event, []).append({"hooks": [hook]})
         _write_json(settings_path, data)
-        return {
-            "status": "installed",
-            "location": str(settings_path),
-            "message": (
-                f"Gemini {self.HOOK_EVENT} hook written to {settings_path}. "
-                "Fires automatically when Gemini CLI session ends."
-            ),
-        }
+        return {"status": "installed", "previous_binding_state": state,
+                "location": str(settings_path), "closeout_readiness": readiness,
+                "message": ("Governance SessionStart/SessionEnd hooks installed"
+                            + ("; previous governance hooks replaced." if removed else ".")
+                            + guidance + _readiness_note(readiness))}
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        installed = self._is_hook_installed(project_root)
-        p = self._settings_path(project_root)
-        return {
-            "installed": installed,
-            "manual_only": False,
-            "location": str(p) if installed else None,
-            "note": (
-                f"{self.HOOK_EVENT} hook found in {self.CONFIG_PATH}" if installed
-                else f"No governance hook found in {self.CONFIG_PATH}"
-            ),
-        }
+        state, loc = self._binding_state(project_root, framework_root)
+        readiness = closeout_execution_readiness(project_root, framework_root)
+        disabled_note = (
+            " Hooks are configured but disabled by Gemini hooksConfig; enable them explicitly to restore execution."
+            if state == "DISABLED_BY_SETTINGS" else ""
+        )
+        return {"installed": state == "CORRECTLY_INSTALLED", "manual_only": False,
+                "binding_state": state, "location": loc, "closeout_readiness": readiness,
+                # No pending-hook note: Gemini's SessionEnd hook only writes a
+                # resumable checkpoint; it never runs the formal closeout.
+                "note": "Configuration binding only; native execution is not verified."
+                        + disabled_note + _readiness_note(readiness)}
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         settings_path = self._settings_path(project_root)
         data = _read_json(settings_path)
-        hooks = data.get("hooks", {}).get(self.HOOK_EVENT, [])
-        before = len(hooks)
-        data["hooks"][self.HOOK_EVENT] = [
-            h for h in hooks
-            if "session_closeout_entry" not in h.get("command", "")
-        ]
-        if len(data["hooks"][self.HOOK_EVENT]) < before:
+        hooks = data.get("hooks", {})
+        if isinstance(hooks, dict) and self._remove_governance_hooks(hooks):
             _write_json(settings_path, data)
             return {
                 "agent": self.agent_id,
                 "status": "uninstalled",
                 "location": str(settings_path),
-                "message": f"Governance {self.HOOK_EVENT} hook removed.",
+                "message": "Governance Gemini hooks removed from .gemini/settings.json",
             }
-        return {"agent": self.agent_id, "status": "not_found", "message": "No governance hook found to remove."}
+        return {
+            "agent": self.agent_id,
+            "status": "not_found",
+            "message": "No governance Gemini hook found to remove.",
+        }
 
     def print_manual(self, framework_root: Path) -> str:
-        cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
+        entry = self._quote_arg((framework_root / "governance_tools" / "gemini_formal_closeout.py").as_posix())
+        base = (f"python {entry} --project-root <PROJECT_ROOT> --session-id <SESSION_ID> "
+                f"--transcript-path <SESSION_JSONL>")
         return (
-            f"[{self.display_name}] Manual closeout (if native hook is not active):\n\n"
-            f"    {cmd}\n\n"
-            f"Primary integration: {self.HOOK_EVENT} hook in {self.CONFIG_PATH}\n"
-            f"Install with: python -m governance_tools.manage_agent_closeout install --agent gemini"
+            f"[{self.display_name}] Exiting only writes a resumable checkpoint; formal "
+            f"closeout is a separate explicit operation. Prepare the closeout candidate "
+            f"first, then run one of:\n\n"
+            f"When the owner asks for it in this session:\n\n"
+            f"    {base} --owner-request \"<what the owner asked>\"\n\n"
+            f"When the owner authorized the closeout in advance, in an [Owner Closeout "
+            f"Authorization] block committed before this session started, and its "
+            f"condition is met:\n\n"
+            f"    {base} --authorization-ref <path>@<commit> --condition-met \"<condition met>\"\n\n"
+            f"Never close out on a plan line, a memory next_step, task DONE alone, or an "
+            f"authorization you wrote yourself. manual_fallback stays rejected.\n\n"
+            f"Install the SessionStart/SessionEnd hooks:\n\n"
+            f"    python -m governance_tools.manage_agent_closeout install --agent gemini"
         )
 
 
