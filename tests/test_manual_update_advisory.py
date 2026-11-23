@@ -222,10 +222,28 @@ def test_nonstandard_gitmodules_framework_path_is_treated_as_update_path(tmp_pat
 
 def test_pre_commit_hook_invokes_manual_update_advisory_as_non_blocking() -> None:
     hook = Path("scripts/hooks/pre-commit").read_text(encoding="utf-8")
+    runner_start = hook.index("run_python_advisory() {")
+    runner_end = hook.index("# Advisory-only memory workflow dispatch.", runner_start)
+    runner = hook[runner_start:runner_end]
+    advisory_start = hook.index("# Advisory-only manual governance update detection.")
+    advisory_end = hook.index("BASELINE_FILE=", advisory_start)
+    advisory = hook[advisory_start:advisory_end].replace("\\\n", "")
 
     assert 'MANUAL_UPDATE_ADVISORY_TOOL="$FRAMEWORK_ROOT/governance_tools/manual_update_advisory.py"' in hook
-    assert '"$MANUAL_UPDATE_ADVISORY_TOOL"' in hook
-    assert 'export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT:$PREVIOUS_PYTHONPATH"' in hook
-    assert 'export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT"' in hook
-    assert "Signal 2 reports staged framework lock" in hook
-    assert "--format human || true" in hook
+    assert 'FRAMEWORK_PYTHON_ROOT="$FRAMEWORK_ROOT"' in hook
+    # Command-scoped PYTHONPATH covers both inherited and unset paths without
+    # changing the hook environment or requiring export/restore statements.
+    assert (
+        'PYTHONPATH="$FRAMEWORK_PYTHON_ROOT${PYTHONPATH:+:$PYTHONPATH}" '
+        '"${PYTHON_CMD[@]}" -c'
+    ) in runner
+    invocation_lines = [
+        line for line in advisory.splitlines()
+        if 'run_python_advisory "manual update"' in line
+    ]
+    assert len(invocation_lines) == 1
+    assert '"$MANUAL_UPDATE_ADVISORY_TOOL"' in invocation_lines[0]
+    assert '--repo "$TARGET_REPO_ROOT"' in invocation_lines[0]
+    assert '--framework-root "$FRAMEWORK_ROOT"' in invocation_lines[0]
+    assert "--format human || true" in invocation_lines[0]
+    assert "Signal 2 reports staged framework lock" in advisory
