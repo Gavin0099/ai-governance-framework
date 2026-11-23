@@ -28,12 +28,17 @@ or label unless the Owner separately authorizes that action.
    observations. If no applicable governance defines merge eligibility, report
    it as undefined for that repository, list Engineering Merge Gate items 1–6
    as observations, and do not return `eligible`.
-1. When the contract is in force, report each of its four predicates using only
+1. When the contract is in force, report each of its five predicates using only
    that predicate's state vocabulary from the contract's JSON block. Bind states
    to available evidence. If evidence may exist in unseen sessions, including a
    private Owner session, report attestation as `missing` (not found in the
    examined evidence), explicitly say those sessions were not examined, and
    never infer an attestation.
+   For `integration_checks`, report its state and evidence tuple (target tip SHA,
+   head SHA, required-check set). Derive the set from all applicable repository
+   configuration (classic branch protection and rulesets); the agent must not
+   choose the set. Re-running an earlier workflow run or attempt is not fresh
+   integration evidence; see the contract.
 2. Identify the reviewed commit and candidate HEAD. If their SHAs differ, never
    report `independent_approved_for_exact_head` or `matches_reviewed_head`.
    Classify the delta by content to determine `head_state` and scope re-review:
@@ -158,13 +163,15 @@ HEAD is merge-ready only when:
    cannot replace or weaken its requirements.
 
 When the repository operates under its
-`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, verify all four predicates
+`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, verify all five predicates
 for the same exact candidate HEAD:
 
 - `owner_merge_attestation=recorded_for_exact_head`;
 - `independent_technical_review=independent_approved_for_exact_head`;
 - `required_checks=green_for_exact_head`;
-- `head_state=matches_reviewed_head`.
+- `head_state=matches_reviewed_head`;
+- `integration_checks=head_contains_current_base` or
+  `integration_checks=merge_candidate_green_for_current_base`.
 
 Any missing, unknown, stale, failing, or non-independent required predicate
 makes the candidate ineligible. A review performed by the implementation
