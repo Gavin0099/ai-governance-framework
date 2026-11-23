@@ -1,4 +1,23 @@
-"""Record text-derived provisional levels; stage A emits no context or decisions."""
+"""Record text-derived provisional levels; stage A emits no context or decisions.
+
+UTF-8 string identifiers are hashed for transcript correlation, including strings
+that cannot be retained as raw metadata. Only bounded ASCII identifiers without
+NFKC/casefold prompt overlap may be stored verbatim. Record filenames use the
+first 32 session-digest hex characters, never an identifier; missing, non-string
+or non-UTF-8 session IDs use invalid-session.jsonl.
+
+upgrade_additional_loads lists resource names requested by the L0 upgrade path;
+it contains NO detector reasons. Only lowercase resource tokens without prompt
+overlap survive. Detector vetoes and L2 keywords can therefore have no loads.
+
+handler_elapsed_ms is sampled after serialization, directory setup and opening
+the record, immediately before substituting the elapsed placeholder and writing.
+It excludes Python startup and the final write/flush/close. Native acceptance
+must measure total invocation latency. Interpreter launch failure, external
+timeout and cancellation are outside what the handler can guarantee. Once the
+CLI entry runs, bootstrap/handler Exception and SystemExit failures exit zero
+with empty stdout; persistence is best-effort, not guaranteed.
+"""
 from __future__ import annotations
 
 import argparse
@@ -7,21 +26,22 @@ import io
 import json
 import re
 import sys
+import unicodedata
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 
-if __package__ in (None, ""):
-    sys.dont_write_bytecode = True
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-
-from governance_tools.task_level_detector import apply_upgrade_triggers, detect_task_level
-
-
-FRAMEWORK_ROOT = Path(__file__).resolve().parents[3]
-_SESSION_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
+FRAMEWORK_ROOT: Path | None = None
+_IDENTIFIER = re.compile(r"[A-Za-z0-9._-]{1,128}")
+_RESOURCE_NAME = re.compile(r"[a-z0-9_]{1,64}")
 _COMMIT = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
+_LEVELS = ("L0", "L1", "L2")
+_DIAGNOSTICS = {
+    "invalid_arguments": "UserPromptSubmit: invalid arguments",
+    "bootstrap_error": "UserPromptSubmit: bootstrap failed",
+    "write_error": "UserPromptSubmit: record write failed",
+}
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -29,31 +49,52 @@ class _ArgumentParser(argparse.ArgumentParser):
         raise ValueError("invalid_arguments")
 
 
-def _redact(message: str, prompt: str | None) -> str:
-    if prompt and (prompt in message or any(
-        message[index:index + 8] in prompt for index in range(len(message) - 7)
-    )):
-        return "<redacted>"
-    return message
+def _add_error(record: dict, code: str) -> None:
+    """Callers supply only fixed literals, never collaborator or exception text."""
+    if code not in record["error_codes"]:
+        record["error_codes"].append(code)
 
 
-def _exception_error(exc: BaseException, prompt: str | None) -> str:
+def _prompt_overlap(value: str, prompt: str | None) -> bool:
+    if not prompt:
+        return False
+    value = unicodedata.normalize("NFKC", value).casefold()
+    prompt = unicodedata.normalize("NFKC", prompt).casefold()
+    # Scan the bounded metadata, not an unbounded set of prompt windows. A shared
+    # window of length >= 4 necessarily includes a shared four-character window.
+    return value in prompt or any(
+        value[index:index + 4] in prompt for index in range(len(value) - 3)
+    )
+
+
+def _identifier(value, prompt: str | None, record: dict, invalid_code: str):
+    if not isinstance(value, str):
+        _add_error(record, invalid_code)
+        return None, None
     try:
-        message = " ".join(_redact(str(exc), prompt).split())[:160]
-    except Exception:
-        message = "<redacted>"
-    return f"{type(exc).__name__}: {message}"
+        digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    except UnicodeError:
+        _add_error(record, invalid_code)
+        return None, None
+    if not _IDENTIFIER.fullmatch(value):
+        _add_error(record, invalid_code)
+        return None, digest
+    if _prompt_overlap(value, prompt):
+        _add_error(record, "identifier_redacted")
+        return None, digest
+    return value, digest
 
 
 def _framework_commit() -> str | None:
     """Read this framework's HEAD, including worktree/common and packed refs."""
     try:
-        git_dir = FRAMEWORK_ROOT / ".git"
+        framework_root = FRAMEWORK_ROOT or Path(__file__).resolve().parents[3]
+        git_dir = framework_root / ".git"
         if git_dir.is_file():
             marker = git_dir.read_text(encoding="utf-8").strip()
             if not marker.startswith("gitdir: "):
                 return None
-            git_dir = (FRAMEWORK_ROOT / marker[8:]).resolve()
+            git_dir = (framework_root / marker[8:]).resolve()
         head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
         if _COMMIT.fullmatch(head):
             return head.lower()
@@ -94,92 +135,157 @@ def _write_record(project_root: Path, filename: str, record: dict, started: floa
         raise ValueError("record_path_escape")
     directory.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as stream:
-        record["elapsed_ms"] = float((perf_counter() - started) * 1000)
-        stream.write(json.dumps(record, ensure_ascii=True) + "\n")
+        # Serialize and prepare the line before sampling. Only the trusted
+        # numeric placeholder substitution remains between the sample and write.
+        line = json.dumps(record, ensure_ascii=True) + "\n"
+        before, after = line.split('"handler_elapsed_ms": 0.0', 1)
+        elapsed = float((perf_counter() - started) * 1000)
+        record["handler_elapsed_ms"] = elapsed
+        stream.write(f'{before}"handler_elapsed_ms": {elapsed}{after}')
 
 
-def _diagnostic(message: str) -> None:
+def _diagnostic(code: str) -> None:
     try:
-        print(f"UserPromptSubmit: {message}", file=sys.stderr)
-    except Exception:
+        print(_DIAGNOSTICS[code], file=sys.stderr)
+    except (Exception, SystemExit):
         pass
 
 
-def main() -> int:
-    started = perf_counter()
-    try:
-        parser = _ArgumentParser(description=__doc__, add_help=False)
-        parser.add_argument("--project-root", type=Path, required=True)
-        args = parser.parse_args()
-    except Exception:
-        _diagnostic("invalid arguments")
-        return 0
-
-    record = {
+def _empty_record() -> dict:
+    return {
         "schema_version": "1.0",
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "recorded_at": None,
         "session_id": None,
         "turn_id": None,
+        "session_id_sha256": None,
+        "turn_id_sha256": None,
         "prompt_sha256": None,
         "prompt_len": None,
         "detector_level": "UNKNOWN",
         "provisional_level": "UNKNOWN",
         "provisional_level_basis": "text_heuristic_report_only",
-        "signals": [],
-        "framework_commit": _framework_commit(),
-        "elapsed_ms": 0.0,
-        "error": None,
+        "upgrade_additional_loads": [],
+        "framework_commit": None,
+        "handler_elapsed_ms": 0.0,
+        "error_codes": [],
     }
-    errors = []
+
+
+def _read_payload(record: dict) -> tuple[str | None, bool]:
     payload = None
     try:
         payload = json.load(sys.stdin)
-    except Exception as exc:
-        # Parser diagnostics may quote input; never retain their message or doc.
-        errors.append(f"{type(exc).__name__}: invalid_json")
+    except (Exception, SystemExit):
+        _add_error(record, "invalid_json")
 
     data = payload if isinstance(payload, dict) else {}
     prompt = data.get("prompt")
     prompt = prompt if isinstance(prompt, str) else None
     valid_event = isinstance(payload, dict) and data.get("hook_event_name") == "UserPromptSubmit"
     if not valid_event:
-        errors.append("invalid_hook_payload")
-    session_id = data.get("session_id")
-    valid_session = (isinstance(session_id, str) and _SESSION_ID.fullmatch(session_id)
-                     and ".." not in session_id)
-    filename = f"{session_id}.jsonl" if valid_session else "invalid-session.jsonl"
-    if valid_session:
-        record["session_id"] = _redact(session_id, prompt)
+        _add_error(record, "wrong_event")
+    record["session_id"], record["session_id_sha256"] = _identifier(
+        data.get("session_id"), prompt, record, "invalid_session_id",
+    )
+    record["turn_id"], record["turn_id_sha256"] = _identifier(
+        data.get("turn_id"), prompt, record, "invalid_turn_id",
+    )
+    if "prompt" not in data:
+        _add_error(record, "missing_prompt")
+    elif prompt is None:
+        _add_error(record, "non_string_prompt")
     else:
-        errors.append("invalid_session_id")
-    turn_id = data.get("turn_id")
-    if isinstance(turn_id, str):
-        record["turn_id"] = _redact(turn_id, prompt)
-    elif isinstance(turn_id, int):
-        record["turn_id"] = turn_id
-
-    try:
-        if prompt is not None:
-            record["prompt_len"] = len(prompt)
+        record["prompt_len"] = len(prompt)
+        try:
             record["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
-            if valid_event:
-                # Even unexpected classifier diagnostics must not become context.
-                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                    level = detect_task_level(prompt)
-                    record["detector_level"] = level
-                    provisional, signals = apply_upgrade_triggers(level, prompt, risk_level="medium")
-                record["signals"] = [_redact(signal, prompt) for signal in signals]
-                record["provisional_level"] = provisional
-    except (Exception, SystemExit) as exc:
-        record["provisional_level"] = "UNKNOWN"
-        errors.append(_exception_error(exc, prompt))
-    record["error"] = "; ".join(errors) or None
+        except UnicodeError:
+            _add_error(record, "invalid_prompt_encoding")
+            prompt = None
+    return prompt, valid_event
+
+
+def _level(value, record: dict) -> str:
+    if type(value) is str and value in _LEVELS:
+        return value
+    _add_error(record, "invalid_level_return")
+    return "UNKNOWN"
+
+
+def _classify(record: dict, prompt: str, detect, upgrade) -> None:
+    try:
+        level = detect(prompt)
+    except (Exception, SystemExit):
+        _add_error(record, "classifier_error")
+        return
+    record["detector_level"] = _level(level, record)
+    if record["detector_level"] == "UNKNOWN":
+        return
+    try:
+        provisional, loads = upgrade(level, prompt, risk_level="medium")
+    except (Exception, SystemExit):
+        _add_error(record, "upgrade_error")
+        return
+    record["provisional_level"] = _level(provisional, record)
+    if not isinstance(loads, list):
+        _add_error(record, "invalid_upgrade_load")
+        return
+    for resource in loads:
+        if (type(resource) is str and _RESOURCE_NAME.fullmatch(resource)
+                and not _prompt_overlap(resource, prompt)):
+            record["upgrade_additional_loads"].append(resource)
+        else:
+            _add_error(record, "invalid_upgrade_load")
+
+
+def main() -> int:
+    project_root = None
+    started = 0.0
+    filename = "invalid-session.jsonl"
+    record = None
+    try:
+        started = perf_counter()
+        try:
+            parser = _ArgumentParser(description=__doc__, add_help=False)
+            parser.add_argument("--project-root", type=Path, required=True)
+            args = parser.parse_args()
+        except (Exception, SystemExit):
+            _diagnostic("invalid_arguments")
+            return 0
+        project_root = args.project_root
+        record = _empty_record()
+        # Import/setup output is just as untrusted as classifier diagnostics.
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            record["recorded_at"] = datetime.now(timezone.utc).isoformat()
+            record["framework_commit"] = _framework_commit()
+            prompt, valid_event = _read_payload(record)
+            session_digest = record["session_id_sha256"]
+            if session_digest is not None:
+                filename = session_digest[:32] + ".jsonl"
+            if __package__ in (None, ""):
+                sys.dont_write_bytecode = True
+                sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+            from governance_tools.task_level_detector import (
+                apply_upgrade_triggers, detect_task_level,
+            )
+            if prompt is not None and valid_event:
+                _classify(record, prompt, detect_task_level, apply_upgrade_triggers)
+    except (Exception, SystemExit):
+        _diagnostic("bootstrap_error")
+        try:
+            if record is None:
+                record = _empty_record()
+            _add_error(record, "bootstrap_error")
+        except (Exception, SystemExit):
+            # If record construction itself fails, persistence is unavailable;
+            # the zero-exit boundary still applies to the launched CLI entry.
+            return 0
 
     try:
-        _write_record(args.project_root, filename, record, started)
-    except Exception:
-        # Paths and OS error messages can contain untrusted input.
-        _diagnostic("record write failed")
+        if project_root is not None:
+            _write_record(project_root, filename, record, started)
+    except (Exception, SystemExit):
+        _add_error(record, "write_error")
+        _diagnostic("write_error")
     return 0
 
 
