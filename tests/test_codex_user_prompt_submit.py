@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -18,9 +19,9 @@ from runtime_hooks.adapters.codex import user_prompt_submit as adapter
 PROMPT = "I334_DISTINCTIVE_PROMPT_873af92: adjust the button spacing — 中文 🐢"
 KNOWN_RECORD_NAME = hashlib.sha256(b"known-session").hexdigest()[:32] + ".jsonl"
 ERROR_CODES = {
-    "invalid_json", "wrong_event", "missing_prompt", "non_string_prompt",
+    "invalid_json", "invalid_encoding", "wrong_event", "missing_prompt", "non_string_prompt",
     "invalid_prompt_encoding", "invalid_session_id", "invalid_turn_id",
-    "identifier_redacted", "classifier_error", "upgrade_error",
+    "classifier_error", "upgrade_error",
     "invalid_level_return", "invalid_upgrade_load", "write_error", "bootstrap_error",
 }
 
@@ -45,9 +46,10 @@ def submit(project, monkeypatch, capsys):
         monkeypatch.setattr(sys, "argv", [
             "user_prompt_submit.py", "--project-root", str(project),
         ])
-        monkeypatch.setattr(sys, "stdin", io.StringIO(
-            json.dumps(payload) if raw is None else raw,
-        ))
+        data = json.dumps(payload) if raw is None else raw
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(data), encoding="utf-8"))
         assert adapter.main() == 0
         captured = capsys.readouterr()
         assert captured.out == ""
@@ -58,7 +60,7 @@ def submit(project, monkeypatch, capsys):
 
 
 def identifier_digest(value):
-    """The spec's hash oracle, independent of adapter validation/redaction."""
+    """The spec's hash oracle, independent of adapter validation."""
     if not isinstance(value, str):
         return None
     try:
@@ -69,7 +71,7 @@ def identifier_digest(value):
 
 def read_only_record(
     tmp_path, project, filename=KNOWN_RECORD_NAME, *, prompt=PROMPT,
-    identifiers=("known-session", "turn-1"), raw_identifiers=("known-session", "turn-1"),
+    identifiers=("known-session", "turn-1"),
     levels=("L0", "L0"), loads=(), errors=(),
 ):
     """Check decoded fields and actual directory names, not just schema keys.
@@ -97,8 +99,8 @@ def read_only_record(
     assert "error" not in record
     assert "elapsed_ms" not in record
     assert record["schema_version"] == "1.0"
-    assert record["session_id"] == raw_identifiers[0]
-    assert record["turn_id"] == raw_identifiers[1]
+    assert "session_id" not in record
+    assert "turn_id" not in record
     assert record["session_id_sha256"] == identifier_digest(identifiers[0])
     assert record["turn_id_sha256"] == identifier_digest(identifiers[1])
     assert record["prompt_sha256"] == identifier_digest(prompt)
@@ -107,7 +109,8 @@ def read_only_record(
     assert record["provisional_level"] == levels[1]
     assert record["provisional_level_basis"] == "text_heuristic_report_only"
     assert record["upgrade_additional_loads"] == list(loads)
-    assert all(re.fullmatch(r"[a-z0-9_]{1,64}", item) for item in record["upgrade_additional_loads"])
+    assert all(item in {"governance/ARCHITECTURE.md", "domain_summary"}
+               for item in record["upgrade_additional_loads"])
     assert record["error_codes"] == list(errors)
     assert all(type(code) is str and code in ERROR_CODES for code in record["error_codes"])
     assert datetime.fromisoformat(record["recorded_at"]).utcoffset() == timedelta(0)
@@ -170,8 +173,7 @@ def test_classifier_output_and_untrusted_metadata_cannot_leak_prompt(
     assert submit({**event(), "turn_id": PROMPT}).err == ""
     read_only_record(
         tmp_path, project, identifiers=("known-session", PROMPT),
-        raw_identifiers=("known-session", None),
-        errors=["invalid_turn_id", "invalid_upgrade_load"],
+        errors=["invalid_upgrade_load"],
     )
 
 
@@ -209,8 +211,24 @@ def test_non_json_stdin_records_error_without_leaking_prompt(tmp_path, project, 
     assert submit(raw=raw).err == ""
     read_only_record(
         tmp_path, project, "invalid-session.jsonl", prompt=None,
-        identifiers=(None, None), raw_identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
+        identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
         errors=["invalid_json", "wrong_event", "invalid_session_id", "invalid_turn_id", "missing_prompt"],
+    )
+
+
+@pytest.mark.parametrize("raw", [b"\xff", b"\xed\xa0\x80", b'{"prompt": "\xff"}'])
+def test_invalid_utf8_stdin_records_fixed_encoding_error_and_exits_zero(
+    tmp_path, project, submit, monkeypatch, raw,
+):
+    def unexpected_detector(*args, **kwargs):
+        pytest.fail("invalid UTF-8 must not reach the detector")
+
+    monkeypatch.setattr(classifier, "detect_task_level", unexpected_detector)
+    assert submit(raw=raw).err == ""
+    read_only_record(
+        tmp_path, project, "invalid-session.jsonl", prompt=None,
+        identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
+        errors=["invalid_encoding", "wrong_event", "invalid_session_id", "invalid_turn_id", "missing_prompt"],
     )
 
 
@@ -227,7 +245,7 @@ def test_invalid_payload_or_event_records_error(tmp_path, project, submit, paylo
     else:
         read_only_record(
             tmp_path, project, "invalid-session.jsonl", prompt=None,
-            identifiers=(None, None), raw_identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
+            identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
             errors=["wrong_event", "invalid_session_id", "invalid_turn_id", "missing_prompt"],
         )
 
@@ -270,10 +288,8 @@ def test_classifier_exception_discards_even_safe_messages(
 
 
 @pytest.mark.parametrize("session_fields", [
-    {"session_id": "../x"}, {"session_id": "a/b"}, {"session_id": "a\\b"},
-    {"session_id": ""}, {"session_id": "x" * 129},
-    {"session_id": "a b"}, {"session_id": "中文"}, {"session_id": "\ud800"},
-    {"session_id": None}, {"session_id": 12}, {},
+    {"session_id": "\ud800"}, {"session_id": "\udfff"}, {"session_id": None},
+    {"session_id": 12}, {"session_id": False}, {"session_id": []}, {"session_id": {}}, {},
 ])
 def test_invalid_session_id_stays_inside_level_floor(tmp_path, project, submit, session_fields):
     payload = event()
@@ -285,61 +301,71 @@ def test_invalid_session_id_stays_inside_level_floor(tmp_path, project, submit, 
     filename = digest[:32] + ".jsonl" if digest is not None else "invalid-session.jsonl"
     read_only_record(
         tmp_path, project, filename, identifiers=(session_id, "turn-1"),
-        raw_identifiers=(None, "turn-1"), errors=["invalid_session_id"],
+        errors=["invalid_session_id"],
     )
 
 
-@pytest.mark.parametrize("session_id", ["z", "A_9.valid-session", "x" * 128, "..", "a..b"])
-def test_valid_session_id_boundaries(tmp_path, project, submit, session_id):
+@pytest.mark.parametrize("session_id", [
+    "z", "A_9.valid-session", "x" * 128, "..", "a..b", "../x", "a/b", "a\\b",
+    "", "x" * 129, "a b", "中文 🐢", "a\x00b", "a\nb",
+])
+def test_utf8_session_identifiers_use_digest_filenames_without_validation_errors(
+    tmp_path, project, submit, session_id,
+):
     assert submit(event(session_id=session_id)).err == ""
     read_only_record(
         tmp_path, project, identifier_digest(session_id)[:32] + ".jsonl",
-        identifiers=(session_id, "turn-1"), raw_identifiers=(session_id, "turn-1"),
+        identifiers=(session_id, "turn-1"),
     )
 
 
-@pytest.mark.parametrize("prompt, echo", [
-    ("SensitiveCanary123", "SensitiveCanary123"),
-    ("SensitiveCanary123", "sEnSiTiVeCaNaRy123"),
-    ("SensitiveCanary123", "Canary"),
-    ("SensitiveCanary123", "Can"),
-    ("SensitiveCanary123", "S"),
-    ("SensitiveCanary123", "xxCANARYyy"),
-    ("SensitiveCanary123", "xxsEnSyy"),
-    ("ＳＥＮＳＩＴＩＶＥＣＡＮＡＲＹ123", "sensitivecanary123"),
-    ("Straße42", "STRASSE42"),
-    ("ABCD\nEFGH\nIJKL", "xxEFGHyy"),
-    ("Z", "Z"),
+@pytest.mark.parametrize("identifier_field", ["session_id", "turn_id"])
+@pytest.mark.parametrize("prompt, identifier, injected_load", [
+    ("PIN", "id-PIN-123", None),
+    ("SensitiveCanary123", "xxCanyy", None),
+    ("SecretPIN", "Sec-ret-PIN", "sec_ret_pin"),
 ])
-def test_prompt_identifiers_and_normalized_fragments_are_hashed_and_redacted(
-    tmp_path, project, submit, monkeypatch, prompt, echo,
+def test_round2_counterexamples_store_only_identifier_digests_and_allowlisted_loads(
+    tmp_path, project, submit, monkeypatch, identifier_field, prompt, identifier, injected_load,
 ):
+    payload = {**event(prompt), identifier_field: identifier}
+    loads = ["domain_summary"] + ([injected_load] if injected_load is not None else [])
     monkeypatch.setattr(classifier, "detect_task_level", lambda prompt: "L0")
-    assert submit({**event(prompt, session_id=echo), "turn_id": echo}).err == ""
-    filename = identifier_digest(echo)[:32] + ".jsonl"
+    monkeypatch.setattr(classifier, "apply_upgrade_triggers", lambda *args, **kwargs: ("L1", loads))
+    assert submit(payload).err == ""
+    filename = identifier_digest(payload["session_id"])[:32] + ".jsonl"
     record = read_only_record(
-        tmp_path, project, filename, prompt=prompt, identifiers=(echo, echo),
-        raw_identifiers=(None, None), errors=["identifier_redacted"],
+        tmp_path, project, filename, prompt=prompt,
+        identifiers=(payload["session_id"], payload["turn_id"]),
+        levels=("L0", "L1"), loads=["domain_summary"],
+        errors=["invalid_upgrade_load"] if injected_load is not None else [],
+    )
+    directory = project / "artifacts/runtime/level-floor"
+    raw = (directory / filename).read_bytes()
+    decoded = json.dumps(record, ensure_ascii=False)
+    for raw_identifier in (payload["session_id"], payload["turn_id"]):
+        assert raw_identifier.encode("utf-8") not in raw
+        assert raw_identifier not in decoded
+        assert all(raw_identifier not in entry.name for entry in directory.iterdir())
+    if injected_load is not None:
+        assert injected_load.encode("utf-8") not in raw
+        assert injected_load not in decoded
+        assert all(injected_load not in entry.name for entry in directory.iterdir())
+
+
+@pytest.mark.parametrize("identifier", [
+    PROMPT, "ABCD\nEFGH\nIJKL", repr("ABCD\nEFGH\nIJKL"),
+])
+def test_non_ascii_multiline_and_escaped_identifiers_preserve_only_exact_digests(
+    tmp_path, project, submit, identifier,
+):
+    assert submit({**event(session_id=identifier), "turn_id": identifier}).err == ""
+    record = read_only_record(
+        tmp_path, project, identifier_digest(identifier)[:32] + ".jsonl",
+        identifiers=(identifier, identifier),
     )
     assert record["session_id_sha256"] == record["turn_id_sha256"]
-    assert filename != echo + ".jsonl"
-
-
-@pytest.mark.parametrize("prompt, echo", [
-    (PROMPT, PROMPT),
-    ("ABCD\nEFGH\nIJKL", "ABCD\nEFGH\nIJKL"),
-    ("ABCD\nEFGH\nIJKL", repr("ABCD\nEFGH\nIJKL")),
-])
-def test_non_ascii_multiline_and_escaped_identifiers_never_survive_in_decoded_fields(
-    tmp_path, project, submit, monkeypatch, prompt, echo,
-):
-    monkeypatch.setattr(classifier, "detect_task_level", lambda prompt: "L0")
-    assert submit({**event(prompt, session_id=echo), "turn_id": echo}).err == ""
-    read_only_record(
-        tmp_path, project, identifier_digest(echo)[:32] + ".jsonl", prompt=prompt,
-        identifiers=(echo, echo), raw_identifiers=(None, None),
-        errors=["invalid_session_id", "invalid_turn_id"],
-    )
+    assert identifier not in json.dumps(record, ensure_ascii=False)
 
 
 @pytest.mark.parametrize("session_id", ["NUL", "CON", "COM1", "NUL.note", "con", "com1.notes"])
@@ -350,7 +376,6 @@ def test_windows_device_identifiers_persist_only_as_digest_named_regular_files(
     filename = identifier_digest(session_id)[:32] + ".jsonl"
     read_only_record(
         tmp_path, project, filename, identifiers=(session_id, "turn-1"),
-        raw_identifiers=(session_id, "turn-1"),
     )
     directory = project / "artifacts/runtime/level-floor"
     assert (directory / filename).is_file()
@@ -358,15 +383,23 @@ def test_windows_device_identifiers_persist_only_as_digest_named_regular_files(
                for entry in directory.iterdir())
 
 
-@pytest.mark.parametrize("turn_id", [None, 12, False, [], {}, "", "x" * 129, "a b", "\ud800"])
-def test_invalid_turn_identifier_has_only_a_digest_or_null(
+@pytest.mark.parametrize("turn_id", [None, 12, False, [], {}, "\ud800", "\udfff"])
+def test_invalid_turn_identifier_has_null_digest_and_fixed_error(
     tmp_path, project, submit, turn_id,
 ):
     assert submit({**event(), "turn_id": turn_id}).err == ""
     read_only_record(
         tmp_path, project, identifiers=("known-session", turn_id),
-        raw_identifiers=("known-session", None), errors=["invalid_turn_id"],
+        errors=["invalid_turn_id"],
     )
+
+
+@pytest.mark.parametrize("turn_id", ["", "x" * 129, "a b", "../x", "a/b", "a\\b", "中文 🐢"])
+def test_utf8_turn_identifiers_have_full_digests_without_validation_errors(
+    tmp_path, project, submit, turn_id,
+):
+    assert submit({**event(), "turn_id": turn_id}).err == ""
+    read_only_record(tmp_path, project, identifiers=("known-session", turn_id))
 
 
 def test_json_decoder_prompt_bearing_diagnostics_are_fixed_codes(
@@ -374,14 +407,15 @@ def test_json_decoder_prompt_bearing_diagnostics_are_fixed_codes(
 ):
     prompt = "ABCD\nEFGH\nIJKL"
 
-    def fail(stream):
+    def fail(text):
         raise json.JSONDecodeError("bad prompt: " + repr(prompt), prompt, 0)
 
-    monkeypatch.setattr(adapter.json, "load", fail)
-    assert submit(raw=prompt).err == ""
+    with monkeypatch.context() as decoder_patch:
+        decoder_patch.setattr(adapter.json, "loads", fail)
+        assert submit(raw=prompt).err == ""
     read_only_record(
         tmp_path, project, "invalid-session.jsonl", prompt=None,
-        identifiers=(None, None), raw_identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
+        identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
         errors=["invalid_json", "wrong_event", "invalid_session_id", "invalid_turn_id", "missing_prompt"],
     )
 
@@ -407,23 +441,20 @@ def test_invalid_level_returns_cannot_leak_through_either_existing_level_field(
     read_only_record(tmp_path, project, levels=levels, errors=["invalid_level_return"])
 
 
-@pytest.mark.parametrize("prompt, untrusted_load", [
-    (PROMPT, PROMPT), (PROMPT, PROMPT[:4]), (PROMPT, PROMPT.casefold()),
-    ("sensitivecanary", "sensitivecanary"),
-    ("SensitiveCanary", "canary"), ("ＳＥＮＳＩＴＩＶＥ", "sensitive"),
-    ("ABCD\nEFGH\nIJKL", repr("ABCD\nEFGH\nIJKL")),
-    (PROMPT, "governance/ARCHITECTURE.md"), (PROMPT, "a" * 65),
-    (PROMPT, "bad\nload"), (PROMPT, None), (PROMPT, 1), (PROMPT, {}),
+@pytest.mark.parametrize("untrusted_load", [
+    PROMPT, "z", "z" * 64, "a" * 65, "resource_42", "sec_ret_pin",
+    "governance/architecture.md", "governance/ARCHITECTURE.md\n", "domain_summary ",
+    "bad\nload", None, 1, True, {}, [],
 ])
-def test_upgrade_loads_drop_prompt_echoes_and_invalid_resource_tokens(
-    tmp_path, project, submit, monkeypatch, prompt, untrusted_load,
+def test_upgrade_loads_drop_every_value_outside_the_exact_allowlist(
+    tmp_path, project, submit, monkeypatch, untrusted_load,
 ):
     monkeypatch.setattr(classifier, "detect_task_level", lambda prompt: "L0")
     monkeypatch.setattr(classifier, "apply_upgrade_triggers",
                         lambda *args, **kwargs: ("L1", ["domain_summary", untrusted_load]))
-    assert submit(event(prompt)).err == ""
+    assert submit(event()).err == ""
     read_only_record(
-        tmp_path, project, prompt=prompt, levels=("L0", "L1"), loads=["domain_summary"],
+        tmp_path, project, levels=("L0", "L1"), loads=["domain_summary"],
         errors=["invalid_upgrade_load"],
     )
 
@@ -435,11 +466,25 @@ def test_upgrade_loads_require_a_list(tmp_path, project, submit, monkeypatch, lo
     read_only_record(tmp_path, project, errors=["invalid_upgrade_load"])
 
 
-def test_upgrade_load_resource_name_boundaries(tmp_path, project, submit, monkeypatch):
-    loads = ["domain_summary", "z", "z" * 64, "resource_42"]
-    monkeypatch.setattr(classifier, "apply_upgrade_triggers", lambda *args, **kwargs: ("L0", loads))
-    assert submit(event()).err == ""
-    read_only_record(tmp_path, project, loads=loads)
+def test_upgrade_load_allowlist_matches_the_classifier_trigger_table():
+    classifier_loads = {
+        resource
+        for trigger in classifier.get_l0_context_limits()["upgrade_triggers"]
+        for resource in trigger["load_addition"]
+    }
+    assert adapter._ALLOWED_UPGRADE_LOADS == {"governance/ARCHITECTURE.md", "domain_summary"}
+    assert adapter._ALLOWED_UPGRADE_LOADS == classifier_loads
+
+
+@pytest.mark.parametrize("prompt", [PROMPT, "domain_summary", "governance/ARCHITECTURE.md"])
+def test_upgrade_loads_accept_both_classifier_constants_regardless_of_prompt(
+    tmp_path, project, submit, monkeypatch, prompt,
+):
+    loads = ["governance/ARCHITECTURE.md", "domain_summary"]
+    monkeypatch.setattr(classifier, "detect_task_level", lambda prompt: "L0")
+    monkeypatch.setattr(classifier, "apply_upgrade_triggers", lambda *args, **kwargs: ("L1", loads))
+    assert submit(event(prompt)).err == ""
+    read_only_record(tmp_path, project, prompt=prompt, levels=("L0", "L1"), loads=loads)
 
 
 def test_each_turn_appends_one_record_and_measures_handler_elapsed_ms(project, submit, monkeypatch):
@@ -449,7 +494,10 @@ def test_each_turn_appends_one_record_and_measures_handler_elapsed_ms(project, s
     submit({**event(), "turn_id": "turn-2"})
     path = project / "artifacts/runtime/level-floor" / KNOWN_RECORD_NAME
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-    assert [record["turn_id"] for record in records] == ["turn-1", "turn-2"]
+    assert [record["turn_id_sha256"] for record in records] == [
+        identifier_digest("turn-1"), identifier_digest("turn-2"),
+    ]
+    assert all("session_id" not in record and "turn_id" not in record for record in records)
     assert [record["handler_elapsed_ms"] for record in records] == [125.0, 250.0]
 
 
@@ -585,6 +633,25 @@ def test_cli_reads_stdin_with_empty_stdout_and_no_other_files(tmp_path, project)
     read_only_record(tmp_path, project)
 
 
+@pytest.mark.parametrize("stdin_encoding", ["cp1252", "cp950"])
+def test_cli_decodes_raw_utf8_bytes_independently_of_stdin_text_encoding(
+    tmp_path, project, stdin_encoding,
+):
+    entry = Path(adapter.__file__).resolve()
+    prompt = "Fix typo: 中文 🐢"
+    payload = json.dumps(event(prompt), ensure_ascii=False).encode("utf-8")
+    assert prompt.encode("utf-8") in payload
+    result = subprocess.run(
+        [sys.executable, "-B", str(entry), "--project-root", str(project)],
+        cwd=tmp_path, input=payload, env={**os.environ, "PYTHONIOENCODING": stdin_encoding},
+        capture_output=True, timeout=10,
+    )
+    assert result.returncode == 0
+    assert result.stdout == b""
+    assert result.stderr == b""
+    read_only_record(tmp_path, project, prompt=prompt)
+
+
 @pytest.mark.parametrize("failure", ["ImportError", "RuntimeError", "SystemExit"])
 def test_cli_bootstrap_import_failure_exits_zero_without_stdout_and_records_fixed_error(
     tmp_path, project, failure,
@@ -636,7 +703,7 @@ def test_handler_setup_failure_is_guarded_and_writes_best_effort_record(
     assert submit(event()).err == "UserPromptSubmit: bootstrap failed\n"
     read_only_record(
         tmp_path, project, "invalid-session.jsonl", prompt=None,
-        identifiers=(None, None), raw_identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
+        identifiers=(None, None), levels=("UNKNOWN", "UNKNOWN"),
         errors=["bootstrap_error"],
     )
 

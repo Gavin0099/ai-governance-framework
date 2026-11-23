@@ -1,14 +1,16 @@
 """Record text-derived provisional levels; stage A emits no context or decisions.
 
-UTF-8 string identifiers are hashed for transcript correlation, including strings
-that cannot be retained as raw metadata. Only bounded ASCII identifiers without
-NFKC/casefold prompt overlap may be stored verbatim. Record filenames use the
-first 32 session-digest hex characters, never an identifier; missing, non-string
-or non-UTF-8 session IDs use invalid-session.jsonl.
+Identifiers are stored only as full SHA-256 hex digests for transcript
+correlation, never as raw metadata. Missing, non-string or non-UTF-8 identifiers
+have null digests and fixed invalid-identifier error codes. Record filenames use
+the first 32 session-digest hex characters; invalid session IDs use
+invalid-session.jsonl. Stdin bytes are explicitly decoded as UTF-8, independent
+of the configured stdin text encoding; decoding failures use invalid_encoding.
 
 upgrade_additional_loads lists resource names requested by the L0 upgrade path;
-it contains NO detector reasons. Only lowercase resource tokens without prompt
-overlap survive. Detector vetoes and L2 keywords can therefore have no loads.
+it contains NO detector reasons. Only the classifier's fixed load constants,
+governance/ARCHITECTURE.md and domain_summary, survive. Detector vetoes and L2
+keywords can therefore have no loads.
 
 handler_elapsed_ms is sampled after serialization, directory setup and opening
 the record, immediately before substituting the elapsed placeholder and writing.
@@ -26,15 +28,13 @@ import io
 import json
 import re
 import sys
-import unicodedata
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 
 FRAMEWORK_ROOT: Path | None = None
-_IDENTIFIER = re.compile(r"[A-Za-z0-9._-]{1,128}")
-_RESOURCE_NAME = re.compile(r"[a-z0-9_]{1,64}")
+_ALLOWED_UPGRADE_LOADS = frozenset({"governance/ARCHITECTURE.md", "domain_summary"})
 _COMMIT = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
 _LEVELS = ("L0", "L1", "L2")
 _DIAGNOSTICS = {
@@ -55,34 +55,15 @@ def _add_error(record: dict, code: str) -> None:
         record["error_codes"].append(code)
 
 
-def _prompt_overlap(value: str, prompt: str | None) -> bool:
-    if not prompt:
-        return False
-    value = unicodedata.normalize("NFKC", value).casefold()
-    prompt = unicodedata.normalize("NFKC", prompt).casefold()
-    # Scan the bounded metadata, not an unbounded set of prompt windows. A shared
-    # window of length >= 4 necessarily includes a shared four-character window.
-    return value in prompt or any(
-        value[index:index + 4] in prompt for index in range(len(value) - 3)
-    )
-
-
-def _identifier(value, prompt: str | None, record: dict, invalid_code: str):
+def _identifier(value, record: dict, invalid_code: str) -> str | None:
     if not isinstance(value, str):
         _add_error(record, invalid_code)
-        return None, None
+        return None
     try:
-        digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()
     except UnicodeError:
         _add_error(record, invalid_code)
-        return None, None
-    if not _IDENTIFIER.fullmatch(value):
-        _add_error(record, invalid_code)
-        return None, digest
-    if _prompt_overlap(value, prompt):
-        _add_error(record, "identifier_redacted")
-        return None, digest
-    return value, digest
+        return None
 
 
 def _framework_commit() -> str | None:
@@ -155,8 +136,6 @@ def _empty_record() -> dict:
     return {
         "schema_version": "1.0",
         "recorded_at": None,
-        "session_id": None,
-        "turn_id": None,
         "session_id_sha256": None,
         "turn_id_sha256": None,
         "prompt_sha256": None,
@@ -174,7 +153,9 @@ def _empty_record() -> dict:
 def _read_payload(record: dict) -> tuple[str | None, bool]:
     payload = None
     try:
-        payload = json.load(sys.stdin)
+        payload = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    except UnicodeDecodeError:
+        _add_error(record, "invalid_encoding")
     except (Exception, SystemExit):
         _add_error(record, "invalid_json")
 
@@ -184,11 +165,11 @@ def _read_payload(record: dict) -> tuple[str | None, bool]:
     valid_event = isinstance(payload, dict) and data.get("hook_event_name") == "UserPromptSubmit"
     if not valid_event:
         _add_error(record, "wrong_event")
-    record["session_id"], record["session_id_sha256"] = _identifier(
-        data.get("session_id"), prompt, record, "invalid_session_id",
+    record["session_id_sha256"] = _identifier(
+        data.get("session_id"), record, "invalid_session_id",
     )
-    record["turn_id"], record["turn_id_sha256"] = _identifier(
-        data.get("turn_id"), prompt, record, "invalid_turn_id",
+    record["turn_id_sha256"] = _identifier(
+        data.get("turn_id"), record, "invalid_turn_id",
     )
     if "prompt" not in data:
         _add_error(record, "missing_prompt")
@@ -230,8 +211,7 @@ def _classify(record: dict, prompt: str, detect, upgrade) -> None:
         _add_error(record, "invalid_upgrade_load")
         return
     for resource in loads:
-        if (type(resource) is str and _RESOURCE_NAME.fullmatch(resource)
-                and not _prompt_overlap(resource, prompt)):
+        if type(resource) is str and resource in _ALLOWED_UPGRADE_LOADS:
             record["upgrade_additional_loads"].append(resource)
         else:
             _add_error(record, "invalid_upgrade_load")
