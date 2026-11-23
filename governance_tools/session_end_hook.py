@@ -1558,10 +1558,14 @@ def _detect_transcript_provider(transcript_path: Path) -> str:
                     rec = json.loads(raw_line)
                 except Exception:
                     continue
+                if not isinstance(rec, dict):
+                    continue
                 if rec.get("type") == "event_msg":
                     return "codex"
                 if rec.get("type") == "assistant":
                     return "claude"
+                if rec.get("type") == "gemini" or ("projectHash" in rec and "sessionId" in rec):
+                    return "gemini"
     except Exception:
         pass
     return "claude"
@@ -1654,6 +1658,13 @@ def _ingest_transcript_for_closeout(
                 conn2 = _sl3b.connect(str(db_path))
                 ingest_codex_session(str(effective_path), session_id, conn2)
                 conn2.close()
+            elif provider == "gemini":
+                from codeburn.phase1.gemini_log_ingestor import ingest as _gemini_ingest
+                _gemini_ingest(
+                    artifact_path=effective_path,
+                    session_id=session_id,
+                    db_path=db_path,
+                )
             else:
                 from codeburn.phase1.claude_log_ingestor import ingest as _claude_ingest
                 _claude_ingest(
