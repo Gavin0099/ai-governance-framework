@@ -9,7 +9,7 @@ default_load: on-demand
 # Solo-Owner Merge Authority Contract
 
 Status: ACTIVE WHEN MERGED AFTER OWNER ATTESTATION, AUTHORIZED INDEPENDENT
-TECHNICAL REVIEW, AND GREEN REQUIRED CHECKS
+TECHNICAL REVIEW, GREEN REQUIRED CHECKS, AND CURRENT-BASE INTEGRATION EVIDENCE
 
 ## Observed Failure And Applicability
 
@@ -18,6 +18,11 @@ but its GitHub review list was empty when the PR was merged. The stated prose
 gate and the recorded merge evidence therefore disagreed. A PR body must not
 invent a merge authority requirement that is absent from the canonical
 governance model.
+
+In consumer story2video PR #3, required checks were green for the exact PR head
+but had tested its merge with an old target tip. After the target branch
+advanced, the current merge candidate had no CI result. The head's check
+results did not establish integration coverage for the current target tip.
 
 This contract applies when the repository owner explicitly operates the
 repository under a solo-owner authority model. It replaces a mandatory GitHub
@@ -38,6 +43,15 @@ not a required predicate and cannot substitute for a missing predicate below.
   ],
   "check_states": [
     "green_for_exact_head",
+    "pending",
+    "failing",
+    "missing_or_unknown"
+  ],
+  "integration_check_states": [
+    "head_contains_current_base",
+    "merge_candidate_green_for_current_base",
+    "base_advanced_without_integration_evidence",
+    "required_check_set_changed",
     "pending",
     "failing",
     "missing_or_unknown"
@@ -66,13 +80,16 @@ not a required predicate and cannot substitute for a missing predicate below.
 ```
 <!-- solo-owner-merge-vocabulary:end -->
 
-The merge decision is `eligible` only when all of these predicates hold for
-the same exact candidate head:
+The merge decision is `eligible` if and only if all five predicates hold for the
+same exact candidate head, with integration evidence for the current target
+branch tip and required-check set:
 
 1. `owner_merge_attestation=recorded_for_exact_head`;
 2. `independent_technical_review=independent_approved_for_exact_head`;
-3. `required_checks=green_for_exact_head`; and
-4. `head_state=matches_reviewed_head`.
+3. `required_checks=green_for_exact_head`;
+4. `head_state=matches_reviewed_head`; and
+5. `integration_checks` is either `head_contains_current_base` or
+   `merge_candidate_green_for_current_base`.
 
 Any missing, unknown, stale, failing, or non-independent required predicate
 makes the decision `ineligible`. The decision fails closed; it must not be
@@ -109,6 +126,10 @@ for the exact candidate head. Pending, failing, absent, or indeterminate
 required contexts fail closed. Event-inapplicable jobs that are not configured
 as required do not become required merely because they exist in a workflow.
 
+This predicate reports checks for the exact PR head. Advancing the target
+branch does not make those head check results stale, failing, or missing;
+current integration coverage is a separate predicate below.
+
 ### Reviewed-head preservation
 
 The merge candidate must match the exact head approved by the independent
@@ -116,6 +137,57 @@ technical review. Any substantive change after that review invalidates the
 review predicate and requires a new review of the changed head. Metadata-only
 PR edits do not change the Git head and therefore do not invalidate a
 commit-bound review.
+
+### Integration checks for the current target tip
+
+Integration evidence is identified by the tuple (target tip SHA, head SHA,
+required-check set). It applies only when all three match the current merge
+decision; any mismatch means the evidence does not apply.
+
+An accepted `integration_checks` state holds only while the tuple (target tip
+SHA, head SHA, required-check set) is unchanged up to the merge; if any element
+changes before merge, the predicate reverts to the matching non-accepted state
+and eligibility lapses.
+
+`integration_checks` cannot be satisfied by an empty or undeterminable
+required-check set or by absent CI evidence; such cases are `missing_or_unknown`.
+
+Only these two states satisfy `integration_checks`:
+
+- `head_contains_current_base`: the exact head already contains the target
+  branch's current tip, and the required checks green for that head ran against
+  the current required set. The integration is the head itself.
+- `merge_candidate_green_for_current_base`: every currently required check
+  succeeded on the exact merge candidate of the current target tip and exact
+  head. Evidence may be a pull_request merge-ref run whose recorded base equals
+  the current target tip, or equivalent merge-queue evidence for that same tip
+  and head.
+
+Integration evidence must identify the revision actually tested and bind it to
+both the target tip and the exact head (for example, a merge commit whose parents
+are that tip and head, or run metadata recording both SHAs and the tested ref).
+Event type alone is insufficient: a `pull_request`-triggered job that explicitly
+checks out only the head is head evidence, not merge-candidate evidence.
+
+Every other state fails closed:
+
+- `base_advanced_without_integration_evidence`: the target tip moved after the
+  evidence ran, and no evidence exists for the current tip.
+- `required_check_set_changed`: the set of checks required for the target branch
+  changed after the evidence ran, and the new set is not covered.
+- `pending`: the required integration checks have not all completed.
+- `failing`: a required integration check failed.
+- `missing_or_unknown`: applicable integration evidence is absent or cannot be
+  established.
+
+Base drift invalidates only integration evidence, never the head's own check
+results, independent review, or owner attestation. With an unchanged head,
+re-verification requires only the integration run, not a re-review. If the head
+itself changes, the existing exact-head and reviewed-head predicates still
+apply.
+
+GitHub's "strict" required-status mode or a merge queue are ways to produce
+such evidence. This contract does not require or configure either mechanism.
 
 ## Normative Cases
 
@@ -127,6 +199,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "absent",
     "expected_decision": "eligible"
@@ -136,6 +209,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "eligible"
@@ -145,6 +219,7 @@ commit-bound review.
     "owner_merge_attestation": "missing",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -154,6 +229,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "missing",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -163,6 +239,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "changes_requested",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -172,6 +249,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "pending",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -181,6 +259,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "failing",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -190,6 +269,7 @@ commit-bound review.
     "owner_merge_attestation": "recorded_for_exact_head",
     "independent_technical_review": "stale",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "substantive_change_after_review",
     "github_approved_review": "present",
     "expected_decision": "ineligible"
@@ -199,8 +279,79 @@ commit-bound review.
     "owner_merge_attestation": "inferred_or_agent_generated",
     "independent_technical_review": "independent_approved_for_exact_head",
     "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
     "head_state": "matches_reviewed_head",
     "github_approved_review": "absent",
+    "expected_decision": "ineligible"
+  },
+  {
+    "case_id": "base_advanced_head_checks_still_green",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "base_advanced_without_integration_evidence",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
+    "expected_decision": "ineligible"
+  },
+  {
+    "case_id": "merge_candidate_green_for_current_base",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "merge_candidate_green_for_current_base",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "absent",
+    "expected_decision": "eligible"
+  },
+  {
+    "case_id": "head_contains_current_base",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "head_contains_current_base",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "absent",
+    "expected_decision": "eligible"
+  },
+  {
+    "case_id": "integration_checks_failing",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "failing",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
+    "expected_decision": "ineligible"
+  },
+  {
+    "case_id": "required_check_set_changed",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "required_check_set_changed",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
+    "expected_decision": "ineligible"
+  },
+  {
+    "case_id": "integration_missing_or_unknown",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "missing_or_unknown",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
+    "expected_decision": "ineligible"
+  },
+  {
+    "case_id": "empty_required_check_set_is_not_integration_evidence",
+    "owner_merge_attestation": "recorded_for_exact_head",
+    "independent_technical_review": "independent_approved_for_exact_head",
+    "required_checks": "green_for_exact_head",
+    "integration_checks": "missing_or_unknown",
+    "head_state": "matches_reviewed_head",
+    "github_approved_review": "present",
     "expected_decision": "ineligible"
   }
 ]
@@ -213,12 +364,20 @@ For a solo-owner repository, use this merge condition:
 
 > Merge requires an owner merge attestation for the exact head, an independent
 > technical review approving that same head, green required checks for that
-> head, and no substantive change after review. A GitHub `APPROVED` review is
+> head, integration evidence for the current target tip and required-check set,
+> and no substantive change after review. A GitHub `APPROVED` review is
 > optional additional evidence, not a mandatory authority predicate.
 
 Do not write "human APPROVED review required" or "GitHub APPROVED required"
 unless a separate owner decision has deliberately adopted that stronger model
 and the repository's enforcement and reviewer workflow are aligned with it.
+
+## Activation and compatibility
+
+The added `integration_checks` predicate applies to merge decisions made after
+this amendment is merged. It does not reclassify earlier merges. Consumers
+pinned to an older framework copy keep the old four-predicate text until they
+update.
 
 ## Claim Ceiling And Non-Goals
 
