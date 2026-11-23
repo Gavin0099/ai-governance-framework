@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Adoption Closure B: pre-commit PyYAML diagnostic validated at 87571f2b. Draft review pending. <!-- memory_record_projection:active-task-summary:359afaef4534262cbf5922e88a4ca1e090d757d6d19f85466a7dcb344fa293ee -->
+- Adoption Closure B round 2: advisories validated independently at 0dccebe3. Draft #351 awaits re-review. <!-- memory_record_projection:active-task-summary:41e7196cb1a50cc6f46fb635c80c4aa54653352d3241f59e262c81a7151f6667 -->

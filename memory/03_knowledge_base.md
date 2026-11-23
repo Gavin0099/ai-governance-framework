@@ -580,8 +580,16 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Daily record: memory/2026-11-19.md (memory_record, commit f70e41d76ccf11e4cdd8fa025362e6f7fe90417b)
 
 ## CANDIDATE / UNREVIEWED: Consumer pre-commit advisory skipped when the selected Python lacked PyYAML
+- Status: Superseded by the per-advisory fix below after independent review found the shared precheck hid a runnable memory workflow.
 - Root cause: The hook resolved an executable without checking for `yaml`. The memory workflow suppressed stderr and the manual-update advisory emitted a traceback. Both failures were allowed by design.
 - Fix: Check the selected interpreter for `yaml` once. A failed import prints one line with `AI_GOVERNANCE_PYTHON` setup guidance and skips both advisories. PLAN freshness retains its separate execution path.
 - Fix commit: 87571f2b63a2284f80676c3e5da3f49db7dbbb5a
 - Test evidence: `artifacts/evidence/test-results/hook-python-advisory-20261123.json` records exit 0 with three regression cases. The installed-hook replay returned 0 with system Python and the venv for a fresh PLAN, and 1 with system Python for a critically stale PLAN.
 - Daily record: memory/2026-11-23.md (memory_record, commit 87571f2b63a2284f80676c3e5da3f49db7dbbb5a)
+
+## CANDIDATE / UNREVIEWED: Shared PyYAML precheck suppressed a runnable memory advisory
+- Root cause: One `yaml` import precheck controlled both advisory tools. The memory workflow does not require `yaml`, and the original fixture's artificial import hid the regression.
+- Fix: Run each advisory and report its own uncaught missing module. Memory still reports its guard result with system Python, and manual-update reports the missing `yaml` dependency in one line. A critical PLAN still exits 1.
+- Fix commit: 0dccebe3fcfd5810f9b8611e3a7715bbe8a7d71b
+- Test evidence: `artifacts/evidence/test-results/hook-python-advisory-round2-20261123.json` records exit 0. Its raw log records 79 passing tests across both hook test files. Draft #351 carries the installed-hook output for system Python, the venv, and a critical PLAN.
+- Daily record: memory/2026-11-23.md (memory_record, commit 0dccebe3fcfd5810f9b8611e3a7715bbe8a7d71b)
