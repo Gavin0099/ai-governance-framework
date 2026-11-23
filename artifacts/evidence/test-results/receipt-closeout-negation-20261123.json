@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "bash -c \"exec \\\"$AI_GOVERNANCE_PYTHON\\\" -m pytest -q tests/test_closeout_execution_claims.py -k \\\"affirmative_execution_after_negation or negated_execution_without_affirmative_claim or current_closeout_classifier_uses_claims_without_changing_statuses\\\"\"",
+  "exit_code": 0,
+  "started_at": "2026-11-23T03:13:38Z",
+  "finished_at": "2026-11-23T03:13:41Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "7a7e6fb49b9868cdfb6b6d3887d28b69a519397a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-closeout-negation-20261123.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

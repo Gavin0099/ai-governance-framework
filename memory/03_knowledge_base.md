@@ -578,3 +578,10 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: f70e41d76ccf11e4cdd8fa025362e6f7fe90417b
 - Test evidence: `artifacts/evidence/test-results/c1-r-closeout-20261119.json` records exit code 0 on the fix commit. The linked `artifacts/evidence/test-results/c1-r-closeout-20261119.txt` reports 159 passing tests. The execution-claims and frozen differential suite passed 591 tests on the reviewed implementation.
 - Daily record: memory/2026-11-19.md (memory_record, commit f70e41d76ccf11e4cdd8fa025362e6f7fe90417b)
+
+## CANDIDATE / UNREVIEWED: A negated closeout clause hid execution after a dash
+- Root cause: The `CHECKS_RUN` clause splitter left dash-separated clauses together. `_without_negated_execution` discarded the text after the negated predicate, including an affirmative pytest claim with missing local evidence.
+- Fix: In the existing quote-aware splitter, recognize em dashes, en dashes, and spaced hyphens that introduce an affirmative execution predicate after a negation.
+- Fix commit: 7a7e6fb49b9868cdfb6b6d3887d28b69a519397a
+- Test evidence: On `4a0f4089`, all 3 dash cases failed with `consistent` instead of `inconsistent`, and 21 controls passed. `artifacts/evidence/test-results/receipt-closeout-negation-20261123.json` records exit code 0 and the linked log reports 24 passing cases on the fix commit.
+- Daily record: memory/2026-11-23.md (memory_record, commit 7a7e6fb49b9868cdfb6b6d3887d28b69a519397a)

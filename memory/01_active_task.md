@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Issue #295 shared reporting guidance passed scoped checks. Natural reports pending. <!-- memory_record_projection:active-task-summary:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
+- Closeout negation regression fixed and locally validated at 7a7e6fb4. Draft PR delivery pending. <!-- memory_record_projection:active-task-summary:4ea9039e582649e2cd29f3d642436c629d5c98e682417ba73d44f623f819d447 -->
