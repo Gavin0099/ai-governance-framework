@@ -233,17 +233,28 @@ def publish(lease, owner: dict, statement: str) -> dict:
     return record
 
 
-def record(consumer_root, session_id: str, statement: str) -> dict:
+def _require_envelope_provider(lease, session_id: str, expected_provider: str | None) -> None:
+    if expected_provider is None:
+        return
+    envelope = r2.read_session_envelope(session_id, r2._lease(lease)) or {}
+    h._require(envelope.get("provider") == expected_provider, "ENVELOPE_PROVIDER_MISMATCH")
+
+
+def record(consumer_root, session_id: str, statement: str, *,
+           expected_provider: str | None = None) -> dict:
     """Attest against whatever generation currently owns the worktree."""
     with r2.execution_exclusion(consumer_root) as lease:
         owner = r2._matching(lease, session_id)
+        _require_envelope_provider(lease, session_id, expected_provider)
         return publish(lease, owner, statement)
 
 
-def record_standing(consumer_root, session_id: str, ref: str, condition_met: str) -> dict:
+def record_standing(consumer_root, session_id: str, ref: str, condition_met: str, *,
+                    expected_provider: str | None = None) -> dict:
     """Record that this session met a condition the owner authorized in advance."""
     with r2.execution_exclusion(consumer_root) as lease:
         owner = r2._matching(lease, session_id)
+        _require_envelope_provider(lease, session_id, expected_provider)
         root = r2._lease(lease)
         record = build_standing(root, owner, ref, condition_met)
         validate(record, root)

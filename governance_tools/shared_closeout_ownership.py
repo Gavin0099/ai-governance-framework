@@ -86,6 +86,7 @@ class Lease:
     root: Path
     pid: int
     thread: int
+    verified_handoff: dict | None = None
 
 
 def _lease(lease: Lease) -> Path:
@@ -398,7 +399,7 @@ def confirm_prepared(lease: Lease, session_id: str, generation: int) -> dict:
 # Providers whose release requires an owner closeout attestation (#233). The
 # provider is read from the canonical session envelope, never from a
 # caller-supplied agent_id, which any entry point can fill in freely.
-_ATTESTATION_REQUIRED_PROVIDERS = frozenset({"claude"})
+_ATTESTATION_REQUIRED_PROVIDERS = frozenset({"claude", "gemini"})
 
 
 def _require_closeout_attested(lease, owner: dict) -> None:
@@ -418,6 +419,36 @@ def _require_closeout_attested(lease, owner: dict) -> None:
     closeout_attestation.require(lease, owner)
 
 
+def bind_verified_handoff(lease: Lease, *, session_id: str, provider: str,
+                          request_id: str, attempt_relpath: str) -> None:
+    """Record a same-lock verified handoff claim on the live lease before begin_closeout."""
+    root = _lease(lease)
+    _require(isinstance(attempt_relpath, str) and bool(attempt_relpath)
+             and _path(root, attempt_relpath).is_file(), "RELEASE_PROOF_INVALID",
+             "verified handoff attempt file is required")
+    lease.verified_handoff = {"session_id": session_id, "provider": provider,
+                              "request_id": request_id, "attempt_relpath": attempt_relpath}
+
+
+def _require_gemini_handoff_request(lease, owner: dict) -> None:
+    """Gemini sessions may only enter HOLD from an active verified handoff attempt on the same lease."""
+    root = _lease(lease)
+    envelope = read_session_envelope(owner["session_id"], root) or {}
+    if envelope.get("provider") != "gemini":
+        return
+    vh = getattr(lease, "verified_handoff", None)
+    _require(
+        isinstance(vh, dict)
+        and vh.get("provider") == "gemini"
+        and vh.get("session_id") == owner["session_id"]
+        and isinstance(vh.get("request_id"), str) and bool(vh["request_id"])
+        and isinstance(vh.get("attempt_relpath"), str) and bool(vh["attempt_relpath"])
+        and _path(root, vh["attempt_relpath"]).is_file(),
+        "RELEASE_PROOF_INVALID",
+        "gemini closeout requires an active verified handoff attempt under this lock",
+    )
+
+
 def begin_closeout(lease: Lease, session_id: str, generation: int | None = None) -> dict:
     o = _matching(lease, session_id, generation)
     _require(not _completion(lease.root, session_id), "CONSUMED_SESSION")
@@ -429,6 +460,7 @@ def begin_closeout(lease: Lease, session_id: str, generation: int | None = None)
     # receipt reservation or leave a completion marker that would block the
     # next session while this one is still unreleased.
     _require_closeout_attested(lease, o)
+    _require_gemini_handoff_request(lease, o)
     _payloads(lease, o)
     o.update(state="HOLD", hold_reason="closeout_pending", receipt_identity=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_r2_" + uuid.uuid4().hex)
     _publish(lease, AREA + "/owner.json", o, replace=True)
