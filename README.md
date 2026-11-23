@@ -103,8 +103,8 @@ export AI_GOVERNANCE_PYTHON="/absolute/path/to/.venv/bin/python"
 "$AI_GOVERNANCE_PYTHON" -c 'import yaml'
 ```
 
-若由 IDE 提交，請讓 IDE 啟動的 Git 繼承這個變數。若 hook 選到無法匯入 `yaml` 的
-Python，pre-commit 會提示記憶工作流與手動更新提示檢查已略過，提交仍由原有檢查決定。
+若由 IDE 提交，請讓 IDE 啟動的 Git 繼承這個變數。若 Python 缺少某項 advisory 所需的模組，
+pre-commit 會列出該項檢查與缺少的模組。手動更新提示需要 PyYAML，記憶工作流可在缺少 PyYAML 時執行。
 
 ### 路徑 C｜更新與查看導入狀態（已導入的 repo）
 

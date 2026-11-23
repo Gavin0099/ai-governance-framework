@@ -275,8 +275,9 @@ def test_pre_commit_advisories_respect_yaml_availability(
     tools = framework / "governance_tools"
     _write(
         tools / "memory_workflow.py",
-        "import yaml\n"
-        "print('{\"status\":\"memory_workflow_required\",\"guard_ran\":true}')\n",
+        "import json\n"
+        "print(json.dumps({'status': 'memory_workflow_required', 'guard_ran': True, "
+        "'warnings': ['missing_canonical_memory'], 'completion_claim_allowed': True}))\n",
     )
     _write(
         tools / "manual_update_advisory.py",
@@ -300,15 +301,17 @@ def test_pre_commit_advisories_respect_yaml_availability(
     )
     assert result.returncode == expected_exit, (result.stdout, result.stderr)
     assert "Traceback" not in result.stderr
-    assert ("memory workflow advisory:" in result.stdout) is yaml_available
+    assert "memory workflow advisory:" in result.stdout
+    assert "warning_codes=missing_canonical_memory" in result.stdout
+    assert "completion_claim_allowed=True" in result.stdout
     assert ("manual-update fixture ran" in result.stdout) is yaml_available
     if yaml_available:
         assert result.stderr == ""
     else:
         assert len(result.stderr.splitlines()) == 1
-        assert "advisory 檢查未執行" in result.stderr
-        assert f"{python_executable} -S" in result.stderr
-        assert "yaml" in result.stderr
+        assert "manual update advisory 檢查未執行" in result.stderr
+        assert Path(sys.executable).name in result.stderr
+        assert "缺少 Python 模組 yaml" in result.stderr
         assert "AI_GOVERNANCE_PYTHON" in result.stderr
     assert ("PLAN.md 嚴重過期" in result.stdout) is (plan_status == "CRITICAL")
 

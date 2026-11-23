@@ -187,41 +187,54 @@ TOOL="$FRAMEWORK_ROOT/governance_tools/plan_freshness.py"
 MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"
 MANUAL_UPDATE_ADVISORY_TOOL="$FRAMEWORK_ROOT/governance_tools/manual_update_advisory.py"
 
-# Check the shared advisory dependency once, using the same interpreter and
-# module search path as the advisory commands.
-ADVISORY_PYTHON_READY=false
-if { [ -f "$MEMORY_WORKFLOW_TOOL" ] || [ -f "$MANUAL_UPDATE_ADVISORY_TOOL" ]; } && set_python_cmd; then
-    if PYTHONPATH="$FRAMEWORK_PYTHON_ROOT${PYTHONPATH:+:$PYTHONPATH}" "${PYTHON_CMD[@]}" -c '
+# Execute each advisory with its own imports and the search path of a direct
+# script invocation. Only an uncaught missing module gets a dependency hint.
+run_python_advisory() {
+    local advisory="$1"
+    shift
+    PYTHONPATH="$FRAMEWORK_PYTHON_ROOT${PYTHONPATH:+:$PYTHONPATH}" "${PYTHON_CMD[@]}" -c '
 import sys
-if sys.path and sys.path[0] == "":
-    sys.path[0] = sys.argv[1]
-import yaml
-' "$FRAMEWORK_PYTHON_ROOT/governance_tools" >/dev/null 2>&1; then
-        ADVISORY_PYTHON_READY=true
-    else
-        printf '[governance] advisory 檢查未執行：%s 無法匯入 yaml。請設定 AI_GOVERNANCE_PYTHON 指向已安裝 PyYAML 的 Python。\n' \
-            "${PYTHON_CMD[*]}" >&2
-    fi
-fi
+
+advisory = sys.argv[1]
+del sys.argv[:2]
+script = sys.argv[0]
+prepend_script_dir = sys.path[:1] == [""]
+if prepend_script_dir:
+    del sys.path[0]
+
+import os
+import runpy
+
+if prepend_script_dir:
+    sys.path.insert(0, os.path.dirname(os.path.realpath(script)))
+
+diagnostics = sys.stderr
+if advisory == "memory workflow":
+    # Memory workflow normally exposes only its parsed JSON output.
+    sys.stderr = open(os.devnull, "w")
+
+try:
+    runpy.run_path(script, run_name="__main__")
+except ModuleNotFoundError as error:
+    if not error.name:
+        raise
+    message = (
+        f"[governance] {advisory} advisory 檢查未執行：{sys.executable} 缺少 Python 模組 {error.name}。"
+        "請設定 AI_GOVERNANCE_PYTHON 指向已安裝依賴的 Python。\n"
+    )
+    diagnostics.buffer.write(message.encode("utf-8"))
+    raise SystemExit(1) from None
+' "$advisory" "$@"
+}
 
 # Advisory-only memory workflow dispatch.
 # Run the canonical guard so pre-commit mirrors the same policy evidence used
 # by CI, but do not pass --fail-on-blocker: CI remains the authoritative gate
 # and this hook never blocks a commit on memory policy.
 if [ -f "$MEMORY_WORKFLOW_TOOL" ]; then
-    if [ "$ADVISORY_PYTHON_READY" = true ]; then
-        PREVIOUS_PYTHONPATH="${PYTHONPATH:-}"
-        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
-            export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT:$PREVIOUS_PYTHONPATH"
-        else
-            export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT"
-        fi
-        MEMORY_WORKFLOW_RESULT=$("${PYTHON_CMD[@]}" "$MEMORY_WORKFLOW_TOOL" --repo "$TARGET_REPO_ROOT" --check --run-guard --format json 2>/dev/null) || true
-        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
-            export PYTHONPATH="$PREVIOUS_PYTHONPATH"
-        else
-            unset PYTHONPATH
-        fi
+    if set_python_cmd; then
+        MEMORY_WORKFLOW_RESULT=$(run_python_advisory "memory workflow" \
+            "$MEMORY_WORKFLOW_TOOL" --repo "$TARGET_REPO_ROOT" --check --run-guard --format json) || true
         if [ -n "$MEMORY_WORKFLOW_RESULT" ]; then
             MEMORY_WORKFLOW_STATUS=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || true)
             MEMORY_WORKFLOW_ALLOWED=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('completion_claim_allowed', True))" 2>/dev/null || true)
@@ -265,22 +278,11 @@ fi
 # changes without a staged updater/F-7 receipt. It never blocks, repairs,
 # fetches, stages, or proves the updater was bypassed.
 if [ -f "$MANUAL_UPDATE_ADVISORY_TOOL" ]; then
-    if [ "$ADVISORY_PYTHON_READY" = true ]; then
-        PREVIOUS_PYTHONPATH="${PYTHONPATH:-}"
-        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
-            export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT:$PREVIOUS_PYTHONPATH"
-        else
-            export PYTHONPATH="$FRAMEWORK_PYTHON_ROOT"
-        fi
-        "${PYTHON_CMD[@]}" "$MANUAL_UPDATE_ADVISORY_TOOL" \
+    if set_python_cmd; then
+        run_python_advisory "manual update" "$MANUAL_UPDATE_ADVISORY_TOOL" \
             --repo "$TARGET_REPO_ROOT" \
             --framework-root "$FRAMEWORK_ROOT" \
             --format human || true
-        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
-            export PYTHONPATH="$PREVIOUS_PYTHONPATH"
-        else
-            unset PYTHONPATH
-        fi
     fi
 fi
 
