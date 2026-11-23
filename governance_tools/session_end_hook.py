@@ -289,6 +289,7 @@ _NEGATED_EXECUTION = re.compile(
     r"(?:\bnot\s+|(?:未|沒有|没有)\s*)(?=" + _TOOL_NAME_PATTERN.pattern + r")",
     re.IGNORECASE,
 )
+_CHECK_CLAUSE_DASH = re.compile(r"[—–]+|(?<=\s)-(?=\s)")
 _NEGATED_CHECK_SUBJECT = re.compile(
     r"^\s*(?:" + _TOOL_NAME_PATTERN.pattern + r")\s*"
     r"(?:(?:was|were|is|are)(?:\s+being)?\s*|[:：]\s*)?$", re.IGNORECASE,
@@ -337,6 +338,19 @@ def _split_check_clauses(text: str, *, commas: bool = False) -> list[str]:
             quote = _CHECK_QUOTES[char]
         else:
             delimiter = _CHECK_CLAUSE_BREAK.match(text, index)
+            if commas and char in "—–-" and delimiter is None:
+                # End a negated clause at a dash so the next clause gets
+                # its own evidence classification regardless of wording.
+                dash = _CHECK_CLAUSE_DASH.match(text, index)
+                if (dash and text[start:index].rstrip()[-1:].isdigit()
+                        and text[dash.end():].lstrip()[:1].isdigit()):
+                    # Numeric ranges belong to the current clause.
+                    index = dash.end()
+                    continue
+                if dash and _NEGATED_EXECUTION.search(
+                    _normalize_check_quotes(text[start:index])
+                ):
+                    delimiter = dash
             end = delimiter.end() if delimiter else index + 1 if commas and char in ",，" else None
             if end is not None:
                 parts.append(text[start:index].strip())
@@ -374,12 +388,8 @@ def _without_negated_execution(clause: str) -> str:
     return "" if _NEGATED_CHECK_SUBJECT.fullmatch(prefix) else prefix
 
 
-def _execution_claims(text: str) -> list[str]:
-    """Keep clauses by default; exclude only explicit non-execution context."""
-    # A later execution claim can refer back to pytest without naming it again.
-    if _SUPPLIED_PYTEST_REFERENCE.fullmatch(text.strip()):
-        return []
-
+def _normalize_check_quotes(text: str) -> str:
+    """Hide quoted assertions while retaining literal commands and tool names."""
     def hide_quoted_assertion(match: re.Match) -> str:
         quoted = match.group()
         body = quoted[1:]
@@ -394,13 +404,22 @@ def _execution_claims(text: str) -> list[str]:
             return " " * len(match.group())
         return body  # literal commands retain tools after any launcher or path
 
+    return _QUOTED_CHECK_TEXT.sub(hide_quoted_assertion, text)
+
+
+def _execution_claims(text: str) -> list[str]:
+    """Keep clauses by default; exclude only explicit non-execution context."""
+    # A later execution claim can refer back to pytest without naming it again.
+    if _SUPPLIED_PYTEST_REFERENCE.fullmatch(text.strip()):
+        return []
+
     claims: list[str] = []
     for statement in _split_check_clauses(text):
         # Attribution may contain commas and quoted first-person assertions.
         if _REPORTED_CHECK.match(statement):
             continue
         for clause in _split_check_clauses(statement, commas=True):
-            clause = _QUOTED_CHECK_TEXT.sub(hide_quoted_assertion, clause).lstrip(" -*•\t")
+            clause = _normalize_check_quotes(clause).lstrip(" -*•\t")
             if (_REPORTED_CHECK.match(clause) or _EXTERNAL_CHECK.match(clause)
                     or _is_check_mention(clause)):
                 continue
