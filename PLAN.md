@@ -2028,6 +2028,15 @@ Claim ceiling: Runtime smoke plus 201 tests and Lite/P3/P5 129 tests passed; fin
 Claim ceiling: Original dirty workspace and local P5 installation remain separate; deployment compatibility does not establish a canonical or portable installer. Results remain NON_COUNTED / SOLO_CONTROLLED / DECISION_SUPPORT_ONLY.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L3438-L3443)
 
+### Candidate solo-owner integration predicate — 2026-11-23
+
+Effect: PR #348 proposes the candidate fifth predicate `integration_checks`; effective only when merged; not retroactive.
+Scope: merge-authority and reporting semantics only. Status: candidate. Claim ceiling: prospective amendment only.
+
+Claim ceiling: `.agents/skills/pr-review-merge-gate/SKILL.md` synced in this PR
+after #347 merged (44525511); candidate only, effective only when merged, not retroactive.
+[source](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md#L403-L435)
+
 ## Reconciliation And Evidence Gaps
 
 ### Decision conflict reconciliation — 2026-11-16
@@ -2136,6 +2145,11 @@ P2 - NSI-N0 minimal spike:
   green scope-matched checks, reviewed-head preservation, and separate owner
   merge authorization.
 [source](docs/status/plan-history-2026-11-16-6c7e24c3.md#L398-L408)
+
+Claim ceiling: Prospective acceptance note: PR #348 proposes adding current-base integration
+evidence (`integration_checks`) to the list above; candidate only, effective
+only when merged, and not retroactive.
+[source](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md#L403-L435)
 
 ### Decision Maintenance queue owner adjudication — 2026-08-14
 
