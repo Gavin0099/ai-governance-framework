@@ -306,6 +306,11 @@ _CHECK_MENTION_PREFIX = re.compile(
     r"(?:(?:i|we)\s+)?(?:(?:only|just)\s+)?(?:read|reviewed|consulted|mentioned|documented)",
     re.IGNORECASE,
 )
+_SUPPLIED_PYTEST_REFERENCE = re.compile(
+    r"(?:(?:i|we)\s+)?used\s+(?:the\s+)?(?:supplied|provided|external)\s+"
+    r"pytest\s+(?:reports?|results?|output|evidence)[.!?]?",
+    re.IGNORECASE,
+)
 _CHECK_QUOTES = {'"': '"', "'": "'", "`": "`", "「": "」", "『": "』", "“": "”", "‘": "’"}
 _QUOTED_CHECK_TEXT = re.compile(
     r'''"[^"]*(?:"|\Z)|(?<!\w)'(?:[^']|(?<=\w)'(?=\w))*(?:'|\Z)|`[^`]*(?:`|\Z)|'''
@@ -371,6 +376,10 @@ def _without_negated_execution(clause: str) -> str:
 
 def _execution_claims(text: str) -> list[str]:
     """Keep clauses by default; exclude only explicit non-execution context."""
+    # A later execution claim can refer back to pytest without naming it again.
+    if _SUPPLIED_PYTEST_REFERENCE.fullmatch(text.strip()):
+        return []
+
     def hide_quoted_assertion(match: re.Match) -> str:
         quoted = match.group()
         body = quoted[1:]
