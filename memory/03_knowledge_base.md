@@ -578,3 +578,10 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: f70e41d76ccf11e4cdd8fa025362e6f7fe90417b
 - Test evidence: `artifacts/evidence/test-results/c1-r-closeout-20261119.json` records exit code 0 on the fix commit. The linked `artifacts/evidence/test-results/c1-r-closeout-20261119.txt` reports 159 passing tests. The execution-claims and frozen differential suite passed 591 tests on the reviewed implementation.
 - Daily record: memory/2026-11-19.md (memory_record, commit f70e41d76ccf11e4cdd8fa025362e6f7fe90417b)
+
+## CANDIDATE / UNREVIEWED: Consumer pre-commit advisory skipped when the selected Python lacked PyYAML
+- Root cause: The hook resolved an executable without checking for `yaml`. The memory workflow suppressed stderr and the manual-update advisory emitted a traceback. Both failures were allowed by design.
+- Fix: Check the selected interpreter for `yaml` once. A failed import prints one line with `AI_GOVERNANCE_PYTHON` setup guidance and skips both advisories. PLAN freshness retains its separate execution path.
+- Fix commit: 87571f2b63a2284f80676c3e5da3f49db7dbbb5a
+- Test evidence: `artifacts/evidence/test-results/hook-python-advisory-20261123.json` records exit 0 with three regression cases. The installed-hook replay returned 0 with system Python and the venv for a fresh PLAN, and 1 with system Python for a critically stale PLAN.
+- Daily record: memory/2026-11-23.md (memory_record, commit 87571f2b63a2284f80676c3e5da3f49db7dbbb5a)

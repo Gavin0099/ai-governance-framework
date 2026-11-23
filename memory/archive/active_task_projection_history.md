@@ -36,3 +36,5 @@ projection superseded them. History only; not current state.
 - Issue #340 Rule 8 follow-up: completed Codex turn 5/5 at 724abee6. CLI exit timed out. Draft-only owner decision. V-05 remains separate. <!-- memory_record_projection:active-task-summary:2752486baf9e3057e58dd75d60e3190d234694394e771e8bc18f4eeb69f0d51f -->
 
 - N7 B0-B3 Windows native acceptance on 98142f55 is recorded in #337, merged at fe965ac2. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. C1-R independent implementation review completed on f70e41d7. PR #338 awaits the owner merge decision. See memory/2026-11-19.md and memory/04_review_log.md. <!-- memory_record_projection:active-task-summary:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
+
+- Issue #295 shared reporting guidance passed scoped checks. Natural reports pending. <!-- memory_record_projection:active-task-summary:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
