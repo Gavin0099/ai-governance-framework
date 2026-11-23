@@ -1,6 +1,6 @@
 ---
 name: pr-review-merge-gate
-description: Open or review a tightly scoped pull request, disposition findings against a frozen owner decision, and merge only when the exact current HEAD has no unresolved finding that blocks that decision and the appropriate engineering or qualification gate passes. Use when the user explicitly authorizes PR review followed by conditional merge; do not use for review-only requests or when merge authorization is absent.
+description: Open or review a tightly scoped pull request, disposition findings against a frozen owner decision, and merge only when the exact current HEAD has no unresolved finding that blocks that decision and the appropriate engineering or qualification gate passes. Use for explicitly authorized PR review and conditional merge, or for a check-only merge-readiness assessment when the Owner intends to merge manually or asks whether a PR is merge-eligible. The skill never supplies missing authority. Without explicit merge authorization, only check-only mode applies. Review-only requests without a merge-eligibility question remain out of scope.
 ---
 
 # PR Review Merge Gate
@@ -12,6 +12,53 @@ any missing authorization.
 When the repository provides `governance/REVIEW_CRITERIA.md`, read it and treat
 it as the canonical review semantics. This skill is the operational procedure,
 not an independent policy source.
+
+## Check-Only Mode
+
+Use this mode for manual-merge readiness or merge-eligibility questions.
+It makes no state change: no Ready transition, merge, push, PR/issue comment,
+or label unless the Owner separately authorizes that action.
+
+0. Establish whether the target repository's governance explicitly adopts the
+   solo-owner authority model in `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`;
+   a local copy or an explicit reference both count. File presence alone is
+   insufficient. If applicability cannot be determined, report it as unknown and
+   do not return `eligible`. Assess only under applicable repository governance;
+   skip inapplicable contract predicates or label them as non-governing
+   observations. If no applicable governance defines merge eligibility, report
+   it as undefined for that repository, list Engineering Merge Gate items 1–6
+   as observations, and do not return `eligible`.
+1. When the contract is in force, report each of its five predicates using only
+   that predicate's state vocabulary from the contract's JSON block. Bind states
+   to available evidence. If evidence may exist in unseen sessions, including a
+   private Owner session, report attestation as `missing` (not found in the
+   examined evidence), explicitly say those sessions were not examined, and
+   never infer an attestation.
+   For `integration_checks`, report its state and evidence tuple (target tip SHA,
+   head SHA, required-check set). Derive the set from all applicable repository
+   configuration (classic branch protection and rulesets); the agent must not
+   choose the set. Re-running an earlier workflow run or attempt is not fresh
+   integration evidence; see the contract.
+2. Identify the reviewed commit and candidate HEAD. If their SHAs differ, never
+   report `independent_approved_for_exact_head` or `matches_reviewed_head`.
+   Classify the delta by content to determine `head_state` and scope re-review:
+   use `substantive_change_after_review` if it changes reviewed behaviour or
+   introduces a review assertion or test receipt the conclusion relies on,
+   even when implementation bytes are unchanged; otherwise use `unknown`.
+   Prior independent approval is `stale`, not `not_independent` merely because
+   the SHA differs. Author-written assertions or receipts of that kind are not
+   independent review evidence (see step 3).
+3. A review record written by the implementation-authoring process, including a
+   memory checkpoint claiming independent review passed, is not independent
+   review evidence. A PR-body review claim without reviewer identity is not
+   attributable. Require reviewer identity, exact target, evidence, and verdict.
+4. Return a decision summary (`eligible` | `ineligible`) only under repository
+   governance that defines merge eligibility, respecting step 0's limits;
+   otherwise report undefined eligibility and the observations from step 0.
+   Where the contract is in force, apply its conjunctive, fail-closed decision
+   exactly. This summary is neither an attestation nor an authorization. A later
+   Owner merge cannot retroactively satisfy the pre-merge attestation predicate;
+   see `post_merge_action_is_not_pre_merge_attestation` in the contract.
 
 ## Freeze the Decision
 
@@ -116,13 +163,15 @@ HEAD is merge-ready only when:
    cannot replace or weaken its requirements.
 
 When the repository operates under its
-`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, verify all four predicates
+`governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md`, verify all five predicates
 for the same exact candidate HEAD:
 
 - `owner_merge_attestation=recorded_for_exact_head`;
 - `independent_technical_review=independent_approved_for_exact_head`;
 - `required_checks=green_for_exact_head`;
-- `head_state=matches_reviewed_head`.
+- `head_state=matches_reviewed_head`;
+- `integration_checks=head_contains_current_base` or
+  `integration_checks=merge_candidate_green_for_current_base`.
 
 Any missing, unknown, stale, failing, or non-independent required predicate
 makes the candidate ineligible. A review performed by the implementation

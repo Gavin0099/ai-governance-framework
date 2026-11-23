@@ -16,7 +16,7 @@ from scripts import plan_summary
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "PLAN.md"
 COMPLETED_BOUNDARY_RANGES = {
-    856: 859, 2365: 2369,
+    856: 859, 2379: 2383,
 }
 # Explicit retained or superseding condition ranges from the original completed
 # sources. Their full source text must survive even after checkbox-to-prose moves.
@@ -37,12 +37,12 @@ RELOCATED_CONSTRAINT_RANGES = [
     (1729, 1732), (1734, 1739), (1765, 1770), (1780, 1784), (1795, 1798),
     (1800, 1803), (1809, 1812), (1818, 1821), (1827, 1831), (1833, 1837),
     (1848, 1891), (1906, 1911), (1913, 1918), (1920, 1924), (1954, 1960),
-    (1968, 1973), (2023, 2029), (2229, 2236), (2244, 2247), (2266, 2273),
-    (2356, 2363), (2390, 2395), (2431, 2436), (2501, 2504), (2549, 2559),
-    (2561, 2567), (2569, 2576), (2578, 2585), (2670, 2679), (2681, 2691),
-    (2715, 2726), (2746, 2748), (2820, 2826), (2871, 2884), (2890, 2900),
-    (2909, 2918), (2977, 2979), (2981, 3010), (3094, 3098), (3223, 3235),
-    (3306, 3324),
+    (1968, 1973), (2023, 2029), (2243, 2250), (2258, 2261), (2280, 2287),
+    (2370, 2377), (2404, 2409), (2445, 2450), (2515, 2518), (2563, 2573),
+    (2575, 2581), (2583, 2590), (2592, 2599), (2684, 2693), (2695, 2705),
+    (2729, 2740), (2760, 2762), (2834, 2840), (2885, 2898), (2904, 2914),
+    (2923, 2932), (2991, 2993), (2995, 3024), (3108, 3112), (3237, 3249),
+    (3320, 3338),
 ]
 
 
@@ -71,7 +71,7 @@ def test_real_plan_every_matching_completed_boundary_has_full_text_in_its_sectio
         assert f"PLAN.md:{start}-{end} | completed |" in section
         assert expected in section, f"Missing full completed boundary at PLAN.md:{start}-{end}"
     # These were missed by the original evaluation; neither becomes pending work.
-    assert {856, 2365}.issubset(actual)
+    assert {856, 2379}.issubset(actual)
     assert {t["line"] for t in summary["open_items"]}.isdisjoint(actual)
 
 
