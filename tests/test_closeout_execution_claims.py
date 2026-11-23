@@ -526,6 +526,7 @@ _INTENDED_EXCLUSIONS = {
     "I did not run pytest locally; supplied JUnit reports 38 passed.": "negation",
     "I have not executed pytest myself.": "negation",
     "CI ran pytest -q and supplied the JUnit artifact.": "CI evidence",
+    'CI returned "not run" — pytest was skipped': "CI evidence",
     "The report states 'I ran pytest -q'.": "report attribution",
     'The report states "I ran pytest -q".': "report attribution",
     "The supplied report says I ran pytest -q.": "report attribution",
@@ -682,5 +683,35 @@ def test_affirmative_execution_after_negation_requires_evidence(tmp_path, checks
 ])
 def test_negated_execution_without_affirmative_claim_requires_no_artifact(tmp_path, checks):
     status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert not any("tool" in ref for ref in refs)
+
+
+@pytest.mark.parametrize("checks", [
+    pytest.param("I did not run the 1–3 pytest cases", id="en-dash"),
+    pytest.param("I did not run the 1 - 3 pytest cases", id="spaced-hyphen"),
+    pytest.param("I did not run the 1—3 pytest cases", id="em-dash"),
+])
+def test_numeric_range_in_negated_execution_requires_no_artifact(tmp_path, checks):
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert not any("tool" in ref for ref in refs)
+
+
+def test_code_span_negated_tool_does_not_hide_affirmative_execution(tmp_path):
+    checks = "Not `session_end_hook` — I ran pytest"
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_INCONSISTENT
+    assert any("'pytest' claimed" in problem for problem in problems)
+    assert [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref] == [("pytest", False)]
+
+    (tmp_path / ".pytest_cache").mkdir()
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref] == [("pytest", True)]
+
+
+def test_quoted_negation_preserves_external_ci_attribution(tmp_path):
+    status, problems, refs = evidence(tmp_path, 'CI returned "not run" — pytest was skipped')
     assert status == EVIDENCE_CONSISTENT and not problems
     assert not any("tool" in ref for ref in refs)
