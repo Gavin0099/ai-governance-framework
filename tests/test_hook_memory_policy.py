@@ -253,6 +253,66 @@ def test_memory_policy_authority_stays_in_ci_with_advisory_pre_commit() -> None:
         assert token not in pre_push
 
 
+@pytest.mark.parametrize(
+    ("yaml_available", "plan_status", "expected_exit"),
+    [(False, "FRESH", 0), (True, "FRESH", 0), (False, "CRITICAL", 1)],
+    ids=["missing-yaml", "available-yaml", "missing-yaml-critical-plan"],
+)
+def test_pre_commit_advisories_respect_yaml_availability(
+    tmp_path: Path, yaml_available: bool, plan_status: str, expected_exit: int
+) -> None:
+    # Disable site-packages so the fixture controls whether yaml is importable.
+    python_executable = Path(sys.executable).as_posix()
+    repo, framework = _make_consumer(
+        tmp_path,
+        python_helper=f'set_python_cmd() {{ PYTHON_CMD=("{python_executable}" -S); }}\n',
+    )
+    if yaml_available:
+        _write(framework / "yaml.py", "# Fixture dependency\n")
+    # The advisory scripts start in the framework's tool directory.
+    _write(repo / "yaml.py", "raise RuntimeError('consumer module must not be imported')\n")
+
+    tools = framework / "governance_tools"
+    _write(
+        tools / "memory_workflow.py",
+        "import yaml\n"
+        "print('{\"status\":\"memory_workflow_required\",\"guard_ran\":true}')\n",
+    )
+    _write(
+        tools / "manual_update_advisory.py",
+        "import yaml\nprint('manual-update fixture ran')\n",
+    )
+    _write(repo / "PLAN.md", "# Fixture plan\n")
+    plan = {"status": plan_status, "days_since_update": 15, "threshold_days": 7}
+    _write(tools / "plan_freshness.py", f"print({json.dumps(plan)!r})\n")
+
+    env = os.environ.copy()
+    env.pop("AI_GOVERNANCE_FRAMEWORK_ROOT", None)
+    env.pop("PYTHONPATH", None)
+    result = subprocess.run(
+        [str(_git_bash()), (repo / ".git/hooks/pre-commit").as_posix()],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == expected_exit, (result.stdout, result.stderr)
+    assert "Traceback" not in result.stderr
+    assert ("memory workflow advisory:" in result.stdout) is yaml_available
+    assert ("manual-update fixture ran" in result.stdout) is yaml_available
+    if yaml_available:
+        assert result.stderr == ""
+    else:
+        assert len(result.stderr.splitlines()) == 1
+        assert "advisory 檢查未執行" in result.stderr
+        assert f"{python_executable} -S" in result.stderr
+        assert "yaml" in result.stderr
+        assert "AI_GOVERNANCE_PYTHON" in result.stderr
+    assert ("PLAN.md 嚴重過期" in result.stdout) is (plan_status == "CRITICAL")
+
+
 def test_git_bash_branch_deletion_is_not_blocked_by_memory_policy(
     tmp_path: Path,
 ) -> None:

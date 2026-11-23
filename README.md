@@ -96,6 +96,16 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo --dry-ru
 
 **導入前先分類**：consumer 角色決定 automation ceiling 與 evidence duty。見 [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md)（submodule / F-7 / contract repo / copy-based audit-only）。最小起步包在 [`examples/starter-pack/`](examples/starter-pack/)。
 
+在執行 Git 的環境中，將 `AI_GOVERNANCE_PYTHON` 指向已安裝 PyYAML 的虛擬環境。Bash 或 zsh 範例：
+
+```bash
+export AI_GOVERNANCE_PYTHON="/absolute/path/to/.venv/bin/python"
+"$AI_GOVERNANCE_PYTHON" -c 'import yaml'
+```
+
+若由 IDE 提交，請讓 IDE 啟動的 Git 繼承這個變數。若 hook 選到無法匯入 `yaml` 的
+Python，pre-commit 會提示記憶工作流與手動更新提示檢查已略過，提交仍由原有檢查決定。
+
 ### 路徑 C｜更新與查看導入狀態（已導入的 repo）
 
 ```bash
