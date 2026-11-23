@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "bash -c \"exec \\\"$AI_GOVERNANCE_PYTHON\\\" -m pytest -q tests/test_hook_memory_policy.py -k yaml_availability\"",
+  "exit_code": 0,
+  "started_at": "2026-11-23T03:13:48Z",
+  "finished_at": "2026-11-23T03:13:50Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "87571f2b63a2284f80676c3e5da3f49db7dbbb5a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/hook-python-advisory-20261123.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

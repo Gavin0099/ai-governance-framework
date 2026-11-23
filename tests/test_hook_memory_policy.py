@@ -253,6 +253,140 @@ def test_memory_policy_authority_stays_in_ci_with_advisory_pre_commit() -> None:
         assert token not in pre_push
 
 
+@pytest.mark.parametrize(
+    ("yaml_available", "plan_status", "expected_exit", "memory_completion_allowed"),
+    [
+        (False, "FRESH", 0, True),
+        (True, "FRESH", 0, True),
+        (False, "CRITICAL", 1, True),
+        (True, "FRESH", 0, False),
+    ],
+    ids=[
+        "missing-yaml", "available-yaml", "missing-yaml-critical-plan",
+        "memory-blocker-remains-advisory",
+    ],
+)
+@pytest.mark.parametrize("yaml_required_by", ["manual update", "memory workflow"])
+@pytest.mark.parametrize("pythonpath_mode", ["unset", "empty", "inherited"])
+def test_pre_commit_advisories_respect_yaml_availability(
+    tmp_path: Path,
+    yaml_available: bool,
+    plan_status: str,
+    expected_exit: int,
+    memory_completion_allowed: bool,
+    yaml_required_by: str,
+    pythonpath_mode: str,
+) -> None:
+    # Disable site-packages so the fixture controls whether yaml is importable.
+    python_executable = Path(sys.executable).as_posix()
+    repo, framework = _make_consumer(
+        tmp_path,
+        python_helper=f'set_python_cmd() {{ PYTHON_CMD=("{python_executable}" -S); }}\n',
+    )
+    if yaml_available:
+        _write(framework / "yaml.py", "# Fixture dependency\n")
+    # The advisory scripts start in the framework's tool directory.
+    _write(repo / "yaml.py", "raise RuntimeError('consumer module must not be imported')\n")
+
+    # Both advisories must import from the framework root and retain any caller
+    # search path, even when the other advisory cannot import its dependency.
+    _write(framework / "hook_framework_marker.py", "VALUE = 'framework-root'\n")
+    advisory_imports = (
+        "import hook_framework_marker\n"
+        "assert hook_framework_marker.VALUE == 'framework-root'\n"
+    )
+    inherited_path = tmp_path / "inherited-pythonpath"
+    if pythonpath_mode == "inherited":
+        _write(inherited_path / "hook_inherited_marker.py", "VALUE = 'inherited-path'\n")
+        advisory_imports += (
+            "import hook_inherited_marker\n"
+            "assert hook_inherited_marker.VALUE == 'inherited-path'\n"
+        )
+
+    tools = framework / "governance_tools"
+    memory_report = {
+        "status": "memory_workflow_required",
+        "guard_ran": True,
+        "warnings": ["missing_canonical_memory"],
+        "completion_claim_allowed": memory_completion_allowed,
+    }
+    _write(
+        tools / "memory_workflow.py",
+        advisory_imports
+        + ("import yaml\n" if yaml_required_by == "memory workflow" else "")
+        + "import json\nimport sys\n"
+        "assert sys.argv[3:] == ['--check', '--run-guard', '--format', 'json']\n"
+        f"print(json.dumps({memory_report!r}))\n",
+    )
+    _write(
+        tools / "manual_update_advisory.py",
+        advisory_imports
+        + ("import yaml\n" if yaml_required_by == "manual update" else "")
+        + "print('manual-update fixture ran')\n",
+    )
+    _write(repo / "PLAN.md", "# Fixture plan\n")
+    plan = {"status": plan_status, "days_since_update": 15, "threshold_days": 7}
+    pythonpath_probe = repo / "plan-pythonpath.json"
+    _write(
+        tools / "plan_freshness.py",
+        "import json\nimport os\nfrom pathlib import Path\n"
+        f"Path({pythonpath_probe.as_posix()!r}).write_text(\n"
+        "    json.dumps(os.environ.get('PYTHONPATH')), encoding='utf-8')\n"
+        f"print({json.dumps(plan)!r})\n",
+    )
+
+    env = os.environ.copy()
+    env.pop("AI_GOVERNANCE_FRAMEWORK_ROOT", None)
+    env.pop("PYTHONPATH", None)
+    if pythonpath_mode == "empty":
+        env["PYTHONPATH"] = ""
+    elif pythonpath_mode == "inherited":
+        env["PYTHONPATH"] = inherited_path.as_posix()
+        if os.name == "nt":
+            # Git Bash converts a POSIX path list for native Windows Python.
+            env["PYTHONPATH"] = subprocess.run(
+                [str(_git_bash()), "-c", 'cd -- "$1" && pwd -P',
+                 "bash", inherited_path.as_posix()],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=True,
+            ).stdout.strip()
+    result = subprocess.run(
+        [str(_git_bash()), (repo / ".git/hooks/pre-commit").as_posix()],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == expected_exit, (result.stdout, result.stderr)
+    assert "Traceback" not in result.stderr
+    memory_ran = yaml_available or yaml_required_by != "memory workflow"
+    manual_ran = yaml_available or yaml_required_by != "manual update"
+    assert ("memory workflow advisory:" in result.stdout) is memory_ran
+    if memory_ran:
+        assert "warning_codes=missing_canonical_memory" in result.stdout
+        assert f"completion_claim_allowed={memory_completion_allowed}" in result.stdout
+    assert ("manual-update fixture ran" in result.stdout) is manual_ran
+    if yaml_available:
+        assert result.stderr == ""
+    else:
+        assert len(result.stderr.splitlines()) == 1
+        assert f"{yaml_required_by} advisory 檢查未執行" in result.stderr
+        assert Path(sys.executable).name in result.stderr
+        assert "缺少 Python 模組 yaml" in result.stderr
+        assert "AI_GOVERNANCE_PYTHON" in result.stderr
+    assert ("PLAN.md 嚴重過期" in result.stdout) is (plan_status == "CRITICAL")
+    # A command-scoped PYTHONPATH must not leak into the later PLAN check.
+    observed_pythonpath = json.loads(pythonpath_probe.read_text(encoding="utf-8"))
+    if pythonpath_mode == "inherited":
+        assert Path(observed_pythonpath) == inherited_path
+    else:
+        assert observed_pythonpath == env.get("PYTHONPATH")
+
+
 def test_git_bash_branch_deletion_is_not_blocked_by_memory_policy(
     tmp_path: Path,
 ) -> None:
