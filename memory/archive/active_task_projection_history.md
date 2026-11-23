@@ -38,3 +38,5 @@ projection superseded them. History only; not current state.
 - N7 B0-B3 Windows native acceptance on 98142f55 is recorded in #337, merged at fe965ac2. Native Codex replay refusal remains NOT_REACHED and coverage classification remains unresolved. C1-R independent implementation review completed on f70e41d7. PR #338 awaits the owner merge decision. See memory/2026-11-19.md and memory/04_review_log.md. <!-- memory_record_projection:active-task-summary:352f0f831075e207c043c98ce6e9c1b2e1f7e719ab990800bd79fd23a23d65b1 -->
 
 - Issue #295 shared reporting guidance passed scoped checks. Natural reports pending. <!-- memory_record_projection:active-task-summary:12c7f08f62b205213da8428c9fd7d259885443c6f35322c817d94f3effe6b13b -->
+
+- Closeout negation regression fixed and locally validated at 7a7e6fb4. Draft PR delivery pending. <!-- memory_record_projection:active-task-summary:4ea9039e582649e2cd29f3d642436c629d5c98e682417ba73d44f623f819d447 -->

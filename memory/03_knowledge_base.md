@@ -585,3 +585,6 @@ mechanism checks another, with the green result read as evidence for the prose.
 - Fix commit: 7a7e6fb49b9868cdfb6b6d3887d28b69a519397a
 - Test evidence: On `4a0f4089`, all 3 dash cases failed with `consistent` instead of `inconsistent`, and 21 controls passed. `artifacts/evidence/test-results/receipt-closeout-negation-20261123.json` records exit code 0 and the linked log reports 24 passing cases on the fix commit.
 - Daily record: memory/2026-11-23.md (memory_record, commit 7a7e6fb49b9868cdfb6b6d3887d28b69a519397a)
+- Round 2 root cause and fix: The first fix still required a short English predicate list after the dash. `84bc108c03e59309717df78493671e1d4ae96cfb` ends the negated clause at an unquoted em/en dash or spaced ASCII hyphen so the following text reaches the existing classifier regardless of its wording.
+- Round 2 test evidence: On `962f39c4`, all 5 new affirmative cases returned `consistent` where `inconsistent` was expected, and 25 controls passed. The same selection passed all 30 cases after the fix. `artifacts/evidence/test-results/receipt-closeout-negation-round2-20261123.json` records 607 passing execution-claim tests at the follow-up fix commit.
+- Round 2 daily record: memory/2026-11-23.md (memory_record, commit 84bc108c03e59309717df78493671e1d4ae96cfb)
