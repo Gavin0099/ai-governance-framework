@@ -133,4 +133,4 @@ The 12 superseded `active-task-summary` projections were removed by the
 line also removes `memory_record`'s idempotency anchor for that identity, so an
 identical re-run could re-append it. Only the current projection is retained:
 
-- Draft PR #350 round 2 fix 84bc108c passed 30 focused cases and 787 closeout tests (1 skipped). Independent re-review pending. <!-- memory_record_projection:active-task-summary:ee1c7c0fe1b2e1c0f60bc81365d3f918203e5bf4e0ff1bab16ca16cd250a0056 -->
+- Draft PR #350 round 3 fix eefb17f1 passed 46 focused cases and 812 closeout tests (1 skipped). Independent review of the updated Draft is pending. <!-- memory_record_projection:active-task-summary:63f1ca4e3291d13532305b2d2447840ca1ee757149328610dd8e65ca9da5f28b -->

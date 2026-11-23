@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "/Users/macminim4/.codex/worktrees/english-vocab-governance-493-venv/bin/python -m pytest -q tests/test_closeout_execution_claims.py",
+  "exit_code": 0,
+  "started_at": "2026-11-23T07:38:08Z",
+  "finished_at": "2026-11-23T07:38:18Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "eefb17f1f783585e36a6cc7088eff18c82757394",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-closeout-negation-round3-20261123.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
