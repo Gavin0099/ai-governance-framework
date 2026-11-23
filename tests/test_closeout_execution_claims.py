@@ -562,6 +562,9 @@ _INTENDED_EXCLUSIONS = {
     "I did not run pytest": "negation",
     "I didn't run pytest": "negation",
     "I never ran pytest": "negation",
+    "I did not run the test runner — pytest — on this machine": "negated apposition",
+    "I did not run the test runner —— pytest —— on this machine": "negated apposition",
+    "我未執行測試工具——也就是 pytest": "negated apposition",
     "not pytest": "negation",
     "not session_end_hook": "negation",
     "沒有執行 pytest": "negation",
@@ -648,6 +651,54 @@ def test_reviewer_examples_cannot_qualify_as_valid_without_artifacts(tmp_path, c
     assert result["content_sufficiency"] == CONTENT_SUFFICIENT
     assert result["closeout_status"] == "evidence_inconsistent"
     assert result["memory_tier"] != "verified_state_update"
+
+
+@pytest.mark.parametrize("checks, expected", [
+    pytest.param("We never executed the build; we invoked pytest instead", EVIDENCE_INCONSISTENT, id="semicolon"),
+    pytest.param("I did not run the build: I ran pytest instead", EVIDENCE_INCONSISTENT, id="colon"),
+    pytest.param("I did not run the build (I ran pytest instead)", EVIDENCE_INCONSISTENT, id="parenthesis"),
+    pytest.param("I did not run the build then ran pytest", EVIDENCE_INCONSISTENT, id="then"),
+    pytest.param("我未執行建置；但我已執行 pytest", EVIDENCE_INCONSISTENT, id="chinese-semicolon"),
+    pytest.param("我沒有跑建置——後來才用 pytest 跑測試", EVIDENCE_INCONSISTENT, id="chinese-dash"),
+    pytest.param("I ran pytest — I did not run the build", EVIDENCE_INCONSISTENT, id="affirmative-first"),
+    pytest.param("I ran pytest while I did not run the build", EVIDENCE_INCONSISTENT, id="while"),
+    pytest.param("I did not run the command “build — I ran pytest”", EVIDENCE_CONSISTENT, id="quoted"),
+    pytest.param("I did not run the test runner — pytest — on this machine", EVIDENCE_CONSISTENT, id="apposition"),
+    pytest.param("我未執行測試工具——也就是 pytest", EVIDENCE_CONSISTENT, id="chinese-apposition"),
+])
+def test_round_three_review_execution_claims(tmp_path, checks, expected):
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == expected
+
+    tool_refs = [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref]
+    if expected == EVIDENCE_CONSISTENT:
+        assert not problems and not tool_refs
+        return
+
+    assert any("'pytest' claimed" in problem for problem in problems)
+    assert tool_refs == [("pytest", False)]
+    (tmp_path / ".pytest_cache").mkdir()
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref] == [("pytest", True)]
+
+
+@pytest.mark.parametrize("checks", [
+    "I did not run the build — pytest",
+    "I did not run the test runner — pytest — 38 passed",
+    "I did not run the test runner — session_end_hook — on this machine, but I ran pytest",
+    "我未執行建置：（我有執行 pytest）",
+])
+def test_negated_clause_boundaries_preserve_commands_and_affirmative_claims(tmp_path, checks):
+    status, problems, refs = evidence(tmp_path, checks)
+    assert status == EVIDENCE_INCONSISTENT and problems
+    assert [(ref["tool"], ref["artifact_found"]) for ref in refs if "tool" in ref] == [("pytest", False)]
+
+
+def test_double_dash_tool_apposition_continues_negated_claim(tmp_path):
+    status, problems, refs = evidence(tmp_path, "I did not run the test runner —— pytest —— on this machine")
+    assert status == EVIDENCE_CONSISTENT and not problems
+    assert not any("tool" in ref for ref in refs)
 
 
 @pytest.mark.parametrize("checks", [

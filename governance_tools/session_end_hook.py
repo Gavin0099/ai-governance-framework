@@ -290,6 +290,12 @@ _NEGATED_EXECUTION = re.compile(
     re.IGNORECASE,
 )
 _CHECK_CLAUSE_DASH = re.compile(r"[—–]+|(?<=\s)-(?=\s)")
+_CHECK_CLAUSE_AFTER_NEGATION = re.compile(
+    r":(?=\s|$)|：|(?<=\s)\(|（|(?<=\s)then(?=\s)", re.IGNORECASE,
+)
+_GENERIC_CHECK_TOOL = re.compile(r"\b(?:test runner|test(?:ing)? tool)$|測試工具$|测试工具$", re.IGNORECASE)
+_CHECK_APPOSITION_INTRO = re.compile(r"(?:namely\s+|也就是\s*)", re.IGNORECASE)
+_CHECK_APPOSITION_LOCATION = re.compile(r"(?:on|in|at)\s+|(?:here|locally)\b", re.IGNORECASE)
 _NEGATED_CHECK_SUBJECT = re.compile(
     r"^\s*(?:" + _TOOL_NAME_PATTERN.pattern + r")\s*"
     r"(?:(?:was|were|is|are)(?:\s+being)?\s*|[:：]\s*)?$", re.IGNORECASE,
@@ -323,6 +329,22 @@ _QUOTED_ASSERTION_HEAD = re.compile(
 )
 
 
+def _is_dash_tool_apposition(prefix: str, suffix: str) -> bool:
+    """Recognize a tool name that identifies the object of a denial."""
+    suffix = suffix.lstrip()
+    intro = _CHECK_APPOSITION_INTRO.match(suffix)
+    if intro:
+        return bool(_TOOL_NAME_PATTERN.fullmatch(suffix[intro.end():].rstrip()))
+    closing_dash = _CHECK_CLAUSE_DASH.search(suffix)
+    # A location resumes the denial. A result ("pytest — 38 passed") can
+    # still use a bare tool name as an execution claim.
+    return bool(
+        closing_dash and _GENERIC_CHECK_TOOL.search(prefix)
+        and _TOOL_NAME_PATTERN.fullmatch(suffix[:closing_dash.start()].rstrip())
+        and _CHECK_APPOSITION_LOCATION.match(suffix[closing_dash.end():].lstrip())
+    )
+
+
 def _split_check_clauses(text: str, *, commas: bool = False) -> list[str]:
     """Split assertions/commands, retaining delimiters inside quoted paths/text."""
     parts: list[str] = []
@@ -338,19 +360,25 @@ def _split_check_clauses(text: str, *, commas: bool = False) -> list[str]:
             quote = _CHECK_QUOTES[char]
         else:
             delimiter = _CHECK_CLAUSE_BREAK.match(text, index)
-            if commas and char in "—–-" and delimiter is None:
-                # End a negated clause at a dash so the next clause gets
-                # its own evidence classification regardless of wording.
+            if commas and delimiter is None:
                 dash = _CHECK_CLAUSE_DASH.match(text, index)
-                if (dash and text[start:index].rstrip()[-1:].isdigit()
-                        and text[dash.end():].lstrip()[:1].isdigit()):
-                    # Numeric ranges belong to the current clause.
-                    index = dash.end()
-                    continue
-                if dash and _NEGATED_EXECUTION.search(
-                    _normalize_check_quotes(text[start:index])
-                ):
-                    delimiter = dash
+                boundary = dash or _CHECK_CLAUSE_AFTER_NEGATION.match(text, index)
+                if boundary:
+                    prefix = text[start:index].rstrip()
+                    suffix = text[boundary.end():]
+                    if dash and prefix[-1:].isdigit() and suffix.lstrip()[:1].isdigit():
+                        # Numeric ranges belong to the current clause.
+                        index = dash.end()
+                        continue
+                    normalized_prefix = _normalize_check_quotes(prefix)
+                    negation = _NEGATED_EXECUTION.search(normalized_prefix)
+                    if negation:
+                        if dash and _is_dash_tool_apposition(prefix, suffix):
+                            index = dash.end()
+                            continue
+                        # Keep the object of a bare denial such as "NOT RUN: pytest".
+                        if dash or normalized_prefix[negation.end():].strip():
+                            delimiter = boundary
             end = delimiter.end() if delimiter else index + 1 if commas and char in ",，" else None
             if end is not None:
                 parts.append(text[start:index].strip())
