@@ -2033,8 +2033,8 @@ Claim ceiling: Original dirty workspace and local P5 installation remain separat
 Effect: PR #348 proposes the candidate fifth predicate `integration_checks`; effective only when merged; not retroactive.
 Scope: merge-authority and reporting semantics only. Status: candidate. Claim ceiling: prospective amendment only.
 
-Claim ceiling: The four-predicate text in
-`.agents/skills/pr-review-merge-gate/SKILL.md` is pending sync after #347.
+Claim ceiling: `.agents/skills/pr-review-merge-gate/SKILL.md` synced in this PR
+after #347 merged (44525511); candidate only, effective only when merged, not retroactive.
 [source](governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md#L403-L435)
 
 ## Reconciliation And Evidence Gaps

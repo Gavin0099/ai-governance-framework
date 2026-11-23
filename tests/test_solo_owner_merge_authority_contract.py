@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 AUTHORITY = REPO_ROOT / "governance" / "AUTHORITY.md"
 AGENT = REPO_ROOT / "governance" / "AGENT.md"
 CONTRACT = REPO_ROOT / "governance" / "SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md"
+MERGE_GATE_SKILL = REPO_ROOT / ".agents" / "skills" / "pr-review-merge-gate" / "SKILL.md"
 
 
 def _json_block(marker: str) -> Any:
@@ -93,6 +94,38 @@ def test_contract_is_registered_and_routed_as_canonical_on_demand_authority() ->
         "| `governance/SOLO_OWNER_MERGE_AUTHORITY_CONTRACT.md` | canonical solo-owner "
         f"merge decision contract | five predicates: {predicate_summary} |"
     ) in " ".join(authority.split())
+
+
+def test_merge_gate_skill_summaries_preserve_five_predicate_requirements() -> None:
+    skill = MERGE_GATE_SKILL.read_text(encoding="utf-8")
+    check_only = " ".join(
+        skill.split("## Check-Only Mode\n", 1)[1].split("\n## ", 1)[0].split()
+    )
+    merge_gate = " ".join(
+        skill.split("## Select the Gate\n", 1)[1].split("\n## ", 1)[0].split()
+    )
+    required_check_only_text = (
+        "report each of its five predicates",
+        "For `integration_checks`, report its state and evidence tuple "
+        "(target tip SHA, head SHA, required-check set).",
+        "Derive the set from all applicable repository configuration "
+        "(classic branch protection and rulesets); the agent must not choose the set.",
+        "Re-running an earlier workflow run or attempt is not fresh integration "
+        "evidence; see the contract.",
+    )
+    for text in required_check_only_text:
+        assert text in check_only
+
+    assert "verify all five predicates" in merge_gate
+    for predicate in (
+        "owner_merge_attestation=recorded_for_exact_head",
+        "independent_technical_review=independent_approved_for_exact_head",
+        "required_checks=green_for_exact_head",
+        "head_state=matches_reviewed_head",
+        "integration_checks=head_contains_current_base",
+        "integration_checks=merge_candidate_green_for_current_base",
+    ):
+        assert f"`{predicate}`" in merge_gate
 
 
 def test_integration_check_vocabulary_covers_current_base_evidence_states() -> None:
