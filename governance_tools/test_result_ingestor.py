@@ -148,16 +148,39 @@ def ingest_pytest_text(text: str, require_rollback: bool = False) -> dict:
     return _finalize_result(result, require_rollback=require_rollback)
 
 
+def _junit_testcase_label(testcase: ET.Element) -> str:
+    name = testcase.attrib.get("name", "unnamed-test")
+    classname = testcase.attrib.get("classname", "").strip()
+    return f"{classname}::{name}" if classname else name
+
+
+def _collect_junit_testcase_errors(testcase: ET.Element, label: str, errors: list[str]) -> bool:
+    failure_nodes = list(testcase.findall("failure")) + list(testcase.findall("error"))
+    for node in failure_nodes:
+        message = (node.attrib.get("message") or node.text or "").strip()
+        errors.append(f"{label} - {message}" if message else label)
+    return bool(failure_nodes)
+
+
 def ingest_junit_xml(text: str, require_rollback: bool = False) -> dict:
     root = ET.fromstring(text)
+    if root.tag not in ("testsuite", "testsuites"):
+        result = _base_result("junit-xml", passed=0, failed=0, skipped=0)
+        result["errors"] = [f"Unsupported JUnit XML root element: <{root.tag}>"]
+        return _finalize_result(result, require_rollback=require_rollback)
+
     suites = [root] if root.tag == "testsuite" else list(root.findall(".//testsuite"))
-    if not suites and root.tag == "testsuites":
-        suites = list(root)
+    direct_testcases = (
+        [child for child in root if child.tag == "testcase"]
+        if root.tag == "testsuites"
+        else []
+    )
 
     passed = 0
     failed = 0
     skipped = 0
-    errors = []
+    errors: list[str] = []
+    test_names: list[str] = []
 
     for suite in suites:
         tests = int(suite.attrib.get("tests", "0") or 0)
@@ -171,22 +194,29 @@ def ingest_junit_xml(text: str, require_rollback: bool = False) -> dict:
         skipped += suite_skipped
 
         for testcase in suite.findall(".//testcase"):
-            name = testcase.attrib.get("name", "unnamed-test")
-            classname = testcase.attrib.get("classname", "").strip()
-            label = f"{classname}::{name}" if classname else name
-            for node in list(testcase.findall("failure")) + list(testcase.findall("error")):
-                message = (node.attrib.get("message") or node.text or "").strip()
-                errors.append(f"{label} - {message}" if message else label)
+            label = _junit_testcase_label(testcase)
+            _collect_junit_testcase_errors(testcase, label, errors)
+            if label not in test_names:
+                test_names.append(label)
+
+    for testcase in direct_testcases:
+        label = _junit_testcase_label(testcase)
+        if _collect_junit_testcase_errors(testcase, label, errors):
+            failed += 1
+        elif testcase.find("skipped") is not None:
+            skipped += 1
+        else:
+            passed += 1
+        if label not in test_names:
+            test_names.append(label)
+
+    if not suites and not direct_testcases:
+        errors.append("JUnit XML contains no test suites or test cases")
+    elif passed + failed + skipped == 0 and not test_names:
+        errors.append("JUnit XML contains no recorded test results")
 
     result = _base_result("junit-xml", passed=passed, failed=failed, skipped=skipped)
-    # test names are collected from every testcase label for downstream failure-path validation
-    for suite in suites:
-        for testcase in suite.findall(".//testcase"):
-            name = testcase.attrib.get("name", "unnamed-test")
-            classname = testcase.attrib.get("classname", "").strip()
-            label = f"{classname}::{name}" if classname else name
-            if label not in result["test_names"]:
-                result["test_names"].append(label)
+    result["test_names"] = test_names
     result["errors"] = errors
     return _finalize_result(result, require_rollback=require_rollback)
 

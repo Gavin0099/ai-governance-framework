@@ -144,3 +144,67 @@ driver.c(50): warning C6387: invalid input buffer length may be null
     assert payload["irql_verified"] is True
     assert payload["ioctl_boundary_verified"] is True
     assert len(payload["warnings"]) == 2
+
+
+
+def test_ingest_junit_xml_node22_top_level_testcases_without_testsuite():
+    payload = ingest_junit_xml(
+        """
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testcase name="rejects invalid payload" time="0.001" classname="test"/>
+  <testcase name="enforces boundary max retry delay" time="0.002" classname="test"/>
+  <testcase name="preserves conflict draft on failure" time="0.003" classname="test">
+    <failure type="testCodeFailure" message="expected 409">AssertionError</failure>
+  </testcase>
+  <testcase name="skips optional browser test" time="0.000" classname="test">
+    <skipped type="skipped" message="headless only"/>
+  </testcase>
+  <!-- tests 4 -->
+  <!-- pass 2 -->
+  <!-- fail 1 -->
+  <!-- skipped 1 -->
+</testsuites>
+""".strip()
+    )
+    assert payload["ok"] is False
+    assert payload["summary"] == {"passed": 2, "failed": 1, "skipped": 1}
+    assert len(payload["test_names"]) == 4
+    assert "test::rejects invalid payload" in payload["test_names"]
+    assert "test::preserves conflict draft on failure - expected 409" in payload["errors"]
+    assert payload["failure_test_validation"]["ok"] is True
+
+
+def test_ingest_junit_xml_mixed_testsuites_and_direct_testcases():
+    payload = ingest_junit_xml(
+        """
+<testsuites>
+  <testsuite name="suite-a" tests="2" failures="0" errors="0" skipped="0">
+    <testcase classname="suite.a" name="test_invalid_input" />
+    <testcase classname="suite.a" name="test_boundary_limit" />
+  </testsuite>
+  <testcase classname="test" name="handles dependency failure cleanly" />
+</testsuites>
+""".strip()
+    )
+    assert payload["ok"] is True
+    assert payload["summary"] == {"passed": 3, "failed": 0, "skipped": 0}
+    assert payload["test_names"] == [
+        "suite.a::test_invalid_input",
+        "suite.a::test_boundary_limit",
+        "test::handles dependency failure cleanly",
+    ]
+    assert payload["failure_test_validation"]["ok"] is True
+
+
+def test_ingest_junit_xml_rejects_empty_testsuites():
+    payload = ingest_junit_xml("<testsuites></testsuites>")
+    assert payload["ok"] is False
+    assert payload["summary"] == {"passed": 0, "failed": 0, "skipped": 0}
+    assert any("no test" in err.lower() for err in payload["errors"])
+
+
+def test_ingest_junit_xml_rejects_unexpected_root_element():
+    payload = ingest_junit_xml("<report><item name='fake'/></report>")
+    assert payload["ok"] is False
+    assert any("root" in err.lower() for err in payload["errors"])
