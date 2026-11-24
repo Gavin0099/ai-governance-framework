@@ -33,13 +33,17 @@
 | Wall-clock duration | `5m 44s` (`06:38:24Z`–`06:44:08Z`) | `3m 36s` (`06:51:45Z`–`06:55:21Z`) | **`9m 20s`** |
 | Idle/long gaps (`>= 30s`) | `52.6s` (1 gap, model generation; 0 human waits) | `0.0s` (0 gaps; 0 human waits) | **`52.6s`** |
 | LLM turns / tool calls | `22` turns / `21` tool calls | `15` turns / `14` tool calls | **`37` turns / `35` tool calls** |
-| Total tokens | `1,197,829` | `821,776` | **`2,019,605`** |
-| Input tokens (cached % of input) | `1,188,027` (`1,127,680` / 94.9%) | `815,709` (`761,472` / 93.4%) | **`2,003,736` (`1,889,152` / 94.3%)** |
-| Uncached input / output tokens | `60,347` / `9,802` (reasoning `681`) | `54,237` / `6,067` (reasoning `292`) | **`114,584` / `15,869`** |
+| Main-thread tokens | `1,197,829` | `821,776` | **`2,019,605`** |
+| Main-thread input tokens (cached % of input) | `1,188,027` (`1,127,680` / 94.9%) | `815,709` (`761,472` / 93.4%) | **`2,003,736` (`1,889,152` / 94.3%)** |
+| Main-thread uncached input / output tokens | `60,347` / `9,802` (reasoning `681`) | `54,237` / `6,067` (reasoning `292`) | **`114,584` / `15,869`** |
+| `--approve-for-me` `guardian` subagent tokens | `642,074` (`20` turns; `639,899` in, `564,096` / 88.2% cached, `75,803` uncached, `2,175` out) | `363,570` (`14` turns; `361,968` in, `328,320` / 90.7% cached, `33,648` uncached, `1,602` out) | **`1,005,644` (`109,451` uncached / `3,777` out)** |
+| **Known combined CLI tokens (main + `guardian`)** | **`1,839,903`** (`136,150` uncached / `11,977` out) | **`1,185,346`** (`87,885` uncached / `7,669` out) | **`3,025,249` (`224,035` uncached / `19,646` out)** |
 | Separate setup / upgrade overhead | Local submodule bump `2m 25s` + 10s hook probe (`22,051` tokens) | None | **Tracked separately from task runtime** |
 | Mid-task human approvals / rescues | `0` (`--approve-for-me` in `workspace-write`) | `0` (`--approve-for-me` in `workspace-write`) | **`0` mid-task interventions** |
 
-- **Attribution Boundary vs Sample 002 (`53m 31s` / `5.45M` tokens -> `9m 20s` / `2.02M` tokens)**: Because execution mode (`codex exec --approve-for-me`), framework commit (`7b2cd5d2` with `#358`), and slice content (`DB-04` Slice 2 vs Slice 1) all changed simultaneously, this comparison is an operational directional signal rather than a single-variable controlled experiment.
+- **Guardian Accounting & Attribution Boundary vs Sample 002**:
+  - Verifying the isolated `CODEX_HOME` rollout logs (`01a20c46-e76a-7e93-af4a-a607104e322f.jsonl` within `06:38:34Z`–`06:43:49Z` and `01a20c53-23cd-7e10-a273-d4501f500e52.jsonl` within `06:51:54Z`–`06:54:57Z`, `source={"subagent":{"other":"guardian"}}`) confirmed that `--approve-for-me` spawned separate internal `guardian` review sessions not summed into the main-thread `total_token_usage` and disjoint from the earlier `01a20c45` probe (`22,051` tokens).
+  - Including `guardian` tokens (`1,005,644`), Sample 003's known combined CLI usage is **`3,025,249` tokens** (an approximate **`44.5%` reduction** vs Sample 002's `5,448,980` known tokens, rather than the `62.9%` main-thread-only reduction), while known combined **uncached input tokens rose ~`5.8%`** (`224,035` vs `211,842`). Note that Sample 002 has not undergone an equivalent hidden-subagent audit, and because execution mode, framework commit (`7b2cd5d2` with `#358`), and slice content all changed simultaneously, this remains an operational comparison rather than a controlled single-variable experiment.
 
 ---
 
@@ -67,5 +71,5 @@
   - Real browser IndexedDB verification (multi-tab blocking, `versionchange` timing, and browser persistence were exercised via deterministic Node mocks only; live browser QA remains open).
   - Production suitability of `--dangerously-bypass-hook-trust` outside an isolated test `CODEX_HOME`; routine consumer runs must rely on explicit persisted hook trust.
   - Formal governance upgrade of `chinese-writing-practice` `main` (which remains pinned at `1a30faed` until upgraded separately) or remote merge of `DB-04` Slice 2.
-  - Quantitative proof of how much subsequent sessions save by reading promoted `memory/` records, or completion of G4 across diverse consumers.
+  - Quantitative proof of how much subsequent sessions save by reading promoted `memory/` records, any reduction in billed API dollar cost (given combined uncached input tokens were `224,035` vs `211,842`), or completion of G4 across diverse consumers.
   - External independent retrieval or reproduction of raw receipts/XML without access to the local backup (`E:\BackUp\Git_EE\_evidence_backup\g4-sample-003-cwp-db04-s2-2026-11-24`); GitHub stores only the summary and SHA-256 digests.
