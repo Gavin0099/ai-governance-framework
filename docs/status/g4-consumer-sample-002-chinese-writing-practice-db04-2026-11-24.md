@@ -34,7 +34,7 @@
 |---|---:|---:|---:|
 | Wall-clock duration | `17m 02s` (`02:13:08Z`–`02:30:10Z`) | `36m 29s` (`03:03:03Z`–`03:39:33Z`) | **`53m 31s`** |
 | Total tokens | `2,011,597` | `3,437,383` | **`5,448,980`** |
-| Input tokens (cached) | `1,991,620` (`1,892,096` / 95.0%) | `3,420,862` (`3,308,544` / 96.7%) | **`5,412,482` (`5,200,640` / 95.4%)** |
+| Input tokens (cached) | `1,991,620` (`1,892,096` / 95.0%) | `3,420,862` (`3,308,544` / 96.7%) | **`5,412,482` (`5,200,640` / 96.1%)** |
 | Uncached input / output tokens | `99,524` / `19,977` (reasoning `5,938`) | `112,318` / `16,521` (reasoning `3,986`) | **`211,842` / `36,498`** |
 | One-time setup cost (separate) | Standalone clone + manual `SessionStart` hook addition + `/hooks` trust | None | **1x initial setup** |
 | Human interventions | `/hooks` trust + sandbox approvals | Sandbox approvals | Multiple approvals; no mid-task rescue |
@@ -78,3 +78,4 @@
   - Remote product merge or production deployment of `DB-04` Slice 1.
   - Proof that AI Governance reduces total engineering time or token cost.
   - Completion of G4 or cross-consumer independent adoption.
+  - External independent retrieval or reproduction of raw receipts/XML without access to the local backup (`E:\BackUp\Git_EE\_evidence_backup\g4-sample-002-cwp-db04-2026-11-24`); GitHub stores only the summary and SHA-256 digests.
