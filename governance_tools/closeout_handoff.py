@@ -20,7 +20,7 @@ import uuid
 
 from governance_tools import shared_closeout_ownership as r2
 from governance_tools.prepare_closeout_candidate import (
-    inherited_git_overrides, validate_framework_binding, _git,
+    framework_binding_identity, inherited_git_overrides, validate_framework_binding, _git,
 )
 from runtime_hooks.core._bound_session_start import git_toplevel
 
@@ -754,14 +754,7 @@ class GeminiTranscriptProvider:
 
 
 def _framework_identity(root):
-    consumer, framework = validate_framework_binding(root, FRAMEWORK)
-    relative = framework.relative_to(consumer).as_posix()
-    return {"relative_path": relative,
-            "gitlink_oid": _git(root, "rev-parse", ":" + relative),
-            "checkout_head": _git(framework, "rev-parse", "HEAD"),
-            "adopted_commit": json.loads((root / "governance/framework.lock.json").read_bytes())["adopted_commit"],
-            "registration_blob": _git(root, "rev-parse", ":.gitmodules"),
-            "lock_blob": _git(root, "rev-parse", ":governance/framework.lock.json")}
+    return framework_binding_identity(root, FRAMEWORK)
 
 
 def _framework_preflight(root):

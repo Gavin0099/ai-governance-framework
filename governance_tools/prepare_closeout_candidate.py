@@ -124,6 +124,23 @@ def validate_framework_binding(consumer_root: Path, framework_root: Path) -> tup
     return consumer, framework
 
 
+def framework_binding_identity(consumer_root: Path, framework_root: Path) -> dict[str, str]:
+    """Return the canonical three-way framework binding identity for a submodule consumer.
+
+    Cooperative correctness boundary (not tamper protection against hostile local writers).
+    """
+    consumer, framework = validate_framework_binding(consumer_root, framework_root)
+    relative = framework.relative_to(consumer).as_posix()
+    return {
+        "relative_path": relative,
+        "gitlink_oid": _git(consumer, "rev-parse", ":" + relative),
+        "checkout_head": _git(framework, "rev-parse", "HEAD"),
+        "adopted_commit": json.loads((consumer / "governance/framework.lock.json").read_bytes())["adopted_commit"],
+        "registration_blob": _git(consumer, "rev-parse", ":.gitmodules"),
+        "lock_blob": _git(consumer, "rev-parse", ":governance/framework.lock.json"),
+    }
+
+
 def _single_line(value: Any, name: str) -> str:
     _require(isinstance(value, str) and bool(value.strip()), f"{name} must be a nonempty string")
     _require(all(ord(c) >= 32 and c not in "\x7f\x85\u2028\u2029" for c in value),
@@ -172,6 +189,7 @@ def _write_payload(path: Path, data: bytes, *, exclusive: bool) -> None:
 
 def prepare(consumer_root: Path, framework_root: Path, session_id: str,
             inputs: dict[str, Any]) -> dict[str, Any]:
+    binding = framework_binding_identity(consumer_root, framework_root)
     root, framework = validate_framework_binding(consumer_root, framework_root)
     _preflight_session(root, session_id)
     candidate, text = render_inputs(inputs)
@@ -179,7 +197,9 @@ def prepare(consumer_root: Path, framework_root: Path, session_id: str,
         ownership._path(root, relative)
     now = datetime.now(timezone.utc)
     relative, payload, data = build_candidate_artifact(
-        session_id, candidate, timestamp=now.strftime("%Y%m%dT%H%M%S%fZ"),
+        session_id,
+        {**candidate, "framework_binding": binding},
+        timestamp=now.strftime("%Y%m%dT%H%M%S%fZ"),
         generated_at=now.isoformat(),
     )
     _require(assess_session_closeout_binding(session_id, root, payload)["status"] == "valid",
@@ -191,7 +211,10 @@ def prepare(consumer_root: Path, framework_root: Path, session_id: str,
     with ownership.execution_exclusion(root) as lease:
         # Recheck after exclusion; no caller can supply a second root assertion
         # as a substitute for the existing envelope or registered Git identity.
-        validate_framework_binding(root, framework)
+        _require(
+            framework_binding_identity(root, framework) == binding,
+            "framework binding drifted before candidate reservation",
+        )
         _preflight_session(root, session_id)
         prior = ownership._owner(lease)
         _require(prior is None or prior["state"] != "HOLD"
