@@ -609,6 +609,7 @@ def _run_protected_closeout_with_lease(
     project_root = ownership._lease(lease)
     ownership._require(trigger_mode in ALLOWED_TRIGGER_MODES
                        and trigger_mode != "manual_fallback", "RELEASE_PROOF_INVALID")
+    _verify_direct_closeout_framework_binding(lease, session_id)
     reserved = ownership.begin_closeout(lease, session_id)
     if after_begin is not None:
         after_begin(reserved)
@@ -882,7 +883,6 @@ def main() -> int:
                 print(f"[session_closeout_entry] Codex Stop: nothing to close this turn ({skip_reason})",
                       file=sys.stderr)
                 return 0
-        _verify_direct_closeout_framework_binding(lease, _hook_session_id)
         result = _run_protected_closeout_with_lease(
             lease, session_id=_hook_session_id, transcript_path=_transcript_path,
             agent_id=args.agent_id, trigger_mode=args.trigger_mode,

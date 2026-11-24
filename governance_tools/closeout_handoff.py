@@ -923,6 +923,9 @@ def _live(lease, request, provider, *, qualified_context=None):
     owner = r2._matching(lease, b["session_id"], b["generation"])
     _check_owner(owner, b)
     r2._payloads(lease, owner)
+    cand = r2._json(r2._path(root, owner["candidate_identity"]["relative_path"]))
+    if "framework_binding" in cand:
+        _require(cand["framework_binding"] == b["framework"], "FRAMEWORK_DRIFT")
     return owner, transcript
 
 
