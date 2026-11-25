@@ -42,6 +42,12 @@ if __package__ in (None, ""):
 
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
 from governance_tools import shared_closeout_ownership as ownership
+from governance_tools.prepare_closeout_candidate import (
+    PreparationError,
+    framework_binding_identity,
+)
+
+_FRAMEWORK_ROOT = Path(__file__).resolve().parents[1].resolve()
 from governance_tools.memory_record import (
     WRITER_ID as MEMORY_WRITER_ID,
     daily_memory_contains_record_identity,
@@ -515,6 +521,62 @@ def _capture_hook_outcome(result: dict[str, Any], session_id: str) -> dict[str, 
     return {"ok": result["ok"], "gate_blocked": gate["blocked"], "errors": list(errors)}
 
 
+def _is_submodule_consumer(project_root: Path, framework_root: Path) -> bool:
+    """True when project_root is an external consumer using a submodule framework."""
+    root = project_root.resolve()
+    fw = framework_root.resolve()
+    if root == fw:
+        return False
+    if fw.is_relative_to(root):
+        return True
+    return (root / ".gitmodules").is_file() and (root / "governance" / "framework.lock.json").is_file()
+
+
+def _verify_direct_closeout_framework_binding(lease, session_id: str | None) -> None:
+    """Re-verify Prepare-recorded framework binding under the R2 lease BEFORE side effects.
+
+    Cooperative governance correctness boundary (Issue #360): prevents mid-session
+    framework checkout/lock drift between Prepare and Stop from producing admissible
+    closeout artifacts. Does not claim tamper-resistance against hostile local writers
+    that modify validator Python files directly.
+
+    Compatibility rules for candidates without ``framework_binding``:
+    - Submodule consumers in ``OWNED`` state fail closed (``FRAMEWORK_BINDING_MISSING``).
+    - Self-hosted framework closeouts, non-submodule unit-test fixtures, and pre-existing
+      ``HOLD`` recovery records without ``framework_binding`` remain allowed.
+    """
+    if getattr(lease, "verified_handoff", None) is not None or not session_id:
+        return
+    project_root = ownership._lease(lease)
+    owner = ownership._owner(lease)
+    if owner is None or owner["session_id"] != session_id or owner["state"] == "RELEASED":
+        return
+    if owner["state"] == "HOLD" and owner.get("hold_reason") == "preparation_pending":
+        return
+    if owner["state"] == "OWNED":
+        ownership._require_closeout_attested(lease, owner)
+        ownership._require_gemini_handoff_request(lease, owner)
+    ci = owner["candidate_identity"]
+    cand_path = ownership._path(project_root, ci["relative_path"])
+    if not cand_path.is_file() or ownership._digest(cand_path) != ci["sha256"]:
+        return
+    cand_payload = ownership._json(cand_path)
+    if "framework_binding" in cand_payload:
+        recorded = cand_payload["framework_binding"]
+        if not isinstance(recorded, dict):
+            raise PreparationError("FRAMEWORK_BINDING_INVALID: framework_binding must be an object")
+        live = framework_binding_identity(project_root, _FRAMEWORK_ROOT)
+        if live != recorded:
+            raise PreparationError(
+                "FRAMEWORK_BINDING_DRIFT: active framework binding differs from prepared candidate binding"
+            )
+        return
+    if _is_submodule_consumer(project_root, _FRAMEWORK_ROOT) and owner["state"] != "HOLD":
+        raise PreparationError(
+            "FRAMEWORK_BINDING_MISSING: submodule consumer closeout requires framework_binding in candidate"
+        )
+
+
 def _codex_stop_skip_reason(lease, session_id: str) -> str | None:
     """Why this Codex Stop has no closeout to run, or None when it does.
 
@@ -550,6 +612,7 @@ def _run_protected_closeout_with_lease(
     project_root = ownership._lease(lease)
     ownership._require(trigger_mode in ALLOWED_TRIGGER_MODES
                        and trigger_mode != "manual_fallback", "RELEASE_PROOF_INVALID")
+    _verify_direct_closeout_framework_binding(lease, session_id)
     reserved = ownership.begin_closeout(lease, session_id)
     if after_begin is not None:
         after_begin(reserved)

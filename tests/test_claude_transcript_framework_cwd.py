@@ -12,6 +12,7 @@ or inconsistent framework, and session id mismatch. SessionStart binding,
 SessionEnd payload cwd, ownership, receipts, release proof and the Codex path
 are unchanged. A cwd in the framework grants no right to change it.
 """
+import json
 import os
 import subprocess
 
@@ -19,6 +20,7 @@ import pytest
 
 from governance_tools import claude_closeout_publisher as c
 from governance_tools import claude_formal_closeout as cli
+from governance_tools import closeout_attestation as attestation
 from governance_tools import closeout_handoff as h
 from governance_tools import shared_closeout_ownership as r2
 from governance_tools.prepare_closeout_candidate import PreparationError
@@ -176,19 +178,30 @@ def test_session_end_payload_cwd_rule_is_unchanged(framework_ready):
 
 def test_session_blocked_by_the_old_rule_can_retry_after_the_framework_update(
         repo, monkeypatch, tmp_path):
-    """A holds ownership, its closeout fails on the old rule, then a retry succeeds.
+    """A holds ownership, fails on the old rule, updates framework, re-prepares, and succeeds.
 
-    Mirrors the DeviceTraceKit run: a standing owner authorization committed
-    before the session, a transcript that names the framework submodule, a
-    first attempt refused, and a second attempt by the same session after the
-    fix. The refusal must leave nothing that blocks the retry, and the retry
-    must not need the transcript or ownership to be rewritten.
+    Mirrors the DeviceTraceKit run under #360 strict Prepare-to-Stop framework
+    binding: a standing owner authorization committed before the session, a
+    transcript that names the framework submodule, a first attempt refused by
+    the old rule, and an F-7 three-way framework update between attempts.
+    Retrying without re-preparing must fail closed with FRAMEWORK_DRIFT and
+    leave no formal handoff request, receipt, memory promotion, or R2 release.
+    Re-preparing in the same session under the updated framework advances the
+    generation, preserves prior candidate and attestation audit artifacts, and
+    lets the retry succeed with the original transcript and standing owner
+    authorization.
     """
     oid = commit(repo, SLICE, block())
     root, _, payload = _ready(repo, monkeypatch, tmp_path, start_claude)
     framework, tools = make_framework_a_repository(root)
     source = write_rows(tmp_path / "a.jsonl", mixed_rows(root, framework, tools))
     ref = f"{SLICE}@{oid}"
+
+    initial_owner = owner(root)
+    old_generation = initial_owner["generation"]
+    old_candidate_rel = initial_owner["candidate_identity"]["relative_path"]
+    old_candidate_path = root / old_candidate_rel
+    old_candidate_bytes = old_candidate_path.read_bytes()
 
     # Before the fix: the framework submodule is not accepted.
     with monkeypatch.context() as old_rule:
@@ -199,9 +212,14 @@ def test_session_blocked_by_the_old_rule_can_retry_after_the_framework_update(
         assert "TRANSCRIPT_SESSION_MISMATCH" in str(excinfo.value)
     assert not released(root)
     assert owner(root)["session_id"] == SID and owner(root)["state"] == "OWNED"
+    assert not r2._closeout_request_slot(root, SID).exists()
+
+    att_dir = root / attestation.AREA / SID
+    prior_attestations = {p.name: p.read_bytes() for p in att_dir.glob("*.json")}
+    assert prior_attestations
 
     # The framework is updated between the attempts (F-7 moves gitlink, lock and
-    # checkout together); the session, its candidate and its ownership are not.
+    # checkout together); the session has not re-prepared yet.
     updated = "d" * 40
     monkeypatch.setattr(h, "_framework_identity", lambda _root: {
         "relative_path": FRAMEWORK_REL, "gitlink_oid": updated,
@@ -224,10 +242,56 @@ def test_session_blocked_by_the_old_rule_can_retry_after_the_framework_update(
     monkeypatch.setattr(h, "_git", updated_git)
     assert owner(root)["session_id"] == SID and owner(root)["state"] == "OWNED"
 
-    # After the fix: the same session retries with the same transcript.
+    # Retrying without re-preparing must fail closed with FRAMEWORK_DRIFT and
+    # must not produce a formal handoff request, receipt, memory promotion, or release.
+    with pytest.raises(h.HandoffError) as excinfo:
+        cli.close_out(root, SID, None, source, deadline_ms=30000,
+                      authorization_ref=ref, condition_met=MET)
+    assert "FRAMEWORK_DRIFT" in str(excinfo.value)
+    assert not released(root)
+    assert no_release_residue(root)
+    assert not r2._closeout_request_slot(root, SID).exists()
+    assert not (root / "artifacts/runtime/closeouts" / f"{SID}.json").exists()
+    assert not (root / "memory").exists()
+    assert owner(root)["session_id"] == SID
+    assert owner(root)["state"] == "OWNED"
+    assert owner(root)["generation"] == old_generation
+    assert old_candidate_path.read_bytes() == old_candidate_bytes
+    for name, raw in prior_attestations.items():
+        assert (att_dir / name).read_bytes() == raw
+
+    pre_reprepare_attestations = {p.name: p.read_bytes() for p in att_dir.glob("*.json")}
+    pre_reprepare_att_ids = {p.stem for p in att_dir.glob("*.json")}
+
+    # With no published request and no HOLD state, re-prepare in the same session
+    # under the updated framework: new candidate, new generation, new binding.
+    reprepared = prepare(root, SID, version=2, session_start=lambda *a, **k: None)
+    assert reprepared["session_id"] == SID
+    assert reprepared["generation"] == old_generation + 1
+    assert reprepared["candidate_identity"]["relative_path"] != old_candidate_rel
+    new_candidate = json.loads(
+        (root / reprepared["candidate_identity"]["relative_path"]).read_text(encoding="utf-8")
+    )
+    assert new_candidate["framework_binding"]["adopted_commit"] == updated
+    assert new_candidate["framework_binding"]["gitlink_oid"] == updated
+    assert new_candidate["framework_binding"]["checkout_head"] == updated
+    # Old attestation bound to the previous generation does not authorize the new one.
+    new_binding_fields = {
+        k: reprepared[k]
+        for k in ("consumer_root", "session_id", "generation", "candidate_identity", "text_digest")
+    }
+    assert attestation.find(root, new_binding_fields) is None
+
+    # After re-preparing: the same session retries with the original transcript
+    # and standing owner authorization, recording a new attestation and releasing.
     result = cli.close_out(root, SID, None, source, deadline_ms=30000,
                            authorization_ref=ref, condition_met=MET)
     assert result["status"] == "FINALIZED"
     assert result["owner_state"] == "RELEASED"
     assert result["authorization_kind"] == "standing_owner_authorization"
+    assert result["attestation_id"] not in pre_reprepare_att_ids
+    # Prior candidate and prior attestation audit records remain intact.
+    assert old_candidate_path.read_bytes() == old_candidate_bytes
+    for name, raw in pre_reprepare_attestations.items():
+        assert (att_dir / name).read_bytes() == raw
     assert prepare(root, "session-B", session_start=start_claude)["session_id"] == "session-B"
