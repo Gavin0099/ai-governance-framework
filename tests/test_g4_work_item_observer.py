@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -13,7 +14,8 @@ if str(REPO_ROOT / "scripts") not in sys.path:
 
 import g4_work_item_observer as observer  # noqa: E402
 
-SAMPLE_003_DIR = Path(r"E:\BackUp\Git_EE\_codex_home_isolated\cwp-db04-s2")
+_SAMPLE_003_ENV = os.environ.get("G4_SAMPLE_003_DIR", "").strip()
+SAMPLE_003_DIR = Path(_SAMPLE_003_ENV) if _SAMPLE_003_ENV else None
 SAMPLE_003_PROBE_SESSION_ID = "01a20c45-b1e6-7b51-b895-953e1f18f566"
 
 
@@ -208,9 +210,51 @@ def test_end_to_end_report_includes_observer_self_cost_and_redacts_paths(tmp_pat
     assert index_data["observer_self_cost"]["ai_usage_available"] is False
 
 
+def test_partial_pr_lookup_failure_downgrades_merged_and_ci_and_unknown_role_is_rendered(tmp_path: Path):
+    def fake_gh(args: list[str]) -> str:
+        if args[:3] == ["pr", "view", "25"]:
+            return json.dumps(
+                {
+                    "number": 25,
+                    "title": "feat: DB-04",
+                    "state": "MERGED",
+                    "headRefOid": "0e1ad7f1",
+                    "mergeCommit": {"oid": "55a17b3c"},
+                    "url": "https://github.com/org/repo/pull/25",
+                }
+            )
+        if args[:3] == ["pr", "view", "999"]:
+            raise RuntimeError("PR lookup failed")
+        if args[:2] == ["run", "list"]:
+            return json.dumps([{"databaseId": 1001, "status": "completed", "conclusion": "success", "name": "Governance"}])
+        raise AssertionError(f"Unexpected gh args: {args}")
+
+    delivery = observer.collect_delivery_evidence(repo="org/repo", pr_numbers=[25, 999], gh_runner=fake_gh)
+    assert delivery["merged_and_ci"] == "PARTIAL"
+
+    _write_jsonl(
+        tmp_path / "rollout-unk.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-unk", "source": "custom-unknown"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(400, 100, 50),
+        ],
+    )
+    out_dir = tmp_path / "out"
+    report_md, _ = observer.run_observer(
+        work_item_id="WI-UNK",
+        title="Unknown Role Check",
+        repo=None,
+        pr_numbers=[],
+        rollout_dirs=[tmp_path],
+        output_dir=out_dir,
+    )
+    assert "Unknown 450" in report_md.read_text(encoding="utf-8")
+
+
 @pytest.mark.skipif(
-    not SAMPLE_003_DIR.is_dir(),
-    reason="Local Sample 003 raw Codex rollout JSONL directory is not present in this environment",
+    SAMPLE_003_DIR is None or not SAMPLE_003_DIR.is_dir(),
+    reason="G4_SAMPLE_003_DIR not set or local Sample 003 raw Codex rollout JSONL directory is absent",
 )
 def test_sample_003_real_rollout_regression_matches_verified_3025249_tokens():
     """Real Sample 003 raw JSONL regression (never hardcoded if files are absent)."""

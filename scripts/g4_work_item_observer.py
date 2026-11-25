@@ -166,15 +166,17 @@ def parse_codex_rollout_dirs(
                     if best_usage is None or usage["total_tokens"] > best_usage["total_tokens"]:
                         best_usage = usage
 
-        if corrupt_lines:
-            anomalies.append(f"corrupt_json_line:{ref}:count={corrupt_lines}")
         if session_id is None:
+            if corrupt_lines:
+                anomalies.append(f"corrupt_json_line:{ref}:count={corrupt_lines}")
             anomalies.append(f"missing_session_id:{ref}")
             continue
         if include_session_ids is not None and session_id not in include_session_ids:
             continue
         if exclude_session_ids is not None and session_id in exclude_session_ids:
             continue
+        if corrupt_lines:
+            anomalies.append(f"corrupt_json_line:{ref}:count={corrupt_lines}")
         if non_monotonic:
             anomalies.append(f"non_monotonic_token_count:{session_id}:{ref}")
         if best_usage is None:
@@ -325,15 +327,19 @@ def collect_delivery_evidence(
                 }
             )
 
+    has_lookup_failure = any(n.startswith(("pr_view_failed:", "pr_discovery_failed:")) for n in notes)
     if not pr_records:
         code_completed = "UNKNOWN"
         merged_and_ci = "UNKNOWN"
     else:
-        code_completed = "YES"
+        any_open_or_merged = any(r["state"] in {"OPEN", "MERGED"} for r in pr_records)
+        code_completed = "YES" if any_open_or_merged else "NO"
         all_merged = all(r["state"] == "MERGED" for r in pr_records)
         all_ci_ok = all(r["post_merge_ci"] in {"PASS", "NOT_TRIGGERED"} for r in pr_records)
         any_ci_pass = any(r["post_merge_ci"] == "PASS" for r in pr_records)
-        if all_merged and all_ci_ok and any_ci_pass:
+        if has_lookup_failure:
+            merged_and_ci = "PARTIAL" if any_ci_pass else "UNKNOWN"
+        elif all_merged and all_ci_ok and any_ci_pass:
             merged_and_ci = "YES"
         elif all_merged:
             merged_and_ci = "PARTIAL"
@@ -399,12 +405,14 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
     main_tok = tokens["by_role"]["main"]["total_tokens"]
     guard_tok = tokens["by_role"]["guardian"]["total_tokens"]
     sub_tok = tokens["by_role"]["subagent"]["total_tokens"]
+    unk_tok = tokens["by_role"]["unknown"]["total_tokens"]
     comp = tokens["cost_completeness"]
 
     if known > 0:
-        token_cell = (
-            f"{known:,}（{comp}；Main {main_tok:,} / Guardian {guard_tok:,} / Sub-agent {sub_tok:,}；金額 UNKNOWN）"
-        )
+        breakdown = f"Main {main_tok:,} / Guardian {guard_tok:,} / Sub-agent {sub_tok:,}"
+        if unk_tok > 0:
+            breakdown += f" / Unknown {unk_tok:,}"
+        token_cell = f"{known:,}（{comp}；{breakdown}；金額 UNKNOWN）"
     else:
         token_cell = f"UNKNOWN（{comp}）"
 
