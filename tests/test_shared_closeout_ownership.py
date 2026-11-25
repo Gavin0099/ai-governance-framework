@@ -13,6 +13,7 @@ import time
 import pytest
 from jsonschema import Draft202012Validator
 
+from governance_tools import closeout_handoff as handoff
 from governance_tools import shared_closeout_ownership as own
 from governance_tools import session_closeout_entry as entry
 from runtime_hooks.adapters.codex.session_start import run as start
@@ -45,6 +46,11 @@ def inputs(root, sid='session-A', version=1):
     candidate = dict(session_id=sid, generated_at=datetime.now(timezone.utc).isoformat(),
         task_intent=sid+' task', work_summary='Inspected evidence.txt for '+sid,
         tools_used=['inspect'], artifacts_referenced=['evidence.txt'], open_risks=[])
+    if handoff.FRAMEWORK != root and handoff.FRAMEWORK.is_relative_to(root):
+        try:
+            candidate['framework_binding'] = handoff._framework_identity(root)
+        except Exception:
+            pass
     data = json.dumps(candidate).encode()
     rel = f'artifacts/runtime/closeout_candidates/{sid}/{version:06}.json'
     text = (f'TASK_INTENT: {sid} task\nWORK_COMPLETED: Inspected evidence.txt for {sid}\n'
