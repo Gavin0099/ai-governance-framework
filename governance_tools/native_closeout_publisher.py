@@ -106,7 +106,13 @@ def _binding(lease, sid, reason, qualified_context, profile=CODEX):
     result = {k: owner[k] for k in ("consumer_root", "session_id", "generation",
                                    "candidate_identity", "text_digest")}
     envelope = r2._path(root, f"artifacts/runtime/sessions/{sid}/session-envelope.json")
-    result.update(envelope_sha256=r2._digest(envelope), framework=h._qualified_identity(lease, qualified_context),
+    framework = h._qualified_identity(lease, qualified_context)
+    cand = r2._json(r2._path(root, owner["candidate_identity"]["relative_path"]))
+    if "framework_binding" in cand:
+        h._require(cand["framework_binding"] == framework, "FRAMEWORK_DRIFT")
+    elif h.FRAMEWORK != root and h.FRAMEWORK.is_relative_to(root):
+        h._require(False, "FRAMEWORK_BINDING_MISSING")
+    result.update(envelope_sha256=r2._digest(envelope), framework=framework,
                   native_event={"provider": profile.event_provider, "event": "SessionEnd",
                                 "reason": reason})
     return result
