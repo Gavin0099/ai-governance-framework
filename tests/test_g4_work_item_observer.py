@@ -80,7 +80,12 @@ def test_parse_separates_main_guardian_subagent_and_deduplicates_cumulative_even
         ],
     )
 
-    result = observer.parse_codex_rollout_dirs([tmp_path])
+    result = observer.parse_codex_rollout_dirs(
+        [tmp_path],
+        expected_session_ids={"sess-main", "sess-guard", "sess-sub"},
+    )
+    assert result["parsed_files_valid"] is True
+    assert result["work_item_cost_complete"] is True
     assert result["cost_completeness"] == "complete"
     assert result["comparability_token"] == 1
     assert result["known_totals"]["total_tokens"] == 2700 + 640 + 320
@@ -93,6 +98,36 @@ def test_parse_separates_main_guardian_subagent_and_deduplicates_cumulative_even
     # Privacy: source references must be redacted to basename + sha256 prefix, no full local paths.
     serialized = json.dumps(result)
     assert str(tmp_path) not in serialized
+
+
+def test_missing_guardian_or_unverified_inventory_never_claims_work_item_cost_complete(tmp_path: Path):
+    _write_jsonl(
+        tmp_path / "rollout-main.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-main", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1000, 400, 100),
+        ],
+    )
+    # 1) Without an explicit session inventory, parsed_files_valid is True but work_item_cost_complete MUST be False.
+    no_inventory = observer.parse_codex_rollout_dirs([tmp_path])
+    assert no_inventory["parsed_files_valid"] is True
+    assert no_inventory["work_item_cost_complete"] is False
+    assert no_inventory["cost_completeness"] == "incomplete"
+    assert no_inventory["comparability_token"] == 0
+    assert no_inventory["verified_complete_totals"] is None
+    assert no_inventory["known_totals"]["total_tokens"] == 1100
+
+    # 2) When an expected Guardian session is missing from the directory, fail closed as incomplete.
+    missing_guardian = observer.parse_codex_rollout_dirs(
+        [tmp_path],
+        expected_session_ids={"sess-main", "sess-guardian-missing"},
+    )
+    assert missing_guardian["parsed_files_valid"] is True
+    assert missing_guardian["work_item_cost_complete"] is False
+    assert missing_guardian["cost_completeness"] == "incomplete"
+    assert missing_guardian["missing_expected_sessions"] == ["sess-guardian-missing"]
+    assert any("missing_expected_session:sess-guardian-missing" in a for a in missing_guardian["anomalies"])
 
 
 def test_cross_file_resumed_session_takes_highest_cumulative_without_double_counting(tmp_path: Path):
@@ -114,7 +149,9 @@ def test_cross_file_resumed_session_takes_highest_cumulative_without_double_coun
         ],
     )
 
-    result = observer.parse_codex_rollout_dirs([tmp_path])
+    result = observer.parse_codex_rollout_dirs([tmp_path], expected_session_ids={"sess-resumed"})
+    assert result["parsed_files_valid"] is True
+    assert result["work_item_cost_complete"] is True
     assert result["cost_completeness"] == "complete"
     assert result["known_totals"]["total_tokens"] == 2050
     assert len(result["sessions"]) == 1
@@ -252,17 +289,93 @@ def test_partial_pr_lookup_failure_downgrades_merged_and_ci_and_unknown_role_is_
     assert "Unknown 450" in report_md.read_text(encoding="utf-8")
 
 
+def test_open_pr_and_unbacked_product_flag_remain_not_verified(tmp_path: Path):
+    def fake_gh(args: list[str]) -> str:
+        if args[:2] == ["pr", "view"]:
+            return json.dumps(
+                {
+                    "number": 99,
+                    "title": "wip: draft",
+                    "state": "OPEN",
+                    "headRefOid": "abc1234",
+                    "mergeCommit": None,
+                    "url": "https://github.com/org/repo/pull/99",
+                }
+            )
+        raise AssertionError(f"Unexpected gh args: {args}")
+
+    # OPEN PR without code evidence file + unbacked product_verification_status string -> both NOT_VERIFIED.
+    unbacked = observer.collect_delivery_evidence(
+        repo="org/repo",
+        pr_numbers=[99],
+        product_verification_status="4/4 PASS",
+        gh_runner=fake_gh,
+    )
+    assert unbacked["code_completed"] == "NOT_VERIFIED"
+    assert unbacked["merged_and_ci"] == "NO"
+    assert unbacked["product_verified"] == "NOT_VERIFIED"
+
+    # Providing real non-empty evidence files unlocks verified claims with redacted refs.
+    ev = tmp_path / "qa-evidence.json"
+    ev.write_text('{"pass": true}\n', encoding="utf-8")
+    backed = observer.collect_delivery_evidence(
+        repo="org/repo",
+        pr_numbers=[99],
+        code_evidence_file=ev,
+        product_evidence_file=ev,
+        product_verification_status="4/4 PASS",
+        gh_runner=fake_gh,
+    )
+    assert backed["code_completed"] == "YES"
+    assert backed["product_verified"] == "4/4 PASS"
+    assert backed["product_evidence_ref"].startswith("qa-evidence.json#sha256:")
+
+
+def test_llm_assisted_observer_never_reports_zero_tokens_when_unmeasured(tmp_path: Path):
+    out_dir = tmp_path / "out"
+    _, index_path = observer.run_observer(
+        work_item_id="WI-LLM",
+        title="LLM Assisted Cost Boundary",
+        repo=None,
+        pr_numbers=[],
+        rollout_dirs=[tmp_path],
+        output_dir=out_dir,
+        observer_mode="llm_assisted",
+    )
+    index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    assert index_data["observer_self_cost"]["observer_ai_tokens"] == "UNKNOWN"
+    assert index_data["observer_self_cost"]["ai_usage_available"] is False
+
+
 @pytest.mark.skipif(
     SAMPLE_003_DIR is None or not SAMPLE_003_DIR.is_dir(),
     reason="G4_SAMPLE_003_DIR not set or local Sample 003 raw Codex rollout JSONL directory is absent",
 )
 def test_sample_003_real_rollout_regression_matches_verified_3025249_tokens():
     """Real Sample 003 raw JSONL regression (never hardcoded if files are absent)."""
-    # Exclude the pre-run hook probe session (22,051 tokens) to match Sample 003 A+B (3,025,249 tokens).
-    result = observer.parse_codex_rollout_dirs(
+    expected_ab = {
+        "01a20c46-e6bb-77e0-b923-a13fa9965aa9",
+        "01a20c46-e76a-7e93-af4a-a607104e322f",
+        "01a20c53-1e4c-7430-8e64-4a2ed7306a09",
+        "01a20c53-23cd-7e10-a273-d4501f500e52",
+    }
+    # Without expected_session_ids, totals are known but completeness is conservatively incomplete.
+    unverified_inv = observer.parse_codex_rollout_dirs(
         [SAMPLE_003_DIR],
         exclude_session_ids={SAMPLE_003_PROBE_SESSION_ID},
     )
+    assert unverified_inv["parsed_files_valid"] is True
+    assert unverified_inv["work_item_cost_complete"] is False
+    assert unverified_inv["known_totals"]["total_tokens"] == 3_025_249
+
+    # With the verified A+B session inventory, completeness is complete and exact.
+    result = observer.parse_codex_rollout_dirs(
+        [SAMPLE_003_DIR],
+        exclude_session_ids={SAMPLE_003_PROBE_SESSION_ID},
+        expected_session_ids=expected_ab,
+    )
+    assert result["parsed_files_valid"] is True
+    assert result["work_item_cost_complete"] is True
     assert result["cost_completeness"] == "complete"
     assert result["comparability_token"] == 1
     assert result["known_totals"]["total_tokens"] == 3_025_249
@@ -271,6 +384,9 @@ def test_sample_003_real_rollout_regression_matches_verified_3025249_tokens():
     assert result["by_role"]["guardian"]["total_tokens"] == 1_005_644
 
     # Including the pre-run probe session accounts for all 5 rollout files cleanly.
-    full = observer.parse_codex_rollout_dirs([SAMPLE_003_DIR])
-    assert full["cost_completeness"] == "complete"
+    full = observer.parse_codex_rollout_dirs(
+        [SAMPLE_003_DIR],
+        expected_session_ids=expected_ab | {SAMPLE_003_PROBE_SESSION_ID},
+    )
+    assert full["work_item_cost_complete"] is True
     assert full["known_totals"]["total_tokens"] == 3_047_300

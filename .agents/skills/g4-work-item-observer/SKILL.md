@@ -18,13 +18,13 @@ This skill is an **experiment** for Gate 4 operational visibility. It does **not
 1. **Strictly Read-Only**: Never modify consumer files, receipts, memory, PRs, CI, or governance runtime.
 2. **Independent Observation**: The executing AI must not grade itself or declare final PASS; run this skill in an independent read-only pass after the Work Item completes.
 3. **One Work Item Unit**: Group all sessions, PRs, and fix rounds belonging to one natural Work Item into a single observation.
-4. **Honest Unknowns**:
+4. **Honest Unknowns & Completeness Separation**:
+   - Separate `parsed_files_valid` (found JSONL files parsed cleanly) from `work_item_cost_complete` (all expected participating sessions, including Guardian/sub-agents, are proven present). Without an explicit verified session inventory (`--expected-session-id`), report `known_totals` with `cost_completeness=incomplete` and `comparability_token=0`.
    - Missing intervention logs → `UNKNOWN` (never `0`).
    - Missing Owner-confirmed minutes → `UNKNOWN` (never substitute wall-clock duration).
-   - Incomplete/corrupt/unverifiable rollout JSONL → `cost_completeness=incomplete`, `comparability_token=0`, `estimated_usd=UNKNOWN`.
-5. **Four-Tier Delivery Separation**: Report `Code Completed`, `Merged + CI`, `Product Verified`, and `Deployed / Enabled` separately. Never treat CI PASS as product verification or production enablement.
+5. **Four-Tier Delivery Separation**: Report `Code Completed`, `Merged + CI`, `Product Verified`, and `Deployed / Enabled` separately. An `OPEN` PR alone is `NOT_VERIFIED`; `Product Verified` requires a verifiable non-empty `--product-evidence-file` (never trust an unbacked status flag).
 6. **Privacy & Redaction**: Never commit or upload raw rollout JSONL files to GitHub. Output only redacted basename+SHA-256 references and aggregated counts to an explicit local output directory.
-7. **Observer Self-Cost**: Always record Observer execution duration and whether additional Observer LLM usage occurred.
+7. **Observer Self-Cost**: Always record Observer execution duration; script-only runs report `0` script LLM tokens while noting that any separate Observer AI analysis must be accounted for (`--observer-mode llm_assisted --observer-ai-tokens <N>` or `UNKNOWN`).
 
 ## Procedure
 

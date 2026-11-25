@@ -91,8 +91,9 @@ def parse_codex_rollout_dirs(
     *,
     include_session_ids: set[str] | None = None,
     exclude_session_ids: set[str] | None = None,
+    expected_session_ids: set[str] | None = None,
 ) -> dict[str, Any]:
-    """Parse Codex rollout JSONL files, deduplicating cumulative counts and resumed sessions."""
+    """Parse Codex rollout JSONL files, separating parsed-file validity from whole-work-item completeness."""
     anomalies: list[str] = []
     files: list[Path] = []
     for root in rollout_dirs:
@@ -222,18 +223,46 @@ def parse_codex_rollout_dirs(
         _add_usage(by_role[sess["role"]], sess["usage"])
         _add_usage(known_totals, sess["usage"])
 
-    complete = bool(session_list) and not anomalies
+    parsed_files_valid = bool(session_list) and not anomalies
+    missing_expected: list[str] = []
+    if expected_session_ids is not None:
+        observed_ids = {s["session_id"] for s in session_list}
+        missing_expected = sorted(expected_session_ids - observed_ids)
+        for sid in missing_expected:
+            anomalies.append(f"missing_expected_session:{sid}")
+
+    # Whole work-item cost is only "complete" when all parsed files are valid AND an explicit
+    # expected session inventory was supplied and fully accounted for (preventing silent omission
+    # of Guardian or other sub-agent sessions that were never present in the scanned directory).
+    work_item_cost_complete = (
+        parsed_files_valid
+        and expected_session_ids is not None
+        and len(expected_session_ids) > 0
+        and not missing_expected
+    )
     return {
-        "cost_completeness": "complete" if complete else "incomplete",
-        "comparability_token": 1 if complete else 0,
-        "kpi_template_fill_allowed": complete,
+        "parsed_files_valid": parsed_files_valid,
+        "work_item_cost_complete": work_item_cost_complete,
+        "cost_completeness": "complete" if work_item_cost_complete else "incomplete",
+        "comparability_token": 1 if work_item_cost_complete else 0,
+        "kpi_template_fill_allowed": work_item_cost_complete,
         "estimated_usd": "UNKNOWN",
         "known_totals": known_totals,
-        "verified_complete_totals": dict(known_totals) if complete else None,
+        "verified_complete_totals": dict(known_totals) if work_item_cost_complete else None,
         "by_role": by_role,
         "sessions": session_list,
+        "missing_expected_sessions": missing_expected,
         "anomalies": anomalies,
     }
+
+
+def _verify_evidence_file(path: Path | None) -> tuple[bool, str | None]:
+    if path is None:
+        return False, None
+    p = Path(path)
+    if not p.is_file() or p.stat().st_size == 0:
+        return False, None
+    return True, _file_ref(p)
 
 
 def collect_delivery_evidence(
@@ -241,13 +270,21 @@ def collect_delivery_evidence(
     repo: str | None,
     work_item_id: str | None = None,
     pr_numbers: list[int] | None = None,
+    code_evidence_file: Path | None = None,
+    product_evidence_file: Path | None = None,
     product_verification_status: str | None = None,
     deployed_status: str | None = None,
     gh_runner: Callable[[list[str]], str] = _default_gh_runner,
 ) -> dict[str, Any]:
-    """Read-only GitHub PR/CI verification. Never equates CI PASS to product verification."""
+    """Read-only GitHub PR/CI verification. Requires verifiable evidence for completion claims."""
     discovered_prs: list[int] = list(pr_numbers or [])
     notes: list[str] = []
+    code_ev_ok, code_ev_ref = _verify_evidence_file(code_evidence_file)
+    prod_ev_ok, prod_ev_ref = _verify_evidence_file(product_evidence_file)
+    if code_evidence_file is not None and not code_ev_ok:
+        notes.append(f"invalid_code_evidence_file:{Path(code_evidence_file).name}")
+    if product_evidence_file is not None and not prod_ev_ok:
+        notes.append(f"invalid_product_evidence_file:{Path(product_evidence_file).name}")
 
     if repo and not discovered_prs and work_item_id:
         try:
@@ -329,12 +366,11 @@ def collect_delivery_evidence(
 
     has_lookup_failure = any(n.startswith(("pr_view_failed:", "pr_discovery_failed:")) for n in notes)
     if not pr_records:
-        code_completed = "UNKNOWN"
+        code_completed = "NOT_VERIFIED"
         merged_and_ci = "UNKNOWN"
     else:
-        any_open_or_merged = any(r["state"] in {"OPEN", "MERGED"} for r in pr_records)
-        code_completed = "YES" if any_open_or_merged else "NO"
         all_merged = all(r["state"] == "MERGED" for r in pr_records)
+        all_closed_unmerged = all(r["state"] == "CLOSED" for r in pr_records)
         all_ci_ok = all(r["post_merge_ci"] in {"PASS", "NOT_TRIGGERED"} for r in pr_records)
         any_ci_pass = any(r["post_merge_ci"] == "PASS" for r in pr_records)
         if has_lookup_failure:
@@ -346,11 +382,27 @@ def collect_delivery_evidence(
         else:
             merged_and_ci = "NO"
 
+        # An OPEN PR alone never proves code completion; require either merged+CI PASS or a verifiable test evidence file.
+        if all_closed_unmerged:
+            code_completed = "NO"
+        elif (merged_and_ci == "YES") or code_ev_ok:
+            code_completed = "YES"
+        else:
+            code_completed = "NOT_VERIFIED"
+
+    # Never accept an unbacked status string as product verification.
+    if prod_ev_ok:
+        product_verified = product_verification_status or "VERIFIED_WITH_EVIDENCE"
+    else:
+        product_verified = "NOT_VERIFIED"
+
     return {
         "code_completed": code_completed,
         "merged_and_ci": merged_and_ci,
-        "product_verified": product_verification_status or "NOT_VERIFIED",
+        "product_verified": product_verified,
         "deployed_or_enabled": deployed_status or "UNKNOWN",
+        "code_evidence_ref": code_ev_ref,
+        "product_evidence_ref": prod_ev_ref,
         "prs": pr_records,
         "notes": notes,
     }
@@ -412,11 +464,20 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
         breakdown = f"Main {main_tok:,} / Guardian {guard_tok:,} / Sub-agent {sub_tok:,}"
         if unk_tok > 0:
             breakdown += f" / Unknown {unk_tok:,}"
-        token_cell = f"{known:,}（{comp}；{breakdown}；金額 UNKNOWN）"
+        scope_label = "完整驗證" if tokens["work_item_cost_complete"] else "已知合計（未證明完整）"
+        token_cell = f"{known:,}（{scope_label}；{breakdown}；金額 UNKNOWN）"
     else:
         token_cell = f"UNKNOWN（{comp}）"
 
-    obs_cell = f"{self_cost['duration_ms']} ms（純腳本零額外 LLM Tokens；ai_usage_available={self_cost['ai_usage_available']}）"
+    if self_cost["mode"] == "script_only":
+        obs_cell = (
+            f"{self_cost['duration_ms']} ms（腳本本身 0 LLM Tokens；若另由 Observer AI 解讀須單獨計入）"
+        )
+    else:
+        obs_cell = (
+            f"{self_cost['duration_ms']} ms（Observer AI Tokens={self_cost['observer_ai_tokens']}；"
+            f"ai_usage_available={self_cost['ai_usage_available']}）"
+        )
 
     lines = [
         f"# G4 Observer — {evidence['title']}（`{evidence['work_item_id']}`）",
@@ -434,6 +495,7 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
         f"| Observer 自身成本 | {obs_cell} |",
         "",
         "**評估與非宣稱**：本報告僅做唯讀證據彙總，不影響 PR 合併資格、不建立 ROI 分數或跨任務排名；"
+        f"`parsed_files_valid={tokens['parsed_files_valid']}`、`work_item_cost_complete={tokens['work_item_cost_complete']}`、"
         f"`cost_completeness={comp}`、`comparability_token={tokens['comparability_token']}`。詳細 Session 與 PR 證據見 `evidence_index.json`。",
         "",
     ]
@@ -449,10 +511,15 @@ def run_observer(
     rollout_dirs: list[Path],
     output_dir: Path,
     exclude_session_ids: set[str] | None = None,
+    expected_session_ids: set[str] | None = None,
     events_path: Path | None = None,
     confirmed_minutes: float | None = None,
+    code_evidence_file: Path | None = None,
+    product_evidence_file: Path | None = None,
     product_verification_status: str | None = None,
     deployed_status: str | None = None,
+    observer_mode: str = "script_only",
+    observer_ai_tokens: int | None = None,
     gh_runner: Callable[[list[str]], str] = _default_gh_runner,
 ) -> tuple[Path, Path]:
     started_perf = time.perf_counter()
@@ -462,14 +529,36 @@ def run_observer(
         repo=repo,
         work_item_id=work_item_id,
         pr_numbers=pr_numbers,
+        code_evidence_file=code_evidence_file,
+        product_evidence_file=product_evidence_file,
         product_verification_status=product_verification_status,
         deployed_status=deployed_status,
         gh_runner=gh_runner,
     )
-    ai_cost = parse_codex_rollout_dirs(rollout_dirs, exclude_session_ids=exclude_session_ids)
+    ai_cost = parse_codex_rollout_dirs(
+        rollout_dirs,
+        exclude_session_ids=exclude_session_ids,
+        expected_session_ids=expected_session_ids,
+    )
     human = summarize_human_interventions(events_path, confirmed_minutes=confirmed_minutes)
 
     duration_ms = int(round((time.perf_counter() - started_perf) * 1000))
+    if observer_mode == "script_only":
+        self_cost = {
+            "duration_ms": duration_ms,
+            "ai_usage_available": False,
+            "observer_ai_tokens": 0,
+            "mode": "script_only",
+            "note": "Script executes deterministically with 0 LLM tokens; any external Observer AI interpretation must be accounted separately.",
+        }
+    else:
+        self_cost = {
+            "duration_ms": duration_ms,
+            "ai_usage_available": observer_ai_tokens is not None,
+            "observer_ai_tokens": observer_ai_tokens if observer_ai_tokens is not None else "UNKNOWN",
+            "mode": observer_mode,
+        }
+
     evidence = {
         "schema_version": "0.1-pilot",
         "observed_at_utc": started_utc,
@@ -480,12 +569,7 @@ def run_observer(
         "delivery": delivery,
         "human_interventions": human,
         "ai_cost": ai_cost,
-        "observer_self_cost": {
-            "duration_ms": duration_ms,
-            "ai_usage_available": False,
-            "observer_ai_tokens": 0,
-            "mode": "deterministic_read_only_script",
-        },
+        "observer_self_cost": self_cost,
         "not_claimed": [
             "ROI proven",
             "cross-task agent ranking",
@@ -511,10 +595,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pr", dest="prs", type=int, action="append", default=[], help="PR number (repeatable)")
     parser.add_argument("--rollout-dir", dest="rollout_dirs", type=Path, action="append", default=[])
     parser.add_argument("--exclude-session-id", dest="exclude_session_ids", action="append", default=[])
+    parser.add_argument("--expected-session-id", dest="expected_session_ids", action="append", default=[])
     parser.add_argument("--events-file", type=Path, default=None)
     parser.add_argument("--owner-minutes-confirmed", type=float, default=None)
+    parser.add_argument("--code-evidence-file", type=Path, default=None)
+    parser.add_argument("--product-evidence-file", type=Path, default=None)
     parser.add_argument("--product-verified", default=None)
     parser.add_argument("--deployed-status", default=None)
+    parser.add_argument("--observer-mode", choices=("script_only", "llm_assisted"), default="script_only")
+    parser.add_argument("--observer-ai-tokens", type=int, default=None)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
 
@@ -526,10 +615,15 @@ def main(argv: list[str] | None = None) -> int:
         rollout_dirs=args.rollout_dirs,
         output_dir=args.output_dir,
         exclude_session_ids=set(args.exclude_session_ids) or None,
+        expected_session_ids=set(args.expected_session_ids) or None,
         events_path=args.events_file,
         confirmed_minutes=args.owner_minutes_confirmed,
+        code_evidence_file=args.code_evidence_file,
+        product_evidence_file=args.product_evidence_file,
         product_verification_status=args.product_verified,
         deployed_status=args.deployed_status,
+        observer_mode=args.observer_mode,
+        observer_ai_tokens=args.observer_ai_tokens,
     )
     print(f"report={report_path}")
     print(f"evidence_index={index_path}")
