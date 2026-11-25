@@ -1,0 +1,232 @@
+"""Tests for the read-only G4 Work Item Observer (scripts/g4_work_item_observer.py)."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import g4_work_item_observer as observer  # noqa: E402
+
+SAMPLE_003_DIR = Path(r"E:\BackUp\Git_EE\_codex_home_isolated\cwp-db04-s2")
+SAMPLE_003_PROBE_SESSION_ID = "01a20c45-b1e6-7b51-b895-953e1f18f566"
+
+
+def _write_jsonl(path: Path, rows: list[dict | str]) -> Path:
+    lines = [row if isinstance(row, str) else json.dumps(row, ensure_ascii=False) for row in rows]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _token_event(input_tokens: int, cached: int, output: int, reasoning: int = 0) -> dict:
+    return {
+        "type": "event_msg",
+        "payload": {
+            "type": "token_count",
+            "info": {
+                "total_token_usage": {
+                    "input_tokens": input_tokens,
+                    "cached_input_tokens": cached,
+                    "cache_write_input_tokens": 0,
+                    "output_tokens": output,
+                    "reasoning_output_tokens": reasoning,
+                    "total_tokens": input_tokens + output,
+                }
+            },
+        },
+    }
+
+
+def test_parse_separates_main_guardian_subagent_and_deduplicates_cumulative_events(tmp_path: Path):
+    # session_index.jsonl must be ignored rather than treated as corrupt rollout.
+    _write_jsonl(tmp_path / "session_index.jsonl", [{"id": "idx-1"}])
+
+    # Main session with multiple cumulative token_count events (must take latest, not sum).
+    _write_jsonl(
+        tmp_path / "rollout-main.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-main", "source": "exec", "cwd": "/repo/app"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1000, 400, 50, 10),
+            _token_event(2500, 1500, 200, 30),
+        ],
+    )
+    # Guardian subagent
+    _write_jsonl(
+        tmp_path / "rollout-guardian.jsonl",
+        [
+            {
+                "type": "session_meta",
+                "payload": {"id": "sess-guard", "source": {"subagent": {"other": "guardian"}}, "cwd": "/repo/app"},
+            },
+            {"type": "turn_context", "payload": {"model": "codex-auto-review"}},
+            _token_event(600, 300, 40, 15),
+        ],
+    )
+    # Generic subagent
+    _write_jsonl(
+        tmp_path / "rollout-sub.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-sub", "source": {"subagent": "reviewer"}, "cwd": "/repo/app"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-mini"}},
+            _token_event(300, 100, 20, 5),
+        ],
+    )
+
+    result = observer.parse_codex_rollout_dirs([tmp_path])
+    assert result["cost_completeness"] == "complete"
+    assert result["comparability_token"] == 1
+    assert result["known_totals"]["total_tokens"] == 2700 + 640 + 320
+    assert result["verified_complete_totals"]["total_tokens"] == 2700 + 640 + 320
+    assert result["by_role"]["main"]["total_tokens"] == 2700
+    assert result["by_role"]["main"]["uncached_input_tokens"] == 1000
+    assert result["by_role"]["main"]["cached_input_tokens"] == 1500
+    assert result["by_role"]["guardian"]["total_tokens"] == 640
+    assert result["by_role"]["subagent"]["total_tokens"] == 320
+    # Privacy: source references must be redacted to basename + sha256 prefix, no full local paths.
+    serialized = json.dumps(result)
+    assert str(tmp_path) not in serialized
+
+
+def test_cross_file_resumed_session_takes_highest_cumulative_without_double_counting(tmp_path: Path):
+    _write_jsonl(
+        tmp_path / "rollout-part1.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-resumed", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1000, 500, 100),
+        ],
+    )
+    _write_jsonl(
+        tmp_path / "rollout-part2.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-resumed", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1000, 500, 100),
+            _token_event(1800, 1000, 250),
+        ],
+    )
+
+    result = observer.parse_codex_rollout_dirs([tmp_path])
+    assert result["cost_completeness"] == "complete"
+    assert result["known_totals"]["total_tokens"] == 2050
+    assert len(result["sessions"]) == 1
+    assert result["sessions"][0]["resumed_across_files"] is True
+
+
+def test_non_monotonic_reset_or_corrupt_jsonl_marks_cost_incomplete(tmp_path: Path):
+    _write_jsonl(
+        tmp_path / "rollout-broken.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-bad", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(2000, 1000, 100),
+            _token_event(500, 100, 20),  # non-monotonic reset within same session
+            "{not-valid-json",
+        ],
+    )
+
+    result = observer.parse_codex_rollout_dirs([tmp_path])
+    assert result["cost_completeness"] == "incomplete"
+    assert result["comparability_token"] == 0
+    assert result["verified_complete_totals"] is None
+    assert result["known_totals"]["total_tokens"] == 2100
+    assert any("non_monotonic" in a for a in result["anomalies"])
+    assert any("corrupt_json_line" in a for a in result["anomalies"])
+
+
+def test_missing_intervention_log_reports_unknown_not_zero_and_never_uses_wall_clock():
+    human = observer.summarize_human_interventions(None, confirmed_minutes=None)
+    assert human["planned_owner_decisions"] == "UNKNOWN"
+    assert human["unplanned_rescues"] == "UNKNOWN"
+    assert human["human_minutes"] == "UNKNOWN"
+    assert human["wall_clock_excluded"] is True
+
+
+def test_delivery_never_equates_ci_pass_to_product_verified_or_prod_enabled():
+    def fake_gh(args: list[str]) -> str:
+        if args[:2] == ["pr", "view"]:
+            return json.dumps(
+                {
+                    "number": 25,
+                    "title": "feat: DB-04",
+                    "state": "MERGED",
+                    "headRefOid": "0e1ad7f1",
+                    "mergeCommit": {"oid": "55a17b3c"},
+                    "url": "https://github.com/org/repo/pull/25",
+                }
+            )
+        if args[:2] == ["run", "list"]:
+            return json.dumps([{"databaseId": 1001, "status": "completed", "conclusion": "success", "name": "Governance"}])
+        raise AssertionError(f"Unexpected gh args: {args}")
+
+    delivery = observer.collect_delivery_evidence(
+        repo="org/repo",
+        pr_numbers=[25],
+        product_verification_status=None,
+        deployed_status=None,
+        gh_runner=fake_gh,
+    )
+    assert delivery["code_completed"] == "YES"
+    assert delivery["merged_and_ci"] == "YES"
+    assert delivery["product_verified"] == "NOT_VERIFIED"
+    assert delivery["deployed_or_enabled"] == "UNKNOWN"
+
+
+def test_end_to_end_report_includes_observer_self_cost_and_redacts_paths(tmp_path: Path):
+    rollout_dir = tmp_path / "sessions"
+    rollout_dir.mkdir()
+    _write_jsonl(
+        rollout_dir / "rollout-1.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-1", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1000, 600, 100),
+        ],
+    )
+    out_dir = tmp_path / "out"
+    report_md, index_path = observer.run_observer(
+        work_item_id="WI-TEST-1",
+        title="Test Work Item",
+        repo=None,
+        pr_numbers=[],
+        rollout_dirs=[rollout_dir],
+        output_dir=out_dir,
+    )
+    md_text = report_md.read_text(encoding="utf-8")
+    index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    assert "Observer 自身成本" in md_text
+    assert "UNKNOWN" in md_text
+    assert str(tmp_path) not in md_text
+    assert str(tmp_path) not in json.dumps(index_data)
+    assert index_data["observer_self_cost"]["duration_ms"] >= 0
+    assert index_data["observer_self_cost"]["ai_usage_available"] is False
+
+
+@pytest.mark.skipif(
+    not SAMPLE_003_DIR.is_dir(),
+    reason="Local Sample 003 raw Codex rollout JSONL directory is not present in this environment",
+)
+def test_sample_003_real_rollout_regression_matches_verified_3025249_tokens():
+    """Real Sample 003 raw JSONL regression (never hardcoded if files are absent)."""
+    # Exclude the pre-run hook probe session (22,051 tokens) to match Sample 003 A+B (3,025,249 tokens).
+    result = observer.parse_codex_rollout_dirs(
+        [SAMPLE_003_DIR],
+        exclude_session_ids={SAMPLE_003_PROBE_SESSION_ID},
+    )
+    assert result["cost_completeness"] == "complete"
+    assert result["comparability_token"] == 1
+    assert result["known_totals"]["total_tokens"] == 3_025_249
+    assert result["verified_complete_totals"]["total_tokens"] == 3_025_249
+    assert result["by_role"]["main"]["total_tokens"] == 2_019_605
+    assert result["by_role"]["guardian"]["total_tokens"] == 1_005_644
+
+    # Including the pre-run probe session accounts for all 5 rollout files cleanly.
+    full = observer.parse_codex_rollout_dirs([SAMPLE_003_DIR])
+    assert full["cost_completeness"] == "complete"
+    assert full["known_totals"]["total_tokens"] == 3_047_300
