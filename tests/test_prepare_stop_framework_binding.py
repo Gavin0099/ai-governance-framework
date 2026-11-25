@@ -307,3 +307,109 @@ def test_unprepared_mid_upgrade_stop_skips_cleanly_and_committed_upgrade_succeed
         (consumer_repo / own.AREA / "owner.json").read_text(encoding="utf-8")
     )
     assert owner_state["state"] == "RELEASED"
+
+
+
+def _publish_fixture_handoff(root: Path, sid: str) -> subprocess.CompletedProcess:
+    fw = root / SUBMODULE
+    transcript = root / "artifacts" / "runtime" / f"{sid}-transcript.txt"
+    transcript.parent.mkdir(parents=True, exist_ok=True)
+    transcript.write_text("transcript fixture\n", encoding="utf-8")
+    t_sha = hashlib.sha256(transcript.read_bytes()).hexdigest()
+    t_ref = {
+        "session_id": sid,
+        "immutable_locator": f"artifacts/runtime/{sid}-transcript.txt",
+        "sha256": t_sha,
+        "retention_contract": "fixture-v1",
+        "retention_version": "1",
+        "readable_after_hook": True,
+        "source_kind": "fixture",
+    }
+    code = (
+        "import json, sys; from pathlib import Path; "
+        "from governance_tools import closeout_handoff as h; "
+        "root = Path(sys.argv[1]); sid = sys.argv[2]; ref = json.loads(sys.argv[3]); "
+        "res = h.publish_request(root, sid, ref, h.FixtureTranscriptProvider(root)); "
+        "print(json.dumps(res))"
+    )
+    return subprocess.run(
+        [sys.executable, "-B", "-c", code, str(root), sid, json.dumps(t_ref)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env={**_env(), "PYTHONPATH": str(fw)},
+        timeout=30,
+    )
+
+
+def test_deferred_handoff_rejects_missing_framework_binding_and_recovers_after_reprepare(
+    consumer_repo,
+):
+    sid = "session-handoff-missing-binding"
+    _start_codex_session(consumer_repo, sid)
+    candidate = {
+        "session_id": sid,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "task_intent": "Legacy pre-#360 candidate without framework_binding",
+        "work_summary": "Prepared before framework_binding existed.",
+        "tools_used": ["pytest evidence.txt"],
+        "artifacts_referenced": ["evidence.txt"],
+        "open_risks": [],
+    }
+    data = (json.dumps(candidate, indent=2) + "\n").encode("utf-8")
+    rel = f"artifacts/runtime/closeout_candidates/{sid}/20261124T080000000000Z.json"
+    text = (
+        "TASK_INTENT: Legacy pre-#360 candidate without framework_binding\n"
+        "WORK_COMPLETED: Prepared before framework_binding existed.\n"
+        "FILES_TOUCHED: evidence.txt\n"
+        "CHECKS_RUN: pytest evidence.txt\n"
+        "OPEN_RISKS: NONE\n"
+        "NOT_DONE: NONE\n"
+        "RECOMMENDED_MEMORY_UPDATE: NO_UPDATE\n"
+    ).encode("utf-8")
+    ci = {"relative_path": rel, "sha256": hashlib.sha256(data).hexdigest()}
+    with own.execution_exclusion(consumer_repo) as lease:
+        rec = own.acquire_owner(lease, sid, ci, hashlib.sha256(text).hexdigest())
+        p = consumer_repo / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        (consumer_repo / own.TEXT).write_bytes(text)
+        own.confirm_prepared(lease, sid, rec["generation"])
+
+    rejected = _publish_fixture_handoff(consumer_repo, sid)
+    assert rejected.returncode != 0
+    assert "FRAMEWORK_BINDING_MISSING" in rejected.stderr
+    assert not (consumer_repo / "artifacts" / "runtime" / "closeout-requests" / sid / "request.json").exists()
+    _assert_no_closeout_side_effects(consumer_repo, sid)
+
+    # Legal recovery path: re-run prepare_closeout_candidate under aligned framework
+    reprep = _prepare_candidate(consumer_repo, sid)
+    assert reprep.returncode == 0, reprep.stdout + reprep.stderr
+    recovered = _publish_fixture_handoff(consumer_repo, sid)
+    assert recovered.returncode == 0, recovered.stderr
+    assert json.loads(recovered.stdout)["status"] == "REQUESTED"
+
+
+def test_deferred_handoff_rejects_post_prepare_three_way_version_switch(
+    consumer_repo, framework_versions
+):
+    sid = "session-handoff-v1-to-v2"
+    _start_codex_session(consumer_repo, sid)
+    prep = _prepare_candidate(consumer_repo, sid)
+    assert prep.returncode == 0, prep.stdout + prep.stderr
+
+    # Commit a full three-way consistent consumer upgrade to v2 AFTER Prepare ran on v1
+    _git(consumer_repo / SUBMODULE, "checkout", "--quiet", framework_versions["v2"])
+    (consumer_repo / "governance" / "framework.lock.json").write_text(
+        json.dumps({"adopted_commit": framework_versions["v2"]}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _git(consumer_repo, "add", SUBMODULE, "governance/framework.lock.json")
+    _git(consumer_repo, "commit", "-qm", "post-prepare upgrade to v2 for handoff")
+
+    rejected = _publish_fixture_handoff(consumer_repo, sid)
+    assert rejected.returncode != 0
+    assert "FRAMEWORK_DRIFT" in rejected.stderr
+    assert not (consumer_repo / "artifacts" / "runtime" / "closeout-requests" / sid / "request.json").exists()
+    _assert_no_closeout_side_effects(consumer_repo, sid)

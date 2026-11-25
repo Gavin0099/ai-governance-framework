@@ -926,6 +926,8 @@ def _live(lease, request, provider, *, qualified_context=None):
     cand = r2._json(r2._path(root, owner["candidate_identity"]["relative_path"]))
     if "framework_binding" in cand:
         _require(cand["framework_binding"] == b["framework"], "FRAMEWORK_DRIFT")
+    elif FRAMEWORK != root and FRAMEWORK.is_relative_to(root) and owner["state"] == "OWNED":
+        _require(False, "FRAMEWORK_BINDING_MISSING")
     return owner, transcript
 
 
