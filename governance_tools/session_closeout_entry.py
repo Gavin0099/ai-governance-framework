@@ -553,6 +553,9 @@ def _verify_direct_closeout_framework_binding(lease, session_id: str | None) -> 
         return
     if owner["state"] == "HOLD" and owner.get("hold_reason") == "preparation_pending":
         return
+    if owner["state"] == "OWNED":
+        ownership._require_closeout_attested(lease, owner)
+        ownership._require_gemini_handoff_request(lease, owner)
     ci = owner["candidate_identity"]
     cand_path = ownership._path(project_root, ci["relative_path"])
     if not cand_path.is_file() or ownership._digest(cand_path) != ci["sha256"]:
