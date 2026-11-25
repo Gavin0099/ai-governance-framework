@@ -312,19 +312,26 @@ def test_unprepared_mid_upgrade_stop_skips_cleanly_and_committed_upgrade_succeed
 
 def _publish_fixture_handoff(root: Path, sid: str) -> subprocess.CompletedProcess:
     fw = root / SUBMODULE
-    transcript = root / "artifacts" / "runtime" / f"{sid}-transcript.txt"
+    data = (json.dumps({"type": "session_meta", "payload": {"id": sid}}) + "\n").encode("utf-8")
+    t_sha = hashlib.sha256(data).hexdigest()
+    rel = f"artifacts/runtime/handoff-transcript-fixtures/{sid}/{t_sha}.jsonl"
+    transcript = root / rel
     transcript.parent.mkdir(parents=True, exist_ok=True)
-    transcript.write_text("transcript fixture\n", encoding="utf-8")
-    t_sha = hashlib.sha256(transcript.read_bytes()).hexdigest()
+    transcript.write_bytes(data)
     t_ref = {
         "session_id": sid,
-        "immutable_locator": f"artifacts/runtime/{sid}-transcript.txt",
+        "immutable_locator": rel,
         "sha256": t_sha,
-        "retention_contract": "fixture-v1",
-        "retention_version": "1",
+        "retention_contract": "fixture-retained-transcript",
+        "retention_version": "1.0",
         "readable_after_hook": True,
         "source_kind": "fixture",
     }
+    manifest_bytes = json.dumps(
+        {"consumer_root": str(root.resolve()), "transcript": t_ref},
+        sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8")
+    (transcript.parent / "manifest.json").write_bytes(manifest_bytes)
     code = (
         "import json, sys; from pathlib import Path; "
         "from governance_tools import closeout_handoff as h; "
