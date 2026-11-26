@@ -11,8 +11,12 @@ Coverage:
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 import pytest
 
+from governance_tools import task_level_detector as detector
 from governance_tools.task_level_detector import (
     AMBIGUOUS_REMOVAL_KEYWORDS,
     DATA_OBJECT_KEYWORDS,
@@ -198,6 +202,215 @@ class TestDetectTaskLevelDefaults:
 
     def test_generic_feature_defaults_to_l1(self):
         assert detect_task_level("add new user feature") == "L1"
+
+
+# ---------------------------------------------------------------------------
+# ASCII keyword boundaries (#334 S1 Owner decision, phase-1 observed defects)
+# ---------------------------------------------------------------------------
+
+class TestAsciiKeywordBoundaries:
+    """Fixed examples protect boundaries, risk inflections and no new L0 hits."""
+
+    @pytest.mark.parametrize("description, expected", [
+        ("check continuity", "L1"),
+        ("check built-in behavior", "L1"),
+        ("requires work", "L1"),
+        ("protagonist wording", "L1"),
+        ("authors wording", "L1"),
+        ("tabletop wording", "L1"),
+        ("unbreaking change wording", "L2"),
+        ("breaking changeover wording", "L2"),
+        ("driverless wording", "L1"),
+        ("ischematic wording", "L1"),
+        ("columnist wording", "L1"),
+        ("keyboards wording", "L1"),
+        ("ui2", "L1"),
+        ("2ui", "L1"),
+        ("_UI_", "L0"),
+        ("UI-only", "L0"),
+        ("UI", "L0"),
+        ("auth wording", "L1"),
+        ("schema wording", "L1"),
+        ("table wording", "L1"),
+        ("breaking change wording", "L2"),
+        ("breaking\tchange wording", "L0"),
+        ("breaking-change wording", "L2"),
+    ])
+    def test_detect_boundaries(self, description, expected):
+        assert detect_task_level(description) == expected
+
+    @pytest.mark.parametrize("description, expected", [
+        ("tokens wording", "L1"),
+        ("migrations wording", "L1"),
+        ("permissions wording", "L1"),
+        ("columns wording", "L1"),
+        ("versions wording", "L1"),
+        ("published wording", "L1"),
+        ("indexing wording", "L1"),
+        ("breaking changes wording", "L2"),
+        ("refactoring wording", "L1"),
+        ("deployed wording", "L1"),
+    ])
+    def test_risk_inflections(self, description, expected):
+        assert detect_task_level(description) == expected
+
+    @pytest.mark.parametrize("description, expected", [
+        ("styling", "L1"),
+        ("theming", "L1"),
+        ("copies", "L1"),
+        ("pasting", "L1"),
+        ("duplicating", "L1"),
+        ("dark\tmode", "L1"),
+        ("rename\tfile", "L1"),
+        ("styles", "L0"),
+        ("copying", "L0"),
+        ("displayed", "L0"),
+        ("rename files", "L0"),
+    ])
+    def test_l0_only_retains_substring_compatible_inflections(self, description, expected):
+        assert detect_task_level(description) == expected
+
+    @pytest.mark.parametrize("description, additions", [
+        ("tabletop", ["governance/ARCHITECTURE.md"]),
+        ("ischematic", ["governance/ARCHITECTURE.md"]),
+        ("columnist", ["governance/ARCHITECTURE.md"]),
+        ("driverless", ["domain_summary"]),
+        ("schema2", ["governance/ARCHITECTURE.md"]),
+        ("2table", ["governance/ARCHITECTURE.md"]),
+        ("kernelized", ["domain_summary"]),
+    ])
+    def test_embedded_upgrade_signals_keep_raw_substring_behavior(self, description, additions):
+        assert apply_upgrade_triggers("L0", description) == ("L1", additions)
+
+    @pytest.mark.parametrize("description, additions", [
+        ("schema", ["governance/ARCHITECTURE.md"]),
+        ("table", ["governance/ARCHITECTURE.md"]),
+        ("schemas", ["governance/ARCHITECTURE.md"]),
+        ("tables", ["governance/ARCHITECTURE.md"]),
+        ("migrations", ["governance/ARCHITECTURE.md"]),
+        ("columns", ["governance/ARCHITECTURE.md"]),
+        ("drivers", ["domain_summary"]),
+        ("kernel", ["domain_summary"]),
+        ("_TABLE_", ["governance/ARCHITECTURE.md"]),
+        ("tables drivers", ["governance/ARCHITECTURE.md", "domain_summary"]),
+    ])
+    def test_standalone_and_inflected_upgrade_signals(self, description, additions):
+        assert apply_upgrade_triggers("L0", description) == ("L1", additions)
+
+    @pytest.mark.parametrize("description, expected", [
+        ("按鈕", "L1"),  # Existing CJK-only behavior: not an L0 keyword.
+        ("修改按鈕UI顏色", "L0"),
+        ("中UI英", "L0"),
+        ("中auth英 wording", "L1"),
+        ("中breaking change英", "L2"),
+        ("中styling英", "L1"),
+    ])
+    def test_cjk_adjacency(self, description, expected):
+        assert detect_task_level(description) == expected
+
+    @pytest.mark.parametrize("description, expected", [
+        ("中tables英", ("L1", ["governance/ARCHITECTURE.md"])),
+        ("中driver英", ("L1", ["domain_summary"])),
+        ("按鈕", ("L0", [])),
+    ])
+    def test_upgrade_cjk_adjacency(self, description, expected):
+        assert apply_upgrade_triggers("L0", description) == expected
+
+    @pytest.mark.parametrize("description, signals", [
+        ("中清除資料英", ["清除", "資料"]),
+        ("中delete存檔", ["delete", "存檔"]),
+        ("中wipe英", ["wipe"]),
+        ("styling", []),
+    ])
+    def test_destructive_veto_unchanged(self, description, signals):
+        assert destructive_data_veto(description) == signals
+
+    @pytest.mark.parametrize("explicit, expected", [
+        ("l0", "L0"), ("L1", "L1"), ("L2", "L2"), ("invalid", "L2"),
+    ])
+    def test_explicit_level_and_priority_unchanged(self, explicit, expected):
+        assert detect_task_level("breaking changes auth UI", explicit) == expected
+
+
+# Fixed Owner examples and integrator probe expectations from 5073bcf2.
+DERIVED_RISK_CASES = (
+    ("Update the OAuth login button style", "L1"),
+    ("Restyle the deployment status button", "L1"),
+    ("Change the authenticate button color", "L1"),
+    ("Adjust router button layout", "L1"),
+    ("Update the authorize dialog button text", "L1"),
+    ("Change the tokenizer button color", "L1"),
+    ("Tweak the api-key field style", "L1"),
+    ("Update keystore button icon", "L1"),
+    ("Fix the subscription renewal button padding", "L0"),
+    ("Restyle the deprecated firmware-update button", "L1"),
+    ("Change the password-reset button color", "L1"),
+    ("Change the passwordless login button color", "L1"),
+    ("Update the versioning badge style", "L1"),
+    ("Update the migrations page button color", "L1"),
+)
+
+
+class TestNarrowL0Matching:
+    @pytest.mark.parametrize("description, expected", [
+        ("check continuity", "L1"),
+        ("check quickly", "L1"),
+        ("check built-in behavior", "L1"),
+        ("Update UI button color", "L0"),
+        ("Update README typo", "L0"),
+        ("Update OAuth login button style", "L1"),
+        ("Restyle deployment status button", "L1"),
+        ("Fix authentication button layout", "L1"),
+        # Historical classification only; this slice does not implement a risk floor.
+        ("Modify the firmware flash programming sequence", "L1"),
+        *DERIVED_RISK_CASES,
+    ])
+    def test_owner_auto_acceptance(self, description, expected):
+        detected = detect_task_level(description)
+        final, _ = apply_upgrade_triggers(detected, description, risk_level="medium")
+        assert final == expected
+
+    @pytest.mark.parametrize("text, keyword, expected", [
+        ("copies", "copy", True),
+        ("removing", "remove", True),
+        ("deleting", "delete", True),
+        ("resetting", "reset", True),
+        ("audit\tlog", "audit log", True),
+        ("audit  logs", "audit log", True),
+        ("中delete存檔", "delete", True),
+        ("confirm", "rm", False),
+        ("dropdown", "drop", False),
+        ("swipe", "wipe", False),
+    ])
+    def test_default_matcher_preserves_destructive_veto_semantics(self, text, keyword, expected):
+        assert detector._contains_keyword(text, keyword) is expected
+
+    def test_l0_hits_subset_and_auto_level_never_decreases(self, monkeypatch):
+        # A fixed source corpus, deliberately overinclusive: every string literal
+        # includes all task descriptions, parametrize rows and derived probes.
+        tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        texts = sorted({node.value for node in ast.walk(tree)
+                        if isinstance(node, ast.Constant) and isinstance(node.value, str)})
+        texts.extend(text for text, _ in DERIVED_RISK_CASES)
+        matcher = detector._contains_keyword
+        rank = {"L0": 0, "L1": 1, "L2": 2}
+
+        def raw_l0_matcher(text, keyword, *, substring_compatible=False):
+            if substring_compatible:
+                return keyword in text
+            return matcher(text, keyword)
+
+        for text in texts:
+            # Independent documented pre-S1 rule, not the new production matcher.
+            old_hits = [kw for kw in L0_KEYWORDS if kw in text.lower()]
+            new_hits = [kw for kw in L0_KEYWORDS
+                        if matcher(text.lower(), kw, substring_compatible=True)]
+            assert set(new_hits) <= set(old_hits), (text, new_hits, old_hits)
+            new_final, _ = apply_upgrade_triggers(detect_task_level(text), text, "medium")
+            with monkeypatch.context() as patch:
+                patch.setattr(detector, "_contains_keyword", raw_l0_matcher)
+                old_final, _ = apply_upgrade_triggers(detect_task_level(text), text, "medium")
+            assert rank[new_final] >= rank[old_final], (text, old_final, new_final)
 
 
 # ---------------------------------------------------------------------------

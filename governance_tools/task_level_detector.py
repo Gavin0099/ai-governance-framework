@@ -142,19 +142,25 @@ def _inflections(word: str) -> list[str]:
     return sorted(forms, key=len, reverse=True)
 
 
-def _contains_keyword(desc_lower: str, keyword: str) -> bool:
+def _contains_keyword(
+    desc_lower: str, keyword: str, *, substring_compatible: bool = False,
+) -> bool:
     """英文走詞界比對，CJK 走子字串。
 
-    其他關鍵字清單用的是裸子字串比對。破壞性動詞普遍很短，用同一套比對
-    會把 form/confirm 當成 rm、dropdown 當成 drop、swipe 當成 wipe，
-    等於用新的誤判換掉舊的缺口。CJK 沒有詞界也沒有字尾變化，子字串就夠。
+    ASCII 英數詞界排除 form 裡的 rm、continuity 裡的 ui 等嵌入字串。
+    L0 保留原片語空白與仍以原字為前綴的詞形，避免新增降級命中；其他
+    呼叫預設保留全部既有詞形。CJK 沒有詞界也沒有字尾變化，子字串就夠。
     """
     if not keyword.isascii():
         return keyword in desc_lower
     words = keyword.split()
-    head = r"\s+".join(re.escape(w) for w in words[:-1])
-    tail = "|".join(re.escape(form) for form in _inflections(words[-1]))
-    pattern = (_ASCII_LEFT + (head + r"\s+" if head else "")
+    separator = " " if substring_compatible else r"\s+"
+    head = separator.join(re.escape(w) for w in words[:-1])
+    forms = _inflections(words[-1])
+    if substring_compatible:
+        forms = [form for form in forms if form.startswith(words[-1])]
+    tail = "|".join(re.escape(form) for form in forms)
+    pattern = (_ASCII_LEFT + (head + separator if head else "")
                + "(?:" + tail + ")" + _ASCII_RIGHT)
     return re.search(pattern, desc_lower) is not None
 
@@ -245,7 +251,8 @@ def detect_task_level(
         return "L1"
 
     # L0 關鍵字檢查
-    if any(kw in desc_lower for kw in L0_KEYWORDS):
+    if any(_contains_keyword(desc_lower, kw, substring_compatible=True)
+           for kw in L0_KEYWORDS):
         return "L0"
 
     # 預設 L1（保守策略）
