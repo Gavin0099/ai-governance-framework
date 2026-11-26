@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import time
 from typing import Any, Callable
@@ -447,13 +448,50 @@ def summarize_human_interventions(
     }
 
 
+def _zh_code_status(value: str) -> str:
+    return {
+        "YES": "已完成（YES）",
+        "NO": "未完成（NO）",
+        "NOT_VERIFIED": "尚未驗證（NOT_VERIFIED，缺少合併通過或測試證據檔）",
+        "UNKNOWN": "未知（UNKNOWN）",
+    }.get(value, value)
+
+
+def _zh_merged_status(value: str) -> str:
+    return {
+        "YES": "已合併且 Post-Merge CI 通過（YES）",
+        "NO": "尚未合併（NO）",
+        "PARTIAL": "部分合併或 CI 未全過（PARTIAL）",
+        "UNKNOWN": "未知（UNKNOWN）",
+    }.get(value, value)
+
+
+def _zh_deployed_status(value: str) -> str:
+    if value == "UNKNOWN":
+        return "未知（UNKNOWN，未提供正式部署或啟用紀錄）"
+    return value
+
+
+def _zh_count(value: int | str) -> str:
+    if value == "UNKNOWN":
+        return "未知（UNKNOWN，未提供人工介入事件檔，不以 0 冒充）"
+    return f"{value} 次"
+
+
+def _zh_minutes(value: float | int | str) -> str:
+    if value == "UNKNOWN":
+        return "未知（UNKNOWN，未經負責人確認；不使用經過時間 Wall-clock 冒充）"
+    return f"{value} 分鐘（負責人確認）"
+
+
 def render_markdown_report(evidence: dict[str, Any]) -> str:
     delivery = evidence["delivery"]
     human = evidence["human_interventions"]
     tokens = evidence["ai_cost"]
     self_cost = evidence["observer_self_cost"]
 
-    known = tokens["known_totals"]["total_tokens"]
+    known_totals = tokens["known_totals"]
+    known = known_totals["total_tokens"]
     main_tok = tokens["by_role"]["main"]["total_tokens"]
     guard_tok = tokens["by_role"]["guardian"]["total_tokens"]
     sub_tok = tokens["by_role"]["subagent"]["total_tokens"]
@@ -461,45 +499,152 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
     comp = tokens["cost_completeness"]
 
     if known > 0:
-        breakdown = f"Main {main_tok:,} / Guardian {guard_tok:,} / Sub-agent {sub_tok:,}"
+        breakdown = f"主模型 Main {main_tok:,} / 審查 Guardian {guard_tok:,} / 子代理 Sub-agent {sub_tok:,}"
         if unk_tok > 0:
-            breakdown += f" / Unknown {unk_tok:,}"
-        scope_label = "完整驗證" if tokens["work_item_cost_complete"] else "已知合計（未證明完整）"
-        token_cell = f"{known:,}（{scope_label}；{breakdown}；金額 UNKNOWN）"
+            breakdown += f" / 未知角色 Unknown {unk_tok:,}"
+        scope_label = "完整驗證（相對於預期 Session 清單）" if tokens["work_item_cost_complete"] else "僅為已知合計（未證明涵蓋全部 Session）"
+        token_detail = (
+            f"輸入 {known_totals['input_tokens']:,}（快取命中 {known_totals['cached_input_tokens']:,}、"
+            f"未快取 {known_totals['uncached_input_tokens']:,}）"
+            f"＋輸出 {known_totals['output_tokens']:,}（含推理 {known_totals['reasoning_output_tokens']:,}）"
+        )
+        token_cell = f"{known:,}（{scope_label}；{breakdown}；{token_detail}；費用金額 UNKNOWN）"
     else:
-        token_cell = f"UNKNOWN（{comp}）"
+        token_cell = f"未知（UNKNOWN；完整度 `{comp}`，未取得 Codex 原始 rollout 紀錄或尚無可用 Token 資料）"
+
+    if delivery["product_verified"] == "NOT_VERIFIED":
+        product_cell = "尚未驗證（NOT_VERIFIED，缺少可核對之產品驗收證據檔）"
+    else:
+        ev_ref = delivery.get("product_evidence_ref")
+        product_cell = f"{delivery['product_verified']}（證據檔 `{ev_ref}`）" if ev_ref else str(delivery["product_verified"])
 
     if self_cost["mode"] == "script_only":
         obs_cell = (
-            f"{self_cost['duration_ms']} ms（腳本本身 0 LLM Tokens；若另由 Observer AI 解讀須單獨計入）"
+            f"腳本耗時 {self_cost['duration_ms']} ms（純腳本執行 0 LLM Tokens；若另由 AI 協助解讀須單獨計入）"
         )
     else:
         obs_cell = (
-            f"{self_cost['duration_ms']} ms（Observer AI Tokens={self_cost['observer_ai_tokens']}；"
-            f"ai_usage_available={self_cost['ai_usage_available']}）"
+            f"腳本耗時 {self_cost['duration_ms']} ms（外層協助 AI Tokens={self_cost['observer_ai_tokens']}；"
+            f"可用量測 `ai_usage_available={self_cost['ai_usage_available']}`）"
         )
 
     lines = [
         f"# G4 Observer — {evidence['title']}（`{evidence['work_item_id']}`）",
         "",
+        f"- **目標儲存庫**：`{evidence['repo']}`",
+        f"- **觀測時間（UTC）**：`{evidence['observed_at_utc']}`",
+        "",
+        "## 一、交付與成本總覽",
+        "",
         "| 項目 | 觀察結果 |",
         "| --- | --- |",
-        f"| 程式完成（Code Completed） | {delivery['code_completed']} |",
-        f"| 合併與 CI（Merged + CI） | {delivery['merged_and_ci']} |",
-        f"| 產品驗收（Product Verified） | {delivery['product_verified']} |",
-        f"| 正式部署／啟用（Deployed / Enabled） | {delivery['deployed_or_enabled']} |",
-        f"| 必要 Owner 決策 | {human['planned_owner_decisions']} |",
-        f"| 意外人工救援 | {human['unplanned_rescues']} |",
-        f"| 人工實際分鐘數 | {human['human_minutes']}（不使用 Wall-clock 冒充） |",
+        f"| 程式完成（Code Completed） | {_zh_code_status(delivery['code_completed'])} |",
+        f"| 合併與 CI（Merged + CI） | {_zh_merged_status(delivery['merged_and_ci'])} |",
+        f"| 產品驗收（Product Verified） | {product_cell} |",
+        f"| 正式部署／啟用（Deployed / Enabled） | {_zh_deployed_status(delivery['deployed_or_enabled'])} |",
+        f"| 必要 Owner 決策 | {_zh_count(human['planned_owner_decisions'])} |",
+        f"| 意外人工救援 | {_zh_count(human['unplanned_rescues'])} |",
+        f"| 人工實際分鐘數 | {_zh_minutes(human['human_minutes'])} |",
         f"| 完整 AI Tokens / 成本 | {token_cell} |",
         f"| Observer 自身成本 | {obs_cell} |",
         "",
-        "**評估與非宣稱**：本報告僅做唯讀證據彙總，不影響 PR 合併資格、不建立 ROI 分數或跨任務排名；"
-        f"`parsed_files_valid={tokens['parsed_files_valid']}`、`work_item_cost_complete={tokens['work_item_cost_complete']}`、"
-        f"`cost_completeness={comp}`、`comparability_token={tokens['comparability_token']}`。詳細 Session 與 PR 證據見 `evidence_index.json`。",
-        "",
     ]
+
+    prs = delivery.get("prs") or []
+    if prs:
+        lines.extend(
+            [
+                "## 二、PR 與 CI 證據",
+                "",
+                "| PR | 狀態 | Exact HEAD | Merge Commit | Post-Merge CI |",
+                "| --- | --- | --- | --- | --- |",
+            ]
+        )
+        for pr in prs:
+            num = pr.get("number")
+            url = pr.get("url")
+            pr_label = f"[#{num}]({url})" if url else f"#{num}"
+            head_short = (pr.get("head_sha") or "UNKNOWN")[:8]
+            merge_short = (pr.get("merge_sha") or "—")[:8]
+            lines.append(
+                f"| {pr_label} | `{pr.get('state', 'UNKNOWN')}` | `{head_short}` | `{merge_short}` | `{pr.get('post_merge_ci', 'UNKNOWN')}` |"
+            )
+        lines.append("")
+
+    parsed_zh = "是（已找到的紀錄檔皆解析正常）" if tokens["parsed_files_valid"] else "否（無紀錄檔或含解析異常）"
+    complete_zh = "是（預期 Session 清單皆已納入）" if tokens["work_item_cost_complete"] else "否（缺少預期清單或有遺漏 Session）"
+    comp_zh = "完整（complete）" if comp == "complete" else "不完整（incomplete）"
+    cmp_zh = "可納入跨任務 Token 比較（1）" if tokens["comparability_token"] == 1 else "不可納入跨任務比較（0）"
+
+    lines.extend(
+        [
+            "## 三、判讀欄位與非宣稱邊界",
+            "",
+            f"- **紀錄檔解析有效（`parsed_files_valid={tokens['parsed_files_valid']}`）**：{parsed_zh}。",
+            f"- **任務成本完整（`work_item_cost_complete={tokens['work_item_cost_complete']}`）**：{complete_zh}。",
+            f"- **成本完整度（`cost_completeness={comp}`）**：{comp_zh}。",
+            f"- **Token 可比較標記（`comparability_token={tokens['comparability_token']}`）**：{cmp_zh}。",
+            "- **隱私與非宣稱**：本報告僅保存去識別化摘要與雜湊引用（不含原始 Codex JSONL、照片或本機絕對路徑），"
+            "不影響 PR 合併資格、不構成 ROI 證明，也不作為跨任務代理排名依據。完整機器可讀欄位見同目錄 `evidence_index.json`。",
+            "",
+        ]
+    )
     return "\n".join(lines)
+
+
+def _safe_archive_slug(work_item_id: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", work_item_id.strip()).strip("-.")
+    if not slug:
+        raise ValueError(f"Invalid work_item_id for archive directory: {work_item_id!r}")
+    return slug
+
+
+def update_archive_index(archive_root: Path) -> Path:
+    """Rebuild a concise Chinese summary table (INDEX.md) across all archived Work Items."""
+    root = Path(archive_root)
+    root.mkdir(parents=True, exist_ok=True)
+    records: list[tuple[str, dict[str, Any]]] = []
+    for index_file in sorted(root.glob("*/evidence_index.json")):
+        try:
+            data = json.loads(index_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if isinstance(data, dict) and data.get("work_item_id"):
+            records.append((index_file.parent.name, data))
+
+    lines = [
+        "# G4 Observer 長期觀測紀錄總覽",
+        "",
+        "本目錄保存各自然產品任務（Work Item）的**去識別化**觀測報告（`report.md` 與 `evidence_index.json`），供跨任務長期追蹤與檢視。",
+        "",
+        "- 僅保存去識別化摘要與雜湊引用；完整 Codex rollout JSONL、課本照片與本機敏感路徑一律保留於本機，不上傳 GitHub。",
+        "- 部分欄位若尚無可核對證據，仍會如實保存並標記為 `UNKNOWN`，不等待所有欄位補齊才歸檔。",
+        "- 本總覽僅作唯讀觀察紀錄，不作為合併 Gate、ROI 證明或跨任務排名。",
+        "",
+        "| Work Item | 任務名稱 | 儲存庫 | 合併與 CI | 產品驗收 | Codex Tokens（完整度） | 人工介入 / 分鐘 | 詳細報告 |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for slug, data in records:
+        wid = data.get("work_item_id", slug)
+        title = data.get("title", "")
+        repo = data.get("repo", "UNKNOWN")
+        delivery = data.get("delivery") or {}
+        ai_cost = data.get("ai_cost") or {}
+        human = data.get("human_interventions") or {}
+        merged = delivery.get("merged_and_ci", "UNKNOWN")
+        prod = delivery.get("product_verified", "UNKNOWN")
+        known_tok = (ai_cost.get("known_totals") or {}).get("total_tokens", 0)
+        comp = ai_cost.get("cost_completeness", "incomplete")
+        tok_text = f"{known_tok:,}（`{comp}`）" if known_tok > 0 else f"UNKNOWN（`{comp}`）"
+        human_text = f"決策 {human.get('planned_owner_decisions', 'UNKNOWN')} / 救援 {human.get('unplanned_rescues', 'UNKNOWN')} / {human.get('human_minutes', 'UNKNOWN')}"
+        lines.append(
+            f"| `{wid}` | {title} | `{repo}` | `{merged}` | {prod} | {tok_text} | {human_text} | "
+            f"[report.md](./{slug}/report.md) · [json](./{slug}/evidence_index.json) |"
+        )
+    lines.append("")
+    index_md = root / "INDEX.md"
+    index_md.write_text("\n".join(lines), encoding="utf-8")
+    return index_md
 
 
 def run_observer(
@@ -509,7 +654,8 @@ def run_observer(
     repo: str | None,
     pr_numbers: list[int] | None,
     rollout_dirs: list[Path],
-    output_dir: Path,
+    output_dir: Path | None = None,
+    archive_root: Path | None = None,
     exclude_session_ids: set[str] | None = None,
     expected_session_ids: set[str] | None = None,
     events_path: Path | None = None,
@@ -522,6 +668,8 @@ def run_observer(
     observer_ai_tokens: int | None = None,
     gh_runner: Callable[[list[str]], str] = _default_gh_runner,
 ) -> tuple[Path, Path]:
+    if output_dir is None and archive_root is None:
+        raise ValueError("Either output_dir or archive_root must be provided.")
     started_perf = time.perf_counter()
     started_utc = datetime.now(timezone.utc).isoformat()
 
@@ -578,12 +726,24 @@ def run_observer(
         ],
     }
 
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    report_path = out / "report.md"
-    index_path = out / "evidence_index.json"
-    report_path.write_text(render_markdown_report(evidence), encoding="utf-8")
-    index_path.write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    report_text = render_markdown_report(evidence)
+    index_text = json.dumps(evidence, indent=2, ensure_ascii=False) + "\n"
+
+    primary_dir = Path(output_dir) if output_dir is not None else Path(archive_root) / _safe_archive_slug(work_item_id)
+    primary_dir.mkdir(parents=True, exist_ok=True)
+    report_path = primary_dir / "report.md"
+    index_path = primary_dir / "evidence_index.json"
+    report_path.write_text(report_text, encoding="utf-8")
+    index_path.write_text(index_text, encoding="utf-8")
+
+    if archive_root is not None:
+        arch_dir = Path(archive_root) / _safe_archive_slug(work_item_id)
+        if arch_dir.resolve() != primary_dir.resolve():
+            arch_dir.mkdir(parents=True, exist_ok=True)
+            (arch_dir / "report.md").write_text(report_text, encoding="utf-8")
+            (arch_dir / "evidence_index.json").write_text(index_text, encoding="utf-8")
+        update_archive_index(Path(archive_root))
+
     return report_path, index_path
 
 
@@ -604,8 +764,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--deployed-status", default=None)
     parser.add_argument("--observer-mode", choices=("script_only", "llm_assisted"), default="script_only")
     parser.add_argument("--observer-ai-tokens", type=int, default=None)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument(
+        "--archive-root",
+        type=Path,
+        default=None,
+        help="Optional redacted archive root (e.g., docs/status/g4-observer); writes <id>/report.md, evidence_index.json and updates INDEX.md",
+    )
     args = parser.parse_args(argv)
+    if args.output_dir is None and args.archive_root is None:
+        parser.error("Provide --output-dir and/or --archive-root.")
 
     report_path, index_path = run_observer(
         work_item_id=args.work_item_id,
@@ -614,6 +782,7 @@ def main(argv: list[str] | None = None) -> int:
         pr_numbers=args.prs,
         rollout_dirs=args.rollout_dirs,
         output_dir=args.output_dir,
+        archive_root=args.archive_root,
         exclude_session_ids=set(args.exclude_session_ids) or None,
         expected_session_ids=set(args.expected_session_ids) or None,
         events_path=args.events_file,
@@ -627,6 +796,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"report={report_path}")
     print(f"evidence_index={index_path}")
+    if args.archive_root is not None:
+        print(f"archive_index={Path(args.archive_root) / 'INDEX.md'}")
     return 0
 
 

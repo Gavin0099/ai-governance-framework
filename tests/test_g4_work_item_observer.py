@@ -347,6 +347,48 @@ def test_llm_assisted_observer_never_reports_zero_tokens_when_unmeasured(tmp_pat
     assert index_data["observer_self_cost"]["ai_usage_available"] is False
 
 
+def test_archive_root_writes_redacted_chinese_report_and_updates_index_with_unknowns(tmp_path: Path):
+    rollout_dir = tmp_path / "private-rollouts"
+    rollout_dir.mkdir()
+    _write_jsonl(
+        rollout_dir / "rollout-wi.jsonl",
+        [
+            {"type": "session_meta", "payload": {"id": "sess-wi", "source": "exec"}},
+            {"type": "turn_context", "payload": {"model": "gpt-6.2-sol"}},
+            _token_event(1200, 800, 150, 40),
+        ],
+    )
+    archive_root = tmp_path / "docs" / "status" / "g4-observer"
+    report_md, index_json = observer.run_observer(
+        work_item_id="WI-ARCH-1",
+        title="中文歸檔測試",
+        repo="org/repo",
+        pr_numbers=[],
+        rollout_dirs=[rollout_dir],
+        expected_session_ids={"sess-wi"},
+        archive_root=archive_root,
+    )
+    assert report_md == archive_root / "WI-ARCH-1" / "report.md"
+    assert index_json == archive_root / "WI-ARCH-1" / "evidence_index.json"
+    index_md = archive_root / "INDEX.md"
+    assert index_md.is_file()
+
+    md_text = report_md.read_text(encoding="utf-8")
+    index_md_text = index_md.read_text(encoding="utf-8")
+    # Chinese explanations and token breakdown must be present, and unknowns must be preserved honestly.
+    assert "快取命中 800" in md_text
+    assert "含推理 40" in md_text
+    assert "紀錄檔解析有效" in md_text
+    assert "UNKNOWN" in md_text
+    assert "WI-ARCH-1" in index_md_text
+    assert "中文歸檔測試" in index_md_text
+    # Privacy: raw JSONL must never be copied into archive_root and local paths must never leak.
+    assert not list(archive_root.rglob("*.jsonl"))
+    assert str(tmp_path) not in md_text
+    assert str(tmp_path) not in index_md_text
+    assert str(tmp_path) not in index_json.read_text(encoding="utf-8")
+
+
 @pytest.mark.skipif(
     SAMPLE_003_DIR is None or not SAMPLE_003_DIR.is_dir(),
     reason="G4_SAMPLE_003_DIR not set or local Sample 003 raw Codex rollout JSONL directory is absent",

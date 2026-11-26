@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1-pilot",
+  "observed_at_utc": "2026-11-26T05:48:04.376878+00:00",
+  "work_item_id": "WI-3-OCR-QUALITY",
+  "title": "OCR 圈選詞語辨識品質改善（3 張真實課本照片 6/16 -> 16/16）",
+  "repo": "Gavin0099/chinese-writing-practice",
+  "read_only": true,
+  "delivery": {
+    "code_completed": "YES",
+    "merged_and_ci": "YES",
+    "product_verified": "Node 132/132 通過，3 張真實課本照片（16 題）PP-OCRv5 實測 6/16 提升至 16/16（100%）",
+    "deployed_or_enabled": "已合併至 main（photoImport 預設維持 false）",
+    "code_evidence_ref": "wi3_qa_evidence.json#sha256:713c90ea4e09",
+    "product_evidence_ref": "wi3_qa_evidence.json#sha256:713c90ea4e09",
+    "prs": [
+      {
+        "number": 28,
+        "state": "MERGED",
+        "head_sha": "8928a14c44e1d584084d3039e363de4ee94a4363",
+        "merge_sha": "f45968b654b4268e7a5f4ba63cfef628edca5422",
+        "post_merge_ci": "PASS",
+        "url": "https://github.com/Gavin0099/chinese-writing-practice/pull/28"
+      }
+    ],
+    "notes": []
+  },
+  "human_interventions": {
+    "planned_owner_decisions": "UNKNOWN",
+    "unplanned_rescues": "UNKNOWN",
+    "human_minutes": "UNKNOWN",
+    "human_minutes_source": "unmeasured",
+    "wall_clock_excluded": true,
+    "source_ref": null,
+    "notes": []
+  },
+  "ai_cost": {
+    "parsed_files_valid": true,
+    "work_item_cost_complete": true,
+    "cost_completeness": "complete",
+    "comparability_token": 1,
+    "kpi_template_fill_allowed": true,
+    "estimated_usd": "UNKNOWN",
+    "known_totals": {
+      "input_tokens": 3518024,
+      "cached_input_tokens": 3389312,
+      "uncached_input_tokens": 128712,
+      "output_tokens": 30738,
+      "reasoning_output_tokens": 11298,
+      "total_tokens": 3548762
+    },
+    "verified_complete_totals": {
+      "input_tokens": 3518024,
+      "cached_input_tokens": 3389312,
+      "uncached_input_tokens": 128712,
+      "output_tokens": 30738,
+      "reasoning_output_tokens": 11298,
+      "total_tokens": 3548762
+    },
+    "by_role": {
+      "main": {
+        "input_tokens": 3518024,
+        "cached_input_tokens": 3389312,
+        "uncached_input_tokens": 128712,
+        "output_tokens": 30738,
+        "reasoning_output_tokens": 11298,
+        "total_tokens": 3548762
+      },
+      "guardian": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      },
+      "subagent": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      },
+      "unknown": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "sessions": [
+      {
+        "session_id": "01a215dc-6ff4-7e71-9ba9-8da5ee85b156",
+        "role": "main",
+        "models": [
+          "gpt-6.2-sol"
+        ],
+        "source_refs": [
+          "rollout-2026-11-26T11-18-21-01a215dc-6ff4-7e71-9ba9-8da5ee85b156.jsonl#sha256:14aa1ed65711"
+        ],
+        "token_events": 34,
+        "usage": {
+          "input_tokens": 3518024,
+          "cached_input_tokens": 3389312,
+          "uncached_input_tokens": 128712,
+          "output_tokens": 30738,
+          "reasoning_output_tokens": 11298,
+          "total_tokens": 3548762
+        },
+        "has_token_usage": true,
+        "resumed_across_files": false
+      }
+    ],
+    "missing_expected_sessions": [],
+    "anomalies": []
+  },
+  "observer_self_cost": {
+    "duration_ms": 1746,
+    "ai_usage_available": false,
+    "observer_ai_tokens": "UNKNOWN",
+    "mode": "llm_assisted"
+  },
+  "not_claimed": [
+    "ROI proven",
+    "cross-task agent ranking",
+    "causal governance effectiveness proof",
+    "merge gate authority"
+  ]
+}
