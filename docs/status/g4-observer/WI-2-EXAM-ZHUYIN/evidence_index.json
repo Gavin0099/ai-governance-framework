@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1-pilot",
+  "observed_at_utc": "2026-11-26T05:48:02.544506+00:00",
+  "work_item_id": "WI-2-EXAM-ZHUYIN",
+  "title": "考卷新增注音與混合考試模式",
+  "repo": "Gavin0099/chinese-writing-practice",
+  "read_only": true,
+  "delivery": {
+    "code_completed": "YES",
+    "merged_and_ci": "YES",
+    "product_verified": "Node 124/124 通過，Windows Chrome、WebKit 與 A4 PDF 版面驗證通過（實機 iOS Safari 待驗）",
+    "deployed_or_enabled": "已合併至 main（尚未確認正式站啟用狀態）",
+    "code_evidence_ref": "wi2_qa_evidence.json#sha256:3fc04f40d9f3",
+    "product_evidence_ref": "wi2_qa_evidence.json#sha256:3fc04f40d9f3",
+    "prs": [
+      {
+        "number": 27,
+        "state": "MERGED",
+        "head_sha": "fa2d45b89c9e890ef66d7a21f7ca5650d39828c0",
+        "merge_sha": "cf3c2df8bd2f61a636a5d2d9d6bf4afe4149ef9b",
+        "post_merge_ci": "PASS",
+        "url": "https://github.com/Gavin0099/chinese-writing-practice/pull/27"
+      }
+    ],
+    "notes": []
+  },
+  "human_interventions": {
+    "planned_owner_decisions": "UNKNOWN",
+    "unplanned_rescues": "UNKNOWN",
+    "human_minutes": "UNKNOWN",
+    "human_minutes_source": "unmeasured",
+    "wall_clock_excluded": true,
+    "source_ref": null,
+    "notes": []
+  },
+  "ai_cost": {
+    "parsed_files_valid": true,
+    "work_item_cost_complete": true,
+    "cost_completeness": "complete",
+    "comparability_token": 1,
+    "kpi_template_fill_allowed": true,
+    "estimated_usd": "UNKNOWN",
+    "known_totals": {
+      "input_tokens": 2763797,
+      "cached_input_tokens": 2649984,
+      "uncached_input_tokens": 113813,
+      "output_tokens": 19298,
+      "reasoning_output_tokens": 5848,
+      "total_tokens": 2783095
+    },
+    "verified_complete_totals": {
+      "input_tokens": 2763797,
+      "cached_input_tokens": 2649984,
+      "uncached_input_tokens": 113813,
+      "output_tokens": 19298,
+      "reasoning_output_tokens": 5848,
+      "total_tokens": 2783095
+    },
+    "by_role": {
+      "main": {
+        "input_tokens": 2763797,
+        "cached_input_tokens": 2649984,
+        "uncached_input_tokens": 113813,
+        "output_tokens": 19298,
+        "reasoning_output_tokens": 5848,
+        "total_tokens": 2783095
+      },
+      "guardian": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      },
+      "subagent": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      },
+      "unknown": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "sessions": [
+      {
+        "session_id": "01a215c0-aa03-7a02-aae7-753d91821b7a",
+        "role": "main",
+        "models": [
+          "gpt-6.2-sol"
+        ],
+        "source_refs": [
+          "rollout-2026-11-26T10-47-58-01a215c0-aa03-7a02-aae7-753d91821b7a.jsonl#sha256:10706c0101c0"
+        ],
+        "token_events": 29,
+        "usage": {
+          "input_tokens": 2763797,
+          "cached_input_tokens": 2649984,
+          "uncached_input_tokens": 113813,
+          "output_tokens": 19298,
+          "reasoning_output_tokens": 5848,
+          "total_tokens": 2783095
+        },
+        "has_token_usage": true,
+        "resumed_across_files": false
+      }
+    ],
+    "missing_expected_sessions": [],
+    "anomalies": []
+  },
+  "observer_self_cost": {
+    "duration_ms": 1647,
+    "ai_usage_available": false,
+    "observer_ai_tokens": "UNKNOWN",
+    "mode": "llm_assisted"
+  },
+  "not_claimed": [
+    "ROI proven",
+    "cross-task agent ranking",
+    "causal governance effectiveness proof",
+    "merge gate authority"
+  ]
+}
