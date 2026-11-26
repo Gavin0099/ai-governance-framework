@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1-pilot",
+  "observed_at_utc": "2026-11-26T07:31:57.834750+00:00",
+  "work_item_id": "WI-4-LECROY-APPENDIX-TESTS",
+  "title": "LeCroy 乾淨環境修復 14 個 PCIe/USB Appendix 測試錯誤（gpt-6.2-astra）",
+  "repo": "Gavin0099/lecroy-vse-toolkit",
+  "read_only": true,
+  "delivery": {
+    "code_completed": "YES",
+    "merged_and_ci": "PARTIAL",
+    "product_verified": "pytest -q tests 467 passed, 1 skipped, 224 subtests passed, 0 failures, 0 errors（14/14 appendix 測試實質通過，已合併至 main）",
+    "deployed_or_enabled": "已合併至 main（PR #25 -> PR #23 -> main 003f2fe8）",
+    "code_evidence_ref": "wi4_qa_evidence.json#sha256:9c41e474ba88",
+    "product_evidence_ref": "wi4_qa_evidence.json#sha256:9c41e474ba88",
+    "prs": [
+      {
+        "number": 25,
+        "state": "MERGED",
+        "head_sha": "36cb4c0e180e72805d27f78b795e0399a8e0bc03",
+        "merge_sha": "739ae516277145a4870d7fefebbe413f160c0449",
+        "post_merge_ci": "NOT_TRIGGERED",
+        "url": "https://github.com/Gavin0099/lecroy-vse-toolkit/pull/25"
+      },
+      {
+        "number": 23,
+        "state": "MERGED",
+        "head_sha": "739ae516277145a4870d7fefebbe413f160c0449",
+        "merge_sha": "003f2fe8568bf969e1321eb13e40124a5237f3a2",
+        "post_merge_ci": "NOT_TRIGGERED",
+        "url": "https://github.com/Gavin0099/lecroy-vse-toolkit/pull/23"
+      }
+    ],
+    "notes": []
+  },
+  "human_interventions": {
+    "planned_owner_decisions": "UNKNOWN",
+    "unplanned_rescues": "UNKNOWN",
+    "human_minutes": "UNKNOWN",
+    "human_minutes_source": "unmeasured",
+    "wall_clock_excluded": true,
+    "source_ref": null,
+    "notes": []
+  },
+  "ai_cost": {
+    "parsed_files_valid": true,
+    "work_item_cost_complete": true,
+    "cost_completeness": "complete",
+    "comparability_token": 1,
+    "kpi_template_fill_allowed": true,
+    "estimated_usd": "UNKNOWN",
+    "known_totals": {
+      "input_tokens": 3006895,
+      "cached_input_tokens": 2860800,
+      "uncached_input_tokens": 146095,
+      "output_tokens": 28815,
+      "reasoning_output_tokens": 13373,
+      "total_tokens": 3035710
+    },
+    "verified_complete_totals": {
+      "input_tokens": 3006895,
+      "cached_input_tokens": 2860800,
+      "uncached_input_tokens": 146095,
+      "output_tokens": 28815,
+      "reasoning_output_tokens": 13373,
+      "total_tokens": 3035710
+    },
+    "by_role": {
+      "main": {
+        "input_tokens": 2948971,
+        "cached_input_tokens": 2828032,
+        "uncached_input_tokens": 120939,
+        "output_tokens": 28553,
+        "reasoning_output_tokens": 13252,
+        "total_tokens": 2977524
+      },
+      "guardian": {
+        "input_tokens": 57924,
+        "cached_input_tokens": 32768,
+        "uncached_input_tokens": 25156,
+        "output_tokens": 262,
+        "reasoning_output_tokens": 121,
+        "total_tokens": 58186
+      },
+      "subagent": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      },
+      "unknown": {
+        "input_tokens": 0,
+        "cached_input_tokens": 0,
+        "uncached_input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    "sessions": [
+      {
+        "session_id": "01a21693-3459-7411-a8b2-9e838df46c63",
+        "role": "main",
+        "models": [
+          "gpt-6.2-astra"
+        ],
+        "source_refs": [
+          "rollout-2026-11-26T14-37-58-01a21693-3459-7411-a8b2-9e838df46c63.jsonl#sha256:aabcf37c5e69"
+        ],
+        "token_events": 32,
+        "usage": {
+          "input_tokens": 2648389,
+          "cached_input_tokens": 2572800,
+          "uncached_input_tokens": 75589,
+          "output_tokens": 24479,
+          "reasoning_output_tokens": 13041,
+          "total_tokens": 2672868
+        },
+        "has_token_usage": true,
+        "resumed_across_files": false
+      },
+      {
+        "session_id": "01a21693-41c3-7073-a1f9-2c561178f476",
+        "role": "guardian",
+        "models": [
+          "codex-auto-review"
+        ],
+        "source_refs": [
+          "rollout-2026-11-26T14-37-59-01a21693-41c3-7073-a1f9-2c561178f476.jsonl#sha256:c396062e1312"
+        ],
+        "token_events": 2,
+        "usage": {
+          "input_tokens": 57924,
+          "cached_input_tokens": 32768,
+          "uncached_input_tokens": 25156,
+          "output_tokens": 262,
+          "reasoning_output_tokens": 121,
+          "total_tokens": 58186
+        },
+        "has_token_usage": true,
+        "resumed_across_files": false
+      },
+      {
+        "session_id": "01a216aa-d74f-79b0-9ac7-3e49ea99fb53",
+        "role": "main",
+        "models": [
+          "gpt-6.2-astra"
+        ],
+        "source_refs": [
+          "rollout-2026-11-26T15-03-49-01a216aa-d74f-79b0-9ac7-3e49ea99fb53.jsonl#sha256:73258d8a4444"
+        ],
+        "token_events": 7,
+        "usage": {
+          "input_tokens": 300582,
+          "cached_input_tokens": 255232,
+          "uncached_input_tokens": 45350,
+          "output_tokens": 4074,
+          "reasoning_output_tokens": 211,
+          "total_tokens": 304656
+        },
+        "has_token_usage": true,
+        "resumed_across_files": false
+      }
+    ],
+    "missing_expected_sessions": [],
+    "anomalies": []
+  },
+  "observer_self_cost": {
+    "duration_ms": 3056,
+    "ai_usage_available": false,
+    "observer_ai_tokens": "UNKNOWN",
+    "mode": "llm_assisted"
+  },
+  "not_claimed": [
+    "ROI proven",
+    "cross-task agent ranking",
+    "causal governance effectiveness proof",
+    "merge gate authority"
+  ]
+}
