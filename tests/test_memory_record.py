@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from governance_tools import memory_record
 from governance_tools.memory_record import (
+    ACTIVE_TASK_PROJECTION_HISTORY,
     MEMORY_WRITE_STATUS_ALREADY_PRESENT,
     MEMORY_WRITE_STATUS_WRITTEN,
     SURFACE_ACTIVE_TASK_SUMMARY,
@@ -65,7 +69,15 @@ def test_build_session_derived_record_rejects_blank_test_evidence() -> None:
         )
 
 
-def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> None:
+@pytest.mark.parametrize("relative", (False, True), ids=("absolute", "relative"))
+def test_append_session_derived_entry_writes_expected_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, relative: bool,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    project_root = Path("nested") / "worktree"
+    if not relative:
+        project_root = tmp_path / project_root
+    monkeypatch.setattr(memory_record, "_current_local_date", lambda: "2026-11-26")
     record = build_session_derived_record(
         what_changed="changed",
         commit="abc1234",
@@ -74,13 +86,169 @@ def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> N
         test_evidence="ok",
         next_step="next",
     )
-    output = append_session_derived_entry(project_root=tmp_path, record=record)
+    output = append_session_derived_entry(project_root=project_root, record=record)
+    assert output == project_root / "memory" / "2026-11-26.md"
     text = output.read_text(encoding="utf-8")
+    assert text.startswith("# 2026-11-26\n\n")
     assert "- memory_type: session-derived" in text
     assert "record_format_version: 1.0" in text
     assert f"writer: {WRITER_ID}" in text
     assert "commit_hash: abc1234" in text
     assert f"record_identity: {record['record_identity']}" in text
+
+
+def _symlink_or_mock(
+    link: Path, target: Path, monkeypatch: pytest.MonkeyPatch, *, directory: bool = False,
+) -> None:
+    try:
+        link.symlink_to(target, target_is_directory=directory)
+    except OSError as exc:
+        if os.name != "nt" or getattr(exc, "winerror", None) not in (5, 1314):
+            raise
+
+        # Exercise the same non-following metadata check without link privileges.
+        original_lstat = Path.lstat
+
+        def lstat(path: Path) -> os.stat_result | SimpleNamespace:
+            if path == link:
+                return SimpleNamespace(st_mode=stat.S_IFLNK)
+            return original_lstat(path)
+
+        monkeypatch.setattr(Path, "lstat", lstat)
+
+
+@pytest.fixture
+def boundary_record() -> dict[str, str]:
+    return build_session_derived_record(
+        what_changed="fixture change",
+        commit="abc1234",
+        session_id="boundary-test",
+        memory_binding="bound",
+        test_evidence="NOT CLAIMED: synthetic fixture",
+        next_step="inspect fixture",
+        plan_reconciliation="not_applicable",
+    )
+
+
+@pytest.mark.parametrize("linked_component", ("memory", "daily", "dangling-daily"))
+def test_daily_writer_rejects_symlink_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    boundary_record: dict[str, str],
+    linked_component: str,
+) -> None:
+    project = tmp_path / "worktree"
+    outside = tmp_path / "other-worktree" / "memory"
+    outside.mkdir(parents=True)
+    sentinel = outside / "existing.md"
+    sentinel.write_bytes(b"original contents\r\n")
+    monkeypatch.setattr(memory_record, "_current_local_date", lambda: "2026-11-26")
+
+    memory = project / "memory"
+    if linked_component == "memory":
+        project.mkdir()
+        _symlink_or_mock(memory, outside, monkeypatch, directory=True)
+    else:
+        memory.mkdir(parents=True)
+        target = sentinel if linked_component == "daily" else outside / "missing.md"
+        _symlink_or_mock(memory / "2026-11-26.md", target, monkeypatch)
+
+    with pytest.raises(ValueError, match="memory write path.*symlink or reparse point"):
+        append_session_derived_entry(project_root=project, record=boundary_record)
+    assert list(outside.iterdir()) == [sentinel]
+    assert sentinel.read_bytes() == b"original contents\r\n"
+
+
+def test_daily_writer_rejects_reparse_point_before_mkdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, boundary_record: dict[str, str],
+) -> None:
+    memory = tmp_path / "memory"
+    original_lstat = Path.lstat
+
+    def lstat(path: Path) -> os.stat_result | SimpleNamespace:
+        if path == memory:
+            return SimpleNamespace(
+                st_mode=stat.S_IFDIR,
+                st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT,
+            )
+        return original_lstat(path)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "lstat", lstat)
+        with pytest.raises(ValueError, match="memory write path.*symlink or reparse point"):
+            append_session_derived_entry(project_root=tmp_path, record=boundary_record)
+    assert not memory.exists()
+
+
+def test_daily_writer_rejects_resolved_escape_before_mkdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, boundary_record: dict[str, str],
+) -> None:
+    project = tmp_path / "worktree"
+    daily = project / "memory" / "2026-11-26.md"
+    outside = tmp_path / "other-worktree" / daily.name
+    original_resolve = Path.resolve
+
+    def resolve(path: Path, strict: bool = False) -> Path:
+        if path == daily:
+            return outside
+        return original_resolve(path, strict=strict)
+
+    monkeypatch.setattr(memory_record, "_current_local_date", lambda: "2026-11-26")
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "resolve", resolve)
+        with pytest.raises(ValueError, match="memory write path is outside the project root"):
+            append_session_derived_entry(project_root=project, record=boundary_record)
+    assert not project.exists()
+    assert not outside.exists()
+
+
+@pytest.mark.parametrize(
+    "linked_component",
+    ("04_review_log.md", "archive", "archive/active_task_projection_history.md", "temp"),
+)
+def test_projection_rejects_link_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    boundary_record: dict[str, str],
+    linked_component: str,
+) -> None:
+    project = tmp_path / "worktree"
+    outside = tmp_path / "other-worktree"
+    outside.mkdir()
+    sentinel = outside / ACTIVE_TASK_PROJECTION_HISTORY.name
+    sentinel.write_bytes(b"original contents\r\n")
+    active = append_projection_with_outcome(
+        project_root=project,
+        record=boundary_record,
+        surface=SURFACE_ACTIVE_TASK_SUMMARY,
+        active_task_summary="previous",
+    ).path
+    original = active.read_bytes()
+    surface = SURFACE_ACTIVE_TASK_SUMMARY
+    if linked_component == "04_review_log.md":
+        surface = SURFACE_REVIEW_LOG
+    elif linked_component == "temp":
+        linked_component = f"{active.name}.converge-{os.getpid()}.tmp"
+    link = active.parent / linked_component
+    target = outside if linked_component == "archive" else sentinel
+    link.parent.mkdir(parents=True, exist_ok=True)
+    _symlink_or_mock(link, target, monkeypatch, directory=linked_component == "archive")
+
+    successor = {**boundary_record, "next_step": "different next step"}
+    successor.pop("record_identity")
+    with pytest.raises(ValueError, match="memory write path.*symlink or reparse point"):
+        append_projection_with_outcome(
+            project_root=project,
+            record=successor,
+            surface=surface,
+            active_task_summary="successor",
+            converge=True,
+        )
+    assert active.read_bytes() == original
+    if linked_component not in ("archive", "archive/active_task_projection_history.md"):
+        assert not (project / ACTIVE_TASK_PROJECTION_HISTORY).exists()
+    assert list(outside.iterdir()) == [sentinel]
+    assert sentinel.read_bytes() == b"original contents\r\n"
 
 
 def test_outcome_distinguishes_written_from_already_present(tmp_path: Path) -> None:

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime
@@ -92,6 +93,30 @@ class MemoryWriteOutcome:
     # Set only by the converging active-task writer when this write replaced
     # the writer's previous projection (moved byte-exact to the history file).
     superseded_record_identity: str | None = None
+
+
+def _ensure_memory_write_path(project_root: Path, path: Path) -> None:
+    """Reject linked write targets and parents below the resolved worktree root."""
+    try:
+        resolved_root = project_root.resolve()
+        component_path = resolved_root
+        for component in path.relative_to(project_root).parts:
+            component_path /= component
+            try:
+                metadata = component_path.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISLNK(metadata.st_mode) or (
+                getattr(metadata, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+            ):
+                raise ValueError(
+                    f"memory write path contains a symlink or reparse point: {component_path}"
+                )
+
+        if not path.resolve().is_relative_to(resolved_root):
+            raise ValueError(f"memory write path is outside the project root: {path}")
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"cannot verify memory write path: {path}") from exc
 
 
 def validate_test_evidence(value: str | None) -> tuple[str, str | None]:
@@ -354,6 +379,7 @@ def append_active_task_supersession_relation_with_outcome(
     rendered_bytes = rendered.encode("ascii")
     expected_relation = rendered_bytes[:-1]
     path = project_root / "memory" / "01_active_task.md"
+    _ensure_memory_write_path(project_root, path)
     try:
         existing = path.read_bytes()
     except FileNotFoundError as exc:
@@ -585,6 +611,7 @@ def append_projection_with_outcome(
             "projection surface must be 'review-log' or 'active-task-summary'"
         )
 
+    _ensure_memory_write_path(project_root, path)
     if path.exists():
         with path.open("r", encoding="utf-8", newline="") as fh:
             existing = fh.read()
@@ -658,6 +685,7 @@ def _write_converging_active_task_projection(
     nothing is replaced and ``ValueError`` is raised.
     """
     history_path = project_root / ACTIVE_TASK_PROJECTION_HISTORY
+    _ensure_memory_write_path(project_root, history_path)
     if history_path.exists():
         history_text = history_path.read_bytes().decode("utf-8", errors="strict")
         if _projection_marker_line_present(
@@ -709,8 +737,9 @@ def _write_converging_active_task_projection(
         kept += b"\n"
     new_bytes = kept + rendered.encode("utf-8")
 
-    _append_projection_history_line(history_path, predecessor_payload)
     temp_path = path.with_name(f"{path.name}.converge-{os.getpid()}.tmp")
+    _ensure_memory_write_path(project_root, temp_path)
+    _append_projection_history_line(history_path, predecessor_payload)
     try:
         with temp_path.open("wb") as fh:
             fh.write(new_bytes)
@@ -784,10 +813,12 @@ def append_session_derived_entry_with_outcome(
     record["record_identity"] = record_identity
 
     memory_root = project_root / "memory"
+    date = _current_local_date()
+    daily_path = memory_root / f"{date}.md"
+    _ensure_memory_write_path(project_root, daily_path)
     memory_root.mkdir(parents=True, exist_ok=True)
-    daily_path = memory_root / f"{_current_local_date()}.md"
     if not daily_path.exists():
-        daily_path.write_text(f"# {_current_local_date()}\n\n", encoding="utf-8")
+        daily_path.write_text(f"# {date}\n\n", encoding="utf-8")
 
     entry = render_session_derived_entry(record)
     if _has_equivalent_session_derived_entry(
