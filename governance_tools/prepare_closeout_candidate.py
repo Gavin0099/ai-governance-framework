@@ -29,6 +29,7 @@ from runtime_hooks.core._canonical_closeout import (
 _FIELDS = {"task_intent", "work_summary", "tools_used", "artifacts_referenced", "open_risks"}
 _LEGACY = {"checks_run": "CHECKS_RUN", "not_done": "NOT_DONE",
            "recommended_memory_update": "RECOMMENDED_MEMORY_UPDATE"}
+GATE_POLICY_RELPATH = "governance/gate_policy.yaml"
 
 
 class PreparationError(ValueError):
@@ -145,6 +146,30 @@ def framework_binding_identity(consumer_root: Path, framework_root: Path) -> dic
     return _validated_binding_fields(consumer, framework)
 
 
+def gate_policy_binding_identity(consumer_root: Path) -> dict[str, Any]:
+    """Return the canonical Prepare-to-Stop binding for consumer governance/gate_policy.yaml.
+
+    Captures presence and exact SHA-256 digest (None when absent) without requiring
+    a repo-local policy file to exist. Rejects symlinks and path escapes fail-closed.
+    """
+    _require(consumer_root.is_absolute(), "absolute consumer root required")
+    root = consumer_root.resolve(strict=True)
+    _require(root.is_dir(), "consumer root must be an existing directory")
+    path = ownership._path(root, GATE_POLICY_RELPATH)
+    if not path.exists() and not path.is_symlink():
+        return {
+            "relative_path": GATE_POLICY_RELPATH,
+            "present": False,
+            "sha256": None,
+        }
+    _require(path.is_file() and not path.is_symlink(), "gate_policy.yaml must be a regular file")
+    return {
+        "relative_path": GATE_POLICY_RELPATH,
+        "present": True,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
 def _single_line(value: Any, name: str) -> str:
     _require(isinstance(value, str) and bool(value.strip()), f"{name} must be a nonempty string")
     _require(all(ord(c) >= 32 and c not in "\x7f\x85\u2028\u2029" for c in value),
@@ -199,14 +224,18 @@ def prepare(consumer_root: Path, framework_root: Path, session_id: str,
         if framework != root and framework.is_relative_to(root)
         else None
     )
+    policy_binding = gate_policy_binding_identity(root)
     _preflight_session(root, session_id)
     candidate, text = render_inputs(inputs)
     for relative in candidate["artifacts_referenced"]:
         ownership._path(root, relative)
     now = datetime.now(timezone.utc)
-    candidate_with_binding = (
-        {**candidate, "framework_binding": binding} if binding is not None else candidate
-    )
+    candidate_with_binding: dict[str, Any] = {
+        **candidate,
+        "gate_policy_binding": policy_binding,
+    }
+    if binding is not None:
+        candidate_with_binding["framework_binding"] = binding
     relative, payload, data = build_candidate_artifact(
         session_id,
         candidate_with_binding,
@@ -230,6 +259,10 @@ def prepare(consumer_root: Path, framework_root: Path, session_id: str,
                 and _validated_binding_fields(locked_root, locked_framework) == binding,
                 "framework binding drifted before candidate reservation",
             )
+        _require(
+            gate_policy_binding_identity(locked_root) == policy_binding,
+            "gate policy binding drifted before candidate reservation",
+        )
         _preflight_session(root, session_id)
         prior = ownership._owner(lease)
         _require(prior is None or prior["state"] != "HOLD"

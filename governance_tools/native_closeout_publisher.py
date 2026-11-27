@@ -112,6 +112,14 @@ def _binding(lease, sid, reason, qualified_context, profile=CODEX):
         h._require(cand["framework_binding"] == framework, "FRAMEWORK_DRIFT")
     elif h.FRAMEWORK != root and h.FRAMEWORK.is_relative_to(root):
         h._require(False, "FRAMEWORK_BINDING_MISSING")
+    if "gate_policy_binding" in cand:
+        h._require(isinstance(cand["gate_policy_binding"], dict), "GATE_POLICY_BINDING_INVALID")
+        h._require(
+            cand["gate_policy_binding"] == h.gate_policy_binding_identity(root),
+            "GATE_POLICY_DRIFT",
+        )
+    elif h.FRAMEWORK != root and h.FRAMEWORK.is_relative_to(root):
+        h._require(False, "GATE_POLICY_BINDING_MISSING")
     result.update(envelope_sha256=r2._digest(envelope), framework=framework,
                   native_event={"provider": profile.event_provider, "event": "SessionEnd",
                                 "reason": reason})

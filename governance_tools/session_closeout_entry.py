@@ -45,6 +45,7 @@ from governance_tools import shared_closeout_ownership as ownership
 from governance_tools.prepare_closeout_candidate import (
     PreparationError,
     framework_binding_identity,
+    gate_policy_binding_identity,
 )
 
 _FRAMEWORK_ROOT = Path(__file__).resolve().parents[1].resolve()
@@ -570,10 +571,23 @@ def _verify_direct_closeout_framework_binding(lease, session_id: str | None) -> 
             raise PreparationError(
                 "FRAMEWORK_BINDING_DRIFT: active framework binding differs from prepared candidate binding"
             )
-        return
-    if _is_submodule_consumer(project_root, _FRAMEWORK_ROOT) and owner["state"] != "HOLD":
+    elif _is_submodule_consumer(project_root, _FRAMEWORK_ROOT) and owner["state"] != "HOLD":
         raise PreparationError(
             "FRAMEWORK_BINDING_MISSING: submodule consumer closeout requires framework_binding in candidate"
+        )
+
+    if "gate_policy_binding" in cand_payload:
+        recorded_policy = cand_payload["gate_policy_binding"]
+        if not isinstance(recorded_policy, dict):
+            raise PreparationError("GATE_POLICY_BINDING_INVALID: gate_policy_binding must be an object")
+        live_policy = gate_policy_binding_identity(project_root)
+        if live_policy != recorded_policy:
+            raise PreparationError(
+                "GATE_POLICY_BINDING_DRIFT: active governance/gate_policy.yaml differs from prepared candidate binding"
+            )
+    elif _is_submodule_consumer(project_root, _FRAMEWORK_ROOT) and owner["state"] != "HOLD":
+        raise PreparationError(
+            "GATE_POLICY_BINDING_MISSING: submodule consumer closeout requires gate_policy_binding in candidate"
         )
 
 

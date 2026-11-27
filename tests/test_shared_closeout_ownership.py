@@ -49,6 +49,7 @@ def inputs(root, sid='session-A', version=1):
     if handoff.FRAMEWORK != root and handoff.FRAMEWORK.is_relative_to(root):
         try:
             candidate['framework_binding'] = handoff._framework_identity(root)
+            candidate['gate_policy_binding'] = handoff.gate_policy_binding_identity(root)
         except Exception:
             pass
     data = json.dumps(candidate).encode()
