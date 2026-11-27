@@ -48,6 +48,14 @@ Optional flags:
 - `--owner-minutes-confirmed <float>` (only when explicitly confirmed by Owner)
 - `--product-verified <status>` / `--deployed-status <status>` (only backed by real evidence)
 
+## S0 v0.2 Provider and Rescue Boundaries
+
+- `--claude-dir <path>` accepts Claude JSONL files or recursive directories. `--gemini-dir <path>` accepts Gemini JSONL and session JSON files or recursive directories. Both flags are repeatable. For split transcripts, pass files in update order. Use `--claude-expected-session-id <id>` and `--gemini-expected-session-id <id>` (repeatable) to select and verify the respective provider's expected sessions. A file stem can match an inventory when the log has no embedded session ID.
+- Claude and Gemini report `measured` when token usage is observed, `confirmed_unused` with an explicit `--claude-confirmed-unused` or `--gemini-confirmed-unused`, or `unknown` when usable evidence is missing. Missing token counts stay unknown. Completeness covers only the provider's expected sessions.
+- `--copilot-csv <path>` (repeatable) reads daily billing exports. Valid rows are `billing_reference_only` and show AI credits by model and billing window. The figures exclude completions and monetary columns and have no work-item attribution. Use `--copilot-confirmed-unused` with explicit confirmation. Evidence takes precedence over contradictory unused confirmations.
+- `--outer-orchestrator <name>` records an explicitly named orchestrator with unknown usage. Codex usage stays in the existing top-level `ai_cost` fields. Provider summaries use redacted source references and retain their own units. Cross-provider summation is disabled.
+- `--rescue-evidence-ref <ref>` (repeatable) accepts short references such as `PR#123` and hashes paths and free-form references. A reference or a logged `unplanned_rescue` sets `human_interventions.unexpected_rescue_observed` to `yes`. Use `--rescue-confirmed-none` only with Owner confirmation or a complete intervention log. It records `no` when there is no rescue evidence. Contradictory confirmation is recorded and evidence takes precedence. Without evidence or explicit confirmation the status is `unknown`, even if an event list has zero rescue entries.
+
 ## Non-Claims
 
 Observer output does **not** prove ROI, does **not** rank agents across tasks of differing complexity, and has **no** authority to approve or block merges.

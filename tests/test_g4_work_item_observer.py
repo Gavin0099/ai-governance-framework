@@ -1,9 +1,12 @@
 """Tests for the read-only G4 Work Item Observer (scripts/g4_work_item_observer.py)."""
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -432,3 +435,400 @@ def test_sample_003_real_rollout_regression_matches_verified_3025249_tokens():
     )
     assert full["work_item_cost_complete"] is True
     assert full["known_totals"]["total_tokens"] == 3_047_300
+
+
+def _claude_message(session_id: str | None, message_id: str | None, **usage) -> dict:
+    return {"type": "assistant", "sessionId": session_id, "message": {"id": message_id, "usage": usage}}
+
+
+def _gemini_message(message_id: str | None, **tokens) -> dict:
+    return {"type": "gemini", "id": message_id, "tokens": tokens}
+
+
+def _expected_ref(path: Path) -> str:
+    return f"{path.name}#sha256:{hashlib.sha256(path.read_bytes()).hexdigest()[:12]}"
+
+
+def test_claude_uses_final_snapshot_and_scopes_message_id_to_session(tmp_path: Path):
+    nested = tmp_path / "private" / "nested"
+    nested.mkdir(parents=True)
+    first = _claude_message(
+        "claude-one", "repeated",
+        input_tokens=10, cache_creation_input_tokens=6, cache_read_input_tokens=20, output_tokens=2,
+        costUSD="private-cost", service_tier="private-tier", inference_geo="private-geo",
+    )
+    last = _claude_message(
+        "claude-one", "repeated",
+        input_tokens=14, cache_creation_input_tokens=6, cache_read_input_tokens=20, output_tokens=13,
+    )
+    original = _write_jsonl(nested / "first.jsonl", [first, first, {"type": "user", "message": first["message"]}])
+    resumed = _write_jsonl(tmp_path / "second.jsonl", [last])
+    other = _write_jsonl(
+        nested / "claude-two.jsonl",
+        [_claude_message(None, "repeated", input_tokens=3, cache_creation_input_tokens=0,
+                         cache_read_input_tokens=0, output_tokens=4)],
+    )
+    provider = observer.parse_claude_transcripts(
+        [nested.parent, original, resumed], expected_session_ids={"claude-one", "claude-two"},
+    )
+    assert provider["presence_state"] == "measured"
+    assert provider["unit"] == "tokens"
+    assert provider["completeness_scope"] == "provider_sessions_only"
+    assert provider["cost_completeness"] == "complete"
+    assert provider["missing_expected_sessions"] == provider["anomalies"] == []
+    assert provider["known_totals"] == {
+        "input_tokens": 17, "cache_creation_input_tokens": 6, "cache_read_input_tokens": 20, "output_tokens": 17,
+    }
+    assert provider["source_refs"] == sorted(map(_expected_ref, [original, resumed, other]))
+    for forbidden in ("costUSD", "service_tier", "inference_geo", "private-"):
+        assert forbidden not in json.dumps(provider)
+
+
+def test_claude_decreasing_updates_keep_field_maxima_without_counting_anonymous_message(tmp_path: Path):
+    path = _write_jsonl(tmp_path / "claude.jsonl", [
+        _claude_message("sess", "one", input_tokens=12, output_tokens=5, cache_read_input_tokens=10),
+        _claude_message("sess", "one", input_tokens=10, output_tokens=8, cache_creation_input_tokens=3),
+        _claude_message("sess", "one", input_tokens=14, output_tokens=7, cache_creation_input_tokens=5),
+        _claude_message("sess", None, input_tokens=1000, output_tokens=1000),
+    ])
+    provider = observer.parse_claude_transcripts([path], expected_session_ids={"sess"})
+    assert provider["presence_state"] == "measured"
+    assert provider["cost_completeness"] == "incomplete"
+    assert provider["missing_expected_sessions"] == []
+    assert provider["anomalies"] == ["claude_missing_message_id", "claude_non_monotonic_usage_update"]
+    assert provider["known_totals"] == {
+        "input_tokens": 14, "cache_creation_input_tokens": 5, "cache_read_input_tokens": 10, "output_tokens": 8,
+    }
+
+
+def test_claude_retains_final_missing_fields_and_detects_invalid_data(tmp_path: Path):
+    path = _write_jsonl(tmp_path / "claude.jsonl", [
+        _claude_message("sess", "one", input_tokens=4, output_tokens=3, cache_read_input_tokens=2),
+        _claude_message("sess", "one", input_tokens=8, output_tokens=5, cache_creation_input_tokens=False),
+        _claude_message("other-sess", "one", input_tokens=1000, output_tokens=1000),
+        "{broken",
+    ])
+    provider = observer.parse_claude_transcripts([path], expected_session_ids={"sess", "missing"})
+    assert provider["known_totals"] == {
+        "input_tokens": 8, "cache_creation_input_tokens": None, "cache_read_input_tokens": None, "output_tokens": 5,
+    }
+    assert provider["cost_completeness"] == "incomplete"
+    assert provider["missing_expected_sessions"] == ["missing"]
+    assert provider["anomalies"] == ["claude_invalid_token_count", "invalid_transcript_jsonl_line"]
+    unattributable = observer.parse_claude_transcripts([path], expected_session_ids={"claude"})
+    assert unattributable["presence_state"] == "unknown"
+    assert unattributable["known_totals"] is None
+
+
+def test_gemini_reads_json_and_jsonl_and_coalesces_by_message_id(tmp_path: Path):
+    path = tmp_path / "session.json"
+    path.write_text(json.dumps({"sessionId": "g1", "messages": [
+        {"type": "user", "id": "turn", "tokens": {"input": 500}},
+        _gemini_message("turn", input=20, cached=6, output=6, thoughts=2, tool=1),
+        _gemini_message("turn", input=18, output=7, cached=None),
+    ]}), encoding="utf-8")
+    log = _write_jsonl(tmp_path / "g2.jsonl", [
+        _gemini_message("turn", input=9, cached=0, output=5, thoughts=0, tool=3),
+        _gemini_message("turn", output=2, thoughts=1),
+    ])
+    provider = observer.parse_gemini_transcripts([tmp_path, log], expected_session_ids={"g1", "g2"})
+    assert provider["presence_state"] == "measured"
+    assert provider["completeness_scope"] == "provider_sessions_only"
+    assert provider["cost_completeness"] == "complete"
+    assert provider["anomalies"] == []
+    assert provider["known_totals"] == {
+        "input_tokens": 27, "cached_tokens": 6, "uncached_input_tokens": 21,
+        "output_tokens": 9, "thoughts_tokens": 3, "tool_tokens": 4,
+    }
+    assert provider["source_refs"] == sorted(map(_expected_ref, [log, path]))
+
+
+@pytest.mark.parametrize("cached", [None, 11])
+def test_gemini_uncached_is_unknown_when_a_counted_turn_lacks_valid_cached_breakdown(tmp_path: Path, cached):
+    path = _write_jsonl(tmp_path / "gemini.jsonl", [
+        _gemini_message("valid", input=10, cached=2, output=4, thoughts=1, tool=0),
+        _gemini_message("partial", input=10, cached=cached, output=2, thoughts=0, tool=0),
+    ])
+    provider = observer.parse_gemini_transcripts([path], expected_session_ids={"gemini"})
+    assert provider["presence_state"] == "measured"
+    assert provider["cost_completeness"] == "incomplete"
+    assert provider["known_totals"]["input_tokens"] == 20
+    assert provider["known_totals"]["cached_tokens"] == (None if cached is None else 13)
+    assert provider["known_totals"]["uncached_input_tokens"] is None
+    assert provider["anomalies"] == ([] if cached is None else ["gemini_cached_tokens_exceed_input"])
+
+
+@pytest.mark.parametrize("field,value", [
+    ("input", True), ("cached", -1), ("output", 1.5), ("thoughts", "2"), ("tool", False),
+])
+def test_gemini_strict_validation_rejects_invalid_token_rows(tmp_path: Path, field, value):
+    path = _write_jsonl(tmp_path / "invalid.jsonl", [_gemini_message("bad", **{field: value})])
+    provider = observer.parse_gemini_transcripts([path])
+    assert provider["presence_state"] == "unknown"
+    assert provider["known_totals"] is None
+    assert provider["anomalies"] == ["gemini_invalid_token_count"]
+
+
+def test_gemini_accepts_exact_zero_and_large_integers_and_marks_unkeyed_turns_incomplete(tmp_path: Path):
+    log = _write_jsonl(tmp_path / "g1.jsonl", [
+        _gemini_message("turn", input=2**70, cached=2**70, output=0, thoughts=0, tool=0),
+        _gemini_message(None, input=0, cached=0, output=0, thoughts=0, tool=0),
+    ])
+    provider = observer.parse_gemini_transcripts([log], expected_session_ids={"g1"}, confirmed_unused=True)
+    assert provider["presence_state"] == "measured"
+    assert provider["known_totals"]["input_tokens"] == 2**70
+    assert provider["known_totals"]["uncached_input_tokens"] == 0
+    assert provider["known_totals"]["output_tokens"] == 0
+    assert provider["cost_completeness"] == "incomplete"
+    assert provider["anomalies"] == ["gemini_missing_message_id", "provider_evidence_conflicts_with_confirmed_unused"]
+
+
+@pytest.mark.parametrize("parse", [observer.parse_claude_transcripts, observer.parse_gemini_transcripts])
+def test_provider_presence_does_not_infer_unused_from_missing_or_empty_files(tmp_path: Path, parse):
+    empty = _write_jsonl(tmp_path / "empty.jsonl", [{"type": "user"}])
+    invalid_utf8 = tmp_path / "invalid.jsonl"
+    invalid_utf8.write_bytes(b"\xff")
+    missing = tmp_path / "missing"
+    provider = parse([missing, invalid_utf8, empty], expected_session_ids={"empty"})
+    assert provider["presence_state"] == "unknown"
+    assert provider["known_totals"] is None
+    assert provider["cost_completeness"] == "incomplete"
+    assert provider["missing_expected_sessions"] == ["empty"]
+    assert provider["source_refs"] == [_expected_ref(empty)]
+    assert provider["anomalies"] == ["no_provider_source:missing", "unreadable_provider_source:invalid.jsonl"]
+    confirmed = parse([], confirmed_unused=True)
+    assert confirmed["presence_state"] == "confirmed_unused"
+    assert confirmed["known_totals"] is None
+    assert confirmed["source_refs"] == []
+
+
+def test_copilot_aggregates_daily_credits_by_model_and_excludes_money(tmp_path: Path):
+    first = tmp_path / "first.csv"
+    first.write_text(
+        "REPORT_DATE,login,model_name,AI_Credits,aic_gross_amount,Amount_USD,COST,gross_amount\n"
+        "11/27/2026,private-user,model-a,1.25,private-dollar,private-dollar,private-dollar,private-dollar\n"
+        "2026/11/26,private-user,model-b,2.5,,,,\n"
+        "2026-11-26,private-user,model-a,1.5,,,,\n",
+        encoding="utf-8-sig",
+    )
+    second = tmp_path / "second.csv"
+    second.write_text(
+        "date,model,aic_quantity\n2026-11-28,model-a,2\n2026-11-28,model-a,3\n2026-11-28,zero,0\n",
+        encoding="utf-8",
+    )
+    provider = observer.parse_copilot_billing([first, second, first])
+    assert provider == {
+        "presence_state": "billing_reference_only",
+        "unit": "aic_quantity",
+        "completeness_scope": "billing_window_only",
+        "cost_completeness": "not_applicable",
+        "completions_excluded": True,
+        "work_item_attributable": False,
+        "billing_window": {"start_date": "2026-11-26", "end_date": "2026-11-28"},
+        "by_model_aic": {"model-a": 7.75, "model-b": 2.5, "zero": 0.0},
+        "ignored_columns": ["aic_gross_amount", "amount_usd", "cost", "gross_amount"],
+        "source_refs": list(map(_expected_ref, [first, second])),
+        "anomalies": [],
+    }
+
+
+def test_copilot_detects_invalid_and_conflicting_rows_without_disclosing_raw_values(tmp_path: Path):
+    first = tmp_path / "first.csv"
+    first.write_text(
+        "date,user_login,model,aic_quantity\n"
+        "2026-11-27,private-user,model-a,1\n"
+        "2026-11-27,private-user,model-a,1\n"
+        "2026-11-27,private-user,model-b,4\n"
+        "2026-11-27,private-user,model-c,nan\n"
+        "2026-11-27,private-user,model-c,inf\n"
+        "2026-11-27,private-user,model-c,-2\n"
+        "2026-13-27,private-user,model-c,2\n"
+        "2026-11-27,private-user,model-c\n",
+        encoding="utf-8",
+    )
+    second = tmp_path / "second.csv"
+    second.write_text(
+        "date,username,model,credits\n"
+        "2026-11-27,private-user,model-a,2\n"
+        "2026-11-27,private-user,model-b,4\n",
+        encoding="utf-8",
+    )
+    provider = observer.parse_copilot_billing([first, second], confirmed_unused=True)
+    assert provider["presence_state"] == "billing_reference_only"
+    assert provider["by_model_aic"] == {"model-b": 4.0}
+    assert provider["anomalies"] == [
+        "copilot_conflicting_daily_quantity", "copilot_invalid_billing_row",
+        "provider_evidence_conflicts_with_confirmed_unused",
+    ]
+    assert "private-user" not in json.dumps(provider)
+
+
+def test_copilot_unknown_and_confirmed_unused_are_distinct(tmp_path: Path):
+    invalid = tmp_path / "invalid.csv"
+    invalid.write_text("date,model,cost\n2026-11-27,a,17\n", encoding="utf-8")
+    provider = observer.parse_copilot_billing([invalid, tmp_path / "missing.csv"])
+    assert provider["presence_state"] == "unknown"
+    assert provider["by_model_aic"] == {}
+    assert provider["billing_window"] == {"start_date": None, "end_date": None}
+    assert provider["ignored_columns"] == ["cost"]
+    assert provider["anomalies"] == ["copilot_missing_required_columns", "no_provider_source:missing.csv"]
+    assert observer.parse_copilot_billing([], confirmed_unused=True)["presence_state"] == "confirmed_unused"
+
+
+@pytest.mark.parametrize("events,refs,confirmed,expected", [
+    (None, [], False, "unknown"),
+    ([], [], False, "unknown"),
+    ([{"category": "planned_owner_decision"}], [], False, "unknown"),
+    ([], [], True, "no"),
+    (None, [], True, "no"),
+    (None, ["PR#123"], False, "yes"),
+    ([], ["PR#123"], True, "yes"),
+    ([{"category": "unplanned_rescue"}], [], False, "yes"),
+    ([{"category": "unplanned_rescue"}], [], True, "yes"),
+])
+def test_rescue_truth_table_preserves_original_counts(tmp_path: Path, events, refs, confirmed, expected):
+    path = None
+    if events is not None:
+        path = tmp_path / "interventions.json"
+        path.write_text(json.dumps({"events": events}), encoding="utf-8")
+    human = observer.summarize_human_interventions(
+        path, confirmed_minutes=4.5, rescue_evidence_refs=refs, rescue_confirmed_none=confirmed,
+    )
+    assert human["unexpected_rescue_observed"] == expected
+    assert human["human_minutes"] == 4.5
+    assert ("rescue_evidence_conflicts_with_confirmed_none" in human["notes"]) == (confirmed and expected == "yes")
+    if events is None:
+        assert human["unplanned_rescues"] == "UNKNOWN"
+        assert human["rescue_evidence_refs"] == refs
+    elif events and events[0]["category"] == "unplanned_rescue":
+        assert human["unplanned_rescues"] == 1
+        assert human["rescue_evidence_refs"] == [_expected_ref(path)]
+    else:
+        assert human["unplanned_rescues"] == 0
+        assert human["rescue_evidence_refs"] == refs
+
+
+def test_rescue_redacts_explicit_paths_and_invalid_event_log_stays_unknown(tmp_path: Path):
+    broken = tmp_path / "events.json"
+    broken.write_text("{bad", encoding="utf-8")
+    assert observer.summarize_human_interventions(broken)["unexpected_rescue_observed"] == "unknown"
+    private_ref = str(tmp_path / "private.log")
+    human = observer.summarize_human_interventions(
+        broken, rescue_evidence_refs=[private_ref, private_ref, "PR#25"],
+    )
+    assert human["unexpected_rescue_observed"] == "yes"
+    assert human["rescue_evidence_refs"] == [
+        "PR#25", f"rescue-ref#sha256:{hashlib.sha256(private_ref.encode()).hexdigest()[:12]}",
+    ]
+    assert private_ref not in json.dumps(human)
+
+
+def test_multi_provider_cli_preserves_codex_evidence_and_renders_separate_rows(tmp_path: Path):
+    sources = tmp_path / "inputs"
+    sources.mkdir()
+    codex = _write_jsonl(sources / "codex.jsonl", [
+        {"type": "session_meta", "payload": {"id": "codex-session", "source": "exec"}},
+        {"type": "turn_context", "payload": {"model": "codex"}},
+        _token_event(100, 25, 30, 5),
+    ])
+    claude = _write_jsonl(sources / "claude.jsonl", [
+        _claude_message("cs", "message", input_tokens=12, cache_creation_input_tokens=0,
+                         cache_read_input_tokens=3, output_tokens=4),
+    ])
+    gemini = _write_jsonl(sources / "gemini.jsonl", [_gemini_message("turn", input=12, output=2)])
+    copilot = sources / "billing.csv"
+    copilot.write_text("date,model,aic_quantity\n2026-11-27,model-a,7\n", encoding="utf-8")
+    events = sources / "events.json"
+    events.write_text('[{"category":"unplanned_rescue"}]', encoding="utf-8")
+    before = {file.name: file.read_bytes() for file in sources.iterdir()}
+    common = [
+        sys.executable, "-I", "-S", str(REPO_ROOT / "scripts" / "g4_work_item_observer.py"),
+        "--work-item-id", "WI-S0", "--title", "Multi-provider", "--rollout-dir", str(codex),
+        "--expected-session-id", "codex-session",
+    ]
+    base, extended = tmp_path / "base", tmp_path / "extended"
+    subprocess.run([*common, "--output-dir", str(base)], check=True, capture_output=True)
+    subprocess.run([
+        *common, "--output-dir", str(extended),
+        "--claude-dir", str(claude), "--claude-dir", str(claude),
+        "--claude-expected-session-id", "cs", "--claude-expected-session-id", "cs",
+        "--gemini-dir", str(gemini), "--gemini-dir", str(gemini), "--gemini-expected-session-id", "gemini",
+        "--copilot-csv", str(copilot), "--copilot-csv", str(copilot),
+        "--outer-orchestrator", "owner-observed-orchestrator",
+        "--events-file", str(events), "--rescue-evidence-ref", "PR#21", "--rescue-evidence-ref", "owner-note#1",
+        "--rescue-confirmed-none",
+    ], check=True, capture_output=True)
+    baseline = json.loads((base / "evidence_index.json").read_text(encoding="utf-8"))
+    extended_json = (extended / "evidence_index.json").read_text(encoding="utf-8")
+    result = json.loads(extended_json)
+    assert result["read_only"] is True
+    assert result["schema_version"] == baseline["schema_version"]
+    assert baseline["ai_cost"]["cross_provider_summation_allowed"] is False
+    assert "providers" not in baseline["ai_cost"]
+    assert {key: value for key, value in result["ai_cost"].items() if key != "providers"} == baseline["ai_cost"]
+    assert result["ai_cost"]["verified_complete_totals"]["total_tokens"] == 130
+    assert result["ai_cost"]["comparability_token"] == 1
+    providers = result["ai_cost"]["providers"]
+    assert set(providers) == {"claude", "gemini", "copilot", "outer_orchestrator"}
+    assert providers["claude"]["cost_completeness"] == "complete"
+    assert providers["gemini"]["cost_completeness"] == "incomplete"
+    assert providers["gemini"]["known_totals"]["uncached_input_tokens"] is None
+    assert providers["copilot"]["by_model_aic"] == {"model-a": 7.0}
+    assert providers["outer_orchestrator"] == {
+        "provider": "owner-observed-orchestrator",
+        "presence_state": "unknown",
+        "unit": None,
+        "reason": "no_verifiable_local_token_rollout",
+    }
+    assert "human_intervention" not in result
+    assert result["human_interventions"]["unexpected_rescue_observed"] == "yes"
+    assert result["human_interventions"]["rescue_evidence_refs"] == ["PR#21", _expected_ref(events), "owner-note#1"]
+    assert result["human_interventions"]["notes"] == ["rescue_evidence_conflicts_with_confirmed_none"]
+    assert baseline["human_interventions"]["unexpected_rescue_observed"] == "unknown"
+    base_md, report = [(directory / "report.md").read_text(encoding="utf-8") for directory in (base, extended)]
+    assert "現有證據不足以確認是否曾發生救援" in base_md
+    assert "antigravity" not in base_md
+    assert "| 是否觀察到意外人工救援 | `yes`" in report
+    codex_line = next(line for line in base_md.splitlines() if line.startswith("| 完整 AI Tokens / 成本 |"))
+    assert codex_line in report and "130" in codex_line
+    assert "| Claude Code | `measured`；單位 `tokens`；完整度 `complete`（範圍 `provider_sessions_only`）" in report
+    assert "| Gemini CLI | `measured`；單位 `tokens`；完整度 `incomplete`" in report
+    assert "| Copilot Billing Reference | `billing_reference_only`；單位 `aic_quantity`" in report
+    assert "| Outer Orchestrator（owner-observed-orchestrator） | `unknown`；單位未知；未評估完整度" in report
+    assert str(tmp_path) not in report
+    assert str(tmp_path) not in extended_json
+    assert tmp_path.as_posix() not in extended_json
+    assert {file.name: file.read_bytes() for file in sources.iterdir()} == before
+
+
+def test_provider_opt_in_and_confirmed_no_rescue_through_cli(tmp_path: Path):
+    args = ["--work-item-id", "WI-UNUSED", "--title", "Opt in", "--output-dir", str(tmp_path)]
+    assert observer.main([*args, "--gemini-dir", str(tmp_path / "missing")]) == 0
+    evidence = json.loads((tmp_path / "evidence_index.json").read_text(encoding="utf-8"))
+    assert set(evidence["ai_cost"]["providers"]) == {"gemini"}
+    assert evidence["ai_cost"]["providers"]["gemini"]["presence_state"] == "unknown"
+    assert "| Gemini CLI | `unknown`" in (tmp_path / "report.md").read_text(encoding="utf-8")
+
+    assert observer.main([
+        *args, "--claude-confirmed-unused", "--gemini-confirmed-unused", "--copilot-confirmed-unused",
+        "--rescue-confirmed-none",
+    ]) == 0
+    confirmed = json.loads((tmp_path / "evidence_index.json").read_text(encoding="utf-8"))
+    assert {key: item["presence_state"] for key, item in confirmed["ai_cost"]["providers"].items()} == {
+        "claude": "confirmed_unused", "gemini": "confirmed_unused", "copilot": "confirmed_unused",
+    }
+    assert confirmed["human_interventions"]["unexpected_rescue_observed"] == "no"
+    assert "| 是否觀察到意外人工救援 | `no`" in (tmp_path / "report.md").read_text(encoding="utf-8")
+
+
+def test_observer_has_no_database_imports():
+    tree = ast.parse(Path(observer.__file__).read_text(encoding="utf-8"))
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imported.add(node.module.split(".")[0])
+    if hasattr(sys, "stdlib_module_names"):
+        assert imported <= sys.stdlib_module_names
+    assert not {"sqlite3", "_sqlite3", "codeburn"} & imported
