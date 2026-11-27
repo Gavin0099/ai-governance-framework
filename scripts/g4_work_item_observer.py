@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 import hashlib
 import html
 import io
@@ -353,12 +354,18 @@ def _provider_session_rows(
     suffixes: set[str],
     record_type: str,
     expected: set[str],
+    discovered_sessions: set[str | Path],
     source_refs: set[str],
     anomalies: set[str],
 ) -> Iterator[tuple[str | Path, dict]]:
     for path, content in _provider_sources(paths, suffixes, source_refs, anomalies, recursive=True):
         session_id, records = _transcript_records(content, path.suffix.lower(), anomalies)
         explicit_ids = {sid for record in records if (sid := _transcript_session_id(record))}
+        discovered_sessions.update(explicit_ids)
+        if session_id is not None or (records and not explicit_ids):
+            discovered_sessions.add(session_id or path)
+        if not expected:
+            continue
         if session_id is None and len(explicit_ids) == 1:
             session_id = next(iter(explicit_ids))
         for record in records:
@@ -368,7 +375,7 @@ def _provider_session_rows(
             if row_session is None and explicit_ids:
                 anomalies.add("ambiguous_transcript_session")
                 continue
-            if not expected or (row_session or path.stem) in expected:
+            if (row_session or path.stem) in expected:
                 # A file stem can match an inventory without conflating separate anonymous files.
                 yield row_session or path, record
 
@@ -386,36 +393,39 @@ def _nullable_sum(values: Iterator[int | None]) -> int | None:
     return total
 
 
-def _provider_presence(
-    has_evidence: bool, confirmed_unused: bool, evidence_state: str, anomalies: set[str]
-) -> str:
-    if has_evidence:
-        if confirmed_unused:
-            anomalies.add("provider_evidence_conflicts_with_confirmed_unused")
-        return evidence_state
-    return "confirmed_unused" if confirmed_unused else "unknown"
-
-
 def _token_provider_summary(
+    provider: str,
     turns: dict[tuple[str | Path, str | int], dict[str, int | None]],
     fields: tuple[str, ...],
     expected: set[str],
     confirmed_unused: bool,
+    sources_supplied: bool,
+    discovered_sessions: set[str | Path],
     source_refs: set[str],
     anomalies: set[str],
 ) -> dict[str, Any]:
-    state = _provider_presence(bool(turns), confirmed_unused, "measured", anomalies)
+    if sources_supplied and not expected:
+        anomalies.add(f"{provider}_unscoped_without_expected_session_ids")
+    if confirmed_unused and expected:
+        anomalies.add(f"{provider}_confirmed_unused_conflicts_with_expected_sessions")
+    if confirmed_unused and discovered_sessions:
+        anomalies.add(f"{provider}_confirmed_unused_conflicts_with_transcript_records")
+
+    attributable = bool(expected and turns and not confirmed_unused)
+    state = "unknown"
+    if attributable:
+        state = "measured"
+    elif confirmed_unused and not (expected or sources_supplied):
+        state = "confirmed_unused"
+
     measured_ids = {session.stem if isinstance(session, Path) else session for session, _ in turns}
     missing = sorted(expected - measured_ids)
     totals = (
         {field: _nullable_sum(turn[field] for turn in turns.values()) for field in fields}
-        if turns else None
+        if attributable else None
     )
-    if state == "confirmed_unused" and missing:
-        anomalies.add("expected_sessions_conflict_with_confirmed_unused")
     complete = (
-        bool(expected)
-        and not missing
+        not missing
         and not anomalies
         and totals is not None
         and all(count is not None for count in totals.values())
@@ -425,7 +435,10 @@ def _token_provider_summary(
         "unit": "tokens",
         "completeness_scope": "provider_sessions_only",
         "cost_completeness": "complete" if complete else "incomplete",
+        "work_item_attributable": attributable,
+        "usage": totals if totals is not None else dict.fromkeys(fields),
         "known_totals": totals,
+        "discovered_session_count": len(discovered_sessions),
         "missing_expected_sessions": missing,
         "source_refs": sorted(source_refs),
         "anomalies": sorted(anomalies),
@@ -438,13 +451,16 @@ def parse_claude_transcripts(
     expected_session_ids: set[str] | None = None,
     confirmed_unused: bool = False,
 ) -> dict[str, Any]:
-    expected = expected_session_ids or set()
+    expected = {sid for value in expected_session_ids or () if (sid := _identifier(value))}
+    discovered_sessions: set[str | Path] = set()
     refs: set[str] = set()
     anomalies: set[str] = set()
     latest: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
     maxima: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
     decreasing: set[tuple[str | Path, str | int]] = set()
-    for session, record in _provider_session_rows(paths, {".jsonl"}, "assistant", expected, refs, anomalies):
+    for session, record in _provider_session_rows(
+        paths, {".jsonl"}, "assistant", expected, discovered_sessions, refs, anomalies,
+    ):
         message = record.get("message")
         if not isinstance(message, dict):
             anomalies.add("claude_invalid_message")
@@ -478,7 +494,9 @@ def parse_claude_transcripts(
         anomalies.add("claude_non_monotonic_usage_update")
         for key in decreasing:
             latest[key] = maxima[key]
-    return _token_provider_summary(latest, _CLAUDE_TOKEN_FIELDS, expected, confirmed_unused, refs, anomalies)
+    return _token_provider_summary(
+        "claude", latest, _CLAUDE_TOKEN_FIELDS, expected, confirmed_unused, bool(paths), discovered_sessions, refs, anomalies,
+    )
 
 
 def parse_gemini_transcripts(
@@ -487,12 +505,13 @@ def parse_gemini_transcripts(
     expected_session_ids: set[str] | None = None,
     confirmed_unused: bool = False,
 ) -> dict[str, Any]:
-    expected = expected_session_ids or set()
+    expected = {sid for value in expected_session_ids or () if (sid := _identifier(value))}
+    discovered_sessions: set[str | Path] = set()
     refs: set[str] = set()
     anomalies: set[str] = set()
     pending: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
     for index, (session, record) in enumerate(
-        _provider_session_rows(paths, {".json", ".jsonl"}, "gemini", expected, refs, anomalies)
+        _provider_session_rows(paths, {".json", ".jsonl"}, "gemini", expected, discovered_sessions, refs, anomalies)
     ):
         raw = record.get("tokens")
         if not isinstance(raw, dict):
@@ -523,13 +542,16 @@ def parse_gemini_transcripts(
                 uncached = inp - cached
         turns[key] = {f"{field}_tokens": usage.get(field) for field in _GEMINI_TOKEN_FIELDS}
         turns[key]["uncached_input_tokens"] = uncached
-    return _token_provider_summary(turns, fields, expected, confirmed_unused, refs, anomalies)
+    return _token_provider_summary(
+        "gemini", turns, fields, expected, confirmed_unused, bool(paths), discovered_sessions, refs, anomalies,
+    )
 
 
 _COPILOT_IGNORED_COLUMNS = {"aic_gross_amount", "gross_amount", "cost", "amount_usd"}
 
 
 def _billing_date(value: str) -> str:
+    # Year-first formats take precedence. For short slash dates, preserve month-first precedence.
     for date_format in ("%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y"):
         try:
             return datetime.strptime(value, date_format).date().isoformat()
@@ -540,7 +562,7 @@ def _billing_date(value: str) -> str:
 
 def _copilot_billing_rows(
     content: str, ignored_columns: set[str], anomalies: set[str]
-) -> Iterator[tuple[tuple[str, str, str], float]]:
+) -> Iterator[tuple[tuple[str, str, str], Decimal]]:
     reader = csv.reader(io.StringIO(content, newline=""), strict=True)
     try:
         headers = {header.strip().lower(): index for index, header in enumerate(next(reader, []))}
@@ -557,12 +579,12 @@ def _copilot_billing_rows(
                 continue
             try:
                 day = _billing_date(row[date_col].strip())
-                login = row[login_col].strip() if login_col is not None else ""
+                login = row[login_col].strip() if login_col is not None and login_col < len(row) else ""
                 model = row[model_col].strip()
-                quantity = float(row[aic_col])
-                if not model or (login_col is not None and not login) or not math.isfinite(quantity) or quantity < 0:
+                quantity = Decimal(row[aic_col])
+                if not model or not quantity.is_finite() or quantity < 0 or not math.isfinite(quantity):
                     raise ValueError("invalid billing row")
-            except (IndexError, ValueError):
+            except (IndexError, InvalidOperation, ValueError):
                 anomalies.add("copilot_invalid_billing_row")
                 continue
             yield (day, login, model), quantity
@@ -574,28 +596,47 @@ def parse_copilot_billing(paths: list[Path], *, confirmed_unused: bool = False) 
     refs: set[str] = set()
     anomalies: set[str] = set()
     ignored_columns: set[str] = set()
-    rows: dict[tuple[str, str | tuple[Path, int], str], float] = {}
+    rows: dict[tuple[str, str | tuple[Path, int], str], Decimal] = {}
     conflicts: set[tuple[str, str | tuple[Path, int], str]] = set()
+    csv_count = 0
+    has_missing_login = False
     for path, content in _provider_sources(paths, {".csv"}, refs, anomalies):
+        csv_count += 1
         billing_rows = _copilot_billing_rows(content, ignored_columns, anomalies)
         for index, ((day, login, model), quantity) in enumerate(billing_rows):
-            # Without a login there is no daily-user key to match across exports.
+            if not login:
+                has_missing_login = True
             key = (day, login or (path, index), model)
             if rows.setdefault(key, quantity) != quantity:
                 conflicts.add(key)
     if conflicts:
         anomalies.add("copilot_conflicting_daily_quantity")
-    by_model: dict[str, float] = {}
-    for key, quantity in rows.items():
-        if key not in conflicts:
-            model = key[2]
-            by_model[model] = by_model.get(model, 0.0) + quantity
+    unverifiable_dedup = csv_count > 1 and has_missing_login
+    if unverifiable_dedup:
+        anomalies.add("copilot_cross_file_dedup_unverifiable_without_login")
+    has_billing_rows = bool(rows) or "copilot_invalid_billing_row" in anomalies
+    if confirmed_unused and has_billing_rows:
+        anomalies.add("copilot_confirmed_unused_conflicts_with_billing_rows")
+
+    state = "unknown"
+    totals: dict[str, Decimal] = {}
+    if rows and not (confirmed_unused or unverifiable_dedup):
+        state = "billing_reference_only"
+        for key, quantity in rows.items():
+            if key not in conflicts:
+                model = key[2]
+                totals[model] = totals.get(model, Decimal(0)) + quantity
+    elif confirmed_unused and not has_billing_rows:
+        state = "confirmed_unused"
+
+    # Convert only the final totals to preserve JSON numeric values without float accumulation noise.
+    by_model = {model: float(total) for model, total in totals.items()}
     if any(not math.isfinite(total) for total in by_model.values()):
         anomalies.add("copilot_billing_sum_out_of_range")
         by_model = {model: total for model, total in by_model.items() if math.isfinite(total)}
     days = [key[0] for key in rows]
     return {
-        "presence_state": _provider_presence(bool(rows), confirmed_unused, "billing_reference_only", anomalies),
+        "presence_state": state,
         "unit": "aic_quantity",
         "completeness_scope": "billing_window_only",
         "cost_completeness": "not_applicable",
@@ -802,19 +843,25 @@ def summarize_human_interventions(
             except Exception as exc:
                 notes.append(f"events_parse_error:{type(exc).__name__}")
 
-    if isinstance(unplanned, int) and unplanned > 0 and source_ref is not None:
+    structured_rescue = isinstance(unplanned, int) and unplanned > 0 and source_ref is not None
+    if structured_rescue:
         rescue_refs.add(source_ref)
-    if rescue_refs:
-        unexpected_rescue = "yes"
-        if rescue_confirmed_none:
-            notes.append("rescue_evidence_conflicts_with_confirmed_none")
+        rescue_basis, unexpected_rescue = "structured_events", "yes"
+    elif rescue_refs:
+        rescue_basis, unexpected_rescue = "caller_declared_unverified_ref", "yes"
+    elif rescue_confirmed_none:
+        rescue_basis, unexpected_rescue = "confirmed_none", "no"
     else:
-        unexpected_rescue = "no" if rescue_confirmed_none else "unknown"
+        rescue_basis, unexpected_rescue = "none", "unknown"
+    if rescue_confirmed_none and unexpected_rescue == "yes":
+        notes.append("rescue_evidence_conflicts_with_confirmed_none")
 
     return {
         "planned_owner_decisions": planned,
         "unplanned_rescues": unplanned,
         "unexpected_rescue_observed": unexpected_rescue,
+        "rescue_evidence_basis": rescue_basis,
+        "rescue_evidence_verified": structured_rescue,
         "rescue_evidence_refs": sorted(rescue_refs),
         "human_minutes": confirmed_minutes if confirmed_minutes is not None else "UNKNOWN",
         "human_minutes_source": "owner_confirmed" if confirmed_minutes is not None else "unmeasured",
@@ -873,8 +920,11 @@ def _provider_report_rows(providers: dict[str, Any]) -> list[str]:
             name = _markdown_cell(provider["provider"])
             rows.append(f"| Outer Orchestrator（{name}） | `unknown`；單位未知；未評估完整度（無可驗證的本機用量紀錄） |")
             continue
+        presence = f"`{provider['presence_state']}`"
+        if key in {"claude", "gemini"} and f"{key}_unscoped_without_expected_session_ids" in provider["anomalies"]:
+            presence = "`UNKNOWN`，未提供預期 Session ID，無法歸屬此工作項目"
         cell = (
-            f"`{provider['presence_state']}`；單位 `{provider['unit']}`；"
+            f"{presence}；單位 `{provider['unit']}`；"
             f"完整度 `{provider['cost_completeness']}`（範圍 `{provider['completeness_scope']}`）"
         )
         if key == "copilot" and provider["presence_state"] == "billing_reference_only":
@@ -940,8 +990,12 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
         )
 
     rescue_state = human.get("unexpected_rescue_observed", "unknown")
+    rescue_yes_detail = {
+        "structured_events": "結構化事件檔記有救援，查證範圍限於該紀錄",
+        "caller_declared_unverified_ref": "呼叫者申報的救援線索，Observer 未獨立查證",
+    }.get(human.get("rescue_evidence_basis"), "既有證據未標示查證來源")
     rescue_cell = {
-        "yes": "`yes`（有事件紀錄或救援證據引用）",
+        "yes": f"`yes`（{rescue_yes_detail}）",
         "no": "`no`（已明確確認無救援）",
         "unknown": "`unknown`（現有證據不足以確認是否曾發生救援）",
     }[rescue_state]
@@ -1137,9 +1191,9 @@ def run_observer(
         )
     if copilot_csvs or copilot_confirmed_unused:
         providers["copilot"] = parse_copilot_billing(copilot_csvs or [], confirmed_unused=copilot_confirmed_unused)
-    if outer_orchestrator is not None:
+    if orchestrator_name := _identifier(outer_orchestrator):
         providers["outer_orchestrator"] = {
-            "provider": outer_orchestrator,
+            "provider": orchestrator_name,
             "presence_state": "unknown",
             "unit": None,
             "reason": "no_verifiable_local_token_rollout",

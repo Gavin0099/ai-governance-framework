@@ -563,7 +563,7 @@ def test_gemini_uncached_is_unknown_when_a_counted_turn_lacks_valid_cached_break
 ])
 def test_gemini_strict_validation_rejects_invalid_token_rows(tmp_path: Path, field, value):
     path = _write_jsonl(tmp_path / "invalid.jsonl", [_gemini_message("bad", **{field: value})])
-    provider = observer.parse_gemini_transcripts([path])
+    provider = observer.parse_gemini_transcripts([path], expected_session_ids={"invalid"})
     assert provider["presence_state"] == "unknown"
     assert provider["known_totals"] is None
     assert provider["anomalies"] == ["gemini_invalid_token_count"]
@@ -574,13 +574,13 @@ def test_gemini_accepts_exact_zero_and_large_integers_and_marks_unkeyed_turns_in
         _gemini_message("turn", input=2**70, cached=2**70, output=0, thoughts=0, tool=0),
         _gemini_message(None, input=0, cached=0, output=0, thoughts=0, tool=0),
     ])
-    provider = observer.parse_gemini_transcripts([log], expected_session_ids={"g1"}, confirmed_unused=True)
+    provider = observer.parse_gemini_transcripts([log], expected_session_ids={"g1"})
     assert provider["presence_state"] == "measured"
     assert provider["known_totals"]["input_tokens"] == 2**70
     assert provider["known_totals"]["uncached_input_tokens"] == 0
     assert provider["known_totals"]["output_tokens"] == 0
     assert provider["cost_completeness"] == "incomplete"
-    assert provider["anomalies"] == ["gemini_missing_message_id", "provider_evidence_conflicts_with_confirmed_unused"]
+    assert provider["anomalies"] == ["gemini_missing_message_id"]
 
 
 @pytest.mark.parametrize("parse", [observer.parse_claude_transcripts, observer.parse_gemini_transcripts])
@@ -602,6 +602,68 @@ def test_provider_presence_does_not_infer_unused_from_missing_or_empty_files(tmp
     assert confirmed["source_refs"] == []
 
 
+@pytest.mark.parametrize("provider,record", [
+    ("claude", lambda count: _claude_message(None, "turn", input_tokens=count, output_tokens=1)),
+    ("gemini", lambda count: _gemini_message("turn", input=count, output=1)),
+])
+def test_transcript_directory_requires_expected_sessions_for_attribution(tmp_path: Path, provider, record):
+    sources = tmp_path / "sessions"
+    sources.mkdir()
+    _write_jsonl(sources / "expected.jsonl", [record(12)])
+    _write_jsonl(sources / "unrelated.jsonl", [record(9000)])
+    args = ["--work-item-id", "WI-SCOPE", "--title", "Session scope", f"--{provider}-dir", str(sources)]
+
+    unscoped = tmp_path / "unscoped"
+    assert observer.main([*args, "--output-dir", str(unscoped)]) == 0
+    result = json.loads((unscoped / "evidence_index.json").read_text(encoding="utf-8"))["ai_cost"]["providers"][provider]
+    assert result["presence_state"] == "unknown"
+    assert result["work_item_attributable"] is False
+    assert result["known_totals"] is None
+    assert "input_tokens" in result["usage"]
+    assert all(value is None for value in result["usage"].values())
+    assert result["cost_completeness"] == "incomplete"
+    assert result["discovered_session_count"] == 2
+    assert f"{provider}_unscoped_without_expected_session_ids" in result["anomalies"]
+    report = (unscoped / "report.md").read_text(encoding="utf-8")
+    assert "`UNKNOWN`，未提供預期 Session ID，無法歸屬此工作項目" in report
+    assert "9,012" not in report
+
+    scoped = tmp_path / "scoped"
+    assert observer.main([*args, "--output-dir", str(scoped), f"--{provider}-expected-session-id", "expected"]) == 0
+    result = json.loads((scoped / "evidence_index.json").read_text(encoding="utf-8"))["ai_cost"]["providers"][provider]
+    assert result["presence_state"] == "measured"
+    assert result["work_item_attributable"] is True
+    assert result["known_totals"]["input_tokens"] == result["usage"]["input_tokens"] == 12
+    assert observer.main([
+        *args, "--output-dir", str(scoped), f"--{provider}-expected-session-id", "expected",
+        f"--{provider}-confirmed-unused",
+    ]) == 0
+    result = json.loads((scoped / "evidence_index.json").read_text(encoding="utf-8"))["ai_cost"]["providers"][provider]
+    assert result["presence_state"] == "unknown"
+    assert result["work_item_attributable"] is False
+    assert result["known_totals"] is None
+    assert result["missing_expected_sessions"] == []
+    assert f"{provider}_confirmed_unused_conflicts_with_expected_sessions" in result["anomalies"]
+
+
+@pytest.mark.parametrize("provider,parse", [
+    ("claude", observer.parse_claude_transcripts),
+    ("gemini", observer.parse_gemini_transcripts),
+])
+def test_transcript_confirmed_unused_conflicts_with_expected_sessions_or_discovered_records(tmp_path: Path, provider, parse):
+    expected = parse([], expected_session_ids={"expected"}, confirmed_unused=True)
+    assert expected["presence_state"] == "unknown"
+    assert expected["missing_expected_sessions"] == ["expected"]
+    assert expected["anomalies"] == [f"{provider}_confirmed_unused_conflicts_with_expected_sessions"]
+
+    source = _write_jsonl(tmp_path / "other.jsonl", [{"type": "user", "sessionId": "other"}])
+    discovered = parse([source], confirmed_unused=True)
+    assert discovered["presence_state"] == "unknown"
+    assert discovered["work_item_attributable"] is False
+    assert discovered["known_totals"] is None
+    assert f"{provider}_confirmed_unused_conflicts_with_transcript_records" in discovered["anomalies"]
+
+
 def test_copilot_aggregates_daily_credits_by_model_and_excludes_money(tmp_path: Path):
     first = tmp_path / "first.csv"
     first.write_text(
@@ -613,7 +675,9 @@ def test_copilot_aggregates_daily_credits_by_model_and_excludes_money(tmp_path: 
     )
     second = tmp_path / "second.csv"
     second.write_text(
-        "date,model,aic_quantity\n2026-11-28,model-a,2\n2026-11-28,model-a,3\n2026-11-28,zero,0\n",
+        "date,user_login,model,aic_quantity\n"
+        "2026-11-27,private-user,model-a,1.25\n"
+        "2026-11-28,another-user,model-a,2\n2026-11-28,private-user,model-a,3\n2026-11-28,private-user,zero,0\n",
         encoding="utf-8",
     )
     provider = observer.parse_copilot_billing([first, second, first])
@@ -653,13 +717,10 @@ def test_copilot_detects_invalid_and_conflicting_rows_without_disclosing_raw_val
         "2026-11-27,private-user,model-b,4\n",
         encoding="utf-8",
     )
-    provider = observer.parse_copilot_billing([first, second], confirmed_unused=True)
+    provider = observer.parse_copilot_billing([first, second])
     assert provider["presence_state"] == "billing_reference_only"
     assert provider["by_model_aic"] == {"model-b": 4.0}
-    assert provider["anomalies"] == [
-        "copilot_conflicting_daily_quantity", "copilot_invalid_billing_row",
-        "provider_evidence_conflicts_with_confirmed_unused",
-    ]
+    assert provider["anomalies"] == ["copilot_conflicting_daily_quantity", "copilot_invalid_billing_row"]
     assert "private-user" not in json.dumps(provider)
 
 
@@ -673,6 +734,53 @@ def test_copilot_unknown_and_confirmed_unused_are_distinct(tmp_path: Path):
     assert provider["ignored_columns"] == ["cost"]
     assert provider["anomalies"] == ["copilot_missing_required_columns", "no_provider_source:missing.csv"]
     assert observer.parse_copilot_billing([], confirmed_unused=True)["presence_state"] == "confirmed_unused"
+
+
+@pytest.mark.parametrize("first_content,second_content", [
+    ("date,model,aic_quantity\n2026-11-27,model-a,7\n", "date,model,aic_quantity\n2026-11-27,model-a,7\n"),
+    ("date,login,model,aic_quantity\n2026-11-27,alice,model-a,7\n",
+     "date,login,model,aic_quantity\n2026-11-27, ,model-a,7\n"),
+    ("date,model,aic_quantity\n2026-11-27,model-a,7\n",
+     "date,login,model,aic_quantity\n2026-11-27,alice,model-a,7\n"),
+], ids=["both-missing-column", "blank-login-cell", "one-missing-column"])
+def test_copilot_cross_file_dedup_with_missing_login_withholds_totals(tmp_path: Path, first_content, second_content):
+    first = tmp_path / "first.csv"
+    first.write_text(first_content, encoding="utf-8")
+    second = tmp_path / "second.csv"
+    second.write_text(second_content, encoding="utf-8")
+    assert observer.parse_copilot_billing([first, first])["by_model_aic"] == {"model-a": 7.0}
+    provider = observer.parse_copilot_billing([first, second])
+    assert provider["presence_state"] == "unknown"
+    assert provider["by_model_aic"] == {}
+    assert provider["anomalies"] == ["copilot_cross_file_dedup_unverifiable_without_login"]
+
+
+def test_copilot_confirmed_unused_conflicts_with_discovered_billing_rows(tmp_path: Path):
+    source = tmp_path / "billing.csv"
+    source.write_text("date,model,aic_quantity\n2026-11-27,model-a,0\n", encoding="utf-8")
+    provider = observer.parse_copilot_billing([source], confirmed_unused=True)
+    assert provider["presence_state"] == "unknown"
+    assert provider["by_model_aic"] == {}
+    assert provider["anomalies"] == ["copilot_confirmed_unused_conflicts_with_billing_rows"]
+
+
+def test_copilot_decimal_sum_has_no_float_tail_in_json_or_markdown(tmp_path: Path):
+    source = tmp_path / "billing.csv"
+    source.write_text(
+        "date,model,aic_quantity\n11/12/2026,model-a,0.1\n2026-11-13,model-a,0.2\n",
+        encoding="utf-8",
+    )
+    assert observer.main([
+        "--work-item-id", "WI-AIC", "--title", "Decimal billing", "--output-dir", str(tmp_path),
+        "--copilot-csv", str(source),
+    ]) == 0
+    raw = (tmp_path / "evidence_index.json").read_text(encoding="utf-8")
+    provider = json.loads(raw)["ai_cost"]["providers"]["copilot"]
+    assert provider["by_model_aic"] == {"model-a": 0.3}
+    assert provider["billing_window"] == {"start_date": "2026-11-12", "end_date": "2026-11-13"}
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "model-a 0.3 |" in report
+    assert "0.30000000000000004" not in raw + report
 
 
 @pytest.mark.parametrize("events,refs,confirmed,expected", [
@@ -695,6 +803,13 @@ def test_rescue_truth_table_preserves_original_counts(tmp_path: Path, events, re
         path, confirmed_minutes=4.5, rescue_evidence_refs=refs, rescue_confirmed_none=confirmed,
     )
     assert human["unexpected_rescue_observed"] == expected
+    if events and events[0]["category"] == "unplanned_rescue":
+        assert human["rescue_evidence_basis"] == "structured_events"
+        assert human["rescue_evidence_verified"] is True
+    else:
+        basis = {"yes": "caller_declared_unverified_ref", "no": "confirmed_none", "unknown": "none"}
+        assert human["rescue_evidence_basis"] == basis[expected]
+        assert human["rescue_evidence_verified"] is False
     assert human["human_minutes"] == 4.5
     assert ("rescue_evidence_conflicts_with_confirmed_none" in human["notes"]) == (confirmed and expected == "yes")
     if events is None:
@@ -782,6 +897,8 @@ def test_multi_provider_cli_preserves_codex_evidence_and_renders_separate_rows(t
     }
     assert "human_intervention" not in result
     assert result["human_interventions"]["unexpected_rescue_observed"] == "yes"
+    assert result["human_interventions"]["rescue_evidence_basis"] == "structured_events"
+    assert result["human_interventions"]["rescue_evidence_verified"] is True
     assert result["human_interventions"]["rescue_evidence_refs"] == ["PR#21", _expected_ref(events), "owner-note#1"]
     assert result["human_interventions"]["notes"] == ["rescue_evidence_conflicts_with_confirmed_none"]
     assert baseline["human_interventions"]["unexpected_rescue_observed"] == "unknown"
@@ -789,6 +906,7 @@ def test_multi_provider_cli_preserves_codex_evidence_and_renders_separate_rows(t
     assert "現有證據不足以確認是否曾發生救援" in base_md
     assert "antigravity" not in base_md
     assert "| 是否觀察到意外人工救援 | `yes`" in report
+    assert "結構化事件檔記有救援" in report
     codex_line = next(line for line in base_md.splitlines() if line.startswith("| 完整 AI Tokens / 成本 |"))
     assert codex_line in report and "130" in codex_line
     assert "| Claude Code | `measured`；單位 `tokens`；完整度 `complete`（範圍 `provider_sessions_only`）" in report
@@ -807,7 +925,7 @@ def test_provider_opt_in_and_confirmed_no_rescue_through_cli(tmp_path: Path):
     evidence = json.loads((tmp_path / "evidence_index.json").read_text(encoding="utf-8"))
     assert set(evidence["ai_cost"]["providers"]) == {"gemini"}
     assert evidence["ai_cost"]["providers"]["gemini"]["presence_state"] == "unknown"
-    assert "| Gemini CLI | `unknown`" in (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "| Gemini CLI | `UNKNOWN`" in (tmp_path / "report.md").read_text(encoding="utf-8")
 
     assert observer.main([
         *args, "--claude-confirmed-unused", "--gemini-confirmed-unused", "--copilot-confirmed-unused",
@@ -819,6 +937,23 @@ def test_provider_opt_in_and_confirmed_no_rescue_through_cli(tmp_path: Path):
     }
     assert confirmed["human_interventions"]["unexpected_rescue_observed"] == "no"
     assert "| 是否觀察到意外人工救援 | `no`" in (tmp_path / "report.md").read_text(encoding="utf-8")
+
+
+def test_cli_reports_reference_only_rescue_as_unverified_and_omits_blank_orchestrator(tmp_path: Path):
+    assert observer.main([
+        "--work-item-id", "WI-RESCUE", "--title", "Caller reference", "--output-dir", str(tmp_path),
+        "--rescue-evidence-ref", "PR#123", "--outer-orchestrator", "   ",
+    ]) == 0
+    evidence = json.loads((tmp_path / "evidence_index.json").read_text(encoding="utf-8"))
+    human = evidence["human_interventions"]
+    assert human["unexpected_rescue_observed"] == "yes"
+    assert human["rescue_evidence_verified"] is False
+    assert human["rescue_evidence_basis"] == "caller_declared_unverified_ref"
+    assert human["rescue_evidence_refs"] == ["PR#123"]
+    assert "outer_orchestrator" not in evidence["ai_cost"].get("providers", {})
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "呼叫者申報的救援線索，Observer 未獨立查證" in report
+    assert "Outer Orchestrator" not in report
 
 
 def test_observer_has_no_database_imports():
