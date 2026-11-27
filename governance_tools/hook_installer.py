@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Sequence
 
 from governance_tools.composed_hook import (
-    MARKER, CompositionError, atomic_write_hook, declared_fragment, expected_hook,
+    MARKER, CompositionError, _git_environment, atomic_write_hook, declared_fragment, expected_hook,
     matches_prior_composition, normalized,
 )
 from governance_tools.copilot_instructions_projection import (
@@ -945,12 +945,45 @@ def install_external_tree_identity_config(
     )
 
 
+def _matches_standard_hook(framework_root: Path, hook_name: str, installed: bytes) -> bool:
+    """Recognize exact current or reachable standard hooks, never marker-only edits."""
+    framework_root = framework_root.resolve()
+    relative = f"scripts/hooks/{hook_name}"
+    installed = normalized(installed)
+    if installed == _shell_hook_payload(framework_root / relative):
+        return True
+
+    def git(*args: str) -> bytes:
+        return subprocess.run(
+            ["git", "--no-replace-objects", "-c", f"safe.directory={framework_root.as_posix()}",
+             "-C", str(framework_root), *args],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, timeout=10,
+            env=_git_environment(),
+        ).stdout
+
+    try:
+        root = Path(os.fsdecode(git("rev-parse", "--show-toplevel")).strip())
+        if root.resolve() != framework_root:
+            return False
+        revisions = git("log", "--full-history", "--format=%H", "HEAD", "--", relative)
+        for revision in revisions.splitlines():
+            commit = revision.decode("ascii")
+            if not git("ls-tree", "-z", commit, "--", relative):
+                continue
+            if installed == normalized(git("show", f"{commit}:{relative}")):
+                return True
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return False
+
+
 def install_governance_hooks(
     repo_root: Path,
     framework_root: Path,
     *,
     include_copilot: bool = True,
     repository_identities: Sequence[str] | None = None,
+    dry_run: bool = False,
 ) -> HookInstallApplyResult:
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
@@ -968,6 +1001,18 @@ def install_governance_hooks(
         errors.append(f"missing framework hooks source: {source_hook_dir}")
     payloads: dict[str, bytes] = {}
     try:
+        # Read both candidates before any writes. Marker helpers deliberately
+        # suppress read errors elsewhere; preflight must refuse those errors.
+        existing_hooks: dict[str, bytes] = {}
+        for hook_name in HOOK_NAMES:
+            target = hook_dir / hook_name
+            if target.is_symlink():
+                raise CompositionError(f"symlink hook {target}; refusing overwrite")
+            if target.is_file():
+                try:
+                    existing_hooks[hook_name] = target.read_bytes()
+                except OSError as exc:
+                    raise CompositionError(f"cannot read existing hook {target}; refusing overwrite: {exc}") from exc
         fragment = declared_fragment(repo_root)
         for hook_name in HOOK_NAMES:
             source = source_hook_dir / hook_name
@@ -975,15 +1020,26 @@ def install_governance_hooks(
                 payloads[hook_name] = expected_hook(repo_root, hook_name, _shell_hook_payload(source))
             elif fragment is not None:
                 errors.append(f"missing source hook: {source}")
-        target = hook_dir / "pre-push"
-        if fragment is None and target.is_file() and MARKER in target.read_bytes():
+        existing_push = existing_hooks.get("pre-push")
+        if fragment is None and existing_push is not None and MARKER in existing_push:
             errors.append("installed consumer extension has no valid declaration; refusing overwrite")
-        if fragment is not None and (target.exists() or target.is_symlink()):
-            if target.is_symlink() or (
-                normalized(target.read_bytes()) != payloads.get("pre-push")
-                and not matches_prior_composition(framework_root, target.read_bytes(), fragment)
+        if fragment is not None and existing_push is not None:
+            if (
+                normalized(existing_push) != payloads.get("pre-push")
+                and not matches_prior_composition(framework_root, existing_push, fragment)
             ):
                 errors.append("declared composed pre-push differs from expected hook; refusing overwrite")
+        # Check both hooks before identity/config writes or any hook backup.
+        # A framework marker identifies ownership, not unedited standard bytes.
+        for hook_name in HOOK_NAMES:
+            if hook_name == "pre-push" and fragment is not None:
+                continue  # The stricter declared-composition check above owns it.
+            existing = existing_hooks.get(hook_name)
+            if existing is not None and FRAMEWORK_MARKER.encode("utf-8") in existing:
+                if not _matches_standard_hook(
+                    framework_root, hook_name, existing,
+                ):
+                    errors.append(f"framework-marked {hook_name} differs from standard hook; refusing overwrite")
     except (CompositionError, OSError) as exc:
         errors.append(str(exc))
     if errors:
@@ -992,6 +1048,13 @@ def install_governance_hooks(
             repo_root=str(repo_root),
             framework_root=str(framework_root),
             errors=errors,
+        )
+
+    if dry_run:
+        return HookInstallApplyResult(
+            ok=True,
+            repo_root=str(repo_root),
+            framework_root=str(framework_root),
         )
 
     _apply_external_tree_identity_config(
@@ -1106,7 +1169,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Retire legacy VS Code lifecycle registrations, preserving custom hooks and the managed manifest.",
     )
     parser.add_argument("--format", choices=("human", "json"), default="human")
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Check hook overwrite safety without writing any files (requires --hooks-only).",
+    )
     args = parser.parse_args(argv)
+
+    if args.dry_run and not args.hooks_only:
+        parser.error("--dry-run requires --hooks-only")
 
     exclusive = [
         args.hooks_only,
@@ -1141,6 +1211,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.framework_root,
             include_copilot=not args.hooks_only,
             repository_identities=args.repository_ids,
+            dry_run=args.dry_run,
         )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))

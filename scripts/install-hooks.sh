@@ -77,85 +77,58 @@ else
 fi
 echo ""
 
-# ── 建立 consumer repository identity authority ────────────────────────────
-# Keep identity merge/validation in the Python installer. The shell entrypoint
-# supplies only explicit CLI values; otherwise Python reads the exact origin URL.
+# ── 共用 Python hook 安裝與覆寫檢查 ───────────────────────────────────────
+# Python checks BOTH hooks before writing identity/config files or backups.
+# Keep composition, standard-hook upgrade and backup rules in that one path.
+if [ ! -f "$PYTHON_LIB" ]; then
+    echo "  ❌ 找不到 Python helper，無法安全安裝 hooks: $PYTHON_LIB"
+    exit 1
+fi
+. "$PYTHON_LIB"
+if ! set_python_cmd; then
+    echo "  ❌ 找不到 Python，無法安全安裝 hooks"
+    print_python_resolution_help "install-hooks"
+    exit 1
+fi
+HOOK_ARGS=(
+    --repo "$(realpath "$TARGET_REPO")"
+    --framework-root "$FRAMEWORK_ROOT"
+    --hooks-only
+)
 if [ "$DRY_RUN" = true ]; then
-    echo "  [dry-run] 建立/合併 external-tree repository identity config"
-else
-    if [ ! -f "$PYTHON_LIB" ]; then
-        echo "  ❌ 找不到 Python helper，無法建立 repository identity config: $PYTHON_LIB"
-        exit 1
-    fi
-    . "$PYTHON_LIB"
-    if ! set_python_cmd; then
-        echo "  ❌ 找不到 Python，無法建立 repository identity config"
-        print_python_resolution_help "install-hooks"
-        exit 1
-    fi
-    IDENTITY_ARGS=(
-        --repo "$(realpath "$TARGET_REPO")"
-        --framework-root "$FRAMEWORK_ROOT"
-        --identity-config-only
-    )
-    if [ "$REPOSITORY_ID_COUNT" -gt 0 ]; then
-        for repository_id in "${REPOSITORY_IDS[@]}"; do
-            IDENTITY_ARGS+=(--repository-id "$repository_id")
-        done
-    fi
-    if ! PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer "${IDENTITY_ARGS[@]}"; then
-        echo "  ❌ repository identity config 建立失敗；hooks 尚未修改"
-        exit 1
-    fi
-    echo "  ✅ repository identity config 已建立/驗證"
-    echo "  ℹ️  請檢視並提交 governance/external-tree-inventory-guard.json"
+    HOOK_ARGS+=(--dry-run)
+fi
+if [ "$REPOSITORY_ID_COUNT" -gt 0 ]; then
+    for repository_id in "${REPOSITORY_IDS[@]}"; do
+        HOOK_ARGS+=(--repository-id "$repository_id")
+    done
+fi
+# A refused install or dry-run must not even create Python bytecode caches.
+if ! PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$FRAMEWORK_ROOT" "${PYTHON_CMD[@]}" -m governance_tools.hook_installer "${HOOK_ARGS[@]}"; then
+    echo "  ❌ Git hooks 安裝失敗；停止部署 Copilot surface"
+    exit 1
 fi
 
-# ── 安裝每個 hook ─────────────────────────────────────────────────────────
 INSTALLED=0
 SKIPPED=0
-
-install_hook() {
-    local hook_name="$1"
-    local src="$HOOKS_SRC/$hook_name"
-    local dst="$TARGET_HOOKS_DIR/$hook_name"
-
-    if [ ! -f "$src" ]; then
-        echo "⚠️  跳過 $hook_name（來源不存在: $src）"
-        SKIPPED=$((SKIPPED + 1))
-        return
-    fi
-
-    # 備份現有 hook（若存在且不是我們的）
-    if [ -f "$dst" ] && ! grep -q "AI Governance Framework" "$dst" 2>/dev/null; then
-        local backup="${dst}.bak.$(date +%Y%m%d_%H%M%S)"
+for hook_name in pre-commit pre-push; do
+    if [ -f "$HOOKS_SRC/$hook_name" ]; then
+        INSTALLED=$((INSTALLED + 1))
         if [ "$DRY_RUN" = true ]; then
-            echo "  [dry-run] 備份現有 hook → $backup"
-        else
-            cp "$dst" "$backup"
-            echo "  💾 備份現有 hook → $(basename "$backup")"
+            echo "  [dry-run] 安裝 $hook_name → $TARGET_HOOKS_DIR/$hook_name"
         fi
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-        echo "  [dry-run] 安裝 $hook_name → $dst"
     else
-        tr -d '\r' < "$src" > "$dst"
-        chmod +x "$dst"
-        echo "  ✅ 安裝 $hook_name"
+        SKIPPED=$((SKIPPED + 1))
     fi
-    INSTALLED=$((INSTALLED + 1))
-}
-
-install_hook "pre-commit"
-install_hook "pre-push"
+done
 
 if [ "$DRY_RUN" = true ]; then
+    echo "  [dry-run] 建立/合併 external-tree repository identity config"
     echo "  [dry-run] 寫入 framework root 設定 → $HOOK_CONFIG"
     echo "            內容: $FRAMEWORK_ROOT_CONFIG_VALUE"
 else
-    printf '%s\n' "$FRAMEWORK_ROOT_CONFIG_VALUE" > "$HOOK_CONFIG"
-    echo "  ✅ 寫入 framework root 設定"
+    echo "  ✅ 安裝 Git hooks、framework root 與 repository identity config"
+    echo "  ℹ️  請檢視並提交 governance/external-tree-inventory-guard.json"
 fi
 
 # ── 部署 Copilot instructions ──────────────────────────────────────────────
