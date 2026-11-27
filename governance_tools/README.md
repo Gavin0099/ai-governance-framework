@@ -1,8 +1,30 @@
 # governance_tools/ — AI Governance Framework 工具集
 
-> **版本**: 當前（runtime governance prototype）
-> **最後更新**: 2026-03-15
+> **核心速查表更新**: 2026-11-27（下方詳細參考區保留歷史紀錄，並非所有工具皆於同日更新）
 > **相依**: Python 3.9+；框架核心以 stdlib 為主，測試與 runnable demos 另外記於 repo root `requirements.txt`
+
+---
+
+## 核心工具速查表（先看這裡）
+
+本目錄目前包含 **257 個頂層 Python 檔案**，涵蓋日常治理入口、共用模組、跨 repo 維護與歷史研究腳本。日常使用與導入只需先看下表，**不需要**從完整清單逐一嘗試：
+
+| 情境 | 工具 | 說明／邊界 |
+|---|---|---|
+| 第一次接觸（2 分鐘驗證） | `quickstart_smoke.py` | 最小環境與治理合約 smoke 檢查（**非純唯讀**：執行時會啟動 session、寫入 `session-envelope.json` 並更新 `.current-session-id`） |
+| 導入到既有 repo | `adopt_governance.py` | 建議先加 `--dry-run` 預覽（預覽不會列出 `.governance-payload-config.yaml`）；保留既有 `AGENTS.md` / `memory/` / 規則包不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml` 與 `.governance-payload-config.yaml`，並在 `contract.yaml` 缺少必要引用時寫回修補**；**不會自動安裝 Git hooks** |
+| 安裝本機 Git hooks | `hook_installer.py` | 獨立安裝治理 hooks；此 Python 入口會備份未納管檔案，並**拒絕覆蓋**不符預期的 consumer composed `pre-push`（Shell 入口 `scripts/install-hooks.sh` 遇到含框架標記的自訂 hook 會跳過備份並覆寫標準版；安裝 ≠ 所有環境必然執行） |
+| 更新與查看導入狀態（F-7） | `f7_full_update.py` | 預設 dry-run 輸出中文導入狀態表；確認後加 `--apply` 執行 |
+| 框架自我漂移檢查 | `governance_drift_checker.py` | 檢查 repo 與 framework 之間的配置／規則漂移 |
+| 跨平台投影一致性檢查 | `copilot_instructions_projection.py` | 驗證 `SYSTEM_PROMPT.md#2.8` 在各平台入口檔的投影是否同步（`--check` / `--write`） |
+| 寫入與檢查記憶 | `memory_record.py`、`memory_workflow.py` | 新增 session-derived memory 須走 `memory_record`；提交前以 `memory_workflow --check` 驗證 |
+| Session 結束收尾 | `manage_agent_closeout.py`、`session_closeout_entry.py` | 手動或受控 closeout 入口與收據產生 |
+| 回報契約結構檢查（手動） | `response_envelope_validator.py` | 靜態結構檢查（opt-in，未接入預設 CI／Hook，無法取代語義與人類驗收） |
+
+### ⚠️ 重要安全與誤用提醒
+
+- **`memory_janitor.py`（高注意）**：僅可用於**量測** `memory/01_active_task.md` 行數／字元數與產出計畫。`--clean` 與 `--execute` 路徑因歷史破壞性壓縮風險已被 **fail-closed 禁止**；詳見下方 [`memory_janitor.py`](#memory_janitorpy) 與 `memory/01_active_task.md`。
+- **歷史研究／實驗腳本（請勿作為日常入口誤用）**：`solo_r2_*`、`ab_*`、`skill_ab*`、`skill_eval*`、`phase2_*`、`phase3_*`、`fgcr_*`、`gate_c_*`、`round_a_*`、`mutation_proof_*` 等腳本屬特定階段的研究、重播或歷史評估工具，**保留於目錄以維持可追溯性與既有測試相容**，但非日常導入或維護入口。
 
 ---
 
@@ -33,7 +55,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 
 | 工具 | 功能 | 主要用途 |
 |------|------|---------|
-| [memory_janitor.py](#memory_janitorpy) | 記憶壓力監控與歸檔 | 防止 context 過載 |
+| [memory_janitor.py](#memory_janitorpy) | 記憶壓力監控（僅量測；`--clean`/`--execute` 已 fail-closed） | 防止 context 過載 |
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
