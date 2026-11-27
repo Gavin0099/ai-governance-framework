@@ -14,6 +14,7 @@ import sys
 import pytest
 
 from governance_tools import manage_agent_closeout as manager
+from runtime_hooks.adapters.codex import session_start
 
 
 def _project_hook() -> dict:
@@ -39,7 +40,7 @@ def _project_hook() -> dict:
     }
 
 
-def _consumer(tmp_path: Path, hooks: list[dict]) -> tuple[Path, Path, Path]:
+def _consumer(tmp_path: Path, hooks: list[dict], *, with_session_start: bool = True) -> tuple[Path, Path, Path]:
     root = tmp_path / "consumer"
     framework = root / "framework"
     entry = framework / "governance_tools/session_closeout_entry.py"
@@ -57,10 +58,196 @@ def _consumer(tmp_path: Path, hooks: list[dict]) -> tuple[Path, Path, Path]:
     path.write_text(json.dumps({"hooks": {
         "SessionStart": [{"matcher": "startup", "hooks": [
             {"type": "command", "command": "python scripts/session_identity.py"},
-        ]}],
+        ]}] + ([{"matcher": session_start.SESSION_START_MATCHER, "hooks": [
+            session_start.portable_hook_payload(root, framework),
+        ]}] if with_session_start else []),
         "Stop": [{"hooks": hooks}],
     }}, indent=2) + "\n", encoding="utf-8")
     return root, framework, path
+
+
+def _cli(monkeypatch, capsys, root, framework, operation):
+    monkeypatch.setattr(manager, "_resolve_framework_root", lambda: framework)
+    monkeypatch.setattr(sys, "argv", [
+        "manage_agent_closeout", "--project-root", str(root), "--format", "json",
+        operation, "--agent", "codex",
+    ])
+    exit_code = manager.main()
+    return exit_code, json.loads(capsys.readouterr().out)
+
+
+def test_cli_install_wires_both_events_idempotently_without_trusting_hooks(tmp_path, monkeypatch, capsys):
+    root, framework, path = _consumer(tmp_path, [], with_session_start=False)
+    path.unlink()
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    trust_state = codex_home / "hook-trust.json"
+    trust_state.write_text('{"user-managed": true}', encoding="utf-8")
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+    trust_before = trust_state.read_bytes()
+
+    exit_code, installed = _cli(monkeypatch, capsys, root, framework, "install")
+    assert exit_code == 0 and installed["status"] == "installed"
+    hooks = json.loads(path.read_text(encoding="utf-8"))["hooks"]
+    assert set(hooks) == {"SessionStart", "Stop"}
+    start = hooks["SessionStart"]
+    assert len(start) == 1 and start[0]["matcher"] == "^(startup|resume|clear|compact)$"
+    assert len(start[0]["hooks"]) == 1
+    assert "runtime_hooks/adapters/codex/session_start.py" in start[0]["hooks"][0]["command"]
+    assert "commandWindows" in start[0]["hooks"][0]
+    assert len(_stop_hooks(path)) == 1
+    assert trust_state.read_bytes() == trust_before
+    assert list(codex_home.iterdir()) == [trust_state]
+    before = path.read_bytes()
+    exit_code, verified = _cli(monkeypatch, capsys, root, framework, "verify")
+    assert exit_code == 0 and verified["installed"] is True
+    for operation, expected in (("install", "already_installed"), ("repair", "no_repair_needed")):
+        exit_code, result = _cli(monkeypatch, capsys, root, framework, operation)
+        assert exit_code == 0 and result["status"] == expected
+        assert path.read_bytes() == before
+
+
+def test_absolute_session_start_uses_the_requested_framework(tmp_path):
+    root, _, path = _consumer(tmp_path, [], with_session_start=False)
+    framework = tmp_path / "owner's shared framework"
+    adapter = manager.CodexCLIAdapter()
+    assert adapter.install(root, framework)["status"] == "installed"
+    start = json.loads(path.read_text(encoding="utf-8"))["hooks"]["SessionStart"][-1]["hooks"][0]
+    assert shlex.split(start["command"]) == [
+        "python3", str(framework / "runtime_hooks/adapters/codex/session_start.py"),
+        "--project-root", str(root.resolve()),
+    ]
+    assert adapter.verify(root, framework)["installed"] is True
+
+
+@pytest.mark.parametrize("declared", [False, True])
+def test_cli_uninstall_preserves_conflicting_configuration(tmp_path, monkeypatch, capsys, declared):
+    project_hook = _project_hook()
+    root, framework, path = _consumer(tmp_path, [project_hook])
+    if declared:
+        _declare(root, project_hook)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["hooks"]["Stop"][0]["hooks"].append(manager.CodexCLIAdapter._hook_payload(framework, root))
+    path.write_text(json.dumps(data), encoding="utf-8")
+    before = path.read_bytes()
+    exit_code, result = _cli(monkeypatch, capsys, root, framework, "uninstall")
+    assert exit_code == 1 and result["status"] == "blocked"
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("declared", [False, True])
+def test_stop_only_fails_verification_and_detect_then_repairs_without_replacing_stop(
+    tmp_path, monkeypatch, capsys, declared
+):
+    root, framework, path = _consumer(tmp_path, [], with_session_start=False)
+    adapter = manager.CodexCLIAdapter()
+    hook = _project_hook() if declared else adapter._hook_payload(framework, root)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["hooks"]["Stop"][0]["hooks"] = [hook]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    if declared:
+        declaration = _declare(root, hook)
+        declaration_before = declaration.read_bytes()
+    before = path.read_bytes()
+    exit_code, result = _cli(monkeypatch, capsys, root, framework, "verify")
+    assert exit_code == 1 and result["installed"] is False
+    assert "SessionStart" in result["note"] and "not installed" in result["note"]
+    detection = adapter.detect(root)
+    assert detection["detected"] is True
+    assert detection["installed"] is False
+    assert "SessionStart" in detection["evidence"] and "not installed" in detection["evidence"]
+    assert path.read_bytes() == before
+
+    assert adapter.repair(root, framework)["status"] == "installed"
+    assert _stop_hooks(path) == [hook]
+    assert adapter.verify(root, framework)["installed"] is True
+    if declared:
+        assert declaration.read_bytes() == declaration_before
+        assert adapter.install(root, framework)["status"] == "already_configured"
+
+
+@pytest.mark.parametrize("defect", ["matcher", "framework", "root", "duplicate", "windows", "misplaced"])
+@pytest.mark.parametrize("stop_present", [False, True])
+def test_differing_session_start_blocks_both_writes(tmp_path, defect, stop_present):
+    root, framework, path = _consumer(tmp_path, [])
+    adapter = manager.CodexCLIAdapter()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][1]
+    if defect == "matcher":
+        group["matcher"] = "startup"
+    elif defect in {"framework", "root"}:
+        group["hooks"] = [session_start.hook_payload(
+            root if defect == "framework" else tmp_path / "elsewhere",
+            tmp_path / "other-framework" if defect == "framework" else framework,
+        )]
+    elif defect == "duplicate":
+        group["hooks"].append(dict(group["hooks"][0]))
+    elif defect == "windows":
+        group["hooks"][0]["commandWindows"] = "powershell -NoProfile -EncodedCommand !invalid!"
+    elif defect == "misplaced":
+        data["hooks"]["SessionEnd"] = [data["hooks"]["SessionStart"].pop()]
+    if stop_present:
+        data["hooks"]["Stop"][0]["hooks"] = [adapter._hook_payload(framework, root)]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    before = path.read_bytes()
+    verified = adapter.verify(root, framework)
+    assert verified["installed"] is False
+    assert verified["session_start_state"] == "installed_incorrectly"
+    assert "SessionStart" in verified["note"]
+    for operation in ("install", "repair"):
+        result = getattr(adapter, operation)(root, framework)
+        assert result["status"] == "blocked"
+        assert "SessionStart" in result["message"]
+        assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("declared", [False, True])
+def test_uninstall_removes_framework_events_and_preserves_user_hooks(tmp_path, monkeypatch, declared):
+    user_stop = {"type": "command", "command": "echo user-stop"}
+    project_hook = _project_hook()
+    root, framework, path = _consumer(tmp_path, [project_hook if declared else user_stop])
+    adapter = manager.CodexCLIAdapter()
+    monkeypatch.setattr(manager, "_resolve_framework_root", lambda: framework)
+    if declared:
+        declaration = _declare(root, project_hook)
+        declaration_before = declaration.read_bytes()
+    else:
+        assert adapter.install(root, framework)["status"] == "installed"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    # Merely mentioning the framework entry does not transfer ownership.
+    mention = {"type": "command", "command": "echo " + str(framework / "runtime_hooks/adapters/codex/session_start.py")}
+    data["hooks"]["SessionStart"][0]["hooks"].append(mention)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    user_bytes = json.dumps(mention).encode("utf-8")
+
+    assert adapter.uninstall(root)["status"] == "uninstalled"
+    remaining = json.loads(path.read_text(encoding="utf-8"))["hooks"]
+    assert remaining["SessionStart"][0]["hooks"] == [
+        {"type": "command", "command": "python scripts/session_identity.py"}, mention,
+    ]
+    assert remaining["SessionStart"][1]["hooks"] == []
+    assert _stop_hooks(path) == [project_hook if declared else user_stop]
+    assert user_bytes in path.read_bytes()
+    before = path.read_bytes()
+    assert adapter.uninstall(root)["status"] == "not_found"
+    assert path.read_bytes() == before
+    if declared:
+        assert declaration.read_bytes() == declaration_before
+
+
+@pytest.mark.parametrize("portable", [False, True])
+def test_uninstall_recognizes_an_installed_framework_outside_the_manager_checkout(tmp_path, portable):
+    root, inside, path = _consumer(tmp_path, [], with_session_start=False)
+    framework = inside if portable else tmp_path / "shared-framework"
+    adapter = manager.CodexCLIAdapter()
+    assert adapter.install(root, framework)["status"] == "installed"
+    assert adapter.uninstall(root)["status"] == "uninstalled"
+    hooks = json.loads(path.read_text(encoding="utf-8"))["hooks"]
+    assert hooks["SessionStart"][0]["hooks"] == [
+        {"type": "command", "command": "python scripts/session_identity.py"},
+    ]
+    assert hooks["SessionStart"][1]["hooks"] == []
+    assert _stop_hooks(path) == []
 
 
 def _stop_hooks(path: Path) -> list[dict]:
@@ -344,7 +531,8 @@ def test_other_purpose_stop_is_never_counted_as_a_formal_conflict(tmp_path, comm
 def test_standard_install_and_repair_preserve_unrelated_json_bytes(tmp_path, initial):
     root, framework, path = _consumer(tmp_path, [])
     adapter = manager.CodexCLIAdapter()
-    session = '"SessionStart" : [ {"hooks":[{"type":"command", "command":"echo start\\u0021"}]} ]'
+    session_group = '{"hooks":[{"type":"command", "command":"echo start\\u0021"}]}'
+    session = '"SessionStart" : [ ' + session_group + ' ]'
     other = '{"type":"command", "command" : "echo audit\\u0021", "timeout":7}'
     standard = ""
     if initial != "missing":
@@ -367,7 +555,7 @@ def test_standard_install_and_repair_preserve_unrelated_json_bytes(tmp_path, ini
     assert before["installed"] is False
     assert adapter.repair(root, framework)["status"] == "installed"
     after = path.read_bytes()
-    assert session.encode("utf-8") in after
+    assert session_group.encode("utf-8") in after
     assert other.encode("utf-8") in after
     assert b'"custom": "kept\\u0021"\r\n}\r\n' in after
     assert adapter.verify(root, framework)["configuration_state"] == "standard"
@@ -378,9 +566,10 @@ def test_standard_install_and_repair_preserve_unrelated_json_bytes(tmp_path, ini
 
 
 @pytest.mark.parametrize("stop", [None, [], [{"matcher": "keep"}], [{"hooks": []}]])
-def test_missing_stop_container_installs_without_changing_sessionstart(tmp_path, stop):
+def test_missing_stop_container_installs_both_without_changing_user_start_hooks(tmp_path, stop):
     root, framework, path = _consumer(tmp_path, [])
-    session = '"SessionStart" : [ {"hooks":[]} ]'
+    session_group = '{"hooks":[]}'
+    session = '"SessionStart" : [ ' + session_group + ' ]'
     source = '{"hooks":{' + session
     if stop is not None:
         source += ', "Stop":' + json.dumps(stop)
@@ -388,7 +577,7 @@ def test_missing_stop_container_installs_without_changing_sessionstart(tmp_path,
     path.write_text(source, encoding="utf-8")
     adapter = manager.CodexCLIAdapter()
     assert adapter.install(root, framework)["status"] == "installed"
-    assert session.encode("utf-8") in path.read_bytes()
+    assert session_group.encode("utf-8") in path.read_bytes()
     if stop and "matcher" in stop[0]:
         assert json.loads(path.read_text(encoding="utf-8"))["hooks"]["Stop"][0]["matcher"] == "keep"
     assert adapter.verify(root, framework)["installed"] is True
@@ -410,6 +599,10 @@ def test_legacy_owned_wrapper_remains_replaceable_as_a_stale_framework_entry(tmp
     '{', '[]', '{"hooks":[]}', '{"hooks":{"Stop":{}}}',
     '{"hooks":{"Stop":[{"hooks":null}]}}',
     '{"hooks":{"Stop":[{"hooks":[null]}]}}',
+    '{"hooks":{"SessionStart":null}}', '{"hooks":{"SessionStart":{}}}',
+    '{"hooks":{"SessionStart":[null]}}',
+    '{"hooks":{"SessionStart":[{"hooks":null}]}}',
+    '{"hooks":{"SessionStart":[{"hooks":[null]}]}}',
     '{"hooks":{}, "hooks":{"Stop":[]}}',
 ])
 def test_invalid_configuration_is_not_treated_as_missing(tmp_path, source):

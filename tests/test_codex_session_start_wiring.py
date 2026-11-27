@@ -65,7 +65,7 @@ def test_consumer_without_codex_is_not_checked(consumer: Path) -> None:
 
 
 def test_stop_only_consumer_is_reported_with_a_working_repair(consumer: Path) -> None:
-    CodexCLIAdapter().install(consumer, ROOT)
+    _write_hooks(consumer, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(ROOT, consumer)]}]})
     report = _assess_unchanged(consumer)
     assert report["status"] == NOT_INSTALLED
     assert report["stop_wiring"] == "consistent"
@@ -216,7 +216,7 @@ def test_incorrect_bindings_are_named(consumer: Path, tmp_path: Path, case: str,
 def test_stop_bound_to_another_checkout_is_inconsistent(consumer: Path, tmp_path: Path) -> None:
     other = tmp_path / "owner-checkout"
     other.mkdir()
-    CodexCLIAdapter().install(consumer, other)
+    _write_hooks(consumer, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(other, consumer)]}]})
     install(consumer)
     report = _assess_unchanged(consumer)
     assert report["status"] == INSTALLED_CORRECTLY
@@ -328,7 +328,7 @@ def test_f7_reports_the_gap_without_changing_status_or_files(monkeypatch, tmp_pa
     assert baseline.stages["codex_session_start"]["status"] == NOT_APPLICABLE
     assert not any("codex SessionStart" in w for w in baseline.warnings)
 
-    CodexCLIAdapter().install(repo, repo / "ai-governance-framework")
+    _write_hooks(repo, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(repo / "ai-governance-framework", repo)]}]})
     hooks_before = _hooks_file(repo).read_bytes()
     result = run_f7_full_update(repo_root=repo, framework_root=tmp_path / "unused", apply=False)
     stage = result.stages["codex_session_start"]

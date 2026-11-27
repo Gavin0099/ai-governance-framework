@@ -67,9 +67,19 @@ if __package__ in (None, ""):
 
 from runtime_hooks.adapters.codex.session_start import (  # noqa: E402
     POSIX_ROOT as _POSIX_ROOT,
+    SESSION_START_MATCHER,
     encode_powershell as _encode_powershell,
+    hook_payload as _session_start_payload,
     portable_framework_path,
+    portable_hook_payload as _portable_session_start_payload,
     windows_python_prologue as _windows_python_prologue,
+)
+from governance_tools.codex_session_start_wiring import (  # noqa: E402
+    INSTALLED_CORRECTLY,
+    INSTALLED_INCORRECTLY,
+    NOT_INSTALLED,
+    assess_session_start_hooks,
+    is_framework_session_start_hook,
 )
 
 
@@ -1375,7 +1385,8 @@ class CodexCLIAdapter(AgentAdapter):
     """
     OpenAI Codex CLI and desktop app.
 
-    Integration surface: project-local .codex/hooks.json, hooks.Stop[].hooks[].
+    Integration surface: project-local .codex/hooks.json, SessionStart and Stop.
+    SessionStart establishes the root-bound identity required for closeout.
     A Stop hook runs when Codex completes a turn.  The closeout entrypoint uses
     JSON output because Codex requires JSON on stdout for successful Stop hooks.
 
@@ -1400,16 +1411,20 @@ class CodexCLIAdapter(AgentAdapter):
     @property
     def surface_description(self) -> str:
         return (
-            "Codex Stop hook in .codex/hooks.json. "
-            "Fires automatically when Codex completes a turn."
+            "Codex SessionStart and Stop hooks in .codex/hooks.json. "
+            "Establishes session identity, then runs closeout when Codex completes a turn."
         )
 
     def detect(self, project_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
+        verification = self.verify(project_root, _resolve_framework_root())
         return {
             "detected": hook_path.exists(),
+            "installed": verification["installed"],
+            "session_start_state": verification["session_start_state"],
+            "configuration_state": verification["configuration_state"],
             "evidence": (
-                ".codex/hooks.json present" if hook_path.exists()
+                ".codex/hooks.json present. " + verification["note"] if hook_path.exists()
                 else "no .codex/hooks.json"
             ),
         }
@@ -1528,13 +1543,15 @@ class CodexCLIAdapter(AgentAdapter):
                 data = json.loads(source, object_pairs_hook=self._json_object)
             if not isinstance(data, dict) or not isinstance(data.get("hooks", {}), dict):
                 raise ValueError("Expected hooks object")
+            for event in ("SessionStart", "Stop"):
+                groups = data.get("hooks", {}).get(event, [])
+                if not isinstance(groups, list) or any(
+                    not isinstance(group, dict) or not isinstance(group.get("hooks", []), list)
+                    or any(not isinstance(hook, dict) for hook in group.get("hooks", []))
+                    for group in groups
+                ):
+                    raise ValueError(f"Expected {event} hook groups")
             groups = data.get("hooks", {}).get("Stop", [])
-            if not isinstance(groups, list) or any(
-                not isinstance(group, dict) or not isinstance(group.get("hooks", []), list)
-                or any(not isinstance(hook, dict) for hook in group.get("hooks", []))
-                for group in groups
-            ):
-                raise ValueError("Expected Stop hook groups")
         except (OSError, UnicodeError, ValueError):
             return source, data, {
                 "configuration_state": "invalid", "formal_closeout_count": 0,
@@ -1659,21 +1676,25 @@ class CodexCLIAdapter(AgentAdapter):
             return source[:end - 1] + comma + json.dumps(path[-1]) + ": " + replacement + source[end - 1:]
         return source[:start] + replacement + source[end:]
 
-    def _write_standard_hook(self, source: str, data: dict, assessment: dict,
-                             project_root: Path, framework_root: Path) -> None:
+    @classmethod
+    def _without_hook(cls, source: str, event: str, group: int, index: int) -> str:
+        array_path = ("hooks", event, group, "hooks")
+        start, end = cls._json_span(source, array_path + (index,))
+        if index:
+            start = cls._json_span(source, array_path + (index - 1,))[1]
+        else:
+            array_start, array_end = cls._json_span(source, array_path)
+            if len(json.loads(source[array_start:array_end])) > 1:
+                end = cls._json_span(source, array_path + (index + 1,))[0]
+        return source[:start] + source[end:]
+
+    def _with_standard_hook(self, source: str, data: dict, assessment: dict,
+                            project_root: Path, framework_root: Path) -> str:
         # Replace only framework-owned entries approved by the classifier,
         # retaining installer ordering and the exact bytes of other handlers.
         # Remove backwards so remaining positions stay valid across deletions.
         for group, index in sorted(assessment.get("replace_positions", []), reverse=True):
-            array_path = ("hooks", "Stop", group, "hooks")
-            start, end = self._json_span(source, array_path + (index,))
-            if index:
-                start = self._json_span(source, array_path + (index - 1,))[1]
-            else:
-                array_start, array_end = self._json_span(source, array_path)
-                if len(json.loads(source[array_start:array_end])) > 1:
-                    end = self._json_span(source, array_path + (index + 1,))[0]
-            source = source[:start] + source[end:]
+            source = self._without_hook(source, "Stop", group, index)
         payload = self._hook_payload(framework_root, project_root)
         try:
             start, end = self._json_span(source, ("hooks", "Stop", 0, "hooks"))
@@ -1685,9 +1706,7 @@ class CodexCLIAdapter(AgentAdapter):
         else:
             comma = "," if json.loads(source[start:end]) else ""
             source = source[:end - 1] + comma + json.dumps(payload, ensure_ascii=False) + source[end - 1:]
-        path = self._hook_path(project_root)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(source.encode("utf-8"))
+        return source
 
     @staticmethod
     def _is_governance_hook(hook: Any) -> bool:
@@ -1817,33 +1836,13 @@ class CodexCLIAdapter(AgentAdapter):
         }
 
     def _find_current_hook(self, project_root: Path, framework_root: Path) -> bool:
-        return self._configuration(project_root, framework_root)[2]["configuration_state"] in {
-            "standard", "project_adapter_verified",
-        }
+        return self.verify(project_root, framework_root)["installed"]
 
     def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
         source, data, assessment = self._configuration(project_root, framework_root)
         state = assessment["configuration_state"]
-        if state == "standard":
-            return {
-                "status": "already_installed",
-                "configuration_state": state,
-                "location": str(hook_path),
-                "message": "Governance Codex Stop hook already matches the requested framework binding.",
-            }
-        if state == "project_adapter_verified":
-            return {
-                "status": "already_configured",
-                "configuration_state": state,
-                "formal_closeout_count": assessment["formal_closeout_count"],
-                "location": str(hook_path),
-                "message": assessment["note"] + (
-                    " No configuration changed. Configuration binding only; native execution, "
-                    "hook trust and formal closeout are not verified."
-                ),
-            }
-        if state not in {"missing", "standard_stale", "standard_duplicate"}:
+        if state not in {"missing", "standard_stale", "standard_duplicate", "standard", "project_adapter_verified"}:
             return {
                 "status": "blocked",
                 "configuration_state": state,
@@ -1856,18 +1855,62 @@ class CodexCLIAdapter(AgentAdapter):
                     "Configuration binding only; native execution is not verified."
                 ),
             }
-        self._write_standard_hook(source, data, assessment, project_root, framework_root)
+        start_state, start_reasons = assess_session_start_hooks(data.get("hooks", {}), project_root, framework_root)
+        if start_state == INSTALLED_INCORRECTLY:
+            return {
+                "status": "blocked",
+                "configuration_state": state,
+                "session_start_state": start_state,
+                "location": str(hook_path),
+                "message": "SessionStart wiring needs review: " + "; ".join(start_reasons)
+                + ". No configuration changed; differing identity bindings are never replaced automatically.",
+            }
+        if state == "standard" and start_state == INSTALLED_CORRECTLY:
+            return {
+                "status": "already_installed",
+                "configuration_state": state,
+                "location": str(hook_path),
+                "message": "Governance Codex SessionStart and Stop hooks already match the requested framework binding.",
+            }
+        if state == "project_adapter_verified" and start_state == INSTALLED_CORRECTLY:
+            return {
+                "status": "already_configured",
+                "configuration_state": state,
+                "formal_closeout_count": assessment["formal_closeout_count"],
+                "location": str(hook_path),
+                "message": assessment["note"] + (
+                    " No configuration changed. Configuration binding only; native execution, "
+                    "hook trust and formal closeout are not verified."
+                ),
+            }
+        # Preflight both events before writing either. A declared Stop adapter
+        # stays intact when its missing SessionStart identity hook is added.
+        if state not in {"standard", "project_adapter_verified"}:
+            source = self._with_standard_hook(source, data, assessment, project_root, framework_root)
+        if start_state == NOT_INSTALLED:
+            payload = _portable_session_start_payload(project_root, framework_root) \
+                or _session_start_payload(project_root, framework_root)
+            group = {"matcher": SESSION_START_MATCHER, "hooks": [payload]}
+            try:
+                start, end = self._json_span(source, ("hooks", "SessionStart"))
+            except KeyError:
+                source = self._set_json_value(source, ("hooks", "SessionStart"), [group])
+            else:
+                comma = "," if json.loads(source[start:end]) else ""
+                source = source[:end - 1] + comma + json.dumps(group, ensure_ascii=False) + source[end - 1:]
+        hook_path.parent.mkdir(parents=True, exist_ok=True)
+        hook_path.write_bytes(source.encode("utf-8"))
         portable = bool(portable_framework_path(project_root, framework_root))
         return {
             "status": "installed",
-            "configuration_state": "standard",
+            "configuration_state": "project_adapter_verified" if state == "project_adapter_verified" else "standard",
             "location": str(hook_path),
             "portable": portable,
-            "message": f"Governance Codex Stop hook added to {hook_path}." + (
+            "message": f"Governance Codex SessionStart and Stop hooks configured in {hook_path}." + (
                 "" if portable else
                 " It uses absolute paths (framework outside the consumer, or a path that needs"
                 " shell quoting), so it is not portable to another machine or clone."
-            ),
+            ) + " Hook trust remains an explicit user action in Codex /hooks; it was not changed.",
         }
 
     def repair(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
@@ -1880,44 +1923,61 @@ class CodexCLIAdapter(AgentAdapter):
 
     def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        _, _, assessment = self._configuration(project_root, framework_root)
+        _, data, assessment = self._configuration(project_root, framework_root)
         state = assessment["configuration_state"]
-        installed = state in {"standard", "project_adapter_verified"}
+        if state == "invalid":
+            start_state, start_reasons = INSTALLED_INCORRECTLY, ["SessionStart wiring cannot be verified"]
+        else:
+            start_state, start_reasons = assess_session_start_hooks(data.get("hooks", {}), project_root, framework_root)
+        installed = state in {"standard", "project_adapter_verified"} and start_state == INSTALLED_CORRECTLY
         return {
             "installed": installed,
             "configuration_state": state,
+            "session_start_state": start_state,
             "formal_closeout_count": assessment["formal_closeout_count"],
             "manual_only": False,
             "location": str(hook_path) if hook_path.exists() else None,
-            "note": assessment["note"] + " Configuration binding only; native execution is not verified."
+            "note": assessment["note"] + " "
+            + ("SessionStart identity hook matches the requested framework and project root."
+               if start_state == INSTALLED_CORRECTLY else "; ".join(start_reasons) + ".")
+            + " Configuration binding only; native execution is not verified."
             + (_PENDING_HOOK_NOTE if installed else ""),
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
         hook_path = self._hook_path(project_root)
-        data = _read_json(hook_path)
-        changed = False
-        for group in data.get("hooks", {}).get("Stop", []):
-            if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
-                continue
-            before = len(group["hooks"])
-            group["hooks"] = [
-                hook for hook in group["hooks"]
-                if not self._is_governance_hook(hook)
-            ]
-            changed = changed or len(group["hooks"]) < before
-        if changed:
-            _write_json(hook_path, data)
+        framework_root = _resolve_framework_root()
+        source, data, assessment = self._configuration(project_root, framework_root)
+        state = assessment["configuration_state"]
+        if state in {"invalid", "conflict", "project_adapter_unverified"}:
+            return {"agent": self.agent_id, "status": "blocked", "location": str(hook_path),
+                    "message": assessment["note"] + " No configuration changed; review before uninstalling."}
+        positions = []
+        for event in ("SessionStart", "Stop"):
+            for group_index, group in enumerate(data.get("hooks", {}).get(event, [])):
+                for index, hook in enumerate(group.get("hooks", [])):
+                    if event == "Stop":
+                        removable = state != "project_adapter_verified" and self._is_governance_hook(hook)
+                    else:
+                        # A textual mention or a different binding is reserved
+                        # for review, not installer ownership of a user hook.
+                        removable = is_framework_session_start_hook(group, hook, project_root)
+                    if removable:
+                        positions.append((event, group_index, index))
+        if positions:
+            for event, group, index in sorted(positions, reverse=True):
+                source = self._without_hook(source, event, group, index)
+            hook_path.write_bytes(source.encode("utf-8"))
             return {
                 "agent": self.agent_id,
                 "status": "uninstalled",
                 "location": str(hook_path),
-                "message": "Governance Codex Stop hook removed from .codex/hooks.json.",
+                "message": "Matching governance Codex SessionStart/Stop hooks removed; project hooks preserved.",
             }
         return {
             "agent": self.agent_id,
             "status": "not_found",
-            "message": "No governance Codex Stop hook found to remove.",
+            "message": "No matching governance Codex SessionStart/Stop hooks found to remove.",
         }
 
     def print_manual(self, framework_root: Path) -> str:
@@ -1927,11 +1987,12 @@ class CodexCLIAdapter(AgentAdapter):
             f"    {cmd}\n\n"
             f"Not for a PREPARED (R2) candidate: manual_fallback is refused for it "
             f"(RELEASE_PROOF_INVALID).\n\n"
-            f"First inspect the Stop configuration (run from the framework checkout):\n\n"
+            f"First inspect the SessionStart and Stop configuration (run from the framework checkout):\n\n"
             f"    python -m governance_tools.manage_agent_closeout --project-root <PROJECT_ROOT> verify --agent codex\n\n"
-            f"Install/repair add only when missing, replace one stale framework entry, or consolidate "
-            f"duplicates when all formal entries are framework-owned. A verified project adapter is "
-            f"a successful no-op; unverified adapters, conflicts and invalid settings remain blocked. "
+            f"Install/repair add missing SessionStart identity wiring. For Stop, they add only when missing, "
+            f"replace one stale framework entry, or consolidate duplicates when all formal entries are "
+            f"framework-owned. A verified project adapter is preserved; when SessionStart is also correct, "
+            f"installation is a successful no-op. Unverified adapters, conflicts and invalid settings remain blocked. "
             f"An adapter match verifies configuration only, not execution, hook trust or formal closeout. "
             f"Do not add a direct entry alongside an adapter. See docs/hook-coverage-model.md "
             f"for the .codex/closeout-adapter.json declaration."
@@ -2180,9 +2241,11 @@ def main() -> int:
 
     for op in ("install", "verify", "repair", "uninstall", "smoke"):
         codex_help = (
-            " For Codex, verify classifies formal Stop entries. Install/repair add only when missing, "
+            " For Codex, verify checks SessionStart identity wiring and classifies formal Stop entries. "
+            "Install/repair add missing SessionStart wiring. For Stop, they add only when missing, "
             "replace one stale framework entry, or consolidate duplicates only when all formal entries "
-            "are framework-owned. A verified project adapter is a successful no-op; "
+            "are framework-owned. A verified project adapter is preserved, with a successful no-op "
+            "when SessionStart is also correct; "
             "unverified adapters, conflicts and invalid settings remain blocked for a human decision. "
             "A matching .codex/closeout-adapter.json declaration verifies configuration only, "
             "not execution, hook trust or formal closeout. "
@@ -2257,7 +2320,7 @@ def main() -> int:
     if args.operation == "smoke":
         all_ok = all(r.get("status") == "pass" for r in results)
         return 0 if all_ok else 1
-    if args.operation in {"install", "repair"}:
+    if args.operation in {"install", "repair", "uninstall"}:
         failed = any(r.get("status") in {"blocked", "error", "unknown_agent"} for r in results)
         return 1 if failed else 0
     return 0

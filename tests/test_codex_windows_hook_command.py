@@ -8,7 +8,11 @@ import subprocess
 import pytest
 
 from governance_tools.manage_agent_closeout import CodexCLIAdapter
-from runtime_hooks.adapters.codex.session_start import portable_framework_path
+from runtime_hooks.adapters.codex.session_start import (
+    SESSION_START_MATCHER,
+    portable_framework_path,
+    portable_hook_payload,
+)
 
 
 def test_literal_transport_and_posix_unchanged(tmp_path):
@@ -42,7 +46,9 @@ def test_old_windows_command_is_replaced_once(tmp_path):
     assert adapter.install(tmp_path, tmp_path)["status"] == "already_installed"
     assert path.read_bytes() == after
     hooks = json.loads(after)["hooks"]
-    assert list(hooks) == ["Stop"]
+    assert set(hooks) == {"SessionStart", "Stop"}
+    assert len(hooks["SessionStart"]) == 1
+    assert hooks["SessionStart"][0]["matcher"] == SESSION_START_MATCHER
     assert len(hooks["Stop"][0]["hooks"]) == 1
 
 
@@ -112,7 +118,8 @@ def test_stale_framework_binding_is_replaced_and_custom_hooks_preserved(tmp_path
     windows_script = base64.b64decode(hook["commandWindows"].split()[-1]).decode("utf-16-le")
     assert old_entry.as_posix() not in windows_script
     assert repaired["hooks"]["Stop"][0]["hooks"][0] == custom
-    assert repaired["hooks"]["SessionStart"] == data["hooks"]["SessionStart"]
+    assert repaired["hooks"]["SessionStart"][:-1] == data["hooks"]["SessionStart"]
+    assert repaired["hooks"]["SessionStart"][-1]["matcher"] == SESSION_START_MATCHER
     assert repaired["unknown_setting"] == data["unknown_setting"]
     assert adapter.verify(project, new_root)["installed"] is True
     before_retry = path.read_bytes()
@@ -192,7 +199,10 @@ def test_closeout_text_in_custom_hook_is_preserved(tmp_path, operation, custom_c
     current = adapter._hook_payload(framework)
     path = tmp_path / ".codex/hooks.json"
     path.parent.mkdir()
-    data = {"hooks": {"Stop": [{"hooks": [current, custom]}]}}
+    data = {"hooks": {
+        "SessionStart": [{"matcher": SESSION_START_MATCHER, "hooks": [portable_hook_payload(tmp_path, framework)]}],
+        "Stop": [{"hooks": [current, custom]}],
+    }}
     path.write_text(json.dumps(data), encoding="utf-8")
 
     before = path.read_bytes()

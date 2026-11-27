@@ -79,8 +79,9 @@ Do not interpret every `installed=false` as permission to add a direct entry.
 `blocked` is a non-success result (CLI exit 1). A human decides which entry to
 retain, corrects or declares the project adapter, or removes a conflict. Neither
 install nor repair makes that choice. Repeated calls do not accumulate entries.
-They leave SessionStart and unrelated Stop handlers byte-identical, including
-their JSON spelling and whitespace. A single stale framework entry can still be
+They install and verify SessionStart while preserving existing SessionStart and
+unrelated Stop handlers byte-identically, including their JSON spelling and
+whitespace. A single stale framework entry can still be
 rebound. Pure framework duplicates are consolidated without bypassing any project
 entry. If a project adapter, declared adapter or unknown formal candidate
 participates, the configuration remains a conflict and is preserved. A verified

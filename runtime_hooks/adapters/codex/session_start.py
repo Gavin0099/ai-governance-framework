@@ -98,10 +98,11 @@ def portable_hook_payload(project_root: Path, framework_root: Path | None = None
             "timeout": 30, "statusMessage": "Establishing governance session identity..."}
 
 
-def hook_payload(project_root: Path) -> dict:
+def hook_payload(project_root: Path, framework_root: Path | None = None) -> dict:
     """Absolute form, kept for a framework checkout outside the consumer and
     as an accepted existing binding."""
-    entry = Path(__file__).resolve()
+    entry = (framework_root / "runtime_hooks/adapters/codex/session_start.py").resolve() \
+        if framework_root is not None else Path(__file__).resolve()
     args = [str(entry), "--project-root", str(project_root.resolve())]
     posix = "python3 " + shlex.join(args)
     def psquote(s: str) -> str:
