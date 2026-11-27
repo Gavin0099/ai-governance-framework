@@ -20,7 +20,8 @@ import uuid
 
 from governance_tools import shared_closeout_ownership as r2
 from governance_tools.prepare_closeout_candidate import (
-    framework_binding_identity, inherited_git_overrides, validate_framework_binding, _git,
+    framework_binding_identity, gate_policy_binding_identity,
+    inherited_git_overrides, validate_framework_binding, _git,
 )
 from runtime_hooks.core._bound_session_start import git_toplevel
 
@@ -928,6 +929,11 @@ def _live(lease, request, provider, *, qualified_context=None):
         _require(cand["framework_binding"] == b["framework"], "FRAMEWORK_DRIFT")
     elif FRAMEWORK != root and FRAMEWORK.is_relative_to(root) and owner["state"] == "OWNED":
         _require(False, "FRAMEWORK_BINDING_MISSING")
+    if "gate_policy_binding" in cand:
+        _require(isinstance(cand["gate_policy_binding"], dict), "GATE_POLICY_BINDING_INVALID")
+        _require(cand["gate_policy_binding"] == gate_policy_binding_identity(root), "GATE_POLICY_DRIFT")
+    elif FRAMEWORK != root and FRAMEWORK.is_relative_to(root) and owner["state"] == "OWNED":
+        _require(False, "GATE_POLICY_BINDING_MISSING")
     return owner, transcript
 
 
