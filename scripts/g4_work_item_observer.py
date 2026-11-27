@@ -614,20 +614,21 @@ def parse_copilot_billing(paths: list[Path], *, confirmed_unused: bool = False) 
     unverifiable_dedup = csv_count > 1 and has_missing_login
     if unverifiable_dedup:
         anomalies.add("copilot_cross_file_dedup_unverifiable_without_login")
-    has_billing_rows = bool(rows) or "copilot_invalid_billing_row" in anomalies
-    if confirmed_unused and has_billing_rows:
-        anomalies.add("copilot_confirmed_unused_conflicts_with_billing_rows")
-
     state = "unknown"
     totals: dict[str, Decimal] = {}
-    if rows and not (confirmed_unused or unverifiable_dedup):
+    if confirmed_unused:
+        if rows or "copilot_invalid_billing_row" in anomalies:
+            anomalies.add("copilot_confirmed_unused_conflicts_with_evidence")
+        elif paths or anomalies:
+            anomalies.add("copilot_confirmed_unused_conflicts_with_billing_sources")
+        else:
+            state = "confirmed_unused"
+    elif rows and not unverifiable_dedup:
         state = "billing_reference_only"
         for key, quantity in rows.items():
             if key not in conflicts:
                 model = key[2]
                 totals[model] = totals.get(model, Decimal(0)) + quantity
-    elif confirmed_unused and not has_billing_rows:
-        state = "confirmed_unused"
 
     # Convert only the final totals to preserve JSON numeric values without float accumulation noise.
     by_model = {model: float(total) for model, total in totals.items()}

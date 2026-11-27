@@ -736,6 +736,24 @@ def test_copilot_unknown_and_confirmed_unused_are_distinct(tmp_path: Path):
     assert observer.parse_copilot_billing([], confirmed_unused=True)["presence_state"] == "confirmed_unused"
 
 
+@pytest.mark.parametrize(
+    "content,parse_anomalies",
+    [
+        pytest.param('date,model,aic_quantity\n"', ["copilot_invalid_csv"], id="corrupt"),
+        pytest.param("date,model\n", ["copilot_missing_required_columns"], id="missing-columns"),
+        pytest.param("date,model,aic_quantity\n", [], id="header-only"),
+    ],
+)
+def test_copilot_confirmed_unused_conflicts_with_billing_sources(tmp_path: Path, content, parse_anomalies):
+    source = tmp_path / "billing.csv"
+    source.write_text(content, encoding="utf-8")
+
+    provider = observer.parse_copilot_billing([source], confirmed_unused=True)
+
+    assert provider["presence_state"] == "unknown"
+    assert provider["anomalies"] == ["copilot_confirmed_unused_conflicts_with_billing_sources", *parse_anomalies]
+
+
 @pytest.mark.parametrize("first_content,second_content", [
     ("date,model,aic_quantity\n2026-11-27,model-a,7\n", "date,model,aic_quantity\n2026-11-27,model-a,7\n"),
     ("date,login,model,aic_quantity\n2026-11-27,alice,model-a,7\n",
@@ -761,7 +779,7 @@ def test_copilot_confirmed_unused_conflicts_with_discovered_billing_rows(tmp_pat
     provider = observer.parse_copilot_billing([source], confirmed_unused=True)
     assert provider["presence_state"] == "unknown"
     assert provider["by_model_aic"] == {}
-    assert provider["anomalies"] == ["copilot_confirmed_unused_conflicts_with_billing_rows"]
+    assert provider["anomalies"] == ["copilot_confirmed_unused_conflicts_with_evidence"]
 
 
 def test_copilot_decimal_sum_has_no_float_tail_in_json_or_markdown(tmp_path: Path):
