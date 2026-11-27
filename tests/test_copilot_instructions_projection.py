@@ -207,7 +207,7 @@ def test_every_declared_surface_carries_the_projection() -> None:
     results = check_all_projections(REPO_ROOT)
 
     assert {r.surface for r in results} == {
-        "copilot", "agent-contract", "codex", "claude", "gemini",
+        "copilot", "copilot-root", "agent-contract", "codex", "claude", "gemini",
         "starter-pack-canon", "starter-pack-copilot",
         "starter-pack-claude", "starter-pack-gemini",
     }
@@ -231,7 +231,7 @@ def test_each_agent_has_a_declared_surface() -> None:
     """Every agent reads a different file; each must be a projection target."""
     paths = {rel for rel, _ in PROJECTION_TARGETS}
 
-    assert {"AGENTS.md", "CLAUDE.md", "GEMINI.md"} <= paths
+    assert {"AGENTS.md", "CLAUDE.md", "GEMINI.md", ".github/copilot-instructions.md"} <= paths
     assert any(rel.endswith("copilot-instructions-template.md") for rel in paths)
 
 
@@ -256,3 +256,42 @@ def test_a_surface_missing_its_region_is_an_error_not_a_skip(tmp_path: Path) -> 
 
     assert codex.ok is False
     assert any("projection region" in e for e in codex.errors)
+
+
+def test_root_copilot_instructions_drift_is_detected_and_repaired(tmp_path: Path) -> None:
+    """Negative control: tampering with .github/copilot-instructions.md fails check_all_projections."""
+    framework = _make_framework(tmp_path / "framework")
+    root_copilot = framework / ".github" / "copilot-instructions.md"
+    _write(root_copilot, _TEMPLATE)
+
+    before = next(r for r in check_all_projections(framework) if r.surface == "copilot-root")
+    assert before.ok is False
+    assert before.drift is True
+    assert before.found_version == "0.0"
+
+    repaired = next(
+        r for r in check_all_projections(framework, write=True) if r.surface == "copilot-root"
+    )
+    assert repaired.ok is True
+    assert repaired.written is True
+
+    # Re-run read-only verification to prove the repair actually persisted on disk.
+    after_repair = next(r for r in check_all_projections(framework) if r.surface == "copilot-root")
+    assert after_repair.ok is True
+    assert after_repair.drift is False
+    assert after_repair.written is False
+    assert after_repair.found_sha256 == after_repair.expected_sha256
+
+    # Non-managed prose outside the projection region must survive regeneration.
+    repaired_text = root_copilot.read_text(encoding="utf-8")
+    assert "### Surface adaptation: incomplete governance context" in repaired_text
+    assert "trailing framework prose" in repaired_text
+
+    # Negative control: corrupting the body after repair must actually mutate text and trigger drift.
+    tampered_text = repaired_text.replace("- milestone 完成", "- milestone tampered")
+    assert tampered_text != repaired_text
+    root_copilot.write_text(tampered_text, encoding="utf-8")
+    after_tamper = next(r for r in check_all_projections(framework) if r.surface == "copilot-root")
+    assert after_tamper.ok is False
+    assert after_tamper.drift is True
+    assert after_tamper.errors
