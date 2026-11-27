@@ -12,7 +12,7 @@
 | 情境 | 工具 | 說明／邊界 |
 |---|---|---|
 | 第一次接觸（2 分鐘驗證） | `quickstart_smoke.py` | 最小環境與治理合約 smoke 檢查（**非純唯讀**：執行時會啟動 session、寫入 `session-envelope.json` 並更新 `.current-session-id`） |
-| 導入到既有 repo | `adopt_governance.py` | 建議先加 `--dry-run` 預覽；保留既有 `AGENTS.md` / `memory/` / 規則包不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml`，並在 `contract.yaml` 缺少必要引用時寫回修補**；**不會自動安裝 Git hooks** |
+| 導入到既有 repo | `adopt_governance.py` | 建議先加 `--dry-run` 預覽（預覽不會列出 `.governance-payload-config.yaml`）；保留既有 `AGENTS.md` / `memory/` / 規則包不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml` 與 `.governance-payload-config.yaml`，並在 `contract.yaml` 缺少必要引用時寫回修補**；**不會自動安裝 Git hooks** |
 | 安裝本機 Git hooks | `hook_installer.py` | 獨立安裝治理 hooks；此 Python 入口會備份未納管檔案，並**拒絕覆蓋**不符預期的 consumer composed `pre-push`（Shell 入口 `scripts/install-hooks.sh` 遇到含框架標記的自訂 hook 會跳過備份並覆寫標準版；安裝 ≠ 所有環境必然執行） |
 | 更新與查看導入狀態（F-7） | `f7_full_update.py` | 預設 dry-run 輸出中文導入狀態表；確認後加 `--apply` 執行 |
 | 框架自我漂移檢查 | `governance_drift_checker.py` | 檢查 repo 與 framework 之間的配置／規則漂移 |
