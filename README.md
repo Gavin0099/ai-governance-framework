@@ -90,11 +90,11 @@ bash scripts/run-runtime-governance.sh --mode enforce
 # 1. 先預覽不寫入（建議第一步）
 python governance_tools/adopt_governance.py --target /path/to/your/repo --dry-run
 
-# 2. 確認預覽結果後再執行 onboarding（建立 AGENTS.md、contract.yaml、baseline 與 memory 骨架；既有檔案保留不覆蓋）
+# 2. 確認預覽結果後再執行 onboarding（建立 AGENTS.md、contract.yaml、baseline 與 memory 骨架；既有檔案例外詳見下方說明）
 python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
-> **衝突保護與 Hook 邊界**：`adopt_governance.py` 預設**不覆蓋**既有的 `AGENTS.md`、`contract.yaml`、governance 文件與 `memory/` 檔案，且**不會自動安裝 Git hooks**。若需安裝本機 Git hooks，請另行使用 `governance_tools/hook_installer.py` 或 `scripts/install-hooks.sh`（未納管檔案會先備份，不符預期的自訂 composed pre-push 會拒絕覆蓋；安裝檔案本身不等於在所有環境已驗證強制執行）。
+> **衝突保護與 Hook 邊界**：`adopt_governance.py` 預設保留既有的 `AGENTS.md`、governance 規則／文件包、drift workflow 與 `memory/` 檔案不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml`，並在既有 `contract.yaml` 缺少必要引用時寫回修補**（`--dry-run` 不寫入任何檔案）。此外，`adopt_governance.py` **不會自動安裝 Git hooks**；若需安裝本機 Git hooks，請另行使用 `governance_tools/hook_installer.py`（Python 入口會備份未納管檔案，並**拒絕覆蓋**不符預期的自訂 composed `pre-push`）或 `scripts/install-hooks.sh`（Shell 入口僅備份未含框架標記的既有 hook；遇到含框架標記的自訂 hook 會跳過備份並直接寫入標準版）。安裝檔案本身不等於在所有環境已驗證強制執行。
 
 **導入前先分類**：consumer 角色決定 automation ceiling 與 evidence duty。見 [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md)（submodule / F-7 / contract repo / copy-based audit-only）。最小起步包在 [`examples/starter-pack/`](examples/starter-pack/)。
 
@@ -177,7 +177,7 @@ full governance adoption。自己寫一份 domain contract：參考 [`examples/`
 
 ```text
 governance/             # 治理法典（8 大核心文件）、AUTHORITY 註冊表、rule packs、fleet 配置
-governance_tools/       # 257 支工具（含日常核心入口與歷史研究腳本，先看 governance_tools/README.md 速查表）
+governance_tools/       # 257 個頂層 Python 檔案（含日常核心入口、共用模組與歷史研究腳本，先看 governance_tools/README.md 速查表）
 runtime_hooks/          # claude_code / codex / gemini adapters + dispatcher + core hooks
 memory_pipeline/        # 記憶升級邏輯（eligibility-controlled）
 baselines/              # consumer repo 的 AGENTS 基準模板
