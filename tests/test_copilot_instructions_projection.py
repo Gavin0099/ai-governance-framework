@@ -275,18 +275,23 @@ def test_root_copilot_instructions_drift_is_detected_and_repaired(tmp_path: Path
     assert repaired.ok is True
     assert repaired.written is True
 
+    # Re-run read-only verification to prove the repair actually persisted on disk.
+    after_repair = next(r for r in check_all_projections(framework) if r.surface == "copilot-root")
+    assert after_repair.ok is True
+    assert after_repair.drift is False
+    assert after_repair.written is False
+    assert after_repair.found_sha256 == after_repair.expected_sha256
+
     # Non-managed prose outside the projection region must survive regeneration.
     repaired_text = root_copilot.read_text(encoding="utf-8")
     assert "### Surface adaptation: incomplete governance context" in repaired_text
     assert "trailing framework prose" in repaired_text
 
-    # Negative control: corrupting the body after repair must trigger drift again.
-    root_copilot.write_text(
-        repaired_text.replace("- milestone 完成", "- milestone tampered"),
-        encoding="utf-8",
-    )
+    # Negative control: corrupting the body after repair must actually mutate text and trigger drift.
+    tampered_text = repaired_text.replace("- milestone 完成", "- milestone tampered")
+    assert tampered_text != repaired_text
+    root_copilot.write_text(tampered_text, encoding="utf-8")
     after_tamper = next(r for r in check_all_projections(framework) if r.surface == "copilot-root")
     assert after_tamper.ok is False
     assert after_tamper.drift is True
     assert after_tamper.errors
-
