@@ -297,15 +297,14 @@ Overall task: NOT DONE until dirty work is audited or explicitly excluded
 
 ### 7. Result-First Final Report (reporting convention, not a gate)
 
-Before a final report or closeout, read `governance/RESPONSE_ENVELOPE_CONTRACT.md`
-for rendering, triggers, the F-7 exception, language/glossing and report paths.
-Even if unavailable: lead with the result; derive `mode` from the event; preserve
-`mode_source`, `task_authority`, `scope`, `done`, `claim_ceiling`, `not_claimed`,
-`evidence_refs`, `risk` and `next_action` separately in the complete machine record.
-Compact text must preserve decision-relevant non-claims, blockers and owner
-decisions; expand if needed. Use one `注意：` line for dirty state, material
-limitations or high-risk authority surfaces, or report failed/partial. `PASS`
-must name a command, artifact or source.
+Use Router 2 for final reports and closeout. Even without it, lead with the result.
+Keep these fields in the machine record:
+`mode` (from the event), `mode_source`, `task`, `task_authority`, `scope`,
+`done`, `claim_ceiling`, `not_claimed`, `evidence_refs`, `risk` and `next_action`.
+Expand on request for full evidence or if compact text hides a blocker, risk,
+non-claim or owner decision. Use one `注意：` line for dirty state, material limits
+or high-risk authority. If that line is insufficient, expand as failed/partial.
+Support `PASS` with a command, artifact or source.
 
 #### Progress Updates
 
@@ -316,20 +315,18 @@ than replay progress.
 
 ### 8. Commit Checkpoint (reporting convention, not a gate)
 
-After each implementation commit, report the following before continuing.
-This is an automatic checkpoint — not a mandatory pause.
+After each implementation commit, report these fields.
 
-```
-Commit: <hash + one-line summary>
-Tests: <pass / fail count, or "not run">
-Previously passing signal regression: <none | list what regressed>
-Dirty state: <clean | explained — list unrelated dirty files if any>
-Claim ceiling: <what was claimed; confirm it stays within DONE scope>
+```text
+Commit: <hash and one-line summary>
+Tests: <pass/fail counts or not run>
+Previously passing signal regression: <none or list>
+Dirty state: <clean or explain and list unrelated dirty files>
+Claim ceiling: <claim within DONE scope>
 Next recommended step: <one concrete action>
 ```
 
-If all signals are clear, continue without waiting.
-If any signal is unclear or regressed, surface it before proceeding.
+Continue immediately if all signals are clear. Surface any unclear or regressed signal first.
 
 ## Repo-Specific Risk Levels
 <!-- governance:key=risk_levels -->
@@ -400,27 +397,21 @@ parent's intended pin.
 
 ### AI Governance Update Trigger
 
-Follow Conditional Governance Routers 4–5 before check/update work. Route
-"幫我更新最新版 AI Governance" or equivalent wording to
-`governance_tools.f7_full_update`, even without the name F-7. Its updater is a
-backend, not the final reporting surface.
-
-Instruction sync, parent `git pull` or a clean parent tree do not prove framework
-freshness. A submodule pointer alone is incomplete, never `full_update_completed`.
+Follow Routers 4–5. Route "幫我更新最新版 AI Governance" or equivalent requests to
+`governance_tools.f7_full_update` even when F-7 is unnamed.
 This workspace section is a trigger summary, not the canonical definition.
-For consumer updates, prefer the governed F-7 path. A direct pointer, checkout or
-lock edit is a `manual_update` path, incomplete without governed evidence.
-`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` owns the definitions, templates,
-pre-discard inspection and final discarded-path inventory for `manual_update`
-and `destructive_manual_update`; read it before changing nested state.
-Before discarding local state in a nested framework checkout, first inspect the modified and untracked paths to be discarded.
-If cleanup proceeds, list that inventory in the final report as `destructive_manual_update`.
-Do not call discarded state merely "cleaned the submodule".
 
-Every F-7 terminal report relays the complete `[human_readable_adoption_summary]`
-table. If unavailable or omitted, report
-`human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`
-and `completion_claim_allowed=false`; do not claim a complete update report.
+For consumer updates, prefer the governed F-7 path. Instruction sync, parent
+`git pull` or a clean parent tree cannot prove freshness. Direct pointer, checkout
+or lock edits take the `manual_update` path and stay incomplete without governed evidence.
+Before changing nested state, read `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`.
+Inspect modified and untracked paths before discard. Report the discarded-path inventory
+under `destructive_manual_update` in the final report.
+
+In every F-7 terminal report, relay the backend's complete `[human_readable_adoption_summary]`
+table with all rows. If unavailable or omitted, report
+`human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false` and
+`completion_claim_allowed=false`. The update report is incomplete.
 
 ## Memory
 
