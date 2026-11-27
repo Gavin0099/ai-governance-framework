@@ -10,7 +10,8 @@ reading their own instruction file at session start. Copilot SessionStart's
 agent reads a different markdown file, so cross-agent parity means projecting the
 same canonical section into each of them:
 
-    governance/copilot-instructions-template.md   -> GitHub Copilot
+    governance/copilot-instructions-template.md   -> GitHub Copilot (template)
+    .github/copilot-instructions.md               -> GitHub Copilot (repo root)
     AGENTS.md                                     -> Codex
     CLAUDE.md                                     -> Claude Code
     GEMINI.md                                     -> Gemini
@@ -46,6 +47,7 @@ TEMPLATE_REL = "governance/copilot-instructions-template.md"
 # matter of projecting into each of them, not of four different hook APIs.
 PROJECTION_TARGETS: tuple[tuple[str, str], ...] = (
     (TEMPLATE_REL, "copilot"),
+    (".github/copilot-instructions.md", "copilot-root"),
     ("governance/agent-contract-template.md", "agent-contract"),
     ("AGENTS.md", "codex"),
     ("CLAUDE.md", "claude"),
