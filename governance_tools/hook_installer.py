@@ -947,6 +947,7 @@ def install_external_tree_identity_config(
 
 def _matches_standard_hook(framework_root: Path, hook_name: str, installed: bytes) -> bool:
     """Recognize exact current or reachable standard hooks, never marker-only edits."""
+    framework_root = framework_root.resolve()
     relative = f"scripts/hooks/{hook_name}"
     installed = normalized(installed)
     if installed == _shell_hook_payload(framework_root / relative):
@@ -954,7 +955,8 @@ def _matches_standard_hook(framework_root: Path, hook_name: str, installed: byte
 
     def git(*args: str) -> bytes:
         return subprocess.run(
-            ["git", "--no-replace-objects", "-C", str(framework_root), *args],
+            ["git", "--no-replace-objects", "-c", f"safe.directory={framework_root.as_posix()}",
+             "-C", str(framework_root), *args],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, timeout=10,
             env=_git_environment(),
         ).stdout
@@ -999,6 +1001,18 @@ def install_governance_hooks(
         errors.append(f"missing framework hooks source: {source_hook_dir}")
     payloads: dict[str, bytes] = {}
     try:
+        # Read both candidates before any writes. Marker helpers deliberately
+        # suppress read errors elsewhere; preflight must refuse those errors.
+        existing_hooks: dict[str, bytes] = {}
+        for hook_name in HOOK_NAMES:
+            target = hook_dir / hook_name
+            if target.is_symlink():
+                raise CompositionError(f"symlink hook {target}; refusing overwrite")
+            if target.is_file():
+                try:
+                    existing_hooks[hook_name] = target.read_bytes()
+                except OSError as exc:
+                    raise CompositionError(f"cannot read existing hook {target}; refusing overwrite: {exc}") from exc
         fragment = declared_fragment(repo_root)
         for hook_name in HOOK_NAMES:
             source = source_hook_dir / hook_name
@@ -1006,13 +1020,13 @@ def install_governance_hooks(
                 payloads[hook_name] = expected_hook(repo_root, hook_name, _shell_hook_payload(source))
             elif fragment is not None:
                 errors.append(f"missing source hook: {source}")
-        target = hook_dir / "pre-push"
-        if fragment is None and target.is_file() and MARKER in target.read_bytes():
+        existing_push = existing_hooks.get("pre-push")
+        if fragment is None and existing_push is not None and MARKER in existing_push:
             errors.append("installed consumer extension has no valid declaration; refusing overwrite")
-        if fragment is not None and (target.exists() or target.is_symlink()):
-            if target.is_symlink() or (
-                normalized(target.read_bytes()) != payloads.get("pre-push")
-                and not matches_prior_composition(framework_root, target.read_bytes(), fragment)
+        if fragment is not None and existing_push is not None:
+            if (
+                normalized(existing_push) != payloads.get("pre-push")
+                and not matches_prior_composition(framework_root, existing_push, fragment)
             ):
                 errors.append("declared composed pre-push differs from expected hook; refusing overwrite")
         # Check both hooks before identity/config writes or any hook backup.
@@ -1020,10 +1034,10 @@ def install_governance_hooks(
         for hook_name in HOOK_NAMES:
             if hook_name == "pre-push" and fragment is not None:
                 continue  # The stricter declared-composition check above owns it.
-            target = hook_dir / hook_name
-            if target.is_file() and _has_marker(target, FRAMEWORK_MARKER):
-                if target.is_symlink() or not _matches_standard_hook(
-                    framework_root, hook_name, target.read_bytes(),
+            existing = existing_hooks.get(hook_name)
+            if existing is not None and FRAMEWORK_MARKER.encode("utf-8") in existing:
+                if not _matches_standard_hook(
+                    framework_root, hook_name, existing,
                 ):
                     errors.append(f"framework-marked {hook_name} differs from standard hook; refusing overwrite")
     except (CompositionError, OSError) as exc:

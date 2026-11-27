@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from governance_tools import hook_installer
 from governance_tools.copilot_instructions_projection import extract_projection_region
 from governance_tools.external_tree_inventory_guard import (
     IDENTITY_CONFIG_REL,
@@ -192,6 +193,140 @@ def test_install_governance_hooks_backs_up_unmanaged_hook(tmp_path: Path) -> Non
 
     assert result.ok is True
     assert any(Path(item).name.startswith("pre-push.bak.") for item in result.backups)
+
+
+def _preflight_layout(tmp_path: Path, identity_present: bool) -> tuple[Path, Path]:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    for name in ("pre-commit", "pre-push"):
+        _write(repo / ".git/hooks" / name, f"# custom {name}\n")
+    if identity_present:
+        _write(repo / IDENTITY_CONFIG_REL, json.dumps({
+            "schema": IDENTITY_CONFIG_SCHEMA,
+            "repository_identities": ["example/existing"],
+        }))
+        _write(repo / ".git/hooks/ai-governance-framework-root", "/existing/framework\n")
+    return repo, framework
+
+
+def _install_tree_snapshot(root: Path) -> dict:
+    """Include link entries and write times so a refused install cannot hide writes."""
+    return {
+        path.relative_to(root).as_posix(): (
+            path.lstat().st_mode, path.lstat().st_mtime_ns,
+            os.readlink(path) if path.is_symlink() else path.read_bytes() if path.is_file() else None,
+        )
+        for path in (root, *root.rglob("*"))
+    }
+
+
+@pytest.mark.parametrize("hook_name", ["pre-commit", "pre-push"])
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("identity_present", [False, True])
+@pytest.mark.parametrize("read_error", [PermissionError, OSError])
+def test_install_refuses_unreadable_hook_before_any_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, hook_name: str,
+    dry_run: bool, identity_present: bool, read_error: type[OSError],
+) -> None:
+    repo, framework = _preflight_layout(tmp_path, identity_present)
+    target = repo / ".git/hooks" / hook_name
+    before = _install_tree_snapshot(repo)
+    original_open = Path.open
+
+    def unreadable_hook(path: Path, *args, **kwargs):
+        if path == target:
+            raise read_error(f"unreadable existing hook: {path}")
+        return original_open(path, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        # Both text and byte reads fail, including the old marker helper's read.
+        patch.setattr(Path, "open", unreadable_hook)
+        result = install_governance_hooks(repo, framework, dry_run=dry_run)
+
+    assert result.ok is False
+    assert any("unreadable existing hook" in error for error in result.errors)
+    assert result.installed_files == result.changed_files == result.backups == []
+    assert _install_tree_snapshot(repo) == before
+
+
+@pytest.mark.parametrize("hook_name", ["pre-commit", "pre-push"])
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("identity_present", [False, True])
+@pytest.mark.parametrize("dangling", [False, True])
+def test_install_refuses_symlink_hook_before_any_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, hook_name: str,
+    dry_run: bool, identity_present: bool, dangling: bool,
+) -> None:
+    repo, framework = _preflight_layout(tmp_path, identity_present)
+    target = repo / ".git/hooks" / hook_name
+    destination = tmp_path / "hook-destination"
+    payload = b"# consumer hook destination\n"
+    if not dangling:
+        destination.write_bytes(payload)
+    target.unlink()
+    try:
+        target.symlink_to(destination)
+    except OSError:
+        # Windows may forbid symlink creation. Model the link metadata while
+        # retaining the same exists()/is_file() behavior as a dangling entry.
+        if not dangling:
+            target.write_bytes(payload)
+        original_is_symlink = Path.is_symlink
+        monkeypatch.setattr(Path, "is_symlink", lambda path: path == target or original_is_symlink(path))
+        monkeypatch.setattr(os, "readlink", lambda path: str(destination))
+    link_before = os.readlink(target)
+    before = _install_tree_snapshot(repo)
+
+    result = install_governance_hooks(repo, framework, dry_run=dry_run)
+
+    assert result.ok is False
+    assert any("symlink" in error and "refusing overwrite" in error for error in result.errors)
+    assert result.installed_files == result.changed_files == result.backups == []
+    assert target.is_symlink()
+    assert os.readlink(target) == link_before
+    assert _install_tree_snapshot(repo) == before
+    if dangling:
+        assert not destination.exists()
+    else:
+        assert destination.read_bytes() == payload
+
+
+@pytest.mark.parametrize("hook_name", ["pre-commit", "pre-push"])
+def test_historical_standard_hook_git_trust_is_scoped_and_environment_sanitized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, hook_name: str,
+) -> None:
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    historical = b"#!/bin/sh\n# AI Governance Framework\n# historical version\n"
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "other.git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path / "other"))
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "safe.directory")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "*")
+    monkeypatch.setenv("GIT_GRAFT_FILE", str(tmp_path / "grafts"))
+    monkeypatch.setenv("HOOK_INSTALL_TEST_ENV", "preserved")
+    prefix = ["git", "--no-replace-objects", "-c",
+              f"safe.directory={framework.resolve().as_posix()}", "-C", str(framework.resolve())]
+    outputs = iter([
+        f"{framework.resolve()}\n".encode(), b"a" * 40 + b"\n",
+        f"100644 blob {'b' * 40}\tscripts/hooks/{hook_name}\0".encode(), historical,
+    ])
+    calls = []
+
+    def git_run(args, **kwargs):
+        calls.append(args)
+        assert args[:len(prefix)] == prefix
+        env = kwargs["env"]
+        assert {key for key in env if key.upper().startswith("GIT_")} == {"GIT_GRAFT_FILE"}
+        assert env["GIT_GRAFT_FILE"] == os.devnull
+        assert env["HOOK_INSTALL_TEST_ENV"] == "preserved"
+        return subprocess.CompletedProcess(args, 0, next(outputs), b"")
+
+    monkeypatch.setattr(hook_installer.subprocess, "run", git_run)
+
+    assert hook_installer._matches_standard_hook(framework / ".." / framework.name, hook_name, historical)
+    assert len(calls) == 4
 
 
 def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Path) -> None:
