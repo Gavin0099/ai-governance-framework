@@ -11,14 +11,19 @@ Never uploads or copies raw rollout JSONL files. Never fabricates missing number
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 import hashlib
+import html
+import io
 import json
+import math
 from pathlib import Path
 import re
 import subprocess
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 
 def _default_gh_runner(args: list[str]) -> str:
@@ -34,7 +39,11 @@ def _default_gh_runner(args: list[str]) -> str:
 
 def _file_ref(path: Path) -> str:
     """Redacted file identifier: basename + sha256[:12], never exposing local absolute paths."""
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    return _content_ref(path, path.read_bytes())
+
+
+def _content_ref(path: Path, content: bytes) -> str:
+    digest = hashlib.sha256(content).hexdigest()[:12]
     return f"{path.name}#sha256:{digest}"
 
 
@@ -257,6 +266,391 @@ def parse_codex_rollout_dirs(
     }
 
 
+_CLAUDE_TOKEN_FIELDS = (
+    "input_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+    "output_tokens",
+)
+_GEMINI_TOKEN_FIELDS = ("input", "cached", "output", "thoughts", "tool")
+
+
+def _provider_sources(
+    paths: list[Path],
+    suffixes: set[str],
+    source_refs: set[str],
+    anomalies: set[str],
+    *,
+    recursive: bool = False,
+) -> Iterator[tuple[Path, str]]:
+    seen: set[Path] = set()
+    for root in map(Path, paths):
+        try:
+            if recursive and root.is_dir():
+                candidates = sorted(
+                    p for p in root.rglob("*") if p.suffix.lower() in suffixes and p.is_file()
+                )
+            else:
+                candidates = [root] if root.suffix.lower() in suffixes and root.is_file() else []
+        except OSError:
+            candidates = []
+        if not candidates:
+            anomalies.add(f"no_provider_source:{root.name}")
+        for path in candidates:
+            try:
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                raw = path.read_bytes()
+                content = raw.decode("utf-8-sig")
+            except (OSError, UnicodeError, RuntimeError):
+                anomalies.add(f"unreadable_provider_source:{path.name}")
+                continue
+            seen.add(resolved)
+            source_refs.add(_content_ref(path, raw))
+            yield path, content
+
+
+def _transcript_records(content: str, suffix: str, anomalies: set[str]) -> tuple[str | None, list[dict]]:
+    if suffix == ".json":
+        try:
+            document = json.loads(content)
+        except ValueError:
+            anomalies.add("invalid_transcript_json")
+            return None, []
+        if not isinstance(document, dict) or not isinstance(document.get("messages"), list):
+            anomalies.add("invalid_transcript_messages")
+            return None, []
+        records = document["messages"]
+        session_id = _transcript_session_id(document)
+    else:
+        records = []
+        session_id = None
+        for line in content.splitlines():
+            if not line.strip():
+                continue
+            try:
+                records.append(json.loads(line))
+            except ValueError:
+                anomalies.add("invalid_transcript_jsonl_line")
+    objects = [record for record in records if isinstance(record, dict)]
+    if len(objects) != len(records):
+        anomalies.add("invalid_transcript_record")
+    return session_id, objects
+
+
+def _identifier(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value.strip() or None
+
+
+def _transcript_session_id(record: dict) -> str | None:
+    return _identifier(record.get("sessionId")) or _identifier(record.get("session_id"))
+
+
+def _provider_session_rows(
+    paths: list[Path],
+    suffixes: set[str],
+    record_type: str,
+    expected: set[str],
+    discovered_sessions: set[str | Path],
+    source_refs: set[str],
+    anomalies: set[str],
+) -> Iterator[tuple[str | Path, dict]]:
+    for path, content in _provider_sources(paths, suffixes, source_refs, anomalies, recursive=True):
+        session_id, records = _transcript_records(content, path.suffix.lower(), anomalies)
+        explicit_ids = {sid for record in records if (sid := _transcript_session_id(record))}
+        discovered_sessions.update(explicit_ids)
+        if session_id is not None or (records and not explicit_ids):
+            discovered_sessions.add(session_id or path)
+        if not expected:
+            continue
+        if session_id is None and len(explicit_ids) == 1:
+            session_id = next(iter(explicit_ids))
+        for record in records:
+            if record.get("type") != record_type:
+                continue
+            row_session = _transcript_session_id(record) or session_id
+            if row_session is None and explicit_ids:
+                anomalies.add("ambiguous_transcript_session")
+                continue
+            if (row_session or path.stem) in expected:
+                # A file stem can match an inventory without conflating separate anonymous files.
+                yield row_session or path, record
+
+
+def _token_count(value: Any) -> int | None:
+    return value if type(value) is int and value >= 0 else None
+
+
+def _nullable_sum(values: Iterator[int | None]) -> int | None:
+    total = 0
+    for value in values:
+        if value is None:
+            return None
+        total += value
+    return total
+
+
+def _token_provider_summary(
+    provider: str,
+    turns: dict[tuple[str | Path, str | int], dict[str, int | None]],
+    fields: tuple[str, ...],
+    expected: set[str],
+    confirmed_unused: bool,
+    sources_supplied: bool,
+    discovered_sessions: set[str | Path],
+    source_refs: set[str],
+    anomalies: set[str],
+) -> dict[str, Any]:
+    if sources_supplied and not expected:
+        anomalies.add(f"{provider}_unscoped_without_expected_session_ids")
+    if confirmed_unused and expected:
+        anomalies.add(f"{provider}_confirmed_unused_conflicts_with_expected_sessions")
+    if confirmed_unused and discovered_sessions:
+        anomalies.add(f"{provider}_confirmed_unused_conflicts_with_transcript_records")
+
+    attributable = bool(expected and turns and not confirmed_unused)
+    state = "unknown"
+    if attributable:
+        state = "measured"
+    elif confirmed_unused and not (expected or sources_supplied):
+        state = "confirmed_unused"
+
+    measured_ids = {session.stem if isinstance(session, Path) else session for session, _ in turns}
+    missing = sorted(expected - measured_ids)
+    totals = (
+        {field: _nullable_sum(turn[field] for turn in turns.values()) for field in fields}
+        if attributable else None
+    )
+    complete = (
+        not missing
+        and not anomalies
+        and totals is not None
+        and all(count is not None for count in totals.values())
+    )
+    return {
+        "presence_state": state,
+        "unit": "tokens",
+        "completeness_scope": "provider_sessions_only",
+        "cost_completeness": "complete" if complete else "incomplete",
+        "work_item_attributable": attributable,
+        "usage": totals if totals is not None else dict.fromkeys(fields),
+        "known_totals": totals,
+        "discovered_session_count": len(discovered_sessions),
+        "missing_expected_sessions": missing,
+        "source_refs": sorted(source_refs),
+        "anomalies": sorted(anomalies),
+    }
+
+
+def parse_claude_transcripts(
+    paths: list[Path],
+    *,
+    expected_session_ids: set[str] | None = None,
+    confirmed_unused: bool = False,
+) -> dict[str, Any]:
+    expected = {sid for value in expected_session_ids or () if (sid := _identifier(value))}
+    discovered_sessions: set[str | Path] = set()
+    refs: set[str] = set()
+    anomalies: set[str] = set()
+    latest: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
+    maxima: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
+    decreasing: set[tuple[str | Path, str | int]] = set()
+    for session, record in _provider_session_rows(
+        paths, {".jsonl"}, "assistant", expected, discovered_sessions, refs, anomalies,
+    ):
+        message = record.get("message")
+        if not isinstance(message, dict):
+            anomalies.add("claude_invalid_message")
+            continue
+        message_id = _identifier(message.get("id"))
+        if message_id is None:
+            anomalies.add("claude_missing_message_id")
+            continue
+        raw = message.get("usage")
+        if not isinstance(raw, dict):
+            if raw is not None:
+                anomalies.add("claude_invalid_usage")
+            continue
+        usage = {field: _token_count(raw.get(field)) for field in _CLAUDE_TOKEN_FIELDS}
+        if any(raw.get(field) is not None and count is None for field, count in usage.items()):
+            anomalies.add("claude_invalid_token_count")
+        if not any(count is not None for count in usage.values()):
+            continue
+        key = (session, message_id)
+        peak = maxima.setdefault(key, usage.copy())
+        for field, count in usage.items():
+            if count is None:
+                continue
+            previous = peak[field]
+            if previous is not None and count < previous:
+                decreasing.add(key)
+            else:
+                peak[field] = count
+        latest[key] = usage
+    if decreasing:
+        anomalies.add("claude_non_monotonic_usage_update")
+        for key in decreasing:
+            latest[key] = maxima[key]
+    return _token_provider_summary(
+        "claude", latest, _CLAUDE_TOKEN_FIELDS, expected, confirmed_unused, bool(paths), discovered_sessions, refs, anomalies,
+    )
+
+
+def parse_gemini_transcripts(
+    paths: list[Path],
+    *,
+    expected_session_ids: set[str] | None = None,
+    confirmed_unused: bool = False,
+) -> dict[str, Any]:
+    expected = {sid for value in expected_session_ids or () if (sid := _identifier(value))}
+    discovered_sessions: set[str | Path] = set()
+    refs: set[str] = set()
+    anomalies: set[str] = set()
+    pending: dict[tuple[str | Path, str | int], dict[str, int | None]] = {}
+    for index, (session, record) in enumerate(
+        _provider_session_rows(paths, {".json", ".jsonl"}, "gemini", expected, discovered_sessions, refs, anomalies)
+    ):
+        raw = record.get("tokens")
+        if not isinstance(raw, dict):
+            if raw is not None:
+                anomalies.add("gemini_invalid_tokens")
+            continue
+        usage = {field: _token_count(raw.get(field)) for field in _GEMINI_TOKEN_FIELDS}
+        if any(raw.get(field) is not None and count is None for field, count in usage.items()):
+            anomalies.add("gemini_invalid_token_count")
+            continue
+        message_id = _identifier(record.get("id"))
+        if not any(count is not None for count in usage.values()):
+            continue
+        if message_id is None:
+            anomalies.add("gemini_missing_message_id")
+        turn = pending.setdefault((session, message_id or index), {})
+        turn.update({field: count for field, count in usage.items() if count is not None})
+
+    fields = tuple(f"{field}_tokens" for field in _GEMINI_TOKEN_FIELDS) + ("uncached_input_tokens",)
+    turns = {}
+    for key, usage in pending.items():
+        inp, cached = usage.get("input"), usage.get("cached")
+        uncached = None
+        if inp is not None and cached is not None:
+            if cached > inp:
+                anomalies.add("gemini_cached_tokens_exceed_input")
+            else:
+                uncached = inp - cached
+        turns[key] = {f"{field}_tokens": usage.get(field) for field in _GEMINI_TOKEN_FIELDS}
+        turns[key]["uncached_input_tokens"] = uncached
+    return _token_provider_summary(
+        "gemini", turns, fields, expected, confirmed_unused, bool(paths), discovered_sessions, refs, anomalies,
+    )
+
+
+_COPILOT_IGNORED_COLUMNS = {"aic_gross_amount", "gross_amount", "cost", "amount_usd"}
+
+
+def _billing_date(value: str) -> str:
+    # Year-first formats take precedence. For short slash dates, preserve month-first precedence.
+    for date_format in ("%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(value, date_format).date().isoformat()
+        except ValueError:
+            continue
+    raise ValueError("invalid billing date")
+
+
+def _copilot_billing_rows(
+    content: str, ignored_columns: set[str], anomalies: set[str]
+) -> Iterator[tuple[tuple[str, str, str], Decimal]]:
+    reader = csv.reader(io.StringIO(content, newline=""), strict=True)
+    try:
+        headers = {header.strip().lower(): index for index, header in enumerate(next(reader, []))}
+        ignored_columns.update(_COPILOT_IGNORED_COLUMNS & headers.keys())
+        date_col = next((headers[h] for h in ("date", "report_date", "day") if h in headers), None)
+        login_col = next((headers[h] for h in ("user_login", "login", "username", "user") if h in headers), None)
+        model_col = next((headers[h] for h in ("model", "model_name") if h in headers), None)
+        aic_col = next((headers[h] for h in ("aic_quantity", "ai_credits", "credits") if h in headers), None)
+        if date_col is None or model_col is None or aic_col is None:
+            anomalies.add("copilot_missing_required_columns")
+            return
+        for row in reader:
+            if not row:
+                continue
+            try:
+                day = _billing_date(row[date_col].strip())
+                login = row[login_col].strip() if login_col is not None and login_col < len(row) else ""
+                model = row[model_col].strip()
+                quantity = Decimal(row[aic_col])
+                if not model or not quantity.is_finite() or quantity < 0 or not math.isfinite(quantity):
+                    raise ValueError("invalid billing row")
+            except (IndexError, InvalidOperation, ValueError):
+                anomalies.add("copilot_invalid_billing_row")
+                continue
+            yield (day, login, model), quantity
+    except csv.Error:
+        anomalies.add("copilot_invalid_csv")
+
+
+def parse_copilot_billing(paths: list[Path], *, confirmed_unused: bool = False) -> dict[str, Any]:
+    refs: set[str] = set()
+    anomalies: set[str] = set()
+    ignored_columns: set[str] = set()
+    rows: dict[tuple[str, str | tuple[Path, int], str], Decimal] = {}
+    conflicts: set[tuple[str, str | tuple[Path, int], str]] = set()
+    csv_count = 0
+    has_missing_login = False
+    for path, content in _provider_sources(paths, {".csv"}, refs, anomalies):
+        csv_count += 1
+        billing_rows = _copilot_billing_rows(content, ignored_columns, anomalies)
+        for index, ((day, login, model), quantity) in enumerate(billing_rows):
+            if not login:
+                has_missing_login = True
+            key = (day, login or (path, index), model)
+            if rows.setdefault(key, quantity) != quantity:
+                conflicts.add(key)
+    if conflicts:
+        anomalies.add("copilot_conflicting_daily_quantity")
+    unverifiable_dedup = csv_count > 1 and has_missing_login
+    if unverifiable_dedup:
+        anomalies.add("copilot_cross_file_dedup_unverifiable_without_login")
+    state = "unknown"
+    totals: dict[str, Decimal] = {}
+    if confirmed_unused:
+        if rows or "copilot_invalid_billing_row" in anomalies:
+            anomalies.add("copilot_confirmed_unused_conflicts_with_evidence")
+        elif paths or anomalies:
+            anomalies.add("copilot_confirmed_unused_conflicts_with_billing_sources")
+        else:
+            state = "confirmed_unused"
+    elif rows and not unverifiable_dedup:
+        state = "billing_reference_only"
+        for key, quantity in rows.items():
+            if key not in conflicts:
+                model = key[2]
+                totals[model] = totals.get(model, Decimal(0)) + quantity
+
+    # Convert only the final totals to preserve JSON numeric values without float accumulation noise.
+    by_model = {model: float(total) for model, total in totals.items()}
+    if any(not math.isfinite(total) for total in by_model.values()):
+        anomalies.add("copilot_billing_sum_out_of_range")
+        by_model = {model: total for model, total in by_model.items() if math.isfinite(total)}
+    days = [key[0] for key in rows]
+    return {
+        "presence_state": state,
+        "unit": "aic_quantity",
+        "completeness_scope": "billing_window_only",
+        "cost_completeness": "not_applicable",
+        "completions_excluded": True,
+        "work_item_attributable": False,
+        "billing_window": {"start_date": min(days, default=None), "end_date": max(days, default=None)},
+        "by_model_aic": dict(sorted(by_model.items())),
+        "ignored_columns": sorted(ignored_columns),
+        "source_refs": sorted(refs),
+        "anomalies": sorted(anomalies),
+    }
+
+
 def _verify_evidence_file(path: Path | None) -> tuple[bool, str | None]:
     if path is None:
         return False, None
@@ -413,21 +807,34 @@ def summarize_human_interventions(
     events_path: Path | None,
     *,
     confirmed_minutes: float | None = None,
+    rescue_evidence_refs: list[str] | None = None,
+    rescue_confirmed_none: bool = False,
 ) -> dict[str, Any]:
     """Summarize Owner decisions vs unplanned rescues; never default missing records to 0."""
     planned: int | str = "UNKNOWN"
     unplanned: int | str = "UNKNOWN"
     source_ref: str | None = None
     notes: list[str] = []
+    rescue_refs: set[str] = set()
+    for ref in rescue_evidence_refs or []:
+        ref = ref.strip()
+        if not ref:
+            continue
+        if re.fullmatch(r"[A-Za-z0-9_.#:-]{1,120}", ref):
+            rescue_refs.add(ref)
+        else:
+            digest = hashlib.sha256(ref.encode("utf-8")).hexdigest()[:12]
+            rescue_refs.add(f"rescue-ref#sha256:{digest}")
 
     if events_path is not None:
         p = Path(events_path)
         if not p.is_file():
             notes.append(f"missing_events_file:{p.name}")
         else:
-            source_ref = _file_ref(p)
             try:
-                data = json.loads(p.read_text(encoding="utf-8"))
+                raw = p.read_bytes()
+                source_ref = _content_ref(p, raw)
+                data = json.loads(raw.decode("utf-8-sig"))
                 events = data if isinstance(data, list) else data.get("events")
                 if isinstance(events, list):
                     planned = sum(1 for e in events if isinstance(e, dict) and e.get("category") == "planned_owner_decision")
@@ -437,9 +844,26 @@ def summarize_human_interventions(
             except Exception as exc:
                 notes.append(f"events_parse_error:{type(exc).__name__}")
 
+    structured_rescue = isinstance(unplanned, int) and unplanned > 0 and source_ref is not None
+    if structured_rescue:
+        rescue_refs.add(source_ref)
+        rescue_basis, unexpected_rescue = "structured_events", "yes"
+    elif rescue_refs:
+        rescue_basis, unexpected_rescue = "caller_declared_unverified_ref", "yes"
+    elif rescue_confirmed_none:
+        rescue_basis, unexpected_rescue = "confirmed_none", "no"
+    else:
+        rescue_basis, unexpected_rescue = "none", "unknown"
+    if rescue_confirmed_none and unexpected_rescue == "yes":
+        notes.append("rescue_evidence_conflicts_with_confirmed_none")
+
     return {
         "planned_owner_decisions": planned,
         "unplanned_rescues": unplanned,
+        "unexpected_rescue_observed": unexpected_rescue,
+        "rescue_evidence_basis": rescue_basis,
+        "rescue_evidence_verified": structured_rescue,
+        "rescue_evidence_refs": sorted(rescue_refs),
         "human_minutes": confirmed_minutes if confirmed_minutes is not None else "UNKNOWN",
         "human_minutes_source": "owner_confirmed" if confirmed_minutes is not None else "unmeasured",
         "wall_clock_excluded": True,
@@ -482,6 +906,44 @@ def _zh_minutes(value: float | int | str) -> str:
     if value == "UNKNOWN":
         return "未知（UNKNOWN，未經負責人確認；不使用經過時間 Wall-clock 冒充）"
     return f"{value} 分鐘（負責人確認）"
+
+
+def _markdown_cell(value: str) -> str:
+    value = " ".join(value.splitlines())
+    return html.escape(value).replace("|", "&#124;").replace("`", "&#96;")
+
+
+def _provider_report_rows(providers: dict[str, Any]) -> list[str]:
+    labels = {"claude": "Claude Code", "gemini": "Gemini CLI", "copilot": "Copilot Billing Reference"}
+    rows = []
+    for key, provider in providers.items():
+        if key == "outer_orchestrator":
+            name = _markdown_cell(provider["provider"])
+            rows.append(f"| Outer Orchestrator（{name}） | `unknown`；單位未知；未評估完整度（無可驗證的本機用量紀錄） |")
+            continue
+        presence = f"`{provider['presence_state']}`"
+        if key in {"claude", "gemini"} and f"{key}_unscoped_without_expected_session_ids" in provider["anomalies"]:
+            presence = "`UNKNOWN`，未提供預期 Session ID，無法歸屬此工作項目"
+        cell = (
+            f"{presence}；單位 `{provider['unit']}`；"
+            f"完整度 `{provider['cost_completeness']}`（範圍 `{provider['completeness_scope']}`）"
+        )
+        if key == "copilot" and provider["presence_state"] == "billing_reference_only":
+            window = provider["billing_window"]
+            cell += f"；帳務期間 {window['start_date']} 至 {window['end_date']}，涵蓋範圍排除程式碼補全，無法歸屬單一工作項目"
+            for model, quantity in provider["by_model_aic"].items():
+                cell += f"；{_markdown_cell(model)} {quantity:,}"
+        if key == "copilot" and provider["ignored_columns"]:
+            ignored = ", ".join(provider["ignored_columns"])
+            cell += f"；已忽略金額欄位 `{ignored}`"
+        if key == "copilot" and provider["anomalies"]:
+            cell += "；帳務資料異常見證據索引"
+        if provider.get("known_totals") is not None:
+            for field, value in provider["known_totals"].items():
+                count = f"{value:,}" if value is not None else "未知"
+                cell += f"；`{field}` {count}"
+        rows.append(f"| {labels[key]} | {cell} |")
+    return rows
 
 
 def render_markdown_report(evidence: dict[str, Any]) -> str:
@@ -528,6 +990,17 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
             f"可用量測 `ai_usage_available={self_cost['ai_usage_available']}`）"
         )
 
+    rescue_state = human.get("unexpected_rescue_observed", "unknown")
+    rescue_yes_detail = {
+        "structured_events": "結構化事件檔記有救援，查證範圍限於該紀錄",
+        "caller_declared_unverified_ref": "呼叫者申報的救援線索，Observer 未獨立查證",
+    }.get(human.get("rescue_evidence_basis"), "既有證據未標示查證來源")
+    rescue_cell = {
+        "yes": f"`yes`（{rescue_yes_detail}）",
+        "no": "`no`（已明確確認無救援）",
+        "unknown": "`unknown`（現有證據不足以確認是否曾發生救援）",
+    }[rescue_state]
+
     lines = [
         f"# G4 Observer — {evidence['title']}（`{evidence['work_item_id']}`）",
         "",
@@ -544,11 +1017,15 @@ def render_markdown_report(evidence: dict[str, Any]) -> str:
         f"| 正式部署／啟用（Deployed / Enabled） | {_zh_deployed_status(delivery['deployed_or_enabled'])} |",
         f"| 必要 Owner 決策 | {_zh_count(human['planned_owner_decisions'])} |",
         f"| 意外人工救援 | {_zh_count(human['unplanned_rescues'])} |",
+        f"| 是否觀察到意外人工救援 | {rescue_cell} |",
         f"| 人工實際分鐘數 | {_zh_minutes(human['human_minutes'])} |",
         f"| 完整 AI Tokens / 成本 | {token_cell} |",
+        *_provider_report_rows(tokens.get("providers", {})),
         f"| Observer 自身成本 | {obs_cell} |",
         "",
     ]
+    if tokens.get("providers"):
+        lines.extend(["「完整 AI Tokens / 成本」列呈現 Codex 用量。各供應商數字保留原單位，跨供應商合計已停用。", ""])
 
     prs = delivery.get("prs") or []
     if prs:
@@ -658,8 +1135,19 @@ def run_observer(
     archive_root: Path | None = None,
     exclude_session_ids: set[str] | None = None,
     expected_session_ids: set[str] | None = None,
+    claude_dirs: list[Path] | None = None,
+    claude_expected_session_ids: set[str] | None = None,
+    claude_confirmed_unused: bool = False,
+    gemini_dirs: list[Path] | None = None,
+    gemini_expected_session_ids: set[str] | None = None,
+    gemini_confirmed_unused: bool = False,
+    copilot_csvs: list[Path] | None = None,
+    copilot_confirmed_unused: bool = False,
+    outer_orchestrator: str | None = None,
     events_path: Path | None = None,
     confirmed_minutes: float | None = None,
+    rescue_evidence_refs: list[str] | None = None,
+    rescue_confirmed_none: bool = False,
     code_evidence_file: Path | None = None,
     product_evidence_file: Path | None = None,
     product_verification_status: str | None = None,
@@ -688,7 +1176,37 @@ def run_observer(
         exclude_session_ids=exclude_session_ids,
         expected_session_ids=expected_session_ids,
     )
-    human = summarize_human_interventions(events_path, confirmed_minutes=confirmed_minutes)
+    ai_cost["cross_provider_summation_allowed"] = False
+    providers = {}
+    if claude_dirs or claude_expected_session_ids or claude_confirmed_unused:
+        providers["claude"] = parse_claude_transcripts(
+            claude_dirs or [],
+            expected_session_ids=claude_expected_session_ids,
+            confirmed_unused=claude_confirmed_unused,
+        )
+    if gemini_dirs or gemini_expected_session_ids or gemini_confirmed_unused:
+        providers["gemini"] = parse_gemini_transcripts(
+            gemini_dirs or [],
+            expected_session_ids=gemini_expected_session_ids,
+            confirmed_unused=gemini_confirmed_unused,
+        )
+    if copilot_csvs or copilot_confirmed_unused:
+        providers["copilot"] = parse_copilot_billing(copilot_csvs or [], confirmed_unused=copilot_confirmed_unused)
+    if orchestrator_name := _identifier(outer_orchestrator):
+        providers["outer_orchestrator"] = {
+            "provider": orchestrator_name,
+            "presence_state": "unknown",
+            "unit": None,
+            "reason": "no_verifiable_local_token_rollout",
+        }
+    if providers:
+        ai_cost["providers"] = providers
+    human = summarize_human_interventions(
+        events_path,
+        confirmed_minutes=confirmed_minutes,
+        rescue_evidence_refs=rescue_evidence_refs,
+        rescue_confirmed_none=rescue_confirmed_none,
+    )
 
     duration_ms = int(round((time.perf_counter() - started_perf) * 1000))
     if observer_mode == "script_only":
@@ -756,8 +1274,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rollout-dir", dest="rollout_dirs", type=Path, action="append", default=[])
     parser.add_argument("--exclude-session-id", dest="exclude_session_ids", action="append", default=[])
     parser.add_argument("--expected-session-id", dest="expected_session_ids", action="append", default=[])
+    parser.add_argument("--claude-dir", dest="claude_dirs", type=Path, action="append", default=[], help="Claude JSONL file or directory (repeatable)")
+    parser.add_argument("--claude-expected-session-id", action="append", default=[], help="Claude session inventory (repeatable)")
+    parser.add_argument("--claude-confirmed-unused", action="store_true")
+    parser.add_argument("--gemini-dir", dest="gemini_dirs", type=Path, action="append", default=[], help="Gemini JSON/JSONL file or directory (repeatable)")
+    parser.add_argument("--gemini-expected-session-id", action="append", default=[], help="Gemini session inventory (repeatable)")
+    parser.add_argument("--gemini-confirmed-unused", action="store_true")
+    parser.add_argument("--copilot-csv", dest="copilot_csvs", type=Path, action="append", default=[], help="Copilot daily billing export (repeatable)")
+    parser.add_argument("--copilot-confirmed-unused", action="store_true")
+    parser.add_argument("--outer-orchestrator", help="Name of an explicitly observed outer orchestrator with unknown usage")
     parser.add_argument("--events-file", type=Path, default=None)
     parser.add_argument("--owner-minutes-confirmed", type=float, default=None)
+    parser.add_argument("--rescue-evidence-ref", action="append", default=[], help="Short rescue evidence reference (repeatable)")
+    parser.add_argument("--rescue-confirmed-none", action="store_true", help="Owner confirmation or complete event log confirms no rescue")
     parser.add_argument("--code-evidence-file", type=Path, default=None)
     parser.add_argument("--product-evidence-file", type=Path, default=None)
     parser.add_argument("--product-verified", default=None)
@@ -785,8 +1314,19 @@ def main(argv: list[str] | None = None) -> int:
         archive_root=args.archive_root,
         exclude_session_ids=set(args.exclude_session_ids) or None,
         expected_session_ids=set(args.expected_session_ids) or None,
+        claude_dirs=args.claude_dirs,
+        claude_expected_session_ids=set(args.claude_expected_session_id) or None,
+        claude_confirmed_unused=args.claude_confirmed_unused,
+        gemini_dirs=args.gemini_dirs,
+        gemini_expected_session_ids=set(args.gemini_expected_session_id) or None,
+        gemini_confirmed_unused=args.gemini_confirmed_unused,
+        copilot_csvs=args.copilot_csvs,
+        copilot_confirmed_unused=args.copilot_confirmed_unused,
+        outer_orchestrator=args.outer_orchestrator,
         events_path=args.events_file,
         confirmed_minutes=args.owner_minutes_confirmed,
+        rescue_evidence_refs=args.rescue_evidence_ref,
+        rescue_confirmed_none=args.rescue_confirmed_none,
         code_evidence_file=args.code_evidence_file,
         product_evidence_file=args.product_evidence_file,
         product_verification_status=args.product_verified,
