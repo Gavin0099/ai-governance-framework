@@ -657,6 +657,59 @@ def test_adopt_dry_run_writes_nothing(tmp_path):
     assert not new_files, f"dry-run wrote files: {new_files}"
 
 
+@pytest.mark.parametrize("config_exists, action", [(False, "create"), (True, "overwrite")])
+def test_adopt_dry_run_previews_payload_config_without_writes(
+    tmp_path, monkeypatch, capsys, config_exists, action
+):
+    repo = _make_git_repo(tmp_path / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    config = repo / ".governance-payload-config.yaml"
+    custom_config = b"# Custom config\r\npayload_layering:\r\n  repo_type: custom\r\n"
+    if config_exists:
+        config.write_bytes(custom_config)
+    (repo / ".governance-state.yaml").write_text("custom_state: preserved\n", encoding="utf-8")
+    before = {
+        path.relative_to(repo): path.read_bytes() if path.is_file() else None
+        for path in repo.rglob("*")
+    }
+    monkeypatch.setattr(sys, "argv", [
+        "adopt_governance.py", "--target", str(repo),
+        "--framework-root", str(FRAMEWORK_ROOT), "--dry-run",
+    ])
+
+    assert main() == 0
+
+    output = capsys.readouterr().out
+    assert f"[dry-run] .governance-payload-config.yaml -- would {action}" in output
+    assert config.exists() == config_exists
+    if config_exists:
+        assert config.read_bytes() == custom_config
+    after = {
+        path.relative_to(repo): path.read_bytes() if path.is_file() else None
+        for path in repo.rglob("*")
+    }
+    assert after == before
+
+
+@pytest.mark.parametrize("config_exists", [False, True])
+def test_adopt_writes_payload_config_even_when_existing(tmp_path, config_exists):
+    repo = _make_git_repo(tmp_path / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    config = repo / ".governance-payload-config.yaml"
+    if config_exists:
+        config.write_text("custom_setting: preserved_only_in_dry_run\n", encoding="utf-8")
+
+    assert adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False) == 0
+
+    content = config.read_text(encoding="utf-8")
+    assert content.startswith("payload_layering:\n  version: '1.0.0'\n  repo_type: generic\n")
+    assert "  memory_policy: incremental\n" in content
+    assert "    domain_contract_policy: skip\n" in content
+    assert "custom_setting" not in content
+
+
 def test_adopt_fails_gracefully_without_git_dir(tmp_path):
     """Returns exit code 1 when target is not a git repo."""
     repo = tmp_path / "not-a-git-repo"

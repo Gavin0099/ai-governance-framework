@@ -94,7 +94,7 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo --dry-ru
 python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
-> **衝突保護與 Hook 邊界**：`adopt_governance.py` 預設保留既有的 `AGENTS.md`、governance 規則／文件包、drift workflow 與 `memory/` 檔案不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml` 與 `.governance-payload-config.yaml`，並在既有 `contract.yaml` 缺少必要引用時寫回修補**（`--dry-run` 不寫入任何檔案，但亦不會在預覽輸出中列出 `.governance-payload-config.yaml` 的重寫）。此外，`adopt_governance.py` **不會自動安裝 Git hooks**；若需安裝本機 Git hooks，請另行使用 `governance_tools/hook_installer.py` 或 `scripts/install-hooks.sh`（兩入口共用覆寫保護：備份未納管 hook、升級可核對的標準／已宣告 composed hook，並**拒絕覆蓋**不符預期的含框架標記自訂 `pre-commit`／`pre-push`；拒絕前不寫入 identity config、hooks 或 Copilot 檔案；Shell `--dry-run` 不寫入檔案）。安裝檔案本身不等於在所有環境已驗證強制執行。
+> **衝突保護與 Hook 邊界**：`adopt_governance.py` 預設保留既有的 `AGENTS.md`、governance 規則／文件包、drift workflow 與 `memory/` 檔案不覆蓋，但正式執行會**刷新 `AGENTS.base.md`、重寫 `.governance/baseline.yaml` 與 `.governance-payload-config.yaml`，並在既有 `contract.yaml` 缺少必要引用時寫回修補**（`--dry-run` 不寫入任何檔案，並會明確預覽 `.governance-payload-config.yaml` 將建立或覆寫既有檔案）。此外，`adopt_governance.py` **不會自動安裝 Git hooks**；若需安裝本機 Git hooks，請另行使用 `governance_tools/hook_installer.py` 或 `scripts/install-hooks.sh`（兩入口共用覆寫保護：備份未納管 hook、升級可核對的標準／已宣告 composed hook，並**拒絕覆蓋**不符預期的含框架標記自訂 `pre-commit`／`pre-push`；拒絕前不寫入 identity config、hooks 或 Copilot 檔案；Shell `--dry-run` 不寫入檔案）。安裝檔案本身不等於在所有環境已驗證強制執行。
 
 **導入前先分類**：consumer 角色決定 automation ceiling 與 evidence duty。見 [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md)（submodule / F-7 / contract repo / copy-based audit-only）。最小起步包在 [`examples/starter-pack/`](examples/starter-pack/)。
 

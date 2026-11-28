@@ -904,6 +904,9 @@ def adopt_existing(
     _ensure_gitignore_hygiene(repo_root, dry_run=dry_run)
 
     if dry_run:
+        config_path = repo_root / ".governance-payload-config.yaml"
+        action = "overwrite existing file" if config_path.exists() else "create"
+        print(f"  [dry-run] .governance-payload-config.yaml -- would {action}")
         print()
         _print_adoption_boundary(repo_root, framework_root)
         print()
@@ -952,9 +955,6 @@ def adopt_existing(
         _write_session_defaults(repo_root, repo_type)
         if (repo_root / ".governance-state.yaml").exists():
             print(f"  Updated .governance-state.yaml with session_defaults")
-    else:
-        repo_type = _detect_repo_type(repo_root)
-        print(f"  [dry-run] Would write .governance-payload-config.yaml (repo_type={repo_type})")
 
     print()
     _print_adoption_boundary(repo_root, framework_root)
