@@ -1,12 +1,6 @@
-<!-- Verified predecessor: archive/active_task_20261023_124358.md -->
-<!-- Predecessor SHA-256: a85cafddd7ff3a6fa01f7b41b151ed39f28f0c7d8ace5396757e393f893b7b64 -->
-
 # Active Task
 
-> Replacement-state candidate prepared 2026-10-23. This file is a current-state
-> retrieval index, not canonical authority and not proof that a referenced claim
-> was re-verified today. Follow the revision-bound pointers below. The exact
-> predecessor remains recoverable from the verified archive named above.
+> Retrieval index only; no canonical authority or claim re-verification.
 
 ## Current Gate 3 State
 
@@ -46,15 +40,17 @@
 
 ## Durable Authority And Evidence Index
 
-| Surface | Exact identity | Status / use |
+Full identities and limits: `memory/archive/active_task_20261128_102606.md` L49-L61.
+
+| Surface | Archive lines | Exact commit / status |
 | --- | --- | --- |
-| Gate 3 funding authority | commit `01e8c0b4f61b1288d80495230f5fb4d8aeed525a`; PLAN blob `d4ed290ad17b8e5e7aec83c92f2e1498ed170a63`; PLAN SHA-256 `315f7f61ec5f06fbf31675b55de98fe3464ff256c2daa8d3fb1b987be22d5f53`; section `Gate 3 first-Skill funding gate — principal before engineering`; section SHA-256 `7974b94ce78e91ee7b2d047208c22caf8ddbee52e93c34ae9d635b980477c168` | Committed owner-decision section; PIN must precede first authoritative mapping release; no retrospective repair. |
-| Release-Order design | commit `d3b28213513589cfec8b95edd4965cd631052449`; blob `58dadf63f69fefd153c1cbecb3e5df6fc1c83bfd`; SHA-256 `e010197852f491824c4cfd8ecad93821f661b67a353690e356522c4c6dd6b9bd` | Reviewed design candidate; not provider feasibility or implementation authority. |
-| Authority source-set closure | commit `0269ce9e858c161c2d425aaa442529453defecf9`; blob `0fedd18031ba1c8b6d2ecdd28224acd1fd77c625`; SHA-256 `dec86ce98bc6ab1c090c879c46649f7b28891cc51b6cf6d32fb14ad25a460614` | Owner-adopted closed extraction universe. `UNAVAILABLE_HISTORICAL_REFERENT` remains explicit. |
-| Closed-source predicate register | commit `6501d90f52c5e372fc049da34b3210fd01245fb4`; parent `0269ce9e858c161c2d425aaa442529453defecf9`; blob `cb7b9ce25d7776b5924450a81388e7219511d871`; SHA-256 `8e67c8740e9ec0036b9bae391b2f44decf0889b432d8b790112b1f96e2a07f2b` | Owner-adopted 63-predicate register: 43 historical / 20 prospective. |
-| rev9 rejected bytes | worktree SHA-256 `92004c3f59aa16dcc6152c1be61d83f7ee67e4f1be963b058d7f9e3acc481f7d` | `CHANGES_REQUESTED / HIGH`; current-state evidence cannot prove absence of an earlier authoritative publication; no rev10. This digest is not represented here as a committed blob. |
-| Memory-cutover fidelity finding | commit `885c5de79d414b08136f5a06ed0cba77c81d30c2` | Requires preservation of irreversible state, effective claim ceilings and authority reference/status; one final candidate only. |
-| Unsafe-janitor finding and containment | finding commit `d84ebf8e9ee990bcc340a327d5e44f30706b7bd9`; fail-closed fix commit `6ca4800bf6259ffede7ee02e53a37d958a0e6a92` | Destructive automatic compression prohibited; fix contains the danger but does not reduce pressure. |
+| Gate 3 funding authority | L51 | `01e8c0b4f61b1288d80495230f5fb4d8aeed525a`; committed owner-decision section. |
+| Release-Order design | L52 | `d3b28213513589cfec8b95edd4965cd631052449`; reviewed design candidate. |
+| Authority source-set closure | L53, L59-L61 | `0269ce9e858c161c2d425aaa442529453defecf9`; `ADOPTED`; `UNAVAILABLE_HISTORICAL_REFERENT` explicit. |
+| Closed-source predicate register | L54, L59-L61 | `6501d90f52c5e372fc049da34b3210fd01245fb4`; `ADOPTED`. |
+| rev9 rejected bytes | L55 | Worktree digest only, no committed blob; `CHANGES_REQUESTED / HIGH`. |
+| Memory-cutover fidelity finding | L56 | `885c5de79d414b08136f5a06ed0cba77c81d30c2`; preservation; one final candidate only. |
+| Unsafe-janitor finding and containment | L57 | `d84ebf8e9ee990bcc340a327d5e44f30706b7bd9` (finding); `6ca4800bf6259ffede7ee02e53a37d958a0e6a92` (fix); compression prohibited. |
 
 The source-closure and predicate-register files retain candidate labels in their
 committed bytes. Their `ADOPTED` status comes from explicit 2026-08-30 owner
@@ -62,7 +58,6 @@ decisions; it must not be inferred merely from the existence of either commit.
 
 ## Other Retained Workstream State
 
-- Historical M3-b-2A pre-merge claim: [exact source](evidence/m3-b-2a-adoption-review-20261001/pre-adoption-active-task.md#L61-L64). Current engineering delivery is the PR #108 / a59b0aef checkpoint below; this grants no M3-b-2B authority.
 - M3-b-2B revision 2 exact candidate `5b76d3d1...92ea` has its handoff fixes and
   owner rulings, but no two clean-context review reports, verdict or implementation
   authorization. M3-b-3 remains sequence-blocked; M4 is not started.
@@ -73,8 +68,7 @@ decisions; it must not be inferred merely from the existence of either commit.
   remains pending Gate 3 or a public-need re-review. Support #4691271 cleanup was
   reported complete; Finding 33 relies on an exact untracked identity config
   pending guard-stack integration.
-- F-7's update-available truth correction is complete and inactive. Do not
-  expand F-7 without a new observed consumer failure.
+- Do not expand F-7 without a new observed consumer failure.
 
 ## Open Risks
 
@@ -91,7 +85,7 @@ decisions; it must not be inferred merely from the existence of either commit.
 
 ## Next Decision Boundary
 
-1. Finish this verified archive/replacement cutover and STOP.
+1. Independent semantic-fidelity review; separate Owner SHA-256 approval before replacement; STOP after cutover.
 2. Under a new owner authorization, evaluate a bounded provider/surface set
    against the adopted source graph and 63-predicate register.
 
@@ -121,16 +115,3 @@ remains outside the Gate 3 critical path and outside this slice.
   owner's machine lacks Bash or Python, and no full-repository enforce-gate PASS
   is claimed.
 - Cannot claim the workspace is clean; it remains `NOT CLEAN` by design here.
-
-## Canonical Checkpoint Projections
-
-The 12 superseded `active-task-summary` projections were removed by the
-2026-10-23 cutover. Every removed identity stays verbatim in
-`archive/active_task_20261023_124358.md` and was independently confirmed recoverable in
-`memory/04_review_log.md`,
-`memory/2026-09-06.md`, `memory/2026-09-09.md`, `memory/2026-09-14.md`,
-`memory/2026-09-22.md` or `memory/2026-10-01.md` before removal. Removing a marker
-line also removes `memory_record`'s idempotency anchor for that identity, so an
-identical re-run could re-append it. Only the current projection is retained:
-
-- Adoption Closure B round 2: advisories validated independently at 0dccebe3. Draft #351 awaits re-review. <!-- memory_record_projection:active-task-summary:41e7196cb1a50cc6f46fb635c80c4aa54653352d3241f59e262c81a7151f6667 -->
