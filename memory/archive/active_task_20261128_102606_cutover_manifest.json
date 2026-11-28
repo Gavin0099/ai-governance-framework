@@ -1,0 +1,215 @@
+{
+  "schema_version": "1.0",
+  "operation": "manual_verified_archive_replacement_cutover",
+  "precedent": "f42e49d4 (memory/archive/active_task_20261023_124358_*)",
+  "authority_scope": "operational_memory_only",
+  "stamp": "20261128_102606",
+  "status": "cutover_complete_manual_semantic_review",
+  "source": {
+    "path": "memory/01_active_task.md",
+    "sha256": "59a58fcb84f4464d67436f7a3f8e98ec055d2b3813e48e617184b3dc1df892e3",
+    "lf_normalized_sha256": "f9d4a19ce09c544461e849a25663b97131f8209503a65dfefd8d396fbaaf5c22",
+    "bytes": 9811,
+    "crlf": 136,
+    "bom": false,
+    "trailing_lf": true,
+    "pressure": {
+      "status": "WARNING",
+      "lines": 136,
+      "chars": 9673,
+      "triggered_by": [
+        "chars"
+      ],
+      "summary": "Memory status: WARNING (136/180 lines, 9673/8000 chars; triggered by chars)"
+    }
+  },
+  "verified_archive": {
+    "path": "memory/archive/active_task_20261128_102606.md",
+    "sha256": "59a58fcb84f4464d67436f7a3f8e98ec055d2b3813e48e617184b3dc1df892e3",
+    "lf_normalized_sha256": "f9d4a19ce09c544461e849a25663b97131f8209503a65dfefd8d396fbaaf5c22",
+    "bytes": 9811,
+    "crlf": 136,
+    "bom": false,
+    "trailing_lf": true,
+    "byte_equal_to_source": true
+  },
+  "replacement_candidate": {
+    "path": "memory/archive/active_task_20261128_102606_replacement_candidate.md",
+    "author": "agent",
+    "written_by_tool": false,
+    "sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402",
+    "bytes": 6967,
+    "lines": 117,
+    "chars": 6967,
+    "target_active_sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402"
+  },
+  "rollback": {
+    "canonical_source": "memory/archive/active_task_20261128_102606.md",
+    "expected_restored_sha256": "59a58fcb84f4464d67436f7a3f8e98ec055d2b3813e48e617184b3dc1df892e3"
+  },
+  "boundaries": {
+    "automatic_compression": false,
+    "semantic_review_performed": true,
+    "independently_reviewed": true,
+    "uses_legacy_destructive_clean": false,
+    "modifies_existing_global_archive_manifest": false,
+    "validators_modified": false,
+    "commit_authorized": true,
+    "push_authorized": false,
+    "pr_authorized": false,
+    "modifies_gate3_semantics": false,
+    "authorizes_provider_feasibility": false,
+    "authorizes_implementation": false
+  },
+  "preparation_tool": "governance_tools.active_task_cutover",
+  "tool": "manual_atomic_replacement",
+  "authorized_candidate_sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402",
+  "independent_semantic_review": "APPROVED",
+  "before_pressure": "WARNING (136 lines / 9673 chars)",
+  "after_pressure": "SAFE (117 lines / 6967 chars)",
+  "prepared_manifest_sha256": "4168669b52cd32ca9593dffde7d65596c510b960004cbb088d645fe481f05183",
+  "owner_authorization": {
+    "date": "2026-11-28",
+    "channel": "current Owner instruction in interactive session",
+    "original_approval": "1/2/3 全准",
+    "instruction": "Execute Slice N5 Plan A using the exact independently APPROVED candidate; commit only the five named files locally; do not push or open a PR.",
+    "authorized_candidate_sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402"
+  },
+  "source_git_context": {
+    "head": "7de3671d61afb727bd30c90e02a3acd535610a4b",
+    "branch": "chore/n5-active-task-cutover-plan-a",
+    "base_ref": "origin/main",
+    "base_commit": "7de3671d61afb727bd30c90e02a3acd535610a4b"
+  },
+  "independent_semantic_review_record": {
+    "verdict": "APPROVED",
+    "source": "Owner-provided Independent Clean-Context Semantic-Fidelity Review verdict in the current task authorization",
+    "candidate_sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402",
+    "defects": 0,
+    "red_lines_verified": 3,
+    "authority_index_pointers_verified": 7,
+    "authority_index_pointers_total": 7,
+    "lines": 117,
+    "chars": 6967,
+    "pressure": "SAFE",
+    "review_rerun_in_this_execution": false
+  },
+  "preservation_matrix": {
+    "path": "memory/archive/active_task_20261128_102606_semantic_preservation_matrix.md",
+    "sha256": "88dc573c9950741b31f691be2a41b9dec8954ac736f8653a71561c25f6f74892",
+    "interpretation": "Unchanged historical candidate-preparation record. Its PENDING review/authorization text describes that earlier event; the current Owner authorization and independent review are recorded in this manifest."
+  },
+  "pressure": {
+    "before": {
+      "status": "WARNING",
+      "lines": 136,
+      "chars": 9673,
+      "triggered_by": [
+        "chars"
+      ]
+    },
+    "after": {
+      "status": "SAFE",
+      "lines": 117,
+      "chars": 6967,
+      "triggered_by": []
+    }
+  },
+  "automated_verifier": {
+    "recorded_candidate_preparation_result": "FAIL",
+    "source": "memory/archive/active_task_20261128_102606_semantic_preservation_matrix.md",
+    "recorded_counts": {
+      "predecessor_nonblank_items": 115,
+      "verbatim": 87,
+      "removed_recoverable_projection": 1,
+      "added_unreviewed_lines": 12,
+      "unresolved_predecessor_lines": 27
+    },
+    "rerun_in_this_execution": false,
+    "interpretation": "Strict mechanical evaluate() result remains unchanged and is not represented as PASS. This cutover uses the separately Owner-authorized manual semantic-review path following f42e49d4."
+  },
+  "cutover_completed_at": "2026-11-28T03:40:49.220864+00:00",
+  "validation": {
+    "requested_janitor": {
+      "command": "python -m governance_tools.memory_janitor --check --project-root .",
+      "exit_code": 1,
+      "stdout_stderr": "usage: memory_janitor.py [-h] [--memory-root MEMORY_ROOT] [--check] [--plan]\r\n                         [--execute] [--dry-run] [--manifest]\r\n                         [--format {human,json}]\r\nmemory_janitor.py: error: unrecognized arguments: --project-root .\r\n",
+      "result": "FAIL"
+    },
+    "supported_janitor": {
+      "command": "python -m governance_tools.memory_janitor --check --memory-root ./memory",
+      "exit_code": 0,
+      "stdout_stderr": "狀態: SAFE (117 行, 6967 字元)\r\n",
+      "result": "PASS",
+      "root_binding": "The unchanged CLI binds --memory-root ./memory to this repository's memory/ directory; --project-root is unsupported."
+    },
+    "memory_workflow": {
+      "command": "python -m governance_tools.memory_workflow --check --repo . --run-guard",
+      "exit_code": 0,
+      "stdout_stderr": "[memory_workflow]\r\nstatus=memory_workflow_required\r\nrepo_root=D:\\agf-n5-cutover\r\nrepo_root_resolved=True\r\ncanonical_writer_required=True\r\ntask_classification=governed_memory_task\r\nguard_ran=True\r\ncompletion_claim_allowed=True\r\nmemory_protocol_path=governance/MEMORY_PROTOCOL.md\r\ncanonical_writer_path=governance_tools/memory_record.py\r\nauthority_guard_path=governance_tools/memory_authority_guard.py\r\nMemory authority check ran and found no blocking item.\r\ncompletion_claim_allowed=True means this workflow currently does not block a completion claim.\r\nThis does not prove that all completed work has canonical memory.\r\n[memory_files_in_diff]\r\nmemory/01_active_task.md\r\nmemory/archive/active_task_20261128_102606.md\r\nmemory/archive/active_task_20261128_102606_cutover_manifest.json\r\nmemory/archive/active_task_20261128_102606_replacement_candidate.md\r\nmemory/archive/active_task_20261128_102606_semantic_preservation_matrix.md\r\n[guard_summary]\r\nactive_non_canonical_writer=0\r\nauthority_override_rejected=0\r\nauthority_override_used_current_diff=0\r\ncurrent_diff_b0_blocker_count=0\r\nmissing_canonical_memory=19\r\nnon_canonical_writer=86\r\nnon_daily_session_shaped_memory_entry=0\r\nrepo_state_b0_blocker_count=0\r\nsession_like_non_session_memory_type=0\r\ntest_evidence_artifact_metadata_invalid=25\r\ntest_evidence_artifact_metadata_missing=34\r\ntest_evidence_artifact_not_durable=0\r\ntest_evidence_exit_code_contradicts_claim=3\r\ntest_evidence_linked_commit_mismatch=33\r\ntest_evidence_provenance_not_found=579\r\nunbound_memory=349\r\n[recommended_workflow]\r\nStop editing memory/ files directly.\r\nUse canonical writer for session-derived memory.\r\nRun memory authority guard after memory changes.\r\nDo not claim memory DONE until guard result is reported.\r\n[warnings]\r\nmissing_canonical_memory\r\ntest_evidence_artifact_metadata_missing\r\ntest_evidence_artifact_metadata_invalid\r\ntest_evidence_exit_code_contradicts_claim\r\n[background_warnings]\r\nunbound_memory\r\ntest_evidence_provenance_not_found\r\ntest_evidence_linked_commit_mismatch\r\n",
+      "result": "PASS",
+      "completion_claim_allowed": true,
+      "current_diff_b0_blocker_count": 0,
+      "repo_state_b0_blocker_count": 0
+    }
+  },
+  "response_envelope": {
+    "mode": "VALIDATION",
+    "mode_source": "validation_command",
+    "task": "Owner-authorized Slice N5 Plan A formal Active Task Memory Cutover",
+    "task_authority": "user_request",
+    "scope": [
+      "memory/01_active_task.md",
+      "memory/archive/active_task_20261128_102606.md",
+      "memory/archive/active_task_20261128_102606_cutover_manifest.json",
+      "memory/archive/active_task_20261128_102606_replacement_candidate.md",
+      "memory/archive/active_task_20261128_102606_semantic_preservation_matrix.md"
+    ],
+    "done": [
+      "Exact Owner-authorized candidate bytes atomically installed and SHA-256 verified.",
+      "Manifest records the manual cutover, supplied independent APPROVED review, Owner authorization and WARNING-to-SAFE pressure transition.",
+      "Supported MemoryJanitor check passes at SAFE (117 lines / 6967 chars); memory workflow permits completion with zero blockers."
+    ],
+    "claim_ceiling": [
+      "Local manual cutover and scoped validation only.",
+      "Independent semantic review is reused from the Owner-provided verdict, not rerun or upgraded.",
+      "This retained pre-commit validation envelope does not attest a later commit or delivery event."
+    ],
+    "not_claimed": [
+      "Literal requested Janitor command PASS: this CLI does not support --project-root; the unchanged equivalent --memory-root ./memory command was used.",
+      "Strict automated semantic-fidelity verifier PASS or validator changes.",
+      "Historical memory debt resolution, Gate 3 qualification, consumer adoption or runtime correctness.",
+      "Additional daily/review/projection record, session-end closeout, push, PR, merge or release."
+    ],
+    "evidence_refs": [
+      {
+        "artifact": "memory/archive/active_task_20261128_102606_replacement_candidate.md",
+        "result": "PASS",
+        "sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402"
+      },
+      {
+        "artifact": "memory/01_active_task.md",
+        "result": "PASS",
+        "sha256": "32cac60cce9399a2ca1b8c4984e25f0ef205789f3b567b6b172a862a5a83f402"
+      },
+      {
+        "command": "python -m governance_tools.memory_janitor --check --project-root .",
+        "result": "FAIL"
+      },
+      {
+        "command": "python -m governance_tools.memory_janitor --check --memory-root ./memory",
+        "result": "PASS"
+      },
+      {
+        "command": "python -m governance_tools.memory_workflow --check --repo . --run-guard",
+        "result": "PASS"
+      }
+    ],
+    "risk": [
+      "No scope expansion or validator change.",
+      "Existing historical memory guard warnings remain; they are not current blockers.",
+      "Original archive, candidate and candidate-preparation matrix are retained unchanged; historical pending text is superseded only by the explicit current authorization/review record in this manifest."
+    ],
+    "next_action": "Stage exactly the five Owner-listed files, verify the final staged memory scope, commit locally and stop; no push or PR."
+  }
+}
