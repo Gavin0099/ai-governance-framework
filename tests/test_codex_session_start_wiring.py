@@ -5,10 +5,11 @@ import json
 import shlex
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
+from governance_tools import codex_session_start_wiring as wiring
 from governance_tools.codex_session_start_wiring import (
     INSTALLED_CORRECTLY,
     INSTALLED_INCORRECTLY,
@@ -65,7 +66,7 @@ def test_consumer_without_codex_is_not_checked(consumer: Path) -> None:
 
 
 def test_stop_only_consumer_is_reported_with_a_working_repair(consumer: Path) -> None:
-    CodexCLIAdapter().install(consumer, ROOT)
+    _write_hooks(consumer, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(ROOT, consumer)]}]})
     report = _assess_unchanged(consumer)
     assert report["status"] == NOT_INSTALLED
     assert report["stop_wiring"] == "consistent"
@@ -185,6 +186,27 @@ def test_custom_session_start_hook_is_not_counted_and_kept(consumer: Path) -> No
 
 
 @pytest.mark.parametrize(
+    "path_type, entry",
+    [
+        (PurePosixPath, r"C:\framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PurePosixPath, "C:/framework/runtime_hooks/adapters/codex/session_start.py"),
+        (PurePosixPath, r"\\server\framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PureWindowsPath, "/framework/runtime_hooks/adapters/codex/session_start.py"),
+        (PurePosixPath, r"/framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PurePosixPath, "./runtime_hooks/adapters/codex/session_start.py"),
+    ],
+)
+def test_foreign_or_short_session_start_paths_are_not_owned(consumer, monkeypatch, path_type, entry):
+    hook = {"type": "command", "command": shlex.join([
+        "python3", entry, "--project-root", str(consumer),
+    ])}
+    group = {"matcher": SESSION_START_MATCHER, "hooks": [hook]}
+    # Exercise both host path flavours even when pytest itself runs on Windows.
+    monkeypatch.setattr(wiring, "Path", path_type)
+    assert wiring.is_framework_session_start_hook(group, hook, consumer) is False
+
+
+@pytest.mark.parametrize(
     "case, expected_reason",
     [
         ("other_framework", "not this framework checkout's entry"),
@@ -216,7 +238,7 @@ def test_incorrect_bindings_are_named(consumer: Path, tmp_path: Path, case: str,
 def test_stop_bound_to_another_checkout_is_inconsistent(consumer: Path, tmp_path: Path) -> None:
     other = tmp_path / "owner-checkout"
     other.mkdir()
-    CodexCLIAdapter().install(consumer, other)
+    _write_hooks(consumer, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(other, consumer)]}]})
     install(consumer)
     report = _assess_unchanged(consumer)
     assert report["status"] == INSTALLED_CORRECTLY
@@ -328,7 +350,7 @@ def test_f7_reports_the_gap_without_changing_status_or_files(monkeypatch, tmp_pa
     assert baseline.stages["codex_session_start"]["status"] == NOT_APPLICABLE
     assert not any("codex SessionStart" in w for w in baseline.warnings)
 
-    CodexCLIAdapter().install(repo, repo / "ai-governance-framework")
+    _write_hooks(repo, {"Stop": [{"hooks": [CodexCLIAdapter._hook_payload(repo / "ai-governance-framework", repo)]}]})
     hooks_before = _hooks_file(repo).read_bytes()
     result = run_f7_full_update(repo_root=repo, framework_root=tmp_path / "unused", apply=False)
     stage = result.stages["codex_session_start"]

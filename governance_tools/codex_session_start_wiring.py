@@ -17,8 +17,7 @@ import shlex
 from pathlib import Path
 from typing import Any
 
-from governance_tools.manage_agent_closeout import CodexCLIAdapter
-from runtime_hooks.adapters.codex.session_start import SESSION_START_MATCHER, portable_hook_payload
+from runtime_hooks.adapters.codex.session_start import POSIX_ROOT, SESSION_START_MATCHER, portable_hook_payload
 
 ENTRY = "runtime_hooks/adapters/codex/session_start.py"
 # The installer's absolute form writes `python3` and, for Windows,
@@ -211,6 +210,57 @@ def _session_start_reasons(hooks: dict[str, Any], repo_root: Path, framework_roo
     return reasons
 
 
+def is_framework_session_start_hook(group: dict[str, Any], hook: Any, repo_root: Path) -> bool:
+    """Recognize a valid framework invocation for safe removal, without running it.
+
+    Unlike candidate detection, a textual mention never establishes ownership.
+    The installed checkout may differ from the manager's current location.
+    """
+    if not _owned(hook):
+        return False
+    roots = []
+    command = hook.get("command", "")
+    prefix = POSIX_ROOT + 'python3 "$repo_root/'
+    suffix = f'/{ENTRY}" --project-root "$repo_root"'
+    if isinstance(command, str) and command.startswith(prefix) and command.endswith(suffix):
+        roots.append(repo_root / command[len(prefix):-len(suffix)])
+    for _field, tokens, _text in _field_tokens(hook):
+        binding = _binding(tokens) if tokens else None
+        if binding is not None:
+            entry = Path(binding[0])
+            # Foreign-platform paths may be relative or a single filename on
+            # this host. Preserve them unless a native framework root exists.
+            if entry.is_absolute() and len(entry.parents) >= 4:
+                roots.append(entry.parents[3])
+    single_hook = {"SessionStart": [{**group, "hooks": [hook]}]}
+    return any(not _session_start_reasons(single_hook, repo_root, root) for root in roots)
+
+
+def assess_session_start_hooks(
+    hooks: dict[str, Any], repo_root: Path, framework_root: Path,
+) -> tuple[str, list[str]]:
+    """Check identity wiring independently of the Stop closeout classifier."""
+    misplaced = sorted(
+        event
+        for event in hooks
+        if event != "SessionStart"
+        for group in _groups(hooks, event)
+        for hook in _hook_list(group)
+        if _owned(hook)
+    )
+    reasons = [f"identity hook is registered under {event}, not SessionStart" for event in misplaced]
+    has_session_start = any(
+        _owned(hook)
+        for group in _groups(hooks, "SessionStart") for hook in _hook_list(group)
+    )
+    reasons.extend(_session_start_reasons(hooks, repo_root, framework_root))
+    if not has_session_start and not misplaced:
+        return NOT_INSTALLED, [
+            "Codex SessionStart identity hook is not installed; formal closeout on request will be rejected"
+        ]
+    return (INSTALLED_INCORRECTLY if reasons else INSTALLED_CORRECTLY), reasons
+
+
 def assess_codex_session_start(repo_root: Path, framework_root: Path) -> dict[str, Any]:
     repo_root, framework_root = Path(repo_root).resolve(), Path(framework_root).resolve()
     path = repo_root / ".codex" / "hooks.json"
@@ -239,37 +289,23 @@ def assess_codex_session_start(repo_root: Path, framework_root: Path) -> dict[st
     hooks = data.get("hooks") if isinstance(data, dict) else None
     hooks = hooks if isinstance(hooks, dict) else {}
 
-    misplaced = sorted(
-        event
-        for event in hooks
-        if event != "SessionStart"
-        for group in _groups(hooks, event)
-        for hook in _hook_list(group)
-        if _owned(hook)
-    )
-    reasons = [f"identity hook is registered under {event}, not SessionStart" for event in misplaced]
-    has_session_start = any(_owned(hook) for group in _groups(hooks, "SessionStart") for hook in _hook_list(group))
-    reasons.extend(_session_start_reasons(hooks, repo_root, framework_root))
-    if not has_session_start and not misplaced:
-        report["status"] = NOT_INSTALLED
-        report["reasons"] = ["no Codex SessionStart identity hook; formal closeout on request will be rejected"]
+    report["status"], report["reasons"] = assess_session_start_hooks(hooks, repo_root, framework_root)
+    if report["status"] == NOT_INSTALLED:
         report["repair"] = (
             f'python "{(framework_root / ENTRY).as_posix()}" --project-root "{repo_root.as_posix()}" --install'
         )
-    elif reasons:
-        report["status"] = INSTALLED_INCORRECTLY
-        report["reasons"] = reasons
+    elif report["status"] == INSTALLED_INCORRECTLY:
         report["repair"] = (
             "review the identity hook in .codex/hooks.json; the installer refuses to replace "
             "a differing binding, and custom hooks are never rewritten"
         )
-    else:
-        report["status"] = INSTALLED_CORRECTLY
+    # Use the Stop-only classifier: manager.verify now requires both hooks.
+    from governance_tools.manage_agent_closeout import CodexCLIAdapter
 
-    stop = CodexCLIAdapter().verify(repo_root, framework_root)
+    stop = CodexCLIAdapter()._configuration(repo_root, framework_root)[2]
     stop_state = stop["configuration_state"]
     report["stop_wiring"] = (
-        "consistent" if stop["installed"]
+        "consistent" if stop_state in {"standard", "project_adapter_verified"}
         else {"missing": "not_found", "invalid": "not_verified"}.get(stop_state, "inconsistent")
     )
     if report["stop_wiring"] == "not_found" and _has_session_end_publisher(hooks):

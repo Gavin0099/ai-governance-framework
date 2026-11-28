@@ -84,6 +84,8 @@ def test_portable_hook_for_another_framework_path_is_not_correct(tmp_path, monke
 
 def test_existing_absolute_bindings_stay_current_and_are_not_rewritten(tmp_path, monkeypatch):
     root, framework = _consumer(tmp_path)
+    monkeypatch.setattr(ss, "__file__", str(framework / "runtime_hooks/adapters/codex/session_start.py"))
+    monkeypatch.setattr(ss, "FRAMEWORK_ROOT", framework)
     legacy = {
         "hooks": {
             "SessionStart": [{"matcher": ss.SESSION_START_MATCHER, "hooks": [ss.hook_payload(root)]}],
@@ -94,7 +96,6 @@ def test_existing_absolute_bindings_stay_current_and_are_not_rewritten(tmp_path,
     _hooks(root).write_text(json.dumps(legacy, indent=2), encoding="utf-8")
     before = _hooks(root).read_bytes()
 
-    monkeypatch.setattr(ss, "FRAMEWORK_ROOT", Path(ss.__file__).resolve().parents[3])
     assert CodexCLIAdapter().install(root, framework)["status"] == "already_installed"
     assert CodexCLIAdapter().verify(root, framework)["installed"] is True
     assert ss.install(root)["status"] == "already_installed"
