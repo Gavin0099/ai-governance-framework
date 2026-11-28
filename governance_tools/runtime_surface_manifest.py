@@ -121,6 +121,13 @@ KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {
         "primary_output": "canonical closeout artifact",
         "artifact_effect": "writes artifacts/runtime/closeouts/{session_id}.json and appends session-index.ndjson",
     },
+    "memory_delivery": {
+        "path": "runtime_hooks/core/memory_delivery.py",
+        "category": "runtime-init",
+        "input_mode": "internal-library",
+        "primary_output": "verified working-state payload or original-read fallback",
+        "artifact_effect": "reads bound evidence on request without writing artifacts",
+    },
     "_canonical_closeout_context": {
         "path": "runtime_hooks/core/_canonical_closeout_context.py",
         "category": "runtime-init",

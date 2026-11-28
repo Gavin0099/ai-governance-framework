@@ -44,18 +44,9 @@ MAX_SOURCE_BYTES = claude.MAX_TRUST_JSON_BYTES
 _REJECTED_STATES = r0.NON_RESOLVED_STATES | r1.NON_RESOLVED_STATES | {
     "checkpoint_mismatch", "inconsistent", "authority_conflict",
 }
-_DIRECTIVE = re.compile(
-    r"^(?:RULE|MUST|SHALL|SHOULD|POLICY|INSTRUCTIONS?|SYSTEM|DEVELOPER|"
-    r"DO\s+NOT|YOU\s+(?:MUST|SHOULD|SHALL)|NEVER|ALWAYS|IGNORE|OVERRIDE|FOLLOW|PLEASE|RUN|EXECUTE|"
-    r"DELETE|WRITE|COMMIT|PUSH|INSTALL|READ|LOAD|UPDATE|IMPLEMENT|CONTINUE|"
-    r"NEXT\s+(?:STEP|ACTION)|TODO)\b|^(?:請|必須|不得|禁止|務必|執行|繼續|下一步)",
-    re.IGNORECASE,
-)
-_PATH_TOKEN = re.compile(
-    r"(?:[A-Za-z]:)?(?:[\w.-]*[/\\](?:[\w./\\-]*[\w/\\-])?|[\w.-]+\.[A-Za-z0-9_]+)",
-    re.UNICODE,
-)
-_CLAUSE_PREFIX = re.compile(r"""^(?:[\s\-+*#>`'"“”‘’•]+|\d+[.)]\s*)+""")
+# Only runtime-owned citations with opaque date/UUID-like identifiers are
+# rendered verbatim. Repository filenames and human session names can be prose.
+_OPAQUE_SESSION = re.compile(r"[0-9a-fA-F-]{1,128}")
 
 
 class _Reject(ValueError):
@@ -180,10 +171,12 @@ def _checkpoint_source(root: Path, sid: str | None, now: datetime, age: int) -> 
     _check_states(candidate)
     if candidate.get("session_id", target) != target:
         raise _Reject("session_mismatch")
-    if _parse_aware_utc(checkpoint["exited_at"]) < _parse_aware_utc(envelope["started_at"]):
+    exited_at = _parse_aware_utc(checkpoint["exited_at"])
+    if exited_at < _parse_aware_utc(envelope["started_at"]):
         raise _Reject("session_mismatch")
     return {"source": "r2_checkpoint", "source_sha256": identity["sha256"],
-            "state": "checkpointed", "summary": candidate.get("work_summary"),
+            "state": "checkpointed", "summary": f"Checkpoint recorded at {exited_at.isoformat()}.",
+            "citation": path if _OPAQUE_SESSION.fullmatch(target) else None,
             "paths": [path.relative_to(root).as_posix(), identity["relative_path"],
                       *_references(candidate)], "pressure": "NOT_ASSESSED"}
 
@@ -215,13 +208,15 @@ def _canonical_source(root: Path, sid: str | None, now: datetime, age: int) -> d
         raise _Reject("session_mismatch")
     envelope = _bound_envelope(root, target)
     _fresh(path, now, age, data["closed_at"])
-    if _parse_aware_utc(data["closed_at"]) < _parse_aware_utc(envelope["started_at"]):
+    closed_at = _parse_aware_utc(data["closed_at"])
+    if closed_at < _parse_aware_utc(envelope["started_at"]):
         raise _Reject("session_mismatch")
     evidence = data.get("evidence_summary")
     if not isinstance(evidence, dict):
         raise _Reject("invalid_source")
     return {"source": "canonical_closeout", "source_sha256": hashlib.sha256(raw).hexdigest(),
-            "state": "valid", "summary": context["work_summary"], "pressure": "NOT_ASSESSED",
+            "state": "valid", "summary": f"Session closed at {closed_at.isoformat()}.",
+            "pressure": "NOT_ASSESSED", "citation": path if _OPAQUE_SESSION.fullmatch(target) else None,
             "paths": [path.relative_to(root).as_posix(), *_references(evidence)]}
 
 
@@ -267,72 +262,47 @@ def _active_source(root: Path, inputs: Mapping | None, sid: str | None,
     record = inputs[current + "_record"]
     if sid is not None and record.get("session_id") != sid:
         raise _Reject("session_mismatch")
-    if (record.get("memory_binding") != "bound"
-            or not git_commit_exists(root, record.get("commit_hash", ""))):
+    commit = record.get("commit_hash")
+    if (record.get("memory_binding") != "bound" or not isinstance(commit, str)
+            or not git_commit_exists(root, commit)):
         raise _Reject("unverified_provenance")
     return {"source": "r0_r1_active_task", "source_sha256": hashlib.sha256(projection).hexdigest(),
-            "state": state, "summary": inputs[current + "_summary"], "pressure": pressure,
+            "state": state, "summary": f"Active record bound to commit {commit.strip().lower()}.",
+            "pressure": pressure, "citation": path,
             "paths": ["memory/01_active_task.md"]}
 
 
-def _existing_path(root: Path, value: str) -> str | None:
+def _existing_path(root: Path, value: str) -> Path | None:
     path = root / value.replace("\\", "/")
     try:
         _check_path(root, path)
         if path.is_file():
-            return path.relative_to(root).as_posix()
+            return path.relative_to(root)
     except (OSError, ValueError, RuntimeError):
         pass
     return None
 
 
 def _project(root: Path, source: dict, max_chars: int) -> str:
-    summary = source["summary"]
-    if not isinstance(summary, str):
-        raise _Reject("no_factual_state")
-    clauses = re.split(r"[\n\r;\x85\u2028\u2029]+|(?<=[.!?])\s+", summary)
-    facts = []
-    for clause in clauses:
-        fact = " ".join(_CLAUSE_PREFIX.sub("", clause).split())
-        # Reject directives before path cleanup can hide slash-joined verbs.
-        if not fact or _DIRECTIVE.match(fact):
-            continue
-        # Neither the fact text nor verified_paths advertises phantom/outside paths.
-        fact = _PATH_TOKEN.sub(lambda match: _existing_path(root, match[0]) or "", fact)
-        fact = " ".join(_CLAUSE_PREFIX.sub("", fact).split())
-        # Cleanup can also expose a directive; check the normalized clause again.
-        if fact and not _DIRECTIVE.match(fact):
-            facts.append(fact)
-    summary = "; ".join(facts)
-    if not summary:
-        raise _Reject("no_factual_state")
-    paths = sorted({value for item in source["paths"] for value in [_existing_path(root, item)] if value})
+    # Evidence paths can verify a count without exposing their text to a model.
+    existing = {path for item in source["paths"] if (path := _existing_path(root, item)) is not None}
+    citation = source["citation"]
+    paths = []
+    if citation is not None and citation.relative_to(root) in existing:
+        paths.append(citation.relative_to(root).as_posix())
 
-    def render(text: str) -> str:
-        return "\n".join([
-            "[WORKING_STATE_DATA]", "format: verified_working_state_data",
-            "source: " + source["source"], "source_sha256: " + source["source_sha256"],
-            "state: " + source["state"], "active_summary: " + json.dumps(text, ensure_ascii=False),
-            "pressure: " + source["pressure"],
-            "verified_paths: " + json.dumps(paths, ensure_ascii=False),
-        ])
-
-    if len(render(summary)) <= max_chars:
-        return render(summary)
-    while paths and len(render(summary[:1] + "…")) > max_chars:
-        paths.pop()
-    if len(render(summary[:1] + "…")) > max_chars:
-        raise _Reject("payload_budget_exceeded")
-    if len(render(summary)) <= max_chars:
-        return render(summary)
-    low, high = 1, len(summary)
-    while low < high:
-        middle = (low + high + 1) // 2
-        if len(render(summary[:middle] + "…")) <= max_chars:
-            low = middle
-        else:
-            high = middle - 1
-    return render(summary[:low] + "…")
+    fields = [
+        "[WORKING_STATE_DATA]", "format: verified_working_state_data",
+        "source: " + source["source"], "source_sha256: " + source["source_sha256"],
+        "state: " + source["state"], "active_summary: " + json.dumps(source["summary"]),
+        "pressure: " + source["pressure"], f"verified_path_count: {len(existing)}",
+    ]
+    # Drop an optional citation as a unit. Never truncate a timestamp or commit.
+    for citations in (paths, []):
+        payload = "\n".join([*fields, "verified_paths: " + json.dumps(citations)])
+        if len(payload) <= max_chars:
+            return payload
+    raise _Reject("payload_budget_exceeded")
 
 
 def build_memory_delivery(
