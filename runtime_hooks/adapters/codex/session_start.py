@@ -1,9 +1,10 @@
-"""Codex SessionStart identity adapter; does not run closeout or change Stop."""
+"""Codex SessionStart identity adapter with opt-in memory delivery; never runs closeout."""
 from __future__ import annotations
 
 import argparse
 import base64
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -154,15 +155,49 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, required=True)
     parser.add_argument("--install", action="store_true")
+    parser.add_argument("--enable-memory-delivery", action="store_true",
+                        help="Deliver verified memory context (also enabled by AI_GOVERNANCE_ENABLE_MEMORY_DELIVERY=1)")
+    parser.add_argument("--memory-delivery-max-chars", type=int, default=600)
     args = parser.parse_args()
     try:
         result = install(args.project_root) if args.install else run(json.load(sys.stdin), args.project_root)
     except (ValueError, OSError, subprocess.SubprocessError, TypeError, AttributeError) as exc:
         print(json.dumps({"systemMessage": f"Governance SessionStart failed: {exc}"}))
         return 1
+    output = "{}"
+    if not args.install and (args.enable_memory_delivery
+                             or os.environ.get("AI_GOVERNANCE_ENABLE_MEMORY_DELIVERY") == "1"):
+        # Keep optional imports and failure handling after mandatory identity binding.
+        try:
+            from runtime_hooks.core.memory_delivery import build_memory_delivery, format_platform_envelope
+
+            delivery = build_memory_delivery(Path(result["project_root"]),
+                                             session_id=None,
+                                             max_chars=args.memory_delivery_max_chars)
+            envelope = format_platform_envelope(delivery, "codex")
+            inject = delivery["inject"] is True and bool(envelope)
+            # The core exposes source in its data payload and cost as telemetry.
+            source = delivery.get("source") or next(
+                (line[len("source: "):] for line in delivery.get("payload", "").splitlines()
+                 if line.startswith("source: ")), None,
+            )
+            result["memory_delivery"] = {
+                "inject": inject,
+                "reason": "empty_envelope" if delivery["inject"] is True and not envelope else delivery["reason"],
+                "source": source,
+                "self_cost": delivery.get("self_cost", delivery.get("telemetry", {})),
+            }
+            if inject:
+                output = json.dumps(envelope)
+        except Exception as exc:
+            # Memory delivery is optional; identity failures never reach this block.
+            result["memory_delivery"] = {
+                "inject": False, "reason": f"unexpected_error:{type(exc).__name__}",
+                "source": None, "self_cost": {},
+            }
     # Native hook stdout uses documented fields; detail goes to stderr for audit.
     print(json.dumps(result), file=sys.stderr)
-    print("{}")
+    print(output)
     return 0
 
 
