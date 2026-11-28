@@ -1,7 +1,7 @@
 # 02_workflow.md — AI 協作工作流程
 
 > **適用範圍**: 使用 AI Governance Framework 的所有協作會話
-> **最後更新**: 2026-03-06
+> **最後更新**: 2026-11-28
 
 ---
 
@@ -22,8 +22,12 @@
    └─ notion_integrator --sync  → 同步到 Notion
 
 4. 記憶管理
-   └─ memory_janitor --check    → 確認壓力狀態
-   └─ memory_janitor --execute  → 歸檔（CRITICAL 以上）
+   └─ memory_janitor --check    → 確認壓力狀態（僅量測）
+   └─ memory_janitor --execute  → 已 fail-closed（UnsafeCleanupBlocked），不可用於歸檔
+   └─ CRITICAL / EMERGENCY：python -m governance_tools.active_task_cutover
+      prepare → Agent 撰寫 replacement candidate → verify → Owner 授權後 cutover
+      prepare / verify 不修改 active memory；cutover 需 --authorization 與
+      --authorized-candidate-sha256 綁定 Owner 核准的候選檔 SHA-256；必要時 rollback
 
 5. PLAN.md 維護
    └─ 完成任務後更新「最後更新」日期
@@ -46,7 +50,7 @@
 
 每次 push / PR 自動執行：
 - `plan_freshness.py` — PLAN.md 新鮮度（CRITICAL 擋 push）
-- `memory_janitor --check` — 記憶壓力（EMERGENCY 擋 push，其餘 advisory）
+- `memory_janitor --check` — 記憶壓力（advisory；EMERGENCY 使該 job 失敗，CRITICAL 警告）
 
 詳見：`.github/workflows/governance.yml` / `.gitlab-ci.yml`
 
@@ -56,9 +60,9 @@
 
 | 文件 | 說明 |
 |------|------|
-| [SYSTEM_PROMPT.md](SYSTEM_PROMPT.md) | AI 核心意識，8 大法典 |
-| [AGENT.md](AGENT.md) | Agent 身份定義 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 架構設計原則 |
-| [HUMAN-OVERSIGHT.md](HUMAN-OVERSIGHT.md) | 人類監督機制 |
+| [SYSTEM_PROMPT.md](../governance/SYSTEM_PROMPT.md) | AI 核心意識，8 大法典 |
+| [AGENT.md](../governance/AGENT.md) | Agent 身份定義 |
+| [ARCHITECTURE.md](../governance/ARCHITECTURE.md) | 架構設計原則 |
+| [HUMAN-OVERSIGHT.md](../governance/HUMAN-OVERSIGHT.md) | 人類監督機制 |
 | [PLAN.md](../PLAN.md) | 當前計畫（專案根目錄） |
 | [governance_tools/README.md](../governance_tools/README.md) | 工具使用說明 |
