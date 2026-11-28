@@ -290,14 +290,20 @@ def _project(root: Path, source: dict, max_chars: int) -> str:
     summary = source["summary"]
     if not isinstance(summary, str):
         raise _Reject("no_factual_state")
-    # Neither the fact text nor verified_paths advertises phantom/outside paths.
-    summary = _PATH_TOKEN.sub(
-        lambda match: _existing_path(root, match[0]) or "", summary,
-    )
     clauses = re.split(r"[\n\r;\x85\u2028\u2029]+|(?<=[.!?])\s+", summary)
-    facts = (" ".join(_CLAUSE_PREFIX.sub("", clause).split()) for clause in clauses)
-    # Cleanup can expose a directive; check only the final normalized clauses.
-    summary = "; ".join(fact for fact in facts if fact and not _DIRECTIVE.match(fact))
+    facts = []
+    for clause in clauses:
+        fact = " ".join(_CLAUSE_PREFIX.sub("", clause).split())
+        # Reject directives before path cleanup can hide slash-joined verbs.
+        if not fact or _DIRECTIVE.match(fact):
+            continue
+        # Neither the fact text nor verified_paths advertises phantom/outside paths.
+        fact = _PATH_TOKEN.sub(lambda match: _existing_path(root, match[0]) or "", fact)
+        fact = " ".join(_CLAUSE_PREFIX.sub("", fact).split())
+        # Cleanup can also expose a directive; check the normalized clause again.
+        if fact and not _DIRECTIVE.match(fact):
+            facts.append(fact)
+    summary = "; ".join(facts)
     if not summary:
         raise _Reject("no_factual_state")
     paths = sorted({value for item in source["paths"] for value in [_existing_path(root, item)] if value})
