@@ -51,7 +51,11 @@ _DIRECTIVE = re.compile(
     r"NEXT\s+(?:STEP|ACTION)|TODO)\b|^(?:請|必須|不得|禁止|務必|執行|繼續|下一步)",
     re.IGNORECASE,
 )
-_PATH_TOKEN = re.compile(r"(?:[A-Za-z]:)?[\w./\\-]+\.[A-Za-z0-9_]+", re.UNICODE)
+_PATH_TOKEN = re.compile(
+    r"(?:[A-Za-z]:)?(?:[\w.-]*[/\\](?:[\w./\\-]*[\w/\\-])?|[\w.-]+\.[A-Za-z0-9_]+)",
+    re.UNICODE,
+)
+_CLAUSE_PREFIX = re.compile(r"""^(?:[\s\-+*#>`'"“”‘’•]+|\d+[.)]\s*)+""")
 
 
 class _Reject(ValueError):
@@ -275,7 +279,7 @@ def _existing_path(root: Path, value: str) -> str | None:
     path = root / value.replace("\\", "/")
     try:
         _check_path(root, path)
-        if path.exists():
+        if path.is_file():
             return path.relative_to(root).as_posix()
     except (OSError, ValueError, RuntimeError):
         pass
@@ -286,14 +290,14 @@ def _project(root: Path, source: dict, max_chars: int) -> str:
     summary = source["summary"]
     if not isinstance(summary, str):
         raise _Reject("no_factual_state")
-    clauses = re.split(r"[\n\r;\x85\u2028\u2029]+|(?<=[.!?])\s+", summary)
-    facts = [clause.strip().lstrip("-*#> `\t") for clause in clauses]
-    summary = "; ".join(fact for fact in facts if fact and not _DIRECTIVE.match(fact))
     # Neither the fact text nor verified_paths advertises phantom/outside paths.
     summary = _PATH_TOKEN.sub(
         lambda match: _existing_path(root, match[0]) or "", summary,
     )
-    summary = " ".join(summary.split()).strip()
+    clauses = re.split(r"[\n\r;\x85\u2028\u2029]+|(?<=[.!?])\s+", summary)
+    facts = (" ".join(_CLAUSE_PREFIX.sub("", clause).split()) for clause in clauses)
+    # Cleanup can expose a directive; check only the final normalized clauses.
+    summary = "; ".join(fact for fact in facts if fact and not _DIRECTIVE.match(fact))
     if not summary:
         raise _Reject("no_factual_state")
     paths = sorted({value for item in source["paths"] for value in [_existing_path(root, item)] if value})
@@ -344,6 +348,8 @@ def build_memory_delivery(
         if (type(max_chars) is not int or max_chars < 1
                 or type(max_age_days) is not int or max_age_days < 0):
             raise _Reject("invalid_configuration")
+        if now is not None and not isinstance(now, datetime):
+            raise _Reject("malformed_input")
         root = Path(project_root)
         workspace = root if workspace_root is None else Path(workspace_root)
         if (not root.is_absolute() or root.resolve(strict=True) != root
@@ -375,7 +381,9 @@ def build_memory_delivery(
         reason = "verified"
     except _Reject as exc:
         reason = str(exc)
-    except (OSError, ValueError, TypeError, KeyError, RuntimeError, RecursionError, subprocess.SubprocessError):
+    except (OSError, ValueError, OverflowError, TypeError, KeyError,
+            RuntimeError, RecursionError, subprocess.SubprocessError):
+        # Timestamp parsing and delegated UTC conversion must also fall back.
         reason = "verification_failed"
     inject = bool(payload)
     return {"inject": inject, "payload": payload, "reason": reason,
