@@ -72,7 +72,7 @@ Do not interpret every `installed=false` as permission to add a direct entry.
 | `standard_stale` | Exactly one framework-owned entry with an obsolete command or wrong root | false | Replace that owned entry, without increasing the entry count |
 | `standard_duplicate` | Multiple entries, all framework-owned, with no project adapter declaration | false | Consolidate to one entry bound to the requested framework root |
 | `project_adapter_unverified` | Possible project closeout entry, or an invalid / mismatched declaration | false | Preserve configuration; return `blocked` |
-| `project_adapter_verified` | Exactly one adapter matches the explicit declaration and framework target | true, configuration only | Successful no-op: install returns `already_configured`, repair returns `no_repair_needed`; CLI exit 0 |
+| `project_adapter_verified` | Exactly one adapter matches the explicit declaration and framework target | true only with correct SessionStart wiring; configuration only | Add missing SessionStart wiring; with correct wiring, install returns `already_configured`, repair returns `no_repair_needed`; CLI exit 0 |
 | `conflict` | Multiple possible formal entries with a project / unknown entry or adapter declaration participating | false | Preserve configuration; return `blocked` |
 | `invalid` | Unreadable / malformed hooks JSON, duplicate keys, or malformed Stop containers | false | Preserve configuration; return `blocked` |
 
@@ -85,9 +85,11 @@ whitespace. A single stale framework entry can still be
 rebound. Pure framework duplicates are consolidated without bypassing any project
 entry. If a project adapter, declared adapter or unknown formal candidate
 participates, the configuration remains a conflict and is preserved. A verified
-project adapter is already configured: both operations succeed without changing
-any bytes. That success verifies only a configuration match, not execution,
-hook trust or formal closeout.
+project adapter also needs correct SessionStart wiring for `verify` to report
+installed. Install and repair add missing SessionStart wiring while preserving
+the adapter; with correct wiring, both succeed without changing any bytes.
+Differing SessionStart bindings block both operations. That success verifies
+only a configuration match, not execution, hook trust or formal closeout.
 
 ### What counts as a possible formal entry
 

@@ -227,7 +227,11 @@ def is_framework_session_start_hook(group: dict[str, Any], hook: Any, repo_root:
     for _field, tokens, _text in _field_tokens(hook):
         binding = _binding(tokens) if tokens else None
         if binding is not None:
-            roots.append(Path(binding[0]).parents[3])
+            entry = Path(binding[0])
+            # Foreign-platform paths may be relative or a single filename on
+            # this host. Preserve them unless a native framework root exists.
+            if entry.is_absolute() and len(entry.parents) >= 4:
+                roots.append(entry.parents[3])
     single_hook = {"SessionStart": [{**group, "hooks": [hook]}]}
     return any(not _session_start_reasons(single_hook, repo_root, root) for root in roots)
 

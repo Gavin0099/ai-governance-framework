@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import base64
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shlex
 import sys
 
 import pytest
 
+from governance_tools import codex_session_start_wiring as wiring
 from governance_tools import manage_agent_closeout as manager
 from runtime_hooks.adapters.codex import session_start
 
@@ -248,6 +249,44 @@ def test_uninstall_recognizes_an_installed_framework_outside_the_manager_checkou
     ]
     assert hooks["SessionStart"][1]["hooks"] == []
     assert _stop_hooks(path) == []
+
+
+def test_foreign_windows_session_start_is_preserved_while_matching_hooks_are_removed(tmp_path, monkeypatch):
+    root, framework, path = _consumer(tmp_path, [], with_session_start=False)
+    adapter = manager.CodexCLIAdapter()
+    monkeypatch.setattr(manager, "_resolve_framework_root", lambda: framework)
+    assert adapter.install(root, framework)["status"] == "installed"
+    entry = r"C:\framework\runtime_hooks\adapters\codex\session_start.py"
+    foreign = {"type": "command", "command": shlex.join([
+        "python3", entry, "--project-root", str(root),
+    ])}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["hooks"]["SessionStart"][1]["hooks"].insert(0, foreign)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    before = path.read_bytes()
+
+    verified = adapter.verify(root, framework)
+    assert verified["installed"] is False
+    assert verified["session_start_state"] == "installed_incorrectly"
+    detected = adapter.detect(root)
+    assert detected["detected"] is True and detected["installed"] is False
+    assert detected["session_start_state"] == "installed_incorrectly"
+    assert path.read_bytes() == before
+
+    # Simulate POSIX parsing of this exact Windows entry on every test host.
+    # Keep native filesystem paths for the consumer and matching portable hook.
+    monkeypatch.setattr(wiring, "Path", lambda value: PurePosixPath(value) if value == entry else Path(value))
+    assert adapter.uninstall(root)["status"] == "uninstalled"
+    remaining = json.loads(path.read_text(encoding="utf-8"))["hooks"]
+    assert remaining["SessionStart"][0]["hooks"] == [
+        {"type": "command", "command": "python scripts/session_identity.py"},
+    ]
+    assert remaining["SessionStart"][1]["hooks"] == [foreign]
+    assert json.dumps(foreign).encode("utf-8") in path.read_bytes()
+    assert _stop_hooks(path) == []
+    before = path.read_bytes()
+    assert adapter.uninstall(root)["status"] == "not_found"
+    assert path.read_bytes() == before
 
 
 def _stop_hooks(path: Path) -> list[dict]:

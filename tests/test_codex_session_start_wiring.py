@@ -5,10 +5,11 @@ import json
 import shlex
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
+from governance_tools import codex_session_start_wiring as wiring
 from governance_tools.codex_session_start_wiring import (
     INSTALLED_CORRECTLY,
     INSTALLED_INCORRECTLY,
@@ -182,6 +183,27 @@ def test_custom_session_start_hook_is_not_counted_and_kept(consumer: Path) -> No
     report = _assess_unchanged(consumer)
     assert report["status"] == NOT_INSTALLED
     assert json.loads(_hooks_file(consumer).read_text(encoding="utf-8"))["hooks"]["SessionStart"][0]["hooks"] == [custom]
+
+
+@pytest.mark.parametrize(
+    "path_type, entry",
+    [
+        (PurePosixPath, r"C:\framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PurePosixPath, "C:/framework/runtime_hooks/adapters/codex/session_start.py"),
+        (PurePosixPath, r"\\server\framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PureWindowsPath, "/framework/runtime_hooks/adapters/codex/session_start.py"),
+        (PurePosixPath, r"/framework\runtime_hooks\adapters\codex\session_start.py"),
+        (PurePosixPath, "./runtime_hooks/adapters/codex/session_start.py"),
+    ],
+)
+def test_foreign_or_short_session_start_paths_are_not_owned(consumer, monkeypatch, path_type, entry):
+    hook = {"type": "command", "command": shlex.join([
+        "python3", entry, "--project-root", str(consumer),
+    ])}
+    group = {"matcher": SESSION_START_MATCHER, "hooks": [hook]}
+    # Exercise both host path flavours even when pytest itself runs on Windows.
+    monkeypatch.setattr(wiring, "Path", path_type)
+    assert wiring.is_framework_session_start_hook(group, hook, consumer) is False
 
 
 @pytest.mark.parametrize(
