@@ -1,5 +1,6 @@
 import base64
 import builtins
+import hashlib
 import io
 import json
 import os
@@ -274,7 +275,8 @@ def test_main_opt_in_delivers_exact_envelope_only_after_binding(
 
     def after_binding(project_root, **kwargs):
         assert project_root == repo
-        assert read_session_envelope(kwargs["session_id"], project_root)["provider"] == "codex"
+        assert kwargs["session_id"] is None
+        assert read_session_envelope("known-session", project_root)["provider"] == "codex"
         pointer = json.loads((repo / "artifacts/runtime/.current-session-id").read_text())
         assert pointer["session_id"] == "known-session"
         return delivery
@@ -294,7 +296,7 @@ def test_main_opt_in_delivers_exact_envelope_only_after_binding(
         "self_cost": delivery["telemetry"],
     }
     assert audit["status"] == "created" and audit["session_id"] == "known-session"
-    build.assert_called_once_with(repo, session_id="known-session", max_chars=600 if max_chars is None else max_chars)
+    build.assert_called_once_with(repo, session_id=None, max_chars=600 if max_chars is None else max_chars)
     formatter.assert_called_once_with(delivery, "codex")
 
 
@@ -534,3 +536,124 @@ def test_main_real_canonical_delivery_and_budget_fallback(repo, monkeypatch, cap
         assert captured.out == "{}\n"
         assert delivery["source"] is None
         assert delivery["self_cost"]["fallback_to_original_read"] is True
+
+
+@pytest.fixture
+def prior_session_closeout(repo, monkeypatch):
+    from runtime_hooks.core import memory_delivery
+    from runtime_hooks.core._canonical_closeout import (
+        build_canonical_closeout, write_canonical_closeout, write_session_envelope,
+    )
+
+    now = datetime(2026, 11, 28, 12, tzinfo=timezone.utc)
+    write_session_envelope("session-a", repo, provider="codex", bound_consumer_root=repo,
+                           started_at=(now - timedelta(hours=1)).isoformat())
+    (repo / "evidence.txt").write_text("Session A verified evidence", encoding="utf-8")
+    canonical = build_canonical_closeout(
+        session_id="session-a", closed_at=now.isoformat(),
+        candidate_payload={"task_intent": "Deliver Session A memory", "work_summary": "Evidence is ready.",
+                           "tools_used": [], "artifacts_referenced": ["evidence.txt"], "open_risks": []},
+        existing_artifacts=frozenset({"evidence.txt"}), runtime_signals={},
+    )
+    assert canonical["closeout_status"] == "valid"
+    path = write_canonical_closeout(canonical, repo)
+    os.utime(path, (now.timestamp(), now.timestamp()))
+    original_build = memory_delivery.build_memory_delivery
+
+    def fixed_clock_build(*args, **kwargs):
+        return original_build(*args, **kwargs, now=now)
+
+    monkeypatch.setattr(memory_delivery, "build_memory_delivery", fixed_clock_build)
+    return path
+
+
+def test_main_cross_session_delivers_prior_verified_session(
+    repo, monkeypatch, capsys, prior_session_closeout,
+):
+    source_envelope = repo / "artifacts/runtime/sessions/session-a/session-envelope.json"
+    before = {path: path.read_bytes() for path in (prior_session_closeout, source_envelope)}
+    assert read_session_envelope("session-a", repo)["schema_version"] == "1.1"
+    assert read_session_envelope("session-b", repo) is None
+
+    assert _invoke_main(repo, monkeypatch, "--enable-memory-delivery",
+                        raw_payload=json.dumps(event(repo, source="startup", sid="session-b"))) == 0
+    captured = capsys.readouterr()
+    output, audit = json.loads(captured.out), json.loads(captured.err)
+    assert audit["status"] == "created" and audit["session_id"] == "session-b"
+    bound = read_session_envelope("session-b", repo)
+    assert bound["session_id"] == "session-b" and bound["provider"] == "codex"
+    assert bound["schema_version"] == "1.1"
+    pointer = json.loads((repo / "artifacts/runtime/.current-session-id").read_text())
+    assert pointer["session_id"] == "session-b"
+    assert {path: path.read_bytes() for path in before} == before
+    delivery = audit["memory_delivery"]
+    assert delivery["reason"] == "verified"
+    assert delivery["inject"] is True
+    assert delivery["source"] == "canonical_closeout"
+    assert set(output) == {"hookSpecificOutput"}
+    context = output["hookSpecificOutput"]
+    assert context["hookEventName"] == "SessionStart"
+    payload = context["additionalContext"]
+    assert payload.startswith("[WORKING_STATE_DATA]\n")
+    assert "\nsource: canonical_closeout\n" in payload
+    assert "\nstate: valid\n" in payload
+    assert f"\nsource_sha256: {hashlib.sha256(before[prior_session_closeout]).hexdigest()}\n" in payload
+    assert delivery["self_cost"]["payload_chars"] == len(payload) <= 600
+
+
+@pytest.mark.parametrize("case, reason", [
+    ("missing_binding", "unverified_session_binding"),
+    ("mismatched_identity", "session_mismatch"),
+    ("stale_timestamp", "stale_source"),
+])
+def test_main_cross_session_rejects_unverified_source_without_blocking_startup(
+    repo, monkeypatch, capsys, prior_session_closeout, case, reason,
+):
+    if case == "missing_binding":
+        (repo / "artifacts/runtime/sessions/session-a/session-envelope.json").unlink()
+    else:
+        canonical = json.loads(prior_session_closeout.read_text(encoding="utf-8"))
+        if case == "mismatched_identity":
+            canonical["session_id"] = "other-session"
+        else:
+            canonical["closed_at"] = (
+                datetime.fromisoformat(canonical["closed_at"]) - timedelta(days=31)
+            ).isoformat()
+        timestamp = prior_session_closeout.stat().st_mtime
+        prior_session_closeout.write_text(json.dumps(canonical), encoding="utf-8")
+        os.utime(prior_session_closeout, (timestamp, timestamp))
+    before = prior_session_closeout.read_bytes()
+
+    assert _invoke_main(repo, monkeypatch, "--enable-memory-delivery",
+                        raw_payload=json.dumps(event(repo, source="startup", sid="session-b"))) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "{}\n"
+    audit = json.loads(captured.err)
+    assert audit["status"] == "created" and audit["session_id"] == "session-b"
+    assert read_session_envelope("session-b", repo)["schema_version"] == "1.1"
+    delivery = audit["memory_delivery"]
+    assert delivery["inject"] is False
+    assert delivery["reason"] == reason
+    assert delivery["source"] is None
+    assert delivery["self_cost"]["fallback_to_original_read"] is True
+    assert prior_session_closeout.read_bytes() == before
+    if case == "missing_binding":
+        assert read_session_envelope("session-a", repo) is None
+
+
+def test_main_cross_session_default_off_never_calls_delivery(
+    repo, monkeypatch, capsys, prior_session_closeout, delivery_hooks,
+):
+    before = prior_session_closeout.read_bytes()
+    assert _invoke_main(repo, monkeypatch,
+                        raw_payload=json.dumps(event(repo, source="startup", sid="session-b"))) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "{}\n"
+    audit = json.loads(captured.err)
+    assert audit["status"] == "created" and audit["session_id"] == "session-b"
+    assert "memory_delivery" not in audit
+    assert read_session_envelope("session-b", repo)["schema_version"] == "1.1"
+    assert prior_session_closeout.read_bytes() == before
+    build, formatter, _ = delivery_hooks
+    build.assert_not_called()
+    formatter.assert_not_called()

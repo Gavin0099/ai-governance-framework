@@ -172,7 +172,7 @@ def main() -> int:
             from runtime_hooks.core.memory_delivery import build_memory_delivery, format_platform_envelope
 
             delivery = build_memory_delivery(Path(result["project_root"]),
-                                             session_id=result["session_id"],
+                                             session_id=None,
                                              max_chars=args.memory_delivery_max_chars)
             envelope = format_platform_envelope(delivery, "codex")
             inject = delivery["inject"] is True and bool(envelope)
