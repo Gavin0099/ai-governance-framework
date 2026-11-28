@@ -9,11 +9,18 @@ This folder is home. Treat it that way.
 
 ## Every Session
 
-Before doing anything else:
-1. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-2. **If in MAIN SESSION** (direct chat with your human): Also read `memory/00_long_term.md`
+Use `governance/SYSTEM_PROMPT.md` §2.2, §3.3–3.4:
 
-Don't ask permission. Just do it.
+- Main Session: read `SYSTEM_PROMPT.md`, `PLAN.md` (when present), and
+  `memory/01_active_task.md` or verified session-start state.
+- Read `memory/00_long_term.md` and recent daily logs only when needed for continuity.
+- L0: no preload of workflow/knowledge memory or Tier-1 docs; load only for
+  task scope or escalation. L1/L2 use §3.3 triggers.
+- Subagents use the parent's explicit brief. MUST NOT re-read long-term/daily
+  memory or unrelated governance docs unless explicitly scoped into the task.
+- Context reset/compaction: reload `governance/SYSTEM_PROMPT.md` before
+  `[Governance Contract]`; re-anchor active task/checkpoint and re-verify current
+  `PLAN.md` boundary, without full historical logs.
 
 ## Governance Contract Output (MANDATORY)
 
