@@ -59,17 +59,36 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kern
 
 ### 2.2 Memory Sync
 
-讀取 project plan 與 `memory/` 目錄來同步 project state：
+Use the minimum startup read set for the session role; this is not an instruction
+to preload the entire `memory/` directory.
 
-| File | Purpose |
+**Main Session** (direct chat with the owner): read `governance/SYSTEM_PROMPT.md`,
+`PLAN.md` when present, and `memory/01_active_task.md` or verified session-start state.
+Verified state must identify the repo/branch, active task/checkpoint, and current PLAN boundary.
+If that state is missing, stale, or conflicting, check the current active-task file
+and PLAN rather than assuming the handoff is current. Read `memory/00_long_term.md`
+and recent daily logs (`memory/YYYY-MM-DD.md`, e.g. today/yesterday) only when needed for continuity,
+not for every trivial lookup. Load only the relevant continuity entries.
+
+**Subagents** start from the parent's explicit brief: task boundary, allowed files,
+checkpoint, current PLAN boundary, and relevant evidence. Use `SYSTEM_PROMPT.md`
+already present in inherited context; otherwise load it. Read PLAN directly only
+when explicitly scoped or when the supplied boundary is missing, stale, or conflicting.
+Subagents MUST NOT re-read `memory/00_long_term.md`, daily logs (`memory/YYYY-MM-DD.md`),
+or unrelated governance docs unless explicitly scoped into the task.
+Load task-relevant governance under §3.3; the brief does not grant new authority.
+
+The following memory files are on-demand for both roles, not a startup checklist.
+L1/L2 does not mean preloading every memory file; use aliases only if this repo has adopted
+the §6.1 alias schema.
+
+| File | Read trigger |
 |---|---|
-| `PLAN.md` | 當前 sprint focus、phase status、anti-goals |
-| `memory/01_active_task.md` | 當前 active state |
-| `memory/02_workflow.md` | workflow 與 toolchain 事實 |
-| `memory/02_project_facts.md` | external-domain factual baseline 的 accepted alias |
-| `memory/03_knowledge_base.md` | troubleshooting 與 anti-pattern |
-| `memory/03_decisions.md` | external-domain decision record 的 accepted alias |
-| `memory/04_validation_log.md` | external-domain validation history 的 accepted alias |
+| `memory/02_workflow.md` | Only when task scope needs workflow or toolchain facts |
+| `memory/02_project_facts.md` | Adopted alias; only when external-domain facts are needed |
+| `memory/03_knowledge_base.md` | Only when troubleshooting, review, or task scope needs known gotchas |
+| `memory/03_decisions.md` | Adopted alias; only when relevant decisions are needed |
+| `memory/04_validation_log.md` | Adopted alias; only when relevant validation history is needed |
 
 `PLAN.md` 是 planned work、phase status、anti-goals 的 single source of truth。
 不要讓平行的 long-range plan 檔案和它漂移。
@@ -88,6 +107,21 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kern
 - **Feature expansion** -> 實作前先 escalate
 - **Adjacent engineering work** -> 若 bounded 且低風險，可直接做
 - **Boundary / risk crossing** -> 依 risk policy escalate 或 stop
+
+### 2.2.1 Context Reset / Compaction Recovery
+
+After a context reset/compaction, reload `governance/SYSTEM_PROMPT.md` before any
+`[Governance Contract]` output; this is mandatory before emitting a new contract.
+Do not reuse the prior contract or infer `LOADED` from a summary. If the canonical
+document cannot be loaded, emit `[Governance Contract: UNAVAILABLE]` as specified
+by the entry surface; do not claim it was read.
+
+Main Session: re-anchor active task/checkpoint from verified current state or
+`memory/01_active_task.md`, and re-verify current `PLAN.md` boundary when present,
+without full historical logs. Subagents re-anchor to the explicit brief and
+confirm its PLAN boundary; obtain missing state from the parent or the scoped
+current files. This restores context, not authorization. Continuity history
+remains conditional under §2.2, not an automatic recovery read set.
 
 ### 2.3 Pre-Exploration Gate
 
@@ -253,11 +287,11 @@ repo-local governance 真相應維持單一邊界，不應讓 workspace 層、ad
 
 | Tier | Document | Condition |
 |---|---|---|
-| 0 | `SYSTEM_PROMPT.md` | Every conversation |
-| 0 | `PLAN.md` | Every conversation when present |
-| 1 | `AGENT.md` | All non-trivial tasks |
-| 1 | `ARCHITECTURE.md` | New features, refactors, boundary changes |
-| 1 | `TESTING.md` | Behavior, build, regression, or baseline risk |
+| 0 | `SYSTEM_PROMPT.md` | Every conversation; inherited loaded context may be reused, but reset/compaction requires reload (§2.2.1) |
+| 0 | `PLAN.md` | Main Session when present; subagents use the brief's current boundary, read for scoped work or missing/stale/conflicting boundary; recovery re-verifies it (§2.2.1) |
+| 1 | `AGENT.md` | L1/L2 engineering tasks; L0 only for task scope or escalation |
+| 1 | `ARCHITECTURE.md` | New features, refactors, boundary changes, or L2 critical work |
+| 1 | `TESTING.md` | Behavior, build, regression, or baseline risk; test authoring under §2.5.1; L2 critical work |
 | 1 | `REVIEW_CRITERIA.md` | `SCOPE = review` |
 | 1 | `MEMORY_PROTOCOL.md` | Memory write, memory correction, post-push memory, or memory completion claims |
 | 1 | `RESPONSE_ENVELOPE_CONTRACT.md` | Final report, closeout, or result envelope |
@@ -272,11 +306,19 @@ metadata remains `human-only` / `never`.
 
 ### 3.4 L0 Fast-Track Interpretation
 
-當 task 確實是 `L0`：
-- 使用 `AGENT.md` 裡的 lightweight fast-track path
-- 不要強套完整 `L1+` phase-gate ceremony
-- verification 只要求 `TESTING.md` 中比例相稱的部分
-- 一旦出現 behavior、schema、boundary、或 trade-off ambiguity，就立刻升級
+For a clearly bounded lookup or presentation-only, behavior-neutral task:
+- Do not preload `memory/02_workflow.md`, `memory/03_knowledge_base.md`,
+  `memory/00_long_term.md`, or Tier-1 `AGENT.md`, `ARCHITECTURE.md`, `TESTING.md`.
+  Load them only for task scope or escalation under §2.2 / §3.3.
+- State the bounded surface and why it remains trivial; make the minimum change
+  and use one proportionate lightweight verification. Do not impose the full
+  L1+ phase-gate ceremony or require Tier-1 reads just to use this fast track.
+- If behavior, schema, boundary, or trade-off ambiguity appears, escalate to L1/L2
+  and load the applicable documents before engineering execution. Classification
+  uncertainty is not a reason to assume L0; `AGENT.md` remains its authority.
+
+Startup read selection never relaxes Owner Gate, Agent Core Rules,
+Session-End Closeout, Governance Contract output, or task-triggered safety rules.
 
 ---
 
