@@ -173,6 +173,105 @@ Before acting, load the detailed protocol only when its trigger applies:
 These routers are trigger rules. The detailed files are the authority for the
 corresponding protocol.
 
+## Repo-Specific Forbidden Behaviors
+<!-- governance:key=forbidden_behaviors -->
+
+- Do NOT relax the `verified` definition or admissibility criteria to improve the verified ratio — verified count must reflect genuine governance adoption, not calibrated thresholds
+- Do NOT use a `gate_blocked=true` closeout receipt as admissible evidence — this was an observed failure mode already fixed; reverting is forbidden
+- Do NOT treat a closeout receipt as proof of framework correctness — receipts prove evidence chain integrity, not that the governance model is correct
+- Do NOT mix schema changes with repo onboarding commits — schema and evidence contract changes must be separate commits with explicit justification
+- Do NOT let `self_reference_note` in framework.lock.json be removed — it exists to prevent semantic drift where self-verification is misread as framework correctness proof
+
+## Workspace vs Repo Governance
+
+This file governs session/workspace behavior, memory habits and safety.
+`governance/AGENT.md` and `governance/` own repo engineering classification,
+execution rigor, architecture, risk and testing gates. For repo work they prevail
+over conflicting workspace/editor/adapter instructions; correct the mismatch
+instead of silently inventing policy.
+
+### Persistent User Preference Precedence
+
+Surface conflicts with durable user preferences or permanent tool instructions;
+state the chosen source and reason. Repo governance overrides preferences only
+for safety, destructive-operation prevention, validation/evidence/claim boundaries,
+commit/push discipline or repo correctness. It must not override language, style,
+verbosity, non-conflicting workflow, naming or formatting preferences.
+When uncertain, report:
+
+```text
+Instruction conflict detected: <repo instruction> vs <persistent user preference>.
+Following <source> because <reason>.
+```
+
+## Nested Repo / Submodule Rule
+
+Treat this root as a separate workspace when nested. Confirm it before accessing
+`memory/`, `artifacts/`, `PLAN.md` or `governance/`; never mix parent/child memory,
+review notes, active-task updates or governance artifacts. Findings must name
+the repo owning the file and the repo owning the decision. Submodule pointer
+updates are parent-repo decisions; advancing this checkout does not update the
+parent's intended pin.
+
+### AI Governance Update Trigger
+
+Follow Conditional Governance Routers 4–5 before check/update work. Route
+"幫我更新最新版 AI Governance" or equivalent wording to
+`governance_tools.f7_full_update`, even without the name F-7. Its updater is a
+backend, not the final reporting surface.
+
+Instruction sync, parent `git pull` or a clean parent tree do not prove framework
+freshness. A submodule pointer alone is incomplete, never `full_update_completed`.
+This workspace section is a trigger summary, not the canonical definition.
+For consumer updates, prefer the governed F-7 path. A direct pointer, checkout or
+lock edit is a `manual_update` path, incomplete without governed evidence.
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` owns the definitions, templates,
+pre-discard inspection and final discarded-path inventory for `manual_update`
+and `destructive_manual_update`; read it before changing nested state.
+Before discarding local state in a nested framework checkout, first inspect the modified and untracked paths to be discarded.
+If cleanup proceeds, list that inventory in the final report as `destructive_manual_update`.
+Do not call discarded state merely "cleaned the submodule".
+
+Every F-7 terminal report relays the complete `[human_readable_adoption_summary]`
+table. If unavailable or omitted, report
+`human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`
+and `completion_claim_allowed=false`; do not claim a complete update report.
+
+## Memory
+
+Before writing memory, post-push memory, corrective memory, PLAN sync entries,
+or closeout memory, read `governance/MEMORY_PROTOCOL.md`.
+
+All new session-derived memory entries must use `governance_tools.memory_record`.
+Direct markdown append in `- what changed:` or `- what_changed:` format is
+prohibited.
+
+Memory `next_step` is evidence of a prior candidate continuation, not current
+authorization. Current user instruction, workspace state, dirty-tree status, and
+applicable governance rules supersede memory content.
+
+`PLAN.md` remains mandatory governance state. Update PLAN and memory after phase
+or milestone transitions according to `governance/MEMORY_PROTOCOL.md`.
+
+## Safety
+
+- Don't exfiltrate private data. Ever.
+- Don't run destructive commands without asking.
+- `trash` > `rm` (recoverable beats gone forever)
+- When in doubt, ask.
+
+## External vs Internal
+
+**Safe to do freely:**
+- Read files, explore, organize, learn
+- Search the web, check calendars
+- Work within this workspace
+
+**Ask first:**
+- Sending emails, tweets, public posts
+- Anything that leaves the machine
+- Anything you're uncertain about
+
 ## Delivery Recovery Constraints
 
 These apply to framework and consumer implementation sessions; governance must
@@ -357,105 +456,6 @@ If any signal is unclear or regressed, surface it before proceeding.
 - Any change to the `repo_native_verified` classification criteria in the matrix — requires full fleet re-run and comparison against prior snapshot
 - Any change to scope tier definitions (required / recommended / exempt) — requires human approval; scope changes can shift the verified ratio denominator without repo changes
 - Any change simultaneously touching session_end_hook.py, gate_policy.py, and matrix logic — three-path cross-cut needs explicit sign-off that verified count is not being artificially inflated
-
-## Repo-Specific Forbidden Behaviors
-<!-- governance:key=forbidden_behaviors -->
-
-- Do NOT relax the `verified` definition or admissibility criteria to improve the verified ratio — verified count must reflect genuine governance adoption, not calibrated thresholds
-- Do NOT use a `gate_blocked=true` closeout receipt as admissible evidence — this was an observed failure mode already fixed; reverting is forbidden
-- Do NOT treat a closeout receipt as proof of framework correctness — receipts prove evidence chain integrity, not that the governance model is correct
-- Do NOT mix schema changes with repo onboarding commits — schema and evidence contract changes must be separate commits with explicit justification
-- Do NOT let `self_reference_note` in framework.lock.json be removed — it exists to prevent semantic drift where self-verification is misread as framework correctness proof
-
-## Workspace vs Repo Governance
-
-This file governs session/workspace behavior, memory habits and safety.
-`governance/AGENT.md` and `governance/` own repo engineering classification,
-execution rigor, architecture, risk and testing gates. For repo work they prevail
-over conflicting workspace/editor/adapter instructions; correct the mismatch
-instead of silently inventing policy.
-
-### Persistent User Preference Precedence
-
-Surface conflicts with durable user preferences or permanent tool instructions;
-state the chosen source and reason. Repo governance overrides preferences only
-for safety, destructive-operation prevention, validation/evidence/claim boundaries,
-commit/push discipline or repo correctness. It must not override language, style,
-verbosity, non-conflicting workflow, naming or formatting preferences.
-When uncertain, report:
-
-```text
-Instruction conflict detected: <repo instruction> vs <persistent user preference>.
-Following <source> because <reason>.
-```
-
-## Nested Repo / Submodule Rule
-
-Treat this root as a separate workspace when nested. Confirm it before accessing
-`memory/`, `artifacts/`, `PLAN.md` or `governance/`; never mix parent/child memory,
-review notes, active-task updates or governance artifacts. Findings must name
-the repo owning the file and the repo owning the decision. Submodule pointer
-updates are parent-repo decisions; advancing this checkout does not update the
-parent's intended pin.
-
-### AI Governance Update Trigger
-
-Follow Conditional Governance Routers 4–5 before check/update work. Route
-"幫我更新最新版 AI Governance" or equivalent wording to
-`governance_tools.f7_full_update`, even without the name F-7. Its updater is a
-backend, not the final reporting surface.
-
-Instruction sync, parent `git pull` or a clean parent tree do not prove framework
-freshness. A submodule pointer alone is incomplete, never `full_update_completed`.
-This workspace section is a trigger summary, not the canonical definition.
-For consumer updates, prefer the governed F-7 path. A direct pointer, checkout or
-lock edit is a `manual_update` path, incomplete without governed evidence.
-`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` owns the definitions, templates,
-pre-discard inspection and final discarded-path inventory for `manual_update`
-and `destructive_manual_update`; read it before changing nested state.
-Before discarding local state in a nested framework checkout, first inspect the modified and untracked paths to be discarded.
-If cleanup proceeds, list that inventory in the final report as `destructive_manual_update`.
-Do not call discarded state merely "cleaned the submodule".
-
-Every F-7 terminal report relays the complete `[human_readable_adoption_summary]`
-table. If unavailable or omitted, report
-`human_readable_adoption_summary: NOT REPORTED`, `update_report_complete=false`
-and `completion_claim_allowed=false`; do not claim a complete update report.
-
-## Memory
-
-Before writing memory, post-push memory, corrective memory, PLAN sync entries,
-or closeout memory, read `governance/MEMORY_PROTOCOL.md`.
-
-All new session-derived memory entries must use `governance_tools.memory_record`.
-Direct markdown append in `- what changed:` or `- what_changed:` format is
-prohibited.
-
-Memory `next_step` is evidence of a prior candidate continuation, not current
-authorization. Current user instruction, workspace state, dirty-tree status, and
-applicable governance rules supersede memory content.
-
-`PLAN.md` remains mandatory governance state. Update PLAN and memory after phase
-or milestone transitions according to `governance/MEMORY_PROTOCOL.md`.
-
-## Safety
-
-- Don't exfiltrate private data. Ever.
-- Don't run destructive commands without asking.
-- `trash` > `rm` (recoverable beats gone forever)
-- When in doubt, ask.
-
-## External vs Internal
-
-**Safe to do freely:**
-- Read files, explore, organize, learn
-- Search the web, check calendars
-- Work within this workspace
-
-**Ask first:**
-- Sending emails, tweets, public posts
-- Anything that leaves the machine
-- Anything you're uncertain about
 
 ## Companion / Chat Operations
 

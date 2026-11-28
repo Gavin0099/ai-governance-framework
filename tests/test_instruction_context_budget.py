@@ -3,11 +3,16 @@
 from datetime import date
 from pathlib import Path
 import json
+import re
 import sys
 
 import pytest
 
-from governance_tools.instruction_context_budget import measure_codex_project_doc
+from governance_tools.instruction_context_budget import (
+    OBSERVED_ANTIGRAVITY_SESSION_TRUNCATION_BYTES,
+    antigravity_truncation_advisories,
+    measure_codex_project_doc,
+)
 from governance_tools import governance_drift_checker as drift
 from governance_tools.hook_installer import _codex_project_doc_budget
 
@@ -81,6 +86,84 @@ def test_framework_root_agents_fits_on_disk_and_with_crlf():
 
     assert report["over_budget"] is False, report
     assert report["over_budget_with_crlf"] is False, report
+
+
+@pytest.mark.parametrize("bom", [b"", b"\xef\xbb\xbf"], ids=["no-bom", "bom"])
+@pytest.mark.parametrize("ending", [b"", b"\n", b"\r\n"], ids=["no-newline", "lf", "crlf"])
+@pytest.mark.parametrize("size", [23876, 23877, 23878])
+def test_antigravity_observed_boundary_counts_raw_bytes(bom, ending, size):
+    prefix = bom + "規則".encode("utf-8")
+    payload = prefix + b"x" * (size - len(prefix) - len(ending)) + ending
+
+    advisories = antigravity_truncation_advisories(payload)
+
+    assert OBSERVED_ANTIGRAVITY_SESSION_TRUNCATION_BYTES == 23877
+    if size == 23878:
+        assert advisories == [
+            "Instruction payload is 23878 bytes on disk, exceeding the observed "
+            "Antigravity session truncation threshold of 23877 bytes; tail instructions "
+            "may be omitted. This is an observed session threshold, not a universal "
+            "Antigravity specification. Advisory only; Codex's 32768-byte budget "
+            "and pass/fail results are unchanged."
+        ]
+    else:
+        assert advisories == []
+
+
+@pytest.mark.parametrize(
+    "size, over_budget, overflow",
+    [(23878, False, 0), (32768, False, 0), (32769, True, 1)],
+)
+def test_antigravity_advisory_does_not_change_codex_budget(size, over_budget, overflow):
+    payload = b"x" * size
+
+    assert antigravity_truncation_advisories(payload)
+    assert measure_codex_project_doc(payload) == {
+        "budget_bytes": 32768,
+        "budget_source": "codex_default_project_doc_max_bytes",
+        "on_disk_bytes": size,
+        "crlf_worst_case_bytes": size,
+        "overflow_bytes": overflow,
+        "crlf_worst_case_overflow_bytes": overflow,
+        "over_budget": over_budget,
+        "over_budget_with_crlf": over_budget,
+    }
+
+
+def test_antigravity_empty_payload_has_no_advisory():
+    assert antigravity_truncation_advisories(b"") == []
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        b"## Repo-Specific Forbidden Behaviors",
+        b"## Workspace vs Repo Governance",
+        b"## Nested Repo / Submodule Rule",
+        b"## Memory",
+        b"## Safety",
+        b"## External vs Internal",
+    ],
+)
+def test_framework_critical_sections_end_before_23000_bytes(heading):
+    # The whole section must survive, including nested headings and final rules
+    # (self_reference_note, preference precedence and destructive-update inventory).
+    payload = (Path(__file__).resolve().parents[1] / "AGENTS.md").read_bytes()
+    match = re.search(rb"^" + re.escape(heading) + rb"\r?$", payload, re.MULTILINE)
+    assert match is not None, heading
+    start = match.start()
+    following = re.search(rb"^## ", payload[start + 1:], re.MULTILINE)
+    end = start + 1 + following.start() if following else len(payload)
+
+    assert end < 23000, (heading, start, end)
+
+
+@pytest.mark.parametrize("projection", ["checkpoint-projection", "agent-core-rules", "session-end-closeout"])
+def test_framework_canonical_projections_end_before_23000_bytes(projection):
+    payload = (Path(__file__).resolve().parents[1] / "AGENTS.md").read_bytes()
+    marker = f"<!-- ai-governance:{projection} END -->".encode("ascii")
+
+    assert payload.index(marker) + len(marker) < 23000
 
 
 @pytest.mark.parametrize("bom", [b"", b"\xef\xbb\xbf"], ids=["no-bom", "bom"])
